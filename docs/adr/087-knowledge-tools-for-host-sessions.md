@@ -61,3 +61,44 @@ known defects in the path of the work meant to fix them.
   directory whose blind-spot line names an unresolved class — and
   observe whether the tools are called and whether they change the
   edit.
+
+## First observation (2026-08-24, the rename probe)
+
+Run the same day in a fresh headless session (`claude -p`, Claude Code
+2.1.241, this repo's `.mcp.json`, permission mode acceptEdits, prompt:
+rename `hobbes.extract.ingest` → `ingest_repo`, update callers, run the
+covering tests, report how the callers were found — **nothing in the
+prompt named the tools**). Session id `host-knowledge`; the three tool
+calls are in its flight log at 18:41:11–12Z.
+
+- **The agent reached for the tools unprompted, first** — turn ~2,
+  before any grep: `who_calls hobbes.extract.ingest`, then
+  `tests_guarding hobbes.extract`, then `list_blind_spots
+  pipeline/src/hobbes/extract`. Three calls total; none repeated.
+- **`who_calls` was complete and precise**: 9 call edges + 5
+  non-call references across the four caller files, including the
+  two *function-local* imports in `tests/test_tssource.py`
+  (`:550`, `:572`) — exactly the hits a word-grep for `ingest`
+  (CLI verb, subcommand, `_cmd_ingest`, docstrings, BUILDLOG) buries.
+  Verified after the run by re-issuing the call.
+- **The blind-spot line changed behaviour, the way it is meant to**:
+  the agent cited C-1 (dynamic dispatch / calls through values) as the
+  reason it did *not* trust the graph alone and ran a cross-check grep,
+  which found the same callers plus the docstring `:func:` references
+  the graph does not model. Graph for callers, grep for prose — the
+  division the tools' descriptions argue for, arrived at by the agent.
+- **`tests_guarding` was used to scope the run**: targeted 138 tests
+  first (test_emit, test_tssource, test_cli, test_bench), then the full
+  suite.
+- Result: 5 files, 19 lines, correct; 895/896 pass — the one failure
+  (`test_scipsource … test_venv_environment_lists_the_venvs_own_distributions`)
+  fails identically on clean `main` and was correctly attributed to the
+  environment. 32 turns, 131 s, $1.44. The edits were discarded — the
+  rename was the probe, not a wanted change.
+- Honest scope of the observation: n = 1, a frontier model, a task the
+  tools are built for. It says the tools are *reached for* and *change
+  the work* under those conditions; it says nothing about weaker
+  models (the 7B never called one) or about tasks where the graph's
+  answer is wrong. `git status`/`git diff` were outside the probe's
+  allowlist, so the agent's file list came from its own edits — a
+  harness detail, not a Hobbes one.

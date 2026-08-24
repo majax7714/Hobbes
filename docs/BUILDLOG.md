@@ -4853,3 +4853,17 @@ and 92.4% of 631 sites; every call recorded under
 capture — the ts/js figure matches the private repo's. Go suite +1
 (`TestKnowledgeOnlySurface`). Validation task proposed in the ADR, not
 run.
+
+### 2026-08-24 (eighty-second, addendum) — ADR-087's first observation: the rename probe
+
+Fresh headless session, neutral prompt (rename `hobbes.extract.ingest`
+→ `ingest_repo`, fix callers, run tests). The agent called `who_calls`,
+`tests_guarding`, `list_blind_spots` at turn ~2, unprompted, before
+any grep; `who_calls` returned all 9 call edges + 5 import references
+including the two function-local imports in `test_tssource.py`
+(verified by re-issuing the call); the C-1 line in `list_blind_spots`
+made it run a cross-check grep rather than trust the graph alone —
+which found only the docstring `:func:` references the graph does not
+model. 5 files / 19 lines correct, 895/896 (the one failure is
+pre-existing on `main`, environment). 32 turns, 131 s, $1.44. Edits
+discarded, branch deleted. Full record in ADR-087.
