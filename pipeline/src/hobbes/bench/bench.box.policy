@@ -1,0 +1,158 @@
+# Benchmark session policy (ADR-057) — the floor a solo agent runs under
+# on the benchmark path, passed to `hobbes-session --box`.
+#
+# Why this exists: a benchmark checkout is a committed-only clone, so the
+# repo and role policies (untracked under .hobbes/) never reach the
+# session's worktree — only the derived agent policy (default escalate)
+# and this floor apply. There is no human to approve escalations
+# (benchmarks run Hobbes alone), so a command that is neither allowed
+# nor denied parks and then expire-denies, which stalls the run and
+# starves the arm under test. This policy grants a solo implementer
+# exactly what it must do inside the already-sealed sandbox — run the
+# repo's tests and commit its work — while the specific guarantees stay
+# denied and win by deny-overrides (P10, ADR-036).
+#
+# The OS sandbox is the real boundary (§5.2): no network beyond the
+# model endpoint, worktree-only mounts, no secrets in env. This file
+# only decides which shell commands the proxy will run; it cannot widen
+# what the sandbox already forbids.
+version: 1
+scope: box
+default: escalate
+
+rules:
+  # --- specific guarantees, first: deny-overrides makes these final ---
+  - pattern: "*.tfstate*"
+    decision: deny
+    reason: "tfstate carries secrets (I-1)"
+  - pattern: "git push*"
+    decision: deny
+    reason: "pushes are the human's — a benchmark session commits, never publishes"
+  - pattern: "git add *.hobbes/derived*"
+    decision: deny
+    reason: "derived is regenerable, never committed (P1)"
+
+  # --- what a solo implementer needs to run the tests ---
+  - pattern: "pytest*"
+    decision: allow
+  - pattern: "python -m pytest*"
+    decision: allow
+  - pattern: "python3 -m pytest*"
+    decision: allow
+  - pattern: "uv run pytest*"
+    decision: allow
+  - pattern: "python -m unittest*"
+    decision: allow
+  - pattern: "python3 -m unittest*"
+    decision: allow
+  - pattern: "tox*"
+    decision: allow
+  - pattern: "go test*"
+    decision: allow
+  - pattern: "cargo test*"
+    decision: allow
+  - pattern: "npm test*"
+    decision: allow
+  # verification one-liners and helper scripts a model reaches for
+  - pattern: "python -c *"
+    decision: allow
+  - pattern: "python3 -c *"
+    decision: allow
+  - pattern: "python *"
+    decision: allow
+  - pattern: "python3 *"
+    decision: allow
+  # in-session dependency install: the sandbox has no host secrets and
+  # network is the model endpoint's; a benchmark env may need its deps
+  - pattern: "pip install*"
+    decision: allow
+  - pattern: "pip3 install*"
+    decision: allow
+  - pattern: "python -m pip install*"
+    decision: allow
+  # read-only environment questions: a 5 s expire-to-deny on `pip show
+  # numpy` cost a session in the first full-stage probe (U9)
+  - pattern: "pip show*"
+    decision: allow
+  - pattern: "pip3 show*"
+    decision: allow
+  - pattern: "pip list*"
+    decision: allow
+  - pattern: "pip3 list*"
+    decision: allow
+  - pattern: "pip freeze*"
+    decision: allow
+  - pattern: "python -m pip show*"
+    decision: allow
+  - pattern: "python -m pip list*"
+    decision: allow
+  - pattern: "which *"
+    decision: allow
+
+  # --- committing the work (single and compound forms both match) ---
+  - pattern: "git add*"
+    decision: allow
+  - pattern: "git commit*"
+    decision: allow
+  - pattern: "git status*"
+    decision: allow
+  - pattern: "git diff*"
+    decision: allow
+  - pattern: "git log*"
+    decision: allow
+  - pattern: "git show*"
+    decision: allow
+  - pattern: "git restore*"
+    decision: allow
+  - pattern: "git checkout -- *"
+    decision: allow
+  - pattern: "git stash*"
+    decision: allow
+
+  # --- read-only orientation on the tree ---
+  - pattern: "ls*"
+    decision: allow
+  - pattern: "cat*"
+    decision: allow
+  - pattern: "head*"
+    decision: allow
+  - pattern: "tail*"
+    decision: allow
+  - pattern: "grep*"
+    decision: allow
+  - pattern: "rg*"
+    decision: allow
+  - pattern: "find*"
+    decision: allow
+  - pattern: "sed -n *"
+    decision: allow
+  - pattern: "make*"
+    decision: allow
+  # read-only text filters a model pipes test output through — now that a
+  # compound command is resolved per segment (ADR-075), the pipe target is
+  # policy-checked too, so the harmless filters must be named or an
+  # allowed `pytest … | tr …` escalates (C-54)
+  - pattern: "tr *"
+    decision: allow
+  - pattern: "wc*"
+    decision: allow
+  - pattern: "awk *"
+    decision: allow
+  - pattern: "sort*"
+    decision: allow
+  - pattern: "uniq*"
+    decision: allow
+  - pattern: "cut *"
+    decision: allow
+  - pattern: "xargs*"
+    decision: allow
+  - pattern: "tee *"
+    decision: allow
+  - pattern: "echo*"
+    decision: allow
+  - pattern: "true"
+    decision: allow
+  - pattern: "diff *"
+    decision: allow
+  - pattern: "wc *"
+    decision: allow

@@ -1,0 +1,14 @@
+{
+  "name": "hobbes-tsextract",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Hobbes TS/JS facts extractor (ADR-021): ts-morph walk emitting deterministic facts JSON for the Python pipeline",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "ts-morph": "^27.0.0"
+  }
+}

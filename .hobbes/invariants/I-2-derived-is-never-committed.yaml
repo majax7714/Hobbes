@@ -1,0 +1,17 @@
+# Promoted from INF-2 (M5 inferred set), 2026-08-11 — proposed, awaiting
+# Max's confirmation.
+id: I-2
+statement: >-
+  Artifacts under .hobbes/derived/ are regenerable pipeline output and are
+  never committed. The repo policy denies `git add` of that path, ingest
+  writes the gitignore entry, and provenance lives in the SHA stamp rather
+  than in version control.
+scope: .hobbes/derived
+status: confirmed
+# Soft: the claim is about what git tracks, which none of the four
+# targets can see.
+check: soft
+guarded_by:
+  - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_appends_without_clobbering
+  - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_target_repo_gets_whole_dir_ignored
+  - pipeline/tests/test_emit.py::TestEnsureHobbesIgnored::test_tracked_hobbes_content_is_respected

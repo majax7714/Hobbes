@@ -1,0 +1,32 @@
+# Promoted from INF-5 (M5 inferred set), 2026-08-11 — proposed, awaiting
+# Max's confirmation.
+id: I-5
+statement: >-
+  Cartographer output reaches disk only through hobbes.narrate.schema's
+  validating writers. A payload that fails validation, or carries a pin
+  that does not resolve to a real line, writes nothing — an unverifiable
+  claim must not become an artifact (ADR-019).
+scope: pipeline/src/hobbes/narrate
+status: confirmed
+# emit: source patterns live in the AST, which the graph does not carry —
+# the unified checker answers `unknown` here and semgrep is the checker
+# of record (ADR-039).
+check: emit
+rule:
+  kind: pattern-absent
+  languages: [python]
+  paths:
+    - pipeline/src/hobbes/narrate
+  exclude:
+    # schema.py is the validating writer; it is the one place that may.
+    - pipeline/src/hobbes/narrate/schema.py
+  patterns:
+    - "$P.write_text(...)"
+    - "$P.write_bytes(...)"
+    - "open($P, 'w')"
+    - 'open($P, "w")'
+compile:
+  target: semgrep
+guarded_by:
+  - pipeline/tests/test_narrate.py::TestWriteModuleDoc::test_invalid_payload_writes_nothing
+  - pipeline/tests/test_narrate.py::TestWriteModuleDoc::test_unsafe_id_refused

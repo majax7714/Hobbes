@@ -1,0 +1,23 @@
+# Hobbes session image (M4, ADR-018) — the rootless sandbox an agent
+# session runs in. Deliberately small: a base plus git (worktree ops and
+# the proxy's HEAD reads), python3 (the exit-check scripted implementer),
+# and the statically-linked policy proxy. The agent runtime (Claude Code /
+# Node) is mounted from the host at run time by `hobbes-session`, not baked
+# in, so its version stays host-managed.
+#
+# Build (from the go/ module, after building the static proxy):
+#   CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
+#   podman build -t hobbes-session:local -f Containerfile ..
+#
+# The proxy is a static binary, so any libc-free base works.
+FROM docker.io/library/alpine:3.20
+
+RUN apk add --no-cache git python3
+
+# The static proxy (built with CGO_ENABLED=0). hobbes-session also mounts
+# the current build over this at run time, so an image rebuild is never on
+# the critical path during development.
+COPY hobbes-proxy /usr/local/bin/hobbes-proxy
+
+# No ENTRYPOINT: hobbes-session supplies the in-sandbox command (Claude
+# Code by default, or a scripted implementer for the exit check).

@@ -1,0 +1,14 @@
+# Role policy: verifier (ADR-054). Reads the integrated result and
+# reports; its worktree is mounted read-only, so every write is denied
+# here too — a refusal with a reason beats a confusing EROFS.
+version: 1
+scope: role
+default: escalate
+
+rules:
+  - pattern: "git commit*"
+    decision: deny
+    reason: "a verifier reports; it does not change the tree"
+  - pattern: "git add *"
+    decision: deny
+    reason: "a verifier reports; it does not change the tree"

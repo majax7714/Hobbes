@@ -1,0 +1,29 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.0",
+  "configuration": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_cloudwatch_log_group.worker",
+          "mode": "managed",
+          "type": "aws_cloudwatch_log_group",
+          "name": "worker",
+          "expressions": {
+            "name": {
+              "references": [
+                "aws_lambda_function.worker.function_name",
+                "aws_lambda_function.worker"
+              ]
+            },
+            "tags": {
+              "environment": {
+                "references": ["var.stage"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

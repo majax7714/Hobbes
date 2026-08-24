@@ -1,0 +1,51 @@
+# Hobbes's own repo policy — dogfooding the M0 engine. Format: ADR-001;
+# semantics: ADR-002. Enforcement arrives with the M4 proxy; until then this
+# file is exercised by `hobbes policy resolve` and keeps the engine honest.
+version: 1
+scope: repo
+default: escalate
+
+rules:
+  # Terraform state carries secrets: never read, written, or shipped.
+  - pattern: "*.tfstate*"
+    decision: deny
+    reason: "tfstate carries secrets (architecture §3.1)"
+
+  # Derived artifacts are regenerated, never committed (P1).
+  - pattern: "git add *.hobbes/derived*"
+    decision: deny
+    reason: "never commit .hobbes/derived/ — regenerable pipeline output"
+
+  # Publishing is Max's, never a session's. Pushing is not a capability
+  # an agent needs: work lands as commits on a branch and Max pushes it
+  # after review. Denied outright rather than escalated — an escalation
+  # invites the question, and there is no answer that should be yes.
+  # (Force-push stays listed for the reason it names; the general deny
+  # below already covers it.)
+  - pattern: "git push --force*"
+    decision: deny
+    reason: "no force-push to the canonical repo"
+  - pattern: "git push -f*"
+    decision: deny
+    reason: "no force-push to the canonical repo"
+  - pattern: "git push*"
+    decision: deny
+    reason: "pushes are the human's — sessions commit, Max publishes"
+
+  # Read-only and build/test commands run freely.
+  - pattern: "git status*"
+    decision: allow
+  - pattern: "git log*"
+    decision: allow
+  - pattern: "git diff*"
+    decision: allow
+  - pattern: "go test*"
+    decision: allow
+  - pattern: "go build*"
+    decision: allow
+  - pattern: "go vet*"
+    decision: allow
+  - pattern: "uv run pytest*"
+    decision: allow
+  - pattern: "uv sync*"
+    decision: allow

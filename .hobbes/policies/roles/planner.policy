@@ -1,0 +1,17 @@
+# Role policy: planner (harness restructure, phase 1; ADR-085). Reads the
+# repo and the derived context, decomposes the proposal into requirements
+# with owning files, and hands off — its worktree is mounted read-only and
+# its deliverable is a reflect handoff (requirements, files, symbols,
+# approach, tests to run). Every write is denied here too, so a refusal
+# carries a reason instead of an EROFS.
+version: 1
+scope: role
+default: escalate
+
+rules:
+  - pattern: "git commit*"
+    decision: deny
+    reason: "a planner plans; it does not change the tree"
+  - pattern: "git add *"
+    decision: deny
+    reason: "a planner plans; it does not change the tree"

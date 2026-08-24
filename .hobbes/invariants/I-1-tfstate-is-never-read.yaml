@@ -1,0 +1,18 @@
+# Promoted from INF-1 (M5 inferred set), 2026-08-11 — proposed, awaiting
+# Max's confirmation.
+id: I-1
+statement: >-
+  Terraform state is never read, written, or shipped by any Hobbes
+  component. The extractor consumes HCL and sanitized plan JSON only and
+  refuses tfstate lookalikes; the policy engine denies any command
+  touching *.tfstate*, as a builtin floor beneath every repo policy.
+scope: .
+status: confirmed
+# Soft: the rule spans a policy floor (Go), an extractor refusal
+# (Python), and a gitignore entry. No single target checks all three,
+# and a rule that checked one would read as a pass while the others
+# rotted.
+check: soft
+guarded_by:
+  - pipeline/tests/test_terraform.py::TestPlan::test_tfstate_lookalike_refused
+  - pipeline/tests/test_cli.py::TestIngest::test_tfstate_plan_refused

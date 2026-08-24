@@ -1,0 +1,660 @@
+/* Hobbes human surface — functional and dense.
+   One dark palette, hand-written, no component library: the surface is a
+   local review tool, and every pixel of chrome is a pixel not showing
+   the graph. */
+
+:root {
+  --bg: #14161a;
+  --panel: #1a1d23;
+  --panel-2: #1e2229;
+  --line: #2a2f38;
+  --text: #d6dae0;
+  --muted: #8b93a1;
+  --dim: #6b7280;
+  --accent: #7cc4ff;
+  --ok: #6ee7a0;
+  --warn: #f5c86b;
+  --bad: #ff8f8f;
+  --escalate: #c9a2ff;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--sans);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: #1b2733;
+}
+button.danger:hover:not(:disabled) {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+button.go:hover:not(:disabled) {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+select,
+input[type='search'] {
+  font: inherit;
+  color: inherit;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 3px 7px;
+}
+
+code,
+.mono {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- app shell ---------------------------------------------------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.repo {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.repo .sha {
+  color: var(--dim);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 10px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs button {
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  padding: 7px 14px;
+  color: var(--muted);
+}
+.tabs button:hover {
+  color: var(--text);
+}
+.tabs button.on {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+  background: none;
+}
+.tabs .count {
+  color: var(--dim);
+  font-size: 11px;
+  margin-left: 6px;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* --- shared bits --------------------------------------------------- */
+
+.badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.badge.fresh {
+  color: var(--ok);
+  border-color: #2b5f43;
+  background: #16241d;
+}
+.badge.stale {
+  color: var(--warn);
+  border-color: #6b5526;
+  background: #241f14;
+}
+.badge.broken,
+.badge.deny {
+  color: var(--bad);
+  border-color: #6b2f2f;
+  background: #241717;
+}
+.badge.info {
+  color: var(--accent);
+  border-color: #2c4a63;
+  background: #16202a;
+}
+.badge.muted {
+  color: var(--muted);
+  border-color: var(--line);
+  background: var(--panel-2);
+}
+.badge.escalate {
+  color: var(--escalate);
+  border-color: #4a3a68;
+  background: #1e1a29;
+}
+
+.pin {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--accent);
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  /* Symbol and test ids are long; they wrap rather than widening the
+     panel into a horizontal scroll. */
+  text-align: left;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.pin:hover {
+  text-decoration: underline;
+  background: none;
+  border: none;
+}
+
+.pins {
+  color: var(--dim);
+  font-size: 11.5px;
+}
+
+.empty {
+  padding: 28px;
+  color: var(--muted);
+  max-width: 46rem;
+}
+.empty h2 {
+  font-size: 15px;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+.empty code {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  color: var(--accent);
+}
+
+.err {
+  color: var(--bad);
+}
+
+.sidebar {
+  width: 320px;
+  flex: none;
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+  overflow: auto;
+  padding: 10px;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.inspector {
+  width: 380px;
+  flex: none;
+  border-left: 1px solid var(--line);
+  background: var(--panel);
+  overflow: auto;
+  padding: 12px;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+.section > h3 {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wrap {
+  flex-wrap: wrap;
+}
+
+ul.plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+ul.plain > li {
+  padding: 3px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.listitem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: none;
+  border-radius: 5px;
+  padding: 5px 8px;
+}
+.listitem:hover {
+  background: var(--panel-2);
+  border-color: var(--line);
+  color: inherit;
+}
+.listitem.on {
+  background: #1b2733;
+  border-color: #2c4a63;
+  color: inherit;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  font-size: 12.5px;
+}
+.kv dt {
+  color: var(--muted);
+}
+.kv dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* --- graph --------------------------------------------------------- */
+
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at 50% 40%, #191d24 0%, var(--bg) 70%);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid;
+}
+.swatch.module {
+  border-radius: 3px;
+}
+.swatch.env {
+  border-radius: 50%;
+}
+.swatch.tf {
+  transform: rotate(45deg);
+}
+.swatch.external {
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+/* --- tables -------------------------------------------------------- */
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+table.grid th {
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+}
+table.grid td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #20242b;
+  vertical-align: top;
+}
+table.grid tr:hover td {
+  background: #191d24;
+}
+.num {
+  text-align: right;
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+/* --- docs ---------------------------------------------------------- */
+
+.doc {
+  padding: 16px 20px;
+  max-width: 62rem;
+}
+.doc h1 {
+  font-size: 17px;
+  margin: 0 0 2px;
+  font-family: var(--mono);
+}
+.doc h2 {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 18px 0 6px;
+}
+.claim {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+.claim p {
+  margin: 0 0 2px;
+}
+
+/* --- diff ---------------------------------------------------------- */
+
+.patch {
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre;
+  overflow-x: auto;
+  padding: 0 0 24px;
+}
+.patch .file {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 5px 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+.patch .ln {
+  padding: 0 12px;
+}
+.patch .add {
+  background: #12251a;
+  color: #9be8b8;
+}
+.patch .del {
+  background: #2a1618;
+  color: #ffb3b3;
+}
+.patch .hunk {
+  color: var(--accent);
+  background: #171c24;
+}
+.patch .meta {
+  color: var(--dim);
+}
+
+/* --- source peek --------------------------------------------------- */
+
+.peek {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(760px, 62vw);
+  background: var(--panel);
+  border-left: 1px solid var(--line);
+  box-shadow: -14px 0 34px #0009;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+.peek header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.peek .code {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 8px 0 40vh;
+}
+.peek .code div {
+  display: flex;
+  white-space: pre;
+}
+.peek .code .no {
+  flex: none;
+  width: 4.5rem;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--dim);
+  user-select: none;
+}
+.peek .code .hit {
+  background: #23303d;
+}
+.peek .code .hit .no {
+  color: var(--accent);
+}
+
+/* --- sessions ------------------------------------------------------ */
+
+.flight {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.flight .ev {
+  display: grid;
+  grid-template-columns: 5.5rem 5.5rem 1fr auto;
+  gap: 10px;
+  padding: 3px 12px;
+  border-bottom: 1px solid #20242b;
+  align-items: baseline;
+}
+.flight .ev:hover {
+  background: #191d24;
+}
+.flight .allow {
+  color: var(--ok);
+}
+.flight .deny {
+  color: var(--bad);
+}
+.flight .escalate {
+  color: var(--escalate);
+}
+.flight .rule {
+  color: var(--dim);
+  font-size: 11px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.card.pending {
+  border-color: #4a3a68;
+}
+.card .cmd {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--warn);
+  overflow-wrap: anywhere;
+  margin: 4px 0 8px;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dim);
+  flex: none;
+}
+.dot.live {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px #6ee7a022;
+}
+
+/* --- intent: the policy editor and verdict fields (ADR-026) --------- */
+
+.policy-editor {
+  width: 100%;
+  min-height: 16rem;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  tab-size: 2;
+}
+.policy-editor:focus-visible,
+.field textarea:focus-visible,
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.field { display: block; margin: 6px 0; }
+.field > span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.field textarea,
+.field input {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 8px;
+}
+.field textarea {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  resize: vertical;
+}
+.field.inline { display: inline-block; margin: 0; }
+.field.inline input { width: 12rem; }

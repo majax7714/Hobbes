@@ -1,0 +1,3 @@
+# The built web app (web/ → npm run build) is embedded from this
+# directory and gitignored; this file keeps the embed target present
+# in a fresh clone. See ADR-022.

@@ -1,0 +1,16 @@
+# Promoted from INF-3 (M5 inferred set), 2026-08-11 — proposed, awaiting
+# Max's confirmation. NOTE: the inferred statement said "all other pushes
+# escalate", which stopped being true when pushes were denied outright
+# (2026-08-11). The statement below is the corrected one; confirming the
+# original would have versioned a false claim.
+id: I-3
+statement: >-
+  A session can commit but cannot publish. Every push, forced or not, is
+  denied outright, and any command the repo policy does not match escalates
+  to a human rather than running — the default is a question, never a yes.
+scope: .
+status: confirmed
+# Soft: the subject is the policy file's own content, which no code
+# linter reads. The Go engine's test battery is the real guard.
+check: soft
+guarded_by: []

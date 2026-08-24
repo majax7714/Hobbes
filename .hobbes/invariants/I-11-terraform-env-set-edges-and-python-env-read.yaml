@@ -1,0 +1,18 @@
+# Promoted from the inferred set through the Hobbes surface
+# on 2026-08-15 (ADR-026). Edit freely — this file is the record.
+#
+# RESTATES I-6 (C-21). The inferred set is generated without sight of
+# .hobbes/invariants/, so this arrived as a reworded duplicate and the
+# queue could not say so. I-6 is the record of reference; it covers JS
+# env-reads as well as Python, which this one omits.
+id: I-11
+statement: >-
+  Terraform env-set edges and Python env-read edges must join on
+  shared env:VAR nodes so infra-to-code environment coupling is
+  visible in the module graph.
+scope: pipeline
+status: confirmed
+check: soft
+guarded_by:
+  - pipeline/tests/test_emit.py::TestIngest::test_cross_layer_env_join_present
+  - pipeline/tests/test_terraform.py::TestEnvJoin::test_env_set_edges_and_nodes

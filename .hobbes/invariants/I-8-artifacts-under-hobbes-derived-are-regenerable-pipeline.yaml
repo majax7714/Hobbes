@@ -1,0 +1,15 @@
+# Promoted from the inferred set through the Hobbes surface
+# on 2026-08-15 (ADR-026). Edit freely — this file is the record.
+#
+# RESTATES I-2 (C-21). The inferred set is generated without sight of
+# .hobbes/invariants/, so this arrived as a reworded duplicate and the
+# queue could not say so. I-2 is the record of reference; it adds that
+# provenance lives in the SHA stamp rather than in version control.
+id: I-8
+statement: >-
+  Artifacts under .hobbes/derived/ are regenerable pipeline output and
+  are never committed; git add of anything under that path is denied.
+scope: .hobbes/derived
+status: confirmed
+check: soft
+guarded_by: []

@@ -1,0 +1,14 @@
+# Role policy: orchestrator (ADR-054). Sequences units and arbitrates
+# contracts; owns no code. It is the most restricted session in a run:
+# nothing but reading and the plan artifacts.
+version: 1
+scope: role
+default: deny
+
+rules:
+  - pattern: "git status*"
+    decision: allow
+  - pattern: "git log*"
+    decision: allow
+  - pattern: "git diff*"
+    decision: allow

@@ -1,0 +1,1317 @@
+"""Lane B: SCIP-proven edges joined onto lane A's structure (§3.2, §3.4).
+
+The helper in ``scip/`` runs an indexer over a staging tree and hands back
+definitions and references with file:line coordinates. This module does the
+**range join** §3.4 describes: SCIP occurrences carry ranges, lane A's
+symbols carry ranges, so a reference at ``file:line`` is attributed to
+whichever lane-A symbol encloses it, and pointed at whichever lane-A symbol
+its definition starts.
+
+Joining on ranges rather than on ids is what keeps V2.M2 from churning node
+identity: the graph's ids stay lane A's, and what lane B contributes is
+*confidence* — the same edge, at ``tier: semantic`` instead of
+``syntactic``. ADR-028 reserved a ``scip:`` namespace for ids lane B would
+have to invent; the range join means M2 barely needs it.
+
+Since ADR-029 the join is not between two finished edge sets but between
+two *providers*: tree-sitter's call sites and SCIP's resolutions meet in
+the evidence IR (:mod:`hobbes.extract.evidence`) before any graph exists.
+This module's job is to get SCIP's facts into that IR and to project the
+result back onto lane A's module and symbol ids.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import shlex
+import subprocess
+from bisect import bisect_right
+from pathlib import Path, PurePosixPath
+
+from hobbes.extract import staging
+from hobbes.extract.evidence import SCIP as SCIP_LANE
+from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, tiered_edge
+
+#: Shell-split command replacing ``node <repo>/scip/index.mjs``.
+SCIP_CMD_ENV = "HOBBES_SCIP_CMD"
+
+#: Set to "0" to skip lane B entirely — for boxes without the helper
+#: installed, and for the lane-A-only tests.
+SCIP_ENABLE_ENV = "HOBBES_SCIP"
+
+#: Facts schema this join understands (helper HELPER_VERSION).
+#: v2 (V2.M3, ADR-032): facts carry ``dependency_coverage`` on every run.
+HELPER_VERSION = 3
+
+
+class ScipError(RuntimeError):
+    """The indexer helper could not run, or answered something unusable."""
+
+
+#: What one indexing unit's failure may raise without taking the language
+#: down. The same tuple the per-language catch uses — nothing broader, so
+#: a failure class the language-level handler would not absorb is not
+#: quietly absorbed one level deeper either (P10).
+UNIT_ERRORS = (ScipError, staging.StagingError, OSError)
+
+
+def _unit_failure(unit: str, stage: str, what: str, exc: Exception) -> dict:
+    """A degradation record for one indexing unit that failed alone.
+
+    Before this existed, one zone with a broken tsconfig cost every other
+    zone its semantics: the per-unit error propagated to the per-language
+    catch, which can only drop the whole lane. Measured on dagger
+    (2026-08-18): one docs zone missing ``@docusaurus/tsconfig`` zeroed
+    all 84 TypeScript zones. P6 wants the degradation at the granularity
+    of what actually failed.
+    """
+    return {
+        "path": unit or ".",
+        "stage": stage,
+        "message": (
+            f"semantic indexing failed for this {what} alone; its call "
+            f"edges fall to lane A's fallback (syntactic tier), other "
+            f"{what}s are unaffected: {exc}"
+        ),
+    }
+
+
+def find_venv(repo_root: Path) -> tuple[str, str] | None:
+    """Pyright's ``(venvPath, venv)`` for the repo's virtual environment.
+
+    Discovery is by convention, in a deterministic order: ``.venv`` then
+    ``venv`` at the repo root, then beside each ``pyproject.toml`` in the
+    pruned manifest walk — the same "not just the root" correction C-16
+    needed, one layer down: this repo's own venv is ``pipeline/.venv``,
+    and pointing Pyright at ``<root>/.venv`` quietly resolved none of the
+    five declared packages (C-27). A candidate counts only if it holds a
+    ``pyvenv.cfg``, the marker every venv/virtualenv writes — a directory
+    merely *named* ``.venv`` must not be handed to the indexer as an
+    environment. Returns None when nothing qualifies; conda and system
+    environments have no on-disk marker here and are not searched for,
+    which is C-27's honest residue.
+    """
+    from hobbes.extract.interfaces import iter_pyprojects
+
+    repo_root = Path(repo_root).resolve()
+    candidates = [repo_root / name for name in (".venv", "venv")]
+    for pyproject in iter_pyprojects(repo_root):
+        candidates.extend(pyproject.parent / name for name in (".venv", "venv"))
+    for candidate in candidates:
+        if (candidate / "pyvenv.cfg").is_file():
+            return str(candidate.parent), candidate.name
+    return None
+
+
+#: Runs inside the *venv's* interpreter, never ours: the environment being
+#: described is the one whose ``sys.path`` this python owns. stdlib only —
+#: a uv venv has no pip, which is exactly why scip-python's own discovery
+#: (the first ``pip3`` on PATH) described the wrong environment (C-27).
+_ENV_LISTING_SNIPPET = (
+    "import importlib.metadata, json, sys\n"
+    "out = []\n"
+    "for dist in importlib.metadata.distributions():\n"
+    "    name = dist.metadata['Name'] if dist.metadata else None\n"
+    "    if not name:\n"
+    "        continue\n"
+    "    out.append({'name': name, 'version': dist.version,\n"
+    "                'files': [str(f) for f in (dist.files or [])]})\n"
+    "json.dump(out, sys.stdout)\n"
+)
+
+
+def venv_environment(venv_path: str, venv_name: str) -> list[dict] | None:
+    """The venv's installed distributions, in scip-python's
+    ``--environment`` shape (``[{name, version, files}]``).
+
+    Asked of the venv's own interpreter, because that is the only thing
+    that knows what the venv holds: scip-python's fallback asks whichever
+    ``pip3`` is first on PATH, and a uv-managed venv carries no pip, so
+    the answer described the *system* environment and every third-party
+    reference was attributed to the local project (C-27). Read-only, and
+    None on any failure — the index still runs, resolution degrades, and
+    ``dependency_coverage`` says so.
+    """
+    python = Path(venv_path) / venv_name / "bin" / "python"
+    if not python.is_file():
+        return None
+    try:
+        proc = subprocess.run(
+            [str(python), "-c", _ENV_LISTING_SNIPPET],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    try:
+        listing = json.loads(proc.stdout)
+    except json.JSONDecodeError:
+        return None
+    return listing if isinstance(listing, list) else None
+
+
+def declared_dependencies(repo_root: Path) -> list[str]:
+    """Third-party packages the repo says it needs (every pyproject.toml).
+
+    Fed to the helper so Decision 4's degradation check has something to
+    compare against: an index that resolved *none* of a repo's declared
+    dependencies is one whose environment is not installed, and its missing
+    third-party edges are absent rather than nonexistent. Without this the
+    check is inert — which it silently was until the private-repo-A ingest.
+
+    Walks the whole repo (the pruned `iter_pyprojects` walk, same as the
+    CLI pack), not just the root: a repo whose manifest lives in a
+    subdirectory — this repo's own deps are in ``pipeline/pyproject.toml``
+    — otherwise runs the check against an empty list, and an inert check
+    that appears to run is worse than no check (C-16, lifted here).
+    """
+    from hobbes.extract.interfaces import iter_pyprojects
+
+    names: set[str] = set()
+    for pyproject in iter_pyprojects(Path(repo_root)):
+        names.update(_declared_in(pyproject))
+    return sorted(names)
+
+
+def _declared_in(pyproject: Path) -> set[str]:
+    """Bare package names one ``pyproject.toml`` declares."""
+    try:
+        import tomllib
+
+        data = tomllib.loads(pyproject.read_text())
+    except (OSError, ValueError):
+        return set()
+    project = data.get("project") or {}
+    specs = list(project.get("dependencies") or [])
+    for extra in (project.get("optional-dependencies") or {}).values():
+        specs.extend(extra)
+    names = set()
+    for spec in specs:
+        if not isinstance(spec, str):
+            continue
+        # "pkg[extra]>=1.2,<2" -> "pkg"; the index reports bare names.
+        name = re.split(r"[<>=!~;\[ ]", spec.strip(), maxsplit=1)[0]
+        if name:
+            names.add(name)
+    return names
+
+
+def declared_npm_dependencies(package_json: Path) -> list[str]:
+    """Third-party packages a ``package.json`` says it needs.
+
+    The TypeScript half of Decision 4's degradation input. Without it the
+    check has nothing to compare against — and with the old all-or-nothing
+    threshold it had nothing useful to say either (ADR-032).
+    """
+    try:
+        data = json.loads(package_json.read_text())
+    except (OSError, ValueError):
+        return []
+    names = set()
+    for field in ("dependencies", "devDependencies"):
+        section = data.get(field)
+        if isinstance(section, dict):
+            names.update(k for k in section if isinstance(k, str))
+    return sorted(names)
+
+
+def enabled() -> bool:
+    """Whether lane B should run at all."""
+    return os.environ.get(SCIP_ENABLE_ENV, "1") not in ("0", "false", "no")
+
+
+def _helper_cmd() -> list[str]:
+    override = os.environ.get(SCIP_CMD_ENV)
+    if override:
+        return shlex.split(override)
+    helper = Path(__file__).resolve().parents[4] / "scip" / "index.mjs"
+    return ["node", str(helper)]
+
+
+def run_helper(config: dict, timeout: int = 900) -> dict:
+    """Run the helper with *config* and return its parsed facts."""
+    stage = Path(config["stage"])
+    config_path = stage.parent / f"{stage.name}.config.json"
+    config_path.write_text(json.dumps(config))
+    setup = (
+        "the SCIP helper is unusable — install Node and run `npm install` in "
+        f"the hobbes repo's scip/, or set ${SCIP_CMD_ENV} (ADR-027)"
+    )
+    try:
+        proc = subprocess.run(
+            [*_helper_cmd(), "--config", str(config_path)],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except FileNotFoundError as exc:
+        raise ScipError(f"{setup}: {exc}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise ScipError(f"the SCIP indexer timed out on {stage}") from exc
+    finally:
+        config_path.unlink(missing_ok=True)
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip()[-500:]
+        raise ScipError(f"{setup}: helper exited {proc.returncode}: {detail}")
+    try:
+        facts = json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise ScipError(f"the SCIP helper emitted invalid JSON: {exc}") from exc
+    if facts.get("helper_version") != HELPER_VERSION:
+        raise ScipError(
+            f"SCIP facts version {facts.get('helper_version')!r} unsupported "
+            f"(want {HELPER_VERSION})"
+        )
+    return facts
+
+
+class _SymbolIndex:
+    """Lane A's symbols, queryable by file and line.
+
+    Two questions, because a reference has two ends: which symbol *encloses*
+    this line (the caller), and which symbol *starts* at it (the callee).
+    """
+
+    def __init__(self, nodes: list[dict], symbols: list[dict]):
+        self.module_of_path = {
+            n["path"]: n["id"] for n in nodes if n.get("path")
+        }
+        self._by_module: dict[str, list[dict]] = {}
+        for symbol in symbols:
+            self._by_module.setdefault(symbol["module"], []).append(symbol)
+        for rows in self._by_module.values():
+            rows.sort(key=lambda s: (s["line"], -(s.get("end_line") or s["line"])))
+        self._starts = {
+            module: [s["line"] for s in rows]
+            for module, rows in self._by_module.items()
+        }
+
+    def module(self, path: str) -> str | None:
+        return self.module_of_path.get(path)
+
+    def enclosing(self, module: str, line: int) -> str | None:
+        """The innermost symbol whose range contains *line*."""
+        rows = self._by_module.get(module)
+        if not rows:
+            return None
+        cut = bisect_right(self._starts[module], line)
+        best = None
+        for symbol in rows[:cut]:
+            end = symbol.get("end_line") or symbol["line"]
+            if symbol["line"] <= line <= end:
+                # Later starts are more deeply nested, so the last match wins.
+                best = symbol["id"]
+        return best
+
+    def starting_at(self, module: str, line: int) -> str | None:
+        """The symbol defined at *line*, innermost first."""
+        rows = self._by_module.get(module)
+        if not rows:
+            return None
+        matches = [s["id"] for s in rows if s["line"] == line]
+        return matches[-1] if matches else None
+
+
+def resolution_sites(facts: dict) -> list:
+    """SCIP's references as evidence-IR resolution sites (ADR-029)."""
+    from hobbes.extract.evidence import RESOLUTION, SCIP, Site
+
+    return [
+        Site(
+            provider=SCIP,
+            kind=RESOLUTION,
+            file=ref["file"],
+            line=ref["line"],
+            name=ref.get("name", ""),
+            col=ref.get("col", -1),
+            def_file=ref["def_file"],
+            def_line=ref["def_line"],
+        )
+        for ref in facts.get("references", [])
+    ]
+
+
+def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
+    """Project semantic-IR facts onto lane A's module and symbol ids.
+
+    The IR speaks in files and lines because that is what both providers
+    can agree on; the graph speaks in ids. This is the only place the two
+    vocabularies meet, and it resolves ends the same way for every fact
+    kind — the source is whatever symbol encloses the site, the target is
+    whatever symbol the definition starts.
+    """
+    index = _SymbolIndex(nodes, symbols)
+    module_evidence: dict[tuple, list] = {}
+    symbol_evidence: dict[tuple, list] = {}
+
+    for fact in resolved:
+        source_module = index.module(fact.source_file)
+        target_module = index.module(fact.def_file)
+        if source_module is None or target_module is None:
+            continue  # a file lane A never discovered; not ours to name
+        lane = LANE_SCIP if SCIP_LANE in fact.lanes else LANE_TREE_SITTER
+        site = {"path": fact.source_file, "line": fact.line}
+
+        if source_module != target_module:
+            key = (source_module, target_module, "imports", fact.tier, lane)
+            module_evidence.setdefault(key, []).append(site)
+
+        caller = fact.scope or index.enclosing(source_module, fact.line) or source_module
+        callee = index.starting_at(target_module, fact.def_line)
+        if callee is None or caller == callee:
+            continue
+        key = (caller, callee, fact.kind, fact.tier, lane)
+        symbol_evidence.setdefault(key, []).append(site)
+
+    return {
+        "module_edges": _edges(module_evidence),
+        "symbol_edges": _edges(symbol_evidence),
+    }
+
+
+def _edges(evidence: dict[tuple, list]) -> list[dict]:
+    """Collapse sightings into edges, keeping tier and lane distinct.
+
+    Two facts with the same endpoints but different tiers are two different
+    claims — one proven, one guessed — so they stay separable here, and the
+    graph decides which survives rather than this function guessing.
+    """
+    out = []
+    for (source, target, edge_type, tier, lane), sightings in sorted(evidence.items()):
+        unique = sorted({(s["path"], s["line"]) for s in sightings})
+        out.append(
+            tiered_edge(
+                source,
+                target,
+                edge_type,
+                [{"path": path, "line": line} for path, line in unique],
+                tier=tier,
+                lane=lane,
+            )
+        )
+    return out
+
+
+#: Config filenames staged verbatim alongside a TypeScript zone's sources.
+#: Copied rather than parsed: a ``tsconfig.json`` may carry comments and
+#: may ``extends`` a sibling, and copying every one of them sidesteps both
+#: without a JSON5 dependency. They are tiny.
+_TS_CONFIG_NAMES = ("tsconfig.json", "jsconfig.json", "package.json")
+
+
+def ts_zones(repo_root: Path, files: list[str]) -> dict[str, list[str]]:
+    """Group TS/JS *files* by the directory of their nearest tsconfig.
+
+    The M6 zoning lesson, now applied to lane B: per-package compiler
+    options — path aliases above all — only resolve the way that package's
+    own build does, so each zone is indexed on its own. This is ADR-027's
+    "the config is derived, not authored" for TypeScript, and §3.7's
+    root-discovery checklist item.
+
+    Files under no tsconfig at all group under ``""`` and get a generated
+    config in the stage, which is exactly what the staging tree is for.
+    """
+    zones: dict[str, list[str]] = {}
+    cache: dict[str, str] = {}
+    for rel in files:
+        directory = str(PurePosixPath(rel).parent)
+        if directory not in cache:
+            cache[directory] = _nearest_config_dir(repo_root, directory)
+        zones.setdefault(cache[directory], []).append(rel)
+    return {zone: sorted(paths) for zone, paths in sorted(zones.items())}
+
+
+def _nearest_config_dir(repo_root: Path, directory: str) -> str:
+    """Directory of the nearest tsconfig at or above *directory*, or ""."""
+    current = PurePosixPath(directory)
+    while True:
+        if (repo_root / current / "tsconfig.json").is_file():
+            return "" if str(current) == "." else str(current)
+        if str(current) == ".":
+            return ""
+        current = current.parent
+
+
+def zone_dependency_links(
+    repo_root: Path, zone_files: list[str]
+) -> dict[str, str]:
+    """Every ``node_modules`` tree a zone's files would resolve against
+    in the repo, keyed by stage-relative path (ADR-050).
+
+    TypeScript resolution walks up from the *importing file*, not from
+    the zone root — so a zone that groups files from several package
+    directories (this repo's tsconfig-less ``tsextract/`` and ``scip/``
+    both land in the root zone) resolves each file against the
+    ``node_modules`` beside it. Linking only the zone root's tree, as
+    the first version did, left those files' dependencies behind in the
+    stage while lane A — which reads the real repo — resolved them
+    fine: a silent lane asymmetry measured on this repo's own 61.6%.
+    """
+    links: dict[str, str] = {}
+    seen: set[str] = set()
+    for rel in zone_files:
+        directory = PurePosixPath(rel).parent
+        while True:
+            key = str(directory)
+            if key in seen:
+                break
+            seen.add(key)
+            candidate = (
+                repo_root / directory / "node_modules"
+                if key != "."
+                else repo_root / "node_modules"
+            )
+            if candidate.is_dir():
+                stage_rel = (
+                    "node_modules" if key == "." else f"{key}/node_modules"
+                )
+                links[stage_rel] = str(candidate.resolve())
+            if key == ".":
+                break
+            directory = directory.parent
+    return links
+
+
+#: Seconds a dependency install may take. Docusaurus-sized trees need
+#: minutes; a hang needs an end.
+_NPM_INSTALL_TIMEOUT = 600
+
+#: The classic-yarn version corepack runs for v1 lockfiles. Pinned in
+#: code for the same reason every indexer is (ADR-027 Decision 1): an
+#: unpinned installer is a different environment on every box.
+_YARN1_VERSION = "1.22.22"
+
+
+def detect_installer(manifest_dir: Path) -> tuple[str, str] | tuple[None, str]:
+    """``(installer, lockfile)`` for a package directory, or ``(None,
+    why)``.
+
+    Only lockfile-backed installs are offered — ``npm ci`` for
+    ``package-lock.json``, classic yarn for a v1 ``yarn.lock`` — because
+    a lockfile is what makes the provisioned tree the *repo's* pinned
+    resolution rather than the registry's answer of the day (P1).
+    pnpm and Yarn Berry are declined by name: Berry's PnP does not even
+    produce the ``node_modules`` shape the indexer resolves against.
+    """
+    if (manifest_dir / "package-lock.json").is_file():
+        return "npm", "package-lock.json"
+    yarn_lock = manifest_dir / "yarn.lock"
+    if yarn_lock.is_file():
+        try:
+            head = yarn_lock.read_text(errors="replace")[:2048]
+        except OSError:
+            return None, "yarn.lock unreadable"
+        if "yarn lockfile v1" in head:
+            return "yarn1", "yarn.lock"
+        return None, "yarn.lock is Berry (v2+), which does not build node_modules"
+    if (manifest_dir / "pnpm-lock.yaml").is_file():
+        return None, "pnpm-lock.yaml (pnpm installs are not provisioned)"
+    return None, "no lockfile (an unpinned install would drift — C-34)"
+
+
+def _corepack() -> Path | None:
+    """corepack, which ships beside the real node binary but rarely on
+    PATH through symlink farms."""
+    import shutil as _shutil
+
+    node = _shutil.which("node")
+    if node is None:
+        return None
+    candidate = Path(node).resolve().parent / "corepack"
+    return candidate if candidate.is_file() else None
+
+
+def provision_node_modules(
+    repo_root: Path, manifest_dir_rel: str
+) -> tuple[Path | None, str | None]:
+    """A ``node_modules`` for *manifest_dir_rel*, installed into Hobbes's
+    own cache — never the repo (ADR-050).
+
+    Returns ``(path, None)`` on success or ``(None, why)``. The install
+    is keyed by the content hash of ``package.json`` + the lockfile, so
+    re-ingests reuse it; it runs with ``--ignore-scripts`` always — a
+    dependency's lifecycle script is arbitrary code, and unlike C-29
+    there is no analyzer requiring it — and it needs a fetchable npm
+    registry (C-34, the npm sibling of C-30).
+    """
+    import hashlib
+    import shutil as _shutil
+
+    manifest_dir = repo_root / manifest_dir_rel if manifest_dir_rel else repo_root
+    installer, lockfile = detect_installer(manifest_dir)
+    if installer is None:
+        return None, lockfile
+    package_json = manifest_dir / "package.json"
+    if not package_json.is_file():
+        return None, "no package.json beside the lockfile"
+
+    digest = hashlib.sha256(
+        package_json.read_bytes() + (manifest_dir / lockfile).read_bytes()
+    ).hexdigest()[:16]
+    cache = Path.home() / ".hobbes" / "cache" / "npm" / digest
+    tree = cache / "node_modules"
+    if (cache / ".complete").is_file() and tree.is_dir():
+        return tree, None
+
+    cache.mkdir(parents=True, exist_ok=True)
+    _shutil.copy2(package_json, cache / "package.json")
+    _shutil.copy2(manifest_dir / lockfile, cache / lockfile)
+    if installer == "npm":
+        argv = ["npm", "ci", "--ignore-scripts", "--no-audit", "--no-fund"]
+    else:
+        corepack = _corepack()
+        if corepack is None:
+            return None, "yarn.lock v1 but corepack is not installed"
+        argv = [
+            str(corepack), f"yarn@{_YARN1_VERSION}", "install",
+            "--ignore-scripts", "--frozen-lockfile", "--non-interactive",
+        ]
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=cache,
+            capture_output=True,
+            text=True,
+            timeout=_NPM_INSTALL_TIMEOUT,
+            env={**os.environ, "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0"},
+        )
+    except FileNotFoundError:
+        return None, f"{argv[0]} is not installed"
+    except subprocess.TimeoutExpired:
+        return None, f"dependency install timed out after {_NPM_INSTALL_TIMEOUT}s"
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-3:]
+        return None, f"{argv[0]} install failed: {' | '.join(tail)}"
+    if not tree.is_dir():
+        return None, "install succeeded but produced no node_modules"
+    (cache / ".complete").write_text("")
+    return tree, None
+
+
+def _nearest_package_manifest(repo_root: Path, zone: str) -> str | None:
+    """Repo-relative directory of the nearest ``package.json`` at or
+    above *zone*, or None."""
+    current = PurePosixPath(zone) if zone else PurePosixPath(".")
+    while True:
+        probe = repo_root / current / "package.json" if str(current) != "." else repo_root / "package.json"
+        if probe.is_file():
+            return "" if str(current) == "." else str(current)
+        if str(current) == ".":
+            return None
+        current = current.parent
+
+
+def _staged_ts_configs(repo_root: Path, files: list[str]) -> list[str]:
+    """Every tsconfig/package.json at or above a staged TS file."""
+    wanted: set[str] = set()
+    for rel in files:
+        current = PurePosixPath(rel).parent
+        while True:
+            for name in _TS_CONFIG_NAMES:
+                candidate = current / name if str(current) != "." else PurePosixPath(name)
+                if (repo_root / candidate).is_file():
+                    wanted.add(str(candidate))
+            if str(current) == ".":
+                break
+            current = current.parent
+    return sorted(wanted)
+
+
+def _generated_tsconfig(files: list[str], zone: str) -> dict:
+    """A config for files the repo never gave one.
+
+    Mirrors `tsextract`'s zone-less default project, so both lanes see the
+    same language dialect. ``files`` is explicit rather than a glob: a
+    root-level config with a default include would swallow every other
+    zone's sources and index them under the wrong compiler options.
+    """
+    prefix = f"{zone}/" if zone else ""
+    return {
+        "compilerOptions": {
+            "allowJs": True,
+            "checkJs": False,
+            "module": "ESNext",
+            "moduleResolution": "Bundler",
+            "target": "ES2022",
+            "jsx": "preserve",
+            "noEmit": True,
+            "skipLibCheck": True,
+        },
+        "files": [
+            rel[len(prefix):] if prefix and rel.startswith(prefix) else rel
+            for rel in files
+        ],
+    }
+
+
+def extract_scip_typescript(
+    repo_root: Path, files: list[str], sha: str = ""
+) -> dict | None:
+    """Index every TypeScript zone and return one merged facts document.
+
+    One indexer run per zone, because a zone is a separate TypeScript
+    program (M6). Zones are merged rather than reconciled: they resolve
+    independently, so a cross-zone import resolves in neither — which is
+    C-12, unchanged by this milestone and now true of both lanes.
+    """
+    if not enabled() or not files:
+        return None
+    repo_root = Path(repo_root).resolve()
+    merged: dict = {
+        "definitions": [],
+        "references": [],
+        "external_refs": [],
+        "packages": {},
+        "degraded": [],
+        "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+    }
+    for zone, zone_files in ts_zones(repo_root, files).items():
+        try:
+            facts = _index_ts_zone(repo_root, zone, zone_files, sha)
+        except UNIT_ERRORS as exc:
+            merged["degraded"].append(
+                _unit_failure(zone, "scip-typescript", "zone", exc)
+            )
+            continue
+        if facts is None:
+            continue
+        for key in ("definitions", "references", "external_refs", "degraded"):
+            merged[key].extend(facts.get(key, []))
+        for name, count in (facts.get("packages") or {}).items():
+            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        zone_coverage = facts.get("dependency_coverage") or {}
+        merged["dependency_coverage"]["declared"] += zone_coverage.get("declared", 0)
+        merged["dependency_coverage"]["resolved"] += zone_coverage.get("resolved", 0)
+        merged["dependency_coverage"]["missing"].extend(
+            zone_coverage.get("missing", [])
+        )
+    merged["dependency_coverage"]["missing"] = sorted(
+        set(merged["dependency_coverage"]["missing"])
+    )
+    join_cross_unit(merged)
+    return merged
+
+
+def join_cross_unit(merged: dict) -> None:
+    """Resolve external references against sibling units' definitions
+    (ADR-049, lifting C-33).
+
+    "External" in a decoded index means external to *that index* — but a
+    language's units (Go modules, cargo roots, TS zones) are indexed
+    separately and merged, so a reference into a sibling unit of the same
+    repo sits in ``external_refs`` carrying the exact moniker the
+    sibling's own index defines. Moniker equality is the join: exact,
+    never heuristic — this is not C-12's rejected cross-zone
+    *reconciliation*, because nothing here interprets another unit's
+    compiler configuration; a moniker either matches or the reference
+    stays external.
+
+    A moniker defined by more than one unit (in different files) is
+    dropped from the joinable set and the drop reported — C-28's rule
+    applied across units: unattributed rather than guessed. Mutates
+    *merged* in place, after every unit has been merged.
+    """
+    by_moniker: dict[str, dict] = {}
+    ambiguous: set[str] = set()
+    for definition in merged["definitions"]:
+        moniker = definition.get("moniker")
+        if not moniker:
+            continue
+        prior = by_moniker.setdefault(moniker, definition)
+        if prior is not definition and prior["file"] != definition["file"]:
+            ambiguous.add(moniker)
+    still_external = []
+    for ref in merged["external_refs"]:
+        moniker = ref.get("moniker") or ""
+        target = by_moniker.get(moniker)
+        if target is None or moniker in ambiguous:
+            still_external.append(ref)
+            continue
+        merged["references"].append(
+            {
+                "file": ref["file"],
+                "line": ref["line"],
+                "col": ref["col"],
+                "name": ref["name"],
+                "def_file": target["file"],
+                "def_line": target["line"],
+            }
+        )
+    merged["external_refs"] = still_external
+    if ambiguous:
+        sample = ", ".join(sorted(ambiguous)[:3])
+        merged["degraded"].append(
+            {
+                "path": ".",
+                "stage": "scip-merge",
+                "message": (
+                    f"{len(ambiguous)} symbol(s) are defined in more than "
+                    f"one indexing unit (e.g. {sample}) — references to "
+                    "them stay unattributed rather than guessed (C-28's "
+                    "rule, across units)"
+                ),
+            }
+        )
+
+
+def go_modules(repo_root: Path, files: list[str]) -> dict[str, list[str]]:
+    """Group Go *files* by the directory of their nearest ``go.mod``.
+
+    The TS zoning lesson, a language later: a Go module is the unit the
+    loader understands, and this repo is the worked example — its
+    ``go.mod`` is at ``go/``, not the root, so indexing from the repo root
+    would find no module at all. Files under no module group under ``""``
+    and are skipped rather than guessed at, because a Go file outside a
+    module cannot be type-checked and inventing a ``go.mod`` would invent
+    its dependencies too.
+    """
+    modules: dict[str, list[str]] = {}
+    cache: dict[str, str | None] = {}
+    for rel in files:
+        directory = str(PurePosixPath(rel).parent)
+        if directory not in cache:
+            cache[directory] = _nearest_go_module(repo_root, directory)
+        root = cache[directory]
+        if root is None:
+            continue
+        modules.setdefault(root, []).append(rel)
+    return {root: sorted(paths) for root, paths in sorted(modules.items())}
+
+
+def go_orphans(files: list[str], grouped: dict[str, list[str]]) -> dict[str, list[str]]:
+    """Go files *grouped* left out, by directory — the C-26 denominator.
+
+    Public and pure so the surfacing has a test that runs without an
+    indexer installed: the skip itself lives in :func:`go_modules`, and a
+    skip nobody can see is how a lane quietly stops covering (the
+    lane-agreement lesson, applied to degradation).
+    """
+    covered = {path for paths in grouped.values() for path in paths}
+    orphans: dict[str, list[str]] = {}
+    for rel in files:
+        if rel not in covered:
+            orphans.setdefault(str(PurePosixPath(rel).parent), []).append(rel)
+    return {directory: sorted(paths) for directory, paths in sorted(orphans.items())}
+
+
+def _nearest_go_module(repo_root: Path, directory: str) -> str | None:
+    """Directory of the nearest ``go.mod`` at or above *directory*."""
+    current = PurePosixPath(directory)
+    while True:
+        if (repo_root / current / "go.mod").is_file():
+            return "" if str(current) == "." else str(current)
+        if str(current) == ".":
+            return None
+        current = current.parent
+
+
+def extract_scip_go(
+    repo_root: Path, files: list[str], sha: str = ""
+) -> dict | None:
+    """Index every Go module and return one merged facts document.
+
+    One run per ``go.mod``, for the reason TS runs one per tsconfig: the
+    module is what the loader resolves against. Paths come back relative to
+    the module root and are re-rooted at the repo by :func:`_rebase`, the
+    same correction that made or broke the TS lane at V2.M3.
+    """
+    if not enabled() or not files:
+        return None
+    repo_root = Path(repo_root).resolve()
+    merged: dict = {
+        "definitions": [],
+        "references": [],
+        "external_refs": [],
+        "packages": {},
+        "degraded": [],
+        "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+    }
+    grouped = go_modules(repo_root, files)
+    for directory, orphans in go_orphans(files, grouped).items():
+        # C-26 (surfaced): the tier already says these files' edges are lane
+        # A's; this record says *why* this file in particular got no
+        # semantics, which the tier cannot.
+        merged["degraded"].append(
+            {
+                "path": directory,
+                "stage": "scip-go",
+                "message": (
+                    f"{len(orphans)} Go file(s) under {directory!r} sit below no "
+                    "go.mod, so scip-go cannot type-check them; their call edges "
+                    "fall to lane A's fallback (syntactic tier). Add a go.mod to "
+                    "give them semantics."
+                ),
+            }
+        )
+    for module_root, module_files in grouped.items():
+        try:
+            facts = _index_go_module(
+                repo_root, module_root, module_files, sha, grouped
+            )
+        except UNIT_ERRORS as exc:
+            merged["degraded"].append(
+                _unit_failure(module_root, "scip-go", "module", exc)
+            )
+            continue
+        if facts is None:
+            continue
+        for key in ("definitions", "references", "external_refs", "degraded"):
+            merged[key].extend(facts.get(key, []))
+        for name, count in (facts.get("packages") or {}).items():
+            merged["packages"][name] = merged["packages"].get(name, 0) + count
+    join_cross_unit(merged)
+    return merged
+
+
+#: A go.mod replace whose right side is a filesystem path — the spec says
+#: a path replacement must start with ``./`` or ``../``, which is what
+#: separates it from a module replacement (``X => Y v1.2.3``).
+_GO_PATH_REPLACE = re.compile(
+    r"^\s*(?:replace\s+)?\S+(?:\s+v\S+)?\s+=>\s+(\.\.?/\S*)\s*$"
+)
+
+
+def go_replace_targets(repo_root: Path, module_root: str) -> list[str]:
+    """Module roots (repo-relative) a module's ``go.mod`` replaces into.
+
+    Only path replacements that resolve **inside the repo** count — a
+    replace escaping the repo names code Hobbes will not stage (the
+    staging contract copies the repo, nothing else). Only the consumer's
+    own ``go.mod`` is read, which is exactly Go's rule: replace
+    directives apply in the main module only.
+    """
+    manifest = repo_root / (f"{module_root}/go.mod" if module_root else "go.mod")
+    try:
+        lines = manifest.read_text().splitlines()
+    except OSError:
+        return []
+    targets = []
+    for line in lines:
+        match = _GO_PATH_REPLACE.match(line.split("//", 1)[0])
+        if not match:
+            continue
+        resolved = (
+            (repo_root / module_root / match.group(1)).resolve()
+            if module_root
+            else (repo_root / match.group(1)).resolve()
+        )
+        try:
+            rel = resolved.relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            continue  # escapes the repo: not ours to stage
+        targets.append("" if rel == "." else rel)
+    return sorted(set(targets))
+
+
+def cargo_crates(repo_root: Path, files: list[str]) -> dict[str, list[str]]:
+    """Group Rust *files* by the manifest root that indexes them.
+
+    The go.mod/tsconfig lesson, third spelling: the unit rust-analyzer's
+    loader understands is a cargo package — or a **workspace**, whose root
+    manifest carries the members' lock and patch tables — so files group
+    by their nearest ``Cargo.toml`` and then collapse to the nearest
+    ``[workspace]`` manifest above it, one index run per root. Files under
+    no manifest group under nothing and are skipped rather than guessed
+    at (the C-26 pattern): inventing a manifest would invent the
+    dependency versions with it.
+    """
+    grouped: dict[str, list[str]] = {}
+    cache: dict[str, str | None] = {}
+    for rel in files:
+        directory = str(PurePosixPath(rel).parent)
+        if directory not in cache:
+            crate = _nearest_manifest(repo_root, directory, "Cargo.toml")
+            cache[directory] = _workspace_root(repo_root, crate) if crate is not None else None
+        root = cache[directory]
+        if root is None:
+            continue
+        grouped.setdefault(root, []).append(rel)
+    return {root: sorted(paths) for root, paths in sorted(grouped.items())}
+
+
+def _nearest_manifest(repo_root: Path, directory: str, name: str) -> str | None:
+    """Directory of the nearest *name* at or above *directory*."""
+    current = PurePosixPath(directory)
+    while True:
+        if (repo_root / current / name).is_file():
+            return "" if str(current) == "." else str(current)
+        if str(current) == ".":
+            return None
+        current = current.parent
+
+
+def _workspace_root(repo_root: Path, crate_root: str) -> str:
+    """The nearest ``[workspace]`` manifest at or above *crate_root*.
+
+    A member crate's manifest can lean on the workspace root's
+    (``version.workspace = true``), so indexing the member alone fails on
+    a repo that builds fine. Detection reads the manifest rather than
+    trusting directory shape; a parse error just means "not a workspace",
+    which degrades to per-crate indexing, visibly if the load then fails.
+    """
+    import tomllib
+
+    current = PurePosixPath(crate_root) if crate_root else PurePosixPath(".")
+    found = crate_root
+    while True:
+        manifest = repo_root / current / "Cargo.toml"
+        if manifest.is_file():
+            try:
+                if "workspace" in tomllib.loads(manifest.read_text()):
+                    found = "" if str(current) == "." else str(current)
+            except (OSError, ValueError):
+                pass
+        if str(current) == ".":
+            return found
+        current = current.parent
+
+
+def declared_cargo_dependencies(manifest: Path) -> list[str]:
+    """Third-party crates one ``Cargo.toml`` says it needs.
+
+    The Rust arm of Decision 4's degradation input: an index that resolved
+    none of these is describing a repo whose crate registry was never
+    fetched (C-30), and its missing third-party edges are absent rather
+    than nonexistent.
+    """
+    import tomllib
+
+    try:
+        data = tomllib.loads(manifest.read_text())
+    except (OSError, ValueError):
+        return []
+    names: set[str] = set()
+    sections = [
+        data.get("dependencies"),
+        data.get("dev-dependencies"),
+        data.get("build-dependencies"),
+        (data.get("workspace") or {}).get("dependencies"),
+    ]
+    for section in sections:
+        if isinstance(section, dict):
+            names.update(k for k in section if isinstance(k, str))
+    return sorted(names)
+
+
+def extract_scip_rust(
+    repo_root: Path, files: list[str], sha: str = ""
+) -> dict | None:
+    """Index every cargo root and return one merged facts document.
+
+    **Indexing Rust executes the repo's code** (C-29): rust-analyzer runs
+    cargo's loader with build-script and proc-macro support, so a
+    ``build.rs`` runs on this machine during ingest — no other lane B
+    provider executes repo-authored code. The notice below is the
+    surfacing; it prints every time, not only the first, because the
+    posture fact does not wear off.
+    """
+    if not enabled() or not files:
+        return None
+    repo_root = Path(repo_root).resolve()
+    merged: dict = {
+        "definitions": [],
+        "references": [],
+        "external_refs": [],
+        "packages": {},
+        "degraded": [],
+        "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+    }
+    grouped = cargo_crates(repo_root, files)
+    for directory, orphans in go_orphans(files, grouped).items():
+        # The C-26 pattern, one language over: the skip is visible where a
+        # user meets it, with the fix named.
+        merged["degraded"].append(
+            {
+                "path": directory,
+                "stage": "scip-rust",
+                "message": (
+                    f"{len(orphans)} Rust file(s) under {directory!r} sit below no "
+                    "Cargo.toml, so rust-analyzer cannot load them; their call "
+                    "edges fall to lane A's fallback (syntactic tier). Add a "
+                    "Cargo.toml to give them semantics."
+                ),
+            }
+        )
+    if grouped:
+        import sys
+
+        print(
+            "NOTE: rust semantics: rust-analyzer executes the repo's build "
+            "scripts and proc macros during indexing (C-29)",
+            file=sys.stderr,
+        )
+    for root, root_files in grouped.items():
+        try:
+            facts = _index_cargo_root(repo_root, root, root_files, sha)
+        except UNIT_ERRORS as exc:
+            merged["degraded"].append(
+                _unit_failure(root, "scip-rust", "cargo root", exc)
+            )
+            continue
+        if facts is None:
+            continue
+        for key in ("definitions", "references", "external_refs", "degraded"):
+            merged[key].extend(facts.get(key, []))
+        for name, count in (facts.get("packages") or {}).items():
+            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        coverage = facts.get("dependency_coverage") or {}
+        merged["dependency_coverage"]["declared"] += coverage.get("declared", 0)
+        merged["dependency_coverage"]["resolved"] += coverage.get("resolved", 0)
+        merged["dependency_coverage"]["missing"].extend(coverage.get("missing", []))
+    merged["dependency_coverage"]["missing"] = sorted(
+        set(merged["dependency_coverage"]["missing"])
+    )
+    join_cross_unit(merged)
+    return merged
+
+
+def _index_cargo_root(
+    repo_root: Path, root: str, root_files: list[str], sha: str
+) -> dict | None:
+    """Stage and index one cargo package or workspace.
+
+    Staged beside the sources: every manifest on a staged file's path (a
+    member leans on the workspace root's), ``Cargo.lock`` so resolution
+    matches the repo's, and ``.cargo/config.toml`` when present. The
+    dependency tree needs no symlink — cargo's registry is user-global,
+    which is where ADR-032's problem dissolves for Rust and C-30 begins.
+    """
+    staged = set(root_files)
+    manifests: set[str] = set()
+    for rel in root_files:
+        nearest = _nearest_manifest(repo_root, str(PurePosixPath(rel).parent), "Cargo.toml")
+        if nearest is not None:
+            manifests.add(f"{nearest}/Cargo.toml" if nearest else "Cargo.toml")
+    manifests.add(f"{root}/Cargo.toml" if root else "Cargo.toml")
+    staged |= {m for m in manifests if (repo_root / m).is_file()}
+    for extra in ("Cargo.lock", ".cargo/config.toml"):
+        candidate = f"{root}/{extra}" if root else extra
+        if (repo_root / candidate).is_file():
+            staged.add(candidate)
+
+    declared: set[str] = set()
+    for manifest in manifests:
+        if (repo_root / manifest).is_file():
+            declared.update(declared_cargo_dependencies(repo_root / manifest))
+
+    stage = staging.build_stage(repo_root, sorted(staged), sha=sha)
+    try:
+        facts = run_helper(
+            {
+                "stage": str(stage / root if root else stage),
+                "language": "rust",
+                "projectName": repo_root.name,
+                # Unused by the rust argv — the moniker version is the
+                # crate's own (ADR-040) — carried for config uniformity.
+                "projectVersion": "0",
+                "output": str(stage.parent / f"{stage.name}.scip"),
+                "declaredDeps": sorted(declared),
+            }
+        )
+    finally:
+        staging.remove_stage(stage)
+    return _rebase(facts, root)
+
+
+def _index_go_module(
+    repo_root: Path,
+    module_root: str,
+    module_files: list[str],
+    sha: str,
+    grouped: dict[str, list[str]] | None = None,
+) -> dict | None:
+    """Stage and index one Go module.
+
+    ``go.mod`` and ``go.sum`` are staged with the source: without them the
+    loader has no module to root at and no dependency versions to resolve,
+    and scip-go fails loudly rather than producing a thin index — which is
+    the degradation being visible rather than silent (P6).
+
+    Modules this one ``replace``s to in-repo paths are staged beside it
+    (ADR-049): without their sources the loader cannot type the import
+    at all and mis-attributes every reference into it — half of what
+    made C-33. Only the consumer's own go.mod is read (Go's rule:
+    replaces apply in the main module only), and the sibling's files
+    come from *grouped*, the same discovery that staged this module's.
+    """
+    manifest = f"{module_root}/go.mod" if module_root else "go.mod"
+    sums = f"{module_root}/go.sum" if module_root else "go.sum"
+    staged = set(module_files) | {manifest}
+    if (repo_root / sums).is_file():
+        staged.add(sums)
+    for sibling in go_replace_targets(repo_root, module_root):
+        if sibling == module_root:
+            continue
+        staged.update((grouped or {}).get(sibling, []))
+        for extra in ("go.mod", "go.sum"):
+            candidate = f"{sibling}/{extra}" if sibling else extra
+            if (repo_root / candidate).is_file():
+                staged.add(candidate)
+
+    stage = staging.build_stage(repo_root, sorted(staged), sha=sha)
+    try:
+        facts = run_helper(
+            {
+                "stage": str(stage / module_root if module_root else stage),
+                "language": "go",
+                "projectName": repo_root.name,
+                # Pinned for the third time, under a third flag name
+                # (ADR-037): scip-go's --module-version defaults to the git
+                # revision exactly as scip-python's --project-version does.
+                "projectVersion": "0",
+                "output": str(stage.parent / f"{stage.name}.scip"),
+                "declaredDeps": [],
+            }
+        )
+    finally:
+        staging.remove_stage(stage)
+    return _rebase(facts, module_root)
+
+
+def _index_ts_zone(
+    repo_root: Path, zone: str, zone_files: list[str], sha: str
+) -> dict | None:
+    """Stage and index one TypeScript zone.
+
+    Dependencies enter the stage as symlinks and only as symlinks
+    (ADR-032/050): every ``node_modules`` on a zone file's walk-up path
+    in the repo, and — when the repo has none — a lockfile-pinned tree
+    provisioned into Hobbes's own cache. The repo is never written.
+    """
+    staged = sorted(set(zone_files) | set(_staged_ts_configs(repo_root, zone_files)))
+    provision_failure: str | None = None
+    links = zone_dependency_links(repo_root, zone_files)
+    if not links:
+        manifest_dir = _nearest_package_manifest(repo_root, zone)
+        if manifest_dir is not None:
+            tree, provision_failure = provision_node_modules(
+                repo_root, manifest_dir
+            )
+            if tree is not None:
+                rel = (
+                    "node_modules"
+                    if not manifest_dir
+                    else f"{manifest_dir}/node_modules"
+                )
+                links[rel] = str(tree)
+
+    configs = {}
+    zone_config = f"{zone}/tsconfig.json" if zone else "tsconfig.json"
+    if not (repo_root / zone_config).is_file():
+        configs[zone_config] = _generated_tsconfig(zone_files, zone)
+
+    package_json = repo_root / (f"{zone}/package.json" if zone else "package.json")
+    declared = (
+        declared_npm_dependencies(package_json) if package_json.is_file() else []
+    )
+
+    stage = staging.build_stage(repo_root, staged, sha=sha, configs=configs, links=links)
+    try:
+        facts = run_helper(
+            {
+                "stage": str(stage / zone if zone else stage),
+                "language": "typescript",
+                "projectName": repo_root.name,
+                "projectVersion": "0",
+                "output": str(stage.parent / f"{stage.name}.scip"),
+                "declaredDeps": declared,
+            }
+        )
+    finally:
+        staging.remove_stage(stage)
+    if provision_failure is not None:
+        # The zone indexed without its dependencies and this says why —
+        # C-23's surfacing, at the moment the gap was created.
+        facts.setdefault("degraded", []).append(
+            {
+                "path": zone or ".",
+                "stage": "scip-typescript",
+                "message": (
+                    "dependencies not provisioned for this zone "
+                    f"({provision_failure}); third-party resolution "
+                    "degrades to lane A (C-23)"
+                ),
+            }
+        )
+    return _rebase(facts, zone)
+
+
+def _rebase(facts: dict, zone: str) -> dict:
+    """Re-root a zone's file paths at the repo.
+
+    A zone is indexed with ``--cwd`` at *its own* directory, so SCIP
+    reports ``src/App.tsx`` where lane A says ``web/src/App.tsx``. The two
+    providers must speak the same paths or the range join silently matches
+    nothing — which is not an error, just a graph with no semantic TS
+    edges and a coverage denominator full of holes. Python never hit this
+    because its ``--cwd`` is the stage root, where the two already agree.
+    """
+    if not zone:
+        return facts
+    def at(path: str) -> str:
+        return f"{zone}/{path}" if path else path
+
+    for ref in facts.get("references", []):
+        ref["file"] = at(ref["file"])
+        ref["def_file"] = at(ref["def_file"])
+    for definition in facts.get("definitions", []):
+        definition["file"] = at(definition["file"])
+    for ref in facts.get("external_refs", []):
+        ref["file"] = at(ref["file"])
+    return facts
+
+
+def extract_scip(
+    repo_root: Path,
+    files: list[str],
+    roots: list[str],
+    project_name: str,
+    sha: str,
+    declared_deps: list[str] | None = None,
+) -> dict | None:
+    """Stage *files*, index them, and return joined facts — or None.
+
+    Returns None when lane B is disabled. Every write lands in the staging
+    tree (ADR-027): the repo is read and never touched.
+    """
+    if not enabled() or not files:
+        return None
+    config: dict = {"extraPaths": roots}
+    venv = find_venv(repo_root)
+    environment = None
+    if venv is not None:
+        # Absolute, so third-party resolution survives staging — without
+        # it every dependency edge silently vanishes (ADR-027 Decision 4).
+        # Discovered, not assumed at the root: pointing at a venv that is
+        # not there resolved 0 of this repo's 5 declared packages (C-27).
+        config["venvPath"], config["venv"] = venv
+        environment = venv_environment(*venv)
+    stage = staging.build_stage(repo_root, files, config=config, sha=sha)
+    env_path = stage.parent / f"{stage.name}.env.json"
+    helper_config = {
+        "stage": str(stage),
+        "language": "python",
+        "projectName": project_name,
+        # Pinned, never defaulted: the default is the git revision,
+        # which would change every moniker on every commit.
+        "projectVersion": "0",
+        "output": str(stage.parent / f"{stage.name}.scip"),
+        "declaredDeps": declared_deps or [],
+    }
+    if environment is not None:
+        # C-27's second mechanism: venvPath gives Pyright *resolution*,
+        # this gives scip-python *attribution*. Both land in the cache,
+        # never the repo.
+        env_path.write_text(json.dumps(environment))
+        helper_config["environment"] = str(env_path)
+    try:
+        facts = run_helper(helper_config)
+    finally:
+        env_path.unlink(missing_ok=True)
+        staging.remove_stage(stage)
+    return facts

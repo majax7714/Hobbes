@@ -1,0 +1,43 @@
+# Decisions Max has made about this repo (ADR-026). Approvals,
+# denials, and edits hold until changed here or in the UI; only
+# invariants whose text is new get asked again.
+schema_version: 1
+intent:
+    confirmed_at: "2026-08-15T21:56:56Z"
+    policy_blob: d1212cf5ba276819edc321096ffe058af49bc346
+invariants:
+    - key: sha256:1b43fb7c9e18266a76bfd7561ba8ec45
+      verdict: denied
+      decided_at: "2026-08-15T21:55:43Z"
+      source_statement: Only hobbes.extract.pysource and hobbes.extract.terraform import tree-sitter; every other module consumes their already-parsed facts instead of parsing source itself.
+      source_scope: pipeline/src/hobbes/extract
+    - key: sha256:4881ae369696d035ba430e4570ddb927
+      verdict: approved
+      decided_at: "2026-08-15T21:56:25Z"
+      record: I-10
+      source_statement: Cartographer output becomes a narrative artifact only through hobbes.narrate.schema's validating writers; a payload that fails validation or carries unverifiable pins writes nothing to disk.
+      source_scope: pipeline/src/hobbes/narrate
+    - key: sha256:ca2016c9283017f61846409f5c30bc91
+      verdict: approved
+      decided_at: "2026-08-15T21:55:01Z"
+      record: I-8
+      source_statement: Artifacts under .hobbes/derived/ are regenerable pipeline output and are never committed; git add of anything under that path is denied.
+      source_scope: .hobbes/derived
+    - key: sha256:f4469b5003509c716126223832f90e5e
+      verdict: approved
+      decided_at: "2026-08-15T21:55:13Z"
+      record: I-9
+      source_statement: Any command not explicitly matched by a repo policy rule escalates to a human by default; force-pushes to the canonical repo are denied outright and all other pushes escalate.
+      source_scope: .
+    - key: sha256:f8fc62f8b9f9067f0d455f7995f0725b
+      verdict: approved
+      decided_at: "2026-08-15T21:54:58Z"
+      record: I-7
+      source_statement: Terraform state files (*.tfstate*) are never read, written, or shipped anywhere in the repo; the repo policy denies any command touching them.
+      source_scope: .
+    - key: sha256:fc60f1a8e8d456eefab6a5d6a668a7a9
+      verdict: approved
+      decided_at: "2026-08-15T21:56:26Z"
+      record: I-11
+      source_statement: Terraform env-set edges and Python env-read edges must join on shared env:VAR nodes so infra-to-code environment coupling is visible in the module graph.
+      source_scope: pipeline

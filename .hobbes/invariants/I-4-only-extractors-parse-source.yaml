@@ -1,0 +1,56 @@
+# Promoted from INF-4 (M5 inferred set), 2026-08-11. Restated after Max's
+# M8 review: the original wording ("only the two source extractors parse
+# source") described the two parsers that existed, which reads as an
+# argument for a fixed pipeline. The rule that actually matters is
+# ownership — one parser per language, and no layer overriding another.
+#
+# Restated a third time at V2.M6 (the plan said it would need it): the
+# second wording enumerated the owners ("Python to pysource, HCL to
+# terraform, TS/JS to the tsextract helper") and the roster went stale
+# twice without the record noticing — V2.M4 moved HCL behind the
+# terraform pack, V2.M5 added gosource with a fourth grammar the
+# exception list did not cover. A statement that enumerates decays; the
+# enumeration now lives only in the rule block, which the unified
+# checker holds against the graph on every run, so a fifth language
+# that forgets to amend this record turns the record red instead of
+# quietly narrowing it.
+#
+# And at V2.M7 it did exactly that: the first `hobbes review` after
+# rustsource landed reported I-4 FAIL citing rustsource.py's
+# tree_sitter import, and this roster amendment is the conscious act
+# the checker exists to force (rule block only — the statement is
+# ownership and needs no edit).
+id: I-4
+statement: >-
+  Each language has exactly one owning parser, and only owning parsers
+  hold a grammar. Files are dispatched to their owner by extension, so
+  no parser ever sees another language's source; every other module
+  consumes already-parsed facts rather than re-deriving them. A second
+  parse cannot contradict the first because it never happens; where two
+  layers contribute to one graph, they merge facts and never
+  re-interpret each other's.
+scope: pipeline/src/hobbes
+status: confirmed
+# graph: the unified checker judges this against module_edges directly
+# (ADR-039); the agreement test still compiles it to import-linter and
+# runs the real tool, so the two answers are held together.
+check: graph
+rule:
+  kind: forbidden-import
+  importers: ["*"]
+  except:
+    - hobbes.extract.pysource
+    - hobbes.extract.gosource
+    - hobbes.extract.rustsource
+    - hobbes.extract.terraform
+  imported:
+    - ext:tree_sitter
+    - ext:tree_sitter_go
+    - ext:tree_sitter_hcl
+    - ext:tree_sitter_python
+    - ext:tree_sitter_rust
+guarded_by:
+  - pipeline/tests/test_emit.py::TestLayerOwnership::test_no_parser_sees_another_languages_files
+  - pipeline/tests/test_emit.py::TestLayerOwnership::test_a_cross_layer_id_collision_is_reported
+  - pipeline/tests/test_emit.py::TestLayerOwnership::test_the_same_node_from_two_layers_is_not_a_collision
+  - pipeline/tests/test_emit.py::TestLayerOwnership::test_symbols_stay_unique_when_modules_collide

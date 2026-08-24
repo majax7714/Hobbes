@@ -1,0 +1,19 @@
+# Promoted from the inferred set through the Hobbes surface
+# on 2026-08-15 (ADR-026). Edit freely — this file is the record.
+#
+# RESTATES I-1 (C-21). The inferred set is generated without sight of
+# .hobbes/invariants/, so this arrived as a reworded duplicate and the
+# queue could not say so. I-1 is the record of reference: it names the
+# three places the rule lives (policy floor in Go, extractor refusal in
+# Python, gitignore entry), where this one names only the policy.
+id: I-7
+statement: >-
+  Terraform state files (*.tfstate*) are never read, written, or
+  shipped anywhere in the repo; the repo policy denies any command
+  touching them.
+scope: .
+status: confirmed
+check: soft
+guarded_by:
+  - pipeline/tests/test_terraform.py::TestPlan::test_tfstate_lookalike_refused
+  - pipeline/tests/test_cli.py::TestIngest::test_tfstate_plan_refused

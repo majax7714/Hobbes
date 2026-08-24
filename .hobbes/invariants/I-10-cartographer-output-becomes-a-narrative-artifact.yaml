@@ -1,0 +1,18 @@
+# Promoted from the inferred set through the Hobbes surface
+# on 2026-08-15 (ADR-026). Edit freely — this file is the record.
+#
+# RESTATES I-5 (C-21). The inferred set is generated without sight of
+# .hobbes/invariants/, so this arrived as a reworded duplicate and the
+# queue could not say so. I-5 is the record of reference and cites
+# ADR-019.
+id: I-10
+statement: >-
+  Cartographer output becomes a narrative artifact only through
+  hobbes.narrate.schema's validating writers; a payload that fails
+  validation or carries unverifiable pins writes nothing to disk.
+scope: pipeline/src/hobbes/narrate
+status: confirmed
+check: soft
+guarded_by:
+  - pipeline/tests/test_narrate.py::TestWriteModuleDoc::test_invalid_payload_writes_nothing
+  - pipeline/tests/test_narrate.py::TestWriteModuleDoc::test_unsafe_id_refused

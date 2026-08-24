@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "Cross-language conformance vectors for the ADR-026 decision key.",
+    "The ledger is written by the Go web server and read by `hobbes up`,",
+    "so the two implementations must agree exactly — a mismatch would",
+    "silently lose every decision rather than fail loudly.",
+    "",
+    "Spec: sha256 of `\" \".join(statement.split()) + \"\\n\" + scope.strip()`,",
+    "hex, truncated to 32 characters, prefixed \"sha256:\".",
+    "",
+    "Both pipeline/tests/test_decisions.py and go/internal/web assert",
+    "against this file. Adding a vector is cheap; changing one is a",
+    "format break that invalidates every stored decision."
+  ],
+  "vectors": [
+    {
+      "why": "the ordinary case",
+      "statement": "only auth.core may mint tokens",
+      "scope": "src",
+      "key": "sha256:81f14a6fc1b3a4a205d933fc2edd8667"
+    },
+    {
+      "why": "reflowed whitespace is the same decision",
+      "statement": "only auth.core\n   may mint    tokens",
+      "scope": "src",
+      "key": "sha256:81f14a6fc1b3a4a205d933fc2edd8667"
+    },
+    {
+      "why": "scope is part of identity",
+      "statement": "only auth.core may mint tokens",
+      "scope": ".",
+      "key": "sha256:e36f0908711ada1bbc7e53ef7b5e4212"
+    },
+    {
+      "why": "a repo-wide scope with padding still trims",
+      "statement": "tfstate is never read",
+      "scope": "  .  ",
+      "key": "sha256:91d544eb1bff954dd9e4e404c8c2e9b9"
+    },
+    {
+      "why": "unicode survives normalization",
+      "statement": "claims carry a file:line pin — always",
+      "scope": "pipeline/src",
+      "key": "sha256:f2d27f35ce3452a8d4e4fb5b1afa97d9"
+    },
+    {
+      "why": "empty scope is legal and distinct",
+      "statement": "x",
+      "scope": "",
+      "key": "sha256:73cb3858a687a8494ca3323053016282"
+    }
+  ]
+}

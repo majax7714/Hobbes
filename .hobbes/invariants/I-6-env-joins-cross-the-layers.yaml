@@ -1,0 +1,17 @@
+# Promoted from INF-6 (M5 inferred set), 2026-08-11 — proposed, awaiting
+# Max's confirmation.
+id: I-6
+statement: >-
+  Infrastructure and application code meet at shared env:VAR nodes: a
+  Terraform env-set edge and a Python or JS env-read edge for the same
+  variable land on one node, so environment coupling is a visible edge in
+  the module graph rather than a fact spread across two layers.
+scope: pipeline
+status: confirmed
+# Soft: the claim is about the shape of the derived graph, not about
+# source structure, so none of the four targets is the right checker.
+# Its two guards assert the join directly, which is stronger.
+check: soft
+guarded_by:
+  - pipeline/tests/test_emit.py::TestIngest::test_cross_layer_env_join_present
+  - pipeline/tests/test_terraform.py::TestEnvJoin::test_env_set_edges_and_nodes

@@ -1,0 +1,147 @@
+# Extraction evidence — the repos Hobbes has been tested against
+
+**Why this file exists (Max, 2026-08-18):** "carry a repos tested with
+stats doc somewhere in the repo for honesty and proof." The plan is that
+once extraction is properly validated, most development moves off of
+testing and Hobbes work becomes last-commit additions — which makes the
+extraction layer's evidence base the thing everything else stands on,
+and an unwritten evidence base is a claim, not a proof.
+
+**How to read this file.** One section per repo, newest results first
+within it. Every number is **of detected call sites** (C-1/C-4/C-5 are
+in no denominator here — the count is a floor, never "of the repo").
+A row licenses exactly what it measured (P11): "ingested cleanly at
+265k sites" is evidence about the machinery at scale, **not**
+hand-verified edge accuracy — and rows say explicitly which they carry.
+**Leaving edge verification out is fine as long as it is documented**
+(Max, same direction), so the *Verified* line is mandatory in every
+section, including when its content is "none". Architecture §3.8
+remains the *claim* table — what "supported" means; this file is the
+*evidence log* behind and beyond it. Update it **in the same commit**
+as the test session that produced the numbers.
+
+Fixture repos (`miniapp`, `minits`, `minigo`, `minirust`, the twomod
+scratch fixture) are exercised by the test suite on every run and are
+not logged here — this file is for real repos.
+
+---
+
+## hobbes (this repo — dogfood, continuous)
+
+Six languages in its own graph (`go, hcl, javascript, python, rust,
+typescript`). Re-ingested every session; the suite's degraded path
+(lane B off) runs on every test invocation.
+
+| Date | Numbers |
+|---|---|
+| 2026-08-18 (ADR-050) | ts/js **61.6% → 67.0%** — the per-file `node_modules` links fixed the tsconfig-less root zone (`tsextract` 27.7% → 58.8%, its 131 `external-origin` sites now resolving). go/python/rust unchanged |
+| 2026-08-18 | 265 nodes, 915 module edges, 2,063 symbols, 4,207 call edges. Capture: go **89.2%** of 3,707 · python **88.3%** of 4,862 · rust **100%** of 18 · ts/js **61.6%** of 2,417. Unclassified residue: 0 python, 0 go (ADR-046), ~99 ts/js (the known fleet residue — helper/scip JS zones). Stable across the ADR-048/049 changes |
+| 2026-08-16 (V2.M7 exit) | 3,085 sites, lanes **0 disagreements** across six languages |
+| 2026-08-15 (V2.M3 exit) | lanes: 1,789 sites compared, **0 disagree** |
+
+**Verified:** Go 20/20 call edges hand-checked at V2.M5 (ADR-037);
+10/10 sampled narrative claims resolve (M5); the M8 exit check's
+invariant regression replay (`hobbes review ace9a08..cdbc085`, exit 1).
+
+## private-repo-A (a private Python + JS + Terraform repo; read-only, Max-sanctioned; name and location withheld)
+
+| Date | Numbers |
+|---|---|
+| 2026-08-16 (tail view) | python capture **94.3%** — best measured; unclassified 46 → 4 (import-binding, ADR-045 amendment) → **0** (ADR-046) |
+| 2026-08-11 (M6 exit) | 207 nodes, 602 module edges (hcl+javascript+python); lanes 976 sites, **0 disagree** |
+
+**Verified:** all 11 JS module edges + 9 call edges + 9 node:test
+mappings + 1 pytest mapping hand-checked — 100% (M6 exit); the
+cross-layer `packages` edge at `infra-core/lambda.tf:5 → handler.py`
+hand-verified (M3).
+
+## kbet (`~/projects/kbet` — real Vite+React TS app; throwaway tier)
+
+| Date | Numbers |
+|---|---|
+| 2026-08-18 (ADR-050) | ts/js **72.1%** of 4,807 — its per-package tsconfig + installed tree was already the handled shape; residue is 462 `external-origin` (third-party calls) + 24 attr-call, 3 unclassified |
+| 2026-08-16 | tail: 61% below-floor locals; **9 of 1,339** sites unclassifiable |
+| 2026-08-15 (V2.M3/C-24) | **231 semantic TS call edges**; 12 test→component render edges, all semantic; 108/174 tests reach a component; lanes 359 sites, **0 disagree** |
+| 2026-08-11 (M6) | 104 nodes, 174 tests |
+
+**Verified:** 20/20 semantic call edges hand-checked against cited
+lines (V2.M3, discharging M2's asterisk); 20/20 edges + 10/10 test
+mappings at M6.
+
+## qwen-pathology (`~/qwen-pathology` — Python)
+
+| Date | Numbers |
+|---|---|
+| 2026-08-16 | capture **82.6%** of 546; environment gap surfaced (2/6 deps installed — datasets, transformers, vllm missing, C-27's WARNING); unclassified 6 → **1** |
+
+**Verified:** none — its role is the env-missing degradation path,
+which it exercised (documented, not hand-checked).
+
+## rust_proj (`~/rust_proj` — small Rust crate)
+
+| Date | Numbers |
+|---|---|
+| 2026-08-16 (V2.M7 exit) | 33 call edges, **all semantic**; lanes clean at 17 sites |
+
+**Verified:** 33/33 — 100% hand-checked (the P7 proof, ADR-040). One
+small repo: this is the entirety of Rust's evidence base, which is why
+§3.8 scopes the Rust claim to it.
+
+## dagger (`~/dagger` — the Dagger automation engine; ~460 MB)
+
+The first deep-extraction target (2026-08-18, ADR-048/049): four graph
+languages, **84 TS zones, 25 Go modules, ~265,000 detected call
+sites** — ~50× the largest prior measurement. Its role is scale and
+monorepo structure, and it earned three fixes and one lifted
+constraint in two days.
+
+| Run | Numbers |
+|---|---|
+| 4th — after dependency provisioning (ADR-050) | ts/js **18.8% → 27.9%**; `sdk/typescript` **63.7% → 70.3%**; the docs zone indexes instead of failing (docs/versioned_docs 0% → 4.5% — the residue is example snippets importing `@dagger.io/dagger`, which no package.json declares: undeclarable, not unprovisioned). 8 lockfile-pinned trees provisioned into `~/.hobbes/cache/npm` (~833 MB, docusaurus dominating); every declined zone carries its C-34 reason (`no lockfile`). Lanes: 36,703 dual-resolved, 258 disagree — the +120 are all the TS decorator line-convention off-by-one (131 total, same declaration both sides; noted in future_additions), Go's 126 unchanged, **1** genuinely new |
+| 3rd — after the cross-unit join (ADR-049) | go **85.6%** of 237,728 — cannot-resolve 20,501 → **5,571** (attr-call 4,655, unclassified 219); `core/integration [go]` **59.3% → 96.3%** (cannot-resolve 14,902 → 396). **161,184 call edges (+8,014 semantic)**, 24,723 module edges; **7,322** semantic `core/integration → sdk/go` edges (the `replace`d SDK, C-33's exact case). Two `scip-merge` abstentions reported (42 anonymous-TS-zone monikers, 7 generated Go testdata modules — C-28's rule across units, exactness holding). Lanes: 36,440 dual-resolved, **still 138 disagree — zero added by the join**. python/rust/ts unchanged, as they should be |
+| 2nd — after wrapped-chain + per-unit degradation (ADR-048) | go **79.3%** of 237,728 (unclassified **359**, was 9,131) · python **89.1%** of 6,382 · rust **94.2%** of 8,595 · ts/js **18.8%** of 12,503 (`sdk/typescript` **63.7%**, was 0 — the docs zone now fails alone). 4,872 nodes, 24,452 module edges, 153,170 call edges. Lanes: 36,439 dual-resolved sites, **138 disagree (0.38%)** — 126 Go (fallback vs build tags/interface dispatch: C-7/C-8's floor measured), 11 a TS decorator line-convention off-by-one, both lanes citing the same declaration |
+| 1st — baseline | go 79.3% (unclassified 9,131 — wrapped fluent chains) · ts/js **0.0%** (one broken docs zone zeroed all 84 zones) · python 89.1% · rust 94.2%. Found C-33: zero semantic edges from the root module into the `replace`d `./sdk/go` |
+
+**Verified:** **no hand-checked edges** — documented deliberately
+(Max: "leaving edge verification is fine as long as its documented").
+What dagger evidences is the honesty machinery and the monorepo
+structural fixes at scale, plus the two-module fixture's 0% → 100%
+flip (`semantic`/`calls`) proving the C-33 lift's mechanism exactly.
+No §3.8 row exists for dagger and none is licensed by these runs.
+
+## psf/requests (SWE-bench Verified checkouts — eight base commits, ADR-055)
+
+| Date | Numbers |
+|---|---|
+| 2026-08-21 | eight instance checkouts (2013–2022 base commits), lane A only (`HOBBES_SCIP=0`), 93–155 nodes each; used for the C-36 seed probe — 8/8 issues seed lexically, 4/8 seed sets touch the gold-patch file |
+
+**Verified:** none — the role was the seed probe, not edge accuracy; no
+call edge was hand-checked (documented, not claimed).
+
+## SWE-bench workspaces (the derivation programme, 2026-08-21 → 24)
+
+The benchmark harness's ingest targets — large, real Python repos at
+old base commits, each a fresh workspace clone (`~/.hobbes/bench/*/work/`).
+Their role is derivation input (ids, paths, spans, co-change), not edge
+accuracy, and the Verified line is scoped to exactly that. Numbers from
+the 2026-08-24 validation pair's workspaces (full ingest; lane B where
+the helper ran):
+
+| Repo (instance) | Numbers |
+|---|---|
+| django (11400) | 2,829 nodes, 70,066 call edges; python **53.7%** of 123,389 sites; js/ts 20.0% of 9,281 (lockfile-less zones declined by name, C-34); 3 degradations reported |
+| scikit-learn (25102) | 1,052 nodes, 31,523 call edges; python **53.0%** of 82,674; 1 degradation — the environment-residue row (defect D7, `adr085-validation-run.md`): a scip-decode dup report naming a package from the box's python env, zero graph nodes/edges from it |
+| xarray (3993) | 237 nodes, 13,897 call edges; python **68.8%** of 30,725; no degradations |
+| sphinx (8548) | 733 nodes, 11,041 call edges; python **72.1%** of 24,405 |
+| sympy (13852) | 1,309 nodes, 28,840 call edges; **lane B did not run** — the workspace's scip helper env errored and the P6 degradation is on the record; the 0.0% capture of 607,906 sites recorded under it is the degraded-path figure, not a resolution measurement |
+| astropy (13398, 13579) | 2026-08-22 phase-4 probes + full stages; unit interiors vs gold checked by hand (BUILDLOG) |
+
+**Verified:** declaration sites and spans hand-checked during the deep
+reads of the 27B pairs and the sympy 7B failure — django, xarray,
+scikit-learn, sphinx, sympy: every span and declaration site checked
+landed exactly (BUILDLOG seventy-fourth–seventy-sixth, the P12
+inspection's "extraction is accurate and load-bearing" finding);
+astropy unit interiors vs gold hand-checked at phase 4. **No call edge
+was hand-checked in these repos** — the §3.8 Python row is extended at
+span/declaration grain only, and licenses nothing about edge accuracy
+here.

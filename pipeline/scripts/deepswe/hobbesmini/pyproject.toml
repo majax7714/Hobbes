@@ -1,0 +1,13 @@
+[project]
+name = "hobbesmini"
+version = "0.3.0"
+description = "Hobbes's mini-swe-agent agent class: refuses a repeated action (ADR-079) and commits on exit (ADR-080)"
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["hobbesmini*"]

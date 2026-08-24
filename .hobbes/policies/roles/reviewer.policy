@@ -1,0 +1,14 @@
+# Role policy: reviewer (M8 / harness restructure, phase 1). Reviews a
+# plan or a range and reports; worktree read-only, writes denied with a
+# reason.
+version: 1
+scope: role
+default: escalate
+
+rules:
+  - pattern: "git commit*"
+    decision: deny
+    reason: "a reviewer reports; it does not change the tree"
+  - pattern: "git add *"
+    decision: deny
+    reason: "a reviewer reports; it does not change the tree"

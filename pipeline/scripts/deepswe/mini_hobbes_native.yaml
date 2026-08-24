@@ -1,0 +1,5 @@
+# native tool-calling (mini.yaml stays the base via Pier's -c mini.yaml) + Hobbes's repeat guard (ADR-079)
+agent:
+  agent_class: hobbesmini.RepeatGuardAgent
+  max_repeats: 3
+  hobbes_context_shape: observation

@@ -1,0 +1,13 @@
+{
+  "name": "hobbes-scip",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Lane B indexers (architecture v2 \u00a73.2). Hobbes writes no provider adapters \u2014 it runs these and consumes their SCIP output. Pinned, because the index format is a contract.",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@sourcegraph/scip-python": "0.6.6",
+    "@sourcegraph/scip-typescript": "0.4.0"
+  }
+}

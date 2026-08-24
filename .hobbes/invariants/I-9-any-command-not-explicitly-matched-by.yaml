@@ -1,0 +1,24 @@
+# Promoted from the inferred set through the Hobbes surface
+# on 2026-08-15 (ADR-026). Edit freely — this file is the record.
+#
+# RESTATES I-3 (C-21). The inferred set is generated without sight of
+# .hobbes/invariants/, so this arrived as a reworded duplicate and the
+# queue could not say so. Kept because Max approved it; I-3 is the
+# record of reference where the two overlap.
+#
+# CORRECTED 2026-08-15, same day as approval: the inferred statement
+# ended "all other pushes escalate", which repo.policy makes false —
+# `git push*` is denied outright, not escalated. This is the identical
+# false clause the M5 wording of I-3 carried, which the M8 promotion
+# caught and rewrote; narration re-proposed the uncorrected text.
+id: I-9
+statement: >-
+  Any command not explicitly matched by a repo policy rule escalates
+  to a human by default — the default is a question, never a yes. Pushes
+  are the exception in the other direction: every push, forced or not, is
+  denied outright rather than escalated, because there is no answer to
+  that question that should be yes.
+scope: .
+status: confirmed
+check: soft
+guarded_by: []

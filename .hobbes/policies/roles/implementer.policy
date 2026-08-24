@@ -1,0 +1,22 @@
+# Role policy: implementer (ADR-054). One per work unit; writes only
+# inside its unit, commits on its session branch, never publishes.
+# Loaded between the repo policy and the derived agent policy; deny
+# overrides allow, so nothing here can widen past the repo's denies.
+version: 1
+scope: role
+default: escalate
+
+rules:
+  - pattern: "git commit*"
+    decision: allow
+  - pattern: "git add *"
+    decision: allow
+  - pattern: "git checkout -b *"
+    decision: deny
+    reason: "a session works on the branch it was started on"
+  - pattern: "git merge*"
+    decision: deny
+    reason: "integration is the orchestrator's, after harvest"
+  - pattern: "git rebase*"
+    decision: deny
+    reason: "history on a session branch is the audit trail"
