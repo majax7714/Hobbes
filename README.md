@@ -31,6 +31,8 @@ masterpiece, and everyone should read it at least once. Anyone is welcome
 to use Hobbes; the only request is that you keep some reference to the
 funny tiger in your uses of it.
 
+Also worth checking out- https://calvinandhobbes.webflow.io/
+
 ![Calvin and Hobbes asleep on a tree branch, by Bill Watterson](hobbesncalvin.jpg)
 
 <sub>*Calvin and Hobbes* © Bill Watterson. Used here in affection, not ownership.</sub>
