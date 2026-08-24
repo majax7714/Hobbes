@@ -102,3 +102,46 @@ calls are in its flight log at 18:41:11–12Z.
   answer is wrong. `git status`/`git diff` were outside the probe's
   allowlist, so the agent's file list came from its own edits — a
   harness detail, not a Hobbes one.
+
+## Second observation (2026-08-24, the blind-spot probe)
+
+The case the tools are weakest on, chosen for it: rename the `Pack`
+dataclass field `applies` → `detect`. Every use is `pack.applies(ctx)`
+— an attr-call through a value (C-1), so the graph holds **no symbol
+at all** for it and `who_calls` can only answer "nothing". The honest
+outcome depends on `list_blind_spots` telling the agent that "nothing"
+is not evidence. Same setup as the first probe; the prompt asked for
+the change, the tests, and a confidence statement with reasons.
+
+- **Outcome: correct.** 12 files / 42 lines — the dataclass, the
+  runner, all eight packs' `_applies` helpers and `applies=` kwargs,
+  25 test uses, and (unasked) the architecture doc's `applies()`
+  mention, citing this file's same-commit rule. Prose uses of
+  "applies" correctly left alone. 44/44 pack tests; 895/896 full suite
+  (the same pre-existing environment failure — correctly reasoned
+  about, and honestly reported as reasoned-not-demonstrated because
+  `git stash` was outside its allowlist). 57 turns, 209 s, $3.17.
+- **The graph was never asked.** No `who_calls`, no `tests_guarding`;
+  the agent grepped first and last. For a *field* rename that is a
+  defensible instinct (the graph indexes symbols, not dataclass
+  fields), and grep was sufficient here — so this probe did not show
+  the graph being wrong, it showed the agent correctly not using it.
+- **The honesty tool was reached for, and its schema tripped the
+  agent.** It called `list_blind_spots` — "as CLAUDE.md suggests" — with
+  an argument named `path`; the tool takes `scope`; the call was
+  rejected at the MCP input layer and the agent **fell back to grep
+  without retrying**, judging it "not material for a pure rename".
+  Because a schema rejection never reaches the tool, **the flight log
+  holds no record of the attempt** — the only evidence is the agent's
+  own report. Two findings: (1) the argument name is a real friction
+  point — `scope` is Hobbes vocabulary, `path` is what an agent
+  guesses; (2) the recorder cannot see calls the SDK rejects, so a
+  tool the agent *tried* to use looks identical in the log to one it
+  never touched. Neither is fixed here; both are named in
+  `docs/workstreams.md` (W4).
+- Reading across the two probes: on a symbol rename the tools were
+  reached for first and changed the work; on a field rename the graph
+  was (rightly) bypassed and the boundary tool was lost to an argument
+  name. The blind-spot line has been shown to change behaviour only
+  when it is *read* — the case where it was needed most is the case
+  where it was not reached. n = 2, one model.

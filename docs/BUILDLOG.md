@@ -4867,3 +4867,21 @@ which found only the docstring `:func:` references the graph does not
 model. 5 files / 19 lines correct, 895/896 (the one failure is
 pre-existing on `main`, environment). 32 turns, 131 s, $1.44. Edits
 discarded, branch deleted. Full record in ADR-087.
+
+### 2026-08-24 (eighty-second, second addendum) — ADR-087's second observation: the blind-spot probe; closing out
+
+Probe 2 targeted the tools' weakest case: rename the `Pack` field
+`applies` → `detect`, every use an attr-call through a value (C-1),
+no symbol in the graph. Fresh headless session, neutral prompt.
+Outcome correct (12 files, incl. the architecture doc unasked; 44/44
+pack tests; 895/896 with the same pre-existing env failure). The
+graph was never queried — defensible for a field rename — and the
+agent *did* reach for `list_blind_spots` but called it with `path`
+instead of `scope`, was rejected at the schema, and fell back to grep
+without retrying. The rejection never reached the flight log. Two
+follow-ups named in workstreams W4 (argument alias / description; log
+schema rejections). Edits discarded, branch deleted. 57 turns, 209 s,
+$3.17. The public clone's derived artifacts are at `12bac9f`; note
+`test_scipsource … venv_environment` fails on this box at `main`
+(environment — the venv lists only `pip`), so the live count here is
+895, not 896. Session closed at Max's direction; docs current.

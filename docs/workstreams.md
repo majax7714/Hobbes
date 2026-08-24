@@ -145,6 +145,15 @@ contributor.*
 *Profile: TS/React + some Go (the surface server); the review-prose item
 needs Python and taste.*
 
+- **ADR-087 follow-ups (host knowledge tools).** (a) `list_blind_spots`
+  (and the other scope-taking tools) should accept `path` as an alias
+  for `scope`, or the descriptions should name the argument in the
+  first sentence — probe 2 lost the boundary tool to a guessed argument
+  name. (b) An MCP input-schema rejection never reaches the flight
+  recorder, so an *attempted* tool call is indistinguishable in the log
+  from no call; record rejections at the server (ADR-015's "never
+  unaudited" applies to refusals too). Both parked until named.
+
 ## W5 — Safety & policy
 
 *P10's programme: make the guarantees checkable by the system instead
