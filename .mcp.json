@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "hobbes-knowledge": {
+      "command": "go/bin/hobbes-proxy",
+      "args": ["serve", "--repo", ".", "--role", "developer", "--knowledge-only",
+               "--session", "host-knowledge"]
+    }
+  }
+}

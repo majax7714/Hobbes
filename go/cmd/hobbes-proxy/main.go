@@ -46,7 +46,9 @@ const (
 
 const usage = `usage: hobbes-proxy <serve | escalations> [flags]
 
-serve --repo DIR --role ROLE   run the tool proxy for one agent session:
+serve --repo DIR --role ROLE   run the tool proxy for one agent session
+  [--knowledge-only]           (knowledge tools only: for a host session
+                               that keeps its own shell, ADR-087):
   an MCP server on stdio exposing exec, policy-checked
   (allow | deny | escalate) and logged to the session flight recorder
   (~/.hobbes/sessions/<session>/flight.jsonl).
@@ -140,6 +142,8 @@ func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
 	escalationFlag := fs.Duration("escalation-timeout", proxy.DefaultEscalationTimeout,
 		"park deadline, expires to deny")
 	agentDirFlag := fs.String("agent-dir", "", "derived agent dir (policy.yaml, context.json)")
+	knowledgeOnlyFlag := fs.Bool("knowledge-only", false,
+		"serve only the read-only knowledge tools; exec and reflect are absent (ADR-087)")
 	if err := fs.Parse(args); err != nil {
 		return proxy.Config{}, "", errUsage
 	}
@@ -195,6 +199,7 @@ func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
 		Timeout:           *timeoutFlag,
 		EscalationTimeout: *escalationFlag,
 		AgentDir:          agentDir,
+		KnowledgeOnly:     *knowledgeOnlyFlag,
 	}
 	return cfg, filepath.Join(sessionDir, "flight.jsonl"), nil
 }

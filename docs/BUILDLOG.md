@@ -4833,3 +4833,23 @@ here. `AGENTS.md` is a symlink to it so non-Claude agents find the
 same file. README's "Current status" pointer now names
 `session-handoff.md`. Standing rule added to the file's tail: update
 the Status block only when the headline changes, and keep the length.
+
+## 2026-08-24 (eighty-second) — Hobbes for Hobbes: knowledge tools in host sessions (ADR-087)
+
+Max's call: let the agents that work on Hobbes use Hobbes — evidence
+layer only, "proven honest help", not the agentic layer. Built:
+`hobbes-proxy serve --knowledge-only` (`Config.KnowledgeOnly`) serves
+the six knowledge tools and leaves `exec`/`reflect` **absent** from
+the list — the sandbox's absent-not-refused rule on the host, and no
+second policy engine over the host's shell (P10 shape). Flight log
+still mandatory. Repo-level `.mcp.json` starts it (`--role developer
+--session host-knowledge`). Verified over real stdio from the repo
+root: 6 tools listed, `who_calls hobbes.extract.ingest` cites
+`bench/arms.py:285`, `cli.py:78` and the test_emit cases with lines;
+`list_blind_spots go/internal/proxy` prints the denominator statement
+and 92.4% of 631 sites; every call recorded under
+`~/.hobbes/sessions/host-knowledge/`. First ingest of the public clone
+(lane B on): go 89.6% / python 86.0% / rust 100% / ts-js 66.9%
+capture — the ts/js figure matches the private repo's. Go suite +1
+(`TestKnowledgeOnlySurface`). Validation task proposed in the ADR, not
+run.

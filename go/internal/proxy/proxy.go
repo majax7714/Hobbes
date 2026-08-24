@@ -59,6 +59,11 @@ type Config struct {
 	// every exec, and context.json, when present, is the context
 	// manifest knowledge queries are judged against. "" for none.
 	AgentDir string
+	// KnowledgeOnly serves the read-only knowledge tools and nothing else
+	// (ADR-087): exec and reflect are absent from the tool list, not
+	// refused — the host session keeps its own shell and its own policy,
+	// and Hobbes contributes evidence. Every answer is still recorded.
+	KnowledgeOnly bool
 }
 
 // Server owns the exec handler for one session.
@@ -119,6 +124,10 @@ type ExecArgs struct {
 // MCP returns the MCP server exposing this session's tools.
 func (s *Server) MCP() *mcp.Server {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "hobbes-proxy", Version: "0.1.0"}, nil)
+	if s.cfg.KnowledgeOnly {
+		s.addKnowledgeTools(srv)
+		return srv
+	}
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "exec",
 		Description: "Run a shell command in the session repo, gated by the " +

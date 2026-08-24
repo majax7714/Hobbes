@@ -83,6 +83,18 @@ box, against a repo on disk (architecture §10); the application mode in
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 
+## Hobbes for Hobbes — the knowledge tools in your session
+
+This repo's `.mcp.json` starts `hobbes-proxy serve --knowledge-only`
+(ADR-087): six read-only tools over `.hobbes/derived/` —
+`who_calls`, `tests_guarding`, `graph_neighborhood`, `get_module_doc`,
+`list_invariants`, `list_blind_spots`. Use them instead of grep for
+"who calls this" and "what tests reach this", and read
+`list_blind_spots` for the directory you are editing before trusting
+either — it names what the graph cannot see there. Every answer opens
+with the ingest SHA; on a stale warning, `uv run hobbes ingest`. Needs
+`go/bin/hobbes-proxy` built and the repo ingested (below).
+
 ## Build & test
 
 Go ≥ 1.26, uv, Node. If a distro Go is older, a user-local Go must come

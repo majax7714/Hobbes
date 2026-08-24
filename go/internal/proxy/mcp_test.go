@@ -6,6 +6,7 @@ package proxy
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/majax7714/Hobbes/go/internal/escalation"
+	"github.com/majax7714/Hobbes/go/internal/recorder"
 )
 
 func connect(t *testing.T, s *Server) *mcp.ClientSession {
@@ -62,6 +64,47 @@ func TestSessionToolSurface(t *testing.T) {
 	}
 	if !strings.Contains(names["exec"], "policy") {
 		t.Error("exec description should warn the agent about policy gating")
+	}
+}
+
+// TestKnowledgeOnlySurface: with KnowledgeOnly the mutating tools are
+// absent from the list, not present-and-refusing (ADR-087; the sandbox
+// rule that a forbidden command is absent, applied to a host session).
+func TestKnowledgeOnlySurface(t *testing.T) {
+	repo := testRepo(t)
+	sessionDir := t.TempDir()
+	rec, err := recorder.Open(filepath.Join(sessionDir, "flight.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { rec.Close() })
+	s, err := New(Config{Session: "S-k", Role: "developer", RepoRoot: repo,
+		SessionDir: sessionDir, Rec: rec, KnowledgeOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := connect(t, s)
+	tools, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]bool{}
+	for _, tool := range tools.Tools {
+		got[tool.Name] = true
+	}
+	for _, name := range []string{"graph_neighborhood", "who_calls", "tests_guarding",
+		"get_module_doc", "list_invariants", "list_blind_spots"} {
+		if !got[name] {
+			t.Errorf("knowledge tool %s missing from %v", name, got)
+		}
+	}
+	for _, name := range []string{"exec", "reflect"} {
+		if got[name] {
+			t.Errorf("%s must be absent in knowledge-only mode, got %v", name, got)
+		}
+	}
+	if len(tools.Tools) != 6 {
+		t.Errorf("want exactly 6 tools, got %d", len(tools.Tools))
 	}
 }
 

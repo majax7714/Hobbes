@@ -680,6 +680,11 @@ code is a red build, not a quiet drift.
   cartographer sessions over the deterministic skeleton; ADRs remain the one
   hand-authored class. Stale badges on SHA drift; the periodic auditor session
   spot-checks claims against cited lines.
+- **The knowledge tools reach the host (ADR-087).** `hobbes-proxy serve
+  --knowledge-only` serves the six read-only tools and nothing else —
+  `exec`/`reflect` absent, no policy chain, flight log kept — and this
+  repo's `.mcp.json` starts it for any MCP-speaking agent working on
+  Hobbes. Evidence only: the agentic layer is not offered on the host.
 
 ---
 
