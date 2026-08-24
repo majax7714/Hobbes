@@ -215,8 +215,9 @@ No claim that derived context beats model size has been earned yet; the
 honest state is in [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md)
 and [`docs/benchmark-deepswe.md`](docs/benchmark-deepswe.md).
 
-Current detail lives in the "Current status" section of
-[`CLAUDE.md`](CLAUDE.md); the session-by-session record is
+Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
+(the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
+point); the session-by-session record is
 [`docs/BUILDLOG.md`](docs/BUILDLOG.md).
 
 ## The design docs

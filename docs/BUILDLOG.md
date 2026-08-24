@@ -4818,3 +4818,18 @@ pytest / Go ok / 25 scip). The move is `git archive HEAD` into the
 fresh clone — tracked files only, so nothing gitignored (secrets,
 datasets, caches) can travel. The old history never reaches the public
 remote; this working repo remains the full-history private/dev twin.
+
+## 2026-08-24 (eighty-first) — CLAUDE.md reframed as a contributor entry point (public repo, docs only)
+
+The public repo's first task: `CLAUDE.md` had grown to 1,159 lines —
+a per-session ledger addressed to the owner, duplicating this file
+and `docs/session-handoff.md`, and arguing against the project's own
+small-context thesis. Rewritten to ~190 lines: what Hobbes is, a
+by-task reading table, the project map, build & test, the conventions
+restated for any contributor (P8/P10/P11/P12 kept as rules, not
+anecdotes), and a six-bullet Status block. Everything dropped is in
+this log's earlier entries; nothing was moved, since it was already
+here. `AGENTS.md` is a symlink to it so non-Claude agents find the
+same file. README's "Current status" pointer now names
+`session-handoff.md`. Standing rule added to the file's tail: update
+the Status block only when the headline changes, and keep the length.
