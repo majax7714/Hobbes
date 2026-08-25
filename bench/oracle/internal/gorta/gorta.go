@@ -38,6 +38,12 @@ type Options struct {
 	Repo   string
 	Module string
 	Tags   []string
+	// NoTests loads the module without its test packages: roots are the
+	// binaries only, and the cell says so (its Roots list has no `.test`
+	// entries). The memory shape of a large monorepo root with tests
+	// doubled its packages past a 30 GB box (H-9); this is the honest
+	// smaller question, not a silent downgrade.
+	NoTests bool
 }
 
 // Run loads, analyses and exports one cell. Roots are the main and init
@@ -55,7 +61,7 @@ func Run(o Options) (*edges.OracleExport, error) {
 			packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax |
 			packages.NeedTypesInfo | packages.NeedModule,
 		Dir:   dir,
-		Tests: true,
+		Tests: !o.NoTests,
 	}
 	if len(o.Tags) > 0 {
 		cfg.BuildFlags = []string{"-tags=" + strings.Join(o.Tags, ",")}
@@ -192,7 +198,11 @@ func Run(o Options) (*edges.OracleExport, error) {
 			}
 		}
 	}
-	out := &edges.OracleExport{Oracle: "go-rta", Kind: "reachability", Module: o.Module, Roots: rootNames, Tags: o.Tags}
+	oracle := "go-rta"
+	if o.NoTests {
+		oracle = "go-rta (no test packages)"
+	}
+	out := &edges.OracleExport{Oracle: oracle, Kind: "reachability", Module: o.Module, Roots: rootNames, Tags: o.Tags}
 	for f := range files {
 		out.Files = append(out.Files, f)
 	}
