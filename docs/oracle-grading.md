@@ -95,7 +95,8 @@ oracle for Hobbes — lane B's `scip-python` is built on Pyright, so a
   TS zones only and say so).
 - Hand-grading remains the method for what no oracle reaches — unexecuted
   Python/Rust paths, HCL — per the §11 protocol-upgrade note. Misses are
-  kept by class, per cell, in `docs/oracle-misses.md`.
+  kept by class, per cell, in `docs/oracle-misses.md`; the harness's
+  and oracles' own defects in `docs/oracle-defects.md`.
 
 ## 3. Metrics and definitions
 

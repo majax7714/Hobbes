@@ -85,6 +85,9 @@ in exactly one bucket:
   (`static`, `dynamic`, `*-closure`), and the raw contradicted / abstract
   / missed rows — the triage queue.
 
+Every defect found in the harness or an oracle is logged in
+`docs/oracle-defects.md` with what it would have cost unnoticed.
+
 **Triage verdicts** for contradicted rows (design §8): *hobbes-wrong*
 (extraction defect → issue), *oracle-unsound* (logged, not charged),
 *match-defect* (fix the matcher, rerun). A cell's number is final only
