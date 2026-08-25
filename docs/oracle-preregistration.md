@@ -35,3 +35,37 @@ lane is measuring its own normalisation; fix before any real number is
 quoted. If triage attributes them mostly to **oracle-unsound**, RTA is
 the wrong oracle for this code shape and VTA (D-O1's optional arm)
 runs next.
+
+## Phase 2 — committed 2026-08-25, before O6 / O7 ran
+
+Priors: Python has **no edge-accuracy evidence at all** beyond lane
+agreement (1,789 sites / 0 disagreements on this repo) and the M5
+narrative sample; the SWE-bench workspaces' 53–72% capture is a
+detection number, not an accuracy one. Rust has ADR-040's 33/33
+hand-check on `rust_proj` (95% lower bound ~89%). The phase-1 lesson
+(H-3, H-5, H-6, H-7): the first pass of a new oracle is usually the
+oracle being right at a different grain, so every phase-2 prediction is
+graded **after** match-defect triage, never on the first pass.
+
+O6's first cell is this repo's Python zone (`pipeline/`, under its own
+pytest suite, `HOBBES_SCIP=0` as the suite runs by default); xarray was
+in the design but **no SWE-bench workspace exists on this box any
+more**, so that cell is recorded *not run* rather than predicted.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P10 | O6 (this repo, `pipeline/`) | **recall-against-executed** over in-repo observed pairs to *named* declarations (functions, methods, classes) ≥ 90%; over *all* observed in-repo pairs (nested functions, lambdas included) between **70% and 92%** | met if both hold after match-defect triage |
+| P11 | O6 | the **suspect rate** (suspect / (confirmed + suspect)) ≤ 2%, and triage attributes the suspects mostly to *not-exercised* or *match-defect* (decorators, `functools.wraps` wrappers, `__call__`), not *hobbes-wrong* | met if the rate holds and ≥ half the triaged suspects are not hobbes-wrong |
+| P12 | O6 | the suite exercises ≥ 60% of Hobbes' call sites under `pipeline/src`; the unobserved bucket is dominated by `line-not-called` (never executed), not `line-mixed` (executed, but only C or out-of-repo callees seen there) | met if both hold |
+| P13 | O6 | misses concentrate in **closures**: pairs whose target is a nested function or lambda (`observed→closure`) ≥ 50% of all in-repo misses; the runner-up is calls dispatched through a callable object or bound value Hobbes cannot name statically | met if the miss decomposition says so |
+| P14 | O6 | at least one **harness defect** in the oracle-right-at-a-different-grain class (decorator line vs identifier line, wrapper vs wrapped) is found by the miniapp fixture or the first triage, before any number is quoted | recorded as a finding regardless |
+| P15 | O7 (`rust_proj`) | the MIR resolution oracle **confirms all 33** of ADR-040's hand-checked edges; any divergence is a harness finding first (design §7) | met if 33/33 after match-defect triage |
+| P16 | O7 (`rust_proj`, then dagger's Rust if the driver holds) | precision-against-oracle ≥ 95% on the semantic tier; misses concentrate in **trait dispatch** (`dyn` and generic-bound calls, oracle-silent or dynamic) and closures, ≥ 60% of misses | graded per cell reached; dagger rust is recorded *not reached* if the driver does not get there |
+
+**What would falsify phase 2's usefulness.** If O6's coverage line is
+below ~30% of Hobbes' sites, the executed slice is too thin for any
+recall claim and the cell is recorded as a coverage measurement only.
+If O7's driver cannot be pinned to a nightly that builds `rustc_private`
+on this box inside the time box, the Rust lane is recorded *not built*
+with the toolchain reason, and ADR-040's hand-check stays the only Rust
+evidence — said so, in the row.
