@@ -5078,3 +5078,11 @@ oracle has now sized on two codebases (closures 70–80%, interface
 dispatch 4–23%). 907 pytest. Session closed: ADR-089 phase 1 done to
 this box's limit, W1's findings fixed and verified by the instrument
 that found them.
+
+## 2026-08-25 — close-out: docs swept, phase 2 flagged as the next section
+
+Status blocks, `oracle-grading.md`'s status line, the handoff header and
+W3 now say the same thing: oracle lane phase 1 done to this box's
+limit, W1's findings fixed, **phase 2 (Python traces, Rust MIR) is the
+next section**, root waits on compute. Session closed at Max's
+direction; a fresh session resumes from the handoff.

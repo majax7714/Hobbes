@@ -180,7 +180,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-08-24)
+## Status (2026-08-25)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust (+ Terraform/HCL),
@@ -203,6 +203,13 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
   (`docs/benchmark-deepswe.md`); no H1 claim has been earned.
+- **The oracle lane (ADR-089) is built and phase 1 has run:** Go and TS
+  call edges are compiler-graded against RTA / `tsc` on this repo, kbet
+  and 19 of dagger's modules — 0 contradictions after the W1 fixes;
+  what is left is C-58 (closures, interface dispatch, function values).
+  `docs/oracle-misses.md` and `docs/oracle-defects.md` are the honesty
+  records. **Phase 2 (Python runtime traces, Rust MIR) is next for that
+  lane**; dagger's root module waits on a bigger box.
 - **Next:** restructure from the defect register (D1–D8), validated on
   the 7B or with no model; then project setup for collaborators
   (`docs/workstreams.md`).

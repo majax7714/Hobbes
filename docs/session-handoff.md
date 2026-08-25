@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-24 (the ADR-085 validation pair ran; paused for
-restructure).** The one authoritative resume doc. Read this, then
+**Rewritten 2026-08-25 (oracle lane phase 1 + W1 fixes done; the
+ADR-085 restructure still paused).** The one authoritative resume doc. Read this, then
 **`docs/adr085-validation-run.md`** (the run's record and its
 eight-defect register — the restructure's worklist), then
 `docs/benchmark-hypotheses.md` (reading rules + Results) and the recent
@@ -97,9 +97,14 @@ the same day): dagger's 19 modules regrade at **0 contradictions,
 static named calls 9,889/9,889**; five product defects fixed with
 `goshapes` fixture tests (conversions-as-calls, the type-name
 collision in the conversion filter, generic-call sites, self-calls —
-C-59 lifted — and typed var/const specs named by their type). Resume
-with **phase 2** (O6 Python runtime traces, O7 Rust MIR — design §6/§7,
-D-O5/D-O6 decided) or the C-58 design question (closures, interface
+C-59 lifted — and typed var/const specs named by their type). **Next section of the oracle work, for a fresh session: phase 2** — O6
+Python runtime traces (`sys.monitoring`, this repo's Python zone under
+its own suite, then xarray), O7 Rust MIR (`rust_proj` must confirm its
+33/33, then dagger rust); design §6/§7, D-O5/D-O6 decided, §3.1's
+asymmetric buckets not yet in the grader, pre-registration first
+(§10). Read `docs/oracle-grading.md`, `bench/oracle/README.md`,
+`docs/oracle-defects.md` before building. Alternatively the C-58 design
+question (closures, interface
 dispatch, function values: the only misses left, sized on two
 codebases in `docs/oracle-misses.md`). The root on a bigger box is
 flagged and parked. Cell outputs: `~/.hobbes/bench/oracle/dagger/`

@@ -1,7 +1,9 @@
 # Oracle grading — precision and recall for the call graph against answer keys we do not control
 
-**Status: proposed, unbuilt.** This document is the context for the build
-session(s) that implement it. **Owner:** Max. **Scope:** bench tooling only
+**Status: phase 1 built and run (O1–O4, 2026-08-25; the dagger root
+waits on a bigger box); phase 2 (§6 Python traces, §7 Rust MIR) is the
+next section's work — unbuilt.** This document is the context for the
+build session(s) that implement it. **Owner:** Max. **Scope:** bench tooling only
 — no product change. Reads with: architecture §3.8 (the claim table),
 `extraction-evidence.md` (the evidence log), `docs/constraints/`,
 ADR-048/049/050 (dagger), ADR-037/040 (the existing hand-checks). Decisions
