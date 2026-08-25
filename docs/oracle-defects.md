@@ -19,7 +19,11 @@ commit as the fix; a defect found but not yet fixed stays here as open.
 | H-7 | 2026-08-25, O3 kbet | 826 misses classed `closure`, 84% of all | `const [x, setX] = useState()` bindings were classed as closures because they are declared inside a function; the binding is a *value*, not a function literal | `local-binding` split from `closure`; TS sites given a mode from the binding's shape so Go and TS classes read alike | The miss record's headline ("closures hurt most") would have been wrong about *what* is missing — state setters, which no reader wants as edges, would have been counted as lost architecture |
 | H-8 | 2026-08-25, O3 kbet | Caller names in the triage rows were whole arrow-function bodies | Cosmetic: anonymous callers printed their source text | `<anonymous>` | None to the numbers; triage rows unreadable |
 
-**Pattern so far.** Six of eight are the oracle being *right at a
+| H-9 | 2026-08-25, O4 dagger root | The root cell **OOM-killed** at 20.5 GB (with tests) and 20.7 GB (`--no-tests`, GOGC=50, GOMEMLIMIT=22GiB) on a 30 GB box; `oracle.err` empty, only the kernel log says why | Whole-program SSA of the root's dependency closure with `InstantiateGenerics`, which RTA requires; not a leak, a size | `--no-tests` and `--packages` so a too-large module is graded by stated subtree; the driver prints the kernel's verdict. **Open in part:** the root *as one program* is not gradeable on this box, and the cell record says so | A silently absent root cell would have read as "dagger graded" on the strength of its 19 small modules; the 7,322 C-33 edges (P9) live only in the root |
+| H-10 | 2026-08-25, O4 `e2e/helm` | Recall 72/72 confirmed yet **~250 misses**, all in `e2e/helm/dagger/*` | `export --exclude` dropped the nested module's sites from the Hobbes side, but the oracle still scoped by module *prefix* and kept them — the two sides of one cell disagreed on what the cell was | `go-rta --exclude`, the same list on both sides; `run-cell.sh` passes it through; test on `twomod` | 250 false misses in one small cell; on the root subtrees it would have been every nested module's sites counted against Hobbes twice |
+| H-11 | 2026-08-25, O4 | A cell with zero misses crashed the aggregation (`misses: null`) | The report serialises an empty slice as `null` | Aggregation reads it as empty; the report should emit `[]` (cosmetic, left) | None to the numbers |
+
+**Pattern so far.** Six of the first eight are the oracle being *right at a
 different grain* than Hobbes (H-3, H-5, H-6, H-7) or *silent in a way
 that reads as a result* (H-1, H-4). Neither shape produces a Hobbes
 error — both produce a **false verdict against Hobbes**, and the only
@@ -28,4 +32,4 @@ H-2, H-3 via `testdata/generic`) or triage of the contradicted rows
 (H-5, H-6). That is the argument for never quoting a cell's number
 before its triage is complete (design §8), restated as evidence.
 
-**Open:** none.
+**Open:** H-9's larger half — dagger's root module as one program needs a bigger box (or an RTA that streams SSA); the subtree cells are the honest substitute and say so in their oracle string.

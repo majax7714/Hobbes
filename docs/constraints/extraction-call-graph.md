@@ -234,6 +234,27 @@
   wrong target, the package function of the same name; the oracle's 3
   syntactic-tier contradictions).
 
+### C-59 — A function's call to itself is not an edge
+- **Cannot tell you:** that `findSingleGQLError` recurses; that a
+  tree walker walks; that any function's reach includes itself.
+  `who_calls(f)` never lists `f`.
+- **Because:** the graph builder drops a call whose caller and callee
+  are the same symbol (`extract/graph.py`, "self-recursion is not an
+  edge, as before") — a v1 choice that kept the module graph free of
+  self-loops and was carried into the symbol graph without a record.
+- **Bites at:** `who_calls`, `graph_neighborhood`, impact and reach in
+  `hobbes plan`: a recursive function's fixed point is invisible, and a
+  mutual recursion through one helper shows only the helper.
+  Measured: 16 of the 35 named-declaration misses across dagger's 19
+  graded Go modules (oracle lane O4, 2026-08-25); the only class of
+  static named call the lane found dropped *by design*.
+- **You find out:** **unsurfaced.** The site counts as resolved. The
+  fix is a line, not a lift: emit the edge and let consumers that want
+  a DAG drop self-loops themselves — recorded here rather than fixed
+  because the lane is bench tooling and the product change is W1's.
+- **Provider (P9):** ours.
+- **Source:** oracle lane O4 (ADR-089), 2026-08-25. `graph.py:113`.
+
 ### C-32 — The tail view's classes are observations with boundaries
 - **Cannot tell you:** *why* a call is unresolved beyond what its class
   observes — and three boundaries shape what the classes can say.

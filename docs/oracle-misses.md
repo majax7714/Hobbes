@@ -78,6 +78,29 @@ zone's central state mutations. Closures (195) are the same story as
 Go's. Everything Hobbes *declares* a symbol for it also draws: 633 of
 637.
 
+### dagger, 19 Go modules — 2026-08-25 (O4, RTA, 24 roots across the cells)
+
+Per-cell rows in `oracle-cells/dagger-go-2026-08-25.md`; the sums
+below are sizes, not a pooled rate. 10,715 in-repo oracle pairs; 9,855
+drawn; **819 honest misses**, 41 inflated.
+
+| class | hits / pairs | misses | % of honest misses |
+|---|---|---|---|
+| `static→named` | 9,854 / 9,889 | 35 | 4.3% — 16 recursion (**C-59**), 11 method expressions / generic instantiation calls, 4 chain continuations (no site at all), 4 calls on an assignment's left side (drawn as `uses`) |
+| `static→closure` | 0 / 577 | 577 | **70.5%** |
+| `interface→named` | 0 / 192 | 192 | **23.4%** — dagger modules dispatch through interfaces far more than this repo does |
+| `func-value→named` | 0 / 16 | 16 | 2.0% |
+| `func-value→closure` (inflated) | 1 / 41 | 40 | — |
+
+**What hurts most here:** closures again, seven-tenths — but interface
+dispatch is now a real second at 23%, where in this repo it was 4%:
+the ranking moves with the codebase's style, which is why the record
+is per cell. **What is new:** the four *named* shapes above are not
+C-58 — they are direct calls Hobbes should draw and does not, and one
+of them (chain continuations) is invisible to the capture number too.
+And the cells' 40 contradictions are all one product defect, **a type
+conversion drawn as a call**, which is a lie rather than a silence.
+
 **Better classification wanted (open):** `static→closure` conflates a
 closure called in the function that made it (the test helper shape)
 with one stored and called later; `func-value→local-binding` conflates

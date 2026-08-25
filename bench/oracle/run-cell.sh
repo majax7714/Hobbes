@@ -34,7 +34,7 @@ fi
 (cd "$here" && go build -o "$out/oracle" ./cmd/oracle)
 "$out/oracle" export --graph "$repo/.hobbes/derived/graph.json" --module "$module" --lang "$lang" --exclude "$exclude" --out "$out/hobbes.json"
 case "$lang" in
-  go) "$out/oracle" go-rta --repo "$repo" --module "$module" --out "$out/oracle.json" ;;
+  go) "$out/oracle" go-rta --repo "$repo" --module "$module" --exclude "$exclude" --out "$out/oracle.json" ;;
   ts) node "$here/ts/tsc-oracle.mjs" --repo "$repo" --zone "$module" --out "$out/oracle.json" ;;
   *) echo "unknown lang $lang" >&2; exit 2 ;;
 esac

@@ -49,6 +49,12 @@ type Options struct {
 	// whose whole program does not fit in memory. Sites stay scoped to
 	// the module; the cell's Oracle string names the patterns.
 	Packages []string
+	// Exclude drops sites and files under these repo-relative directories
+	// — the nested modules of a monorepo root, which are cells of their
+	// own — mirroring `export --exclude` so both sides of a cell are
+	// scoped alike (H-10: without it a nested module's sites leaked into
+	// its parent's oracle while the Hobbes export had dropped them).
+	Exclude []string
 }
 
 // Run loads, analyses and exports one cell. Roots are the main and init
@@ -143,7 +149,7 @@ func Run(o Options) (*edges.OracleExport, error) {
 	files := map[string]bool{}
 	for _, p := range pkgs {
 		for _, f := range p.GoFiles {
-			if r, err := filepath.Rel(repo, f); err == nil && !strings.HasPrefix(r, "..") && underModule(filepath.ToSlash(r), o.Module) {
+			if r, err := filepath.Rel(repo, f); err == nil && !strings.HasPrefix(r, "..") && underModule(filepath.ToSlash(r), o.Module) && !excludedBy(filepath.ToSlash(r), o.Exclude) {
 				files[filepath.ToSlash(r)] = true
 			}
 		}
@@ -176,7 +182,7 @@ func Run(o Options) (*edges.OracleExport, error) {
 					continue
 				}
 				pos, col, inRepo := rel(call.Pos())
-				if !inRepo || !underModule(pos.Path, o.Module) {
+				if !inRepo || !underModule(pos.Path, o.Module) || excludedBy(pos.Path, o.Exclude) {
 					continue
 				}
 				k := key{pos, col}
@@ -271,6 +277,16 @@ func unwind(g *callgraph.Graph, fn *ssa.Function, depth int) []*ssa.Function {
 func underModule(p, module string) bool {
 	module = strings.Trim(filepath.ToSlash(module), "/")
 	return module == "" || module == "." || p == module || strings.HasPrefix(p, module+"/")
+}
+
+func excludedBy(p string, dirs []string) bool {
+	for _, d := range dirs {
+		d = strings.Trim(filepath.ToSlash(d), "/")
+		if d != "" && d != "." && (p == d || strings.HasPrefix(p, d+"/")) {
+			return true
+		}
+	}
+	return false
 }
 
 func qualified(m *types.Func) string {

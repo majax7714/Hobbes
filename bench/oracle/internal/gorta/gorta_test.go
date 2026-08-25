@@ -160,3 +160,15 @@ func TestGenericInstantiationFoldsToOrigin(t *testing.T) {
 		}
 	}
 }
+
+// Exclude scopes the oracle side like export --exclude: a nested
+// module's sites vanish from its parent's cell.
+func TestExcludeDropsNestedSites(t *testing.T) {
+	o, err := Run(Options{Repo: fixtures + "/twomod", Module: "app", Exclude: []string{"app/cmd"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(o.Sites) != 0 || len(o.Files) != 0 {
+		t.Errorf("everything under app/cmd was excluded; got %d sites, %d files", len(o.Sites), len(o.Files))
+	}
+}

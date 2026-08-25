@@ -65,6 +65,18 @@ the best on-ramp for a new contributor who should learn the codebase.*
 - **Cache hygiene** — a `hobbes cache` subcommand sweeping
   `~/.hobbes/cache/npm` and keeping the Rust stage's `target/` across
   ingests. Opens when sizes hurt.
+- **Oracle-lane findings for the Go join (O4, 2026-08-25; evidence in
+  `oracle-cells/dagger-go-2026-08-25.md`).** (a) **A type conversion
+  is drawn as a call** — `dagger.JSON("0")` → `calls` to `type JSON`;
+  40 of 40 contradictions across dagger's 19 modules; the join should
+  refuse a `calls` edge whose target is a `type` (emit `uses`, or a
+  `converts` edge). (b) **Chain continuations are not sites** — a
+  call on its own line of a multi-line method chain has no
+  tree-sitter site and no edge, and the capture number cannot see it.
+  (c) A call on an assignment's left side is drawn as `uses`.
+  (d) Method expressions `(*T).M(&x, …)` and generic instantiation
+  calls `F[T](…)` draw no edge. (e) C-59: self-calls dropped by
+  design. Each has an oracle cell that reruns in minutes.
 - **Directory rollup in `list_blind_spots`** — port `rollup_directories`
   to the Go proxy (same rows, agent-facing altitude).
 
