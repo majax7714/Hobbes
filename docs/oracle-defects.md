@@ -32,4 +32,4 @@ H-2, H-3 via `testdata/generic`) or triage of the contradicted rows
 (H-5, H-6). That is the argument for never quoting a cell's number
 before its triage is complete (design §8), restated as evidence.
 
-**Open:** H-9's larger half — dagger's root module as one program needs a bigger box (or an RTA that streams SSA); the subtree cells are the honest substitute and say so in their oracle string.
+**Open:** H-9's larger half — dagger's root module as one program (and every subtree that has roots: integration, dagql, cmd — each 24–25 GB) **needs a bigger box**, ~32 GB+ free; flagged 2026-08-25 (Max) and parked until Hobbes gains compute. P8/P9 wait on it.

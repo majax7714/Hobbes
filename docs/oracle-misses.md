@@ -98,6 +98,8 @@ the ranking moves with the codebase's style, which is why the record
 is per cell. **What is new:** the four *named* shapes above are not
 C-58 — they are direct calls Hobbes should draw and does not, and one
 of them (chain continuations) is invisible to the capture number too.
+*(Fixed the same day — see the BUILDLOG; the rerun's numbers follow in
+this file.)*
 And the cells' 40 contradictions are all one product defect, **a type
 conversion drawn as a call**, which is a lie rather than a silence.
 

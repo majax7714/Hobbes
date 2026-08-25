@@ -96,7 +96,9 @@ Resume with either (a) **W1's fixes** — conversions-as-calls, chain
 continuations, LHS calls, method expressions, C-59 — each with a
 dagger module cell that reruns in ~3 min (`~/.hobbes/bench/oracle/
 run-dagger.sh`), or (b) **phase 2** (O6 Python traces, O7 Rust MIR),
-or (c) the root on a bigger box. Cell outputs live under
+or (c) **the root on a bigger box — flagged (Max, 2026-08-25): needs
+~32 GB+ free for the engine's closure; parked until Hobbes gains
+compute.** Cell outputs live under
 `~/.hobbes/bench/oracle/dagger/`.
 O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
 grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added

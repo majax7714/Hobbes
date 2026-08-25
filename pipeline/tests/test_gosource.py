@@ -357,3 +357,38 @@ class TestLocalBindings:
             "var Global = 1\n"
             "func f() {}\n")
         assert got == set()
+
+
+SHAPES = Path(__file__).parent / "fixtures" / "goshapes"
+
+
+class TestCallShapesTheOracleFoundMissing:
+    """The O4 findings (oracle lane, 2026-08-25), each as a site that must
+    exist — or must not — in lane A's view of the ``goshapes`` fixture."""
+
+    @pytest.fixture(scope="class")
+    def shapes(self):
+        return extract_go(SHAPES)
+
+    def test_a_conversion_is_not_a_site(self, shapes):
+        assert _sites(shapes, "JSON") == []
+
+    def test_a_method_named_like_a_type_is_still_a_call(self, shapes):
+        # b.Cfg().Base = ... — the operand is an expression, so the call
+        # cannot be a conversion however the package names its types.
+        assert {s.line for s in _sites(shapes, "Cfg")} == {12}
+
+    def test_chain_continuations_are_sites_on_their_own_lines(self, shapes):
+        assert {s.line for s in _sites(shapes, "Chain")} == {14, 15}
+        assert {s.line for s in _sites(shapes, "Tail")} == {16}
+
+    def test_a_method_expression_is_a_site(self, shapes):
+        assert {s.line for s in _sites(shapes, "Job")} == {17}
+
+    def test_a_generic_instantiation_call_is_a_site(self, shapes):
+        assert {s.line for s in _sites(shapes, "Ref")} == {18}
+
+    def test_a_recursive_call_is_a_site(self, shapes):
+        # The edge itself is the projection's business (test_scipsource);
+        # lane A must at least see the site inside Walk.
+        assert 33 in {s.line for s in _sites(shapes, "Walk")}

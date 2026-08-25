@@ -2,8 +2,9 @@
 
 Architecture §3.8 is the sample behind every coverage claim (P11,
 ADR-044): Python and TS/JS were hand-verified across several repos of
-different shapes; **Go on exactly one repo — this one**; **Rust on one
-small repo**. A table in a document is not a surfacing (the register's
+different shapes; **Go on this repo and 19 of dagger's modules**, both
+compiler-graded by the oracle lane rather than hand-checked; **Rust on
+one small repo**. A table in a document is not a surfacing (the register's
 own rule), so this module pins that table and :func:`extract_repo`
 stamps it into ``graph.json`` as ``verification_base`` — keyed by the
 artifact's own language names — where the ingest summary, the surface's
@@ -44,9 +45,11 @@ VERIFICATION_BASE: dict[str, dict] = {
         "depth": "multi-repo",
     },
     "go": {
-        "repos": 1,
-        "on": "one repo — this one",
-        "depth": "single-repo",
+        # Compiler-graded on both since the oracle lane (ADR-089, O2/O4,
+        # 2026-08-25); the hand-check the row used to cite is retired.
+        "repos": 2,
+        "on": "this repo; dagger — 19 of its Go modules (O4)",
+        "depth": "multi-repo",
     },
     "rust": {
         "repos": 1,

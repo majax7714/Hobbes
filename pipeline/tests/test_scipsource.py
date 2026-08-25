@@ -583,3 +583,50 @@ class TestDeclaredDependencies:
             d.mkdir(parents=True)
             (d / "pyproject.toml").write_text('[project]\ndependencies = ["wrong"]\n')
         assert scipsource.declared_dependencies(tmp_path) == []
+
+
+class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
+    """O4 (oracle lane, 2026-08-25): a function's call to itself is an
+    edge — C-59 lifted — and a Go `calls` fact whose target is a type is
+    a conversion, projected as `uses` (40 of 40 dagger contradictions)."""
+
+    NODES = [{"id": "pkg/a", "kind": "module", "path": "pkg/a.go"}]
+    SYMBOLS = [
+        {"id": "pkg/a.Walk", "module": "pkg/a", "kind": "function", "line": 3, "end_line": 8, "name": "Walk", "qualname": "Walk"},
+        {"id": "pkg/a.JSON", "module": "pkg/a", "kind": "type", "line": 10, "end_line": 10, "name": "JSON", "qualname": "JSON"},
+        {"id": "pkg/a.Node", "module": "pkg/a", "kind": "type", "line": 12, "end_line": 14, "name": "Node", "qualname": "Node"},
+    ]
+
+    def _fact(self, kind, line, def_line, scope="pkg/a.Walk", file="pkg/a.go"):
+        from hobbes.extract.evidence import Resolved
+
+        return Resolved(kind=kind, source_file=file, line=line, scope=scope, def_file=file, def_line=def_line, tier="semantic", lanes=("scip",))
+
+    def test_a_self_call_is_an_edge(self):
+        from hobbes.extract.scipsource import project
+
+        out = project([self._fact("calls", 6, 3)], self.NODES, self.SYMBOLS)
+        assert [(e["from"], e["to"], e["type"]) for e in out["symbol_edges"]] == [("pkg/a.Walk", "pkg/a.Walk", "calls")]
+
+    def test_a_type_naming_itself_is_still_not_an_edge(self):
+        from hobbes.extract.scipsource import project
+
+        out = project([self._fact("uses", 13, 12, scope="pkg/a.Node")], self.NODES, self.SYMBOLS)
+        assert out["symbol_edges"] == []
+
+    def test_a_go_call_whose_target_is_a_type_is_a_conversion(self):
+        from hobbes.extract.scipsource import project
+
+        out = project([self._fact("calls", 5, 10)], self.NODES, self.SYMBOLS)
+        assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("pkg/a.JSON", "uses")]
+
+    def test_the_guard_is_go_only(self):
+        from hobbes.extract.scipsource import project
+
+        nodes = [{"id": "m", "kind": "module", "path": "m.py"}]
+        symbols = [
+            {"id": "m.f", "module": "m", "kind": "function", "line": 1, "end_line": 3, "name": "f", "qualname": "f"},
+            {"id": "m.T", "module": "m", "kind": "type", "line": 5, "end_line": 5, "name": "T", "qualname": "T"},
+        ]
+        out = project([self._fact("calls", 2, 5, scope="m.f", file="m.py")], nodes, symbols)
+        assert out["symbol_edges"][0]["type"] == "calls"

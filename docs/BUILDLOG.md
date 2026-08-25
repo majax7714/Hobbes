@@ -5033,3 +5033,29 @@ generated package; a library with nothing to root at). Evidence rows,
 a §3.8 dagger-Go row scoped to the 19 modules, the miss record's
 dagger section, and W1's item list landed with this. Runtimes:
 150–500 s per module cell; the failed root attempts cost ~35 min.
+
+## 2026-08-25 — W1: the O4 findings fixed; C-59 lifted the day it was registered
+
+Max: the root needs a bigger box (flagged, parked until compute
+arrives); proceed with W1's fixes. A `goshapes` fixture holds one
+instance of every O4 shape; ingested with lane B and graded by the
+oracle it went 6/8 → 7/8 → **8/8 both ways** as the fixes landed. What
+the fixes turned out to be: (1) the "chain continuation", "LHS call"
+and "method expression" misses were **one bug** — the conversion filter
+reads an expression operand as no receiver, then finds a *type* of the
+callee's name in the package (`UserConfig`, `File`, `Permissions`,
+`Job`) and drops the site as a conversion; the receiver is now an
+expression sentinel and such a call is never a conversion. (2) `Ref[T](v)`
+parses as `type_conversion_expression` over a `generic_type`, so lane A
+had no site; it is emitted as a candidate and the same filter decides.
+(3) The 40 contradictions — `dagger.JSON("0")` — escape the filter
+because a nested module's import path (`dagger/viztest/...`) does not
+mirror its directory; the projection now refuses a `calls` fact whose
+Go target is a `type` (→ `uses`), Go-only. (4) Self-calls: the
+projection and the Python fallback both dropped them; kept for `calls`
+(self-`uses` still out) — **C-59 lifted**, register 59 entries / 49
+active / 8 lifted / 3 unsurfaced. §3.8's Go row is now two repos
+(compiler-graded), so the pinned twin in `verification.py` moved with
+it — the P11 test caught the edit, as designed — and the `go · 1 repo`
+badge is gone. Architecture §3 amended. 906 pytest (+10). dagger
+re-ingest and the 19-cell rerun are running for the after numbers.

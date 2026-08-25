@@ -291,7 +291,19 @@ Two things Go made explicit that the others had not (ADR-037). **A type
 conversion is spelled exactly like a call**: `Decision(s)` and `Resolve(s)`
 are the same node, and no indexer separates them either, so lane A drops
 conversions using the one thing it knows and SCIP does not — which names
-are types. And **a Go import names a package, not a file**, so lane A emits
+are types. That filter reads a call's operand: a bare name or a
+package-qualified one can be a type, an expression (`b.Cfg().Base`,
+`(*T).M(x)`) cannot — and `Ref[string](v)`, which the grammar parses as
+a conversion to a generic type, is emitted as a candidate site for the
+same filter to decide. The projection keeps a second guard for the
+conversions lane A cannot name (a nested module whose import path does
+not mirror its directory): a `calls` fact whose Go target is a `type`
+is projected as `uses`, because a type is never called. Both came from
+the oracle lane's dagger cells (O4, 2026-08-25: 40 of 40 contradictions
+were `dagger.JSON("0")` drawn as a call; a method named like a type in
+its package was dropped as one). The same session lifted the v1 rule
+that a function's call to itself is not an edge: it is (C-59, lifted).
+And **a Go import names a package, not a file**, so lane A emits
 no in-repo import edges for Go at all; the join raises them from what the
 call actually reaches, which is precise instead of a guess between a
 package's files.

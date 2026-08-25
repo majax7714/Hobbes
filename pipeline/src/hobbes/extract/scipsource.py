@@ -278,6 +278,7 @@ class _SymbolIndex:
     """
 
     def __init__(self, nodes: list[dict], symbols: list[dict]):
+        self._kinds = {s["id"]: s.get("kind") for s in symbols}
         self.module_of_path = {
             n["path"]: n["id"] for n in nodes if n.get("path")
         }
@@ -290,6 +291,10 @@ class _SymbolIndex:
             module: [s["line"] for s in rows]
             for module, rows in self._by_module.items()
         }
+
+    def kind(self, symbol_id: str) -> str | None:
+        """The declared kind of a symbol id, or None for a module id."""
+        return self._kinds.get(symbol_id)
 
     def module(self, path: str) -> str | None:
         return self.module_of_path.get(path)
@@ -363,9 +368,20 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
 
         caller = fact.scope or index.enclosing(source_module, fact.line) or source_module
         callee = index.starting_at(target_module, fact.def_line)
-        if callee is None or caller == callee:
+        if callee is None:
             continue
-        key = (caller, callee, fact.kind, fact.tier, lane)
+        if caller == callee and fact.kind != "calls":
+            continue  # a type naming itself is not an edge; a function calling itself is
+        edge_type = fact.kind
+        if edge_type == "calls" and fact.def_file.endswith(".go") and index.kind(callee) == "type":
+            # Go writes a conversion exactly like a call. Lane A drops the
+            # ones it can name (a type in the same or an imported repo
+            # package); this is the guard for the rest — a nested module
+            # whose import path does not mirror its directory, a
+            # dot-import — because a type is never called (O4: 40 of 40
+            # contradictions on dagger were `dagger.JSON("0")` as `calls`).
+            edge_type = "uses"
+        key = (caller, callee, edge_type, fact.tier, lane)
         symbol_evidence.setdefault(key, []).append(site)
 
     return {

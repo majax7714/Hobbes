@@ -356,6 +356,29 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     """
     found = []
     for node in _walk(root):
+        if node.type == "type_conversion_expression":
+            # ``Ref[string](v)`` parses as a conversion to a generic type,
+            # because syntactically it is one; whether ``Ref`` is a type
+            # or a generic function is the conversion filter's question,
+            # the same one it answers for ``Decision(s)``. Emit the site
+            # and let it decide (O4: generic instantiation calls had no
+            # site at all).
+            generic = _generic_callee(node)
+            if generic is None:
+                continue
+            terminal, receiver = generic
+            found.append(
+                {
+                    "name": _text(terminal),
+                    "receiver": receiver,
+                    "line": terminal.start_point.row + 1,
+                    "col": terminal.start_point.column,
+                    "scope": _enclosing(symbols, node.start_point.row + 1),
+                    "args": _literal_args(node),
+                    "call_line": node.start_point.row + 1,
+                }
+            )
+            continue
         if node.type != "call_expression":
             continue
         function = node.child_by_field_name("function")
@@ -369,6 +392,8 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
             operand = function.child_by_field_name("operand")
             if operand is not None and operand.type == "identifier":
                 receiver = _text(operand)
+            else:
+                receiver = _EXPR_RECEIVER
         found.append(
             {
                 "name": _text(terminal),
@@ -411,11 +436,51 @@ def _literal_args(call: Node) -> list[dict]:
     return out
 
 
+def _generic_callee(conversion: Node) -> tuple[Node, str | None] | None:
+    """``(name node, receiver)`` of a ``T[X](v)`` form, or None if the
+    converted type is not a generic instantiation."""
+    typ = conversion.child_by_field_name("type")
+    if typ is None or typ.type != "generic_type":
+        return None
+    inner = typ.child_by_field_name("type") or (typ.named_children[0] if typ.named_children else None)
+    if inner is None:
+        return None
+    if inner.type == "type_identifier":
+        return inner, None
+    if inner.type == "qualified_type":
+        name = inner.child_by_field_name("name")
+        pkg = inner.child_by_field_name("package")
+        if name is not None:
+            return name, (_text(pkg) if pkg is not None else None)
+    return None
+
+
+#: The receiver recorded for a call whose operand is an expression rather
+#: than a name — ``b.Cfg().Base``, ``x.y.Name()``, ``(*T).M(...)``. Such
+#: a call can be neither a package-qualified name nor a bare one, so the
+#: conversion filter and the fallback must not read it as same-package
+#: (the O4 finding: ``m.Discovery.UserConfig()`` was dropped as a
+#: conversion because a type ``UserConfig`` exists in the package).
+_EXPR_RECEIVER = "<expr>"
+
+
 def _terminal_identifier(function: Node) -> Node | None:
+    """The callee's name node, through the wrappers Go allows around it.
+
+    ``Ref[string](v)`` is a call whose function is an index expression
+    (a generic instantiation); ``(*T).M(x)``'s function is a selector on
+    a parenthesised operand. Both name a callee and both were sites the
+    oracle lane found missing (O4).
+    """
     if function.type == "identifier":
         return function
     if function.type == "selector_expression":
         return function.child_by_field_name("field")
+    if function.type in ("index_expression", "generic_type"):
+        operand = function.child_by_field_name("operand") or function.child_by_field_name("type")
+        return _terminal_identifier(operand) if operand is not None else None
+    if function.type == "parenthesized_expression" and function.named_child_count == 1:
+        return _terminal_identifier(function.named_children[0])
     return None
 
 

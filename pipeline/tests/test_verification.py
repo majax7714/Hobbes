@@ -52,7 +52,9 @@ class TestTableAgreesWithArchitecture:
         assert set(v.VERIFICATION_BASE) == covered
 
     def test_single_repo_rows_say_so(self):
-        for lang in ("go", "rust"):
+        # Go left this list on 2026-08-25: the oracle lane graded it on a
+        # second repo (dagger, 19 modules), so its row is multi-repo now.
+        for lang in ("rust",):
             assert v.VERIFICATION_BASE[lang]["repos"] == 1
             assert v.VERIFICATION_BASE[lang]["depth"] == "single-repo"
 
@@ -73,19 +75,19 @@ class TestVerificationBase:
         assert base["cobol"]["note"] == "not verified on any repo"
 
     def test_summary_line_counts_per_language(self):
-        base = v.verification_base(["go", "python"])
-        assert v.summary_line(base) == "go 1 repo, python 9 repos"
+        base = v.verification_base(["rust", "python"])
+        assert v.summary_line(base) == "rust 1 repo, python 9 repos"
 
 
 class TestIngestSummary:
     def test_base_prints_under_the_language_list_and_spells_out_thin_rows(
         self, capsys
     ):
-        cli._print_verification_base(v.verification_base(["go", "python", "zig"]))
+        cli._print_verification_base(v.verification_base(["rust", "python", "zig"]))
         out = capsys.readouterr().out
-        assert "verification base: go 1 repo, python 9 repos, zig 0 repos" in out
+        assert "verification base: rust 1 repo, python 9 repos, zig 0 repos" in out
         assert "a sample, not the language (C-31" in out
-        assert "    go: verified on 1 repo: one repo — this one" in out
+        assert "    rust: verified on 1 repo: one small repo (rust_proj) + the minirust fixture" in out
         assert "    zig: not verified on any repo" in out
         assert "    python:" not in out  # multi-repo rows are not spelled out
 

@@ -65,18 +65,20 @@ the best on-ramp for a new contributor who should learn the codebase.*
 - **Cache hygiene** — a `hobbes cache` subcommand sweeping
   `~/.hobbes/cache/npm` and keeping the Rust stage's `target/` across
   ingests. Opens when sizes hurt.
-- **Oracle-lane findings for the Go join (O4, 2026-08-25; evidence in
-  `oracle-cells/dagger-go-2026-08-25.md`).** (a) **A type conversion
-  is drawn as a call** — `dagger.JSON("0")` → `calls` to `type JSON`;
-  40 of 40 contradictions across dagger's 19 modules; the join should
-  refuse a `calls` edge whose target is a `type` (emit `uses`, or a
-  `converts` edge). (b) **Chain continuations are not sites** — a
-  call on its own line of a multi-line method chain has no
-  tree-sitter site and no edge, and the capture number cannot see it.
-  (c) A call on an assignment's left side is drawn as `uses`.
-  (d) Method expressions `(*T).M(&x, …)` and generic instantiation
-  calls `F[T](…)` draw no edge. (e) C-59: self-calls dropped by
-  design. Each has an oracle cell that reruns in minutes.
+- **Oracle-lane findings for the Go join — fixed 2026-08-25, same
+  session** (evidence in `oracle-cells/dagger-go-2026-08-25.md`; the
+  `goshapes` fixture holds one of each shape). (a) A type conversion
+  drawn as a call — the projection now refuses a `calls` edge whose Go
+  target is a `type` (→ `uses`). (b)–(d) were one bug, not three: the
+  conversion filter dropped any call whose operand is an expression
+  when a *type* of the callee's name exists in the package
+  (`m.Discovery.UserConfig()`, `.File(...)` in a chain, `(*Gha).Job`);
+  the receiver is now recorded as an expression and cannot be a
+  conversion. Generic instantiation calls `F[T](…)`, which the grammar
+  parses as conversions, are emitted as candidate sites. (e) C-59
+  lifted: self-calls are edges. Still open from O4: the C-58 classes
+  (closures, interface dispatch, function values) — a design question,
+  not a bug.
 - **Directory rollup in `list_blind_spots`** — port `rollup_directories`
   to the Go proxy (same rows, agent-facing altitude).
 

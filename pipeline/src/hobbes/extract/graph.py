@@ -108,9 +108,6 @@ def resolve_call_sites(
             target_id = _resolve_call(module, call, env, index, table)
             if target_id is None:
                 continue
-            caller_id = f"{module.id}.{call.scope}" if call.scope else module.id
-            if caller_id == target_id:
-                continue  # self-recursion is not an edge, as before
             target = where.get(target_id)
             if target is None:
                 continue
