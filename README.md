@@ -61,8 +61,9 @@ Six ideas do most of the work:
   the sandbox and the tool proxy are load-bearing.
 - **Degrade visibly, and register what you cannot know.** A failed indexer
   leaves the graph standing at lower confidence and says so; a limit that
-  is *structural* gets an entry in [`docs/constraints/README.md`](docs/constraints/README.md)
-  naming where a user meets it. Hobbes is unusable as a known liar and
+  is *structural* gets an entry in the constraint register,
+  [`docs/constraints/`](docs/constraints/README.md), naming where a user
+  meets it. Hobbes is unusable as a known liar and
   worse as a fake-honest one.
 - **A provider's limits are Hobbes's limits.** Semantics come from
   third-party indexers Hobbes runs and doesn't wrap. Their blind spots land
@@ -183,7 +184,10 @@ way Hobbes learned to see **its own Go** (closing the dogfood loop) and
 its own Rust fixture — six languages in the graph it builds of itself.
 
 What v2 *cannot* tell you is a first-class artifact too:
-[`docs/constraints/`](docs/constraints/README.md) holds fifty-seven
+the constraint register, [`docs/constraints/`](docs/constraints/README.md)
+(formerly the single file `docs/constraints.md`; since 2026-08-25 one
+file per subsystem segment, with lifted entries kept at the bottom of
+their segment and `README.md` as the index), holds fifty-seven
 registered constraints — forty-eight active, seven since lifted, two
 superseded — each naming where a user meets the limit — and
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) is the
