@@ -44,6 +44,11 @@ type Options struct {
 	// doubled its packages past a 30 GB box (H-9); this is the honest
 	// smaller question, not a silent downgrade.
 	NoTests bool
+	// Packages narrows the load from `./...` to these patterns (relative
+	// to the module directory): a cell of one package subtree of a module
+	// whose whole program does not fit in memory. Sites stay scoped to
+	// the module; the cell's Oracle string names the patterns.
+	Packages []string
 }
 
 // Run loads, analyses and exports one cell. Roots are the main and init
@@ -66,7 +71,11 @@ func Run(o Options) (*edges.OracleExport, error) {
 	if len(o.Tags) > 0 {
 		cfg.BuildFlags = []string{"-tags=" + strings.Join(o.Tags, ",")}
 	}
-	pkgs, err := packages.Load(cfg, "./...")
+	patterns := o.Packages
+	if len(patterns) == 0 {
+		patterns = []string{"./..."}
+	}
+	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("load %s: %w", dir, err)
 	}
@@ -200,7 +209,10 @@ func Run(o Options) (*edges.OracleExport, error) {
 	}
 	oracle := "go-rta"
 	if o.NoTests {
-		oracle = "go-rta (no test packages)"
+		oracle += " (no test packages)"
+	}
+	if len(o.Packages) > 0 {
+		oracle += " (packages " + strings.Join(o.Packages, ",") + ")"
 	}
 	out := &edges.OracleExport{Oracle: oracle, Kind: "reachability", Module: o.Module, Roots: rootNames, Tags: o.Tags}
 	for f := range files {

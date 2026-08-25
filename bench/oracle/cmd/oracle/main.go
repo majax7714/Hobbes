@@ -68,9 +68,10 @@ func runGoRTA(args []string) error {
 	module := fs.String("module", "", "repo-relative Go module directory (cell)")
 	tags := fs.String("tags", "", "comma-separated extra build tags")
 	noTests := fs.Bool("no-tests", false, "load without test packages (roots = binaries only; the cell records it)")
+	pkgsFlag := fs.String("packages", "", "comma-separated package patterns relative to the module (default ./...)")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
-	o := gorta.Options{Repo: *repo, Module: *module, NoTests: *noTests}
+	o := gorta.Options{Repo: *repo, Module: *module, NoTests: *noTests, Packages: splitComma(*pkgsFlag)}
 	if *tags != "" {
 		o.Tags = splitComma(*tags)
 	}
