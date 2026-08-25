@@ -41,7 +41,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | resuming the active programme             | `docs/session-handoff.md` → `docs/adr085-validation-run.md`          |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
-| grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089 (decisions D-O1–D-O6 gate O1)  |
+| grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |

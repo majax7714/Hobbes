@@ -55,9 +55,11 @@ edge (`web/server.go:122 → Server.Handler`) sits in `ServeHTTP`,
 reachable only through net/http's interface — RTA never reached it.
 The 45 non-inflated misses are all **C-58** (interface / function-value
 dispatch and calls into closures draw no edge). The V2.M5 hand-check —
-Go 20/20 call edges (ADR-037) — stands as recorded but **cannot be
-reproduced by identity**: its 20 edges were never listed (prediction P6);
-the whole semantic set stood in for it.
+Go 20/20 call edges (ADR-037) — is **retired** (Max, 2026-08-25): a
+rough check whose edges were never named, so it cannot be reproduced
+(prediction P6); the oracle is the Go evidence from here, and
+hand-checks return later with a selection rule (design §11). Misses by
+class: `docs/oracle-misses.md`.
 Earlier:
 10/10 sampled narrative claims resolve (M5); the M8 exit check's
 invariant regression replay (`hobbes review ace9a08..cdbc085`, exit 1).

@@ -181,10 +181,7 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 				continue
 			}
 			r.OraclePairs++
-			class := s.Mode
-			if t.Closure {
-				class += "-closure"
-			}
+			class := missClass(s, t)
 			f := r.RecallBy[class]
 			f.Pairs++
 			if hobbesPairs[s.Pos.Key()+"->"+t.Pos.Key()] {
@@ -204,6 +201,31 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 	}
 	sort.Slice(r.Misses, func(i, j int) bool { return r.Misses[i].Site.Key() < r.Misses[j].Site.Key() })
 	return r
+}
+
+// missClass names an oracle pair by how the call is made and what it
+// reaches, so a miss register can say what hurts most:
+//
+//   - interface→named / interface→closure  — an invoke through an interface
+//   - func-value→named / func-value→closure — a call of a function value
+//     (a reachability oracle over-approximates these: every reachable
+//     function of the signature is a candidate, so the pair count is an
+//     upper bound and the class is marked inflated in the report)
+//   - static→named / static→closure — a direct call; static→closure is a
+//     call of a closure bound to a local name
+func missClass(s edges.Site, t edges.Target) string {
+	how := "static"
+	if s.Mode == "dynamic" {
+		how = "func-value"
+		if s.Interface != nil {
+			how = "interface"
+		}
+	}
+	what := "named"
+	if t.Closure {
+		what = "closure"
+	}
+	return how + "→" + what
 }
 
 func hasTarget(ts []edges.Target, p edges.Pos) bool {
@@ -237,13 +259,21 @@ func Print(w io.Writer, r *Report) {
 		classes = append(classes, c)
 	}
 	sort.Strings(classes)
+	totalMiss := 0
+	for _, n := range r.MissBy {
+		totalMiss += n
+	}
 	for _, c := range classes {
 		f := r.RecallBy[c]
 		note := ""
-		if strings.HasPrefix(c, "dynamic") {
-			note = "  (reachability oracle over-approximates dynamic targets; denominator is an upper bound)"
+		if strings.HasPrefix(c, "func-value") && r.Kind == "reachability" {
+			note = "  (inflated: reachability oracle over-approximates function values; upper bound)"
 		}
-		fmt.Fprintf(w, "  recall[%-15s] %.1f%% (%d/%d)%s\n", c, pct(f), f.Hits, f.Pairs, note)
+		share := 0.0
+		if totalMiss > 0 {
+			share = float64(f.Pairs-f.Hits) / float64(totalMiss) * 100
+		}
+		fmt.Fprintf(w, "  recall[%-18s] %5.1f%% (%d/%d)  misses %d = %.1f%% of all misses%s\n", c, pct(f), f.Hits, f.Pairs, f.Pairs-f.Hits, share, note)
 	}
 	tiers := make([]string, 0, len(r.ByTier))
 	for t := range r.ByTier {

@@ -94,7 +94,8 @@ oracle for Hobbes — lane B's `scip-python` is built on Pyright, so a
   hand-verified); JS-without-types (`tsc` under `allowJs` collapses; grade
   TS zones only and say so).
 - Hand-grading remains the method for what no oracle reaches — unexecuted
-  Python/Rust paths, HCL — per the §11 protocol-upgrade note.
+  Python/Rust paths, HCL — per the §11 protocol-upgrade note. Misses are
+  kept by class, per cell, in `docs/oracle-misses.md`.
 
 ## 3. Metrics and definitions
 
@@ -350,7 +351,7 @@ cells as data, not per-cell scripts.
 | Milestone | Cell | Why / exit |
 |---|---|---|
 | **O1** | `minigo` + `twomod` fixtures | Truth is hand-computable. Harness self-test: matcher must land exactly (every fixture edge confirmed, zero tolerance surprises) before any real cell. Exit: fixture grading in the test suite. (`twomod` — a two-module Go fixture — does not exist yet; O1 adds it.) |
-| **O2** | hobbes repo, Go zone | First real cell. Small (3,707 sites), familiar, and the 20/20 hand-check from ADR-037 becomes a cross-check: those 20 must all grade confirmed. Triage protocol shakedown. |
+| **O2** | hobbes repo, Go zone | First real cell. Small (3,707 sites), familiar. *(Done 2026-08-25. The ADR-037 20/20 could not serve as a cross-check — its edges were never named — and was retired in favour of the oracle.)* Triage protocol shakedown. |
 | **O3** | kbet TS zones | The provisioned-deps happy path. Cross-check against the V2.M3 20/20. |
 | **O4** | dagger Go modules | The payoff: 237k sites graded, per-module cells, C-33's join graded, the 126 build-tag disagreements priced. |
 | **O5** (optional) | dagger `sdk/typescript` | The 70.3% zone under the provisioned cache. |
