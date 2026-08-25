@@ -40,7 +40,8 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  oracle export --graph .hobbes/derived/graph.json --module go [--out hobbes.json]
+  oracle export --graph .hobbes/derived/graph.json --module go [--lang go|ts] [--out hobbes.json]
+  node ts/tsc-oracle.mjs --repo . --zone web --out oracle.json      (the TypeScript oracle)
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
   oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json]`)
 	os.Exit(2)
@@ -50,9 +51,10 @@ func runExport(args []string) error {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
 	graph := fs.String("graph", ".hobbes/derived/graph.json", "Hobbes graph.json")
 	module := fs.String("module", "", "repo-relative module directory (cell)")
+	lang := fs.String("lang", "go", "go|ts — the extension set of the cell")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
-	h, err := export.FromFile(*graph, *module)
+	h, err := export.FromFile(*graph, *module, *lang)
 	if err != nil {
 		return err
 	}

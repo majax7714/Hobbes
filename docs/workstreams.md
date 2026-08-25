@@ -107,9 +107,9 @@ run; GPU-hours stated first).*
   of task success": the harness demonstrating decomposition, coverage,
   and honest plan errors end to end.
 - **The oracle-grading lane (ADR-089, `docs/oracle-grading.md`) — cleared
-  2026-08-25, O1–O2 done.** Precision-against-oracle and recall for the
+  2026-08-25, O1–O3 done.** Precision-against-oracle and recall for the
   call graph against Go RTA / `tsc` (phase 1) and Python traces / Rust
-  MIR (phase 2). Next: O3 (kbet TS zones, the `tsc` oracle), then O4 dagger.
+  MIR (phase 2). Next: O4 dagger (Go, per module), O5 optional (dagger TS).
   O2's honest misses are C-58; its surfacing (a `dispatch` tail
   class) is W1 work when named. Spends no GPU.
 - **No-GPU instrumentation** — the replay tools already exist

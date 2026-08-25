@@ -1,0 +1,9 @@
+{
+  "name": "hobbes-oracle-ts",
+  "private": true,
+  "description": "The TypeScript resolution oracle (ADR-089). The zone's own typescript is preferred; this one is the fallback for fixtures without node_modules.",
+  "type": "module",
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

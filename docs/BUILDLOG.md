@@ -4974,3 +4974,32 @@ in this commit; predictions graded — P3 and P4 missed and say why.
 ADR-037's 20/20 could not be reproduced by identity (the edges were
 never listed); the whole semantic set stood in. Cell runtime: ~4 min
 for oracle + grade, ~6 min more for the six-language ingest. Next: O3.
+
+## 2026-08-25 — oracle lane O3: kbet graded against its own `tsc`; miss classes sharpened
+
+The TypeScript oracle (`bench/oracle/ts/tsc-oracle.mjs`, plain Node,
+loads the *zone's* `typescript` so the oracle is the compiler the
+project pins) and `--lang ts` in `run-cell.sh`/`export`. kbet
+`betchat/frontend`, 83 files, 5,978 sites. First pass: 511 confirmed /
+**119 contradicted** — every one `useAuthStore()`-shaped: `tsc`'s
+declaration for a call through a `const` of callable type is the
+anonymous call signature in zustand's `react.d.mts`; Hobbes (and scip)
+bind the callee to the variable. Ruled a **match-defect of the oracle's
+grain**, and the D-O4 conventions gained the *binding rule*: behind an
+anonymous signature the callee's identity is its binding. Second pass:
+**630/630 confirmed, 0 contradicted, 0 silent.** Recall 633/1,529 over
+every resolved site, 633/637 on declared callees. Misses, now classed
+by mode × declaration kind (local-binding, closure, type-member,
+anonymous-function joined the vocabulary; TS sites get a mode from the
+binding's shape so Go and TS read alike): 625 local bindings (React
+state setters — C-32's by-design tail), 195 closures, 71 store members
+through interface property signatures (the one class that costs real
+architecture: `who_calls(addMessage)` → nobody). A second oracle defect
+caught by the fixture path: dynamic `import()` listed as a call target;
+dropped. `minits` self-test 4/4 both ways; noted that Hobbes' decorated
+class symbol sits on the decorator line (W1) — the oracle's convention
+is the identifier. Both 20/20 hand-checks (Go V2.M5, kbet V2.M3)
+retired at Max's direction: rough, unnamed edges; the oracle replaces
+them, hand-checks return later with a selection rule. 12 oracle-lane
+Go tests. P7 met on precision; its overload clause was untestable and
+the rule that mattered was one it did not anticipate. Next: O4 dagger.

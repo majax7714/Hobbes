@@ -225,6 +225,9 @@ func missClass(s edges.Site, t edges.Target) string {
 	if t.Closure {
 		what = "closure"
 	}
+	if t.Kind != "" {
+		what = t.Kind
+	}
 	return how + "→" + what
 }
 
@@ -248,9 +251,13 @@ func Print(w io.Writer, r *Report) {
 	} else {
 		fmt.Fprintln(w, "precision-against-oracle: undefined (no confirmed or contradicted edges)")
 	}
+	roots := fmt.Sprintf("at %d roots", r.Roots)
+	if r.Kind == "resolution" {
+		roots = "over every resolved site in the cell (resolution oracle: no roots)"
+	}
 	if r.Recall != nil {
-		fmt.Fprintf(w, "recall %.1f%% (%d/%d in-repo oracle pairs) at %d roots; external oracle pairs %d; misses %v\n",
-			*r.Recall*100, r.RecallHits, r.OraclePairs, r.Roots, r.OracleExternal, r.MissBy)
+		fmt.Fprintf(w, "recall %.1f%% (%d/%d in-repo oracle pairs) %s; external oracle pairs %d; misses %v\n",
+			*r.Recall*100, r.RecallHits, r.OraclePairs, roots, r.OracleExternal, r.MissBy)
 	} else {
 		fmt.Fprintf(w, "recall: undefined (no in-repo oracle pairs) at %d roots\n", r.Roots)
 	}

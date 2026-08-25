@@ -352,7 +352,7 @@ cells as data, not per-cell scripts.
 |---|---|---|
 | **O1** | `minigo` + `twomod` fixtures | Truth is hand-computable. Harness self-test: matcher must land exactly (every fixture edge confirmed, zero tolerance surprises) before any real cell. Exit: fixture grading in the test suite. (`twomod` — a two-module Go fixture — does not exist yet; O1 adds it.) |
 | **O2** | hobbes repo, Go zone | First real cell. Small (3,707 sites), familiar. *(Done 2026-08-25. The ADR-037 20/20 could not serve as a cross-check — its edges were never named — and was retired in favour of the oracle.)* Triage protocol shakedown. |
-| **O3** | kbet TS zones | The provisioned-deps happy path. Cross-check against the V2.M3 20/20. |
+| **O3** | kbet TS zones | The provisioned-deps happy path. *(Done 2026-08-25: 630/630 against the zone's own `tsc`; the V2.M3 20/20 retired alongside Go's.)* |
 | **O4** | dagger Go modules | The payoff: 237k sites graded, per-module cells, C-33's join graded, the 126 build-tag disagreements priced. |
 | **O5** (optional) | dagger `sdk/typescript` | The 70.3% zone under the provisioned cache. |
 | **O6** (phase 2) | Python trace cells: hobbes' own Python zone under its suite (dogfood), then one SWE-bench workspace with strong coverage and clean ingest (xarray) | First trace-oracle cells; minipy-style fixture self-test first if one exists, else add one. Exit: coverage line + recall-against-executed on the record. |

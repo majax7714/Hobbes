@@ -44,9 +44,16 @@ type graph struct {
 	} `json:"symbol_edges"`
 }
 
+// Exts is the file-extension set of one language's cell.
+var Exts = map[string][]string{
+	"go": {".go"},
+	"ts": {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"},
+}
+
 // FromFile reads graph.json and exports the cell for module (a
-// repo-relative directory, "" or "." for the whole repo), Go files only.
-func FromFile(graphPath, module string) (*edges.HobbesExport, error) {
+// repo-relative directory, "" or "." for the whole repo) in lang ("go"
+// or "ts": the extension set of the sites and targets kept).
+func FromFile(graphPath, module, lang string) (*edges.HobbesExport, error) {
 	raw, err := os.ReadFile(graphPath)
 	if err != nil {
 		return nil, err
@@ -55,10 +62,14 @@ func FromFile(graphPath, module string) (*edges.HobbesExport, error) {
 	if err := json.Unmarshal(raw, &g); err != nil {
 		return nil, fmt.Errorf("%s: %w", graphPath, err)
 	}
-	return From(&g, module)
+	return From(&g, module, lang)
 }
 
-func From(g *graph, module string) (*edges.HobbesExport, error) {
+func From(g *graph, module, lang string) (*edges.HobbesExport, error) {
+	exts, ok := Exts[lang]
+	if !ok {
+		return nil, fmt.Errorf("unknown lang %q (go|ts)", lang)
+	}
 	module = path.Clean("/" + module)[1:]
 	modulePath := map[string]string{}
 	for _, n := range g.Nodes {
@@ -78,11 +89,11 @@ func From(g *graph, module string) (*edges.HobbesExport, error) {
 			continue
 		}
 		file, ok := modulePath[symModule[e.To]]
-		if !ok || !strings.HasSuffix(file, ".go") {
+		if !ok || !hasExt(file, exts) {
 			continue
 		}
 		for _, ev := range e.Evidence {
-			if !strings.HasSuffix(ev.Path, ".go") || !under(ev.Path, module) {
+			if !hasExt(ev.Path, exts) || !under(ev.Path, module) {
 				continue
 			}
 			out.Edges = append(out.Edges, edges.HobbesEdge{
@@ -103,6 +114,15 @@ func From(g *graph, module string) (*edges.HobbesExport, error) {
 		return a.Target.Key() < b.Target.Key()
 	})
 	return out, nil
+}
+
+func hasExt(p string, exts []string) bool {
+	for _, x := range exts {
+		if strings.HasSuffix(p, x) {
+			return true
+		}
+	}
+	return false
 }
 
 func under(p, dir string) bool {

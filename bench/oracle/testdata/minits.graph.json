@@ -1,0 +1,482 @@
+{
+  "dirty": true,
+  "lane_agreement": {
+    "module_edges_compared": 3,
+    "module_edges_excluded_lane_b_only": 0,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 4
+  },
+  "languages": [
+    "javascript",
+    "typescript"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 2,
+          "path": "src/items.controller.ts"
+        }
+      ],
+      "from": "src/items.controller",
+      "tier": "syntactic",
+      "to": "ext:@nestjs/common",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/items.controller.ts"
+        },
+        {
+          "lane": "scip",
+          "line": 9,
+          "path": "src/items.controller.ts"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/items.controller.ts"
+        }
+      ],
+      "from": "src/items.controller",
+      "tier": "semantic",
+      "to": "src/util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 1,
+          "path": "src/math.spec.ts"
+        }
+      ],
+      "from": "src/math.spec",
+      "tier": "syntactic",
+      "to": "ext:vitest",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 2,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server",
+      "tier": "syntactic",
+      "to": "ext:express",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/server.js"
+        },
+        {
+          "lane": "scip",
+          "line": 8,
+          "path": "src/server.js"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server",
+      "tier": "semantic",
+      "to": "src/util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 7,
+          "path": "src/util.js"
+        }
+      ],
+      "from": "src/util",
+      "tier": "syntactic",
+      "to": "env:MINITS_API_URL",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 2,
+          "path": "tests/util.test.mjs"
+        }
+      ],
+      "from": "tests/util.test",
+      "tier": "syntactic",
+      "to": "ext:node:assert",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 1,
+          "path": "tests/util.test.mjs"
+        }
+      ],
+      "from": "tests/util.test",
+      "tier": "syntactic",
+      "to": "ext:node:test",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "tests/util.test.mjs"
+        },
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "tests/util.test.mjs"
+        },
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "tests/util.test.mjs"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 4,
+          "path": "tests/util.test.mjs"
+        }
+      ],
+      "from": "tests/util.test",
+      "tier": "semantic",
+      "to": "src/util",
+      "type": "imports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "env:MINITS_API_URL",
+      "kind": "env",
+      "name": "MINITS_API_URL"
+    },
+    {
+      "id": "ext:@nestjs/common",
+      "kind": "external"
+    },
+    {
+      "id": "ext:express",
+      "kind": "external"
+    },
+    {
+      "id": "ext:node:assert",
+      "kind": "external"
+    },
+    {
+      "id": "ext:node:test",
+      "kind": "external"
+    },
+    {
+      "id": "ext:vitest",
+      "kind": "external"
+    },
+    {
+      "id": "src/items.controller",
+      "kind": "module",
+      "path": "src/items.controller.ts"
+    },
+    {
+      "id": "src/math.spec",
+      "kind": "module",
+      "path": "src/math.spec.ts"
+    },
+    {
+      "id": "src/server",
+      "kind": "module",
+      "path": "src/server.js"
+    },
+    {
+      "id": "src/util",
+      "kind": "module",
+      "path": "src/util.js"
+    },
+    {
+      "id": "tests/util.test",
+      "kind": "module",
+      "path": "tests/util.test.mjs"
+    }
+  ],
+  "packs": [
+    "http-ts"
+  ],
+  "resolution_coverage": [
+    {
+      "external": 0,
+      "file": "src/items.controller.ts",
+      "resolved": 1,
+      "sites": 3,
+      "tail": {
+        "unclassified": 2
+      },
+      "unresolved": 2
+    },
+    {
+      "external": 0,
+      "file": "src/math.spec.ts",
+      "resolved": 0,
+      "sites": 4,
+      "tail": {
+        "attr-call": 1,
+        "unclassified": 3
+      },
+      "unresolved": 4
+    },
+    {
+      "external": 0,
+      "file": "src/server.js",
+      "resolved": 1,
+      "sites": 7,
+      "tail": {
+        "attr-call": 5,
+        "unclassified": 1
+      },
+      "unresolved": 6
+    },
+    {
+      "external": 0,
+      "file": "src/util.js",
+      "resolved": 0,
+      "sites": 2,
+      "tail": {
+        "attr-call": 2
+      },
+      "unresolved": 2
+    },
+    {
+      "external": 0,
+      "file": "tests/util.test.mjs",
+      "resolved": 2,
+      "sites": 6,
+      "tail": {
+        "attr-call": 2,
+        "unclassified": 2
+      },
+      "unresolved": 4
+    }
+  ],
+  "schema_version": 4,
+  "sha": "308a198b56922d4371b835ed65adbef3d959ea93",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/items.controller.ts"
+        }
+      ],
+      "from": "src/items.controller",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 9,
+          "path": "src/items.controller.ts"
+        }
+      ],
+      "from": "src/items.controller.ItemsController.findOne",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/server.js"
+        },
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "src/server.js"
+        },
+        {
+          "lane": "scip",
+          "line": 14,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server",
+      "tier": "semantic",
+      "to": "src/server.app",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server",
+      "tier": "semantic",
+      "to": "src/server.listItems",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 8,
+          "path": "src/server.js"
+        }
+      ],
+      "from": "src/server.listItems",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "tests/util.test.mjs"
+        },
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "tests/util.test.mjs"
+        }
+      ],
+      "from": "tests/util.test",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "tests/util.test.mjs"
+        }
+      ],
+      "from": "tests/util.test",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "uses"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 11,
+      "id": "src/items.controller.ItemsController",
+      "kind": "class",
+      "line": 5,
+      "module": "src/items.controller",
+      "name": "ItemsController",
+      "qualname": "ItemsController"
+    },
+    {
+      "end_line": 10,
+      "id": "src/items.controller.ItemsController.findOne",
+      "kind": "method",
+      "line": 7,
+      "module": "src/items.controller",
+      "name": "findOne",
+      "qualname": "ItemsController.findOne"
+    },
+    {
+      "end_line": 5,
+      "id": "src/server.app",
+      "kind": "const",
+      "line": 5,
+      "module": "src/server",
+      "name": "app",
+      "qualname": "app"
+    },
+    {
+      "end_line": 9,
+      "id": "src/server.listItems",
+      "kind": "function",
+      "line": 7,
+      "module": "src/server",
+      "name": "listItems",
+      "qualname": "listItems"
+    },
+    {
+      "end_line": 8,
+      "id": "src/util.apiBase",
+      "kind": "function",
+      "line": 6,
+      "module": "src/util",
+      "name": "apiBase",
+      "qualname": "apiBase"
+    },
+    {
+      "end_line": 4,
+      "id": "src/util.normalize",
+      "kind": "function",
+      "line": 2,
+      "module": "src/util",
+      "name": "normalize",
+      "qualname": "normalize"
+    }
+  ],
+  "tail_classes_available": {
+    "ts/js": [
+      "fallback-resolved",
+      "local-binding",
+      "nested-decl",
+      "external-origin",
+      "attr-call",
+      "unclassified"
+    ]
+  },
+  "verification_base": {
+    "javascript": {
+      "depth": "multi-repo",
+      "note": "verified on 3 repos: kbet (real Vite+React app), private-repo-A, this repo's web/",
+      "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
+      "repos": 3
+    },
+    "typescript": {
+      "depth": "multi-repo",
+      "note": "verified on 3 repos: kbet (real Vite+React app), private-repo-A, this repo's web/",
+      "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
+      "repos": 3
+    }
+  }
+}

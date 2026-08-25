@@ -42,6 +42,13 @@ type Target struct {
 	Name     string `json:"name"`
 	External bool   `json:"external,omitempty"`
 	Closure  bool   `json:"closure,omitempty"`
+	// Kind is what the declaration is (function, method, class, variable,
+	// property, parameter, type-member, closure); oracles that do not
+	// classify leave it empty and the grader falls back to named/closure.
+	Kind string `json:"kind,omitempty"`
+	// Via marks a target the oracle added by a secondary rule — "binding"
+	// for the callee's binding declaration behind an anonymous signature.
+	Via string `json:"via,omitempty"`
 }
 
 // Site is one call site the oracle analysed. Mode is "static" or

@@ -8,8 +8,9 @@ source that is independent of Hobbes, authoritative for the language,
 and regenerable by anyone with the toolchain.
 
 ```sh
-cd bench/oracle && go test ./...            # fixture self-test (O1): minigo + twomod
-bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--no-ingest]
+cd bench/oracle && go test ./...            # fixture self-test (O1): minigo + twomod + minits
+cd bench/oracle/ts && npm install            # once: the fallback typescript for fixtures
+bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts] [--no-ingest]
 ```
 
 `run-cell.sh` ingests the repo with lane B, exports the Hobbes edges of
@@ -39,8 +40,24 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
 - **Overloads / instantiations.** Generic instantiations collapse to the
   origin declaration; wrappers, thunks and bound closures unwind to the
   source function they end in; closures are identified by declaration
-  position only. (TypeScript's overload rule — any declaration of the
-  resolved symbol counts — lands with the `tsc` oracle at O3.)
+  position only. TypeScript: **any declaration of the resolved
+  signature's symbol counts** (overload-set membership).
+- **The callee's binding.** When the resolved signature is *anonymous* —
+  a type literal's or interface's `(...): T`, the shape of every
+  `const useX = create(...)` hook, every `useState` setter, every
+  callback parameter — the callee's identity is the **binding it was
+  called through** (variable, property, parameter, binding element),
+  not the signature's home in a `.d.ts`. Both product lanes resolve to
+  the binding; the oracle lists it as a target labelled `binding` and
+  does not list the anonymous signature. (O3's first pass graded 119
+  `useAuthStore()` edges as contradicted against zustand's
+  `react.d.mts`; that was the oracle's grain, not Hobbes' — a
+  match-defect.)
+- **Decorated declarations.** The identifier's line, not the
+  decorator's. Hobbes' TS symbols currently carry the decorator line
+  (`minits`' `ItemsController` at 5, identifier at 6 — the W1
+  off-by-one); a call graded against such a symbol will contradict
+  until that is fixed, and the row will say so.
 - **Package initialisers are in the graded set.** `init` and
   package-level var initialisers are reachable from every main and their
   calls are real calls.
@@ -88,11 +105,36 @@ replaced sibling module (dagger's `sdk/go`, C-33) is inside the program
 and its edges are graded. Build tags: the box's default set, plus
 `--tags`; files excluded by tags are `not-loaded`.
 
+## The TypeScript oracle (`ts/tsc-oracle.mjs`)
+
+`node ts/tsc-oracle.mjs --repo <repo> --zone <dir-with-tsconfig> --out
+oracle.json`. Loads `typescript` **from the zone** when the zone has
+one (the version the project pins, the environment lane B indexed
+under), else the harness's own (`ts/package.json`, for fixtures without
+`node_modules`). Builds the zone's program from its tsconfig, walks
+every call-shaped node, `checker.getResolvedSignature` → declarations,
+normalised per the conventions above. Kind `resolution`: no roots;
+recall is over every resolved site in the zone. Zones declined at
+ingest (C-34) are declined here for the same reason.
+
+Sites carry a **mode** derived from the binding's shape, so the miss
+classes read the same as Go's: `interface` when the callee is a type
+member (an interface property signature), `func-value` when it is a
+parameter, a local binding, or a variable with no function literal
+behind it, `static` otherwise. Targets carry a **kind** — function,
+method, class, variable, property, parameter, type-member, closure,
+local-binding, anonymous-function — and the miss record groups by
+mode × kind.
+
 ## Fixtures and testdata
 
 `pipeline/tests/fixtures/minigo` (one module, 5 in-repo calls, all
-static) and `pipeline/tests/fixtures/twomod` (two modules joined by a
-`replace`, one interface-dispatch call). Their hand-computed truth is the
-Go test suite. `testdata/*.graph.json` are the fixtures' Hobbes graphs as
-ingested with lane B (`scip-go`); regenerate with `run-cell.sh` on a
-git-initialised copy of the fixture when the extractor changes them.
+static), `pipeline/tests/fixtures/twomod` (two modules joined by a
+`replace`, one interface-dispatch call), and `pipeline/tests/fixtures/minits`
+(TS + JS under `allowJs`, four calls to one helper, decorators
+unresolvable without deps). Their hand-computed truth is the Go test
+suite (the TS test shells out to node and skips without it).
+`testdata/*.graph.json` are the fixtures' Hobbes graphs as ingested
+with lane B (`scip-go`, `scip-typescript`); regenerate with
+`run-cell.sh` on a git-initialised copy of the fixture when the
+extractor changes them.

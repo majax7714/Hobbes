@@ -77,6 +77,12 @@ all. P4 recall 60–85% — **missed high**: 87.5% overall, and 100% on
 static sites — the graph is more complete on static calls than the
 prior allowed. P5 silent ≤ 15% with `unreachable` largest — **met**
 (1 edge, unreachable). P6 ADR-037's 20 not reproducible — **confirmed**.
+**O3 (kbet):** P7 semantic precision ≥ 95% — **met** (100%; the
+first-pass 81% was the oracle's grain, D-O4 now says so); overload-set
+membership needed for ≥ 1 confirmed edge — **not testable as stated**:
+no in-repo overloaded function is called in the zone; the rule that
+*did* decide 119 edges was the binding rule, which P7 did not
+anticipate.
 
 ## private-repo-A (a private Python + JS + Terraform repo; read-only, Max-sanctioned; name and location withheld)
 
@@ -99,14 +105,36 @@ hand-verified (M3).
 | 2026-08-15 (V2.M3/C-24) | **231 semantic TS call edges**; 12 test→component render edges, all semantic; 108/174 tests reach a component; lanes 359 sites, **0 disagree** |
 | 2026-08-11 (M6) | 104 nodes, 174 tests |
 
-**Verified:** 20/20 semantic call edges hand-checked against cited
-lines (V2.M3, discharging M2's asterisk); 20/20 edges + 10/10 test
+**Verified:** TS — **compiler-graded 2026-08-25 (oracle lane O3,
+[cell record](oracle-cells/kbet-ts-2026-08-25.md))**: all 630 call
+edges of the `betchat/frontend` zone **confirmed by the zone's own
+`tsc` 5.9.3** (626 semantic + 4 syntactic), 0 contradicted, 0 silent —
+precision-against-oracle **100%**. Recall over every resolved site:
+**41.4% (633/1,529 in-repo oracle pairs)** — but the recall on
+*declared* callees is 633/637: functions 483/484, module-level
+variables 23/23 (+119/121 called through a function-valued variable),
+classes 8/8. The 896 misses are three classes, all C-58 / C-32:
+**625 local bindings** (`setError(...)`: a `useState` setter or a
+callback held in a local — the value, not the function, is what is
+named; C-32's *seen and not modelled by design*), **195 closures**
+(handlers declared inside components), **71 store members** reached
+through an interface property signature (`ChatState.addMessage`),
+plus 1 IIFE and 1 `let`-bound accessor called before assignment.
+First pass graded 119 contradictions; triage: **all match-defect** —
+the oracle's declaration for `useAuthStore()` was zustand's anonymous
+call signature, not the binding; the binding rule (D-O4, harness README)
+fixed the grain and the oracle now lists the callee's binding. One more
+oracle defect found the same way: a dynamic `import()` listed as a
+call target (a module, not a declaration) — dropped. Not hand-checked
+beyond triage. The V2.M3 20/20 hand-check is **retired** on the same
+grounds as Go's (edges never named); earlier: 20/20 edges + 10/10 test
 mappings at M6.
 
 ## qwen-pathology (`~/qwen-pathology` — Python)
 
 | Date | Numbers |
 |---|---|
+| 2026-08-25 (**oracle lane O3**) | compiler-graded against the zone's `tsc` 5.9.3: **630/630 call edges confirmed**, 0 contradicted; recall 633/1,529 over every resolved site, 633/637 on declared callees; misses by class in `docs/oracle-misses.md` |
 | 2026-08-16 | capture **82.6%** of 546; environment gap surfaced (2/6 deps installed — datasets, transformers, vllm missing, C-27's WARNING); unclassified 6 → **1** |
 
 **Verified:** none — its role is the env-missing degradation path,

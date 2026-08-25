@@ -81,10 +81,17 @@ repo's Go zone grades 1,278/1,278 semantic edges confirmed, 0/3
 syntactic, static recall 100% at 20 roots, and 45 honest misses — all
 one class, now **C-58** (interface / function-value / closure calls
 draw no edge, and the site still counts as resolved). Pre-registration
-graded in the evidence file (P3, P4 missed; the rest met). Resume at
-**O3 — kbet TS zones**: the `tsc` oracle extractor (TypeScript, under
-`bench/oracle/ts/`), overload-set membership, external targets out of
-recall (D-O3/D-O4), V2.M3's 20/20 as the cross-check. Then O4 dagger.
+graded in the evidence file (P3, P4 missed; the rest met). **O3 is done**
+(kbet `betchat/frontend` against the zone's own `tsc`: 630/630
+confirmed, recall 633/637 on declared callees; the 119 first-pass
+contradictions were the oracle's grain — the binding rule is now
+normative in the harness README). Both 20/20 hand-checks retired at
+Max's direction. Resume at **O4 — dagger Go modules** (`~/dagger`,
+25 modules, one cell each via `run-cell.sh ~/dagger <module> <out>`;
+`~/dagger` must be ingested at the recorded SHA first — check
+`.hobbes/derived/graph.json` there; P8/P9 pre-registered; expect the
+RTA pass to take minutes per large module). Then O5 optional
+(dagger `sdk/typescript`, `--lang ts`), then phase 2.
 O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
 grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
 to `pipeline/tests/fixtures/`. Resume at design §10: **the

@@ -3,7 +3,7 @@ package export
 import "testing"
 
 func TestMinigoExport(t *testing.T) {
-	h, err := FromFile("../../testdata/minigo.graph.json", ".")
+	h, err := FromFile("../../testdata/minigo.graph.json", ".", "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,7 +29,7 @@ func TestMinigoExport(t *testing.T) {
 
 // The cell filter keeps sites under the module and targets anywhere.
 func TestTwomodCells(t *testing.T) {
-	app, err := FromFile("../../testdata/twomod.graph.json", "app")
+	app, err := FromFile("../../testdata/twomod.graph.json", "app", "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +48,7 @@ func TestTwomodCells(t *testing.T) {
 	if cross != 2 {
 		t.Errorf("want 2 cross-module targets (Greet, Lookup), got %d", cross)
 	}
-	lib, err := FromFile("../../testdata/twomod.graph.json", "lib")
+	lib, err := FromFile("../../testdata/twomod.graph.json", "lib", "go")
 	if err != nil {
 		t.Fatal(err)
 	}

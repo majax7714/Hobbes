@@ -22,6 +22,10 @@ commit as the cell.
 | `interface→closure` | invoke reaching a closure (function-typed interface) | no edge | C-58 |
 | `func-value→named` | call of a function value reaching a declared function (a map of methods, a callback parameter) | **no edge** | C-58 |
 | `func-value→closure` | call of a function value reaching a closure (`defer cancel()`, goroutine bodies) | no edge; under RTA the pair count is inflated | C-58 |
+| `func-value→local-binding` | call through a local that holds a value, not a function literal (`const [x, setX] = useState()`; `setX(...)`) | **no edge** — the binding is below the symbol floor; the site is *seen and not modelled by design* (C-32's `local-binding` class) | C-32, C-58 |
+| `func-value→variable` | call through a module-level variable holding a function value (a `let` accessor assigned at runtime) | drawn when the variable is a graph symbol; missed when the value arrives later | C-58 |
+| `interface→type-member` | call of a member declared only as an interface property signature (a zustand store's `ChatState.addMessage`) | **no edge** — interface members are not graph symbols (C-9) | C-58 |
+| `static→anonymous-function` | an IIFE or a literal passed straight to a call | no edge | C-58 |
 
 ## Cells
 
@@ -47,9 +51,38 @@ shaped around concrete types and function tables, not interfaces, so
 this ranking is a fact about *this repo* until dagger (O4) says
 otherwise.
 
+### kbet, `betchat/frontend` — 2026-08-25 (O3, the zone's `tsc` 5.9.3, resolution oracle)
+
+1,529 in-repo oracle pairs over every resolved site; 633 confirmed;
+**896 misses**, none inflated (a resolution oracle names one
+declaration per site).
+
+| class | hits / pairs | misses | % of misses |
+|---|---|---|---|
+| `static→function` | 483 / 484 | 1 | 0.1% |
+| `static→variable` | 23 / 23 | 0 | 0% |
+| `func-value→variable` | 119 / 121 | 2 | 0.2% — `getAuthStore?.()`, a `let` assigned at runtime (`api/axios.ts:19,30`) |
+| `static→class` | 8 / 8 | 0 | 0% |
+| `func-value→local-binding` | 0 / 625 | 625 | **69.8%** — `useState` setters and callbacks held in locals |
+| `static→closure` | 0 / 195 | 195 | **21.8%** — handlers declared inside components (`handleAction`, `renderCompose`) |
+| `interface→type-member` | 0 / 71 | 71 | 7.9% — store members through their interface (`ChatState.addMessage`, `WalletState.fetchBalance`) |
+| `static→anonymous-function` | 0 / 1 | 1 | 0.1% — an IIFE (`test/setup.ts:4`) |
+| `static→type-member` | 0 / 1 | 1 | 0.1% |
+
+**What hurts most here: local bindings**, seven-tenths — and most of
+those are React state setters, which no reader would want as call
+edges; they are the tail C-32 already names as *by design*. The class
+that actually loses architecture is the **store members through
+interfaces** (71): `who_calls(addMessage)` answers nobody for the
+zone's central state mutations. Closures (195) are the same story as
+Go's. Everything Hobbes *declares* a symbol for it also draws: 633 of
+637.
+
 **Better classification wanted (open):** `static→closure` conflates a
 closure called in the function that made it (the test helper shape)
-with one stored and called later; and `func-value→named` at one site
+with one stored and called later; `func-value→local-binding` conflates
+a React state setter (never wanted as an edge) with a callback whose
+provenance a reader *would* want; and `func-value→named` at one site
 with six candidates is a *table dispatch* the oracle counts as six
 misses when Hobbes would need one `dispatch` edge to a table. Both
 sub-classes need a marker the oracle does not carry yet (whether the

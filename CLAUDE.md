@@ -135,7 +135,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-25): 896 pytest / 291 Go + 10
+Suite sizes at the last check (2026-08-25): 896 pytest / 291 Go + 12
 oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 
 ## Conventions

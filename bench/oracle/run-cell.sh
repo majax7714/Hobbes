@@ -4,14 +4,24 @@
 # grade, and leave hobbes.json / oracle.json / report.json / report.txt
 # in the output directory.
 #
-#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--no-ingest]
+#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts] [--no-ingest]
 #
-# <module-dir> is repo-relative ("." for a single-module repo). Pass
-# --no-ingest to grade an existing .hobbes/derived/graph.json. Runtime is
+# <module-dir> is repo-relative ("." for a single-module repo): a Go
+# module directory for --lang go (default), a directory holding a
+# tsconfig.json for --lang ts. Pass --no-ingest to grade an existing
+# .hobbes/derived/graph.json. Runtime is
 # printed at the end so every cell's cost is on the record.
 set -eu
 repo=$(cd "$1" && pwd); module=$2; out=$3; shift 3
-ingest=1; [ "${1:-}" = "--no-ingest" ] && ingest=0
+ingest=1; lang=go
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --no-ingest) ingest=0 ;;
+    --lang) lang=$2; shift ;;
+    *) echo "unknown argument $1" >&2; exit 2 ;;
+  esac
+  shift
+done
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)
 mkdir -p "$out"; out=$(cd "$out" && pwd)
@@ -20,7 +30,11 @@ if [ "$ingest" = 1 ]; then
   (cd "$root/pipeline" && HOBBES_SCIP=1 uv run hobbes ingest --repo "$repo")
 fi
 (cd "$here" && go build -o "$out/oracle" ./cmd/oracle)
-"$out/oracle" export --graph "$repo/.hobbes/derived/graph.json" --module "$module" --out "$out/hobbes.json"
-"$out/oracle" go-rta --repo "$repo" --module "$module" --out "$out/oracle.json"
+"$out/oracle" export --graph "$repo/.hobbes/derived/graph.json" --module "$module" --lang "$lang" --out "$out/hobbes.json"
+case "$lang" in
+  go) "$out/oracle" go-rta --repo "$repo" --module "$module" --out "$out/oracle.json" ;;
+  ts) node "$here/ts/tsc-oracle.mjs" --repo "$repo" --zone "$module" --out "$out/oracle.json" ;;
+  *) echo "unknown lang $lang" >&2; exit 2 ;;
+esac
 "$out/oracle" grade --hobbes "$out/hobbes.json" --oracle "$out/oracle.json" --json "$out/report.json" | tee "$out/report.txt"
 echo "cell $module of $repo: $(( $(date +%s) - start ))s" | tee -a "$out/report.txt"

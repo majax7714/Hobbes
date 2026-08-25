@@ -2,6 +2,10 @@ package grade
 
 import (
 	"bytes"
+	"encoding/json"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -14,7 +18,7 @@ const fixtures = "../../../../pipeline/tests/fixtures"
 
 func cell(t *testing.T, repo, module, graph string) *Report {
 	t.Helper()
-	h, err := export.FromFile("../../testdata/"+graph, module)
+	h, err := export.FromFile("../../testdata/"+graph, module, "go")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -126,5 +130,48 @@ func TestExternalPairsStayOutOfRecall(t *testing.T) {
 	r := Grade(&edges.HobbesExport{}, o)
 	if r.OraclePairs != 0 || r.OracleExternal != 1 || r.Recall != nil {
 		t.Fatalf("external pairs: %d in-repo, %d external, recall %v", r.OraclePairs, r.OracleExternal, r.Recall)
+	}
+}
+
+// The TypeScript oracle on the minits fixture (hand truth: four calls
+// to util.normalize — from the Nest controller, server.js, and two
+// node:test cases; decorators and vitest globals unresolved without
+// node_modules, so oracle-silent). Needs node; skipped without it.
+func TestMinitsTSAllConfirmed(t *testing.T) {
+	if _, err := exec.LookPath("node"); err != nil {
+		t.Skip("node not on PATH")
+	}
+	out := filepath.Join(t.TempDir(), "oracle.json")
+	cmd := exec.Command("node", "../../ts/tsc-oracle.mjs", "--repo", fixtures+"/minits", "--zone", ".", "--out", out)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("tsc-oracle: %v\n%s", err, b)
+	}
+	raw, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var o edges.OracleExport
+	if err := json.Unmarshal(raw, &o); err != nil {
+		t.Fatal(err)
+	}
+	h, err := export.FromFile("../../testdata/minits.graph.json", ".", "ts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := Grade(h, &o)
+	if r.Total != (TierCounts{Confirmed: 4}) || r.RecallHits != 4 || r.OraclePairs != 4 {
+		t.Fatalf("minits: %+v recall %d/%d misses %v", r.Total, r.RecallHits, r.OraclePairs, r.MissBy)
+	}
+	if o.Kind != "resolution" {
+		t.Fatalf("kind: %s", o.Kind)
+	}
+	silent := 0
+	for _, s := range o.Sites {
+		if len(s.Targets) == 0 {
+			silent++
+		}
+	}
+	if silent < 4 {
+		t.Fatalf("decorators and vitest globals should be unresolved without node_modules; %d silent sites", silent)
 	}
 }
