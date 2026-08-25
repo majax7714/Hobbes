@@ -5086,3 +5086,37 @@ W3 now say the same thing: oracle lane phase 1 done to this box's
 limit, W1's findings fixed, **phase 2 (Python traces, Rust MIR) is the
 next section**, root waits on compute. Session closed at Max's
 direction; a fresh session resumes from the handoff.
+
+## 2026-08-25 — oracle lane phase 2: the interpreter grades Python, rustc's MIR grades Rust
+
+Pre-registered first (P10–P16, own commit), then built: `py/trace_oracle.py`
+(`sys.monitoring` CALL events under the repo's own pytest, one subprocess
+per run, unioned; declarations mapped through an `ast` index so a
+decorated function's line is its `def`; C callees counted, not listed;
+out-of-cell callers `DISABLE`d at first event) and `rust/` (a
+`rustc_driver` wrapper on the pinned nightly: every body's MIR `Call`
+terminators through `Instance::try_resolve`, `fn_span` for the site,
+`def_ident_span` for the target, external by *file* so a bin's call into
+the repo's lib is in-repo). The grader gained §3.1's asymmetric buckets
+(confirmed / suspect / unobserved, no precision line, the coverage line
+mandatory), `export` gained `py` and `rust` (macro edges excluded and
+counted), `run-cell.sh` gained both languages; fixtures `miniapp` and
+`minirust` are the self-tests (7/7 and 9/9 by hand). **Five harness
+defects before any number** (H-12 package nodes dropped 113 Hobbes
+edges; H-13 the test harness's generated calls; H-14 the coverage
+count; H-15 foreign macro bodies; H-16 `.await`'s poll of async bodies
+— 649 false closure misses on dagger). **O6, this repo's Python zone:**
+3,291/3,490 confirmed, 10 suspect (4 not-exercised, 6 hobbes-wrong —
+all syntactic, a fixture parameter name-matched), recall-against-
+executed 86.2%, 96.9% on named declarations, 94.3% of sites exercised;
+closures + lambdas are 80.8% of misses. **O7:** rust_proj 17/17 (ADR-040's
+33 = 17 calls + 16 uses); dagger `sdk/rust` 3,574/3,574 semantic, 12
+syntactic contradictions (`format!` → `fn format`), recall 98.1% — the
+misses are code macros and derives wrote, not dispatch (P16 missed
+there; P11's attribution clause missed too; the other five met).
+Registered C-60 (trace asymmetry), C-61 (reference lane), C-62 (§3's
+four rules — phase 1's debt). §3.8's Python row is trace-graded and its
+Rust row is two repos compiler-graded, the pin in `verification.py`
+moved with them and the P11 test caught the edit as designed. Not run:
+xarray (no workspace on this box), Rupta, the trace lane for Rust, O5.
+21 oracle-lane Go tests (from 12); 907 pytest unchanged.

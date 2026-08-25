@@ -29,8 +29,10 @@ from __future__ import annotations
 VERIFICATION_BASE: dict[str, dict] = {
     "python": {
         "repos": 9,
-        "on": "this repo (dogfood, continuous), private-repo-A, qwen-pathology; "
-              "+ six SWE-bench repos at span/declaration grain "
+        # This repo's zone is trace-graded since the oracle lane's phase 2
+        # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
+        "on": "this repo (dogfood, continuous — trace-graded), private-repo-A, "
+              "qwen-pathology; + six SWE-bench repos at span/declaration grain "
               "(astropy, django, scikit-learn, sphinx, sympy, xarray)",
         "depth": "multi-repo",
     },
@@ -52,9 +54,11 @@ VERIFICATION_BASE: dict[str, dict] = {
         "depth": "multi-repo",
     },
     "rust": {
-        "repos": 1,
-        "on": "one small repo (rust_proj) + the minirust fixture",
-        "depth": "single-repo",
+        # Compiler-graded on both since the oracle lane's phase 2 (ADR-089,
+        # O7, 2026-08-25); ADR-040's hand-check is superseded.
+        "repos": 2,
+        "on": "rust_proj (one small crate); dagger — its sdk/rust workspace (O7)",
+        "depth": "multi-repo",
     },
     "hcl": {
         "repos": 2,

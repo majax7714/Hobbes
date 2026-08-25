@@ -1,8 +1,11 @@
 # Oracle grading — precision and recall for the call graph against answer keys we do not control
 
 **Status: phase 1 built and run (O1–O4, 2026-08-25; the dagger root
-waits on a bigger box); phase 2 (§6 Python traces, §7 Rust MIR) is the
-next section's work — unbuilt.** This document is the context for the
+waits on a bigger box); phase 2 built and run the same day — O6 (§6,
+this repo's Python zone under its suite; xarray not run: no workspace on
+the box) and O7 (§7, `rust_proj` and dagger's `sdk/rust`; Rupta and the
+trace lane not attempted). Cell records in `docs/oracle-cells/`; the
+harness README carries the Python and Rust conventions.** This document is the context for the
 build session(s) that implement it. **Owner:** Max. **Scope:** bench tooling only
 — no product change. Reads with: architecture §3.8 (the claim table),
 `extraction-evidence.md` (the evidence log), `docs/constraints/`,

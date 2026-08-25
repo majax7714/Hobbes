@@ -1,0 +1,663 @@
+{
+  "dirty": true,
+  "extraction_errors": [
+    {
+      "message": "1 symbol(s) are defined in more than one file (e.g. crate/) \u2014 cargo targets sharing a name, or a package namespace declared per file; references to them are left unattributed rather than guessed",
+      "path": ".",
+      "stage": "scip-decode"
+    }
+  ],
+  "lane_agreement": {
+    "module_edges_compared": 0,
+    "module_edges_excluded_lane_b_only": 5,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 9
+  },
+  "languages": [
+    "rust"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 2,
+          "path": "src/helpers.rs"
+        }
+      ],
+      "from": "src/helpers",
+      "tier": "syntactic",
+      "to": "env:MINIRUST_MODE",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 1,
+          "path": "src/lib.rs"
+        }
+      ],
+      "from": "src/lib",
+      "tier": "syntactic",
+      "to": "ext:std",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/main.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/deep/extra",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/main.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 10,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/helpers",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 1,
+          "path": "src/main.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/lib",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "src/main.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/sub/mod",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 1,
+          "path": "tests/integration.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "tests/integration.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "tests/integration.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration",
+      "tier": "semantic",
+      "to": "src/lib",
+      "type": "imports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "env:MINIRUST_MODE",
+      "kind": "env",
+      "name": "MINIRUST_MODE"
+    },
+    {
+      "id": "ext:std",
+      "kind": "external",
+      "name": "std"
+    },
+    {
+      "id": "src/deep/extra",
+      "kind": "module",
+      "path": "src/deep/extra.rs"
+    },
+    {
+      "id": "src/helpers",
+      "kind": "module",
+      "path": "src/helpers.rs"
+    },
+    {
+      "id": "src/lib",
+      "kind": "module",
+      "path": "src/lib.rs"
+    },
+    {
+      "id": "src/main",
+      "kind": "module",
+      "path": "src/main.rs"
+    },
+    {
+      "id": "src/sub/mod",
+      "kind": "module",
+      "path": "src/sub/mod.rs"
+    },
+    {
+      "id": "tests/integration",
+      "kind": "module",
+      "path": "tests/integration.rs"
+    }
+  ],
+  "packs": [
+    "cli-rust"
+  ],
+  "resolution_coverage": [
+    {
+      "external": 3,
+      "file": "src/helpers.rs",
+      "resolved": 0,
+      "sites": 3,
+      "unresolved": 0
+    },
+    {
+      "external": 1,
+      "file": "src/lib.rs",
+      "resolved": 2,
+      "sites": 3,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "src/main.rs",
+      "resolved": 5,
+      "sites": 7,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "tests/integration.rs",
+      "resolved": 3,
+      "sites": 5,
+      "unresolved": 0
+    }
+  ],
+  "schema_version": 4,
+  "sha": "6bbda322899d1d475421ea75d9fcf60bffeddd53",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "src/lib.rs"
+        }
+      ],
+      "from": "src/lib",
+      "tier": "semantic",
+      "to": "src/lib.Counter",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 22,
+          "path": "src/lib.rs"
+        },
+        {
+          "lane": "scip",
+          "line": 23,
+          "path": "src/lib.rs"
+        }
+      ],
+      "from": "src/lib.Counter.new",
+      "tier": "semantic",
+      "to": "src/lib.Counter",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 14,
+          "path": "src/lib.rs"
+        }
+      ],
+      "from": "src/lib.double_via_macro",
+      "tier": "semantic",
+      "to": "src/lib.compute",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 14,
+          "path": "src/lib.rs"
+        }
+      ],
+      "from": "src/lib.double_via_macro",
+      "tier": "semantic",
+      "to": "src/lib.twice",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/deep/extra.extra_fn",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/helpers.greet",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 1,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/lib.compute",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main",
+      "tier": "semantic",
+      "to": "src/sub/mod.from_sub",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/deep/extra.extra_fn",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/deep/extra.extra_fn",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 10,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/helpers.greet",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 10,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/helpers.greet",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/lib.compute",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/sub/mod.from_sub",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.main",
+      "tier": "semantic",
+      "to": "src/sub/mod.from_sub",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 26,
+          "path": "src/main.rs"
+        }
+      ],
+      "from": "src/main.tests.test_double",
+      "tier": "semantic",
+      "to": "src/main.double",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 1,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration",
+      "tier": "semantic",
+      "to": "src/lib.Counter",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 1,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration",
+      "tier": "semantic",
+      "to": "src/lib.compute",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration.integration_works",
+      "tier": "semantic",
+      "to": "src/lib.Counter",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration.integration_works",
+      "tier": "semantic",
+      "to": "src/lib.Counter.incr",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration.integration_works",
+      "tier": "semantic",
+      "to": "src/lib.Counter.new",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "tests/integration.rs"
+        }
+      ],
+      "from": "tests/integration.integration_works",
+      "tier": "semantic",
+      "to": "src/lib.compute",
+      "type": "calls"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 3,
+      "id": "src/deep/extra.extra_fn",
+      "kind": "function",
+      "line": 1,
+      "module": "src/deep/extra",
+      "name": "extra_fn",
+      "qualname": "extra_fn"
+    },
+    {
+      "end_line": 4,
+      "id": "src/helpers.greet",
+      "kind": "function",
+      "line": 1,
+      "module": "src/helpers",
+      "name": "greet",
+      "qualname": "greet"
+    },
+    {
+      "end_line": 19,
+      "id": "src/lib.Counter",
+      "kind": "type",
+      "line": 17,
+      "module": "src/lib",
+      "name": "Counter",
+      "qualname": "Counter"
+    },
+    {
+      "end_line": 29,
+      "id": "src/lib.Counter.incr",
+      "kind": "method",
+      "line": 26,
+      "module": "src/lib",
+      "name": "incr",
+      "qualname": "Counter.incr"
+    },
+    {
+      "end_line": 24,
+      "id": "src/lib.Counter.new",
+      "kind": "method",
+      "line": 22,
+      "module": "src/lib",
+      "name": "new",
+      "qualname": "Counter.new"
+    },
+    {
+      "end_line": 11,
+      "id": "src/lib.compute",
+      "kind": "function",
+      "line": 9,
+      "module": "src/lib",
+      "name": "compute",
+      "qualname": "compute"
+    },
+    {
+      "end_line": 34,
+      "id": "src/lib.describe",
+      "kind": "function",
+      "line": 32,
+      "module": "src/lib",
+      "name": "describe",
+      "qualname": "describe"
+    },
+    {
+      "end_line": 15,
+      "id": "src/lib.double_via_macro",
+      "kind": "function",
+      "line": 13,
+      "module": "src/lib",
+      "name": "double_via_macro",
+      "qualname": "double_via_macro"
+    },
+    {
+      "end_line": 7,
+      "id": "src/lib.twice",
+      "kind": "macro",
+      "line": 3,
+      "module": "src/lib",
+      "name": "twice",
+      "qualname": "twice"
+    },
+    {
+      "end_line": 18,
+      "id": "src/main.double",
+      "kind": "function",
+      "line": 16,
+      "module": "src/main",
+      "name": "double",
+      "qualname": "double"
+    },
+    {
+      "end_line": 14,
+      "id": "src/main.main",
+      "kind": "function",
+      "line": 9,
+      "module": "src/main",
+      "name": "main",
+      "qualname": "main"
+    },
+    {
+      "end_line": 27,
+      "id": "src/main.tests.test_double",
+      "kind": "function",
+      "line": 25,
+      "module": "src/main",
+      "name": "test_double",
+      "qualname": "tests.test_double"
+    },
+    {
+      "end_line": 3,
+      "id": "src/sub/mod.from_sub",
+      "kind": "function",
+      "line": 1,
+      "module": "src/sub/mod",
+      "name": "from_sub",
+      "qualname": "from_sub"
+    },
+    {
+      "end_line": 8,
+      "id": "tests/integration.integration_works",
+      "kind": "function",
+      "line": 4,
+      "module": "tests/integration",
+      "name": "integration_works",
+      "qualname": "integration_works"
+    }
+  ],
+  "tail_classes_available": {
+    "rust": [
+      "fallback-resolved",
+      "attr-call",
+      "path-call",
+      "unclassified"
+    ]
+  },
+  "verification_base": {
+    "rust": {
+      "depth": "single-repo",
+      "note": "verified on 1 repo: one small repo (rust_proj) + the minirust fixture",
+      "on": "one small repo (rust_proj) + the minirust fixture",
+      "repos": 1
+    }
+  }
+}

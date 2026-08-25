@@ -121,11 +121,18 @@ run; GPU-hours stated first).*
   of task success": the harness demonstrating decomposition, coverage,
   and honest plan errors end to end.
 - **The oracle-grading lane (ADR-089, `docs/oracle-grading.md`) — cleared
-  2026-08-25, O1–O4 done (O4: 19 modules; root not gradeable on this box).** Precision-against-oracle and recall for the
-  call graph against Go RTA / `tsc` (phase 1) and Python traces / Rust
-  MIR (phase 2). W1's fixes from O4 are done (0 contradictions). **Next: phase 2** — O6 Python traces, O7 Rust MIR (design §6/§7); O5 (dagger TS) optional; the root on a bigger box.
-  O2's honest misses are C-58; its surfacing (a `dispatch` tail
-  class) is W1 work when named. Spends no GPU.
+  2026-08-25, phases 1 and 2 done (O1–O4, O6, O7; the dagger Go root not
+  gradeable on this box).** Precision-against-oracle and recall for the
+  call graph against Go RTA / `tsc` / the Python interpreter / rustc's
+  MIR. Every semantic tier graded so far is 100%; the syntactic
+  fallback is priced (C-7: 0/3 Go, 6/6 Python executed, 12/30 Rust);
+  the misses are C-58 on every language (closures 70–80%) plus Rust's
+  generated-code class. **W1 candidates from phase 2:** the fallback's
+  fixture-parameter and `format!`→`fn format` name matches (18 wrong
+  syntactic edges, two shapes); a `dispatch`/`closure` tail class for
+  C-58's surfacing. **Open for the lane:** O5 (dagger TS), xarray under
+  a trace when a workspace exists, the Go root on a bigger box, Rupta as
+  a time-boxed reference lane. Spends no GPU.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without

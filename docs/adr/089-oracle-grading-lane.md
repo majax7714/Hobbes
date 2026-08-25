@@ -34,8 +34,8 @@ Status column: *proposed* → *decided (date)*.
 | D-O2 | Harness home | `bench/oracle/` as its own module(s), product stays pure; not a `hobbes oracle` subcommand | decided 2026-08-25 |
 | D-O3 | Dispatch and external scoring | Multi-target oracle sites: Hobbes' target confirmed on set membership; recall counts every oracle pair. External targets out of the in-repo recall denominator, external-confirmation rate reported separately | decided 2026-08-25 |
 | D-O4 | Position/overload conventions | Declaration position = identifier start, 1-based line; overload = set membership. Written as normative in the harness README; both product lanes measured against them | decided 2026-08-25 |
-| D-O5 | Python trace mechanics (phase 2) | `sys.monitoring` at site grain; the repo's own test suite; module-body calls in/out decided once at O6 | decided 2026-08-25 |
-| D-O6 | Rust path (phase 2) | MIR resolution oracle first; Rupta as a time-boxed reference lane, dropped without ceremony if the nightly pin fights | decided 2026-08-25 |
+| D-O5 | Python trace mechanics (phase 2) | `sys.monitoring` at site grain; the repo's own test suite; module-body calls **in** (decided at O6: a call the interpreter made is a call, its caller `<module>`) | decided 2026-08-25; built and run (O6) the same day |
+| D-O6 | Rust path (phase 2) | MIR resolution oracle first (built: a `rustc_driver` wrapper, `bench/oracle/rust`, nightly with `rustc-dev`); Rupta and the `uftrace` lane **not attempted** in phase 2 — the MIR oracle alone graded 3,574/3,574 semantic edges on dagger's SDK, so the reference lane's question (dyn dispatch) is sized by the oracle's `dynamic` sites first | decided 2026-08-25; built and run (O7) the same day |
 
 ## Gates
 

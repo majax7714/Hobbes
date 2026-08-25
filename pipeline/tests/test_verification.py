@@ -54,9 +54,11 @@ class TestTableAgreesWithArchitecture:
     def test_single_repo_rows_say_so(self):
         # Go left this list on 2026-08-25: the oracle lane graded it on a
         # second repo (dagger, 19 modules), so its row is multi-repo now.
-        for lang in ("rust",):
-            assert v.VERIFICATION_BASE[lang]["repos"] == 1
-            assert v.VERIFICATION_BASE[lang]["depth"] == "single-repo"
+        # Rust followed on the same day: the oracle lane's phase 2 graded
+        # dagger's sdk/rust (O7). No single-repo language remains; the
+        # depth adjective must still agree with the count for every row.
+        for lang, row in v.VERIFICATION_BASE.items():
+            assert (row["depth"] == "single-repo") == (row["repos"] == 1), lang
 
 
 class TestVerificationBase:
@@ -64,7 +66,7 @@ class TestVerificationBase:
         base = v.verification_base(["rust", "python"])
         assert list(base) == ["rust", "python"]
         assert base["rust"]["note"] == (
-            "verified on 1 repo: one small repo (rust_proj) + the minirust fixture"
+            "verified on 2 repos: rust_proj (one small crate); dagger — its sdk/rust workspace (O7)"
         )
         assert base["python"]["note"].startswith("verified on 9 repos:")
 
@@ -76,7 +78,7 @@ class TestVerificationBase:
 
     def test_summary_line_counts_per_language(self):
         base = v.verification_base(["rust", "python"])
-        assert v.summary_line(base) == "rust 1 repo, python 9 repos"
+        assert v.summary_line(base) == "rust 2 repos, python 9 repos"
 
 
 class TestIngestSummary:
@@ -85,11 +87,13 @@ class TestIngestSummary:
     ):
         cli._print_verification_base(v.verification_base(["rust", "python", "zig"]))
         out = capsys.readouterr().out
-        assert "verification base: rust 1 repo, python 9 repos, zig 0 repos" in out
+        assert "verification base: rust 2 repos, python 9 repos, zig 0 repos" in out
         assert "a sample, not the language (C-31" in out
-        assert "    rust: verified on 1 repo: one small repo (rust_proj) + the minirust fixture" in out
         assert "    zig: not verified on any repo" in out
-        assert "    python:" not in out  # multi-repo rows are not spelled out
+        # multi-repo rows are not spelled out — since 2026-08-25 that is
+        # every language but a new one (rust joined them at O7)
+        assert "    python:" not in out
+        assert "    rust:" not in out
 
     def test_the_artifact_carries_the_base(self):
         from hobbes.extract import extract_repo

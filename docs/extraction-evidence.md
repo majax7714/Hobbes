@@ -34,6 +34,7 @@ typescript`). Re-ingested every session; the suite's degraded path
 
 | Date | Numbers |
 |---|---|
+| 2026-08-25 (**oracle lane O6**, ADR-089 phase 2) | **Python zone trace-graded against the interpreter** (`bench/oracle`, [cell record](oracle-cells/hobbes-py-2026-08-25.md)): the suite (907 tests, 2 runs) under `sys.monitoring`; 3,490 Hobbes call edges — **3,291 confirmed, 10 suspect, 189 unobserved** (147 never called, 39 in never-imported scripts, 3 mixed); confirmation rate **94.3%** (coverage-limited, not precision — C-60); suspect rate 0.3%. **Recall-against-executed 86.2% (3,291/3,816 observed in-repo pairs)**, **96.9% on named declarations** (classes 307/307, functions 2,657/2,745, methods 234/247); closures 93/441 and lambdas 0/76 (C-58). Coverage line: 2,971/3,149 Hobbes sites spoken about, 113/129 files loaded, 1,668/2,048 declarations started. Triage: 4 semantic suspects *not-exercised*, 6 syntactic suspects *hobbes-wrong* (a fixture parameter name-matched to the fixture function — the C-7 floor, 6/6 on the executed slice). **Not hand-checked.** |
 | 2026-08-25 (**oracle lane O2**, ADR-089) | **Go zone compiler-graded against RTA** (`bench/oracle`, [cell record](oracle-cells/hobbes-go-2026-08-25.md)): 1,282 Hobbes call edges — **1,278 confirmed, 3 contradicted, 1 oracle-silent**; precision-against-oracle **99.8%** overall, **100% on the semantic tier (1,278/1,278)**, **0/3 on the syntactic tier**. Recall **87.5% (1,280/1,463 in-repo oracle pairs) at 20 roots** — static calls **1,280/1,280**, calls into closures 0/37, dynamic dispatch 0/8, and 0/138 `func()`-value pairs RTA over-approximates (denominator is an upper bound). 12,003 external oracle pairs out of the denominator (D-O3). Line-grain tolerance on 438 edges |
 | 2026-08-18 (ADR-050) | ts/js **61.6% → 67.0%** — the per-file `node_modules` links fixed the tsconfig-less root zone (`tsextract` 27.7% → 58.8%, its 131 `external-origin` sites now resolving). go/python/rust unchanged |
 | 2026-08-18 | 265 nodes, 915 module edges, 2,063 symbols, 4,207 call edges. Capture: go **89.2%** of 3,707 · python **88.3%** of 4,862 · rust **100%** of 18 · ts/js **61.6%** of 2,417. Unclassified residue: 0 python, 0 go (ADR-046), ~99 ts/js (the known fleet residue — helper/scip JS zones). Stable across the ADR-048/049 changes |
@@ -95,6 +96,31 @@ no in-repo overloaded function is called in the zone; the rule that
 *did* decide 119 edges was the binding rule, which P7 did not
 anticipate.
 
+**Pre-registration graded, phase 2 (`docs/oracle-preregistration.md`,
+O6/O7):** P10 recall-against-executed ≥ 90% named / 70–92% overall —
+**met** (96.9% / 86.2%). P11 suspect rate ≤ 2% — **met** (0.3%);
+"mostly not hobbes-wrong" — **missed**: 6 of 10 are hobbes-wrong, and
+all six are the syntactic tier, the same tier-concentration phase 1
+predicted for Go (P2); the semantic tier had none. P12 ≥ 60% of sites
+exercised, `line-not-called` dominant — **met** (94.3%; 147 vs 3).
+P13 closures ≥ 50% of misses, function values the runner-up — **met**
+(80.8% with lambdas; the runner-up is the packs' and argparse's
+function-valued fields, 64 of the 88 function misses). P14 a
+harness defect in the different-grain class before any number — **met
+five times over** (H-12 the package nodes, H-13 the test harness's
+generated calls, H-14 the coverage count, H-15 foreign macro bodies,
+H-16 `.await`'s poll of async bodies; every one found by the fixture or
+the first triage). P15 the MIR oracle confirms ADR-040's 33 — **met on
+every call edge**: the 33 were 17 `calls` + 16 `uses`, and the compiler
+confirms 17/17. P16 precision ≥ 95% semantic — **met** (100% on both
+Rust cells); misses concentrated in trait dispatch and closures —
+**missed**: after H-16 no closure miss remains, and 46 of dagger's 69
+are calls into or from code a macro or derive wrote (derived `clone`,
+builder setters, proc-macro tokens); dispatch through extension traits
+is 17. Two of seven missed, both about *where the misses would be*: on
+Python the prior was right, on Rust the generated-code class was not in
+anyone's prior.
+
 ## private-repo-A (a private Python + JS + Terraform repo; read-only, Max-sanctioned; name and location withheld)
 
 | Date | Numbers |
@@ -155,11 +181,14 @@ which it exercised (documented, not hand-checked).
 
 | Date | Numbers |
 |---|---|
+| 2026-08-25 (**oracle lane O7**, ADR-089 phase 2) | **Compiler-graded against rustc's MIR** ([cell record](oracle-cells/rust_proj-2026-08-25.md)): **17/17 call edges confirmed**, 0 contradicted; recall 17/21 in-repo pairs over every resolved site — the 4 misses are calls criterion's `criterion_group!`/`criterion_main!` bodies make (`macro→function`). ADR-040's "33" reconciled: 17 `calls` + 16 `uses` symbol edges |
 | 2026-08-16 (V2.M7 exit) | 33 call edges, **all semantic**; lanes clean at 17 sites |
 
-**Verified:** 33/33 — 100% hand-checked (the P7 proof, ADR-040). One
-small repo: this is the entirety of Rust's evidence base, which is why
-§3.8 scopes the Rust claim to it.
+**Verified:** the 17 call edges — **compiler-graded 2026-08-25 (O7)**,
+17/17 confirmed by rustc's own resolution; the 2026-08-16 33/33
+hand-check (ADR-040, the P7 proof) counted calls and uses together and
+is superseded by the oracle for the calls. Rust's evidence base is now
+this crate plus dagger's `sdk/rust` (below), both compiler-graded.
 
 ## dagger (`~/dagger` — the Dagger automation engine; ~460 MB)
 
@@ -171,6 +200,7 @@ constraint in two days.
 
 | Run | Numbers |
 |---|---|
+| 7th — **oracle lane O7 (Rust), 2026-08-25**, same ingest f3cc3eb3 | **`sdk/rust` compiler-graded against rustc's MIR** ([cell record](oracle-cells/dagger-rust-2026-08-25.md)): 3 crates, 15 targets, 17 s. 3,610 Hobbes call edges — **3,592 confirmed, 12 contradicted, 6 oracle-silent**; precision-against-oracle **99.7%**, **semantic tier 3,574/3,574 = 100%**; the 12 contradictions are all syntactic — lane A binding `format!(...)` invocations to a `fn format` in the same file (hobbes-wrong; the C-7 floor at 12/30 on this crate). **Recall 98.1% (3,593/3,662 in-repo pairs)** over every resolved site: methods 3,354/3,384, functions 239/253; the 69 misses are extension-trait methods on foreign types, `derive_builder` setters, derived `clone` targets and calls inside `quote!` tokens — code a macro or derive wrote, not dispatch (`docs/oracle-misses.md`). 20,561 compiler-written sites (test harness, derives, `.await`) excluded by rule; the first pass counted `.await`'s async bodies as 649 closure misses (H-16) |
 | 6th — **after the W1 fixes, same day**, re-ingested at f3cc3eb3 | Same 19 modules, same 24 roots ([before/after](oracle-cells/dagger-go-2026-08-25.md)): **9,851 confirmed, 0 contradicted, 656 silent** — precision-against-oracle **100%** (from 99.6%), 9,890/10,715 in-repo pairs drawn (from 9,855), **static named calls 9,889/9,889** (from 9,854/9,889). The 40 contradictions and 35 named misses were five product defects, each now with a test on the `goshapes` fixture: conversions drawn as calls; a method named like a type in its package dropped as a conversion (chain, LHS and method-expression calls — one bug); generic instantiation calls with no site; self-calls dropped (C-59, lifted); typed `var`/`const` specs named by their type, minting 58 phantom `string` symbols that lane A's fallback then bound `string(x)` to. What remains is C-58 |
 | 5th — **oracle lane O4 (ADR-089), 2026-08-25**, ingest f3cc3eb3 | **Compiler-graded, 19 Go modules** ([cell record](oracle-cells/dagger-go-2026-08-25.md)): 10,512 Hobbes call edges — **9,816 confirmed, 40 contradicted, 656 oracle-silent (all unreachable from any root)**; precision-against-oracle **99.6%**; 9,855 of 10,715 in-repo oracle pairs drawn across 24 roots (per-cell recalls 89–100%, never pooled); static calls to named declarations **9,854/9,889**. All 40 contradictions are **type conversions drawn as calls** (`dagger.JSON("0")` → `calls` to `type JSON`; 37 semantic, 3 syntactic) — the lane's first wrong edges in the semantic tier, a product defect for W1. Named misses: 16 recursion (**C-59**, dropped by design), 11 method-expression / generic-instantiation calls, 4 chain continuations (no site), 4 calls on an assignment's left side (drawn as `uses`); the rest C-58 (577 closures, 192 interface dispatches, 16 function-table). Four modules not gradeable (docs: undeclarable deps; recorder/recorder2: generated package absent; e2e/helm/dagger: nothing to root at). **The root module does not fit this box as one program** (OOM at ~21 GB, H-9); graded by package subtree — see the cell record |
 | 4th — after dependency provisioning (ADR-050) | ts/js **18.8% → 27.9%**; `sdk/typescript` **63.7% → 70.3%**; the docs zone indexes instead of failing (docs/versioned_docs 0% → 4.5% — the residue is example snippets importing `@dagger.io/dagger`, which no package.json declares: undeclarable, not unprovisioned). 8 lockfile-pinned trees provisioned into `~/.hobbes/cache/npm` (~833 MB, docusaurus dominating); every declined zone carries its C-34 reason (`no lockfile`). Lanes: 36,703 dual-resolved, 258 disagree — the +120 are all the TS decorator line-convention off-by-one (131 total, same declaration both sides; noted in future_additions), Go's 126 unchanged, **1** genuinely new |

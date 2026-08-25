@@ -1,0 +1,747 @@
+{
+  "dirty": true,
+  "lane_agreement": {
+    "module_edges_compared": 5,
+    "module_edges_excluded_lane_b_only": 0,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 9
+  },
+  "languages": [
+    "hcl",
+    "python"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/miniapp/api.py"
+        }
+      ],
+      "from": "miniapp.api",
+      "tier": "syntactic",
+      "to": "ext:fastapi",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "src/miniapp/api.py"
+        },
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "src/miniapp/api.py"
+        },
+        {
+          "lane": "scip",
+          "line": 18,
+          "path": "src/miniapp/api.py"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "src/miniapp/api.py"
+        }
+      ],
+      "from": "miniapp.api",
+      "tier": "semantic",
+      "to": "miniapp.core",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/miniapp/cli.py"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/miniapp/cli.py"
+        }
+      ],
+      "from": "miniapp.cli",
+      "tier": "semantic",
+      "to": "miniapp.core",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 7,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core",
+      "tier": "syntactic",
+      "to": "env:MINIAPP_MODE",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core",
+      "tier": "syntactic",
+      "to": "ext:os",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/miniapp/core.py"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core",
+      "tier": "semantic",
+      "to": "miniapp.util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 11,
+          "path": "src/miniapp/util.py"
+        }
+      ],
+      "from": "miniapp.util",
+      "tier": "syntactic",
+      "to": "env:MINIAPP_HOME",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/miniapp/util.py"
+        }
+      ],
+      "from": "miniapp.util",
+      "tier": "syntactic",
+      "to": "ext:os",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/miniapp/web.py"
+        }
+      ],
+      "from": "miniapp.web",
+      "tier": "syntactic",
+      "to": "ext:flask",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "tests/test_core.py"
+        },
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "tests/test_core.py"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 4,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core",
+      "tier": "semantic",
+      "to": "miniapp.core",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 8,
+          "path": "tests/test_core.py"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core",
+      "tier": "semantic",
+      "to": "miniapp.util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 29,
+          "path": "infra/main.tf"
+        }
+      ],
+      "from": "tf:aws_lambda_function.worker",
+      "tier": "syntactic",
+      "to": "env:MINIAPP_HOME",
+      "type": "env-set"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 28,
+          "path": "infra/main.tf"
+        }
+      ],
+      "from": "tf:aws_lambda_function.worker",
+      "tier": "syntactic",
+      "to": "env:MINIAPP_MODE",
+      "type": "env-set"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 17,
+          "path": "infra/main.tf"
+        }
+      ],
+      "from": "tf:aws_lambda_function.worker",
+      "tier": "syntactic",
+      "to": "tf:aws_iam_role.worker",
+      "type": "references"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 18,
+          "path": "infra/main.tf"
+        }
+      ],
+      "from": "tf:aws_lambda_function.worker",
+      "tier": "syntactic",
+      "to": "tf:data.archive_file.worker",
+      "type": "references"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 11,
+          "path": "infra/main.tf"
+        }
+      ],
+      "from": "tf:data.archive_file.worker",
+      "tier": "syntactic",
+      "to": "miniapp.cli",
+      "type": "packages"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "env:MINIAPP_HOME",
+      "kind": "env",
+      "name": "MINIAPP_HOME"
+    },
+    {
+      "id": "env:MINIAPP_MODE",
+      "kind": "env",
+      "name": "MINIAPP_MODE"
+    },
+    {
+      "id": "ext:fastapi",
+      "kind": "external",
+      "name": "fastapi"
+    },
+    {
+      "id": "ext:flask",
+      "kind": "external",
+      "name": "flask"
+    },
+    {
+      "id": "ext:os",
+      "kind": "external",
+      "name": "os"
+    },
+    {
+      "id": "miniapp",
+      "kind": "package",
+      "path": "src/miniapp/__init__.py"
+    },
+    {
+      "id": "miniapp.api",
+      "kind": "module",
+      "path": "src/miniapp/api.py"
+    },
+    {
+      "id": "miniapp.cli",
+      "kind": "module",
+      "path": "src/miniapp/cli.py"
+    },
+    {
+      "id": "miniapp.core",
+      "kind": "module",
+      "path": "src/miniapp/core.py"
+    },
+    {
+      "id": "miniapp.util",
+      "kind": "module",
+      "path": "src/miniapp/util.py"
+    },
+    {
+      "id": "miniapp.web",
+      "kind": "module",
+      "path": "src/miniapp/web.py"
+    },
+    {
+      "id": "tests",
+      "kind": "package",
+      "path": "tests/__init__.py"
+    },
+    {
+      "id": "tests.test_core",
+      "kind": "module",
+      "path": "tests/test_core.py"
+    },
+    {
+      "id": "tf:aws_iam_role.worker",
+      "kind": "resource",
+      "path": "infra/main.tf"
+    },
+    {
+      "id": "tf:aws_lambda_function.worker",
+      "kind": "resource",
+      "path": "infra/main.tf"
+    },
+    {
+      "id": "tf:data.archive_file.worker",
+      "kind": "data",
+      "path": "infra/main.tf"
+    }
+  ],
+  "packs": [
+    "http-python",
+    "cli-python",
+    "terraform"
+  ],
+  "resolution_coverage": [
+    {
+      "external": 0,
+      "file": "src/miniapp/api.py",
+      "resolved": 2,
+      "sites": 4,
+      "tail": {
+        "import-binding": 2
+      },
+      "unresolved": 2
+    },
+    {
+      "external": 0,
+      "file": "src/miniapp/cli.py",
+      "resolved": 1,
+      "sites": 1,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "src/miniapp/core.py",
+      "resolved": 4,
+      "sites": 7,
+      "tail": {
+        "builtin-name": 1
+      },
+      "unresolved": 1
+    },
+    {
+      "external": 1,
+      "file": "src/miniapp/util.py",
+      "resolved": 0,
+      "sites": 2,
+      "tail": {
+        "attr-call": 1
+      },
+      "unresolved": 1
+    },
+    {
+      "external": 0,
+      "file": "src/miniapp/web.py",
+      "resolved": 0,
+      "sites": 1,
+      "tail": {
+        "import-binding": 1
+      },
+      "unresolved": 1
+    },
+    {
+      "external": 0,
+      "file": "tests/test_core.py",
+      "resolved": 3,
+      "sites": 3,
+      "unresolved": 0
+    }
+  ],
+  "schema_version": 4,
+  "sha": "380773631bd430814cdeca27ebe942cab56cb1e7",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "src/miniapp/api.py"
+        }
+      ],
+      "from": "miniapp.api",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 18,
+          "path": "src/miniapp/api.py"
+        }
+      ],
+      "from": "miniapp.api.create_item",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "src/miniapp/api.py"
+        }
+      ],
+      "from": "miniapp.api.read_item",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/miniapp/cli.py"
+        }
+      ],
+      "from": "miniapp.cli.main",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 15,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core.Engine.run",
+      "tier": "semantic",
+      "to": "miniapp.core.Engine.check",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core.Engine.run",
+      "tier": "semantic",
+      "to": "miniapp.util.normalize",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 24,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core.top_level",
+      "tier": "semantic",
+      "to": "miniapp.core.Engine",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 25,
+          "path": "src/miniapp/core.py"
+        }
+      ],
+      "from": "miniapp.core.top_level",
+      "tier": "semantic",
+      "to": "miniapp.core.Engine.run",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core.TestEngine.test_run",
+      "tier": "semantic",
+      "to": "tests.test_core.helper",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 8,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core.helper",
+      "tier": "semantic",
+      "to": "miniapp.util.normalize",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "tests/test_core.py"
+        }
+      ],
+      "from": "tests.test_core.test_top_level",
+      "tier": "semantic",
+      "to": "miniapp.core.top_level",
+      "type": "calls"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 18,
+      "id": "miniapp.api.create_item",
+      "kind": "function",
+      "line": 17,
+      "module": "miniapp.api",
+      "name": "create_item",
+      "qualname": "create_item"
+    },
+    {
+      "end_line": 13,
+      "id": "miniapp.api.read_item",
+      "kind": "function",
+      "line": 12,
+      "module": "miniapp.api",
+      "name": "read_item",
+      "qualname": "read_item"
+    },
+    {
+      "end_line": 23,
+      "id": "miniapp.api.ws",
+      "kind": "function",
+      "line": 22,
+      "module": "miniapp.api",
+      "name": "ws",
+      "qualname": "ws"
+    },
+    {
+      "end_line": 7,
+      "id": "miniapp.cli.main",
+      "kind": "function",
+      "line": 6,
+      "module": "miniapp.cli",
+      "name": "main",
+      "qualname": "main"
+    },
+    {
+      "end_line": 20,
+      "id": "miniapp.core.Engine",
+      "kind": "class",
+      "line": 10,
+      "module": "miniapp.core",
+      "name": "Engine",
+      "qualname": "Engine"
+    },
+    {
+      "end_line": 12,
+      "id": "miniapp.core.Engine.__init__",
+      "kind": "method",
+      "line": 11,
+      "module": "miniapp.core",
+      "name": "__init__",
+      "qualname": "Engine.__init__"
+    },
+    {
+      "end_line": 20,
+      "id": "miniapp.core.Engine.check",
+      "kind": "method",
+      "line": 18,
+      "module": "miniapp.core",
+      "name": "check",
+      "qualname": "Engine.check"
+    },
+    {
+      "end_line": 16,
+      "id": "miniapp.core.Engine.run",
+      "kind": "method",
+      "line": 14,
+      "module": "miniapp.core",
+      "name": "run",
+      "qualname": "Engine.run"
+    },
+    {
+      "end_line": 25,
+      "id": "miniapp.core.top_level",
+      "kind": "function",
+      "line": 23,
+      "module": "miniapp.core",
+      "name": "top_level",
+      "qualname": "top_level"
+    },
+    {
+      "end_line": 11,
+      "id": "miniapp.util.data_dir",
+      "kind": "function",
+      "line": 10,
+      "module": "miniapp.util",
+      "name": "data_dir",
+      "qualname": "data_dir"
+    },
+    {
+      "end_line": 7,
+      "id": "miniapp.util.normalize",
+      "kind": "function",
+      "line": 6,
+      "module": "miniapp.util",
+      "name": "normalize",
+      "qualname": "normalize"
+    },
+    {
+      "end_line": 15,
+      "id": "miniapp.web.admin",
+      "kind": "function",
+      "line": 14,
+      "module": "miniapp.web",
+      "name": "admin",
+      "qualname": "admin"
+    },
+    {
+      "end_line": 10,
+      "id": "miniapp.web.health",
+      "kind": "function",
+      "line": 9,
+      "module": "miniapp.web",
+      "name": "health",
+      "qualname": "health"
+    },
+    {
+      "end_line": 17,
+      "id": "tests.test_core.TestEngine",
+      "kind": "class",
+      "line": 15,
+      "module": "tests.test_core",
+      "name": "TestEngine",
+      "qualname": "TestEngine"
+    },
+    {
+      "end_line": 17,
+      "id": "tests.test_core.TestEngine.test_run",
+      "kind": "method",
+      "line": 16,
+      "module": "tests.test_core",
+      "name": "test_run",
+      "qualname": "TestEngine.test_run"
+    },
+    {
+      "end_line": 8,
+      "id": "tests.test_core.helper",
+      "kind": "function",
+      "line": 7,
+      "module": "tests.test_core",
+      "name": "helper",
+      "qualname": "helper"
+    },
+    {
+      "end_line": 12,
+      "id": "tests.test_core.test_top_level",
+      "kind": "function",
+      "line": 11,
+      "module": "tests.test_core",
+      "name": "test_top_level",
+      "qualname": "test_top_level"
+    }
+  ],
+  "tail_classes_available": {
+    "python": [
+      "fallback-resolved",
+      "local-binding",
+      "import-binding",
+      "builtin-name",
+      "attr-call",
+      "unclassified"
+    ]
+  },
+  "verification_base": {
+    "hcl": {
+      "depth": "multi-repo",
+      "note": "verified on 2 repos: private-repo-A, this repo",
+      "on": "private-repo-A, this repo",
+      "repos": 2
+    },
+    "python": {
+      "depth": "multi-repo",
+      "note": "verified on 9 repos: this repo (dogfood, continuous), private-repo-A, qwen-pathology; + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)",
+      "on": "this repo (dogfood, continuous), private-repo-A, qwen-pathology; + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)",
+      "repos": 9
+    }
+  }
+}

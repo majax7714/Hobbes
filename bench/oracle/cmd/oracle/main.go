@@ -1,7 +1,9 @@
 // Command oracle is the oracle-grading lane's one binary (ADR-089,
 // docs/oracle-grading.md): `export` reads a Hobbes graph.json into graded
-// edges, `go-rta` runs the Go reachability oracle on one module, and
-// `grade` matches the two and prints the cell's report. A cell is data —
+// edges, `go-rta` runs the Go reachability oracle on one module,
+// `py-trace` runs the Python runtime-trace oracle on one directory's
+// suite, `rust-mir` runs the Rust MIR resolution oracle on one cargo
+// package, and `grade` matches the two and prints the cell's report. A cell is data —
 // a repo, a module directory, a graph — never a script of its own.
 package main
 
@@ -10,11 +12,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/gorta"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/grade"
+	"github.com/majax7714/Hobbes/bench/oracle/internal/pytrace"
+	"github.com/majax7714/Hobbes/bench/oracle/internal/rustmir"
 )
 
 func main() {
@@ -27,6 +32,10 @@ func main() {
 		err = runExport(os.Args[2:])
 	case "go-rta":
 		err = runGoRTA(os.Args[2:])
+	case "py-trace":
+		err = runPyTrace(os.Args[2:])
+	case "rust-mir":
+		err = runRustMIR(os.Args[2:])
 	case "grade":
 		err = runGrade(os.Args[2:])
 	default:
@@ -43,6 +52,8 @@ func usage() {
   oracle export --graph .hobbes/derived/graph.json --module go [--lang go|ts] [--out hobbes.json]
   node ts/tsc-oracle.mjs --repo . --zone web --out oracle.json      (the TypeScript oracle)
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
+  oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
+  oracle rust-mir --repo . --module . --driver rust/target/release/mir-oracle --out-dir <cell-dir> [--out oracle.json]
   oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json]`)
 	os.Exit(2)
 }
@@ -77,6 +88,43 @@ func runGoRTA(args []string) error {
 		o.Tags = splitComma(*tags)
 	}
 	res, err := gorta.Run(o)
+	if err != nil {
+		return err
+	}
+	return write(*out, res)
+}
+
+func runPyTrace(args []string) error {
+	fs := flag.NewFlagSet("py-trace", flag.ExitOnError)
+	repo := fs.String("repo", ".", "repo root")
+	module := fs.String("module", "", "repo-relative directory of the cell")
+	python := fs.String("python", "python3", "interpreter command that can import the target and pytest (space-separated)")
+	runs := fs.Int("runs", 1, "suite runs to union (N is stated in the cell)")
+	sysPath := fs.String("sys-path", "", "comma-separated repo-relative dirs prepended to sys.path")
+	label := fs.String("label", "", "how the suite was invoked, for the record")
+	out := fs.String("out", "oracle.json", "output path")
+	fs.Parse(args)
+	_, err := pytrace.Run(pytrace.Options{
+		Repo: *repo, Module: *module, Python: strings.Fields(*python), Runs: *runs,
+		SysPath: splitComma(*sysPath), Label: *label, Pytest: fs.Args(), Out: *out,
+	})
+	return err
+}
+
+func runRustMIR(args []string) error {
+	fs := flag.NewFlagSet("rust-mir", flag.ExitOnError)
+	repo := fs.String("repo", ".", "repo root")
+	module := fs.String("module", "", "repo-relative cargo package directory (cell)")
+	driver := fs.String("driver", "", "path to the built mir-oracle driver (bench/oracle/rust)")
+	outDir := fs.String("out-dir", "", "cell directory for the per-target files and the fresh cargo target dir")
+	cargo := fs.String("cargo", "cargo +nightly", "cargo command (space-separated)")
+	features := fs.String("features", "", "comma-separated cargo features")
+	out := fs.String("out", "", "output path (default stdout)")
+	fs.Parse(args)
+	if *outDir == "" {
+		return fmt.Errorf("--out-dir is required")
+	}
+	res, err := rustmir.Run(rustmir.Options{Repo: *repo, Module: *module, Driver: *driver, Out: *outDir, Cargo: strings.Fields(*cargo), Feature: splitComma(*features)})
 	if err != nil {
 		return err
 	}

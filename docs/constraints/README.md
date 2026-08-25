@@ -124,7 +124,7 @@ information appears in both, and the entries cross-reference.
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-55, C-56 |
-| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31 |
+| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
 the limit. Lifted and superseded entries appear at the bottom of their
@@ -134,8 +134,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Fifty-nine entries: forty-nine active, eight lifted, two superseded**
-(C-58 added 2026-08-25 by the oracle lane; C-59 registered and lifted the same day — unsurfaced, and the first
+**Sixty-two entries: fifty-two active, eight lifted, two superseded**
+(C-58 added 2026-08-25 by the oracle lane; C-60–C-62 — the trace
+asymmetry, the reference-lane rule and design §3's four rules —
+registered surfaced the same day by the lane's phase 2, C-62 late for
+phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
 against the code that concedes it; none had been silently lifted). Three
 of the active are **unsurfaced** (C-19 — narrowed to two tools — C-20,

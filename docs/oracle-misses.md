@@ -26,8 +26,47 @@ commit as the cell.
 | `func-value→variable` | call through a module-level variable holding a function value (a `let` accessor assigned at runtime) | drawn when the variable is a graph symbol; missed when the value arrives later | C-58 |
 | `interface→type-member` | call of a member declared only as an interface property signature (a zustand store's `ChatState.addMessage`) | **no edge** — interface members are not graph symbols (C-9) | C-58 |
 | `static→anonymous-function` | an IIFE or a literal passed straight to a call | no edge | C-58 |
+| `observed→closure` / `observed→lambda` | Python (trace): a call the interpreter made into a nested function or a lambda | **no edge** — nested functions and lambdas are not graph symbols | C-58 |
+| `observed→function` | Python (trace): a call the interpreter made into a declared function that Hobbes did not draw — a function held in a record field or table (`pack.applies(ctx)`, argparse's `func`), a call inside a decorator expression | no edge for the function-value shapes; the direct shapes are drawn | C-58 |
+| `observed→method` | Python (trace): a callable instance (`runner(...)` → `__call__`), or a receiver the indexer could not type (an unannotated parameter, a chain on a constructor) | no edge | C-58, C-2 |
+| `observed→class` | Python (trace): a constructor call | drawn (an edge to the class symbol) | — |
+| `macro→function` | Rust: a call made by the body of a macro the repo does not define, attributed to its invocation (`criterion_group!(benches, f)` calls `f`) | **no edge** — the author wrote a name, not a call; rust-analyzer emits the reference | C-58 (macro face) |
+| `static→generated` | Rust: a call of a method a derive wrote (`x.clone()` on `#[derive(Clone)]`) | **no edge** — the target has no source identifier, so no symbol | C-9 |
+| `static→method` (Rust) | a call of an extension-trait method implemented on a foreign type (`impl Ext for Vec<T>`), a `derive_builder` setter, a raw-identifier method (`r#ref`) | no edge for these shapes; ordinary inherent and trait methods are drawn (3,354/3,384 on dagger's SDK) | C-58, C-9 |
+| `static→function` (Rust) | a call written inside a proc-macro's tokens (`quote! { $(f(x)) }`) | **no site** — rust-analyzer's index does not expand proc macros here | C-30 (registry) / unregistered |
 
 ## Cells
+
+### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](oracle-cells/hobbes-py-2026-08-25.md))
+
+525 honest misses over 3,816 observed in-repo pairs (recall-against-executed 86.2%; 96.9% on named declarations). A trace oracle never inflates — every pair was executed.
+
+| class | misses | share | what it was |
+|---|---|---|---|
+| `observed→closure` | 348 | 66.3% | nested test helpers and inner functions (`build_units`, `fake_policy_bin`, `symbol_at`'s `look_up`) |
+| `observed→function` | 88 | 16.8% | 50 pack `_applies`/`_run` through `Pack` fields, 14 `_cmd_*` through argparse `func`, the rest tables and decorator expressions |
+| `observed→lambda` | 76 | 14.5% | lambdas passed as keys, defaults and callbacks |
+| `observed→method` | 13 | 2.5% | 6 callable instances (`__call__`), 7 untyped receivers |
+| `observed→class` | 0 | — | 307/307 constructors drawn |
+
+**What hurts most:** closures and lambdas, 80.8% — the same answer Go gave (70–80%), now on a dynamic language with an interpreter as the judge.
+
+### rust_proj — Rust, compiler-graded (O7, 2026-08-25; [cell](oracle-cells/rust_proj-2026-08-25.md))
+
+4 misses over 21 in-repo pairs (recall 81.0%; 17/17 on `static→function`), all `macro→function`: criterion's `criterion_group!`/`criterion_main!` bodies.
+
+### dagger `sdk/rust` — Rust, compiler-graded (O7, 2026-08-25; [cell](oracle-cells/dagger-rust-2026-08-25.md))
+
+69 misses over 3,662 in-repo pairs (recall 98.1%) after H-16 folded `.await`'s poll of async bodies.
+
+| class | misses | share | what it was |
+|---|---|---|---|
+| `static→method` | 30 | 43.5% | extension-trait methods on foreign types (17), `derive_builder` setters (~7), raw-identifier `r#ref` (3), `Deref` (1) |
+| `static→generated` | 25 | 36.2% | `.clone()` on derived `Clone` |
+| `static→function` | 14 | 20.3% | calls inside `quote!` proc-macro tokens |
+| `static→closure` | 0 | — | after H-16 |
+
+**What hurts most on Rust:** not dispatch and not closures — **code a macro or derive wrote** (generated targets, proc-macro tokens, builder setters): 46 of 69. P16's prediction (trait dispatch + closures ≥ 60%) missed; the register says so.
 
 ### hobbes repo, `go` — 2026-08-25 (O2, RTA, 20 roots)
 

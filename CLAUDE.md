@@ -78,7 +78,9 @@ box, against a repo on disk (architecture §10); the application mode in
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the session image (`Containerfile`) and exit-check harness.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
-  (`x/tools` RTA), one `oracle` binary (`export | go-rta | grade`),
+  (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
+  rust-mir | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
+  `rust/` (a `rustc_driver` MIR walker on a pinned nightly),
   `run-cell.sh`; grades the call graph against answer keys Hobbes does
   not control. Bench tooling, never product.
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
@@ -116,7 +118,7 @@ go build -o bin/hobbes-web     ./cmd/hobbes-web      # after `cd web && npm run 
 CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy   # MUST be static:
 CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy  # it is mounted into the sandbox
 
-# Oracle lane (bench tooling; fixture self-test)
+# Oracle lane (bench tooling; fixture self-test — Python via uv, Rust via the nightly driver)
 cd bench/oracle && go test ./...
 
 # Web
@@ -135,7 +137,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-25): 907 pytest / 291 Go + 12
+Suite sizes at the last check (2026-08-25): 907 pytest / 291 Go + 21
 oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 
 ## Conventions
@@ -203,13 +205,15 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
   (`docs/benchmark-deepswe.md`); no H1 claim has been earned.
-- **The oracle lane (ADR-089) is built and phase 1 has run:** Go and TS
-  call edges are compiler-graded against RTA / `tsc` on this repo, kbet
-  and 19 of dagger's modules — 0 contradictions after the W1 fixes;
-  what is left is C-58 (closures, interface dispatch, function values).
-  `docs/oracle-misses.md` and `docs/oracle-defects.md` are the honesty
-  records. **Phase 2 (Python runtime traces, Rust MIR) is next for that
-  lane**; dagger's root module waits on a bigger box.
+- **The oracle lane (ADR-089) is built and both phases have run:** Go
+  and TS call edges compiler-graded against RTA / `tsc` (this repo,
+  kbet, 19 dagger modules), Python trace-graded by the interpreter under
+  this repo's suite (C-60), Rust compiler-graded against rustc's MIR
+  (rust_proj, dagger `sdk/rust`) — every semantic tier at 100%, the
+  syntactic fallback priced (C-7), the misses C-58 on every language
+  plus Rust's generated code. `docs/oracle-misses.md` and
+  `docs/oracle-defects.md` are the honesty records; dagger's Go root
+  waits on a bigger box.
 - **Next:** restructure from the defect register (D1–D8), validated on
   the 7B or with no model; then project setup for collaborators
   (`docs/workstreams.md`).

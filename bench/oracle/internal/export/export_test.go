@@ -56,3 +56,89 @@ func TestTwomodCells(t *testing.T) {
 		t.Fatalf("lib cell: want 2 edges (the two tests), got %d", len(lib.Edges))
 	}
 }
+
+// miniapp (Python): ten scip-resolved calls, one of them a constructor —
+// an edge to the class symbol, which the trace oracle confirms as a call
+// of the class.
+func TestMiniappPyExport(t *testing.T) {
+	h, err := FromFile("../../testdata/miniapp.graph.json", ".", "py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Edges) != 10 {
+		t.Fatalf("miniapp has 10 graded call edges, got %d", len(h.Edges))
+	}
+	ctor := false
+	for _, e := range h.Edges {
+		if e.Site.Key() == "src/miniapp/core.py:24" && e.Target.Key() == "src/miniapp/core.py:10" {
+			ctor = true
+		}
+	}
+	if !ctor {
+		t.Error("Engine(10) at core.py:24 must export as an edge to the class declaration at core.py:10")
+	}
+	if _, err := FromFile("../../testdata/miniapp.graph.json", ".", "rb"); err == nil {
+		t.Error("unknown lang must be refused")
+	}
+}
+
+// minirust (Rust): ten scip-resolved calls, one of them a macro
+// invocation (`twice!`) — expanded by the compiler, not called, so it is
+// excluded from the graded set and counted.
+func TestMinirustExportExcludesMacros(t *testing.T) {
+	h, err := FromFile("../../testdata/minirust.graph.json", ".", "rust")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Edges) != 9 || h.Excluded["macro"] != 1 {
+		t.Fatalf("minirust: want 9 graded edges + 1 macro excluded, got %d + %v", len(h.Edges), h.Excluded)
+	}
+	for _, e := range h.Edges {
+		if e.Target.Key() == "src/lib.rs:3" {
+			t.Errorf("the macro at lib.rs:3 must not be a graded target: %+v", e)
+		}
+	}
+}
+
+// A Python package's symbols live in its __init__.py, a "package" node
+// (H-12: dropping them silently lost 113 edges on the first O6 pass).
+func TestPackageNodesAreTargets(t *testing.T) {
+	g := &graph{}
+	g.Nodes = append(g.Nodes, struct {
+		ID   string `json:"id"`
+		Kind string `json:"kind"`
+		Path string `json:"path"`
+	}{"app", "package", "src/app/__init__.py"}, struct {
+		ID   string `json:"id"`
+		Kind string `json:"kind"`
+		Path string `json:"path"`
+	}{"app.cli", "module", "src/app/cli.py"})
+	g.Symbols = append(g.Symbols, struct {
+		ID     string `json:"id"`
+		Module string `json:"module"`
+		Line   int    `json:"line"`
+		Kind   string `json:"kind"`
+	}{"app.run", "app", 7, "function"})
+	g.SymbolEdges = append(g.SymbolEdges, struct {
+		From     string `json:"from"`
+		To       string `json:"to"`
+		Type     string `json:"type"`
+		Tier     string `json:"tier"`
+		Evidence []struct {
+			Lane string `json:"lane"`
+			Path string `json:"path"`
+			Line int    `json:"line"`
+		} `json:"evidence"`
+	}{From: "app.cli.main", To: "app.run", Type: "calls", Tier: "semantic", Evidence: []struct {
+		Lane string `json:"lane"`
+		Path string `json:"path"`
+		Line int    `json:"line"`
+	}{{"scip", "src/app/cli.py", 3}}})
+	h, err := From(g, ".", "py")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Edges) != 1 || h.Edges[0].Target.Key() != "src/app/__init__.py:7" {
+		t.Fatalf("package target lost: %+v", h.Edges)
+	}
+}

@@ -8,16 +8,21 @@ source that is independent of Hobbes, authoritative for the language,
 and regenerable by anyone with the toolchain.
 
 ```sh
-cd bench/oracle && go test ./...            # fixture self-test (O1): minigo + twomod + minits
+cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust)
 cd bench/oracle/ts && npm install            # once: the fallback typescript for fixtures
-bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts] [--no-ingest]
+cd bench/oracle/rust && cargo +nightly build --release   # once per nightly: the MIR driver (rustc-dev)
+bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust] [--no-ingest] \
+    [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [-- <pytest args>]
 ```
 
 `run-cell.sh` ingests the repo with lane B, exports the Hobbes edges of
-one Go module, runs the Go RTA oracle on it, grades, and leaves
+one cell, runs the language's oracle on it, grades, and leaves
 `hobbes.json`, `oracle.json`, `report.json`, `report.txt` and the cell's
-runtime in the output directory. The three steps are the binary's
-subcommands (`oracle export | go-rta | grade`) if you need them apart.
+runtime in the output directory. The steps are the binary's subcommands
+(`oracle export | go-rta | py-trace | rust-mir | grade`) if you need
+them apart; the TS oracle is `ts/tsc-oracle.mjs`. Phase 1 (ADR-089) is
+Go and TS; phase 2 is the Python trace oracle and the Rust MIR oracle
+below.
 
 ## Normative conventions (D-O4)
 
@@ -60,7 +65,30 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
   until that is fixed, and the row will say so.
 - **Package initialisers are in the graded set.** `init` and
   package-level var initialisers are reachable from every main and their
-  calls are real calls.
+  calls are real calls. Likewise **Python module bodies** (a call made
+  at import time is a call the interpreter made; its caller is
+  `<module>`) — D-O5's last open choice, decided *in* at O6.
+- **Python packages.** A package's symbols live in its `__init__.py`,
+  which the artifact records as a `package` node; the export grades them
+  like any module's (H-12 — the first O6 pass dropped 113 edges into
+  package files and charged them as misses).
+- **Python classes and wrappers.** A call of a class is an edge to the
+  `class` declaration (what Hobbes draws for `Foo(...)`); the `__init__`
+  the interpreter runs from C has no site and is no edge. A callee that
+  wraps a Python function (`functools.wraps`, `__wrapped__`, `partial`)
+  is the wrapped declaration; a callable instance is its class's
+  `__call__`; a bound method is its function. Nested functions and
+  lambdas are targets (`closure`, `lambda`) with no Hobbes symbol.
+- **Rust macros.** A `macro_rules!` body the repo defines is the
+  author's code: its calls attribute to the invocation line (`static`).
+  A call in the expansion of a macro the repo does *not* define
+  (`criterion_group!`) is mode `macro` — the author wrote the
+  invocation, not the call — and grades as its own miss class. A macro
+  *invocation* is expanded, never called: Hobbes' edge to a `macro`
+  symbol is excluded before grading and counted (`excluded.macro`).
+  Code the compiler wrote — the test harness, attribute and derive
+  output — makes calls no source line makes; those sites are dropped
+  and counted (`excluded.generated`, H-13).
 
 ## Buckets and metrics
 
@@ -92,6 +120,24 @@ Every defect found in the harness or an oracle is logged in
 (extraction defect → issue), *oracle-unsound* (logged, not charged),
 *match-defect* (fix the matcher, rerun). A cell's number is final only
 after its triage is complete or a sampled triage is documented as sampled.
+
+For a **trace oracle** (design §3.1) the buckets are asymmetric — the
+interpreter can confirm, never contradict:
+
+| bucket | meaning |
+|---|---|
+| **confirmed** | Hobbes' (site line, target) was observed at runtime |
+| **suspect** | the line executed, every observed Python callee on it is in-repo, and none is Hobbes' target — a triage queue (another input could still take Hobbes' target), never a contradiction |
+| **unobserved** | charged to nobody: `not-loaded` (the module body never ran), `line-not-called` (no call on that line in any run), `line-mixed` (the line ran, but a C or out-of-repo callee was seen there, so Hobbes' site may be that call) |
+
+A trace cell prints **no precision line**. It reports the confirmation
+rate over Hobbes edges (coverage-limited), the suspect rate,
+**recall-against-executed** over observed in-repo pairs, and the
+mandatory **coverage line**: Hobbes sites the trace spoke about, module
+files loaded, declared functions started, C-callee calls, and the run
+count N the union is over. Trace triage adds the verdict
+*not-exercised* (a monkeypatched function, the other branch of a
+one-line conditional).
 
 ## The Go oracle (D-O1: RTA)
 
@@ -129,14 +175,60 @@ method, class, variable, property, parameter, type-member, closure,
 local-binding, anonymous-function — and the miss record groups by
 mode × kind.
 
+## The Python trace oracle (`py/trace_oracle.py`, D-O5)
+
+`oracle py-trace --repo <repo> --module <dir> --python "uv run --project
+<dir> python" --runs N --out oracle.json -- <pytest args>` runs the
+directory's own pytest suite under `sys.monitoring` (PEP 669, CPython
+3.12+) — one subprocess per run, unioned — recording every `CALL` event
+whose caller is a `.py` file under the cell: site = the call
+instruction's start line, target = the callee's declaration mapped
+through an `ast` index (so a decorated function's line is its `def`,
+not `co_firstlineno`'s decorator). Callers outside the cell (pytest,
+site-packages, the import machinery) are `DISABLE`d at their first
+event, which is what keeps the overhead near zero. C callees are counted
+per site, not listed. Subprocesses the suite spawns are not traced. The
+interpreter must be the target's own (`--python`), run from the cell
+directory; pin `--rootdir`/`-c` when the target sits under another
+project's pytest configuration.
+
+## The Rust MIR oracle (`rust/`, D-O6)
+
+`oracle rust-mir --repo <repo> --module <cargo-package-dir> --driver
+rust/target/release/mir-oracle --out-dir <cell>` runs `cargo +nightly
+check --all-targets` with the driver as `RUSTC_WRAPPER` in a fresh
+target dir (a cached check would skip the crate and the cell would read
+empty). For every workspace crate target — lib, bins, each `--test`
+build, examples, benches — the driver runs the real compiler through
+`rustc_driver` and, after analysis, walks every body's MIR: each `Call`
+terminator is a site (line of `fn_span`, the callee without receiver;
+`source_callsite` for macro-expanded calls), resolved with
+`Instance::try_resolve` — the compiler's answer after monomorphisation
+where the caller is monomorphic. `dyn` calls (`InstanceKind::Virtual`),
+calls through a generic bound the caller's own generics leave open
+(`Ok(None)`), and function pointers are `dynamic`, carrying the trait
+method as `interface` where one exists. Generic instantiations collapse
+to the origin `DefId` by construction. "External" is by file: `mylib::f`
+called from the same repo's bin crate is in-repo. Per-target files are
+merged (a lib compiled for itself and again for its tests reports the
+same sites twice). Needs the nightly pinned in `rust/rust-toolchain.toml`
+with `rustc-dev`; the exact `rustc -vV` is stamped into every export,
+because a different nightly is a different oracle.
+
 ## Fixtures and testdata
 
 `pipeline/tests/fixtures/minigo` (one module, 5 in-repo calls, all
 static), `pipeline/tests/fixtures/twomod` (two modules joined by a
-`replace`, one interface-dispatch call), and `pipeline/tests/fixtures/minits`
+`replace`, one interface-dispatch call), `pipeline/tests/fixtures/minits`
 (TS + JS under `allowJs`, four calls to one helper, decorators
-unresolvable without deps). Their hand-computed truth is the Go test
-suite (the TS test shells out to node and skips without it).
+unresolvable without deps), `pipeline/tests/fixtures/miniapp` (Python:
+seven pairs observed under its two tests, a constructor among them; two
+modules the suite never imports) and `pipeline/tests/fixtures/minirust`
+(lib + bin + `#[cfg(test)]` + integration test: nine in-repo pairs, one
+across the crate boundary, one inside the crate's own macro; one macro
+invocation excluded). Their hand-computed truth is the Go test suite
+(the TS, Python and Rust tests shell out to node / `uv` / `cargo
++nightly` and skip without them).
 `testdata/*.graph.json` are the fixtures' Hobbes graphs as ingested
 with lane B (`scip-go`, `scip-typescript`); regenerate with
 `run-cell.sh` on a git-initialised copy of the fixture when the

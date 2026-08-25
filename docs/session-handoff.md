@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-25 (oracle lane phase 1 + W1 fixes done; the
+**Rewritten 2026-08-25 (oracle lane phases 1 and 2 done + W1 fixes; the
 ADR-085 restructure still paused).** The one authoritative resume doc. Read this, then
 **`docs/adr085-validation-run.md`** (the run's record and its
 eight-defect register — the restructure's worklist), then
@@ -73,50 +73,41 @@ findings, not defects (knowledge tools unused at the 7B rung — derived
 context is push-only there; requirement-text rendered as code; O4
 planner variance) are in the same file.
 
-## A SECOND, CLEARED TRACK — the oracle-grading lane (2026-08-25)
+## A SECOND, CLEARED TRACK — the oracle-grading lane (2026-08-25): both phases done
 
-Max cleared ADR-089 with every recommendation (D-O1–D-O6). **O1 and
-O2 are done** (2026-08-25): the harness lands on fixture truth; this
-repo's Go zone grades 1,278/1,278 semantic edges confirmed, 0/3
-syntactic, static recall 100% at 20 roots, and 45 honest misses — all
-one class, now **C-58** (interface / function-value / closure calls
-draw no edge, and the site still counts as resolved). Pre-registration
-graded in the evidence file (P3, P4 missed; the rest met). **O3 is done**
-(kbet `betchat/frontend` against the zone's own `tsc`: 630/630
-confirmed, recall 633/637 on declared callees; the 119 first-pass
-contradictions were the oracle's grain — the binding rule is now
-normative in the harness README). Both 20/20 hand-checks retired at
-Max's direction. **O4 is done as far as this box allows** (2026-08-25):
-19 of dagger's Go modules compiler-graded at 99.6% precision (all 40
-contradictions = type conversions drawn as calls, a product defect on
-W1's list), 9,854/9,889 static named calls drawn, C-59 (dropped
-self-calls) registered; **the root module OOMs as one program (~21–24
-GB on this 30 GB box, H-9)**, so P8 and P9 are recorded *not graded*.
-**W1's fixes from the O4 findings are done and verified** (later
-the same day): dagger's 19 modules regrade at **0 contradictions,
-static named calls 9,889/9,889**; five product defects fixed with
-`goshapes` fixture tests (conversions-as-calls, the type-name
-collision in the conversion filter, generic-call sites, self-calls —
-C-59 lifted — and typed var/const specs named by their type). **Next section of the oracle work, for a fresh session: phase 2** — O6
-Python runtime traces (`sys.monitoring`, this repo's Python zone under
-its own suite, then xarray), O7 Rust MIR (`rust_proj` must confirm its
-33/33, then dagger rust); design §6/§7, D-O5/D-O6 decided, §3.1's
-asymmetric buckets not yet in the grader, pre-registration first
-(§10). Read `docs/oracle-grading.md`, `bench/oracle/README.md`,
-`docs/oracle-defects.md` before building. Alternatively the C-58 design
-question (closures, interface
-dispatch, function values: the only misses left, sized on two
-codebases in `docs/oracle-misses.md`). The root on a bigger box is
-flagged and parked. Cell outputs: `~/.hobbes/bench/oracle/dagger/`
-(after) and `dagger-before/`.
-O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
-grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
-to `pipeline/tests/fixtures/`. Resume at design §10: **the
-pre-registration commit** (bands for Go and TS precision, miss
-concentration, contradiction tier, the O4 build-tag prediction), then
-O2 = `run-cell.sh . go <out>` on this repo, with ADR-037's 20/20 as
-the cross-check and the triage protocol's first use. No GPU; each cell
-logs its runtime. Phase-by-phase, report between cells.
+Max cleared ADR-089 with every recommendation (D-O1–D-O6). **Phase 1
+(O1–O4) and phase 2 (O6, O7) are built and run, all on 2026-08-25.**
+The harness is `bench/oracle/` — one binary (`export | go-rta |
+py-trace | rust-mir | grade`), the TS oracle in `ts/`, the Python
+tracer in `py/`, the Rust MIR driver in `rust/` (nightly with
+`rustc-dev`; `cargo +nightly build --release` once), `run-cell.sh` for
+any of the four languages; five fixtures are the self-tests. Records:
+`docs/oracle-cells/` (one per cell), `docs/oracle-misses.md` (what
+hurts most, by class), `docs/oracle-defects.md` (H-1..H-16 — the
+harness's own errors, most of them false verdicts against Hobbes caught
+by fixtures or triage), `docs/oracle-preregistration.md` graded in
+`extraction-evidence.md`.
+
+**Where the numbers stand.** Every semantic tier graded is 100%: Go
+(this repo 1,278; dagger 19 modules 9,851), TS (kbet 630), Rust
+(rust_proj 17; dagger `sdk/rust` 3,574); Python is trace-graded (C-60:
+3,291/3,490 confirmed, 0 wrong on the executed semantic slice,
+recall-against-executed 86.2% / 96.9% named). The syntactic fallback is
+priced everywhere it was reached (C-7): 0/3 Go, 6/6 Python, 12/30 Rust
+wrong. The misses are **C-58** on every language — closures,
+function values, interface/extension-trait dispatch (70–81% of misses)
+— plus Rust's generated-code class (derives, builders, proc-macro
+tokens: 46 of dagger's 69).
+
+**Open on the lane, none blocking:** O5 (dagger `sdk/typescript`);
+xarray under a trace when a SWE-bench workspace exists again; the dagger
+Go root on a ≥32 GB box (H-9; P8/P9); Rupta as a time-boxed reference
+lane (C-61 says what it may and may not produce); H-11 cosmetic.
+**W1 candidates the lane produced:** two syntactic-fallback name-match
+shapes (a pytest fixture parameter → the fixture function; `format!` →
+a local `fn format`), 18 wrong edges between them; a `dispatch`/
+`closure` tail class to surface C-58. Cell outputs:
+`~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
 
 ## HOW TO INSPECT / MEASURE (no GPU)
 

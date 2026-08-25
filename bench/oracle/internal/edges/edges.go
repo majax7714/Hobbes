@@ -27,11 +27,15 @@ type HobbesEdge struct {
 	Lanes    []string `json:"lanes"`
 }
 
-// HobbesExport is the Hobbes side of one cell.
+// HobbesExport is the Hobbes side of one cell. Excluded counts the
+// `calls` edges dropped before grading because the oracle has no call
+// there by construction — "macro": a Rust macro invocation drawn to the
+// `macro_rules!` symbol, which the compiler expands rather than calls.
 type HobbesExport struct {
-	SHA    string       `json:"sha"`
-	Module string       `json:"module"`
-	Edges  []HobbesEdge `json:"edges"`
+	SHA      string         `json:"sha"`
+	Module   string         `json:"module"`
+	Edges    []HobbesEdge   `json:"edges"`
+	Excluded map[string]int `json:"excluded,omitempty"`
 }
 
 // Target is one callee the oracle resolved a site to. External marks a
@@ -62,11 +66,19 @@ type Site struct {
 	Mode      string   `json:"mode"`
 	Interface *Target  `json:"interface,omitempty"`
 	Targets   []Target `json:"targets"`
+	// Trace oracles only: how many calls the line made across the runs,
+	// and how many of them reached a C callee (no Python declaration to
+	// match — counted, never listed as a target).
+	Hits     int `json:"hits,omitempty"`
+	CCallees int `json:"c_callees,omitempty"`
 }
 
 // OracleExport is the oracle side of one cell. Files is every in-repo
 // file the oracle loaded; a Hobbes site in a file outside it is
-// oracle-silent as not-loaded (build tags, C-26 orphans).
+// oracle-silent as not-loaded (build tags, C-26 orphans) — for a trace
+// oracle, a module whose body never ran. Kind is "reachability"
+// (Go RTA), "resolution" (tsc) or "trace" (the Python interpreter): the
+// grader's buckets switch on it (design §3 vs §3.1).
 type OracleExport struct {
 	Oracle string   `json:"oracle"`
 	Kind   string   `json:"kind"`
@@ -75,6 +87,18 @@ type OracleExport struct {
 	Tags   []string `json:"tags"`
 	Files  []string `json:"files"`
 	Sites  []Site   `json:"sites"`
+	// Trace oracles only: the union is over Runs suite runs (N stated,
+	// design §3.1), and Coverage is the mandatory coverage line —
+	// files_loaded / files_in_module, functions_started /
+	// functions_declared, c_callee_calls, external_python_targets,
+	// subprocesses_traced.
+	Runs           int            `json:"runs,omitempty"`
+	SuiteExitCodes []int          `json:"suite_exit_codes,omitempty"`
+	Coverage       map[string]int `json:"coverage,omitempty"`
+	// Excluded counts sites the oracle saw and dropped by rule — "generated"
+	// for calls in compiler-written code (Rust's test harness, attribute
+	// and derive output), which no source line makes.
+	Excluded map[string]int `json:"excluded,omitempty"`
 }
 
 func itoa(n int) string {

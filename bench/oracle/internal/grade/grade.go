@@ -19,6 +19,24 @@
 //     that line (unreachable), or the site is reachable and
 //     RTA resolved it to nothing (no-targets)
 //
+// Buckets for a trace oracle (design §3.1 — asymmetric: an observed edge
+// is a fact, an unobserved edge is not a falsehood):
+//
+//   - confirmed     Hobbes' (site line, target) was observed at runtime
+//   - suspect       the line executed, every observed Python callee on
+//     it is in-repo and none is Hobbes' target — a triage
+//     queue, never a contradiction (another input could
+//     still take Hobbes' target)
+//   - unobserved    charged to nobody: the file's module body never ran
+//     (not-loaded), the line made no call in any run
+//     (line-not-called), or the line ran but a callee on it
+//     was C or out-of-repo, so Hobbes' site may be that
+//     call (line-mixed)
+//
+// A trace cell has no precision; it reports the confirmation rate over
+// Hobbes edges (coverage-limited), the suspect rate, recall-against-
+// executed over observed in-repo pairs, and the coverage line.
+//
 // Site matching is at line grain: a Hobbes edge is confirmed if its
 // target is among the targets of any oracle site on the same file and
 // line. A line holding several oracle sites is logged as tolerance.
@@ -57,6 +75,9 @@ type TierCounts struct {
 	Contradicted int `json:"contradicted"`
 	Abstract     int `json:"abstract"`
 	Silent       int `json:"silent"`
+	// Trace oracles only.
+	Suspect    int `json:"suspect,omitempty"`
+	Unobserved int `json:"unobserved,omitempty"`
 }
 
 // Fraction is hits over pairs for one oracle-pair class.
@@ -93,6 +114,15 @@ type Report struct {
 	Tolerance      int                   `json:"tolerance_matches"`
 	Rows           []Row                 `json:"rows"`
 	Misses         []Miss                `json:"misses"`
+	// Trace oracles only (design §3.1): runs unioned, the tracer's
+	// coverage line, the confirmation and suspect rates over Hobbes
+	// edges, and how many of Hobbes' distinct sites the trace spoke about.
+	Runs             int            `json:"runs,omitempty"`
+	Coverage         map[string]int `json:"coverage,omitempty"`
+	ConfirmationRate *float64       `json:"confirmation_rate,omitempty"`
+	SuspectRate      *float64       `json:"suspect_rate,omitempty"`
+	SitesObserved    int            `json:"hobbes_sites_observed,omitempty"`
+	SitesTotal       int            `json:"hobbes_sites,omitempty"`
 }
 
 // Grade matches h against o.
@@ -117,10 +147,31 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 		hobbesPairs[e.Site.Key()+"->"+e.Target.Key()] = true
 	}
 
+	trace := o.Kind == "trace"
+	if trace {
+		r.Runs, r.Coverage = o.Runs, o.Coverage
+		siteSeen := map[string]bool{}
+		for _, e := range h.Edges {
+			if _, dup := siteSeen[e.Site.Key()]; !dup {
+				siteSeen[e.Site.Key()] = len(byLine[e.Site.Key()]) > 0
+			}
+		}
+		r.SitesTotal = len(siteSeen)
+		for _, seen := range siteSeen {
+			if seen {
+				r.SitesObserved++
+			}
+		}
+	}
 	for _, e := range h.Edges {
 		row := Row{Edge: e}
 		sites := byLine[e.Site.Key()]
 		switch {
+		case trace:
+			row = traceRow(e, sites, loaded)
+			if len(sites) > 1 {
+				r.Tolerance++
+			}
 		case !loaded[e.Site.Path]:
 			row.Bucket, row.Reason = "silent", "not-loaded"
 		case len(sites) == 0:
@@ -165,11 +216,27 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 			tc.Silent++
 			r.Total.Silent++
 			r.SilentBy[row.Reason]++
+		case "suspect":
+			tc.Suspect++
+			r.Total.Suspect++
+		case "unobserved":
+			tc.Unobserved++
+			r.Total.Unobserved++
+			r.SilentBy[row.Reason]++
 		}
 		r.ByTier[e.Tier] = tc
 		r.Rows = append(r.Rows, row)
 	}
-	if d := r.Total.Confirmed + r.Total.Contradicted; d > 0 {
+	if trace {
+		if len(h.Edges) > 0 {
+			c := float64(r.Total.Confirmed) / float64(len(h.Edges))
+			r.ConfirmationRate = &c
+		}
+		if d := r.Total.Confirmed + r.Total.Suspect; d > 0 {
+			sr := float64(r.Total.Suspect) / float64(d)
+			r.SuspectRate = &sr
+		}
+	} else if d := r.Total.Confirmed + r.Total.Contradicted; d > 0 {
 		p := float64(r.Total.Confirmed) / float64(d)
 		r.Precision = &p
 	}
@@ -203,6 +270,43 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 	return r
 }
 
+// traceRow buckets one Hobbes edge against a trace oracle (§3.1).
+func traceRow(e edges.HobbesEdge, sites []*edges.Site, loaded map[string]bool) Row {
+	row := Row{Edge: e}
+	if !loaded[e.Site.Path] {
+		row.Bucket, row.Reason = "unobserved", "not-loaded"
+		return row
+	}
+	if len(sites) == 0 {
+		row.Bucket, row.Reason = "unobserved", "line-not-called"
+		return row
+	}
+	var targets []edges.Target
+	mixed := false
+	for _, s := range sites {
+		if s.CCallees > 0 {
+			mixed = true
+		}
+		for _, t := range s.Targets {
+			if t.External {
+				mixed = true
+			}
+			targets = append(targets, t)
+		}
+	}
+	switch {
+	case hasTarget(targets, e.Target):
+		row.Bucket = "confirmed"
+	case mixed:
+		row.Bucket, row.Reason = "unobserved", "line-mixed"
+		row.OracleTargets = targets
+	default:
+		row.Bucket = "suspect"
+		row.OracleTargets = targets
+	}
+	return row
+}
+
 // missClass names an oracle pair by how the call is made and what it
 // reaches, so a miss register can say what hurts most:
 //
@@ -213,8 +317,15 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 //     upper bound and the class is marked inflated in the report)
 //   - static→named / static→closure — a direct call; static→closure is a
 //     call of a closure bound to a local name
+//   - macro→* — Rust: a call made by the body of a macro the repo does
+//     not define, attributed to the invocation line (macro→generated:
+//     to a function the macro also wrote)
+//   - observed→* — a trace oracle's pairs, by what the callee is
 func missClass(s edges.Site, t edges.Target) string {
 	how := "static"
+	if s.Mode == "observed" || s.Mode == "macro" {
+		how = s.Mode
+	}
 	if s.Mode == "dynamic" {
 		how = "func-value"
 		if s.Interface != nil {
@@ -244,6 +355,10 @@ func hasTarget(ts []edges.Target, p edges.Pos) bool {
 // the root count next to recall, the tier split, and the triage rows.
 func Print(w io.Writer, r *Report) {
 	fmt.Fprintf(w, "cell %s  oracle %s (%s)  sha %s\n", r.Module, r.Oracle, r.Kind, short(r.SHA))
+	if r.Kind == "trace" {
+		printTrace(w, r)
+		return
+	}
 	fmt.Fprintf(w, "hobbes edges %d: confirmed %d  contradicted %d  abstract %d  silent %d %v\n",
 		r.HobbesEdges, r.Total.Confirmed, r.Total.Contradicted, r.Total.Abstract, r.Total.Silent, r.SilentBy)
 	if r.Precision != nil {
@@ -297,6 +412,70 @@ func Print(w io.Writer, r *Report) {
 	for _, row := range r.Rows {
 		if row.Bucket == "contradicted" || row.Bucket == "abstract" {
 			fmt.Fprintf(w, "  %-12s %s  hobbes %s (%s)  oracle %s\n", row.Bucket, row.Edge.Site.Key(), row.Edge.Target.Key(), row.Edge.TargetID, names(row.OracleTargets))
+		}
+	}
+	for _, m := range r.Misses {
+		fmt.Fprintf(w, "  missed       %s  %s -> %s (%s) [%s]\n", m.Site.Key(), m.Caller, m.Target.Pos.Key(), m.Target.Name, m.Class)
+	}
+}
+
+// printTrace is the §3.1 report: no precision line, ever; the
+// confirmation rate is labelled coverage-limited; recall is against the
+// executed slice and carries the coverage line and the run count.
+func printTrace(w io.Writer, r *Report) {
+	fmt.Fprintf(w, "hobbes edges %d: confirmed %d  suspect %d  unobserved %d %v\n",
+		r.HobbesEdges, r.Total.Confirmed, r.Total.Suspect, r.Total.Unobserved, r.SilentBy)
+	if r.ConfirmationRate != nil {
+		fmt.Fprintf(w, "confirmation rate %.1f%% (%d/%d hobbes edges; coverage-limited, not precision)\n", *r.ConfirmationRate*100, r.Total.Confirmed, r.HobbesEdges)
+	}
+	if r.SuspectRate != nil {
+		fmt.Fprintf(w, "suspect rate %.1f%% (%d/%d executed hobbes edges; triage queue, never contradicted)\n", *r.SuspectRate*100, r.Total.Suspect, r.Total.Confirmed+r.Total.Suspect)
+	}
+	if r.Recall != nil {
+		fmt.Fprintf(w, "recall-against-executed %.1f%% (%d/%d observed in-repo pairs) over %d run(s) of %v; external python targets %d; misses %v\n",
+			*r.Recall*100, r.RecallHits, r.OraclePairs, r.Runs, r.RootNames, r.OracleExternal, r.MissBy)
+	} else {
+		fmt.Fprintf(w, "recall-against-executed: undefined (no observed in-repo pairs) over %d run(s)\n", r.Runs)
+	}
+	sitePct := 0.0
+	if r.SitesTotal > 0 {
+		sitePct = float64(r.SitesObserved) / float64(r.SitesTotal) * 100
+	}
+	fmt.Fprintf(w, "coverage: hobbes sites observed %d/%d (%.1f%%); files loaded %d/%d; declarations started %d/%d; c-callee calls %d; subprocesses traced %d\n",
+		r.SitesObserved, r.SitesTotal, sitePct, r.Coverage["files_loaded"], r.Coverage["files_in_module"],
+		r.Coverage["functions_started"], r.Coverage["functions_declared"], r.Coverage["c_callee_calls"], r.Coverage["subprocesses_traced"])
+	classes := make([]string, 0, len(r.RecallBy))
+	for c := range r.RecallBy {
+		classes = append(classes, c)
+	}
+	sort.Strings(classes)
+	totalMiss := 0
+	for _, n := range r.MissBy {
+		totalMiss += n
+	}
+	for _, c := range classes {
+		f := r.RecallBy[c]
+		share := 0.0
+		if totalMiss > 0 {
+			share = float64(f.Pairs-f.Hits) / float64(totalMiss) * 100
+		}
+		fmt.Fprintf(w, "  recall[%-18s] %5.1f%% (%d/%d)  misses %d = %.1f%% of all misses\n", c, pct(f), f.Hits, f.Pairs, f.Pairs-f.Hits, share)
+	}
+	tiers := make([]string, 0, len(r.ByTier))
+	for t := range r.ByTier {
+		tiers = append(tiers, t)
+	}
+	sort.Strings(tiers)
+	for _, t := range tiers {
+		c := r.ByTier[t]
+		fmt.Fprintf(w, "  tier %-10s confirmed %d  suspect %d  unobserved %d\n", t, c.Confirmed, c.Suspect, c.Unobserved)
+	}
+	if r.Tolerance > 0 {
+		fmt.Fprintf(w, "  line-grain tolerance used on %d edge(s) (several oracle sites on one line)\n", r.Tolerance)
+	}
+	for _, row := range r.Rows {
+		if row.Bucket == "suspect" {
+			fmt.Fprintf(w, "  %-12s %s  hobbes %s (%s)  observed %s\n", row.Bucket, row.Edge.Site.Key(), row.Edge.Target.Key(), row.Edge.TargetID, names(row.OracleTargets))
 		}
 	}
 	for _, m := range r.Misses {

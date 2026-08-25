@@ -1,0 +1,12 @@
+[package]
+name = "mir-oracle"
+version = "0.1.0"
+edition = "2021"
+description = "Hobbes oracle lane: the Rust MIR resolution oracle (ADR-089 §7) — a rustc driver that lists every resolved call in a crate at source grain"
+publish = false
+
+[dependencies]
+
+[[bin]]
+name = "mir-oracle"
+path = "src/main.rs"

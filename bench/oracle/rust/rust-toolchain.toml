@@ -1,0 +1,7 @@
+# The MIR oracle links rustc's own crates (rustc_private), which only a
+# nightly with rustc-dev ships. The exact nightly is recorded in every
+# cell's export (`oracle: "rustc-mir <rustc -vV>"`); rerunning a cell on
+# a different nightly is a different oracle and the record says so.
+[toolchain]
+channel = "nightly"
+components = ["rustc-dev", "llvm-tools", "rust-src"]

@@ -4,8 +4,9 @@
 //
 // Positions come straight from the artifact: the site is the evidence
 // row's (path, line); the target is the callee symbol's declaring file
-// (the module node's path — one Go file is one Hobbes module) and its
-// declaration line, which the extractor records at the identifier.
+// (the module or package node's path — one file is one Hobbes module, a
+// Python package's file is its __init__.py) and its declaration line,
+// which the extractor records at the identifier.
 package export
 
 import (
@@ -30,6 +31,7 @@ type graph struct {
 		ID     string `json:"id"`
 		Module string `json:"module"`
 		Line   int    `json:"line"`
+		Kind   string `json:"kind"`
 	} `json:"symbols"`
 	SymbolEdges []struct {
 		From     string `json:"from"`
@@ -46,13 +48,15 @@ type graph struct {
 
 // Exts is the file-extension set of one language's cell.
 var Exts = map[string][]string{
-	"go": {".go"},
-	"ts": {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"},
+	"go":   {".go"},
+	"ts":   {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"},
+	"py":   {".py"},
+	"rust": {".rs"},
 }
 
 // FromFile reads graph.json and exports the cell for module (a
-// repo-relative directory, "" or "." for the whole repo) in lang ("go"
-// or "ts": the extension set of the sites and targets kept).
+// repo-relative directory, "" or "." for the whole repo) in lang ("go",
+// "ts" or "py": the extension set of the sites and targets kept).
 func FromFile(graphPath, module, lang string, exclude ...string) (*edges.HobbesExport, error) {
 	raw, err := os.ReadFile(graphPath)
 	if err != nil {
@@ -71,22 +75,26 @@ func FromFile(graphPath, module, lang string, exclude ...string) (*edges.HobbesE
 func From(g *graph, module, lang string, exclude ...string) (*edges.HobbesExport, error) {
 	exts, ok := Exts[lang]
 	if !ok {
-		return nil, fmt.Errorf("unknown lang %q (go|ts)", lang)
+		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust)", lang)
 	}
 	module = path.Clean("/" + module)[1:]
 	modulePath := map[string]string{}
 	for _, n := range g.Nodes {
-		if n.Kind == "module" {
+		// A Python package is a "package" node whose path is its
+		// __init__.py; its symbols are graded like any module's (H-12).
+		if n.Kind == "module" || n.Kind == "package" {
 			modulePath[n.ID] = n.Path
 		}
 	}
 	symLine := map[string]int{}
 	symModule := map[string]string{}
+	symKind := map[string]string{}
 	for _, s := range g.Symbols {
 		symLine[s.ID] = s.Line
 		symModule[s.ID] = s.Module
+		symKind[s.ID] = s.Kind
 	}
-	out := &edges.HobbesExport{SHA: g.SHA, Module: module}
+	out := &edges.HobbesExport{SHA: g.SHA, Module: module, Excluded: map[string]int{}}
 	for _, e := range g.SymbolEdges {
 		if e.Type != "calls" {
 			continue
@@ -97,6 +105,12 @@ func From(g *graph, module, lang string, exclude ...string) (*edges.HobbesExport
 		}
 		for _, ev := range e.Evidence {
 			if !hasExt(ev.Path, exts) || !under(ev.Path, module) || excluded(ev.Path, exclude) {
+				continue
+			}
+			if symKind[e.To] == "macro" {
+				// A macro invocation is expanded, not called: the compiler
+				// has no call site there and the edge is not gradeable.
+				out.Excluded["macro"]++
 				continue
 			}
 			out.Edges = append(out.Edges, edges.HobbesEdge{

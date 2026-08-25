@@ -4,22 +4,34 @@
 # grade, and leave hobbes.json / oracle.json / report.json / report.txt
 # in the output directory.
 #
-#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts] [--no-ingest]
+#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust] [--no-ingest]
+#       [--exclude a,b] [--python "<cmd>"] [--runs N] [--sys-path a,b] [-- <pytest args>]
 #
 # --exclude a,b drops nested module directories from a root cell.
 # <module-dir> is repo-relative ("." for a single-module repo): a Go
 # module directory for --lang go (default), a directory holding a
-# tsconfig.json for --lang ts. Pass --no-ingest to grade an existing
+# tsconfig.json for --lang ts, the directory whose pytest suite is the
+# trace's root for --lang py (design §6: --python is the interpreter
+# that can import the target and pytest, run from <module-dir>; default
+# "uv run --project <repo>/<module-dir> python"; --runs unions N suite
+# runs; everything after -- goes to pytest), the cargo package directory
+# for --lang rust (the MIR driver under bench/oracle/rust is built with
+# the pinned nightly first; --features passes cargo features). Pass --no-ingest to grade an existing
 # .hobbes/derived/graph.json. Runtime is
 # printed at the end so every cell's cost is on the record.
 set -eu
 repo=$(cd "$1" && pwd); module=$2; out=$3; shift 3
-ingest=1; lang=go; exclude=
+ingest=1; lang=go; exclude=; python=; runs=1; syspath=; features=
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-ingest) ingest=0 ;;
     --lang) lang=$2; shift ;;
     --exclude) exclude=$2; shift ;;
+    --python) python=$2; shift ;;
+    --runs) runs=$2; shift ;;
+    --sys-path) syspath=$2; shift ;;
+    --features) features=$2; shift ;;
+    --) shift; break ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
   shift
@@ -36,6 +48,10 @@ fi
 case "$lang" in
   go) "$out/oracle" go-rta --repo "$repo" --module "$module" --exclude "$exclude" --out "$out/oracle.json" ;;
   ts) node "$here/ts/tsc-oracle.mjs" --repo "$repo" --zone "$module" --out "$out/oracle.json" ;;
+  py) [ -n "$python" ] || python="uv run --project $repo/$module python"
+      "$out/oracle" py-trace --repo "$repo" --module "$module" --python "$python" --runs "$runs" --sys-path "$syspath" --label "$python -m pytest $*" --out "$out/oracle.json" -- "$@" ;;
+  rust) (cd "$here/rust" && LD_LIBRARY_PATH="$(rustc +nightly --print sysroot)/lib" cargo +nightly build --release --quiet)
+        "$out/oracle" rust-mir --repo "$repo" --module "$module" --driver "$here/rust/target/release/mir-oracle" --out-dir "$out" --features "$features" --out "$out/oracle.json" ;;
   *) echo "unknown lang $lang" >&2; exit 2 ;;
 esac
 "$out/oracle" grade --hobbes "$out/hobbes.json" --oracle "$out/oracle.json" --json "$out/report.json" | tee "$out/report.txt"
