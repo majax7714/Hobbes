@@ -5003,3 +5003,33 @@ retired at Max's direction: rough, unnamed edges; the oracle replaces
 them, hand-checks return later with a selection rule. 12 oracle-lane
 Go tests. P7 met on precision; its overload clause was untestable and
 the rule that mattered was one it did not anticipate. Next: O4 dagger.
+
+## 2026-08-25 — oracle lane O4: dagger's Go modules graded; the root does not fit; C-59
+
+Max: "always honest" — the oracle's own defects now have a record
+(`docs/oracle-defects.md`, H-1…H-11), each with what it would have cost
+unnoticed. Then dagger (ingest f3cc3eb3): one cell per Go module via a
+driver; **19 graded** — 9,816 confirmed / 40 contradicted / 656 silent
+(all unreachable), precision-against-oracle **99.6%**, 9,855/10,715
+in-repo pairs drawn across 24 roots, static named calls
+**9,854/9,889**. All 40 contradictions are **a type conversion drawn as
+a call** (`dagger.JSON("0")` → `calls` to `type JSON`; 37 semantic, 3
+syntactic) — the lane's first wrong edges in the semantic tier, a
+product defect for W1, not a concession. Named misses: 16 recursion —
+`graph.py` drops self-calls by design, now **C-59** (unsurfaced; the
+register has 59 entries, 50 active, 4 unsurfaced) — 11 method
+expressions / generic instantiation calls, 4 chain continuations (no
+site: the capture number cannot see them), 4 calls on an assignment's
+left side (drawn as `uses`). Interface dispatch is 23% of honest misses
+here against 4% on this repo: the ranking moves with the codebase.
+Harness: H-9 — the root module as one program OOMs (20.5 GB with tests,
+20.7 without, 24.4 for `./core/integration/...` alone; RTA requires
+`InstantiateGenerics`) on this 30 GB box; `--no-tests` and `--packages`
+added, and **P8/P9 recorded not graded** rather than approximated.
+H-10 — `go-rta` lacked the `--exclude` the export had; ~250 false
+misses in `e2e/helm` until both sides scoped alike (72/72 after).
+Four modules not gradeable (docs' undeclarable deps; recorder's
+generated package; a library with nothing to root at). Evidence rows,
+a §3.8 dagger-Go row scoped to the 19 modules, the miss record's
+dagger section, and W1's item list landed with this. Runtimes:
+150–500 s per module cell; the failed root attempts cost ~35 min.

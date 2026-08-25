@@ -77,6 +77,17 @@ all. P4 recall 60–85% — **missed high**: 87.5% overall, and 100% on
 static sites — the graph is more complete on static calls than the
 prior allowed. P5 silent ≤ 15% with `unreachable` largest — **met**
 (1 edge, unreachable). P6 ADR-037's 20 not reproducible — **confirmed**.
+**O4 (dagger):** P8 — the 126 build-tag lane disagreements grade
+`not-loaded` — **not graded**: those sites are in the root module
+(engine, platform-specific files), which does not fit this box as one
+program (H-9); across the 19 graded modules the `not-loaded` bucket is
+empty, which says nothing about P8. P9 — C-33's 7,322 core/integration
+→ sdk/go edges ≥ 95% — **not graded** for the same reason: the
+`./core/integration/...` subtree cell was OOM-killed at 24.4 GB after
+20 minutes. Both stand until a larger box (or a streaming SSA build)
+runs the root; the design's payoff line for O4 is **not earned** and
+is not claimed. What O4 *did* earn: 19 modules at 99.6% precision
+with every contradiction one nameable product defect.
 **O3 (kbet):** P7 semantic precision ≥ 95% — **met** (100%; the
 first-pass 81% was the oracle's grain, D-O4 now says so); overload-set
 membership needed for ≥ 1 confirmed edge — **not testable as stated**:

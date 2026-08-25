@@ -86,12 +86,18 @@ graded in the evidence file (P3, P4 missed; the rest met). **O3 is done**
 confirmed, recall 633/637 on declared callees; the 119 first-pass
 contradictions were the oracle's grain — the binding rule is now
 normative in the harness README). Both 20/20 hand-checks retired at
-Max's direction. Resume at **O4 — dagger Go modules** (`~/dagger`,
-25 modules, one cell each via `run-cell.sh ~/dagger <module> <out>`;
-`~/dagger` must be ingested at the recorded SHA first — check
-`.hobbes/derived/graph.json` there; P8/P9 pre-registered; expect the
-RTA pass to take minutes per large module). Then O5 optional
-(dagger `sdk/typescript`, `--lang ts`), then phase 2.
+Max's direction. **O4 is done as far as this box allows** (2026-08-25):
+19 of dagger's Go modules compiler-graded at 99.6% precision (all 40
+contradictions = type conversions drawn as calls, a product defect on
+W1's list), 9,854/9,889 static named calls drawn, C-59 (dropped
+self-calls) registered; **the root module OOMs as one program (~21–24
+GB on this 30 GB box, H-9)**, so P8 and P9 are recorded *not graded*.
+Resume with either (a) **W1's fixes** — conversions-as-calls, chain
+continuations, LHS calls, method expressions, C-59 — each with a
+dagger module cell that reruns in ~3 min (`~/.hobbes/bench/oracle/
+run-dagger.sh`), or (b) **phase 2** (O6 Python traces, O7 Rust MIR),
+or (c) the root on a bigger box. Cell outputs live under
+`~/.hobbes/bench/oracle/dagger/`.
 O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
 grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
 to `pipeline/tests/fixtures/`. Resume at design §10: **the
