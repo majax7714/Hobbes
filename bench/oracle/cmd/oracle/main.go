@@ -52,9 +52,10 @@ func runExport(args []string) error {
 	graph := fs.String("graph", ".hobbes/derived/graph.json", "Hobbes graph.json")
 	module := fs.String("module", "", "repo-relative module directory (cell)")
 	lang := fs.String("lang", "go", "go|ts — the extension set of the cell")
+	exclude := fs.String("exclude", "", "comma-separated repo-relative directories to drop (nested modules)")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
-	h, err := export.FromFile(*graph, *module, *lang)
+	h, err := export.FromFile(*graph, *module, *lang, splitComma(*exclude)...)
 	if err != nil {
 		return err
 	}

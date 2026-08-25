@@ -53,7 +53,7 @@ var Exts = map[string][]string{
 // FromFile reads graph.json and exports the cell for module (a
 // repo-relative directory, "" or "." for the whole repo) in lang ("go"
 // or "ts": the extension set of the sites and targets kept).
-func FromFile(graphPath, module, lang string) (*edges.HobbesExport, error) {
+func FromFile(graphPath, module, lang string, exclude ...string) (*edges.HobbesExport, error) {
 	raw, err := os.ReadFile(graphPath)
 	if err != nil {
 		return nil, err
@@ -62,10 +62,13 @@ func FromFile(graphPath, module, lang string) (*edges.HobbesExport, error) {
 	if err := json.Unmarshal(raw, &g); err != nil {
 		return nil, fmt.Errorf("%s: %w", graphPath, err)
 	}
-	return From(&g, module, lang)
+	return From(&g, module, lang, exclude...)
 }
 
-func From(g *graph, module, lang string) (*edges.HobbesExport, error) {
+// From exports the cell. exclude lists repo-relative directories whose
+// sites are dropped — the nested modules of a monorepo root, which are
+// cells of their own and which the root's `./...` load does not see.
+func From(g *graph, module, lang string, exclude ...string) (*edges.HobbesExport, error) {
 	exts, ok := Exts[lang]
 	if !ok {
 		return nil, fmt.Errorf("unknown lang %q (go|ts)", lang)
@@ -93,7 +96,7 @@ func From(g *graph, module, lang string) (*edges.HobbesExport, error) {
 			continue
 		}
 		for _, ev := range e.Evidence {
-			if !hasExt(ev.Path, exts) || !under(ev.Path, module) {
+			if !hasExt(ev.Path, exts) || !under(ev.Path, module) || excluded(ev.Path, exclude) {
 				continue
 			}
 			out.Edges = append(out.Edges, edges.HobbesEdge{
@@ -119,6 +122,16 @@ func From(g *graph, module, lang string) (*edges.HobbesExport, error) {
 func hasExt(p string, exts []string) bool {
 	for _, x := range exts {
 		if strings.HasSuffix(p, x) {
+			return true
+		}
+	}
+	return false
+}
+
+func excluded(p string, dirs []string) bool {
+	for _, d := range dirs {
+		d = path.Clean("/" + d)[1:]
+		if d != "" && under(p, d) {
 			return true
 		}
 	}

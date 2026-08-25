@@ -6,6 +6,7 @@
 #
 #   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts] [--no-ingest]
 #
+# --exclude a,b drops nested module directories from a root cell.
 # <module-dir> is repo-relative ("." for a single-module repo): a Go
 # module directory for --lang go (default), a directory holding a
 # tsconfig.json for --lang ts. Pass --no-ingest to grade an existing
@@ -13,11 +14,12 @@
 # printed at the end so every cell's cost is on the record.
 set -eu
 repo=$(cd "$1" && pwd); module=$2; out=$3; shift 3
-ingest=1; lang=go
+ingest=1; lang=go; exclude=
 while [ $# -gt 0 ]; do
   case "$1" in
     --no-ingest) ingest=0 ;;
     --lang) lang=$2; shift ;;
+    --exclude) exclude=$2; shift ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
   shift
@@ -30,7 +32,7 @@ if [ "$ingest" = 1 ]; then
   (cd "$root/pipeline" && HOBBES_SCIP=1 uv run hobbes ingest --repo "$repo")
 fi
 (cd "$here" && go build -o "$out/oracle" ./cmd/oracle)
-"$out/oracle" export --graph "$repo/.hobbes/derived/graph.json" --module "$module" --lang "$lang" --out "$out/hobbes.json"
+"$out/oracle" export --graph "$repo/.hobbes/derived/graph.json" --module "$module" --lang "$lang" --exclude "$exclude" --out "$out/hobbes.json"
 case "$lang" in
   go) "$out/oracle" go-rta --repo "$repo" --module "$module" --out "$out/oracle.json" ;;
   ts) node "$here/ts/tsc-oracle.mjs" --repo "$repo" --zone "$module" --out "$out/oracle.json" ;;
