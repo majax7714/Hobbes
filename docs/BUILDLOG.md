@@ -4899,3 +4899,15 @@ text unchanged. Links repointed across README, CLAUDE.md, the
 architecture, first-run, workstreams, session-handoff, future_additions
 and the ADRs that cite the file; earlier BUILDLOG entries left as
 written. Convention updated: a new `C-n` lands in its segment file.
+
+## 2026-08-25 — oracle-grading lane: design landed, decisions parked for Max (ADR-089)
+
+Phase one of the oracle-grading work, docs only. The design brief
+(precision-against-oracle and recall for the call graph against answer
+keys Hobbes does not control — Go RTA, TS `tsc` in phase 1; Python
+`sys.monitoring` traces and a Rust MIR oracle in phase 2) is now
+`docs/oracle-grading.md`, owner Max, status proposed/unbuilt. ADR-089
+records the lane and carries D-O1–D-O6 as *proposed* with the design's
+recommendations; O1 is gated on Max deciding D-O1–D-O4. Noted while
+landing it: the O1 fixture `twomod` does not exist (only `minigo`), so
+it is in O1's scope. No harness code written.
