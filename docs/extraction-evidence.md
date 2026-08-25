@@ -34,14 +34,47 @@ typescript`). Re-ingested every session; the suite's degraded path
 
 | Date | Numbers |
 |---|---|
+| 2026-08-25 (**oracle lane O2**, ADR-089) | **Go zone compiler-graded against RTA** (`bench/oracle`, [cell record](oracle-cells/hobbes-go-2026-08-25.md)): 1,282 Hobbes call edges — **1,278 confirmed, 3 contradicted, 1 oracle-silent**; precision-against-oracle **99.8%** overall, **100% on the semantic tier (1,278/1,278)**, **0/3 on the syntactic tier**. Recall **87.5% (1,280/1,463 in-repo oracle pairs) at 20 roots** — static calls **1,280/1,280**, calls into closures 0/37, dynamic dispatch 0/8, and 0/138 `func()`-value pairs RTA over-approximates (denominator is an upper bound). 12,003 external oracle pairs out of the denominator (D-O3). Line-grain tolerance on 438 edges |
 | 2026-08-18 (ADR-050) | ts/js **61.6% → 67.0%** — the per-file `node_modules` links fixed the tsconfig-less root zone (`tsextract` 27.7% → 58.8%, its 131 `external-origin` sites now resolving). go/python/rust unchanged |
 | 2026-08-18 | 265 nodes, 915 module edges, 2,063 symbols, 4,207 call edges. Capture: go **89.2%** of 3,707 · python **88.3%** of 4,862 · rust **100%** of 18 · ts/js **61.6%** of 2,417. Unclassified residue: 0 python, 0 go (ADR-046), ~99 ts/js (the known fleet residue — helper/scip JS zones). Stable across the ADR-048/049 changes |
 | 2026-08-16 (V2.M7 exit) | 3,085 sites, lanes **0 disagreements** across six languages |
 | 2026-08-15 (V2.M3 exit) | lanes: 1,789 sites compared, **0 disagree** |
 
-**Verified:** Go 20/20 call edges hand-checked at V2.M5 (ADR-037);
+**Verified:** Go — **compiler-graded 2026-08-25**: every semantic call
+edge in `go/` confirmed by RTA (1,278/1,278), the 3 syntactic-tier
+edges contradicted; not hand-checked beyond triage. Triage of the
+three: all **hobbes-wrong** — lane A's name fallback (C-7) bound the
+test helper's local closure `run := func(...)` at
+`cmd/hobbes-session/main_test.go:55/57/58` to the package function
+`run` (`main.go:90`); the semantic lane had no target for a closure
+(C-58). Two further contradictions in the first pass were a
+**match-defect** (the oracle unwound a generic instantiation into its
+body, grading `sortedKeys[string]` as `sort.Strings`), fixed with a
+regression fixture before the number above was taken. The one silent
+edge (`web/server.go:122 → Server.Handler`) sits in `ServeHTTP`,
+reachable only through net/http's interface — RTA never reached it.
+The 45 non-inflated misses are all **C-58** (interface / function-value
+dispatch and calls into closures draw no edge). The V2.M5 hand-check —
+Go 20/20 call edges (ADR-037) — stands as recorded but **cannot be
+reproduced by identity**: its 20 edges were never listed (prediction P6);
+the whole semantic set stood in for it.
+Earlier:
 10/10 sampled narrative claims resolve (M5); the M8 exit check's
 invariant regression replay (`hobbes review ace9a08..cdbc085`, exit 1).
+
+**Pre-registration graded (`docs/oracle-preregistration.md`, O2):**
+P1 semantic precision ≥ 95% — **met** (100%). P2 contradictions in the
+syntactic tier — **met** (3 of 3; the tier is 3 edges, so the
+concentration claim is met on a tiny base and recorded as such).
+P3 misses dominated by dynamic dispatch — **met on the inflated count**
+(146 of 183 pairs are `dynamic*`), **missed on the honest count**: of
+the 45 non-inflated misses, 37 are calls into *closures* at static
+sites and 8 are dynamic — closures, not dispatch, dominate; the
+prediction did not anticipate that Hobbes has no closure symbols at
+all. P4 recall 60–85% — **missed high**: 87.5% overall, and 100% on
+static sites — the graph is more complete on static calls than the
+prior allowed. P5 silent ≤ 15% with `unreachable` largest — **met**
+(1 edge, unreachable). P6 ADR-037's 20 not reproducible — **confirmed**.
 
 ## private-repo-A (a private Python + JS + Terraform repo; read-only, Max-sanctioned; name and location withheld)
 

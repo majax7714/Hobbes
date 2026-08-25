@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
@@ -58,7 +59,18 @@ type TierCounts struct {
 	Silent       int `json:"silent"`
 }
 
-// Report is one cell's result.
+// Fraction is hits over pairs for one oracle-pair class.
+type Fraction struct {
+	Hits  int `json:"hits"`
+	Pairs int `json:"pairs"`
+}
+
+// Report is one cell's result. RecallBy splits the in-repo oracle pairs
+// by class — static, static-closure, dynamic, dynamic-closure — because
+// a reachability oracle over-approximates dynamic calls (a `func()`
+// value resolves to every reachable `func()` in the program), so the
+// dynamic classes inflate the denominator with pairs no run takes; the
+// static class is the tight number and the report prints both.
 type Report struct {
 	Oracle         string                `json:"oracle"`
 	Kind           string                `json:"kind"`
@@ -76,6 +88,7 @@ type Report struct {
 	OracleExternal int                   `json:"oracle_pairs_external"`
 	RecallHits     int                   `json:"recall_confirmed"`
 	Recall         *float64              `json:"recall"`
+	RecallBy       map[string]Fraction   `json:"recall_by_class"`
 	MissBy         map[string]int        `json:"miss_by"`
 	Tolerance      int                   `json:"tolerance_matches"`
 	Rows           []Row                 `json:"rows"`
@@ -88,7 +101,7 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 		Oracle: o.Oracle, Kind: o.Kind, Module: o.Module, SHA: h.SHA,
 		Roots: len(o.Roots), RootNames: o.Roots, Tags: o.Tags,
 		HobbesEdges: len(h.Edges),
-		ByTier:      map[string]TierCounts{}, SilentBy: map[string]int{}, MissBy: map[string]int{},
+		ByTier:      map[string]TierCounts{}, SilentBy: map[string]int{}, MissBy: map[string]int{}, RecallBy: map[string]Fraction{},
 	}
 	loaded := map[string]bool{}
 	for _, f := range o.Files {
@@ -168,14 +181,19 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 				continue
 			}
 			r.OraclePairs++
-			if hobbesPairs[s.Pos.Key()+"->"+t.Pos.Key()] {
-				r.RecallHits++
-				continue
-			}
 			class := s.Mode
 			if t.Closure {
 				class += "-closure"
 			}
+			f := r.RecallBy[class]
+			f.Pairs++
+			if hobbesPairs[s.Pos.Key()+"->"+t.Pos.Key()] {
+				f.Hits++
+				r.RecallBy[class] = f
+				r.RecallHits++
+				continue
+			}
+			r.RecallBy[class] = f
 			r.MissBy[class]++
 			r.Misses = append(r.Misses, Miss{Site: s.Pos, Caller: s.Caller, Mode: s.Mode, Target: t, Class: class})
 		}
@@ -214,6 +232,19 @@ func Print(w io.Writer, r *Report) {
 	} else {
 		fmt.Fprintf(w, "recall: undefined (no in-repo oracle pairs) at %d roots\n", r.Roots)
 	}
+	classes := make([]string, 0, len(r.RecallBy))
+	for c := range r.RecallBy {
+		classes = append(classes, c)
+	}
+	sort.Strings(classes)
+	for _, c := range classes {
+		f := r.RecallBy[c]
+		note := ""
+		if strings.HasPrefix(c, "dynamic") {
+			note = "  (reachability oracle over-approximates dynamic targets; denominator is an upper bound)"
+		}
+		fmt.Fprintf(w, "  recall[%-15s] %.1f%% (%d/%d)%s\n", c, pct(f), f.Hits, f.Pairs, note)
+	}
 	tiers := make([]string, 0, len(r.ByTier))
 	for t := range r.ByTier {
 		tiers = append(tiers, t)
@@ -234,6 +265,13 @@ func Print(w io.Writer, r *Report) {
 	for _, m := range r.Misses {
 		fmt.Fprintf(w, "  missed       %s  %s -> %s (%s) [%s]\n", m.Site.Key(), m.Caller, m.Target.Pos.Key(), m.Target.Name, m.Class)
 	}
+}
+
+func pct(f Fraction) float64 {
+	if f.Pairs == 0 {
+		return 0
+	}
+	return float64(f.Hits) / float64(f.Pairs) * 100
 }
 
 func names(ts []edges.Target) string {

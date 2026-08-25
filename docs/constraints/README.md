@@ -114,7 +114,7 @@ information appears in both, and the entries cross-reference.
 
 | File | Segment | Entries |
 |---|---|---|
-| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-32, C-3 |
+| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-32, C-3 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-11, C-24 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-16, C-33 |
@@ -134,11 +134,13 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Fifty-seven entries: forty-eight active, seven lifted, two superseded**
-(audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Two
-of the active are **unsurfaced** (C-19 — narrowed to two tools — and
-C-20); C-4 moved from unsurfaced to *partial* in that audit, its status
+**Fifty-eight entries: forty-nine active, seven lifted, two superseded**
+(C-58 added 2026-08-25 by the oracle lane — unsurfaced, and the first
+entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
+against the code that concedes it; none had been silently lifted). Three
+of the active are **unsurfaced** (C-19 — narrowed to two tools — C-20,
+and C-58 — the interface/closure call hole, whose capture number reads
+resolved); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit
 corrected four drifted prose lines (C-35, C-42, C-46, C-54) and moved
 C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-21 (ADR-053:

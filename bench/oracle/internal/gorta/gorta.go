@@ -222,7 +222,11 @@ func unwind(g *callgraph.Graph, fn *ssa.Function, depth int) []*ssa.Function {
 	if fn == nil {
 		return nil
 	}
-	if fn.Synthetic == "" || depth > 4 {
+	// A generic instantiation is synthetic too, but it *is* the source
+	// function (folded to its origin by the caller) — following its body
+	// would report the callee's callees at the caller's site (the O2
+	// match-defect: sortedKeys[string] graded as sort.Strings).
+	if fn.Synthetic == "" || fn.Origin() != nil || depth > 4 {
 		return []*ssa.Function{fn}
 	}
 	node := g.Nodes[fn]

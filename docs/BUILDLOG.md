@@ -4946,3 +4946,31 @@ cell runs in ~1 s. 10 Go tests; pytest 895/896 on this box (the known
 `venv_environment` environment failure, unchanged). Fixtures are not
 logged in the evidence file by its own rule. Next: the §10
 pre-registration commit, then O2.
+
+## 2026-08-25 — oracle lane O2: this repo's Go zone graded; C-58 registered
+
+Pre-registration committed first (`docs/oracle-preregistration.md`,
+P1–P9). Then `run-cell.sh . go` — the first real cell. First pass:
+1,276 confirmed / 5 contradicted / 1 silent. Triage: 3 hobbes-wrong
+(all syntactic — lane A bound a test helper's local closure `run` to
+package `run`; C-7 priced exactly as P2 predicted), 2 **match-defect**
+(the unwinder followed a generic instantiation into its body and graded
+`sortedKeys[string]` as `sort.Strings`) — fixed, regression fixture
+`testdata/generic`, regraded: **1,278/1,278 semantic confirmed, 0/3
+syntactic, precision-against-oracle 99.8%; recall 87.5% at 20 roots,
+static 1,280/1,280.** Added recall-by-class to the report because a
+reachability oracle over-approximates `func()` values (138 pairs at 10
+sites — `defer cancel()` resolving to every closure in the program);
+the static number is the tight one and both print. The 45 honest
+misses are one class and it is now **C-58** in the call-graph segment:
+a call through an interface, a function value, or into a closure draws
+no edge — and `resolution_coverage` counts the site *resolved* (the
+checker found the interface method; C-9 then drops it), so the capture
+number reads better because of the gap. Unsurfaced; candidate
+surfacing named. Register: 58 entries, 49 active, 3 unsurfaced.
+Evidence row, §3.8 Go row ("compiler-graded", scoped to this repo), and
+the cell record (`docs/oracle-cells/hobbes-go-2026-08-25.md`) landed
+in this commit; predictions graded — P3 and P4 missed and say why.
+ADR-037's 20/20 could not be reproduced by identity (the edges were
+never listed); the whole semantic set stood in. Cell runtime: ~4 min
+for oracle + grade, ~6 min more for the six-language ingest. Next: O3.

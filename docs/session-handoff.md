@@ -75,8 +75,17 @@ planner variance) are in the same file.
 
 ## A SECOND, CLEARED TRACK — the oracle-grading lane (2026-08-25)
 
-Max cleared ADR-089 with every recommendation (D-O1–D-O6). **O1 is
-built**: `bench/oracle/` (own Go module; `oracle export | go-rta |
+Max cleared ADR-089 with every recommendation (D-O1–D-O6). **O1 and
+O2 are done** (2026-08-25): the harness lands on fixture truth; this
+repo's Go zone grades 1,278/1,278 semantic edges confirmed, 0/3
+syntactic, static recall 100% at 20 roots, and 45 honest misses — all
+one class, now **C-58** (interface / function-value / closure calls
+draw no edge, and the site still counts as resolved). Pre-registration
+graded in the evidence file (P3, P4 missed; the rest met). Resume at
+**O3 — kbet TS zones**: the `tsc` oracle extractor (TypeScript, under
+`bench/oracle/ts/`), overload-set membership, external targets out of
+recall (D-O3/D-O4), V2.M3's 20/20 as the cross-check. Then O4 dagger.
+O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
 grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
 to `pipeline/tests/fixtures/`. Resume at design §10: **the
 pre-registration commit** (bands for Go and TS precision, miss

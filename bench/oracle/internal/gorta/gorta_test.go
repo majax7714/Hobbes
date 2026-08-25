@@ -139,3 +139,24 @@ func TestNoRootsIsAnError(t *testing.T) {
 		t.Fatal("a module directory that does not exist must fail loudly")
 	}
 }
+
+// A generic instantiation is the source function, not a wrapper to see
+// through: the call to sortedKeys[string] grades against sortedKeys at
+// its declaration, never against the sort.Strings inside its body (the
+// O2 match-defect).
+func TestGenericInstantiationFoldsToOrigin(t *testing.T) {
+	o, err := Run(Options{Repo: "../../testdata/generic", Module: "."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPairs(t, inRepo(o), "main.go:15 -> main.go:5")
+	for _, s := range o.Sites {
+		if s.Pos.Key() == "main.go:15" {
+			for _, tg := range s.Targets {
+				if tg.External {
+					t.Errorf("sort.Strings leaked to the caller's site: %s", tg.Name)
+				}
+			}
+		}
+	}
+}

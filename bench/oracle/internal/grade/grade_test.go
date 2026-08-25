@@ -61,6 +61,9 @@ func TestTwomodLibDynamicMiss(t *testing.T) {
 	if r.Total != (TierCounts{Confirmed: 2}) {
 		t.Fatalf("lib buckets: %+v", r.Total)
 	}
+	if r.RecallBy["static"] != (Fraction{Hits: 2, Pairs: 2}) || r.RecallBy["dynamic"] != (Fraction{Hits: 0, Pairs: 1}) {
+		t.Fatalf("recall by class: %v", r.RecallBy)
+	}
 	if r.OraclePairs != 3 || r.RecallHits != 2 || r.MissBy["dynamic"] != 1 || len(r.Misses) != 1 {
 		t.Fatalf("lib recall: %d/%d misses %v", r.RecallHits, r.OraclePairs, r.MissBy)
 	}
@@ -70,7 +73,7 @@ func TestTwomodLibDynamicMiss(t *testing.T) {
 	var buf bytes.Buffer
 	Print(&buf, r)
 	out := buf.String()
-	for _, want := range []string{"recall 66.7% (2/3", "at 1 roots", "missed       lib/lib.go:28"} {
+	for _, want := range []string{"recall 66.7% (2/3", "at 1 roots", "recall[static         ] 100.0% (2/2)", "recall[dynamic        ] 0.0% (0/1)", "missed       lib/lib.go:28"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("report lacks %q:\n%s", want, out)
 		}

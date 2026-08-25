@@ -187,6 +187,53 @@
   because it is a paid cost with a deferred bill.
 - **Source:** ADR-027, Decision 1.
 
+### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved
+- **Cannot tell you:** that `s.Get(key)` reaches `MemStore.Get`, that
+  `run(query)` reaches the `Store` method the map handed it, that
+  `defer cancel()` runs anything, or that `run("init")` in a test helper
+  calls the closure two lines above it. **No `calls` edge is emitted
+  for any of them** — not to the interface method, not to the concrete
+  implementation, not to the closure. `who_calls` on an implementation
+  reached only through its interface answers *nobody*.
+- **Because:** two stacked mechanisms. The semantic lane resolves the
+  interface call to the *interface method's* declaration, and interface
+  methods and closures are outside the five graph-worthy descriptor
+  kinds (C-9) — so there is no target node to draw the edge to and the
+  join drops it. Concrete-implementation targets would need a
+  points-to or type-hierarchy analysis Hobbes does not run (P9 has
+  nothing to inherit here: SCIP indexers resolve *declarations*, not
+  dispatch).
+- **Bites at:** `who_calls`, `tests_guarding`, `graph_neighborhood`, the
+  reviewer's tier-aware invariant checks, and every derived context
+  built from call reach — anything dispatched through an interface,
+  a callback, or a goroutine closure is a silent hole in the reach set.
+  Measured on this repo's Go zone by the oracle lane (2026-08-25): of
+  1,461 in-repo oracle pairs, 45 non-inflated misses are exactly this
+  class (8 dynamic dispatch, 37 calls into closures); the reachability
+  oracle's own over-approximation of `func()` values adds 138 more
+  pairs it cannot separate.
+- **You find out:** **unsurfaced — and worse than silent.** The site is
+  counted **resolved** in `resolution_coverage` (the checker *did* find
+  a declaration: the interface method), so the capture number reads
+  100% on a file whose only call the graph does not carry. The number
+  says accounted; the graph says nothing. Candidate surfacing: a
+  `dispatch` class in the tail view (C-32's vocabulary) — *seen and not
+  modelled by design* — counted out of `resolved` and reported per
+  file, and a `dispatch` note on `who_calls` answers for any method that
+  implements an interface. Until then this entry is the only place a
+  user learns it.
+- **Provider (P9):** ours. `scip-go` **0.2.7** resolves the occurrence
+  correctly (to the interface method); Hobbes' descriptor filter and the
+  absence of a dispatch analysis are Hobbes' choices.
+- **Source:** oracle lane O1/O2 (ADR-089, `docs/oracle-grading.md`;
+  `bench/oracle/`), 2026-08-25 — the lane's first graded miss, on the
+  `twomod` fixture, then 45 of 45 non-inflated misses on this repo.
+  Related: C-1 (the general rule that absence is not evidence), C-9
+  (the descriptor filter), C-7 (the syntactic fallback that *did* draw
+  an edge for a closure call in `hobbes-session/main_test.go` — to the
+  wrong target, the package function of the same name; the oracle's 3
+  syntactic-tier contradictions).
+
 ### C-32 — The tail view's classes are observations with boundaries
 - **Cannot tell you:** *why* a call is unresolved beyond what its class
   observes — and three boundaries shape what the classes can say.
