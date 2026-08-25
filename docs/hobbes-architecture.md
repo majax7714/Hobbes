@@ -629,8 +629,10 @@ means extending its row, in the same commit as the evidence.
 
 The asymmetry is the point of the table, so state it plainly rather than
 letting the rows read as peers. Python and TS/JS were proven across
-multiple repos of different shapes. **Go's entire hand-verified evidence
-base is one repo, and it is Hobbes's own** — a shape its builders chose.
+multiple repos of different shapes. **Go's hand-verified evidence base was one repo, Hobbes's own** — a
+shape its builders chose; since the oracle lane (2026-08-25) Go is
+compiler-graded on this repo and on 19 of dagger's modules — a second,
+foreign shape, and still not "the language".
 **Rust's is one small repo**: enough to prove P7 (zero builder lines) and
 the honesty machinery (tiers, `dependency_coverage`, the C-29
 disclosure), and *not* enough to claim the language — macro-heavy crates,
