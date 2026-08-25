@@ -1,0 +1,359 @@
+{
+  "dirty": true,
+  "extraction_errors": [
+    {
+      "message": "1 symbol(s) are defined in more than one file (e.g. `example.com/lib`/) \u2014 cargo targets sharing a name, or a package namespace declared per file; references to them are left unattributed rather than guessed",
+      "path": ".",
+      "stage": "scip-decode"
+    }
+  ],
+  "lane_agreement": {
+    "module_edges_compared": 0,
+    "module_edges_excluded_lane_b_only": 2,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 5
+  },
+  "languages": [
+    "go"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 6,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main",
+      "tier": "syntactic",
+      "to": "ext:fmt",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "app/cmd/app/main.go"
+        },
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main",
+      "tier": "semantic",
+      "to": "lib/lib",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "lib/lib_test.go"
+        }
+      ],
+      "from": "lib/lib_test",
+      "tier": "syntactic",
+      "to": "ext:testing",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "lib/lib_test.go"
+        },
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "lib/lib_test.go"
+        }
+      ],
+      "from": "lib/lib_test",
+      "tier": "semantic",
+      "to": "lib/lib",
+      "type": "imports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "app/cmd/app/main",
+      "kind": "module",
+      "path": "app/cmd/app/main.go"
+    },
+    {
+      "id": "ext:fmt",
+      "kind": "external",
+      "name": "fmt"
+    },
+    {
+      "id": "ext:testing",
+      "kind": "external",
+      "name": "testing"
+    },
+    {
+      "id": "lib/lib",
+      "kind": "module",
+      "path": "lib/lib.go"
+    },
+    {
+      "id": "lib/lib_test",
+      "kind": "module",
+      "path": "lib/lib_test.go"
+    }
+  ],
+  "packs": [
+    "cli-go"
+  ],
+  "resolution_coverage": [
+    {
+      "external": 2,
+      "file": "app/cmd/app/main.go",
+      "resolved": 3,
+      "sites": 5,
+      "unresolved": 0
+    },
+    {
+      "external": 0,
+      "file": "lib/lib.go",
+      "resolved": 1,
+      "sites": 1,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "lib/lib_test.go",
+      "resolved": 2,
+      "sites": 4,
+      "unresolved": 0
+    }
+  ],
+  "schema_version": 4,
+  "sha": "bfdfd6484268bf5731fce4645b377d0c01cc2bd3",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main.main",
+      "tier": "semantic",
+      "to": "app/cmd/app/main.banner",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main.main",
+      "tier": "semantic",
+      "to": "lib/lib.Greet",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main.main",
+      "tier": "semantic",
+      "to": "lib/lib.Lookup",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "app/cmd/app/main.go"
+        }
+      ],
+      "from": "app/cmd/app/main.main",
+      "tier": "semantic",
+      "to": "lib/lib.MemStore",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 27,
+          "path": "lib/lib.go"
+        }
+      ],
+      "from": "lib/lib.Lookup",
+      "tier": "semantic",
+      "to": "lib/lib.Store",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "lib/lib.go"
+        }
+      ],
+      "from": "lib/lib.MemStore.Get",
+      "tier": "semantic",
+      "to": "lib/lib.MemStore",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "lib/lib_test.go"
+        }
+      ],
+      "from": "lib/lib_test.TestGreet",
+      "tier": "semantic",
+      "to": "lib/lib.Greet",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "lib/lib_test.go"
+        }
+      ],
+      "from": "lib/lib_test.TestLookup",
+      "tier": "semantic",
+      "to": "lib/lib.Lookup",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "lib/lib_test.go"
+        }
+      ],
+      "from": "lib/lib_test.TestLookup",
+      "tier": "semantic",
+      "to": "lib/lib.MemStore",
+      "type": "uses"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 13,
+      "id": "app/cmd/app/main.banner",
+      "kind": "function",
+      "line": 11,
+      "module": "app/cmd/app/main",
+      "name": "banner",
+      "qualname": "banner"
+    },
+    {
+      "end_line": 18,
+      "id": "app/cmd/app/main.main",
+      "kind": "function",
+      "line": 15,
+      "module": "app/cmd/app/main",
+      "name": "main",
+      "qualname": "main"
+    },
+    {
+      "end_line": 10,
+      "id": "lib/lib.Greet",
+      "kind": "function",
+      "line": 8,
+      "module": "lib/lib",
+      "name": "Greet",
+      "qualname": "Greet"
+    },
+    {
+      "end_line": 29,
+      "id": "lib/lib.Lookup",
+      "kind": "function",
+      "line": 27,
+      "module": "lib/lib",
+      "name": "Lookup",
+      "qualname": "Lookup"
+    },
+    {
+      "end_line": 18,
+      "id": "lib/lib.MemStore",
+      "kind": "type",
+      "line": 18,
+      "module": "lib/lib",
+      "name": "MemStore",
+      "qualname": "MemStore"
+    },
+    {
+      "end_line": 23,
+      "id": "lib/lib.MemStore.Get",
+      "kind": "method",
+      "line": 21,
+      "module": "lib/lib",
+      "name": "Get",
+      "qualname": "MemStore.Get"
+    },
+    {
+      "end_line": 15,
+      "id": "lib/lib.Store",
+      "kind": "type",
+      "line": 13,
+      "module": "lib/lib",
+      "name": "Store",
+      "qualname": "Store"
+    },
+    {
+      "end_line": 9,
+      "id": "lib/lib_test.TestGreet",
+      "kind": "function",
+      "line": 5,
+      "module": "lib/lib_test",
+      "name": "TestGreet",
+      "qualname": "TestGreet"
+    },
+    {
+      "end_line": 15,
+      "id": "lib/lib_test.TestLookup",
+      "kind": "function",
+      "line": 11,
+      "module": "lib/lib_test",
+      "name": "TestLookup",
+      "qualname": "TestLookup"
+    }
+  ],
+  "tail_classes_available": {
+    "go": [
+      "fallback-resolved",
+      "local-binding",
+      "builtin-name",
+      "attr-call",
+      "unclassified"
+    ]
+  },
+  "verification_base": {
+    "go": {
+      "depth": "single-repo",
+      "note": "verified on 1 repo: one repo \u2014 this one",
+      "on": "one repo \u2014 this one",
+      "repos": 1
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # ADR-089 — An oracle-grading lane for the call graph, and its build decisions
 
-**Date:** 2026-08-25 · **Status:** proposed — awaiting Max's decisions on D-O1–D-O6 · **Owner:** Max · **Design:** `docs/oracle-grading.md`
+**Date:** 2026-08-25 · **Status:** accepted — D-O1–D-O6 decided 2026-08-25 (recommendations adopted) · **Owner:** Max · **Design:** `docs/oracle-grading.md`
 
 ## Context
 
@@ -25,17 +25,17 @@ entries when the lane lands.
 
 ## The six build decisions
 
-Each is recorded here with the design's recommendation. **None is taken
-until Max marks it.** Status column: *proposed* → *decided (date)*.
+Each is recorded here with the design's recommendation.
+Status column: *proposed* → *decided (date)*.
 
 | # | Decision | Recommendation | Status |
 |---|---|---|---|
-| D-O1 | Go algorithm | RTA now; VTA as an optional second arm on O2 only, to price the choice | proposed |
-| D-O2 | Harness home | `bench/oracle/` as its own module(s), product stays pure; not a `hobbes oracle` subcommand | proposed |
-| D-O3 | Dispatch and external scoring | Multi-target oracle sites: Hobbes' target confirmed on set membership; recall counts every oracle pair. External targets out of the in-repo recall denominator, external-confirmation rate reported separately | proposed |
-| D-O4 | Position/overload conventions | Declaration position = identifier start, 1-based line; overload = set membership. Written as normative in the harness README; both product lanes measured against them | proposed |
-| D-O5 | Python trace mechanics (phase 2) | `sys.monitoring` at site grain; the repo's own test suite; module-body calls in/out decided once at O6 | proposed |
-| D-O6 | Rust path (phase 2) | MIR resolution oracle first; Rupta as a time-boxed reference lane, dropped without ceremony if the nightly pin fights | proposed |
+| D-O1 | Go algorithm | RTA now; VTA as an optional second arm on O2 only, to price the choice | decided 2026-08-25 |
+| D-O2 | Harness home | `bench/oracle/` as its own module(s), product stays pure; not a `hobbes oracle` subcommand | decided 2026-08-25 |
+| D-O3 | Dispatch and external scoring | Multi-target oracle sites: Hobbes' target confirmed on set membership; recall counts every oracle pair. External targets out of the in-repo recall denominator, external-confirmation rate reported separately | decided 2026-08-25 |
+| D-O4 | Position/overload conventions | Declaration position = identifier start, 1-based line; overload = set membership. Written as normative in the harness README; both product lanes measured against them | decided 2026-08-25 |
+| D-O5 | Python trace mechanics (phase 2) | `sys.monitoring` at site grain; the repo's own test suite; module-body calls in/out decided once at O6 | decided 2026-08-25 |
+| D-O6 | Rust path (phase 2) | MIR resolution oracle first; Rupta as a time-boxed reference lane, dropped without ceremony if the nightly pin fights | decided 2026-08-25 |
 
 ## Gates
 

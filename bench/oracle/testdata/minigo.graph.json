@@ -1,0 +1,543 @@
+{
+  "dirty": false,
+  "extraction_errors": [
+    {
+      "message": "1 symbol(s) are defined in more than one file (e.g. `example.com/minigo/internal/policy`/) \u2014 cargo targets sharing a name, or a package namespace declared per file; references to them are left unattributed rather than guessed",
+      "path": ".",
+      "stage": "scip-decode"
+    }
+  ],
+  "lane_agreement": {
+    "module_edges_compared": 0,
+    "module_edges_excluded_lane_b_only": 2,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 4
+  },
+  "languages": [
+    "go"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 22,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main",
+      "tier": "syntactic",
+      "to": "env:MINIGO_MODE",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 4,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main",
+      "tier": "syntactic",
+      "to": "ext:fmt",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main",
+      "tier": "syntactic",
+      "to": "ext:net/http",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 6,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main",
+      "tier": "syntactic",
+      "to": "ext:os",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "cmd/mini/main.go"
+        },
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main",
+      "tier": "semantic",
+      "to": "internal/policy/policy",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 37,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy",
+      "tier": "syntactic",
+      "to": "env:MINIGO_HOME",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy",
+      "tier": "syntactic",
+      "to": "ext:os",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 6,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy",
+      "tier": "syntactic",
+      "to": "ext:strings",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "internal/policy/policy_test.go"
+        }
+      ],
+      "from": "internal/policy/policy_test",
+      "tier": "syntactic",
+      "to": "ext:testing",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "internal/policy/policy_test.go"
+        },
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "internal/policy/policy_test.go"
+        },
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "internal/policy/policy_test.go"
+        }
+      ],
+      "from": "internal/policy/policy_test",
+      "tier": "semantic",
+      "to": "internal/policy/policy",
+      "type": "imports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "cmd/mini/main",
+      "kind": "module",
+      "path": "cmd/mini/main.go"
+    },
+    {
+      "id": "env:MINIGO_HOME",
+      "kind": "env",
+      "name": "MINIGO_HOME"
+    },
+    {
+      "id": "env:MINIGO_MODE",
+      "kind": "env",
+      "name": "MINIGO_MODE"
+    },
+    {
+      "id": "ext:fmt",
+      "kind": "external",
+      "name": "fmt"
+    },
+    {
+      "id": "ext:net/http",
+      "kind": "external",
+      "name": "net/http"
+    },
+    {
+      "id": "ext:os",
+      "kind": "external",
+      "name": "os"
+    },
+    {
+      "id": "ext:strings",
+      "kind": "external",
+      "name": "strings"
+    },
+    {
+      "id": "ext:testing",
+      "kind": "external",
+      "name": "testing"
+    },
+    {
+      "id": "internal/policy/policy",
+      "kind": "module",
+      "path": "internal/policy/policy.go"
+    },
+    {
+      "id": "internal/policy/policy_test",
+      "kind": "module",
+      "path": "internal/policy/policy_test.go"
+    }
+  ],
+  "packs": [
+    "http-go",
+    "cli-go"
+  ],
+  "resolution_coverage": [
+    {
+      "external": 7,
+      "file": "cmd/mini/main.go",
+      "resolved": 2,
+      "sites": 9,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "internal/policy/policy.go",
+      "resolved": 1,
+      "sites": 3,
+      "unresolved": 0
+    },
+    {
+      "external": 2,
+      "file": "internal/policy/policy_test.go",
+      "resolved": 2,
+      "sites": 4,
+      "unresolved": 0
+    }
+  ],
+  "schema_version": 4,
+  "sha": "079d75002ad8d288b7277e29f9cd8e5a41ef6b1e",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main.handleCheck",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Resolve",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main.handleHome",
+      "tier": "semantic",
+      "to": "internal/policy/policy.HomeDir",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 20,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main.main",
+      "tier": "semantic",
+      "to": "cmd/mini/main.handleCheck",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "cmd/mini/main.go"
+        }
+      ],
+      "from": "cmd/mini/main.main",
+      "tier": "semantic",
+      "to": "cmd/mini/main.handleHome",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 26,
+          "path": "internal/policy/policy.go"
+        },
+        {
+          "lane": "scip",
+          "line": 32,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Resolve",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Decision",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 32,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Resolve",
+      "tier": "semantic",
+      "to": "internal/policy/policy.DefaultDecision",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 26,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Resolve",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Rule",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 28,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Resolve",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Rule.Matches",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Rule",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Decision",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "internal/policy/policy.go"
+        }
+      ],
+      "from": "internal/policy/policy.Rule.Matches",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Rule",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 13,
+          "path": "internal/policy/policy_test.go"
+        }
+      ],
+      "from": "internal/policy/policy_test.TestDefaultEscalates",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Resolve",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "internal/policy/policy_test.go"
+        }
+      ],
+      "from": "internal/policy/policy_test.TestResolveAllows",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Resolve",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 6,
+          "path": "internal/policy/policy_test.go"
+        }
+      ],
+      "from": "internal/policy/policy_test.TestResolveAllows",
+      "tier": "semantic",
+      "to": "internal/policy/policy.Rule",
+      "type": "uses"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 13,
+      "id": "cmd/mini/main.handleCheck",
+      "kind": "function",
+      "line": 11,
+      "module": "cmd/mini/main",
+      "name": "handleCheck",
+      "qualname": "handleCheck"
+    },
+    {
+      "end_line": 17,
+      "id": "cmd/mini/main.handleHome",
+      "kind": "function",
+      "line": 15,
+      "module": "cmd/mini/main",
+      "name": "handleHome",
+      "qualname": "handleHome"
+    },
+    {
+      "end_line": 25,
+      "id": "cmd/mini/main.main",
+      "kind": "function",
+      "line": 19,
+      "module": "cmd/mini/main",
+      "name": "main",
+      "qualname": "main"
+    },
+    {
+      "end_line": 10,
+      "id": "internal/policy/policy.Decision",
+      "kind": "type",
+      "line": 10,
+      "module": "internal/policy/policy",
+      "name": "Decision",
+      "qualname": "Decision"
+    },
+    {
+      "end_line": 12,
+      "id": "internal/policy/policy.DefaultDecision",
+      "kind": "const",
+      "line": 12,
+      "module": "internal/policy/policy",
+      "name": "DefaultDecision",
+      "qualname": "DefaultDecision"
+    },
+    {
+      "end_line": 38,
+      "id": "internal/policy/policy.HomeDir",
+      "kind": "function",
+      "line": 36,
+      "module": "internal/policy/policy",
+      "name": "HomeDir",
+      "qualname": "HomeDir"
+    },
+    {
+      "end_line": 33,
+      "id": "internal/policy/policy.Resolve",
+      "kind": "function",
+      "line": 26,
+      "module": "internal/policy/policy",
+      "name": "Resolve",
+      "qualname": "Resolve"
+    },
+    {
+      "end_line": 18,
+      "id": "internal/policy/policy.Rule",
+      "kind": "type",
+      "line": 15,
+      "module": "internal/policy/policy",
+      "name": "Rule",
+      "qualname": "Rule"
+    },
+    {
+      "end_line": 23,
+      "id": "internal/policy/policy.Rule.Matches",
+      "kind": "method",
+      "line": 21,
+      "module": "internal/policy/policy",
+      "name": "Matches",
+      "qualname": "Rule.Matches"
+    },
+    {
+      "end_line": 16,
+      "id": "internal/policy/policy_test.TestDefaultEscalates",
+      "kind": "function",
+      "line": 12,
+      "module": "internal/policy/policy_test",
+      "name": "TestDefaultEscalates",
+      "qualname": "TestDefaultEscalates"
+    },
+    {
+      "end_line": 10,
+      "id": "internal/policy/policy_test.TestResolveAllows",
+      "kind": "function",
+      "line": 5,
+      "module": "internal/policy/policy_test",
+      "name": "TestResolveAllows",
+      "qualname": "TestResolveAllows"
+    }
+  ],
+  "tail_classes_available": {
+    "go": [
+      "fallback-resolved",
+      "local-binding",
+      "builtin-name",
+      "attr-call",
+      "unclassified"
+    ]
+  },
+  "verification_base": {
+    "go": {
+      "depth": "single-repo",
+      "note": "verified on 1 repo: one repo \u2014 this one",
+      "on": "one repo \u2014 this one",
+      "repos": 1
+    }
+  }
+}

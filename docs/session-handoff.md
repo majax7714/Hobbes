@@ -73,6 +73,18 @@ findings, not defects (knowledge tools unused at the 7B rung — derived
 context is push-only there; requirement-text rendered as code; O4
 planner variance) are in the same file.
 
+## A SECOND, CLEARED TRACK — the oracle-grading lane (2026-08-25)
+
+Max cleared ADR-089 with every recommendation (D-O1–D-O6). **O1 is
+built**: `bench/oracle/` (own Go module; `oracle export | go-rta |
+grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
+to `pipeline/tests/fixtures/`. Resume at design §10: **the
+pre-registration commit** (bands for Go and TS precision, miss
+concentration, contradiction tier, the O4 build-tag prediction), then
+O2 = `run-cell.sh . go <out>` on this repo, with ADR-037's 20/20 as
+the cross-check and the triage protocol's first use. No GPU; each cell
+logs its runtime. Phase-by-phase, report between cells.
+
 ## HOW TO INSPECT / MEASURE (no GPU)
 
 - The pair's records: `~/.hobbes/bench/adr085-validate-7b{,-control}/`

@@ -106,6 +106,11 @@ run; GPU-hours stated first).*
   This is the "one more test showing Hobbes functionality regardless
   of task success": the harness demonstrating decomposition, coverage,
   and honest plan errors end to end.
+- **The oracle-grading lane (ADR-089, `docs/oracle-grading.md`) — cleared
+  2026-08-25, O1 built.** Precision-against-oracle and recall for the
+  call graph against Go RTA / `tsc` (phase 1) and Python traces / Rust
+  MIR (phase 2). Next: pre-registration commit, then O2 (this repo's Go
+  zone, ADR-037's 20/20 as the cross-check). Spends no GPU.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without

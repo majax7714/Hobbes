@@ -4911,3 +4911,38 @@ records the lane and carries D-O1–D-O6 as *proposed* with the design's
 recommendations; O1 is gated on Max deciding D-O1–D-O4. Noted while
 landing it: the O1 fixture `twomod` does not exist (only `minigo`), so
 it is in O1's scope. No harness code written.
+
+## 2026-08-25 — oracle lane O1: the harness lands on fixture truth (ADR-089)
+
+Max cleared ADR-089 with the recommendations; D-O1–D-O6 marked decided.
+Built `bench/oracle/` — its own Go module (the one `x/tools` dependency
+stays out of the product module, D-O2), one binary: `export` (graph.json
+→ graded edges: one per evidence line of each `calls` edge, target =
+callee's declaring file + declaration line), `go-rta` (packages → SSA →
+RTA, rooted at every main package's `main` **and `init`**, sites scoped
+to the cell's module, targets anywhere in the repo, synthetic functions
+unwound, generics folded to origin), `grade` (buckets confirmed /
+contradicted / abstract / silent{not-loaded, unreachable, no-targets},
+precision-against-oracle and recall printed together with root count,
+per-tier split, miss decomposition, triage rows). `run-cell.sh` is the
+one command per cell. Added the `twomod` fixture (two modules joined by
+`replace`, one interface-dispatch call). README carries the D-O4
+conventions as normative.
+
+Findings from the self-test, in order: (1) RTA rooted at `main` alone
+reaches **no test function** — the synthesized test main's table is
+address-taken in `init`; rooting at `init` too (as `x/tools`' own
+`callgraph` does) fixed it. (2) RTA over-approximates the fixture's
+one invoke with an external `reflect.StructTag.Get` beside the true
+`MemStore.Get` — rule 4 of the design, seen on day one, external and
+so out of the recall denominator. (3) **Hobbes draws no call edge for
+`s.Get(key)` at `twomod/lib/lib.go:28`** — not to `Store.Get`, not to
+`MemStore.Get`; the graph has only the `uses Lookup → Store` type edge.
+The pre-registered miss class (interface dispatch) is the first graded
+miss, and it is a recall miss, not a contradiction. Cells: minigo 5/5
+confirmed, recall 5/5 at 2 roots; twomod/app 3/3, 3/3 at 1 root;
+twomod/lib 2/2, recall 2/3 at 1 root (`misses {dynamic: 1}`). Each
+cell runs in ~1 s. 10 Go tests; pytest 895/896 on this box (the known
+`venv_environment` environment failure, unchanged). Fixtures are not
+logged in the evidence file by its own rule. Next: the §10
+pre-registration commit, then O2.

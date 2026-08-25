@@ -77,6 +77,10 @@ box, against a repo on disk (architecture §10); the application mode in
   pure layer with the vitest cases; `npm run build` bundles into the Go
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the session image (`Containerfile`) and exit-check harness.
+- `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
+  (`x/tools` RTA), one `oracle` binary (`export | go-rta | grade`),
+  `run-cell.sh`; grades the call graph against answer keys Hobbes does
+  not control. Bench tooling, never product.
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
@@ -112,6 +116,9 @@ go build -o bin/hobbes-web     ./cmd/hobbes-web      # after `cd web && npm run 
 CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy   # MUST be static:
 CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy  # it is mounted into the sandbox
 
+# Oracle lane (bench tooling; fixture self-test)
+cd bench/oracle && go test ./...
+
 # Web
 cd web && npm test && npm run build
 
@@ -128,8 +135,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-24): 896 pytest / 291 Go / 52
-vitest / 29 tsextract + 25 scip node tests. Keep them green.
+Suite sizes at the last check (2026-08-25): 896 pytest / 291 Go + 10
+oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 
 ## Conventions
 

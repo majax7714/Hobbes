@@ -661,6 +661,22 @@ apart), and `list_blind_spots`. The test suite reads this section and
 fails when the two tables disagree, so extending a row here without the
 code is a red build, not a quiet drift.
 
+**Hand-checks are a floor on this table, and the oracle lane is how it
+gets graded at scale** (ADR-089, `docs/oracle-grading.md`,
+`bench/oracle/`). Every hand-check above is small-n and self-selected
+(n=20 bounds true precision at ~83% from below), and lane agreement is
+two of Hobbes' own methods agreeing. The oracle lane grades every call
+edge against an edge source Hobbes does not control — Go's own RTA over
+SSA, `tsc`'s resolution, and in phase 2 the Python interpreter's own
+call trace and rustc's MIR — and reports **precision-against-oracle and
+recall together**, per tier, with the root count or coverage line the
+recall depends on and the oracle-silent size printed. A row this lane
+produces reads "compiler-graded" or "trace-graded", never as
+hand-verified; it licenses exactly the cell it measured. State at O1
+(2026-08-25): the harness lands exactly on the hand-computable truth of
+the `minigo` and `twomod` fixtures, and its first graded miss is the
+interface-dispatch call Hobbes draws no edge for at all.
+
 ---
 
 ## 4. Knowledge layer
