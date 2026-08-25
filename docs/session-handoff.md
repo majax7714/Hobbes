@@ -92,14 +92,18 @@ contradictions = type conversions drawn as calls, a product defect on
 W1's list), 9,854/9,889 static named calls drawn, C-59 (dropped
 self-calls) registered; **the root module OOMs as one program (~21–24
 GB on this 30 GB box, H-9)**, so P8 and P9 are recorded *not graded*.
-Resume with either (a) **W1's fixes** — conversions-as-calls, chain
-continuations, LHS calls, method expressions, C-59 — each with a
-dagger module cell that reruns in ~3 min (`~/.hobbes/bench/oracle/
-run-dagger.sh`), or (b) **phase 2** (O6 Python traces, O7 Rust MIR),
-or (c) **the root on a bigger box — flagged (Max, 2026-08-25): needs
-~32 GB+ free for the engine's closure; parked until Hobbes gains
-compute.** Cell outputs live under
-`~/.hobbes/bench/oracle/dagger/`.
+**W1's fixes from the O4 findings are done and verified** (later
+the same day): dagger's 19 modules regrade at **0 contradictions,
+static named calls 9,889/9,889**; five product defects fixed with
+`goshapes` fixture tests (conversions-as-calls, the type-name
+collision in the conversion filter, generic-call sites, self-calls —
+C-59 lifted — and typed var/const specs named by their type). Resume
+with **phase 2** (O6 Python runtime traces, O7 Rust MIR — design §6/§7,
+D-O5/D-O6 decided) or the C-58 design question (closures, interface
+dispatch, function values: the only misses left, sized on two
+codebases in `docs/oracle-misses.md`). The root on a bigger box is
+flagged and parked. Cell outputs: `~/.hobbes/bench/oracle/dagger/`
+(after) and `dagger-before/`.
 O1 was built as follows:: `bench/oracle/` (own Go module; `oracle export | go-rta |
 grade`, `run-cell.sh`), fixture truth in its Go tests, `twomod` added
 to `pipeline/tests/fixtures/`. Resume at design §10: **the

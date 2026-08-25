@@ -286,18 +286,26 @@ def _symbols(declaration: Node, kind: str) -> list[dict]:
     for node in _walk(declaration):
         if node.type not in spec_types:
             continue
-        name = _child_text(node, "type_identifier") or _child_text(node, "identifier")
-        if not name:
-            continue
-        out.append(
-            _symbol(
-                name,
-                name,
-                kind,
-                node.start_point.row + 1,
-                node.end_point.row + 1,
+        # The spec's *name* field, never its first identifier-shaped
+        # child: `var mavenImage string` has a type_identifier too, and
+        # reading that one minted a symbol called `string` for every
+        # typed var and const (58 of them in dagger) — which lane A's
+        # fallback then bound `string(x)` conversions to (oracle lane O4,
+        # the last 3 contradictions after the join fixes).
+        names = [_text(child) for child in node.children_by_field_name("name")]
+        if not names:
+            fallback = _child_text(node, "type_identifier") or _child_text(node, "identifier")
+            names = [fallback] if fallback else []
+        for name in names:
+            out.append(
+                _symbol(
+                    name,
+                    name,
+                    kind,
+                    node.start_point.row + 1,
+                    node.end_point.row + 1,
+                )
             )
-        )
     return out
 
 

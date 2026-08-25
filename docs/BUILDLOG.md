@@ -5059,3 +5059,22 @@ active / 8 lifted / 3 unsurfaced. §3.8's Go row is now two repos
 it — the P11 test caught the edit, as designed — and the `go · 1 repo`
 badge is gone. Architecture §3 amended. 906 pytest (+10). dagger
 re-ingest and the 19-cell rerun are running for the after numbers.
+
+## 2026-08-25 — W1 closed against the oracle: dagger's 19 modules at 0 contradictions
+
+The rerun after the fixes surfaced one more: the 3 surviving
+contradictions were `string(x)` bound by lane A's fallback to a symbol
+named `string` — and dagger's graph had **58 phantom `string`/`int`
+symbols**, because `var mavenImage string` was named by its
+type_identifier child, not its name field (a bug as old as V2.M5's Go
+provider; `const K string = ""` likewise). Fixed to read every `name`
+field of the spec (`var a, b int` is two symbols); `goshapes` covers
+it. Second re-ingest, the two affected cells rerun: **19 modules,
+9,851 confirmed / 0 contradicted / 656 silent, precision-against-oracle
+100%, static named calls 9,889/9,889, 9,890/10,715 in-repo pairs
+drawn.** Before/after per module in the cell record; the before reports
+kept beside the after. What is left is C-58 — a design question the
+oracle has now sized on two codebases (closures 70–80%, interface
+dispatch 4–23%). 907 pytest. Session closed: ADR-089 phase 1 done to
+this box's limit, W1's findings fixed and verified by the instrument
+that found them.

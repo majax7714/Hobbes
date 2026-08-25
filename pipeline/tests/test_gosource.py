@@ -392,3 +392,10 @@ class TestCallShapesTheOracleFoundMissing:
         # The edge itself is the projection's business (test_scipsource);
         # lane A must at least see the site inside Walk.
         assert 33 in {s.line for s in _sites(shapes, "Walk")}
+
+    def test_typed_vars_and_consts_are_named_by_their_names(self, shapes):
+        names = {s["name"]: s["kind"] for s in shapes["symbols"]}
+        assert names.get("Embedded") == "var"
+        assert names.get("Key") == "const"
+        assert names.get("A") == "var" and names.get("B") == "var"
+        assert "string" not in names and "int" not in names

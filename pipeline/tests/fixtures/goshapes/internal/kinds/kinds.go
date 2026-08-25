@@ -32,3 +32,12 @@ func Walk(n int) int {
 	}
 	return Walk(n - 1)
 }
+
+// Embedded is a typed var: its symbol is Embedded, not `string`.
+var Embedded string
+
+// Key is a typed const, likewise.
+const Key string = "k"
+
+// A, B share one spec.
+var A, B int
