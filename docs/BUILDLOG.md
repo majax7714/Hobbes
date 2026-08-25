@@ -4885,3 +4885,17 @@ $3.17. The public clone's derived artifacts are at `12bac9f`; note
 `test_scipsource … venv_environment` fails on this box at `main`
 (environment — the venv lists only `pip`), so the live count here is
 895, not 896. Session closed at Max's direction; docs current.
+
+## 2026-08-25 — the constraint register becomes a folder (ADR-088)
+
+Docs only, no code. `docs/constraints.md` (1,822 lines) is now
+`docs/constraints/`: `README.md` carries the preamble, an index table,
+and the debt summary; eleven segment files carry the entries under the
+same headings the file had. Lifted entries moved to the bottom of their
+segment (C-3 → call graph; C-11, C-24 → TS/JS; C-14 → packs; C-16, C-33
+→ lane B environments; C-18 → narrative/invariants), superseded C-55/56
+to the bottom of the benchmark harness file. 57 entries in, 57 out,
+text unchanged. Links repointed across README, CLAUDE.md, the
+architecture, first-run, workstreams, session-handoff, future_additions
+and the ADRs that cite the file; earlier BUILDLOG entries left as
+written. Convention updated: a new `C-n` lands in its segment file.

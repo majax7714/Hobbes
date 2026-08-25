@@ -40,7 +40,7 @@ box, against a repo on disk (architecture §10); the application mode in
 |-------------------------------------------|----------------------------------------------------------------------|
 | resuming the active programme             | `docs/session-handoff.md` → `docs/adr085-validation-run.md`          |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
-| touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints.md` |
+| touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
@@ -76,8 +76,8 @@ box, against a repo on disk (architecture §10); the application mode in
   pure layer with the vitest cases; `npm run build` bundles into the Go
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the session image (`Containerfile`) and exit-check harness.
-- `docs/` — architecture, ADRs, `constraints.md` (the register of what
-  Hobbes cannot tell you), `extraction-evidence.md`, `BUILDLOG.md`,
+- `docs/` — architecture, ADRs, `constraints/` (the register of what
+  Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
   backlog), and the frozen v1 record.
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
@@ -138,9 +138,9 @@ vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 086).
-- **Every concession of information gets a `C-n` entry in
-  `docs/constraints.md`, in the same commit** (P8, ADR-030), with a
+  architecture doesn't already make. Number sequentially (last: 088).
+- **Every concession of information gets a `C-n` entry in its segment
+  file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
   is debt. Inherited provider limits add a `Provider` line (P9).
 - **A specific safety guarantee outranks a general safety system**

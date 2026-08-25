@@ -72,7 +72,7 @@ way ADR-029 was. §3.1 and §7's V2.M3 line are patched in this commit.
 
 ## What it concedes, and where that is written down
 
-Registered as **C-8** in `docs/constraints.md` (P8, ADR-030): *with no
+Registered as **C-8** in `docs/constraints/README.md` (P8, ADR-030): *with no
 working indexer, the entire symbol layer is approximate.* That was already
 true before this ADR — it is the floor P6 promises — but demotion is what
 makes it a permanent, designed property rather than a transitional state

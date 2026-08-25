@@ -434,6 +434,6 @@ carried subsystems.
 Every decision those don't make has a numbered ADR in `docs/adr/`.
 `docs/BUILDLOG.md` is what actually happened, session by session,
 `docs/future_additions.md` is what was deliberately left undone and why,
-and **`docs/constraints.md` is what Hobbes cannot tell you** — every
+and **`docs/constraints/README.md` is what Hobbes cannot tell you** — every
 place it concedes information, and where you meet that limit (P8).
 Read that one before you trust a number.

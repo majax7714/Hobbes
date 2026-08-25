@@ -61,7 +61,7 @@ Six ideas do most of the work:
   the sandbox and the tool proxy are load-bearing.
 - **Degrade visibly, and register what you cannot know.** A failed indexer
   leaves the graph standing at lower confidence and says so; a limit that
-  is *structural* gets an entry in [`docs/constraints.md`](docs/constraints.md)
+  is *structural* gets an entry in [`docs/constraints/README.md`](docs/constraints/README.md)
   naming where a user meets it. Hobbes is unusable as a known liar and
   worse as a fake-honest one.
 - **A provider's limits are Hobbes's limits.** Semantics come from
@@ -183,7 +183,7 @@ way Hobbes learned to see **its own Go** (closing the dogfood loop) and
 its own Rust fixture — six languages in the graph it builds of itself.
 
 What v2 *cannot* tell you is a first-class artifact too:
-[`docs/constraints.md`](docs/constraints.md) holds fifty-seven
+[`docs/constraints/`](docs/constraints/README.md) holds fifty-seven
 registered constraints — forty-eight active, seven since lifted, two
 superseded — each naming where a user meets the limit — and
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) is the
@@ -231,7 +231,7 @@ point); the session-by-session record is
 | [`docs/hobbes-architecture-v1.md`](docs/hobbes-architecture-v1.md) | The frozen v1 design — history, kept for the reasoning behind the carried subsystems |
 | [`docs/hobbes-build-plan.md`](docs/hobbes-build-plan.md) | v1 milestones M0–M8 and the locked decisions |
 | [`docs/adr/`](docs/adr/) | 86 numbered ADRs — one per decision the running architecture doesn't make |
-| [`docs/constraints.md`](docs/constraints.md) | **What Hobbes cannot tell you**, and where you find that out |
+| [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/first-run.md`](docs/first-run.md) | Bringing Hobbes up on a new app, in the order the system is meant to be used |
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
 | [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |

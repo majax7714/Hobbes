@@ -3,7 +3,7 @@
 **Date:** 2026-08-21
 **Status:** accepted — built, run live on one instance's pure arm;
 the first full complex-set run relaunched under it
-**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints.md`
+**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints/README.md`
 (C-43, C-44); `docs/bench-run-handoff.md` *(since deleted; history in
 the BUILDLOG)*; ADR-057's "consequences"
 

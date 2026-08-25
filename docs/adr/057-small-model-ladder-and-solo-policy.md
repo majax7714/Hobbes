@@ -3,7 +3,7 @@
 **Date:** 2026-08-21
 **Status:** accepted — steps 1–2 built and run live once (one instance,
 both arms, 7B); the finding below is why the solo policy exists
-**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints.md`
+**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints/README.md`
 (C-42); `docs/benchmark-hypotheses.md` (the focus benchmark and bar);
 `docs/future_additions.md`; supersedes ADR-055's "no live run"
 

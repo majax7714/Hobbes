@@ -3,7 +3,7 @@
 **Date:** 2026-08-21
 **Status:** accepted
 **Amends:** `docs/hobbes-architecture.md` (§3.4 capture line, §3.7 step 4,
-§3.8); `docs/constraints.md` (C-31 unsurfaced → surfaced, C-32 partial →
+§3.8); `docs/constraints/README.md` (C-31 unsurfaced → surfaced, C-32 partial →
 surfaced)
 
 ## Context

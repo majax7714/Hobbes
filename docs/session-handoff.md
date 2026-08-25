@@ -104,4 +104,4 @@ first.
 
 - Commit to `main`; never `git push` (Max publishes). One ADR per design
   decision; one BUILDLOG entry per session; every concession a `C-n` in
-  `docs/constraints.md`. Rewrite this doc; do not append to it.
+  the right segment file under `docs/constraints/`. Rewrite this doc; do not append to it.

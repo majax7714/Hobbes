@@ -4,7 +4,7 @@
 **Status:** accepted — built; the decided-but-unbuilt fix from
 `docs/phase4-to-45set-handoff.md` *(a per-phase handoff since deleted;
 history in the BUILDLOG)*, landed before the 45-set spends compute.
-**Amends:** `docs/constraints.md` (C-45: the interior joins the protected
+**Amends:** `docs/constraints/README.md` (C-45: the interior joins the protected
 sections); `docs/hobbes-architecture.md` (§6, staged execution).
 
 ## Context

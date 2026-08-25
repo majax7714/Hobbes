@@ -48,7 +48,7 @@ in the graph.
 
 Mechanically, a provider limit is a P8 constraint with one addition:
 
-- It registers in `docs/constraints.md` like any other concession, with a
+- It registers in `docs/constraints/README.md` like any other concession, with a
   surfacing status and the place a user meets it.
 - It **names the provider and the pinned version** that produced it.
 - Its `Source:` line says the limit is inherited, so a re-read knows the

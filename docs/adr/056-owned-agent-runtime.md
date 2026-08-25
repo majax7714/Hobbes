@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-21
 **Status:** accepted — step 1 of three; built and tested against stand-ins
-**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints.md`
+**Amends:** `docs/hobbes-architecture.md` (§6.2); `docs/constraints/README.md`
 (C-41); `docs/future_additions.md` (the harness remainder)
 
 ## Context

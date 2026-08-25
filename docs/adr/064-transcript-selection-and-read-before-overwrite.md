@@ -5,7 +5,7 @@
 ADR-062 re-probe trace ("transcript persistence for sure; instead of
 telling each agent 'you have no work' just don't bring them in at all;
 the read-before-overwrite rule is also good").
-**Amends:** `docs/constraints.md` (**C-52**); `docs/hobbes-architecture.md`
+**Amends:** `docs/constraints/README.md` (**C-52**); `docs/hobbes-architecture.md`
 (§6, staged execution — selection and the loop's write discipline).
 
 ## Context

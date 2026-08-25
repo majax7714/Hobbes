@@ -3,7 +3,7 @@
 **Written 2026-08-24.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
-([`constraints.md`](constraints.md)) grouped into workstreams a person
+([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
 can own. It **names no new work and un-parks nothing** — every item
 cites the entry that parks it, and the standing rule holds: a parked
 item opens when Max names it. Sequencing context is

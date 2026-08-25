@@ -5,7 +5,7 @@
 benchmark harness and corrected from its error stream (ADR-052)
 **Amends:** `docs/hobbes-architecture.md` (§6 gains the execution half;
 §8's D-table); `docs/agent-mapping.md` (status header);
-`docs/constraints.md` (C-38); `docs/future_additions.md` (the D2 entry
+`docs/constraints/README.md` (C-38); `docs/future_additions.md` (the D2 entry
 shrinks to what remains)
 
 ## Context

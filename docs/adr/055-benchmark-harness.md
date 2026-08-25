@@ -5,7 +5,7 @@
 is gated on the owner's decisions listed under Consequences)
 **Amends:** `docs/hobbes-architecture.md` ("Where this is going"; §6.2
 new; §8's D-table); `docs/benchmark-hypotheses.md` (the harness and
-the pre-run observations); `docs/constraints.md` (C-39, C-40; C-36 and
+the pre-run observations); `docs/constraints/README.md` (C-39, C-40; C-36 and
 C-38 amended); `docs/future_additions.md` (the harness entry shrinks
 to what remains)
 

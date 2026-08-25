@@ -9,7 +9,7 @@ items + 20 sub-items. **13 built** (struck through, with the ADR that did
 it), **8 partial**, **29 still parked**, **6 obsolete**. A built item stays
 here struck through — the reasoning is the record.
 
-**Not to be confused with `docs/constraints.md`.** This file parks deferred
+**Not to be confused with `docs/constraints/README.md`.** This file parks deferred
 *work*; the constraint register records conceded *information* — what
 Hobbes cannot tell a user, and where they find that out (P8, ADR-030). A
 deferral that loses information belongs in both, and the entries

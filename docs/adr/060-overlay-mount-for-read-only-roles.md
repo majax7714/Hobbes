@@ -4,7 +4,7 @@
 **Status:** accepted — built; found by the harness restructure's phase 4
 probe, the first live run of a read-only role in a benchmark image.
 **Amends:** `docs/hobbes-architecture.md` (§6.1 read-only roles);
-`docs/constraints.md` (C-48 narrowed); ADR-054/059's "read-only
+`docs/constraints/README.md` (C-48 narrowed); ADR-054/059's "read-only
 worktree" wording.
 
 ## Context

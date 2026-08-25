@@ -2,7 +2,7 @@
 
 **Status:** accepted (2026-08-16)
 
-**Scope:** the format of `docs/constraints.md`. Amends **ADR-030** (the
+**Scope:** the format of `docs/constraints/README.md`. Amends **ADR-030** (the
 register's shape, not its rule — P8 is unchanged). No code changes; no
 constraint is added, lifted, or renumbered by this ADR.
 
@@ -31,7 +31,7 @@ level up.
 
 ## Decision
 
-`docs/constraints.md` has two parts:
+`docs/constraints/README.md` has two parts:
 
 - **Active constraints** — limits that hold today, grouped by the
   subsystem where a user meets them. Entry format unchanged (ADR-030).

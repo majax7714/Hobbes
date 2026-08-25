@@ -170,7 +170,7 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
 - **P8 — Every concession is a registered constraint.** When Hobbes
   cannot recover information — a limit of static analysis, a deliberate
   filter, a deferred sharpening — the gap is entered in
-  `docs/constraints.md` together with the place a user meets it. P6 covers
+  its segment file under `docs/constraints/` (index: `README.md`) together with the place a user meets it. P6 covers
   the run that failed; P8 covers what was never knowable. A constraint
   whose only surfacing is a document is recorded as *unsurfaced*, because
   a confident artifact concealing a known gap costs more trust than one
@@ -1176,7 +1176,7 @@ unnecessary.
 
 The rest of the standing discipline is unchanged: plan file-by-file before
 implementing; an ADR for every decision this document doesn't make; **a
-`C-n` entry in `docs/constraints.md` for every decision that concedes
+`C-n` entry in its segment file under `docs/constraints/` for every decision that concedes
 information (P8, ADR-030), naming the provider when the concession is
 inherited (P9, ADR-034)**; BUILDLOG entry and CLAUDE.md status update every
 session; tests with the code they test; conventional commits; never read

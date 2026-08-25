@@ -5,7 +5,7 @@
 with anything except increase speed; note it as a vLLM restriction, or
 fall back when vLLM isn't present").
 **Amends:** `docs/hobbes-architecture.md` (§6, staged execution — "one
-alive at a time" becomes "one *wave* at a time"); `docs/constraints.md`
+alive at a time" becomes "one *wave* at a time"); `docs/constraints/README.md`
 (**C-51**); `docs/harness-restructure-plan.md` (parallel implementers
 leave "deliberately not in this plan").
 

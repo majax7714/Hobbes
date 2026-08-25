@@ -4,7 +4,7 @@ Date: 2026-08-15
 Status: accepted
 
 Milestone V2.M3. Adds principle **P8** to architecture v2 §1 and creates
-`docs/constraints.md`. Applies to the whole project, not to one milestone.
+`docs/constraints/README.md`. Applies to the whole project, not to one milestone.
 
 ## Context
 
@@ -49,7 +49,7 @@ Added to architecture v2 §1:
 > **P8 — Every concession is a registered constraint.** (new) When Hobbes
 > cannot recover information — a limit of static analysis, a deliberate
 > filter, a deferred sharpening — the gap is entered in
-> `docs/constraints.md` together with the place a user meets it. P6 covers
+> `docs/constraints/README.md` together with the place a user meets it. P6 covers
 > the run that failed; P8 covers what was never knowable. A constraint
 > whose only surfacing is a document is recorded as *unsurfaced*, because
 > a confident artifact concealing a known gap costs more trust than one
@@ -69,7 +69,7 @@ next to every admission and refusing to score prose as a solution.
 
 ### The register is seeded complete, or not at all
 
-`docs/constraints.md` opens with **21 entries** harvested from ADR-007,
+`docs/constraints/README.md` opens with **21 entries** harvested from ADR-007,
 ADR-019, ADR-021, ADR-026, ADR-027, ADR-029, and the M6/M8 session
 records — not only from V2.M3. A half-seeded honesty register is itself
 fake honest: a reader would take absence as evidence, and be wrong.
@@ -85,7 +85,7 @@ before the register existed. Both were, individually, honestly documented.
 
 ### Relationship to `future_additions.md`
 
-`future_additions.md` parks deferred **work**. `docs/constraints.md`
+`future_additions.md` parks deferred **work**. `docs/constraints/README.md`
 registers conceded **information**. A deferral that loses information
 belongs in both and the entries cross-reference. The distinction is worth
 keeping because the two answer different questions: "what might we build"

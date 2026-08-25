@@ -3,7 +3,7 @@
 **Date:** 2026-08-22
 **Status:** accepted — built; the phase-4 full-stage run is the evidence
 C-38 said enforcement needed.
-**Amends:** `docs/constraints.md` (C-38 flips from measured to enforced);
+**Amends:** `docs/constraints/README.md` (C-38 flips from measured to enforced);
 `docs/hobbes-architecture.md` (§6.1 integration).
 
 ## Context
