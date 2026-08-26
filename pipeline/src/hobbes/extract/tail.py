@@ -69,11 +69,17 @@ BUILTIN = "builtin-name"
 ATTR = "attr-call"
 PATH_CALL = "path-call"
 UNCLASSIFIED = "unclassified"
+#: The semantic lane resolved the site to a declaration lane A keeps no
+#: symbol for — an interface method, a closure, a nested function (C-9's
+#: floor) — so the site counts as resolved and draws no edge (C-58).
+#: Not an unresolved site: the row's ``floored`` count, named here so
+#: the tail says where the call graph's known hole is, per file.
+BELOW_FLOOR = "below-floor"
 
 #: Rollup: sites the graph sees and deliberately does not model. The
 #: complement (minus FALLBACK) is what it cannot resolve — the register's
 #: "concentrated need" (ADR-045).
-NOT_MODELLED = frozenset({LOCAL, NESTED, BUILTIN})
+NOT_MODELLED = frozenset({LOCAL, NESTED, BUILTIN, BELOW_FLOOR})
 
 _LANG_BY_EXT = {
     ".py": "python",
@@ -150,16 +156,19 @@ _BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS}
 #: so a provider that learns a new class must widen its row here too.
 CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     "python": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR,
-                         UNCLASSIFIED}),
+                         UNCLASSIFIED, BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
-                        UNCLASSIFIED}),
-    "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED}),
-    "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED}),
+                        UNCLASSIFIED, BELOW_FLOOR}),
+    "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
+    "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
+#: ``below-floor`` is last and is not a :func:`classify` verdict: it is
+#: counted from the projection (a resolved site with no symbol to land
+#: on) and added to the tail beside the unresolved classes.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, PATH_CALL, UNCLASSIFIED)
+               BUILTIN, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:

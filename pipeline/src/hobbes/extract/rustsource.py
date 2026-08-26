@@ -461,6 +461,7 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                     dotted=False,
                     scope=_enclosing(symbols, node.start_point.row + 1),
                     first_str=_first_string(tree),
+                    macro=True,
                 )
             )
             if tree is not None:
@@ -474,6 +475,7 @@ def _call(
     dotted: bool,
     scope: str | None,
     first_str: str | None,
+    macro: bool = False,
 ) -> dict:
     return {
         "name": _text(terminal),
@@ -483,6 +485,9 @@ def _call(
         "col": terminal.start_point.column,
         "scope": scope,
         "first_str": first_str,
+        # `name!(...)`: the callee is a macro and can only be one — a
+        # function of the same name in scope is not what is invoked.
+        "macro": macro,
     }
 
 
@@ -697,11 +702,13 @@ def _call_fallback(
     """
     by_file: dict[str, RustFile] = {parsed.path: parsed for parsed in files}
     where: dict[tuple[str, str], tuple[str, int]] = {}
+    kinds: dict[tuple[str, int], str] = {}
     for parsed in files:
         for symbol in parsed.symbols:
             where.setdefault(
                 (parsed.path, symbol["qualname"]), (parsed.path, symbol["line"])
             )
+            kinds.setdefault((parsed.path, symbol["line"]), symbol["kind"])
 
     def resolve_segments(start: str, segments: list[str], name: str) -> tuple[str, int] | None:
         """Walk *segments* from file *start*, then look *name* up there."""
@@ -746,6 +753,11 @@ def _call_fallback(
                 continue
             if target == (parsed.path, call["line"]):
                 continue  # a declaration is not a call of itself
+            if (kinds.get(target) == "macro") != bool(call.get("macro")):
+                # `format!(..)` never invokes `fn format`, and `twice(..)`
+                # never invokes `macro_rules! twice` (O7's twelve
+                # contradictions on dagger's SDK, all this shape).
+                continue
             fallback[(parsed.path, call["line"], call["name"])] = target
     return fallback
 

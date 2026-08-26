@@ -137,7 +137,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-25): 907 pytest / 291 Go + 21
+Suite sizes at the last check (2026-08-25): 911 pytest / 291 Go + 21
 oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 
 ## Conventions
@@ -148,7 +148,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 089).
+  architecture doesn't already make. Number sequentially (last: 090).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -210,8 +210,9 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
   kbet, 19 dagger modules), Python trace-graded by the interpreter under
   this repo's suite (C-60), Rust compiler-graded against rustc's MIR
   (rust_proj, dagger `sdk/rust`) — every semantic tier at 100%, the
-  syntactic fallback priced (C-7), the misses C-58 on every language
-  plus Rust's generated code. `docs/oracle-misses.md` and
+  syntactic fallback priced (C-7) and its two wrong shapes vetoed
+  (ADR-090), the misses C-58 on every language plus Rust's generated
+  code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
   `docs/oracle-defects.md` are the honesty records; dagger's Go root
   waits on a bigger box.
 - **Next:** restructure from the defect register (D1–D8), validated on

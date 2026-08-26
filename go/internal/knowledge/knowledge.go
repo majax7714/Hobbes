@@ -722,6 +722,10 @@ var tailMeanings = []struct{ class, meaning string }{
 // abstains from (ADR-045's rollup) — knowledge, not ignorance.
 var notModelled = map[string]bool{
 	"local-binding": true, "nested-decl": true, "builtin-name": true,
+	// A site the semantic lane resolved below the symbol floor — an
+	// interface method, a closure — counted resolved, drawing no edge
+	// (C-58); the tail names it per file since 2026-08-25.
+	"below-floor": true,
 }
 
 // artifactLangBucket maps graph.json's language names onto the tail

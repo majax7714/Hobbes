@@ -103,10 +103,14 @@ tokens: 46 of dagger's 69).
 xarray under a trace when a SWE-bench workspace exists again; the dagger
 Go root on a ≥32 GB box (H-9; P8/P9); Rupta as a time-boxed reference
 lane (C-61 says what it may and may not produce); H-11 cosmetic.
-**W1 candidates the lane produced:** two syntactic-fallback name-match
-shapes (a pytest fixture parameter → the fixture function; `format!` →
-a local `fn format`), 18 wrong edges between them; a `dispatch`/
-`closure` tail class to surface C-58. Cell outputs:
+**W1 from the lane — done (ADR-090):** the two syntactic-fallback
+name-match shapes are vetoed (a bare name bound in a spanning scope
+never resolves to a module-level namesake; a Rust bang binds only to a
+macro) and C-58 is surfaced *partial* as the `below-floor` tail class
+(`floored` on the coverage row; `list_blind_spots` marks it
+not-modelled). O6 regraded: 0 wrong edges on the executed slice, 4
+not-exercised suspects. dagger `sdk/rust` regrade after re-ingest is
+the check for the Rust veto (12 contradictions → expected 0). Cell outputs:
 `~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
 
 ## HOW TO INSPECT / MEASURE (no GPU)

@@ -5120,3 +5120,22 @@ Rust row is two repos compiler-graded, the pin in `verification.py`
 moved with them and the P11 test caught the edit as designed. Not run:
 xarray (no workspace on this box), Rupta, the trace lane for Rust, O5.
 21 oracle-lane Go tests (from 12); 907 pytest unchanged.
+
+## 2026-08-25 — W1 from the oracle lane's phase 2: two fallback vetoes and the `below-floor` class (ADR-090)
+
+Every wrong edge phase 2 found was lane A's fallback name-matching:
+Python's six were a pytest fixture *parameter* bound to the fixture
+function, Rust's twelve were `format!(..)` bound to a `fn format`.
+ADR-046's local bindings now veto the Python fallback by scope
+containment (a nested `def` inside the extent still stands), and Rust
+macro invocations carry `macro` and bind only to `macro` symbols.
+C-58's surfacing: `project()` returns the semantic-lane sites whose
+target starts no symbol; the coverage row carries them as `floored`,
+the tail as `below-floor` (*seen, not modelled by design*, in Python's
+`NOT_MODELLED` and knowledge.go's `notModelled`), the invariant is
+`sum(tail) == unresolved + floored`; the `resolved` count does not
+move and the entry says so (unsurfaced → partial). On this repo:
+below-floor go 3 / python 35 / ts-js 10. O6 regraded: 3,302 confirmed,
+4 suspect (all not-exercised), no syntactic edge left on the executed
+slice. 911 pytest (+4), Go green, proxy rebuilt. dagger re-ingest
+running for the `sdk/rust` regrade.

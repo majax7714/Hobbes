@@ -212,16 +212,21 @@
   class (8 dynamic dispatch, 37 calls into closures); the reachability
   oracle's own over-approximation of `func()` values adds 138 more
   pairs it cannot separate.
-- **You find out:** **unsurfaced — and worse than silent.** The site is
-  counted **resolved** in `resolution_coverage` (the checker *did* find
-  a declaration: the interface method), so the capture number reads
-  100% on a file whose only call the graph does not carry. The number
-  says accounted; the graph says nothing. Candidate surfacing: a
-  `dispatch` class in the tail view (C-32's vocabulary) — *seen and not
-  modelled by design* — counted out of `resolved` and reported per
-  file, and a `dispatch` note on `who_calls` answers for any method that
-  implements an interface. Until then this entry is the only place a
-  user learns it.
+- **You find out:** **partial** (2026-08-25, ADR-090 — the oracle
+  lane's W1). The row still counts the site **resolved** — that
+  concession stands, and the capture number still reads better for it —
+  but `resolution_coverage` now carries `floored` per file and the tail
+  view names the class **`below-floor`** (*seen, not modelled by
+  design*: the semantic lane resolved the site to a declaration lane A
+  keeps no symbol for — an interface method, a closure, a nested
+  function). The ingest summary prints it under *seen, not modelled by
+  design* (this repo: go 3, python 35, ts/js 10), `list_blind_spots`
+  marks it not-modelled, and the tail sums to `unresolved + floored`.
+  What stays conceded: the capture line does not move, and a site the
+  checker resolved to a declaration it *does* have a symbol for but
+  through an interface it cannot see past (the Go/TS interface method
+  before C-9's filter) is not in this class — the oracle lane's miss
+  record (`docs/oracle-misses.md`) is still where that is sized.
 - **Provider (P9):** ours. `scip-go` **0.2.7** resolves the occurrence
   correctly (to the interface method); Hobbes' descriptor filter and the
   absence of a dispatch analysis are Hobbes' choices.

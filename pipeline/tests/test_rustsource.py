@@ -355,3 +355,27 @@ class TestExtractRepo:
         agreement = extraction.graph["lane_agreement"]
         assert agreement["site_disagreements"] == []
         assert agreement["module_edges_lane_a_only"] == []
+
+
+class TestMacroInvocationsBindOnlyToMacros:
+    """O7 on dagger's SDK: twelve contradictions, every one `format!(..)`
+    bound by the fallback to a `fn format` in the same file."""
+
+    def test_a_bang_never_invokes_a_function_of_the_same_name(self, tmp_path):
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "m"\nversion = "0.1.0"\n')
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "lib.rs").write_text(
+            "fn format(x: i64) -> String {\n"
+            "    format!(\"{x}\")\n"
+            "}\n"
+            "macro_rules! twice { ($x:expr) => { $x * 2 }; }\n"
+            "pub fn twice(x: i64) -> i64 {\n"
+            "    twice!(format(x).len() as i64)\n"
+            "}\n"
+        )
+        layer = extract_rust(tmp_path)
+        fb = layer["call_fallback"]
+        assert ("src/lib.rs", 2, "format") not in fb
+        # A macro invocation binds to the macro; a plain call to the fn.
+        assert fb[("src/lib.rs", 6, "twice")] == ("src/lib.rs", 4)
+        assert fb[("src/lib.rs", 6, "format")] == ("src/lib.rs", 1)

@@ -127,10 +127,11 @@ run; GPU-hours stated first).*
   MIR. Every semantic tier graded so far is 100%; the syntactic
   fallback is priced (C-7: 0/3 Go, 6/6 Python executed, 12/30 Rust);
   the misses are C-58 on every language (closures 70–80%) plus Rust's
-  generated-code class. **W1 candidates from phase 2:** the fallback's
-  fixture-parameter and `format!`→`fn format` name matches (18 wrong
-  syntactic edges, two shapes); a `dispatch`/`closure` tail class for
-  C-58's surfacing. **Open for the lane:** O5 (dagger TS), xarray under
+  generated-code class. **W1 from phase 2 — done the same day (ADR-090):** the
+  fallback's fixture-parameter and `format!`→`fn format` name matches
+  (18 wrong syntactic edges, two shapes) are vetoed by ADR-046's
+  bindings and by symbol kind; C-58 is surfaced *partial* through the
+  `below-floor` tail class. **Open for the lane:** O5 (dagger TS), xarray under
   a trace when a workspace exists, the Go root on a bigger box, Rupta as
   a time-boxed reference lane. Spends no GPU.
 - **No-GPU instrumentation** — the replay tools already exist

@@ -222,7 +222,7 @@ class TestRollup:
         assert "hcl" not in langs and None not in langs
 
     def test_not_modelled_covers_exactly_the_by_design_classes(self):
-        assert tail.NOT_MODELLED == {tail.LOCAL, tail.NESTED, tail.BUILTIN}
+        assert tail.NOT_MODELLED == {tail.LOCAL, tail.NESTED, tail.BUILTIN, tail.BELOW_FLOOR}
 
 
 class TestDirectoryRollup:
@@ -279,8 +279,9 @@ class TestArtifact:
         rows = graph["resolution_coverage"]
         assert rows, "fixture produced no coverage rows"
         for row in rows:
-            if row["unresolved"]:
-                assert sum(row["tail"].values()) == row["unresolved"], row
+            expected = row["unresolved"] + row.get("floored", 0)
+            if expected:
+                assert sum(row["tail"].values()) == expected, row
             else:
                 assert "tail" not in row
 
@@ -332,7 +333,7 @@ class TestClassesAvailable:
         rows = [{"file": "a/x.rs"}, {"file": "b/y.py"}, {"file": "c/z.tf"}]
         got = tail.classes_available(rows)
         assert list(got) == ["python", "rust"]
-        assert got["rust"] == [tail.FALLBACK, tail.ATTR, tail.PATH_CALL, tail.UNCLASSIFIED]
+        assert got["rust"] == [tail.FALLBACK, tail.ATTR, tail.PATH_CALL, tail.UNCLASSIFIED, tail.BELOW_FLOOR]
 
 
 class TestCaptureLineNamesMissingClasses:

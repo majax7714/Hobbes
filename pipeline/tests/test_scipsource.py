@@ -630,3 +630,27 @@ class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
         ]
         out = project([self._fact("calls", 2, 5, scope="m.f", file="m.py")], nodes, symbols)
         assert out["symbol_edges"][0]["type"] == "calls"
+
+
+class TestBelowFloor:
+    def test_a_semantic_call_with_no_symbol_at_the_target_is_reported(self):
+        # C-58's surfacing: the lane resolved the site (to a closure, an
+        # interface method — a line lane A keeps no symbol for); the site
+        # counts as resolved, draws no edge, and is named per file.
+        out = scipsource.project(
+            [resolved("calls", "src/app/api.py", 7, "src/app/core.py", 9999)],
+            NODES, SYMBOLS,
+        )
+        assert out["symbol_edges"] == []
+        assert out["below_floor"] == [("src/app/api.py", 7)]
+
+    def test_a_syntactic_guess_at_a_missing_target_is_not_below_floor(self):
+        from hobbes.extract.evidence import TREE_SITTER
+        from hobbes.extract.schema import SYNTACTIC
+
+        out = scipsource.project(
+            [resolved("calls", "src/app/api.py", 7, "src/app/core.py", 9999,
+                      tier=SYNTACTIC, lanes=(TREE_SITTER,))],
+            NODES, SYMBOLS,
+        )
+        assert out["below_floor"] == []

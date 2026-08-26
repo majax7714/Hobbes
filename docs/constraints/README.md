@@ -140,10 +140,11 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Three
-of the active are **unsurfaced** (C-19 — narrowed to two tools — C-20,
-and C-58 — the interface/closure call hole, whose capture number reads
-resolved); C-4 moved from unsurfaced to *partial* in that audit, its status
+against the code that concedes it; none had been silently lifted). Two
+of the active are **unsurfaced** (C-19 — narrowed to two tools — and
+C-20); C-58 — the interface/closure call hole, whose capture number reads
+resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
+tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit
 corrected four drifted prose lines (C-35, C-42, C-46, C-54) and moved
 C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-21 (ADR-053:

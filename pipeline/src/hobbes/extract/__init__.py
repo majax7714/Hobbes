@@ -20,6 +20,8 @@ and :func:`ingest` (extract, stamp with the repo's git SHA, write).
 
 from __future__ import annotations
 
+from collections import Counter
+
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -311,6 +313,14 @@ def _build_symbol_layer(
         import_bindings=py_bindings,
         local_bindings=local_bindings,
     )
+    # C-58's surfacing: sites the semantic lane resolved to a declaration
+    # below the symbol floor still count as `resolved` (the number is not
+    # moved — that concession stands), but the row now carries `floored`
+    # and the tail names them `below-floor`, so per file the tail sums
+    # to `unresolved + floored`.
+    floored = Counter(file for file, _ in projected.get("below_floor", []))
+    for file, n in floored.items():
+        tails.setdefault(file, Counter())[tail.BELOW_FLOOR] += n
     graph["resolution_coverage"] = [
         {
             "file": row.file,
@@ -318,6 +328,7 @@ def _build_symbol_layer(
             "resolved": row.resolved,
             "external": row.external,
             "unresolved": row.unresolved,
+            **({"floored": floored[row.file]} if floored[row.file] else {}),
             **(
                 {"tail": dict(sorted(tails[row.file].items()))}
                 if row.file in tails

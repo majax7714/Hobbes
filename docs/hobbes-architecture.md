@@ -487,11 +487,19 @@ text shape read across a wrapped chain for the trailing-dot languages
 attr-calls, not unknowns — ADR-048),
 lane A's own sub-module bindings for Python and Go (the same
 `local-binding` class at a stated lesser proof grade — the binding's
-enclosing-function extent must span the call's line, ADR-046), same-file
+enclosing-function extent must span the call's line, ADR-046; since
+ADR-090 the same bindings also *veto* lane A's fallback: a bare name
+bound in a scope that spans the call never resolves to a module-level
+namesake, and a Rust `name!(...)` binds only to a macro), same-file
 import bindings for Python (`import-binding`, lane A's own
 parse — usually the shape of a missing environment, C-23/C-27/C-30),
 pinned builtin-name matches, and text shape (`attr-call`), joined since
-by `fallback-resolved`, `nested-decl` and `path-call`, with
+by `fallback-resolved`, `nested-decl` and `path-call`, and since ADR-090
+by **`below-floor`** — the one class that is not an unresolved site: the
+semantic lane resolved the call to a declaration lane A keeps no symbol
+for (an interface method, a closure), so it counts resolved and draws
+no edge (C-58); the row carries it as `floored` and the tail sums to
+`unresolved + floored` — with
 `unclassified` as the honest residue — the pinned class list and its
 first-observation-wins decision order are `extract/tail.py`'s. A class states a checkable fact or
 it abstains; a class that rationalised the unknown from a checklist of

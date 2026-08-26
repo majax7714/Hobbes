@@ -111,8 +111,27 @@ def resolve_call_sites(
             target = where.get(target_id)
             if target is None:
                 continue
+            if "." not in call.callee and _shadowed(module.path, call.line, call.callee, target, facts.local_bindings):
+                continue
             fallback[(module.path, call.line, call.callee.split(".")[-1])] = target
     return fallback
+
+
+def _shadowed(path: str, line: int, name: str, target: tuple[str, int], bindings) -> bool:
+    """A bare name bound in a scope that spans the call (a parameter, an
+    assignment, a nested ``def`` — ADR-046's bindings) is *that* binding,
+    not a module-level declaration of the same name; the fallback may
+    only bind it to a declaration inside the same extent (the nested
+    ``def`` itself). The oracle lane's first Python triage (O6,
+    2026-08-25): six executed syntactic edges, all a pytest fixture
+    *parameter* name-matched to the fixture function, all wrong."""
+    for b in bindings:
+        if b.name != name or not (b.start <= line <= b.end):
+            continue
+        if target[0] == path and b.start <= target[1] <= b.end:
+            return False  # the binding is the nested declaration itself
+        return True
+    return False
 
 
 def _symbol_records(modules: list[ModuleInfo], parsed: dict[str, ParsedFile]) -> list[dict]:

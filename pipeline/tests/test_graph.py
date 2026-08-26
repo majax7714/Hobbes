@@ -186,3 +186,47 @@ class TestRelativeImports:
             target for (path, _line, name), target in table.items()
             if path == "pkg/sub/deep.py" and name == "h"
         ] == [("pkg/helper.py", 1)]
+
+
+class TestScopeShadowsTheFallback:
+    """A bare name bound in the enclosing scope is that binding (ADR-046),
+    never a module-level declaration of the same name — the oracle lane's
+    first Python triage (O6): six executed syntactic edges, every one a
+    pytest fixture *parameter* name-matched to the fixture function."""
+
+    def _fallback(self, tmp_path, source):
+        (tmp_path / "pyproject.toml").write_text('[project]\nname = "shadow"\n')
+        (tmp_path / "mod.py").write_text(source)
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        return resolve_call_sites(modules, parsed)
+
+    def test_a_parameter_shadows_a_module_level_function(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def symbol_at():\n"
+            "    return 1\n"
+            "\n"
+            "def test_it(symbol_at):\n"
+            "    return symbol_at()\n"
+            "\n"
+            "def plain():\n"
+            "    return symbol_at()\n"
+        ))
+        assert ("mod.py", 5, "symbol_at") not in fb
+        assert fb[("mod.py", 8, "symbol_at")] == ("mod.py", 1)
+
+    def test_a_nested_def_shadows_a_module_level_namesake(self, tmp_path):
+        fb = self._fallback(tmp_path, (
+            "def inner():\n"
+            "    return 0\n"
+            "\n"
+            "def outer():\n"
+            "    def inner():\n"
+            "        return 1\n"
+            "    return inner()\n"
+        ))
+        # The nested `inner` is the binding that spans line 7; the
+        # fallback does not resolve nested calls (the tail names them
+        # `local-binding`), and it must not bind them to the module-level
+        # namesake either.
+        assert ("mod.py", 7, "inner") not in fb

@@ -353,6 +353,11 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     index = _SymbolIndex(nodes, symbols)
     module_evidence: dict[tuple, list] = {}
     symbol_evidence: dict[tuple, list] = {}
+    # Call sites the semantic lane resolved to a declaration lane A keeps
+    # no symbol for — an interface method, a closure, a nested function
+    # below C-9's floor. The site counts as resolved and draws no edge
+    # (C-58); returned so the tail view can name it `below-floor`.
+    below_floor: list[tuple[str, int]] = []
 
     for fact in resolved:
         source_module = index.module(fact.source_file)
@@ -369,6 +374,8 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         caller = fact.scope or index.enclosing(source_module, fact.line) or source_module
         callee = index.starting_at(target_module, fact.def_line)
         if callee is None:
+            if fact.kind == "calls" and SCIP_LANE in fact.lanes:
+                below_floor.append((fact.source_file, fact.line))
             continue
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
@@ -387,6 +394,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     return {
         "module_edges": _edges(module_evidence),
         "symbol_edges": _edges(symbol_evidence),
+        "below_floor": below_floor,
     }
 
 
