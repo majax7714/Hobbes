@@ -404,10 +404,27 @@ pinned where a pin is possible:
   programme moved to, C-39).
 - **Qwen** (Qwen2.5-Coder, Qwen3.8) served with **vLLM** on **Modal** —
   the small-model ladder (ADR-056/057/074).
+- **The oracle lane's answer keys** (`bench/oracle/`, ADR-089) — the
+  graph is graded against tools Hobbes does not control, and the grade
+  is only as good as they are: **[`golang.org/x/tools`](https://pkg.go.dev/golang.org/x/tools)**'s
+  `callgraph/rta` for Go; the **TypeScript compiler** (`tsc`'s own
+  resolution) for TS; **CPython's `sys.monitoring`** (PEP 669) driving
+  the repo's own pytest suite for Python; and **rustc itself** — the
+  Rust oracle is a `rustc_driver` program linking rustc's private crates
+  on a pinned nightly (`rustc-dev`), walking the MIR the compiler built.
+  Each cell records the exact oracle version; a different nightly is a
+  different oracle and the record says so.
+- **The invariant compile targets** — `hobbes invariants compile` emits
+  configuration for **[import-linter](https://github.com/seddonym/import-linter)**,
+  **[dependency-cruiser](https://github.com/sverweij/dependency-cruiser)**,
+  **[semgrep](https://semgrep.dev/)** and **[OPA](https://www.openpolicyagent.org/)**
+  (Rego); those tools do the enforcing in CI, Hobbes only writes the
+  rules down in their language.
 - **[Cytoscape.js](https://js.cytoscape.org/)** (D3) for the
-  interactive graph; **Podman** rootless (D2) for session isolation;
-  the **Model Context Protocol** Go SDK and `yaml.v3` — the only
-  external Go dependencies.
+  interactive graph, with **React** and **Vite** around it; **Podman**
+  rootless (D2) for session isolation on an **Alpine** base image; the
+  **Model Context Protocol** Go SDK and `yaml.v3` — the only external
+  Go dependencies of the product binaries.
 - And **Bill Watterson**, for the tiger. Hobbes takes its name — and
   its temperament — from *Calvin and Hobbes* (1985–1995), the comic
   strip this project is unreasonably fond of. It gets the last word in

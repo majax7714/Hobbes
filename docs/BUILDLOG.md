@@ -5204,3 +5204,15 @@ the abstract statement and a "Deeper:" pointer line under each. Status
 compressed to headlines; docs table gains the oracle and positioning
 rows; ADR and pytest counts corrected (90, 911). Tail sections
 (layout, getting started, tests, acknowledgements) unchanged.
+
+## 2026-08-25 — acknowledgements: the oracle lane and the compile targets (Max)
+
+Max's note: the graph is graded by tools that had no credit. Added to
+the README's acknowledgements — `x/tools` RTA, the TypeScript compiler,
+CPython's `sys.monitoring`, and rustc's own crates through
+`rustc_driver` on the pinned nightly (the Rust oracle *is* rustc); the
+invariant compile targets (import-linter, dependency-cruiser, semgrep,
+OPA/Rego), which do the enforcing Hobbes only transcribes; React/Vite
+and the Alpine sandbox base in passing. Inventory was from `go.mod`,
+`pyproject.toml`, the three `package.json`s, the oracle's `Cargo.toml`
+and `rust-toolchain.toml`, and the Containerfile.
