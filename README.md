@@ -102,7 +102,7 @@ to nothing at all.
 
 ### Not a copy of the other code-graph tools
 
-CodeGraph and repowise read like Hobbes at headline level — a graph, MCP
+CodeGraphContext and repowise read like Hobbes at headline level — a graph, MCP
 tools, deterministic, for agents. Hobbes was built independently of
 both, and its structure is different where it matters: two lanes per
 language (a syntax provider and the language's own pinned indexer)

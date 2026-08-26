@@ -1,8 +1,13 @@
-# How Hobbes differs — from CodeGraph, repowise, and the "code graph for agents" shape
+# How Hobbes differs — from CodeGraphContext, repowise, and the "code graph for agents" shape
 
-**Written 2026-08-25 (Max).** Two projects read, at headline level, like
-Hobbes: [CodeGraph](https://github.com/codegraph-ai/CodeGraph) ("a
-semantic graph of your codebase … exposed through 42 MCP tools") and
+**Written 2026-08-25 (Max); corrected the same day** — the first draft
+compared against a different project called CodeGraph
+(`codegraph-ai/CodeGraph`); the one meant is
+**[CodeGraphContext](https://github.com/CodeGraphContext/CodeGraphContext)**
+("an MCP server plus a CLI tool that indexes local code into a graph
+database to provide context to AI assistants"), and this page now reads
+from its README. Two projects read, at headline level, like Hobbes:
+CodeGraphContext and
 [repowise](https://github.com/repowise-dev/repowise) ("codebase
 intelligence for AI and humans … via MCP"). The one-line descriptions
 collide — a graph, MCP tools, deterministic, for agents — and repowise's
@@ -50,10 +55,17 @@ What the picture says that a headline cannot:
 - **Two lanes, one join.** Every language is a syntax provider *and* a
   pinned SCIP indexer meeting in one evidence IR. The semantic edge comes
   from the language's own toolchain resolving the occurrence, not from a
-  heuristic scored by how far the name had to travel. CodeGraph is
-  tree-sitter only; repowise is tree-sitter with a resolution ladder
-  whose confidence is a number (0.95 same-file … 0.50 repo-wide name
-  match). In Hobbes a **tier is which lane proved the edge**, not a
+  heuristic scored by how far the name had to travel. CodeGraphContext
+  is tree-sitter by default across 23 languages, with SCIP as an
+  *optional* enhancement (`SCIP_INDEXER=true`) for C/C++/C# — the two
+  are alternatives that feed one graph database (FalkorDB by default,
+  KuzuDB/Neo4j as backends), and an edge does not say which produced
+  it; repowise is tree-sitter with a resolution ladder whose confidence
+  is a number (0.95 same-file … 0.50 repo-wide name match). In Hobbes
+  lane B is mandatory for every supported language and is the
+  language's own indexer *pinned by version* (ADR-027), the join is one
+  range join with no database, and the artifact is a JSON file
+  regenerable from a SHA. In Hobbes a **tier is which lane proved the edge**, not a
   probability — and the syntactic tier is priced by the oracle (0/3 Go,
   6/6 Python, 12/30 Rust wrong before the fixes; the wrong shapes are
   now vetoed) rather than estimated.
@@ -73,7 +85,8 @@ What the picture says that a headline cannot:
   fixtures), and a poison check on every cell (seeded wrong edges; 0
   falsely confirmed). Precision is never quoted without recall, recall
   never without its root count or coverage line, and a Python number is
-  a trace number (confirm-only), never precision.
+  a trace number (confirm-only), never precision. CodeGraphContext's
+  README states no accuracy, precision or confidence figure.
 
 ### The numbers, per cell (2026-08-25; `docs/oracle-cells/`)
 
@@ -91,7 +104,7 @@ values, interface / extension-trait dispatch (70–81% of misses), plus
 Rust's macro- and derive-written code. Neither compared project
 publishes a per-cell precision *and* recall against an independent
 answer key; repowise publishes a hand-graded 84.8% precision figure over
-seven cells.
+seven cells, CodeGraphContext publishes none.
 
 ## 2. Context supply to agents
 
@@ -133,9 +146,12 @@ flowchart TB
 
 What the picture says:
 
-- **Context is derived, not served à la carte.** CodeGraph and repowise
-  hand an agent a menu (42 and 10 MCP tools) and rule files that say
-  "call these before grepping". Hobbes derives the context *for a task*:
+- **Context is derived, not served à la carte.** CodeGraphContext and
+  repowise hand an agent a query surface — a graph database behind an
+  MCP server answering "who calls this, what does this connect to,
+  dead code, complexity" (CodeGraphContext, kept live by `cgc watch`),
+  ten task-shaped tools (repowise) — and the agent pulls what it thinks
+  it needs. Hobbes derives the context *for a task*:
   the plan partitions the change into units with contracts, the planner
   decomposes requirements with an owning file each, and each
   **single-use agent** gets a window-relative brief holding its slice
@@ -148,8 +164,8 @@ What the picture says:
   (box → repo → folder → role → agent; deny overrides allow; allow /
   deny / escalate to a human queue). A forbidden command is *absent*,
   and every call is in a flight log. repowise governs by hooks that push
-  context and intercept tool calls; CodeGraph does not govern actions.
-  Neither sandboxes.
+  context and intercept tool calls; CodeGraphContext's README does not
+  discuss governing agent actions. Neither sandboxes.
 - **A specific guarantee outranks the general system** (P10): the
   read-before-edit ticket, the write scope at the cut, the repeat
   guard — each keeps its own test at the level a user meets it.
@@ -160,11 +176,17 @@ What the picture says:
   validation pair, eight harness defects filed, no H1 claim earned —
   written down, not rounded up.
 - **Hobbes stays local and does not do health scores, wiki generation,
-  git archaeology or a memory layer.** Those are repowise's layers and
-  CodeGraph's memory tools; they are not goals here (ADR-033 §10).
+  git archaeology, a graph database or live file watching.** Those are
+  repowise's layers and CodeGraphContext's storage and `watch` mode;
+  Hobbes re-derives from a commit SHA instead, and they are not goals
+  here (ADR-033 §10).
 
 ## 3. Where the three agree
 
 All three parse with tree-sitter somewhere, build without LLM calls,
-speak MCP, and want agents to stop grepping. That shared surface is the
+speak MCP, and want agents to move from "where is this defined" to
+"how does this connect" (CodeGraphContext's phrase) without grepping.
+Hobbes and CodeGraphContext both run SCIP indexers — the difference is
+that Hobbes makes them mandatory, pinned, and joined against the syntax
+lane with the tier recording which one spoke. That shared surface is the
 whole reason this page exists.

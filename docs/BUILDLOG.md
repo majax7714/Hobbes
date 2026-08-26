@@ -5174,3 +5174,16 @@ register → oracle lane) and a context-supply diagram (derive → planner
 → single-use agents → sandbox + policy + proxy → verify), the per-cell
 oracle numbers as of today, and what the other two do per their own
 READMEs on this date, nothing more. Linked from the README.
+
+## 2026-08-25 — correction: the comparison is to CodeGraphContext, not codegraph-ai/CodeGraph
+
+Max caught it: the positioning page had read the wrong project's README
+(`codegraph-ai/CodeGraph`, someone else's tool). Rewritten from
+`CodeGraphContext/CodeGraphContext` — tree-sitter across 23 languages
+with SCIP as an optional alternative feeding a graph database, an MCP
+query surface kept live by `cgc watch`, no accuracy figure, no action
+governance stated. The differences that survive are the same in kind
+(mandatory pinned lane B joined against lane A with the tier as proof;
+a register; oracle grading; derived context in a sandbox) and one is
+sharper: both run SCIP, and only Hobbes records which lane proved each
+edge. The page keeps a correction note in its header.
