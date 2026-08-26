@@ -5187,3 +5187,20 @@ governance stated. The differences that survive are the same in kind
 a register; oracle grading; derived context in a sandbox) and one is
 sharper: both run SCIP, and only Hobbes records which lane proved each
 edge. The page keeps a correction note in its header.
+
+## 2026-08-25 — README: diagrams for its own sections, competitors as context (Max)
+
+At Max's direction. The "Not a copy of the other code-graph tools"
+section was a denial of something no one had alleged — and the BUILDLOG
+is the record either way. Replaced by a short **Related projects**
+section that names CodeGraphContext and repowise as the same space,
+says what is shared, and points to `docs/how-hobbes-differs.md` for the
+structure. The README head now carries one Mermaid diagram per section
+it already had — what it does (ingest → derived layer → two renderers →
+sandbox/policy → review), extraction (two lanes → range join → tiers →
+tail → register → oracle), and where this is going (plan → units →
+single-use agents under proxy → verify → human) — with the prose cut to
+the abstract statement and a "Deeper:" pointer line under each. Status
+compressed to headlines; docs table gains the oracle and positioning
+rows; ADR and pytest counts corrected (90, 911). Tail sections
+(layout, getting started, tests, acknowledgements) unchanged.
