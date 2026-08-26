@@ -100,6 +100,21 @@ Because "how much did you miss" matters as much as "what did you find",
 how many resolved in-repo, how many to an external package, and how many
 to nothing at all.
 
+### Not a copy of the other code-graph tools
+
+CodeGraph and repowise read like Hobbes at headline level — a graph, MCP
+tools, deterministic, for agents. Hobbes was built independently of
+both, and its structure is different where it matters: two lanes per
+language (a syntax provider and the language's own pinned indexer)
+meeting in one join, with the tier saying *which lane proved the edge*;
+a register of what the graph cannot tell you; an oracle lane that grades
+every language against an answer key Hobbes does not control (every
+semantic tier at 100% on the cells graded, a Python trace at 0 wrong
+edges on the executed slice, wrong edges seeded and refused on every
+cell); and context that is *derived per task* for single-use agents in a
+policy-governed sandbox rather than served as a tool menu. Two
+diagrams and the per-cell numbers: **[docs/how-hobbes-differs.md](docs/how-hobbes-differs.md)**.
+
 ## Where this is going
 
 An accurate graph of a repo is useful on its own. It is not what Hobbes is

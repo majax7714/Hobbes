@@ -5162,3 +5162,15 @@ kinds (the single-target `minits` case needed a fallback substitute);
 `run-cell.sh` passes it always; every stored cell re-graded: 0 falsely
 confirmed across hobbes-py, rust_proj, dagger sdk/rust and 19 dagger Go
 modules. 26 oracle-lane Go tests.
+
+## 2026-08-25 — positioning: how Hobbes differs from CodeGraph and repowise
+
+At Max's direction: the headline descriptions collide (a graph, MCP,
+deterministic, for agents; repowise even says "confidence-stamped" and
+"compiler-graded cells"), and Hobbes was built independently of both.
+`docs/how-hobbes-differs.md` shows the structure instead — an
+extraction-layer diagram (two lanes → range join → tiers → tail →
+register → oracle lane) and a context-supply diagram (derive → planner
+→ single-use agents → sandbox + policy + proxy → verify), the per-cell
+oracle numbers as of today, and what the other two do per their own
+READMEs on this date, nothing more. Linked from the README.
