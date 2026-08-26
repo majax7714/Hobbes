@@ -36,10 +36,8 @@ edge, and the graph is graded against compilers and interpreters Hobbes
 does not control. The full list is under
 [Acknowledgements](#acknowledgements--what-hobbes-is-built-on).
 
-The comic — *Calvin and Hobbes*, by Bill Watterson — is a wonderful
-masterpiece, and everyone should read it at least once. Anyone is welcome
-to use Hobbes; the only request is that you keep some reference to the
-funny tiger in your uses of it.
+The comic Calvin and Hobbes by Bill Watterson is a wonderful
+masterpiece, and everyone should read it at least once.
 
 Also worth checking out- https://calvinandhobbes.webflow.io/
 
