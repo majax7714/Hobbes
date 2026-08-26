@@ -61,12 +61,12 @@ commit as the cell.
 
 | class | misses | share | what it was |
 |---|---|---|---|
-| `static→method` | 30 | 43.5% | extension-trait methods on foreign types (17), `derive_builder` setters (~7), raw-identifier `r#ref` (3), `Deref` (1) |
+| `static→method` | 30 | 43.5% | extension-trait methods on foreign types (17), `derive_builder` setters (7), raw-identifier `r#ref` (4), `Deref` (1), an inherent method inside `quote!` tokens (1) |
 | `static→generated` | 25 | 36.2% | `.clone()` on derived `Clone` |
 | `static→function` | 14 | 20.3% | calls inside `quote!` proc-macro tokens |
 | `static→closure` | 0 | — | after H-16 |
 
-**What hurts most on Rust:** not dispatch and not closures — **code a macro or derive wrote** (generated targets, proc-macro tokens, builder setters): 46 of 69. P16's prediction (trait dispatch + closures ≥ 60%) missed; the register says so.
+**What hurts most on Rust:** not dispatch and not closures — **code a macro or derive wrote** (generated targets 25, proc-macro tokens 15, builder setters 7): 47 of 69. P16's prediction (trait dispatch + closures ≥ 60%) missed; the register says so.
 
 ### hobbes repo, `go` — 2026-08-25 (O2, RTA, 20 roots)
 
