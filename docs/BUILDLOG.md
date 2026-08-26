@@ -5216,3 +5216,17 @@ OPA/Rego), which do the enforcing Hobbes only transcribes; React/Vite
 and the Alpine sandbox base in passing. Inventory was from `go.mod`,
 `pyproject.toml`, the three `package.json`s, the oracle's `Cargo.toml`
 and `rust-toolchain.toml`, and the Containerfile.
+
+## 2026-08-25 — README voice: trust is the goal, speed a side effect (Max)
+
+Max's framing: Hobbes should be what the tiger is in the strip — the
+companion for ambitious ideas who tells you the truth — and the README
+had drifted toward an efficiency pitch (smaller context, drift, tokens)
+stated more aggressively than needed. Rewritten in a reader-friendly
+voice around one thesis: a trustworthy environment for developers —
+context that is safer for agents, a system easier for people to
+understand — with faster agents named as a possible side effect, not
+the aim. Related projects reframed: code graphs are rising as fewer
+people read every line; most of the field describes making agents
+better, Hobbes leans toward safety and understandability. Diagrams and
+the tail sections unchanged; "not open for relitigation" softened.

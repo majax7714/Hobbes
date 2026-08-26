@@ -1,28 +1,39 @@
 # Hobbes
 
-**Hobbes** (named for the tiger in Bill Watterson's *Calvin and Hobbes*)
-is a **multilingual, deterministic code graphing environment**: it ingests a
-repo and derives a policy-governed environment where agents do the
-line-level work and humans review at the concept level — docs, test
-behavior, and architecture, not diffs.
+**Hobbes** is named for the tiger in Bill Watterson's *Calvin and Hobbes*,
+and it tries to be what Hobbes is in the strip: the companion who goes
+along with the ambitious idea, tells you the truth about it, and is
+still there when the wagon goes off the cliff. In software terms it is a
+**multilingual, deterministic code graphing environment** — it reads a
+repo, builds an accurate map of it, and uses that map to give agents
+safe, well-scoped context and to give people a system they can actually
+understand and review.
 
-Three properties, in order of precedence. **Accurate** — a graph that is
-wrong is worse than no graph, because it gets believed. **Deterministic**
-— parsers and indexers build the skeleton, never a model; same commit in,
-same artifacts out. **Honest** — determinism only promises the same answer
-twice, not a true one, so every edge carries a tier, every concession is
-registered, and the limits of the third-party indexers Hobbes runs are
-owned as Hobbes's own.
+The reason it exists is trust. More and more code is written by agents
+and reviewed by nobody in particular, and a tool that helps with that
+is only worth having if you can believe what it tells you. So Hobbes is
+built around three properties, in order:
 
-The graph is not the goal. It is what makes **single-use agents under
-derived, systematic context** possible — see [where this is
-going](#where-this-is-going).
+- **Accurate** — a graph that is wrong is worse than no graph, because
+  it gets believed.
+- **Deterministic** — parsers and indexers build the skeleton, never a
+  model. Same commit in, same artifacts out.
+- **Honest** — determinism promises the same answer twice, not a true
+  one. So every edge says which tool proved it, every limit is written
+  down where you will meet it, and the blind spots of the third-party
+  indexers Hobbes runs are owned as Hobbes's own.
+
+Faster agents may fall out of this — an agent handed the right twelve
+files does less wandering — but speed is a side effect, not the goal.
+The goal is an environment developers can trust: context that is safer
+for the agent to work from, and a system that is easier for a person to
+understand.
 
 Hobbes is built on other people's work and says so: **tree-sitter** is
 every syntax lane, the **SCIP** protocol and its indexers
 ([scip-code/scip](https://github.com/scip-code/scip)) are every semantic
-edge, and **mini-swe-agent** is the referenced harness the benchmark
-baselines run in. The full list is under
+edge, and the graph is graded against compilers and interpreters Hobbes
+does not control. The full list is under
 [Acknowledgements](#acknowledgements--what-hobbes-is-built-on).
 
 The comic — *Calvin and Hobbes*, by Bill Watterson — is a wonderful
@@ -40,12 +51,13 @@ Also worth checking out- https://calvinandhobbes.webflow.io/
 
 ## What it does
 
-Point it at a repo and it builds a **derived layer** — a typed graph of
-modules and symbols, a test↔code map, and SHA-pinned module docs — and
-serves that one set of artifacts to two audiences: a human web surface
-and an MCP tool server for agents. Agents work inside rootless Podman
-sandboxes where a Go policy engine sits below the model, so what an agent
-may run is enforced by the OS and a proxy rather than by a prompt.
+Point Hobbes at a repo and it builds a **derived layer** — a typed graph
+of modules and symbols, a map from tests to the code they exercise, and
+module docs pinned to a commit — and then serves that one set of
+artifacts to two audiences: a web surface for people and an MCP tool
+server for agents. Agents work inside rootless Podman sandboxes with a
+Go policy engine sitting below the model, so what an agent may run is
+decided by the operating system and a proxy rather than by a prompt.
 
 ```mermaid
 flowchart LR
@@ -59,25 +71,25 @@ flowchart LR
   REV -.-> REPO
 ```
 
-Six ideas do most of the work:
+A few ideas carry most of the weight:
 
 - **The repo stays canonical.** Everything in `.hobbes/derived/` is
   regenerable from a commit SHA. Nothing derived is hand-maintained.
-- **One knowledge layer, two renderers.** The same artifacts serve the UI
-  and the agent tools — never docs-for-humans and context-for-agents built
-  separately.
+- **One knowledge layer, two renderers.** The same artifacts serve the
+  UI and the agent tools, so what the person sees and what the agent is
+  told never drift apart.
 - **Provenance on every claim.** Narrative statements cite `file:line @
-  SHA`; graph edges cite their producing lane and evidence.
-- **Policy is enforced below the model.** Prompt-level rules are advisory;
-  the sandbox and the tool proxy are load-bearing.
-- **Degrade visibly, and register what you cannot know.** A failed indexer
-  leaves the graph standing at lower confidence and says so; a structural
-  limit gets an entry in the constraint register,
+  SHA`; graph edges cite the lane and the evidence that produced them.
+- **Policy is enforced below the model.** Rules in a prompt are advisory;
+  the sandbox and the tool proxy are what actually hold.
+- **Degrade visibly, and write down what you cannot know.** A failed
+  indexer leaves the graph standing at lower confidence and says so. A
+  limit that is structural gets an entry in the constraint register,
   [`docs/constraints/`](docs/constraints/README.md), naming where a user
-  meets it.
+  will meet it.
 - **A provider's limits are Hobbes's limits.** Semantics come from
-  third-party indexers Hobbes runs and doesn't wrap. Their blind spots
-  land in the graph, so they are written down as *ours*.
+  third-party indexers Hobbes runs and does not wrap. Their blind spots
+  land in the graph, so they are recorded as *ours*.
 
 Deeper: [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) is
 the running architecture and the source of truth;
@@ -85,13 +97,14 @@ the running architecture and the source of truth;
 
 ## Extraction is two lanes
 
-The part most worth knowing. **tree-sitter** knows a call site *is* a call
+This is the part most worth understanding, because it is where the
+accuracy comes from. **tree-sitter** knows that a call site *is* a call
 and where it sits; the language's own **SCIP indexer** (`scip-python`,
 `scip-typescript`, `scip-go`, `rust-analyzer`'s native export) knows what
-an occurrence *resolves to*. Neither is asked a question it would have to
-guess at, and the two meet on file:line ranges **before any graph
-exists** — so an edge is a call *because* tree-sitter saw one and points
-where it points *because* SCIP resolved it.
+an occurrence *resolves to*. Neither is asked a question it would have
+to guess at. The two meet on file:line ranges before any graph exists,
+so an edge is a call *because* tree-sitter saw one and points where it
+points *because* the indexer resolved it.
 
 ```mermaid
 flowchart TB
@@ -120,30 +133,30 @@ flowchart TB
   G --> ORA["oracle lane<br/>graded against answer keys Hobbes does not control"]
 ```
 
-Both halves are load-bearing, and that is measured rather than assumed:
-no SCIP indexer populates the field that would say what a reference
-syntactically *was* (`scip-python` leaves it unset for 0 of 8,575
-occurrences, `scip-go` for 0 of 18,682, `rust-analyzer` for 0 of 169).
-Without the syntax half a language gets references and no call graph at
-all, which is why adding a language means an indexer **and** a grammar —
-and why, once both exist, a language is configuration: Rust arrived with
-zero new lines in the graph builder, the join, or the schema.
+Both halves are needed, and that was measured rather than assumed: no
+SCIP indexer records what a reference syntactically *was* (`scip-python`
+leaves the field unset for 0 of 8,575 occurrences, `scip-go` for 0 of
+18,682, `rust-analyzer` for 0 of 169). Without the syntax lane a
+language gets references and no call graph at all. That is why adding a
+language means a grammar *and* an indexer — and why, once both exist, a
+language is configuration: Rust arrived with zero new lines in the graph
+builder, the join, or the schema.
 
 Every edge carries a **tier** — `semantic` (the indexer proved it),
 `syntactic` (lane A's own labelled floor), `dynamic` (reserved) — and
-consumers treat tier as trust: a violation on semantic edges is a
-finding, on syntactic edges a suspicion, and the reviewer says which. A
-site nothing resolves is **not an edge**; it is counted in the file's
-resolution coverage and classed by cause, so "how much did you miss" is
-answered beside "what did you find".
+readers treat the tier as trust: a violation found on semantic edges is
+a finding, on syntactic edges a suspicion, and the reviewer says which.
+A site that nothing resolves is **not an edge**; it is counted in the
+file's resolution coverage and classed by cause, so "how much did you
+miss" is always answered next to "what did you find".
 
-The graph is graded, per language, against something Hobbes does not
-control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
-against the interpreter running the repo's own suite, Rust against
-rustc's MIR — with wrong edges seeded on every cell to prove the grader
-can say no. Every compiler-graded semantic tier is at 100% on the cells
-graded; every miss is one class (closures, function values, interface
-dispatch) and is written down.
+Then the graph is graded, per language, against something Hobbes does
+not control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
+against the interpreter running the repo's own test suite, Rust against
+rustc's MIR — with wrong edges deliberately seeded on every cell to
+prove the grader can say no. Every compiler-graded semantic tier is at
+100% on the cells graded so far; every miss falls into one known class
+(closures, function values, interface dispatch) and is written down.
 
 Deeper: architecture §3;
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) (every repo
@@ -151,23 +164,24 @@ it has been run on, with numbers);
 [`docs/oracle-grading.md`](docs/oracle-grading.md) with
 [`docs/oracle-misses.md`](docs/oracle-misses.md) and
 [`docs/oracle-defects.md`](docs/oracle-defects.md) (the grading, the
-misses by class, the grader's own errors);
+misses by class, the grader's own mistakes);
 [`docs/constraints/`](docs/constraints/README.md) (the register).
 
 ## Where this is going
 
-An accurate graph of a repo is useful on its own. It is not what Hobbes
-is for.
+An accurate map of a repo is useful on its own. What Hobbes wants to do
+with it is make the agent workflow something a developer can trust.
 
-**A model's accuracy falls as its context grows and as tasks accumulate
-in one session.** The agent that was sharp on the first task is
-confidently wrong by the fifth, still fluent, working from a window that
-is now mostly its own earlier output. The usual answers — a bigger
-window, a better prompt — treat the symptom. The answer Hobbes is built
-around is **a smaller job**: if you know a repo's real structure you can
-derive, *per task*, the context that task actually needs and the policy
-it is actually permitted, start one agent inside both, and let it end
-when the task does.
+Anyone who has run an agent for a while has seen the drift: it is sharp
+on the first task and confidently wrong by the fifth, still fluent,
+working from a window that is now mostly its own earlier output. The
+usual fixes — a bigger window, a firmer prompt — ask the model to be
+careful. Hobbes takes a different route: if you know the repo's real
+structure, you can derive, *per task*, the context that task actually
+needs and the policy it is actually permitted, start one agent inside
+both, and let it end when the task does. The agent gets a smaller, truer
+picture; the person gets a unit of work whose scope, inputs, and
+permissions were written down before it started.
 
 ```mermaid
 flowchart TB
@@ -186,24 +200,27 @@ flowchart TB
   V --> H["human reviews at the concept level"]
 ```
 
-The policy half is what makes this safe to do, and it is why the sandbox
-sits below the model instead of inside it. **A rule in a prompt is a
-request.** A command outside the policy is not refused — it is *absent*:
-no binary on the path, no mount to write through, no route to the
-network. An agent that cannot be talked out of its constraints does not
-need to be trusted.
+The policy half is what makes this safe rather than merely tidy, and it
+is why the sandbox sits below the model instead of inside it. A rule in
+a prompt is a request. A command outside the policy is not refused — it
+is *absent*: no binary on the path, no mount to write through, no route
+to the network. An agent that cannot be talked out of its constraints
+does not need to be trusted, which is the only kind of agent worth
+handing a repo to.
 
-All four pieces exist: a graph accurate enough to derive from, invariants
-that make the result checkable (`hobbes review`), enforcement that is
-real rather than advisory (rootless Podman + the Go policy engine and
-proxy), and the derivation itself (`hobbes plan` / `hobbes run`,
-ADR-051/054). Its *worth* is still being measured, as a benchmark harness
-(`hobbes bench`) driving a small open model against the same model
-unaided. That measuring has so far produced corrections rather than a
-result — the per-unit write partition can fence a model below a
-multi-file fix (ADR-077), SWE-bench Verified is contaminated (C-39), so
-the benchmark is moving to DeepSWE 1.1 — and **no claim that derived
-context substitutes for model size has been earned yet.**
+All four pieces exist: a graph accurate enough to derive from,
+invariants that make the result checkable (`hobbes review`), enforcement
+that is real rather than advisory (rootless Podman plus the Go policy
+engine and proxy), and the derivation itself (`hobbes plan` /
+`hobbes run`, ADR-051/054). Whether it *helps* — whether a small open
+model under derived context does better than the same model unaided —
+is being measured with `hobbes bench`, and honestly: so far the
+measuring has produced corrections rather than a result. The per-unit
+write partition can fence a model below a multi-file fix (ADR-077);
+SWE-bench Verified turned out to be contaminated (C-39), so the
+benchmark is moving to DeepSWE 1.1. No claim that derived context
+substitutes for model size has been earned yet, and this README will say
+so until one is.
 
 Deeper: architecture §6;
 [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) (the
@@ -214,17 +231,23 @@ latest run and its defect register).
 
 ## Related projects
 
-Hobbes sits in a space with other code-graph-for-agents tools —
+Code graphs for agents are having a moment, and rightly so: as fewer
+people read every line an agent writes, a structural map of the repo is
+the thing that keeps the work reviewable at all.
 [CodeGraphContext](https://github.com/CodeGraphContext/CodeGraphContext)
-and [repowise](https://github.com/repowise-dev/repowise) among them: a
-graph over a repo, MCP tools, no model in the build. They are worth
-knowing as context for what Hobbes is and is not. Where the structures
-part — mandatory pinned indexers joined against the syntax lane with the
-tier recording which lane spoke, a register of what the graph cannot say,
-compiler-graded cells, and context derived per task inside a governed
-sandbox rather than served as a tool menu — is laid out with diagrams and
-per-cell numbers in
-[`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md).
+and [repowise](https://github.com/repowise-dev/repowise) are two good
+examples of the shape — a graph over a repo, MCP tools, no model in the
+build — and they are worth knowing as context for what Hobbes is.
+
+Most of the field describes itself in terms of making agents better.
+Hobbes leans the other way: it is about making the context an agent
+works from *safer*, and the system a person is responsible for *easier
+to understand*. Where the structures part — indexers that are mandatory
+and pinned, joined against the syntax lane with the tier recording which
+one spoke; a register of what the graph cannot say; cells graded by
+compilers; context derived per task inside a governed sandbox rather
+than served as a tool menu — is laid out with diagrams and per-cell
+numbers in [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md).
 
 ## Status
 
@@ -276,8 +299,8 @@ point); the session-by-session record is
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
 
-Locked decisions, not open for relitigation: Python + Go + TS split by
-focus, Podman rootless for session isolation, Cytoscape.js for the
+Three decisions are settled and not revisited: Python + Go + TS split
+by focus, Podman rootless for session isolation, Cytoscape.js for the
 interactive graph.
 
 ## Layout
