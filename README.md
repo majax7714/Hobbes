@@ -94,26 +94,30 @@ exists** — so an edge is a call *because* tree-sitter saw one and points
 where it points *because* SCIP resolved it.
 
 ```mermaid
-flowchart LR
-  F[files @ SHA]
+flowchart TB
+  F[("files @ commit SHA")]
+  F --> TS
+  F --> SCIP
   subgraph A["Lane A — syntax provider"]
+    direction TB
     TS[tree-sitter walk] --> S1["symbols · call sites · imports<br/>local bindings · test shapes"]
   end
   subgraph B["Lane B — the language's own indexer, pinned"]
-    SCIP[scip-python · scip-typescript<br/>scip-go · rust-analyzer] --> S2["declaration resolved<br/>per occurrence"]
+    direction TB
+    SCIP["scip-python · scip-typescript<br/>scip-go · rust-analyzer"] --> S2["declaration resolved<br/>per occurrence"]
   end
-  F --> TS
-  F --> SCIP
-  S1 --> J{"range join<br/>(file, line) → (site, declaration)"}
+  S1 --> J
   S2 --> J
-  J -->|"lane B resolved it"| SEM["edge · tier = semantic"]
-  J -->|"lane B silent, lane A's rule-bound floor"| SYN["edge · tier = syntactic"]
-  J -->|"nothing resolves it"| TAIL["no edge — counted per file<br/>and classed by cause"]
-  SEM --> G[("graph.json · schema v4<br/>every edge: lane + evidence line")]
+  J{"range join<br/>(file, line) → (site, declaration)"}
+  J -->|"lane B resolved it"| SEM["edge<br/>tier = semantic"]
+  J -->|"lane B silent,<br/>lane A's rule-bound floor"| SYN["edge<br/>tier = syntactic"]
+  J -->|"nothing resolves it"| TAIL["no edge<br/>counted per file, classed by cause"]
+  SEM --> G
   SYN --> G
   TAIL --> G
+  G[("graph.json · schema v4<br/>every edge carries its lane + evidence line")]
   G --> REG["constraint register<br/>what the graph cannot tell you"]
-  G --> ORA["oracle lane<br/>graded against answer keys<br/>Hobbes does not control"]
+  G --> ORA["oracle lane<br/>graded against answer keys Hobbes does not control"]
 ```
 
 Both halves are load-bearing, and that is measured rather than assumed:
