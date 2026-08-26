@@ -5137,5 +5137,7 @@ the tail as `below-floor` (*seen, not modelled by design*, in Python's
 move and the entry says so (unsurfaced → partial). On this repo:
 below-floor go 3 / python 35 / ts-js 10. O6 regraded: 3,302 confirmed,
 4 suspect (all not-exercised), no syntactic edge left on the executed
-slice. 911 pytest (+4), Go green, proxy rebuilt. dagger re-ingest
-running for the `sdk/rust` regrade.
+slice. 911 pytest (+4), Go green, proxy rebuilt. dagger re-ingested
+and `sdk/rust` regraded: **3,592/3,592, 0 contradictions, precision
+100%** (from 99.7%); dagger's `below-floor` is go 4,114 / ts 247 /
+python 117 / rust 102 sites.

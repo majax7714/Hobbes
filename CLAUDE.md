@@ -209,9 +209,9 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
   and TS call edges compiler-graded against RTA / `tsc` (this repo,
   kbet, 19 dagger modules), Python trace-graded by the interpreter under
   this repo's suite (C-60), Rust compiler-graded against rustc's MIR
-  (rust_proj, dagger `sdk/rust`) — every semantic tier at 100%, the
-  syntactic fallback priced (C-7) and its two wrong shapes vetoed
-  (ADR-090), the misses C-58 on every language plus Rust's generated
+  (rust_proj, dagger `sdk/rust`) — every compiler-graded cell at 100%
+  after ADR-090 vetoed the syntactic fallback's two wrong shapes (C-7
+  priced first), the misses C-58 on every language plus Rust's generated
   code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
   `docs/oracle-defects.md` are the honesty records; dagger's Go root
   waits on a bigger box.

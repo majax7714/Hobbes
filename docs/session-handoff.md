@@ -90,7 +90,7 @@ by fixtures or triage), `docs/oracle-preregistration.md` graded in
 
 **Where the numbers stand.** Every semantic tier graded is 100%: Go
 (this repo 1,278; dagger 19 modules 9,851), TS (kbet 630), Rust
-(rust_proj 17; dagger `sdk/rust` 3,574); Python is trace-graded (C-60:
+(rust_proj 17; dagger `sdk/rust` 3,592 after ADR-090); Python is trace-graded (C-60:
 3,291/3,490 confirmed, 0 wrong on the executed semantic slice,
 recall-against-executed 86.2% / 96.9% named). The syntactic fallback is
 priced everywhere it was reached (C-7): 0/3 Go, 6/6 Python, 12/30 Rust
@@ -109,8 +109,10 @@ never resolves to a module-level namesake; a Rust bang binds only to a
 macro) and C-58 is surfaced *partial* as the `below-floor` tail class
 (`floored` on the coverage row; `list_blind_spots` marks it
 not-modelled). O6 regraded: 0 wrong edges on the executed slice, 4
-not-exercised suspects. dagger `sdk/rust` regrade after re-ingest is
-the check for the Rust veto (12 contradictions → expected 0). Cell outputs:
+not-exercised suspects. dagger `sdk/rust` regraded after re-ingest: **3,592/3,592, 0
+contradictions** — every compiler-graded cell on every language is now
+at 100% on every tier it was reached on. dagger's re-ingest sizes
+`below-floor` at go 4,114 / ts 247 / python 117 / rust 102. Cell outputs:
 `~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
 
 ## HOW TO INSPECT / MEASURE (no GPU)
