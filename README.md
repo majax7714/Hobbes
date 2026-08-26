@@ -4,7 +4,7 @@
 and it tries to be what Hobbes is in the strip: the companion who goes
 along with the ambitious idea, tells you the truth about it, and is
 still there when the wagon goes off the cliff. In software terms it is a
-**multilingual, deterministic code graphing environment** — it reads a
+**multilingual, deterministic code graphing environment** . Hobbes reads a
 repo, builds an accurate map of it, and uses that map to give agents
 safe, well-scoped context and to give people a system they can actually
 understand and review.
@@ -23,8 +23,8 @@ built around three properties, in order:
   down where you will meet it, and the blind spots of the third-party
   indexers Hobbes runs are owned as Hobbes's own.
 
-Faster agents may fall out of this — an agent handed the right twelve
-files does less wandering — but speed is a side effect, not the goal.
+Faster agents may fall out of this. an agent handed the right twelve
+files does less wandering, but speed is a side effect, not the goal.
 The goal is an environment developers can trust: context that is safer
 for the agent to work from, and a system that is easier for a person to
 understand.
