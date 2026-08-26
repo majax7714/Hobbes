@@ -28,22 +28,24 @@ from __future__ import annotations
 #: names them in the table's words; ``depth`` is the honest adjective.
 VERIFICATION_BASE: dict[str, dict] = {
     "python": {
-        "repos": 9,
+        # private-repo-A and qwen-pathology retired from the base
+        # 2026-08-25 (Max): too little weight to carry a row.
+        "repos": 7,
         # This repo's zone is trace-graded since the oracle lane's phase 2
         # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
-        "on": "this repo (dogfood, continuous — trace-graded), private-repo-A, "
-              "qwen-pathology; + six SWE-bench repos at span/declaration grain "
+        "on": "this repo (dogfood, continuous — trace-graded); + six SWE-bench "
+              "repos at span/declaration grain "
               "(astropy, django, scikit-learn, sphinx, sympy, xarray)",
         "depth": "multi-repo",
     },
     "typescript": {
-        "repos": 3,
-        "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
+        "repos": 2,
+        "on": "kbet (real Vite+React app), this repo's web/",
         "depth": "multi-repo",
     },
     "javascript": {
-        "repos": 3,
-        "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
+        "repos": 2,
+        "on": "kbet (real Vite+React app), this repo's web/",
         "depth": "multi-repo",
     },
     "go": {
@@ -61,9 +63,9 @@ VERIFICATION_BASE: dict[str, dict] = {
         "depth": "multi-repo",
     },
     "hcl": {
-        "repos": 2,
-        "on": "private-repo-A, this repo",
-        "depth": "multi-repo",
+        "repos": 1,
+        "on": "this repo only",
+        "depth": "single-repo",
     },
 }
 

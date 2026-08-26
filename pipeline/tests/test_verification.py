@@ -68,7 +68,7 @@ class TestVerificationBase:
         assert base["rust"]["note"] == (
             "verified on 2 repos: rust_proj (one small crate); dagger — its sdk/rust workspace (O7)"
         )
-        assert base["python"]["note"].startswith("verified on 9 repos:")
+        assert base["python"]["note"].startswith("verified on 7 repos:")
 
     def test_an_unknown_language_is_stated_as_unverified_not_dropped(self):
         base = v.verification_base(["cobol"])
@@ -78,7 +78,7 @@ class TestVerificationBase:
 
     def test_summary_line_counts_per_language(self):
         base = v.verification_base(["rust", "python"])
-        assert v.summary_line(base) == "rust 2 repos, python 9 repos"
+        assert v.summary_line(base) == "rust 2 repos, python 7 repos"
 
 
 class TestIngestSummary:
@@ -87,7 +87,7 @@ class TestIngestSummary:
     ):
         cli._print_verification_base(v.verification_base(["rust", "python", "zig"]))
         out = capsys.readouterr().out
-        assert "verification base: rust 2 repos, python 9 repos, zig 0 repos" in out
+        assert "verification base: rust 2 repos, python 7 repos, zig 0 repos" in out
         assert "a sample, not the language (C-31" in out
         assert "    zig: not verified on any repo" in out
         # multi-repo rows are not spelled out — since 2026-08-25 that is
@@ -100,4 +100,4 @@ class TestIngestSummary:
 
         doc = extract_repo(Path(__file__).parent / "fixtures" / "miniapp").graph
         assert list(doc["verification_base"]) == doc["languages"]
-        assert doc["verification_base"]["python"]["repos"] == 9
+        assert doc["verification_base"]["python"]["repos"] == 7

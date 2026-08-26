@@ -99,6 +99,11 @@ function values, interface/extension-trait dispatch (70–81% of misses)
 — plus Rust's generated-code class (derives, builders, proc-macro
 tokens: 46 of dagger's 69).
 
+**Defenses (2026-08-25, Max):** every cell record carries a signed
+direction-of-fix line on regrade, and every cell runs the poison check
+(`grade --poison`: seeded wrong edges, 0 falsely confirmed on every
+stored cell). private-repo-A and qwen-pathology are out of the base.
+
 **Open on the lane, none blocking:** O5 (dagger `sdk/typescript`);
 xarray under a trace when a SWE-bench workspace exists again; the dagger
 Go root on a ≥32 GB box (H-9; P8/P9); Rupta as a time-boxed reference

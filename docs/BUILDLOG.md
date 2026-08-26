@@ -5141,3 +5141,24 @@ slice. 911 pytest (+4), Go green, proxy rebuilt. dagger re-ingested
 and `sdk/rust` regraded: **3,592/3,592, 0 contradictions, precision
 100%** (from 99.7%); dagger's `below-floor` is go 4,114 / ts 247 /
 python 117 / rust 102 sites.
+
+## 2026-08-25 — two cheap defenses, and two thin repos out of the base (Max)
+
+private-repo-A and qwen-pathology retired from §3.8 and the evidence
+file — a handful of hand-checked edges each, no weight beside
+compiler-graded cells and confusing to read; the pin in
+`verification.py` moved (python 9 → 7 repos, ts/js 3 → 2, hcl 2 → 1 —
+HCL is single-repo now and the summary says so). Two defenses against
+a flattering patch, at Max's direction: (1) every cell record carries a
+**signed direction-of-fix line** (before → after per headline number,
+`hobbes edges` included, so a number "fixed" by shrinking the graded
+set shows); written for hobbes-py, dagger sdk/rust and dagger Go. (2)
+**The poison check**: `grade --poison` re-targets every Hobbes edge to
+a declaration the oracle never resolved that site to and reports how
+many the grader refused / could not judge / **falsely confirmed** —
+the fixtures had only proved true edges confirm; a falsely confirming
+matcher was invisible to triage. Fixture tests for all four oracle
+kinds (the single-target `minits` case needed a fallback substitute);
+`run-cell.sh` passes it always; every stored cell re-graded: 0 falsely
+confirmed across hobbes-py, rust_proj, dagger sdk/rust and 19 dagger Go
+modules. 26 oracle-lane Go tests.

@@ -116,6 +116,36 @@ in exactly one bucket:
 Every defect found in the harness or an oracle is logged in
 `docs/oracle-defects.md` with what it would have cost unnoticed.
 
+## The poison check — proving wrong edges get caught
+
+The fixtures prove true edges confirm. Nothing in that proves a wrong
+edge is refused, and a matcher that falsely confirms is invisible to
+triage, which reads only the failure buckets. So **every cell also
+grades a poisoned twin** (`grade --poison`, which `run-cell.sh` always
+passes): each Hobbes edge is re-targeted to another declaration the
+export knows and the oracle never resolved that site to (the line after
+the declaration when a cell has one target), and the report's last line
+says how many the grader refused, how many it could not judge (the
+oracle was silent at that site), and **how many it falsely confirmed —
+which must be zero**. The fixture tests assert it for every oracle
+kind; a cell record quotes the line. Poisoned rows are prefixed
+`poison:` so they can never be mistaken for evidence.
+
+## Cell records (`docs/oracle-cells/`)
+
+One file per cell, with: how it was produced (command, sha, oracle
+version, roots/suite, runtime); the report head verbatim; the triage
+verdicts; the miss classes. Two lines are mandatory:
+
+- **Poison check:** the report's line, quoted.
+- **Direction of fix** — on every regrade after a product or harness
+  change: what the change did to each headline number, **before → after,
+  signed** (`confirmed 3,291 → 3,302 (+11)`, `contradicted 12 → 0
+  (−12)`, `recall 83.8% → 98.1% (+14.3, H-16)`). A resolved number with
+  no stated direction is the shape a flattering patch takes; the line
+  makes a regression that "fixed" the number by shrinking the graded
+  set visible (`hobbes edges` is part of the line).
+
 **Triage verdicts** for contradicted rows (design §8): *hobbes-wrong*
 (extraction defect → issue), *oracle-unsound* (logged, not charged),
 *match-defect* (fix the matcher, rerun). A cell's number is final only

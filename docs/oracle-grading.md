@@ -389,7 +389,18 @@ This is also the dry run for the habit the harness benchmark will need.
 ## 11. Evidence, claims, and register updates
 
 - Rows land in `extraction-evidence.md`, same commit as the run, per the
-  file's own rule. Oracle-graded is a **new kind of Verified content** —
+  file's own rule. **A regrade after a fix carries a signed
+  direction-of-fix line** in its cell record (README template): what
+  the fix did to each headline number, before → after, signed — a
+  resolved number with no stated direction is the shape a flattering
+  patch takes.
+- **Every cell runs the poison check** (`oracle grade --poison`): the
+  Hobbes export is seeded with known-wrong edges (each confirmed edge
+  re-targeted to another declaration the oracle never resolved that
+  site to) and the report states how many the grader refused. The
+  fixtures prove true edges confirm; this proves wrong ones do not — a
+  matcher that falsely confirms is invisible to triage, which reads only
+  the failure buckets. Oracle-graded is a **new kind of Verified content** —
   the line reads e.g. "compiler-graded: N edges, precision-against-oracle
   X%, recall Y% at R roots; not hand-checked beyond triage" or
   "trace-graded: recall-against-executed X% over E observed pairs at C%

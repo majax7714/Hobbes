@@ -54,7 +54,7 @@ func usage() {
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
   oracle rust-mir --repo . --module . --driver rust/target/release/mir-oracle --out-dir <cell-dir> [--out oracle.json]
-  oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json]`)
+  oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json] [--poison]`)
 	os.Exit(2)
 }
 
@@ -136,6 +136,7 @@ func runGrade(args []string) error {
 	hp := fs.String("hobbes", "", "HobbesExport JSON from `oracle export`")
 	op := fs.String("oracle", "", "OracleExport JSON from an oracle subcommand")
 	jp := fs.String("json", "", "write the full report (rows, misses) here")
+	poison := fs.Bool("poison", false, "also grade a poisoned twin of the export (seeded wrong edges) and report how many were refused")
 	fs.Parse(args)
 	var h edges.HobbesExport
 	var o edges.OracleExport
@@ -146,6 +147,9 @@ func runGrade(args []string) error {
 		return err
 	}
 	r := grade.Grade(&h, &o)
+	if *poison {
+		r.Poison = grade.CheckPoison(&h, &o)
+	}
 	grade.Print(os.Stdout, r)
 	if *jp != "" {
 		return write(*jp, r)

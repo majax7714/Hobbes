@@ -54,5 +54,5 @@ case "$lang" in
         "$out/oracle" rust-mir --repo "$repo" --module "$module" --driver "$here/rust/target/release/mir-oracle" --out-dir "$out" --features "$features" --out "$out/oracle.json" ;;
   *) echo "unknown lang $lang" >&2; exit 2 ;;
 esac
-"$out/oracle" grade --hobbes "$out/hobbes.json" --oracle "$out/oracle.json" --json "$out/report.json" | tee "$out/report.txt"
+"$out/oracle" grade --hobbes "$out/hobbes.json" --oracle "$out/oracle.json" --json "$out/report.json" --poison | tee "$out/report.txt"
 echo "cell $module of $repo: $(( $(date +%s) - start ))s" | tee -a "$out/report.txt"

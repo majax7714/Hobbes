@@ -123,6 +123,104 @@ type Report struct {
 	SuspectRate      *float64       `json:"suspect_rate,omitempty"`
 	SitesObserved    int            `json:"hobbes_sites_observed,omitempty"`
 	SitesTotal       int            `json:"hobbes_sites,omitempty"`
+	// Poison is the seeded-wrong-edge check (design §11) when the cell
+	// ran it: how many known-wrong edges the grader refused.
+	Poison *PoisonCheck `json:"poison,omitempty"`
+}
+
+// PoisonCheck is the result of grading a poisoned export: Seeded wrong
+// edges, of which Refused landed in a failure bucket (contradicted,
+// suspect, abstract), Unjudged in a silent/unobserved one (the oracle
+// could not speak at that site or line-mixed), and Confirmed — the
+// number that must be zero — were accepted as right. A matcher that
+// falsely confirms is invisible to triage, which reads only the failure
+// buckets; this is the one line that sees it.
+type PoisonCheck struct {
+	Seeded    int   `json:"seeded"`
+	Refused   int   `json:"refused"`
+	Unjudged  int   `json:"unjudged"`
+	Confirmed int   `json:"confirmed"`
+	Passed    bool  `json:"passed"`
+	Falsely   []Row `json:"falsely_confirmed,omitempty"`
+}
+
+// Poison seeds known-wrong edges from a Hobbes export: every edge is
+// re-targeted to another declaration the export knows (a different file
+// or line), skipping substitutes the oracle also lists at that site
+// (two calls on one line are both right at line grain). Target ids are
+// prefixed "poison:" so the rows read as what they are. The oracle is
+// consulted only to build the exclusion set, never to pick a target.
+func Poison(h *edges.HobbesExport, o *edges.OracleExport) *edges.HobbesExport {
+	atLine := map[string]map[edges.Pos]bool{}
+	for _, s := range o.Sites {
+		m := atLine[s.Pos.Key()]
+		if m == nil {
+			m = map[edges.Pos]bool{}
+			atLine[s.Pos.Key()] = m
+		}
+		for _, t := range s.Targets {
+			m[t.Pos] = true
+		}
+		if s.Interface != nil {
+			m[s.Interface.Pos] = true
+		}
+	}
+	var decls []edges.Pos
+	seen := map[edges.Pos]bool{}
+	for _, e := range h.Edges {
+		if !seen[e.Target] {
+			seen[e.Target] = true
+			decls = append(decls, e.Target)
+		}
+	}
+	out := &edges.HobbesExport{SHA: h.SHA, Module: h.Module, Excluded: map[string]int{}}
+	for i, e := range h.Edges {
+		// Walk the declaration list from a rotating start so the
+		// substitutes spread over the repo, never the same one; a cell
+		// with a single target (minits: four calls to one helper) falls
+		// back to the line after the declaration, which no call resolves to.
+		var cand *edges.Pos
+		for k := 0; k < len(decls); k++ {
+			c := decls[(i+1+k)%len(decls)]
+			if c != e.Target && !atLine[e.Site.Key()][c] {
+				cand = &c
+				break
+			}
+		}
+		if cand == nil {
+			c := edges.Pos{Path: e.Target.Path, Line: e.Target.Line + 1}
+			if !atLine[e.Site.Key()][c] {
+				cand = &c
+			}
+		}
+		if cand == nil {
+			continue
+		}
+		p := e
+		p.Target = *cand
+		p.TargetID = "poison:" + e.TargetID
+		out.Edges = append(out.Edges, p)
+	}
+	return out
+}
+
+// CheckPoison grades the poisoned twin of h against o and summarises it.
+func CheckPoison(h *edges.HobbesExport, o *edges.OracleExport) *PoisonCheck {
+	pr := Grade(Poison(h, o), o)
+	c := &PoisonCheck{Seeded: len(pr.Rows)}
+	for _, row := range pr.Rows {
+		switch row.Bucket {
+		case "confirmed":
+			c.Confirmed++
+			c.Falsely = append(c.Falsely, row)
+		case "contradicted", "suspect", "abstract":
+			c.Refused++
+		default:
+			c.Unjudged++
+		}
+	}
+	c.Passed = c.Seeded > 0 && c.Confirmed == 0
+	return c
 }
 
 // Grade matches h against o.
@@ -357,8 +455,10 @@ func Print(w io.Writer, r *Report) {
 	fmt.Fprintf(w, "cell %s  oracle %s (%s)  sha %s\n", r.Module, r.Oracle, r.Kind, short(r.SHA))
 	if r.Kind == "trace" {
 		printTrace(w, r)
+		printPoison(w, r)
 		return
 	}
+	defer printPoison(w, r)
 	fmt.Fprintf(w, "hobbes edges %d: confirmed %d  contradicted %d  abstract %d  silent %d %v\n",
 		r.HobbesEdges, r.Total.Confirmed, r.Total.Contradicted, r.Total.Abstract, r.Total.Silent, r.SilentBy)
 	if r.Precision != nil {
@@ -480,6 +580,24 @@ func printTrace(w io.Writer, r *Report) {
 	}
 	for _, m := range r.Misses {
 		fmt.Fprintf(w, "  missed       %s  %s -> %s (%s) [%s]\n", m.Site.Key(), m.Caller, m.Target.Pos.Key(), m.Target.Name, m.Class)
+	}
+}
+
+// printPoison is the one line that sees a falsely confirming matcher.
+func printPoison(w io.Writer, r *Report) {
+	p := r.Poison
+	if p == nil {
+		fmt.Fprintln(w, "poison check: not run (pass --poison; every cell should)")
+		return
+	}
+	verdict := "PASS"
+	if !p.Passed {
+		verdict = "FAIL"
+	}
+	fmt.Fprintf(w, "poison check: %s — %d seeded wrong edges: %d refused, %d unjudged (oracle silent there), %d falsely confirmed\n",
+		verdict, p.Seeded, p.Refused, p.Unjudged, p.Confirmed)
+	for _, row := range p.Falsely {
+		fmt.Fprintf(w, "  FALSELY CONFIRMED %s -> %s (%s)\n", row.Edge.Site.Key(), row.Edge.Target.Key(), row.Edge.TargetID)
 	}
 }
 

@@ -26,6 +26,13 @@ not logged here — this file is for real repos.
 
 ---
 
+*Retired from the base 2026-08-25 (Max): private-repo-A (a private
+Python + JS + Terraform repo) and qwen-pathology (Python) — a handful of
+hand-checked edges each, too little weight to carry a row and confusing
+beside compiler-graded cells. Their sections are gone; the rules they
+produced (the tail's `import-binding` class, the C-27 venv check, the
+HCL pack's `packages` edge) keep their citations in code and register.*
+
 ## hobbes (this repo — dogfood, continuous)
 
 Six languages in its own graph (`go, hcl, javascript, python, rust,
@@ -122,18 +129,6 @@ is 17. Two of seven missed, both about *where the misses would be*: on
 Python the prior was right, on Rust the generated-code class was not in
 anyone's prior.
 
-## private-repo-A (a private Python + JS + Terraform repo; read-only, Max-sanctioned; name and location withheld)
-
-| Date | Numbers |
-|---|---|
-| 2026-08-16 (tail view) | python capture **94.3%** — best measured; unclassified 46 → 4 (import-binding, ADR-045 amendment) → **0** (ADR-046) |
-| 2026-08-11 (M6 exit) | 207 nodes, 602 module edges (hcl+javascript+python); lanes 976 sites, **0 disagree** |
-
-**Verified:** all 11 JS module edges + 9 call edges + 9 node:test
-mappings + 1 pytest mapping hand-checked — 100% (M6 exit); the
-cross-layer `packages` edge at `infra-core/lambda.tf:5 → handler.py`
-hand-verified (M3).
-
 ## kbet (`~/projects/kbet` — real Vite+React TS app; throwaway tier)
 
 | Date | Numbers |
@@ -167,16 +162,6 @@ call target (a module, not a declaration) — dropped. Not hand-checked
 beyond triage. The V2.M3 20/20 hand-check is **retired** on the same
 grounds as Go's (edges never named); earlier: 20/20 edges + 10/10 test
 mappings at M6.
-
-## qwen-pathology (`~/qwen-pathology` — Python)
-
-| Date | Numbers |
-|---|---|
-| 2026-08-25 (**oracle lane O3**) | compiler-graded against the zone's `tsc` 5.9.3: **630/630 call edges confirmed**, 0 contradicted; recall 633/1,529 over every resolved site, 633/637 on declared callees; misses by class in `docs/oracle-misses.md` |
-| 2026-08-16 | capture **82.6%** of 546; environment gap surfaced (2/6 deps installed — datasets, transformers, vllm missing, C-27's WARNING); unclassified 6 → **1** |
-
-**Verified:** none — its role is the env-missing degradation path,
-which it exercised (documented, not hand-checked).
 
 ## rust_proj (`~/rust_proj` — small Rust crate)
 
