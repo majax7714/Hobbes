@@ -1248,6 +1248,10 @@ def _index_ts_zone(
         )
     finally:
         staging.remove_stage(stage)
+    # Rebase first: the helper's own degradation records name zone-
+    # relative paths (the duplicate-symbol record, ADR-091 D7); the one
+    # appended below is already repo-relative.
+    facts = _rebase(facts, zone)
     if provision_failure is not None:
         # The zone indexed without its dependencies and this says why —
         # C-23's surfacing, at the moment the gap was created.
@@ -1262,7 +1266,7 @@ def _index_ts_zone(
                 ),
             }
         )
-    return _rebase(facts, zone)
+    return facts
 
 
 def _rebase(facts: dict, zone: str) -> dict:
@@ -1287,6 +1291,11 @@ def _rebase(facts: dict, zone: str) -> dict:
         definition["file"] = at(definition["file"])
     for ref in facts.get("external_refs", []):
         ref["file"] = at(ref["file"])
+    for record in facts.get("degraded", []):
+        # A record scoped to a directory inside the zone (ADR-091, D7);
+        # a whole-index record stays at the repo root.
+        if record.get("path") not in (None, "", "."):
+            record["path"] = at(record["path"])
     return facts
 
 

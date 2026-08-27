@@ -5230,3 +5230,42 @@ the aim. Related projects reframed: code graphs are rising as fewer
 people read every line; most of the field describes making agents
 better, Hobbes leans toward safety and understandability. Diagrams and
 the tail sections unchanged; "not open for relitigation" softened.
+
+## 2026-08-27 — ADR-091: the mechanical half of the restructure (D1–D4, D7, D8)
+
+Max's direction: start on the defect register; D5 and D6 stay
+documented and held — the harness's shape is not the current focus.
+All six mechanical defects fixed and validated hermetically, no model.
+
+`agent/loop.py`: **D1** one fit per elide cycle (the overflow's input
+count is a lower bound; vLLM's "at least N" shrank the room 17 tokens
+a try, 450 400s on one call). **D2** `elide_oldest_tool_result` skips
+mutating results and anything under `ELIDE_FLOOR` (2× the placeholder)
+and now returns the elided message. **D3** `Endpoint.on_elide` lets the
+loop revoke a path's read ticket when its last visible read is elided
+(`ELIDED_READ_REFUSAL`), and forget the call's signature so the re-read
+is not refused as a repeat — found by the test, not the register.
+**D4** `read_turn` refuses an edit or write on a path first read in the
+same turn (`SAME_TURN_REFUSAL`). **D8** one bounded `NUDGE_HANDOFF` for
+an implementer that edited, has `reflect` on offer, and ends in prose;
+`handoff_nudged` on the envelope; `UnitRecord.handoff` (`handoff |
+reflection-only | missing`) set at every harvest via
+`orchestrate.handoff_status`. Seven loop tests and one run test added.
+
+**D7, with a correction to the register:** the sklearn "foreign
+environment residue" was not foreign — `exercise_01_language_train_model.py`
+sits in sklearn's own `doc/tutorial/text_analytics/{skeletons,solutions}/`,
+a legitimate C-28 duplicate. The defects were the Rust wording on a
+Python decode and `path: "."`, which the brief filter reads as every
+unit. `scip/index.mjs`: `decode` returns `ambiguous_files`; the record's
+`path` is their common directory (`commonDirectory`) and its wording is
+per lane (`DUPLICATE_SHAPES`); `scipsource._rebase` now rebases
+zone-relative degradation paths (and runs before the provision-failure
+record is appended, which is already repo-relative). One node test
+added; C-28's surfacing line amended.
+
+Architecture §6 amended in the same commit. Suites: 917 pytest (one
+pre-existing environmental failure deselected —
+`test_venv_environment_lists_the_venvs_own_distributions` expects
+`pytest` in the fixture venv and finds only `pip`; fails on the clean
+tree too, not touched), 26 scip node. Go and web untouched.

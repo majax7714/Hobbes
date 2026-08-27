@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-25 (oracle lane phases 1 and 2 done + W1 fixes; the
-ADR-085 restructure still paused).** The one authoritative resume doc. Read this, then
+**Rewritten 2026-08-27 (ADR-091: D1–D4, D7, D8 fixed with no model;
+D5/D6 held by Max).** The one authoritative resume doc. Read this, then
 **`docs/adr085-validation-run.md`** (the run's record and its
 eight-defect register — the restructure's worklist), then
 `docs/benchmark-hypotheses.md` (reading rules + Results) and the recent
@@ -12,8 +12,10 @@ forward-looking and is rewritten, never appended into a pile.
 
 1. **Experiments are PARKED again (2026-08-24).** The one cleared run
    (the ADR-085 validation pair) has happened. No further run of any
-   size without a fresh, explicit go from Max. He returns to
-   **restructure** from the defect register, then proceeds.
+   size without a fresh, explicit go from Max. The mechanical half of
+   the restructure is done (ADR-091); **D5 and D6 are held** — the
+   harness's shape is not Max's current focus (2026-08-27) — and stay
+   documented in the register until he reopens them.
 2. **The 7B is the instrument, by speed not capability.** Validate
    every mapping/architecture change on the 7B or with no model at all
    (replay over stored specs/handoffs) first. The compute-economics
@@ -45,30 +47,33 @@ forward-looking and is rewritten, never appended into a pile.
 
 ## THE RESTRUCTURE WORKLIST — `docs/adr085-validation-run.md`
 
-Eight defects, each with observed evidence, proposed change, owner:
+Eight defects. **Fixed 2026-08-27 in ADR-091**, all in
+`agent/loop.py` unless stated, validated by the hermetic loop tests
+(no model):
 
-- **D1** window-fit 400 storm (vLLM "at least" lower bound → ~75
-  400s/elide cycle; 450 on one call) — one fit per elide cycle.
-- **D2** elision deletes action memory (89-char failed-edit results
-  elided for ~10 tokens) — never elide mutating/short results.
-- **D3** read ticket survives elision of the read (P10 shape; a
-  28-byte blind overwrite of `_array_api.py` went through) — eliding a
-  read invalidates the path's ticket.
-- **D4** same-turn read+edit batching defeats ADR-067's spirit
-  (hallucinated anchor authored before the read was seen) — refuse
-  edit in the first-read turn.
-- **D5** lexical fallback bypasses strict coverage — Max's shape call.
+- **D1** one fit per elide cycle — the reported input count is a lower
+  bound; a second overflow elides.
+- **D2** mutating and short (< 2× placeholder) results are never elided.
+- **D3** an elided read revokes the path's edit ticket until re-read
+  (the repeat guard forgets the elided call too).
+- **D4** read + edit of one path in one turn is refused.
+- **D7** the duplicate-symbol record is scoped to its files' common
+  directory and worded per lane (`scip/index.mjs`, `scipsource.py`).
+  *Correction:* the sklearn residue was in-repo (skeletons/ and
+  solutions/ of a tutorial), not foreign — the C-28 drop was right.
+- **D8** an implementer that edits and ends in prose gets one
+  `NUDGE_HANDOFF`; every unit record carries `handoff: handoff |
+  reflection-only | missing`.
+
+**Held by Max (2026-08-27), documented, not open now:**
+
+- **D5** lexical fallback bypasses strict coverage — a shape call
+  (`run/stages.py` + `run/coverage.py`).
 - **D6** generic one-word seed (`astype`) overrides the hub exclusion
-  → 2,543-guarding-test interior — C-36 seed weighting; Max's call
-  with ADR-083 lever 2 (deferred to these records, ADR-086).
-- **D7** foreign environment residue (`exercise_01_language_train_model`)
-  in `extraction_errors` rides every brief — scope the dup report
-  in-repo; per-lane wording.
-- **D8** prose reflection is not a handoff — nudge + `handoff: missing`
-  on the record.
+  — C-36 seed weighting, interacts with ADR-083 (`derive/impact.py`).
 
-D1–D4, D8 are mechanical loop/harness fixes; D5–D6 are shape decisions
-for Max; D7 is a small extraction surfacing fix. Observations that are
+The removal A/B is still to be re-run (needs the D5 fix and a larger
+n); nothing has run on the 7B since the validation pair. Observations that are
 findings, not defects (knowledge tools unused at the 7B rung — derived
 context is push-only there; requirement-text rendered as code; O4
 planner variance) are in the same file.

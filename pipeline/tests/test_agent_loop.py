@@ -412,6 +412,48 @@ class TestReadOnlyRoleDiscipline:
         # an implementer that only reflects is still nudged toward editing
         assert env["nudges"] == 1 and env["edited"] is False
 
+    def test_an_implementer_that_edits_and_ends_in_prose_is_nudged_to_hand_off_once(self, tree, mcp_config):
+        # D8 (ADR-091): sphinx U1 ended with "let's reflect…" and never
+        # called reflect; nothing reached the orchestrator.
+        cfg, log = mcp_config
+        model = ScriptedModel([
+            [("read_file", {"path": "src/a.py"})],
+            [("edit_file", {"path": "src/a.py", "old_text": "return 1", "new_text": "return 2"})],
+            "Let's reflect: I changed f to return 2.",
+            [("reflect", {"text": "changed f", "kind": "handoff"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree, "--mcp-config", str(cfg), "--max-nudges", "0")
+        finally:
+            model.close()
+        assert not env["is_error"] and env["edited"] and env["reflected"] and env["handoff_nudged"]
+        assert env["nudges"] == 1
+        nudge = [m for m in model.requests[3]["body"]["messages"] if m["role"] == "user"][-1]["content"]
+        assert "handoff" in nudge and "reflect" in nudge
+        # the nudge is bounded: prose twice ends the session with handoff_nudged on the record
+        model = ScriptedModel([
+            [("read_file", {"path": "src/a.py"})],
+            [("edit_file", {"path": "src/a.py", "old_text": "return 2", "new_text": "return 3"})],
+            "done, I think", "still done",
+        ])
+        try:
+            env = run_loop(model, tree, "--mcp-config", str(cfg), "--max-nudges", "0")
+        finally:
+            model.close()
+        assert not env["is_error"] and env["reflected"] is False and env["handoff_nudged"] and env["nudges"] == 1
+        # without a reflect tool on offer (the pure arm) there is nothing to nudge toward
+        model = ScriptedModel([
+            [("read_file", {"path": "src/a.py"})],
+            [("edit_file", {"path": "src/a.py", "old_text": "return 3", "new_text": "return 4"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree)
+        finally:
+            model.close()
+        assert env["nudges"] == 0 and not env["handoff_nudged"]
+
 
 class TestBenchRuntime:
     def test_runtime_validation_and_session_args(self):
@@ -482,8 +524,9 @@ class TestContextWindow:
         assert model.requests[1]["body"]["max_tokens"] == 32768 - 30000 - 16
 
     def test_no_room_elides_the_oldest_tool_result_and_says_so(self, tree):
+        (tree / "big.py").write_text("\n".join(f"x{i} = {i}" for i in range(200)))
         model = ScriptedModel([
-            [("read_file", {"path": "src/a.py"})],
+            [("read_file", {"path": "big.py"})],
             [("read_file", {"path": "README"})],
             ("http", 400, self.OVERFLOW % (32700, 32700)),   # nothing left for a completion
             "done",
@@ -495,6 +538,104 @@ class TestContextWindow:
         assert not env["is_error"] and env["context_elided"] == 1
         tools = [m for m in model.requests[-1]["body"]["messages"] if m["role"] == "tool"]
         assert tools[0]["content"] == loop.ELIDED and "hi" in tools[1]["content"]
+
+    def test_one_fit_per_elide_cycle_when_the_endpoint_reports_a_lower_bound(self, tree):
+        # D1 (ADR-091): vLLM's "at least N input tokens" is window −
+        # max_tokens + 1, not the prompt size, so a refit from it
+        # overflows again with N shifted by the room it just gave up.
+        # The second overflow in one cycle must elide, not refit — the
+        # sklearn call that refitted 450 times.
+        (tree / "big.py").write_text("\n".join(f"x{i} = {i}" for i in range(200)))
+        model = ScriptedModel([
+            [("read_file", {"path": "big.py"})],
+            ("http", 400, self.OVERFLOW % (32768 - 4096 + 1, 32768 - 4096 + 1)),
+            ("http", 400, self.OVERFLOW % (32768 - 4079 + 1, 32768 - 4079 + 1)),   # the refit, "at least" again
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree, "--max-nudges", "0")
+        finally:
+            model.close()
+        assert not env["is_error"]
+        assert env["context_fitted"] == 1 and env["context_elided"] == 1
+        assert len(model.requests) == 4
+        assert model.requests[2]["body"]["max_tokens"] == 4096 - 17
+        assert model.requests[3]["body"]["max_tokens"] == 4096   # after the elision, the full cap again
+        tools = [m for m in model.requests[3]["body"]["messages"] if m["role"] == "tool"]
+        assert tools[0]["content"] == loop.ELIDED
+
+    def test_short_and_mutating_results_are_never_elided(self, tree):
+        # D2 (ADR-091): a failed edit's 90-char error is the record of
+        # what was tried; eliding it for a placeholder nearly as long
+        # saves nothing and the model repeats the edit.
+        msgs = [
+            {"role": "tool", "name": "edit_file", "content": "ERROR: old_text occurs 0 times in src/a.py; it must occur exactly once"},
+            {"role": "tool", "name": "read_file", "content": "hi"},
+            {"role": "tool", "name": "read_file", "content": "y" * 400},
+            {"role": "tool", "name": "write_file", "content": "z" * 400},
+        ]
+        elided = loop.elide_oldest_tool_result(msgs)
+        assert elided is msgs[2] and msgs[2]["content"] == loop.ELIDED
+        assert loop.elide_oldest_tool_result(msgs) is None
+        assert msgs[0]["content"].startswith("ERROR") and msgs[1]["content"] == "hi" and msgs[3]["content"] == "z" * 400
+
+    def test_an_elided_read_revokes_the_edit_ticket_until_reread(self, tree):
+        # D3 (ADR-091): sklearn U1 read _array_api.py, the read was
+        # elided, then write_file stubbed the whole file — the read
+        # ticket had outlived the read. Now the elision revokes it.
+        (tree / "big.py").write_text("\n".join(f"x{i} = {i}" for i in range(200)))
+        model = ScriptedModel([
+            [("read_file", {"path": "big.py"})],
+            [("read_file", {"path": "README"})],
+            ("http", 400, self.OVERFLOW % (32700, 32700)),   # elides the big.py read
+            [("write_file", {"path": "big.py", "content": "stub\n"})],
+            [("edit_file", {"path": "big.py", "old_text": "x1 = 1", "new_text": "x1 = 10"})],
+            [("read_file", {"path": "big.py"})],
+            [("edit_file", {"path": "big.py", "old_text": "x1 = 1", "new_text": "x1 = 10"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree)
+        finally:
+            model.close()
+        assert not env["is_error"] and env["context_elided"] == 1
+        tools = [m for m in model.requests[-1]["body"]["messages"] if m["role"] == "tool"]
+        assert "elided from the context window" in tools[2]["content"]
+        assert "elided from the context window" in tools[3]["content"]
+        assert tools[5]["content"] == "edited big.py"
+        assert "x1 = 10" in (tree / "big.py").read_text() and "x199" in (tree / "big.py").read_text()
+
+    def test_a_read_and_an_edit_in_one_turn_are_refused_until_the_next(self, tree):
+        # D4 (ADR-091): sphinx U1 batched read_file + edit_file in one
+        # turn; the anchor was authored before the read's result existed
+        # and occurred nowhere in the file.
+        model = ScriptedModel([
+            [("read_file", {"path": "src/a.py"}),
+             ("edit_file", {"path": "src/a.py", "old_text": "return 1", "new_text": "return 2"})],
+            [("edit_file", {"path": "src/a.py", "old_text": "return 1", "new_text": "return 2"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree)
+        finally:
+            model.close()
+        assert not env["is_error"] and env["edited"]
+        tools = [m for m in model.requests[-1]["body"]["messages"] if m["role"] == "tool"]
+        assert "landed this turn" in tools[1]["content"]
+        assert tools[2]["content"] == "edited src/a.py"
+        assert "return 2" in (tree / "src" / "a.py").read_text()
+        # a second read of an already-ticketed path does not re-arm the guard
+        model = ScriptedModel([
+            [("read_file", {"path": "README"})],
+            [("read_file", {"path": "README"}),
+             ("edit_file", {"path": "README", "old_text": "hi", "new_text": "ho"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree)
+        finally:
+            model.close()
+        assert env["edited"] and (tree / "README").read_text() == "ho\n"
 
     def test_nothing_to_elide_is_the_error(self, tree):
         model = ScriptedModel([("http", 400, self.OVERFLOW % (32700, 32700))])

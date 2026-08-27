@@ -955,7 +955,14 @@ overwrite the first re-probe caught, and (ADR-067) refuses to
 `edit_file` a path it has not read at all — an anchor is copied from
 the file, not recalled — refuses a reworded edit at an anchor already
 applied, and retries once a completion the endpoint cut at
-`max_tokens`; every session — both arms — writes its full message list
+`max_tokens`; under window saturation (ADR-091) the fit is one retry
+per elide cycle, an edit's result and any short result are never
+elided, an elided read revokes the path's ticket until it is read
+again, and a read and an edit of one path in one turn are refused —
+the general mechanism may not hollow out the specific guarantee (P10);
+an implementer that edits and ends in prose is nudged once toward
+`reflect`, and every unit record says `handoff: handoff |
+reflection-only | missing`; every session — both arms — writes its full message list
 to `<session>/transcript.jsonl` and every call as it went (prompt size,
 `max_tokens` sent, `finish_reason`, overflow events) to `calls.jsonl`
 beside it (ADR-068). `hobbes plan` then derives

@@ -30,7 +30,11 @@
 - **You find out:** **surfaced** — the `scip-decode` degradation record
   counts the dropped symbols and names a sample, landing in
   `extraction_errors` and the ingest WARNING like every other decode
-  degradation.
+  degradation. Since ADR-091 (D7) the record's `path` is the defining
+  files' common directory and its wording is per lane, so a unit brief
+  carries it only when its interior lies there — the whole-repo `"."`
+  had put a Python tutorial's duplicate, in Rust's words, into every
+  sklearn brief.
 - **Provider (P9):** inherited from `rust-analyzer` **1.97.1** and
   `scip-go` **0.2.7** alike. An upstream release that scoped these
   monikers per target/file would make the drop a no-op.

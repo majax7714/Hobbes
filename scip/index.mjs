@@ -202,6 +202,10 @@ export function decode(index) {
   // to `external`, unattributed rather than guessed, and `degradations`
   // reports the drop (ADR-040).
   const ambiguous = new Set()
+  // Which files define each ambiguous moniker (ADR-091, D7): the
+  // degradation record is scoped to their common directory, so a unit
+  // brief whose interior lies elsewhere never carries it.
+  const ambiguousFiles = new Map()
 
   for (const doc of index.documents) {
     if (!insideRepo(doc.relative_path)) continue
@@ -212,7 +216,11 @@ export function decode(index) {
       if (!GRAPH_KINDS.has(kind)) continue
       const prior = definitions.get(occ.symbol)
       if (prior) {
-        if (prior.file !== doc.relative_path) ambiguous.add(occ.symbol)
+        if (prior.file !== doc.relative_path) {
+          ambiguous.add(occ.symbol)
+          if (!ambiguousFiles.has(occ.symbol)) ambiguousFiles.set(occ.symbol, new Set([prior.file]))
+          ambiguousFiles.get(occ.symbol).add(doc.relative_path)
+        }
         continue
       }
       const r = occ.range
@@ -270,7 +278,39 @@ export function decode(index) {
     external,
     packages,
     ambiguous: [...ambiguous].sort(),
+    ambiguous_files: Object.fromEntries(
+      [...ambiguousFiles].sort().map(([symbol, files]) => [symbol, [...files].sort()]),
+    ),
   }
+}
+
+/**
+ * The deepest directory that holds every one of *files* (relative,
+ * '/'-separated); '.' when they share none. Where a duplicated moniker's
+ * degradation record lands, so it is read by the units it concerns.
+ */
+export function commonDirectory(files) {
+  const dirs = files.map((f) => f.split('/').slice(0, -1))
+  if (dirs.length === 0) return '.'
+  let common = dirs[0]
+  for (const d of dirs.slice(1)) {
+    let i = 0
+    while (i < common.length && i < d.length && common[i] === d[i]) i++
+    common = common.slice(0, i)
+  }
+  return common.length ? common.join('/') : '.'
+}
+
+/**
+ * Why a language's indexer emits one moniker from more than one file —
+ * stated per lane (ADR-091, D7): the Rust wording on a Python decode
+ * rode every sklearn brief in the ADR-085 validation run.
+ */
+const DUPLICATE_SHAPES = {
+  rust: 'cargo targets of one package share their `crate/` and `main().` monikers',
+  go: "a package's namespace is declared in every one of its files",
+  python: 'the same module name lives under more than one directory (a tutorial\'s skeletons/ and solutions/, a vendored copy)',
+  typescript: 'the same module or namespace is declared from more than one file',
 }
 
 /**
@@ -390,13 +430,15 @@ export function degradations(index, decoded, config) {
       .slice(0, 3)
       .map((s) => s.split(' ').slice(4).join(' '))
       .join(', ')
+    const files = [...new Set(Object.values(decoded.ambiguous_files ?? {}).flat())]
+    const shape = DUPLICATE_SHAPES[config.language] ?? 'more than one file declares the same symbol'
     out.push({
       stage: 'scip-decode',
+      path: commonDirectory(files),
       message:
         `${decoded.ambiguous.length} symbol(s) are defined in more than one ` +
-        `file (e.g. ${sample}) — cargo targets sharing a name, or a package ` +
-        'namespace declared per file; references to them are left ' +
-        'unattributed rather than guessed',
+        `file (e.g. ${sample}) — ${shape}; references to them are left ` +
+        'unattributed rather than guessed (C-28)',
     })
   }
   return out

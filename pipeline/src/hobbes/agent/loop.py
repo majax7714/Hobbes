@@ -43,6 +43,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from typing import Callable
 
 SYSTEM_PROMPT = """\
 You are a software engineer working in a git checkout at {workdir}.
@@ -382,6 +383,36 @@ ANCHOR_STACK_REFUSAL = (
     "second copy instead of replacing the first. read_file the region to see "
     "what the file holds now, then anchor the edit on the current text."
 )
+#: The read ticket was hollowed out by the window fit (ADR-091, D3):
+#: eliding a read_file result invalidates the path's read-before-edit
+#: ticket, so the guarantee's premise — the model has the file in front
+#: of it — holds at the moment of the write, not only in the past.
+ELIDED_READ_REFUSAL = (
+    "your read of {path} was elided from the context window to fit the "
+    "model, so its contents are no longer in front of you. read_file the "
+    "range you are changing again, then edit — old_text must be copied "
+    "from a read you can still see."
+)
+#: A read and an edit of the same path in one turn (ADR-091, D4): the
+#: edit's anchor was authored before the read's result existed, so it
+#: was recalled, not copied — sphinx-8548's U1 anchored on a line that
+#: occurs nowhere in the file.
+SAME_TURN_REFUSAL = (
+    "the read of {path} landed this turn — you wrote this edit before you "
+    "could see its result, so old_text was recalled, not copied. Copy your "
+    "anchor from the read's result and edit on the next turn."
+)
+#: The implementer's handoff nudge (ADR-091, D8): an implementer that
+#: edited and then ended in prose (sphinx-8548's U1: "let's reflect…",
+#: never calling reflect) hands nothing to the orchestrator. One bounded
+#: nudge, the same shape as NUDGE_READ_ONLY; only sent when a reflect
+#: tool is on offer.
+NUDGE_HANDOFF = (
+    "You have edited files but not sent your handoff — a summary in prose "
+    "never reaches the orchestrator. Call the reflect tool now with kind "
+    "\"handoff\" and what you changed, what you ran, and what is left, as "
+    "the text. Then stop."
+)
 #: A completion the endpoint cut at max_tokens (finish_reason "length")
 #: is retried once with this much more room (ADR-067); the window fit
 #: still bounds it. A cut completion is never what the model meant —
@@ -458,6 +489,9 @@ class Endpoint:
         #: overflow events on the way, wall time — so the loop can log
         #: every call, not just the ones that errored (ADR-068).
         self.last: dict = {}
+        #: Called with each tool message the window fit elides (ADR-091,
+        #: D3) so the loop can revoke what that result had earned.
+        self.on_elide: Callable[[dict], None] | None = None
 
     def chat(self, messages: list[dict], tools: list[dict], max_tokens: int | None = None) -> dict:
         """One completion, fitted to the model's window: a length
@@ -465,10 +499,19 @@ class Endpoint:
         when that would leave fewer than :data:`MIN_COMPLETION` tokens
         the oldest tool results are elided (in place, stated) until the
         request fits or nothing is left to elide. *max_tokens* overrides
-        the session's cap for this one call (the cut-completion retry)."""
+        the session's cap for this one call (the cut-completion retry).
+
+        One fit per elide cycle (ADR-091, D1): the input count an
+        endpoint reports is treated as a lower bound, not the prompt's
+        size. vLLM's overflow message says "at least N" where N is
+        ``window − max_tokens + 1``, so refitting from it shrinks the
+        room by 17 tokens a try — one sklearn call absorbed 450 400s that
+        way. If the fitted retry overflows again, the next step is an
+        elision, not another fit."""
         max_tokens = max_tokens or self.max_tokens
         self.last = {"max_tokens_sent": max_tokens, "fitted": 0, "elided": 0, "window": None}
         started = time.monotonic()
+        fitted_this_cycle = False
         while True:
             try:
                 reply = self._post(messages, tools, max_tokens)
@@ -481,16 +524,21 @@ class Endpoint:
             except ContextOverflow as exc:
                 self.last["window"] = exc.window
                 room = exc.window - exc.inputs - 16
-                if room >= MIN_COMPLETION and room < max_tokens:
+                if not fitted_this_cycle and room >= MIN_COMPLETION and room < max_tokens:
                     max_tokens = room
+                    fitted_this_cycle = True
                     self.fitted += 1
                     self.last["fitted"] += 1
                     continue
-                if not elide_oldest_tool_result(messages):
+                elided = elide_oldest_tool_result(messages)
+                if elided is None:
                     raise
+                if self.on_elide is not None:
+                    self.on_elide(elided)
                 self.elided += 1
                 self.last["elided"] += 1
                 max_tokens = self.max_tokens
+                fitted_this_cycle = False
 
     def _post(self, messages: list[dict], tools: list[dict], max_tokens: int) -> dict:
         body = {"model": self.model, "messages": messages, "max_tokens": max_tokens, **self.sampling}
@@ -525,15 +573,34 @@ def calls_path(transcript: str) -> str:
     return os.path.join(os.path.dirname(os.path.abspath(transcript)), "calls.jsonl")
 
 
-def elide_oldest_tool_result(messages: list[dict]) -> bool:
+#: A tool result shorter than this many characters is never elided
+#: (ADR-091, D2): the placeholder is nearly as long, so eliding it saves
+#: nothing and deletes the record of what was tried. sklearn-25102's U1
+#: lost its four failed-edit errors (89–112 chars) this way and then
+#: repeated the four edits.
+ELIDE_FLOOR = 2 * len(ELIDED)
+
+
+def elide_oldest_tool_result(messages: list[dict]) -> dict | None:
     """Replace the content of the oldest not-yet-elided tool result with
-    a stated placeholder. Returns False when there is none left — the
-    brief itself is then what does not fit, and that is an error."""
+    a stated placeholder and return that message. Returns None when
+    there is none left — the brief itself is then what does not fit,
+    and that is an error.
+
+    Never elided (ADR-091, D2): the result of a mutating tool — an edit's
+    outcome is the session's action memory, and a model that cannot see
+    a failed edit repeats it — and any result shorter than
+    :data:`ELIDE_FLOOR`, which the placeholder would not shorten."""
     for message in messages:
-        if message.get("role") == "tool" and message.get("content") != ELIDED:
-            message["content"] = ELIDED
-            return True
-    return False
+        if message.get("role") != "tool" or message.get("content") == ELIDED:
+            continue
+        if message.get("name") in MUTATING_TOOLS:
+            continue
+        if len(message.get("content") or "") < ELIDE_FLOOR:
+            continue
+        message["content"] = ELIDED
+        return message
+    return None
 
 
 def clip(text: str, limit: int) -> str:
@@ -576,11 +643,40 @@ def run(args: argparse.Namespace) -> dict:
     applied_edits: set[tuple[str, str]] = set()
     applied_anchors: set[tuple[str, str]] = set()
     read_paths: set[str] = set()
+    #: Which tool message holds which path's read (by message identity),
+    #: the turn each path's ticket was earned on, and the paths whose
+    #: ticket the window fit revoked (ADR-091, D3/D4).
+    read_results: dict[int, str] = {}
+    result_sigs: dict[int, tuple[str, str]] = {}
+    read_turn: dict[str, int] = {}
+    stale_reads: set[str] = set()
+    has_reflect = any(n.endswith("reflect") for n in mcp_names)
+    handoff_nudged = False
     cut_retried = 0
     calls_log: list[dict] = []
     prompt_max = 0
     repeats, dry_turns, refused_run = 0, 0, 0
     edited_since_exec = True  # the first run of any command is always fresh
+
+    def revoke_on_elide(message: dict) -> None:
+        # An elided result may be asked for again: the repeat guard
+        # refuses a call whose answer is already in the window, and this
+        # one no longer is.
+        seen_calls.discard(result_sigs.get(id(message), ("", "")))
+        # D3: a read the model can no longer see earns no edit. The ticket
+        # survives only while another un-elided read of the same path is
+        # still in the window.
+        path = read_results.get(id(message))
+        if path is None:
+            return
+        still = any(p == path and m.get("content") != ELIDED
+                    for m in messages if m.get("role") == "tool"
+                    for p in [read_results.get(id(m))])
+        if not still:
+            read_paths.discard(path)
+            stale_reads.add(path)
+
+    endpoint.on_elide = revoke_on_elide
     try:
         while turns < args.max_turns:
             turns += 1
@@ -674,8 +770,21 @@ def run(args: argparse.Namespace) -> dict:
                         text, is_err = ANCHOR_STACK_REFUSAL, True
                         repeats += 1
                         refused_turn = True
+                    elif name in MUTATING_TOOLS and (tpath := os.path.normpath(str(targs.get("path")))) \
+                            in stale_reads and tpath not in read_paths:
+                        # D3: the read was elided; the ticket went with it.
+                        text, is_err = ELIDED_READ_REFUSAL.format(path=targs.get("path")), True
+                    elif name in MUTATING_TOOLS and read_turn.get(tpath) == turns:
+                        # D4: read and edit batched in one turn — the
+                        # anchor predates the read's result.
+                        text, is_err = SAME_TURN_REFUSAL.format(path=targs.get("path")), True
                     else:
                         seen_calls.add(sig)
+                        if name == "read_file":
+                            rpath = os.path.normpath(str(targs.get("path")))
+                            if rpath not in read_paths:
+                                read_turn[rpath] = turns
+                            stale_reads.discard(rpath)
                         if is_exec:
                             edited_since_exec = False
                         if mcp and name in mcp_names:
@@ -702,6 +811,10 @@ def run(args: argparse.Namespace) -> dict:
                       file=sys.stderr, flush=True)
                 messages.append({"role": "tool", "tool_call_id": call.get("id", ""), "name": name,
                                  "content": clip(("ERROR: " if is_err else "") + text, args.max_result_chars)})
+                if not is_err and isinstance(targs, dict):
+                    result_sigs[id(messages[-1])] = (name, json.dumps(targs, sort_keys=True))
+                    if name == "read_file":
+                        read_results[id(messages[-1])] = os.path.normpath(str(targs.get("path")))
             # Pipeline discipline (ADR-058): a turn that changed nothing is
             # "dry". Nudge toward acting; once nudges are spent, a run of
             # dry turns is a stall, not progress — stop with a reason
@@ -728,6 +841,12 @@ def run(args: argparse.Namespace) -> dict:
                     messages.append({"role": "user", "content": nudge_text})
                     continue
                 if not calls:
+                    if edited and not read_only and has_reflect and not reflected and not handoff_nudged:
+                        # D8: edits made, prose given, no handoff sent.
+                        handoff_nudged = True
+                        nudges += 1
+                        messages.append({"role": "user", "content": NUDGE_HANDOFF})
+                        continue
                     final = message.get("content") or ""
                     break
                 if not acted and dry_turns >= args.stall_after:
@@ -773,6 +892,7 @@ def run(args: argparse.Namespace) -> dict:
         "prompt_tokens_max": prompt_max,
         "calls_saturated": sum(1 for c in calls_log if c.get("fitted") or c.get("elided")),
         "calls": len(calls_log), "edited": edited, "reflected": reflected, "repeats_refused": repeats,
+        "handoff_nudged": handoff_nudged,
         "role": args.role,
         "result": final or error, "model": args.model,
         "runtime": "hobbes-agent-loop", "usage": usage,

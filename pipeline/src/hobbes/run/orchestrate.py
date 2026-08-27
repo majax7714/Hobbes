@@ -77,6 +77,12 @@ class UnitRecord:
     context_faults: int = 0
     exec: dict[str, int] = field(default_factory=lambda: {"allow": 0, "deny": 0, "escalate": 0})
     reflections: list[str] = field(default_factory=list)
+    #: What the session handed forward (ADR-091, D8): ``handoff`` when a
+    #: reflection was sent with kind ``handoff``; ``reflection-only``
+    #: when it reflected but never marked a handoff (the last reflection
+    #: is forwarded in its place); ``missing`` when nothing was sent at
+    #: all — a prose "reflection" in the transcript is not a handoff.
+    handoff: str = ""
     commits: int = 0
     files_changed: list[str] = field(default_factory=list)
     rework_files: list[str] = field(default_factory=list)
@@ -95,6 +101,16 @@ class UnitRecord:
     def fault_rate(self) -> float:
         return self.context_faults / self.knowledge_calls if self.knowledge_calls else 0.0
 
+
+
+def handoff_status(reflected: list[dict]) -> str:
+    """How a session's mail reads as a handoff (ADR-091, D8) — see
+    :attr:`UnitRecord.handoff`."""
+    if not reflected:
+        return "missing"
+    if any(m.get("kind") == mail.HANDOFF for m in reflected):
+        return "handoff"
+    return "reflection-only"
 
 def order_units(spec: dict) -> list[str]:
     """Units in contract order: an owner before every unit that
@@ -331,6 +347,7 @@ def run_task(
         read_flight(session_dir, record)
         reflected = mail.reflections(session_dir)
         record.reflections = [m.get("text", "") for m in reflected]
+        record.handoff = handoff_status(reflected)
         mail.fold_back(orchestrator, unit, reflected)
         manifest_paths = {m["path"] for m in context.get("modules", []) if m.get("path")}
         manifest_paths |= {test_files[t] for t in context.get("guarding_tests", []) if test_files.get(t)}

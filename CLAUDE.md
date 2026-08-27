@@ -137,8 +137,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-25): 911 pytest / 291 Go + 26
-oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
+Suite sizes at the last check (2026-08-27): 917 pytest / 291 Go + 26
+oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
 
@@ -148,7 +148,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 090).
+  architecture doesn't already make. Number sequentially (last: 091).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -200,8 +200,8 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
 - **Latest run and its result:** the ADR-085 validation pair (5 Verified
   instances, 7B, two passes) ran on 2026-08-24. Machinery mostly held;
   0/5 solved (not the measure); **eight harness defects registered in
-  `docs/adr085-validation-run.md`** — that file is the restructure's
-  worklist. Nothing is fixed yet.
+  `docs/adr085-validation-run.md`**. D1–D4, D7, D8 are fixed
+  (ADR-091, 2026-08-27, validated with no model); D5/D6 are held.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
   (`docs/benchmark-deepswe.md`); no H1 claim has been earned.
@@ -215,8 +215,8 @@ oracle-lane Go / 52 vitest / 29 tsextract + 25 scip node tests. Keep them green.
   code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
   `docs/oracle-defects.md` are the honesty records; dagger's Go root
   waits on a bigger box.
-- **Next:** restructure from the defect register (D1–D8), validated on
-  the 7B or with no model; then project setup for collaborators
+- **Next:** D5/D6 when Max reopens them; the removal A/B re-run on a
+  cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite

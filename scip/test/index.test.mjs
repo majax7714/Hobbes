@@ -3,6 +3,7 @@ import { test } from 'node:test'
 
 import {
   classify,
+  commonDirectory,
   decode,
   degradations,
   dependencyCoverage,
@@ -343,6 +344,38 @@ test('a moniker defined in two files is ambiguous, dropped, and reported', () =>
   // And the drop is visible, never silent (P6).
   const out = degradations(idx, decoded, {})
   assert.ok(out.some((d) => d.stage === 'scip-decode' && /more than one/.test(d.message)))
+  // Which files, so the record can be scoped (ADR-091, D7).
+  assert.deepEqual(decoded.ambiguous_files, { [`${RS} crate/`]: ['src/lib.rs', 'src/main.rs'] })
+})
+
+test('the duplicate-symbol record is scoped to its files and worded per lane (ADR-091, D7)', () => {
+  // sklearn's doc/tutorial/text_analytics/{skeletons,solutions}/ both
+  // define exercise_01_language_train_model; the record rode every unit
+  // brief with `path: "."` and Rust's "cargo targets" wording.
+  const PY = 'scip-python python sklearn 1.0'
+  const idx = fakeIndex([
+    {
+      relative_path: 'doc/tutorial/text_analytics/skeletons/exercise_01_language_train_model.py',
+      occurrences: [{ symbol: `${PY} exercise_01_language_train_model/cm.`, symbol_roles: DEF, range: [0, 0, 0, 2] }],
+    },
+    {
+      relative_path: 'doc/tutorial/text_analytics/solutions/exercise_01_language_train_model.py',
+      occurrences: [{ symbol: `${PY} exercise_01_language_train_model/cm.`, symbol_roles: DEF, range: [0, 0, 0, 2] }],
+    },
+    { relative_path: 'sklearn/base.py', occurrences: [] },
+  ])
+  const decoded = decode(idx)
+  const dup = (out) => out.find((x) => /more than one/.test(x.message))
+  const d = dup(degradations(idx, decoded, { language: 'python' }))
+  assert.equal(d.stage, 'scip-decode')
+  assert.equal(d.path, 'doc/tutorial/text_analytics')
+  assert.match(d.message, /skeletons\/ and solutions\//)
+  assert.doesNotMatch(d.message, /cargo/)
+  const r = dup(degradations(idx, decoded, { language: 'rust' }))
+  assert.match(r.message, /cargo targets/)
+  assert.equal(commonDirectory(['a/b/x.py', 'c/y.py']), '.')
+  assert.equal(commonDirectory(['a/b/x.py', 'a/b/y.py']), 'a/b')
+  assert.equal(commonDirectory([]), '.')
 })
 
 test('an external ref keeps its moniker for the cross-unit join (v3, ADR-049)', () => {

@@ -58,6 +58,7 @@ from hobbes.run.coverage import (
 )
 from hobbes.run.handoff import parse_handoff
 from hobbes.run.orchestrate import (
+    handoff_status,
     RunError, UnitRecord, integrate, loss, order_units, read_branch,
     read_flight, review_integration, _branch_exists, _git,
 )
@@ -803,6 +804,7 @@ def _run_aided(repo, proposal, task, pdir, graph, tests_doc, stage_log, seed_sou
             read_flight(session_dir, record)
             reflected = mail.reflections(session_dir)
             record.reflections = [m.get("text", "") for m in reflected]
+            record.handoff = handoff_status(reflected)
             mail.fold_back(orchestrator, "impl", reflected)
             # rework_files here MEASURES how far the agent ranged beyond
             # the planner's named files (not a fence) — the multi-file
@@ -946,6 +948,7 @@ def _harvest_unit(repo, base, session, context, test_files, sessions_root, recor
     read_flight(session_dir, record)
     reflected = mail.reflections(session_dir)
     record.reflections = [m.get("text", "") for m in reflected]
+    record.handoff = handoff_status(reflected)
     mail.fold_back(orchestrator, unit, reflected)
     read_branch(repo, base, session, _manifest_paths(context, test_files), record)
 

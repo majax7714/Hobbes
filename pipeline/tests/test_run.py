@@ -284,6 +284,7 @@ class TestRun:
             assert u["knowledge_calls"] == 2 and u["context_faults"] == 1
             assert u["exec"] == {"allow": 1, "deny": 1, "escalate": 0}
             assert u["reflections"] == ["done: handle retried"]
+            assert u["handoff"] in ("handoff", "reflection-only")   # sent, either way (ADR-091, D8)
             assert u["commits"] == 1
             assert "src/stray.py" in u["rework_files"]
             # the agent dir reached the session binary
@@ -974,3 +975,13 @@ def test_guarding_tests_are_bounded_for_a_hub_module(monkeypatch):
             "contracts": []}
     body = agents.render_context(spec, "U1").split("## Guarding", 1)[1].split("## ", 1)[0]
     assert body.count("\n- ") <= agents.GUARDING_TESTS_MAX + 1 and "elided" in body
+
+
+def test_handoff_status_names_what_the_session_sent():
+    # ADR-091, D8: a prose "let's reflect…" in the transcript sends
+    # nothing; the record must say so rather than carry an empty list.
+    from hobbes.run.orchestrate import handoff_status
+    assert handoff_status([]) == "missing"
+    assert handoff_status([{"text": "looking", "kind": "progress"}]) == "reflection-only"
+    assert handoff_status([{"text": "looking", "kind": "progress"},
+                           {"text": "done", "kind": "handoff"}]) == "handoff"
