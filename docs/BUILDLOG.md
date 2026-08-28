@@ -5467,3 +5467,14 @@ Go (2 new), oracle 33.
 
 ADR-092 is now built in full and awaits Max's review; the oracle-cell
 triage (seven cells, on hold since 2026-08-27) resumes after it.
+
+## 2026-08-28 — ADR-092 reviewed; the containment claim scoped (P11)
+
+Max reviewed all four phases: all good, with one addition — the sandbox
+runs apply only to the repos actually re-run under them. Written into
+ADR-092 ("Scope of the containment evidence"), C-64 (a Scope line) and
+`extraction-evidence.md`: every earlier cell and graph was a host run
+and is not re-earned; the contained toolchain is not assumed equal to
+the host's until a cell proves it (`rust-src` was the first difference;
+more expected); a record without `containment` is a host-run record.
+The oracle-cell triage resumes next.

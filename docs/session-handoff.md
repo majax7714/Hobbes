@@ -47,8 +47,14 @@ until this lands.** One phase active at a time.
   this is going" states the two layers and the P11 scope;
   `proxy.KnowledgeOnlyBanner` prints them at `serve --knowledge-only`.
 
-**ADR-092 is complete and awaits Max's review.** After it: resume the
-oracle-cell triage (below), then D5/D6 when reopened.
+**ADR-092 reviewed by Max (2026-08-28): all good.** One scoping he
+added, now in the ADR, C-64 and the evidence log (P11): containment is
+verified only on the runs made under it — this repo, rust_proj, the
+fixtures. Every earlier cell and graph was a host run and is not
+re-earned; the contained toolchain differed from the host's once
+already (`rust-src`) and more of that is expected. From here every cell
+runs contained, its record carries `containment`, and a record without
+it is a host-run record. **The oracle-cell triage resumes now.**
 
 **Three embedded calls for Max to ratify** (ADR-092 §"Decisions"):
 contain-all lane B vs executing-only; symlink targets mounted at

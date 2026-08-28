@@ -192,6 +192,23 @@ execute the repo on the host; the user's harness is outside the
 guarantee. `proxy.KnowledgeOnlyBanner` prints both sentences at
 `serve --knowledge-only` start. §10 unchanged: still local, no hosting.
 
+## Scope of the containment evidence (P11 — Max, 2026-08-28)
+
+Containment is a property of a *run*, and the claim reaches exactly as
+far as the runs made under it: this repo's ingest (byte-identical to
+its host run), this repo's Python zone (O6), rust_proj (O7), and the
+fixture self-tests. **Every earlier cell record and every graph in the
+evidence base was produced on the host.** They are not re-earned by
+this ADR, and the contained toolchain is not assumed equivalent to the
+host's until a cell proves it — the first contained build silently
+dropped the Rust semantic tier for want of `rust-src`, and more of that
+kind is expected as more repos are re-run. So: from here every cell
+runs contained and its record says so (`containment` in the export and
+report); a record without that field is a host-run record and licenses
+nothing about the contained path; and the contained-vs-host diff stays
+the check whenever a repo is ingested under containment for the first
+time.
+
 ## Decisions embedded here that the owner should ratify
 
 Three calls, each independent — reverse any and the rest survives:

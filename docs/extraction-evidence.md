@@ -50,6 +50,13 @@ typescript`). Re-ingested every session; the suite's degraded path
 | 2026-08-16 (V2.M7 exit) | 3,085 sites, lanes **0 disagreements** across six languages |
 | 2026-08-15 (V2.M3 exit) | lanes: 1,789 sites compared, **0 disagree** |
 
+**Containment scope (ADR-092, P11):** the rows dated 2026-08-27/28 are
+the only ones produced under the sandbox image; every earlier row and
+every other repo's cells below were host runs. They are not re-earned
+by containment, and the contained toolchain is not assumed equal to the
+host's until a cell proves it (it differed once already: `rust-src`).
+From here a record without `containment` is a host-run record.
+
 **Verified:** Go — **compiler-graded 2026-08-25**: every semantic call
 edge in `go/` confirmed by RTA (1,278/1,278), the 3 syntactic-tier
 edges contradicted; not hand-checked beyond triage. Triage of the

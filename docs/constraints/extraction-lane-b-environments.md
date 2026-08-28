@@ -162,6 +162,11 @@
   `list_blind_spots` names the artifact as not built under the
   guarantee. An oracle cell's export and report carry the same. A named
   escape hatch, never a default.
+- **Scope (P11):** the contained path is verified only on the runs made
+  under it (this repo, rust_proj, the fixtures — 2026-08-27/28); every
+  earlier record was a host run and says nothing about the contained
+  toolchain, which already differed once (`rust-src`). A cell record
+  without a `containment` field is a host-run record.
 - **Provider (P9):** none — this is Hobbes's own containment; the
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
