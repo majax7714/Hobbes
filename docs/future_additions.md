@@ -585,3 +585,15 @@ collapse into one container and lose ADR-092's network-by-phase
 separation. **Opens when** a foreign-repo deployment needs the
 pipeline pinned too; the shape then is a pinned wheel in the image
 plus a nested-podman decision, not a checkout mount.
+
+## Java as the fifth language (2026-08-28)
+
+Max asked, out of interest, what Java and C would cost. The answer is
+`docs/java-build-plan.md` — §3.7's checklist elaborated to five
+milestones (ADR-096 + spike, lane A, contained `scip-java`, JUnit/Spring
+packs, a bytecode CHA/RTA oracle, the evidence row) and the reasons Java
+ranks ahead of C. **Parked:** it opens when Max names it, with the ADR as
+its first commit. Also recorded there, because the question came up:
+ingest is per language, gated on discovery — a language with no files
+in the repo costs one extension walk and nothing else; only the image
+build carries every toolchain.
