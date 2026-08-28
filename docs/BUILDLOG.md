@@ -5662,3 +5662,55 @@ in `future_additions.md` with the three reasons (lane A executes no
 repo code; baking the pipeline in un-pins or slows development;
 nested podman or the loss of network-by-phase). Suites: 966 pytest +
 the known environmental failure, Go green, gofmt clean.
+
+## 2026-08-28 — ADR-095: CI for real; the handoff trimmed; W0 refreshed
+
+Session opened as a review of the project and its base docs, with
+Max's note that Hobbes should be used more for the session's own
+development. Reconnaissance went through the knowledge tools first:
+`list_blind_spots .` (capture floors go 88.0 / python 85.5 / rust 80.2
+/ ts-js 63.5; the web environment gap — `vite`, `@vitejs/plugin-react`,
+`@types/cytoscape` unresolved — and the C-28 namespace rows, identical
+to the previous ingest), `list_invariants .` (11 confirmed; three
+near-duplicate pairs noticed: I-1/I-7, I-2/I-8, I-6/I-11),
+`graph_neighborhood hobbes.cli`, `tests_guarding pipeline/src/hobbes/run`
+(~100 tests). `get_module_doc` answers "run `hobbes narrate`" on this
+repo — the one empty tool of the six; it spends model calls, so parked
+as a W0 item for Max to clear.
+
+**Built — W0's "CI, for real" (ADR-095).** `.github/workflows/ci.yml`:
+four jobs (`go`: gofmt + product and oracle-lane `go test` + the static
+proxy builds; `python`: pytest with lane B off; `web`: vitest + build,
+tsextract, scip helper; `graph`). The graph job is
+`scripts/ci-graph.sh <base>` — the README's shape as one script CI and
+a developer run identically: static proxy → `podman build` of the image
+(lane B runs only inside it, C-64) → `hobbes ingest` → **the
+`containment` stamp checked** (`all_contained`, no escape hatch; an
+unstamped graph is the ADR-094 incident shape and fails) → `hobbes
+lanes` → `hobbes invariants compile --json` with **every emitted config
+executed** (the first CI execution of a compiled checker: the I-5
+semgrep rule ran clean; C-19 narrowed accordingly — dep-cruiser and
+Rego stay unexercised because no record here compiles to them) →
+`hobbes review $BASE..HEAD` → the `lane_b` pytest cases. Base ref:
+merge-base on a PR, `event.before` on a push. Validated by running the
+script end to end on the box (`HEAD~1`: 23 lane B steps contained,
+lanes agree, review clean, lane_b 1 passed); **not observed on GitHub**
+— Max sees the first run when he publishes, and the ADR names the two
+runner-specific unknowns (rootless podman as `runner`, rustup inside
+the image build). One permanent deselect, by name and with its reason
+in the script: `test_venv_environment_lists_the_venvs_own_distributions`,
+the environmental failure the handoff holds untouched — fixing its
+fixture is now a W0 item.
+
+**Docs.** Suite counts re-derived and corrected everywhere they were
+stated (README had 291/911/25 from an older state; CLAUDE.md 960):
+966 pytest + 1 `lane_b`, 294 Go, 35 oracle, 52 vitest, 29 tsextract,
+26 scip. README: two copy errors in the opening paragraphs, a CI
+paragraph under "the CI shape", the oracle lane added to the test
+block. Architecture §3.4 and §3.6 lose "no CI is configured yet".
+`session-handoff.md` rewritten to a third of its size — the D1–D8
+worklist and the 2026-08-24/27 "kept for the record" sections it had
+accumulated live here now, not there. `workstreams.md`: the sequencing
+header brought to the 2026-08-28 state (it still named the ADR-085
+validation as the next run); W0 gains the deselected-test fix, a
+registry-pulled image, the duplicate invariants, and `narrate`.

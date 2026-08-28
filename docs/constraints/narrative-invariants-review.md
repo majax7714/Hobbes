@@ -13,7 +13,7 @@
   Staleness badges on SHA drift.
 - **Source:** ADR-019.
 
-### C-19 — Two of the four compiled CI configs have never been executed
+### C-19 — Two of the four compiled CI configs have never been executed (semgrep runs in CI since ADR-095)
 - **Cannot tell you:** that a generated dependency-cruiser config or
   Rego policy actually runs. **import-linter left this list at V2.M6**
   (ADR-039): the agreement suite runs `lint-imports` over generated
@@ -35,9 +35,14 @@
 - **Bites at:** `hobbes invariants compile` output for dep-cruiser and
   rego, the first time anyone runs them in real CI.
 - **You find out:** **unsurfaced** for those two. The files look
-  finished.
-- **Source:** M8, `future_additions.md`; narrowed at V2.M6 and again
-  2026-08-16.
+  finished. **Since ADR-095 (2026-08-28)** `scripts/ci-graph.sh`
+  compiles and *executes every emitted config* on each push — the
+  semgrep rule (I-5) has run in CI; a confirmed record compiling to
+  dep-cruiser or Rego would fail the job until the tool is on the
+  runner, which is where a user would meet it. No such record exists in
+  this repo, so the two emitters remain unexercised, not silently passed.
+- **Source:** M8, `future_additions.md`; narrowed at V2.M6, 2026-08-16,
+  and ADR-095.
 
 ### C-20 — Decisions do not survive a fresh clone
 - **Cannot tell you:** on a new machine or a re-clone, that you already

@@ -147,8 +147,12 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-28): 960 pytest / 294 Go + 35
-oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
+Suite sizes at the last check (2026-08-28): 966 pytest (+1 `lane_b`) /
+294 Go + 35 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node
+tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+them all on every push; `scripts/ci-graph.sh <base>` is the graph job
+(image build → ingest → stamp check → lanes → compiled invariants →
+review → `lane_b` pytest) and runs the same way on a box.
 
 ## Conventions
 
@@ -158,7 +162,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 094).
+  architecture doesn't already make. Number sequentially (last: 095).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`

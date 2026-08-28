@@ -523,8 +523,8 @@ degraded path is the one under test on every run.
 **Lane-agreement self-test:** wherever both lanes can produce the same
 module-level edge they must agree, and — sharper — wherever both resolved
 the same call *site*, they must resolve it to the same place. It is a
-command built for CI (`hobbes lanes`, exit 1 on disagreement; no CI is
-configured yet — the repo's discipline runs it by hand), which makes it
+command built for CI (`hobbes lanes`, exit 1 on disagreement; since
+ADR-095 it runs on every push in `scripts/ci-graph.sh`), which makes it
 a free extractor-bug detector rather than a report nobody opens. Consumers
 treat tier as trust: an invariant violation proven on semantic edges is a
 finding; on syntactic edges it is a suspicion, and the reviewer flow says
@@ -627,7 +627,8 @@ ADR-092, the cargo / go / npm caches under the Hobbes cache root); SCIP
 indexes are written fresh per ingest, there is no partial-index merge
 (ADR-027 demoted it to "a refinement to measure") and no debounce —
 lane B runs when `hobbes ingest` runs, gated by `HOBBES_SCIP` (per-PR
-CI is the intended home; none is configured yet); lane A remains the
+CI is its home since ADR-095 — the graph job builds the image and
+ingests inside it); lane A remains the
 every-commit fast path. Full re-index is always available and always correct
 (`P1`), the cache only makes it cheap.
 

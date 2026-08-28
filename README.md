@@ -4,7 +4,7 @@
 and it tries to be what Hobbes is in the strip: the companion who goes
 along with the ambitious idea, tells you the truth about it, and is
 still there when the wagon goes off the cliff. In software terms it is a
-**multilingual, deterministic code graphing environment** . Hobbes reads a
+**multilingual, deterministic code graphing environment**. Hobbes reads a
 repo, builds an accurate map of it, and uses that map to give agents
 safe, well-scoped context and to give people a system they can actually
 understand and review.
@@ -23,7 +23,7 @@ built around three properties, in order:
   down where you will meet it, and the blind spots of the third-party
   indexers Hobbes runs are owned as Hobbes's own.
 
-Faster agents may fall out of this. an agent handed the right twelve
+Faster agents may fall out of this. An agent handed the right twelve
 files does less wandering, but speed is a side effect, not the goal.
 The goal is an environment developers can trust: context that is safer
 for the agent to work from, and a system that is easier for a person to
@@ -374,15 +374,22 @@ hobbes-session start --repo . --role implementer   # sandboxed agent session
 
 `hobbes ingest && hobbes lanes && hobbes review $BASE..HEAD` is the CI
 shape: extract, let the lanes check each other, then gate on the concepts.
+It runs on every push and pull request (`.github/workflows/ci.yml`,
+ADR-095): the five suites below as separate jobs, and the graph shape
+as `scripts/ci-graph.sh <base>` — which builds the sandbox image, checks
+the ingest's `containment` stamp, executes every compiled invariant
+checker, and runs the image-dependent (`lane_b`) pytest cases. The same
+script runs on a developer box.
 
 ## Tests
 
 ```sh
-cd go        && go test ./...     # 291 cases across 12 packages
-cd pipeline  && uv run pytest     # 911 cases
-cd web       && npm test          # 52 vitest cases (the pure layer)
-cd tsextract && npm test          # 29 node --test cases
-cd scip      && npm test          # 25 node --test cases
+cd go          && go test ./...   # 294 cases across 12 packages
+cd bench/oracle && go test ./...   # 35 cases (the oracle lane; Rust/Python cells skip without toolchains)
+cd pipeline    && uv run pytest    # 966 cases (+1 lane_b case, image only)
+cd web         && npm test         # 52 vitest cases (the pure layer)
+cd tsextract   && npm test         # 29 node --test cases
+cd scip        && npm test         # 26 node --test cases
 ```
 
 Tests accompany the code they test in the same commit; the pytest suite

@@ -1,0 +1,94 @@
+# CI — the five suites plus the README's graph shape (ADR-095).
+#
+# Jobs are independent so a red suite is named by its job. The graph
+# job builds the sandbox image (~4 min; lane B runs only inside it,
+# ADR-092/C-64) and is the first place the compiled invariant checkers
+# execute outside a developer box (C-19).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      - name: gofmt
+        run: test -z "$(gofmt -l go bench/oracle)" || { gofmt -l go bench/oracle; exit 1; }
+      - name: go test (product)
+        working-directory: go
+        run: go test ./...
+      - name: go test (oracle lane; Rust/Python cells skip without their toolchains)
+        working-directory: bench/oracle
+        run: go test ./...
+      - name: static proxy builds
+        working-directory: go
+        run: CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
+
+  python:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: tsextract helper (the Python suite shells out to it)
+        working-directory: tsextract
+        run: npm ci
+      - name: pytest (lane B off by default; lane_b cases skip without the image)
+        working-directory: pipeline
+        run: uv sync && uv run pytest -q
+
+  web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: web (vitest + build)
+        working-directory: web
+        run: npm ci && npm test && npm run build
+      - name: tsextract
+        working-directory: tsextract
+        run: npm ci && npm test
+      - name: scip helper
+        working-directory: scip
+        run: npm ci && npm test
+
+  graph:
+    # ingest → lanes → compiled invariants → review, in the image.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # `hobbes review` diffs against the base ref
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+      - uses: astral-sh/setup-uv@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: helpers
+        run: (cd tsextract && npm ci) && (cd scip && npm ci) && (cd pipeline && uv sync)
+      - name: base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then
+            echo "ref=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: graph checks
+        run: scripts/ci-graph.sh "${{ steps.base.outputs.ref }}"

@@ -144,7 +144,7 @@ registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
 against the code that concedes it; none had been silently lifted). Two
-of the active are **unsurfaced** (C-19 — narrowed to two tools — and
+of the active are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and
 C-20); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status

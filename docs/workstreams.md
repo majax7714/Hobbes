@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -17,13 +17,18 @@ item opens when Max names it. Sequencing context is
 2. The derivation programme is built (D1/D2 + the benchmark harness);
    its live runs produced method corrections, the contamination finding
    (C-39), P12, and the requirement-decomposer restructure (ADR-084/085)
-   — **built, not yet validated**.
+   — **validated once on the 7B (2026-08-24)**; the eight harness
+   defects that run registered are all fixed (ADR-091, ADR-093).
 3. **Experiments are parked.** The next run, on Max's explicit go, is
-   the 7B validation of ADR-085 (W3 below) — a demonstration that the
-   Hobbes machinery works end to end, judged on its own behavior
-   (requirements written, coverage held, plan errors at plan cost),
-   not on task solve rate.
-4. Current work is cleaning, polishing, and verifying — W0.
+   the removal A/B re-run on the 7B (W3 below) — un-confounded on the
+   D5 axis now, still needing an n that splits O4's planner variance.
+4. **Containment (ADR-092) is built** in all four phases and reviewed;
+   the knowledge proxy runs from the image (ADR-094). Every cell from
+   here runs contained; earlier cells are host-run records (P11).
+5. The oracle lane's seven-cell loop is triaged (every compiler-graded
+   cell at 100%); the drift audit was re-run 2026-08-28 (41 fixes).
+6. CI exists (ADR-095, 2026-08-28). Current work is W0's remaining
+   discipline items and collaborator onboarding.
 
 ---
 
@@ -32,17 +37,40 @@ item opens when Max names it. Sequencing context is
 *The repo as a thing other people read. Mostly discipline, one real
 build item.*
 
-- **CI, for real.** The docs now say honestly that no CI exists. The
-  shape is already named (`README`): `hobbes ingest && hobbes lanes &&
-  hobbes review $BASE..HEAD` plus the five test suites. This is also
-  the first execution of the compiled invariant configs — C-19 says two
-  of the four emitters have never run, and ADR-039's checker found an
-  emitter bug the first time one did.
-- **Recurring drift audit.** The 2026-08-24 pass fixed 19 stale claims
-  in the running architecture; the rule (ADR-033, §9) only works if
-  someone re-runs the check. Cheap, periodic, assignable to anyone.
+- ~~**CI, for real.**~~ — **built 2026-08-28 (ADR-095)**:
+  `.github/workflows/ci.yml` runs the five suites as four jobs plus the
+  graph shape (`scripts/ci-graph.sh <base>`: image build → ingest →
+  containment stamp → lanes → every compiled invariant checker → review
+  → `lane_b` pytest). Validated on the development box only; **the first
+  GitHub run is Max's to observe** when he publishes — rootless podman
+  under the runner user and the image's rustup download are the two
+  things that can differ there. C-19: semgrep now executes in CI;
+  dep-cruiser and Rego stay unexercised until a record compiles to them.
+- **Fix the one deselected test.**
+  `test_venv_environment_lists_the_venvs_own_distributions` (`lane_b`)
+  fails under containment because its fake venv symlinks the suite's
+  interpreter and answers `{pip}`; `ci-graph.sh` deselects it by name.
+  The fix is a real venv in the fixture (`python -m venv` + one
+  installed distribution) — small, and it removes the only permanent
+  exclusion in CI.
+- **Registry-pulled image.** The graph job builds the image every run
+  (~4 min). Pull-by-digest from a registry when that starts to hurt;
+  the digest becomes part of what a cell record pins.
+- **Recurring drift audit.** Re-run 2026-08-28 (41 fixes, one regrade,
+  a red pin caught — BUILDLOG). The rule (ADR-033, §9) only works if
+  someone re-runs the check; cheap, periodic, assignable to anyone.
+  CI now catches the suite counts and the lane agreement; prose claims
+  are still a person's job.
 - **Extraction evidence upkeep.** `extraction-evidence.md` gets a dated
-  entry per test session, `Verified:` line mandatory (P11).
+  entry per test session, `Verified:` line mandatory (P11). Since
+  ADR-092 every entry states `containment` or is a host-run record.
+- **Duplicate invariants.** `.hobbes/invariants/` carries three
+  near-duplicate pairs (I-1/I-7 tfstate, I-2/I-8 derived-never-committed,
+  I-6/I-11 env joins) — one inferred, one written; `list_invariants`
+  shows both. Merge each pair or record why both stand.
+- **Narrative layer on this repo.** `get_module_doc` answers "run
+  `hobbes narrate`" here; the tool is empty on the dogfood repo. Running
+  it spends model calls, so it opens when Max clears it.
 
 *Profile: any contributor; good first-week territory.*
 
