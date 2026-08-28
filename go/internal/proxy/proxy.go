@@ -121,6 +121,15 @@ type ExecArgs struct {
 	Dir     string `json:"dir,omitempty" jsonschema:"working directory relative to the repo root (default: the repo root)"`
 }
 
+// KnowledgeOnlyBanner is what `serve --knowledge-only` prints at start
+// (ADR-092 phase 4): the knowledge layer is a complete deployment — no
+// model, no credential, the ingest's only dangerous operation sealed in
+// a container — and the scope of that claim (P11): Hobbes guarantees
+// its *own* processes never execute the repo on the host; what the
+// harness reading these tools does with its own tools is outside it.
+const KnowledgeOnlyBanner = "hobbes-proxy: knowledge-only — six read-only tools over .hobbes/derived, no exec, no model, no credential.\n" +
+	"hobbes-proxy: Hobbes guarantees its own processes never execute this repo on the host (ADR-092); what your harness does with its own tools is outside that guarantee.\n"
+
 // MCP returns the MCP server exposing this session's tools.
 func (s *Server) MCP() *mcp.Server {
 	srv := mcp.NewServer(&mcp.Implementation{Name: "hobbes-proxy", Version: "0.1.0"}, nil)

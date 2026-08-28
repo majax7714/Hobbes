@@ -637,6 +637,41 @@ func blindSpotRepo(t *testing.T) string {
 	return repo
 }
 
+// TestBlindSpotsNameAnUncontainedArtifact: an artifact whose lane B ran
+// on the host (ADR-092's escape hatch, or a box without the image) says
+// so where the boundary is read (C-64); one built contained says nothing
+// — the guarantee holding is the default.
+func TestBlindSpotsNameAnUncontainedArtifact(t *testing.T) {
+	repo := blindSpotRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	raw, _ := os.ReadFile(path)
+	var g map[string]any
+	json.Unmarshal(raw, &g)
+	g["containment"] = map[string]any{
+		"steps": []map[string]any{
+			{"step": "index-python", "contained": true},
+			{"step": "index-rust", "contained": false, "reason": "HOBBES_UNCONTAINED is set"},
+		},
+		"all_contained": false, "escape_hatch": true,
+	}
+	data, _ := json.Marshal(g)
+	os.WriteFile(path, data, 0o644)
+	out, err := Open(repo).ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "containment: 1 of 2 lane B step(s) ran on the host (HOBBES_UNCONTAINED is set)") || !strings.Contains(out, "C-64") {
+		t.Fatalf("uncontained artifact not named:\n%s", out)
+	}
+	g["containment"] = map[string]any{"steps": []map[string]any{{"step": "index-python", "contained": true}}, "all_contained": true, "escape_hatch": false}
+	data, _ = json.Marshal(g)
+	os.WriteFile(path, data, 0o644)
+	out, _ = Open(repo).ListBlindSpots(".")
+	if strings.Contains(out, "containment:") {
+		t.Fatalf("a contained artifact needs no banner:\n%s", out)
+	}
+}
+
 func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	s := Open(blindSpotRepo(t))
 	out, err := s.ListBlindSpots(".")
@@ -734,7 +769,6 @@ func TestBlindSpotsOnAnOlderArtifactOmitsTheNotes(t *testing.T) {
 		}
 	}
 }
-
 
 func TestNeighborhoodAcceptsTheNodePath(t *testing.T) {
 	// ADR-073: the map shows "`id` — path" and the 7B passes the path.

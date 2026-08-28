@@ -357,6 +357,26 @@ def plan(
     )
 
 
+#: Every step this process ran, in order — the ingest stamps it into
+#: graph.json (`containment`) so the artifact says where lane B ran
+#: (ADR-092 phase 3). Reset per ingest.
+LEDGER: list[dict] = []
+
+
+def reset_ledger() -> None:
+    LEDGER.clear()
+
+
+def summary() -> dict:
+    """What graph.json records: each step and where it ran, whether
+    every step was contained, and whether the escape hatch was set."""
+    return {
+        "steps": list(LEDGER),
+        "all_contained": all(s["contained"] for s in LEDGER),
+        "escape_hatch": uncontained_requested(),
+    }
+
+
 @dataclass(frozen=True)
 class Outcome:
     """What :func:`run` produced, and where it ran."""
@@ -392,6 +412,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
             raise ContainmentError(
                 f"podman could not start {p.profile.step}: {proc.stderr.strip()[-500:]}"
             )
+        LEDGER.append({"step": p.profile.step, "contained": True})
         return Outcome(proc, True)
 
     if p.profile.executes_repo_code and not uncontained_requested():
@@ -413,6 +434,7 @@ def run(p: Plan, *, timeout: int) -> Outcome:
         raise  # the caller names how its tool is installed
     except subprocess.TimeoutExpired as exc:
         raise ContainmentError(f"{p.profile.step} timed out after {timeout}s") from exc
+    LEDGER.append({"step": p.profile.step, "contained": False, "reason": reason})
     return Outcome(proc, False, host_reason=reason)
 
 

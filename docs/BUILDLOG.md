@@ -5449,3 +5449,21 @@ why the pair is stated with its deselection.
 Suites: oracle Go 33 (5 new, `contain_test.go`); pytest untouched.
 ADR-092 retitled and its phase-2 section written; `oracle-grading.md`
 §6/§7, architecture §7, C-64, the lane README, CLAUDE.md amended.
+
+## 2026-08-28 — ADR-092 phases 3 and 4: the flag, the stamp, the two layers
+
+Phase 3, guarantee wiring: `hobbes ingest --uncontained` (prints
+`UNCONTAINED:` first, sets the hatch); `containment.LEDGER` records
+every lane B step and `graph.json` carries `containment: {steps,
+all_contained, escape_hatch}`; the summary prints a `containment:`
+WARNING when any step ran on the host; `list_blind_spots` prints the
+same line with C-64 and nothing when the guarantee held (Go test);
+P4's gloss extended. `go/bin/hobbes-proxy` and `sandbox/hobbes-proxy`
+rebuilt. Phase 4, prose: architecture "Where this is going" states the
+two layers and the P11 scope; `proxy.KnowledgeOnlyBanner` prints them
+at `serve --knowledge-only`; §4 cross-references. C-64's surfacing line
+rewritten for the flag and the stamp. Suites: 951 pytest (2 new), 293
+Go (2 new), oracle 33.
+
+ADR-092 is now built in full and awaits Max's review; the oracle-cell
+triage (seven cells, on hold since 2026-08-27) resumes after it.

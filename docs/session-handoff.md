@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-28 (ADR-092 phases 1–2 built: lane B and the executing oracles contained;
+**Rewritten 2026-08-28 (ADR-092 built in full — all four phases;
 the oracle-cell triage is ON HOLD by Max's direction).** The one
 authoritative resume doc. Read this, then **`docs/adr/092-ingest-containment.md`**
 (the containment programme's four phases — the active track), then
@@ -39,19 +39,16 @@ until this lands.** One phase active at a time.
   an explained 8-edge residue (one environment-probing test). Records:
   `oracle-cells/{rust_proj,hobbes-py}-2026-08-28.md`. Max ratified the
   phase-1 decisions (venv listing strict).
-- **Phase 3 — guarantee wiring (next).** The `--uncontained` CLI flag
-  (`HOBBES_UNCONTAINED=1` exists today) with its disclosure stamped in
-  `graph.json` and any oracle cell record; `list_blind_spots` naming
-  C-64; P4's gloss extended (enforcement below every process that
-  touches repo code).
-- **Phase 4 — the reshaping (prose, may land with 3).** The
-  architecture states two layers: the **knowledge layer** (sandboxed
-  ingest → `derived/` → `hobbes-proxy serve --knowledge-only`) is a
-  complete, self-contained deployment — no model, no credential, the
-  only dangerous operation sealed; the **agentic layer** is opt-in
-  above it. Scoped by P11: Hobbes guarantees *its own* processes never
-  execute the repo on the host; the user's harness is outside the
-  guarantee, and the serve banner says so.
+- **Phase 3 — guarantee wiring: BUILT (2026-08-28).** `hobbes ingest
+  --uncontained`; the `containment` stamp in `graph.json`; the summary
+  and `list_blind_spots` name an uncontained artifact (C-64); P4's
+  gloss extended.
+- **Phase 4 — the reshaping: LANDED (2026-08-28).** Architecture "Where
+  this is going" states the two layers and the P11 scope;
+  `proxy.KnowledgeOnlyBanner` prints them at `serve --knowledge-only`.
+
+**ADR-092 is complete and awaits Max's review.** After it: resume the
+oracle-cell triage (below), then D5/D6 when reopened.
 
 **Three embedded calls for Max to ratify** (ADR-092 §"Decisions"):
 contain-all lane B vs executing-only; symlink targets mounted at
@@ -186,7 +183,7 @@ at 100% on every tier it was reached on. dagger's re-ingest sizes
 `below-floor` at go 4,114 / ts 247 / python 117 / rust 102. Cell outputs:
 `~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
 
-## ON HOLD — the 2026-08-27 grading loop, untriaged (resumes after ADR-092)
+## NEXT AFTER THE ADR-092 REVIEW — the 2026-08-27 grading loop, untriaged
 
 Seven cell records in `docs/oracle-cells/*-2026-08-27.md` (toml, click,
 memchr, mux, fzf, ajv, cheerio), written by single-purpose agents,

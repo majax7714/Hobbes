@@ -1,6 +1,6 @@
 # ADR-092 — Sandbox whatever executes repo-authored code: ingest and oracle containers
 
-**Date:** 2026-08-27 · **Status:** accepted — phases 1 and 2 built (2026-08-27/28) · **Owner:** Max · **Source:** the architecture review of 2026-08-27 (the sandbox boundary covered agent sessions but not extraction or the oracle lane)
+**Date:** 2026-08-27 · **Status:** accepted — all four phases built (2026-08-27/28) · **Owner:** Max · **Source:** the architecture review of 2026-08-27 (the sandbox boundary covered agent sessions but not extraction or the oracle lane)
 
 ## Context
 
@@ -166,19 +166,31 @@ names what it deselects.
 reserved `dynamic`) inherits this containment on day one — it is repo
 execution by definition.
 
-### Phases 3–4 (not built here)
+### Phase 3 — guarantee wiring (built 2026-08-28)
 
-- **Phase 3 — guarantee wiring.** The `--uncontained` CLI flag with its
-  disclosure stamped into `graph.json` and any oracle cell record it
-  touches; `list_blind_spots` naming C-64 by number.
-- **Phase 4 — the reshaping.** The architecture states its two layers:
-  a **knowledge layer** (sandboxed deterministic ingest → `derived/` →
-  `hobbes-proxy serve --knowledge-only`, ADR-087) that is a complete,
-  self-contained deployment with no model and no credential; and the
-  **agentic layer** above it, opt-in, unchanged. Scoped (P11): Hobbes
-  guarantees *its own* processes never execute the repo on the host;
-  what the user's harness does with its own tools is outside the
-  guarantee, and the serve banner says so.
+`hobbes ingest --uncontained` is the named flag: it prints
+`UNCONTAINED:` before anything runs, sets the escape hatch, and the
+artifact records the result — `containment.LEDGER` collects every lane
+B step and where it ran, and `graph.json` carries
+`containment: {steps, all_contained, escape_hatch}`. The ingest summary
+prints a `containment:` WARNING when any step ran on the host;
+`list_blind_spots` (`go/internal/knowledge`) prints the same line with
+C-64 where the boundary is read, and nothing when the guarantee held.
+Oracle exports and reports carry `containment` since phase 2. P4's
+gloss in architecture §1 is extended: enforcement below every process
+that touches repo code.
+
+### Phase 4 — the reshaping (prose landed 2026-08-28)
+
+Architecture "Where this is going" states the two layers: the
+**knowledge layer** (sandboxed deterministic ingest → `derived/` →
+`hobbes-proxy serve --knowledge-only`, ADR-087) is a complete,
+self-contained deployment — no model, no credential, loopback, the only
+dangerous operation sealed; the **agentic layer** is opt-in above it,
+unchanged. Scoped (P11): Hobbes guarantees *its own* processes never
+execute the repo on the host; the user's harness is outside the
+guarantee. `proxy.KnowledgeOnlyBanner` prints both sentences at
+`serve --knowledge-only` start. §10 unchanged: still local, no hosting.
 
 ## Decisions embedded here that the owner should ratify
 

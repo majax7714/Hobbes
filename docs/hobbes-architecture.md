@@ -69,6 +69,24 @@ cannot execute a command in a space where it literally cannot, then it
 literally cannot.* Enforcement that depends on the model's cooperation is
 not enforcement.
 
+**Hobbes has two layers, and the first is a complete product (ADR-092).**
+The **knowledge layer** — sandboxed deterministic ingest → `derived/` on
+disk → `hobbes-proxy serve --knowledge-only` over MCP (ADR-087) — is a
+self-contained deployment: no model anywhere in it, no credential, a
+loopback serve, and the only dangerous operation (executing the repo to
+understand it) sealed in a container. A user points Claude Code, their
+own loop, any MCP-speaking harness at it and gets the graph, the tiers,
+the tail view and `list_blind_spots` — keeping their model and their
+harness. The **agentic layer** — sessions, policy chains, orchestration,
+derivation — is opt-in above it, unchanged. The claim is scoped (P11):
+Hobbes guarantees *its own* processes never execute the repo on the
+host; what the user's harness does with its own tools is outside the
+guarantee, and the `--knowledge-only` serve banner says so. People adopt
+a context tool long before they trust an orchestrator: the knowledge
+layer's trust story is their own harness plus a container boundary, not
+our policy judgment. The agentic layer remains the destination; the
+knowledge layer is the door.
+
 **The guaranteed fraction is the product.** A model handed a repo raw has
 a **0% guarantee** of assembling accurate systematic context — it often
 does well, and nothing bounds when it does not. Hobbes's job, stated as
@@ -158,7 +176,11 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
 - **P3 — Provenance on every generated claim.** Narrative statements cite
   `file:line @ SHA`. Graph edges cite their source lane and evidence.
 - **P4 — Policy is enforced below the model.** OS sandbox and tool proxy are
-  load-bearing; prompt-level rules are advisory.
+  load-bearing; prompt-level rules are advisory. Since ADR-092 the
+  enforcement sits below *every process that touches repo code*, not
+  only below the model: the containment rule is "sandbox whatever
+  executes repo-authored code", and the ingest and the executing oracles
+  fall under it exactly as sessions do.
 - **P5 — Deterministic first, generative second.** Parsers and indexers build
   the skeleton; agent sessions only write narrative on top of it.
 - **P6 — Degrade visibly, never silently.** When a semantic indexer
@@ -748,6 +770,10 @@ interface-dispatch call Hobbes draws no edge for at all.
   `exec`/`reflect` absent, no policy chain, flight log kept — and this
   repo's `.mcp.json` starts it for any MCP-speaking agent working on
   Hobbes. Evidence only: the agentic layer is not offered on the host.
+  This is the knowledge-layer deployment ("What Hobbes is"): its banner
+  states the P11 scope of the containment guarantee, and
+  `list_blind_spots` names an artifact whose lane B ran uncontained
+  (the `containment` stamp in `graph.json`, C-64).
 
 ---
 

@@ -153,9 +153,15 @@
   (`lane B refused for rust: … (C-64)` / `scip-typescript ran on the
   host, not in the sandbox image: … (C-64)`) in `extraction_errors`,
   printed by the ingest summary as a WARNING and by `list_blind_spots`
-  for the directory. `HOBBES_UNCONTAINED=1` runs everything on the host
-  and every provider's facts carry the disclosure — a named escape
-  hatch, never a default (the CLI flag is ADR-092 phase 3).
+  for the directory. `hobbes ingest --uncontained` (or
+  `HOBBES_UNCONTAINED=1`) runs everything on the host: the flag prints
+  `UNCONTAINED:` before the ingest, every provider's facts carry the
+  disclosure, `graph.json` is stamped with a `containment` record (each
+  step, where it ran, whether the hatch was set — `all_contained`
+  false), the summary prints a `containment:` WARNING, and
+  `list_blind_spots` names the artifact as not built under the
+  guarantee. An oracle cell's export and report carry the same. A named
+  escape hatch, never a default.
 - **Provider (P9):** none — this is Hobbes's own containment; the
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.

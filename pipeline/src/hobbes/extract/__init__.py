@@ -85,6 +85,7 @@ def extract_repo(
     with a pack and without it, and asserts the difference is exactly that
     pack's contribution. Callers have no reason to pass it.
     """
+    containment.reset_ledger()
     repo_root = Path(repo_root).resolve()
     modules = discover_modules(repo_root)
     parsed = {
@@ -160,6 +161,10 @@ def extract_repo(
     # (architecture §3.8, C-31). Stamped into the artifact so the summary,
     # the surface, and the proxy state it where the language list is read.
     graph["verification_base"] = verification_base(sorted(set(languages)))
+    # Where lane B ran (ADR-092 phase 3): every step and whether it was
+    # contained, so an artifact built with the escape hatch says so
+    # wherever it is read — the summary, list_blind_spots, a cell record.
+    graph["containment"] = containment.summary()
 
     return Extraction(
         graph={"languages": sorted(languages), **graph},

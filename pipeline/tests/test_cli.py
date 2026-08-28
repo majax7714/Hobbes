@@ -60,6 +60,21 @@ class TestIngest:
         assert "graph.json" in out and "module edges" in out
         assert (git_fixture / ".hobbes" / "derived" / "graph.json").is_file()
 
+    def test_uncontained_is_disclosed_and_stamped(self, git_fixture, capsys, monkeypatch):
+        # ADR-092 phase 3: the escape hatch is said before it happens and
+        # recorded in the artifact after; a default ingest stamps that
+        # every step was contained and prints nothing about it.
+        monkeypatch.delenv("HOBBES_UNCONTAINED", raising=False)
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        assert "containment" not in capsys.readouterr().err
+        graph = json.loads((git_fixture / ".hobbes" / "derived" / "graph.json").read_text())
+        assert graph["containment"] == {"steps": [], "all_contained": True, "escape_hatch": False}
+        assert cli.main(["ingest", "--repo", str(git_fixture), "--uncontained"]) == 0
+        err = capsys.readouterr().err
+        assert "UNCONTAINED: lane B runs on this host" in err and "C-64" in err
+        graph = json.loads((git_fixture / ".hobbes" / "derived" / "graph.json").read_text())
+        assert graph["containment"]["escape_hatch"] is True
+
     def test_non_git_repo_is_a_clear_error(self, tmp_path, capsys):
         assert cli.main(["ingest", "--repo", str(tmp_path)]) == 1
         assert "git repo" in capsys.readouterr().err

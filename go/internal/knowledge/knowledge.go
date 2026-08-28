@@ -97,6 +97,10 @@ type graphDoc struct {
 	ResolutionCoverage []coverageRow     `json:"resolution_coverage"`
 	DependencyCoverage []depCoverage     `json:"dependency_coverage"`
 	ExtractionErrors   []extractionError `json:"extraction_errors"`
+	// Containment is where lane B ran when this artifact was built
+	// (ADR-092 phase 3): every step and whether it was contained. Absent
+	// in pre-ADR-092 artifacts.
+	Containment *containmentDoc `json:"containment"`
 
 	// Per tail-view language, the classes its providers could have
 	// reported (C-32) — so an absent class reads as a boundary, not an
@@ -742,6 +746,19 @@ var langByExt = map[string]string{
 	".rs": "rust",
 }
 
+// containmentDoc mirrors the pipeline's containment.summary().
+type containmentDoc struct {
+	Steps        []containmentStep `json:"steps"`
+	AllContained bool              `json:"all_contained"`
+	EscapeHatch  bool              `json:"escape_hatch"`
+}
+
+type containmentStep struct {
+	Step      string `json:"step"`
+	Contained bool   `json:"contained"`
+	Reason    string `json:"reason,omitempty"`
+}
+
 // ListBlindSpots answers list_blind_spots(scope): what Hobbes cannot
 // see under a path, stated as classified counts with the register
 // entry each limit points to (ADR-047). This is the complement of
@@ -850,6 +867,26 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		fmt.Fprintf(&b, "\nenvironment gap: %d/%d declared packages resolved; missing: %s\n"+
 			"  (third-party calls into these are invisible, not absent — C-23/C-27/C-30)\n",
 			dc.Resolved, dc.Declared, strings.Join(dc.Missing, ", "))
+	}
+	if c := g.Containment; c != nil && (!c.AllContained || c.EscapeHatch) {
+		// The guarantee not holding is a boundary like any other here:
+		// an artifact whose lane B ran on the host says so where the
+		// agent reads the boundary (C-64).
+		host := 0
+		reasons := map[string]bool{}
+		for _, s := range c.Steps {
+			if !s.Contained {
+				host++
+				reasons[s.Reason] = true
+			}
+		}
+		why := make([]string, 0, len(reasons))
+		for r := range reasons {
+			why = append(why, r)
+		}
+		sort.Strings(why)
+		fmt.Fprintf(&b, "\ncontainment: %d of %d lane B step(s) ran on the host (%s) — repo code may have executed there; this artifact was not built under the ADR-092 guarantee (C-64)\n",
+			host, len(c.Steps), strings.Join(why, "; "))
 	}
 	for i, e := range g.ExtractionErrors {
 		if i == 10 {

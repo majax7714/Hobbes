@@ -323,6 +323,28 @@ class TestRouting:
         assert f"{venv}:{venv}:ro" in plans[0].mounts()
 
 
+class TestLedger:
+    """What graph.json records: every step and where it ran (phase 3)."""
+
+    def test_each_run_is_recorded_and_summarised(self, cache, monkeypatch):
+        monkeypatch.setattr(containment, "unavailable_reason", lambda: None)
+        monkeypatch.setattr(
+            containment.subprocess, "run",
+            lambda argv, **kw: subprocess.CompletedProcess(argv, 0, "", ""),
+        )
+        containment.reset_ledger()
+        containment.run(containment.plan("index-go", ["node"], cwd=cache), timeout=5)
+        monkeypatch.setenv(containment.UNCONTAINED_ENV, "1")
+        containment.run(containment.plan("index-rust", ["node"], cwd=cache), timeout=5)
+        s = containment.summary()
+        assert [x["step"] for x in s["steps"]] == ["index-go", "index-rust"]
+        assert s["steps"][0]["contained"] and not s["steps"][1]["contained"]
+        assert "HOBBES_UNCONTAINED" in s["steps"][1]["reason"]
+        assert s["all_contained"] is False and s["escape_hatch"] is True
+        containment.reset_ledger()
+        assert containment.summary()["steps"] == []
+
+
 class TestRefusalIsNeverAbsorbed:
     """P10 (ADR-036): the general catches name the refusal first."""
 

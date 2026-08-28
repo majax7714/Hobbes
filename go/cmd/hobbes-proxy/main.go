@@ -119,6 +119,9 @@ func runServe(args []string, stderr io.Writer) int {
 
 	fmt.Fprintf(stderr, "hobbes-proxy: session %s role %s repo %s\nhobbes-proxy: flight log %s\n",
 		cfg.Session, cfg.Role, cfg.RepoRoot, logPath)
+	if cfg.KnowledgeOnly {
+		fmt.Fprint(stderr, proxy.KnowledgeOnlyBanner)
+	}
 	if err := server.MCP().Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		fmt.Fprintf(stderr, "hobbes-proxy serve: %v\n", err)
 		return exitError

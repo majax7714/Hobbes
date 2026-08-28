@@ -70,6 +70,16 @@ func TestSessionToolSurface(t *testing.T) {
 // TestKnowledgeOnlySurface: with KnowledgeOnly the mutating tools are
 // absent from the list, not present-and-refusing (ADR-087; the sandbox
 // rule that a forbidden command is absent, applied to a host session).
+// TestKnowledgeOnlyBannerScopesTheGuarantee: the deployment statement
+// names what Hobbes guarantees and what it does not (P11, ADR-092).
+func TestKnowledgeOnlyBannerScopesTheGuarantee(t *testing.T) {
+	for _, want := range []string{"knowledge-only", "no model", "never execute this repo on the host", "outside that guarantee"} {
+		if !strings.Contains(KnowledgeOnlyBanner, want) {
+			t.Errorf("banner lacks %q", want)
+		}
+	}
+}
+
 func TestKnowledgeOnlySurface(t *testing.T) {
 	repo := testRepo(t)
 	sessionDir := t.TempDir()

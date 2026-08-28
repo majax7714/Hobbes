@@ -71,7 +71,9 @@ rustup component add rust-analyzer
 > (C-64): the code a Rust ingest runs is contained or it does not run.
 > The image carries pinned node, Go, scip-go and a rustup toolchain
 > with rust-analyzer (~2 GB); the `scip/` helper is mounted from this
-> checkout, so `npm install` there still matters.
+> checkout, so `npm install` there still matters. `hobbes ingest
+> --uncontained` runs lane B on this host instead — said before it
+> happens, stamped into `graph.json`, named by `list_blind_spots`.
 
 > **The proxy must be static.** `hobbes-session` mounts the
 > `hobbes-proxy` sitting next to it into the sandbox. A dynamically

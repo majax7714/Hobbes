@@ -61,6 +61,25 @@ def _repo_root_from(args: argparse.Namespace) -> Path:
     return detected
 
 
+def _print_containment(record: dict | None) -> None:
+    """One line on where lane B ran (ADR-092): silent when every step was
+    contained and no escape hatch was set — the guarantee holding is the
+    default and needs no banner; anything else is stated."""
+    if not record:
+        return
+    steps = record.get("steps", [])
+    if record.get("all_contained", True) and not record.get("escape_hatch"):
+        return
+    host = [s for s in steps if not s.get("contained")]
+    why = sorted({s.get("reason", "") for s in host})
+    print(
+        f"  WARNING: containment: {len(host)} of {len(steps)} lane B step(s) ran on "
+        f"this host ({'; '.join(why) or 'escape hatch set'}) — repo code may have "
+        "executed here (ADR-092, C-64)",
+        file=sys.stderr,
+    )
+
+
 def _cmd_ingest(args: argparse.Namespace) -> int:
     """Run the extractors and write the derived artifacts."""
     from hobbes.extract import ingest
@@ -74,6 +93,21 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     ignored = ensure_hobbes_ignored(repo_root)
     if ignored:
         print(f"{ignored} (Hobbes files stay out of version control, ADR-012)")
+    if getattr(args, "uncontained", False):
+        # The named escape hatch (ADR-092): lane B on this host, repo
+        # code executing here. Said before it happens, recorded in the
+        # artifact after; never a default.
+        import os
+
+        from hobbes.extract.containment import UNCONTAINED_ENV
+
+        os.environ[UNCONTAINED_ENV] = "1"
+        print(
+            "UNCONTAINED: lane B runs on this host, not in the sandbox image — "
+            "the repo's build scripts, proc macros and venv interpreter execute "
+            "here (ADR-092, C-64); recorded in graph.json",
+            file=sys.stderr,
+        )
     try:
         paths = ingest(repo_root, tf_plan=Path(args.tf_plan) if args.tf_plan else None)
     # PackRefusal is how a pack declines user-supplied input (ADR-035); it
@@ -92,6 +126,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     languages = ", ".join(graph["languages"])
     print(f"ingested {repo_root} @ {graph['sha'][:12]}{dirty} [{languages}]")
     _print_verification_base(graph.get("verification_base", {}))
+    _print_containment(graph.get("containment"))
     for degraded in graph.get("extraction_errors", []):
         print(
             f"  WARNING: {degraded['path']}: {degraded['stage']} extraction "
@@ -1036,6 +1071,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     ingest_parser.add_argument(
         "--repo", help="repo root (default: auto-detected via .git)"
+    )
+    ingest_parser.add_argument(
+        "--uncontained", action="store_true",
+        help="run lane B on this host instead of the sandbox image — repo code "
+             "executes here; disclosed at ingest and stamped into graph.json (ADR-092)",
     )
     ingest_parser.add_argument(
         "--tf-plan",

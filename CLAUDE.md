@@ -140,7 +140,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-27): 949 pytest / 291 Go + 33
+Suite sizes at the last check (2026-08-27): 951 pytest / 293 Go + 33
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -224,10 +224,11 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   whatever executes repo-authored code*. Phase 1 built 2026-08-27 —
   every lane B step runs in the sandbox image, repo code never executes
   on the host (C-64; canary-tested; byte-identical graph on this repo).
-  Phase 2 built 2026-08-28 — O6/O7 oracles contained, regrades a no-op.
-  Phases 3–4 (the `--uncontained` flag, the two-layer architecture
-  statement) are next; the oracle-cell triage is
-  on hold behind them.
+  Phase 2 (O6/O7 oracles contained, regrades a no-op), phase 3
+  (`--uncontained`, the `containment` stamp, `list_blind_spots`) and
+  phase 4 (the two-layer statement: the knowledge layer is a complete
+  deployment) landed 2026-08-28. **All four phases built, awaiting Max's
+  review**; the oracle-cell triage resumes after it.
 - **Then:** D5/D6 when Max reopens them; the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
