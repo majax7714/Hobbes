@@ -50,6 +50,7 @@ typescript`). Re-ingested every session; the suite's degraded path
 
 | Date | Numbers |
 |---|---|
+| 2026-08-28 (**O2 regraded contained**, after the Go scope veto; [cell](oracle-cells/hobbes-go-2026-08-28.md)) | **1,283/1,283 confirmed, 0 contradicted, 1 silent — precision-against-oracle 100%** (from 99.8%): the three syntactic contradictions (`run := func` bound to `main.run`, the fzf shape's first sighting) are gone; recall 87.5% (1,285/1,468) at 20 roots, misses C-58 unchanged. 501 s with the six-language ingest |
 | 2026-08-28 (**O6 contained vs host, same tree**, 1 run, containment-sensitive tests deselected; [cell](oracle-cells/hobbes-py-2026-08-28.md)) | 3,633 edges — contained **3,311 confirmed, 5 suspect, 317 unobserved**, recall-against-executed **86.1%** (3,311/3,846); host 3,319 / 5 / 309, 86.1%. Suspects and every miss class identical; the 8-edge residue is one test that probes for a container runtime. Misses: closures 361, functions 88, lambdas 73, methods 13 (C-58) |
 | 2026-08-27 (**ADR-092 phase 1 — lane B contained**) | The whole repo ingested with every lane B step inside `hobbes-session:local` (Pyright with `pipeline/.venv` + uv's interpreter mounted ro; TS with three repo `node_modules` ro; Go after a `go mod download` fetch; Rust after `cargo fetch`, offline index). **Byte-identical to the host run of the same dirty tree**: 378 nodes, 3,140 symbols, 1,457 module edges, 6,478 symbol edges (4,444 semantic calls, 2,033 semantic uses, 1 syntactic call), same `dependency_coverage` (py 6/6, ts 6/9), same `extraction_errors` modulo the 13 C-64 disclosures the host run carries. Two contained runs identical to each other. First contained build (rustup `minimal` without `rust-src`) was *not* a no-op — 11 Rust semantic calls fell to syntactic, 3 vs 30 external refs — caught by this diff, fixed in the image |
 | 2026-08-25 (**O6 regraded after ADR-090**, same suite, 1 run) | 3,495 edges — **3,302 confirmed, 4 suspect (all semantic, not-exercised), 189 unobserved**; the syntactic tier's six wrong edges are gone (the scope veto), no executed syntactic edge remains; recall-against-executed **86.3% (3,302/3,828)**, confirmation rate 94.5%, suspect rate 0.1%. `below-floor` on this repo: go 3, python 35, ts/js 10 sites |
@@ -67,9 +68,9 @@ by containment, and the contained toolchain is not assumed equal to the
 host's until a cell proves it (it differed once already: `rust-src`).
 From here a record without `containment` is a host-run record.
 
-**Verified:** Go — **compiler-graded 2026-08-25**: every semantic call
-edge in `go/` confirmed by RTA (1,278/1,278), the 3 syntactic-tier
-edges contradicted; not hand-checked beyond triage. Triage of the
+**Verified:** Go — **compiler-graded 2026-08-25 and 2026-08-28**: every semantic call
+edge in `go/` confirmed by RTA (1,278/1,278; 1,283/1,283 on the contained regrade), the 3 syntactic-tier
+edges contradicted on 2026-08-25 and gone after the Go scope veto; not hand-checked beyond triage. Triage of the
 three: all **hobbes-wrong** — lane A's name fallback (C-7) bound the
 test helper's local closure `run := func(...)` at
 `cmd/hobbes-session/main_test.go:55/57/58` to the package function

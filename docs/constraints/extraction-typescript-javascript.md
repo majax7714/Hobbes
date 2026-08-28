@@ -44,6 +44,28 @@
 
 ---
 
+### C-63 — A call through an element access (`obj[key]()`) is not a call site
+- **Cannot tell you:** that `table["norm"](s)`, `xs[Symbol.iterator]()`
+  or `table[k](s)` calls anything. Lane A's TS/JS syntax provider does
+  not count an element-access callee as a call site, so the site is
+  absent from `resolution_coverage` (not unresolved — uncounted) and no
+  `calls` edge is drawn, whichever lane could have resolved it. Lane B
+  does emit the `uses` reference for the key's target where it has one.
+- **Because:** the site detector matches identifier and property-access
+  callees; the element-access shape was never in the fixture until
+  `minits/src/lookup.ts` (2026-08-27), where the oracle lane's A-4
+  observation found the three shapes drawing zero edges.
+- **Bites at:** dynamic-dispatch tables (`handlers[name](req)`),
+  `process.env["X"]`-style reads that are calls, well-known-symbol
+  protocol calls, generated clients indexed by operation name. The
+  oracle lane grades the literal-key shape as a recall miss
+  (`static→function`, minits 4/5); ajv `f177fe3` has 1 computed-key site.
+- **You find out:** **unsurfaced** — debt. The site is not counted, so
+  no coverage row, tail class or blind-spot names it. Surfacing means
+  counting the site (then it falls to `below-floor` or resolves).
+- **Source:** the oracle lane's A-4 fixture observation, 2026-08-27
+  (`bench/oracle/README.md` D-O4 element-access bullet; H-17).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -105,25 +127,3 @@ new active entry and the two cross-reference. Field key: `README.md`,
   are store/logic tests in plain `.ts` files — a different residual
   (calls through mocks and store indirection), not this entry's subject.
 - **Source:** V2.M3; lifted 2026-08-15, after V2.M6 and before V2.M7.
-
-### C-63 — A call through an element access (`obj[key]()`) is not a call site
-- **Cannot tell you:** that `table["norm"](s)`, `xs[Symbol.iterator]()`
-  or `table[k](s)` calls anything. Lane A's TS/JS syntax provider does
-  not count an element-access callee as a call site, so the site is
-  absent from `resolution_coverage` (not unresolved — uncounted) and no
-  `calls` edge is drawn, whichever lane could have resolved it. Lane B
-  does emit the `uses` reference for the key's target where it has one.
-- **Because:** the site detector matches identifier and property-access
-  callees; the element-access shape was never in the fixture until
-  `minits/src/lookup.ts` (2026-08-27), where the oracle lane's A-4
-  observation found the three shapes drawing zero edges.
-- **Bites at:** dynamic-dispatch tables (`handlers[name](req)`),
-  `process.env["X"]`-style reads that are calls, well-known-symbol
-  protocol calls, generated clients indexed by operation name. The
-  oracle lane grades the literal-key shape as a recall miss
-  (`static→function`, minits 4/5); ajv `f177fe3` has 1 computed-key site.
-- **You find out:** **unsurfaced** — debt. The site is not counted, so
-  no coverage row, tail class or blind-spot names it. Surfacing means
-  counting the site (then it falls to `below-floor` or resolves).
-- **Source:** the oracle lane's A-4 fixture observation, 2026-08-27
-  (`bench/oracle/README.md` D-O4 element-access bullet; H-17).

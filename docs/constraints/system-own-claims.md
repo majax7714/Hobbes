@@ -8,7 +8,7 @@
   The verification base is asymmetric by an order of magnitude: Python
   and TS/JS were proven across multiple repos of different shapes; **Go
   on exactly one repo — this one, a shape its own builders chose**;
-  **Rust on one small repo**, 33 hand-checked call edges plus a fixture.
+  **Rust on one small repo**, 33 hand-checked symbol edges (17 calls, 16 uses) plus a fixture — since 2026-08-25/28 the Rust calls are compiler-graded on rust_proj, memchr and dagger `sdk/rust` instead.
 - **Because:** hand-verification is per-repo work, and a language's long
   tail — frameworks, macro styles, build layouts, dynamic idioms — is in
   no sample. The machinery being shared (P7: zero builder lines per

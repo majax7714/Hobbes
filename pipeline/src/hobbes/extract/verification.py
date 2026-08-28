@@ -29,37 +29,36 @@ from __future__ import annotations
 VERIFICATION_BASE: dict[str, dict] = {
     "python": {
         # private-repo-A and qwen-pathology retired from the base
-        # 2026-08-25 (Max): too little weight to carry a row.
-        "repos": 7,
+        # 2026-08-25 (Max): too little weight to carry a row. click joined
+        # 2026-08-27 (trace-graded); the counts follow the §3.8 rows.
+        "repos": 8,
         # This repo's zone is trace-graded since the oracle lane's phase 2
         # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
-        "on": "this repo (dogfood, continuous — trace-graded); + six SWE-bench "
-              "repos at span/declaration grain "
-              "(astropy, django, scikit-learn, sphinx, sympy, xarray)",
+        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click (trace-graded); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
         "depth": "multi-repo",
     },
     "typescript": {
-        "repos": 2,
-        "on": "kbet (real Vite+React app), this repo's web/",
+        "repos": 4,
+        "on": "kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
         "depth": "multi-repo",
     },
     "javascript": {
-        "repos": 2,
-        "on": "kbet (real Vite+React app), this repo's web/",
+        "repos": 4,
+        "on": "kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
         "depth": "multi-repo",
     },
     "go": {
         # Compiler-graded on both since the oracle lane (ADR-089, O2/O4,
         # 2026-08-25); the hand-check the row used to cite is retired.
-        "repos": 2,
-        "on": "this repo; dagger — 19 of its Go modules (O4)",
+        "repos": 5,
+        "on": 'this repo; dagger — 19 of its Go modules (O4); BurntSushi/toml, gorilla/mux, junegunn/fzf (2026-08-27/28)',
         "depth": "multi-repo",
     },
     "rust": {
         # Compiler-graded on both since the oracle lane's phase 2 (ADR-089,
         # O7, 2026-08-25); ADR-040's hand-check is superseded.
-        "repos": 2,
-        "on": "rust_proj (one small crate); dagger — its sdk/rust workspace (O7)",
+        "repos": 3,
+        "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28)',
         "depth": "multi-repo",
     },
     "hcl": {

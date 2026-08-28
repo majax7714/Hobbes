@@ -115,7 +115,7 @@ code (§6, `hobbes plan`). The *execution* half — spawning the per-unit
 sessions those manifests describe, serving context faults, recording
 partition quality — is built as a base (§6.1, ADR-054), and the benchmark
 harness that corrects it from its errors is built and has run live —
-its corrections are most of ADR-056..085 (§6.2, ADR-055). The design the mapping implements is
+its corrections are most of ADR-056..086 and ADR-091 (§6.2, ADR-055). The design the mapping implements is
 [`agent-mapping.md`](agent-mapping.md): **phases, not personas** — an
 agent is a triple *(context slice, policy profile, verification
 obligations)*, and the number of agents is the partition's output, never
@@ -133,14 +133,16 @@ metric and falsifier stated before any run: **H1** derived context
 substitutes for model size; **H2** per-unit regenerated context
 flattens the accuracy-vs-depth curve; **H3** cheaper and quicker per
 solved task, as a byproduct. The harness is built (`hobbes bench`,
-§6.2, ADR-055) and **has run live** (2026-08-21..23, the 7B and 27B
-rungs, both arms); the results so far are corrections to the harness
-and the method rather than verdicts on H1–H3, all recorded in the
-hypotheses doc's Results — and the point of writing the hypotheses
-first is that results cannot re-scope them. Runs are **parked**
-(owner's standing policy, 2026-08-23): the next one, on an explicit
-go, validates the requirement-coverage fix (§6.1, ADR-085) on the 7B —
-see [`session-handoff.md`](session-handoff.md).
+§6.2, ADR-055) and **has run live** (2026-08-21..24: the 7B and 27B
+rungs, both arms, then the ADR-085 validation pair on the 7B, harness
+arm); the results so far are corrections to the harness and the method
+rather than verdicts on H1–H3, all recorded in the hypotheses doc's
+Results — and the point of writing the hypotheses first is that
+results cannot re-scope them. Runs are **parked** (owner's standing
+policy, renewed 2026-08-24): the validation pair produced an
+eight-defect register (`adr085-validation-run.md`), six fixed in
+ADR-091, D5/D6 held; the next run, on an explicit go, is the removal
+A/B on the D5 fix — see [`session-handoff.md`](session-handoff.md).
 
 **The derivation contract (ADR-047).** When per-task derivation is built,
 derived context has two mandatory halves: the captured fraction — graph,
@@ -187,8 +189,10 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
   fails — broken build, unwired language — the graph still exists at syntactic
   confidence and says so. Staleness gets badges; uncertainty gets tiers.
 - **P7 — Languages are configuration, not integrations.** Adding a
-  language means an indexer config entry plus an optional enrichment pack.
-  If it requires touching the graph builder's core, the design has failed.
+  language is §3.7's four steps — an indexer config entry, a syntax
+  provider (mandatory since ADR-037), an optional enrichment pack, and
+  the evidence row — none of which touches the graph builder's core. If
+  one does, the design has failed.
 - **P8 — Every concession is a registered constraint.** When Hobbes
   cannot recover information — a limit of static analysis, a deliberate
   filter, a deferred sharpening — the gap is entered in
@@ -206,8 +210,10 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
   indistinguishable from an absent call either way (C-1). A provider limit
   registers exactly like any other concession under P8 and additionally
   names the provider and version that produced it, because its lifetime is
-  the provider's rather than ours: C-6, C-9 and C-23 are all provider
-  limits, and any of them may end on an upstream release (ADR-034).
+  the provider's rather than ours: C-6, C-23 and C-29 are provider
+  limits, and any of them may end on an upstream release (ADR-034). C-9
+  sits beside them in the register because it is easily mistaken for
+  one — it is Hobbes's own descriptor filter, not liftable by an upgrade.
 - **P10 — A specific safety guarantee outranks a general safety system.**
   A general mechanism — degrade-on-failure, catch-and-continue,
   escalate-by-default, expire-to-deny — is a policy about the *unknown*
@@ -225,8 +231,9 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
   end-to-end on the repos in §3.8 and the stated checks passed *there* —
   and it licenses nothing beyond that sample. Verification on one small
   repo proves the **machinery**, not the **language**: 33 hand-checked
-  call edges make "Rust ingestion works and is honest about its tiers" a
-  true claim and "Hobbes covers Rust" a false one, and the false one is
+  symbol edges on one crate (17 calls + 16 uses, the calls since
+  compiler-confirmed) make "Rust ingestion works and is honest about its
+  tiers" a true claim and "Hobbes covers Rust" a false one, and the false one is
   the confident-surface-over-known-gap shape P8 exists to prevent. So a
   statement of support names its sample; extending the claim means
   extending §3.8's table in the same commit as the evidence; and where
@@ -259,7 +266,7 @@ flowchart TB
     subgraph Extract["Extraction"]
         LA[Lane A: tree-sitter\nstructure · routes · tests\ncall-site detection]
         STG[Staging copy\n~/.hobbes/cache]
-        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust\nresolution]
+        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust\nin the sandbox image, no network\nresolution]
         EIR[Evidence IR\nrange-anchored observations]
         JOIN[Range join\n→ semantic IR]
         GB[Graph builder\nprojection + enrichment packs]
@@ -319,8 +326,10 @@ package-qualified one can be a type, an expression (`b.Cfg().Base`,
 a conversion to a generic type, is emitted as a candidate site for the
 same filter to decide. The projection keeps a second guard for the
 conversions lane A cannot name (a nested module whose import path does
-not mirror its directory): a `calls` fact whose Go target is a `type`
-is projected as `uses`, because a type is never called. Both came from
+not mirror its directory): a `calls` fact whose Go or Rust target is a
+`type` is projected as `uses`, because a type is never called — Go's
+conversions and Rust's tuple-struct constructor expressions write the
+same way. Both came from
 the oracle lane's dagger cells (O4, 2026-08-25: 40 of 40 contradictions
 were `dagger.JSON("0")` drawn as a call; a method named like a type in
 its package was dropped as one). The same session lifted the v1 rule
@@ -371,10 +380,10 @@ parse independently and never consume tree-sitter ASTs.
 gets real name resolution for a language it never has to understand, and in
 exchange it inherits that indexer's blind spots and owns them in public. The
 inherited limits so far are registered as C-6 (SCIP cannot say what a
-reference syntactically *was*), C-9 (only five descriptor kinds become graph
-symbols), C-23 (TypeScript semantics need the target repo's dependency
-tree installed), C-28 (a symbol two cargo targets both define is
-unattributed rather than guessed), C-29 (indexing a Rust repo executes
+reference syntactically *was*), C-23 (TypeScript semantics need the
+target repo's dependency tree installed), C-28 (a symbol two files
+define — cargo targets sharing a crate root, a Go package namespace
+declared in every file — is unattributed rather than guessed), C-29 (indexing a Rust repo executes
 its build scripts and proc macros — the one provider that runs
 repo-authored code, disclosed at every ingest and, since ADR-092,
 contained), and C-30 (Rust third-party resolution needs a fetchable
@@ -557,8 +566,9 @@ checker reports origins here" rather than "none exist"; and below it a
 *cannot resolve* group so by-design classes cannot bury real misses,
 with the cut past ten rows stated rather than silent. On a large repo
 the language line says how much is missing and the directory view says
-*where* — dagger's Go read 79% while `core/integration` alone held most
-of the miss. That second group is the guaranteed fraction's boundary
+*where* — dagger's Go read 79% on first contact while `core/integration`
+alone held most of the miss (85.6% and 96.3% after the cross-unit join,
+ADR-049: the view named the fix). That second group is the guaranteed fraction's boundary
 made legible per repo ("Where this is going"): what falls there is
 pointed at, never model-filled, and it is where a register entry belongs
 when something in it turns out to be *needed*. The classifier's own
@@ -607,9 +617,14 @@ Known cost: **a pack cannot be disabled for a repo where it misfires**
 suppressible.
 
 ### 3.6 Incrementality
-Caching, not cleverness: partial SCIP indexes cached by content hash and
-merged; lane B runs debounced locally (per-PR CI is the intended home;
-none is configured yet); lane A remains the every-commit fast path. Full re-index is always available and always correct
+Caching, not cleverness — and mostly still design: the only cache built
+is ADR-050's content-hashed `node_modules` provisioning (and, since
+ADR-092, the cargo / go / npm caches under the Hobbes cache root); SCIP
+indexes are written fresh per ingest, there is no partial-index merge
+(ADR-027 demoted it to "a refinement to measure") and no debounce —
+lane B runs when `hobbes ingest` runs, gated by `HOBBES_SCIP` (per-PR
+CI is the intended home; none is configured yet); lane A remains the
+every-commit fast path. Full re-index is always available and always correct
 (`P1`), the cache only makes it cheap.
 
 ### 3.7 Adding a language — the checklist
@@ -626,15 +641,22 @@ none is configured yet); lane A remains the every-commit fast path. Full re-inde
    is **wired**, not **supported** (P11) — and one row licenses one
    row's worth of claim.
 
-Nothing else — no change to the graph builder, the join, the schema or the
-packs. Rust is the intended proof.
+Nothing else in the *builder*: no change to the graph builder's core,
+the join's shape or the schema. What a language does touch, stated so
+nobody rediscovers it: the shared helper's descriptor filter when the
+language needs a kind (`macro` joined `GRAPH_KINDS` for Rust, C-9), the
+projection's language-specific guards (the type-conversion rule), the
+tail view's extension and class tables (`tail.py`), and
+`VERIFICATION_BASE`, which a test holds to this section. Rust was the
+proof, and it touched exactly those.
 
 **Step 2 was "optional" until V2.M5, and it was wrong (ADR-037).** The
 correction is worth stating in full, because it is the cost of P7 and it
 does not go away: **no SCIP indexer populates `syntax_kind`.**
 `scip-python` leaves it unset for 0 of 8,575 occurrences and `scip-go` for
-0 of 18,682 — two independent implementations, same omission, and the field
-is optional in SCIP so a third is likely to match. That field is the one
+0 of 18,682, and rust-analyzer for 0 of 169 (ADR-040) — three
+independent implementations, same omission; the field is optional in
+SCIP and no producer fills it. That field is the one
 that separates a call from a type annotation from a plain mention.
 
 So a language with an indexer and no syntax provider gets definitions and
@@ -682,9 +704,9 @@ means extending its row, in the same commit as the evidence.
 
 | Language | Verified on | The evidence |
 |---|---|---|
-| **Python** | this repo (dogfood, continuous — **trace-graded**, twice); **pallets/click** (trace-graded); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray) | **Trace-graded (oracle lane O6):** this repo's Python zone under its own suite — 2026-08-25: 3,291/3,490 call edges confirmed by the interpreter, 0 wrong on the executed semantic slice after ADR-090; 2026-08-28 (contained, ADR-092): 3,311 confirmed, 5 suspect, **recall-against-executed 86.1%, 97% on named declarations** (closures and lambdas draw no edge — C-58); a coverage-limited claim, never precision (C-60; `docs/oracle-cells/hobbes-py-2026-08-2{5,8}.md`). **click** (2026-08-27/28): 1,699 confirmed, 18 suspect (1.0%; 16 are C-60's override/monkeypatch asymmetry), recall 37.0% — the decorator factories' inner closures (C-58); the `@overload` grain fixed on the oracle's side (H-19). Lane agreement 1,789 sites / 0 disagreements; 10/10 sampled narrative claims resolve (M5). The derivation programme (2026-08) hand-checked **spans and declaration sites** on the six benchmark repos (24k–608k detected sites each — every one checked landed exactly); **call edges were not separately sampled there**, so those repos extend this row at span/declaration grain only (evidence log) |
-| **TypeScript / JavaScript** | kbet (real Vite+React app); **ajv-validator/ajv**, **cheeriojs/cheerio** (2026-08-27/28); this repo's `web/` (lane agreement only) | **Compiler-graded (oracle lane O3, the zone's own `tsc`):** kbet 630/630 call edges confirmed (2026-08-25), recall 633/637 on declared callees and 633/1,529 over every resolved site (local bindings, closures and interface members draw no edge — C-58, C-32); **ajv** 1,375/1,378 — the 3 are a member call on a union-typed receiver drawn to the enclosing class's own override (`static→union-member`, a scip-typescript shape, n=1, unfixed), recall 62.0%; **cheerio** 2,102/2,102 with 44 `abstract` (calls through `const x = factory(..)`, H-18), recall 36.1% (the specs' `$` bindings and the oracle's overload grain). A call through `obj[key]()` is not a site at all (C-63). Lane agreement 359 sites / 0; 10/10 test mappings (M6); the V2.M3 20/20 hand-check retired 2026-08-25 |
-| **Go** | this repo; **dagger — 19 of its Go modules** (O4); **BurntSushi/toml, gorilla/mux, junegunn/fzf** (2026-08-27/28) | **Compiler-graded against RTA (oracle lane O2/O4):** this repo 1,278/1,278 semantic call edges confirmed, 0/3 syntactic (2026-08-25); **dagger 9,851/9,851 across 19 modules after the O4 fixes** (type conversions drawn as calls, 40 of 40, fixed the same day; the root module is not graded as one program, H-9); **toml 1,039/1,039** (recall 71.9% at 4 roots), **mux 1,221/1,221** with 3 `abstract` (a call through a package-level func variable, H-18; recall 82.6%), **fzf 2,832/2,832** (recall 40.8% at 5 roots) after the Go scope veto removed 87 syntactic edges that bound a local `assert := func` to a package function (ADR-090's rule, the Go shape). Static named calls drawn 100% on every cell; calls through interfaces, function values and into closures drawn for none (C-58, `docs/oracle-misses.md`). 216 nodes (V2.M5). The V2.M5 20/20 hand-check is **retired** (2026-08-25, Max): its edges were never named; the oracle replaces it |
+| **Python** | this repo (dogfood, continuous — **trace-graded**, twice); **pallets/click** (trace-graded); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray) | **Trace-graded (oracle lane O6):** this repo's Python zone under its own suite — 2026-08-25: 3,291/3,490 call edges confirmed by the interpreter, 6 wrong (all syntactic), then 3,302/3,495 and 0 wrong on the executed slice after ADR-090 the same day; 2026-08-28 (contained, ADR-092): 3,311 confirmed, 5 suspect, **recall-against-executed 86.1%, 97% on named declarations** (closures and lambdas draw no edge — C-58); a coverage-limited claim, never precision (C-60; `docs/oracle-cells/hobbes-py-2026-08-2{5,8}.md`). **click** (2026-08-27/28): 1,699 confirmed, 18 suspect (1.0%; 16 are C-60's override/monkeypatch asymmetry), recall 37.0% — the decorator factories' inner closures (C-58); the `@overload` grain fixed on the oracle's side (H-19). Lane agreement 1,789 sites / 0 disagreements; 10/10 sampled narrative claims resolve (M5). The derivation programme (2026-08) hand-checked **spans and declaration sites** on the six benchmark repos (24k–608k detected sites each — every one checked landed exactly); **call edges were not separately sampled there**, so those repos extend this row at span/declaration grain only (evidence log) |
+| **TypeScript / JavaScript** | kbet (real Vite+React app); **ajv-validator/ajv**, **cheeriojs/cheerio** (2026-08-27/28); this repo's `web/` (lane agreement only) | **Compiler-graded (oracle lane O3, the zone's own `tsc`):** kbet 630/630 call edges confirmed (2026-08-25), recall 633/637 on declared callees and 633/1,529 over every resolved site (local bindings, closures and interface members draw no edge — C-58, C-32); **ajv** 1,375/1,378 — the 3 are a member call on a union-typed receiver drawn to the enclosing class's own override (`static→union-member`, a scip-typescript shape, n=1, unfixed), recall 62.0%; **cheerio** 2,102/2,102 with 44 `abstract` (calls through `const x = factory(..)`, H-18), recall 36.1% (the specs' `$` bindings and the oracle's overload grain). A call through `obj[key]()` is not a site at all (C-63). Contained cell (ADR-092): cheerio; kbet and ajv are host-run records. Lane agreement 359 sites / 0; 10/10 test mappings (M6); the V2.M3 20/20 hand-check retired 2026-08-25 |
+| **Go** | this repo; **dagger — 19 of its Go modules** (O4); **BurntSushi/toml, gorilla/mux, junegunn/fzf** (2026-08-27/28) | **Compiler-graded against RTA (oracle lane O2/O4):** this repo 1,278/1,278 semantic call edges confirmed, 0/3 syntactic (2026-08-25), then **1,283/1,283 with no syntactic edge left** after the Go scope veto (2026-08-28, contained); **dagger 9,851/9,851 across 19 modules after the O4 fixes** (type conversions drawn as calls, 40 of 40, fixed the same day; the root module is not graded as one program, H-9); **toml 1,039/1,039** (recall 71.9% at 4 roots), **mux 1,221/1,221** with 3 `abstract` (a call through a package-level func variable, H-18; recall 82.6%), **fzf 2,832/2,832** (recall 40.8% at 5 roots) after the Go scope veto removed 87 syntactic edges that bound a local `assert := func` to a package function (ADR-090's rule, the Go shape). Static named calls drawn 100% on every cell. Contained cells (ADR-092): this repo (2026-08-28), mux, fzf; dagger and toml are host-run records. Calls through interfaces, function values and into closures drawn for none (C-58, `docs/oracle-misses.md`). The V2.M5 20/20 hand-check is **retired** (2026-08-25, Max): its edges were never named; the oracle replaces it |
 | **Rust** | `rust_proj` (one small crate, **re-earned under containment 2026-08-28**); **dagger — its `sdk/rust` workspace** (O7); **BurntSushi/memchr** (2026-08-27/28) | **Compiler-graded against rustc's MIR (oracle lane O7):** rust_proj 17/17 call edges confirmed (ADR-040's 33/33 hand-check counted calls and uses; superseded), byte-identical when regraded inside the sandbox image; dagger `sdk/rust` **3,592/3,592 confirmed, 0 contradicted** after ADR-090 vetoed the `format!`→`fn format` name match (was 12 syntactic contradictions at 99.7%), recall 3,593/3,662 — the misses are code macros and derives wrote; **memchr 921/921** after the constructor rule (7 tuple-struct constructor expressions had been drawn as `calls`; now `uses`, the O4 rule's Rust shape), recall 80.7%, the misses `unsafe_ifunc!`/`define_*_quickcheck!` macro bodies (C-58's macro face). Lanes clean at 17 sites (V2.M7) |
 | **Terraform/HCL** | **this repo only** | pack removability byte-for-byte (V2.M4); the M3 cross-layer `packages` hand-check was on a repo retired from the base (below) |
 
@@ -725,16 +747,16 @@ stamped into `graph.json` as `verification_base` (a property of Hobbes,
 not of the repo — nothing in a repo could compute it), and stated in
 the three places a language list is read as a capability list — the
 ingest summary's `verification base:` line under the language list,
-the surface's language badges (`go · 1 repo`, single-repo rows badged
-apart), and `list_blind_spots`. The test suite reads this section and
+the surface's language badges (`go · 5 repos`; a single-repo row —
+today only `hcl · 1 repo` — badged apart), and `list_blind_spots`. The test suite reads this section and
 fails when the two tables disagree, so extending a row here without the
 code is a red build, not a quiet drift.
 
-The table is current to **2026-08-28**: every compiler-graded cell on
-every language stands at 100% precision-against-oracle (ajv's three
-union-member rows the one open sighting), and every row names which of
-its cells ran under the sandbox image (ADR-092) — the rest are host-run
-records, re-earned only when re-run.
+The table is current to **2026-08-28**: every compiler-graded cell
+stands at 100% precision-against-oracle except ajv (1,375/1,378 — the
+three union-member rows, the one open sighting), and each row names
+which of its cells ran under the sandbox image (ADR-092) — the rest are
+host-run records, re-earned only when re-run.
 
 **Hand-checks are a floor on this table, and the oracle lane is how it
 gets graded at scale** (ADR-089, `docs/oracle-grading.md`,
@@ -747,10 +769,13 @@ call trace and rustc's MIR — and reports **precision-against-oracle (a lower b
 recall together**, per tier, with the root count or coverage line the
 recall depends on and the oracle-silent size printed. A row this lane
 produces reads "compiler-graded" or "trace-graded", never as
-hand-verified; it licenses exactly the cell it measured. State at O1
-(2026-08-25): the harness lands exactly on the hand-computable truth of
-the `minigo` and `twomod` fixtures, and its first graded miss is the
-interface-dispatch call Hobbes draws no edge for at all.
+hand-verified; it licenses exactly the cell it measured. State at
+2026-08-28: both phases built and run (O1–O4, O6, O7), fifteen cell
+records over this repo, kbet, rust_proj, dagger and the seven-repo
+loop, the lane's own defect log reviewed (H-1..H-19,
+`oracle-defect-review.md`), and its executing oracles contained
+(ADR-092). The fixtures (`minigo`, `twomod`, `minits`, `miniapp`,
+`minirust`) remain the self-test every run of the suite lands on.
 
 ---
 
@@ -956,8 +981,9 @@ owner's structure (2026-08-21):
   exit, knowledge calls and faults, exec decisions, reflections,
   commits, files changed and **rework files** (outside the manifest);
   integration and review; and §6's loss under ADR-051's declared
-  weights, labelled a guess (C-35), unobserved terms (tokens, wall
-  time) named rather than imputed.
+  weights, labelled a guess (C-35); tokens and wall time are metered
+  per unit since ADR-059 and a term is listed unobserved only when no
+  record has it.
 
 **Staged execution (ADR-059).** `hobbes run --from-proposal "<text>"`
 (and the benchmark harness arm with `--stages`) runs a proposal through
@@ -978,7 +1004,10 @@ handoff says *what must become true*, not only where: a
 `requirements:` list, one line each, in the proposal's words, with the
 file that owns it. **Coverage is its guarantee** — ⋃ handoffs ⊇ the
 request's requirements — and the run holds it to that
-deterministically: each requirement is assigned to the unit whose
+deterministically **when the planner produced the seed**; on the
+lexical fallback the coverage record reads `lexical-fallback` and no
+check runs (defect D5, `adr085-validation-run.md`, held — the carve-out
+is registered, not silent): each requirement is assigned to the unit whose
 interior holds its named file (or, naming none, to the single unit the
 whole plan lies in); an **uncovered** requirement, or a handoff with no
 requirements, re-spawns the planner once with the gap as its short
@@ -1013,8 +1042,10 @@ again, and a read and an edit of one path in one turn are refused —
 the general mechanism may not hollow out the specific guarantee (P10);
 an implementer that edits and ends in prose is nudged once toward
 `reflect`, and every unit record says `handoff: handoff |
-reflection-only | missing`; every session — both arms — writes its full message list
-to `<session>/transcript.jsonl` and every call as it went (prompt size,
+reflection-only | missing`; every owned-loop session writes its full message list
+to `transcript.jsonl` (the harness arm under its session home; the
+pure arm under the workspace's `.hobbes/`, and only with `--runtime
+openai` — a Claude Code pure arm writes none) and every call as it went (prompt size,
 `max_tokens` sent, `finish_reason`, overflow events) to `calls.jsonl`
 beside it (ADR-068). `hobbes plan` then derives
 deterministically; `implementer` sessions run in contract order, each
@@ -1084,8 +1115,10 @@ interprets nothing.
   `run_evaluation` as a subprocess, its report read as
   `resolved | unresolved | error | empty-patch | unjudged`; rates are
   over judged records and the unjudged count is printed beside them.
-- **Depth is a declared proxy**: the gold patch's file count, bucketed
-  1 / 2–3 / 4+ for H2's slope.
+- **Depth is the dataset's rated difficulty band** where the instance
+  carries one (SWE-bench Verified does: `<15 min` … `>4 hours`), and a
+  declared proxy — the gold patch's file count, bucketed 1 / 2–3 / 4+ —
+  only where it does not; the report labels which.
 - **The staged arm is metered per stage (ADR-059, harness restructure
   phase 3).** With `--stages`, the harness record's `detail.stages`
   carries every session the run spawned — planner, each implementer,
@@ -1106,7 +1139,7 @@ interprets nothing.
   `pipeline/src/hobbes/agent/loop.py` is a stdlib-only tool loop over
   any OpenAI-compatible endpoint, identical on both arms: in the
   harness arm its tools are *listed from the hobbes-proxy* (exec, the
-  knowledge tools, reflect) plus confined file tools (read, list, and — ADR-070 — a confined regex search, so a line in a large file can be found and then read by range) and **no bash**;
+  knowledge tools, reflect) plus the loop's own confined file tools (read, list, `write_file` / `edit_file` for a writing role, and — ADR-070 — a confined regex search, so a line in a large file can be found and then read by range) and **no bash**;
   in the pure arm, bash plus the same file tools. `hobbes-session
   --runtime` copies it into the session dir and runs it with the
   image's `python3`; it prints Claude Code's result envelope, so one
@@ -1117,7 +1150,7 @@ interprets nothing.
   (`hobbes-session --loop-arg`), its reasoning kept on the transcript
   and counted in the envelope.
 
-**Live runs have happened (2026-08-21..23) and are currently parked**
+**Live runs have happened (2026-08-21..24) and are currently parked**
 (owner's standing policy — no run of any size without a fresh, explicit
 go). The stand-ins remain (a fake `claude`, a scripted OpenAI-compatible
 server and a stdio fake proxy for the owned loop, the ADR-054 stand-in
@@ -1125,9 +1158,12 @@ session, and a fake evaluator), so the harness stays quota-free to
 exercise — but both rungs of the ladder have run real instances on both
 arms, and the runs' main product, recorded in
 [`benchmark-hypotheses.md`](benchmark-hypotheses.md)'s Results, is
-corrections to the harness and the method (most of ADR-057..081), not
-verdicts on H1–H3. The owner's course is small open models served from
-his own compute — Modal for serving and the evaluator (ADR-057) — on
+corrections to the harness and the method (most of ADR-057..081, then
+the validation pair's eight-defect register and ADR-091), not verdicts
+on H1–H3. The owner's course is small open models served from his own
+compute — Modal for serving (ADR-057); the evaluator on the local
+rootless-podman engine, since swebench's Modal path errors on every
+instance (C-50) — on
 the **Qwen2.5-Coder-7B → Qwen3.8-27B** ladder (the thinking rung,
 ADR-074), the bar being harnessed-N ≈ pure-(N+1);
 [`session-handoff.md`](session-handoff.md) is the resume point. The
@@ -1137,7 +1173,7 @@ sandbox's enforcement story said was absent — **C-41** (egress present,
 the endpoint token the one secret a session carries). And a benchmark
 checkout is a committed-only clone, so the repo and role policies never
 reach it and a solo agent's `pytest`/`git commit` would escalate with
-no approver; the **solo box policy** (`bench/bench.box.policy`, passed
+no approver; the **solo box policy** (`pipeline/src/hobbes/bench/bench.box.policy`, passed
 via `--box` with a short `--escalation-timeout`) grants those inside
 the sealed sandbox while the guarantees stay denied — **C-42**.
 
@@ -1156,8 +1192,10 @@ cannot) exists as exactly that labelled arm, never as a Hobbes test —
 and since ADR-086 the machinery enforces the label: an aided run is
 recorded `arm=model+prompt` on every path, enters no H1 harness slot,
 and cannot be reported as the harness without editing the mechanism.
-The next run, on an explicit go, validates the requirement-coverage fix
-(§6.1, ADR-085) on the 7B.
+That run happened 2026-08-24 (the ADR-085 validation pair, 7B, two
+passes; `adr085-validation-run.md` — eight harness defects, six fixed
+in ADR-091, D5/D6 held). The next, on an explicit go, is the removal
+A/B on the D5 fix.
 
 The first full run's first instance surfaced two more (ADR-058),
 both the harness's own. **Both arms now run in the instance's own
@@ -1189,13 +1227,16 @@ a commit identity, which no sandbox had.
   D2, ADR-054), deny-overrides-allow, `allow | deny | escalate`; used by
   CLI and daemon.
 - **Sandbox** — Podman rootless, **one image, role-shaped mounts and
-  tools** (implementer rw worktree; `planner`/`reviewer`/`verifier`
-  read-only via an overlay mount, ADR-060; `derived/` mounted ro for
+  tools** (`implementer` and `orchestrator` rw worktree;
+  `planner`/`reviewer`/`verifier` read-only via an overlay mount, ADR-060; `derived/` mounted ro for
   every role; v1's cartographer never became a session role — narration
   is the in-process ADR-020 runner); policy paths map to mounts, network
   policy to container config. **The ingest is a mount shape on the same
   image (ADR-092):** cache root rw, helper and link targets ro at their
-  host paths, no network, no policy chain — a static profile per step,
+  host paths, no network for any step that runs the repo (the three
+  registry fetches — `npm ci --ignore-scripts`, `cargo fetch`, `go mod
+  download` — are separate containers with a network and no repo
+  code), no policy chain — a static profile per step,
   because no model and no human are present to escalate to. The
   containment rule is *whatever executes repo-authored code*: agent
   sessions, lane B, the oracle lane's O6/O7 (all built, ADR-092). The
@@ -1204,12 +1245,16 @@ a commit identity, which no sandbox had.
   than falling back. Per-command secret brokering at the proxy
   was the v1 design and is unbuilt; what exists is narrower — no secret
   enters a session except the benchmark model credential, which rides
-  the session env and is registered (C-41). `.tfstate` denied at box
-  level; `derived/` never committed.
+  the session env and is registered (C-41), and — opt-in, for a live
+  Claude Code session only — the host's `~/.claude` mounted read-only
+  by `hobbes-session --claude-cred`. `.tfstate` denied at box level;
+  `derived/` never committed.
 - **Escalation** — parked sessions, Sessions-tab cards, expire-to-deny
   (default 30 min), logged approvals.
 - **Flight recorder** — append-only JSONL per session:
-  `{ts, session, role, tool, argv, policy_rule, decision, exit, sha}`.
+  `{ts, session, role, tool, argv, policy_rule, decision, exit, sha}`
+  plus `escalation` (ADR-016) and `context_fault` (ADR-054); the
+  recorder's `Event` is the pinned list.
 - **Quota** — designed in v1 (per-session caps, box-level reserve gating
   the spawner) and **never built**; what exists are the run/bench caps
   (`--max-turns`, `--max-units`, `--max-tokens`, the brief limit) and the
@@ -1263,7 +1308,9 @@ The v2 extraction programme — **complete and fully reviewed as of
 |---|---|---|
 | **D1** — the plan derivation | done, **reviewed 2026-08-21** | ADR-051: `hobbes plan` — impact, partition, contracts, manifests with enforced complements, the plan-review gate; C-35..C-37 registered surfaced |
 | **D2** — execution | base built, **reviewed 2026-08-21** | ADR-054: `hobbes run` — role + agent policy levels, standing/short-term context, context faults tagged, `reflect`, branch harvest, integration + review, the partition record with the declared loss; C-38 registered surfaced; what remains in `future_additions.md` |
-| **Benchmark verification** | **running — parked 2026-08-23** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085). Next, on the owner's go: 7B validation of ADR-085 |
+| **Benchmark verification** | **parked (renewed 2026-08-24)** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085); the ADR-085 validation pair ran 2026-08-24 (0/5, eight harness defects, six fixed in ADR-091). Next, on the owner's go: the removal A/B on the D5 fix |
+| **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision (§3.8); its own defect log reviewed (`oracle-defect-review.md`) |
+| **Containment** (ADR-092) | built, all four phases, **reviewed 2026-08-28** | sandbox whatever executes repo-authored code: lane B and O6/O7 in the one image; `--uncontained` disclosed and stamped; the knowledge layer stated as a complete deployment; the claim scoped to the runs made under it (P11) |
 
 Sequencing rules carry from v1 unchanged: deterministic before generative,
 each milestone exits on a real repo, **one milestone active at a time**, and
@@ -1311,4 +1358,4 @@ Deliberately not built, and not deferred-with-intent unless said so:
   originally claimed.
 - **Dynamic-tier ingestion** — the schema reserves `dynamic` for coverage
   traces; nothing produces it.
-- **Languages beyond Python/TS/Go plus the Rust proof.**
+- **Languages beyond Python/TS/Go/Rust and the Terraform/HCL layer.**

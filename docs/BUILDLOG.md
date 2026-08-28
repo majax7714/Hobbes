@@ -5532,3 +5532,56 @@ rewritten to the current state — the seven loop repos on their rows,
 the post-ADR-090/O4 dagger numbers, rust_proj as the one Rust cell
 re-earned under containment, click's trace cell — and the table stamped
 current to 2026-08-28 with the host-run/contained distinction.
+
+## 2026-08-28 — architecture drift audit (ADR-033 §9 discharged): 41 fixes, one regrade, one red test caught
+
+Max: run the drift audit. Four read-only auditors over the running
+architecture (front + §1–2, §3–4, §5–6, §7–10 + CLAUDE.md), every
+report verified against the tree before a fix. 41 stale claims fixed
+in place. The ones that mattered:
+
+- **A red build the last pass had not run.** §3.8's "Verified on"
+  cells are pinned verbatim in `extract/verification.py` and held by
+  `test_every_section_38_row_is_pinned_verbatim`; the row rewrite of
+  the previous session left the suite red. Pins re-derived from the
+  rows (python 8 / ts 4 / go 5 / rust 3 repos), the sibling count
+  tests updated. The lesson is the rule the section already states —
+  "extending a row here without the code is a red build" — and the
+  practice to add: run the suite after a docs-only commit that touches
+  §3.8.
+- **A claim that was not yet earned.** "Every compiler-graded cell at
+  100%" was false twice: ajv at 99.8% (now stated as the exception) and
+  this repo's own Go cell at 99.8% with the `run := func` shape the fzf
+  veto fixed — never regraded. Regraded contained: **1,283/1,283, 0
+  contradicted** (`oracle-cells/hobbes-go-2026-08-28.md`); the Go row
+  and the evidence log carry it.
+- **Design described as built (§3.6):** partial SCIP indexes cached by
+  content hash and merged, lane B debounced — neither exists; the
+  only caches are ADR-050's `node_modules` and ADR-092's tool caches.
+  Rewritten as the honest state.
+- **§7:** the `orchestrator` role (rw worktree) was unnamed; the flight
+  record's `escalation` and `context_fault` fields; the `--claude-cred`
+  mount as a second, opt-in credential path beside C-41; the ingest
+  shape's "no network" narrowed to the steps that run the repo; the
+  bench box policy's real path. **§8:** rows for the oracle lane and
+  containment, the benchmark row's parking date and "next". **§6:**
+  D5's carve-out stated inside the coverage guarantee; the transcript
+  claim scoped to the owned loop; depth is the dataset's rated band,
+  the file-count proxy the fallback; `write_file`/`edit_file` in the
+  harness arm's tool list; the evaluator on local podman, not Modal
+  (C-50); live runs through 08-24 and ADR-091 in the correction range.
+  **§1/§3:** P7 restated as the four-step checklist; C-9 no longer
+  listed as a provider limit (it is ours); C-28's two-file wording;
+  the conversion guard's Rust half; the third indexer's omission now
+  measured; "nothing else changes" replaced by the list of what a
+  language does touch; the 33 Rust edges as 17 calls + 16 uses; the
+  diagram's lane B node names the container. **§10:** Rust and HCL are
+  in scope. **CLAUDE.md:** the policy merge order (floor first, role
+  before folder), 64 constraints, 294 Go tests, the fixture list, the
+  handoff routing to ADR-092, the Status date. C-63 moved above its
+  segment's Lifted heading, where it had been misfiled.
+
+Unverifiable claims (owner attributions, run observations outside the
+tree, policy statements) were listed by the auditors and left as they
+are; none contradicts the tree. Suites: 953 pytest + the known
+environmental failure, 294 Go, 35 oracle — green.

@@ -56,7 +56,7 @@ already (`rust-src`) and more of that is expected. From here every cell
 runs contained, its record carries `containment`, and a record without
 it is a host-run record.
 
-**The seven-cell triage is DONE (2026-08-28, BUILDLOG).** Four fixes
+**The seven-cell triage is DONE and the drift audit discharged (2026-08-28, BUILDLOG — 41 fixes; this repo's Go cell regraded to 100% contained).** Four fixes
 (Go scope veto, Rust constructor rule, func-value abstract bucket,
 `@overload` anchor); every compiler-graded cell at 100%; ajv's 3
 union-member rows the one open sighting (n=1). **Next:** D5/D6 when

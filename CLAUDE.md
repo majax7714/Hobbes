@@ -38,7 +38,7 @@ box, against a repo on disk (architecture §10); the application mode in
 
 | You are…                                  | Read                                                                 |
 |-------------------------------------------|----------------------------------------------------------------------|
-| resuming the active programme             | `docs/session-handoff.md` → `docs/adr085-validation-run.md`          |
+| resuming the active programme             | `docs/session-handoff.md` → `docs/adr/092-ingest-containment.md`     |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
@@ -50,8 +50,8 @@ box, against a repo on disk (architecture §10); the application mode in
 ## Project map
 
 - `go/` — Go module (`github.com/majax7714/Hobbes/go`). `cmd/hobbes-policy`
-  + `internal/policy/` (the merge engine: box → repo → folder → role →
-  agent; deny overrides allow; allow|deny|escalate). `cmd/hobbes-proxy`
+  + `internal/policy/` (the merge engine: builtin floor → box → repo →
+  role → folder → agent; deny overrides allow; allow|deny|escalate). `cmd/hobbes-proxy`
   is the per-session MCP daemon: `internal/proxy/` (policy-checked `exec`
   + read-only knowledge tools), `internal/recorder/` (JSONL flight log),
   `internal/escalation/` (park/approve/expire queue), `internal/knowledge/`
@@ -63,14 +63,16 @@ box, against a repo on disk (architecture §10); the application mode in
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
   `extract/` (discover → per-language syntax providers → lane B SCIP join
   → graph/testmap → `packs/` → emit; `containment.py` runs every lane B
-  step in the sandbox image — repo code never executes on the host); `derive/` (`hobbes plan`: impact →
+  step in the sandbox image — the executing steps refuse without it,
+  C-64); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
   evaluator → report); `narrate/`, `invariants/`, `review.py`, `render.py`,
   `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
-  minigo / minirust), excluded from collection.
+  minigo / minirust / canary-rust / goshapes / twomod), excluded from
+  collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B: pinned SCIP indexers (`scip-python`, `scip-typescript`,
   `scip-go` 0.2.7, rust-analyzer's `scip`), `index.mjs`, spike evidence.
@@ -140,7 +142,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-27): 954 pytest / 293 Go + 35
+Suite sizes at the last check (2026-08-28): 954 pytest / 294 Go + 35
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -185,12 +187,12 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-08-25)
+## Status (2026-08-28)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust (+ Terraform/HCL),
   each a syntax provider + pinned SCIP indexer joined by one range join;
-  artifacts at schema v4; 57 registered constraints.
+  artifacts at schema v4; 64 registered constraints.
 - **The derivation programme is built and under test.** `hobbes plan`
   (ADR-051), `hobbes run` (ADR-054), the staged harness run (ADR-059) and
   `hobbes bench` (ADR-055) exist and have been run live on the
@@ -217,9 +219,9 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   priced first), the misses C-58 on every language plus Rust's generated
   code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
   `docs/oracle-defects.md` are the honesty records (reviewed in full,
-  `docs/oracle-defect-review.md`: seen tally + reviewer rules); seven
-  more repos graded 2026-08-27, untriaged; dagger's Go root waits on a
-  bigger box.
+  `docs/oracle-defect-review.md`: seen tally + reviewer rules); the
+  seven-repo loop of 2026-08-27 triaged 2026-08-28 (every compiler-graded
+  cell at 100%); dagger's Go root waits on a bigger box.
 - **The containment programme (ADR-092) is the active track:** *sandbox
   whatever executes repo-authored code*. Phase 1 built 2026-08-27 —
   every lane B step runs in the sandbox image, repo code never executes
