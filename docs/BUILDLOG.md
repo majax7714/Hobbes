@@ -5522,3 +5522,13 @@ three class rows; `extraction-evidence.md` loop section; architecture
 §3.8 note; ADR-090 amended for the two product extensions. The
 regrades that moved ran contained (ADR-092); toml and ajv stay host-run
 records. Suites: 954 pytest (3 new), oracle Go 35 (2 new).
+
+## 2026-08-28 — evidence log and §3.8 refreshed
+
+Max: the evidence had fallen behind. `extraction-evidence.md` full
+pass (six drifts, the SWE-bench D7 row corrected per ADR-091, the
+loop's missing pre-registration stated); then §3.8's four language rows
+rewritten to the current state — the seven loop repos on their rows,
+the post-ADR-090/O4 dagger numbers, rust_proj as the one Rust cell
+re-earned under containment, click's trace cell — and the table stamped
+current to 2026-08-28 with the host-run/contained distinction.
