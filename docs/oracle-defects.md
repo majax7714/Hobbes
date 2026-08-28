@@ -7,6 +7,10 @@ how it was fixed, and **what it would have cost had it gone unnoticed**
 (Max, 2026-08-25: "always honest"). A harness that only records
 Hobbes' errors is a harness that flatters itself. Updated in the same
 commit as the fix; a defect found but not yet fixed stays here as open.
+Reviewed in full on 2026-08-27 — `oracle-defect-review.md` holds the
+verdict, the action register (A-1..A-9), the defect-handling method and
+the **seen tally** (roots RC-1..RC-7, maintained in the same commit as
+any entry that changes it); a new entry here is assigned to a root there.
 
 | # | Date / cell | Looked like | Was | Fix | Cost if unnoticed |
 |---|---|---|---|---|---|
