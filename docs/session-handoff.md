@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-27 (ADR-091: D1–D4, D7, D8 fixed with no model;
-D5/D6 held by Max).** The one authoritative resume doc. Read this, then
+**Rewritten 2026-08-27 (ADR-091 fixes; five new oracle cells graded,
+unjudged; H-17 open on the TS oracle).** The one authoritative resume doc. Read this, then
 **`docs/adr085-validation-run.md`** (the run's record and its
 eight-defect register — the restructure's worklist), then
 `docs/benchmark-hypotheses.md` (reading rules + Results) and the recent
@@ -124,6 +124,20 @@ contradictions** — every compiler-graded cell on every language is now
 at 100% on every tier it was reached on. dagger's re-ingest sizes
 `below-floor` at go 4,114 / ts 247 / python 117 / rust 102. Cell outputs:
 `~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
+
+## NEW, UNTRIAGED — the 2026-08-27 grading loop
+
+Five cell records in `docs/oracle-cells/*-2026-08-27.md` (toml, click,
+memchr, mux, fzf), written by single-purpose agents, numbers verbatim,
+**not yet triaged** into `oracle-misses.md` / `extraction-evidence.md`.
+Two things a triage session will meet first: fzf's 87 contradicted
+edges are all the syntactic fallback binding a call to a package-level
+function that a local `func` literal shadows (the ADR-090 veto's Go
+shape, not yet vetoed there); mux's 3 contradicted are calls through a
+package-level func variable. **H-17 (open):** the TS oracle hangs on
+`obj[key]()` callees — decide the element-access site rule under D-O4,
+fixture it, then fix; ajv (`f177fe3`, ingested) and cheerio are the
+waiting candidates.
 
 ## HOW TO INSPECT / MEASURE (no GPU)
 

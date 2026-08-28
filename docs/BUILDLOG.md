@@ -5269,3 +5269,35 @@ pre-existing environmental failure deselected —
 `test_venv_environment_lists_the_venvs_own_distributions` expects
 `pytest` in the fixture venv and finds only `pip`; fails on the clean
 tree too, not touched), 26 scip node. Go and web untouched.
+
+## 2026-08-27 — the five-repo grading loop (documentation only)
+
+Max's direction: validate extraction further by grading new repos —
+spawn an agent per repo to pick, ingest, grade via the oracle lane and
+write a cell record; nothing changed in code; the orchestrator
+maintains the loop and does not judge the records. Python and Rust
+cells were re-validated first on this repo and rust_proj (Python moved
+only with the tree; Rust byte-identical to the stored record).
+
+Five records in `docs/oracle-cells/`, one commit each, numbers verbatim
+from `report.txt`, all poison checks 0 falsely confirmed:
+
+| repo | lang | edges | precision-vs-oracle | recall | note |
+|---|---|---|---|---|---|
+| BurntSushi/toml | go | 1,047 | 100.0% | 71.9% at 4 roots | 0 contradicted |
+| pallets/click | py (trace) | 2,003 | 81.0% confirmed, 5.0% suspect | 35.3% vs executed | decorator-factory closures dominate misses |
+| BurntSushi/memchr | rust (MIR) | 2,623 | 99.2% | 80.7% | 7 contradicted: tuple-struct constructors typed as calls; 1,583 silent in out-of-package cargo roots |
+| gorilla/mux | go | 1,264 | 99.8% | 82.6% at 1 root | first contradicted Go rows: 3 calls through a package-level func variable |
+| junegunn/fzf | go | 2,973 | 97.0% | 40.8% at 5 roots | 87 contradicted, all syntactic-tier: a local `func` literal shadowing a package-level name; semantic tier 0 contradicted |
+
+**TypeScript did not grade.** ajv and cheerio both hung the TS oracle:
+`siteName()` in `bench/oracle/ts/tsc-oracle.mjs` never descends on an
+element-access callee (`obj[key]()` → `e = e`). An oracle defect, not a
+repo defect — **H-17, registered open** in `docs/oracle-defects.md`;
+the element-access site rule (D-O4) is to be decided before the script
+is touched. Loop rule held: stopped, registered, proceeded on the other
+lanes at Max's word.
+
+Nothing in `oracle-misses.md` or `extraction-evidence.md` was updated —
+the records are unjudged by design; triage is a separate session.
+Clones and outputs under `~/.hobbes/bench/oracle/{repos,<name>-<lang>}/`.
