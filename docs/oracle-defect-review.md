@@ -124,7 +124,7 @@ roots. Maintained in the same commit as the log entry that changes it
 |---|---|---|---|---|---|
 | RC-1 | Cell membership / scope defined in more than one place | H-2, H-10 | 2 | closed-structural | A-2 (2026-08-27): both Go sides call `edges.Under`/`edges.Excluded`. Per-runtime extractors (TS/py/rust) keep a local predicate — a sighting there reopens this row. |
 | RC-2 | Code nobody wrote attributed to a source line | H-13, H-15, H-16 | 3 | closed-policy | Provenance rule: drop and count by default; reclassify when the dropped class is semantically real (macro→function). |
-| RC-3 | Oracle right at a different grain than the binding | H-3, H-5, H-6 | 3 | closed-policy | D-O4, extended 2026-08-27 with the element-access bullet (A-4). |
+| RC-3 | Oracle right at a different grain than the binding | H-3, H-5, H-6, H-18, H-19 | 5 | closed-policy | D-O4, extended 2026-08-27 with the element-access bullet (A-4) and 2026-08-28 with the function-valued-binding (abstract) and `@overload`-anchor bullets. Two sightings against a closed-policy root in one triage: the rule held, its bullet list was short. |
 | RC-4 | Silence that reads as a result | H-1, H-12 | 2 | closed-policy | RR-6: absence prints as its own state. A-1 landed 2026-08-27 (`no-roots`). |
 | RC-5 | Ratio quoted with unlabeled over-approximation or mismatched denominator | H-4, H-14 | 2 | closed-policy | Split by class, label inflation; numerator and denominator from one index. Log rule 2. |
 | RC-6 | Walk-down loop that does not strictly descend | H-17 | 1 | closed-structural | `descend()` guard landed 2026-08-27 (A-5); site rule landed via RC-3's element-access extension (A-4). |
@@ -132,7 +132,7 @@ roots. Maintained in the same commit as the log entry that changes it
 | — | Cosmetic | H-8, H-11 | 2 | — | H-11 → A-3. |
 | — | Environment limit (not a defect root) | H-9 | 1 | parked | A-9. |
 
-Coverage check: 17 of 17 entries mapped.
+Coverage check: 19 of 19 entries mapped.
 
 **Promotion mechanics.** New defect → assign to an existing RC or open
 a new one at *provisional*. Assignment to an RC with n≥2 triggers the

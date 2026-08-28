@@ -421,13 +421,17 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
-        if edge_type == "calls" and fact.def_file.endswith(".go") and index.kind(callee) == "type":
+        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs")) and index.kind(callee) == "type":
             # Go writes a conversion exactly like a call. Lane A drops the
             # ones it can name (a type in the same or an imported repo
             # package); this is the guard for the rest — a nested module
             # whose import path does not mirror its directory, a
             # dot-import — because a type is never called (O4: 40 of 40
             # contradictions on dagger were `dagger.JSON("0")` as `calls`).
+            # Rust writes a tuple-struct constructor the same way
+            # (`FinderRev(Hash::new(..))`), and the compiler lowers it to
+            # an aggregate, not a call: memchr (O7, 2026-08-27), 7 of 7
+            # contradictions. The edge to the type stays, as `uses`.
             edge_type = "uses"
         key = (caller, callee, edge_type, fact.tier, lane)
         symbol_evidence.setdefault(key, []).append(site)

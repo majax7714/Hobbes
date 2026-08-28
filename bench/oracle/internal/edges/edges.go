@@ -21,12 +21,17 @@ func (p Pos) Key() string { return p.Path + ":" + itoa(p.Line) }
 // HobbesEdge is one graded Hobbes call edge: one evidence line of one
 // `calls` symbol edge.
 type HobbesEdge struct {
-	Site     Pos      `json:"site"`
-	Target   Pos      `json:"target"`
-	TargetID string   `json:"target_id"`
-	Caller   string   `json:"caller"`
-	Tier     string   `json:"tier"`
-	Lanes    []string `json:"lanes"`
+	Site     Pos    `json:"site"`
+	Target   Pos    `json:"target"`
+	TargetID string `json:"target_id"`
+	// TargetKind is the graph symbol's kind at the target ("function",
+	// "method", "type", "const", "var", …): the grader reads it to
+	// bucket a call through a function-valued variable as abstract
+	// (D-O4, 2026-08-28) the way an interface method is.
+	TargetKind string   `json:"target_kind,omitempty"`
+	Caller     string   `json:"caller"`
+	Tier       string   `json:"tier"`
+	Lanes      []string `json:"lanes"`
 }
 
 // HobbesExport is the Hobbes side of one cell. Excluded counts the

@@ -175,6 +175,40 @@ class TestFallbackResolution:
         assert not any(key[2] == "HasPrefix" for key in layer["call_fallback"])
 
 
+class TestFallbackScopeVeto:
+    """ADR-090's scope rule, the Go shape (fzf, O4 2026-08-27: 87 of 87
+    contradictions were a local `assert` closure bound to a package-level
+    `assert` in another file of the package)."""
+
+    def _repo(self, tmp_path):
+        (tmp_path / "go.mod").write_text("module example.com/p\n\ngo 1.22\n")
+        (tmp_path / "a.go").write_text("package p\n\nfunc assert(ok bool) {}\n\nfunc atoi(s string) int { return 0 }\n")
+        (tmp_path / "b.go").write_text(
+            "package p\n\n"
+            "func useLocal() {\n"
+            "\tassert := func(ok bool) {}\n"
+            "\tassert(true)\n"
+            "}\n\n"
+            "func usePackage() {\n"
+            "\tassert(false)\n"
+            "\tn := atoi(\"1\")\n"
+            "\t_ = n\n"
+            "}\n"
+        )
+        return extract_go(tmp_path)
+
+    def test_a_local_func_literal_shadows_the_package_function(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert ("b.go", 5, "assert") not in layer["call_fallback"]
+        # The site is still a site — lane B or the tail view gets it.
+        assert _sites(layer, "assert")
+
+    def test_an_unshadowed_call_still_resolves_in_the_package(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert layer["call_fallback"][("b.go", 9, "assert")] == ("a.go", 3)
+        assert layer["call_fallback"][("b.go", 10, "atoi")] == ("a.go", 5)
+
+
 class TestTestInventory:
     def test_go_test_functions_are_inventoried(self, layer):
         assert [t["id"] for t in layer["tests"]] == [

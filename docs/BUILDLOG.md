@@ -5478,3 +5478,47 @@ and is not re-earned; the contained toolchain is not assumed equal to
 the host's until a cell proves it (`rust-src` was the first difference;
 more expected); a record without `containment` is a host-run record.
 The oracle-cell triage resumes next.
+
+## 2026-08-28 — the seven-cell triage: four fixes, every compiler-graded cell at 100%
+
+Max cleared the triage after the ADR-092 review. The seven untriaged
+cells (toml, click, memchr, mux, fzf, ajv, cheerio) reduce to five
+findings:
+
+- **fzf, 87 syntactic contradictions — hobbes-wrong.** Lane A's Go
+  fallback bound a local `assert := func(..)` (and a local `atoi`) to a
+  package-level function of the same name in another file of the
+  package. ADR-090's scope veto had a Python shape only;
+  `gosource._call_fallback` now refuses a bare name an ADR-046 local
+  binding spans. Regrade: 87 → 0, confirmed 2,832 kept, precision 100%.
+- **memchr, 7 semantic contradictions — hobbes-wrong.** A tuple-struct
+  constructor expression (`FinderRev(Hash::new(..))`) drawn as `calls`
+  to the type; rustc lowers it to an aggregate. The O4 conversion rule
+  (`scipsource.project`) now covers `.rs` targets: → `uses`. Regrade:
+  7 → 0, confirmed 921 kept.
+- **mux 3 + cheerio 44 — oracle grain (H-18, RC-3).** A call through a
+  function-valued binding (`var RegexpCompileFunc = regexp.Compile`;
+  `const parse = getParse(..)`): Hobbes names the binding, the oracle
+  the held function — both true. D-O4 bullet; the export carries
+  `target_kind`; `grade` buckets it **abstract** (`func-value`) like an
+  interface method. Regrades: 0 contradicted, precision 100% on both.
+- **click, 47 of 85 suspects — oracle grain (H-19, RC-3).** `@overload`
+  stubs and the implementation are one declaration; the tracer's index
+  anchors the implementation at the first stub's `def` line. Regrade
+  (contained): suspects 18, rate 1.0%; 16 of the 18 are C-60's
+  override/monkeypatch asymmetry, 2 untriaged sightings.
+- **ajv, 3 — hobbes-wrong by tier, n=1, unfixed.** A member call on a
+  union-typed receiver drawn to the enclosing class's own override at
+  semantic certainty where the base signature is the static answer; a
+  scip-typescript shape (P9), recorded as `static→union-member` in the
+  misses table; the second sighting names the rule (review §3.2).
+- **toml:** 0 contradicted; nothing.
+
+Records: each cell carries its regrade section, triage ratio (A-8) and
+direction of fix; `oracle-defects.md` H-18/H-19 (RC-3 → n=5, still
+closed-policy: two sightings against a closed root in one triage — the
+rule held, its bullet list was short); `oracle-misses.md` loop table +
+three class rows; `extraction-evidence.md` loop section; architecture
+§3.8 note; ADR-090 amended for the two product extensions. The
+regrades that moved ran contained (ADR-092); toml and ajv stay host-run
+records. Suites: 954 pytest (3 new), oracle Go 35 (2 new).

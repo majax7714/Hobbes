@@ -306,6 +306,16 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 			case abstract:
 				row.Bucket = "abstract"
 				row.OracleTargets = targets
+			case valueBinding(e.TargetKind) && len(targets) > 0:
+				// A call through a function-valued variable (mux's
+				// `RegexpCompileFunc`, cheerio's `const parse =
+				// getParse(..)`): Hobbes names the binding, the oracle
+				// the function the value holds. Both are true of the
+				// site; the binding is its abstract declaration exactly
+				// as an interface method is (D-O4, 2026-08-28; 47 rows
+				// over two cells were graded contradicted before this).
+				row.Bucket, row.Reason = "abstract", "func-value"
+				row.OracleTargets = targets
 			case len(targets) == 0:
 				row.Bucket, row.Reason = "silent", "no-targets"
 			default:
@@ -465,6 +475,17 @@ func hasTarget(ts []edges.Target, p edges.Pos) bool {
 
 // Print writes the human summary: the pair together, the silent size,
 // the root count next to recall, the tier split, and the triage rows.
+// valueBinding is a graph symbol kind that holds a value rather than
+// declaring a function: a call through it dispatches to whatever the
+// value is.
+func valueBinding(kind string) bool {
+	switch kind {
+	case "const", "var", "variable", "let":
+		return true
+	}
+	return false
+}
+
 func Print(w io.Writer, r *Report) {
 	fmt.Fprintf(w, "cell %s  oracle %s (%s)  sha %s\n", r.Module, r.Oracle, r.Kind, short(r.SHA))
 	if r.Containment != "" {

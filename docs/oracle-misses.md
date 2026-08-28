@@ -23,7 +23,9 @@ commit as the cell.
 | `func-value→named` | call of a function value reaching a declared function (a map of methods, a callback parameter) | **no edge** | C-58 |
 | `func-value→closure` | call of a function value reaching a closure (`defer cancel()`, goroutine bodies) | no edge; under RTA the pair count is inflated | C-58 |
 | `func-value→local-binding` | call through a local that holds a value, not a function literal (`const [x, setX] = useState()`; `setX(...)`) | **no edge** — the binding is below the symbol floor; the site is *seen and not modelled by design* (C-32's `local-binding` class) | C-32, C-58 |
-| `func-value→variable` | call through a module-level variable holding a function value (a `let` accessor assigned at runtime) | drawn when the variable is a graph symbol; missed when the value arrives later | C-58 |
+| `func-value→variable` | call through a module-level variable holding a function value (a `let` accessor assigned at runtime; Go's `var f = g`; a `const x = factory(..)`) | drawn to the **binding** when the variable is a graph symbol — graded *abstract* against the oracle's held function since H-18 (47 rows on mux + cheerio); missed when the value arrives later | C-58 |
+| `static→union-member` | TS: a member call on a union-typed receiver (`n: A \| B`; `n.render()`) | one member's override drawn at semantic certainty (the enclosing class's own) where the base signature is the static answer — a provider shape (scip-typescript), n=1 (ajv, 3 rows), unfixed | P9 / C-58 |
+| `macro→method` | Rust: a method call a macro body makes (`define_*_quickcheck!`, `unsafe_ifunc!`) | **no edge** (as `macro→function`) | C-58 (macro face) |
 | `interface→type-member` | call of a member declared only as an interface property signature (a zustand store's `ChatState.addMessage`) | **no edge** — interface members are not graph symbols (C-9) | C-58 |
 | `static→anonymous-function` | an IIFE or a literal passed straight to a call | no edge | C-58 |
 | `observed→closure` / `observed→lambda` | Python (trace): a call the interpreter made into a nested function or a lambda | **no edge** — nested functions and lambdas are not graph symbols | C-58 |
@@ -36,6 +38,23 @@ commit as the cell.
 | `static→function` (Rust) | a call written inside a proc-macro's tokens (`quote! { $(f(x)) }`) | **no site** — rust-analyzer's index does not expand proc macros here | C-30 (registry) / unregistered |
 
 ## Cells
+
+### The seven-repo loop (2026-08-27; triaged 2026-08-28; [cells](oracle-cells/))
+
+Every contradiction in the loop triaged; four fixes landed (two product, two oracle), each cell regraded contained (ADR-092) where it moved:
+
+| cell | edges | precision-vs-oracle | recall | contradicted → after | verdict |
+|---|---|---|---|---|---|
+| toml (go) | 1,047 | 100% (1,039) | 71.9% at 4 roots | 0 | — |
+| fzf (go) | 2,973 → 2,881 | 97.0% → **100%** (2,832) | 40.8% at 5 roots | 87 → 0 | hobbes-wrong: lane A bound a local `assert := func` to a package function — ADR-090's scope veto, now in Go |
+| mux (go) | 1,264 | 99.8% → **100%** (1,221) | 82.6% at 1 root | 3 → 0 (abstract 3) | oracle grain: a call through a function-valued `var` (H-18) |
+| memchr (rust) | 2,623 → 2,496 | 99.2% → **100%** (921) | 80.7% | 7 → 0 | hobbes-wrong: tuple-struct constructor drawn as `calls` — the O4 conversion rule, now in Rust |
+| ajv (ts) | 1,543 | 99.8% (1,375/1,378) | 62.0% | 3 (untouched) | hobbes-wrong by tier: union-member dispatch (`static→union-member`), n=1, unfixed |
+| cheerio (ts) | 2,162 | 97.9% → **100%** (2,102) | 36.1% | 44 → 0 (abstract 44) | oracle grain: calls through `const x = factory(..)` (H-18) |
+| click (py, trace) | 2,003 | conf. 81.0% → 84.8%; suspects 85 → 18 (5.0% → 1.0%) | 35.3% → 37.0% | — | oracle grain: `@overload` stubs (H-19); 16 of the 18 left are C-60's asymmetry (override / monkeypatch) |
+
+What hurts most, loop-wide, is unchanged from the first cells: **calls into closures** (fzf 1,212 static + 2,457 inflated; click 1,196 decorator-factory closures; ajv 174) and **interface dispatch** (toml 226, mux 120, fzf 417) — C-58 on every language; Rust's macro face (memchr 99 `macro→*` rows, `unsafe_ifunc!`, `define_*_quickcheck!`). New on the recall side: cheerio's `static→function` 2,507 is dominated by *the oracle's* overload grain (one pair per `attr`/`prop` signature, five each) — the recall-side sibling of H-19, not corrected.
+
 
 ### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](oracle-cells/hobbes-py-2026-08-25.md))
 

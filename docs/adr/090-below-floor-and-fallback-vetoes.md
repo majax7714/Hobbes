@@ -49,6 +49,15 @@ exactly three kinds of finding against the product:
   reader of the invariant (the tests, `rollup`, knowledge.go) was
   updated in the same commit. The class is available for all four
   lane-B languages (`CLASSES_AVAILABLE`).
+- **Extended 2026-08-28 (the seven-cell triage).** The scope veto's Go
+  shape: `gosource._call_fallback` refuses a bare name that an ADR-046
+  local binding spans (fzf: 87 of 87 syntactic contradictions were a
+  test's `assert := func(..)` bound to `merger_test.assert` in another
+  file of the package, and a local `atoi` to `options.atoi`). And the
+  O4 conversion rule's Rust shape: a `calls` fact whose `.rs` target is
+  a type is a tuple-struct constructor expression, projected as `uses`
+  (memchr: 7 of 7). Both in the same code paths as the originals, one
+  test each; the fzf and memchr regrades are the check.
 - C-58's surfacing status: unsurfaced → partial. Its capture-number
   concession stands; `docs/oracle-misses.md` remains where the hole is
   sized.

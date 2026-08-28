@@ -138,6 +138,16 @@ a `Deref`. Two of seven missed, both about *where the misses would be*: on
 Python the prior was right, on Rust the generated-code class was not in
 anyone's prior.
 
+## Seven public repos — the 2026-08-27 grading loop (triaged and regraded 2026-08-28)
+
+BurntSushi/toml, gorilla/mux, junegunn/fzf (Go, RTA); BurntSushi/memchr (Rust, MIR); ajv-validator/ajv, cheeriojs/cheerio (TS, the zone's `tsc`); pallets/click (Python, trace). Cells in `docs/oracle-cells/*-2026-08-27.md` with their regrade sections; the loop table in `docs/oracle-misses.md`.
+
+| Date | Numbers |
+|---|---|
+| 2026-08-28 (regrades after triage) | **Every compiler-graded cell at 100% precision-against-oracle**: toml 1,039/1,039 · fzf 2,832/2,832 (was 97.0%) · mux 1,221/1,221 (3 abstract) · memchr 921/921 (was 99.2%) · cheerio 2,102/2,102 (44 abstract; was 97.9%) · ajv 1,375/1,378 (3 hobbes-wrong by tier, unfixed). click: 1,699 confirmed, 18 suspect (1.0%), recall-against-executed 37.0%. Recall: toml 71.9%, fzf 40.8%, mux 82.6%, memchr 80.7%, ajv 62.0%, cheerio 36.1% — the misses C-58's closure/interface classes and Rust's macro face throughout |
+
+**Verified:** the four fixes the loop produced — the Go scope veto (fzf: 87 wrong syntactic edges), the Rust constructor rule (memchr: 7), the func-value abstract bucket (mux + cheerio: 47 false contradictions), the `@overload` anchor (click: 67 false suspects) — each kept every confirmed edge of its cell and moved no recall number. **Containment scope (P11):** fzf, memchr, mux, cheerio, click regraded under the sandbox image; toml and ajv are host-run records (not re-run: nothing moved on them).
+
 ## kbet (`~/projects/kbet` — real Vite+React TS app; throwaway tier)
 
 | Date | Numbers |

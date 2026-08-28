@@ -731,6 +731,8 @@ def _call_fallback(
             if _is_conversion(parsed, call, packages, conversions):
                 continue
             if call["receiver"] is None:
+                if _shadowed(parsed, call["name"], call["line"]):
+                    continue
                 target = where.get((own_dir, call["name"]))
             elif call["receiver"] in by_alias:
                 target = where.get((by_alias[call["receiver"]], call["name"]))
@@ -742,6 +744,20 @@ def _call_fallback(
                 continue  # a declaration is not a call of itself
             fallback[(parsed.path, call["line"], call["name"])] = target
     return fallback
+
+
+def _shadowed(parsed: GoFile, name: str, line: int) -> bool:
+    """A bare name bound in the enclosing function (``assert := func(...)``,
+    a parameter, a ``range`` target — ADR-046's bindings) is *that*
+    binding, never the package-level namesake: ADR-090's scope rule, the
+    Go shape. The oracle lane's fzf cell (2026-08-27): all 87 syntactic
+    contradictions were a test's local ``assert`` closure bound to
+    ``merger_test.assert`` in another file of the package, and a local
+    ``atoi`` to ``options.atoi``. A local ``func`` literal is never a
+    symbol, so there is no nested-declaration exemption to keep here."""
+    return any(
+        b[0] == name and b[1] <= line <= b[2] for b in parsed.local_bindings
+    )
 
 
 def collect_go_tests(files: list[GoFile], symbol_edges: list[dict]) -> list[dict]:

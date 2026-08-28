@@ -65,3 +65,17 @@ Not triaged in this cell; recorded as untriaged per the ratio line above.
 **Direction of fix (which side would need to change; no proposals):** `static→function` — untriaged as to side: the oracle emits one pair per overload declaration of `attr`/`prop` (five for `attr`), so part of the count is the oracle's grain and the residue is Hobbes; the non-spec sites are Hobbes. `func-value→local-binding` — Hobbes (a local binding to a function value, C-58's local-binding tail; the oracle's targets are the bindings themselves). `static→closure` — Hobbes (a direct call to a locally bound closure is statically resolvable; Hobbes has no callee). `static→anonymous-signature` and `static→type-member` — Hobbes (the oracle names a declaration Hobbes has no node for). `static→method` / `static→class` — Hobbes. Contradicted 44 — untriaged, side undetermined (both shapes are a Hobbes-callee-vs-oracle-callee disagreement on the same file). Silent 16 (`not-loaded`) — nothing to fix on either side.
 
 **Not graded:** the 5,180 external oracle pairs (`node_modules` / lib.d.ts callees, by design); the 16 `not-loaded` silent edges (syntactic-tier edges in files the oracle's program did not load); the `website/` zone (excluded by the root tsconfig, its own zone, lane B degraded there). No repo was abandoned.
+
+## Regrade 2026-08-28 (triage; D-O4's function-valued-binding bullet, H-18)
+
+Both shapes are one class: a call through a module `const` holding a function (`const parse = getParse(..)` in the spec; `_matcher` / `_singleMatcher = _getMatcher(..)`). Hobbes names the binding, `tsc` the signature the value carries. Graded **abstract** (`func-value`) since H-18. Re-ingested contained and regraded, 8 s:
+
+```
+hobbes edges 2162: confirmed 2102  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2102/2102)
+recall 36.1% (2132/5910 in-repo oracle pairs)
+  tier semantic   confirmed 2094  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+```
+
+**Triage ratio (A-8):** 44 contradicted → `oracle-wrong 44 : hobbes-wrong 0 : untriaged 0` (grain, RC-3). **Direction of fix:** oracle. The recall misses stand as recorded: `static→function` 2,507 is mostly the specs' `attr`/`prop` overload signatures (one oracle pair per overload declaration — the oracle's grain again, on the recall side, not corrected here) and `func-value→local-binding` 1,070 the specs' `$` bindings (C-32).

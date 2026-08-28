@@ -55,3 +55,19 @@ Every one is a Hobbes `calls` edge whose target is a **tuple-struct type** at a 
 **Direction of fix (which side would need to change; no proposals):** `macro→function` / `macro→method` — Hobbes (calls made by a macro body at the invocation line; Hobbes has no edge there, the same class as rust_proj's `criterion_group!`). `static→method` (the 56 `unsafe_ifunc!` rows) and `static→function` (the 50 `assert_suffix_*!` rows) — Hobbes (calls made by a crate-local `macro_rules!` body at its invocation line, which the oracle attributes to the source call site; Hobbes emits nothing at those lines). `static→method` (7 closure-in-macro-argument rows), `static→function` (3 nested-fn turbofish rows), `static→closure` — Hobbes. `static→generated` — Hobbes (the target is a derived impl with no source identifier). Contradicted 7 — Hobbes if a tuple-struct constructor expression is not to be a `calls` edge to the type; otherwise the oracle (MIR lowers tuple-struct construction to an aggregate, not a call, so it carries no site for it). Silent `not-loaded` — neither: the benchmark/fuzz roots are outside the package and the neon/simd128 modules are outside this host's cfg; `unreachable` 66 — nothing to fix on either side.
 
 **Not graded:** the 1476 external oracle pairs (std / `core::arch` / `quickcheck` callees, by design); the 1695 silent edges above. No repo was abandoned.
+
+## Regrade 2026-08-28 (triage; the O4 conversion rule, the Rust shape)
+
+A `calls` fact whose `.rs` target is a type is a tuple-struct constructor expression, projected as `uses` (`scipsource.project`). Re-ingested **contained** and regraded, 17 s:
+
+```
+oracle ran contained (ADR-092)
+hobbes edges 2496: confirmed 921  contradicted 0  abstract 0  silent 1575 map[not-loaded:1521 unreachable:54]
+precision-against-oracle 100.0% (921/921)
+recall 80.7% (925/1146 in-repo oracle pairs)
+  tier semantic   confirmed 914  contradicted 0  abstract 0  silent 43
+  tier syntactic  confirmed 7  contradicted 0  abstract 0  silent 1532
+poison check: PASS — 2496 seeded wrong edges: 921 refused, 1575 unjudged, 0 falsely confirmed
+```
+
+**Triage ratio (A-8):** 7 contradicted → `oracle-wrong 0 : hobbes-wrong 7 : untriaged 0`. **Direction of fix:** Hobbes; confirmed 921 = 921, recall unchanged; the 7 and 120 silent constructor edges in the unloaded cargo roots now read `uses` (2,623 → 2,496). Misses unchanged (the macro classes, C-58's macro face).

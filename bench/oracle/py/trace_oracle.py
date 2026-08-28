@@ -68,6 +68,15 @@ SKIP_DIRS = {".venv", "venv", "site-packages", "node_modules", "__pycache__", ".
 # ---------------------------------------------------------------- ast index
 
 
+def _is_overload(decorator: ast.expr) -> bool:
+    """``@overload``, ``@typing.overload``, ``@t.overload``."""
+    if isinstance(decorator, ast.Call):
+        decorator = decorator.func
+    if isinstance(decorator, ast.Name):
+        return decorator.id == "overload"
+    return isinstance(decorator, ast.Attribute) and decorator.attr == "overload"
+
+
 class DeclIndex:
     """Declarations of one repo, by file: ``firstlineno`` (as the compiler
     reports it, decorator line included) → identifier line, and qualname →
@@ -84,6 +93,12 @@ class DeclIndex:
             return idx
         idx = {"first_to_def": {}, "qual": {}, "lambda_lines": set(), "declared": 0}
         self.files[rel] = idx
+        # `@overload` stubs and the implementation are one declaration
+        # (D-O4, 2026-08-28): the graph's symbol sits on the first stub's
+        # def line, the interpreter runs the implementation. The
+        # implementation's first line maps to the anchor. click (O6,
+        # 2026-08-27): 47 of 85 suspects were this grain.
+        overload_anchor: dict[str, int] = {}
         try:
             tree = ast.parse((self.repo / rel).read_text(encoding="utf-8", errors="replace"))
         except (SyntaxError, OSError, UnicodeDecodeError):
@@ -93,10 +108,17 @@ class DeclIndex:
             for child in ast.iter_child_nodes(node):
                 if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                     first = child.decorator_list[0].lineno if child.decorator_list else child.lineno
-                    idx["first_to_def"][first] = child.lineno
                     qual = prefix + child.name
                     kind = "class" if isinstance(child, ast.ClassDef) else "function"
-                    idx["qual"][qual] = (child.lineno, kind)
+                    if qual in overload_anchor:
+                        idx["first_to_def"][first] = overload_anchor[qual]
+                    else:
+                        idx["first_to_def"][first] = child.lineno
+                        if kind == "function" and any(
+                            _is_overload(d) for d in child.decorator_list
+                        ):
+                            overload_anchor[qual] = child.lineno
+                    idx["qual"].setdefault(qual, (idx["first_to_def"][first], kind))
                     idx["declared"] += 1
                     walk(child, qual + ("." if kind == "class" else ".<locals>."))
                 elif isinstance(child, ast.Lambda):

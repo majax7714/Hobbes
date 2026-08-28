@@ -114,12 +114,13 @@ func From(g *graph, module, lang string, exclude ...string) (*edges.HobbesExport
 				continue
 			}
 			out.Edges = append(out.Edges, edges.HobbesEdge{
-				Site:     edges.Pos{Path: ev.Path, Line: ev.Line},
-				Target:   edges.Pos{Path: file, Line: symLine[e.To]},
-				TargetID: e.To,
-				Caller:   e.From,
-				Tier:     e.Tier,
-				Lanes:    []string{ev.Lane},
+				Site:       edges.Pos{Path: ev.Path, Line: ev.Line},
+				Target:     edges.Pos{Path: file, Line: symLine[e.To]},
+				TargetID:   e.To,
+				TargetKind: symKind[e.To],
+				Caller:     e.From,
+				Tier:       e.Tier,
+				Lanes:      []string{ev.Lane},
 			})
 		}
 	}

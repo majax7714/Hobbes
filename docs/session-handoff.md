@@ -54,7 +54,14 @@ fixtures. Every earlier cell and graph was a host run and is not
 re-earned; the contained toolchain differed from the host's once
 already (`rust-src`) and more of that is expected. From here every cell
 runs contained, its record carries `containment`, and a record without
-it is a host-run record. **The oracle-cell triage resumes now.**
+it is a host-run record.
+
+**The seven-cell triage is DONE (2026-08-28, BUILDLOG).** Four fixes
+(Go scope veto, Rust constructor rule, func-value abstract bucket,
+`@overload` anchor); every compiler-graded cell at 100%; ajv's 3
+union-member rows the one open sighting (n=1). **Next:** D5/D6 when
+Max reopens them; the removal A/B on a cleared 7B run; collaborator
+setup (`docs/workstreams.md`).
 
 **Three embedded calls for Max to ratify** (ADR-092 §"Decisions"):
 contain-all lane B vs executing-only; symlink targets mounted at
@@ -189,7 +196,7 @@ at 100% on every tier it was reached on. dagger's re-ingest sizes
 `below-floor` at go 4,114 / ts 247 / python 117 / rust 102. Cell outputs:
 `~/.hobbes/bench/oracle/{hobbes-py,rust_proj,dagger-rust,dagger,dagger-before}/`.
 
-## NEXT AFTER THE ADR-092 REVIEW — the 2026-08-27 grading loop, untriaged
+## DONE 2026-08-28 — the 2026-08-27 grading loop, triaged (kept for the record)
 
 Seven cell records in `docs/oracle-cells/*-2026-08-27.md` (toml, click,
 memchr, mux, fzf, ajv, cheerio), written by single-purpose agents,

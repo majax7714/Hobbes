@@ -638,7 +638,21 @@ class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
         out = project([self._fact("calls", 5, 10)], self.NODES, self.SYMBOLS)
         assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("pkg/a.JSON", "uses")]
 
-    def test_the_guard_is_go_only(self):
+    def test_a_rust_call_whose_target_is_a_type_is_a_constructor(self):
+        # memchr (O7, 2026-08-27): `FinderRev(Hash::new(..))` — rustc
+        # lowers the tuple-struct constructor to an aggregate; the only
+        # call on the line is inside the argument. 7 of 7 contradictions.
+        from hobbes.extract.scipsource import project
+
+        nodes = [{"id": "src/lib", "kind": "module", "path": "src/lib.rs"}]
+        symbols = [
+            {"id": "src/lib.build", "module": "src/lib", "kind": "function", "line": 1, "end_line": 3, "name": "build", "qualname": "build"},
+            {"id": "src/lib.FinderRev", "module": "src/lib", "kind": "type", "line": 5, "end_line": 5, "name": "FinderRev", "qualname": "FinderRev"},
+        ]
+        out = project([self._fact("calls", 2, 5, scope="src/lib.build", file="src/lib.rs")], nodes, symbols)
+        assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("src/lib.FinderRev", "uses")]
+
+    def test_the_guard_is_go_and_rust_only(self):
         from hobbes.extract.scipsource import project
 
         nodes = [{"id": "m", "kind": "module", "path": "m.py"}]

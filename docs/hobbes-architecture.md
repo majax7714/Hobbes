@@ -730,6 +730,12 @@ apart), and `list_blind_spots`. The test suite reads this section and
 fails when the two tables disagree, so extending a row here without the
 code is a red build, not a quiet drift.
 
+**Seven more public repos graded 2026-08-27 and triaged 2026-08-28**
+(toml, mux, fzf — Go; memchr — Rust; ajv, cheerio — TS; click —
+Python trace): every compiler-graded cell at 100% precision after four
+fixes (two product, two oracle-grain); the misses C-58 throughout
+(`docs/oracle-misses.md`, the loop table).
+
 **Hand-checks are a floor on this table, and the oracle lane is how it
 gets graded at scale** (ADR-089, `docs/oracle-grading.md`,
 `bench/oracle/`). Every hand-check above is small-n and self-selected

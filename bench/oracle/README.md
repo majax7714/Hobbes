@@ -51,6 +51,20 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
   source function they end in; closures are identified by declaration
   position only. TypeScript: **any declaration of the resolved
   signature's symbol counts** (overload-set membership).
+- **A call through a function-valued binding** (2026-08-28; mux's
+  `RegexpCompileFunc`, cheerio's `const parse = getParse(..)`,
+  `_matcher = _getMatcher(..)`). Hobbes names the binding — a `var` /
+  `const` graph symbol — and the oracle names the function the value
+  holds. Both are true of the site: the binding is its abstract
+  declaration exactly as an interface method is, so the edge is
+  bucketed **abstract** (`func-value`), never contradicted. The export
+  carries `target_kind` for this; 47 rows over two cells read
+  contradicted before the rule.
+- **Python `@overload` stubs** (2026-08-28; click, 47 of 85 suspects).
+  The stubs and the implementation are one declaration: the graph's
+  symbol sits on the first stub's `def` line, the interpreter runs the
+  implementation. The tracer anchors the implementation's first line at
+  the first stub's, so the pair matches at the graph's line.
 - **The callee's binding.** When the resolved signature is *anonymous* —
   a type literal's or interface's `(...): T`, the shape of every
   `const useX = create(...)` hook, every `useState` setter, every

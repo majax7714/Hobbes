@@ -140,7 +140,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-27): 951 pytest / 293 Go + 33
+Suite sizes at the last check (2026-08-27): 954 pytest / 293 Go + 35
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -227,8 +227,9 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   Phase 2 (O6/O7 oracles contained, regrades a no-op), phase 3
   (`--uncontained`, the `containment` stamp, `list_blind_spots`) and
   phase 4 (the two-layer statement: the knowledge layer is a complete
-  deployment) landed 2026-08-28. **All four phases built, awaiting Max's
-  review**; the oracle-cell triage resumes after it.
+  deployment) landed 2026-08-28; reviewed by Max, the claim scoped to
+  the runs made under it (P11). **The seven-cell triage is done**
+  (2026-08-28): four fixes, every compiler-graded cell at 100%.
 - **Then:** D5/D6 when Max reopens them; the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
