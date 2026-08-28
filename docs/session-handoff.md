@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-27, late (ADR-092 phase 1 built: lane B contained;
+**Rewritten 2026-08-28 (ADR-092 phases 1–2 built: lane B and the executing oracles contained;
 the oracle-cell triage is ON HOLD by Max's direction).** The one
 authoritative resume doc. Read this, then **`docs/adr/092-ingest-containment.md`**
 (the containment programme's four phases — the active track), then
@@ -32,16 +32,14 @@ until this lands.** One phase active at a time.
   without the sysroot source the contained Rust lane silently lost its
   semantic tier; caught by the contained-vs-host diff). Measured no-op
   on this repo: see the BUILDLOG entry.
-- **Phase 2 — oracle containers (next).** O6 (Python trace) and O7
-  (rustc MIR) in the same image with the verifier's mount shape
-  verbatim (overlay `:O`, ADR-060) plus an rw output dir; O6 no
-  network, O7 the Rust profile. **Containment must be a numeric
-  no-op**: regrade rust_proj (O7) and this repo's Python zone (O6)
-  against the stored cells; any drift is a new H-entry in
-  `oracle-defects.md`, triaged before anything else lands. Say in the
-  ADR that any future dynamic-tier ingestion inherits containment on
-  day one.
-- **Phase 3 — guarantee wiring.** The `--uncontained` CLI flag
+- **Phase 2 — oracle containers: BUILT (2026-08-28).** O6/O7 in the
+  same image through `bench/oracle/internal/contain`, the verifier's
+  mount shape verbatim. rust_proj regraded byte-identical; this repo's
+  Python zone contained vs host identical in suspects and misses with
+  an explained 8-edge residue (one environment-probing test). Records:
+  `oracle-cells/{rust_proj,hobbes-py}-2026-08-28.md`. Max ratified the
+  phase-1 decisions (venv listing strict).
+- **Phase 3 — guarantee wiring (next).** The `--uncontained` CLI flag
   (`HOBBES_UNCONTAINED=1` exists today) with its disclosure stamped in
   `graph.json` and any oracle cell record; `list_blind_spots` naming
   C-64; P4's gloss extended (enforcement below every process that

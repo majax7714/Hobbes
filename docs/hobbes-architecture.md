@@ -1166,7 +1166,7 @@ a commit identity, which no sandbox had.
   host paths, no network, no policy chain — a static profile per step,
   because no model and no human are present to escalate to. The
   containment rule is *whatever executes repo-authored code*: agent
-  sessions, lane B (built), the oracle lane's O6/O7 (phase 2). The
+  sessions, lane B, the oracle lane's O6/O7 (all built, ADR-092). The
   guarantee it carries — repo code never executes on the host — is
   P10-specific: a box without podman refuses the executing steps rather
   than falling back. Per-command secret brokering at the proxy

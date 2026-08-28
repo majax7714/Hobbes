@@ -1,6 +1,6 @@
-# ADR-092 — Sandbox whatever executes repo-authored code: ingest containers (phase 1)
+# ADR-092 — Sandbox whatever executes repo-authored code: ingest and oracle containers
 
-**Date:** 2026-08-27 · **Status:** accepted — phase 1 built · **Owner:** Max · **Source:** the architecture review of 2026-08-27 (the sandbox boundary covered agent sessions but not extraction or the oracle lane)
+**Date:** 2026-08-27 · **Status:** accepted — phases 1 and 2 built (2026-08-27/28) · **Owner:** Max · **Source:** the architecture review of 2026-08-27 (the sandbox boundary covered agent sessions but not extraction or the oracle lane)
 
 ## Context
 
@@ -22,7 +22,7 @@ What executes, stated once so nobody re-derives it:
 |--------------------------------------------|-----------------------------------------------|------------------|----------------|
 | Rust lane B (rust-analyzer `scip`)          | build scripts, proc macros (C-29)             | no               | **phase 1**    |
 | the venv listing (`venv_environment`)      | the venv's own `bin/python`, a binary under the repo tree — found in the build, not in the review | no | **phase 1** |
-| oracle O6 (Python trace), O7 (rustc MIR)   | runs the suite; compiles the repo             | no               | phase 2        |
+| oracle O6 (Python trace), O7 (rustc MIR)   | runs the suite; compiles the repo             | no               | **phase 2**    |
 | agent sessions                             | the work itself                               | yes              | unchanged      |
 
 Not in the executing set: scip-python (Pyright), scip-go, scip-typescript,
@@ -136,17 +136,38 @@ three repo `node_modules` mounted ro; Go after a `go mod download`
 fetch): see the BUILDLOG entry for the tier-count diff against the
 pre-change `graph.json`.
 
-### Phases 2–4 (not built here)
+### Phase 2 — oracle containers (built 2026-08-28)
 
-- **Phase 2 — oracle containers.** O6/O7 in the same image with the
-  verifier role's mount shape verbatim (overlay `:O` on the tree,
-  ADR-060 — a plain ro mount breaks pytest's caches and build dirs,
-  C-43) plus an rw output dir. O6 no network; O7 the Rust profile.
-  Containment must be a numeric no-op: re-run rust_proj (O7) and this
-  repo's Python zone (O6) and diff against the stored cells; any drift
-  is a new H-entry, triaged first. **Forward rule:** any future
-  dynamic-tier ingestion (the schema's reserved `dynamic`) inherits this
-  containment on day one — it is repo execution by definition.
+`bench/oracle/internal/contain` — the lane's own copy of the planner
+(bench tooling, its own module, D1), same rules. O6 (`pytrace.Run`) and
+O7 (`rustmir.Run`) run in the same image with the **verifier role's
+mount shape verbatim**: the repo tree as an overlay `:O` at its host
+path (ADR-060 — a plain ro mount breaks pytest's caches and cargo's
+build dirs, C-43), the cell's out dir and the Hobbes cache rw, and the
+tool trees ro at their host paths — the pinned nightly's sysroot and the
+driver for O7 (named directly as `<sysroot>/bin/cargo`, `RUSTC`,
+`LD_LIBRARY_PATH`; rustup's `+nightly` proxy is the host's), the tracer
+script and the interpreter chain for O6. O6 no network; O7 a `cargo
+fetch` container first, then `--network none`. `run-cell.sh` names the
+cell's venv python as the interpreter (`uv run` is not in the image and
+resolved to that path anyway). The export and the report carry
+`containment: contained | host: <reason>`; `report.txt` prints `oracle
+ran contained (ADR-092)`. The fixture self-tests run contained and skip
+without the image. **Numeric no-op, measured:** rust_proj (O7) regraded
+byte-identical to the stored cell modulo the new field
+(`docs/oracle-cells/rust_proj-2026-08-28.md`); this repo's Python zone
+(O6) contained vs host on the same tree — identical suspects and miss
+classes, an 8-edge residue confined to one test that probes for a
+container runtime and skips inside the image
+(`docs/oracle-cells/hobbes-py-2026-08-28.md`). Rule from that: a trace
+cell's suite must not depend on the host it runs on, or the record
+names what it deselects.
+**Forward rule:** any future dynamic-tier ingestion (the schema's
+reserved `dynamic`) inherits this containment on day one — it is repo
+execution by definition.
+
+### Phases 3–4 (not built here)
+
 - **Phase 3 — guarantee wiring.** The `--uncontained` CLI flag with its
   disclosure stamped into `graph.json` and any oracle cell record it
   touches; `list_blind_spots` naming C-64 by number.

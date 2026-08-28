@@ -5413,3 +5413,39 @@ marked `lane_b` — it now runs contained and still fails its own
 pre-existing environmental assertion, untouched); Go, web, node
 untouched. Architecture §3.2 and §7 amended; `first-run.md`,
 `sandbox/README.md`, CLAUDE.md updated; handoff rewritten.
+
+## 2026-08-28 — ADR-092 phase 2: the executing oracles run in the sandbox image
+
+Max ratified the phase-1 decisions (all four, the venv listing kept
+strict) and cleared phase 2. O6 and O7 — the two oracles that execute
+the target — now run in `hobbes-session:local` through
+`bench/oracle/internal/contain`, the lane's own copy of the planner
+(bench tooling, own module): the verifier's mount shape verbatim (tree
+overlay `:O` at its host path; cell dir and Hobbes cache rw; the nightly
+sysroot, the driver, the tracer script and the interpreter chain ro at
+their host paths); O6 no network; O7 `cargo fetch` in a networked
+container then `cargo check` with none, the toolchain's binaries named
+directly (`<sysroot>/bin/cargo`, `RUSTC`, `LD_LIBRARY_PATH`) because
+rustup's `+nightly` proxy is the host's. `run-cell.sh` names the venv
+python (`uv` is not in the image). The export and report carry
+`containment`; `report.txt` prints `oracle ran contained (ADR-092)`.
+Fixture self-tests (minirust MIR, miniapp trace, both poison tests) run
+contained and skip without the image. Refusal is the same P10 type
+(`contain.Refusal`).
+
+**Numeric no-op, measured.** O7: rust_proj regraded — `oracle.json` and
+`report.json` byte-identical to the 2026-08-25 cell modulo the new
+field (`oracle-cells/rust_proj-2026-08-28.md`). O6: this repo's Python
+zone contained vs host on the same tree, containment-sensitive tests
+deselected on both sides — suspects (5) and every miss class identical;
+an 8-confirmed-edge residue confined to one test that probes for a
+container runtime and skips inside the image
+(`oracle-cells/hobbes-py-2026-08-28.md`). Not an H-entry: the oracle
+moved nothing, the traced program probes its environment; the rule
+recorded in the ADR. The first O6 pair, run on the full suite, differed
+by 207/232 sites — all in the containment tests themselves, which is
+why the pair is stated with its deselection.
+
+Suites: oracle Go 33 (5 new, `contain_test.go`); pytest untouched.
+ADR-092 retitled and its phase-2 section written; `oracle-grading.md`
+§6/§7, architecture §7, C-64, the lane README, CLAUDE.md amended.

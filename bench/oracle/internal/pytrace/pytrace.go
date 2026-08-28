@@ -10,11 +10,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/contain"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
 
@@ -64,13 +64,33 @@ func Run(o Options) (*edges.OracleExport, error) {
 	}
 	args = append(args, "--")
 	args = append(args, o.Pytest...)
-	cmd := exec.Command(py[0], args...)
-	cmd.Dir = o.Repo
-	if module != "." {
-		cmd.Dir = filepath.Join(o.Repo, module)
+	// The suite runs inside the sandbox image (ADR-092 phase 2): the
+	// repo as an overlay at its host path, the export's directory rw,
+	// the tracer script and the interpreter's install chain ro. No
+	// network. The interpreter is a path (the target's venv python) —
+	// `uv run` is not in the image and would resolve to that path anyway.
+	repo, err := filepath.Abs(o.Repo)
+	if err != nil {
+		return nil, err
 	}
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
+	dir := repo
+	if module != "." {
+		dir = filepath.Join(repo, module)
+	}
+	outAbs, _ := filepath.Abs(o.Out)
+	scriptAbs, _ := filepath.Abs(script)
+	ro := []string{filepath.Dir(scriptAbs)}
+	if filepath.IsAbs(py[0]) {
+		ro = append(ro, filepath.Dir(filepath.Dir(py[0])))
+		ro = append(ro, contain.InterpreterMounts(py[0])...)
+	}
+	plan, err := contain.New("py-trace", append([]string{py[0]}, args...), dir, repo,
+		[]string{filepath.Dir(outAbs)}, ro, []string{"HOBBES_SCIP=0"})
+	if err != nil {
+		return nil, err
+	}
+	outcome, err := contain.Run(plan)
+	if err != nil {
 		return nil, fmt.Errorf("pytrace: %s %s: %w", py[0], strings.Join(args, " "), err)
 	}
 	raw, err := os.ReadFile(o.Out)
@@ -80,6 +100,12 @@ func Run(o Options) (*edges.OracleExport, error) {
 	var out edges.OracleExport
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, fmt.Errorf("%s: %w", o.Out, err)
+	}
+	// The record says where the suite ran; rewritten so oracle.json
+	// carries it into the grade.
+	out.Containment = outcome.Containment()
+	if data, err := json.MarshalIndent(&out, "", " "); err == nil {
+		_ = os.WriteFile(o.Out, data, 0o644)
 	}
 	return &out, nil
 }

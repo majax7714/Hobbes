@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/contain"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/gorta"
@@ -85,13 +86,17 @@ func TestTSFixtureRefusesEveryPoisonedEdge(t *testing.T) {
 }
 
 func TestPythonFixtureRefusesEveryPoisonedEdge(t *testing.T) {
-	if _, err := exec.LookPath("uv"); err != nil {
-		t.Skip("uv not on PATH")
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
 	}
 	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
 	o, err := pytrace.Run(pytrace.Options{
 		Repo: fixtures + "/miniapp", Module: ".", Runs: 1, SysPath: []string{"src"}, Out: filepath.Join(t.TempDir(), "oracle.json"),
-		Python: []string{"uv", "run", "--project", pipeline, "python"},
+		Python: []string{python},
 		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
 	})
 	if err != nil {
@@ -108,6 +113,9 @@ func TestPythonFixtureRefusesEveryPoisonedEdge(t *testing.T) {
 }
 
 func TestRustFixtureRefusesEveryPoisonedEdge(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
 	if _, err := exec.LookPath("cargo"); err != nil {
 		t.Skip("cargo not on PATH")
 	}

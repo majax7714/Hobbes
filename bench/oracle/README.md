@@ -22,7 +22,11 @@ runtime in the output directory. The steps are the binary's subcommands
 (`oracle export | go-rta | py-trace | rust-mir | grade`) if you need
 them apart; the TS oracle is `ts/tsc-oracle.mjs`. Phase 1 (ADR-089) is
 Go and TS; phase 2 is the Python trace oracle and the Rust MIR oracle
-below.
+below. **Those two execute the target** (its suite; its build scripts),
+so they run inside the sandbox image (ADR-092, `internal/contain`):
+build `hobbes-session:local` first (`sandbox/README.md`); without it
+they refuse, and `HOBBES_UNCONTAINED=1` runs them on the host with the
+fact recorded in the export and the report.
 
 ## Normative conventions (D-O4)
 

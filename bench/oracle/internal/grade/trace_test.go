@@ -2,11 +2,12 @@ package grade
 
 import (
 	"bytes"
-	"os/exec"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/contain"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/pytrace"
@@ -17,16 +18,21 @@ import (
 // normalize (twice), helper — seven observed in-repo pairs, all seven
 // drawn by Hobbes; api.py and cli.py never import, so their three edges
 // are unobserved as not-loaded; nothing is suspect. Runs under the
-// pipeline venv (CPython 3.12, pytest) via uv; skipped without it.
+// pipeline venv's own interpreter (CPython 3.12, pytest), inside the
+// sandbox image (ADR-092 phase 2); skipped without containment.
 func TestMiniappTrace(t *testing.T) {
-	if _, err := exec.LookPath("uv"); err != nil {
-		t.Skip("uv not on PATH")
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
 	}
 	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
 	out := filepath.Join(t.TempDir(), "oracle.json")
 	o, err := pytrace.Run(pytrace.Options{
 		Repo: fixtures + "/miniapp", Module: ".", Runs: 2, SysPath: []string{"src"}, Out: out,
-		Python: []string{"uv", "run", "--project", pipeline, "python"},
+		Python: []string{python},
 		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
 	})
 	if err != nil {

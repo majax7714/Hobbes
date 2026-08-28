@@ -275,6 +275,12 @@ once whether module-level calls are in the graded set; state it.
 **Semantics:** §3.1 applies — confirmed / missed / unobserved / suspect,
 recall-against-executed, mandatory coverage line, union over N runs.
 
+**Where it runs (ADR-092 phase 2):** inside the sandbox image — the
+suite is repo-authored code. The tree is an overlay at its host path,
+the interpreter is the cell's venv python with its install chain mounted
+ro, no network. The export records `containment`; a box without the
+image refuses the cell rather than running the suite on the host.
+
 **What this buys against current evidence:** the SWE-bench workspaces'
 Python capture (53–72%) has zero edge-accuracy evidence; a trace cell on
 one of them converts suite-covered edges into exact recall and a confirmed
@@ -315,6 +321,13 @@ nightly-pinned; expect toolchain friction and time-box it.
 crate's tests, §3.1 semantics. Build config differs from release — fine,
 because Hobbes measures source grain and an edge inlined away in release
 still exists in source semantics; the cell states the build flags.
+
+**Where it runs (ADR-092 phase 2):** inside the sandbox image — `cargo
+check` runs the crate's build scripts and proc macros. The pinned
+nightly's sysroot and the driver are mounted ro at their host paths;
+`cargo fetch` reaches the registry from a separate container, the check
+has no network. Regraded on `rust_proj` as a numeric no-op
+(`oracle-cells/rust_proj-2026-08-28.md`).
 
 **Pilot cell:** `rust_proj` — 33 edges, currently 100% hand-checked
 (ADR-040), all-semantic. The MIR oracle must confirm all 33; any

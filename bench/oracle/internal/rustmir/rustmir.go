@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/contain"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
 
@@ -66,28 +67,60 @@ func Run(o Options) (*edges.OracleExport, error) {
 	if len(cargo) == 0 {
 		cargo = []string{"cargo", "+nightly"}
 	}
-	args := append([]string{}, cargo[1:]...)
-	args = append(args, "check", "--all-targets")
+	// The check runs inside the sandbox image (ADR-092 phase 2): the
+	// repo as an overlay at its host path, the cell dir and the Hobbes
+	// cache (the cargo registry) rw, the pinned nightly's sysroot and
+	// the driver ro at their host paths. rustup's `+nightly` proxy is
+	// the host's, so the toolchain's own binaries are named directly:
+	// `<sysroot>/bin/cargo`, RUSTC=<sysroot>/bin/rustc, LD_LIBRARY_PATH
+	// for the driver's rustc_private crates. A fetch container with the
+	// network (no repo code) resolves the registry first; the check
+	// container has none.
+	sysroot := rustcSysroot(cargo)
+	if sysroot == "" {
+		return nil, fmt.Errorf("rustmir: cannot find the nightly sysroot (`rustc +nightly --print sysroot`)")
+	}
+	driver, _ := filepath.Abs(o.Driver)
+	outAbs, _ := filepath.Abs(o.Out)
+	cargoBin := filepath.Join(sysroot, "bin", "cargo")
+	env := []string{
+		"RUSTC=" + filepath.Join(sysroot, "bin", "rustc"),
+		"CARGO_TARGET_DIR=" + target,
+		"LD_LIBRARY_PATH=" + filepath.Join(sysroot, "lib"),
+	}
+	ro := []string{sysroot, filepath.Dir(driver)}
+	fetch, err := contain.New("fetch-rust",
+		[]string{cargoBin, "fetch", "--config", `build.rustc-wrapper=""`, "--config", `build.rustc-workspace-wrapper=""`},
+		dir, repo, []string{outAbs}, ro, env)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := contain.Run(fetch); err != nil {
+		fmt.Fprintf(os.Stderr, "rustmir: registry fetch failed (%v); checking offline\n", err)
+	}
+	args := []string{cargoBin, "check", "--all-targets"}
 	if len(o.Feature) > 0 {
 		args = append(args, "--features", strings.Join(o.Feature, ","))
 	}
-	cmd := exec.Command(cargo[0], args...)
-	cmd.Dir = dir
-	driver, _ := filepath.Abs(o.Driver)
-	cmd.Env = append(os.Environ(),
+	check, err := contain.New("rust-mir", args, dir, repo, []string{outAbs}, ro, append(env,
 		"RUSTC_WRAPPER="+driver,
 		"HOBBES_ORACLE_OUT="+sites,
 		"HOBBES_ORACLE_REPO="+repo,
-		"CARGO_TARGET_DIR="+target,
-	)
-	if sysroot := rustcSysroot(cargo); sysroot != "" {
-		cmd.Env = append(cmd.Env, "LD_LIBRARY_PATH="+filepath.Join(sysroot, "lib")+":"+os.Getenv("LD_LIBRARY_PATH"))
+		"CARGO_NET_OFFLINE=true",
+	))
+	if err != nil {
+		return nil, err
 	}
-	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("rustmir: %s %s in %s: %w", cargo[0], strings.Join(args, " "), dir, err)
+	outcome, err := contain.Run(check)
+	if err != nil {
+		return nil, fmt.Errorf("rustmir: %s in %s: %w", strings.Join(args, " "), dir, err)
 	}
-	return Merge(sites, module)
+	merged, err := Merge(sites, module)
+	if err != nil {
+		return nil, err
+	}
+	merged.Containment = outcome.Containment()
+	return merged, nil
 }
 
 // Merge unions the driver's per-target files: sites keyed by (path,

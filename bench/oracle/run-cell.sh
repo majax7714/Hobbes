@@ -18,7 +18,10 @@
 # for --lang rust (the MIR driver under bench/oracle/rust is built with
 # the pinned nightly first; --features passes cargo features). Pass --no-ingest to grade an existing
 # .hobbes/derived/graph.json. Runtime is
-# printed at the end so every cell's cost is on the record.
+# printed at the end so every cell's cost is on the record. O6 and O7
+# run inside the sandbox image (ADR-092 phase 2): build it first
+# (sandbox/README.md); HOBBES_UNCONTAINED=1 runs them on the host,
+# recorded in the cell's export and report.
 set -eu
 repo=$(cd "$1" && pwd); module=$2; out=$3; shift 3
 ingest=1; lang=go; exclude=; python=; runs=1; syspath=; features=
@@ -48,7 +51,10 @@ fi
 case "$lang" in
   go) "$out/oracle" go-rta --repo "$repo" --module "$module" --exclude "$exclude" --out "$out/oracle.json" ;;
   ts) node "$here/ts/tsc-oracle.mjs" --repo "$repo" --zone "$module" --out "$out/oracle.json" ;;
-  py) [ -n "$python" ] || python="uv run --project $repo/$module python"
+  py) # The trace runs in the sandbox image (ADR-092): the interpreter is
+      # a path — the cell's own venv python — not `uv run`, which the
+      # image does not carry (and which resolves to that path anyway).
+      [ -n "$python" ] || python="$repo/$module/.venv/bin/python"
       "$out/oracle" py-trace --repo "$repo" --module "$module" --python "$python" --runs "$runs" --sys-path "$syspath" --label "$python -m pytest $*" --out "$out/oracle.json" -- "$@" ;;
   rust) (cd "$here/rust" && LD_LIBRARY_PATH="$(rustc +nightly --print sysroot)/lib" cargo +nightly build --release --quiet)
         "$out/oracle" rust-mir --repo "$repo" --module "$module" --driver "$here/rust/target/release/mir-oracle" --out-dir "$out" --features "$features" --out "$out/oracle.json" ;;

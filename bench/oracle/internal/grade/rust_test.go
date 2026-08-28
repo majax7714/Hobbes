@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/contain"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/rustmir"
 )
@@ -24,6 +25,9 @@ func TestMinirustMIR(t *testing.T) {
 	}
 	if err := exec.Command("rustc", "+nightly", "--version").Run(); err != nil {
 		t.Skip("no nightly toolchain")
+	}
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
 	}
 	driver, _ := filepath.Abs("../../rust/target/release/mir-oracle")
 	if _, err := os.Stat(driver); err != nil {

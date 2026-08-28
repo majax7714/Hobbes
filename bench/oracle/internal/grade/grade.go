@@ -101,7 +101,9 @@ type Report struct {
 	RootNames []string `json:"root_names"`
 	// State carries the oracle's not-graded state (edges.OracleExport.State)
 	// so the report says "no roots exist" as its own line (A-1).
-	State          string                `json:"state,omitempty"`
+	State string `json:"state,omitempty"`
+	// Containment is where an executing oracle ran (edges.OracleExport).
+	Containment    string                `json:"containment,omitempty"`
 	Tags           []string              `json:"tags"`
 	HobbesEdges    int                   `json:"hobbes_edges"`
 	Total          TierCounts            `json:"total"`
@@ -229,7 +231,7 @@ func CheckPoison(h *edges.HobbesExport, o *edges.OracleExport) *PoisonCheck {
 // Grade matches h against o.
 func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 	r := &Report{
-		Oracle: o.Oracle, Kind: o.Kind, Module: o.Module, SHA: h.SHA,
+		Oracle: o.Oracle, Kind: o.Kind, Module: o.Module, SHA: h.SHA, Containment: o.Containment,
 		Roots: len(o.Roots), RootNames: o.Roots, Tags: o.Tags, State: o.State,
 		HobbesEdges: len(h.Edges),
 		ByTier:      map[string]TierCounts{}, SilentBy: map[string]int{}, MissBy: map[string]int{}, RecallBy: map[string]Fraction{},
@@ -465,6 +467,9 @@ func hasTarget(ts []edges.Target, p edges.Pos) bool {
 // the root count next to recall, the tier split, and the triage rows.
 func Print(w io.Writer, r *Report) {
 	fmt.Fprintf(w, "cell %s  oracle %s (%s)  sha %s\n", r.Module, r.Oracle, r.Kind, short(r.SHA))
+	if r.Containment != "" {
+		fmt.Fprintf(w, "oracle ran %s (ADR-092)\n", r.Containment)
+	}
 	if r.Kind == "trace" {
 		printTrace(w, r)
 		printPoison(w, r)

@@ -107,6 +107,10 @@ type OracleExport struct {
 	// the module (a library without tests) was loaded but nothing was
 	// analysed. Empty when the cell graded.
 	State string `json:"state,omitempty"`
+	// Containment says where an executing oracle ran (ADR-092 phase 2):
+	// "contained" (the sandbox image) or "host: <reason>" (the escape
+	// hatch). Empty for the oracles that execute no repo code.
+	Containment string `json:"containment,omitempty"`
 }
 
 // StateNoRoots is the reachability oracle's "nothing to root at" state.

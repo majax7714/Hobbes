@@ -137,7 +137,9 @@
   on the host. Rust falls to lane A's syntactic floor; the Python index
   runs without an environment listing (C-27's shape). A repo needing a
   newer toolchain than the image pins (`RUSTUP_TOOLCHAIN`,
-  `GOTOOLCHAIN=local`) degrades per unit, visibly.
+  `GOTOOLCHAIN=local`) degrades per unit, visibly. The oracle lane's
+  O6/O7 (bench tooling) refuse the same way — a cell does not grade on
+  such a box; `report.txt` says where the oracle ran.
 - **Because:** the guarantee is P10-specific — *repo code never executes
   on the host* — and a general degrade path that quietly fell back to
   host execution would hollow it out (ADR-036). The providers that
