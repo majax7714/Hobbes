@@ -20,13 +20,22 @@ remains the *claim* table — what "supported" means; this file is the
 *evidence log* behind and beyond it. Update it **in the same commit**
 as the test session that produced the numbers.
 
-Fixture repos (`miniapp`, `minits`, `minigo`, `minirust`, the twomod
-scratch fixture) are exercised by the test suite on every run and are
-not logged here — this file is for real repos.
+Fixture repos (`miniapp`, `minits`, `minigo`, `minirust`,
+`canary-rust`, the twomod scratch fixture) are exercised by the test
+suite on every run and are not logged here — this file is for real
+repos.
+
+**Last full pass: 2026-08-28** (every section re-read against the
+tree and the cell records; the SWE-bench D7 row corrected). Sections:
+hobbes (dogfood) · the seven-repo loop of 2026-08-27 · kbet ·
+rust_proj · dagger · psf/requests · the SWE-bench workspaces. The
+**containment scope** (ADR-092, P11) applies file-wide: rows dated
+2026-08-27/28 that say so ran under the sandbox image; every other row
+is a host run.
 
 ---
 
-*Retired from the base 2026-08-25 (Max): private-repo-A (a private
+*Retired from the base 2026-08-25 (Max): test-repo-A (a test
 Python + JS + Terraform repo) and qwen-pathology (Python) — a handful of
 hand-checked edges each, too little weight to carry a row and confusing
 beside compiler-graded cells. Their sections are gone; the rules they
@@ -41,6 +50,7 @@ typescript`). Re-ingested every session; the suite's degraded path
 
 | Date | Numbers |
 |---|---|
+| 2026-08-28 (**O6 contained vs host, same tree**, 1 run, containment-sensitive tests deselected; [cell](oracle-cells/hobbes-py-2026-08-28.md)) | 3,633 edges — contained **3,311 confirmed, 5 suspect, 317 unobserved**, recall-against-executed **86.1%** (3,311/3,846); host 3,319 / 5 / 309, 86.1%. Suspects and every miss class identical; the 8-edge residue is one test that probes for a container runtime. Misses: closures 361, functions 88, lambdas 73, methods 13 (C-58) |
 | 2026-08-27 (**ADR-092 phase 1 — lane B contained**) | The whole repo ingested with every lane B step inside `hobbes-session:local` (Pyright with `pipeline/.venv` + uv's interpreter mounted ro; TS with three repo `node_modules` ro; Go after a `go mod download` fetch; Rust after `cargo fetch`, offline index). **Byte-identical to the host run of the same dirty tree**: 378 nodes, 3,140 symbols, 1,457 module edges, 6,478 symbol edges (4,444 semantic calls, 2,033 semantic uses, 1 syntactic call), same `dependency_coverage` (py 6/6, ts 6/9), same `extraction_errors` modulo the 13 C-64 disclosures the host run carries. Two contained runs identical to each other. First contained build (rustup `minimal` without `rust-src`) was *not* a no-op — 11 Rust semantic calls fell to syntactic, 3 vs 30 external refs — caught by this diff, fixed in the image |
 | 2026-08-25 (**O6 regraded after ADR-090**, same suite, 1 run) | 3,495 edges — **3,302 confirmed, 4 suspect (all semantic, not-exercised), 189 unobserved**; the syntactic tier's six wrong edges are gone (the scope veto), no executed syntactic edge remains; recall-against-executed **86.3% (3,302/3,828)**, confirmation rate 94.5%, suspect rate 0.1%. `below-floor` on this repo: go 3, python 35, ts/js 10 sites |
 | 2026-08-25 (**oracle lane O6**, ADR-089 phase 2) | **Python zone trace-graded against the interpreter** (`bench/oracle`, [cell record](oracle-cells/hobbes-py-2026-08-25.md)): the suite (907 tests, 2 runs) under `sys.monitoring`; 3,490 Hobbes call edges — **3,291 confirmed, 10 suspect, 189 unobserved** (147 never called, 39 in never-imported scripts, 3 mixed); confirmation rate **94.3%** (coverage-limited, not precision — C-60); suspect rate 0.3%. **Recall-against-executed 86.2% (3,291/3,816 observed in-repo pairs)**, **96.9% on named declarations** (classes 307/307, functions 2,657/2,745, methods 234/247); closures 93/441 and lambdas 0/76 (C-58). Coverage line: 2,971/3,149 Hobbes sites spoken about, 113/129 files loaded, 1,668/2,048 declarations started. Triage: 4 semantic suspects *not-exercised*, 6 syntactic suspects *hobbes-wrong* (a fixture parameter name-matched to the fixture function — the C-7 floor, 6/6 on the executed slice). **Not hand-checked.** |
@@ -77,6 +87,17 @@ rough check whose edges were never named, so it cannot be reproduced
 (prediction P6); the oracle is the Go evidence from here, and
 hand-checks return later with a selection rule (design §11). Misses by
 class: `docs/oracle-misses.md`.
+**Verified:** Python — **trace-graded 2026-08-25 and 2026-08-28** (O6):
+every executed semantic edge confirmed by the interpreter on the
+2026-08-25 regrade (0 wrong on the executed slice, 4 not-exercised
+suspects); on 2026-08-28's contained cell 5 suspects, the same five on
+both sides, untriaged; recall 86% against what the suite ran, 97% on
+named declarations — a coverage-limited claim, never precision (C-60).
+TS — **not oracle-graded on this repo**: `web/` and the helper zones
+rest on lane agreement only (0 disagreements at V2.M7); the TS
+evidence is kbet, ajv and cheerio below. Rust — this repo's Rust is
+fixtures and `bench/oracle/rust`; not graded here (rust_proj, memchr,
+dagger `sdk/rust` carry Rust). HCL — the pack's edges, no oracle.
 Earlier:
 10/10 sampled narrative claims resolve (M5); the M8 exit check's
 invariant regression replay (`hobbes review ace9a08..cdbc085`, exit 1).
@@ -146,6 +167,8 @@ BurntSushi/toml, gorilla/mux, junegunn/fzf (Go, RTA); BurntSushi/memchr (Rust, M
 |---|---|
 | 2026-08-28 (regrades after triage) | **Every compiler-graded cell at 100% precision-against-oracle**: toml 1,039/1,039 · fzf 2,832/2,832 (was 97.0%) · mux 1,221/1,221 (3 abstract) · memchr 921/921 (was 99.2%) · cheerio 2,102/2,102 (44 abstract; was 97.9%) · ajv 1,375/1,378 (3 hobbes-wrong by tier, unfixed). click: 1,699 confirmed, 18 suspect (1.0%), recall-against-executed 37.0%. Recall: toml 71.9%, fzf 40.8%, mux 82.6%, memchr 80.7%, ajv 62.0%, cheerio 36.1% — the misses C-58's closure/interface classes and Rust's macro face throughout |
 
+**No pre-registration was written for this loop** (`oracle-preregistration.md` stops at phase 2): its numbers are post hoc and are read as such — the loop tested the *method* (a cell per repo, triage by the review's rules) rather than a prediction. Per-repo capture lines, roots and runtimes are in each cell record.
+
 **Verified:** the four fixes the loop produced — the Go scope veto (fzf: 87 wrong syntactic edges), the Rust constructor rule (memchr: 7), the func-value abstract bucket (mux + cheerio: 47 false contradictions), the `@overload` anchor (click: 67 false suspects) — each kept every confirmed edge of its cell and moved no recall number. **Containment scope (P11):** fzf, memchr, mux, cheerio, click regraded under the sandbox image; toml and ajv are host-run records (not re-run: nothing moved on them).
 
 ## kbet (`~/projects/kbet` — real Vite+React TS app; throwaway tier)
@@ -188,6 +211,7 @@ mappings at M6.
 
 | Date | Numbers |
 |---|---|
+| 2026-08-28 (**O7 regraded contained**, ADR-092 phase 2; [cell](oracle-cells/rust_proj-2026-08-28.md)) | `oracle.json` and `report.json` **byte-identical** to the 2026-08-25 cell modulo the `containment` field: 17/17 confirmed, recall 81.0% (17/21), the 4 `macro→function` misses; the ingest contained too (rust-analyzer 1.97.1 + rust-src in the image). 15 s |
 | 2026-08-25 (**oracle lane O7**, ADR-089 phase 2) | **Compiler-graded against rustc's MIR** ([cell record](oracle-cells/rust_proj-2026-08-25.md)): **17/17 call edges confirmed**, 0 contradicted; recall 17/21 in-repo pairs over every resolved site — the 4 misses are calls criterion's `criterion_group!`/`criterion_main!` bodies make (`macro→function`). ADR-040's "33" reconciled: 17 `calls` + 16 `uses` symbol edges |
 | 2026-08-16 (V2.M7 exit) | 33 call edges, **all semantic**; lanes clean at 17 sites |
 
@@ -195,7 +219,9 @@ mappings at M6.
 17/17 confirmed by rustc's own resolution; the 2026-08-16 33/33
 hand-check (ADR-040, the P7 proof) counted calls and uses together and
 is superseded by the oracle for the calls. Rust's evidence base is now
-this crate plus dagger's `sdk/rust` (below), both compiler-graded.
+this crate, memchr (the loop section) and dagger's `sdk/rust` (below),
+all compiler-graded; this crate is the one Rust cell re-earned under
+containment.
 
 ## dagger (`~/dagger` — the Dagger automation engine; ~460 MB)
 
@@ -221,7 +247,7 @@ constraint in two days.
 What dagger evidences is the honesty machinery and the monorepo
 structural fixes at scale, plus the two-module fixture's 0% → 100%
 flip (`semantic`/`calls`) proving the C-33 lift's mechanism exactly.
-Before O4 no §3.8 row existed for dagger and none was licensed; O4 licenses one — for the 19 graded Go modules, at the grain measured, and nothing wider.
+Before O4 no §3.8 row existed for dagger and none was licensed; O4 licenses one — for the 19 graded Go modules, at the grain measured, and nothing wider. Every dagger run above is a **host-run record** (pre-ADR-092); a re-ingest under containment has not been made (its Go root needs a bigger box, H-9; its `sdk/rust` and `sdk/typescript` cells are the candidates when one is).
 
 ## psf/requests (SWE-bench Verified checkouts — eight base commits, ADR-055)
 
@@ -244,7 +270,7 @@ the helper ran):
 | Repo (instance) | Numbers |
 |---|---|
 | django (11400) | 2,829 nodes, 70,066 call edges; python **53.7%** of 123,389 sites; js/ts 20.0% of 9,281 (lockfile-less zones declined by name, C-34); 3 degradations reported |
-| scikit-learn (25102) | 1,052 nodes, 31,523 call edges; python **53.0%** of 82,674; 1 degradation — the environment-residue row (defect D7, `adr085-validation-run.md`): a scip-decode dup report naming a package from the box's python env, zero graph nodes/edges from it |
+| scikit-learn (25102) | 1,052 nodes, 31,523 call edges; python **53.0%** of 82,674; 1 degradation — the duplicate-symbol row (defect D7, `adr085-validation-run.md`; **corrected by ADR-091**: the duplicate was *in-repo* — `doc/tutorial/text_analytics/{skeletons,solutions}/` — a legitimate C-28 record, not foreign environment residue; the defect was its Rust wording and `path: "."`, both fixed) |
 | xarray (3993) | 237 nodes, 13,897 call edges; python **68.8%** of 30,725; no degradations |
 | sphinx (8548) | 733 nodes, 11,041 call edges; python **72.1%** of 24,405 |
 | sympy (13852) | 1,309 nodes, 28,840 call edges; **lane B did not run** — the workspace's scip helper env errored and the P6 degradation is on the record; the 0.0% capture of 607,906 sites recorded under it is the degraded-path figure, not a resolution measurement |
