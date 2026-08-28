@@ -6,12 +6,13 @@ onto module and symbol ids. Both are pure, so no indexer runs here; the
 end-to-end path is the M2 exit check.
 """
 
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from hobbes.extract import evidence as ev
-from hobbes.extract import scipsource, staging
+from hobbes.extract import containment, scipsource, staging
 from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, SEMANTIC, SYNTACTIC
 
 NODES = [
@@ -408,52 +409,62 @@ class TestDetectInstaller:
 
 
 class TestProvisionNodeModules:
-    def repo(self, tmp_path):
+    """The install is a fetch step through the containment planner
+    (ADR-092): the cache lives under ``staging.cache_root()`` so the one
+    rw mount covers it, and ``containment.run`` is the only spawn."""
+
+    def repo(self, tmp_path, monkeypatch):
         (tmp_path / "package.json").write_text('{"name": "x"}')
         (tmp_path / "package-lock.json").write_text("{}")
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
         return tmp_path
+
+    def _never_runs(self, monkeypatch):
+        monkeypatch.setattr(
+            containment, "run",
+            lambda *a, **k: (_ for _ in ()).throw(AssertionError("installed")),
+        )
 
     def test_a_complete_cache_is_reused_without_installing(
         self, tmp_path, monkeypatch
     ):
         import hashlib
-        repo = self.repo(tmp_path)
+        repo = self.repo(tmp_path, monkeypatch)
         digest = hashlib.sha256(
             (repo / "package.json").read_bytes()
             + (repo / "package-lock.json").read_bytes()
         ).hexdigest()[:16]
-        cache = tmp_path / "home" / ".hobbes" / "cache" / "npm" / digest
+        cache = tmp_path / "cache" / "npm" / digest
         (cache / "node_modules").mkdir(parents=True)
         (cache / ".complete").write_text("")
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
-        monkeypatch.setattr(
-            scipsource.subprocess, "run",
-            lambda *a, **k: (_ for _ in ()).throw(AssertionError("installed")),
-        )
+        self._never_runs(monkeypatch)
         tree, why = scipsource.provision_node_modules(repo, "")
         assert why is None and tree == cache / "node_modules"
 
     def test_an_install_failure_returns_the_reason(self, tmp_path, monkeypatch):
-        repo = self.repo(tmp_path)
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path / "home"))
+        repo = self.repo(tmp_path, monkeypatch)
+        seen = {}
 
-        class Failed:
-            returncode = 1
-            stdout = ""
-            stderr = "npm error ERESOLVE\n"
+        def run(plan, *, timeout):
+            seen["plan"] = plan
+            proc = subprocess.CompletedProcess(
+                plan.command, 1, stdout="", stderr="npm error ERESOLVE\n"
+            )
+            return containment.Outcome(proc, True)
 
-        monkeypatch.setattr(scipsource.subprocess, "run", lambda *a, **k: Failed())
+        monkeypatch.setattr(containment, "run", run)
         tree, why = scipsource.provision_node_modules(repo, "")
         assert tree is None and "ERESOLVE" in why
         # An incomplete cache must not be reused as complete.
-        assert not list((tmp_path / "home" / ".hobbes").rglob(".complete"))
+        assert not list((tmp_path / "cache").rglob(".complete"))
+        # It was the npm fetch step, with scripts off, and no other.
+        plan = seen["plan"]
+        assert plan.profile.step == "fetch-npm"
+        assert "--ignore-scripts" in plan.command
 
     def test_no_lockfile_is_not_an_install(self, tmp_path, monkeypatch):
         (tmp_path / "package.json").write_text("{}")
-        monkeypatch.setattr(
-            scipsource.subprocess, "run",
-            lambda *a, **k: (_ for _ in ()).throw(AssertionError("installed")),
-        )
+        self._never_runs(monkeypatch)
         tree, why = scipsource.provision_node_modules(tmp_path, "")
         assert tree is None and "drift" in why
 
@@ -548,7 +559,14 @@ class TestDeclaredDependencies:
             (tmp_path / name / "pyvenv.cfg").write_text("home = /usr\n")
         assert scipsource.find_venv(tmp_path) == (str(tmp_path.resolve()), ".venv")
 
+    @pytest.mark.lane_b
     def test_venv_environment_lists_the_venvs_own_distributions(self, tmp_path):
+        # Since ADR-092 the listing runs in the ingest container (the
+        # venv's python is repo-provided code); needs podman + the image.
+        from hobbes.extract import containment as _c
+        why = _c.unavailable_reason()
+        if why is not None:
+            pytest.skip(f"containment unavailable here: {why}")
         # C-27: the listing must come from the venv's interpreter, because
         # scip-python's fallback (first pip3 on PATH) describes whatever
         # environment the shell happens to have. A fake venv whose python

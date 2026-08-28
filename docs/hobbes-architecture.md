@@ -354,10 +354,29 @@ symbols), C-23 (TypeScript semantics need the target repo's dependency
 tree installed), C-28 (a symbol two cargo targets both define is
 unattributed rather than guessed), C-29 (indexing a Rust repo executes
 its build scripts and proc macros — the one provider that runs
-repo-authored code, disclosed at every ingest), and C-30 (Rust
-third-party resolution needs a fetchable crate registry). Each names its
-provider and version, because unlike our own concessions these can end
-on an upstream release.
+repo-authored code, disclosed at every ingest and, since ADR-092,
+contained), and C-30 (Rust third-party resolution needs a fetchable
+crate registry). Each names its provider and version, because unlike
+our own concessions these can end on an upstream release.
+
+**Lane B runs inside the sandbox image (ADR-092).** The rule the
+sandbox is drawn around is *sandbox whatever executes repo-authored
+code*, and lane B does: rust-analyzer's loader runs `build.rs` and proc
+macros, and the venv listing runs the venv's own interpreter. So every
+lane B step — uniformly, not only the executing ones, so the guarantee
+never rests on a per-provider judgment — runs in `hobbes-session:local`
+under a static per-step profile (`extract/containment.py`): the Hobbes
+cache root as the one rw mount, the helper and every symlink target the
+stage points at mounted ro at their host paths, `--network none` for
+every index step. The registry steps (`npm ci --ignore-scripts`, `cargo
+fetch`, `go mod download`) are separate fetch containers that download
+and execute nothing — phase separation in place of a route filter
+rootless podman cannot offer. The guarantee is P10-specific: **repo
+code never executes on the host.** On a box without containment the
+executing steps refuse (a distinct type the general catches name and
+re-raise first) and the rest run on the host and say so (C-64); the
+negative is tested by canary (`tests/fixtures/canary-rust`, a build
+script that tries to reach the host).
 
 **Lane B runs per unit and degrades per unit** (ADR-048). The unit an
 indexer's loader understands — a tsconfig zone, a Go module, a cargo
@@ -1142,7 +1161,15 @@ a commit identity, which no sandbox had.
   read-only via an overlay mount, ADR-060; `derived/` mounted ro for
   every role; v1's cartographer never became a session role — narration
   is the in-process ADR-020 runner); policy paths map to mounts, network
-  policy to container config. Per-command secret brokering at the proxy
+  policy to container config. **The ingest is a mount shape on the same
+  image (ADR-092):** cache root rw, helper and link targets ro at their
+  host paths, no network, no policy chain — a static profile per step,
+  because no model and no human are present to escalate to. The
+  containment rule is *whatever executes repo-authored code*: agent
+  sessions, lane B (built), the oracle lane's O6/O7 (phase 2). The
+  guarantee it carries — repo code never executes on the host — is
+  P10-specific: a box without podman refuses the executing steps rather
+  than falling back. Per-command secret brokering at the proxy
   was the v1 design and is unbuilt; what exists is narrower — no secret
   enters a session except the benchmark model credential, which rides
   the session env and is registered (C-41). `.tfstate` denied at box

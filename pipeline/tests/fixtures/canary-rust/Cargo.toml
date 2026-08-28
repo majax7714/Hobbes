@@ -1,0 +1,11 @@
+# The containment canary (ADR-092). A crate whose build script tries to
+# reach the host; the suite asserts it ran (the cfg it emits is visible
+# in the facts) and that nothing it wrote or read reached the host.
+[package]
+name = "canary-rust"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[lib]
+path = "src/lib.rs"

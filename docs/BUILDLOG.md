@@ -5341,3 +5341,75 @@ records predate the triage-ratio line and do not carry it.
 Suites: oracle Go 28 (two added), pipeline tests touching minits green
 (69), full pytest not re-run for a fixture file addition that the
 membership-only assertions cover.
+
+## 2026-08-27 — ADR-092 phase 1: lane B runs in the sandbox image
+
+Max's direction: hold the oracle-cell triage; an architecture review
+found the sandbox boundary covered agent sessions but not extraction or
+the oracle lane — the layers that execute repo-authored code by design
+ran on the host. The corrected rule, *sandbox whatever executes
+repo-authored code*, and the new P10 guarantee, *repo code never
+executes on the host*, are ADR-092; phase 1 (ingest containers) is
+built here, phases 2–4 are written up in the ADR and the handoff.
+
+**Built.** `pipeline/src/hobbes/extract/containment.py` — a pure
+planner in the `go/internal/sandbox` shape: static per-step profiles
+(`index-{python,typescript,go,rust}`, `python-env`,
+`fetch-{npm,go,rust}`), a `Plan` whose `podman_args()` is inspectable,
+and `run()` — now the only place lane B spawns. Mounts derived, every
+one at its host path: the cache root rw (stage, helper config, SCIP
+output, provisioned `node_modules`, and the cargo/go/npm caches, which
+moved under it); the hobbes `scip/` helper ro; every symlink target
+outside the cache ro — repo `node_modules`, the venv, and the
+interpreter it links to **hop by hop and unresolved** (a hop through
+uv's `cpython-3.12-…` directory symlink dangled inside the container
+when only the resolved target was mounted; found by the venv listing
+test). Index steps `--network none`; the registry reached from
+separate fetch containers that execute nothing (`cargo fetch` pins
+`build.rustc*` on its command line against a staged
+`.cargo/config.toml`; `RUSTUP_TOOLCHAIN` / `GOTOOLCHAIN=local` refuse
+toolchain downloads). `scipsource`: `run_helper`, `venv_environment`,
+`provision_node_modules` route through it; the Rust and Go units fetch
+then index; the TS zone passes its link targets; the Python index passes
+its venv. The venv listing was a **fourth executing process** the
+review's table did not have — it runs the venv's own `bin/python`, a
+binary under the repo tree — and is contained as `python-env`.
+
+**Refusal, P10-shaped.** `ContainmentRefusal` is neither a `ScipError`
+nor an `OSError`; every per-unit catch and the language catch in
+`_lane_b_facts` name it and re-raise/record it first. Without podman or
+the image: `index-rust` and `python-env` refuse (Rust to the syntactic
+floor with a record naming the guarantee; the Python index runs without
+its listing under C-27); the non-executing steps run on the host and
+say so. `HOBBES_UNCONTAINED=1` runs everything on the host, disclosed on
+every provider (the CLI flag is phase 3). C-64 registered surfaced;
+C-29 narrowed to in-container execution, disclosure retained.
+
+**Image.** `sandbox/Containerfile` extended, one image still: ubuntu
+24.04 (the host-mounted trees are glibc-linked; the proxy is static),
+node 22.14.0, Go 1.26.5, scip-go v0.2.7, rustup 1.97.1 with
+rust-analyzer **and rust-src**. The first build lacked `rust-src` and
+the contained Rust lane silently lost its semantic tier (11 semantic
+calls → syntactic on minirust and `bench/oracle/rust`; external refs 3
+vs 30) — the contained-vs-host diff caught it, which is the check
+phase 2 mandates for the oracles and the reason to keep it.
+
+**Verified.** Canary fixture `tests/fixtures/canary-rust`: a `build.rs`
+that emits a cfg (so `generated()` exists iff it ran), reads a planted
+secret at `/tmp/hobbes-canary-secret` (a second cfg → `leaked()`), and
+writes `/tmp/hobbes-canary-escaped`. Contained run, 0.6 s: `generated()`
+in the facts, `leaked()` absent, no sentinel on the host, no host-run
+record. This repo ingested contained is **byte-identical** to the host
+run of the same tree (node/symbol/edge sets, `dependency_coverage`,
+`extraction_errors` modulo the 13 C-64 disclosures), and two contained
+runs are identical to each other; evidence row added. Note for the
+record: the uncontained comparison run executed the canary's build
+script on this box — the escape hatch doing exactly what its disclosure
+says.
+
+Suites: 949 pytest (31 new in `test_containment.py`, the three
+provisioning tests moved to the planner seam, the venv listing test
+marked `lane_b` — it now runs contained and still fails its own
+pre-existing environmental assertion, untouched); Go, web, node
+untouched. Architecture §3.2 and §7 amended; `first-run.md`,
+`sandbox/README.md`, CLAUDE.md updated; handoff rewritten.

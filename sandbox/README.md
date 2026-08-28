@@ -3,10 +3,14 @@
 The rootless Podman image an agent session runs in, plus the M4 exit-check
 harness. Built and driven by `go/cmd/hobbes-session`.
 
-- `Containerfile` — the session image (`hobbes-session:local`): a small
-  Alpine base with git + python3 and the statically-linked `hobbes-proxy`
-  copied in. The agent runtime (Claude Code / Node) is mounted from the
-  host at run time, not baked in.
+- `Containerfile` — the one image (`hobbes-session:local`), two mount
+  shapes (ADR-092): an agent session (git + python3 + the static
+  `hobbes-proxy`) and an ingest container (lane B's indexers — pinned
+  node, Go, scip-go, rustup 1.97.1 with rust-analyzer; the `scip/`
+  helper and its npm indexers are mounted from the hobbes checkout at
+  run time). Ubuntu 24.04 base: the trees the ingest mounts from the
+  host are glibc-linked. The ingest planner is
+  `pipeline/src/hobbes/extract/containment.py`.
 - `hobbes-proxy` — the static proxy binary the image `COPY`s. A build
   artifact (gitignored); rebuild with
   `CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy`

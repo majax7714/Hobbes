@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from hobbes.extract import evidence as ev
-from hobbes.extract import scipsource, staging, tail, tssource
+from hobbes.extract import containment, scipsource, staging, tail, tssource
 from hobbes.extract.discover import discover_modules
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
 from hobbes.extract.gosource import collect_go_tests, extract_go
@@ -470,6 +470,23 @@ def _lane_b_facts(
     for language, run in runs:
         try:
             facts = run()
+        except containment.ContainmentRefusal as exc:
+            # P10 (ADR-036, ADR-092): the general catch below is a policy
+            # about the unknown failure; this is the known one. Named and
+            # handled first, so the guarantee — repo code never executes
+            # on the host — is recorded as a refusal, never absorbed into
+            # "lane B did not run" or retried outside the container.
+            degraded.append(
+                {
+                    "path": ".",
+                    "stage": f"scip-{language}",
+                    "message": (
+                        f"lane B refused for {language}: {exc} — semantics for "
+                        f"{language} fall to lane A's syntactic floor (C-64)"
+                    ),
+                }
+            )
+            continue
         except (scipsource.ScipError, staging.StagingError, OSError) as exc:
             degraded.append(
                 {

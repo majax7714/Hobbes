@@ -127,6 +127,37 @@
 
 ---
 
+### C-64 — Lane B runs in the sandbox image; without one, executing providers refuse
+- **Cannot tell you:** Rust semantics (and the venv-attributed Python
+  environment) on a box with no `podman` or with the sandbox image not
+  built. Since ADR-092 every lane B step runs inside
+  `hobbes-session:local`; the steps that execute repo-authored code —
+  rust-analyzer's `scip` export (C-29) and the venv listing, which runs
+  the venv's own `bin/python` — **refuse** on such a box rather than run
+  on the host. Rust falls to lane A's syntactic floor; the Python index
+  runs without an environment listing (C-27's shape). A repo needing a
+  newer toolchain than the image pins (`RUSTUP_TOOLCHAIN`,
+  `GOTOOLCHAIN=local`) degrades per unit, visibly.
+- **Because:** the guarantee is P10-specific — *repo code never executes
+  on the host* — and a general degrade path that quietly fell back to
+  host execution would hollow it out (ADR-036). The providers that
+  execute no repo code (scip-python, scip-typescript, scip-go) may still
+  run on the host there, because losing three languages' semantics to a
+  uniformity preference would be the wrong trade; they say so.
+- **Bites at:** first contact on a fresh box — build the image before
+  the first semantic ingest (`docs/first-run.md`); and any box where
+  rootless podman cannot run.
+- **You find out:** **surfaced** — a degradation record per provider
+  (`lane B refused for rust: … (C-64)` / `scip-typescript ran on the
+  host, not in the sandbox image: … (C-64)`) in `extraction_errors`,
+  printed by the ingest summary as a WARNING and by `list_blind_spots`
+  for the directory. `HOBBES_UNCONTAINED=1` runs everything on the host
+  and every provider's facts carry the disclosure — a named escape
+  hatch, never a default (the CLI flag is ADR-092 phase 3).
+- **Provider (P9):** none — this is Hobbes's own containment; the
+  toolchains inside the image are pinned in `sandbox/Containerfile`.
+- **Source:** ADR-092.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

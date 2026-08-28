@@ -26,11 +26,10 @@ import json
 import os
 import re
 import shlex
-import subprocess
 from bisect import bisect_right
 from pathlib import Path, PurePosixPath
 
-from hobbes.extract import staging
+from hobbes.extract import containment, staging
 from hobbes.extract.evidence import SCIP as SCIP_LANE
 from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, tiered_edge
 
@@ -137,14 +136,21 @@ def venv_environment(venv_path: str, venv_name: str) -> list[dict] | None:
     python = Path(venv_path) / venv_name / "bin" / "python"
     if not python.is_file():
         return None
+    # The venv's python is a binary under the repo tree, so this step
+    # executes repo-provided code: it runs in the ingest container
+    # (ADR-092), with the venv and the install it links to mounted ro at
+    # their host paths so the link resolves. A ContainmentRefusal
+    # propagates — the caller records it; it is never run on the host.
+    p = containment.plan(
+        "python-env",
+        [str(python), "-c", _ENV_LISTING_SNIPPET],
+        cwd=str(python.parent.parent),
+        # The venv itself, never its parent — that is the repo.
+        ro=[str(python.parent.parent), *containment.interpreter_mounts(python)],
+    )
     try:
-        proc = subprocess.run(
-            [str(python), "-c", _ENV_LISTING_SNIPPET],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-    except (OSError, subprocess.TimeoutExpired):
+        proc = containment.run(p, timeout=60).proc
+    except (OSError, containment.ContainmentError):
         return None
     if proc.returncode != 0:
         return None
@@ -233,8 +239,20 @@ def _helper_cmd() -> list[str]:
     return ["node", str(helper)]
 
 
-def run_helper(config: dict, timeout: int = 900) -> dict:
-    """Run the helper with *config* and return its parsed facts."""
+def run_helper(
+    config: dict, timeout: int = 900, ro: list[str] | tuple[str, ...] = ()
+) -> dict:
+    """Run the helper with *config* and return its parsed facts.
+
+    The helper runs **inside the ingest container** (ADR-092): the
+    stage, its config and output are under the cache root (mounted rw at
+    its host path), the helper and its indexers come from the hobbes
+    checkout's ``scip/`` (ro), and *ro* names the symlink targets this
+    stage points at outside the cache — a repo's ``node_modules``, a
+    venv — mounted ro at their host paths. Network: none. A step that ran
+    on the host instead (no container runtime, non-executing provider;
+    or the escape hatch) says so in the facts' ``degraded`` records.
+    """
     stage = Path(config["stage"])
     config_path = stage.parent / f"{stage.name}.config.json"
     config_path.write_text(json.dumps(config))
@@ -242,19 +260,21 @@ def run_helper(config: dict, timeout: int = 900) -> dict:
         "the SCIP helper is unusable — install Node and run `npm install` in "
         f"the hobbes repo's scip/, or set ${SCIP_CMD_ENV} (ADR-027)"
     )
+    plan = containment.plan(
+        containment.INDEX_STEP[config["language"]],
+        [*_helper_cmd(), "--config", str(config_path)],
+        cwd=stage.parent,
+        ro=ro,
+    )
     try:
-        proc = subprocess.run(
-            [*_helper_cmd(), "--config", str(config_path)],
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
+        outcome = containment.run(plan, timeout=timeout)
     except FileNotFoundError as exc:
         raise ScipError(f"{setup}: {exc}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise ScipError(f"the SCIP indexer timed out on {stage}") from exc
+    except containment.ContainmentError as exc:
+        raise ScipError(str(exc)) from exc
     finally:
         config_path.unlink(missing_ok=True)
+    proc = outcome.proc
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-500:]
         raise ScipError(f"{setup}: helper exited {proc.returncode}: {detail}")
@@ -267,7 +287,28 @@ def run_helper(config: dict, timeout: int = 900) -> dict:
             f"SCIP facts version {facts.get('helper_version')!r} unsupported "
             f"(want {HELPER_VERSION})"
         )
+    record = containment.host_record(".", f"scip-{config['language']}", plan, outcome)
+    if record is not None:
+        facts.setdefault("degraded", []).append(record)
     return facts
+
+
+def _fetch(step: str, command: list[str], cwd: Path) -> str | None:
+    """Run a registry step (network on, no repo code) and return why it
+    failed, or None. A failed fetch is not a failed index: the index step
+    still runs, offline, and resolution degrades where the registry was
+    needed (C-30's shape, now per fetch)."""
+    plan = containment.plan(step, command, cwd=cwd)
+    try:
+        outcome = containment.run(plan, timeout=_NPM_INSTALL_TIMEOUT)
+    except FileNotFoundError as exc:
+        return f"{command[0]} is not installed: {exc}"
+    except containment.ContainmentError as exc:
+        return str(exc)
+    if outcome.proc.returncode != 0:
+        tail = (outcome.proc.stderr or outcome.proc.stdout or "").strip().splitlines()[-3:]
+        return f"{' '.join(command[:2])} failed: {' | '.join(tail)}"
+    return None
 
 
 class _SymbolIndex:
@@ -577,7 +618,7 @@ def provision_node_modules(
     digest = hashlib.sha256(
         package_json.read_bytes() + (manifest_dir / lockfile).read_bytes()
     ).hexdigest()[:16]
-    cache = Path.home() / ".hobbes" / "cache" / "npm" / digest
+    cache = staging.cache_root() / "npm" / digest
     tree = cache / "node_modules"
     if (cache / ".complete").is_file() and tree.is_dir():
         return tree, None
@@ -595,22 +636,11 @@ def provision_node_modules(
             str(corepack), f"yarn@{_YARN1_VERSION}", "install",
             "--ignore-scripts", "--frozen-lockfile", "--non-interactive",
         ]
-    try:
-        proc = subprocess.run(
-            argv,
-            cwd=cache,
-            capture_output=True,
-            text=True,
-            timeout=_NPM_INSTALL_TIMEOUT,
-            env={**os.environ, "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0"},
-        )
-    except FileNotFoundError:
-        return None, f"{argv[0]} is not installed"
-    except subprocess.TimeoutExpired:
-        return None, f"dependency install timed out after {_NPM_INSTALL_TIMEOUT}s"
-    if proc.returncode != 0:
-        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-3:]
-        return None, f"{argv[0]} install failed: {' | '.join(tail)}"
+    # The install is a fetch step (ADR-092): network on, no repo code —
+    # `--ignore-scripts` keeps it that way — in its own container.
+    failure = _fetch("fetch-npm", argv, cache)
+    if failure is not None:
+        return None, failure
     if not tree.is_dir():
         return None, "install succeeded but produced no node_modules"
     (cache / ".complete").write_text("")
@@ -697,6 +727,8 @@ def extract_scip_typescript(
     for zone, zone_files in ts_zones(repo_root, files).items():
         try:
             facts = _index_ts_zone(repo_root, zone, zone_files, sha)
+        except containment.ContainmentRefusal:
+            raise  # P10: the guarantee outranks the per-unit degrade
         except UNIT_ERRORS as exc:
             merged["degraded"].append(
                 _unit_failure(zone, "scip-typescript", "zone", exc)
@@ -877,6 +909,8 @@ def extract_scip_go(
             facts = _index_go_module(
                 repo_root, module_root, module_files, sha, grouped
             )
+        except containment.ContainmentRefusal:
+            raise  # P10: the guarantee outranks the per-unit degrade
         except UNIT_ERRORS as exc:
             merged["degraded"].append(
                 _unit_failure(module_root, "scip-go", "module", exc)
@@ -1066,12 +1100,15 @@ def extract_scip_rust(
 
         print(
             "NOTE: rust semantics: rust-analyzer executes the repo's build "
-            "scripts and proc macros during indexing (C-29)",
+            "scripts and proc macros during indexing, inside the ingest "
+            "container (C-29, ADR-092)",
             file=sys.stderr,
         )
     for root, root_files in grouped.items():
         try:
             facts = _index_cargo_root(repo_root, root, root_files, sha)
+        except containment.ContainmentRefusal:
+            raise  # P10: the guarantee outranks the per-unit degrade
         except UNIT_ERRORS as exc:
             merged["degraded"].append(
                 _unit_failure(root, "scip-rust", "cargo root", exc)
@@ -1124,10 +1161,19 @@ def _index_cargo_root(
             declared.update(declared_cargo_dependencies(repo_root / manifest))
 
     stage = staging.build_stage(repo_root, sorted(staged), sha=sha)
+    crate_root = stage / root if root else stage
     try:
+        # Registry first, in the container that has a network and runs
+        # nothing; then the index, in the one that runs build scripts and
+        # has none (ADR-092's split of C-30's "fetchable registry").
+        fetch_failure = _fetch(
+            "fetch-rust",
+            containment.rust_fetch_command(str(crate_root / "Cargo.toml")),
+            crate_root,
+        )
         facts = run_helper(
             {
-                "stage": str(stage / root if root else stage),
+                "stage": str(crate_root),
                 "language": "rust",
                 "projectName": repo_root.name,
                 # Unused by the rust argv — the moniker version is the
@@ -1139,6 +1185,17 @@ def _index_cargo_root(
         )
     finally:
         staging.remove_stage(stage)
+    if fetch_failure is not None:
+        facts.setdefault("degraded", []).append(
+            {
+                "path": ".",
+                "stage": "scip-rust",
+                "message": (
+                    f"crate registry fetch failed ({fetch_failure}); third-party "
+                    "resolution degrades, in-repo edges survive (C-30)"
+                ),
+            }
+        )
     return _rebase(facts, root)
 
 
@@ -1178,10 +1235,12 @@ def _index_go_module(
                 staged.add(candidate)
 
     stage = staging.build_stage(repo_root, sorted(staged), sha=sha)
+    mod_root = stage / module_root if module_root else stage
     try:
+        fetch_failure = _fetch("fetch-go", containment.go_fetch_command(), mod_root)
         facts = run_helper(
             {
-                "stage": str(stage / module_root if module_root else stage),
+                "stage": str(mod_root),
                 "language": "go",
                 "projectName": repo_root.name,
                 # Pinned for the third time, under a third flag name
@@ -1194,6 +1253,17 @@ def _index_go_module(
         )
     finally:
         staging.remove_stage(stage)
+    if fetch_failure is not None:
+        facts.setdefault("degraded", []).append(
+            {
+                "path": ".",
+                "stage": "scip-go",
+                "message": (
+                    f"module download failed ({fetch_failure}); third-party "
+                    "resolution degrades, in-repo edges survive (C-26)"
+                ),
+            }
+        )
     return _rebase(facts, module_root)
 
 
@@ -1244,7 +1314,10 @@ def _index_ts_zone(
                 "projectVersion": "0",
                 "output": str(stage.parent / f"{stage.name}.scip"),
                 "declaredDeps": declared,
-            }
+            },
+            # The trees the links point at, mounted ro where the links
+            # expect them (ADR-092): the C-22 trust becomes a mount flag.
+            ro=sorted(links.values()),
         )
     finally:
         staging.remove_stage(stage)
@@ -1317,13 +1390,19 @@ def extract_scip(
     config: dict = {"extraPaths": roots}
     venv = find_venv(repo_root)
     environment = None
+    refused: str | None = None
+    ro: list[str] = []
     if venv is not None:
         # Absolute, so third-party resolution survives staging — without
         # it every dependency edge silently vanishes (ADR-027 Decision 4).
         # Discovered, not assumed at the root: pointing at a venv that is
         # not there resolved 0 of this repo's 5 declared packages (C-27).
         config["venvPath"], config["venv"] = venv
-        environment = venv_environment(*venv)
+        try:
+            environment = venv_environment(*venv)
+        except containment.ContainmentRefusal as exc:
+            environment = None
+            refused = str(exc)
     stage = staging.build_stage(repo_root, files, config=config, sha=sha)
     env_path = stage.parent / f"{stage.name}.env.json"
     helper_config = {
@@ -1342,9 +1421,23 @@ def extract_scip(
         # never the repo.
         env_path.write_text(json.dumps(environment))
         helper_config["environment"] = str(env_path)
+    if venv is not None:
+        venv_dir = Path(venv[0]) / venv[1]
+        ro = [str(venv_dir), *containment.interpreter_mounts(venv_dir / "bin" / "python")]
     try:
-        facts = run_helper(helper_config)
+        facts = run_helper(helper_config, ro=ro)
     finally:
         env_path.unlink(missing_ok=True)
         staging.remove_stage(stage)
+    if refused is not None:
+        facts.setdefault("degraded", []).append(
+            {
+                "path": ".",
+                "stage": "scip-python",
+                "message": (
+                    f"environment listing not taken: {refused} — third-party "
+                    "references attribute to the local project (C-27)"
+                ),
+            }
+        )
     return facts

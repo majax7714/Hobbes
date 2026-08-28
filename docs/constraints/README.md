@@ -117,7 +117,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-32, C-3, C-59 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-11, C-24, C-63 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-16, C-33 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-16, C-33 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-14 |
@@ -134,8 +134,10 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Sixty-two entries: fifty-two active, eight lifted, two superseded**
-(C-58 added 2026-08-25 by the oracle lane; C-60–C-62 — the trace
+**Sixty-four entries: fifty-four active, eight lifted, two superseded**
+(C-64 added 2026-08-27 by ADR-092 — lane B contained, executing
+providers refuse without it, surfaced on day one; C-63 the same day by the
+oracle lane's H-17 close, unsurfaced; C-58 added 2026-08-25 by the oracle lane; C-60–C-62 — the trace
 asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first

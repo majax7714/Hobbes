@@ -60,10 +60,18 @@ rustup component add rust-analyzer
 > global rather than per-repo, so it is warm whenever `go build` works,
 > and `scip-go` fails loudly rather than thinning out when it is not.
 > **Rust fetches for itself**: cargo pulls crate sources into the
-> user-global registry at index time, so the first ingest needs the
-> network (C-30) — and **indexing a Rust repo executes its `build.rs`
-> and proc macros** (C-29; ingest discloses this on stderr every time).
-> Ingest an untrusted Rust repo only if you would also build it.
+> Hobbes cache at index time, so the first ingest needs the network
+> (C-30) — and **indexing a Rust repo executes its `build.rs` and proc
+> macros** (C-29; ingest discloses this on stderr every time).
+
+> **Lane B runs in the sandbox image (ADR-092).** Build it before the
+> first semantic ingest — `podman build -t hobbes-session:local -f
+> Containerfile .` from `sandbox/`, after the static proxy is built —
+> or Python/TS/Go index on the host and say so, and **Rust refuses**
+> (C-64): the code a Rust ingest runs is contained or it does not run.
+> The image carries pinned node, Go, scip-go and a rustup toolchain
+> with rust-analyzer (~2 GB); the `scip/` helper is mounted from this
+> checkout, so `npm install` there still matters.
 
 > **The proxy must be static.** `hobbes-session` mounts the
 > `hobbes-proxy` sitting next to it into the sandbox. A dynamically

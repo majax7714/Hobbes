@@ -41,24 +41,32 @@
 - **Source:** ADR-040, V2.M7 spike; generalised by the V2.M7
   verification (2026-08-15).
 
-### C-29 — Ingesting a Rust repo executes that repo's code
+### C-29 — Ingesting a Rust repo executes that repo's code — *narrowed 2026-08-27 (ADR-092)*
 - **Cannot tell you:** nothing — this entry registers something Hobbes
   *does*, not something it misses: `hobbes ingest` on a Rust repo runs
-  that repo's `build.rs` and proc macros **on this machine**, because
-  rust-analyzer's loader compiles and executes them to expand the code it
-  indexes. No other lane B provider executes repo-authored code.
+  that repo's `build.rs` and proc macros, because rust-analyzer's loader
+  compiles and executes them to expand the code it indexes. **Since
+  ADR-092 that execution happens inside the ingest container** — the
+  sandbox image with no network, the Hobbes cache as its one writable
+  mount — never on the host; on a box without containment the provider
+  refuses (C-64). The one other lane B step that executes repo-provided
+  code, the venv listing, is contained the same way.
 - **Because:** running the indexer as its ecosystem ships it is the §3.2
   trade, and rust-analyzer without build scripts and proc-macro expansion
   cannot resolve the derive- and macro-generated code that real Rust is
   made of. All writes stay in the staging tree and the user-global cargo
   registry (verified on the spike); the execution itself is the fact.
-- **Bites at:** security posture. Ingesting an untrusted Rust repo is
-  running it — the same trust decision as opening it in any
-  rust-analyzer-backed editor, but Hobbes makes it during a command whose
-  name says "read".
+- **Bites at:** security posture, now bounded: ingesting an untrusted
+  Rust repo still runs it, but inside a process boundary whose reach is
+  the stage and the Hobbes cache — not the same trust decision as
+  opening it in an editor any more. What the entry still concedes is
+  that the code *runs*, and that the container is the boundary (rootless
+  podman: a user namespace, no network, fixed mounts).
 - **You find out:** **surfaced** — a `NOTE:` line on stderr every time
-  the rust lane runs, not only the first: the posture fact does not wear
-  off. (`extract_scip_rust`, printed before the indexer starts.)
+  the rust lane runs, not only the first, naming the container: the
+  posture fact does not wear off. (`extract_scip_rust`, printed before
+  the indexer starts.) Disclosure is not containment; the containment is
+  `containment.PROFILES["index-rust"]` and the canary test.
 - **Provider (P9):** inherited from `rust-analyzer` **1.97.1**. Upstream
   knobs exist to disable build scripts and proc macros, at the price of
   gutting resolution for macro-heavy code; a future release that

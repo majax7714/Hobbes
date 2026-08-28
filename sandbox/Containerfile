@@ -1,23 +1,75 @@
-# Hobbes session image (M4, ADR-018) — the rootless sandbox an agent
-# session runs in. Deliberately small: a base plus git (worktree ops and
-# the proxy's HEAD reads), python3 (the exit-check scripted implementer),
-# and the statically-linked policy proxy. The agent runtime (Claude Code /
-# Node) is mounted from the host at run time by `hobbes-session`, not baked
-# in, so its version stays host-managed.
+# Hobbes sandbox image (M4, ADR-018; extended for ingest, ADR-092) — the
+# one image, role-shaped mounts (§7). Two mount shapes share it:
+#
+#   - an agent session: git (worktree ops and the proxy's HEAD reads),
+#     python3 (the owned agent loop / the exit-check scripted implementer)
+#     and the statically-linked policy proxy;
+#   - an ingest container: lane B's indexers — node for the helper and
+#     the npm-pinned scip-python / scip-typescript (mounted from the
+#     hobbes checkout's scip/ at run time, so the pins stay in
+#     scip/package.json), scip-go, and rustup's toolchain with
+#     rust-analyzer, whose `scip` export runs a repo's build scripts and
+#     proc macros (C-29) — the reason the ingest lane is contained at all.
+#
+# Every version below is pinned. rust-analyzer ships as a component of
+# the toolchain it belongs to, so the toolchain pin is the analyzer pin
+# (C-29/C-30 name it); RUSTUP_TOOLCHAIN in the environment keeps a
+# repo's rust-toolchain file from asking rustup to download another.
+# GOTOOLCHAIN=local (set by the ingest planner) keeps a go.mod from
+# doing the same. A repo that needs a newer toolchain than the image
+# carries degrades per unit, visibly (C-64).
+#
+# glibc base rather than the earlier Alpine: the trees the ingest mounts
+# from the host — a repo venv's interpreter, a node_modules with native
+# addons — are glibc-linked. The proxy is static and runs on either.
 #
 # Build (from the go/ module, after building the static proxy):
 #   CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
-#   podman build -t hobbes-session:local -f Containerfile ..
-#
-# The proxy is a static binary, so any libc-free base works.
-FROM docker.io/library/alpine:3.20
+#   podman build -t hobbes-session:local -f Containerfile .      (from sandbox/)
+FROM docker.io/library/ubuntu:24.04
 
-RUN apk add --no-cache git python3
+ARG NODE_VERSION=22.14.0
+ARG GO_VERSION=1.26.5
+ARG SCIP_GO_VERSION=v0.2.7
+ARG RUST_TOOLCHAIN=1.97.1
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      ca-certificates curl xz-utils git python3 \
+      build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+# Node, for the helper and its two npm indexers. Installed under
+# /usr/local so `node` is on the image-neutral PATH.
+RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+      | tar -xJ -C /usr/local --strip-components=1 --exclude='*/CHANGELOG.md' --exclude='*/README.md'
+
+# Go, for scip-go (installed at build time, so the image carries the
+# pinned binary and the ingest needs no network for it).
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" | tar -xz -C /usr/local
+ENV PATH="/usr/local/go/bin:${PATH}"
+RUN GOBIN=/usr/local/bin GOFLAGS=-mod=mod go install "github.com/scip-code/scip-go/cmd/scip-go@${SCIP_GO_VERSION}" \
+ && rm -rf /root/go /root/.cache/go-build
+
+# rustup with the pinned toolchain, rust-analyzer and rust-src — without
+# the sysroot source the analyzer resolves nothing from std and every
+# method through a std trait falls to the syntactic tier (found by the
+# contained-vs-host diff on this repo, ADR-092). RUSTUP_HOME and the
+# proxies' CARGO_HOME are the image's; the ingest planner points a
+# *runtime* CARGO_HOME at the Hobbes cache so the registry persists
+# across ingests outside the container's throwaway layer.
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo \
+    PATH="/usr/local/cargo/bin:/usr/local/go/bin:${PATH}" \
+    RUSTUP_TOOLCHAIN="${RUST_TOOLCHAIN}"
+RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
+      --default-toolchain "${RUST_TOOLCHAIN}" --component rust-analyzer,rust-src \
+ && chmod -R a+rX /usr/local/rustup /usr/local/cargo
 
 # The static proxy (built with CGO_ENABLED=0). hobbes-session also mounts
 # the current build over this at run time, so an image rebuild is never on
 # the critical path during development.
 COPY hobbes-proxy /usr/local/bin/hobbes-proxy
 
-# No ENTRYPOINT: hobbes-session supplies the in-sandbox command (Claude
-# Code by default, or a scripted implementer for the exit check).
+# No ENTRYPOINT: hobbes-session supplies the in-sandbox command, and the
+# ingest planner supplies the helper invocation.

@@ -62,7 +62,8 @@ box, against a repo on disk (architecture §10); the application mode in
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
   `extract/` (discover → per-language syntax providers → lane B SCIP join
-  → graph/testmap → `packs/` → emit); `derive/` (`hobbes plan`: impact →
+  → graph/testmap → `packs/` → emit; `containment.py` runs every lane B
+  step in the sandbox image — repo code never executes on the host); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
@@ -76,7 +77,8 @@ box, against a repo on disk (architecture §10); the application mode in
 - `web/` — the surface (Vite + React + TS, Cytoscape.js). `src/lib/` is the
   pure layer with the vitest cases; `npm run build` bundles into the Go
   embed dir — **rebuild `hobbes-web` after**.
-- `sandbox/` — the session image (`Containerfile`) and exit-check harness.
+- `sandbox/` — the one image (`Containerfile`: sessions *and* lane B ingest,
+  ADR-092) and the exit-check harness.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -117,6 +119,7 @@ go build -o bin/hobbes-session ./cmd/hobbes-session
 go build -o bin/hobbes-web     ./cmd/hobbes-web      # after `cd web && npm run build`
 CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy   # MUST be static:
 CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy  # it is mounted into the sandbox
+(cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .)  # lane B needs it (ADR-092)
 
 # Oracle lane (bench tooling; fixture self-test — Python via uv, Rust via the nightly driver)
 cd bench/oracle && go test ./...
@@ -137,7 +140,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-27): 917 pytest / 291 Go + 28
+Suite sizes at the last check (2026-08-27): 949 pytest / 291 Go + 28
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -148,7 +151,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 091).
+  architecture doesn't already make. Number sequentially (last: 092).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -217,7 +220,14 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   `docs/oracle-defect-review.md`: seen tally + reviewer rules); seven
   more repos graded 2026-08-27, untriaged; dagger's Go root waits on a
   bigger box.
-- **Next:** D5/D6 when Max reopens them; the removal A/B re-run on a
+- **The containment programme (ADR-092) is the active track:** *sandbox
+  whatever executes repo-authored code*. Phase 1 built 2026-08-27 —
+  every lane B step runs in the sandbox image, repo code never executes
+  on the host (C-64; canary-tested; byte-identical graph on this repo).
+  Phases 2–4 (oracle O6/O7 containers, the `--uncontained` flag, the
+  two-layer architecture statement) are next; the oracle-cell triage is
+  on hold behind them.
+- **Then:** D5/D6 when Max reopens them; the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
 
