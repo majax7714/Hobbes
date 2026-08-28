@@ -142,7 +142,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-28): 954 pytest / 294 Go + 35
+Suite sizes at the last check (2026-08-28): 960 pytest / 294 Go + 35
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -153,7 +153,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 092).
+  architecture doesn't already make. Number sequentially (last: 093).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -206,7 +206,8 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   instances, 7B, two passes) ran on 2026-08-24. Machinery mostly held;
   0/5 solved (not the measure); **eight harness defects registered in
   `docs/adr085-validation-run.md`**. D1–D4, D7, D8 are fixed
-  (ADR-091, 2026-08-27, validated with no model); D5/D6 are held.
+  (ADR-091, 2026-08-27) and D5/D6 (ADR-093, 2026-08-28) are fixed,
+  all validated with no model.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
   (`docs/benchmark-deepswe.md`); no H1 claim has been earned.
@@ -232,7 +233,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   deployment) landed 2026-08-28; reviewed by Max, the claim scoped to
   the runs made under it (P11). **The seven-cell triage is done**
   (2026-08-28): four fixes, every compiler-graded cell at 100%.
-- **Then:** D5/D6 when Max reopens them; the removal A/B re-run on a
+- **Then:** the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
 

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Iterable
 
 from hobbes.derive.cochange import CoChange
 from hobbes.derive.impact import edge_factor, module_adjacency
@@ -63,8 +64,14 @@ class Unit:
 #: dragged the repo onto the unit's boundary, neighborhood, and guards (P12
 #: inspection, 2026-08-23). Non-seed hubs/roots are dropped from the
 #: partition here; they still appear as neighborhood/contracts, bounded by
-#: the render caps. A **seed** (score 1.0 — the planner named it) is always
-#: work, hub or not. A declared guess (C-35), overridable.
+#: the render caps. A **seed** (score 1.0) is work, hub or not, when a
+#: human (``--seed``) or the planner named it. A seed the *proposal's
+#: text* alone hit — a lexical match, the weakest evidence the mapping
+#: has (C-36) — does not override the rule: sklearn's issue said
+#: ``astype``, a symbol in a module 2,543 tests reach, and the word made
+#: that hub a unit's interior (defect D6, ADR-093). Such a seed still
+#: expands; it is context, not work, and the spec says so. A declared
+#: guess (C-35), overridable.
 HUB_FANIN = 30
 
 
@@ -79,15 +86,61 @@ def module_fanin(graph: dict) -> dict[str, int]:
     return {m: len(s) for m, s in importers.items()}
 
 
-def unit_modules(graph: dict, scores: dict[str, float]) -> list[str]:
-    """The impact nodes that are partitionable *work*, sorted.
-
-    Change-grain (P12): a seed is always work; a non-seed that is a hub
-    (:data:`HUB_FANIN`) or a package root is context, not a spawned unit's
-    interior, and is dropped here — it reaches the agent as neighborhood
-    and contracts instead."""
+def _context_reason(module: str, fanin: dict[str, int]) -> str | None:
+    """Why *module* is context rather than work under the change-grain
+    rule (ADR-083), or None when it is neither a hub nor a package root."""
     from hobbes.run.agents import _is_package_root
 
+    if _is_package_root(module):
+        return "a package root is the whole tree, not the change"
+    n = fanin.get(module, 0)
+    if n >= HUB_FANIN:
+        return f"a hub ({n} importers, fan-in >= {HUB_FANIN})"
+    return None
+
+
+def _lexical_hub(module: str, fanin: dict[str, int]) -> str | None:
+    """Why a *lexical* seed is context (ADR-093): only the fan-in rule.
+    The package-root half of :func:`_context_reason` is a heuristic on
+    the id's shape (dotless) that names every top-level module of a small
+    repo; a real package node is already set aside by
+    :func:`hobbes.derive.impact.filter_seeds`. D6 was a hub."""
+    n = fanin.get(module, 0)
+    if n >= HUB_FANIN:
+        return f"a hub ({n} importers, fan-in >= {HUB_FANIN})"
+    return None
+
+
+def context_seeds(graph: dict, scores: dict[str, float],
+                  lexical_seeds: Iterable[str] = ()) -> dict[str, str]:
+    """Lexical seeds that the change-grain rule keeps *out* of the
+    partitionable set (ADR-093): node id -> reason. A seed named by a
+    human or the planner never appears here."""
+    lexical = set(lexical_seeds)
+    fanin = module_fanin(graph)
+    out: dict[str, str] = {}
+    for m in scores:
+        if m not in lexical or scores.get(m, 0.0) < SEED_SCORE:
+            continue
+        reason = _lexical_hub(m, fanin)
+        if reason:
+            out[m] = (f"lexical seed on {reason}: context, not work "
+                      "(ADR-083/ADR-093, C-36); name it with --seed if it is the change")
+    return out
+
+
+def unit_modules(graph: dict, scores: dict[str, float],
+                 lexical_seeds: Iterable[str] = ()) -> list[str]:
+    """The impact nodes that are partitionable *work*, sorted.
+
+    Change-grain (P12): a seed a human or the planner named is always
+    work; a non-seed that is a hub (:data:`HUB_FANIN`) or a package root
+    is context, not a spawned unit's interior, and is dropped here — it
+    reaches the agent as neighborhood and contracts instead. A seed in
+    *lexical_seeds* — hit by the proposal's text alone — is dropped when
+    it is a hub (ADR-093, D6): the word is not evidence the hub is the
+    change."""
+    lexical = set(lexical_seeds)
     kinds = {n["id"]: n.get("kind") for n in graph.get("nodes", [])}
     fanin = module_fanin(graph)
     out = []
@@ -95,7 +148,9 @@ def unit_modules(graph: dict, scores: dict[str, float]) -> list[str]:
         if kinds.get(m) not in _UNIT_KINDS:
             continue
         is_seed = scores.get(m, 0.0) >= SEED_SCORE
-        if not is_seed and (_is_package_root(m) or fanin.get(m, 0) >= HUB_FANIN):
+        if not is_seed and _context_reason(m, fanin):
+            continue
+        if is_seed and m in lexical and _lexical_hub(m, fanin):
             continue
         out.append(m)
     return sorted(out)

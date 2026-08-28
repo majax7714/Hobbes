@@ -67,7 +67,8 @@ also should must would could can may might shall since because
 
 class PlanCoverageError(RunError):
     """The planner's handoffs do not cover the request (ADR-084): a
-    requirement has no owning unit, or no requirements were stated.
+    requirement has no owning unit, no requirements were stated, or the
+    handoff resolved to nothing so no coverage could be checked (ADR-093).
     Raised at plan cost, like the invariant gate — never after a
     session has been spent on an unowned requirement."""
 
@@ -76,6 +77,11 @@ class PlanCoverageError(RunError):
         status = coverage.get("status")
         if status == "no-requirements":
             detail = "the planner stated no requirements (ADR-084: its handoff must say what must become true)"
+        elif status == "lexical-fallback":
+            misses = coverage.get("planner_unresolved") or []
+            named = f" (it named: {', '.join(misses)})" if misses else ""
+            detail = ("the planner named nothing the graph resolves" + named +
+                      " — coverage cannot be checked, and under strict the lexical seeds are not a plan (ADR-093)")
         else:
             names = "; ".join(f"{r['id']}: {r['text'][:80]}" for r in coverage.get("uncovered", []))
             detail = f"requirement(s) with no owning unit — {names}"

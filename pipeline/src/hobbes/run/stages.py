@@ -345,6 +345,16 @@ def plan_stage_entry(result: dict, graph: dict, proposal: str) -> tuple[dict, li
     return entry, hits, misses
 
 
+def fallback_note(misses: list[str]) -> str:
+    """What the re-planned planner is told when its first handoff named
+    nothing the graph resolves (ADR-093): the names that missed, and
+    that a real path is required."""
+    named = f" (you named: {', '.join(misses)} — none found)" if misses else ""
+    return ("your previous handoff named no file or symbol that exists in this repository"
+            + named + ". Hand off again naming real paths — read the tree to find them — "
+            "with a `requirements:` list, each line `-> <owning file>`.")
+
+
 def replan_note(coverage: dict) -> str:
     """What the re-planned planner is told: the requirements its first
     handoff left without an owning file, or that it stated none."""
@@ -473,7 +483,11 @@ def run_staged(
     not all have an owning unit after the one bounded re-plan:
     ``strict`` stops at plan cost (:class:`PlanCoverageError`, the
     record written first); ``assign`` hands the leftovers to the seed
-    unit and says so (C-57). *proposal_in_brief* keeps the full
+    unit and says so (C-57). A planner whose handoff resolves to no
+    file is re-planned once like an uncovered one; if it still resolves
+    nothing, ``strict`` stops (the lexical seeds are not a plan whose
+    coverage can be checked — ADR-093) and ``assign`` runs on them,
+    recorded ``lexical-fallback``. *proposal_in_brief* keeps the full
     proposal in every implementer brief even when its requirements are
     covered — the pre-085 shape, kept for the removal test (ADR-084
     §3); on the lexical fallback or with no requirements it stays
@@ -518,6 +532,12 @@ def run_staged(
                 planner_seeds, seed_source = hits, "planner"
             elif attempt == 1:
                 planner_seeds, seed_source = list(seeds or []), "explicit" if seeds else "lexical-fallback"
+                if coverage_mode == "strict" and not dry_run and implement_mode != "aided":
+                    # A planner that named nothing the graph resolves gets
+                    # the same one re-plan an uncovered handoff gets: under
+                    # strict the lexical seeds are not a plan (D5, ADR-093).
+                    orchestrator_note = fallback_note(planner_misses)
+                    continue
         if implement_mode == "aided":
             break
         kwargs = {"seeds": planner_seeds, "max_units": max_units, "lexical": seed_source != "planner"}
@@ -530,7 +550,8 @@ def run_staged(
         plan_stage = next((st for st in reversed(stage_log) if st.get("stage") == "plan"), None)
         if not plan_stage or seed_source != "planner":
             coverage = {"status": "no-planner" if not plan_stage else "lexical-fallback",
-                        "mode": coverage_mode, "requirements": [], "uncovered": [], "by_unit": {}}
+                        "mode": coverage_mode, "requirements": [], "uncovered": [], "by_unit": {},
+                        "planner_unresolved": list(planner_misses)}
             break
         coverage = assign_requirements(plan_stage.get("requirements", []), plan_stage.get("terms") or {},
                                        contexts, plan_stage.get("files", []), mode="strict")
@@ -539,7 +560,11 @@ def run_staged(
         if attempt == 1:
             orchestrator_note = replan_note(coverage)
             continue
-    if coverage["status"] in ("uncovered", "no-requirements") and not dry_run and seed_source == "planner" \
+    # The guarantee has three failure shapes and strict stops on every
+    # one: uncovered, no requirements, and the lexical fallback (a planner
+    # that named nothing the graph resolves — D5, ADR-093). `assign` runs
+    # the fallback through and records it, as before.
+    if coverage["status"] in ("uncovered", "no-requirements", "lexical-fallback") and not dry_run \
             and implement_mode != "aided" and "plan" in stages:
         if coverage_mode == "assign" and coverage["status"] == "uncovered":
             plan_stage = next(st for st in reversed(stage_log) if st.get("stage") == "plan")

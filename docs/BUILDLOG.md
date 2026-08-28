@@ -5585,3 +5585,42 @@ Unverifiable claims (owner attributions, run observations outside the
 tree, policy statements) were listed by the auditors and left as they
 are; none contradicts the tree. Suites: 953 pytest + the known
 environmental failure, 294 Go, 35 oracle — green.
+
+## 2026-08-28 — ADR-093: D5 and D6 closed — lexical evidence is neither a plan nor work
+
+Max reopened the two held harness defects and cleared the recommended
+approaches. One principle covers both: the proposal-text (lexical,
+C-36) layer carries the weakest evidence the mapping has, and two
+guarantees written for human/planner seeds were letting it through.
+
+- **D5** (`run/stages.py`, `run/coverage.py`): a planner whose handoff
+  resolved to nothing used to drop to the lexical seeds, `break` out of
+  the plan loop — no re-plan — and spawn implementers with no coverage
+  check inside a `--coverage strict` run. Now it gets the one re-plan
+  an uncovered handoff gets (`fallback_note`: the names it gave, "none
+  found"); still nothing → `strict` raises `PlanCoverageError` with
+  status `lexical-fallback`, `coverage.planner_unresolved` and
+  `replanned: true` on the written record, no implementer spent.
+  `assign` runs on the lexical seeds and records it, as before.
+- **D6** (`derive/impact.py`, `partition.py`, `changespec.py`):
+  `ImpactSet.seeds_lexical` names the seeds the text alone hit;
+  `unit_modules` drops such a seed when it is a hub (fan-in ≥ 30) —
+  only the hub half of ADR-083's rule: the dotless-id "package root"
+  heuristic names every top-level module of a small repo and emptied
+  the bench fixture's plan on the first try. `context_seeds` gives the
+  reason; the spec carries `seeds_context`; `hobbes plan` prints it.
+  Every-seed-a-lexical-hub is a `SeedError` naming `--seed`: what
+  remained was the hub's neighbourhood, units with no seed in them.
+
+Reconnaissance was done through the knowledge tools (Max's direction:
+use Hobbes on Hobbes): `who_calls` put `unit_modules` at one product
+caller, `tests_guarding` named the tests that would move
+(`test_lexical_fallback_when_the_planner_names_nothing_real`,
+`TestStagedCoverage`, `test_prose_hits_seed_alone_…`) before an edit.
+Validated with no model: eight new tests (strict re-plan then stop /
+assign runs / a recovering second handoff; a thirty-importer hub by
+word vs by `--seed` vs alone; the spec's rendering). 960 pytest green
+plus the known environmental failure. Register: C-36 and C-57 amended;
+`adr085-validation-run.md` fully discharged; architecture §6 loses the
+D5 carve-out. The removal A/B is un-confounded on the D5 axis; it
+still waits on a cleared run and a larger n.

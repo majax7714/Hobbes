@@ -1,8 +1,8 @@
 # The ADR-085 validation run (2026-08-24) — record and defect register
 
-> **Status (2026-08-27): D1–D4, D7, D8 fixed (ADR-091); D5 and D6 held
-> by Max — the harness's shape is not the current focus, and they stay
-> documented below.** The run itself is still stubbed, not concluded:
+> **Status (2026-08-28): all eight fixed — D1–D4, D7, D8 in ADR-091
+> (2026-08-27); D5 and D6 in ADR-093 (2026-08-28, reopened by Max), both
+> validated with no model.** The run itself is still stubbed, not concluded:
 > the numbers are recorded and the removal A/B has not been re-run. Nothing in this run's solve column is a capability
 > claim; the run was judged on the machinery's behavior (ADR-084 §
 > measurement), and one instance's implement stage is explicitly
@@ -126,7 +126,7 @@ the same assistant turn; the error says "read landed this turn — copy
 your anchor from the result and edit next turn." *Owner:*
 `agent/loop.py` (tool dispatch).
 
-**D5 — The lexical fallback bypasses the ADR-085 coverage guarantee.** *Held (Max, 2026-08-27).*
+**D5 — The lexical fallback bypasses the ADR-085 coverage guarantee.** *Fixed (ADR-093, 2026-08-28): a planner that resolves nothing is re-planned once with the misses as its note; still nothing → `strict` raises `PlanCoverageError(lexical-fallback)` at plan cost, `assign` runs and records it.*
 *Observed:* django and sklearn (planner rambled → lexical seeds) got
 proposal-briefs with no requirements and no coverage check — the
 pre-ADR-085 shape, inside a `--coverage strict` run. *Proposed change
@@ -137,7 +137,7 @@ bypassed-fallback}` so the bypass is a counted outcome rather than
 silence. *Owner:* `pipeline/src/hobbes/run/stages.py` +
 `run/coverage.py`.
 
-**D6 — A generic one-word lexical seed selects a hub as work.** *Held (Max, 2026-08-27).*
+**D6 — A generic one-word lexical seed selects a hub as work.** *Fixed (ADR-093, 2026-08-28): a lexical seed on a hub is context, not work (`seeds_context` in the spec); a human's or the planner's seed still is; every-seed-a-hub is a `SeedError` naming `--seed`.*
 *Observed:* the token `astype` in sklearn's issue seeded
 `sklearn.utils._array_api`; seed-always-work overrides ADR-083's hub
 exclusion, so the unit's interior was a module reached by 2,543
@@ -197,5 +197,5 @@ nudge (mirroring `NUDGE_READ_ONLY`), and the harvest records
 ## Standing state
 
 Experiments return to **parked** after pass B. D1–D4, D7 and D8 are
-fixed in ADR-091 (2026-08-27), validated with no model; D5–D6 are held
-by Max. The removal A/B is still to be re-run after those.
+fixed in ADR-091 (2026-08-27) and D5–D6 in ADR-093 (2026-08-28), all
+validated with no model. The removal A/B is still to be re-run.

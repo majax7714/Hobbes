@@ -8,7 +8,7 @@ import pytest
 from hobbes.derive import cochange, impact, partition
 from hobbes.derive.contracts import build_contracts
 from hobbes.derive.impact import SeedError, build_impact, resolve_seeds
-from hobbes.derive.partition import Unit, build_units, guarding_tests, is_deferred, unit_modules
+from hobbes.derive.partition import Unit, build_units, guarding_tests, is_deferred, context_seeds, unit_modules
 from hobbes.invariants.schema import Invariant
 
 
@@ -73,6 +73,16 @@ def make_tests_doc() -> dict:
              "framework": "pytest", "line": 3, "reaches": ["app.core.handle"]},
         ],
     }
+
+
+def hub_graph() -> dict:
+    """The fixture with ``app.core`` made a hub: thirty extra modules import it."""
+    graph = graph_fixture()
+    for i in range(30):
+        mid = f"imp.m{i}"
+        graph["nodes"].append({"id": mid, "kind": "module", "path": f"src/imp/m{i}.py", "language": "python"})
+        graph["module_edges"].append({"from": mid, "to": "app.core", "type": "imports", "tier": "syntactic"})
+    return graph
 
 
 class TestSeeds:
@@ -163,6 +173,29 @@ class TestExpansion:
         assert "env:HOME" in result.scores
         modules = unit_modules(graph_fixture(), result.scores)
         assert modules == ["app.api", "app.auth", "app.core"]
+
+    def test_a_lexical_seed_on_a_hub_is_context_not_work(self):
+        # D6 (ADR-093): sklearn's issue said `astype`, the word hit a
+        # symbol in a module 2,543 tests reach, and seed-always-work made
+        # the hub a unit's interior. A proposal-text hit does not override
+        # ADR-083's hub rule; a human's --seed or the planner's name does.
+        graph = hub_graph()
+        result = build_impact(graph, "make handle retry", [])
+        assert result.seeds == {"app.core": "handle"} and result.seeds_lexical == ["app.core"]
+        assert "app.core" not in unit_modules(graph, result.scores, result.seeds_lexical)
+        assert "app.core" in unit_modules(graph, result.scores)  # the pre-093 call: a seed is work
+        reasons = context_seeds(graph, result.scores, result.seeds_lexical)
+        assert set(reasons) == {"app.core"} and "a hub (32 importers, fan-in >= 30)" in reasons["app.core"]
+        assert "--seed" in reasons["app.core"]
+        # the seed still expanded: its neighbors are in the impact set
+        assert "app.api" in result.scores
+
+    def test_an_explicit_seed_on_a_hub_stays_work(self):
+        graph = hub_graph()
+        result = build_impact(graph, "make handle retry", ["app.core"])
+        assert result.seeds_lexical == []
+        assert "app.core" in unit_modules(graph, result.scores, result.seeds_lexical)
+        assert context_seeds(graph, result.scores, result.seeds_lexical) == {}
 
     def test_the_threshold_cuts_the_far_tail(self):
         # Two hops out through a syntactic chain falls below 0.2.

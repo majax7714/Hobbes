@@ -881,7 +881,11 @@ The mapping, in pipeline order (`pipeline/src/hobbes/derive/`):
   agglomerative merge under a per-unit budget. Since ADR-083 the
   partitionable set is **change-grain**: a non-seed hub (fan-in ≥ 30)
   or a package root is excluded before the merge — it is context to
-  hand a unit, not work to assign one. **Agent count is the
+  hand a unit, not work to assign one. A seed hit by the proposal's
+  text alone does not make a hub work either (ADR-093, D6): it expands,
+  the spec lists it under `seeds_context`, and a plan whose every seed
+  is one refuses naming `--seed`; a human's or the planner's seed is
+  always work. **Agent count is the
   output, not a parameter** — a contained change is one unit, and the
   one-agent case is the same code path with a partition of size one
   (P6's no-second-code-path rule). Over-decomposed units merge into
@@ -1004,16 +1008,15 @@ handoff says *what must become true*, not only where: a
 `requirements:` list, one line each, in the proposal's words, with the
 file that owns it. **Coverage is its guarantee** — ⋃ handoffs ⊇ the
 request's requirements — and the run holds it to that
-deterministically **when the planner produced the seed**; on the
-lexical fallback the coverage record reads `lexical-fallback` and no
-check runs (defect D5, `adr085-validation-run.md`, held — the carve-out
-is registered, not silent): each requirement is assigned to the unit whose
+deterministically: each requirement is assigned to the unit whose
 interior holds its named file (or, naming none, to the single unit the
 whole plan lies in); an **uncovered** requirement, or a handoff with no
-requirements, re-spawns the planner once with the gap as its short
-memory, and then is a **plan error at plan cost** (`--coverage
-strict`, the default; the record is written, no implementer is spent)
-or is handed to the seed unit and said so (`assign`, C-57). On a
+requirements, or a handoff that resolves to no file at all (the
+lexical fallback — ADR-093, D5), re-spawns the planner once with the
+gap as its short memory, and then is a **plan error at plan cost**
+(`--coverage strict`, the default; the record is written, no
+implementer is spent) or is handed to the seed unit / run on the
+lexical seeds and said so (`assign`, C-57). On a
 covered plan **each implementer's brief carries its owned requirements
 as its task and the proposal is absent by design** — the implementer's
 window holds its assignment, not the whole request (P12 condition c);

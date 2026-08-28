@@ -9,6 +9,8 @@ import yaml
 
 from hobbes import cli
 from hobbes.derive import derive_plan, spec_to_dict, write_spec
+from hobbes.derive.changespec import format_spec
+from hobbes.derive.impact import SeedError
 from hobbes.derive.manifests import (
     ComplementError,
     ContextManifest,
@@ -59,6 +61,29 @@ def plan_repo(tmp_path):
     invariants.mkdir()
     (invariants / "I-9.yaml").write_text(INVARIANT_I9)
     return repo
+
+
+class TestLexicalHubSeeds:
+    """ADR-093 (D6): a lexical seed on a hub is context, and a plan whose
+    every seed is one refuses with the fix named, never an empty spec."""
+
+    def test_every_seed_a_lexical_hub_is_a_seed_error_naming_the_fix(self, plan_repo):
+        from tests.test_derive import hub_graph
+        (plan_repo / ".hobbes" / "derived" / "graph.json").write_text(json.dumps(hub_graph()))
+        with pytest.raises(SeedError, match="lexical hit on a hub.*app.core.*--seed"):
+            derive_plan(plan_repo, "make handle retry")
+        # the human's --seed makes the same hub work
+        spec = derive_plan(plan_repo, "make handle retry", seeds=["app.core"])
+        assert any("app.core" in u.modules for u in spec.units) and spec.seeds_context == {}
+
+    def test_a_lexical_hub_beside_real_work_is_context_and_the_spec_says_so(self, plan_repo):
+        from tests.test_derive import hub_graph
+        (plan_repo / ".hobbes" / "derived" / "graph.json").write_text(json.dumps(hub_graph()))
+        spec = derive_plan(plan_repo, "make handle retry after token refresh")
+        assert "app.core" in spec.seeds and "app.core" in spec.seeds_context
+        assert not any("app.core" in u.modules for u in spec.units)
+        assert "seed is context, not work: app.core" in format_spec(spec)
+        assert spec_to_dict(spec)["seeds_context"]["app.core"].startswith("lexical seed on a hub")
 
 
 class TestComplement:

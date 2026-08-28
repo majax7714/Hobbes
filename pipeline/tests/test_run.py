@@ -632,16 +632,19 @@ class TestStagedRun:
         assert len({b.split("## Short-term context")[1].split("#")[0] for b in briefs.values()}) == len(briefs) or len(briefs) == 1
 
     def test_lexical_fallback_when_the_planner_names_nothing_real(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811
-        # a planner that resolves nothing → the deterministic seeds stand,
-        # recorded as the fallback, never a failed run
+        # a planner that resolves nothing → under `assign` the deterministic
+        # seeds stand, recorded as the fallback; under `strict` (the
+        # default) it is a plan error after one re-plan (ADR-093, D5) —
+        # see test_coverage.TestStagedCoverage for the strict half.
         from hobbes.run import stages
         monkeypatch.setattr(stages, "run_planner", lambda *a, **k: {
             "session": "x-planner", "exit": 0,
             "handoff": stages.parse_handoff("files: does/not/exist.py"), "reflections": []})
         rec = stages.run_staged(plan_repo, self._proposal(), session_bin=staged_session,
-                                sessions_root=tmp_path / "s", max_units=5)
+                                sessions_root=tmp_path / "s", max_units=5, coverage_mode="assign")
         assert rec["seed_source"] == "lexical-fallback"
         assert rec["planner_unresolved"] == ["does/not/exist.py"]
+        assert rec["coverage"]["status"] == "lexical-fallback"
         assert rec["units"]  # still planned and ran on the lexical seeds
 
     def test_rework_runs_when_the_verifier_fails(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811

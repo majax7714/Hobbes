@@ -458,7 +458,10 @@
   wrong file is "covered" by the wrong unit; one that names no file is
   given to the single unit the plan lies in, by containment, not by
   reading it. Under `--coverage assign`, a leftover is handed to the seed
-  unit by the orchestrator — a fallback, not the planner's guarantee.
+  unit by the orchestrator — a fallback, not the planner's guarantee —
+  and a planner that names no resolvable file runs on the lexical seeds
+  with no check at all (`lexical-fallback`); under `strict` both are
+  plan errors after the one re-plan (ADR-093, D5).
   Nor can `imperatives_unmentioned` tell you the planner *dropped* a
   requirement: it is a token overlap between the proposal's imperative
   sentences (a pinned verb list, modals) and the handoff text, with a

@@ -1,7 +1,7 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-28 (ADR-092 built in full — all four phases;
-the oracle-cell triage is ON HOLD by Max's direction).** The one
+**Rewritten 2026-08-28 (ADR-092 built in full; the seven-cell triage
+done; D5/D6 closed by ADR-093 — the harness worklist is empty).** The one
 authoritative resume doc. Read this, then **`docs/adr/092-ingest-containment.md`**
 (the containment programme's four phases — the active track), then
 `docs/adr085-validation-run.md` (the harness worklist, held) and the
@@ -59,9 +59,16 @@ it is a host-run record.
 **The seven-cell triage is DONE and the drift audit discharged (2026-08-28, BUILDLOG — 41 fixes; this repo's Go cell regraded to 100% contained).** Four fixes
 (Go scope veto, Rust constructor rule, func-value abstract bucket,
 `@overload` anchor); every compiler-graded cell at 100%; ajv's 3
-union-member rows the one open sighting (n=1). **Next:** D5/D6 when
-Max reopens them; the removal A/B on a cleared 7B run; collaborator
-setup (`docs/workstreams.md`).
+union-member rows the one open sighting (n=1).
+
+**D5 and D6 are closed (ADR-093, 2026-08-28, Max reopened them):**
+under `strict` a planner that names nothing resolvable is re-planned
+once, then a plan error (`lexical-fallback` is the third strict
+status); a lexical seed on a hub is context, not work
+(`seeds_context`). Validated with no model; 960 pytest green plus the
+known environmental failure. **Next:** the removal A/B on a cleared 7B
+run (now un-confounded on the D5 axis; still needs n for O4's planner
+variance); collaborator setup (`docs/workstreams.md`).
 
 **Three embedded calls for Max to ratify** (ADR-092 §"Decisions"):
 contain-all lane B vs executing-only; symlink targets mounted at
@@ -84,9 +91,8 @@ ingested with it set; that is the disclosure working, not a bug.
 1. **Experiments are PARKED again (2026-08-24).** The one cleared run
    (the ADR-085 validation pair) has happened. No further run of any
    size without a fresh, explicit go from Max. The mechanical half of
-   the restructure is done (ADR-091); **D5 and D6 are held** — the
-   harness's shape is not Max's current focus (2026-08-27) — and stay
-   documented in the register until he reopens them.
+   the restructure is done (ADR-091) and D5/D6 are closed (ADR-093);
+   the register is fully discharged.
 2. **The 7B is the instrument, by speed not capability.** Validate
    every mapping/architecture change on the 7B or with no model at all
    (replay over stored specs/handoffs) first. The compute-economics
@@ -136,15 +142,18 @@ Eight defects. **Fixed 2026-08-27 in ADR-091**, all in
   `NUDGE_HANDOFF`; every unit record carries `handoff: handoff |
   reflection-only | missing`.
 
-**Held by Max (2026-08-27), documented, not open now:**
+**Fixed 2026-08-28 in ADR-093** (`run/stages.py`, `run/coverage.py`,
+`derive/impact.py`, `derive/partition.py`, `derive/changespec.py`):
 
-- **D5** lexical fallback bypasses strict coverage — a shape call
-  (`run/stages.py` + `run/coverage.py`).
-- **D6** generic one-word seed (`astype`) overrides the hub exclusion
-  — C-36 seed weighting, interacts with ADR-083 (`derive/impact.py`).
+- **D5** a rambling planner gets the one re-plan (`fallback_note`),
+  then `strict` raises `PlanCoverageError(lexical-fallback)` with the
+  record written; `assign` runs on the lexical seeds and says so.
+- **D6** `ImpactSet.seeds_lexical` → `unit_modules` drops a lexical
+  seed that is a hub; `seeds_context` in the spec; every-seed-a-hub is
+  a `SeedError`.
 
-The removal A/B is still to be re-run (needs the D5 fix and a larger
-n); nothing has run on the 7B since the validation pair. Observations that are
+The removal A/B is still to be re-run (needs a larger n); nothing has
+run on the 7B since the validation pair. Observations that are
 findings, not defects (knowledge tools unused at the 7B rung — derived
 context is push-only there; requirement-text rendered as code; O4
 planner variance) are in the same file.

@@ -91,6 +91,11 @@ class ImpactSet:
     #: node id -> why a resolved seed was set aside (:func:`filter_seeds`);
     #: recorded in the spec so the decision is visible, never silent.
     seeds_rejected: dict[str, str] = field(default_factory=dict)
+    #: seeds that came from the proposal's text alone — no ``--seed``, no
+    #: planner named them. The weakest evidence the mapping has (C-36):
+    #: they expand like any seed, but they do not make a hub *work*
+    #: (ADR-093; :func:`hobbes.derive.partition.unit_modules`).
+    seeds_lexical: list[str] = field(default_factory=list)
 
 
 def module_of_symbols(graph: dict) -> dict[str, str]:
@@ -360,5 +365,8 @@ def build_impact(graph: dict, proposal: str, explicit: list[str], lexical: bool 
             f"graph{hint} — name a starting point with --seed"
         )
     seeds, rejected = filter_seeds(graph, proposal, seeds, explicit)
+    explicit_set = set(explicit)
+    lexical_nodes = sorted(n for n, term in seeds.items() if term not in explicit_set)
     return ImpactSet(scores=expand(graph, seeds), seeds=seeds,
-                     unresolved_terms=unresolved, seeds_rejected=rejected)
+                     unresolved_terms=unresolved, seeds_rejected=rejected,
+                     seeds_lexical=lexical_nodes)

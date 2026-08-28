@@ -102,6 +102,10 @@ class ChangeSpec:
     #: Resolved seeds set aside by :func:`impact.filter_seeds`, with the
     #: reason each — visible, so a rejected seed can be named back in.
     seeds_rejected: dict[str, str] = field(default_factory=dict)
+    #: Lexical seeds the change-grain rule kept out of the partitionable
+    #: set (a hub the proposal's text alone hit — ADR-093, D6):
+    #: still seeds for expansion, context for every unit, never an interior.
+    seeds_context: dict[str, str] = field(default_factory=dict)
     #: Units the cap set aside (``deferred``): in the impact set, no seed,
     #: lowest-ranked — recorded so the selection is visible, never spawned.
     units_deferred: list[partition.Unit] = field(default_factory=list)
@@ -193,7 +197,17 @@ def derive_plan(
     declared = _parse_adds(adds or [])
 
     impact_set = impact.build_impact(graph, proposal, list(seeds or []), lexical=lexical)
-    modules = partition.unit_modules(graph, impact_set.scores)
+    seeds_context = partition.context_seeds(graph, impact_set.scores, impact_set.seeds_lexical)
+    modules = partition.unit_modules(graph, impact_set.scores, impact_set.seeds_lexical)
+    if seeds_context and not (set(impact_set.seeds) - set(seeds_context)):
+        # Every seed was a lexical hit on a hub (ADR-093): what is left is
+        # the hub's neighborhood, units with no seed in them — a plan
+        # built from context. Refuse with the fix named, as an empty seed
+        # set is refused (never a silently empty or a seedless spec).
+        named = ", ".join(f"{n} ({impact_set.seeds[n]!r})" for n in sorted(seeds_context))
+        raise impact.SeedError(
+            "every seed is a lexical hit on a hub — context, not work "
+            f"({named}); name the change with --seed")
     history = cochange.observe(repo_root)
     warnings = [history.warning] if history.warning else []
 
@@ -228,6 +242,7 @@ def derive_plan(
         warnings=warnings,
         max_units=max_units,
         seeds_rejected=dict(sorted(impact_set.seeds_rejected.items())),
+        seeds_context=dict(sorted(seeds_context.items())),
         units_deferred=deferred,
     )
 
@@ -272,6 +287,9 @@ def format_spec(spec: ChangeSpec) -> str:
     if spec.seeds_rejected:
         for node, reason in spec.seeds_rejected.items():
             lines.append(f"  seed set aside: {node} — {reason}")
+    if spec.seeds_context:
+        for node, reason in spec.seeds_context.items():
+            lines.append(f"  seed is context, not work: {node} — {reason}")
     if spec.unresolved_terms:
         lines.append(
             "  unmatched code-shaped terms (C-36, not guessed at): "

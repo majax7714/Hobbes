@@ -70,8 +70,13 @@
   spec lists each under `seeds_rejected` with its reason; `hobbes
   plan` prints them. The rules narrow spurious seeding; they do not
   read prose — the generative planner above this layer is the
-  restructure's phase 2.*
-- **Source:** ADR-051 (2026-08-19).
+  restructure's phase 2.* *Amended 2026-08-28 (ADR-093, defect D6): a
+  lexical hit on a **hub** (fan-in ≥ 30) is a seed for expansion but
+  not work — the spec lists it under `seeds_context`, `hobbes plan`
+  prints "seed is context, not work", and a plan whose every seed is
+  one is a `SeedError` naming `--seed`; a human's or the planner's
+  seed is unaffected.*
+- **Source:** ADR-051 (2026-08-19); ADR-093.
 
 ### C-37 — A pinned contract is a declaration site, not a signature
 - **Cannot tell you:** a cross-unit interface's parameter types,

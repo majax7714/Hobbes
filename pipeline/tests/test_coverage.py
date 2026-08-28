@@ -195,6 +195,56 @@ class TestStagedCoverage:
         assert rec["coverage"]["status"] == "no-requirements" and rec["brief_task"] == "proposal"
         assert all("## Proposal" in b for b in self._briefs(plan_repo).values())
 
+    def _rambling_planner(self, monkeypatch, calls):
+        from hobbes.run import stages
+
+        def planner(*a, **k):
+            calls.append(k)
+            return {"session": f"x-planner-{k.get('attempt', 1)}", "exit": 0,
+                    "handoff": stages.parse_handoff("files: does/not/exist.py"), "reflections": []}
+        monkeypatch.setattr(stages, "run_planner", planner)
+
+    def test_a_fallback_under_strict_replans_once_then_stops_at_plan_cost(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811
+        # D5 (ADR-093): a planner that names nothing the graph resolves
+        # used to drop to the lexical seeds and spawn implementers with no
+        # coverage check inside a strict run. Now it gets the one re-plan
+        # an uncovered handoff gets, then strict stops.
+        calls: list[dict] = []
+        self._rambling_planner(monkeypatch, calls)
+        with pytest.raises(PlanCoverageError, match="named nothing the graph resolves.*does/not/exist.py"):
+            self._run(plan_repo, staged_session, tmp_path, monkeypatch, "covered")
+        assert [c["attempt"] for c in calls] == [1, 2]
+        assert "does/not/exist.py — none found" in calls[1]["orchestrator_note"]
+        record = json.loads(next(plan_repo.glob(".hobbes/plans/*/partition-record.json")).read_text())
+        assert record["error"] == "plan coverage failed" and record["units"] == []
+        assert record["seed_source"] == "lexical-fallback"
+        assert record["coverage"]["status"] == "lexical-fallback"
+        assert record["coverage"]["planner_unresolved"] == ["does/not/exist.py"]
+        assert record["coverage"]["replanned"] is True
+        assert not list(plan_repo.glob(".hobbes/plans/*/agents/U*/brief.md"))
+
+    def test_a_fallback_under_assign_runs_on_the_lexical_seeds_and_says_so(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811
+        calls: list[dict] = []
+        self._rambling_planner(monkeypatch, calls)
+        rec = self._run(plan_repo, staged_session, tmp_path, monkeypatch, "covered", coverage_mode="assign")
+        assert [c["attempt"] for c in calls] == [1]  # assign keeps the old shape: no re-plan for a fallback
+        assert rec["coverage"]["status"] == "lexical-fallback" and rec["brief_task"] == "proposal"
+        assert rec["units"] and rec["integration"]["merged"]
+
+    def test_the_replan_can_recover_from_a_fallback(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811
+        from hobbes.run import stages
+        real = stages.run_planner
+
+        def planner(*a, **k):
+            if k.get("attempt", 1) == 1:
+                return {"session": "x-planner", "exit": 0,
+                        "handoff": stages.parse_handoff("files: does/not/exist.py"), "reflections": []}
+            return real(*a, **k)
+        monkeypatch.setattr(stages, "run_planner", planner)
+        rec = self._run(plan_repo, staged_session, tmp_path, monkeypatch, "covered")
+        assert rec["seed_source"] == "planner" and rec["coverage"]["status"] == "covered"
+        assert rec["coverage"]["replanned"] is True and rec["brief_task"] == "requirements"
+
     def test_dry_run_records_coverage_without_judging_it(self, plan_repo, staged_session, tmp_path, monkeypatch):  # noqa: F811
         rec = self._run(plan_repo, staged_session, tmp_path, monkeypatch, "uncovered", dry_run=True)
         assert rec["coverage"]["status"] in ("lexical-fallback", "no-requirements", "uncovered")
