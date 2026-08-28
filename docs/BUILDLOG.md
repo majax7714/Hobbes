@@ -5301,3 +5301,43 @@ lanes at Max's word.
 Nothing in `oracle-misses.md` or `extraction-evidence.md` was updated —
 the records are unjudged by design; triage is a separate session.
 Clones and outputs under `~/.hobbes/bench/oracle/{repos,<name>-<lang>}/`.
+
+## 2026-08-27 — the defect-record review, its actions, and the two TS cells
+
+Max reviewed every oracle-lane defect (H-1..H-17) before proceeding and
+adopted an external review: `docs/oracle-defect-review.md` — verdict
+(all seventeen attribute correctly; two dispositions pushed back on),
+an action register A-1..A-9, the n=1 method, the **seen tally**
+(roots RC-1..RC-7, maintained with the log), and the reviewer rules
+RR-1..RR-7. Max's question on H-17 — repo bug or oracle bug? — was
+answered *oracle*: the repos compile; `siteName()`'s element-access
+branch was `e = e`.
+
+Actions landed in one commit, in the review's order (harness only,
+`bench/oracle/`): **A-2** verified — membership *was* written twice —
+and unified on `edges.Under`/`edges.Excluded`; **A-3** `[]` not `null`
+at the serializer; **A-1** `state: no-roots` on the export and `recall:
+NOT GRADED — no roots exist` on the report (`testdata/noroots`);
+**A-4** fixture first (`minits/src/lookup.ts`, one function per
+element-access shape) → observation (Hobbes draws no edge for any of
+the three: **C-63**, unsurfaced, lane A does not count the site) →
+rule (D-O4's element-access bullet: literal / `Symbol.x` key graded at
+the key's line, computed key silent as `computed-key`) → loop;
+**A-5** `descend()` throws with a position on no progress, every walk
+through it; **A-6** a worker-thread watchdog prints the last
+file:line and exits 3 after `--watchdog` seconds; **A-8** precision
+quoted as a lower bound everywhere, and every cell record now carries
+`oracle-wrong : hobbes-wrong : untriaged` over its contradicted rows.
+H-17 closed; RC-1 and RC-6 closed-structural, RC-4 closed-policy.
+
+The two repos that hung then graded: **ajv** in 2 s (1,543 edges,
+99.8% lower-bound precision, 62.0% recall, 3 contradicted untriaged,
+1 computed-key site) and **cheerio** in 8 s (2,162 edges, 97.9%,
+36.1% recall, 44 contradicted untriaged — 36 a spec-local `parse`
+shadowing `src/parse.ts`, the fzf shape in TS). Records in
+`docs/oracle-cells/`, unjudged like the other five; the five earlier
+records predate the triage-ratio line and do not carry it.
+
+Suites: oracle Go 28 (two added), pipeline tests touching minits green
+(69), full pytest not re-run for a fixture file addition that the
+membership-only assertions cover.

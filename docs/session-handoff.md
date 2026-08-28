@@ -1,7 +1,8 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-27 (ADR-091 fixes; five new oracle cells graded,
-unjudged; H-17 open on the TS oracle).** The one authoritative resume doc. Read this, then
+**Rewritten 2026-08-27 (ADR-091 fixes; seven new oracle cells graded,
+unjudged; the defect-record review adopted and its actions landed;
+H-17 closed).** The one authoritative resume doc. Read this, then
 **`docs/adr085-validation-run.md`** (the run's record and its
 eight-defect register — the restructure's worklist), then
 `docs/benchmark-hypotheses.md` (reading rules + Results) and the recent
@@ -127,17 +128,22 @@ at 100% on every tier it was reached on. dagger's re-ingest sizes
 
 ## NEW, UNTRIAGED — the 2026-08-27 grading loop
 
-Five cell records in `docs/oracle-cells/*-2026-08-27.md` (toml, click,
-memchr, mux, fzf), written by single-purpose agents, numbers verbatim,
-**not yet triaged** into `oracle-misses.md` / `extraction-evidence.md`.
+Seven cell records in `docs/oracle-cells/*-2026-08-27.md` (toml, click,
+memchr, mux, fzf, ajv, cheerio), written by single-purpose agents,
+numbers verbatim, **not yet triaged** into `oracle-misses.md` /
+`extraction-evidence.md`. `docs/oracle-defect-review.md` is now the
+method: a new H-entry is assigned to a root in its seen tally in the
+same commit; every cell record quotes its triage ratio (A-8).
 Two things a triage session will meet first: fzf's 87 contradicted
 edges are all the syntactic fallback binding a call to a package-level
 function that a local `func` literal shadows (the ADR-090 veto's Go
 shape, not yet vetoed there); mux's 3 contradicted are calls through a
-package-level func variable. **H-17 (open):** the TS oracle hangs on
-`obj[key]()` callees — decide the element-access site rule under D-O4,
-fixture it, then fix; ajv (`f177fe3`, ingested) and cheerio are the
-waiting candidates.
+package-level func variable; cheerio's 36 are a spec-local `parse`
+shadowing `src/parse.ts` (the same shadowing shape, in TS); ajv's 3
+are an `If` override vs the base method. **H-17 is closed** (A-4/5/6);
+what it left is **C-63** — lane A does not count `obj[key]()` as a
+call site at all (unsurfaced, product side), the one new product
+finding of the day. Open on the review: A-7 optional, A-9 parked.
 
 ## HOW TO INSPECT / MEASURE (no GPU)
 

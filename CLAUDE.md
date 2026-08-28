@@ -41,7 +41,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | resuming the active programme             | `docs/session-handoff.md` → `docs/adr085-validation-run.md`          |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
-| grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` |
+| grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
@@ -137,7 +137,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-27): 917 pytest / 291 Go + 26
+Suite sizes at the last check (2026-08-27): 917 pytest / 291 Go + 28
 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 
 ## Conventions
@@ -213,8 +213,10 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
   after ADR-090 vetoed the syntactic fallback's two wrong shapes (C-7
   priced first), the misses C-58 on every language plus Rust's generated
   code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
-  `docs/oracle-defects.md` are the honesty records; dagger's Go root
-  waits on a bigger box.
+  `docs/oracle-defects.md` are the honesty records (reviewed in full,
+  `docs/oracle-defect-review.md`: seen tally + reviewer rules); seven
+  more repos graded 2026-08-27, untriaged; dagger's Go root waits on a
+  bigger box.
 - **Next:** D5/D6 when Max reopens them; the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
