@@ -117,7 +117,23 @@ func Run(o Options) (*edges.OracleExport, error) {
 	}
 	sort.Strings(rootNames)
 	if len(roots) == 0 {
-		return nil, fmt.Errorf("%s: no main functions (binaries or tests) to root RTA at", dir)
+		// A library module with no tests: nothing to root RTA at. Not an
+		// error and not an empty grade — its own state (A-1, RR-6). The
+		// files are still listed so the record shows what was loaded.
+		out := &edges.OracleExport{Oracle: "go-rta", Kind: "reachability", Module: o.Module,
+			Roots: []string{}, Tags: o.Tags, Sites: []edges.Site{}, State: edges.StateNoRoots}
+		for _, pkg := range pkgs {
+			for _, f := range pkg.GoFiles {
+				if r, err := filepath.Rel(repo, f); err == nil && !strings.HasPrefix(r, "..") {
+					r = filepath.ToSlash(r)
+					if underModule(r, o.Module) && !excludedBy(r, o.Exclude) {
+						out.Files = append(out.Files, r)
+					}
+				}
+			}
+		}
+		sort.Strings(out.Files)
+		return out, nil
 	}
 	res := rta.Analyze(roots, true)
 
@@ -274,20 +290,9 @@ func unwind(g *callgraph.Graph, fn *ssa.Function, depth int) []*ssa.Function {
 // underModule scopes a cell: sites and loaded files are reported only
 // under the module directory, while targets may land anywhere in the
 // repo (a replaced sibling module is inside the program — C-33's join).
-func underModule(p, module string) bool {
-	module = strings.Trim(filepath.ToSlash(module), "/")
-	return module == "" || module == "." || p == module || strings.HasPrefix(p, module+"/")
-}
+func underModule(p, module string) bool { return edges.Under(p, module) }
 
-func excludedBy(p string, dirs []string) bool {
-	for _, d := range dirs {
-		d = strings.Trim(filepath.ToSlash(d), "/")
-		if d != "" && d != "." && (p == d || strings.HasPrefix(p, d+"/")) {
-			return true
-		}
-	}
-	return false
-}
+func excludedBy(p string, dirs []string) bool { return edges.Excluded(p, dirs) }
 
 func qualified(m *types.Func) string {
 	if r := m.Signature().Recv(); r != nil {

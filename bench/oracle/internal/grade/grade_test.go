@@ -3,6 +3,7 @@ package grade
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -136,7 +137,13 @@ func TestExternalPairsStayOutOfRecall(t *testing.T) {
 // The TypeScript oracle on the minits fixture (hand truth: four calls
 // to util.normalize — from the Nest controller, server.js, and two
 // node:test cases; decorators and vitest globals unresolved without
-// node_modules, so oracle-silent). Needs node; skipped without it.
+// node_modules, so oracle-silent). Plus the three element-access shapes
+// of src/lookup.ts (A-4 / H-17): the literal key `table["norm"](s)`
+// resolves to util.normalize — an in-repo pair Hobbes draws no edge for
+// (lane A does not count `obj[key]()` as a site: C-62), so recall is
+// 4/5 with one static→function miss; `xs[Symbol.iterator]()` resolves
+// to lib.es2015's Array member (external); the computed `table[k](s)`
+// is oracle-silent as computed-key. Needs node; skipped without it.
 func TestMinitsTSAllConfirmed(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Skip("node not on PATH")
@@ -159,8 +166,17 @@ func TestMinitsTSAllConfirmed(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := Grade(h, &o)
-	if r.Total != (TierCounts{Confirmed: 4}) || r.RecallHits != 4 || r.OraclePairs != 4 {
+	if r.Total != (TierCounts{Confirmed: 4}) || r.RecallHits != 4 || r.OraclePairs != 5 || r.MissBy["static→function"] != 1 {
 		t.Fatalf("minits: %+v recall %d/%d misses %v", r.Total, r.RecallHits, r.OraclePairs, r.MissBy)
+	}
+	shapes := map[int]string{}
+	for _, s := range o.Sites {
+		if s.Pos.Path == "src/lookup.ts" {
+			shapes[s.Pos.Line] = fmt.Sprintf("%s/%d", s.Mode, len(s.Targets))
+		}
+	}
+	if shapes[12] != "static/1" || shapes[16] != "static/1" || shapes[20] != "dynamic/0" {
+		t.Fatalf("element-access shapes (line → mode/targets): %v", shapes)
 	}
 	if o.Kind != "resolution" {
 		t.Fatalf("kind: %s", o.Kind)
@@ -173,5 +189,29 @@ func TestMinitsTSAllConfirmed(t *testing.T) {
 	}
 	if silent < 4 {
 		t.Fatalf("decorators and vitest globals should be unresolved without node_modules; %d silent sites", silent)
+	}
+}
+
+// The report prints the no-roots state as its own line and the JSON
+// says [] for an empty misses list, never null (A-1, A-3).
+func TestNoRootsPrintsAsItsOwnStateAndEmptyIsBrackets(t *testing.T) {
+	h := &edges.HobbesExport{}
+	o := &edges.OracleExport{Oracle: "go-rta", Kind: "reachability", Module: ".", Roots: []string{}, State: edges.StateNoRoots}
+	r := Grade(h, o)
+	var buf bytes.Buffer
+	Print(&buf, r)
+	if !strings.Contains(buf.String(), "NOT GRADED — no roots exist") {
+		t.Fatalf("report:\n%s", buf.String())
+	}
+	raw, _ := json.Marshal(r)
+	// precision/recall are pointers and null when undefined; the lists
+	// are never null.
+	for _, k := range []string{`"misses":[]`, `"rows":[]`, `"tags":[]`, `"root_names":[]`} {
+		if !strings.Contains(string(raw), k) {
+			t.Fatalf("json lacks %s: %s", k, raw)
+		}
+	}
+	if false {
+		t.Fatalf("json: %s", raw)
 	}
 }

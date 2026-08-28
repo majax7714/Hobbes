@@ -93,12 +93,15 @@ type Fraction struct {
 // dynamic classes inflate the denominator with pairs no run takes; the
 // static class is the tight number and the report prints both.
 type Report struct {
-	Oracle         string                `json:"oracle"`
-	Kind           string                `json:"kind"`
-	Module         string                `json:"module"`
-	SHA            string                `json:"sha"`
-	Roots          int                   `json:"roots"`
-	RootNames      []string              `json:"root_names"`
+	Oracle    string   `json:"oracle"`
+	Kind      string   `json:"kind"`
+	Module    string   `json:"module"`
+	SHA       string   `json:"sha"`
+	Roots     int      `json:"roots"`
+	RootNames []string `json:"root_names"`
+	// State carries the oracle's not-graded state (edges.OracleExport.State)
+	// so the report says "no roots exist" as its own line (A-1).
+	State          string                `json:"state,omitempty"`
 	Tags           []string              `json:"tags"`
 	HobbesEdges    int                   `json:"hobbes_edges"`
 	Total          TierCounts            `json:"total"`
@@ -227,9 +230,18 @@ func CheckPoison(h *edges.HobbesExport, o *edges.OracleExport) *PoisonCheck {
 func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 	r := &Report{
 		Oracle: o.Oracle, Kind: o.Kind, Module: o.Module, SHA: h.SHA,
-		Roots: len(o.Roots), RootNames: o.Roots, Tags: o.Tags,
+		Roots: len(o.Roots), RootNames: o.Roots, Tags: o.Tags, State: o.State,
 		HobbesEdges: len(h.Edges),
 		ByTier:      map[string]TierCounts{}, SilentBy: map[string]int{}, MissBy: map[string]int{}, RecallBy: map[string]Fraction{},
+		// Initialised so the JSON says [] and not null (A-3, from H-11):
+		// a consumer must never need null-tolerance for an empty cell.
+		Rows: []Row{}, Misses: []Miss{},
+	}
+	if r.Tags == nil {
+		r.Tags = []string{}
+	}
+	if r.RootNames == nil {
+		r.RootNames = []string{}
 	}
 	loaded := map[string]bool{}
 	for _, f := range o.Files {
@@ -465,6 +477,13 @@ func Print(w io.Writer, r *Report) {
 		fmt.Fprintf(w, "precision-against-oracle %.1f%% (%d/%d)\n", *r.Precision*100, r.Total.Confirmed, r.Total.Confirmed+r.Total.Contradicted)
 	} else {
 		fmt.Fprintln(w, "precision-against-oracle: undefined (no confirmed or contradicted edges)")
+	}
+	if r.State == edges.StateNoRoots {
+		// Absence prints as its own state (RR-6): the module has no main
+		// or test binary, so RTA had nothing to root at. Not "graded
+		// empty" — nothing was graded.
+		fmt.Fprintln(w, "recall: NOT GRADED — no roots exist (no main or test binary in the module; files loaded, 0 sites analysed)")
+		return
 	}
 	roots := fmt.Sprintf("at %d roots", r.Roots)
 	if r.Kind == "resolution" {

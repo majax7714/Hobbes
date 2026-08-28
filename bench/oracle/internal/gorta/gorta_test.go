@@ -172,3 +172,18 @@ func TestExcludeDropsNestedSites(t *testing.T) {
 		t.Errorf("everything under app/cmd was excluded; got %d sites, %d files", len(o.Sites), len(o.Files))
 	}
 }
+
+// A library module with no main and no tests is not an error and not an
+// empty grade: the export carries the no-roots state (A-1, RR-6).
+func TestNoRootsIsItsOwnState(t *testing.T) {
+	o, err := Run(Options{Repo: "../../testdata/noroots", Module: "."})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.State != edges.StateNoRoots || len(o.Roots) != 0 || len(o.Sites) != 0 {
+		t.Fatalf("state %q roots %v sites %d", o.State, o.Roots, len(o.Sites))
+	}
+	if len(o.Files) != 1 || o.Files[0] != "lib.go" {
+		t.Fatalf("files loaded should still be listed: %v", o.Files)
+	}
+}

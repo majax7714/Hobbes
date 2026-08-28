@@ -38,14 +38,14 @@ Everything else stands as logged.
 
 | ID | From | Action | State |
 |---|---|---|---|
-| A-1 | H-1 | A library module with no tests has no RTA root even after the init fix. The cell record must print "no roots exist" as its own state, distinguishable from "graded empty". | Open |
-| A-2 | H-2, H-10 | Verify both sides of a cell import one membership function. H-10's fix shares the exclude list; if the prefix-plus-exclude logic is still written twice (export and oracle), RC-1 remains open and a third instance is available the next time either side's scoping evolves. Five-minute check. | Open — verify |
-| A-3 | H-11 | Emit `[]` at the serializer (initialize the slice; Go's `encoding/json` marshals nil as `null`) rather than requiring null-tolerance in every future consumer. One line; the cheap side of the trade. | Open |
-| A-4 | H-17 | Site rule for element-access callees: fixture first, rule second. Add the three shapes (`a["lit"]()`, `a[Symbol.x]()`, computed `a[k]()`) to `minits`, observe what Hobbes' scip lane actually emits for each, then set the rule per argument kind — grade where a source binding exists on both sides (literal string/number, well-known Symbol member, if the checker returns a non-anonymous declaration), silence only the genuinely dynamic computed case. Blanket silence forfeits a class Hobbes plausibly covers (`process.env["X"]`, index signatures, generated clients). Then fix the loop. | Open |
-| A-5 | H-17 | `descend(node)` helper that throws when the returned node is identical to its input; retrofit all walk-down loops in the oracle extractors. Turns the next non-terminating walk into a stack trace with a position instead of silent CPU. | Open |
-| A-6 | H-17 | Per-file watchdog in the oracle driver, logging the last node position visited on timeout. The hang cost more to locate (11m47s + an instrumented copy) than to fix; that cost repeats without the guard. | Open |
+| A-1 | H-1 | A library module with no tests has no RTA root even after the init fix. The cell record must print "no roots exist" as its own state, distinguishable from "graded empty". | **Done 2026-08-27** — `state: no-roots` on the export and `recall: NOT GRADED — no roots exist` on the report; `testdata/noroots` |
+| A-2 | H-2, H-10 | Verify both sides of a cell import one membership function. H-10's fix shares the exclude list; if the prefix-plus-exclude logic is still written twice (export and oracle), RC-1 remains open and a third instance is available the next time either side's scoping evolves. Five-minute check. | **Verified — it was written twice** (`gorta.underModule/excludedBy`, `export.under/excluded`); **done 2026-08-27** — both call `edges.Under`/`edges.Excluded`. The TS/Python/Rust extractors keep their own predicate in their own language; noted, not deduplicable across runtimes |
+| A-3 | H-11 | Emit `[]` at the serializer (initialize the slice; Go's `encoding/json` marshals nil as `null`) rather than requiring null-tolerance in every future consumer. One line; the cheap side of the trade. | **Done 2026-08-27** — `rows`, `misses`, `tags`, `root_names` initialised |
+| A-4 | H-17 | Site rule for element-access callees: fixture first, rule second. Add the three shapes (`a["lit"]()`, `a[Symbol.x]()`, computed `a[k]()`) to `minits`, observe what Hobbes' scip lane actually emits for each, then set the rule per argument kind — grade where a source binding exists on both sides (literal string/number, well-known Symbol member, if the checker returns a non-anonymous declaration), silence only the genuinely dynamic computed case. Blanket silence forfeits a class Hobbes plausibly covers (`process.env["X"]`, index signatures, generated clients). Then fix the loop. | **Done 2026-08-27, in that order** — fixture (three shapes, `minits/src/lookup.ts`), observation (Hobbes draws no edge for any: C-63), rule (D-O4 bullet), loop. ajv regraded in 2 s |
+| A-5 | H-17 | `descend(node)` helper that throws when the returned node is identical to its input; retrofit all walk-down loops in the oracle extractors. Turns the next non-terminating walk into a stack trace with a position instead of silent CPU. | **Done 2026-08-27** — `descend()` in `tsc-oracle.mjs`, every walk through it; Go has no hand walks, Rust's two stop on a fixed point |
+| A-6 | H-17 | Per-file watchdog in the oracle driver, logging the last node position visited on timeout. The hang cost more to locate (11m47s + an instrumented copy) than to fix; that cost repeats without the guard. | **Done 2026-08-27** — worker-thread watchdog in `tsc-oracle.mjs`, `--watchdog` seconds (120), last file:line printed, exit 3 |
 | A-7 | H-4 | Optional: `x/tools/go/callgraph/vta` as a second column for the func-value→* class only — maintained, materially tighter than RTA on func values. Costs memory (see H-9); an option, not a recommendation. | Optional |
-| A-8 | §3.8 | State precision figures as lower bounds (most contradictions triage to oracle-wrong, so precision is bounded below by construction), and track the oracle-wrong : hobbes-wrong triage ratio per cell as a quoted number. | Open |
+| A-8 | §3.8 | State precision figures as lower bounds (most contradictions triage to oracle-wrong, so precision is bounded below by construction), and track the oracle-wrong : hobbes-wrong triage ratio per cell as a quoted number. | **Done 2026-08-27** — README, `oracle-grading.md`, architecture §3.8 wording; the ratio `oracle-wrong : hobbes-wrong : untriaged` is a required line of every cell record from here |
 | A-9 | H-9 | Parked pending ~32 GB+ free. P8/P9 wait on it. | Parked |
 
 ## 3. Method
@@ -122,12 +122,12 @@ roots. Maintained in the same commit as the log entry that changes it
 
 | RC | Root | Sightings | n | Closure | Notes |
 |---|---|---|---|---|---|
-| RC-1 | Cell membership / scope defined in more than one place | H-2, H-10 | 2 | shaped | Structural closure pending A-2 verification. If both sides already call one function: closed-structural. |
+| RC-1 | Cell membership / scope defined in more than one place | H-2, H-10 | 2 | closed-structural | A-2 (2026-08-27): both Go sides call `edges.Under`/`edges.Excluded`. Per-runtime extractors (TS/py/rust) keep a local predicate — a sighting there reopens this row. |
 | RC-2 | Code nobody wrote attributed to a source line | H-13, H-15, H-16 | 3 | closed-policy | Provenance rule: drop and count by default; reclassify when the dropped class is semantically real (macro→function). |
-| RC-3 | Oracle right at a different grain than the binding | H-3, H-5, H-6 | 3 | closed-policy | D-O4. Element-access extension pending via H-17 / A-4. |
-| RC-4 | Silence that reads as a result | H-1, H-12 | 2 | shaped | H-12's shared-mapping round-trip test landed; H-1's "no roots exist" print state open (A-1). Rule when closed: absence prints as its own state. |
+| RC-3 | Oracle right at a different grain than the binding | H-3, H-5, H-6 | 3 | closed-policy | D-O4, extended 2026-08-27 with the element-access bullet (A-4). |
+| RC-4 | Silence that reads as a result | H-1, H-12 | 2 | closed-policy | RR-6: absence prints as its own state. A-1 landed 2026-08-27 (`no-roots`). |
 | RC-5 | Ratio quoted with unlabeled over-approximation or mismatched denominator | H-4, H-14 | 2 | closed-policy | Split by class, label inflation; numerator and denominator from one index. Log rule 2. |
-| RC-6 | Walk-down loop that does not strictly descend | H-17 | 1 | provisional | Closes structurally when the `descend()` guard lands (A-5). Site-rule resolution blocked on RC-3 extension (A-4). |
+| RC-6 | Walk-down loop that does not strictly descend | H-17 | 1 | closed-structural | `descend()` guard landed 2026-08-27 (A-5); site rule landed via RC-3's element-access extension (A-4). |
 | RC-7 | Miss-class taxonomy diverges across languages | H-7 | 1 | provisional | Patched: local-binding split from closure; TS modes derived from binding shape so Go and TS classes read alike. Watch for the Rust/Python analogue. |
 | — | Cosmetic | H-8, H-11 | 2 | — | H-11 → A-3. |
 | — | Environment limit (not a defect root) | H-9 | 1 | parked | A-9. |
@@ -163,7 +163,7 @@ exists as a rule; referenced, not duplicated.)
 
 ## 6. Open items carried forward
 
-A-1 through A-6 and A-8 above; A-7 optional; A-9 parked (H-9's root
+A-1 through A-6 and A-8 landed on 2026-08-27 (states in §2); A-7 optional; A-9 parked (H-9's root
 module and each rooted subtree need ~32 GB+ free; P8/P9 wait). H-17
 remains the sequencing exemplar: rule → fixtures → loop, in that order
 — fixing the loop first would set an identity convention implicitly,

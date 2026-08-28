@@ -5,6 +5,8 @@
 // line of the identifier (D-O4).
 package edges
 
+import "strings"
+
 // Pos is a repo-relative file and a 1-based line. Columns are not part
 // of the grain: Hobbes' evidence carries lines only, so the matcher works
 // at line grain and the oracle's column is kept for the triage rows.
@@ -99,6 +101,46 @@ type OracleExport struct {
 	// for calls in compiler-written code (Rust's test harness, attribute
 	// and derive output), which no source line makes.
 	Excluded map[string]int `json:"excluded,omitempty"`
+	// State names a cell that could not be graded and says why, as its
+	// own state rather than an empty result (A-1, RR-6): "no-roots" — a
+	// reachability oracle found no main or test binary to root at, so
+	// the module (a library without tests) was loaded but nothing was
+	// analysed. Empty when the cell graded.
+	State string `json:"state,omitempty"`
+}
+
+// StateNoRoots is the reachability oracle's "nothing to root at" state.
+const StateNoRoots = "no-roots"
+
+// Under reports whether repo-relative path p lies in directory dir
+// ("" or "." meaning the whole repo). Excluded reports whether p lies
+// in any of dirs. These are THE cell-membership predicates (RR-3): the
+// export and every oracle extractor call these two, never a local copy
+// — H-2 and H-10 were both the same rule written twice and evolved
+// once. Both sides normalise their directory strings here, so a
+// trailing slash or a leading "./" cannot split them.
+func Under(p, dir string) bool {
+	dir = cleanDir(dir)
+	return dir == "" || p == dir || strings.HasPrefix(p, dir+"/")
+}
+
+// Excluded is Under over a list; an empty or "." entry excludes nothing.
+func Excluded(p string, dirs []string) bool {
+	for _, d := range dirs {
+		if d = cleanDir(d); d != "" && Under(p, d) {
+			return true
+		}
+	}
+	return false
+}
+
+func cleanDir(d string) string {
+	d = strings.Trim(strings.ReplaceAll(d, "\\", "/"), "/")
+	d = strings.TrimPrefix(d, "./")
+	if d == "." {
+		return ""
+	}
+	return d
 }
 
 func itoa(n int) string {

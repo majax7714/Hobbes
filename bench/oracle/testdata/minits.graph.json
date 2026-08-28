@@ -1,7 +1,7 @@
 {
   "dirty": true,
   "lane_agreement": {
-    "module_edges_compared": 3,
+    "module_edges_compared": 4,
     "module_edges_excluded_lane_b_only": 0,
     "module_edges_lane_a_only": [],
     "module_edges_lane_b_only": [],
@@ -45,6 +45,29 @@
         }
       ],
       "from": "src/items.controller",
+      "tier": "semantic",
+      "to": "src/util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "src/lookup.ts"
+        },
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/lookup.ts"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 4,
+          "path": "src/lookup.ts"
+        }
+      ],
+      "from": "src/lookup",
       "tier": "semantic",
       "to": "src/util",
       "type": "imports"
@@ -198,6 +221,11 @@
       "path": "src/items.controller.ts"
     },
     {
+      "id": "src/lookup",
+      "kind": "module",
+      "path": "src/lookup.ts"
+    },
+    {
       "id": "src/math.spec",
       "kind": "module",
       "path": "src/math.spec.ts"
@@ -277,7 +305,7 @@
     }
   ],
   "schema_version": 4,
-  "sha": "308a198b56922d4371b835ed65adbef3d959ea93",
+  "sha": "d369deed88b9e53edd9e8e8c8e44652f95290503",
   "symbol_edges": [
     {
       "evidence": [
@@ -304,6 +332,24 @@
       "tier": "semantic",
       "to": "src/util.normalize",
       "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 4,
+          "path": "src/lookup.ts"
+        },
+        {
+          "lane": "scip",
+          "line": 7,
+          "path": "src/lookup.ts"
+        }
+      ],
+      "from": "src/lookup",
+      "tier": "semantic",
+      "to": "src/util.normalize",
+      "type": "uses"
     },
     {
       "evidence": [
@@ -419,6 +465,33 @@
       "qualname": "ItemsController.findOne"
     },
     {
+      "end_line": 21,
+      "id": "src/lookup.viaComputed",
+      "kind": "function",
+      "line": 19,
+      "module": "src/lookup",
+      "name": "viaComputed",
+      "qualname": "viaComputed"
+    },
+    {
+      "end_line": 13,
+      "id": "src/lookup.viaLiteral",
+      "kind": "function",
+      "line": 11,
+      "module": "src/lookup",
+      "name": "viaLiteral",
+      "qualname": "viaLiteral"
+    },
+    {
+      "end_line": 17,
+      "id": "src/lookup.viaSymbol",
+      "kind": "function",
+      "line": 15,
+      "module": "src/lookup",
+      "name": "viaSymbol",
+      "qualname": "viaSymbol"
+    },
+    {
       "end_line": 5,
       "id": "src/server.app",
       "kind": "const",
@@ -462,21 +535,22 @@
       "nested-decl",
       "external-origin",
       "attr-call",
-      "unclassified"
+      "unclassified",
+      "below-floor"
     ]
   },
   "verification_base": {
     "javascript": {
       "depth": "multi-repo",
-      "note": "verified on 3 repos: kbet (real Vite+React app), private-repo-A, this repo's web/",
-      "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
-      "repos": 3
+      "note": "verified on 2 repos: kbet (real Vite+React app), this repo's web/",
+      "on": "kbet (real Vite+React app), this repo's web/",
+      "repos": 2
     },
     "typescript": {
       "depth": "multi-repo",
-      "note": "verified on 3 repos: kbet (real Vite+React app), private-repo-A, this repo's web/",
-      "on": "kbet (real Vite+React app), private-repo-A, this repo's web/",
-      "repos": 3
+      "note": "verified on 2 repos: kbet (real Vite+React app), this repo's web/",
+      "on": "kbet (real Vite+React app), this repo's web/",
+      "repos": 2
     }
   }
 }

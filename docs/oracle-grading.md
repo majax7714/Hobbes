@@ -125,7 +125,12 @@ reachability oracles):
 **Metrics:**
 
 - `precision-against-oracle = confirmed / (confirmed + contradicted)` —
-  the name matters; see the unsoundness rule below.
+  the name matters; see the unsoundness rule below. **Quoted as a lower
+  bound** (A-8, 2026-08-27): most contradictions triage to the oracle
+  being wrong at its own grain, so the figure is bounded below by
+  construction. Each cell record carries the triage ratio
+  `oracle-wrong : hobbes-wrong : untriaged` over its contradicted rows
+  as a quoted number.
 - `recall = confirmed oracle pairs / all oracle pairs`.
 
 **Rules, each a constraint candidate (§11):**

@@ -14,19 +14,61 @@
 // the declaration's *name* identifier. A site with no resolved
 // signature, or a signature with no declaration (any, synthetic union
 // apply), has no targets: oracle-silent (no-targets).
+//
+// Element-access callees (`obj[key]()`, A-4 / H-17): a string or
+// numeric literal key and a well-known `Symbol.x` member are graded like
+// a property access — the site is the key's line and the callee is what
+// the checker resolves; a computed key is oracle-silent as
+// `computed-key` (mode dynamic, no targets) — a genuinely dynamic call
+// tsc cannot name without guessing.
+//
+// Two guards (from H-17, the hang that cost 11m47s to locate): every
+// walk-down step goes through descend(), which throws with a position
+// when a step makes no progress (RR-1); and the visitor runs in a
+// worker thread under a watchdog that prints the last position visited
+// and exits 3 when no site has been reached for --watchdog seconds
+// (default 120; 0 disables).
 import { createRequire } from "node:module";
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
 
-const args = Object.fromEntries(
-  process.argv.slice(2).reduce((acc, a, i, arr) => {
-    if (a.startsWith("--")) acc.push([a.slice(2), arr[i + 1]]);
-    return acc;
-  }, []),
-);
+const args = isMainThread
+  ? Object.fromEntries(
+      process.argv.slice(2).reduce((acc, a, i, arr) => {
+        if (a.startsWith("--")) acc.push([a.slice(2), arr[i + 1]]);
+        return acc;
+      }, []),
+    )
+  : workerData.args;
 if (!args.repo || !args.zone) {
-  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--out <file>]");
+  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--out <file>] [--watchdog <seconds>]");
   process.exit(2);
+}
+
+// Progress the worker publishes: [file index, line, tick]. The main
+// thread only watches it; a stalled tick is the watchdog's signal.
+const progress = isMainThread ? new Int32Array(new SharedArrayBuffer(12)) : new Int32Array(workerData.sab);
+const watchdogSeconds = Number(args.watchdog ?? 120);
+
+if (isMainThread && watchdogSeconds > 0) {
+  const names = [];
+  const worker = new Worker(new URL(import.meta.url), { workerData: { args, sab: progress.buffer } });
+  worker.on("message", (m) => { if (m && m.file !== undefined) names[m.idx] = m.file; });
+  worker.on("error", (e) => { console.error(`tsc-oracle: ${e && e.stack ? e.stack : e}`); process.exit(1); });
+  worker.on("exit", (code) => process.exit(code));
+  let lastTick = -1, since = Date.now();
+  const timer = setInterval(() => {
+    const tick = Atomics.load(progress, 2);
+    if (tick !== lastTick) { lastTick = tick; since = Date.now(); return; }
+    if (Date.now() - since > watchdogSeconds * 1000) {
+      const file = names[Atomics.load(progress, 0)] ?? "?";
+      console.error(`tsc-oracle: watchdog — no site visited for ${watchdogSeconds}s; last position ${file}:${Atomics.load(progress, 1)}`);
+      clearInterval(timer);
+      worker.terminate().finally(() => process.exit(3));
+    }
+  }, 1000);
+  await new Promise(() => {}); // exits through the worker's exit/error or the watchdog
 }
 const repo = path.resolve(args.repo);
 const zone = path.resolve(repo, args.zone);
@@ -63,6 +105,42 @@ const underZone = (r) => zoneRel === "" || zoneRel === "." || r === zoneRel || r
 const line1 = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).line + 1;
 const col1 = (sf, pos) => sf.getLineAndCharacterOfPosition(pos).character + 1;
 
+// RR-1: a walk-down step must strictly descend. Returns `to`; throws
+// with the position of `from` when the step made no progress — the
+// H-17 hang, turned into a stack trace.
+function descend(from, to, what) {
+  if (to === from) {
+    const sf = from.getSourceFile && from.getSourceFile();
+    const where = sf ? `${sf.fileName}:${line1(sf, from.getStart(sf))}` : "?";
+    throw new Error(`tsc-oracle: ${what} did not descend at ${where} (${ts.SyntaxKind[from.kind]})`);
+  }
+  return to;
+}
+
+// A well-known symbol member used as a key: `Symbol.iterator`,
+// `Symbol.asyncIterator`, … — resolvable, so graded (A-4).
+function isWellKnownSymbolKey(k) {
+  return ts.isPropertyAccessExpression(k) && ts.isIdentifier(k.expression) && k.expression.text === "Symbol";
+}
+
+// A literal or well-known-symbol key names its member; anything else is
+// a computed key the checker can only guess at (A-4).
+function isNamedKey(k) {
+  return ts.isStringLiteral(k) || ts.isNumericLiteral(k) || ts.isNoSubstitutionTemplateLiteral(k) || isWellKnownSymbolKey(k);
+}
+
+// Does the call go through an element access with a computed key
+// anywhere in its callee chain? Such a site is oracle-silent.
+function hasComputedKey(node) {
+  if (!(ts.isCallExpression(node) || ts.isNewExpression(node))) return false;
+  let e = node.expression;
+  while (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) {
+    if (ts.isElementAccessExpression(e) && !isNamedKey(e.argumentExpression)) return true;
+    e = descend(e, ts.isPropertyAccessExpression(e) ? e.name : e.argumentExpression, "callee walk");
+  }
+  return false;
+}
+
 // The declaration's name identifier, per D-O4: a function/method/class
 // keeps its own name; an arrow or function expression takes the name it
 // is bound to (variable, property, parameter); a constructor is its
@@ -86,7 +164,7 @@ function isClosure(decl) {
   while (n) {
     if (ts.isFunctionLike(n)) return true;
     if (ts.isSourceFile(n) || ts.isClassLike(n) || ts.isModuleBlock(n)) return false;
-    n = n.parent;
+    n = descend(n, n.parent, "parent walk");
   }
   return false;
 }
@@ -142,10 +220,17 @@ function target(decl) {
 
 // The site's line is the callee name's line — the identifier lane B's
 // occurrence sits on — not the parenthesis: `a\n  .b()` sites at `b`.
+// An element access sites at its key (`a["b"]()` at "b",
+// `a[Symbol.iterator]()` at `iterator`); a computed key sites at the key
+// expression and the site is then silent (hasComputedKey).
 function siteName(node) {
   if (ts.isCallExpression(node) || ts.isNewExpression(node)) {
     let e = node.expression;
-    while (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) e = ts.isPropertyAccessExpression(e) ? e.name : e;
+    while (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) {
+      if (ts.isPropertyAccessExpression(e)) e = descend(e, e.name, "property access");
+      else if (isNamedKey(e.argumentExpression)) e = descend(e, e.argumentExpression, "element access");
+      else return e.argumentExpression;
+    }
     return e;
   }
   if (ts.isTaggedTemplateExpression(node)) return node.tag;
@@ -174,7 +259,8 @@ for (const sf of program.getSourceFiles()) {
   if (sf.isDeclarationFile || !inRepo(sf.fileName)) continue;
   const r = rel(sf.fileName);
   if (!underZone(r)) continue;
-  files.push(r);
+  const fileIdx = files.push(r) - 1;
+  if (!isMainThread) parentPort.postMessage({ idx: fileIdx, file: r });
   const visit = (node) => {
     const fnLike = ts.isFunctionLike(node) && !ts.isTypeNode(node);
     if (fnLike) enclosing.push(node);
@@ -187,6 +273,18 @@ for (const sf of program.getSourceFiles()) {
         mode: "static",
         targets: [],
       };
+      Atomics.store(progress, 0, fileIdx);
+      Atomics.store(progress, 1, site.pos.line);
+      Atomics.add(progress, 2, 1);
+      if (hasComputedKey(node)) {
+        // A-4: the key is computed; tsc's answer would be a guess.
+        site.mode = "dynamic";
+        site.silent = "computed-key";
+        sites.push(site);
+        ts.forEachChild(node, visit);
+        if (fnLike) enclosing.pop();
+        return;
+      }
       let sig;
       try { sig = checker.getResolvedSignature(node); } catch { sig = undefined; }
       const decl = sig && sig.getDeclaration();

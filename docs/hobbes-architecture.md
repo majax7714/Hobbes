@@ -696,7 +696,7 @@ gets graded at scale** (ADR-089, `docs/oracle-grading.md`,
 two of Hobbes' own methods agreeing. The oracle lane grades every call
 edge against an edge source Hobbes does not control — Go's own RTA over
 SSA, `tsc`'s resolution, and in phase 2 the Python interpreter's own
-call trace and rustc's MIR — and reports **precision-against-oracle and
+call trace and rustc's MIR — and reports **precision-against-oracle (a lower bound — contradictions mostly triage to the oracle's grain; the triage ratio is quoted per cell, A-8) and
 recall together**, per tier, with the root count or coverage line the
 recall depends on and the oracle-silent size printed. A row this lane
 produces reads "compiler-graded" or "trace-graded", never as

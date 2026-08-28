@@ -58,6 +58,17 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
   `useAuthStore()` edges as contradicted against zustand's
   `react.d.mts`; that was the oracle's grain, not Hobbes' — a
   match-defect.)
+- **Element-access callees** (`obj[key]()`, TypeScript; A-4 from H-17).
+  A string or numeric literal key and a well-known `Symbol.x` member
+  are graded like a property access: the site is the **key's line**
+  (`a["b"]()` at `"b"`, `a[Symbol.iterator]()` at `iterator`) and the
+  callee is what the checker resolves. A **computed key** is
+  oracle-silent as `computed-key` (mode `dynamic`, no targets): tsc's
+  answer there would be a guess, and blanket silence for the whole
+  shape would forfeit a class (`process.env["X"]`, index signatures,
+  generated clients). Fixtured in `minits/src/lookup.ts`, one function
+  per shape; Hobbes' lane A currently counts none of the three as a
+  call site (C-63), so the literal shape is a recorded recall miss.
 - **Decorated declarations.** The identifier's line, not the
   decorator's. Hobbes' TS symbols currently carry the decorator line
   (`minits`' `ItemsController` at 5, identifier at 6 — the W1
@@ -102,7 +113,12 @@ in exactly one bucket:
 | **abstract** | the site is a dynamic dispatch and Hobbes' target is the *interface method's* declaration — right at the declaration grain, not a concrete target. Reported on its own, in neither precision term; the concrete oracle pairs at that site count as misses (D-O3) |
 | **silent** | the oracle could not speak: `not-loaded` (file outside the loaded program — build tags, orphan directories), `unreachable` (no reachable function holds a call on that line), `no-targets` (reachable, RTA resolved it to nothing). Charged to nobody, printed at full size |
 
-- `precision-against-oracle = confirmed / (confirmed + contradicted)`
+- `precision-against-oracle = confirmed / (confirmed + contradicted)` —
+  quoted as a **lower bound** on true precision (A-8): most
+  contradictions triage to oracle-wrong, so the number is bounded
+  below by construction. Every cell record also quotes its triage
+  ratio, `oracle-wrong : hobbes-wrong : untriaged`, over the
+  contradicted rows.
 - `recall = confirmed in-repo oracle pairs / all in-repo oracle pairs`,
   always printed with its **root count** (Go) — recall is driven by the
   roots the oracle had and is never pooled or compared across cells.
@@ -245,13 +261,33 @@ same sites twice). Needs the nightly pinned in `rust/rust-toolchain.toml`
 with `rustc-dev`; the exact `rustc -vV` is stamped into every export,
 because a different nightly is a different oracle.
 
+## Guards in the extractors (RR-1, A-5, A-6)
+
+Every walk-down step in `ts/tsc-oracle.mjs` goes through `descend(from,
+to, what)`, which throws with a file:line when a step makes no progress
+— the H-17 hang (`e = e` on an element-access callee) as a stack trace.
+The visitor runs in a worker thread under a watchdog: when no site has
+been visited for `--watchdog` seconds (default 120; `0` disables) the
+driver prints the last position and exits 3. The Go extractor has no
+hand-written walks (RTA is a library call); the Rust driver's two
+context walks already stop on a fixed point (`parent == ctxt`).
+
+A cell with nothing to grade prints as its own state (RR-6, A-1): a Go
+module with no `main` and no tests yields `state: "no-roots"` and the
+report line `recall: NOT GRADED — no roots exist`, never an empty grade
+(`testdata/noroots`). Cell membership is one predicate for both sides,
+`edges.Under` / `edges.Excluded` (RR-3, A-2); an empty list serialises
+as `[]`, never `null` (A-3).
+
 ## Fixtures and testdata
 
 `pipeline/tests/fixtures/minigo` (one module, 5 in-repo calls, all
 static), `pipeline/tests/fixtures/twomod` (two modules joined by a
 `replace`, one interface-dispatch call), `pipeline/tests/fixtures/minits`
 (TS + JS under `allowJs`, four calls to one helper, decorators
-unresolvable without deps), `pipeline/tests/fixtures/miniapp` (Python:
+unresolvable without deps, plus the three element-access shapes of
+`src/lookup.ts`: one resolved in-repo pair Hobbes lacks, one external,
+one computed-key silent), `pipeline/tests/fixtures/miniapp` (Python:
 seven pairs observed under its two tests, a constructor among them; two
 modules the suite never imports) and `pipeline/tests/fixtures/minirust`
 (lib + bin + `#[cfg(test)]` + integration test: nine in-repo pairs, one

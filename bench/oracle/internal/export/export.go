@@ -142,16 +142,8 @@ func hasExt(p string, exts []string) bool {
 	return false
 }
 
-func excluded(p string, dirs []string) bool {
-	for _, d := range dirs {
-		d = path.Clean("/" + d)[1:]
-		if d != "" && under(p, d) {
-			return true
-		}
-	}
-	return false
-}
+// Membership is edges.Under / edges.Excluded — one definition for both
+// sides of a cell (A-2, RR-3).
+func excluded(p string, dirs []string) bool { return edges.Excluded(p, dirs) }
 
-func under(p, dir string) bool {
-	return dir == "" || p == dir || strings.HasPrefix(p, dir+"/")
-}
+func under(p, dir string) bool { return edges.Under(p, dir) }
