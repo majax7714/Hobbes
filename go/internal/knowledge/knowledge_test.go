@@ -30,6 +30,7 @@ func fixtureRepo(t *testing.T) string {
 	graph := map[string]any{
 		"schema_version": derived.Current,
 		"sha":            sha, "dirty": false,
+		"built_by": map[string]any{"checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
 		"nodes": []map[string]any{
 			{"id": "app.core", "kind": "module", "path": "src/app/core.py"},
 			{"id": "app.api", "kind": "module", "path": "src/app/api.py"},
@@ -596,7 +597,8 @@ func blindSpotRepo(t *testing.T) string {
 	graph := map[string]any{
 		"schema_version": derived.Current,
 		"sha":            sha, "dirty": false,
-		"nodes": []map[string]any{}, "module_edges": []map[string]any{},
+		"built_by": map[string]any{"checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
+		"nodes":    []map[string]any{}, "module_edges": []map[string]any{},
 		"symbols": []map[string]any{}, "symbol_edges": []map[string]any{},
 		"resolution_coverage": []map[string]any{
 			{"file": "src/app/core.py", "sites": 20, "resolved": 12, "external": 3,
@@ -799,5 +801,26 @@ func TestNeighborhoodAcceptsTheNodePath(t *testing.T) {
 	}
 	if out, _ := s.Neighborhood("no/such/path.py"); !strings.Contains(out, "no node") {
 		t.Fatalf("unknown path should still say no node: %s", out)
+	}
+}
+
+func TestEveryGraphAnswerNamesWhichHobbesBuiltIt(t *testing.T) {
+	// ADR-094: the artifact carries built_by and the header repeats it;
+	// a tests.json answer has no such stamp and says nothing about it.
+	s := Open(fixtureRepo(t))
+	out, err := s.Neighborhood("app.core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := strings.SplitN(out, "\n", 2)[0]
+	if !strings.Contains(first, "built by hobbes @ bbbbbbbbbbbb (dirty) from /opt/hobbes") {
+		t.Errorf("header must name the builder:\n%s", first)
+	}
+	guard, err := s.TestsGuarding("app.core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(strings.SplitN(guard, "\n", 2)[0], "built by") {
+		t.Errorf("tests.json carries no builder stamp; header must not invent one:\n%s", guard)
 	}
 }

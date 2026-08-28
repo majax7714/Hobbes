@@ -61,6 +61,17 @@ def _repo_root_from(args: argparse.Namespace) -> Path:
     return detected
 
 
+def _print_built_by(record: dict | None) -> None:
+    """One line on which Hobbes produced the artifact (ADR-094): the
+    checkout and commit the pipeline code came from — so an ingest run
+    from a stale install on PATH is visible at the moment it happens."""
+    if not record:
+        return
+    sha = record.get("sha") or "no git commit"
+    dirty = " (dirty)" if record.get("dirty") else ""
+    print(f"  built by hobbes @ {sha[:12]}{dirty} from {record.get('checkout', '?')}")
+
+
 def _print_containment(record: dict | None) -> None:
     """One line on where lane B ran (ADR-092): silent when every step was
     contained and no escape hatch was set — the guarantee holding is the
@@ -125,6 +136,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     dirty = " (dirty tree)" if graph["dirty"] else ""
     languages = ", ".join(graph["languages"])
     print(f"ingested {repo_root} @ {graph['sha'][:12]}{dirty} [{languages}]")
+    _print_built_by(graph.get("built_by"))
     _print_verification_base(graph.get("verification_base", {}))
     _print_containment(graph.get("containment"))
     for degraded in graph.get("extraction_errors", []):

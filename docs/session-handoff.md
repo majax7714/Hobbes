@@ -61,6 +61,15 @@ it is a host-run record.
 `@overload` anchor); every compiler-graded cell at 100%; ajv's 3
 union-member rows the one open sighting (n=1).
 
+**ADR-094 (2026-08-28):** a stale `hobbes` symlink into an older
+checkout ran lane B on the host (canary sentinel proved it). Now
+`.mcp.json` → `sandbox/knowledge-serve` runs the image's proxy in a
+read-only offline container; artifacts carry `built_by`; the proxy
+prints its build. **Rebuild the image after rebuilding the proxy**
+(C-65). Max still holds the PATH fix on his box (`~/.local/bin/hobbes`
+→ `~/hobbes/...`). The ingest-in-sandbox half is parked
+(`future_additions.md`).
+
 **D5 and D6 are closed (ADR-093, 2026-08-28, Max reopened them):**
 under `strict` a planner that names nothing resolvable is re-planned
 once, then a plan error (`lexical-fallback` is the third strict

@@ -117,3 +117,29 @@
   and refuses to compute a pooled figure; `docs/oracle-cells/` keeps
   one record per cell; the evidence file's rows are per cell.
 - **Source:** ADR-089, design §3 and §11.
+
+### C-65 — The knowledge proxy is pinned to the image, not to the checkout; the hatch runs a host binary
+- **Cannot tell you:** that the tools answering are built from the
+  code you are reading. `.mcp.json` runs `sandbox/knowledge-serve`,
+  which starts the proxy **inside** `hobbes-session:local` (ADR-094):
+  the binary is whatever the image `COPY`'d at its last build. A
+  rebuilt proxy with a stale image answers with the old code — the
+  first smoke test of ADR-094 did exactly that (an image from 00:14,
+  no phase-4 banner). And `HOBBES_KNOWLEDGE_HOST=1` runs this
+  checkout's `go/bin/hobbes-proxy` on the host instead, which is the
+  PATH-shaped risk the move removed.
+- **Because:** pinning to the image is the point — the 2026-08-28
+  incident was a symlink into an older checkout running lane B on the
+  host with pre-ADR-092 code; a build the host resolves by name is
+  the thing that cannot be trusted. The image is rebuilt by hand, so
+  its age is a fact to state, not one to hide.
+- **Bites at:** every session started after a proxy change without an
+  image rebuild; any box without podman, where the launcher refuses
+  and the hatch is the only way to the tools.
+- **You find out:** **surfaced** (2026-08-28). `hobbes-proxy serve`
+  prints `build <vcs.revision>[+dirty]` at start; every answer opens
+  with `built by hobbes @ <sha> from <checkout>` from the artifact's
+  `built_by` stamp, so a mismatch between the two is on the first
+  line; the launcher refuses without the image naming the fix; the
+  hatch announces itself on stderr as `HOST`.
+- **Source:** ADR-094.

@@ -571,3 +571,17 @@ surfaced per file rather than silent.)*
 exist per session; the report does not yet roll them up. Add a per-arm
 row: calls, calls saturated, share of implement wall spent at the
 window, largest prompt. Small; opens when Max names it.
+
+## The ingest itself inside the sandbox image (ADR-094, 2026-08-28)
+
+Max asked for the whole knowledge piece in the sandbox. The proxy went
+in (ADR-094); the ingest stayed on the host, with the provenance stamp
+(`built_by`) covering the "which code ran" question the incident
+raised. Parked, not declined: lane A executes no repo code (P10 gains
+nothing); baking the pipeline's source and wheels into the image means
+a ~4-minute rebuild per pipeline edit or a dev mount that un-pins it;
+lane B's per-step containers would become nested rootless podman or
+collapse into one container and lose ADR-092's network-by-phase
+separation. **Opens when** a foreign-repo deployment needs the
+pipeline pinned too; the shape then is a pinned wheel in the image
+plus a nested-podman decision, not a checkout mount.

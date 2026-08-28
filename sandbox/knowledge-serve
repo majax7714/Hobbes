@@ -1,0 +1,54 @@
+#!/bin/sh
+# knowledge-serve — start the knowledge-only proxy INSIDE the sandbox
+# image, on stdio, for this checkout (ADR-094). `.mcp.json` calls it.
+#
+# Why a container for six read-only tools: not because they execute the
+# repo (they do not) but because the binary that answers is then the
+# image's pinned build, never whatever `hobbes-proxy` a PATH or a stale
+# symlink resolves to — the 2026-08-28 incident: a symlink into an older
+# checkout ran lane B on the host with pre-ADR-092 code. The repo is
+# mounted read-only, the network is none, and the flight log lands in
+# the host's ~/.hobbes/sessions as before.
+#
+# Escape hatch (C-65): HOBBES_KNOWLEDGE_HOST=1 runs this checkout's
+# go/bin/hobbes-proxy on the host instead, and says so on stderr.
+# Without podman or the image, and without the hatch, this refuses —
+# a silent fallback would be the pinning quietly not happening.
+set -eu
+
+here=$(cd "$(dirname "$0")" && pwd -P)
+repo=$(cd "$here/.." && pwd -P)
+image=${HOBBES_SANDBOX_IMAGE:-hobbes-session:local}
+sessions=${HOBBES_SESSIONS_ROOT:-$HOME/.hobbes/sessions}
+mkdir -p "$sessions"
+
+if [ "${HOBBES_KNOWLEDGE_HOST:-}" = "1" ]; then
+  echo "knowledge-serve: HOST — running $repo/go/bin/hobbes-proxy on this host, not the image's build (C-65)" >&2
+  exec "$repo/go/bin/hobbes-proxy" serve --repo "$repo" --role developer --knowledge-only \
+    --session host-knowledge --log-dir "$sessions"
+fi
+
+if ! command -v podman >/dev/null 2>&1; then
+  echo "knowledge-serve: podman is not installed — the knowledge proxy runs in the sandbox image (ADR-094); set HOBBES_KNOWLEDGE_HOST=1 to run this checkout's host binary instead (C-65)" >&2
+  exit 1
+fi
+if ! podman image exists "$image"; then
+  echo "knowledge-serve: image $image is not built (sandbox/README.md: podman build) — set HOBBES_KNOWLEDGE_HOST=1 to run this checkout's host binary instead (C-65)" >&2
+  exit 1
+fi
+
+# --security-opt label=disable rather than :z — the repo is the user's
+# own tree and relabeling it in place is not ours to do (the trade
+# containment.py makes for lane B mounts). --pull=never: the image is
+# local; a registry lookup is never the right failure. -i: MCP is stdio.
+exec podman run -i --rm --pull=never \
+  --security-opt label=disable \
+  --network none \
+  --env HOME=/tmp/hobbes-home \
+  --env PATH=/usr/local/bin:/usr/bin:/bin \
+  --workdir /work \
+  -v "$repo:/work:ro" \
+  -v "$sessions:/sessions:rw" \
+  "$image" \
+  hobbes-proxy serve --repo /work --role developer --knowledge-only \
+    --session host-knowledge --log-dir /sessions

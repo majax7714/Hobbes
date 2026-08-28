@@ -96,15 +96,20 @@ box, against a repo on disk (architecture §10); the application mode in
 
 ## Hobbes for Hobbes — the knowledge tools in your session
 
-This repo's `.mcp.json` starts `hobbes-proxy serve --knowledge-only`
-(ADR-087): six read-only tools over `.hobbes/derived/` —
+This repo's `.mcp.json` starts `sandbox/knowledge-serve` — the
+**image's** `hobbes-proxy serve --knowledge-only` in a read-only,
+offline container (ADR-087, ADR-094): six read-only tools over `.hobbes/derived/` —
 `who_calls`, `tests_guarding`, `graph_neighborhood`, `get_module_doc`,
 `list_invariants`, `list_blind_spots`. Use them instead of grep for
 "who calls this" and "what tests reach this", and read
 `list_blind_spots` for the directory you are editing before trusting
 either — it names what the graph cannot see there. Every answer opens
-with the ingest SHA; on a stale warning, `uv run hobbes ingest`. Needs
-`go/bin/hobbes-proxy` built and the repo ingested (below).
+with the ingest SHA and which Hobbes built the artifact; on a stale
+warning, `uv run hobbes ingest`. Needs the sandbox image built (below)
+and the repo ingested; rebuild the image after rebuilding the proxy,
+or the tools answer with the old build (C-65). Always `uv run hobbes`
+from this checkout — a `hobbes` on PATH may be another tree's (the
+2026-08-28 incident, ADR-094).
 
 ## Build & test
 
@@ -121,7 +126,7 @@ go build -o bin/hobbes-session ./cmd/hobbes-session
 go build -o bin/hobbes-web     ./cmd/hobbes-web      # after `cd web && npm run build`
 CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy   # MUST be static:
 CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy  # it is mounted into the sandbox
-(cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .)  # lane B needs it (ADR-092)
+(cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .)  # lane B and the knowledge tools need it (ADR-092/094)
 
 # Oracle lane (bench tooling; fixture self-test — Python via uv, Rust via the nightly driver)
 cd bench/oracle && go test ./...
@@ -153,7 +158,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 093).
+  architecture doesn't already make. Number sequentially (last: 094).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -192,7 +197,7 @@ oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node tests. Keep them green.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust (+ Terraform/HCL),
   each a syntax provider + pinned SCIP indexer joined by one range join;
-  artifacts at schema v4; 64 registered constraints.
+  artifacts at schema v4; 65 registered constraints.
 - **The derivation programme is built and under test.** `hobbes plan`
   (ADR-051), `hobbes run` (ADR-054), the staged harness run (ADR-059) and
   `hobbes bench` (ADR-055) exist and have been run live on the

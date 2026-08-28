@@ -407,6 +407,14 @@ code do the gating.
 
 ## Things that will bite you
 
+- **A `hobbes` on PATH from another checkout.** A symlink into an older
+  tree ran lane B on the host with pre-containment code (2026-08-28,
+  ADR-094). Use `uv run hobbes` from the checkout you mean, and read
+  the `built by hobbes @ … from …` line every ingest prints — it names
+  the code that ran. The knowledge tools (`.mcp.json` →
+  `sandbox/knowledge-serve`) sidestep PATH entirely: they run the
+  image's proxy; rebuild the image after rebuilding the proxy (C-65).
+
 - **Narrating before checking the graph.** Confident prose about a wrong
   skeleton is worse than no prose.
 - **Promoting an inferred invariant you skimmed.** It becomes a rule

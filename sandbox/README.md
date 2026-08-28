@@ -11,6 +11,13 @@ harness. Built and driven by `go/cmd/hobbes-session`.
   run time). Ubuntu 24.04 base: the trees the ingest mounts from the
   host are glibc-linked. The ingest planner is
   `pipeline/src/hobbes/extract/containment.py`.
+- `knowledge-serve` — the launcher this repo's `.mcp.json` names
+  (ADR-094): the image's `hobbes-proxy serve --knowledge-only` on
+  stdio, repo mounted ro at `/work`, `--network none`, flight log in
+  `~/.hobbes/sessions`. Refuses without podman or the image;
+  `HOBBES_KNOWLEDGE_HOST=1` runs `go/bin/hobbes-proxy` on the host and
+  says so (C-65). Rebuild the image after rebuilding the proxy or the
+  tools answer with the old build.
 - `hobbes-proxy` — the static proxy binary the image `COPY`s. A build
   artifact (gitignored); rebuild with
   `CGO_ENABLED=0 go build -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy`

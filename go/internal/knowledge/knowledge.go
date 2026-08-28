@@ -83,9 +83,18 @@ type symbol struct {
 	Line   int    `json:"line"`
 }
 
+// builtBy is the pipeline's provenance stamp (ADR-094): which checkout
+// and commit produced the artifact. Absent on artifacts older than it.
+type builtBy struct {
+	Checkout string `json:"checkout"`
+	SHA      string `json:"sha"`
+	Dirty    bool   `json:"dirty"`
+}
+
 type graphDoc struct {
 	SHA         string   `json:"sha"`
 	Dirty       bool     `json:"dirty"`
+	BuiltBy     *builtBy `json:"built_by"`
 	Nodes       []node   `json:"nodes"`
 	ModuleEdges []edge   `json:"module_edges"`
 	Symbols     []symbol `json:"symbols"`
@@ -176,10 +185,24 @@ func (s *Store) loadInto(name string, v any) error {
 // header renders the provenance line every answer starts with, plus a
 // stale warning when the repo has moved past the ingest (P1: staleness
 // is visible, never silent).
-func (s *Store) header(sha string, dirty bool) string {
+func (s *Store) header(sha string, dirty bool, built *builtBy) string {
 	h := fmt.Sprintf("knowledge from ingest @ %.12s", sha)
 	if dirty {
 		h += " (dirty tree)"
+	}
+	if built != nil {
+		// Which Hobbes made the artifact (ADR-094): a stale install on
+		// PATH once ingested with pre-containment code and nothing said
+		// so. Stated on every answer, beside the repo commit it maps.
+		rev := built.SHA
+		if rev == "" {
+			rev = "no git commit"
+		}
+		h += fmt.Sprintf("; built by hobbes @ %.12s", rev)
+		if built.Dirty {
+			h += " (dirty)"
+		}
+		h += " from " + built.Checkout
 	}
 	if head := gitHead(s.repoRoot); head != "" && head != sha {
 		h += fmt.Sprintf("\nWARNING: repo HEAD is %.12s — artifacts are stale; rerun `hobbes ingest`", head)
@@ -222,7 +245,7 @@ func (s *Store) Neighborhood(nodeID string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	b.WriteString(s.header(g.SHA, g.Dirty))
+	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 
 	var found *node
 	ids := make([]string, len(g.Nodes))
@@ -297,7 +320,7 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	b.WriteString(s.header(g.SHA, g.Dirty))
+	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 
 	callers, users := 0, 0
 	var uses strings.Builder
@@ -356,7 +379,7 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	b.WriteString(s.header(t.SHA, t.Dirty))
+	b.WriteString(s.header(t.SHA, t.Dirty, nil))
 
 	// Resolve target to a set of module ids: an exact module id, or the
 	// modules whose source path sits under a path-ish target.
@@ -788,7 +811,7 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	}
 
 	var b strings.Builder
-	b.WriteString(s.header(g.SHA, g.Dirty))
+	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 	fmt.Fprintf(&b, "what Hobbes cannot see under %s — the work to verify yourself:\n\n", scope)
 	b.WriteString("never in any count below, because it is not detected at all: dynamic\n" +
 		"dispatch and calls through values (C-1), fixture-injected test reach\n" +

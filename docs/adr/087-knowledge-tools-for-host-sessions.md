@@ -20,6 +20,11 @@ help, not the agentic layer. The agentic layer (`plan`/`run`) is under
 restructure from a live defect register (D1–D8) and would put its own
 known defects in the path of the work meant to fix them.
 
+> **Amended by ADR-094 (2026-08-28):** `.mcp.json` no longer names the
+> host binary; it starts `sandbox/knowledge-serve`, which runs the
+> image's proxy in a read-only, offline container. The tools, the
+> banner and the flight log are unchanged.
+
 ## Decision
 
 1. `hobbes-proxy serve --knowledge-only` serves **only** the six

@@ -124,7 +124,7 @@ information appears in both, and the entries cross-reference.
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-55, C-56 |
-| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62 |
+| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
 the limit. Lifted and superseded entries appear at the bottom of their
@@ -134,8 +134,9 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Sixty-four entries: fifty-four active, eight lifted, two superseded**
-(C-64 added 2026-08-27 by ADR-092 — lane B contained, executing
+**Sixty-five entries: fifty-five active, eight lifted, two superseded**
+(C-65 added 2026-08-28 by ADR-094 — the knowledge proxy pinned to the
+image, the host hatch disclosed, surfaced on day one; C-64 added 2026-08-27 by ADR-092 — lane B contained, executing
 providers refuse without it, surfaced on day one; C-63 the same day by the
 oracle lane's H-17 close, unsurfaced; C-58 added 2026-08-25 by the oracle lane; C-60–C-62 — the trace
 asymmetry, the reference-lane rule and design §3's four rules —

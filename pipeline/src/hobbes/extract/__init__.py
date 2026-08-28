@@ -20,6 +20,8 @@ and :func:`ingest` (extract, stamp with the repo's git SHA, write).
 
 from __future__ import annotations
 
+import subprocess
+
 from collections import Counter
 
 from dataclasses import dataclass
@@ -165,6 +167,11 @@ def extract_repo(
     # contained, so an artifact built with the escape hatch says so
     # wherever it is read — the summary, list_blind_spots, a cell record.
     graph["containment"] = containment.summary()
+    # Which Hobbes built this (ADR-094): the checkout the running code
+    # came from and its commit. A stale install on PATH once produced an
+    # artifact with pre-containment code; the artifact now says who made
+    # it, and the knowledge tools repeat it.
+    graph["built_by"] = built_by()
 
     return Extraction(
         graph={"languages": sorted(languages), **graph},
@@ -585,6 +592,24 @@ def _merge_symbols(existing: list[dict], incoming: list[dict]) -> list[dict]:
     for symbol in incoming:
         merged.setdefault(symbol["id"], symbol)
     return sorted(merged.values(), key=lambda s: s["id"])
+
+
+def built_by() -> dict:
+    """The provenance of the running pipeline code: the checkout that
+    holds this package and its git commit, or ``""`` when the package is
+    not inside a git checkout (an installed wheel)."""
+    package = Path(__file__).resolve().parent.parent  # .../src/hobbes
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(package), *args], capture_output=True,
+                              text=True, check=True, timeout=10).stdout.strip()
+
+    try:
+        root, sha = git("rev-parse", "--show-toplevel"), git("rev-parse", "HEAD")
+        dirty = bool(git("status", "--porcelain", "--", str(package)))
+    except (subprocess.SubprocessError, OSError):
+        return {"checkout": str(package), "sha": "", "dirty": False}
+    return {"checkout": root, "sha": sha, "dirty": dirty}
 
 
 def ingest(repo_root: Path, tf_plan: Path | None = None) -> list[Path]:

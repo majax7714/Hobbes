@@ -2,6 +2,7 @@
 
 import io
 import json
+import pathlib
 import shutil
 import subprocess
 from pathlib import Path
@@ -74,6 +75,20 @@ class TestIngest:
         assert "UNCONTAINED: lane B runs on this host" in err and "C-64" in err
         graph = json.loads((git_fixture / ".hobbes" / "derived" / "graph.json").read_text())
         assert graph["containment"]["escape_hatch"] is True
+
+    def test_the_artifact_says_which_hobbes_built_it(self, git_fixture, capsys):
+        # ADR-094: a stale install on PATH once ingested with
+        # pre-containment code and nothing said so. The stamp names the
+        # checkout and commit the pipeline code came from.
+        from hobbes.extract import built_by
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        out = capsys.readouterr().out
+        graph = json.loads((git_fixture / ".hobbes" / "derived" / "graph.json").read_text())
+        stamp = graph["built_by"]
+        assert stamp == built_by()
+        assert pathlib.Path(stamp["checkout"], "pipeline", "src", "hobbes").is_dir()
+        assert len(stamp["sha"]) == 40
+        assert f"built by hobbes @ {stamp['sha'][:12]}" in out and stamp["checkout"] in out
 
     def test_non_git_repo_is_a_clear_error(self, tmp_path, capsys):
         assert cli.main(["ingest", "--repo", str(tmp_path)]) == 1

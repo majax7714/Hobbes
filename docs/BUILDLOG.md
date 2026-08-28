@@ -5624,3 +5624,41 @@ plus the known environmental failure. Register: C-36 and C-57 amended;
 `adr085-validation-run.md` fully discharged; architecture §6 loses the
 D5 carve-out. The removal A/B is un-confounded on the D5 axis; it
 still waits on a cleared run and a larger n.
+
+## 2026-08-28 — a stale install bypassed containment; ADR-094: the knowledge proxy in the sandbox, every artifact stamped `built_by`
+
+Max asked whether the `scip-decode` warnings on his ingest were a
+worry. They were not (C-28, identical to the previous ingest); what
+the ingest had *not* printed was. The `graph.json` his bare `hobbes
+up` wrote carried no `containment` stamp, though `extract/__init__.py`
+sets it unconditionally. `~/.local/bin/hobbes` was a symlink into
+`~/hobbes` at `7356d84` (2026-08-24), four days before ADR-092. That
+tree ran lane B on the host, and the canary fixture proved it:
+`/tmp/hobbes-canary-escaped` stamped `02:52:57`, the graph's minute.
+Harmless against our own repo — the canary writes one sentinel — but
+the P10 guarantee had been defeated by a PATH entry with nothing said.
+Re-ingested from this tree: all 23 lane B steps contained, the old
+graph's age visible in the diff (`fallback-resolved: 9` from before
+ADR-090, no `below-floor`, 93 fewer symbol edges, the pre-ADR-091 D7
+wording).
+
+Max: run the full knowledge piece in the sandbox — it prevents path
+mismatching and hardens security; if not possible, document it as a
+flag. Built as ADR-094: `.mcp.json` now starts
+`sandbox/knowledge-serve`, which runs the **image's** proxy in a
+read-only, `--network none` container on stdio; the launcher binds to
+the checkout that owns it and refuses without the image (a silent
+fallback would be the pinning not happening) — `HOBBES_KNOWLEDGE_HOST=1`
+is the disclosed hatch (C-65). `graph.json` carries `built_by`
+(checkout, commit, dirty) of the pipeline code that ran; `hobbes
+ingest` prints it, every knowledge answer opens with it, and the proxy
+prints its own `build <vcs.revision>`. Live: init in 0.10 s, six tools
+answered through the container, the answer head reading `built by
+hobbes @ ee4d95248cf6 from /home/mmarrujo/hobbes_public`. The first
+smoke test ran an image from 00:14 that predated phase 4's banner —
+the "stale image" caveat C-65 states, and the reason the image is
+rebuilt after the proxy. The ingest itself stays on the host: parked
+in `future_additions.md` with the three reasons (lane A executes no
+repo code; baking the pipeline in un-pins or slows development;
+nested podman or the loss of network-by-phase). Suites: 966 pytest +
+the known environmental failure, Go green, gofmt clean.

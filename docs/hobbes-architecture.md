@@ -71,10 +71,14 @@ not enforcement.
 
 **Hobbes has two layers, and the first is a complete product (ADR-092).**
 The **knowledge layer** — sandboxed deterministic ingest → `derived/` on
-disk → `hobbes-proxy serve --knowledge-only` over MCP (ADR-087) — is a
+disk → `hobbes-proxy serve --knowledge-only` over MCP (ADR-087), itself
+run from inside the sandbox image (ADR-094) — is a
 self-contained deployment: no model anywhere in it, no credential, a
-loopback serve, and the only dangerous operation (executing the repo to
-understand it) sealed in a container. A user points Claude Code, their
+stdio serve from a read-only, offline container, and the only dangerous
+operation (executing the repo to understand it) sealed in a container.
+Every artifact says which Hobbes built it (`built_by`) and every
+answer repeats it, so the code that answers is a stated fact, never
+whatever a PATH resolves to. A user points Claude Code, their
 own loop, any MCP-speaking harness at it and gets the graph, the tiers,
 the tail view and `list_blind_spots` — keeping their model and their
 harness. The **agentic layer** — sessions, policy chains, orchestration,
@@ -800,7 +804,11 @@ loop, the lane's own defect log reviewed (H-1..H-19,
   --knowledge-only` serves the six read-only tools and nothing else —
   `exec`/`reflect` absent, no policy chain, flight log kept — and this
   repo's `.mcp.json` starts it for any MCP-speaking agent working on
-  Hobbes. Evidence only: the agentic layer is not offered on the host.
+  Hobbes, through `sandbox/knowledge-serve`: the **image's** proxy in
+  a read-only, `--network none` container on stdio (ADR-094), refusing
+  without the image rather than falling back to a host binary
+  (`HOBBES_KNOWLEDGE_HOST=1` is the disclosed hatch, C-65). Evidence
+  only: the agentic layer is not offered on the host.
   This is the knowledge-layer deployment ("What Hobbes is"): its banner
   states the P11 scope of the containment guarantee, and
   `list_blind_spots` names an artifact whose lane B ran uncontained

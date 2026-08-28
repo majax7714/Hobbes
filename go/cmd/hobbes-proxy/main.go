@@ -29,6 +29,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -117,8 +118,8 @@ func runServe(args []string, stderr io.Writer) int {
 		return exitError
 	}
 
-	fmt.Fprintf(stderr, "hobbes-proxy: session %s role %s repo %s\nhobbes-proxy: flight log %s\n",
-		cfg.Session, cfg.Role, cfg.RepoRoot, logPath)
+	fmt.Fprintf(stderr, "hobbes-proxy: session %s role %s repo %s\nhobbes-proxy: flight log %s\nhobbes-proxy: build %s\n",
+		cfg.Session, cfg.Role, cfg.RepoRoot, logPath, buildRevision())
 	if cfg.KnowledgeOnly {
 		fmt.Fprint(stderr, proxy.KnowledgeOnlyBanner)
 	}
@@ -347,6 +348,36 @@ func generateSessionID() (string, error) {
 // resolveBoxPath applies ADR-003's box policy rules (mirrors
 // hobbes-policy): an explicit path must exist; the ~/.hobbes/box.policy
 // default is skipped when absent.
+// buildRevision is the commit this binary was built from, as the Go
+// toolchain stamps it (vcs.revision, "+dirty" when the tree was), or
+// "unknown" for a build outside a checkout. Printed at serve so the
+// binary answering — the image's, or a host path's — is never a guess
+// (ADR-094).
+func buildRevision() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	rev, dirty := "", ""
+	for _, kv := range info.Settings {
+		switch kv.Key {
+		case "vcs.revision":
+			rev = kv.Value
+		case "vcs.modified":
+			if kv.Value == "true" {
+				dirty = "+dirty"
+			}
+		}
+	}
+	if rev == "" {
+		return "unknown"
+	}
+	if len(rev) > 12 {
+		rev = rev[:12]
+	}
+	return rev + dirty
+}
+
 func resolveBoxPath(flagValue string) (string, error) {
 	if flagValue != "" {
 		if _, err := os.Stat(flagValue); err != nil {
