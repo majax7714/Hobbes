@@ -7,6 +7,50 @@ was reached, and `docs/workstreams.md` for the backlog by owner.
 History lives in the BUILDLOG; this doc is rewritten, never appended
 into a pile.
 
+---
+
+## ⇢ START HERE NEXT SESSION: ratify or reverse **C-66**
+
+**The one open decision, and it is a posture decision, so it is Max's.**
+`index-java` is the **only** lane B step that executes repo-authored
+code *and* keeps a network. Every other index step runs
+`--network none` behind a fetch container that downloads but executes
+nothing (ADR-092's phase separation).
+
+**Why Java has no such phase:** scip-java is a javac plugin, so it needs
+the classpath only the build resolves — and neither build tool separates
+resolving from evaluating. Gradle resolves while running `build.gradle`
+(which is code); Maven's `dependency:go-offline` does not reproduce a
+real build's resolution (measured on jsoup: `${os.detected.classifier}`
+comes from a build extension, and the subsequent offline compile fails
+on three test artifacts).
+
+**What is still guaranteed:** the container is the boundary — rootless,
+the Hobbes cache root its only writable mount, the repo staged as a
+copy, and the build never runs on the host (C-64 refuses without the
+image). The canary (`tests/fixtures/canary-java`) proves a Maven build
+step bound to `generate-sources` runs, and reaches neither a planted
+host secret nor the host filesystem.
+
+**What is conceded:** an untrusted Java repo's build logic can reach the
+network from inside that container while indexing. Registered as
+**C-66**, surfaced on every Java ingest and in the `containment` stamp.
+
+**To reverse:** one field —
+`containment.PROFILES["index-java"].network = "none"`. Cost of
+reversing: Gradle repos lose lane B entirely and most Maven repos lose
+it on a cold cache; Java's claim shrinks to roughly the Severed-Chains
+cell (lane A, 100% precision, 23.5% recall). Nothing else in the build
+depends on the choice.
+
+**Read first:** ADR-096 decision 3 → `docs/constraints/extraction-java.md`
+C-66 → the four cell records in `docs/oracle-cells/*-java-2026-08-29.md`.
+
+*(Also still open from before, unrelated: ADR-092's four embedded
+decisions, listed below.)*
+
+---
+
 ## WHERE THINGS STAND (2026-08-29)
 
 - **Extraction:** every compiler-graded oracle cell at 100% on every
@@ -55,9 +99,9 @@ into a pile.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. **Max ratifies or reverses C-66** (the networked Java index step),
-   and the four ADR-092 decisions still listed below. Nothing blocks on
-   it — Java works either way, with a much smaller claim if reversed.
+0. **C-66 — see the block at the top of this file.** Then the four
+   ADR-092 decisions below. Nothing blocks on either; Java works either
+   way, with a much smaller claim if C-66 is reversed.
 1. **Watch the first CI run** when Max pushes; anything runner-specific
    (rootless podman as `runner`, rustup inside `podman build`) is fixed
    in `ci-graph.sh` / the workflow, not worked around.

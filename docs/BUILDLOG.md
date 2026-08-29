@@ -5829,9 +5829,21 @@ one shape: two identically named calls on one line, where the join's
 ratification), C-67 (one-configuration; the Severed-Chains sighting),
 C-68 (generated sources — **unmeasured**, and the cells say why: all
 four report `excluded.generated: 0`), C-69 (dependencies read, not
-resolved). C-58 gained its Java face with the per-cell numbers. Java
-is **supported at exactly four repos' worth** and §3.8 says which four
-and what each cost.
+resolved), and **C-70** — two identically named calls on one line can
+pair with the wrong resolution, which Java's fluent chains found and
+this session measured at 2 of 3,908 dual-resolved sites (0.05%); it is
+not a Java entry, it is the `(file, line, name)` join key's, and it had
+been unregistered since ADR-029. Amended: C-58 (its Java face, with the
+per-cell numbers), C-32 (Java's two abstention classes), C-64 (Java
+joins the providers that refuse without containment), C-29 (its Java
+face is C-66). Seventy entries, sixty active. Java is **supported at
+exactly four repos' worth** and §3.8 says which four and what each
+cost.
+
+**One decision is left open on purpose, and it is the next session's
+first item:** C-66. The handoff opens with it — what it concedes, what
+is still guaranteed, and that reversing it is one field in
+`containment.PROFILES` at the price of most Java repos' lane B.
 
 **Not done, deliberately:** a Spring route pack, Kotlin (no lane A, so
 it would be references without call sites), a bytecode RTA (CHA's

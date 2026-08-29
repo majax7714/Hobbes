@@ -128,14 +128,18 @@
 ---
 
 ### C-64 — Lane B runs in the sandbox image; without one, executing providers refuse
-- **Cannot tell you:** Rust semantics (and the venv-attributed Python
-  environment) on a box with no `podman` or with the sandbox image not
-  built. Since ADR-092 every lane B step runs inside
-  `hobbes-session:local`; the steps that execute repo-authored code —
-  rust-analyzer's `scip` export (C-29) and the venv listing, which runs
-  the venv's own `bin/python` — **refuse** on such a box rather than run
-  on the host. Rust falls to lane A's syntactic floor; the Python index
-  runs without an environment listing (C-27's shape). A repo needing a
+- **Cannot tell you:** Rust **or Java** semantics (and the
+  venv-attributed Python environment) on a box with no `podman` or with
+  the sandbox image not built. Since ADR-092 every lane B step runs
+  inside `hobbes-session:local`; the steps that execute repo-authored
+  code — rust-analyzer's `scip` export (C-29), **scip-java, which runs
+  the repo's own Maven or Gradle build** (C-66, ADR-096), and the venv
+  listing, which runs the venv's own `bin/python` — **refuse** on such a
+  box rather than run on the host. Rust and Java fall to lane A's
+  syntactic floor; the Python index runs without an environment listing
+  (C-27's shape). Java is also the language whose *toolchain* the image
+  supplies most of: three JDKs and Maven, with a Gradle repo pulling its
+  own wrapper. A repo needing a
   newer toolchain than the image pins (`RUSTUP_TOOLCHAIN`,
   `GOTOOLCHAIN=local`) degrades per unit, visibly. The oracle lane's
   O6/O7 (bench tooling) refuse the same way — a cell does not grade on

@@ -46,7 +46,7 @@ Both remaining rows are the **same-line collision**: `RequestConverter.java:1602
         .getHighlight(highlightQuery.getHighlight(), highlightQuery.getType()))
 ```
 
-— the two-argument chain continuation and the zero-argument accessor on a value. The join keys evidence on `(file, line, name)` and tie-breaks by column, and with two identically named calls on one line the two lanes can pair with different ones. Not a resolver being wrong on either side: the graded edge is semantic and javac confirmed it. Registered as the (file, line, name) key's residue; the same shape is what the oracle reports as `line-grain tolerance used on 8,964 edges`.
+— the two-argument chain continuation and the zero-argument accessor on a value. The join keys evidence on `(file, line, name)` and tie-breaks by column, and with two identically named calls on one line the two lanes can pair with different ones. Not a resolver being wrong on either side: the graded edge is semantic and javac confirmed it. Registered as **C-70** (this cell is its measurement: 2 of 3,908 dual-resolved sites, 0.05%); the same shape is what the oracle reports from its side as `line-grain tolerance used on 8,964 edges`.
 
 **A third disagreement was a real lane A defect and is fixed.** `new CriteriaQuery( //` (a trailing comment inside the argument list) bound to the two-argument constructor, because tree-sitter *extras* — comments — are named children and the arity filter counted one. `_args` now skips comment nodes; the pinned test is `test_a_comment_inside_an_argument_list_is_not_an_argument`. Disagreements 3 → 2.
 

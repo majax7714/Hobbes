@@ -214,7 +214,8 @@ review → `lane_b` pytest) and runs the same way on a box.
   precision, 0 contradicted**, recall 66–98% with lane B and 23.5%
   without. **C-66 waits on Max's ratification**: Java's index step is
   the only one that executes repo code *and* keeps a network, because
-  the build is the dependency resolution.
+  the build is the dependency resolution — **the first thing to settle
+  next session** (`docs/session-handoff.md` opens with it).
 - **The derivation programme is built and under test.** `hobbes plan`
   (ADR-051), `hobbes run` (ADR-054), the staged harness run (ADR-059) and
   `hobbes bench` (ADR-055) exist and have been run live on the

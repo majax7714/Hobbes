@@ -252,6 +252,37 @@
   wrong target, the package function of the same name; the oracle's 3
   syntactic-tier contradictions).
 
+### C-70 — Two calls of the same name on one line can pair with the wrong resolution
+- **Cannot tell you:** which of two identically named call sites on a
+  single source line a given resolution belongs to. The join keys
+  evidence on `(file, line, name)` and tie-breaks by nearest column, so
+  where one line holds `foo(bar.foo(), x)` — two sites named `foo` —
+  the syntactic and semantic lanes can pair with different ones, and
+  the edge drawn may be attributed to the neighbouring site.
+- **Because:** ranges are what the two lanes can agree on (§3.4), and
+  the evidence IR records a line per site; column is carried but used
+  only as a tie-break, because the providers do not agree on columns
+  closely enough to key on them (a chain continuation, a wrapped
+  argument list and a macro expansion all move one). Keying on the pair
+  would mean either dropping sites the providers place differently or
+  inventing an alignment — a false edge in place of a coarse one.
+- **Bites at:** fluent chains and overloads above all, which is why
+  **Java found it**: `.getHighlight(highlightQuery.getHighlight(), …)`
+  on one line. Measured at **2 of 3,908 dual-resolved sites (0.05%)** on
+  spring-data-elasticsearch and **0** on jsoup (3,417), petclinic (36)
+  and this repo — small, and not zero. The *edge* is usually still
+  right, because both candidates are real calls on that line; what is
+  unreliable is which site it is attributed to, and therefore the
+  caller when the two sit in different declarations.
+- **You find out:** **surfaced, as a disagreement** — `hobbes lanes`
+  reports exactly these rows (both lanes resolved, different targets),
+  which is how this entry came to exist; the oracle lane reports the
+  same shape from its side as `line-grain tolerance used on N edges`,
+  printed on every cell. What is *not* surfaced is a collision only one
+  lane resolved: there the pairing is unchecked.
+- **Source:** measured 2026-08-29 on the O8 Java cells (ADR-096); the
+  key is ADR-029's.
+
 ### C-32 — The tail view's classes are observations with boundaries
 - **Cannot tell you:** *why* a call is unresolved beyond what its class
   observes — and three boundaries shape what the classes can say.
@@ -268,7 +299,14 @@
   minus the scope check — an import binds at module level. **Rust has
   no origin classes at all**: both verified Rust tails are empty, so a
   collector could not be verified against anything real, and wiring one
-  on zero evidence would be the P11 mistake at class scale. **Builtin lists are
+  on zero evidence would be the P11 mistake at class scale. **Java adds
+  two classes of its own** (ADR-096), both abstentions rather than
+  origins: `overload-set` — the name binds to more than one declaration
+  the argument count cannot separate — and `inherited-member` — the
+  site sits in a type that declares supertypes, so the callee may be
+  inherited and only lane B's hierarchy knows; its `local-binding` is
+  binding-proven with scope containment (an anonymous-class or
+  enum-constant body's extent), like Python's and Go's. **Builtin lists are
   pinned literals**, not the running interpreter's — a builtin the
   language adds later classifies `unclassified` until the pin moves.
   **Shape is read from the terminal's source line, plus one line up

@@ -114,7 +114,7 @@ information appears in both, and the entries cross-reference.
 
 | File | Segment | Entries |
 |---|---|---|
-| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-32, C-3, C-59 |
+| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-3, C-59 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-11, C-24, C-63 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-16, C-33 |
@@ -135,8 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Sixty-nine entries: fifty-nine active, eight lifted, two superseded**
-(C-66–C-69 added 2026-08-29 by ADR-096 — Java: the build runs in the
+**Seventy entries: sixty active, eight lifted, two superseded**
+(C-70 added 2026-08-29 — two same-named calls on one line can pair with
+the wrong resolution, found by Java's fluent chains and measured at
+0.05% of dual-resolved sites, surfaced as a lane disagreement;
+C-66–C-69 added the same day by ADR-096 — Java: the build runs in the
 container with a network (C-66, flagged for ratification), the
 one-configuration graph, generated sources (*partial*), and read-not-resolved
 dependency counts — three surfaced on day one; C-65 added 2026-08-28 by ADR-094 — the knowledge proxy pinned to the
