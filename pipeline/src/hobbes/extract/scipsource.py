@@ -240,7 +240,10 @@ def _helper_cmd() -> list[str]:
 
 
 def run_helper(
-    config: dict, timeout: int = 900, ro: list[str] | tuple[str, ...] = ()
+    config: dict,
+    timeout: int = 900,
+    ro: list[str] | tuple[str, ...] = (),
+    env: tuple[str, ...] | list[str] = (),
 ) -> dict:
     """Run the helper with *config* and return its parsed facts.
 
@@ -265,6 +268,7 @@ def run_helper(
         [*_helper_cmd(), "--config", str(config_path)],
         cwd=stage.parent,
         ro=ro,
+        env=env,
     )
     try:
         outcome = containment.run(plan, timeout=timeout)
@@ -421,7 +425,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
-        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs", ".java")) and index.kind(callee) == "type":
+        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs")) and index.kind(callee) == "type":
             # Go writes a conversion exactly like a call. Lane A drops the
             # ones it can name (a type in the same or an imported repo
             # package); this is the guard for the rest — a nested module
@@ -431,9 +435,12 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
             # Rust writes a tuple-struct constructor the same way
             # (`FinderRev(Hash::new(..))`), and the compiler lowers it to
             # an aggregate, not a call: memchr (O7, 2026-08-27), 7 of 7
-            # contradictions. Java: `new T() {..}` references the type at
-            # the site — the anonymous subclass's constructor is what
-            # runs (ADR-096). The edge to the type stays, as `uses`.
+            # contradictions. Not Java: `new T()` with an implicit
+            # constructor is a call javac places at the class line (the
+            # O8 fixture cell: the guard cost that pair), and the one
+            # shape that references a type at a `new` — `new T() {..}` —
+            # is no lane A site at all (ADR-096). The edge to the type
+            # stays, as `uses`.
             edge_type = "uses"
         key = (caller, callee, edge_type, fact.tier, lane)
         symbol_evidence.setdefault(key, []).append(site)
@@ -1465,6 +1472,43 @@ def extract_scip_java(
     return merged
 
 
+#: The image's JDK homes by major (sandbox/Containerfile).
+JAVA_HOMES = {17: "/usr/local/java-17", 21: "/usr/local/java-21", 25: "/usr/local/java-25"}
+
+
+def java_home_for(repo_root: Path, build_files: list[str]) -> str:
+    """The JDK the build runs on: derived from the build files, never
+    authored (ADR-027). A build that asks for a source/release level
+    above the default 21 — Gradle's ``JavaVersion.VERSION_25``,
+    ``languageVersion.of(25)``, ``sourceCompatibility = 25``; Maven's
+    ``<release>25``, ``<maven.compiler.release>25``, ``<java.version>25``
+    — gets the image's JDK 25 (Severed-Chains: "invalid source release:
+    25" on the default). A level at or below 21 keeps the default: a
+    newer javac compiles an older source level, and a Gradle toolchain
+    pin resolves through ``org.gradle.java.installations.paths``
+    regardless. This is a text observation of what the build spells."""
+    import re
+
+    pattern = re.compile(
+        r"(?:VERSION_|JavaLanguageVersion\.of\(|languageVersion\s*=\s*|"
+        r"sourceCompatibility\s*=\s*|targetCompatibility\s*=\s*|release\s*=\s*|"
+        r"<release>|<maven\.compiler\.release>|<maven\.compiler\.source>|<java\.version>|<javaVersion>)"
+        r"\s*['\"]?(\d{1,2})"
+    )
+    wanted = 0
+    for rel in build_files:
+        try:
+            text = (repo_root / rel).read_text(errors="replace")
+        except OSError:
+            continue
+        for match in pattern.finditer(text):
+            wanted = max(wanted, int(match.group(1)))
+    for major in sorted(JAVA_HOMES):
+        if major >= wanted and major >= 21:
+            return JAVA_HOMES[major]
+    return JAVA_HOMES[max(JAVA_HOMES)]
+
+
 def gradle_user_properties() -> str:
     """The derived ``gradle.properties`` under GRADLE_USER_HOME: the
     image's JDKs for toolchain resolution, no auto-download (there is
@@ -1495,6 +1539,7 @@ def _index_java_unit(
     build_files = java_build_files(repo_root, root)
     staged = sorted(set(root_files) | set(build_files))
     declared = declared_java_dependencies(repo_root, build_files)
+    java_home = java_home_for(repo_root, build_files)
 
     gradle_home = staging.cache_root() / "gradle"
     gradle_home.mkdir(parents=True, exist_ok=True)
@@ -1520,6 +1565,7 @@ def _index_java_unit(
                 "declaredDeps": declared,
             },
             timeout=_JAVA_INDEX_TIMEOUT,
+            env=(f"JAVA_HOME={java_home}", f"PATH={java_home}/bin:{containment.CONTAINER_PATH}"),
         )
     finally:
         staging.remove_stage(stage)

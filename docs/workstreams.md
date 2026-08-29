@@ -88,6 +88,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
   disagreements are this one off-by-one. A small tsextract facts pass.
 - **jest-globals detection + `package.json bin` entry points** (C-13,
   C-14 residue).
+- **Java follow-ups (ADR-096, 2026-08-29):** a Spring route pack; the
+  `maven-toolchains-plugin` case (a pom that *requires* a JDK major —
+  derive `~/.m2/toolchains.xml` from the image's three, C-67); egress
+  narrowing or a registry mirror for `index-java` (C-66); a bytecode
+  RTA oracle if the CHA recall number is not sharp enough for C-58's
+  Java entry; Kotlin lane A if a mixed repo is ever named.
 - **`bench-rust` pack for criterion benches** — pack territory, parked
   rather than half-detected.
 - **Cache hygiene** — a `hobbes cache` subcommand sweeping

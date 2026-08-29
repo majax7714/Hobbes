@@ -315,7 +315,7 @@ class TestRouting:
         assert (cache / "gradle" / "gradle.properties").read_text().startswith(
             "org.gradle.java.installations.paths=/usr/local/java-17,/usr/local/java-21,/usr/local/java-25"
         )
-        assert "/usr/local/java/bin" in env
+        assert "JAVA_HOME=/usr/local/java-21" in env and "/usr/local/java-21/bin" in env
 
     def test_a_go_module_fetches_then_indexes(self, cache, monkeypatch):
         plans = self._capture(monkeypatch)

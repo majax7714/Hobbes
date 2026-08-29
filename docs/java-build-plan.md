@@ -1,12 +1,20 @@
-# Hobbes — Java addition, build plan (parked)
+# Hobbes — Java addition, build plan (executed)
 
-**Status: parked — a plan, not a queue.** Written 2026-08-28 at Max's
-ask ("map out the Java addition with a build plan"; interest, not
-intent). Nothing here is un-parked; the programme opens when Max names
-it, with an ADR-096 as its first commit. Sequencing rules carry from v1
-and v2: deterministic before generative, one milestone active at a
-time, each milestone exits on a real repo, stop at exits for Max's
-review.
+**Status: executed 2026-08-29 (ADR-096) — kept as the plan that was
+followed.** Written 2026-08-28 at Max's ask; opened the next day at
+Max's direction. Where the build departed from the plan, ADR-096 says
+so: JUnit lives in the provider, not a pack (an annotation is an
+attribute, ADR-040's rule); lane B keeps a network (C-66 — neither
+build tool separates fetching from evaluating the build); the oracle
+is javac's own resolution plus CHA, not a bytecode RTA (recorded as
+the next step if CHA is too coarse); the image carries three JDKs.
+
+The sequencing rules it was written under carried from v1 and v2:
+deterministic before generative, one milestone active at a time, each
+milestone exits on a real repo, stop at exits for Max's review. What
+actually happened is in `docs/BUILDLOG.md` (2026-08-29) and the four
+cell records; the milestone text below is unedited, so the plan and the
+outcome can be compared.
 
 This is architecture §3.7's four-step checklist, elaborated to
 file-level work with exit criteria, against the code at `90e4948`. The

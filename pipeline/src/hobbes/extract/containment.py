@@ -243,6 +243,8 @@ class Plan:
             "--env", f"PATH={CONTAINER_PATH}",
         ]
         for kv in (*_cache_env(Path(self.cache_root)), *self.profile.env, *self.env):
+            # A later --env wins in podman, so a step may override PATH
+            # or JAVA_HOME (the Java lane's derived JDK, ADR-096).
             args.extend(["--env", kv])
         args.extend(["--workdir", self.cwd])
         for spec in self.mounts():

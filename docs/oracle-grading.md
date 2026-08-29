@@ -334,6 +334,56 @@ has no network. Regraded on `rust_proj` as a numeric no-op
 divergence is a harness finding first. Then dagger's rust (8,595 sites) as
 the scale cell.
 
+## 7b. The Java oracle (O8, ADR-096)
+
+**Primary: javac resolution oracle, with CHA for the virtual sites.**
+The compiler's own front end is the authority on what a call site
+*names*: a javac `Plugin` (`bench/oracle/java`, no dependency beyond
+the JDK) rides the repo's own build — injected through a wrapping
+`javac` under Maven (`-Dmaven.compiler.executable`, the scip-java
+trick) or an init script under Gradle — and after every compilation
+unit's ANALYZE records what `Trees.getElement` resolved each method
+invocation and `new` to. Grain is `tsc`'s: (site = the callee
+identifier's line, target = the resolved declaration's name line).
+Because Maven compiles main and test in separate javac runs and a
+test's call into main resolves against a class file with no name line,
+shards carry declarations *keyed* — `owner#name(erased, annotation-free
+parameter types)` — and the Go merge (`internal/javac`) joins keys
+across every shard of the build; a key no shard declares is external.
+
+**Dispatch.** A virtual or interface call (mode `dynamic`) carries the
+declared method as the site's `interface` — so Hobbes' edge to it
+buckets *abstract*, never contradicted — and its targets are the
+declared method plus the **CHA override set**: every declaration with
+the same key suffix whose owner is a subtype of the declared owner, in
+the hierarchy the shards record. Recall against that set is the size of
+Java's dispatch hole (C-58's majority case) per cell; RTA was not built
+(instantiation analysis over bytecode — SootUp/WALA — is the recorded
+next step if the CHA number is not sharp enough). Static (constructor,
+`static`, `private`, `final`, `super.m()`, a `final`/record owner) sites
+have one target.
+
+**Conventions.** `new T(..)` resolves to T's constructor — an *implicit*
+one sits at the class line (javac synthesises it there), which is where
+Hobbes' `calls` to the type lands. `new T() {..}` targets T's
+constructor by erased arity (the anonymous class's synthetic one calls
+it); Hobbes draws `uses` there by decision (ADR-096), so the pair is a
+recorded miss class, not a contradiction. Sources under `target/` or
+`build/` (annotation-processor output) are dropped and counted
+(`excluded.generated`). Method references are not sites. Lambdas
+attribute to the enclosing declaration.
+
+**Where it runs (ADR-092 / C-66):** inside the sandbox image, with a
+network — the build is the dependency resolution, exactly as the ingest
+lane's `index-java`. The plugin jar is built in the image once per cell
+dir (`java-build`, no network).
+
+**Pilot cell:** the `minijava` fixture — every pair hand-computed in
+`internal/grade/java_test.go` (the overload, the constructor chain, the
+implicit constructor, the interface call and its CHA override, the
+anonymous member). Then jsoup (Maven library) and spring-petclinic
+(Spring service), and two repos drawn at random (§9).
+
 ## 8. The matcher
 
 **Inputs:** (a) a Hobbes graph export per cell — every call edge with site

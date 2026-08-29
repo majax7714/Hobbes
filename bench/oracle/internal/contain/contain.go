@@ -45,7 +45,7 @@ const (
 	UncontainedEnv = "HOBBES_UNCONTAINED"
 	cacheEnv       = "HOBBES_CACHE_DIR"
 	// Path is the image-neutral PATH (mirrors the ingest planner's).
-	Path = "/usr/local/cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
+	Path = "/usr/local/java/bin:/opt/maven/bin:/usr/local/cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
 )
 
 // systemPrefixes are the image's own; a tool tree under one is never
@@ -69,10 +69,16 @@ type Profile struct {
 }
 
 // Profiles, stated once. O6 and O7 execute; the cargo fetch does not.
+// O8 (the Java javac oracle, ADR-096) executes the repo's build and,
+// like the ingest lane's index-java, keeps a network: the build is the
+// dependency resolution (C-66). java-build compiles the plugin itself —
+// Hobbes's code, no network.
 var Profiles = map[string]Profile{
 	"py-trace":   {Step: "py-trace", Executes: true, Network: "none"},
 	"rust-mir":   {Step: "rust-mir", Executes: true, Network: "none"},
 	"fetch-rust": {Step: "fetch-rust", Executes: false, Network: ""},
+	"java-javac": {Step: "java-javac", Executes: true, Network: ""},
+	"java-build": {Step: "java-build", Executes: false, Network: "none"},
 }
 
 // Plan is one ready-to-run oracle container. Pure data.

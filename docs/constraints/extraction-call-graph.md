@@ -195,12 +195,19 @@
   for any of them** — not to the interface method, not to the concrete
   implementation, not to the closure. `who_calls` on an implementation
   reached only through its interface answers *nobody*.
-- **Java face (ADR-096):** every non-final instance method call is
-  potentially polymorphic, so this is the *majority* case for Java, not
-  the exception; the static edge goes to the declared target (the
-  interface or superclass method), tiered, and J.M4's oracle sizes the
-  hole per repo. An overload the fallback declined to pick is not this
-  entry — it is named `overload-set` in the tail and resolved by lane B.
+- **Java face (ADR-096), measured:** every non-final instance method
+  call is potentially polymorphic, so this is the *majority* case for
+  Java, not the exception. The edge goes to the **declared** target (the
+  interface or superclass method) and javac confirms it; each concrete
+  override below it draws nothing. Graded against the CHA override set
+  on four repos (O8, 2026-08-29): `interface→method` recall
+  **98.7% (spring-petclinic) · 67.5% (jsoup) · 57.4% (spring-data-elasticsearch)
+  · 0.4% (Severed-Chains, lane A alone)**, and 84.6–90.9% of every
+  cell's misses. Members declared in anonymous-class and enum-constant
+  bodies are a second face (452–518 pairs per large cell): below the
+  symbol floor by decision, named `local-binding` in the tail. An
+  overload the fallback declined to pick is not this entry — it is
+  named `overload-set` and resolved by lane B.
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

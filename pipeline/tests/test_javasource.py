@@ -158,6 +158,14 @@ class TestCallSites:
         at = [s for s in layer["call_sites"] if s.file == f"{APP}/Report.java" and s.line == ref_line]
         assert {s.name for s in at} == {"stream", "map", "count"}
 
+    def test_enum_constants_with_arguments_are_constructor_sites(self, layer):
+        sites = [s for s in _sites(layer, "Color") if s.file == f"{APP}/Color.java"]
+        text = (FIXTURE / APP / "Color.java").read_text().splitlines()
+        assert {text[s.line - 1].strip() for s in sites} == {"RED(1),", "GREEN(2);"}
+        fb = layer["call_fallback"]
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        assert {fb[k] for k in fb if k[2] == "Color"} == {(f"{APP}/Color.java", by_id[f"{APP}/Color.Color.Color"]["line"])}
+
     def test_annotations_are_not_calls(self, layer):
         assert not _sites(layer, "Test") and not _sites(layer, "Override")
 
@@ -225,6 +233,18 @@ class TestFallback:
         names = {k[2] for k in layer["overload_sites"]}
         assert names == {"add"}
         assert {k[2] for k in layer["inherited_sites"]} == {"log", "label"}
+
+    def test_a_comment_inside_an_argument_list_is_not_an_argument(self, tmp_path):
+        # tree-sitter extras are named children (spring-data-elasticsearch:
+        # `new CriteriaQuery( //` picked the two-argument constructor).
+        (tmp_path / "A.java").write_text(
+            "package p;\nclass A {\n  A(int x) {}\n  A(int x, int y) {}\n"
+            "  static A make() { return new A( //\n      1);\n  }\n}\n"
+        )
+        layer = extract_java(tmp_path)
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        [target] = [v for k, v in layer["call_fallback"].items() if k[2] == "A"]
+        assert target == ("A.java", by_id["A.A.A"]["line"])
 
     def test_an_inherited_overload_is_not_bound_to_the_local_one(self, layer):
         # Shapes.Derived: `log(s, 1)` — the local `log(String)` takes one

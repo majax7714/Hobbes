@@ -1,19 +1,33 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-28 (late): CI built (ADR-095); the handoff trimmed
-to what is forward-looking.** Read this, then the recent
-`docs/BUILDLOG.md` entries (2026-08-27/28) for how the current state
+**Rewritten 2026-08-29: Java landed (ADR-096) — six milestones, four
+compiler-graded cells, one decision waiting on Max.** Read this, then the recent
+`docs/BUILDLOG.md` entries (2026-08-28/29) for how the current state
 was reached, and `docs/workstreams.md` for the backlog by owner.
 History lives in the BUILDLOG; this doc is rewritten, never appended
 into a pile.
 
-## WHERE THINGS STAND (2026-08-28)
+## WHERE THINGS STAND (2026-08-29)
 
 - **Extraction:** every compiler-graded oracle cell at 100% on every
-  tier it reaches (Go/TS/Rust); Python trace-graded (C-60). The misses
-  are C-58 (closures, function values, dispatch — surfaced *partial* as
-  `below-floor`) and Rust's generated code. Records: `docs/oracle-cells/`,
-  `oracle-misses.md`, `oracle-defects.md` (+ review/tally).
+  tier it reaches (Go/TS/Rust/**Java**); Python trace-graded (C-60). The
+  misses are C-58 (closures, function values, dispatch — surfaced
+  *partial* as `below-floor`) and Rust's generated code. Records:
+  `docs/oracle-cells/`, `oracle-misses.md`, `oracle-defects.md`
+  (+ review/tally).
+- **Java is the sixth language (ADR-096, this session).** Lane A
+  (`javasource.py`), scip-java 0.13.1 contained, the JUnit inventory,
+  a javac+CHA oracle (`bench/oracle/java`, O8), and a §3.8 row on four
+  repos — jsoup, spring-petclinic, and **two drawn at random**
+  (spring-data-elasticsearch, Severed-Chains). All four at **100%
+  precision, 0 contradicted**; recall 66–98% where lane B runs and
+  **23.5% on the one where it could not** (C-67's first sighting:
+  scip-java cannot attach to every Gradle build). **One decision waits
+  on Max: C-66** — `index-java` is the only index step that executes
+  repo code *and* keeps a network, because in Java the build *is* the
+  dependency resolution. Reversing it is one field in
+  `containment.PROFILES`; the cost of reversing is Gradle repos and
+  most Maven ones losing lane B.
 - **Containment (ADR-092): built, all four phases, reviewed by Max.**
   Lane B and the O6/O7 oracles run only in `hobbes-session:local`;
   executing steps refuse on the host (C-64); `graph.json` carries the
@@ -41,6 +55,9 @@ into a pile.
 
 ## NEXT (in order, none cleared to spend compute)
 
+0. **Max ratifies or reverses C-66** (the networked Java index step),
+   and the four ADR-092 decisions still listed below. Nothing blocks on
+   it — Java works either way, with a much smaller claim if reversed.
 1. **Watch the first CI run** when Max pushes; anything runner-specific
    (rootless podman as `runner`, rustup inside `podman build`) is fixed
    in `ci-graph.sh` / the workflow, not worked around.
@@ -50,7 +67,12 @@ into a pile.
 3. **The removal A/B re-run** on a cleared 7B run — now un-confounded on
    D5; needs n large enough to split O4's planner variance. GPU-hours
    stated first (the compute-economics gate).
-4. Collaborator onboarding per `workstreams.md`.
+4. **Java follow-ups (W1), none urgent:** a Spring route pack; the
+   `maven-toolchains-plugin` case (C-67); egress narrowing for C-66; a
+   Lombok/protobuf cell to size C-68, which the four cells left
+   **unmeasured** (`excluded.generated: 0` on every one); a bytecode
+   RTA only if CHA proves too coarse.
+5. Collaborator onboarding per `workstreams.md`.
 
 ## STANDING POLICY (Max) — read before doing anything
 
@@ -67,7 +89,9 @@ into a pile.
 
 ## PRACTICAL NOTES
 
-- The image must be built on the box (`sandbox/README.md`, ~4 min);
+- The image is **2.79 GB** since ADR-096 (three Temurin JDKs, Maven,
+  the scip-java launcher: +1.1 GB) and must be built on the box
+  (`sandbox/README.md`, ~5 min);
   `lane_b` tests skip without it. `scripts/ci-graph.sh HEAD~1` is the
   full local check.
 - **The one deselected test:**

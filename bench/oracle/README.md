@@ -8,18 +8,18 @@ source that is independent of Hobbes, authoritative for the language,
 and regenerable by anyone with the toolchain.
 
 ```sh
-cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust)
+cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust), minijava (Java)
 cd bench/oracle/ts && npm install            # once: the fallback typescript for fixtures
 cd bench/oracle/rust && cargo +nightly build --release   # once per nightly: the MIR driver (rustc-dev)
-bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust] [--no-ingest] \
-    [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [-- <pytest args>]
+bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java] [--no-ingest] \
+    [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [--tool maven|gradle] [-- <pytest args>]
 ```
 
 `run-cell.sh` ingests the repo with lane B, exports the Hobbes edges of
 one cell, runs the language's oracle on it, grades, and leaves
 `hobbes.json`, `oracle.json`, `report.json`, `report.txt` and the cell's
 runtime in the output directory. The steps are the binary's subcommands
-(`oracle export | go-rta | py-trace | rust-mir | grade`) if you need
+(`oracle export | go-rta | py-trace | rust-mir | java-javac | grade`) if you need
 them apart; the TS oracle is `ts/tsc-oracle.mjs`. Phase 1 (ADR-089) is
 Go and TS; phase 2 is the Python trace oracle and the Rust MIR oracle
 below. **Those two execute the target** (its suite; its build scripts),
@@ -279,6 +279,28 @@ same sites twice). Needs the nightly pinned in `rust/rust-toolchain.toml`
 with `rustc-dev`; the exact `rustc -vV` is stamped into every export,
 because a different nightly is a different oracle.
 
+## The Java javac oracle (`java/`, O8, ADR-096)
+
+`oracle java-javac --repo <repo> --module <build-root> --plugin java
+--out-dir <cell> [--tool maven|gradle]` builds the `HobbesOracle` javac
+plugin jar in the sandbox image (once per cell dir; `java/build.sh`,
+JDK only) and runs the repo's build with it attached — Maven through
+the wrapping `java/javac-oracle.py` (`-Dmaven.compiler.executable`,
+`fork=true`; argument files expanded, the jar joined to the processor
+path or the class path), Gradle through the `java/hobbes-oracle.gradle`
+init script (a toolchain forbids a forked executable, so the plugin
+rides the processor path and the JVM export rides the compiler daemon's
+args). One shard per compilation unit (`<cell>/javac-shards/`):
+declarations keyed `owner#name(erased params)` with their name line,
+the class hierarchy, and every site with its resolved key and mode
+(`static` / `dynamic`). The merge joins keys across shards, resolves
+targets, and for a dynamic site adds the CHA override set below the
+declared owner with the declared method as `interface`. Kind
+`resolution`, no roots; `Roots` names the build tool. Runs contained
+**with a network** (C-66): the build resolves its own dependencies.
+The `minijava` fixture is the self-test (`internal/grade/java_test.go`,
+skipped without the image).
+
 ## Guards in the extractors (RR-1, A-5, A-6)
 
 Every walk-down step in `ts/tsc-oracle.mjs` goes through `descend(from,
@@ -310,7 +332,11 @@ seven pairs observed under its two tests, a constructor among them; two
 modules the suite never imports) and `pipeline/tests/fixtures/minirust`
 (lib + bin + `#[cfg(test)]` + integration test: nine in-repo pairs, one
 across the crate boundary, one inside the crate's own macro; one macro
-invocation excluded). Their hand-computed truth is the Go test suite
+invocation excluded) and `pipeline/tests/fixtures/minijava` (one Maven
+module: an overload pair, a constructor chain and an implicit
+constructor, an interface call with one CHA override, an anonymous
+member, a lambda, a static import, three JUnit tests — eighteen in-repo
+pairs). Their hand-computed truth is the Go test suite
 (the TS, Python and Rust tests shell out to node / `uv` / `cargo
 +nightly` and skip without them).
 `testdata/*.graph.json` are the fixtures' Hobbes graphs as ingested

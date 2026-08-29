@@ -752,6 +752,19 @@ class TestJavaUnits:
         # `runtimeOnly` line skipped by the same rule.
         assert groups == ["maven/com.google.guava", "maven/com.squareup.okio", "maven/org.junit.jupiter"]
 
+    def test_the_jdk_the_build_runs_on_is_derived_from_what_it_spells(self, tmp_path):
+        cases = {
+            "build.gradle": ("sourceCompatibility = targetCompatibility = JavaVersion.VERSION_25\n", "/usr/local/java-25"),
+            "sub/build.gradle.kts": ("java { toolchain { languageVersion.set(JavaLanguageVersion.of(17)) } }\n", "/usr/local/java-21"),
+            "pom.xml": ("<project><properties><maven.compiler.release>25</maven.compiler.release></properties></project>", "/usr/local/java-25"),
+            "old/pom.xml": ("<project><properties><java.version>8</java.version></properties></project>", "/usr/local/java-21"),
+        }
+        for rel, (text, want) in cases.items():
+            (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / rel).write_text(text)
+            assert scipsource.java_home_for(tmp_path, [rel]) == want, rel
+        assert scipsource.java_home_for(tmp_path, []) == "/usr/local/java-21"
+
     def test_the_derived_gradle_properties_name_the_image_jdks(self):
         text = scipsource.gradle_user_properties()
         assert "/usr/local/java-17,/usr/local/java-21,/usr/local/java-25" in text

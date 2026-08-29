@@ -22,6 +22,7 @@ ROW_LANGUAGES = {
     "TypeScript / JavaScript": ["typescript", "javascript"],
     "Go": ["go"],
     "Rust": ["rust"],
+    "Java": ["java"],
     "Terraform/HCL": ["hcl"],
 }
 

@@ -1,6 +1,6 @@
 # ADR-096 — Java: the sixth language, and what its build costs the containment story
 
-**Date:** 2026-08-29 · **Status:** accepted — J.M0–J.M2 built this session (the spike, lane A, contained lane B); J.M4 (the oracle) and J.M5 (the evidence row) follow in `docs/java-build-plan.md`'s order · **Owner:** Max · **Source:** `docs/java-build-plan.md` (parked 2026-08-28, opened 2026-08-29 at Max's direction: "begin implementing java as an added language")
+**Date:** 2026-08-29 · **Status:** accepted — **all six milestones built and run this session**: the spike (J.M0), lane A (J.M1), contained lane B (J.M2), the JUnit inventory in the provider (J.M3), the javac+CHA oracle and its four cells (J.M4), the §3.8 row and the register (J.M5). One decision (3) is flagged for Max's ratification · **Owner:** Max · **Source:** `docs/java-build-plan.md` (parked 2026-08-28, opened 2026-08-29 at Max's direction: "begin implementing java as an added language")
 
 Amends the architecture's **§3.1** (a sixth syntax provider), **§3.2** (a
 fifth indexer; the one index step with a network), **§3.7** (a sixth
@@ -92,11 +92,16 @@ no honest way to download one at index time; upstream's own image
 carries the same three. The ingest planner writes a derived
 `gradle.properties` under `GRADLE_USER_HOME` (in the Hobbes cache):
 `org.gradle.java.installations.paths=/usr/local/java-17,…-21,…-25`,
-`auto-download=false`, `daemon=false`. Maven runs on the default JDK
-with whatever `<release>` the pom sets; a pom that *requires* a JDK
-major via `maven-toolchains-plugin` degrades per unit (C-67). Gradle is
-not installed: a Gradle repo runs its own wrapper, which downloads the
-distribution it pins into the cache.
+`auto-download=false`, `daemon=false`. **The JDK the build runs on is
+itself derived** (`java_home_for`, mirrored in the oracle's `JavaHome`):
+a build that spells a source/release level above 21 — Gradle's
+`JavaVersion.VERSION_25`, Maven's `<maven.compiler.release>` — gets JDK
+25, everything else the default 21, because a newer javac compiles an
+older level. That rule came from a random draw: Severed-Chains pins
+`VERSION_25` and failed with `invalid source release: 25` on JDK 21. A
+pom that *requires* a major via `maven-toolchains-plugin` still degrades
+per unit (C-67). Gradle is not installed: a Gradle repo runs its own
+wrapper, which downloads the distribution it pins into the cache.
 
 **3. Java lane B is one contained step with a network — `index-java`:
 `executes_repo_code=True`, `network="default"`.** The other executing
@@ -166,6 +171,17 @@ type, `super(..)` is left to lane B; `System.getenv("X")` joins the
 cross-layer `env:` nodes; `java.lang`'s public types are the pinned
 builtin list (`jimage list` on the image's JDK 21) and an `import`'s
 bound name — a type's or a static member's — is an `import-binding`.
+*(d) Two more abstentions the real repos forced.* A bare call inside a
+type that **declares supertypes** is not resolved at all — Java binds an
+inherited member before an enclosing class's, and an inherited overload
+can share a local one's arity (jsoup's `error(String)`); the tail names
+those `inherited-member`. An **enum constant with arguments** (`GET(false)`)
+*is* a constructor site, named after the enum — 244 oracle pairs on jsoup
+sat at exactly that shape. And the argument count that drives the arity
+filter skips comment nodes, because tree-sitter *extras* are named
+children (`new CriteriaQuery( //` had bound to the two-argument
+constructor on spring-data-elasticsearch).
+
 Test inventory: `@Test`, `@ParameterizedTest`, `@RepeatedTest`,
 `@TestFactory`, `@TestTemplate` on a method, framework `junit` — an
 annotation is an attribute the way `#[test]` is (ADR-040 decision 7),
@@ -190,6 +206,17 @@ a build sees the tree it was written for, and the stage is a copy, so
 the cost is bytes. Files under no build file are skipped and reported
 (C-26's pattern). Wrappers get their mode back after the copy.
 
+**8. The oracle is javac itself, plus CHA — not a bytecode RTA.** The
+plan named SootUp/WALA; what shipped is a javac `Plugin`
+(`bench/oracle/java`, JDK-only) riding the repo's own build, because the
+compiler's own front end is the authority on what a site *names* and it
+needs no second toolchain. Declarations cross shard boundaries **keyed**
+(`owner#name(erased, annotation-free params)`) since Maven compiles main
+and test separately; a dynamic site carries the declared method as
+`interface` and the **CHA override set** as targets. RTA stays the
+recorded next step if CHA's recall proves too coarse — on four cells it
+did not. Details in `docs/oracle-grading.md` §7b.
+
 ## Consequences
 
 - **P7 holds narrowly, as for Rust:** zero lines in the graph builder,
@@ -204,8 +231,12 @@ the cost is bytes. Files under no build file are skipped and reported
   host.
 - **Image:** +1.1 GB. If it starts hurting non-Java repos, ADR-092's
   slim ingest image is the recorded alternative, not a Java-less image.
-- **"Supported" reaches nowhere yet** (P11): Java is *wired*.
-  `verification_base` reports it verified on zero repos until J.M4's
-  oracle cells license a §3.8 row.
+- **"Supported" reaches exactly four repos** (P11), and §3.8 says
+  which: jsoup, spring-petclinic, and two drawn at random
+  (spring-data-elasticsearch, Severed-Chains). Every cell at **100%
+  precision-against-oracle, 0 contradicted**; recall 66–98% with lane B
+  and **23.5% without it** on the one repo where scip-java could not
+  attach (C-67's first sighting). The abstentions above are why
+  precision survived a 1,254-file repo the resolver had never seen.
 - **Kotlin** is out of scope; a repo mixing the two gets Java edges and
   Kotlin references without sites.

@@ -250,6 +250,49 @@ structural fixes at scale, plus the two-module fixture's 0% → 100%
 flip (`semantic`/`calls`) proving the C-33 lift's mechanism exactly.
 Before O4 no §3.8 row existed for dagger and none was licensed; O4 licenses one — for the 19 graded Go modules, at the grain measured, and nothing wider. Every dagger run above is a **host-run record** (pre-ADR-092); a re-ingest under containment has not been made (its Go root needs a bigger box, H-9; its `sdk/rust` and `sdk/typescript` cells are the candidates when one is).
 
+## Java — the four cells of 2026-08-29 (ADR-096, oracle lane O8)
+
+The sixth language, built and graded in one session. Four repos: two
+chosen for shape (a Maven library, a Spring service) and **two drawn at
+random** from a seeded sample of GitHub's `language:java stars:300..3000
+pushed:>2026-03-01` (seed 20260829) — the first time a Hobbes language
+has been measured on repos nobody picked. All four contained (ADR-092);
+cell records in [`oracle-cells/`](oracle-cells/).
+
+| Repo | Files | Graph | Cell |
+|---|---|---|---|
+| **jhy/jsoup** `7860d088` (Maven library) | 197 | 250 nodes, 4,588 symbols, 12,665 call edges (12,663 semantic), 1,716 tests; capture 99.8% of 30,035 sites; lanes 3,417 / **0** | **18,627/18,627 confirmed, 0 contradicted — 100.0%**; recall 76.2% (18,767/24,630); [record](oracle-cells/jsoup-java-2026-08-29.md) |
+| **spring-projects/spring-petclinic** `818c4136` (Spring service) | 50 | 130 nodes, 240 symbols, 296 call edges (all semantic), 76 tests; capture 100.0% of 1,607 sites; lanes 36 / **0** | **356/356 — 100.0%**; recall 98.4% (367/373); [record](oracle-cells/petclinic-java-2026-08-29.md) |
+| **spring-data-elasticsearch** `cc7bd2b7` (**random draw 1**) | 739 | 944 nodes, 9,058 symbols, 12,832 call edges (all semantic), 1,341 tests; capture 100.0% of 33,559 sites (3 unresolved in the repo); lanes 3,908 / **2** | **16,050/16,050 — 100.0%**; recall 66.4% (16,238/24,452); [record](oracle-cells/spring-data-elasticsearch-java-2026-08-29.md) |
+| **Legend-of-Dragoon-Modding/Severed-Chains** `3841686e` (**random draw 2**) | 1,254 | 1,344 nodes, 9,898 symbols, 3,955 call edges — **0 semantic**; lane B failed (C-67) | **10,154/10,154 syntactic edges confirmed, 0 contradicted — 100.0%**; recall **23.5%** (12,803/54,520); [record](oracle-cells/severed-chains-java-2026-08-29.md) |
+
+**Verified:** **no hand-checked edges on any of the four** — every number
+is compiler-graded against javac's own resolution (the `minijava`
+fixture's eighteen pairs are hand-computed, in `internal/grade/java_test.go`).
+Poison check PASS on all four, **0 falsely confirmed** in 45,187 seeded
+wrong edges.
+
+**What the four say, and what they do not.** Precision is 100% on every
+cell, including the one with no semantic lane — the abstention rules
+lane A was given (arity filtering, stopping at a type that declares
+supertypes, declining an overload set outright) hold on 1,254 files of
+code the resolver had never seen. Recall is the honest half: 66–98%
+where lane B runs, **23.5% where it does not**, and `interface→method`
+— C-58's Java face, graded against the CHA override set — is 84–91% of
+every cell's misses. Java's dispatch hole is now a number per repo
+rather than a prediction. What no cell covers: Android, Bazel, a
+Kotlin-mixed tree, annotation-processor-heavy generation, or a private
+registry — the sample is four ordinary Maven/Gradle repos, and C-67
+already names the shape of the ones that fail.
+
+**Three defects the cells produced**, all fixed in the same session:
+two oracle-side (H-20 annotation-bearing keys, H-21 javac's synthetic
+constructors — together 871 false contradictions before the fix) and
+one product-side pair (44 `unclassified` sites on jsoup, every one an
+enum-constant-body helper, now `local-binding`; a trailing comment
+counted as a constructor argument on spring-data-elasticsearch, now
+skipped — lane disagreements 3 → 2).
+
 ## psf/requests (SWE-bench Verified checkouts — eight base commits, ADR-055)
 
 | Date | Numbers |

@@ -329,9 +329,18 @@ def _arity(decl: Node) -> tuple[int, bool]:
     return (fixed, spread)
 
 
+#: tree-sitter *extras* — comments — are named children of any node, so
+#: counting `named_children` counts them (spring-data-elasticsearch:
+#: `new CriteriaQuery( //` bound to the two-argument constructor because
+#: the trailing comment counted as an argument).
+_NOT_AN_ARGUMENT = ("line_comment", "block_comment", "comment")
+
+
 def _args(call: Node) -> int:
     arguments = call.child_by_field_name("arguments")
-    return sum(1 for c in arguments.named_children) if arguments is not None else 0
+    if arguments is None:
+        return 0
+    return sum(1 for c in arguments.named_children if c.type not in _NOT_AN_ARGUMENT)
 
 
 def _dotted(prefix: str, name: str) -> str:
@@ -454,6 +463,35 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                     ctor=True,
                 )
                 | {"args": _args(node)}
+            )
+        elif node.type == "enum_constant":
+            # `GET(false)`: an enum constant with arguments invokes the
+            # enum's constructor — javac's tree says so (jsoup: 244
+            # oracle pairs at exactly this shape). The site is the
+            # constant's identifier, named after the enum.
+            if node.child_by_field_name("arguments") is None:
+                continue
+            name = node.child_by_field_name("name")
+            if name is None:
+                continue
+            line = name.start_point.row + 1
+            owner = _enclosing_type(symbols, line)
+            if owner is None:
+                continue
+            found.append(
+                {
+                    "name": owner.rsplit(".", 1)[-1],
+                    "path": [],
+                    "dotted": False,
+                    "line": line,
+                    "col": name.start_point.column,
+                    "scope": _enclosing(symbols, line),
+                    "first_str": _first_string(node.child_by_field_name("arguments")),
+                    "ctor": True,
+                    "explicit": "enum",
+                    "via_new": False,
+                    "args": _args(node),
+                }
             )
         elif node.type == "explicit_constructor_invocation":
             keyword = next((c for c in node.children if c.type in ("this", "super")), None)
@@ -857,7 +895,7 @@ def _call_fallback(
                     else (
                         # `this(..)`: the enclosing type itself.
                         (parsed.path, _enclosing_type(parsed.symbols, call["line"]))
-                        if call["explicit"] == "this"
+                        if call["explicit"] in ("this", "enum")
                         else type_file(parsed, name)
                     )
                 )

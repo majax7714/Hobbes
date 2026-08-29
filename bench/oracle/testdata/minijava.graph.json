@@ -1,0 +1,938 @@
+{
+  "built_by": {
+    "checkout": "/home/mmarrujo/hobbes_public",
+    "dirty": true,
+    "sha": "6409bd42d83d1a8a310d0e5c1cb501ca73e1b99c"
+  },
+  "containment": {
+    "all_contained": true,
+    "escape_hatch": false,
+    "steps": [
+      {
+        "contained": true,
+        "step": "index-java"
+      }
+    ]
+  },
+  "dependency_coverage": [
+    {
+      "declared": 1,
+      "missing": [],
+      "resolved": 1
+    }
+  ],
+  "dirty": true,
+  "lane_agreement": {
+    "module_edges_compared": 0,
+    "module_edges_excluded_lane_b_only": 7,
+    "module_edges_lane_a_only": [],
+    "module_edges_lane_b_only": [],
+    "site_disagreements": [],
+    "sites_compared": 12
+  },
+  "languages": [
+    "java"
+  ],
+  "module_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/main/java/com/example/app/Circle.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Circle",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 36,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "syntactic",
+      "to": "env:MINIJAVA_HOME",
+      "type": "env-read"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "syntactic",
+      "to": "ext:java.util",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 25,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Circle",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 10,
+          "path": "src/main/java/com/example/app/Report.java"
+        },
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/main/java/com/example/app/Report.java"
+        },
+        {
+          "lane": "scip",
+          "line": 30,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "src/main/java/com/example/app/Report.java"
+        },
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "src/main/java/com/example/app/Report.java"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/util/Strings",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "tree-sitter",
+          "line": 3,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        },
+        {
+          "lane": "tree-sitter",
+          "line": 5,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest",
+      "tier": "syntactic",
+      "to": "ext:org.junit.jupiter.api",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Circle",
+      "type": "imports"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        },
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report",
+      "type": "imports"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "env:MINIJAVA_HOME",
+      "kind": "env",
+      "name": "MINIJAVA_HOME"
+    },
+    {
+      "id": "ext:java.util",
+      "kind": "external",
+      "name": "java.util"
+    },
+    {
+      "id": "ext:org.junit.jupiter.api",
+      "kind": "external",
+      "name": "org.junit.jupiter.api"
+    },
+    {
+      "id": "src/main/java/com/example/app/Calculator",
+      "kind": "module",
+      "path": "src/main/java/com/example/app/Calculator.java"
+    },
+    {
+      "id": "src/main/java/com/example/app/Circle",
+      "kind": "module",
+      "path": "src/main/java/com/example/app/Circle.java"
+    },
+    {
+      "id": "src/main/java/com/example/app/Report",
+      "kind": "module",
+      "path": "src/main/java/com/example/app/Report.java"
+    },
+    {
+      "id": "src/main/java/com/example/app/Shape",
+      "kind": "module",
+      "path": "src/main/java/com/example/app/Shape.java"
+    },
+    {
+      "id": "src/main/java/com/example/util/Strings",
+      "kind": "module",
+      "path": "src/main/java/com/example/util/Strings.java"
+    },
+    {
+      "id": "src/test/java/com/example/app/CalculatorTest",
+      "kind": "module",
+      "path": "src/test/java/com/example/app/CalculatorTest.java"
+    }
+  ],
+  "packs": [],
+  "resolution_coverage": [
+    {
+      "external": 0,
+      "file": "src/main/java/com/example/app/Calculator.java",
+      "resolved": 3,
+      "sites": 3,
+      "unresolved": 0
+    },
+    {
+      "external": 5,
+      "file": "src/main/java/com/example/app/Report.java",
+      "resolved": 5,
+      "sites": 10,
+      "unresolved": 0
+    },
+    {
+      "external": 3,
+      "file": "src/test/java/com/example/app/CalculatorTest.java",
+      "resolved": 6,
+      "sites": 9,
+      "unresolved": 0
+    }
+  ],
+  "schema_version": 4,
+  "sha": "101d73242fe1bd26daf22bda287fed9bf3b80ffd",
+  "symbol_edges": [
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 8,
+          "path": "src/main/java/com/example/app/Calculator.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Calculator.Calculator.Calculator",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator.Calculator~2",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 31,
+          "path": "src/main/java/com/example/app/Calculator.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Calculator.Calculator.of",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 32,
+          "path": "src/main/java/com/example/app/Calculator.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Calculator.Calculator.of",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator.Calculator",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 24,
+          "path": "src/main/java/com/example/app/Calculator.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Calculator.Calculator.twice",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator.add",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 3,
+          "path": "src/main/java/com/example/app/Circle.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Circle.Circle",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape.Shape",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 5,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/util/Strings.Strings",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.Line.text",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/util/Strings.Strings",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 17,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.Line.text",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/util/Strings.Strings.pad",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 32,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.each",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 31,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.each",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.render",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 32,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.each",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.render",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 30,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.each",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape.Shape",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 25,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.job",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Circle.Circle.Circle",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 25,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.job",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.render",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 10,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.render",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape.Shape",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/main/java/com/example/app/Report.java"
+        }
+      ],
+      "from": "src/main/java/com/example/app/Report.Report.render",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Shape.Shape.area",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.addsInts",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator.Calculator",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 11,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.addsInts",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Calculator.Calculator.twice",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.padsThroughTheNestedClass",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.padsThroughTheNestedClass",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.Line",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 21,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.padsThroughTheNestedClass",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.Line.text",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.rendersACircle",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Circle.Circle.Circle",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.rendersACircle",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 16,
+          "path": "src/test/java/com/example/app/CalculatorTest.java"
+        }
+      ],
+      "from": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.rendersACircle",
+      "tier": "semantic",
+      "to": "src/main/java/com/example/app/Report.Report.render",
+      "type": "calls"
+    }
+  ],
+  "symbols": [
+    {
+      "end_line": 34,
+      "has_supertypes": false,
+      "id": "src/main/java/com/example/app/Calculator.Calculator",
+      "kind": "type",
+      "line": 4,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "Calculator",
+      "qualname": "Calculator"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 9,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.Calculator",
+      "kind": "method",
+      "line": 7,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "Calculator",
+      "qualname": "Calculator.Calculator"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 13,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.Calculator~2",
+      "kind": "method",
+      "line": 11,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "Calculator",
+      "qualname": "Calculator.Calculator~2"
+    },
+    {
+      "arity": [
+        2,
+        false
+      ],
+      "end_line": 17,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.add",
+      "kind": "method",
+      "line": 15,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "add",
+      "qualname": "Calculator.add"
+    },
+    {
+      "arity": [
+        2,
+        false
+      ],
+      "end_line": 21,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.add~2",
+      "kind": "method",
+      "line": 19,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "add",
+      "qualname": "Calculator.add~2"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 33,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.of",
+      "kind": "method",
+      "line": 31,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "of",
+      "qualname": "Calculator.of"
+    },
+    {
+      "arity": [
+        2,
+        false
+      ],
+      "end_line": 29,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.pick",
+      "kind": "method",
+      "line": 27,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "pick",
+      "qualname": "Calculator.pick"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 25,
+      "id": "src/main/java/com/example/app/Calculator.Calculator.twice",
+      "kind": "method",
+      "line": 23,
+      "module": "src/main/java/com/example/app/Calculator",
+      "name": "twice",
+      "qualname": "Calculator.twice"
+    },
+    {
+      "end_line": 14,
+      "has_supertypes": true,
+      "id": "src/main/java/com/example/app/Circle.Circle",
+      "kind": "type",
+      "line": 3,
+      "module": "src/main/java/com/example/app/Circle",
+      "name": "Circle",
+      "qualname": "Circle"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 8,
+      "id": "src/main/java/com/example/app/Circle.Circle.Circle",
+      "kind": "method",
+      "line": 6,
+      "module": "src/main/java/com/example/app/Circle",
+      "name": "Circle",
+      "qualname": "Circle.Circle"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 13,
+      "id": "src/main/java/com/example/app/Circle.Circle.area",
+      "kind": "method",
+      "line": 11,
+      "module": "src/main/java/com/example/app/Circle",
+      "name": "area",
+      "qualname": "Circle.area"
+    },
+    {
+      "end_line": 38,
+      "has_supertypes": false,
+      "id": "src/main/java/com/example/app/Report.Report",
+      "kind": "type",
+      "line": 8,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "Report",
+      "qualname": "Report"
+    },
+    {
+      "end_line": 19,
+      "has_supertypes": false,
+      "id": "src/main/java/com/example/app/Report.Report.Line",
+      "kind": "type",
+      "line": 15,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "Line",
+      "qualname": "Report.Line"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 18,
+      "id": "src/main/java/com/example/app/Report.Report.Line.text",
+      "kind": "method",
+      "line": 16,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "text",
+      "qualname": "Report.Line.text"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 33,
+      "id": "src/main/java/com/example/app/Report.Report.each",
+      "kind": "method",
+      "line": 30,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "each",
+      "qualname": "Report.each"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 37,
+      "id": "src/main/java/com/example/app/Report.Report.home",
+      "kind": "method",
+      "line": 35,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "home",
+      "qualname": "Report.home"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 28,
+      "id": "src/main/java/com/example/app/Report.Report.job",
+      "kind": "method",
+      "line": 21,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "job",
+      "qualname": "Report.job"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 12,
+      "id": "src/main/java/com/example/app/Report.Report.render",
+      "kind": "method",
+      "line": 10,
+      "module": "src/main/java/com/example/app/Report",
+      "name": "render",
+      "qualname": "Report.render"
+    },
+    {
+      "end_line": 6,
+      "has_supertypes": false,
+      "id": "src/main/java/com/example/app/Shape.Shape",
+      "kind": "type",
+      "line": 4,
+      "module": "src/main/java/com/example/app/Shape",
+      "name": "Shape",
+      "qualname": "Shape"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 5,
+      "id": "src/main/java/com/example/app/Shape.Shape.area",
+      "kind": "method",
+      "line": 5,
+      "module": "src/main/java/com/example/app/Shape",
+      "name": "area",
+      "qualname": "Shape.area"
+    },
+    {
+      "end_line": 9,
+      "has_supertypes": false,
+      "id": "src/main/java/com/example/util/Strings.Strings",
+      "kind": "type",
+      "line": 3,
+      "module": "src/main/java/com/example/util/Strings",
+      "name": "Strings",
+      "qualname": "Strings"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 4,
+      "id": "src/main/java/com/example/util/Strings.Strings.Strings",
+      "kind": "method",
+      "line": 4,
+      "module": "src/main/java/com/example/util/Strings",
+      "name": "Strings",
+      "qualname": "Strings.Strings"
+    },
+    {
+      "arity": [
+        1,
+        false
+      ],
+      "end_line": 8,
+      "id": "src/main/java/com/example/util/Strings.Strings.pad",
+      "kind": "method",
+      "line": 6,
+      "module": "src/main/java/com/example/util/Strings",
+      "name": "pad",
+      "qualname": "Strings.pad"
+    },
+    {
+      "end_line": 23,
+      "has_supertypes": false,
+      "id": "src/test/java/com/example/app/CalculatorTest.CalculatorTest",
+      "kind": "type",
+      "line": 7,
+      "module": "src/test/java/com/example/app/CalculatorTest",
+      "name": "CalculatorTest",
+      "qualname": "CalculatorTest"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 12,
+      "id": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.addsInts",
+      "kind": "method",
+      "line": 10,
+      "module": "src/test/java/com/example/app/CalculatorTest",
+      "name": "addsInts",
+      "qualname": "CalculatorTest.addsInts"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 22,
+      "id": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.padsThroughTheNestedClass",
+      "kind": "method",
+      "line": 20,
+      "module": "src/test/java/com/example/app/CalculatorTest",
+      "name": "padsThroughTheNestedClass",
+      "qualname": "CalculatorTest.padsThroughTheNestedClass"
+    },
+    {
+      "arity": [
+        0,
+        false
+      ],
+      "end_line": 17,
+      "id": "src/test/java/com/example/app/CalculatorTest.CalculatorTest.rendersACircle",
+      "kind": "method",
+      "line": 15,
+      "module": "src/test/java/com/example/app/CalculatorTest",
+      "name": "rendersACircle",
+      "qualname": "CalculatorTest.rendersACircle"
+    }
+  ],
+  "tail_classes_available": {
+    "java": [
+      "fallback-resolved",
+      "local-binding",
+      "import-binding",
+      "builtin-name",
+      "attr-call",
+      "overload-set",
+      "inherited-member",
+      "unclassified",
+      "below-floor"
+    ]
+  },
+  "verification_base": {
+    "java": {
+      "depth": "unverified",
+      "note": "not verified on any repo",
+      "on": "no verified repo",
+      "repos": 0
+    }
+  }
+}

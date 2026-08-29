@@ -5714,3 +5714,126 @@ accumulated live here now, not there. `workstreams.md`: the sequencing
 header brought to the 2026-08-28 state (it still named the ADR-085
 validation as the next run); W0 gains the deselected-test fix, a
 registry-pulled image, the duplicate invariants, and `narrate`.
+
+## 2026-08-29 — ADR-096: Java, the sixth language — built, contained, and compiler-graded on four repos in one session
+
+Max opened the parked plan ("begin implementing java as an added
+language… testing by pulling two random java repos after building and
+running evidence testing pipeline against oracle"). All six milestones
+of `docs/java-build-plan.md` ran: the spike, lane A, contained lane B,
+the JUnit inventory, the oracle, the evidence row. What follows is what
+the code taught, which is the part the plan could not have.
+
+**The spike (J.M0, `scip/spike-java.mjs`).** `scip-java` 0.13.1 on
+jsoup and spring-petclinic inside the image. `syntax_kind` unset for
+**104,453 of 104,453** occurrences — the fourth indexer, the same
+omission (C-6), so §3.7's mandatory syntax provider is confirmed a
+fourth time. The moniker version is the artifact's own, never the git
+revision (Decision 1 satisfied by default, as for rust-analyzer). Two
+things the spike caught that would have been silent bugs: overload and
+constructor descriptors (`compile(+1).`, `` `<init>`(+2). ``) that the
+helper's `classify` read as *terms* and `terminalName` handed the join
+as `compile(+1)` and `<init>` — names no call site spells; and
+**positions in SCIP's typed range** (fields 8/9 of the current proto),
+which the generated reader borrowed from scip-typescript 0.4.0 does not
+know, so **every Java occurrence decoded as unplaced**. The helper now
+owns that decode (`installTypedRangeReader`), tested on hand-built
+messages for both typed shapes *and* the deprecated one so the other
+four indexers are unmoved.
+
+**Lane A (`javasource.py`).** The `rustsource` contract, plus three
+rules Java forced. *Overloads*: symbol ids carry an ordinal
+(`Outer.helper~2`), and the fallback resolves only when exactly one
+declaration fits the **argument count** — otherwise it abstains and the
+tail names the site `overload-set`. *Inheritance*: the outward name
+walk **stops at a type that declares supertypes**, because Java binds
+an inherited member before an enclosing class's and lane A cannot see
+the hierarchy; those sites are named `inherited-member`. *Anonymous
+classes*: `new T() {..}` is a use of T, its members are local bindings
+with the body's extent. Both new tail classes are observations, not
+guesses — which is the whole reason precision survived what came next.
+
+**Lane B, and the decision Max should ratify (C-66).** scip-java is a
+javac plugin: the only way to hand javac a classpath is to run the
+build that resolves one. There is no fetch phase to separate — Gradle
+resolves while running its script, and `mvn dependency:go-offline`
+does not reproduce a Maven build's own resolution (jsoup's
+`${os.detected.classifier}`, supplied by a build extension). So
+`index-java` is **the one index step that executes repo code *and*
+keeps a network**: the container is the boundary, not the network.
+Disclosed on every ingest, stamped in `containment`, and canary-tested
+(`tests/fixtures/canary-java`: a Maven `exec` bound to
+`generate-sources` that tries to read a planted host secret and write a
+sentinel — it runs, and reaches neither). Reversing it is one field in
+`PROFILES`. The image gained Temurin **17/21/25** (a Gradle toolchain
+pin refuses any other major and cannot download one offline), Maven and
+the launcher: +1.1 GB, 1.68 → 2.79 GB.
+
+**The oracle (J.M4) is javac itself, not SootUp.** A `Plugin`
+(`bench/oracle/java`, JDK-only, ~600 lines) rides the repo's own build
+— through a wrapping `javac` under Maven, an init script under Gradle —
+and records what `Trees.getElement` resolved every site to. Because
+Maven compiles main and test separately, shards carry declarations
+*keyed* (`owner#name(erased params)`) and the Go merge joins keys
+across the build; a dynamic site carries the declared method as
+`interface` and the **CHA override set** as targets, which is how
+Java's dispatch hole gets a number.
+
+**Four cells (J.M5), two of them drawn at random** from a seeded
+GitHub sample — the first Hobbes language measured on repos nobody
+picked:
+
+| cell | edges | precision | recall |
+|---|---|---|---|
+| jsoup (Maven library, 197 files) | 18,627 | **100.0%** | 76.2% |
+| spring-petclinic (Spring service, 50) | 356 | **100.0%** | 98.4% |
+| spring-data-elasticsearch (**random**, 739) | 16,050 | **100.0%** | 66.4% |
+| Severed-Chains (**random**, 1,254) | 10,154 *syntactic* | **100.0%** | 23.5% |
+
+Zero contradicted anywhere; poison PASS on all four, 0 falsely
+confirmed in 45,187 seeded wrong edges. Lane agreement: 0, 0, 2
+disagreements (and jsoup's 3,417 sites at 0).
+
+**The fourth cell is the one worth reading.** `scip-java` could not
+attach to Severed-Chains' Gradle build at all — another plugin owns
+its compiler arguments, in scip-java's own words — so lane B failed,
+the degradation fired, and 1,254 files fell to lane A's syntactic
+floor. That cell therefore grades **lane A alone against javac**:
+10,154 edges, every one confirmed, **zero wrong**, at 23.5% recall.
+Both halves matter. The abstention rules hold on a repo the resolver
+had never seen; and without lane B, `interface→method` recall is 0.4%
+— C-8's floor, measured. C-67 gained its first real sighting: one repo
+in four, on an unfiltered sample. (Our oracle's plugin *did* attach to
+the same build, through an init script rather than scip-java's
+injection — the difference is now on the record.)
+
+**Three defects the cells produced, all fixed here.** Two oracle-side:
+**H-20**, erased parameter names built from `TypeMirror.toString()`
+carry type annotations, so jsoup's jspecify `@Nullable String` and the
+class file's `java.lang.String` were two spellings of one declaration
+and the cross-shard key join missed — **871 false contradictions**
+across two cells (a new root, RC-8); **H-21**, javac's synthetic
+`super()` counted as a site, and the over-correction then dropped its
+*default constructor* as a declaration, costing every `new T()` its
+target. One product-side pair, both caught by the tail and the lane
+report rather than by a person: jsoup's **44 `unclassified` sites**,
+every one a helper declared in an **enum constant's body** (now local
+bindings, `unclassified` → 0), and a **trailing comment counted as a
+constructor argument** on spring-data-elasticsearch (tree-sitter extras
+are named children), which had bound `new CriteriaQuery( //` to the
+two-argument overload — disagreements 3 → 2. The two that remain are
+one shape: two identically named calls on one line, where the join's
+`(file, line, name)` key cannot tell the pair apart.
+
+**Registered:** C-66 (the networked index step, flagged for
+ratification), C-67 (one-configuration; the Severed-Chains sighting),
+C-68 (generated sources — **unmeasured**, and the cells say why: all
+four report `excluded.generated: 0`), C-69 (dependencies read, not
+resolved). C-58 gained its Java face with the per-cell numbers. Java
+is **supported at exactly four repos' worth** and §3.8 says which four
+and what each cost.
+
+**Not done, deliberately:** a Spring route pack, Kotlin (no lane A, so
+it would be references without call sites), a bytecode RTA (CHA's
+numbers were sharp enough to size the hole), egress narrowing for
+C-66. All four are in `workstreams.md` W1.

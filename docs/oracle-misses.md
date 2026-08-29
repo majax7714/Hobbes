@@ -36,6 +36,9 @@ commit as the cell.
 | `static→generated` | Rust: a call of a method a derive wrote (`x.clone()` on `#[derive(Clone)]`) | **no edge** — the target has no source identifier, so no symbol | C-9 |
 | `static→method` (Rust) | a call of an extension-trait method implemented on a foreign type (`impl Ext for Vec<T>`), a `derive_builder` setter, a raw-identifier method (`r#ref`) | no edge for these shapes; ordinary inherent and trait methods are drawn (3,354/3,384 on dagger's SDK) | C-58, C-9 |
 | `static→function` (Rust) | a call written inside a proc-macro's tokens (`quote! { $(f(x)) }`) | **no site** — rust-analyzer's index does not expand proc macros here | C-30 (registry) / unregistered |
+| `interface→method` (Java) | a virtual or interface call, graded against the **CHA override set** (O8: the declared method plus every override below its owner in the compiled program) | the edge to the **declared** method is drawn and confirmed; every override in the set is a miss — Java's dispatch hole, the majority case, sized per cell (jsoup 67.5%, spring-data-elasticsearch 55.8%, petclinic 98.7% recall on the class) | C-58 (Java face) |
+| `interface→anonymous-member` / `static→anonymous-member` (Java) | a call reaching a method declared in an anonymous class body — an override the CHA set holds (`new Evaluator() { matches(..) }`), or a direct call of a sibling helper inside the body (jsoup's `anythingElse(t, tb)` in enum-constant bodies) | **no edge** — anonymous members are below the symbol floor by decision (ADR-096); lane A records them as local bindings so the site reads `local-binding`, never unknown | C-9, C-32 |
+| `static→constructor` (Java) | `new T() {..}` — the anonymous subclass's synthetic constructor calls T's | drawn as `uses` of T by decision (no lane A site); `new T(..)` on a declared or implicit constructor is drawn (an implicit one at the class line) | ADR-096 |
 
 ## Cells
 
@@ -55,6 +58,29 @@ Every contradiction in the loop triaged; four fixes landed (two product, two ora
 
 What hurts most, loop-wide, is unchanged from the first cells: **calls into closures** (fzf 1,212 static + 2,457 inflated; click 1,196 decorator-factory closures; ajv 174) and **interface dispatch** (toml 226, mux 120, fzf 417) — C-58 on every language; Rust's macro face (memchr 99 `macro→*` rows, `unsafe_ifunc!`, `define_*_quickcheck!`). New on the recall side: cheerio's `static→function` 2,507 is dominated by *the oracle's* overload grain (one pair per `attr`/`prop` signature, five each) — the recall-side sibling of H-19, not corrected.
 
+
+### The four Java cells (O8, 2026-08-29; [cells](oracle-cells/))
+
+Java's misses are dominated by one class on every cell, as the build
+plan predicted: **`interface→method`**, graded against the CHA override
+set, is 84.6–90.9% of all misses (jsoup 5,226 of 5,863; spring-data-elasticsearch
+7,469 of 8,214; Severed-Chains 35,289 of 41,717; petclinic 4 of 6).
+Per-cell recall on the class: **petclinic 98.7%, jsoup 67.5%,
+spring-data-elasticsearch 57.4%, Severed-Chains 0.4%** — the spread is
+the codebase's interface layering, and Severed-Chains' 0.4% is the
+lane-A-only floor (no semantic lane, so a call on a value resolves to
+nothing at all). The declared method *is* drawn and confirmed in every
+semantic cell; the overrides below it are the hole.
+
+Second, at 6–8% of misses on the three semantic cells:
+**`interface→anonymous-member` / `static→anonymous-member`** (jsoup
+452, spring-data-elasticsearch 518, petclinic 0) — overrides and helpers
+declared inside anonymous-class and enum-constant bodies, below the
+symbol floor by decision (C-9) and named `local-binding` in the tail.
+Third, 2.8–6.1%: **`static→constructor`** (recall 84.6–95.6% where lane
+B runs), chiefly `new T() {..}`, which Hobbes draws as `uses` of T by
+decision (ADR-096). **`static→method` is 0–0.1% on every semantic cell**
+(spring-data-elasticsearch: 3,845/3,845, a perfect class on 739 files).
 
 ### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](oracle-cells/hobbes-py-2026-08-25.md))
 

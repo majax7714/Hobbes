@@ -18,6 +18,7 @@ import (
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/gorta"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/grade"
+	"github.com/majax7714/Hobbes/bench/oracle/internal/javac"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/pytrace"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/rustmir"
 )
@@ -36,6 +37,8 @@ func main() {
 		err = runPyTrace(os.Args[2:])
 	case "rust-mir":
 		err = runRustMIR(os.Args[2:])
+	case "java-javac":
+		err = runJavac(os.Args[2:])
 	case "grade":
 		err = runGrade(os.Args[2:])
 	default:
@@ -54,6 +57,7 @@ func usage() {
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
   oracle rust-mir --repo . --module . --driver rust/target/release/mir-oracle --out-dir <cell-dir> [--out oracle.json]
+  oracle java-javac --repo . --module . --plugin java --out-dir <cell-dir> [--tool maven|gradle] [--out oracle.json]
   oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json] [--poison]`)
 	os.Exit(2)
 }
@@ -62,7 +66,7 @@ func runExport(args []string) error {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
 	graph := fs.String("graph", ".hobbes/derived/graph.json", "Hobbes graph.json")
 	module := fs.String("module", "", "repo-relative module directory (cell)")
-	lang := fs.String("lang", "go", "go|ts — the extension set of the cell")
+	lang := fs.String("lang", "go", "go|ts|py|rust|java — the extension set of the cell")
 	exclude := fs.String("exclude", "", "comma-separated repo-relative directories to drop (nested modules)")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
@@ -125,6 +129,25 @@ func runRustMIR(args []string) error {
 		return fmt.Errorf("--out-dir is required")
 	}
 	res, err := rustmir.Run(rustmir.Options{Repo: *repo, Module: *module, Driver: *driver, Out: *outDir, Cargo: strings.Fields(*cargo), Feature: splitComma(*features)})
+	if err != nil {
+		return err
+	}
+	return write(*out, res)
+}
+
+func runJavac(args []string) error {
+	fs := flag.NewFlagSet("java-javac", flag.ExitOnError)
+	repo := fs.String("repo", ".", "repo root")
+	module := fs.String("module", "", "repo-relative build root (cell)")
+	plugin := fs.String("plugin", "java", "bench/oracle/java — the plugin's source, wrapper and init script")
+	tool := fs.String("tool", "", "maven|gradle (default: pom.xml wins)")
+	outDir := fs.String("out-dir", "", "cell directory for the plugin jar and the shards")
+	out := fs.String("out", "", "output path (default stdout)")
+	fs.Parse(args)
+	if *outDir == "" {
+		return fmt.Errorf("--out-dir is required")
+	}
+	res, err := javac.Run(javac.Options{Repo: *repo, Module: *module, Tool: *tool, Out: *outDir, Plugin: *plugin})
 	if err != nil {
 		return err
 	}

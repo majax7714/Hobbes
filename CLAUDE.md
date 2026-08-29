@@ -88,8 +88,9 @@ box, against a repo on disk (architecture §10); the application mode in
   the exit-check harness.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
-  rust-mir | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
-  `rust/` (a `rustc_driver` MIR walker on a pinned nightly),
+  rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
+  `rust/` (a `rustc_driver` MIR walker on a pinned nightly), `java/` (a
+  javac plugin riding the repo's own build; CHA for dispatch),
   `run-cell.sh`; grades the call graph against answer keys Hobbes does
   not control. Bench tooling, never product.
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
@@ -152,8 +153,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-08-28): 966 pytest (+1 `lane_b`) /
-294 Go + 35 oracle-lane Go / 52 vitest / 29 tsextract + 26 scip node
+Suite sizes at the last check (2026-08-29): 1,021 pytest (+3 `lane_b`) /
+295 Go + 39 oracle-lane Go / 52 vitest / 29 tsextract + 31 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -201,12 +202,19 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-08-28)
+## Status (2026-08-29)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-  Languages: Python, TypeScript/JavaScript, Go, Rust (+ Terraform/HCL),
-  each a syntax provider + pinned SCIP indexer joined by one range join;
-  artifacts at schema v4; 65 registered constraints.
+  Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
+  (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
+  by one range join; artifacts at schema v4; 69 registered constraints.
+- **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
+  milestones in one session: lane A, scip-java contained, a javac+CHA
+  oracle (O8), four cells (two repos drawn at random) at **100%
+  precision, 0 contradicted**, recall 66–98% with lane B and 23.5%
+  without. **C-66 waits on Max's ratification**: Java's index step is
+  the only one that executes repo code *and* keeps a network, because
+  the build is the dependency resolution.
 - **The derivation programme is built and under test.** `hobbes plan`
   (ADR-051), `hobbes run` (ADR-054), the staged harness run (ADR-059) and
   `hobbes bench` (ADR-055) exist and have been run live on the

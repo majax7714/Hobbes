@@ -52,7 +52,16 @@
   consumer can read.
 - **Bites at:** enterprise repos with private registries (the most
   common outcome, expected), multi-flavor Gradle builds, JDK 8/11
-  projects (scip-java dropped them at 0.13).
+  projects (scip-java dropped them at 0.13) — **and Gradle builds whose
+  compiler arguments another plugin owns.** Sighted on the second random
+  draw of 2026-08-29: `scip-java` could not attach its SCIP plugin to
+  **Legend-of-Dragoon-Modding/Severed-Chains** ("another Gradle plugin
+  is replacing the compiler arguments we add", its own words), so all
+  1,254 files fell to lane A's syntactic floor — 10,154 edges, every one
+  confirmed by javac, at **23.5% recall** against 54,520 in-repo pairs.
+  One repo in four, on an unfiltered sample. The oracle lane's own
+  plugin *did* attach to the same build through an init script, which is
+  the recorded difference between the two injection strategies.
 - **You find out:** **surfaced** — the per-unit degradation record
   names the build root and the build tool's own error; lane A's files
   under no build file are reported by directory (the C-26 pattern).
@@ -81,9 +90,17 @@
 - **You find out:** **partial** — a reference into generated code
   counts in the `below-floor` tail class per file (surfaced), but the
   class does not say *which* declarations are generated versus merely
-  below the floor. A named class waits on J.M4's oracle cells sizing
-  it.
-- **Source:** ADR-096; `docs/java-build-plan.md` §0.3.
+  below the floor.
+- **Not yet measured, and the sample says why.** The four O8 cells of
+  2026-08-29 report `excluded.generated: 0` on every one — none of
+  jsoup, spring-petclinic, spring-data-elasticsearch or Severed-Chains
+  runs an annotation processor that emits sources into the graded set
+  (what they do have is javac's *synthetic* code, counted separately:
+  411 / 50 / 1,167 / 980 inserted `super()` calls). So this entry's
+  size is unknown rather than small, and the honest next step is a cell
+  on a Lombok- or protobuf-heavy repo, not a number inferred from four
+  repos that do not exercise it.
+- **Source:** ADR-096; `docs/java-build-plan.md` §0.3; the O8 cells.
 
 ### C-69 — Declared Java dependencies are read, not resolved
 - **Cannot tell you:** an exact dependency-coverage count for a Java

@@ -61,6 +61,15 @@ VERIFICATION_BASE: dict[str, dict] = {
         "on": 'rust_proj (one small crate, re-earned under containment 2026-08-28); dagger — its sdk/rust workspace (O7); BurntSushi/memchr (2026-08-27/28)',
         "depth": "multi-repo",
     },
+    "java": {
+        # Compiler-graded from day one (ADR-096, O8): javac's own
+        # resolution plus CHA, four repos in one session, two of them
+        # drawn at random. No hand-checked edges — the fixture's are
+        # hand-computed in the lane's test.
+        "repos": 4,
+        "on": 'jhy/jsoup (Maven library); spring-projects/spring-petclinic (Spring service); spring-data-elasticsearch and Legend-of-Dragoon-Modding/Severed-Chains — both drawn at random (2026-08-29)',
+        "depth": "multi-repo",
+    },
     "hcl": {
         "repos": 1,
         "on": "this repo only",

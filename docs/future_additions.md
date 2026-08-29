@@ -592,8 +592,15 @@ Max asked, out of interest, what Java and C would cost. The answer is
 `docs/java-build-plan.md` — §3.7's checklist elaborated to five
 milestones (ADR-096 + spike, lane A, contained `scip-java`, JUnit/Spring
 packs, a bytecode CHA/RTA oracle, the evidence row) and the reasons Java
-ranks ahead of C. **Parked:** it opens when Max names it, with the ADR as
-its first commit. Also recorded there, because the question came up:
+ranks ahead of C. **Opened 2026-08-29** (ADR-096): J.M0–J.M5 built in
+one session — see the ADR, `docs/constraints/extraction-java.md` and
+the cell records. What stayed parked from the plan: a Spring route
+pack (`@GetMapping` et al. as the Flask/FastAPI shape; `@Autowired`
+as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
+but there is no Kotlin lane A, so it would be references without call
+sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
+number proves too coarse, and egress narrowing for the one networked
+index step (C-66). Also recorded there, because the question came up:
 ingest is per language, gated on discovery — a language with no files
 in the repo costs one extension walk and nothing else; only the image
 build carries every toolchain.

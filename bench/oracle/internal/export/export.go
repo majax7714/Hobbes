@@ -52,6 +52,7 @@ var Exts = map[string][]string{
 	"ts":   {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"},
 	"py":   {".py"},
 	"rust": {".rs"},
+	"java": {".java"},
 }
 
 // FromFile reads graph.json and exports the cell for module (a
@@ -75,7 +76,7 @@ func FromFile(graphPath, module, lang string, exclude ...string) (*edges.HobbesE
 func From(g *graph, module, lang string, exclude ...string) (*edges.HobbesExport, error) {
 	exts, ok := Exts[lang]
 	if !ok {
-		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust)", lang)
+		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust|java)", lang)
 	}
 	module = path.Clean("/" + module)[1:]
 	modulePath := map[string]string{}
