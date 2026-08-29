@@ -120,6 +120,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-16, C-33 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30 |
+| [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
@@ -134,8 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Sixty-five entries: fifty-five active, eight lifted, two superseded**
-(C-65 added 2026-08-28 by ADR-094 — the knowledge proxy pinned to the
+**Sixty-nine entries: fifty-nine active, eight lifted, two superseded**
+(C-66–C-69 added 2026-08-29 by ADR-096 — Java: the build runs in the
+container with a network (C-66, flagged for ratification), the
+one-configuration graph, generated sources (*partial*), and read-not-resolved
+dependency counts — three surfaced on day one; C-65 added 2026-08-28 by ADR-094 — the knowledge proxy pinned to the
 image, the host hatch disclosed, surfaced on day one; C-64 added 2026-08-27 by ADR-092 — lane B contained, executing
 providers refuse without it, surfaced on day one; C-63 the same day by the
 oracle lane's H-17 close, unsurfaced; C-58 added 2026-08-25 by the oracle lane; C-60–C-62 — the trace
@@ -143,8 +147,8 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Two
-of the active are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and
+against the code that concedes it; none had been silently lifted). Three of the active are *partial* (C-4, C-58, C-68); two
+are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and
 C-20); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status

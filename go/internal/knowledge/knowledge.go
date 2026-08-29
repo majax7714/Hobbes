@@ -742,6 +742,8 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"builtin-name", "the name matches the language's builtin list — language machinery, not architecture"},
 	{"attr-call", "an attribute call whose receiver no static provider could type — the genuine limit (C-2); verify these targets yourself where they matter"},
 	{"path-call", "a ::-qualified call the index left dark"},
+	{"overload-set", "a Java name with more than one declaration fitting the call; lane A abstained rather than pick an overload (ADR-096) — lane B decides, or nobody has"},
+	{"inherited-member", "a bare Java call in a type with supertypes and no fitting declaration of its own — the callee is inherited, which only lane B's hierarchy can name (ADR-096)"},
 	{"unclassified", "no observation applies — genuinely unknown; read this code yourself"},
 }
 
@@ -760,13 +762,13 @@ var notModelled = map[string]bool{
 // sites under a scope. hcl has no call sites and maps to nothing.
 var artifactLangBucket = map[string]string{
 	"python": "python", "typescript": "ts/js", "javascript": "ts/js",
-	"go": "go", "rust": "rust",
+	"go": "go", "rust": "rust", "java": "java",
 }
 
 var langByExt = map[string]string{
 	".py": "python", ".ts": "ts/js", ".tsx": "ts/js", ".js": "ts/js",
 	".jsx": "ts/js", ".mjs": "ts/js", ".cjs": "ts/js", ".go": "go",
-	".rs": "rust",
+	".rs": "rust", ".java": "java",
 }
 
 // containmentDoc mirrors the pipeline's containment.summary().

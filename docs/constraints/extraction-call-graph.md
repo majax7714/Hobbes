@@ -195,6 +195,12 @@
   for any of them** — not to the interface method, not to the concrete
   implementation, not to the closure. `who_calls` on an implementation
   reached only through its interface answers *nobody*.
+- **Java face (ADR-096):** every non-final instance method call is
+  potentially polymorphic, so this is the *majority* case for Java, not
+  the exception; the static edge goes to the declared target (the
+  interface or superclass method), tiered, and J.M4's oracle sizes the
+  hole per repo. An overload the fallback declined to pick is not this
+  entry — it is named `overload-set` in the tail and resolved by lane B.
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

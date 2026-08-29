@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Java canary (ADR-096, the canary-rust shape): a Maven build whose
+     generate-sources step is repo-authored build logic that lane B
+     executes. Three probes, each observable from the host side of the
+     test: it writes a sentinel outside the stage (present on the host
+     afterwards → it ran on the host); it reads a planted fake secret at a
+     fixed host path (readable → it generates `Leaked.java`, whose symbol
+     then appears in the index); and `Canary` itself compiles either way
+     (the build ran at all). -->
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.example</groupId>
+  <artifactId>canary-java</artifactId>
+  <version>0.1.0</version>
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
+        <executions>
+          <execution>
+            <id>canary</id>
+            <phase>generate-sources</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>sh</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>echo "the build reached the host" > /tmp/hobbes-canary-escaped; if grep -q planted /tmp/hobbes-canary-secret 2>/dev/null; then printf 'package canary;\npublic class Leaked {}\n' > src/main/java/canary/Leaked.java; fi</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

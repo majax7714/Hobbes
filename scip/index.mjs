@@ -29,6 +29,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import pkg from '@sourcegraph/scip-typescript/dist/src/scip.js'
+import pb from 'google-protobuf'
 
 const { scip } = pkg
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -100,7 +101,117 @@ export const INDEXERS = {
     // Like scip-go: cargo metadata resolves relative to cwd.
     cwd: (c) => c.stage,
   },
+  java: {
+    // scip-java (ADR-096): a javac plugin driven through the repo's *own
+    // build* — the launcher writes a wrapping javac and runs Maven or the
+    // repo's Gradle wrapper with it. So indexing Java executes the
+    // repo's build logic (C-29's Java face) and runs only inside the
+    // sandbox image, where the pinned launcher lives (`sandbox/
+    // Containerfile`); `install` names that, not a host command.
+    bin: 'scip-java',
+    onPath: true,
+    install: 'build the sandbox image (sandbox/Containerfile pins scip-java)',
+    // The build tool is derived from the repo (`c.buildTool`: maven when
+    // a pom.xml roots the unit, else gradle) and the build command is
+    // Hobbes's, not scip-java's default: Maven compiles only — `clean
+    // test-compile` — instead of `verify`, which would run every plugin
+    // bound to the lifecycle; Gradle runs the compile tasks its default
+    // names. The step has a network (C-66): the build resolves its own
+    // dependencies, there being no fetch phase either tool can separate. No version flag exists and none is needed: the moniker
+    // version is the artifact's own (`1.24.1-SNAPSHOT` on the spike),
+    // never the git revision — Decision 1 satisfied by default, as for
+    // Rust.
+    args: (c) => [
+      'index',
+      `--build-tool=${c.buildTool}`,
+      '--output', c.output,
+      '--',
+      ...(c.buildTool === 'maven'
+        ? ['--batch-mode', '-DskipTests', 'clean', 'test-compile']
+        : ['clean', 'compileTestJava']),
+    ],
+    cwd: (c) => c.stage,
+  },
 }
+
+/**
+ * scip-java 0.13 writes an occurrence's position as SCIP's *typed* range
+ * (`single_line_range` = field 8, `multi_line_range` = field 9, the
+ * `scip-code/scip` proto at a7b9c65a, 2026-08-25) and leaves the
+ * deprecated `repeated int32 range` empty. The generated reader this
+ * helper borrows from scip-typescript 0.4.0 — the newest release — knows
+ * neither field and skips them, which read every Java occurrence as
+ * unplaced (the J.M0 spike: 104,453 of 104,453 empty). So the reader is
+ * extended here: `Occurrence.deserialize` is replaced with the same
+ * switch plus the two typed cases, folded into `range`'s `[startLine,
+ * startChar, endLine, endChar]` shape so nothing downstream changes.
+ * The override goes when the borrowed reader learns the fields. A typed
+ * range wins over a deprecated one, as the proto says.
+ */
+function installTypedRangeReader() {
+  const { Occurrence, Diagnostic } = scip
+  const Message = pb.Message
+  const readFields = (reader, spec) => {
+    const out = {}
+    reader.readMessage(undefined, () => {
+      while (reader.nextField()) {
+        if (reader.isEndGroup()) break
+        const name = spec[reader.getFieldNumber()]
+        if (name) out[name] = reader.readInt32()
+        else reader.skipField()
+      }
+    })
+    return out
+  }
+  Occurrence.deserialize = function deserialize(bytes) {
+    const reader = bytes instanceof pb.BinaryReader ? bytes : new pb.BinaryReader(bytes)
+    const message = new Occurrence()
+    let typed = null
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) break
+      switch (reader.getFieldNumber()) {
+        case 1:
+          message.range = reader.readPackedInt32()
+          break
+        case 2:
+          message.symbol = reader.readString()
+          break
+        case 3:
+          message.symbol_roles = reader.readInt32()
+          break
+        case 4:
+          Message.addToRepeatedField(message, 4, reader.readString())
+          break
+        case 5:
+          message.syntax_kind = reader.readEnum()
+          break
+        case 6:
+          reader.readMessage(message.diagnostics, () =>
+            Message.addToRepeatedWrapperField(message, 6, Diagnostic.deserialize(reader), Diagnostic),
+          )
+          break
+        case 7:
+          message.enclosing_range = reader.readPackedInt32()
+          break
+        case 8: {
+          const r = readFields(reader, { 1: 'line', 2: 'start', 3: 'end' })
+          typed = [r.line ?? 0, r.start ?? 0, r.end ?? 0]
+          break
+        }
+        case 9: {
+          const r = readFields(reader, { 1: 'startLine', 2: 'start', 3: 'endLine', 4: 'end' })
+          typed = [r.startLine ?? 0, r.start ?? 0, r.endLine ?? 0, r.end ?? 0]
+          break
+        }
+        default:
+          reader.skipField()
+      }
+    }
+    if (typed) message.range = typed
+    return message
+  }
+}
+installTypedRangeReader()
 
 /**
  * Is this document a file of the repo we indexed?
@@ -131,7 +242,9 @@ export function classify(symbol) {
   if (parts.length < 5) return 'malformed'
   const desc = parts.slice(4).join(' ')
   if (/\(\w[^)]*\)$/.test(desc)) return 'parameter'
-  if (desc.endsWith('().')) return 'method'
+  // `foo().` — and scip-java's overload disambiguator `foo(+1).` (ADR-096):
+  // the same method descriptor with a counter, still a method.
+  if (/\((\+\d+)?\)\.$/.test(desc)) return 'method'
   if (desc.endsWith('#')) return 'type'
   if (desc.endsWith('.')) return 'term'
   if (desc.endsWith('/')) return 'namespace'
@@ -157,14 +270,21 @@ export function terminalName(symbol) {
   const parts = String(symbol).split(' ')
   if (parts.length < 5) return ''
   const desc = parts.slice(4).join(' ')
-  // Strip the descriptor suffix, then take the last path/member segment.
-  const bare = desc.replace(/(\(\)\.|#|\.|\/|:|!)$/, '')
-  const seg = bare.split(/[/#.]/).filter(Boolean).pop() ?? ''
+  // Strip the descriptor suffix — the overload counter with it — then
+  // take the last path/member segment.
+  const bare = desc.replace(/(\((\+\d+)?\)\.|#|\.|\/|:|!)$/, '')
+  const segments = bare.split(/[/#.]/).filter(Boolean)
+  const seg = segments.pop() ?? ''
   // rust-analyzer scopes impl methods as `impl#[Counter]new().` — the
   // bracketed self type rides the final segment, and a name that keeps it
   // matches no call site, which silently costs Rust every method edge
   // (found by the V2.M7 rust_proj verification: `unwrap` unresolved).
-  return seg.replace(/`/g, '').replace(/^\[.*\]/, '')
+  const name = seg.replace(/`/g, '').replace(/^\[.*\]/, '')
+  // scip-java names a constructor `<init>` (`Foo#`<init>`(+1).`); what
+  // the syntax provider saw at `new Foo(..)` — and at the declaration —
+  // is the type's name, so the two lanes meet on it (ADR-096).
+  if (name === '<init>') return (segments.pop() ?? '').replace(/`/g, '')
+  return name
 }
 
 /** `<manager>:<package>` for a symbol, or '' when it has no package. */
@@ -308,6 +428,7 @@ export function commonDirectory(files) {
  */
 const DUPLICATE_SHAPES = {
   rust: 'cargo targets of one package share their `crate/` and `main().` monikers',
+  java: "a package's namespace is declared in every one of its files (`package a.b;`)",
   go: "a package's namespace is declared in every one of its files",
   python: 'the same module name lives under more than one directory (a tutorial\'s skeletons/ and solutions/, a vendored copy)',
   typescript: 'the same module or namespace is declared from more than one file',
@@ -335,6 +456,13 @@ const SELF_PACKAGES = new Set([
   'core',
   'alloc',
   'proc_macro',
+  // scip-java's JDK: the class library resolves from the JDK the image
+  // carries, always (moniker package `jdk`, version the major — spike).
+  // And `.`: the package scip-java gives a Gradle project's own symbols
+  // when no `maven-publish` coordinates exist, and every package
+  // namespace — the repo itself, never a dependency.
+  'jdk',
+  '.',
 ])
 
 /**
@@ -359,7 +487,14 @@ const SELF_PACKAGES = new Set([
  * on saying `pyyaml` was missing. npm and Go names stay verbatim: their
  * ecosystems treat case and punctuation as identity. */
 function canonicalName(name, language) {
-  return language === 'python' ? name.toLowerCase().replace(/[-_.]+/g, '-') : name
+  if (language === 'python') return name.toLowerCase().replace(/[-_.]+/g, '-')
+  // Java: a moniker's package is `maven/<group>/<artifact>`, and a pom
+  // declares artifacts a build resolves to *other* artifacts (a BOM, an
+  // aggregator like `junit-jupiter` with no classes of its own) — so
+  // coverage is matched at the group: some artifact of the declared
+  // group resolved, or none did (ADR-096).
+  if (language === 'java') return name.split('/').slice(0, 2).join('/')
+  return name
 }
 
 export function dependencyCoverage(decoded, config) {

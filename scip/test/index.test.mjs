@@ -427,3 +427,63 @@ test('impl-scoped method monikers yield the bare method name', () => {
     'unwrap',
   )
 })
+
+// scip-java 0.13.1 shapes, pasted from the J.M0 spike on jsoup (ADR-096).
+const JAVA = 'scip-java maven maven/org.jsoup/jsoup 1.24.1-SNAPSHOT'
+
+test('java overload descriptors classify as methods and yield the bare name', () => {
+  assert.equal(classify(`${JAVA} org/jsoup/parser/ParseError#toString().`), 'method')
+  assert.equal(classify(`${JAVA} org/jsoup/helper/Regex#compile(+1).`), 'method')
+  assert.equal(terminalName(`${JAVA} org/jsoup/helper/Regex#compile(+1).`), 'compile')
+  assert.equal(terminalName(`${JAVA} org/jsoup/nodes/Document#OutputSettings#Syntax#`), 'Syntax')
+})
+
+test('a java constructor is named after its type, as the call site spells it', () => {
+  assert.equal(classify(`${JAVA} org/jsoup/helper/Regex#\`<init>\`(+2).`), 'method')
+  assert.equal(terminalName(`${JAVA} org/jsoup/helper/Regex#\`<init>\`().`), 'Regex')
+  assert.equal(terminalName(`${JAVA} org/jsoup/helper/Regex#JdkMatcher#\`<init>\`(+1).`), 'JdkMatcher')
+})
+
+test('the java indexer runs scip-java through the derived build tool', () => {
+  const c = { stage: '/s', output: '/o.scip', buildTool: 'maven' }
+  const args = INDEXERS.java.args(c)
+  assert.equal(INDEXERS.java.bin, 'scip-java')
+  assert.ok(INDEXERS.java.onPath)
+  assert.deepEqual(args.slice(0, 4), ['index', '--build-tool=maven', '--output', '/o.scip'])
+  assert.ok(args.includes('test-compile') && !args.includes('verify'))
+  assert.ok(!args.includes('--offline'), 'the java step resolves its own dependencies (C-66)')
+  assert.ok(INDEXERS.java.args({ ...c, buildTool: 'gradle' }).includes('compileTestJava'))
+  assert.equal(INDEXERS.java.cwd(c), '/s')
+})
+
+test("the jdk and the dot package are not evidence of an environment (java)", () => {
+  const decoded = { packages: new Map([['maven:jdk', 10], ['maven:.', 5], ['maven:maven/org.junit.jupiter/junit-jupiter-api', 3]]) }
+  const cov = dependencyCoverage(decoded, {
+    language: 'java',
+    declaredDeps: ['maven/org.junit.jupiter/junit-jupiter', 'maven/org.assertj/assertj-core'],
+  })
+  // Matched at the group: the aggregator artifact resolves to its siblings.
+  assert.deepEqual(cov, { declared: 2, resolved: 1, missing: ['maven/org.assertj/assertj-core'] })
+})
+
+test('typed ranges (SCIP fields 8 and 9) are read into the range shape', async () => {
+  const pb = (await import('google-protobuf')).default
+  const { scip } = (await import('@sourcegraph/scip-typescript/dist/src/scip.js')).default
+  const w = new pb.BinaryWriter()
+  w.writeString(2, 'scip-java maven . . a/B#m().')
+  w.writeInt32(3, 1)
+  w.writeMessage(8, {}, () => { w.writeInt32(1, 4); w.writeInt32(2, 7); w.writeInt32(3, 11) })
+  const single = scip.Occurrence.deserialize(w.getResultBuffer())
+  assert.deepEqual(single.range, [4, 7, 11])
+  assert.equal(single.symbol, 'scip-java maven . . a/B#m().')
+  assert.equal(single.symbol_roles, 1)
+  const w2 = new pb.BinaryWriter()
+  w2.writeString(2, 'x')
+  w2.writeMessage(9, {}, () => { w2.writeInt32(1, 4); w2.writeInt32(2, 7); w2.writeInt32(3, 6); w2.writeInt32(4, 2) })
+  assert.deepEqual(scip.Occurrence.deserialize(w2.getResultBuffer()).range, [4, 7, 6, 2])
+  // The deprecated field still reads, so the other four indexers are untouched.
+  const w3 = new pb.BinaryWriter()
+  w3.writeString(2, 'y')
+  w3.writePackedInt32(1, [1, 2, 3])
+  assert.deepEqual(scip.Occurrence.deserialize(w3.getResultBuffer()).range, [1, 2, 3])
+})

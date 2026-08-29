@@ -694,8 +694,8 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"attr-call — an attribute call whose receiver no static provider could type",
 		"unclassified — no observation applies",
 		// C-32: what the lane could not have said, beside what it did say:
-		"classes this lane cannot report: nested-decl, external-origin, path-call (C-32)",
-		"classes this lane cannot report: import-binding, builtin-name, path-call (C-32)",
+		"classes this lane cannot report: nested-decl, external-origin, path-call, overload-set, inherited-member (C-32)",
+		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member (C-32)",
 		// C-31: the verification base, stated before any percentage:
 		"verification base — a sample, not the language (C-31",
 		"go: verified on 1 repo: one repo — this one",

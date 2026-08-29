@@ -41,7 +41,7 @@
 - **Source:** ADR-040, V2.M7 spike; generalised by the V2.M7
   verification (2026-08-15).
 
-### C-29 — Ingesting a Rust repo executes that repo's code — *narrowed 2026-08-27 (ADR-092)*
+### C-29 — Ingesting a Rust repo executes that repo's code — *narrowed 2026-08-27 (ADR-092); Java face registered as C-66 (ADR-096)*
 - **Cannot tell you:** nothing — this entry registers something Hobbes
   *does*, not something it misses: `hobbes ingest` on a Rust repo runs
   that repo's `build.rs` and proc macros, because rust-analyzer's loader

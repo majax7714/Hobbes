@@ -82,7 +82,7 @@ UNCONTAINED_ENV = "HOBBES_UNCONTAINED"
 #: Image-neutral PATH: the toolchains the Containerfile installs, in the
 #: order the helper resolves them (`rust-analyzer`/`cargo` are rustup
 #: proxies under /usr/local/cargo/bin; `scip-go` lands in /usr/local/bin).
-CONTAINER_PATH = "/usr/local/cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
+CONTAINER_PATH = "/usr/local/java/bin:/opt/maven/bin:/usr/local/cargo/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin"
 
 #: Prefixes the image supplies itself. A symlink target under one of
 #: these is never mounted: bind-mounting the host's /usr over the
@@ -133,6 +133,14 @@ def _cache_env(root: Path) -> tuple[str, ...]:
         f"GOMODCACHE={root}/go/mod",
         f"GOCACHE={root}/go/build",
         f"npm_config_cache={root}/npm-cache",
+        # Java (ADR-096): Maven's local repository, Gradle's user home (the
+        # wrapper's distributions and its caches, plus the derived
+        # `gradle.properties` naming the image's JDKs) and the coursier
+        # cache the scip-java launcher would otherwise put under HOME.
+        f"MAVEN_OPTS=-Dmaven.repo.local={root}/m2",
+        f"GRADLE_USER_HOME={root}/gradle",
+        f"COURSIER_CACHE={root}/coursier",
+        "JAVA_HOME=/usr/local/java",
         "GOTOOLCHAIN=local",
         "PYTHONDONTWRITEBYTECODE=1",
         "COREPACK_ENABLE_DOWNLOAD_PROMPT=0",
@@ -148,6 +156,19 @@ PROFILES: dict[str, Profile] = {
     "index-typescript": Profile("index-typescript", False, "none"),
     "index-go": Profile("index-go", False, "none", ("GOPROXY=off",)),
     "index-rust": Profile("index-rust", True, "none", ("CARGO_NET_OFFLINE=true",)),
+    # Java (ADR-096): scip-java is a javac plugin injected into the repo's
+    # *own build*, so the step executes repo build logic (a Gradle script
+    # is code; a pom names the plugins and extensions that run) — and
+    # that build is also where the dependencies get resolved. Neither
+    # tool separates "fetch" from "evaluate the build": Gradle resolves
+    # while running the script, and Maven's `dependency:go-offline`
+    # does not reproduce the build's own resolution (the J.M0 spike:
+    # jsoup's `${os.detected.classifier}` comes from a build extension).
+    # So this is the one index step with a network — the container is
+    # the boundary (rootless, the cache root its only writable mount),
+    # not the network — registered as C-66 and stated in every artifact
+    # it touches.
+    "index-java": Profile("index-java", True, "default"),
     "python-env": Profile("python-env", True, "none"),
     "fetch-npm": Profile("fetch-npm", False, "default"),
     "fetch-go": Profile("fetch-go", False, "default"),
@@ -180,6 +201,7 @@ INDEX_STEP = {
     "typescript": "index-typescript",
     "go": "index-go",
     "rust": "index-rust",
+    "java": "index-java",
 }
 
 

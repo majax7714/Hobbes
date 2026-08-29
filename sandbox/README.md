@@ -6,9 +6,12 @@ harness. Built and driven by `go/cmd/hobbes-session`.
 - `Containerfile` — the one image (`hobbes-session:local`), two mount
   shapes (ADR-092): an agent session (git + python3 + the static
   `hobbes-proxy`) and an ingest container (lane B's indexers — pinned
-  node, Go, scip-go, rustup 1.97.1 with rust-analyzer; the `scip/`
-  helper and its npm indexers are mounted from the hobbes checkout at
-  run time). Ubuntu 24.04 base: the trees the ingest mounts from the
+  node, Go, scip-go, rustup 1.97.1 with rust-analyzer, Temurin JDK
+  17/21/25 + Maven 3.9.16 + the scip-java 0.13.1 launcher (ADR-096;
+  `jdk.sh` installs one JDK, checksum-verified); the `scip/` helper and
+  its npm indexers are mounted from the hobbes checkout at run time).
+  Gradle is not installed: a Gradle repo runs its own wrapper into the
+  Hobbes cache. Ubuntu 24.04 base: the trees the ingest mounts from the
   host are glibc-linked. The ingest planner is
   `pipeline/src/hobbes/extract/containment.py`.
 - `knowledge-serve` — the launcher this repo's `.mcp.json` names

@@ -32,6 +32,7 @@ from hobbes.extract import containment, scipsource, staging, tail, tssource
 from hobbes.extract.discover import discover_modules
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
 from hobbes.extract.gosource import collect_go_tests, extract_go
+from hobbes.extract.javasource import collect_java_tests, extract_java
 from hobbes.extract.graph import build_graph, resolve_call_sites
 from hobbes.extract.packs import REGISTRY as PACK_REGISTRY
 from hobbes.extract.packs import Pack, PackContext, run_packs
@@ -121,6 +122,13 @@ def extract_repo(
         degraded += _merge_layer(graph, rust["nodes"], rust["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], rust["symbols"])
 
+    java = extract_java(repo_root)
+    if java:
+        languages += java["languages"]
+        degraded += list(java["errors"])
+        degraded += _merge_layer(graph, java["nodes"], java["module_edges"])
+        graph["symbols"] = _merge_symbols(graph["symbols"], java["symbols"])
+
     # Lane A is complete. Packs read it and add framework knowledge; the
     # graph builder itself knows nothing about FastAPI, Express or HCL.
     enriched = run_packs(
@@ -131,6 +139,7 @@ def extract_repo(
             ts=ts,
             go=go,
             rust=rust,
+            java=java,
             tf_plan=tf_plan,
         ),
         packs,
@@ -140,7 +149,7 @@ def extract_repo(
     degraded += _merge_layer(graph, enriched.nodes, enriched.module_edges)
     graph["packs"] = enriched.ran
 
-    degraded += _build_symbol_layer(repo_root, graph, modules, parsed, ts, go, rust)
+    degraded += _build_symbol_layer(repo_root, graph, modules, parsed, ts, go, rust, java)
 
     tests = collect_tests(modules, parsed, graph["symbol_edges"])
     if ts:
@@ -149,6 +158,8 @@ def extract_repo(
         tests += collect_go_tests(go["files"], graph["symbol_edges"])
     if rust:
         tests += collect_rust_tests(rust["files"], graph["symbol_edges"])
+    if java:
+        tests += collect_java_tests(java["files"], graph["symbol_edges"])
     tests = sorted(tests, key=lambda t: t["id"])
     if degraded:
         # Sorted, not append-ordered: which pass reported first is an
@@ -210,6 +221,7 @@ def _build_symbol_layer(
     ts: dict | None,
     go: dict | None = None,
     rust: dict | None = None,
+    java: dict | None = None,
 ) -> list[dict]:
     """Join every lane's evidence and project it onto the graph's ids.
 
@@ -244,8 +256,11 @@ def _build_symbol_layer(
     if rust:
         syntax += rust["call_sites"]
         fallback.update(rust["call_fallback"])
+    if java:
+        syntax += java["call_sites"]
+        fallback.update(java["call_fallback"])
 
-    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, degraded):
+    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, degraded):
         resolutions += scipsource.resolution_sites(facts)
         external += facts.get("external_refs") or []
         for record in facts.get("degraded", []):
@@ -271,9 +286,12 @@ def _build_symbol_layer(
         # Go and Rust both leave in-repo import edges to the join (a Go
         # import names a package, a Rust `use` names an item path), so
         # their lane-B-only module edges are exclusions, not findings.
+        # Java joins them for the mirror reason: same-package references
+        # need no import statement, so lane B raises module edges lane A
+        # never spelled (ADR-096).
         lane_b_only_modules={
             n["id"]
-            for layer in (go, rust)
+            for layer in (go, rust, java)
             if layer
             for n in layer["nodes"]
             if "path" in n
@@ -305,6 +323,11 @@ def _build_symbol_layer(
         )
         for module in modules
     }
+    # Java's static imports bind a bare name the same way (`import static
+    # a.b.C.m` binds `m`) — lane A's own parse, so `assertEquals(..)`
+    # classifies as `import-binding`, never `unclassified` (ADR-096).
+    if java:
+        py_bindings.update(java.get("import_bindings", {}))
     # Sub-module bindings with enclosing-function extents (ADR-046):
     # Python's from its parse, Go's from its layer. TS needs none — its
     # checker origins already answer, one grade stronger.
@@ -317,6 +340,8 @@ def _build_symbol_layer(
     }
     if go:
         local_bindings.update(go.get("local_bindings", {}))
+    if java:
+        local_bindings.update(java.get("local_bindings", {}))
     tails = tail.classify(
         ev.unresolved_sites(syntax, resolutions, external),
         repo_root,
@@ -324,6 +349,8 @@ def _build_symbol_layer(
         fallback=fallback,
         import_bindings=py_bindings,
         local_bindings=local_bindings,
+        overloads=java.get("overload_sites") if java else None,
+        inherited=java.get("inherited_sites") if java else None,
     )
     # C-58's surfacing: sites the semantic lane resolved to a declaration
     # below the symbol floor still count as `resolved` (the number is not
@@ -445,6 +472,7 @@ def _lane_b_facts(
     ts: dict | None,
     go: dict | None,
     rust: dict | None,
+    java: dict | None,
     degraded: list[dict],
 ):
     """Every semantic provider's facts, skipping the ones that cannot run."""
@@ -478,6 +506,9 @@ def _lane_b_facts(
     if rust:
         rust_files = sorted({f.path for f in rust["files"]})
         runs.append(("rust", lambda: scipsource.extract_scip_rust(repo_root, rust_files)))
+    if java:
+        java_files = sorted({f.path for f in java["files"]})
+        runs.append(("java", lambda: scipsource.extract_scip_java(repo_root, java_files)))
 
     for language, run in runs:
         try:

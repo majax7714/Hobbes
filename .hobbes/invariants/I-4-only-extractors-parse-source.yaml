@@ -42,6 +42,7 @@ rule:
     - hobbes.extract.pysource
     - hobbes.extract.gosource
     - hobbes.extract.rustsource
+    - hobbes.extract.javasource
     - hobbes.extract.terraform
   imported:
     - ext:tree_sitter
@@ -49,6 +50,7 @@ rule:
     - ext:tree_sitter_hcl
     - ext:tree_sitter_python
     - ext:tree_sitter_rust
+    - ext:tree_sitter_java
 guarded_by:
   - pipeline/tests/test_emit.py::TestLayerOwnership::test_no_parser_sees_another_languages_files
   - pipeline/tests/test_emit.py::TestLayerOwnership::test_a_cross_layer_id_collision_is_reported

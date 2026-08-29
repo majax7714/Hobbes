@@ -345,7 +345,7 @@ class TestCaptureLineNamesMissingClasses:
         cli._print_tail_view(rows, tail.classes_available(rows))
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
-                "import-binding, path-call (C-32)") in out
+                "import-binding, path-call, overload-set, inherited-member (C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli

@@ -36,6 +36,21 @@ checkable fact about the site:
 - ``attr-call`` — an attribute call (``x.foo()``): a receiver no static
   provider could type. The genuine static-analysis limit, C-2's core.
 - ``path-call`` — a ``::``-qualified call (Rust) the index left dark.
+  Java has no ``::`` call (a method reference is a use, not a call); its
+  bare sites are unqualified methods of the enclosing type chain, static
+  imports, and ``new T(..)`` — so its classes are ``import-binding`` (a
+  type or static member an ``import`` binds) and ``builtin-name``
+  (``java.lang``, implicitly imported everywhere), beside the shared set.
+- ``overload-set`` — lane A located the declaration set the name binds
+  to and it holds more than one member (a Java overload set, a
+  constructor pair): the resolver abstained rather than pick one, and
+  only argument types — lane B's — can (ADR-096).
+- ``inherited-member`` — a Java call bound into a type that declares
+  supertypes (a bare call inside one, a static call through one):
+  whether the callee is that type's own declaration or an inherited
+  overload of the same arity depends on argument types lane A does not
+  have, so it abstains; only the hierarchy lane B sees says which
+  (ADR-096). Constructors are never inherited and are excepted.
 - ``unclassified`` — none of the above observations applies. This is the
   residue that stays honestly unknown.
 
@@ -68,6 +83,8 @@ IMPORT_BINDING = "import-binding"
 BUILTIN = "builtin-name"
 ATTR = "attr-call"
 PATH_CALL = "path-call"
+OVERLOAD = "overload-set"
+INHERITED = "inherited-member"
 UNCLASSIFIED = "unclassified"
 #: The semantic lane resolved the site to a declaration lane A keeps no
 #: symbol for — an interface method, a closure, a nested function (C-9's
@@ -91,6 +108,7 @@ _LANG_BY_EXT = {
     ".cjs": "ts/js",
     ".go": "go",
     ".rs": "rust",
+    ".java": "java",
 }
 
 #: Pinned, not read from the running interpreter (determinism across
@@ -141,7 +159,47 @@ GO_BUILTINS = frozenset({
     "string", "uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
 })
 
-_BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS}
+#: ``java.lang``'s public top-level types — implicitly imported into every
+#: compilation unit, so a bare ``new Runnable() {..}`` or ``Thread.sleep``
+#: names one without any import statement. Pinned from the image's
+#: Temurin JDK 21 (``jimage list``, ADR-096); the JDK-internal helpers
+#: (``CharacterData*``, ``ProcessImpl``) are dropped — a repo never
+#: spells them.
+JAVA_BUILTINS = frozenset({
+    "AbstractMethodError", "Appendable", "ArithmeticException",
+    "ArrayIndexOutOfBoundsException", "ArrayStoreException", "AssertionError",
+    "AutoCloseable", "Boolean", "BootstrapMethodError", "Byte", "CharSequence",
+    "Character", "Class", "ClassCastException", "ClassCircularityError",
+    "ClassFormatError", "ClassLoader", "ClassNotFoundException", "ClassValue",
+    "CloneNotSupportedException", "Cloneable", "Comparable", "Deprecated",
+    "Double", "Enum", "EnumConstantNotPresentException", "Error", "Exception",
+    "ExceptionInInitializerError", "Float", "FunctionalInterface",
+    "IllegalAccessError", "IllegalAccessException", "IllegalArgumentException",
+    "IllegalCallerException", "IllegalMonitorStateException",
+    "IllegalStateException", "IllegalThreadStateException",
+    "IncompatibleClassChangeError", "IndexOutOfBoundsException",
+    "InheritableThreadLocal", "InstantiationError", "InstantiationException",
+    "Integer", "InternalError", "InterruptedException", "Iterable",
+    "LayerInstantiationException", "LinkageError", "Long", "MatchException",
+    "Math", "Module", "ModuleLayer", "NegativeArraySizeException",
+    "NoClassDefFoundError", "NoSuchFieldError", "NoSuchFieldException",
+    "NoSuchMethodError", "NoSuchMethodException", "NullPointerException",
+    "Number", "NumberFormatException", "Object", "OutOfMemoryError",
+    "Override", "Package", "Process", "ProcessBuilder", "ProcessHandle",
+    "Readable", "Record", "ReflectiveOperationException", "Runnable",
+    "Runtime", "RuntimeException", "RuntimePermission", "SafeVarargs",
+    "ScopedValue", "SecurityException", "SecurityManager", "Short",
+    "StackOverflowError", "StackTraceElement", "StackWalker", "StrictMath",
+    "String", "StringBuffer", "StringBuilder",
+    "StringIndexOutOfBoundsException", "StringTemplate", "SuppressWarnings",
+    "System", "Thread", "ThreadDeath", "ThreadGroup", "ThreadLocal",
+    "Throwable", "TypeNotPresentException", "UnknownError",
+    "UnsatisfiedLinkError", "UnsupportedClassVersionError",
+    "UnsupportedOperationException", "VerifyError", "VirtualMachineError",
+    "Void", "WrongThreadException",
+})
+
+_BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS}
 
 #: Which classes each language's providers can actually produce (C-32's
 #: candidate fix, applied). A class absent from a language's set is one
@@ -150,7 +208,8 @@ _BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS}
 #: that reports origins". Pinned beside the mechanisms that decide it:
 #: checker origins come from tsextract alone; builtin lists exist for
 #: Python and Go; ``import-binding`` is lane A's Python parse; the
-#: ``local-binding`` collectors are Python/Go (ADR-046) and TS (checker);
+#: ``local-binding`` collectors are Python/Go (ADR-046), Java (anonymous
+#: class members, ADR-096) and TS (checker);
 #: ``path-call`` needs ``::``, which only Rust's grammar spells. The
 #: test suite pins this table against :func:`classify`'s decision tree,
 #: so a provider that learns a new class must widen its row here too.
@@ -161,6 +220,8 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
                         UNCLASSIFIED, BELOW_FLOOR}),
     "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
+    "java": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR, OVERLOAD,
+                       INHERITED, UNCLASSIFIED, BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
@@ -168,7 +229,7 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 #: counted from the projection (a resolved site with no symbol to land
 #: on) and added to the tail beside the unresolved classes.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR)
+               BUILTIN, ATTR, PATH_CALL, OVERLOAD, INHERITED, UNCLASSIFIED, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
@@ -281,6 +342,8 @@ def classify(
     fallback: dict[tuple[str, int, str], tuple] | None = None,
     import_bindings: dict[str, frozenset[str]] | None = None,
     local_bindings: dict[str, tuple] | None = None,
+    overloads: set[tuple[str, int, str]] | None = None,
+    inherited: set[tuple[str, int, str]] | None = None,
 ) -> dict[str, Counter]:
     """Per-file tail classes for the *unresolved* call sites.
 
@@ -288,6 +351,10 @@ def classify(
     like the fallback dict: ``(file, line, name)``. *import_bindings*
     maps a file to the names its import statements bind (lane A's own
     parse — Python's ``FromImport`` bound names today).
+    *overloads* is the set of ``(file, line, name)`` sites whose name
+    lane A bound to more than one declaration and abstained on (Java);
+    *inherited* the bare sites whose callee can only come from a
+    supertype lane A cannot see (Java).
     *local_bindings* maps a file to ``(name, start, end)`` tuples — lane
     A's sub-module bindings with enclosing-function extents (ADR-046);
     a bare site matches only when an extent spans its line, and a
@@ -300,6 +367,8 @@ def classify(
     fallback = fallback or {}
     import_bindings = import_bindings or {}
     local_bindings = local_bindings or {}
+    overloads = overloads or set()
+    inherited = inherited or set()
     lines = _Lines(repo_root)
     out: dict[str, Counter] = {}
     for site in unresolved:
@@ -307,6 +376,10 @@ def classify(
         lang = language_of(site.file)
         if key in fallback:
             cls = FALLBACK
+        elif key in overloads:
+            cls = OVERLOAD
+        elif key in inherited:
+            cls = INHERITED
         elif key in origins and origins[key] in _ORIGIN_CLASS:
             cls = _ORIGIN_CLASS[origins[key]]
         else:

@@ -421,7 +421,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
-        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs")) and index.kind(callee) == "type":
+        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs", ".java")) and index.kind(callee) == "type":
             # Go writes a conversion exactly like a call. Lane A drops the
             # ones it can name (a type in the same or an imported repo
             # package); this is the guard for the rest — a nested module
@@ -431,7 +431,9 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
             # Rust writes a tuple-struct constructor the same way
             # (`FinderRev(Hash::new(..))`), and the compiler lowers it to
             # an aggregate, not a call: memchr (O7, 2026-08-27), 7 of 7
-            # contradictions. The edge to the type stays, as `uses`.
+            # contradictions. Java: `new T() {..}` references the type at
+            # the site — the anonymous subclass's constructor is what
+            # runs (ADR-096). The edge to the type stays, as `uses`.
             edge_type = "uses"
         key = (caller, callee, edge_type, fact.tier, lane)
         symbol_evidence.setdefault(key, []).append(site)
@@ -1200,6 +1202,327 @@ def _index_cargo_root(
                 ),
             }
         )
+    return _rebase(facts, root)
+
+
+#: The image's JDKs, for Gradle's toolchain resolution (ADR-096): a
+#: `languageVersion` pin refuses any other major and cannot download one
+#: offline (the J.M0 spike), so the three LTS majors the image carries
+#: are named in the derived `gradle.properties` under GRADLE_USER_HOME.
+JAVA_INSTALLATIONS = ("/usr/local/java-17", "/usr/local/java-21", "/usr/local/java-25")
+
+_GRADLE_BUILD = ("build.gradle", "build.gradle.kts")
+_GRADLE_SETTINGS = ("settings.gradle", "settings.gradle.kts")
+#: Files a Java build reads besides the sources, by name or directory.
+_JAVA_BUILD_NAMES = {"pom.xml", *_GRADLE_BUILD, *_GRADLE_SETTINGS, "gradle.properties",
+                     "gradlew", "mvnw", "lombok.config"}
+_JAVA_BUILD_DIRS = {"gradle", ".mvn", "buildSrc"}
+
+
+def java_units(repo_root: Path, files: list[str]) -> dict[str, tuple[str, list[str]]]:
+    """Group Java *files* by the build root that indexes them:
+    ``{root: (tool, files)}``, *tool* ``maven`` or ``gradle``.
+
+    The go.mod/tsconfig/Cargo lesson, fourth spelling: scip-java drives
+    the build, so the unit is what the build tool roots at — a Maven
+    reactor (the highest ``pom.xml`` above the file) or a Gradle build
+    (the nearest ``settings.gradle[.kts]``, else the build file's own
+    directory). A directory holding both (spring-petclinic) is indexed
+    with Maven: its resolution is declarative, the pom is data. Files
+    under no build file group under nothing and are skipped, reported
+    (the C-26 pattern): inventing a build would invent its dependencies.
+    """
+    grouped: dict[str, tuple[str, list[str]]] = {}
+    cache: dict[str, tuple[str, str] | None] = {}
+    for rel in files:
+        directory = str(PurePosixPath(rel).parent)
+        if directory not in cache:
+            cache[directory] = _java_build_root(repo_root, directory)
+        unit = cache[directory]
+        if unit is None:
+            continue
+        tool, root = unit
+        grouped.setdefault(root, (tool, []))[1].append(rel)
+    return {root: (tool, sorted(paths)) for root, (tool, paths) in sorted(grouped.items())}
+
+
+def _java_build_root(repo_root: Path, directory: str) -> tuple[str, str] | None:
+    current = PurePosixPath(directory)
+    nearest: tuple[str, PurePosixPath] | None = None
+    while True:
+        here = repo_root / current
+        if (here / "pom.xml").is_file():
+            nearest = ("maven", current)
+            break
+        if any((here / name).is_file() for name in (*_GRADLE_BUILD, *_GRADLE_SETTINGS)):
+            nearest = ("gradle", current)
+            break
+        if str(current) == ".":
+            return None
+        current = current.parent
+    tool, at = nearest
+    if tool == "maven":
+        # The highest pom above: a reactor's modules lean on its root.
+        top = at
+        probe = at
+        while True:
+            if str(probe) == ".":
+                break
+            probe = probe.parent
+            if (repo_root / probe / "pom.xml").is_file():
+                top = probe
+        root = top
+    else:
+        root = at
+        probe = at
+        while True:
+            if any((repo_root / probe / name).is_file() for name in _GRADLE_SETTINGS):
+                root = probe
+                break
+            if str(probe) == ".":
+                break
+            probe = probe.parent
+    return tool, ("" if str(root) == "." else str(root))
+
+
+def java_build_files(repo_root: Path, root: str) -> list[str]:
+    """Every file under *root* the build could read that is not a
+    source: the poms and Gradle scripts at every level, the wrappers and
+    their ``gradle/`` / ``.mvn/`` trees, a ``buildSrc/``, resources, a
+    checkstyle config a pom binds to ``validate`` (spring-petclinic's
+    ``src/checkstyle/nohttp-checkstyle.xml`` — the first real repo failed
+    on exactly that when only the build files were staged). The build
+    sees the tree it was written for; the stage is a copy, so the cost
+    is bytes, not trust. Walked with lane A's pruning so ``target/`` and
+    ``build/`` never enter the stage, and dot-directories are kept only
+    for the two build tools' own (``.mvn``)."""
+    from hobbes.extract.javasource import _JAVA_SKIPPED
+
+    base = repo_root / root if root else repo_root
+    out: list[str] = []
+    stack = [base]
+    while stack:
+        directory = stack.pop()
+        try:
+            children = sorted(directory.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            rel = child.relative_to(repo_root).as_posix()
+            if child.is_symlink():
+                continue
+            if child.is_dir():
+                if child.name in _JAVA_BUILD_DIRS:
+                    out.extend(
+                        p.relative_to(repo_root).as_posix()
+                        for p in sorted(child.rglob("*")) if p.is_file() and not p.is_symlink()
+                    )
+                elif child.name not in _JAVA_SKIPPED and not child.name.startswith("."):
+                    stack.append(child)
+            elif child.suffix != ".java":
+                out.append(rel)
+    return sorted(set(out))
+
+
+def declared_java_dependencies(repo_root: Path, build_files: list[str]) -> list[str]:
+    """Dependency *groups* a build declares — ``maven/<groupId>`` — the
+    Java arm of Decision 4's degradation input, matched at the group
+    (``canonicalName`` in the helper).
+
+    A pom's ``<dependencies>`` are parsed as XML — ``runtime``-scoped
+    entries and ``pom``-typed imports left out, since nothing in source
+    references them; ``${project.groupId}`` is the pom's own group, other
+    properties are left unresolved and skipped. Gradle declares in code, which is not read: a version
+    catalog (``gradle/libs.versions.toml``) is parsed as TOML, and a
+    ``"group:artifact:version"`` literal in a build script is taken as
+    text — an observation of what the script spells, not of what it
+    resolves.
+    """
+    import re
+    import tomllib
+    import xml.etree.ElementTree as ET
+
+    groups: set[str] = set()
+    for rel in build_files:
+        path = repo_root / rel
+        name = path.name
+        try:
+            if name == "pom.xml":
+                tree = ET.parse(path)
+                ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+                own = tree.find("m:groupId", ns)
+                if own is None:
+                    own = tree.find("m:parent/m:groupId", ns)
+                own_group = (own.text or "").strip() if own is not None else ""
+                for dep in tree.iterfind(".//m:dependencies/m:dependency", ns):
+                    scope = dep.find("m:scope", ns)
+                    kind = dep.find("m:type", ns)
+                    # A runtime-only dependency (a JDBC driver) and a BOM
+                    # import are never referenced from source, so their
+                    # absence from the index says nothing about the
+                    # environment (spring-petclinic: 9 of 13 "missing").
+                    if scope is not None and (scope.text or "").strip() == "runtime":
+                        continue
+                    if kind is not None and (kind.text or "").strip() == "pom":
+                        continue
+                    group = dep.find("m:groupId", ns)
+                    text = (group.text or "").strip() if group is not None else ""
+                    if text == "${project.groupId}":
+                        text = own_group
+                    if text and "${" not in text and text != own_group:
+                        groups.add(f"maven/{text}")
+            elif name == "libs.versions.toml":
+                data = tomllib.loads(path.read_text())
+                for entry in (data.get("libraries") or {}).values():
+                    if isinstance(entry, dict):
+                        module = entry.get("module") or ""
+                        group = entry.get("group") or module.split(":")[0]
+                        if group:
+                            groups.add(f"maven/{group}")
+                    elif isinstance(entry, str) and ":" in entry:
+                        groups.add(f"maven/{entry.split(':')[0]}")
+            elif name in _GRADLE_BUILD:
+                for line in path.read_text().splitlines():
+                    if "runtimeOnly" in line or "platform(" in line:
+                        continue  # the same rule, as text
+                    for match in re.finditer(r"""["']([A-Za-z0-9_.-]+):([A-Za-z0-9_.-]+):[^"'\s]+["']""", line):
+                        groups.add(f"maven/{match.group(1)}")
+        except (OSError, ValueError, ET.ParseError):
+            continue
+    return sorted(groups)
+
+
+def extract_scip_java(
+    repo_root: Path, files: list[str], sha: str = ""
+) -> dict | None:
+    """Index every Java build root and return one merged facts document.
+
+    **Indexing Java executes the repo's build** (C-29's Java face,
+    ADR-096): scip-java is a javac plugin, and the only way to hand it a
+    classpath is to run the build that resolves one — Maven or the
+    repo's own Gradle wrapper, inside the ingest container, **with a
+    network** (C-66): neither tool separates fetching from evaluating
+    the build. The notice below is the surfacing; it prints every time.
+    """
+    if not enabled() or not files:
+        return None
+    repo_root = Path(repo_root).resolve()
+    merged: dict = {
+        "definitions": [],
+        "references": [],
+        "external_refs": [],
+        "packages": {},
+        "degraded": [],
+        "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+    }
+    grouped = java_units(repo_root, files)
+    for directory, orphans in go_orphans(files, {r: f for r, (_, f) in grouped.items()}).items():
+        merged["degraded"].append(
+            {
+                "path": directory,
+                "stage": "scip-java",
+                "message": (
+                    f"{len(orphans)} Java file(s) under {directory!r} sit below no "
+                    "pom.xml or Gradle build, so scip-java cannot compile them; "
+                    "their call edges fall to lane A's fallback (syntactic "
+                    "tier). Add a build file to give them semantics."
+                ),
+            }
+        )
+    if grouped:
+        import sys
+
+        print(
+            "NOTE: java semantics: scip-java runs the repo's own build (Maven "
+            "or its Gradle wrapper) inside the ingest container, with network "
+            "access for dependency resolution (C-29, C-66, ADR-096)",
+            file=sys.stderr,
+        )
+    for root, (tool, root_files) in grouped.items():
+        try:
+            facts = _index_java_unit(repo_root, root, tool, root_files, sha)
+        except containment.ContainmentRefusal:
+            raise  # P10: the guarantee outranks the per-unit degrade
+        except UNIT_ERRORS as exc:
+            merged["degraded"].append(
+                _unit_failure(root, "scip-java", f"{tool} build", exc)
+            )
+            continue
+        if facts is None:
+            continue
+        for key in ("definitions", "references", "external_refs", "degraded"):
+            merged[key].extend(facts.get(key, []))
+        for name, count in (facts.get("packages") or {}).items():
+            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        coverage = facts.get("dependency_coverage") or {}
+        merged["dependency_coverage"]["declared"] += coverage.get("declared", 0)
+        merged["dependency_coverage"]["resolved"] += coverage.get("resolved", 0)
+        merged["dependency_coverage"]["missing"].extend(coverage.get("missing", []))
+    merged["dependency_coverage"]["missing"] = sorted(
+        set(merged["dependency_coverage"]["missing"])
+    )
+    join_cross_unit(merged)
+    return merged
+
+
+def gradle_user_properties() -> str:
+    """The derived ``gradle.properties`` under GRADLE_USER_HOME: the
+    image's JDKs for toolchain resolution, no auto-download (there is
+    nothing to download from that the pin would trust), no daemon (one
+    build per container)."""
+    return (
+        f"org.gradle.java.installations.paths={','.join(JAVA_INSTALLATIONS)}\n"
+        "org.gradle.java.installations.auto-download=false\n"
+        "org.gradle.daemon=false\n"
+    )
+
+
+_JAVA_INDEX_TIMEOUT = 1800
+
+
+def _index_java_unit(
+    repo_root: Path, root: str, tool: str, root_files: list[str], sha: str
+) -> dict | None:
+    """Stage and index one Maven reactor or Gradle build.
+
+    Staged beside the sources: every other unpruned file under the root
+    (:func:`java_build_files`). The wrappers lose their mode in the copy
+    and get it back, because scip-java runs ``./gradlew``. The
+    dependency tree needs no symlink: both tools keep a user-level
+    repository, which the cache root supplies (``MAVEN_OPTS``,
+    ``GRADLE_USER_HOME``).
+    """
+    build_files = java_build_files(repo_root, root)
+    staged = sorted(set(root_files) | set(build_files))
+    declared = declared_java_dependencies(repo_root, build_files)
+
+    gradle_home = staging.cache_root() / "gradle"
+    gradle_home.mkdir(parents=True, exist_ok=True)
+    (gradle_home / "gradle.properties").write_text(gradle_user_properties())
+
+    stage = staging.build_stage(repo_root, staged, sha=sha)
+    unit_root = stage / root if root else stage
+    for wrapper in ("gradlew", "mvnw"):
+        script = unit_root / wrapper
+        if script.is_file():
+            script.chmod(script.stat().st_mode | 0o111)
+    try:
+        facts = run_helper(
+            {
+                "stage": str(unit_root),
+                "language": "java",
+                "buildTool": tool,
+                "projectName": repo_root.name,
+                # Unused by the java argv — the moniker version is the
+                # artifact's own (ADR-096) — carried for config uniformity.
+                "projectVersion": "0",
+                "output": str(stage.parent / f"{stage.name}.scip"),
+                "declaredDeps": declared,
+            },
+            timeout=_JAVA_INDEX_TIMEOUT,
+        )
+    finally:
+        staging.remove_stage(stage)
     return _rebase(facts, root)
 
 

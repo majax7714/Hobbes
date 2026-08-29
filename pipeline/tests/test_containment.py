@@ -41,21 +41,24 @@ class TestProfiles:
     """Stated once, so nobody re-derives what executes (ADR-092 §1)."""
 
     def test_every_helper_language_has_an_index_step(self):
-        assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust"}
+        assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust", "java"}
         assert set(containment.INDEX_STEP.values()) <= set(containment.PROFILES)
 
-    def test_every_index_step_has_no_network(self):
+    def test_every_index_step_has_no_network_except_java(self):
+        # Java's build is its dependency resolution (ADR-096, C-66): the
+        # one index step that keeps a network, named here so the
+        # exception never widens silently.
         for step in containment.INDEX_STEP.values():
-            assert containment.PROFILES[step].network == "none", step
+            assert containment.PROFILES[step].network == ("default" if step == "index-java" else "none"), step
 
-    def test_the_executing_set_is_rust_and_the_venv_listing(self):
+    def test_the_executing_set_is_rust_java_and_the_venv_listing(self):
         executing = {s for s, p in containment.PROFILES.items() if p.executes_repo_code}
-        assert executing == {"index-rust", "python-env"}
+        assert executing == {"index-rust", "index-java", "python-env"}
 
-    def test_fetch_steps_execute_nothing_and_are_the_only_networked_ones(self):
+    def test_fetch_steps_execute_nothing_and_java_is_the_only_executing_networked_step(self):
         networked = {s for s, p in containment.PROFILES.items() if p.network != "none"}
-        assert networked == {"fetch-npm", "fetch-go", "fetch-rust"}
-        assert not any(containment.PROFILES[s].executes_repo_code for s in networked)
+        assert networked == {"fetch-npm", "fetch-go", "fetch-rust", "index-java"}
+        assert {s for s in networked if containment.PROFILES[s].executes_repo_code} == {"index-java"}
 
     def test_cargo_fetch_pins_rustc_against_a_staged_config(self):
         cmd = containment.rust_fetch_command("/s/Cargo.toml")
@@ -294,6 +297,26 @@ class TestRouting:
         assert [p.profile.step for p in plans] == ["fetch-rust", "index-rust"]
         assert plans[0].command[:2] == ("cargo", "fetch")
 
+    def test_a_java_unit_indexes_in_one_networked_step(self, cache, monkeypatch):
+        plans = self._capture(monkeypatch)
+        repo = cache.parent / "repo"
+        (repo / "src/main/java/a").mkdir(parents=True)
+        (repo / "pom.xml").write_text("<project><groupId>g</groupId><artifactId>a</artifactId></project>")
+        (repo / "src/main/java/a/A.java").write_text("package a; class A {}")
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        scipsource.extract_scip_java(repo, ["src/main/java/a/A.java"])
+        assert [p.profile.step for p in plans] == ["index-java"]
+        [plan] = plans
+        assert plan.profile.executes_repo_code and plan.profile.network == "default"
+        args = plan.podman_args()
+        assert args[args.index("--network") + 1] == "pasta"
+        env = " ".join(args)
+        assert f"GRADLE_USER_HOME={cache}/gradle" in env and f"maven.repo.local={cache}/m2" in env
+        assert (cache / "gradle" / "gradle.properties").read_text().startswith(
+            "org.gradle.java.installations.paths=/usr/local/java-17,/usr/local/java-21,/usr/local/java-25"
+        )
+        assert "/usr/local/java/bin" in env
+
     def test_a_go_module_fetches_then_indexes(self, cache, monkeypatch):
         plans = self._capture(monkeypatch)
         repo = cache.parent / "repo"
@@ -373,7 +396,7 @@ class TestRefusalIsNeverAbsorbed:
         monkeypatch.setattr(scipsource, "extract_scip_rust", refuse)
         degraded: list[dict] = []
         facts = list(
-            _lane_b_facts(tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]}, degraded)
+            _lane_b_facts(tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]}, None, degraded)
         )
         assert facts == []
         (record,) = degraded
@@ -418,4 +441,36 @@ class TestCanary:
         assert not any("leaked()" in m for m in monikers), monikers
         assert not self.ESCAPED.exists()
         # And no host-run disclosure was recorded.
+        assert not any("ran on the host" in d["message"] for d in facts["degraded"])
+
+
+@pytest.mark.lane_b
+class TestJavaCanary:
+    """The Java negative (ADR-096): a Maven build step that tries to reach
+    the host. Real podman, real image, real scip-java — with a network,
+    which is exactly what the canary must show it cannot turn into an
+    escape."""
+
+    SECRET = Path("/tmp/hobbes-canary-secret")
+    ESCAPED = Path("/tmp/hobbes-canary-escaped")
+
+    def test_the_build_runs_and_reaches_nothing(self, tmp_path, monkeypatch):
+        why = _containment_available()
+        if why is not None:
+            pytest.skip(f"containment unavailable here: {why}")
+        monkeypatch.delenv(containment.UNCONTAINED_ENV, raising=False)
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        repo = tmp_path / "canary"
+        shutil.copytree(FIXTURES / "canary-java", repo)
+        self.SECRET.write_text("planted\n")
+        self.ESCAPED.unlink(missing_ok=True)
+        try:
+            facts = scipsource.extract_scip_java(repo, ["src/main/java/canary/Canary.java"])
+        finally:
+            self.SECRET.unlink(missing_ok=True)
+        assert facts is not None, facts
+        monikers = [d["moniker"] for d in facts["definitions"]]
+        assert any("canary/Canary#" in m for m in monikers), (monikers, facts["degraded"])
+        assert not any("Leaked#" in m for m in monikers), monikers
+        assert not self.ESCAPED.exists()
         assert not any("ran on the host" in d["message"] for d in facts["degraded"])

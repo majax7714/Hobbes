@@ -315,9 +315,9 @@ framework-declared interfaces readable syntactically (FastAPI/Flask decorators,
 Express/Nest registrations), test inventory and structure, and *approximate*
 module-level dependency edges.
 
-Five providers: `pysource` (Python), `tssource` (TS/JS, via the ts-morph
-helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7), and the HCL
-walk inside the Terraform pack. Each answers the same question — where are
+Six providers: `pysource` (Python), `tssource` (TS/JS, via the ts-morph
+helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
+`javasource` (Java, ADR-096), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
 Two things Go made explicit that the others had not (ADR-037). **A type
@@ -353,6 +353,22 @@ A false-shaped site produces no edge, because nothing resolves at it;
 rust-analyzer meanwhile emits macro-argument occurrences at their real
 pre-expansion positions, so the two lanes still meet on ranges.
 
+Java (ADR-096) adds three rules of its own. **An import names a type,
+and a type is a file** — the language's rule — so lane A *can* emit
+in-repo import edges precisely (`import a.b.C` → the one `a/b/C.java`),
+while same-package references need no import and are raised by the
+join, which is why Java files still sit in the lane-agreement exclusion
+with Go and Rust. **Overloads**: one name, several declarations — symbol
+ids carry an ordinal (`Outer.helper`, `Outer.helper~2`), and the
+fallback resolver picks only when exactly one declaration fits the
+argument count, reporting the rest as `overload-set` in the tail; a
+type that declares supertypes stops the outward name walk, because an
+inherited member outranks an enclosing class's (`inherited-member`).
+**Anonymous classes** are below the floor: `new T() {..}` is a *use* of
+`T`, its methods are local bindings with the body's extent, its calls
+attribute to the enclosing declaration. The jsoup lanes went from 6
+disagreements in 3,921 dual-resolved sites to 0 on those three rules.
+
 **Lane A no longer *resolves* symbols; it still *detects* syntax (ADR-029).**
 An earlier wording said resolution "moves entirely to lane B", which assumed
 lane B could answer everything lane A could. It cannot answer *is this a
@@ -372,8 +388,9 @@ constraint **C-8**.
 
 ### 3.2 Lane B — semantics (SCIP indexers)
 Per-language batch indexers emitting SCIP, the universal IR: `scip-python`
-(built on Pyright), `scip-typescript`, `scip-go`, and rust-analyzer's native
-`scip` export (V2.M7, ADR-040). Hobbes writes no provider adapters — it runs
+(built on Pyright), `scip-typescript`, `scip-go`, rust-analyzer's native
+`scip` export (V2.M7, ADR-040), and `scip-java` (ADR-096) — a javac
+plugin the launcher injects into the repo's *own build*. Hobbes writes no provider adapters — it runs
 indexers and consumes their output. Precise symbols, definitions, references,
 and cross-file edges. Slower than lane A; cached (§3.6).
 
@@ -412,6 +429,19 @@ executing steps refuse (a distinct type the general catches name and
 re-raise first) and the rest run on the host and say so (C-64); the
 negative is tested by canary (`tests/fixtures/canary-rust`, a build
 script that tries to reach the host).
+
+**Java's index step is the one with a network (ADR-096, C-66).**
+scip-java needs the classpath only the build resolves, and neither Maven
+nor Gradle separates resolving from evaluating the build — Gradle
+resolves while running its script, and `dependency:go-offline` does not
+reproduce a Maven build's own resolution (a build extension's property,
+on the first real repo). So `index-java` executes repo build logic *and*
+keeps podman's default network: the container is the boundary (rootless,
+the Hobbes cache its only writable mount), not the network. Disclosed on
+every Java ingest and in the `containment` stamp; the canary
+(`tests/fixtures/canary-java`) proves the build reaches neither a planted
+host secret nor the host tree. The image carries JDK 17, 21 and 25 for
+Gradle's toolchain pins, Maven, and the scip-java launcher (+1.1 GB).
 
 **Lane B runs per unit and degrades per unit** (ADR-048). The unit an
 indexer's loader understands — a tsconfig zone, a Go module, a cargo
@@ -674,10 +704,19 @@ to answer.
 still holds for the *builder* — Go added zero lines to it, and Rust
 (V2.M7, the language the checklist was corrected *for*) added zero again.
 What P7 cannot promise is that a language is free: it costs one grammar
-walk, a bounded mechanical job with five worked examples now (`pysource`,
-`tssource`, `gosource`, `rustsource`, and HCL's). The claim that was wrong
+walk, a bounded mechanical job with six worked examples now (`pysource`,
+`tssource`, `gosource`, `rustsource`, `javasource`, and HCL's). The claim that was wrong
 is "an indexer entry plus an optional pack"; the claim that survives is
 "nothing in the core changes".
+
+**Java (ADR-096) was the sixth walk and the first whose indexer is a
+build step.** It touched exactly the list above plus two things the
+list did not have: the helper's SCIP *reader* (scip-java writes SCIP's
+typed ranges, fields the borrowed generated class did not know — the
+helper now owns that decode) and one containment profile with a
+network (§3.2). Zero lines in the builder, the join or the schema —
+and a language absent from §3.8 is wired, not supported: Java's row
+waits on its oracle cells.
 
 **Where steps 1 and 2 actually live.** `hobbes.yaml` does not exist and is
 not going to — the architecture named it before anything needed it, and

@@ -686,3 +686,73 @@ class TestBelowFloor:
             NODES, SYMBOLS,
         )
         assert out["below_floor"] == []
+
+
+class TestJavaUnits:
+    """Java's indexing unit is the build root (ADR-096, decision 7)."""
+
+    def _repo(self, tmp_path):
+        for rel, text in {
+            "proj/pom.xml": "<project xmlns='http://maven.apache.org/POM/4.0.0'><groupId>com.acme</groupId><artifactId>root</artifactId><modules><module>core</module></modules></project>",
+            "proj/core/pom.xml": "<project xmlns='http://maven.apache.org/POM/4.0.0'><parent><groupId>com.acme</groupId></parent><artifactId>core</artifactId><dependencies><dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId></dependency><dependency><groupId>${project.groupId}</groupId><artifactId>x</artifactId></dependency><dependency><groupId>${other}</groupId><artifactId>y</artifactId></dependency><dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>runtime</scope></dependency><dependency><groupId>org.bom</groupId><artifactId>b</artifactId><type>pom</type></dependency></dependencies></project>",
+            "proj/core/src/main/java/a/A.java": "package a; class A {}",
+            "proj/core/src/checkstyle/rules.xml": "<x/>",
+            "proj/core/target/classes/A.class": "",
+            "tool/settings.gradle": "rootProject.name = 'tool'",
+            "tool/build.gradle": "dependencies {\n implementation 'com.google.guava:guava:33.0.0'\n runtimeOnly 'org.postgresql:postgresql:42.7.0'\n}",
+            "tool/gradle/libs.versions.toml": "[libraries]\nokio = { module = 'com.squareup.okio:okio', version = '3.0' }\n",
+            "tool/sub/build.gradle.kts": "",
+            "tool/sub/src/main/java/b/B.java": "package b; class B {}",
+            "tool/gradlew": "#!/bin/sh\n",
+            "loose/C.java": "class C {}",
+        }.items():
+            path = tmp_path / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
+        return tmp_path
+
+    def test_files_group_by_reactor_root_or_settings_root(self, tmp_path):
+        repo = self._repo(tmp_path)
+        units = scipsource.java_units(repo, [
+            "proj/core/src/main/java/a/A.java", "tool/sub/src/main/java/b/B.java", "loose/C.java",
+        ])
+        assert units == {
+            "proj": ("maven", ["proj/core/src/main/java/a/A.java"]),
+            "tool": ("gradle", ["tool/sub/src/main/java/b/B.java"]),
+        }
+        orphans = scipsource.go_orphans(["loose/C.java"], {r: f for r, (_, f) in units.items()})
+        assert orphans == {"loose": ["loose/C.java"]}
+
+    def test_a_directory_with_both_build_files_is_maven(self, tmp_path):
+        (tmp_path / "pom.xml").write_text("<project/>")
+        (tmp_path / "build.gradle").write_text("")
+        (tmp_path / "A.java").write_text("class A {}")
+        assert scipsource.java_units(tmp_path, ["A.java"]) == {"": ("maven", ["A.java"])}
+
+    def test_the_stage_carries_every_unpruned_non_source_file(self, tmp_path):
+        repo = self._repo(tmp_path)
+        staged = scipsource.java_build_files(repo, "proj")
+        assert "proj/core/src/checkstyle/rules.xml" in staged  # petclinic's lesson
+        assert "proj/core/pom.xml" in staged and "proj/pom.xml" in staged
+        assert not any(p.startswith("proj/core/target/") for p in staged)
+        assert not any(p.endswith(".java") for p in staged)
+        assert not any(p.startswith("tool/") for p in staged)  # another unit
+        tool = scipsource.java_build_files(repo, "tool")
+        assert "tool/gradlew" in tool and "tool/gradle/libs.versions.toml" in tool
+
+    def test_declared_dependencies_are_groups_read_not_resolved(self, tmp_path):
+        repo = self._repo(tmp_path)
+        groups = scipsource.declared_java_dependencies(
+            repo, scipsource.java_build_files(repo, "proj") + scipsource.java_build_files(repo, "tool")
+        )
+        # The pom's junit group; `${project.groupId}` is the repo's own,
+        # `${other}` is unreadable, the runtime driver and the BOM are
+        # never referenced from source — all left out. Gradle: the
+        # catalog's module group and the script's literal, as text, the
+        # `runtimeOnly` line skipped by the same rule.
+        assert groups == ["maven/com.google.guava", "maven/com.squareup.okio", "maven/org.junit.jupiter"]
+
+    def test_the_derived_gradle_properties_name_the_image_jdks(self):
+        text = scipsource.gradle_user_properties()
+        assert "/usr/local/java-17,/usr/local/java-21,/usr/local/java-25" in text
+        assert "auto-download=false" in text and "daemon=false" in text

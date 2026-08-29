@@ -61,26 +61,31 @@ box, against a repo on disk (architecture §10); the application mode in
   and the embedded SPA. Only external deps: `yaml.v3`,
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
-  `extract/` (discover → per-language syntax providers → lane B SCIP join
+  `extract/` (discover → per-language syntax providers (`pysource`,
+  `tssource`, `gosource`, `rustsource`, `javasource`) → lane B SCIP join
   → graph/testmap → `packs/` → emit; `containment.py` runs every lane B
   step in the sandbox image — the executing steps refuse without it,
-  C-64); `derive/` (`hobbes plan`: impact →
+  C-64; Java's is the one step with a network, C-66); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
   evaluator → report); `narrate/`, `invariants/`, `review.py`, `render.py`,
   `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
-  minigo / minirust / canary-rust / goshapes / twomod), excluded from
+  minigo / minirust / minijava / canary-rust / canary-java / goshapes /
+  twomod), excluded from
   collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B: pinned SCIP indexers (`scip-python`, `scip-typescript`,
-  `scip-go` 0.2.7, rust-analyzer's `scip`), `index.mjs`, spike evidence.
+  `scip-go` 0.2.7, rust-analyzer's `scip`, `scip-java` 0.13.1 in the
+  image), `index.mjs` (the helper owns the SCIP typed-range decode),
+  spike evidence.
 - `web/` — the surface (Vite + React + TS, Cytoscape.js). `src/lib/` is the
   pure layer with the vitest cases; `npm run build` bundles into the Go
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the one image (`Containerfile`: sessions *and* lane B ingest,
-  ADR-092) and the exit-check harness.
+  ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, ~2.8 GB) and
+  the exit-check harness.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -162,7 +167,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 095).
+  architecture doesn't already make. Number sequentially (last: 096).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`

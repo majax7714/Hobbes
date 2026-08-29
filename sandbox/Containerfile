@@ -32,6 +32,20 @@ ARG NODE_VERSION=22.14.0
 ARG GO_VERSION=1.26.5
 ARG SCIP_GO_VERSION=v0.2.7
 ARG RUST_TOOLCHAIN=1.97.1
+# Java (ADR-096): the three Temurin LTS JDKs scip-java 0.13 supports —
+# a Gradle toolchain pin (`languageVersion = 17`) refuses any other
+# major and cannot download one offline (the J.M0 spike) — Maven, and
+# the scip-java launcher, a coursier bootstrap script that carries its
+# own jars. Every one pinned by version *and* checksum.
+ARG JDK17_RELEASE=jdk-17.0.20.1+1
+ARG JDK17_SHA256=3808d1d15e3ec6bd5b84057fb5d84c33d8a1536a258146bcea2e603fc726e08e
+ARG JDK21_RELEASE=jdk-21.0.12.1+1
+ARG JDK21_SHA256=ce79869e1307ed8ee1e2baa86a412b1eb5b75d10a01006d788a6f968bcfaee94
+ARG JDK25_RELEASE=jdk-25.0.4.1+1
+ARG JDK25_SHA256=dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e
+ARG MAVEN_VERSION=3.9.16
+ARG SCIP_JAVA_VERSION=0.13.1
+ARG SCIP_JAVA_SHA256=a694cae143c32c5b6226362fb4bd268a8d13d3cd9b482819b3b0029a9a97b8fe
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
@@ -65,6 +79,29 @@ ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo \
 RUN curl -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
       --default-toolchain "${RUST_TOOLCHAIN}" --component rust-analyzer,rust-src \
  && chmod -R a+rX /usr/local/rustup /usr/local/cargo
+
+# Java toolchain for scip-java (ADR-096). scip-java is a javac plugin
+# injected into the repo's *own build* — `mvn test-compile` / `gradle
+# compileTestJava` — so indexing Java executes repo-authored build logic
+# the way rust-analyzer executes build.rs (C-29's Java face); it runs
+# only inside this image. JDK 21 is the default (`/usr/local/java`); all
+# three sit under /usr/local/java-<major> for Gradle's toolchain
+# resolution (the ingest planner names them in
+# `org.gradle.java.installations.paths`). Gradle itself is not
+# installed: a Gradle repo runs its own wrapper, which downloads the
+# distribution it pins into GRADLE_USER_HOME under the Hobbes cache.
+COPY jdk.sh /usr/local/bin/hobbes-jdk-install
+RUN sh /usr/local/bin/hobbes-jdk-install 17 "${JDK17_RELEASE}" "${JDK17_SHA256}" \
+ && sh /usr/local/bin/hobbes-jdk-install 21 "${JDK21_RELEASE}" "${JDK21_SHA256}" \
+ && sh /usr/local/bin/hobbes-jdk-install 25 "${JDK25_RELEASE}" "${JDK25_SHA256}" \
+ && ln -s /usr/local/java-21 /usr/local/java \
+ && curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+      | tar -xz -C /opt && ln -s /opt/apache-maven-${MAVEN_VERSION} /opt/maven \
+ && curl -fsSL -o /usr/local/bin/scip-java "https://github.com/scip-code/scip-java/releases/download/v${SCIP_JAVA_VERSION}/scip-java-v${SCIP_JAVA_VERSION}" \
+ && echo "${SCIP_JAVA_SHA256}  /usr/local/bin/scip-java" | sha256sum -c - \
+ && chmod +x /usr/local/bin/scip-java
+ENV JAVA_HOME=/usr/local/java \
+    PATH="/usr/local/java/bin:/opt/maven/bin:/usr/local/cargo/bin:/usr/local/go/bin:${PATH}"
 
 # The static proxy (built with CGO_ENABLED=0). hobbes-session also mounts
 # the current build over this at run time, so an image rebuild is never on
