@@ -15,7 +15,8 @@ import (
 // call to Shape.area with Circle.area as its CHA target, twice → add
 // (the two-int overload), Line.text → Strings.pad, this(0) → the
 // one-argument constructor, of → the no-argument one. Runs the fixture's
-// Maven build inside the image (network, C-66); skipped without it.
+// Maven build inside the image (network, C-66 — the oracle's single
+// pass, see ADR-097); skipped without it.
 func TestMinijavaJavac(t *testing.T) {
 	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
 		t.Skip("containment unavailable: " + why)

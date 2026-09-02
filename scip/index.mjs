@@ -116,19 +116,22 @@ export const INDEXERS = {
     // Hobbes's, not scip-java's default: Maven compiles only — `clean
     // test-compile` — instead of `verify`, which would run every plugin
     // bound to the lifecycle; Gradle runs the compile tasks its default
-    // names. The step has a network (C-66): the build resolves its own
-    // dependencies, there being no fetch phase either tool can separate. No version flag exists and none is needed: the moniker
-    // version is the artifact's own (`1.24.1-SNAPSHOT` on the spike),
-    // never the git revision — Decision 1 satisfied by default, as for
-    // Rust.
+    // names. The step runs **offline** (ADR-097): the ingest resolved the
+    // build's dependencies first, in a networked pass over a stage that
+    // holds no sources (`containment.java_resolve_command`), so this
+    // pass has no network and says so to the tool — `-o` / `--offline` —
+    // and a build that still wants one fails visibly (C-66, C-67). No
+    // version flag exists and none is needed: the moniker version is the
+    // artifact's own (`1.24.1-SNAPSHOT` on the spike), never the git
+    // revision — Decision 1 satisfied by default, as for Rust.
     args: (c) => [
       'index',
       `--build-tool=${c.buildTool}`,
       '--output', c.output,
       '--',
       ...(c.buildTool === 'maven'
-        ? ['--batch-mode', '-DskipTests', 'clean', 'test-compile']
-        : ['clean', 'compileTestJava']),
+        ? ['--batch-mode', '-o', '-DskipTests', 'clean', 'test-compile']
+        : ['--offline', 'clean', 'compileTestJava']),
     ],
     cwd: (c) => c.stage,
   },

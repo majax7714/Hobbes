@@ -16,7 +16,9 @@
 //
 // The build executes repo-authored logic and resolves its own
 // dependencies, so the step keeps a network exactly as the ingest
-// lane's index-java does (C-66); the container is the boundary.
+// lane's fetch-java does (C-66; the ingest lane's index pass is offline
+// since ADR-097 — the oracle keeps one networked pass, bench tooling);
+// the container is the boundary.
 package javac
 
 import (

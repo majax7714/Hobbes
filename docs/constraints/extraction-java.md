@@ -2,40 +2,51 @@
 
 *Part of the constraint register — see [`README.md`](README.md) for how to read an entry, the surfacing statuses, and the debt summary.*
 
-### C-66 — Indexing a Java repo runs its build, in the container, with a network
+### C-66 — Resolving a Java repo's dependencies runs its build logic, in the container, with a network — *narrowed 2026-09-01 (ADR-097)*
 - **Cannot tell you:** nothing — like C-29 this registers something
   Hobbes *does*: `hobbes ingest` on a Java repo runs that repo's own
-  build (`mvn … test-compile`, or its `gradlew compileTestJava`) with
-  scip-java's compiler plugin attached, inside the ingest container —
-  and, unlike every other index step, **with network access**. A
-  Gradle script is code; a pom names the plugins and extensions the
-  build runs; either can reach the network while it runs.
+  build twice inside the ingest container. The **resolve pass**
+  (`fetch-java`) runs the build's dependency resolution — Maven's
+  `test-compile` over a stage with nothing to compile, or the Gradle
+  wrapper with a Hobbes init script that resolves every configuration —
+  **with network access**, on a stage that holds the build files and
+  the other non-source files under the build root and **no `.java`**.
+  The **index pass** (`index-java`) runs the build with scip-java
+  attached on the full stage, **offline** (`-o` / `--offline`). A Gradle
+  script is code; a pom names the plugins and extensions the build runs;
+  in the resolve pass either can reach the network while it runs.
 - **Because:** scip-java is a javac plugin, and javac needs the
-  classpath the build resolves. Neither tool separates resolving from
-  evaluating the build: Gradle resolves while running the script, and
-  Maven's `dependency:go-offline` does not reproduce the build's own
-  resolution (the ADR-096 spike: a property supplied by a build
-  extension). ADR-092's phase separation — a fetch container that runs
-  no repo code, an index container with no network — has no Java form.
-  What is kept: the container is rootless, the Hobbes cache root is its
-  only writable mount, the helper and the stage are otherwise read-only,
-  and the build never runs on the host (C-64 applies: the step refuses
-  without the image).
-- **Bites at:** security posture. An untrusted Java repo's build logic
-  can exfiltrate what the container can see — the staged copy of the
-  repo, the Hobbes cache (other repos' stages are removed after use;
-  the Maven/Gradle caches persist) — over the network while indexing.
-  Not the host, not the user's repo, not the user's `~/.m2`.
+  classpath the build resolves. Neither tool has a fetch that evaluates
+  nothing (ADR-096's spike: `dependency:go-offline` misses what a build
+  extension supplies; Gradle resolves while running its script), so the
+  separation ADR-092 draws by *what runs* is drawn here by *what the
+  container holds*: the pass that can reach the network never sees a
+  source; the pass that sees the sources has no route out. What is kept:
+  the container is rootless, the Hobbes cache root is its only writable
+  mount, the helper and the stage are otherwise read-only, and the build
+  never runs on the host (C-64: both steps refuse without the image).
+- **Bites at:** security posture, narrowly. An untrusted Java repo's
+  build logic can exfiltrate what the resolve container sees — its own
+  build files and resources (a private repo's `application.properties`
+  is the case to know about), and the Hobbes cache (public artifacts:
+  Maven, Gradle, coursier, npm, cargo, Go caches; other repos' stages
+  are removed after use) — over the network while resolving. Not the
+  sources, not the host, not the user's repo, not `~/.m2`. Before
+  2026-09-01 the sources were in that container too.
 - **You find out:** **surfaced** — a `NOTE:` line on stderr every time
-  the Java lane runs, naming the network; `graph.json`'s `containment`
-  stamp lists the `index-java` step; `containment.PROFILES["index-java"]`
-  is the one profile with `executes_repo_code` *and* `network="default"`,
-  and the suite pins that it is the only one.
+  the Java lane runs, naming both passes; `graph.json`'s `containment`
+  stamp lists `fetch-java` and `index-java`;
+  `containment.PROFILES["fetch-java"]` is the one profile with
+  `executes_repo_code` *and* `network="default"`, and the suite pins
+  that it is the only one and that its stage carries no sources; the
+  canary (`tests/fixtures/canary-java`) proves no pass saw sources and
+  network together.
 - **Provider (P9):** inherited from `scip-java` **0.13.1** and the
   build tools it drives (Maven **3.9.16** in the image; the repo's own
-  Gradle wrapper). Egress narrowing (C-41's shape) or a registry mirror
-  would soften this entry without Hobbes changing its rule.
-- **Source:** ADR-096, decision 3 — flagged for Max's ratification.
+  Gradle wrapper). The next narrowing is an allowlisted egress proxy on
+  an internal podman network (measured feasible, ADR-097; W1), which
+  would confine the residual to the registry hosts.
+- **Source:** ADR-096 decision 3, as amended by ADR-097.
 
 ### C-67 — The Java graph is the build's default configuration
 - **Cannot tell you:** what a source set the default build does not

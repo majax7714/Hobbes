@@ -451,8 +451,10 @@ test('the java indexer runs scip-java through the derived build tool', () => {
   assert.ok(INDEXERS.java.onPath)
   assert.deepEqual(args.slice(0, 4), ['index', '--build-tool=maven', '--output', '/o.scip'])
   assert.ok(args.includes('test-compile') && !args.includes('verify'))
-  assert.ok(!args.includes('--offline'), 'the java step resolves its own dependencies (C-66)')
-  assert.ok(INDEXERS.java.args({ ...c, buildTool: 'gradle' }).includes('compileTestJava'))
+  assert.ok(args.includes('-o'), 'the maven index pass is offline — resolution ran first (ADR-097)')
+  const gradle = INDEXERS.java.args({ ...c, buildTool: 'gradle' })
+  assert.ok(gradle.includes('compileTestJava'))
+  assert.ok(gradle.includes('--offline'), 'the gradle index pass is offline (ADR-097)')
   assert.equal(INDEXERS.java.cwd(c), '/s')
 })
 

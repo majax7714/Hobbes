@@ -1,57 +1,42 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-08-29: Java landed (ADR-096) — six milestones, four
-compiler-graded cells, one decision waiting on Max.** Read this, then the recent
-`docs/BUILDLOG.md` entries (2026-08-28/29) for how the current state
-was reached, and `docs/workstreams.md` for the backlog by owner.
+**Rewritten 2026-09-01: C-66 settled (ADR-097) — Java resolves without
+sources and indexes without a network; three cells re-ingested
+identical.** Read this, then the recent `docs/BUILDLOG.md` entries
+(2026-08-29, 2026-09-01) for how the current state was reached, and
+`docs/workstreams.md` for the backlog by owner.
 History lives in the BUILDLOG; this doc is rewritten, never appended
 into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: ratify or reverse **C-66**
+## ⇢ START HERE NEXT SESSION: the four ADR-092 decisions, then CI
 
-**The one open decision, and it is a posture decision, so it is Max's.**
-`index-java` is the **only** lane B step that executes repo-authored
-code *and* keeps a network. Every other index step runs
-`--network none` behind a fetch container that downloads but executes
-nothing (ADR-092's phase separation).
+**C-66 is settled** (Max, 2026-09-01: "your recommendation is good. good
+to proceed"). ADR-097 records it: a Java unit runs two contained passes —
+`fetch-java`, the build's own resolution with a network on a stage that
+holds **no `.java`** (Maven's `test-compile` with nothing to compile; the
+Gradle wrapper with `GRADLE_RESOLVE_SCRIPT`'s `hobbesResolveAll`), then
+`index-java`, the build with scip-java attached on the full stage,
+`--network none`, `-o`/`--offline`. The pass that can reach the network
+never sees a source; the pass that sees the sources has no route out.
+jsoup, spring-petclinic and Severed-Chains re-ingested **edge-for-edge
+identical** to the 2026-08-29 graphs; the canary's new probe (`Phoned`)
+proves no pass saw sources and network together. What remains conceded
+is the narrowed C-66: repo build logic with a network over its own build
+files, resources and the public caches.
 
-**Why Java has no such phase:** scip-java is a javac plugin, so it needs
-the classpath only the build resolves — and neither build tool separates
-resolving from evaluating. Gradle resolves while running `build.gradle`
-(which is code); Maven's `dependency:go-offline` does not reproduce a
-real build's resolution (measured on jsoup: `${os.detected.classifier}`
-comes from a build extension, and the subsequent offline compile fails
-on three test artifacts).
+**Still open, unrelated to Java:** ADR-092's four embedded decisions
+(below). Nothing blocks on them.
 
-**What is still guaranteed:** the container is the boundary — rootless,
-the Hobbes cache root its only writable mount, the repo staged as a
-copy, and the build never runs on the host (C-64 refuses without the
-image). The canary (`tests/fixtures/canary-java`) proves a Maven build
-step bound to `generate-sources` runs, and reaches neither a planted
-host secret nor the host filesystem.
+**Measured and parked (W1):** an allowlisted egress proxy for
+`fetch-java` — rootless podman 5.8 gives an `--internal` network no
+egress and a Hobbes-owned CONNECT proxy on a custom egress bridge can
+serve the registry hosts only (200 allowed / 403 denied, tested by
+hand); attach to a *custom* bridge, not the default `podman` one (DNS
+breaks). Its request log would double as a replay lockfile.
 
-**What is conceded:** an untrusted Java repo's build logic can reach the
-network from inside that container while indexing. Registered as
-**C-66**, surfaced on every Java ingest and in the `containment` stamp.
-
-**To reverse:** one field —
-`containment.PROFILES["index-java"].network = "none"`. Cost of
-reversing: Gradle repos lose lane B entirely and most Maven repos lose
-it on a cold cache; Java's claim shrinks to roughly the Severed-Chains
-cell (lane A, 100% precision, 23.5% recall). Nothing else in the build
-depends on the choice.
-
-**Read first:** ADR-096 decision 3 → `docs/constraints/extraction-java.md`
-C-66 → the four cell records in `docs/oracle-cells/*-java-2026-08-29.md`.
-
-*(Also still open from before, unrelated: ADR-092's four embedded
-decisions, listed below.)*
-
----
-
-## WHERE THINGS STAND (2026-08-29)
+## WHERE THINGS STAND (2026-09-01)
 
 - **Extraction:** every compiler-graded oracle cell at 100% on every
   tier it reaches (Go/TS/Rust/**Java**); Python trace-graded (C-60). The
@@ -59,19 +44,18 @@ decisions, listed below.)*
   *partial* as `below-floor`) and Rust's generated code. Records:
   `docs/oracle-cells/`, `oracle-misses.md`, `oracle-defects.md`
   (+ review/tally).
-- **Java is the sixth language (ADR-096, this session).** Lane A
-  (`javasource.py`), scip-java 0.13.1 contained, the JUnit inventory,
-  a javac+CHA oracle (`bench/oracle/java`, O8), and a §3.8 row on four
-  repos — jsoup, spring-petclinic, and **two drawn at random**
-  (spring-data-elasticsearch, Severed-Chains). All four at **100%
-  precision, 0 contradicted**; recall 66–98% where lane B runs and
-  **23.5% on the one where it could not** (C-67's first sighting:
-  scip-java cannot attach to every Gradle build). **One decision waits
-  on Max: C-66** — `index-java` is the only index step that executes
-  repo code *and* keeps a network, because in Java the build *is* the
-  dependency resolution. Reversing it is one field in
-  `containment.PROFILES`; the cost of reversing is Gradle repos and
-  most Maven ones losing lane B.
+- **Java is the sixth language (ADR-096, 2026-08-29; ADR-097,
+  2026-09-01).** Lane A (`javasource.py`), scip-java 0.13.1 contained,
+  the JUnit inventory, a javac+CHA oracle (`bench/oracle/java`, O8), and
+  a §3.8 row on four repos — jsoup, spring-petclinic, and **two drawn at
+  random** (spring-data-elasticsearch, Severed-Chains). All four at
+  **100% precision, 0 contradicted**; recall 66–98% where lane B runs and
+  **23.5% on the one where it could not** (C-67: scip-java cannot attach
+  to every Gradle build). **Lane B is two passes since ADR-097** — resolve
+  with a network and no sources, index offline; the only executing step
+  with a network is `fetch-java`, and the suite pins that its stage holds
+  no `.java`. The oracle lane's own `java-build` keeps a single networked
+  pass (bench tooling; the same shape applies when wanted).
 - **Containment (ADR-092): built, all four phases, reviewed by Max.**
   Lane B and the O6/O7 oracles run only in `hobbes-session:local`;
   executing steps refuse on the host (C-64); `graph.json` carries the
@@ -99,9 +83,11 @@ decisions, listed below.)*
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. **C-66 — see the block at the top of this file.** Then the four
-   ADR-092 decisions below. Nothing blocks on either; Java works either
-   way, with a much smaller claim if C-66 is reversed.
+0. **The four ADR-092 decisions** (§Decisions there): contain-all vs
+   executing-only; symlink targets at identical paths vs rewriting; one
+   image vs a slim ingest image; network by phase separation vs route
+   filtering — the last now has two forms (ADR-092 §4 by what runs,
+   ADR-097 by what the container holds). Nothing blocks on them.
 1. **Watch the first CI run** when Max pushes; anything runner-specific
    (rootless podman as `runner`, rustup inside `podman build`) is fixed
    in `ci-graph.sh` / the workflow, not worked around.
@@ -112,7 +98,9 @@ decisions, listed below.)*
    D5; needs n large enough to split O4's planner variance. GPU-hours
    stated first (the compute-economics gate).
 4. **Java follow-ups (W1), none urgent:** a Spring route pack; the
-   `maven-toolchains-plugin` case (C-67); egress narrowing for C-66; a
+   `maven-toolchains-plugin` case (C-67); the allowlisted egress proxy
+   for `fetch-java` (C-66's residual; topology measured, see the top of
+   this file); the oracle lane's two-pass form; a
    Lombok/protobuf cell to size C-68, which the four cells left
    **unmeasured** (`excluded.generated: 0` on every one); a bytecode
    RTA only if CHA proves too coarse.

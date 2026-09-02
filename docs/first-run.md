@@ -72,8 +72,9 @@ rustup component add rust-analyzer
 > The image carries pinned node, Go, scip-go, a rustup toolchain
 > with rust-analyzer, and — since ADR-096 — Temurin JDK 17/21/25, Maven
 > and the scip-java launcher (~2.8 GB; a Gradle repo runs its own
-> wrapper into the Hobbes cache). **Indexing a Java repo runs its build,
-> in the container, with a network** (C-66). The `scip/` helper is mounted from this
+> wrapper into the Hobbes cache). **Indexing a Java repo runs its build
+> twice, in the container: dependency resolution with a network on a
+> stage without sources, then the index offline** (C-66, ADR-097). The `scip/` helper is mounted from this
 > checkout, so `npm install` there still matters. `hobbes ingest
 > --uncontained` runs lane B on this host instead — said before it
 > happens, stamped into `graph.json`, named by `list_blind_spots`.

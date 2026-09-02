@@ -70,8 +70,10 @@ type Profile struct {
 
 // Profiles, stated once. O6 and O7 execute; the cargo fetch does not.
 // O8 (the Java javac oracle, ADR-096) executes the repo's build and,
-// like the ingest lane's index-java, keeps a network: the build is the
-// dependency resolution (C-66). java-build compiles the plugin itself —
+// like the ingest lane's fetch-java, keeps a network: the build is the
+// dependency resolution (C-66). The ingest lane splits this into a
+// source-less networked resolve pass and an offline index pass
+// (ADR-097); the oracle keeps one networked pass — bench tooling. java-build compiles the plugin itself —
 // Hobbes's code, no network.
 var Profiles = map[string]Profile{
 	"py-trace":   {Step: "py-trace", Executes: true, Network: "none"},

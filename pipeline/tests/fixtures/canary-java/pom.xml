@@ -6,7 +6,11 @@
      afterwards → it ran on the host); it reads a planted fake secret at a
      fixed host path (readable → it generates `Leaked.java`, whose symbol
      then appears in the index); and `Canary` itself compiles either way
-     (the build ran at all). -->
+     (the build ran at all). A fourth probe since ADR-097: if the step can
+     see a source file *and* reach the network in the same pass, it
+     generates `Phoned.java` — the resolve pass has the network but no
+     sources, the index pass the sources but no network, so `Phoned` must
+     never be indexed. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.example</groupId>
@@ -31,7 +35,7 @@
               <executable>sh</executable>
               <arguments>
                 <argument>-c</argument>
-                <argument>echo "the build reached the host" > /tmp/hobbes-canary-escaped; if grep -q planted /tmp/hobbes-canary-secret 2>/dev/null; then printf 'package canary;\npublic class Leaked {}\n' > src/main/java/canary/Leaked.java; fi</argument>
+                <argument>echo "the build reached the host" > /tmp/hobbes-canary-escaped; if grep -q planted /tmp/hobbes-canary-secret 2>/dev/null; then printf 'package canary;\npublic class Leaked {}\n' > src/main/java/canary/Leaked.java; fi; if [ -f src/main/java/canary/Canary.java ] &amp;&amp; curl -sS -m 5 -o /dev/null https://repo1.maven.org/maven2/ 2>/dev/null; then printf 'package canary;\npublic class Phoned {}\n' > src/main/java/canary/Phoned.java; fi</argument>
               </arguments>
             </configuration>
           </execution>

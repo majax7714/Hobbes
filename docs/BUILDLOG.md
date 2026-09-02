@@ -5849,3 +5849,101 @@ is still guaranteed, and that reversing it is one field in
 it would be references without call sites), a bytecode RTA (CHA's
 numbers were sharp enough to size the hole), egress narrowing for
 C-66. All four are in `workstreams.md` W1.
+
+## 2026-09-01 — ADR-097: C-66 settled the third way — Java resolves without sources, indexes without a network
+
+**Where the session started.** The handoff opened on one posture
+decision: ratify or reverse C-66, `index-java` being the only lane B
+step that executed repo-authored code *and* kept a network. Max asked
+for proposals and, in so many words, for a few differing paths to be
+*tried* before anything was labeled impossible. ADR-096 had recorded
+Java phase separation as having "no Java form" on two true
+measurements (`go-offline` misses what a build extension supplies;
+Gradle has no fetch that does not evaluate its script) and one framing
+that was too narrow: *a fetch that runs no repo code*.
+
+**What was measured, before any code changed** (the scripts sit in the
+session scratchpad; the numbers are in ADR-097's table):
+
+- **Two-pass Maven on jsoup.** A stage with every non-`.java` file and
+  a fresh `m2`: `mvn --batch-mode -DskipTests clean test-compile`,
+  networked → BUILD SUCCESS, 149 jars, 17 s. Then the full stage,
+  `--network none`, `mvn -o …` under `scip-java index` → BUILD SUCCESS,
+  197 shards, 10 s. Why: Maven resolves a mojo's scope *before* running
+  it, so nothing-to-compile still resolves exactly what the real build
+  needs — the same resolution, not a reimplementation.
+- **Two-pass Gradle on spring-petclinic** (9.5.1 wrapper, toolchain 17).
+  A source-less stage with a Hobbes init script whose one task resolves
+  every resolvable configuration of every project, fresh
+  `GRADLE_USER_HOME`, networked → 24 configurations, 52 s. Then the full
+  stage, `--network none`, `--offline clean compileTestJava` under
+  scip-java → BUILD SUCCESSFUL, 12 s. scip-java's own init script needed
+  nothing from the network: the launcher carries its plugin.
+- **Rootless podman 5.8 (netavark + pasta) topology**, for the option
+  not taken: an `--internal` network has no egress, no DNS, no route to
+  the host or gateway; containers on it reach each other; a container on
+  the internal network *and* a custom egress bridge reaches out (the
+  default `podman` bridge breaks DNS — use a custom one); a CONNECT
+  proxy on such a container served an allowlisted host (200) and refused
+  another (403) to a client holding the internal network only. So an
+  allowlisted egress proxy is buildable here. Recorded in W1, not built.
+
+Four options went to Max with a recommendation (two-pass now, proxy
+second); he took it.
+
+**Built (ADR-097).** `containment.PROFILES` gains `fetch-java`
+(`executes_repo_code=True`, `network="default"`) and `index-java` drops
+to `network="none"`; `java_resolve_command` (Maven's `test-compile`; the
+wrapper with `--init-script` + `GRADLE_RESOLVE_SCRIPT`'s
+`hobbesResolveAll`) and `java_index_offline_flags` are the record;
+`_index_java_unit` stages the build files alone for the resolve pass
+(`java_build_files` never lists a `.java`, by construction), runs it
+through `_fetch` (which grew `timeout`/`env` and, by structure, does not
+catch `ContainmentRefusal` — P10), then stages everything and runs the
+helper offline; a failed resolve is recorded and the index still runs on
+the cache as it stands, the two records joined if the build then fails.
+`scip/index.mjs` appends `-o` / `--offline` to the build command. The
+`NOTE:` line names both passes.
+
+**Tests.** The profile pins moved: every index step has no network;
+the executing set is `{index-rust, index-java, fetch-java, python-env}`;
+`fetch-java` is the only executing step with a network, and the plan
+test asserts its stage holds no `.java` while the index plan's does; a
+Gradle plan test checks the init script rides on the resolve command
+only. The Java canary gains a fourth probe: generate `Phoned.java` if
+the step can see `Canary.java` *and* reach Maven Central in one pass.
+The `lane_b` test asserts `Phoned#` is never indexed, the ledger reads
+`[fetch-java, index-java]` both contained, the three ADR-096 probes
+hold, and no resolve failure was recorded — passes for real, 3.4 s on a
+warm cache. The positive control (sources + network in one container)
+writes `Phoned.java`, checked by hand. Node: 31/31 with the flag
+assertion inverted. Suite: **1,025 pytest** (+4; the venv test still
+deselected by name), Go untouched but for comments (builds).
+
+**Re-ingested through the product path, tier-for-tier against the
+2026-08-29 artifacts:** jsoup (11 s wall) — 4,588 symbols, 21,388
+symbol edges, 1,907 module edges, edge sets identical; spring-petclinic
+(14 s; indexed as Maven, the pom-wins rule) — 476 / 389, identical;
+**Severed-Chains** (24 s; Gradle-only, the C-67 repo) — the resolve pass
+*succeeded* through the wrapper, the index pass failed on the same
+"another plugin replacing the compiler arguments" as before, and the
+graph fell to lane A identical to the stored one: 3,955 / 7,474. The one
+difference on all three: `containment.steps` now lists `fetch-java` and
+`index-java`. spring-data-elasticsearch not re-run (Maven; same path as
+jsoup).
+
+**Register.** C-66 narrowed, still surfaced: "the pass that can reach
+the network never sees a source; the pass that sees the sources has no
+route out." What remains conceded is stated exactly — repo build logic
+with a network over its own build files, the resources beside them, and
+the public caches under the Hobbes cache root; not the sources, not the
+host, not `~/.m2`. ADR-096's status line names the amendment;
+architecture §3.2 rewritten; first-run, oracle-grading, the oracle
+README, workstreams (the proxy as W1 with the measured topology; the
+oracle's own `java-build` keeps its single networked pass — bench
+tooling), future_additions, CLAUDE.md.
+
+**Not done, deliberately:** the egress proxy (W1); the oracle lane's
+two-pass form; a positive-control *test* for the canary probe (it would
+need sources and network in one container, which the product never
+does — the hand check is recorded instead).

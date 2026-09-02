@@ -90,8 +90,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
   C-14 residue).
 - **Java follow-ups (ADR-096, 2026-08-29):** a Spring route pack; the
   `maven-toolchains-plugin` case (a pom that *requires* a JDK major —
-  derive `~/.m2/toolchains.xml` from the image's three, C-67); egress
-  narrowing or a registry mirror for `index-java` (C-66); a bytecode
+  derive `~/.m2/toolchains.xml` from the image's three, C-67); an
+  allowlisted egress proxy for `fetch-java` (C-66's residual after
+  ADR-097 — an `--internal` podman network plus a Hobbes-owned CONNECT
+  proxy on a custom egress bridge, measured feasible 2026-09-01; its
+  request log doubles as a replay lockfile); the same two-pass shape
+  for the oracle lane's `java-build`; a bytecode
   RTA oracle if the CHA recall number is not sharp enough for C-58's
   Java entry; Kotlin lane A if a mixed repo is ever named.
 - **`bench-rust` pack for criterion benches** — pack territory, parked

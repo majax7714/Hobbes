@@ -140,7 +140,7 @@ segment and are marked in the heading.
 the wrong resolution, found by Java's fluent chains and measured at
 0.05% of dual-resolved sites, surfaced as a lane disagreement;
 C-66–C-69 added the same day by ADR-096 — Java: the build runs in the
-container with a network (C-66, flagged for ratification), the
+container with a network (C-66; **narrowed 2026-09-01 by ADR-097**: the networked pass holds no sources, the index pass no network), the
 one-configuration graph, generated sources (*partial*), and read-not-resolved
 dependency counts — three surfaced on day one; C-65 added 2026-08-28 by ADR-094 — the knowledge proxy pinned to the
 image, the host hatch disclosed, surfaced on day one; C-64 added 2026-08-27 by ADR-092 — lane B contained, executing

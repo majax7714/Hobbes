@@ -297,7 +297,9 @@ the class hierarchy, and every site with its resolved key and mode
 targets, and for a dynamic site adds the CHA override set below the
 declared owner with the declared method as `interface`. Kind
 `resolution`, no roots; `Roots` names the build tool. Runs contained
-**with a network** (C-66): the build resolves its own dependencies.
+**with a network** (C-66): the build resolves its own dependencies —
+the single-pass shape the ingest lane replaced with ADR-097's two passes;
+bench tooling keeps it until someone needs the narrower form.
 The `minijava` fixture is the self-test (`internal/grade/java_test.go`,
 skipped without the image).
 

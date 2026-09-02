@@ -430,18 +430,26 @@ re-raise first) and the rest run on the host and say so (C-64); the
 negative is tested by canary (`tests/fixtures/canary-rust`, a build
 script that tries to reach the host).
 
-**Java's index step is the one with a network (ADR-096, C-66).**
-scip-java needs the classpath only the build resolves, and neither Maven
-nor Gradle separates resolving from evaluating the build — Gradle
-resolves while running its script, and `dependency:go-offline` does not
-reproduce a Maven build's own resolution (a build extension's property,
-on the first real repo). So `index-java` executes repo build logic *and*
-keeps podman's default network: the container is the boundary (rootless,
-the Hobbes cache its only writable mount), not the network. Disclosed on
-every Java ingest and in the `containment` stamp; the canary
+**Java's phase separation is cut by what the container holds, not by
+what it runs (ADR-096, ADR-097, C-66).** scip-java needs the classpath
+only the build resolves, and neither Maven nor Gradle has a fetch that
+evaluates nothing — Gradle resolves while running its script, and
+`dependency:go-offline` does not reproduce a Maven build's own
+resolution. So a Java unit runs two contained passes: `fetch-java` runs
+the build's own resolution (Maven's `test-compile` with nothing to
+compile; the Gradle wrapper with a Hobbes init script that resolves every
+configuration) with podman's default network on a stage that holds the
+build files and resources and **no `.java`**; `index-java` runs the build
+with scip-java attached on the full stage, `--network none`, with the
+tool's offline flag. The pass that can reach the network never sees a
+source; the pass that sees the sources has no route out. What the resolve
+pass still concedes — repo build logic with a network over its own build
+files and the public artifact caches — is C-66, disclosed on every Java
+ingest and in the `containment` stamp; the canary
 (`tests/fixtures/canary-java`) proves the build reaches neither a planted
-host secret nor the host tree. The image carries JDK 17, 21 and 25 for
-Gradle's toolchain pins, Maven, and the scip-java launcher (+1.1 GB).
+host secret nor the host tree, and that no pass saw sources and network
+together. The image carries JDK 17, 21 and 25 for Gradle's toolchain
+pins, Maven, and the scip-java launcher (+1.1 GB).
 
 **Lane B runs per unit and degrades per unit** (ADR-048). The unit an
 indexer's loader understands — a tsconfig zone, a Go module, a cargo

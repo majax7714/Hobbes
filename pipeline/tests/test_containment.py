@@ -44,21 +44,34 @@ class TestProfiles:
         assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust", "java"}
         assert set(containment.INDEX_STEP.values()) <= set(containment.PROFILES)
 
-    def test_every_index_step_has_no_network_except_java(self):
-        # Java's build is its dependency resolution (ADR-096, C-66): the
-        # one index step that keeps a network, named here so the
-        # exception never widens silently.
+    def test_every_index_step_has_no_network(self):
+        # Java's index step lost its network with ADR-097: resolution
+        # moved to `fetch-java`, over a stage without sources.
         for step in containment.INDEX_STEP.values():
-            assert containment.PROFILES[step].network == ("default" if step == "index-java" else "none"), step
+            assert containment.PROFILES[step].network == "none", step
 
     def test_the_executing_set_is_rust_java_and_the_venv_listing(self):
         executing = {s for s, p in containment.PROFILES.items() if p.executes_repo_code}
-        assert executing == {"index-rust", "index-java", "python-env"}
+        assert executing == {"index-rust", "index-java", "fetch-java", "python-env"}
 
-    def test_fetch_steps_execute_nothing_and_java_is_the_only_executing_networked_step(self):
+    def test_java_resolve_is_the_only_executing_networked_step(self):
+        # The one container that runs repo build logic *and* has a network
+        # (C-66, narrowed by ADR-097). Named here so the set never widens
+        # silently; what keeps it honest is that its stage holds no
+        # sources — `test_a_java_unit_resolves_without_sources_then_indexes_offline`.
         networked = {s for s, p in containment.PROFILES.items() if p.network != "none"}
-        assert networked == {"fetch-npm", "fetch-go", "fetch-rust", "index-java"}
-        assert {s for s in networked if containment.PROFILES[s].executes_repo_code} == {"index-java"}
+        assert networked == {"fetch-npm", "fetch-go", "fetch-rust", "fetch-java"}
+        assert {s for s in networked if containment.PROFILES[s].executes_repo_code} == {"fetch-java"}
+
+    def test_java_resolve_commands_and_offline_flags(self):
+        maven = containment.java_resolve_command("maven", "/c/gradle/hobbes-resolve.gradle")
+        assert maven == ["mvn", "--batch-mode", "-DskipTests", "clean", "test-compile"]
+        gradle = containment.java_resolve_command("gradle", "/c/gradle/hobbes-resolve.gradle")
+        assert gradle[:1] == ["./gradlew"] and "--init-script" in gradle and gradle[-1] == "hobbesResolveAll"
+        assert "hobbesResolveAll" in containment.GRADLE_RESOLVE_SCRIPT
+        assert "canBeResolved" in containment.GRADLE_RESOLVE_SCRIPT
+        assert containment.java_index_offline_flags("maven") == ["-o"]
+        assert containment.java_index_offline_flags("gradle") == ["--offline"]
 
     def test_cargo_fetch_pins_rustc_against_a_staged_config(self):
         cmd = containment.rust_fetch_command("/s/Cargo.toml")
@@ -297,25 +310,63 @@ class TestRouting:
         assert [p.profile.step for p in plans] == ["fetch-rust", "index-rust"]
         assert plans[0].command[:2] == ("cargo", "fetch")
 
-    def test_a_java_unit_indexes_in_one_networked_step(self, cache, monkeypatch):
+    def test_a_java_unit_resolves_without_sources_then_indexes_offline(self, cache, monkeypatch):
         plans = self._capture(monkeypatch)
         repo = cache.parent / "repo"
         (repo / "src/main/java/a").mkdir(parents=True)
+        (repo / "src/main/resources").mkdir(parents=True)
         (repo / "pom.xml").write_text("<project><groupId>g</groupId><artifactId>a</artifactId></project>")
         (repo / "src/main/java/a/A.java").write_text("package a; class A {}")
+        (repo / "src/main/resources/app.properties").write_text("k=v\n")
         monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        staged: dict[str, list[str]] = {}
+        real_build_stage = staging.build_stage
+
+        def spy(repo_root, files, *a, **kw):
+            stage = real_build_stage(repo_root, files, *a, **kw)
+            staged[str(stage)] = list(files)
+            return stage
+
+        monkeypatch.setattr(staging, "build_stage", spy)
         scipsource.extract_scip_java(repo, ["src/main/java/a/A.java"])
-        assert [p.profile.step for p in plans] == ["index-java"]
-        [plan] = plans
-        assert plan.profile.executes_repo_code and plan.profile.network == "default"
-        args = plan.podman_args()
+        assert [p.profile.step for p in plans] == ["fetch-java", "index-java"]
+        resolve, index = plans
+        # The networked pass executes repo build logic over a stage with
+        # no sources (C-66, ADR-097); the pass with the sources is offline.
+        assert resolve.profile.executes_repo_code and resolve.profile.network == "default"
+        assert index.profile.executes_repo_code and index.profile.network == "none"
+        resolve_files = [f for s, f in staged.items() if resolve.cwd.startswith(s)]
+        assert resolve_files and not any(f.endswith(".java") for f in resolve_files[0]), resolve_files
+        assert "pom.xml" in resolve_files[0] and "src/main/resources/app.properties" in resolve_files[0]
+        index_files = [f for s, f in staged.items() if index.cwd.startswith(s) or s in index.command[-1]]
+        assert any("src/main/java/a/A.java" in f for f in index_files), staged
+        assert resolve.command == ("mvn", "--batch-mode", "-DskipTests", "clean", "test-compile")
+        args = resolve.podman_args()
         assert args[args.index("--network") + 1] == "pasta"
+        assert index.podman_args()[index.podman_args().index("--network") + 1] == "none"
         env = " ".join(args)
         assert f"GRADLE_USER_HOME={cache}/gradle" in env and f"maven.repo.local={cache}/m2" in env
         assert (cache / "gradle" / "gradle.properties").read_text().startswith(
             "org.gradle.java.installations.paths=/usr/local/java-17,/usr/local/java-21,/usr/local/java-25"
         )
+        assert (cache / "gradle" / "hobbes-resolve.gradle").read_text() == containment.GRADLE_RESOLVE_SCRIPT
         assert "JAVA_HOME=/usr/local/java-21" in env and "/usr/local/java-21/bin" in env
+        assert "JAVA_HOME=/usr/local/java-21" in " ".join(index.podman_args())
+
+    def test_a_gradle_unit_resolves_through_the_init_script(self, cache, monkeypatch):
+        plans = self._capture(monkeypatch)
+        repo = cache.parent / "repo"
+        (repo / "src/main/java/a").mkdir(parents=True)
+        (repo / "build.gradle").write_text("plugins { id 'java' }\n")
+        (repo / "settings.gradle").write_text("rootProject.name = 'a'\n")
+        (repo / "gradlew").write_text("#!/bin/sh\n")
+        (repo / "src/main/java/a/A.java").write_text("package a; class A {}")
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        scipsource.extract_scip_java(repo, ["src/main/java/a/A.java"])
+        assert [p.profile.step for p in plans] == ["fetch-java", "index-java"]
+        resolve = plans[0]
+        assert resolve.command[:1] == ("./gradlew",) and resolve.command[-1] == "hobbesResolveAll"
+        assert str(cache / "gradle" / "hobbes-resolve.gradle") in resolve.command
 
     def test_a_go_module_fetches_then_indexes(self, cache, monkeypatch):
         plans = self._capture(monkeypatch)
@@ -446,10 +497,11 @@ class TestCanary:
 
 @pytest.mark.lane_b
 class TestJavaCanary:
-    """The Java negative (ADR-096): a Maven build step that tries to reach
-    the host. Real podman, real image, real scip-java — with a network,
-    which is exactly what the canary must show it cannot turn into an
-    escape."""
+    """The Java negative (ADR-096, ADR-097): a Maven build step that tries
+    to reach the host, and one that phones home only if it can see both
+    the sources and the network. Real podman, real image, real scip-java.
+    The resolve pass has a network and no sources; the index pass has the
+    sources and no network — so `Phoned` must never be indexed."""
 
     SECRET = Path("/tmp/hobbes-canary-secret")
     ESCAPED = Path("/tmp/hobbes-canary-escaped")
@@ -464,6 +516,7 @@ class TestJavaCanary:
         shutil.copytree(FIXTURES / "canary-java", repo)
         self.SECRET.write_text("planted\n")
         self.ESCAPED.unlink(missing_ok=True)
+        containment.reset_ledger()
         try:
             facts = scipsource.extract_scip_java(repo, ["src/main/java/canary/Canary.java"])
         finally:
@@ -472,5 +525,10 @@ class TestJavaCanary:
         monikers = [d["moniker"] for d in facts["definitions"]]
         assert any("canary/Canary#" in m for m in monikers), (monikers, facts["degraded"])
         assert not any("Leaked#" in m for m in monikers), monikers
+        # No pass saw sources and network together (ADR-097's property).
+        assert not any("Phoned#" in m for m in monikers), monikers
         assert not self.ESCAPED.exists()
         assert not any("ran on the host" in d["message"] for d in facts["degraded"])
+        assert not any("resolution failed" in d["message"] for d in facts["degraded"]), facts["degraded"]
+        assert [s["step"] for s in containment.LEDGER] == ["fetch-java", "index-java"]
+        assert all(s["contained"] for s in containment.LEDGER)

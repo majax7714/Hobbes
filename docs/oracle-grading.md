@@ -374,8 +374,10 @@ recorded miss class, not a contradiction. Sources under `target/` or
 attribute to the enclosing declaration.
 
 **Where it runs (ADR-092 / C-66):** inside the sandbox image, with a
-network — the build is the dependency resolution, exactly as the ingest
-lane's `index-java`. The plugin jar is built in the image once per cell
+network — the build is the dependency resolution. The ingest lane split
+this into a source-less networked resolve pass and an offline index pass
+(ADR-097); the oracle keeps the single networked pass for now (bench
+tooling), and the same two-pass shape applies when it is wanted. The plugin jar is built in the image once per cell
 dir (`java-build`, no network).
 
 **Pilot cell:** the `minijava` fixture — every pair hand-computed in

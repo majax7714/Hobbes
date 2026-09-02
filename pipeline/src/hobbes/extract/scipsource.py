@@ -297,14 +297,23 @@ def run_helper(
     return facts
 
 
-def _fetch(step: str, command: list[str], cwd: Path) -> str | None:
-    """Run a registry step (network on, no repo code) and return why it
-    failed, or None. A failed fetch is not a failed index: the index step
-    still runs, offline, and resolution degrades where the registry was
-    needed (C-30's shape, now per fetch)."""
-    plan = containment.plan(step, command, cwd=cwd)
+def _fetch(
+    step: str,
+    command: list[str],
+    cwd: Path,
+    *,
+    timeout: int | None = None,
+    env: tuple[str, ...] = (),
+) -> str | None:
+    """Run a registry step (network on) and return why it failed, or None.
+    A failed fetch is not a failed index: the index step still runs,
+    offline, and resolution degrades where the registry was needed
+    (C-30's shape, now per fetch). A :class:`containment.ContainmentRefusal`
+    is not caught here — ``fetch-java`` executes repo build logic
+    (ADR-097) and the guarantee outranks the degrade (P10)."""
+    plan = containment.plan(step, command, cwd=cwd, env=env)
     try:
-        outcome = containment.run(plan, timeout=_NPM_INSTALL_TIMEOUT)
+        outcome = containment.run(plan, timeout=timeout or _NPM_INSTALL_TIMEOUT)
     except FileNotFoundError as exc:
         return f"{command[0]} is not installed: {exc}"
     except containment.ContainmentError as exc:
@@ -1407,9 +1416,13 @@ def extract_scip_java(
     **Indexing Java executes the repo's build** (C-29's Java face,
     ADR-096): scip-java is a javac plugin, and the only way to hand it a
     classpath is to run the build that resolves one — Maven or the
-    repo's own Gradle wrapper, inside the ingest container, **with a
-    network** (C-66): neither tool separates fetching from evaluating
-    the build. The notice below is the surfacing; it prints every time.
+    repo's own Gradle wrapper, inside the ingest container. Two passes
+    (ADR-097): the build's *resolution* runs first with a network on a
+    stage that holds no sources, then the build runs again with
+    scip-java attached, offline, on the full stage — the pass that can
+    reach the network never sees a ``.java``. What the resolve pass still
+    concedes is C-66; the notice below is its surfacing and prints every
+    time.
     """
     if not enabled() or not files:
         return None
@@ -1441,8 +1454,9 @@ def extract_scip_java(
 
         print(
             "NOTE: java semantics: scip-java runs the repo's own build (Maven "
-            "or its Gradle wrapper) inside the ingest container, with network "
-            "access for dependency resolution (C-29, C-66, ADR-096)",
+            "or its Gradle wrapper) inside the ingest container — dependency "
+            "resolution in a networked pass that holds no sources, then the "
+            "index offline (C-29, C-66, ADR-097)",
             file=sys.stderr,
         )
     for root, (tool, root_files) in grouped.items():
@@ -1527,30 +1541,55 @@ _JAVA_INDEX_TIMEOUT = 1800
 def _index_java_unit(
     repo_root: Path, root: str, tool: str, root_files: list[str], sha: str
 ) -> dict | None:
-    """Stage and index one Maven reactor or Gradle build.
+    """Stage and index one Maven reactor or Gradle build, in two passes
+    (ADR-097).
 
-    Staged beside the sources: every other unpruned file under the root
-    (:func:`java_build_files`). The wrappers lose their mode in the copy
-    and get it back, because scip-java runs ``./gradlew``. The
-    dependency tree needs no symlink: both tools keep a user-level
-    repository, which the cache root supplies (``MAVEN_OPTS``,
-    ``GRADLE_USER_HOME``).
+    **Resolve pass** (``fetch-java``, network on): the build files and
+    every other non-source file under the root (:func:`java_build_files`)
+    — never a ``.java`` — staged alone, and the build's own resolution
+    run over them: Maven's ``test-compile`` (it resolves the mojo's scope
+    before finding nothing to compile), or the Gradle wrapper with a
+    Hobbes init script that resolves every configuration. **Index pass**
+    (``index-java``, ``--network none``): the full stage, the same build
+    with scip-java attached and the tool's offline flag, so a build that
+    still wants the network fails visibly instead of reaching for it. A
+    failed resolve is recorded and the index pass runs anyway — the
+    caches persist across ingests, so a warm one may carry it — and if
+    the build then fails, the unit degrades to lane A with both records.
+
+    Staged beside the sources in the index pass: every other unpruned
+    file under the root. The wrappers lose their mode in the copy and
+    get it back, because scip-java runs ``./gradlew``. The dependency
+    tree needs no symlink: both tools keep a user-level repository, which
+    the cache root supplies (``MAVEN_OPTS``, ``GRADLE_USER_HOME``).
     """
     build_files = java_build_files(repo_root, root)
     staged = sorted(set(root_files) | set(build_files))
     declared = declared_java_dependencies(repo_root, build_files)
     java_home = java_home_for(repo_root, build_files)
+    env = (f"JAVA_HOME={java_home}", f"PATH={java_home}/bin:{containment.CONTAINER_PATH}")
 
     gradle_home = staging.cache_root() / "gradle"
     gradle_home.mkdir(parents=True, exist_ok=True)
     (gradle_home / "gradle.properties").write_text(gradle_user_properties())
+    init_script = gradle_home / "hobbes-resolve.gradle"
+    init_script.write_text(containment.GRADLE_RESOLVE_SCRIPT)
 
-    stage = staging.build_stage(repo_root, staged, sha=sha)
-    unit_root = stage / root if root else stage
-    for wrapper in ("gradlew", "mvnw"):
-        script = unit_root / wrapper
-        if script.is_file():
-            script.chmod(script.stat().st_mode | 0o111)
+    # Resolve pass: no sources on this stage, by construction.
+    resolve_stage = _stage_java(repo_root, root, build_files, sha)
+    try:
+        resolve_failure = _fetch(
+            "fetch-java",
+            containment.java_resolve_command(tool, str(init_script)),
+            resolve_stage[1],
+            timeout=_JAVA_INDEX_TIMEOUT,
+            env=env,
+        )
+    finally:
+        staging.remove_stage(resolve_stage[0])
+
+    # Index pass: the full stage, offline.
+    stage, unit_root = _stage_java(repo_root, root, staged, sha)
     try:
         facts = run_helper(
             {
@@ -1565,11 +1604,41 @@ def _index_java_unit(
                 "declaredDeps": declared,
             },
             timeout=_JAVA_INDEX_TIMEOUT,
-            env=(f"JAVA_HOME={java_home}", f"PATH={java_home}/bin:{containment.CONTAINER_PATH}"),
+            env=env,
         )
+    except UNIT_ERRORS as exc:
+        if resolve_failure is not None:
+            raise ScipError(
+                f"{exc} (the resolve pass had failed first: {resolve_failure})"
+            ) from exc
+        raise
     finally:
         staging.remove_stage(stage)
+    if resolve_failure is not None:
+        facts.setdefault("degraded", []).append(
+            {
+                "path": root or ".",
+                "stage": "scip-java",
+                "message": (
+                    f"dependency resolution failed ({resolve_failure}); the "
+                    "index ran offline on the cache as it stood, so "
+                    "third-party resolution may degrade (C-67)"
+                ),
+            }
+        )
     return _rebase(facts, root)
+
+
+def _stage_java(repo_root: Path, root: str, files: list[str], sha: str) -> tuple[Path, Path]:
+    """Copy *files* into a fresh stage and return ``(stage, unit_root)``,
+    the wrappers made executable again (the copy drops their mode)."""
+    stage = staging.build_stage(repo_root, files, sha=sha)
+    unit_root = stage / root if root else stage
+    for wrapper in ("gradlew", "mvnw"):
+        script = unit_root / wrapper
+        if script.is_file():
+            script.chmod(script.stat().st_mode | 0o111)
+    return stage, unit_root
 
 
 def _index_go_module(

@@ -45,6 +45,11 @@ and execute no repo code; rootless podman offers no per-route packet
 filter, so "the registry route only" (C-30/C-34) is achieved by phase
 separation: the container that can reach the network never runs the
 repo's code, and the container that runs the repo's code has no network.
+Java's build *is* its resolution, so its separation is cut the other way
+(ADR-097): ``fetch-java`` runs the build's own resolution with a network
+on a stage that holds no sources; ``index-java`` runs the build with
+scip-java attached, offline, on the full stage. The pass with a network
+never sees the sources (what it does see is C-66).
 
 No policy chain here. An ingest container carries a static per-step
 profile — fixed mounts, fixed network, no escalation, nothing to approve
@@ -156,19 +161,21 @@ PROFILES: dict[str, Profile] = {
     "index-typescript": Profile("index-typescript", False, "none"),
     "index-go": Profile("index-go", False, "none", ("GOPROXY=off",)),
     "index-rust": Profile("index-rust", True, "none", ("CARGO_NET_OFFLINE=true",)),
-    # Java (ADR-096): scip-java is a javac plugin injected into the repo's
-    # *own build*, so the step executes repo build logic (a Gradle script
-    # is code; a pom names the plugins and extensions that run) — and
-    # that build is also where the dependencies get resolved. Neither
-    # tool separates "fetch" from "evaluate the build": Gradle resolves
-    # while running the script, and Maven's `dependency:go-offline`
-    # does not reproduce the build's own resolution (the J.M0 spike:
-    # jsoup's `${os.detected.classifier}` comes from a build extension).
-    # So this is the one index step with a network — the container is
-    # the boundary (rootless, the cache root its only writable mount),
-    # not the network — registered as C-66 and stated in every artifact
-    # it touches.
-    "index-java": Profile("index-java", True, "default"),
+    # Java (ADR-096, ADR-097): scip-java is a javac plugin injected into
+    # the repo's *own build*, so indexing executes repo build logic (a
+    # Gradle script is code; a pom names the plugins and extensions that
+    # run) — and that build is also where the dependencies get resolved.
+    # Neither tool has a fetch that evaluates nothing, so the phase
+    # separation takes the other cut (ADR-097): `fetch-java` runs the
+    # build's resolution on a stage that holds **no sources** — the poms
+    # and scripts, wrappers, resources; never a `.java` — with a network;
+    # `index-java` runs the real build with scip-java attached on the full
+    # stage, offline. The pass that can reach the network never sees the
+    # sources; the pass that sees the sources has no route out. What
+    # `fetch-java` still concedes is registered as C-66: repo build logic
+    # runs with a network over the build files it came from and the
+    # public artifact caches.
+    "index-java": Profile("index-java", True, "none"),
     "python-env": Profile("python-env", True, "none"),
     "fetch-npm": Profile("fetch-npm", False, "default"),
     "fetch-go": Profile("fetch-go", False, "default"),
@@ -176,6 +183,10 @@ PROFILES: dict[str, Profile] = {
     # The `--config` pins in `rust_fetch_command` keep a staged
     # `.cargo/config.toml` from redirecting `rustc` to a repo binary.
     "fetch-rust": Profile("fetch-rust", False, "default"),
+    # The one fetch step that executes repo code (the build's own
+    # resolution, ADR-097) — so it refuses without containment like an
+    # index step, and its stage carries no sources (C-66).
+    "fetch-java": Profile("fetch-java", True, "default"),
 }
 
 def rust_fetch_command(manifest: str) -> list[str]:
@@ -193,6 +204,55 @@ def rust_fetch_command(manifest: str) -> list[str]:
 def go_fetch_command() -> list[str]:
     """``go mod download`` in the module root: no repo code runs."""
     return ["go", "mod", "download"]
+
+
+#: The Gradle init script the Java resolve pass runs (ADR-097): one task
+#: that resolves every resolvable configuration of every project, which
+#: is what `compileTestJava` would resolve and more. Gradle resolves
+#: lazily, so a source-less `compileTestJava` (NO-SOURCE, skipped) would
+#: fetch nothing; this task forces it. Passed with `--init-script` on the
+#: resolve pass only — never left under `init.d`, where it would ride
+#: into the index pass too.
+GRADLE_RESOLVE_SCRIPT = """\
+// Hobbes (ADR-097): resolve every configuration so the index pass can
+// run --offline. Written by the ingest, not by the repo.
+allprojects {
+  tasks.register("hobbesResolveAll") {
+    doLast {
+      configurations.matching { it.canBeResolved }.each { c ->
+        try {
+          c.resolve()
+          println("hobbes resolved ${project.path}:${c.name}")
+        } catch (Exception e) {
+          println("hobbes could not resolve ${project.path}:${c.name}: ${e.message?.take(160)}")
+        }
+      }
+    }
+  }
+}
+"""
+
+
+def java_resolve_command(tool: str, init_script: str) -> list[str]:
+    """The Java resolve pass (ADR-097), on a stage without sources.
+
+    Maven: the same ``test-compile`` the index pass runs — Maven resolves
+    a mojo's dependency scope *before* running it, so with nothing to
+    compile it still fetches exactly what the real build will need
+    (``dependency:go-offline`` does not: the ADR-096 spike). Gradle: the
+    wrapper (which downloads its own distribution into the cache) with
+    :data:`GRADLE_RESOLVE_SCRIPT` and its task.
+    """
+    if tool == "maven":
+        return ["mvn", "--batch-mode", "-DskipTests", "clean", "test-compile"]
+    return ["./gradlew", "--no-daemon", "--init-script", init_script, "hobbesResolveAll"]
+
+
+def java_index_offline_flags(tool: str) -> list[str]:
+    """What the index pass appends to the build command so a build that
+    needs the network fails instead of reaching for it — the helper
+    spells the same flags (``scip/index.mjs``); this is the record."""
+    return ["-o"] if tool == "maven" else ["--offline"]
 
 
 #: The steps whose helper language maps onto them.

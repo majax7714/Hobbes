@@ -1,6 +1,6 @@
 # ADR-096 — Java: the sixth language, and what its build costs the containment story
 
-**Date:** 2026-08-29 · **Status:** accepted — **all six milestones built and run this session**: the spike (J.M0), lane A (J.M1), contained lane B (J.M2), the JUnit inventory in the provider (J.M3), the javac+CHA oracle and its four cells (J.M4), the §3.8 row and the register (J.M5). One decision (3) is flagged for Max's ratification · **Owner:** Max · **Source:** `docs/java-build-plan.md` (parked 2026-08-28, opened 2026-08-29 at Max's direction: "begin implementing java as an added language")
+**Date:** 2026-08-29 · **Status:** accepted — **all six milestones built and run this session**: the spike (J.M0), lane A (J.M1), contained lane B (J.M2), the JUnit inventory in the provider (J.M3), the javac+CHA oracle and its four cells (J.M4), the §3.8 row and the register (J.M5). Decision 3 (the networked index step) **amended by ADR-097** (2026-09-01: resolution in a source-less networked pass, the index offline) · **Owner:** Max · **Source:** `docs/java-build-plan.md` (parked 2026-08-28, opened 2026-08-29 at Max's direction: "begin implementing java as an added language")
 
 Amends the architecture's **§3.1** (a sixth syntax provider), **§3.2** (a
 fifth indexer; the one index step with a network), **§3.7** (a sixth

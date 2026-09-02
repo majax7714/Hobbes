@@ -599,8 +599,8 @@ pack (`@GetMapping` et al. as the Flask/FastAPI shape; `@Autowired`
 as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
 but there is no Kotlin lane A, so it would be references without call
 sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
-number proves too coarse, and egress narrowing for the one networked
-index step (C-66). Also recorded there, because the question came up:
+number proves too coarse, and an allowlisted egress proxy for the
+networked resolve pass (C-66 as narrowed by ADR-097). Also recorded there, because the question came up:
 ingest is per language, gated on discovery — a language with no files
 in the repo costs one extension walk and nothing else; only the image
 build carries every toolchain.
