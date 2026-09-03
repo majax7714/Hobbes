@@ -27,8 +27,10 @@ BUILDLOG; this doc is rewritten, never appended into a pile.
    - on **trained** questions it scores the same (callers 0.15) — at
      0.35 epochs the weights hold no symbol-grain edge, seen or unseen.
    The design's own next step for this outcome is the **step-count
-   ablation (100 / 300 / 1,000)** — one adapter and two NLL/nav pairs,
-   ~1.5 GPU-hours. Step 5 (agent runs, HSR/RFE) stays parked. No
+   ablation (100 / 300 / 1,000)** — two adapters and their NLL/nav
+   pairs; the whole of this session cost 3 GPU-hours / $5.70 on
+   Modal's meter, and the ablation is about half of it. Step 5 (agent
+   runs, HSR/RFE) stays parked. No
    memorised cell exists at 7B (every candidate U or "neither" for both
    Olmo 3 and Qwen-Coder; C-83 seen), so H-TTT-4 needs a model that
    provably recalls a repo, or a version-shift-aware probe.

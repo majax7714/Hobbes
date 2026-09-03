@@ -109,6 +109,9 @@ so one deployment serves the base and every adapter by name.
   (~0.5 A100-hour), four NLL passes (~0.1 each), a serve on an A10G for
   the probe and the held-out set (~2 hours) — under 4 GPU-hours, well
   inside the design's 25–30 A100-hour envelope for the full grid.
+  **Spent, per Modal's meter:** about 3 hours of GPU time, $5.70, for
+  everything the session ran — three adapters (true, shuffled control,
+  fastapi), ten NLL passes, the probes and six navigation arms.
 - Tests: `tests/test_ttt_corpus.py` (19) and `tests/test_ttt_units.py`
   (17) — byte-identical regeneration, the held-out invariant, the
   distractor check, the module projection of the impact family, the

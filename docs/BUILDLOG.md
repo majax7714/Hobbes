@@ -6148,9 +6148,12 @@ aside and re-run with full replies); `expand()` re-sorted its whole
 frontier per step (a heap now, same order on 85 seeds; textual's
 corpus from >25 min to 74 s); vLLM's KV budget on the A10G (16k
 window); one transient 500 killed an arm (retries); two scripts
-matched their own launcher with `pkill`/`pgrep -f`. Compute: three
-adapters (~0.5 A100-h each), ten NLL passes (<0.2 h), ~4.5 h of A10G
-serving — about 6 GPU-hours, ≈ $12. Suites: **1,084 pytest** (+49 for
+matched their own launcher with `pkill`/`pgrep -f`. Compute, from
+Modal's own meter (Max, 2026-09-03): **about 3 hours of GPU time,
+$5.70** — three adapters, ten NLL passes, the A10G serving between
+scale-downs. The session's in-flight estimate (~6 GPU-hours, ≈ $12)
+was a wall-clock guess and read twice too high; the meter is the
+record. Suites: **1,084 pytest** (+49 for
 `hobbes.ttt`; the venv test deselected by name), Go untouched.
 
 *Not done:* step 5 (agent runs, HSR/RFE); the step-count ablation;
