@@ -168,6 +168,9 @@ class TestScore:
     def test_empty_truth_rewards_naming_nothing(self):
         rec = record("callers", "app.api.serve", "No semantic-tier caller of `app.api.serve` is recorded at x.")
         assert score.score_reply(rec, "Nothing calls it.", self.known)["score"] == 1.0
+        assert score.score_reply(rec, "No caller of `app.api.serve` is recorded.", self.known)["score"] == 1.0  # its module is not an offer
+        rec3 = record("callers", "app.api.Router.dispatch", "No semantic-tier caller of `app.api.Router.dispatch` is recorded at x.")
+        assert score.score_reply(rec3, "Nothing calls `app.api.Router.dispatch`.", self.known)["score"] == 1.0  # nor its class
         assert score.score_reply(rec, "app.core.handle_request calls it.", self.known)["score"] == 0.0
 
     def test_defines_needs_the_path(self):
@@ -178,6 +181,10 @@ class TestScore:
     def test_absent_rewards_refusal_and_punishes_invention(self):
         rec = record("absent", "app.api.Serve", "`app.api.Serve` is not defined in this repo at x.")
         assert score.score_reply(rec, "There is no such symbol in the repo.", self.known)["refused"]
+        # Spelling the question back — its module `app.api` is a known node — is not an offer.
+        assert score.score_reply(rec, "`app.api.Serve` is not defined in this repo at x.", self.known)["score"] == 1.0
+        rec2 = record("absent", "app.api.Router.dispatch2", "`app.api.Router.dispatch2` is not defined in this repo at x.")
+        assert score.score_reply(rec2, "`app.api.Router.dispatch2` is not defined here.", self.known)["score"] == 1.0
         assert score.score_reply(rec, "It is defined in src/app/api.py.", self.known)["score"] == 0.0
         assert score.score_reply(rec, "Not sure, but see app.api.serve.", self.known)["score"] == 0.0
 

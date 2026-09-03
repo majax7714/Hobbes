@@ -124,7 +124,7 @@ def probe(a, graph, corpus_dir, key) -> dict:
     rows = []
     for rec in (json.loads(ln) for ln in (corpus_dir / "probe-nav.jsonl").read_text().splitlines() if ln.strip()):
         reply = ask(a.base_url, a.model, key, system, rec["messages"][0]["content"])
-        rows.append({"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply_head": reply[:160]})
+        rows.append({"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply": reply})
     out["parts"]["navigation"] = {"rows": rows, **summarise(rows)}
     means = [sum(r["precision"] for r in out["parts"]["files"]) / max(1, len(out["parts"]["files"])),
              sum(r["recall"] for r in out["parts"]["definitions"]) / max(1, len(out["parts"]["definitions"])),
@@ -154,7 +154,8 @@ def nav(a, graph, corpus_dir, key) -> dict:
             user = (f"Derived context for this symbol (Hobbes, {sha12}):\n{card}\n\n" if card else
                     f"Derived context: Hobbes has no card for `{rec['symbol']}` at {sha12}.\n\n") + user
         reply = ask(a.base_url, a.model, key, system, user)
-        return {"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply_head": reply[:160]}
+        # The whole reply is kept so a scorer fix can rescore a run without re-asking.
+        return {"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply": reply}
 
     # Order is the file's regardless of which request answers first.
     with ThreadPoolExecutor(max_workers=a.workers) as pool:

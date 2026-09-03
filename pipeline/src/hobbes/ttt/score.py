@@ -46,8 +46,15 @@ def score_reply(record: dict, reply: str, known: set[str]) -> dict:
     asked = record.get("symbol") or ""
     truth = truth_items(record)
     text = reply or ""
+    # A name that is part of the asked id (its module, its class) is not
+    # an offer: "`driver.Proxy._notify2` is not defined" names `driver`
+    # only by spelling the question back. Neither is a name inside a
+    # truth item.
+    def offers(k: str) -> bool:
+        return (k in text and k != asked and len(k) > 3 and not asked.startswith(k + ".")
+                and k not in asked and not any(k != t and k in t for t in truth))
     if family == "absent":
-        offered = bool(_PATHLIKE.search(text)) or any(k in text for k in known if k != asked and len(k) > 3)
+        offered = bool(_PATHLIKE.search(text)) or any(offers(k) for k in known)
         refused = bool(_NEGATION.search(text)) and not offered
         return {"score": 1.0 if refused else 0.0, "found": [], "missed": [], "extra": [], "refused": refused}
     if family == "defines":
@@ -56,9 +63,7 @@ def score_reply(record: dict, reply: str, known: set[str]) -> dict:
                 "extra": [], "refused": False}
     found = [t for t in truth if t in text]
     missed = [t for t in truth if t not in text]
-    own_module = asked.rsplit(".", 1)[0] if "." in asked else ""
-    extra = sorted(k for k in known if k in text and k not in truth and k != asked and k != own_module
-                   and len(k) > 3 and not any(k != t and k in t for t in truth))
+    extra = sorted(k for k in known if k not in truth and offers(k))
     if not truth:
         return {"score": 0.0 if extra else 1.0, "found": [], "missed": [], "extra": extra, "refused": False}
     precision = len(found) / (len(found) + len(extra)) if (found or extra) else 0.0
