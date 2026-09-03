@@ -154,7 +154,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-01): 1,025 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-02): 1,034 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 29 tsextract + 31 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -169,7 +169,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 097).
+  architecture doesn't already make. Number sequentially (last: 098).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -203,12 +203,12 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-01)
+## Status (2026-09-02)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 69 registered constraints.
+  by one range join; artifacts at schema v4; 80 registered constraints.
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%
@@ -259,7 +259,14 @@ review → `lane_b` pytest) and runs the same way on a box.
   deployment) landed 2026-08-28; reviewed by Max, the claim scoped to
   the runs made under it (P11). **The seven-cell triage is done**
   (2026-08-28): four fixes, every compiler-graded cell at 100%.
-- **Then:** the removal A/B re-run on a
+- **The four-repo extraction test (2026-09-02):** four random public
+  repos, one per language, run through the knowledge piece by agents —
+  no semantic edge wrong anywhere; **ADR-098** fixed lane A's Go
+  fallback on build-constraint-split names (C-71, surfaced), and nine
+  findings are **registered, not fixed** (C-72–C-80, each with its
+  candidate fix; `docs/session-handoff.md` ranks them). quic-go
+  oracle-graded at binary roots: 99.6% lower bound, 0 hobbes-wrong.
+- **Then:** the nine entries on Max's call; the removal A/B re-run on a
   cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).
 

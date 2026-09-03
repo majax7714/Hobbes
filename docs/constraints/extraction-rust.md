@@ -91,3 +91,33 @@
 - **Provider (P9):** inherited from `rust-analyzer` **1.97.1** and the
   cargo toolchain it drives.
 - **Source:** ADR-040, finding 6. The Rust sibling of C-23/C-27.
+
+### C-72 — Lane A's Rust fallback binds a path-qualified call by its last segment
+- **Cannot tell you:** which `impl` a `Type::method(..)` or
+  `Trait::method(self, ..)` call reaches when lane B is silent at the
+  site. The fallback resolves `Option::<T>::deserialize(d)` by the bare
+  name `deserialize` to the first same-file namesake — serde:
+  `impl Deserialize for ()`'s method — and `Expected::fmt(self, f)`
+  inside `impl Display for dyn Expected { fn fmt }` to the enclosing
+  `fmt` itself, a self-loop.
+- **Because:** `rustsource`'s fallback keys on the terminal identifier
+  and does not read the path's head; the head names a type or trait
+  whose `impl` blocks the provider does not model (C-9's floor keeps
+  methods under their `impl` type's qualname, but the fallback does not
+  filter candidates by it). The tail's `path-call` class exists for
+  path-qualified sites the fallback *declines*; these are the ones it
+  did not decline. Not a shape ADR-090 vetoes (its Rust veto is
+  bang→macro).
+- **Bites at:** any Rust file lane B does not cover — serde reaches it
+  through C-73 (a symlinked second copy of `serde_core/src` with no
+  lane B evidence): 3 wrong `syntactic` edges of 81, the other 78
+  confirmed by hand. Where lane B answers, the semantic edge stands
+  and the wrong fallback shows only as a `hobbes lanes` disagreement
+  (serde: 3 of 910 dual-resolved sites).
+- **You find out:** **partial** — the edge is `syntactic` (C-7), and a
+  dual-resolved site reports as a lane disagreement; a site only lane
+  A answered is unchecked. Candidate fix: filter candidates to the
+  `impl` block whose type qualname matches the path's head segment,
+  else abstain into `path-call` — ADR-098's rule in Rust's shape.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent D,
+  serde-rs/serde). Registered, not fixed.

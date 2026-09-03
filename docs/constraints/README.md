@@ -114,18 +114,18 @@ information appears in both, and the entries cross-reference.
 
 | File | Segment | Entries |
 |---|---|---|
-| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-3, C-59 |
+| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-80, C-32, C-3, C-59 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-11, C-24, C-63 |
-| [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-16, C-33 |
-| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26 |
-| [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30 |
+| [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-79, C-16, C-33 |
+| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71 |
+| [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69 |
-| [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-14 |
+| [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-55, C-56 |
-| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65 |
+| [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
 the limit. Lifted and superseded entries appear at the bottom of their
@@ -135,8 +135,27 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Seventy entries: sixty active, eight lifted, two superseded**
-(C-70 added 2026-08-29 — two same-named calls on one line can pair with
+**Eighty entries: seventy active, eight lifted, two superseded**
+(C-71–C-80 added 2026-09-02 by the four-repo extraction test — four
+random public repos, one per language, each ingested contained and
+hand-sampled; two stopped on lane disagreements. **C-71** — the Go
+graph is one build configuration's and lane A abstains where
+constraints split a name — is the one *fixed and surfaced* the same
+day (ADR-098: two wrong syntactic edges and twelve disagreements on
+quic-go gone). The other nine are **registered, not fixed**, at Max's
+direction ("flag rest in constraints"): C-72 the Rust fallback's
+last-segment binding (*partial*), C-73 a repo symlink walked as a
+second copy (*partial*), C-74 workspace links dangling in the
+container with a record that blames the helper (*partial*), C-75
+`hobbes lanes` counting the join's fallback as lane B
+(**unsurfaced**), C-76 the summary's "call edges" counting `uses`
+(**unsurfaced** — the one line that reads *larger* than the truth),
+C-77 `list_blind_spots` dropping `below-floor` (**unsurfaced**), C-78
+the `http-go` pack firing on any `Handle` (**unsurfaced**), C-79 no
+`dependency_coverage` for `setup.py` repos (**unsurfaced**), C-80
+`super().m()` / `f().m()` not a site and glossed as not a call
+(*partial*). Five of the nine are one-to-ten-line fixes with the
+candidate named in the entry; C-70 added 2026-08-29 — two same-named calls on one line can pair with
 the wrong resolution, found by Java's fluent chains and measured at
 0.05% of dual-resolved sites, surfaced as a lane disagreement;
 C-66–C-69 added the same day by ADR-096 — Java: the build runs in the
@@ -150,9 +169,8 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Three of the active are *partial* (C-4, C-58, C-68); two
-are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and
-C-20); C-58 — the interface/closure call hole, whose capture number reads
+against the code that concedes it; none had been silently lifted). Seven of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80); seven
+are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and the 2026-09-02 five: C-75, C-76, C-77, C-78, C-79); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit
@@ -249,7 +267,9 @@ reads as 'no CLI'" — is lifted outright. What remains stays quiet
 rather than lying, which is a real difference; the worst residue is
 C-4's fixture-thin test reach and C-19's still-unexecuted emitters.)*
 
-**Nothing left in the register inflates a number.** C-11 was the only
+**One line in the register inflates a number (since 2026-09-02: C-76,
+the summary's "call edges" label — a relabel, held for the lead).**
+Before it, C-11 was the only
 entry that made a claim larger than the truth, and V2.M3 lifted it; C-24,
 its deliberately-under-reporting residue, was lifted in turn once the
 under-report could be replaced with the true edge rather than the safer

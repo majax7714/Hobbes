@@ -74,6 +74,14 @@ class GoFile:
     #: range targets — with the enclosing function's line extent, so the
     #: tail view can match a bare call by scope containment (ADR-046).
     local_bindings: list[tuple] = field(default_factory=list)
+    #: The file's build configuration, as a comparable key: its
+    #: ``//go:build`` expression (whitespace-normalised) and the GOOS /
+    #: GOARCH its filename implies, joined by ``|``; ``""`` for a file
+    #: every configuration compiles. Two files with equal keys are
+    #: compiled together or not at all; two with different keys may be
+    #: mutually exclusive — which is how one package legally declares one
+    #: name several times (ADR-098, C-71).
+    build_constraint: str = ""
 
 
 def has_go_files(repo_root: Path) -> bool:
@@ -133,7 +141,11 @@ def extract_go(repo_root: Path) -> dict | None:
 
 def _parse_file(rel: str, source: bytes) -> GoFile:
     root = _PARSER.parse(source).root_node
-    parsed = GoFile(path=rel, package=_package_name(root))
+    parsed = GoFile(
+        path=rel,
+        package=_package_name(root),
+        build_constraint=build_constraint(rel, source),
+    )
 
     for node in root.children:
         if node.type == "import_declaration":
@@ -216,6 +228,53 @@ def _local_bindings(root: Node) -> list[tuple]:
 
     walk(root, None)
     return out
+
+
+#: The GOOS and GOARCH values a filename suffix may name (`go help
+#: buildconstraint`): pinned literals, like the tail's builtin lists (C-32).
+_GOOS = frozenset(
+    "aix android darwin dragonfly freebsd hurd illumos ios js linux nacl netbsd "
+    "openbsd plan9 solaris wasip1 windows zos".split()
+)
+_GOARCH = frozenset(
+    "386 amd64 amd64p32 arm arm64 arm64be armbe loong64 mips mips64 mips64le "
+    "mips64p32 mips64p32le mipsle ppc ppc64 ppc64le riscv riscv64 s390 s390x "
+    "sparc sparc64 wasm".split()
+)
+
+
+def build_constraint(rel: str, source: bytes) -> str:
+    """The configuration key for one file — see ``GoFile.build_constraint``.
+
+    Two observations, no evaluation: the ``//go:build`` line's expression
+    as written (the toolchain's own normalisation is whitespace, so
+    that is all this applies), and the ``_GOOS``, ``_GOARCH`` or
+    ``_GOOS_GOARCH`` filename suffix the language treats as an implicit
+    constraint (``_test`` stripped first). Evaluating the expression
+    against a GOOS/GOARCH would be choosing a configuration, which is
+    lane B's job and the register's C-71; equality of keys is a fact
+    lane A can check.
+    """
+    expression = ""
+    for raw in source.split(b"\n"):
+        line = raw.strip()
+        if line.startswith(b"package ") or line == b"package":
+            break
+        if line.startswith(b"//go:build"):
+            expression = " ".join(line[len(b"//go:build"):].decode("utf-8", "replace").split())
+            break
+    stem = PurePosixPath(rel).stem
+    if stem.endswith("_test"):
+        stem = stem[: -len("_test")]
+    parts = stem.split("_")
+    implied = ""
+    if len(parts) >= 3 and parts[-2] in _GOOS and parts[-1] in _GOARCH:
+        implied = f"{parts[-2]}/{parts[-1]}"
+    elif len(parts) >= 2 and (parts[-1] in _GOOS or parts[-1] in _GOARCH):
+        implied = parts[-1]
+    if not expression and not implied:
+        return ""
+    return f"{expression}|{implied}"
 
 
 def _text(node: Node) -> str:
@@ -577,6 +636,7 @@ def _join(files: list[GoFile]) -> dict:
 
     sorted_symbols = sorted(symbols, key=lambda s: s["id"])
     conversions = _type_names(files)
+    fallback, build_tag_sites = _call_fallback(files, packages, conversions)
     return {
         "nodes": sorted(nodes.values(), key=lambda n: n["id"]),
         "module_edges": _edge_list(module_edges),
@@ -587,7 +647,18 @@ def _join(files: list[GoFile]) -> dict:
             if parsed.local_bindings
         },
         "call_sites": _call_sites(files, packages, conversions),
-        "call_fallback": _call_fallback(files, packages, conversions),
+        "call_fallback": fallback,
+        # Sites the fallback abstained on because the name has several
+        # declarations under build constraints the caller's does not
+        # single out (ADR-098): the tail names them `build-tag-set`.
+        "build_tag_sites": build_tag_sites,
+        # Files a build constraint may exclude from lane B's one
+        # configuration (C-71's surfacing needs the list, not the verdict).
+        "constrained_files": {
+            parsed.path: parsed.build_constraint
+            for parsed in files
+            if parsed.build_constraint
+        },
         "files": files,
         "tests": sorted(
             (test for parsed in files for test in parsed.tests),
@@ -697,28 +768,42 @@ def _call_fallback(
     files: list[GoFile],
     packages: dict[str, list[GoFile]],
     conversions: set[tuple[str, str]],
-) -> dict[tuple[str, int, str], tuple[str, int]]:
-    """Lane A's own resolutions, keyed by call site (ADR-031).
+) -> tuple[dict[tuple[str, int, str], tuple[str, int]], set[tuple[str, int, str]]]:
+    """Lane A's own resolutions, keyed by call site (ADR-031), and the
+    sites it abstained on.
 
-    Go is unusually tractable here: a top-level name is unique within its
-    package, and a qualified call names its package by alias. So
-    ``policy.Merge(...)`` resolves exactly, given the import list — no
-    inference, no ranking. Unqualified calls resolve within the file's own
-    package, which is the same rule the compiler uses.
+    Go is tractable here: a qualified call names its package by alias,
+    and an unqualified call resolves within the file's own package, which
+    is the rule the compiler uses. The v1 premise that a top-level name
+    is unique within its package was **wrong** (ADR-098): a directory
+    holds a package *and* its external ``_test`` package, and build
+    constraints let one package declare one name in several files —
+    ``setDF`` in ``sys_conn_df_{linux,darwin,windows}.go`` and a
+    ``!linux && !windows && !darwin`` fourth (quic-go, 2026-09-02:
+    12 lane disagreements and 2 wrong syntactic edges from "first file
+    wins"). So declarations are kept per ``(directory, name)`` as a
+    list, a bare call considers only its own package's, and where more
+    than one remains the call resolves only if exactly one declaration's
+    ``build_constraint`` equals the caller's — the one fact lane A can
+    check. Otherwise it **abstains** and the tail names the site
+    ``build-tag-set`` (C-71); a guessed configuration would be a false
+    edge and a false disagreement, Java's overload rule (ADR-096) in
+    Go's shape.
 
     Deliberately under-approximated, as every fallback is: method calls on
     a value (``m.Merge()``) are skipped, because knowing what ``m`` is
     needs a type checker and that is lane B's job.
     """
-    where: dict[tuple[str, str], tuple[str, int]] = {}
+    where: dict[tuple[str, str], list[tuple[str, int, str, str]]] = defaultdict(list)
     for parsed in files:
         directory = package_dir(parsed.path)
         for symbol in parsed.symbols:
-            where.setdefault(
-                (directory, symbol["qualname"]), (parsed.path, symbol["line"])
+            where[(directory, symbol["qualname"])].append(
+                (parsed.path, symbol["line"], parsed.package, parsed.build_constraint)
             )
 
     fallback: dict[tuple[str, int, str], tuple[str, int]] = {}
+    abstained: set[tuple[str, int, str]] = set()
     for parsed in files:
         own_dir = package_dir(parsed.path)
         by_alias = {}
@@ -733,17 +818,35 @@ def _call_fallback(
             if call["receiver"] is None:
                 if _shadowed(parsed, call["name"], call["line"]):
                     continue
-                target = where.get((own_dir, call["name"]))
+                # A bare name is the file's own package's: the external
+                # test package sharing the directory is another package.
+                candidates = [
+                    d for d in where.get((own_dir, call["name"]), ())
+                    if d[2] == parsed.package
+                ]
             elif call["receiver"] in by_alias:
-                target = where.get((by_alias[call["receiver"]], call["name"]))
+                # A qualified name is the imported package's — never its
+                # `_test` package, which nothing can import.
+                candidates = [
+                    d for d in where.get((by_alias[call["receiver"]], call["name"]), ())
+                    if not d[2].endswith("_test")
+                ]
             else:
-                target = None  # a value's method, or a third-party package
-            if target is None:
+                continue  # a value's method, or a third-party package
+            if len(candidates) > 1:
+                same = [d for d in candidates if d[3] == parsed.build_constraint]
+                if len(same) == 1:
+                    candidates = same
+                else:
+                    abstained.add((parsed.path, call["line"], call["name"]))
+                    continue
+            if not candidates:
                 continue
+            target = (candidates[0][0], candidates[0][1])
             if target == (parsed.path, call["line"]):
                 continue  # a declaration is not a call of itself
             fallback[(parsed.path, call["line"], call["name"])] = target
-    return fallback
+    return fallback, abstained
 
 
 def _shadowed(parsed: GoFile, name: str, line: int) -> bool:

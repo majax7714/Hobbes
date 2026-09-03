@@ -85,6 +85,10 @@ ATTR = "attr-call"
 PATH_CALL = "path-call"
 OVERLOAD = "overload-set"
 INHERITED = "inherited-member"
+#: A Go name declared more than once in its package under build
+#: constraints the caller's own configuration does not single out; lane
+#: A abstained rather than pick a file (ADR-098, C-71).
+BUILD_TAG = "build-tag-set"
 UNCLASSIFIED = "unclassified"
 #: The semantic lane resolved the site to a declaration lane A keeps no
 #: symbol for — an interface method, a closure, a nested function (C-9's
@@ -218,7 +222,8 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
                          UNCLASSIFIED, BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
                         UNCLASSIFIED, BELOW_FLOOR}),
-    "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
+    "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, BUILD_TAG, UNCLASSIFIED,
+                     BELOW_FLOOR}),
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
     "java": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR, OVERLOAD,
                        INHERITED, UNCLASSIFIED, BELOW_FLOOR}),
@@ -229,7 +234,8 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 #: counted from the projection (a resolved site with no symbol to land
 #: on) and added to the tail beside the unresolved classes.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, PATH_CALL, OVERLOAD, INHERITED, UNCLASSIFIED, BELOW_FLOOR)
+               BUILTIN, ATTR, PATH_CALL, OVERLOAD, INHERITED, BUILD_TAG,
+               UNCLASSIFIED, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
@@ -344,6 +350,7 @@ def classify(
     local_bindings: dict[str, tuple] | None = None,
     overloads: set[tuple[str, int, str]] | None = None,
     inherited: set[tuple[str, int, str]] | None = None,
+    build_tags: set[tuple[str, int, str]] | None = None,
 ) -> dict[str, Counter]:
     """Per-file tail classes for the *unresolved* call sites.
 
@@ -354,7 +361,9 @@ def classify(
     *overloads* is the set of ``(file, line, name)`` sites whose name
     lane A bound to more than one declaration and abstained on (Java);
     *inherited* the bare sites whose callee can only come from a
-    supertype lane A cannot see (Java).
+    supertype lane A cannot see (Java); *build_tags* the Go sites whose
+    name has several declarations under build constraints the caller's
+    configuration does not single out (ADR-098).
     *local_bindings* maps a file to ``(name, start, end)`` tuples — lane
     A's sub-module bindings with enclosing-function extents (ADR-046);
     a bare site matches only when an extent spans its line, and a
@@ -369,6 +378,7 @@ def classify(
     local_bindings = local_bindings or {}
     overloads = overloads or set()
     inherited = inherited or set()
+    build_tags = build_tags or set()
     lines = _Lines(repo_root)
     out: dict[str, Counter] = {}
     for site in unresolved:
@@ -380,6 +390,8 @@ def classify(
             cls = OVERLOAD
         elif key in inherited:
             cls = INHERITED
+        elif key in build_tags:
+            cls = BUILD_TAG
         elif key in origins and origins[key] in _ORIGIN_CLASS:
             cls = _ORIGIN_CLASS[origins[key]]
         else:

@@ -143,3 +143,69 @@
   line; the launcher refuses without the image naming the fix; the
   hatch announces itself on stderr as `HOST`.
 - **Source:** ADR-094.
+
+### C-75 — `hobbes lanes` compares lane A's module edges against the join's, which include lane A's own fallback
+- **Cannot tell you:** how many module edges lane B actually produced.
+  `extract/__init__.py` passes the *projected* module edges — raised
+  from `ev.join(syntax, resolutions, fallback=fallback)`, fallback
+  included — as `lane_b_edges`. On date-fns (2026-09-02) every one of
+  the 200 "lane B only" module edges is `tier: syntactic` with
+  tree-sitter evidence, while lane B produced exactly one semantic
+  import edge; the self-test still printed `module edges compared:
+  5093` and `the lanes agree wherever both can answer`.
+- **Because:** the join is the only producer of module-level symbol
+  edges (§3.4) and the comparison reads its output as lane B's; the
+  `if b` guard ("only meaningful when lane B ran at all") cannot fire,
+  because the fallback alone makes `b` non-empty. No disagreement is
+  hidden — the site comparison keys on resolutions and is unaffected —
+  but the module-edge count is not lane B's and reads larger than it.
+- **Bites at:** the module-edge half of `hobbes lanes` on any repo
+  where lane B is thin (C-8, C-74): a self-test that reports agreement
+  between lane A and lane A.
+- **You find out:** **unsurfaced** — the line reads as a lane B count.
+  Candidate fix: pass only edges with semantic evidence as lane B's,
+  and print `module edges: lane B produced N` beside the comparison.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent B).
+  Registered, not fixed.
+
+### C-76 — The ingest summary's "call edges" counts every symbol edge
+- **Cannot tell you:** the number of `calls` edges from the summary.
+  `cli.py` prints `len(graph['symbol_edges'])` as `call edges`; serde
+  (2026-09-02) printed **4,361** where 1,557 are `calls` and 2,804 are
+  `uses` (SCIP references no call site claimed, ADR-029); peft printed
+  15,016 for 8,899 calls. `graph.json` is correct; the label is not.
+- **Because:** the line predates `uses` edges (V2.M3) and was never
+  relabelled.
+- **Bites at:** anyone reading the summary as a call-graph size — the
+  first number a user sees, inflated by the `uses` share (serde: 2.8×).
+- **You find out:** **unsurfaced** — the only entry in the register
+  that makes a number read *larger* than the truth since C-11 was
+  lifted; the property "every Hobbes number is a floor" (README) does
+  not hold for this line. Candidate fix: one line — print `calls` and
+  `uses` separately.
+- **Source:** the four-repo extraction test of 2026-09-02 (agents A and
+  D). Registered, not fixed — the lead chose registration over a fix
+  this session.
+
+### C-77 — `list_blind_spots` drops the `below-floor` class from its tail
+- **Cannot tell you:** C-58's per-directory count through the agent
+  surface. `go/internal/knowledge/knowledge.go`'s `tailMeanings` — the
+  list every tail line, glossary and "classes this lane cannot report"
+  note iterates — has no `below-floor` row; `notModelled` does. So the
+  proxy prints *seen, not modelled by design* **without** the class
+  (peft: 4,626 where the ingest summary says 5,417 including
+  `below-floor 791`), never explains it, and never reports it missing.
+  Host build and image build both.
+- **Because:** ADR-090 added the class to `tail.py` and the CLI and
+  named `list_blind_spots` as its surfacing; the proxy's table was
+  not widened. The `tests_guarding` header also omits the `built by`
+  half the other five tools print (ADR-094) — same family, cosmetic.
+- **Bites at:** an agent reading the blind-spot view of a directory
+  where interface/closure calls dominate — the hole C-58 exists to
+  name is the one class the view omits; the by-design total reads
+  lower, the percentage is unchanged (not inflated).
+- **You find out:** **unsurfaced** at the tool. C-58's own status stays
+  *partial*, now with this gap named. Candidate fix: one row in
+  `tailMeanings` (and the image rebuild C-65 requires).
+- **Source:** the four-repo extraction test of 2026-09-02 (agent A).
+  Registered, not fixed.

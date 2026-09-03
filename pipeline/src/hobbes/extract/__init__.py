@@ -22,10 +22,10 @@ from __future__ import annotations
 
 import subprocess
 
-from collections import Counter
+from collections import Counter, defaultdict
 
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import containment, scipsource, staging, tail, tssource
@@ -351,6 +351,7 @@ def _build_symbol_layer(
         local_bindings=local_bindings,
         overloads=java.get("overload_sites") if java else None,
         inherited=java.get("inherited_sites") if java else None,
+        build_tags=go.get("build_tag_sites") if go else None,
     )
     # C-58's surfacing: sites the semantic lane resolved to a declaration
     # below the symbol floor still count as `resolved` (the number is not
@@ -382,7 +383,57 @@ def _build_symbol_layer(
     graph["tail_classes_available"] = tail.classes_available(
         graph["resolution_coverage"]
     )
+    if go:
+        degraded += _one_configuration_records(
+            graph["resolution_coverage"], go.get("constrained_files", {})
+        )
     return degraded
+
+
+def _one_configuration_records(
+    coverage_rows: list[dict], constrained_files: dict[str, str]
+) -> list[dict]:
+    """C-71's surfacing: the Go index is one configuration's.
+
+    scip-go loads the module for the box it runs on (the image: linux,
+    its pinned Go), so a file whose build constraint excludes it from
+    that configuration gets no semantic occurrence at all and its sites
+    fall to lane A's fallback — which the per-file row shows as
+    ``resolved 0`` without saying why. This names the files, per
+    package directory, and only when lane B answered *somewhere* in the
+    Go zone (otherwise the index did not run and C-8 is the record).
+    A constrained file that lane B did resolve is simply in the
+    configuration, and is not listed.
+    """
+    go_rows = [r for r in coverage_rows if r["file"].endswith(".go")]
+    if not any(r["resolved"] or r["external"] for r in go_rows):
+        return []
+    dark: dict[str, list[str]] = defaultdict(list)
+    for row in go_rows:
+        if (
+            row["file"] in constrained_files
+            and row["sites"]
+            and not row["resolved"]
+            and not row["external"]
+        ):
+            directory = str(PurePosixPath(row["file"]).parent)
+            dark[directory if directory not in ("", ".") else "."].append(row["file"])
+    out = []
+    for directory, files in sorted(dark.items()):
+        names = ", ".join(sorted(PurePosixPath(f).name for f in files))
+        out.append(
+            {
+                "path": directory,
+                "stage": "scip-go",
+                "message": (
+                    f"{len(files)} file(s) under a build constraint got no "
+                    f"semantic resolution ({names}) — the index is one "
+                    "configuration's (the box it ran on), so their call "
+                    "edges are lane A's fallback or absent (C-71)."
+                ),
+            }
+        )
+    return out
 
 
 #: Node id prefixes only lane A can produce — third-party packages,

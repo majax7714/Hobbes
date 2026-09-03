@@ -209,6 +209,122 @@ class TestFallbackScopeVeto:
         assert layer["call_fallback"][("b.go", 10, "atoi")] == ("a.go", 5)
 
 
+class TestBuildConstraints:
+    """ADR-098: one package, one name, several files under build
+    constraints — the fallback resolves by the caller's own
+    configuration or abstains (C-71); the quic-go shape of 2026-09-02."""
+
+    def _repo(self, tmp_path):
+        (tmp_path / "df_linux.go").write_text(
+            "//go:build linux\n\npackage p\n\nfunc setDF() {}\n"
+        )
+        (tmp_path / "df_darwin.go").write_text(
+            "//go:build darwin\n\npackage p\n\nfunc setDF() {}\n\nfunc macVersion() int { return 0 }\n"
+        )
+        (tmp_path / "df_other.go").write_text(
+            "//go:build !linux && !darwin\n\npackage p\n\nfunc setDF() {}\n"
+        )
+        # No constraint: every configuration compiles it, so `setDF` here
+        # is whichever file the build picks — lane A cannot know.
+        (tmp_path / "conn.go").write_text(
+            "package p\n\nfunc newConn() { setDF() }\n\nfunc helper() {}\n"
+        )
+        # Same constraint as one declaration: resolves to that one.
+        (tmp_path / "df_darwin_test.go").write_text(
+            "//go:build darwin\n\npackage p\n\nimport \"testing\"\n\n"
+            "func TestDF(t *testing.T) {\n\tsetDF()\n\tmacVersion()\n\thelper()\n}\n"
+        )
+        # The external test package shares the directory and may reuse a
+        # name: a bare call there is its own package's declaration.
+        (tmp_path / "ext_test.go").write_text(
+            "package p_test\n\nfunc helper() {}\n\nfunc useHelper() { helper() }\n"
+        )
+        return extract_go(tmp_path)
+
+    def test_a_go_build_line_and_a_filename_suffix_are_the_key(self):
+        from hobbes.extract.gosource import build_constraint
+
+        assert build_constraint("a.go", b"package p\n") == ""
+        assert build_constraint("a.go", b"//go:build   linux  &&  !cgo\n\npackage p\n") == "linux && !cgo|"
+        assert build_constraint("x_windows.go", b"package p\n") == "|windows"
+        assert build_constraint("x_linux_amd64_test.go", b"package p\n") == "|linux/amd64"
+        assert build_constraint("x_arm64.go", b"//go:build cgo\npackage p\n") == "cgo|arm64"
+        # Only the leading comment block counts — a build line after the
+        # package clause is not a constraint.
+        assert build_constraint("a.go", b"package p\n//go:build linux\n") == ""
+        # A name that merely ends in a word Go does not know is unconstrained.
+        assert build_constraint("x_helper.go", b"package p\n") == ""
+
+    def test_an_unconstrained_caller_abstains_on_a_constrained_set(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert ("conn.go", 3, "setDF") not in layer["call_fallback"]
+        assert ("conn.go", 3, "setDF") in layer["build_tag_sites"]
+        assert _sites(layer, "setDF")  # still a site: lane B or the tail gets it
+
+    def test_a_caller_under_the_same_constraint_resolves_to_its_own_file(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert layer["call_fallback"][("df_darwin_test.go", 8, "setDF")] == ("df_darwin.go", 5)
+        assert ("df_darwin_test.go", 8, "setDF") not in layer["build_tag_sites"]
+
+    def test_a_sole_declaration_resolves_regardless_of_constraints(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert layer["call_fallback"][("df_darwin_test.go", 9, "macVersion")] == ("df_darwin.go", 7)
+
+    def test_the_external_test_package_is_its_own_namespace(self, tmp_path):
+        layer = self._repo(tmp_path)
+        # `helper` in p and in p_test: a bare call resolves inside its
+        # own package, never across, and never abstains.
+        assert layer["call_fallback"][("ext_test.go", 5, "helper")] == ("ext_test.go", 3)
+        assert layer["call_fallback"][("df_darwin_test.go", 10, "helper")] == ("conn.go", 5)
+        assert not {k for k in layer["build_tag_sites"] if k[2] == "helper"}
+
+    def test_constrained_files_are_listed_for_the_surfacing(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert set(layer["constrained_files"]) == {
+            "df_linux.go", "df_darwin.go", "df_other.go", "df_darwin_test.go"
+        }
+
+    def test_the_tail_names_the_abstention(self, tmp_path):
+        from hobbes.extract import tail
+
+        layer = self._repo(tmp_path)
+        sites = [s for s in layer["call_sites"] if (s.file, s.line, s.name) == ("conn.go", 3, "setDF")]
+        assert sites
+        out = tail.classify(sites, tmp_path, build_tags=layer["build_tag_sites"])
+        assert out["conn.go"] == {tail.BUILD_TAG: 1}
+        assert tail.BUILD_TAG in tail.CLASSES_AVAILABLE["go"]
+
+    def test_dark_constrained_files_get_one_record_per_directory(self):
+        from hobbes.extract import _one_configuration_records
+
+        rows = [
+            {"file": "sys_conn_df_darwin.go", "sites": 4, "resolved": 0, "external": 0, "unresolved": 4},
+            {"file": "sys_conn_df_windows.go", "sites": 2, "resolved": 0, "external": 0, "unresolved": 2},
+            {"file": "sys_conn_df_linux.go", "sites": 3, "resolved": 3, "external": 0, "unresolved": 0},
+            {"file": "sub/x_freebsd.go", "sites": 1, "resolved": 0, "external": 0, "unresolved": 1},
+            {"file": "plain.go", "sites": 5, "resolved": 5, "external": 0, "unresolved": 0},
+        ]
+        constrained = {
+            "sys_conn_df_darwin.go": "darwin|", "sys_conn_df_windows.go": "|windows",
+            "sys_conn_df_linux.go": "linux|", "sub/x_freebsd.go": "|freebsd",
+        }
+        records = _one_configuration_records(rows, constrained)
+        assert [r["path"] for r in records] == [".", "sub"]
+        assert records[0]["stage"] == "scip-go"
+        assert "2 file(s)" in records[0]["message"]
+        assert "sys_conn_df_darwin.go, sys_conn_df_windows.go" in records[0]["message"]
+        assert "sys_conn_df_linux.go" not in records[0]["message"]
+        assert "C-71" in records[0]["message"]
+
+    def test_no_record_when_lane_b_never_answered(self):
+        # Lane B off (HOBBES_SCIP=0, or a failed index) leaves every row
+        # at zero: that is C-8's record, not a configuration's.
+        from hobbes.extract import _one_configuration_records
+
+        rows = [{"file": "x_darwin.go", "sites": 4, "resolved": 0, "external": 0, "unresolved": 4}]
+        assert _one_configuration_records(rows, {"x_darwin.go": "|darwin"}) == []
+
+
 class TestTestInventory:
     def test_go_test_functions_are_inventoried(self, layer):
         assert [t["id"] for t in layer["tests"]] == [

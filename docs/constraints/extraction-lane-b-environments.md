@@ -185,6 +185,72 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
+### C-74 — A workspace link inside `node_modules` dangles in the container, and the record blames the helper
+- **Cannot tell you:** TypeScript semantics for a pnpm / npm / yarn
+  **workspace** — a repo whose packages depend on each other through
+  `node_modules/@scope/pkg -> ../../../pkg` links. date-fns
+  (2026-09-02): `pkgs/core/tsconfig.json` extends
+  `@date-fns/dev/config/tsconfig`; inside the ingest container the link
+  resolves to nothing, scip-typescript exits with `File
+  '@date-fns/dev/config/tsconfig' not found … no files got indexed`, on
+  **every** workspace zone (6 of 6 packages + root). Result: 3 semantic
+  call edges of 2,258, capture 0.1%, C-8's floor over a fully
+  installed environment. The same pinned scip-typescript indexes the
+  repo on the host in ~10 s.
+- **Because:** `containment.mount_roots` mounts each `node_modules`
+  directory read-only at its host path (ADR-092) and nothing else of
+  the repo's *installed* tree; a link whose target lies outside every
+  `node_modules` — exactly what a workspace link is — has no target in
+  the container. Third-party links (`.pnpm/…`) resolve because their
+  targets sit under the mounted tree. C-23 and C-34 cover a tree that is
+  *not installed* or *cannot be provisioned*; this one is installed
+  and mounted, and still lost.
+- **Bites at:** every workspace-shaped TS/JS repo — most monorepos and
+  many libraries. Also the `dependency_coverage` record: one aggregate
+  row with `resolved 1 / declared 24` and `missing` listing the
+  repo's own packages (`@date-fns/tz`, …), which is false about the
+  disk and true only of the container's view; and seven `scip-resolve`
+  records all at `path: "."` (ADR-048's per-unit rule not met).
+- **You find out:** **partial** — loud (7 WARNINGs, 7
+  `extraction_errors`, every edge `syntactic`), but the per-zone record
+  says *"the SCIP helper is unusable — install Node and run npm
+  install in the hobbes repo's scip/, or set $HOBBES_SCIP_CMD"* — the
+  helper ran; the failure is config resolution in the container.
+  Following the record changes nothing. Candidate fix: when collecting
+  mount roots, follow links *inside* each `node_modules` and mount
+  their targets (or stage them) read-only; distinguish "indexer exited
+  non-zero on the stage" from "helper unusable" in the record text;
+  per-zone `scip-resolve` paths.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent B,
+  date-fns/date-fns). Registered, not fixed.
+
+### C-79 — A Python repo that declares its dependencies outside `pyproject.toml [project]` gets no `dependency_coverage`, silently
+- **Cannot tell you:** whether the environment lane B resolved against
+  was complete, for a repo whose dependencies live in `setup.py`
+  (`install_requires`), `setup.cfg`, or `requirements*.txt` only.
+  peft (2026-09-02): `pyproject.toml` has no `[project]` table, so
+  `declared_dependencies` reads `[]`, and `extract/__init__.py` appends
+  `dependency_coverage` only when `declared` is truthy — the key is
+  absent from `graph.json`, no message says the check did not run,
+  and `list_blind_spots` prints no environment line.
+- **Because:** `scipsource.declared_dependencies` walks
+  `pyproject.toml` files only (C-16's lift widened it to *every*
+  `pyproject.toml`, not to other manifests). The environment itself
+  was found and used (17,284 external sites attributed) — what is
+  missing is C-27's surfacing, not the environment.
+- **Bites at:** older or setuptools-style Python repos — a large share
+  of the ecosystem; a thin graph there has no environment number to
+  rank against.
+- **You find out:** **unsurfaced** — the absence of a key. The module's
+  own docstring says "an inert check that appears to run is worse than
+  no check"; here it does not appear to run, it is simply absent.
+  Candidate fix: read `setup.cfg [options] install_requires` and
+  `requirements*.txt` (static reads, no execution — `setup.py` is code
+  and stays unread), and when no manifest yields a list emit a
+  record saying the coverage check had nothing to check against.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent A,
+  huggingface/peft). Registered, not fixed.
+
 ### C-16 — Dependency-degradation detection read only the repo root's manifest — *lifted 2026-08-15*
 - **Was:** `declared_dependencies` looked only at `<repo>/pyproject.toml`,
   so a repo whose manifest lives in a subdirectory — this repo's own deps

@@ -5947,3 +5947,94 @@ tooling), future_additions, CLAUDE.md.
 two-pass form; a positive-control *test* for the canary probe (it would
 need sources and network in one container, which the product never
 does — the hand check is recorded instead).
+
+## 2026-09-02 — the four-repo extraction test; ADR-098 (Go build constraints); C-71–C-80
+
+Max's direction, in two steps. First: read the docs, spawn four agents,
+each drawing a random public repo for one language and testing the
+extraction/knowledge piece end to end (init → contained ingest → lanes
+→ determinism re-ingest → 15-edge hand sample → the six knowledge
+tools → honesty cross-check), stopping on an architectural error while
+the others continue. Second, on the report: "fix build tag and flag
+rest in constraints", and the question whether the repos were
+oracle-graded (they were not — hand samples and lane agreement; one
+is now).
+
+**The draws** (seeded GitHub samples, excluding every repo in the
+evidence base): huggingface/peft (Python), date-fns/date-fns (TS/JS,
+pnpm workspace), quic-go/quic-go (Go), serde-rs/serde (Rust). Numbers
+in `extraction-evidence.md`'s new section. Headlines: peft and
+date-fns **PASS with findings** (15/15 sampled edges each, byte-
+identical re-ingests, knowledge tools consistent with `graph.json`);
+quic-go and serde **stopped at `hobbes lanes`** (29 of 6,772 and 3 of
+910 disagreements). Every lane B step ran contained on all four;
+**no semantic-tier edge was found wrong on any repo**; the wrong edges
+found were syntactic (quic-go 2 of 6, serde 3 of 81) and each traced to
+a named fallback shape.
+
+**Fixed — ADR-098, C-71.** `gosource._call_fallback`'s premise "a
+top-level name is unique within its package" was false: build
+constraints (`//go:build`, `_GOOS.go`) let a package declare one name
+per configuration, and the external `_test` package shares the
+directory. First file won. Now: declarations kept per `(directory,
+name)` as a list with package and `build_constraint` (the `//go:build`
+expression as written plus the filename's GOOS/GOARCH — compared,
+never evaluated); a bare call considers its own package only, a
+qualified call never `_test`; a split name resolves only when exactly
+one declaration shares the caller's key, else the fallback abstains
+and the tail names the site `build-tag-set` (new class, Go's row in
+C-32's table, in `tail.py`, the CLI, and the proxy's `tailMeanings`).
+C-71's surfacing: after coverage rows, and only when lane B answered
+somewhere in the Go zone, one `scip-go` record per directory names the
+constrained files that got no semantic resolution — the index is one
+configuration's (the image's linux). quic-go re-ingested: the two
+wrong syntactic edges replaced by the right ones, every other edge
+identical, `hobbes lanes` 29 → **17, all C-70**; the record names
+eight dark files. This repo re-ingested: 5,362 sites / 0 disagree,
+edge counts unchanged. Tests: nine in `test_gosource.py`
+(`TestBuildConstraints`: the key, abstention, same-constraint
+resolution, the `_test` namespace, the record and its lane-B-off
+silence); the proxy's "cannot report" strings widened. Suites:
+**1,034 pytest** (+9; the venv test deselected by name), Go 12
+packages green, oracle-lane Go green, image rebuilt (C-65), the image's
+proxy prints the new class.
+
+**Registered, not fixed — C-72–C-80** (Max: flag the rest). C-72 the
+Rust fallback binds `Type::method` by its last segment (serde: 3 wrong
+syntactic edges; *partial*); C-73 a repo directory symlink is walked as
+a second copy (serde: 19 modules / 1,356 sites twice, the copy with no
+lane B; *partial*); C-74 pnpm/npm workspace links dangle in the
+container and the record blames the helper (date-fns: lane B lost on 6
+of 6 zones, 3 semantic edges of 2,258; *partial*); C-75 `hobbes lanes`
+counts the join's fallback module edges as lane B's (*unsurfaced*);
+C-76 the summary's "call edges" counts `uses` (serde 4,361 for 1,557;
+*unsurfaced* — the one line reading larger than the truth); C-77
+`list_blind_spots` omits `below-floor` from its tail (*unsurfaced*);
+C-78 the `http-go` pack fires on `windows.Handle(fd)` (four false C-5
+records; *unsurfaced*); C-79 no `dependency_coverage` for a
+`setup.py`-only repo (*unsurfaced*); C-80 `super().m()` / `f().m()` is
+not a Python call site and `who_calls` glosses the `uses` edge as "not
+a call" (peft: 252 such lines; *partial*). C-58 and C-70 amended
+(the proxy gap; CI exits 1 on a registered limit). Debt summary: eighty
+entries, seventy active, seven *partial*, seven *unsurfaced*. Five of
+the nine are one-to-ten-line fixes with the candidate named.
+
+**Oracle-graded, after the fix: quic-go** (cell record
+`docs/oracle-cells/quic-go-go-2026-09-02.md`). The full RTA with test
+packages was OOM-killed twice on this 30 GB box (H-9's shape); at **5
+binary roots** (`--no-tests`, 458 s): 17,333 edges exported, **3,766
+confirmed, 15 contradicted, 1 abstract**, 13,551 silent (13,345
+`not-loaded`); precision 99.6% lower bound, **all 15 contradictions
+oracle-grain** — `*wrappedConn` (connection.go:243, embeds `*Conn`)
+gets shadowing methods from `conn_wrapped_test.go` in the test build,
+which scip-go indexes and the no-tests oracle does not — **0
+hobbes-wrong**; `static→named` recall 99.6%; poison PASS, 0 falsely
+confirmed. The same fact as C-71, one configuration further: the test
+build is a configuration too. §3.8's Go row and `VERIFICATION_BASE`
+extended to six repos (quic-go, "binary roots only"). peft, date-fns
+and serde remain hand-sampled, not graded.
+
+**Housekeeping.** Clones under `~/.hobbes/bench/extract-test-20260902/`;
+oracle outputs `~/.hobbes/bench/oracle/quic-go-go/`. Architecture §3.1
+(the third Go rule), §3.4 (the class), §3.8 (the row); CLAUDE.md
+counts. Nothing pushed.

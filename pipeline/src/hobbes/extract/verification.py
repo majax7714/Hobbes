@@ -50,8 +50,8 @@ VERIFICATION_BASE: dict[str, dict] = {
     "go": {
         # Compiler-graded on both since the oracle lane (ADR-089, O2/O4,
         # 2026-08-25); the hand-check the row used to cite is retired.
-        "repos": 5,
-        "on": 'this repo; dagger — 19 of its Go modules (O4); BurntSushi/toml, gorilla/mux, junegunn/fzf (2026-08-27/28)',
+        "repos": 6,
+        "on": 'this repo; dagger — 19 of its Go modules (O4); BurntSushi/toml, gorilla/mux, junegunn/fzf (2026-08-27/28); quic-go/quic-go — drawn at random, binary roots only (2026-09-02)',
         "depth": "multi-repo",
     },
     "rust": {

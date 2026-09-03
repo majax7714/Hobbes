@@ -234,7 +234,8 @@
   keeps no symbol for — an interface method, a closure, a nested
   function). The ingest summary prints it under *seen, not modelled by
   design* (this repo: go 3, python 35, ts/js 10), `list_blind_spots`
-  marks it not-modelled, and the tail sums to `unresolved + floored`.
+  marks it not-modelled (but omits the class from its printed tail —
+  C-77, 2026-09-02), and the tail sums to `unresolved + floored`.
   What stays conceded: the capture line does not move, and a site the
   checker resolved to a declaration it *does* have a symbol for but
   through an interface it cannot see past (the Go/TS interface method
@@ -279,9 +280,46 @@
   which is how this entry came to exist; the oracle lane reports the
   same shape from its side as `line-grain tolerance used on N edges`,
   printed on every cell. What is *not* surfaced is a collision only one
-  lane resolved: there the pairing is unchecked.
+  lane resolved: there the pairing is unchecked. Note (2026-09-02):
+  because the surfacing *is* the disagreement, `hobbes lanes` — and
+  `scripts/ci-graph.sh` with it — exits 1 on a registered limit
+  wherever a repo writes `f(x.f())` on one line (quic-go: 17 of 6,743
+  dual-resolved sites, 0.25%, `jsontext.String(x.String())` ×15);
+  whether CI should fail on it is open.
 - **Source:** measured 2026-08-29 on the O8 Java cells (ADR-096); the
   key is ADR-029's.
+
+### C-80 — A Python call whose receiver is itself a call, a subscript, or `super()` is not a call site — and `who_calls` says it is not a call
+- **Cannot tell you:** the callers that reach a method through
+  `super().m(..)`, `f().m(..)` or `xs[i].m(..)`. `pysource.Call` is "a
+  call site whose callee is a plain name/attribute chain", so those
+  sites are not detected; SCIP still resolves the name, the join
+  emits a `uses` edge (a resolution no site claimed, ADR-029), and the
+  tool renders it under *"references … without calling it (type
+  annotations, except clauses, values passed by name)"*. peft
+  (2026-09-02): of 7,910 `uses` evidence lines, **152 are
+  `super().name(..)`, 60 `<call>().name(..)`, 40
+  `<subscript>[..].name(..)`** — every one a call; for
+  `PeftModel.save_pretrained` all 49 "non-calling references" are
+  calls such as `model.cpu().save_pretrained(tmp_dir)`.
+- **Because:** the detection boundary is lane A's (C-1's "calls
+  through values", in the receiver position); the gloss is the proxy's
+  wording for the `uses` type, written before this shape was measured.
+  The sites sit outside the detected-site denominator, so the capture
+  line is not inflated; `who_calls` and `tests_guarding` under-count in
+  C-1's direction.
+- **Bites at:** `super().__init__` chains (every subclass constructor),
+  fluent APIs, container-of-objects code — `who_calls` on a base-class
+  method answers none of its overriding constructors' calls, and labels
+  them as not calls.
+- **You find out:** **partial** — the edge exists as `uses` with its
+  line, so a reader who opens it sees the call; the label asserts the
+  opposite. Candidate fix: detect the shape in lane A (the receiver is
+  an expression; the callee name is still a plain attribute) so the
+  join can pair it, and reword the `uses` gloss to "resolved here
+  without a detected call site".
+- **Source:** the four-repo extraction test of 2026-09-02 (agent A,
+  huggingface/peft). Registered, not fixed.
 
 ### C-32 — The tail view's classes are observations with boundaries
 - **Cannot tell you:** *why* a call is unresolved beyond what its class

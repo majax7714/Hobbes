@@ -160,6 +160,45 @@ a `Deref`. Two of seven missed, both about *where the misses would be*: on
 Python the prior was right, on Rust the generated-code class was not in
 anyone's prior.
 
+## Four random repos — the 2026-09-02 extraction test (agents, contained, hand-sampled)
+
+Max's direction: four agents, one language each, a random public repo
+drawn from a seeded GitHub sample (excluding every repo above), the
+knowledge piece exercised end to end — init, contained ingest, `hobbes
+lanes`, a determinism re-ingest, a 15-edge hand sample, the six
+knowledge tools, an honesty cross-check — and a stop rule on any
+architectural error. Two stopped at `hobbes lanes`. Reports (commands,
+verbatim logs, edge tables) were session scratch; the findings are
+ADR-098 and C-71–C-80. **Not oracle-graded** except where a row says
+so; every row below is a *hand sample* (P11: it licenses the machinery
+on that repo, not the language).
+
+| Repo | Lang | Draw | Numbers |
+|---|---|---|---|
+| **huggingface/peft** @ 3d881e97 (450 files) | Python | seed 20260903, index 402 (two smaller draws rejected) | 67 s contained (`python-env`, `index-python`), 572 nodes / 6,033 symbols / 8,899 `calls` + 6,117 `uses`; capture **68.3%** of 41,950 sites (attr-call 8,307 the remainder); lanes **4,281 sites / 0 disagree**; two ingests **byte-identical**; **15/15 sampled edges confirmed** (12 semantic, 3 syntactic; one at static grain on a union receiver); knowledge tools consistent with `graph.json` (183 + 49 for `save_pretrained`, 350, 3; `tests_guarding` 1,151 / 584) — findings C-77 (`below-floor` missing from the tool), C-79 (no `dependency_coverage` for a `setup.py` repo), C-80 (`super().m()` glossed as not a call) |
+| **date-fns/date-fns** @ 18cbd436 (1,596 TS files, pnpm workspace) | TS/JS | seed 20260904, index 143 (three larger draws skipped) | 19 s, 15 `index-typescript` steps contained — **lane B lost on every workspace zone** (C-74: the `@date-fns/dev` link dangles in the container; the same scip-typescript indexes it on the host in 10 s); 3 semantic + 2,255 syntactic `calls`, capture 0.1% of 24,827; lanes exit 0 at 7 sites (C-75: the 200 "lane B only" module edges are the fallback's); **byte-identical** re-ingest; **15/15 confirmed** (all 3 semantic + 12 syntactic, none an ADR-090 shape); `who_calls` 398 / 192 / 84 = `graph.json`, host and image answers byte-identical |
+| **quic-go/quic-go** @ c2877d14 (445 files) | Go | seed 20260905, index 367 (three draws rejected) | 15 s contained (`fetch-go` + `index-go` ×3 modules), 538 nodes / 5,643 symbols / 10,961 semantic + 6 syntactic `calls`, capture **86.8%** of 41,963; **stopped**: lanes exit 1 with **29 of 6,772** — 17 C-70 (`jsontext.String(x.String())`), **12 build-tag alternates** (`setDF`, `newConn`, `isECNEnabled`, `getCurveID`…) and **2 of 6 syntactic edges wrong** by the same mechanism → **fixed the same day (ADR-098, C-71)**: re-ingested, the two edges replaced by the right ones, every other edge identical, **17 disagreements, all C-70**, eight dark constrained files named by the new record. Also C-78 (four false `http-go` C-5 records from `windows.Handle(fd)`) |
+| **serde-rs/serde** @ a874a1b1 (208 files, 5-crate workspace) | Rust | seed 20260906, index 233 (three draws rejected) | 12 s contained (`fetch-rust`, `index-rust`; C-29 disclosed), 248 nodes / 3,084 symbols / 1,476 semantic + 81 syntactic `calls` + 2,804 `uses`, capture 80.0% of 13,028; `dependency_coverage` 11/12 (`libc`); **stopped**: lanes exit 1 with **3 of 910** — `Option::<T>::deserialize` and `Expected::fmt` bound by last segment (C-72); semantic right at all three; **all 81 syntactic edges hand-checked: 78 confirmed, 3 wrong**, the wrong ones emitted only in the `serde/src/core -> ../../serde_core/src` symlink copy that has no lane B (C-73; 19 modules / 1,356 sites counted twice); C-76 (summary "4361 call edges" for 1,557 `calls`) |
+
+**Verified:** peft and date-fns 15/15 each by hand at the cited lines
+(caller binding + target declaration opened); serde every syntactic
+`calls` edge (81) by hand; quic-go the six syntactic edges by hand, two
+wrong before ADR-098 and none after. **No semantic-tier edge was found
+wrong on any of the four.** One is oracle-graded, after the fix:
+**quic-go against Go RTA at 5 binary roots** (`--no-tests` — the full
+test program was OOM-killed on this box twice, the dagger-root shape,
+H-9; [cell](oracle-cells/quic-go-go-2026-09-02.md)): **3,766
+confirmed, 15 contradicted, 1 abstract, 13,551 silent** (13,345
+`not-loaded` — test files and the packages only tests reach);
+precision-against-oracle 99.6% lower bound, **all 15 contradictions
+oracle-grain** (the test build's `wrappedConn` methods shadowing the
+embedded `*Conn`'s — scip-go indexes the test build, the oracle did not
+load it), 0 hobbes-wrong; recall 47.5%, `static→named` 99.6%; poison
+PASS, 0 falsely confirmed of 17,333. Both
+determinism checks (peft, date-fns) byte-identical; containment stamp
+`all_contained: true`, `built_by` this checkout, on all four; nothing
+written into any clone outside `.hobbes/` and init's `.gitignore` line.
+
 ## Seven public repos — the 2026-08-27 grading loop (triaged and regraded 2026-08-28)
 
 BurntSushi/toml, gorilla/mux, junegunn/fzf (Go, RTA); BurntSushi/memchr (Rust, MIR); ajv-validator/ajv, cheeriojs/cheerio (TS, the zone's `tsc`); pallets/click (Python, trace). Cells in `docs/oracle-cells/*-2026-08-27.md` with their regrade sections; the loop table in `docs/oracle-misses.md`.

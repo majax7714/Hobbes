@@ -38,6 +38,31 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
+### C-78 — The `http-go` pack fires on any call named `Handle` or `HandleFunc`
+- **Cannot tell you:** that a C-5 record is about a route. The pack's
+  `_run` walks every Go file's call sites for a *name* in `{Handle,
+  HandleFunc}` and does not check the receiver, whether the file
+  imports `net/http`, or whether the site is a type conversion —
+  ADR-037's `_is_conversion` filter is lane A's call path's, not the
+  pack's. quic-go (2026-09-02): `windows.Handle(fd)` — a conversion to
+  `golang.org/x/sys/windows.Handle` in files that import no `net/http`
+  — produced four `http-go extraction degraded … a net/http route
+  registration whose pattern is computed (C-5)` records. No route was
+  invented (the 57 in `interfaces.json` are real); the honesty record
+  is what is wrong.
+- **Because:** `_applies` keys the pack on *any* Go file importing
+  `net/http`, then `_run` reads every file. A name-only match was
+  enough for the repos in the evidence base.
+- **Bites at:** Go repos using `x/sys/windows`, or any package with a
+  `Handle` constructor or method, alongside `net/http` somewhere:
+  false C-5 records, and a reader following them to a syscall.
+- **You find out:** **unsurfaced** — the record presents as a decline,
+  not a misfire; C-25 says a misfiring pack cannot be turned off.
+  Candidate fix: require the receiver to be an `http` alias or a
+  value the file bound from `net/http`, and apply `_is_conversion`.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent C).
+  Registered, not fixed.
+
 ### C-14 — CLI entry points came from `pyproject.toml` only — *lifted 2026-08-16*
 - **Was:** `interfaces.json` read `[project.scripts]` and nothing else,
   so a JS package's `bin` entries and every Go binary were absent — this

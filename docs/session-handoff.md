@@ -1,49 +1,67 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-01: C-66 settled (ADR-097) — Java resolves without
-sources and indexes without a network; three cells re-ingested
-identical.** Read this, then the recent `docs/BUILDLOG.md` entries
-(2026-08-29, 2026-09-01) for how the current state was reached, and
-`docs/workstreams.md` for the backlog by owner.
-History lives in the BUILDLOG; this doc is rewritten, never appended
-into a pile.
+**Rewritten 2026-09-02: the four-repo extraction test ran; ADR-098
+fixed Go build constraints (C-71); nine findings registered, not fixed
+(C-72–C-80); quic-go oracle-graded at binary roots.** Read this, then
+the recent `docs/BUILDLOG.md` entries (2026-09-01, 2026-09-02) for how
+the current state was reached, and `docs/workstreams.md` for the
+backlog by owner. History lives in the BUILDLOG; this doc is rewritten,
+never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: the four ADR-092 decisions, then CI
+## ⇢ START HERE NEXT SESSION: the nine registered-not-fixed entries, then the ADR-092 decisions
 
-**C-66 is settled** (Max, 2026-09-01: "your recommendation is good. good
-to proceed"). ADR-097 records it: a Java unit runs two contained passes —
-`fetch-java`, the build's own resolution with a network on a stage that
-holds **no `.java`** (Maven's `test-compile` with nothing to compile; the
-Gradle wrapper with `GRADLE_RESOLVE_SCRIPT`'s `hobbesResolveAll`), then
-`index-java`, the build with scip-java attached on the full stage,
-`--network none`, `-o`/`--offline`. The pass that can reach the network
-never sees a source; the pass that sees the sources has no route out.
-jsoup, spring-petclinic and Severed-Chains re-ingested **edge-for-edge
-identical** to the 2026-08-29 graphs; the canary's new probe (`Phoned`)
-proves no pass saw sources and network together. What remains conceded
-is the narrowed C-66: repo build logic with a network over its own build
-files, resources and the public caches.
+**What happened 2026-09-02.** Four random public repos, one per
+language, each run through the knowledge piece by an agent under a
+stop rule (BUILDLOG). No semantic edge wrong anywhere; two repos
+stopped on lane disagreements. Max: "fix build tag and flag rest in
+constraints." The build-tag one is fixed (ADR-098, C-71: lane A's Go
+fallback resolves a constraint-split name by the caller's own
+`build_constraint` or abstains into `build-tag-set`; a `scip-go`
+record names the files the one-configuration index left dark). The
+other nine are **registered with their candidate fix named** and wait
+on Max's call, worst first:
 
-**Still open, unrelated to Java:** ADR-092's four embedded decisions
-(below). Nothing blocks on them.
+| C-n | what | size of the fix |
+|---|---|---|
+| C-76 | the summary's "call edges" counts `uses` — reads *larger* than the truth | one line, `cli.py` |
+| C-77 | `list_blind_spots` omits `below-floor` | one row in `knowledge.go` `tailMeanings` + image rebuild |
+| C-78 | `http-go` fires on any `Handle` (`windows.Handle(fd)` → false C-5 records) | receiver check + `_is_conversion` |
+| C-75 | `hobbes lanes` counts the join's fallback module edges as lane B | filter by semantic evidence |
+| C-79 | no `dependency_coverage` for `setup.py`-only Python repos, silently | read `setup.cfg`/`requirements*.txt`; record when nothing declares |
+| C-74 | pnpm/npm workspace links dangle in the container; record blames the helper | follow links inside `node_modules` when collecting mounts |
+| C-72 | Rust fallback binds `Type::method` by last segment | filter by the path head's `impl`, else abstain (`path-call`) |
+| C-73 | a repo directory symlink is walked as a second copy | record at discovery; alias or mark the copy |
+| C-80 | `super().m()` / `f().m()` not a Python site; `who_calls` glosses it "not a call" | detect the receiver shape; reword the `uses` gloss |
 
-**Measured and parked (W1):** an allowlisted egress proxy for
-`fetch-java` — rootless podman 5.8 gives an `--internal` network no
-egress and a Hobbes-owned CONNECT proxy on a custom egress bridge can
-serve the registry hosts only (200 allowed / 403 denied, tested by
-hand); attach to a *custom* bridge, not the default `podman` one (DNS
-breaks). Its request log would double as a replay lockfile.
+Also open from the same test: `hobbes lanes` (and CI) exits 1 on
+C-70's registered shape (quic-go: 17 sites of 6,743) — decide whether
+a registered limit should fail the self-test.
 
-## WHERE THINGS STAND (2026-09-01)
+**Still open, unrelated:** ADR-092's four embedded decisions (below).
+Nothing blocks on them.
+
+**C-66 is settled** (ADR-097, 2026-09-01). **Measured and parked
+(W1):** the allowlisted egress proxy for `fetch-java` (topology in the
+2026-09-01 BUILDLOG entry).
+
+## WHERE THINGS STAND (2026-09-02)
 
 - **Extraction:** every compiler-graded oracle cell at 100% on every
-  tier it reaches (Go/TS/Rust/**Java**); Python trace-graded (C-60). The
+  tier it reaches (Go/TS/Rust/**Java**) — **quic-go (2026-09-02) at
+  99.6% lower bound, 15 contradicted, all oracle-grain** (the test build
+  vs. the binary build; graded at binary roots because the full RTA
+  OOMs on this box, H-9); Python trace-graded (C-60). The
   misses are C-58 (closures, function values, dispatch — surfaced
   *partial* as `below-floor`) and Rust's generated code. Records:
   `docs/oracle-cells/`, `oracle-misses.md`, `oracle-defects.md`
   (+ review/tally).
+- **The four-repo test (2026-09-02):** peft and date-fns pass with
+  findings; quic-go and serde stopped on lane disagreements; findings
+  are ADR-098 + C-71 (fixed) and C-72–C-80 (registered). Clones under
+  `~/.hobbes/bench/extract-test-20260902/`. Register: 80 entries, 70
+  active, 7 partial, 7 unsurfaced.
 - **Java is the sixth language (ADR-096, 2026-08-29; ADR-097,
   2026-09-01).** Lane A (`javasource.py`), scip-java 0.13.1 contained,
   the JUnit inventory, a javac+CHA oracle (`bench/oracle/java`, O8), and
@@ -83,7 +101,9 @@ breaks). Its request log would double as a replay lockfile.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. **The four ADR-092 decisions** (§Decisions there): contain-all vs
+0. **The nine registered-not-fixed entries** above, on Max's call —
+   five are one-to-ten-line fixes; and the C-70/CI question.
+0b. **The four ADR-092 decisions** (§Decisions there): contain-all vs
    executing-only; symlink targets at identical paths vs rewriting; one
    image vs a slim ingest image; network by phase separation vs route
    filtering — the last now has two forms (ADR-092 §4 by what runs,
