@@ -205,3 +205,51 @@ def format_nav_report(rep: dict) -> str:
                  "whose truth is 'none recorded' — 1 when the reply names nothing else — and is never averaged into `nav`. "
                  "Δ > 0 means arm a scores higher. absent FA = false-acceptance rate on distractors (ADR-099 §4.5).")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- prior vs text (review item 8)
+
+def none_density(train_rows: list[dict], family: str, module_of: dict[str, str]) -> dict[str, tuple[int, int]]:
+    """Per module, ``(answers that were "none recorded", answers)`` among
+    the training QA of *family* — how often the adapter was told that a
+    member of this module has none. An answer is "none" when it names
+    nothing beyond the asked symbol (:func:`hobbes.ttt.score.truth_items`)."""
+    from hobbes.ttt.score import truth_items
+    out: dict[str, list[int]] = {}
+    for r in train_rows:
+        if r.get("kind") != "qa" or r.get("family") != family:
+            continue
+        m = module_of.get(r.get("symbol") or "", "")
+        cell = out.setdefault(m, [0, 0])
+        cell[1] += 1
+        if not truth_items(r):
+            cell[0] += 1
+    return {m: (a, b) for m, (a, b) in out.items()}
+
+
+def override_probe(run: dict, family: str, density: dict[str, tuple[int, int]], module_of: dict[str, str],
+                   heavy: float = 0.5) -> dict:
+    """Does an arm's refusal on has-truth items of *family* follow the
+    modules it was taught "none" about? Over the run's has-truth items:
+    the zero-score replies that name nothing (the overrides), the share
+    of them from modules whose training density of "none" is at least
+    *heavy*, the mean density behind overrides and behind hits, and how
+    many overrides read as a refusal. Computes; the reading is the
+    caller's."""
+    import re
+    negation = re.compile(r"\b(no|none|not|does not|doesn't|isn't)\b", re.I)
+    rows = [r for r in run.get("rows", []) if r.get("family") == family and (r.get("found") or r.get("missed"))]
+    def dens(r):
+        a, b = density.get(module_of.get(r["symbol"], ""), (0, 0))
+        return a / b if b else 0.0
+    overrides = [r for r in rows if r["score"] == 0 and not r.get("found") and not r.get("extra")]
+    hits = [r for r in rows if r["score"] > 0]
+    mean = lambda xs: round(statistics.mean(xs), 4) if xs else None
+    return {
+        "family": family, "has_truth": len(rows), "overrides": len(overrides), "hits": len(hits),
+        "overrides_from_heavy_modules": sum(1 for r in overrides if dens(r) >= heavy),
+        "override_density_mean": mean([dens(r) for r in overrides]),
+        "hit_density_mean": mean([dens(r) for r in hits]),
+        "overrides_refusing": sum(1 for r in overrides if negation.search(r.get("reply") or "")),
+        "heavy": heavy,
+    }

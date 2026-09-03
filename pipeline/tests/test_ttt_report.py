@@ -124,3 +124,40 @@ class TestNavReport:
         assert rep["arms"]["A0"]["callers∅"] == {"n": 2, "mean": 1.0}
         assert rep["arms"]["A0"]["navigation"] == {"n": 2, "mean": 0.0}
         assert "callers∅" in format_nav_report(rep)
+
+
+class TestOverrideProbe:
+    """Review item 8: refusals on has-truth items, joined to the module's training density of "none"."""
+
+    def rec(self, family, symbol, answer):
+        return {"kind": "qa", "family": family, "symbol": symbol, "split": "train",
+                "messages": [{"role": "user", "content": "?"}, {"role": "assistant", "content": answer}]}
+
+    def test_density_counts_none_answers_per_module(self):
+        from hobbes.ttt.report import none_density
+        train = [self.rec("tests", "m.a", "No test reaches `m.a` at abc."),
+                 self.rec("tests", "m.b", "Tests reaching `m.b`: `tests/test_m.py`."),
+                 self.rec("tests", "n.c", "No test reaches `n.c` at abc."),
+                 self.rec("callers", "m.a", "No semantic-tier caller of `m.a` is recorded at abc."),
+                 {"kind": "card", "family": None, "symbol": "m.a", "split": "train", "messages": []}]
+        module_of = {"m.a": "m", "m.b": "m", "n.c": "n"}
+        assert none_density(train, "tests", module_of) == {"m": (1, 2), "n": (1, 1)}
+        assert none_density(train, "callers", module_of) == {"m": (1, 1)}
+
+    def test_probe_splits_overrides_by_module_density(self):
+        from hobbes.ttt.report import override_probe
+        module_of = {"m.a": "m", "m.b": "m", "n.c": "n", "n.d": "n"}
+        density = {"m": (1, 4), "n": (3, 4)}
+        run = {"rows": [
+            {"family": "tests", "symbol": "m.a", "score": 0.0, "found": [], "missed": ["t1"], "extra": [], "reply": "No test reaches `m.a`."},
+            {"family": "tests", "symbol": "n.c", "score": 0.0, "found": [], "missed": ["t2"], "extra": [], "reply": "None."},
+            {"family": "tests", "symbol": "n.d", "score": 1.0, "found": ["t3"], "missed": [], "extra": [], "reply": "`t3`"},
+            {"family": "tests", "symbol": "m.b", "score": 0.0, "found": [], "missed": ["t4"], "extra": ["t9"], "reply": "`t9`"},
+            {"family": "tests", "symbol": "m.b", "score": 1.0, "found": [], "missed": [], "extra": [], "reply": "none"},
+            {"family": "callers", "symbol": "m.a", "score": 0.0, "found": [], "missed": ["x"], "extra": [], "reply": "none"},
+        ]}
+        out = override_probe(run, "tests", density, module_of)
+        assert out["has_truth"] == 4 and out["overrides"] == 2 and out["hits"] == 1
+        assert out["overrides_from_heavy_modules"] == 1
+        assert out["override_density_mean"] == 0.5 and out["hit_density_mean"] == 0.75
+        assert out["overrides_refusing"] == 2
