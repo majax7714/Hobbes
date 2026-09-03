@@ -74,8 +74,10 @@ class TestReport:
         assert set(rep["arms"]) == {"A0", "A1"} and list(rep["comparisons"]) == ["all:A1-A0"]
 
 
-def nav_run(scores: dict[tuple[str, str], float]) -> dict:
-    return {"rows": [{"family": f, "symbol": s, "score": v} for (f, s), v in scores.items()]}
+def nav_run(scores: dict[tuple[str, str], float], empty: set[tuple[str, str]] = frozenset()) -> dict:
+    """Rows as `ttt_probe.py nav` writes them; an item in *empty* has a 'none recorded' truth."""
+    return {"rows": [{"family": f, "symbol": s, "score": v, "found": [], "missed": [] if (f, s) in empty else ["x"]}
+                     for (f, s), v in scores.items()]}
 
 
 class TestNavReport:
@@ -97,3 +99,12 @@ class TestNavReport:
     def test_without_the_baseline_only_arms_are_reported(self):
         rep = nav_report({"A2": nav_run({("defines", "x"): 1.0})}, resamples=10)
         assert rep["comparisons"] == {} and rep["arms"]["A2"]["defines"]["mean"] == 1.0
+
+    def test_empty_truth_items_are_split_out_of_the_navigation_mean(self):
+        items = {("callers", "s1"): 0.0, ("callers", "s2"): 0.0, ("callers", "e1"): 1.0, ("callers", "e2"): 1.0}
+        run = nav_run(items, empty={("callers", "e1"), ("callers", "e2")})
+        rep = nav_report({"A0": run}, resamples=10)
+        assert rep["arms"]["A0"]["callers"] == {"n": 2, "mean": 0.0}
+        assert rep["arms"]["A0"]["callers∅"] == {"n": 2, "mean": 1.0}
+        assert rep["arms"]["A0"]["navigation"] == {"n": 2, "mean": 0.0}
+        assert "callers∅" in format_nav_report(rep)

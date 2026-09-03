@@ -120,11 +120,22 @@ def format_report(rep: dict) -> str:
 # ---------------------------------------------------------------- navigation
 
 def nav_table(runs: dict[str, dict]) -> dict[str, dict[str, dict[str, float]]]:
-    """``arm -> family -> item key -> score`` from `ttt_probe.py nav` outputs."""
+    """``arm -> family -> item key -> score`` from `ttt_probe.py nav` outputs.
+
+    A set family is split by whether the item has a recorded answer:
+    ``callers`` holds the items with truth, ``callers∅`` those whose
+    truth is "none recorded" — where a reply that names nothing scores
+    1, so a model that waffles without naming anything looks perfect.
+    The two populations answer different questions (recall vs
+    abstention) and are never averaged together.
+    """
     out: dict[str, dict[str, dict[str, float]]] = {}
     for arm, run in runs.items():
         for r in run.get("rows", []):
-            out.setdefault(arm, {}).setdefault(r["family"], {})[f"{r['family']}\n{r['symbol']}"] = r["score"]
+            fam = r["family"]
+            if fam not in ("absent", "defines") and not (r.get("found") or r.get("missed")):
+                fam += "∅"
+            out.setdefault(arm, {}).setdefault(fam, {})[f"{r['family']}\n{r['symbol']}"] = r["score"]
     return out
 
 
@@ -138,7 +149,8 @@ def nav_report(runs: dict[str, dict], baseline: str = "A0", resamples: int = 5_0
     out: dict = {"arms": {}, "comparisons": {}}
     for arm, fams in table.items():
         row = {f: {"n": len(v), "mean": round(statistics.mean(v.values()), 4)} for f, v in fams.items()}
-        nav = [s for f, v in fams.items() if f != "absent" for s in v.values()]
+        # The navigation mean is over items with a recorded answer only.
+        nav = [s for f, v in fams.items() if f != "absent" and not f.endswith("∅") for s in v.values()]
         row["navigation"] = {"n": len(nav), "mean": round(statistics.mean(nav), 4) if nav else None}
         if "absent" in fams:
             row["absent_false_acceptance"] = round(1 - statistics.mean(fams["absent"].values()), 4)
@@ -150,8 +162,8 @@ def nav_report(runs: dict[str, dict], baseline: str = "A0", resamples: int = 5_0
             continue
         for fam in families + ["navigation"]:
             if fam == "navigation":
-                a = {k: s for f, v in table[arm].items() if f != "absent" for k, s in v.items()}
-                b = {k: s for f, v in table[baseline].items() if f != "absent" for k, s in v.items()}
+                a = {k: s for f, v in table[arm].items() if f != "absent" and not f.endswith("∅") for k, s in v.items()}
+                b = {k: s for f, v in table[baseline].items() if f != "absent" and not f.endswith("∅") for k, s in v.items()}
             else:
                 a, b = table[arm].get(fam, {}), table[baseline].get(fam, {})
             p = paired(a, b, None, resamples, seed)
@@ -174,6 +186,7 @@ def format_nav_report(rep: dict) -> str:
         lines.append(f"{key:28} {p['n']:5d}  {p['delta']:+.4f}   [{p['ci_low']:+.4f}, {p['ci_high']:+.4f}]   "
                      f"{p['p']:.4f}  {p['higher']:4d}  {p['wins']:4d}")
     lines.append("")
-    lines.append("Scores: F1 over what a reply names (defines: the path; absent: a refusal; 'none recorded': naming nothing else). "
+    lines.append("Scores: F1 over what a reply names (defines: the path; absent: a refusal). A family marked ∅ holds the items "
+                 "whose truth is 'none recorded' — 1 when the reply names nothing else — and is never averaged into `nav`. "
                  "Δ > 0 means arm a scores higher. absent FA = false-acceptance rate on distractors (ADR-099 §4.5).")
     return "\n".join(lines)
