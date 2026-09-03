@@ -888,7 +888,9 @@ class TestReadBeforeEditAndCutCompletions:
             model.close()
         assert env["is_error"] is False and env["text_tool_calls"] == 2
         body = model.requests[0]["body"]
-        assert "tools" in body and "tool_choice" not in body
+        assert "tools" not in body and "tool_choice" not in body
+        system = body["messages"][0]["content"]
+        assert "<functions>" in system and '"read_file"' in system and "<function_calls>" in system
         sent_back = [m for m in model.requests[1]["body"]["messages"] if m.get("role") == "assistant"][-1]
         assert sent_back["content"] == "Reading." and sent_back["tool_calls"][0]["function"]["name"] == "read_file"
         assert (tree / "src" / "a.py").read_text() == "def f():\n    return 4\n"

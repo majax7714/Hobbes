@@ -530,11 +530,13 @@ class Endpoint:
         #: ``chat_template_kwargs`` that switch thinking off. Built by
         #: :func:`sampling_fields`; the envelope repeats it.
         self.sampling = sampling if sampling is not None else {"temperature": 0}
-        #: ``auto`` asks the server to parse the model's calls (vLLM needs
-        #: a --tool-call-parser for that); ``none`` still sends the tool
-        #: schemas — the chat template renders them — and the loop reads
-        #: the calls out of the text (:func:`text_tool_calls`). Olmo 3's
-        #: call syntax has no server parser in this deployment.
+        #: ``auto`` sends the schemas as tools and asks the server to
+        #: parse the model's calls (vLLM needs a --tool-call-parser for
+        #: that, and defaults to auto whenever tools are sent). ``none``
+        #: sends no tool field at all: the schemas ride the system prompt
+        #: as a ``<functions>`` JSON block — the tag Olmo 3's own template
+        #: uses — and the loop reads the calls out of the text
+        #: (:func:`text_tool_calls`).
         self.tool_choice = "auto"
         #: How often the window had to be fitted or trimmed — the
         #: envelope reports both, so a run can see the window bind.
@@ -596,10 +598,9 @@ class Endpoint:
 
     def _post(self, messages: list[dict], tools: list[dict], max_tokens: int) -> dict:
         body = {"model": self.model, "messages": messages, "max_tokens": max_tokens, **self.sampling}
-        if tools:
+        if tools and self.tool_choice != "none":
             body["tools"] = tools
-            if self.tool_choice != "none":
-                body["tool_choice"] = self.tool_choice
+            body["tool_choice"] = self.tool_choice
         data = json.dumps(body).encode()
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -688,7 +689,13 @@ def run(args: argparse.Namespace) -> dict:
                         args.timeout, args.max_tokens,
                         sampling_fields(args.temperature, args.top_p, args.reasoning_effort, args.thinking))
     endpoint.tool_choice = args.tool_choice
-    messages = [{"role": "system", "content": SYSTEM_PROMPT.format(workdir=workdir)},
+    system = SYSTEM_PROMPT.format(workdir=workdir)
+    if args.tool_choice == "none":
+        system += ("\nYou are provided with function signatures within <functions></functions> XML tags. "
+                   "Call one or more of them by writing the calls within <function_calls></function_calls> "
+                   "XML tags, one per line, as name(key=<json value>, ...).\n<functions>"
+                   + json.dumps(tools) + "</functions>")
+    messages = [{"role": "system", "content": system},
                 {"role": "user", "content": prompt}]
     usage = {"input_tokens": 0, "output_tokens": 0, "reasoning_tokens": 0}
     turns, tool_calls_made, text_calls, final, error = 0, 0, 0, "", ""
@@ -977,9 +984,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
                         "tools and is disciplined toward a reflect handoff instead of an edit")
     p.add_argument("--workdir", default=".")
     p.add_argument("--tool-choice", choices=("auto", "none"), default="auto",
-                   help="auto: the server parses tool calls; none: the schemas are still sent for the chat "
-                        "template and the loop reads the calls from the text (a model whose call syntax the "
-                        "server cannot parse — Olmo 3's <function_calls>)")
+                   help="auto: the schemas go as tools and the server parses the calls; none: no tool field is "
+                        "sent, the schemas ride the system prompt as a <functions> JSON block and the loop reads "
+                        "the calls from the text (a model whose call syntax the server cannot parse — Olmo 3)")
     p.add_argument("--no-bash", action="store_true",
                    help="withhold the native bash tool: file tools only, no exec at all (the TTT cell's arms, "
                         "ADR-099 review item 9 — repo code never runs, and policy is the same for every arm)")
