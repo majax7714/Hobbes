@@ -260,7 +260,24 @@ By the preregistered rule the NLL comparisons' intervals are
 relabelled **unit-only** (they measure unit variance, not
 adapter-training variance; a second-seed adapter moves the true−control
 margin by more than twice its half-width) and a third seed was queued
-and run — its row and the held-out navigation for seeds 1 and 2 are
-appended below.
+and run. Seed 2: adapter `…/fe7318f636eb` (711 s, last loss 0.261),
+`nll-olmo-hobbes-300s2.json`, `report-olmo-hobbes-seed2.json`:
+
+| comparison | all (147) |
+|---|---|
+| seed 2 − A0 | −0.2650 [−0.2849, −0.2462] 145/147 |
+| seed 2 − control | −0.0466 [−0.0543, −0.0395] 129/147 |
+| seed 2 − seed 0 | +0.0314 [+0.0270, +0.0358] 14/147 |
+| seed 2 − seed 1 | +0.0127 [+0.0081, +0.0172] 47/147 |
+| seed 2 aided − bare | −0.0012 p 0.40 |
+
+Three seeds: A2−A0 = −0.296 / −0.278 / −0.265 (mean −0.280, range
+0.031); true − control = −0.078 / −0.059 / −0.047 (mean −0.061, range
+0.031). The seed range is 1.6× the unit bootstrap's full width on
+A2−A0 and 4× on true−control; every "a quarter is the graph"-shaped
+number in the first record should be read with ±0.015 of adapter
+variance on top of its interval. A3−A2 is null under every seed. The
+held-out navigation for seeds 1 and 2 is appended with the phase-1 and
+phase-2 arms below.
 
 ## Items 4, 5, 9 and the rest of 6 — *(appended when they land)*
