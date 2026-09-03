@@ -270,7 +270,7 @@ Raw-source TTT, full-weight fine-tuning, any non-LoRA fast-weight mechanism (TTT
 
 ---
 
-## 10. Results (running log — the numbers live in `docs/ttt-cells/`, the reading in `benchmark-hypotheses.md` § H-TTT)
+## 10. Results (running log — the reading is [`olmo3-ttt-results.md`](olmo3-ttt-results.md); the numbers live in `docs/ttt-cells/`; the standing per hypothesis in `benchmark-hypotheses.md` § H-TTT)
 
 - **2026-09-03 — unseen cell, this repo @ `ebdf7a5`, Olmo-3-7B-Instruct.**
   Gate 0.044 (U). H-TTT-1 not killed: adapter −0.296 nats on 147/147
