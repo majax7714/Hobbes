@@ -76,6 +76,33 @@ exist and costs 0.008 as boilerplate where they do not.
 **H-TTT-5 (combination): killed on this metric.** The combined arm is
 not better than the adapter alone on either repo.
 
+**Amended 2026-09-03 (review items 1–3; the numbers in [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md)).**
+Three things the review asked change how the table above reads.
+*(1) Split by C-84 population,* the true adapter's margin over the
+control is larger on the 92 units whose files the base graph never
+held (−0.087) than on the 55 it knew (−0.063). Nothing in the graph is
+right about a file it does not contain, so "one quarter is the graph"
+was too strong: the margin measures what a coherent corpus teaches over
+a deranged one, and it bounds the graph's share rather than measuring
+it (C-86). *(2) The conditioning was unstated* — the prompt above held
+the commit's subject and body and the target path, a *message*
+conditioning (C-87). Re-scored under four conditionings, the adapter is
+worth −0.244 with the path alone and −0.299 under a hand-written task
+statement — nothing shrinks as the task tightens — while the prompted
+block is null under three conditionings and real under `task` (−0.008
+on 89/147), and adds the same on top of the adapter. The adapter holds
+repo language, the task supplies binding, the block adds a little under
+a real task; the three are separable. So **H-TTT-5's NLL kill
+criterion is met under the commit-message conditioning and not met
+under a task statement**, by 0.008 nats — forty times smaller than the
+adapter's own effect. *(3) The control's cards kept every true edge*
+(bodies permuted whole, under the wrong question). A second control
+that deranges the edge lines within each module lands at −0.226
+against the base and the true adapter beats it by 0.071 — inside the
+first control's interval — so the cards' true edges bought the first
+control nothing, and on this metric the card rendering adds nothing
+beyond the QA.
+
 ---
 
 ## 4. Held-out navigation — 2,270 questions about 393 symbols never in a training pair
@@ -126,6 +153,39 @@ does not average them.
 
 ---
 
+**Scorer v2 (review item 7, 2026-09-03).** The tables in this section
+are the first record's, scored by v1. An audit of A1's 89 *defines*
+failures found 59 that named the right file by basename (`proxy.go` for
+`go/internal/proxy/proxy.go`), 25 that named no path, 3 ambiguous, 2
+wrong. Scorer v2 accepts a path-shaped token that is a `/`-boundary
+suffix of exactly one known path; only *defines* moves: A1 0.77 →
+**0.92** (under the preregistered 0.95 line), A0 0.01 → **0.29** (the
+base guesses the basename from the id's module segment — a convention,
+not knowledge), A2 and A3 unchanged. The adapter's defines gain over
+the base is +0.70 under v2, not +0.97. Every navigation run was
+re-scored into a new file with the version in it; the v2 tables are in
+[`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+
+## 4a. Prior overrides text (review item 8)
+
+With the held-out symbol's own card in the prompt, the adapter (A3)
+answers "No test reaches `X` at ebdf7a510eff" — the training template,
+verbatim — on **61 of 102** items whose card lists the tests, where the
+base reading the same card does so on 8. Joined to the training corpus:
+the override follows the *family* more than the module for tests (63%
+of every tests answer the adapter saw was "none"; the refusing items'
+modules were only mildly more ∅-heavy than the hits', 0.31 vs 0.18),
+and follows the *module* for callers and callees (13 of 17 caller
+refusals come from modules where at least half the training answers
+were "none"; density 0.70 behind refusals, 0.22 behind hits). Impact
+fails the other way — the adapter names wrong modules rather than
+refusing. A prior manufactured in 300 steps overrides live text; the
+mechanism is the corpus rendering absences with the same weight as
+presences, and a module-grain regularity is what these weights learn
+best (§5). Registered as C-88 with two candidate fixes (down-weight the
+∅ answers, or scope them as "none recorded at <sha>"); the agent-level
+form, `manifest_ignore`, is measured in the primary cell (§9b).
+
 ## 5. The training sample — the number that settles what the weights hold
 
 600 questions drawn from the **training** set, same scorer, no context.
@@ -174,17 +234,26 @@ provably recalls a repo (the 27B reproduced xarray's patch verbatim,
 C-39 — off the table under the standing policy) or a probe that reads
 version shift.
 
+**The probe reads version shift now (review item 10, 2026-09-03).**
+The files part re-scored against the union of trees across the repo's
+100 newest tags and with generic names dropped: Qwen's httpx rises from
+0.20 at the SHA to **0.25 against any release, best at 0.28.1** — the
+version its file names belong to — and its 0.20 on this repo falls to
+0.14 without `README`/`LICENSE`/`__init__.py`. Nothing crosses 0.5 for
+either model on any repo. §6's conclusion stands, and the probe is no
+longer blind to the shift that made it wrong about httpx.
+
 ---
 
 ## 7. Standing of the five hypotheses
 
 | | claim | standing after this run |
 |---|---|---|
-| H-TTT-1 | derived context lowers gold-diff loss; TTT at least as much as prompting | **not killed** — adapter −0.30 (147/147), −0.22 (68/68); prompting ≈ 0. Caveat: three quarters of the adapter's gain is vocabulary (the control); one quarter is the graph |
+| H-TTT-1 | derived context lowers gold-diff loss; TTT at least as much as prompting | **not killed** — adapter −0.30 (147/147), −0.22 (68/68); prompting ≈ 0 (−0.008 under a task statement). Caveat, amended by the review: most of the adapter's gain is repo language; the true−control margin (0.07–0.08) bounds the graph's share rather than measuring it (C-86), and the intervals are unit-only (seed variance exceeds them, §9) |
 | H-TTT-2 | TTT lowers hallucinated-symbol rate on unseen repos | **not measured** (needs agent runs, step 5). Nearest proxy: distractor false acceptance 0.98 → 0.22 under the adapter, 0.90 under the card |
 | H-TTT-3 | TTT raises right-files-edited | **not measured** (step 5) |
-| H-TTT-4 | lift concentrates on unmemorised repos | **unreadable at 7B** — no memorised cell in the sample |
-| H-TTT-5 | TTT + prompt beats either alone | **killed on NLL** (A3 = A2 on both repos); **not killed on navigation** (A3 best, 0.61 vs 0.56, non-additive) |
+| H-TTT-4 | lift concentrates on unmemorised repos | **unreadable at 7B** — no memorised cell in the sample, and none appears when the probe is scored against every tagged release (Qwen/httpx 0.25 at best) |
+| H-TTT-5 | TTT + prompt beats either alone | **killed on NLL under the commit-message conditioning** (A3 = A2 on both repos); **not killed under a task statement** (A3−A2 −0.008, 99/147 — small, real); **not killed on navigation** (A3 best, 0.61 vs 0.56, non-additive, and with the tests collapse of §4a) |
 
 ---
 
@@ -245,17 +314,13 @@ One line per item, in the review's order (dependency, not priority),
 each linking the record that closed it. The readings were preregistered
 in `benchmark-hypotheses.md` § Follow-ups before anything ran.
 
-1. A2's NLL gain by C-84 population — *open*.
-2. The NLL conditioning stated (subject + body + path: a *message*
-   conditioning, unstated in the first write-up — registered), then
-   varied: *none* and *task* rows — *open*.
-3. The shuffled control's cards: bodies were permuted whole, every true
-   edge kept under the wrong question; a `shuffled-all` control —
-   *open*.
+1. A2's NLL gain by C-84 population — **closed**: none of the three preregistered shapes; the true−control margin is larger where the graph holds nothing, so it bounds the graph's share (C-86). §3 amended; [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+2. The NLL conditioning stated (C-87) and varied — **closed**: the adapter's gain does not shrink as the task tightens (−0.244 path-only → −0.299 task); the prompted block is real only under a task statement (−0.008) and adds the same on top of the adapter — the separable reading; H-TTT-5 on NLL is killed under `message`, not under `task`. §3 amended; the record.
+3. The shuffled control's cards — **closed**: bodies had been permuted whole; a `shuffled-all` control (edge lines deranged within a module) lands at −0.226, the true adapter 0.071 over it — inside the first control's interval, so the card rendering adds nothing beyond the QA on NLL. Its navigation rows: §9.
 4. Abstention under instruction, A1r / A3r — *open*.
 5. Steps past one epoch, with paraphrases (§9) — *open*.
 6. A second seed — *open*.
-7. The defines scorer: basename answers; scorer v2 — *open*.
-8. The A3 tests collapse as a finding (§4a) — *open*.
+7. The defines scorer — **closed**: 59 of 89 failures were the right file by basename; scorer v2 puts A1 at 0.92 (under the 0.95 line) and lifts the base to 0.29 by convention; every run re-scored into a new file with the version. §4 note; the record.
+8. The A3 tests collapse — **closed** as §4a: a family-wide "none" prior for tests, a module-tracking one for callers/callees; C-88 registered with candidate fixes; `manifest_ignore` defined for the cell.
 9. The primary cell: HSR, RFE, `manifest_ignore` — *open*.
-10. The version-aware probe — *open*.
+10. The version-aware probe — **closed** offline from the stored replies (temperature 0): Qwen/httpx 0.25 against any release, best tag 0.28.1; nothing crosses 0.5; §6 stands. The Olmo rows are re-asked with full replies in the phase-1 serve (their stored heads were cut).
