@@ -513,4 +513,74 @@ load a repo": for the gold-diff loss, fewer than a hundred. The 300 vs
 100 split by population (item 1) already pointed here. What the
 navigation arms say at the same points is below.
 
-*(navigation rows of items 3, 5 and 6 appended when phase 2 lands)*
+### Item 5, navigation — the same adapters on the 600-question training sample and the 2,270-item held-out set (scorer v2; `navtrain-olmo-hobbes-*.json`, `nav-olmo-hobbes-*.json`, `navreport-{train,heldout}-{100,1000,3000,k4}.json`)
+
+**Training sample** (edges the adapter was shown; the decisive table):
+
+| adapter | exposures | absent FA | defines | **callers** | callees | tests | impact | nav (has-truth) |
+|---|---|---|---|---|---|---|---|---|
+| base | 0 | 0.992 | 0.301 | 0.092 | 0.000 | 0.000 | 0.115 | 0.143 |
+| 100 | 0.12 | 0.373 | 0.935 | 0.099 | 0.016 | 0.031 | 0.186 | 0.415 |
+| 300 | 0.35 | 0.373 | 0.992 | 0.152 | 0.208 | 0.515 | 0.365 | 0.583 |
+| 1,000 | 1.17 | 0.373 | 1.000 | **0.329** | 0.509 | 0.718 | 0.572 | 0.723 |
+| 3,000 | 3.51 | 0.373 | 1.000 | **0.950** | 0.895 | 0.945 | 0.818 | 0.952 |
+| 3,000 × 4 paraphrases | 4.05 | 0.373 | 1.000 | 0.858 | 0.738 | 0.857 | 0.831 | 0.890 |
+
+Paired, callers on trained symbols (n 47): 300 − 100 +0.053 (p 0.03);
+1,000 − 300 **+0.177** [+0.091, +0.278] 13/0; 3,000 − 1,000
+**+0.621** [+0.494, +0.739] 36/1; paraphrases − 3,000 −0.092 (p 0.06,
+4/9). Callees (n 62): +0.19, +0.30, +0.39 over the same steps;
+paraphrases −0.16 (1/13). Tests (n 55): +0.48, +0.20, +0.23. Impact
+(n 14): +0.18, +0.21, +0.25. The absent family is **identical at
+every point** (0.373, Δ 0.000 item for item, from 100 steps on).
+
+**Held-out set** (symbols whose every training mention was removed):
+
+| adapter | absent FA | defines | callers | callees | tests | impact | nav (has-truth) |
+|---|---|---|---|---|---|---|---|
+| base | 0.980 | 0.290 | 0.062 | 0.005 | 0.000 | 0.033 | 0.108 |
+| 100 | 0.224 | 0.926 | 0.054 | 0.018 | 0.089 | 0.122 | 0.344 |
+| 300 | 0.224 | 0.985 | 0.103 | 0.206 | 0.521 | 0.301 | 0.496 |
+| 1,000 | 0.224 | 0.998 | 0.194 | 0.437 | 0.584 | 0.350 | 0.576 |
+| 3,000 | 0.224 | 0.998 | **0.266** | 0.524 | 0.749 | **0.664** | 0.711 |
+| 3,000 × 4 paraphrases | 0.224 | 0.998 | 0.230 | 0.527 | 0.692 | 0.660 | 0.703 |
+
+Paired, held-out: callers 1,000 − 300 +0.091 [+0.042, +0.146] 22/4;
+3,000 − 1,000 +0.072 [+0.022, +0.129] 25/12; paraphrases − 3,000
+−0.036 (p 0.16). Callees +0.231 then +0.088; impact +0.049 then
+**+0.313** (344/36); tests +0.063 (p 0.08) then +0.166 (25/10).
+Paraphrases vs single-template at 3,000 steps: every held-out family
+within noise (navigation −0.009, p 0.18).
+
+**Reading, against the preregistration.** The first shape, and
+sooner than it was written: callers-on-trained *rises with steps* —
+0.10, 0.15, 0.33, **0.95** — and crosses the 0.5 line at 3,000 steps,
+not 10,000; edges enter the weights with exposure, and a corpus of one
+template per fact is enough (paraphrases at the same step count are
+slightly *worse* on trained edges and the same on held-out ones — the
+second shape did not occur). The order of entry is legible: abstention
+and the file mapping by 100 steps (a template fit), the module-grain
+regularities (tests, callees, impact) by 300–1,000, the symbol-grain
+edges (callers) between 1,000 and 3,000 — i.e. past one epoch, exactly
+where the first record stopped. The held-out row says what generalises:
+impact 0.30 → 0.66 and tests 0.52 → 0.75 (module-grain, inherited from
+siblings), callees to 0.52, callers to 0.27 — a symbol never seen gets
+a quarter of its callers right, from the reverse edges of its siblings
+and the module's shape, not from its own card. Callers stays below
+callees on trained symbols at every point but the last (0.10 / 0.02 at
+100 is the exception where both are floor): reversal-shaped, noted and
+left.
+
+**And the gold-diff loss went the other way over the same steps**
+(the NLL table above): −0.30 at 100–300, −0.20 at 1,000, +0.02 at
+3,000. The two metrics are anti-correlated in step count. What the
+first record read as "the weights hold no symbol-grain edge at 300
+steps" was true and was a statement about 300 steps; what it read as
+the adapter's NLL gain being *about* the graph was the part that does
+not survive — the NLL gain is a sub-epoch language effect that is gone
+by the time the graph is in. A repo can be loaded into a 7B's LoRA in
+about 3,000 steps (1.7 A100-hours here) at the cost of every nat the
+adapter had bought on the diff. Which of the two an agent needs is the
+primary cell's question (item 9: at 300 steps, neither the loss gain
+nor the regularities found the files). The 3,000-step adapter has not
+been run through the cell — held with the 10,000-step point.
