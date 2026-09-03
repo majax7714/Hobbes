@@ -42,7 +42,8 @@ class Paired:
     ci_low: float
     ci_high: float
     p: float              # two-sided paired bootstrap
-    wins: int             # units where a < b
+    wins: int             # units where a < b (lower NLL)
+    higher: int = 0       # units where a > b (higher score)
 
 
 def arm_table(base_run: dict | None, adapter_run: dict | None) -> dict[str, dict[str, float]]:
@@ -76,7 +77,7 @@ def paired(a: dict[str, float], b: dict[str, float], units: list[str] | None = N
     tail = min(sum(1 for m in means if m >= 0), sum(1 for m in means if m <= 0)) / resamples
     return Paired(n=n, mean_a=statistics.mean(a[i] for i in ids), mean_b=statistics.mean(b[i] for i in ids),
                   delta=observed, ci_low=means[int(0.025 * resamples)], ci_high=means[int(0.975 * resamples) - 1],
-                  p=min(1.0, 2 * tail), wins=sum(1 for d in diffs if d < 0))
+                  p=min(1.0, 2 * tail), wins=sum(1 for d in diffs if d < 0), higher=sum(1 for d in diffs if d > 0))
 
 
 def report(base_run: dict | None, adapter_run: dict | None, known: set[str] | None = None,
@@ -113,4 +114,66 @@ def format_report(rep: dict) -> str:
     lines.append("")
     lines.append("Δ < 0 means arm a's gold-diff NLL is lower. H-TTT-1's kill criterion reads A2−A0 on ≥ 40 units "
                  "(p < 0.05, paired bootstrap); the primary comparison is A2−A1. Populations follow C-84.")
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- navigation
+
+def nav_table(runs: dict[str, dict]) -> dict[str, dict[str, dict[str, float]]]:
+    """``arm -> family -> item key -> score`` from `ttt_probe.py nav` outputs."""
+    out: dict[str, dict[str, dict[str, float]]] = {}
+    for arm, run in runs.items():
+        for r in run.get("rows", []):
+            out.setdefault(arm, {}).setdefault(r["family"], {})[f"{r['family']}\n{r['symbol']}"] = r["score"]
+    return out
+
+
+def nav_report(runs: dict[str, dict], baseline: str = "A0", resamples: int = 5_000, seed: int = 0) -> dict:
+    """Per-arm, per-family mean scores; the absent family's false-acceptance
+    rate; and every other arm paired against *baseline* per family and
+    over all navigation (non-absent) items. Same bootstrap as the NLL
+    report, over items instead of units."""
+    table = nav_table(runs)
+    families = sorted({f for arm in table.values() for f in arm})
+    out: dict = {"arms": {}, "comparisons": {}}
+    for arm, fams in table.items():
+        row = {f: {"n": len(v), "mean": round(statistics.mean(v.values()), 4)} for f, v in fams.items()}
+        nav = [s for f, v in fams.items() if f != "absent" for s in v.values()]
+        row["navigation"] = {"n": len(nav), "mean": round(statistics.mean(nav), 4) if nav else None}
+        if "absent" in fams:
+            row["absent_false_acceptance"] = round(1 - statistics.mean(fams["absent"].values()), 4)
+        out["arms"][arm] = row
+    if baseline not in table:
+        return out
+    for arm in table:
+        if arm == baseline:
+            continue
+        for fam in families + ["navigation"]:
+            if fam == "navigation":
+                a = {k: s for f, v in table[arm].items() if f != "absent" for k, s in v.items()}
+                b = {k: s for f, v in table[baseline].items() if f != "absent" for k, s in v.items()}
+            else:
+                a, b = table[arm].get(fam, {}), table[baseline].get(fam, {})
+            p = paired(a, b, None, resamples, seed)
+            if p is not None:
+                out["comparisons"][f"{arm}-{baseline}:{fam}"] = p.__dict__
+    return out
+
+
+def format_nav_report(rep: dict) -> str:
+    fams = sorted({f for row in rep["arms"].values() for f in row if f not in ("navigation", "absent_false_acceptance")})
+    lines = ["arm   " + "".join(f"{f:>10}" for f in fams) + f"{'nav':>10}{'absent FA':>11}"]
+    for arm, row in rep["arms"].items():
+        cells = "".join(f"{row[f]['mean']:>10.3f}" if f in row else f"{'-':>10}" for f in fams)
+        nav = row["navigation"]["mean"]
+        fa = row.get("absent_false_acceptance")
+        lines.append(f"{arm:5} {cells}{(nav if nav is not None else 0):>10.3f}{(fa if fa is not None else float('nan')):>11.3f}")
+    lines.append("")
+    lines.append("comparison                   n    Δ(a−b)     95% CI                 p      a>b   a<b")
+    for key, p in rep["comparisons"].items():
+        lines.append(f"{key:28} {p['n']:5d}  {p['delta']:+.4f}   [{p['ci_low']:+.4f}, {p['ci_high']:+.4f}]   "
+                     f"{p['p']:.4f}  {p['higher']:4d}  {p['wins']:4d}")
+    lines.append("")
+    lines.append("Scores: F1 over what a reply names (defines: the path; absent: a refusal; 'none recorded': naming nothing else). "
+                 "Δ > 0 means arm a scores higher. absent FA = false-acceptance rate on distractors (ADR-099 §4.5).")
     return "\n".join(lines)

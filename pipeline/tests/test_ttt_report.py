@@ -6,7 +6,7 @@ import json
 import pytest
 
 from hobbes.ttt import report
-from hobbes.ttt.report import arm_table, format_report, paired
+from hobbes.ttt.report import arm_table, format_nav_report, format_report, nav_report, paired
 
 
 def run(with_adapter: bool, values: dict[str, tuple[float, float]]) -> dict:
@@ -72,3 +72,28 @@ class TestReport:
     def test_base_only_report_has_two_arms(self):
         rep = report.report(BASE, None, resamples=100)
         assert set(rep["arms"]) == {"A0", "A1"} and list(rep["comparisons"]) == ["all:A1-A0"]
+
+
+def nav_run(scores: dict[tuple[str, str], float]) -> dict:
+    return {"rows": [{"family": f, "symbol": s, "score": v} for (f, s), v in scores.items()]}
+
+
+class TestNavReport:
+    def test_per_family_means_and_paired_deltas(self):
+        items = {("callers", f"s{i}"): 0.0 for i in range(20)} | {("absent", f"d{i}"): 1.0 for i in range(10)}
+        a0 = nav_run(items)
+        a2 = nav_run({k: (1.0 if k[0] == "callers" else 0.0) for k in items})  # learns callers, invents on distractors
+        rep = nav_report({"A0": a0, "A2": a2}, resamples=500)
+        assert rep["arms"]["A0"]["callers"]["mean"] == 0.0 and rep["arms"]["A2"]["callers"]["mean"] == 1.0
+        assert rep["arms"]["A0"]["absent_false_acceptance"] == 0.0 and rep["arms"]["A2"]["absent_false_acceptance"] == 1.0
+        assert rep["arms"]["A2"]["navigation"] == {"n": 20, "mean": 1.0}
+        c = rep["comparisons"]["A2-A0:callers"]
+        assert c["n"] == 20 and c["delta"] == 1.0 and c["higher"] == 20 and c["wins"] == 0 and c["p"] < 0.05
+        assert rep["comparisons"]["A2-A0:absent"]["delta"] == -1.0
+        assert rep["comparisons"]["A2-A0:navigation"]["n"] == 20
+        text = format_nav_report(rep)
+        assert "absent FA" in text and "A2-A0:callers" in text and "A2-A0:navigation" in text
+
+    def test_without_the_baseline_only_arms_are_reported(self):
+        rep = nav_report({"A2": nav_run({("defines", "x"): 1.0})}, resamples=10)
+        assert rep["comparisons"] == {} and rep["arms"]["A2"]["defines"]["mean"] == 1.0
