@@ -6038,3 +6038,20 @@ and serde remain hand-sampled, not graded.
 oracle outputs `~/.hobbes/bench/oracle/quic-go-go/`. Architecture §3.1
 (the third Go rule), §3.4 (the class), §3.8 (the row); CLAUDE.md
 counts. Nothing pushed.
+
+## 2026-09-03 — architecture doc drift after Java and quic-go
+
+A read-through of the base documentation (CLAUDE.md, the architecture,
+the handoff, workstreams, the constraints index) found four lines in
+`hobbes-architecture.md` that the tree had moved past — §9's rule
+names this a bug in the file, so it is fixed here rather than worked
+around: §2's overview diagram listed lane B without scip-java; §3.7
+still said Java's §3.8 row "waits on its oracle cells" after ADR-096
+landed it; §3.8's currency line read 2026-08-28 (Java 2026-08-29,
+quic-go 2026-09-02) and now names quic-go's 99.6% lower bound beside
+ajv as the two cells under 100%; §10's out-of-scope language list
+omitted Java. Docs only; no code, no constraints touched.
+
+**Held at Max's direction:** the nine registered-not-fixed entries
+(C-72–C-80), the C-70/CI question, and ADR-092's four embedded
+decisions — the handoff's resume point is unchanged.

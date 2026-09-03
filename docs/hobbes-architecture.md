@@ -270,7 +270,7 @@ flowchart TB
     subgraph Extract["Extraction"]
         LA[Lane A: tree-sitter\nstructure · routes · tests\ncall-site detection]
         STG[Staging copy\n~/.hobbes/cache]
-        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust\nin the sandbox image, no network\nresolution]
+        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust · java\nin the sandbox image, no network\n(Java resolves networked, no sources)\nresolution]
         EIR[Evidence IR\nrange-anchored observations]
         JOIN[Range join\n→ semantic IR]
         GB[Graph builder\nprojection + enrichment packs]
@@ -735,7 +735,7 @@ typed ranges, fields the borrowed generated class did not know — the
 helper now owns that decode) and one containment profile with a
 network (§3.2). Zero lines in the builder, the join or the schema —
 and a language absent from §3.8 is wired, not supported: Java's row
-waits on its oracle cells.
+landed the same day on four compiler-graded cells (O8).
 
 **Where steps 1 and 2 actually live.** `hobbes.yaml` does not exist and is
 not going to — the architecture named it before anything needed it, and
@@ -817,9 +817,10 @@ today only `hcl · 1 repo` — badged apart), and `list_blind_spots`. The test s
 fails when the two tables disagree, so extending a row here without the
 code is a red build, not a quiet drift.
 
-The table is current to **2026-08-28**: every compiler-graded cell
+The table is current to **2026-09-02**: every compiler-graded cell
 stands at 100% precision-against-oracle except ajv (1,375/1,378 — the
-three union-member rows, the one open sighting), and each row names
+three union-member rows, the one open sighting) and quic-go (99.6% lower
+bound, every contradiction oracle-grain, 0 hobbes-wrong), and each row names
 which of its cells ran under the sandbox image (ADR-092) — the rest are
 host-run records, re-earned only when re-run.
 
@@ -1430,4 +1431,4 @@ Deliberately not built, and not deferred-with-intent unless said so:
   originally claimed.
 - **Dynamic-tier ingestion** — the schema reserves `dynamic` for coverage
   traces; nothing produces it.
-- **Languages beyond Python/TS/Go/Rust and the Terraform/HCL layer.**
+- **Languages beyond Python/TS/Go/Rust/Java and the Terraform/HCL layer.**
