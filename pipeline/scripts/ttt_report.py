@@ -24,7 +24,7 @@ from hobbes.ttt.units import read_units
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("units", type=Path); ap.add_argument("base", type=Path, nargs="?"); ap.add_argument("adapter", type=Path, nargs="?")
-    ap.add_argument("--arm", action="append", default=[], metavar="NAME=run.json:prompt")
+    ap.add_argument("--arm", action="append", default=[], metavar="NAME=run.json:[cond:]prompt")
     ap.add_argument("--compare", action="append", default=[], metavar="A-B")
     ap.add_argument("--out", type=Path); ap.add_argument("--resamples", type=int, default=5000); ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
@@ -33,9 +33,12 @@ def main(argv: list[str]) -> int:
         arms, sources = {}, {}
         for spec in a.arm:
             name, _, rest = spec.partition("=")
-            path, _, prompt = rest.rpartition(":")
-            if not name or not path or prompt not in ("bare", "aided"):
-                ap.error(f"--arm wants NAME=run.json:bare|aided, got {spec!r}")
+            # The prompt label may itself carry a colon (``none:bare``, the
+            # conditioning rows); the path is everything up to the first
+            # colon after the file name.
+            path, _, prompt = rest.partition(":")
+            if not name or not path or prompt.rsplit(":", 1)[-1] not in ("bare", "aided"):
+                ap.error(f"--arm wants NAME=run.json:[<conditioning>:]bare|aided, got {spec!r}")
             run = json.loads(Path(path).read_text())
             arms[name] = arm_from_run(run, prompt)
             sources[name] = {"run": path, "prompt": prompt, "model": run.get("model"), "adapter": run.get("adapter")}
