@@ -483,4 +483,34 @@ have not been re-derived. Nothing crosses 0.5 for any repo against any
 version; the conclusion of §6 stands, and the label is recorded as
 scorer-dependent (C-83).
 
-## Item 5 and the navigation rows of 3 — *(appended when phase 2 lands)*
+## Item 5 — the step sweep past one epoch, with paraphrases: gold-diff NLL (the 10,000-step point held for Max)
+
+Same recipe, seed 0; the paraphrase corpus `1694f4a904ed3dc6` (47,390
+records: every training QA fact in four question and answer phrasings,
+eval set unchanged). Manifests `adapter-olmo-hobbes-{100,300,1000,3000,k4-3000}-manifest.json`;
+NLL runs `nll-olmo-hobbes-*.json`; reports `report-olmo-hobbes-{100,1000,3000,k4-3000}.json`.
+
+| adapter | steps | epochs (records) | exposures per fact | A100 wall | last loss | **NLL** | Δ vs A0 | a<b | Δ vs 300 |
+|---|---|---|---|---|---|---|---|---|---|
+| 100 | 100 | 0.12 | 0.12 | 210 s | 0.24 | **2.0925** | −0.3015 [−0.3176, −0.2858] | 147/147 | −0.0051 p 0.13 |
+| 300 (the first record) | 300 | 0.35 | 0.35 | 667 s | 0.09 | 2.0975 | −0.2964 [−0.3153, −0.2782] | 147/147 | – |
+| 1,000 | 1,000 | 1.17 | 1.17 | 2,057 s | 0.12 | 2.1965 | −0.1975 [−0.2188, −0.1769] | 143/147 | **+0.0989** [+0.0924, +0.1057], 3/147 |
+| 3,000 | 3,000 | 3.51 | 3.51 | 6,095 s | 0.01 | **2.4098** | **+0.0158** [−0.0080, +0.0389] p 0.19 | 56/147 | +0.3122, 0/147 |
+| 3,000 × 4 paraphrases | 3,000 | 1.01 | 4.05 | 5,637 s | 0.02 | 2.3200 | −0.0739 [−0.0976, −0.0511] | 99/147 | +0.2225, 3/147 |
+| shuffled control, 300 | 300 | 0.35 | 0.35 | – | – | 2.1756 | −0.2184 | 143/147 | +0.0781 |
+
+The 1,000-step adapter is worse than the shuffled control (+0.021,
+56/147 better); the 3,000-step adapter is no better than the base at
+all, and 0.31 worse than 300 steps on every unit; with paraphrases,
+3,000 steps is 0.09 better than without (144/147) and still 0.22
+behind 300. The prompted block is null on every point (A3−A2: +0.001
+p 0.59 at 1,000; +0.002 p 0.43 at 3,000; +0.008, 60/147, at K4). By
+fact exposures the curve is −0.30 at 0.1–0.35, −0.20 at 1.2, +0.02 at
+3.5 single-template and −0.07 at 4 with four phrasings: the loss gain
+is a sub-epoch effect that a corpus of templated answers destroys once
+each fact has been seen — a first, sharp reading of "how many steps to
+load a repo": for the gold-diff loss, fewer than a hundred. The 300 vs
+100 split by population (item 1) already pointed here. What the
+navigation arms say at the same points is below.
+
+*(navigation rows of items 3, 5 and 6 appended when phase 2 lands)*
