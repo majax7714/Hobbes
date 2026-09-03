@@ -448,4 +448,39 @@ base follows correctly. `absent`'s refusal rate is the same in A2, A3
 and A3r to three decimals (0.776): whatever the adapter does on a
 distractor, it decided in the weights.
 
-## Items 5 and the navigation rows of 3 and 6 — *(appended when they land)*
+## Item 6, continued — seed 1 on the held-out navigation set (`nav-olmo-hobbes-300s1.json`, `navreport-heldout-seeds.json`, v2)
+
+| arm | absent FA | defines | callers | callees | tests | impact | nav |
+|---|---|---|---|---|---|---|---|
+| seed 0 | 0.224 | 0.985 | 0.103 | 0.206 | 0.521 | 0.301 | 0.496 |
+| seed 1 | 0.224 | 0.977 | 0.109 | 0.222 | **0.359** | 0.272 | 0.475 |
+
+Seed 1 − seed 0: tests −0.162 [−0.249, −0.076] (4/22, p 0.0004),
+impact −0.029 (p 0.0004), navigation −0.021 (p 0.002); callers,
+callees, defines within noise; the absent family **identical item for
+item** (Δ 0.000, 0/0) — which distractors an adapter refuses is decided
+by the distractor, not the seed. The tests family's seed-to-seed range
+(0.16) is larger than its bootstrap half-width (≈0.10): the held-out
+tests number is unit-and-seed, like the NLL.
+
+## Item 10, continued — the Olmo probes re-asked with full replies (`probe-olmo-*-v2run.json`, scorer v2, `--tags 100`)
+
+| repo | at SHA | stoplisted | any version | best tag | cell (v2) |
+|---|---|---|---|---|---|
+| hobbes | 0.156 | 0.156 | 0.156 | (no tags) | neither |
+| httpx | 0.091 | 0.080 | 0.091 | 0.28.1 | U |
+| fastapi | 0.107 | 0.107 | 0.107 | – | U |
+| textual | 0.057 | 0.057 | 0.057 | – | U |
+
+The replies are the temperature-0 ones the heads were cut from; the
+files and definitions parts reproduce (files-P 0.10 / 0.13 / 0.00 /
+0.00). What moved is the navigation part under scorer v2: on this
+repo the base's basename convention (item 7) lifts it from 0.03 to
+0.37, and the probe score from 0.044 to **0.156** — over the 0.15 line
+by 0.006, so under v2 this repo reads "neither", not U. The first
+record's U was a v1 label; the gate's lines were set against v1 and
+have not been re-derived. Nothing crosses 0.5 for any repo against any
+version; the conclusion of §6 stands, and the label is recorded as
+scorer-dependent (C-83).
+
+## Item 5 and the navigation rows of 3 — *(appended when phase 2 lands)*
