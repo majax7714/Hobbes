@@ -29,6 +29,22 @@ regularities and the abstention habit; relations still have to be live
 in attention.** The design's own next step for this outcome is the
 step-count ablation (§7), which is running.
 
+**Amended the same evening, after Max's review (§10, §9, §9b).** The
+paragraph above is true of 300 steps and wrong as a statement about
+LoRA. Past one epoch the edges *do* enter the weights — callers on
+trained symbols 0.95 at 3,000 steps, a quarter of a never-seen
+symbol's callers and two thirds of its impact set — and over the same
+steps the loss gain leaves entirely; a control that learned the tokens
+with every relation broken reproduces the loss gain and none of the
+navigation. So the weights can hold the graph, at the price of the
+language effect the first paragraph led with, and the abstention habit
+is what one instruction buys the base anyway. At the agent grain, the
+300-step adapter alone finds no file (RFE 0.01) while the manifest
+finds them (0.41), and H-TTT-2 and H-TTT-3 are killed on this cell.
+The open question is the one the design asked: which of the two an
+agent needs — and the 3,000-step adapter has not been put under the
+harness yet.
+
 ---
 
 ## 2. What was run

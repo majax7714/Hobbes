@@ -1,114 +1,120 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-03: the test-time-training experiment (ADR-099)
-ran steps 1–4 on the unseen cell; the nine registered-not-fixed entries
-and ADR-092's decisions are still held for Max.** Read this, then the
-2026-09-03 BUILDLOG entry for how the state was reached, and
-`docs/workstreams.md` for the backlog by owner. History lives in the
-BUILDLOG; this doc is rewritten, never appended into a pile.
+**Rewritten 2026-09-03 (evening): Max's ten TTT follow-ups ran; the
+nine registered-not-fixed entries and ADR-092's decisions are still
+held for Max.** Read this, then the two 2026-09-03 BUILDLOG entries for
+how the state was reached, and `docs/workstreams.md` for the backlog by
+owner. History lives in the BUILDLOG; this doc is rewritten, never
+appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max's call on three things
+## ⇢ START HERE NEXT SESSION: Max's call on four things
 
-1. **The TTT experiment's next step** (`docs/olmo3-ttt-validation.md`
-   §6, §8; ADR-099; cell records in `docs/ttt-cells/`; the standing of
-   every hypothesis in `benchmark-hypotheses.md` § H-TTT). What the
-   session established, on Olmo-3-7B-Instruct with this repo at
-   `ebdf7a5` as the unseen cell and fastapi as its replication:
-   - a 300-step LoRA on the derived layer lowers gold-diff NLL on
-     **every** unit (147/147, −0.296 nats; fastapi 68/68, −0.223);
-     the prompted context block moves nothing, alone or on top;
-   - a **shuffled-answers control** (same tokens, every relation wrong)
-     takes 0.218 of the 0.296; the true graph adds 0.078 (140/147);
-   - on held-out navigation the adapter learns the module's file
-     (0.985), abstention on distractors (false acceptance 0.98 → 0.22),
-     the tests reaching the module (0.52), and **no callers** (0.10);
-   - on **trained** questions it scores the same (callers 0.15) — at
-     0.35 epochs the weights hold no symbol-grain edge, seen or unseen.
-   The design's own next step for this outcome is the **step-count
-   ablation (100 / 300 / 1,000)** — two adapters and their NLL/nav
-   pairs; the whole of this session cost 3 GPU-hours / $5.70 on
-   Modal's meter, and the ablation is about half of it. Step 5 (agent
-   runs, HSR/RFE) stays parked. No
-   memorised cell exists at 7B (every candidate U or "neither" for both
-   Olmo 3 and Qwen-Coder; C-83 seen), so H-TTT-4 needs a model that
-   provably recalls a repo, or a version-shift-aware probe.
-2. **The nine registered-not-fixed entries** (C-72–C-80, ranked in the
-   2026-09-02 handoff, the candidates named in each entry) plus
-   **C-85** from this session — a Python repo with no venv loses lane
-   B entirely in the container (httpx, fastapi, textual at 0.0% until
-   given one) and the record blames the helper; one-line candidate fix
-   (always pass `--environment`, an empty listing when no venv).
-3. **ADR-092's four embedded decisions** (§Decisions there). Nothing
-   blocks on them.
+1. **The TTT experiment after the review** (`docs/olmo3-ttt-results.md`
+   §1 amended, §9, §9b, §10; the second cell record
+   `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`; standing in
+   `benchmark-hypotheses.md` § H-TTT, two dated paragraphs). The
+   headline moved: **edges enter the weights by 3,000 steps** (callers
+   on trained symbols 0.95; a quarter of a never-seen symbol's callers,
+   two thirds of its impact set) **while the gold-diff NLL gain leaves
+   entirely**, and a control without the graph reproduces the NLL gain
+   and learns nothing navigable. At the agent grain (50 derived units,
+   four file-tools-only arms, the 300-step adapter) the manifest finds
+   the files (RFE 0.41) and the adapter alone does not (0.01,
+   confabulated repo-shaped paths): H-TTT-2 and H-TTT-3 killed. One
+   instruction buys the base more abstention (FA 0.00) than the adapter
+   has (0.22). Held: the **10,000-step point** (≈ 6 A100-hours alone)
+   and the natural next cell — **the 3,000-step adapter under the
+   primary cell** (~0.7 A100-hour: the adapter is on the volume at
+   `adapters/allenai-olmo-3-7b-instruct/hobbes/ebdf7a510eff/cc9e99c14215`;
+   `TTT_APP=hobbes-ttt-cell … deploy` with it registered, then
+   `ttt_cell.py run … --arm A2=<name> --arm A3=<name>` into the same
+   cell dir; rows are keyed by arm, so name them A2_3000 / A3_3000 and
+   add the arms to `cell.ARMS` first).
+2. **The cell's defect register** (record § Item 9, D-1–D-5): no arm
+   executes and nobody runs the guarding tests; HSR is a regex over
+   emitted code, not the lane-A walk; a small HSR denominator; shared
+   unaided runs. Which to fix before the next cell is Max's call.
+3. **The nine registered-not-fixed entries** (C-72–C-80) plus C-85
+   (venv-less Python repo loses lane B) — unchanged, ranked in the
+   2026-09-02 handoff.
+4. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-03)
+## WHERE THINGS STAND (2026-09-03, evening)
 
-- **Extraction:** unchanged from 2026-09-02 — every compiler-graded
-  cell at 100% on every tier it reaches; quic-go 99.6% lower bound.
-  Register: 85 entries, 75 active, 9 partial, 7 unsurfaced.
-- **The TTT instruments (ADR-099), all in the pipeline and tested (49
-  tests):** `hobbes derive-corpus` (`hobbes.ttt.corpus`; `--control
-  shuffled`), `hobbes.ttt.units` (git-history and DeepSWE units, both
-  NLL prompts attached), `hobbes.ttt.score` (what a reply names),
-  `hobbes.ttt.report` (paired bootstrap; NLL by C-84 population;
-  navigation with "none recorded" items split out);
-  `pipeline/scripts/{modal_ttt,ttt_units,ttt_probe,ttt_report,ttt_nav_report}.py`.
-  Modal: app `hobbes-ttt`, volume `hobbes-ttt` (`corpora/`, `units/`,
-  `adapters/`, `runs/` — three adapters: hobbes true and shuffled,
-  fastapi), serve at 16k on an A10G with the Hobbes adapter registered
-  (`ADAPTERS=hobbes-ebdf7a51=…`), scales to zero. Local: worktree
-  `~/.hobbes/bench/ttt/hobbes-base` (this repo at `ebdf7a5`, ingested
-  contained, its own venv), `~/.hobbes/bench/ttt/{units,runs}/`,
-  candidate clones with venvs under `~/.hobbes/deepswe/repos/`.
-- **Java, containment, the harness, CI:** as on 2026-09-02.
-- **`expand()` in `derive/impact.py` now pops from a heap** — same
-  scores and order on 85 seeds, no per-step re-sort.
+- **Extraction:** unchanged from 2026-09-02. Register: 88 entries, 78
+  active (C-86–C-88 from the review: the control margin is a bound; the
+  first NLL write-up's conditioning was unstated; trained "none"
+  answers override the card).
+- **The TTT instruments (ADR-099 + amendments 9–14; 1,142 pytest):**
+  `hobbes derive-corpus` (`--paraphrases K`, `--control
+  shuffled|shuffled-all`), `hobbes.ttt.units` (four conditionings,
+  hand-written tasks by commit), `hobbes.ttt.score` (v2),
+  `hobbes.ttt.report` (`report_arms`, the override probe),
+  `hobbes.ttt.probe` (contexts incl. `card-refuse`, version-aware files
+  score), `hobbes.ttt.cell` (the primary cell);
+  `pipeline/scripts/{modal_ttt,ttt_units,ttt_probe,ttt_report,ttt_nav_report,ttt_rescore,ttt_override_probe,ttt_cell}.py`;
+  `loop.py --no-bash --tool-choice none`. Proposals:
+  `bench/ttt/proposals-hobbes-ebdf7a5.jsonl`.
+- **Modal:** app `hobbes-ttt` (navigation serve, last deployed on an
+  A100 with six adapters; scales to zero) and `hobbes-ttt-cell` (the
+  cell's A100 serve, 32k, the 300 adapter; scales to zero) — both
+  deployed, both idle. Volume `hobbes-ttt`: eight adapters under
+  `adapters/allenai-olmo-3-7b-instruct/hobbes/ebdf7a510eff/` (100
+  `398686230fb0`, 300 `04195d188e61`, 300 s1 `2615369b529f`, 300 s2
+  `fe7318f636eb`, 1,000 `46840a203884`, 3,000 `cc9e99c14215`, 3,000×4
+  `629986a94504`, shuffled-all `047bc3b4ac33`), the shuffled control
+  under `hobbes-shuffled/`, fastapi under `fastapi/`; corpora
+  `corpora/hobbes{,-k4,-shuffled-all}/ebdf7a510eff`; units
+  `units/*-cond.jsonl`; runs `runs/`. Local mirrors under
+  `~/.hobbes/bench/ttt/{runs,units,cell-hobbes}/` — the cell dir holds
+  `units.jsonl`, `runs.jsonl` (200 rows), the transcripts under
+  `work/`, `scores.jsonl` (extractor v2; v1 kept beside) and
+  `report.json`.
+- **Compute this session:** ≈ 7 GPU-hours by the manifests; read the
+  meter before quoting.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Max's three calls above.
-1. If the ablation is cleared: `modal_ttt.py train --steps 100|1000`
-   on `corpora/hobbes/ebdf7a510eff`, then `nll` and the
-   `ttt_probe.py nav` pair per adapter (`--items eval` and `train`);
-   read callers on the training sample first — it is the number that
-   says whether edges enter the weights at all.
+0. Max's four calls above.
+1. If cleared: the 3,000-step adapter under the cell (item 1 above);
+   the 10,000-step point; a second unseen repo through the cell.
 2. Watch the first CI run when Max pushes (unchanged).
-3. W0 residue; the removal A/B re-run on a cleared 7B run; Java
-   follow-ups (W1); collaborator onboarding — unchanged.
+3. W0 residue; the removal A/B re-run; Java follow-ups (W1);
+   collaborator onboarding — unchanged.
 
 ## STANDING POLICY (Max) — read before doing anything
 
-1. **Experiments are PARKED** except the TTT experiment Max cleared on
-   2026-09-03; its step 5 and the ablation are not yet cleared.
-2. **The 7B is the instrument, by speed not capability.** Compute-
-   economics gate: GPU-hours stated first; ≥15 min of evaluation before
-   any run over 30 min.
-3. **P12 (ADR-082): a Hobbes test decomposes, or it is not a Hobbes
-   test.** Every TTT arm is *model + prompt* and is labelled so.
+1. **Experiments are PARKED** except what Max clears by name; the TTT
+   review list is done, its two held points are not cleared.
+2. **The 7B is the instrument, by speed not capability.** GPU-hours
+   stated first; ≥15 min of evaluation before any run over 30 min.
+3. **P12 (ADR-082):** every TTT arm is *model + prompt* and is labelled so.
 4. **The 27B is untouched** until the mapping fixes are validated on
    the 7B, and only on a decontaminated set.
 
 ## PRACTICAL NOTES
 
-- **Always `uv run hobbes` from this checkout with `--repo`** — this
-  session ran a worktree's older Hobbes once by `cd`-ing into it
-  (ADR-094's incident, again) and the graph looked fine until the
-  `built_by` line was read.
-- **A Python repo needs a venv before a contained ingest** (C-85):
-  `uv venv .venv && uv pip install -e .` in the clone, then ingest.
-- **`pkill -f` / `pgrep -f` match the launching shell's own command
-  line** when the pattern appears in it — twice this session a script
-  killed itself or waited on itself. Kill by PID.
-- The Modal keys are read from `secrets.txt` (gitignored) —
-  `modal_key_id`, `modal_key_secret`, `llm_key`, `HF_token`,
-  `daytona_key`; export them with the `sed` one-liner in the BUILDLOG
-  or `hobbes bench run --secrets`.
-- The image is 2.79 GB (unchanged); `lane_b` tests skip without it;
-  the one deselected venv test is unchanged.
-- Bench-run reference (parked) — unchanged from the 2026-09-02 handoff;
-  see that BUILDLOG entry.
+- **Always `uv run hobbes` from this checkout with `--repo`** (ADR-094's
+  incident, twice now).
+- **Olmo 3 on vLLM has no tool-call parser here:** send no `tools`
+  field (`loop.py --tool-choice none` puts the schemas in the system
+  prompt as `<functions>` and reads `<function_calls>` from the text);
+  a request with `tools` gets a 400 whatever `tool_choice` says.
+- **An A10G holds one adapter at 16k;** three do not fit at 8k either
+  (`SERVE_GPU=A100-80GB` for a multi-adapter serve; `--max-loras` is
+  capped at four).
+- **`modal run`'s remote prints are buffered** until the function
+  returns; read `modal app list` / `modal app logs` for progress, and
+  stop an ephemeral app with `modal app stop -y <id>` — killing the
+  local client does not stop the container.
+- **Never rescore in place:** `ttt_rescore.py --out` a new file; the
+  cell's `scores-extractor-v1.jsonl` is the precedent.
+- `pkill -f` / `pgrep -f` match the launching shell; kill by PID (use
+  `ps | grep "[l]oop.py"`).
+- Keys in `secrets.txt` (gitignored): `modal_key_id`, `modal_key_secret`,
+  `llm_key`, `HF_token`, `daytona_key`.
 
 ## Housekeeping
 

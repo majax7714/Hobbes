@@ -6159,3 +6159,62 @@ record. Suites: **1,084 pytest** (+49 for
 *Not done:* step 5 (agent runs, HSR/RFE); the step-count ablation;
 the memorised cell; HEAD-ingested docs in the corpus. Nothing pushed;
 the two vLLM apps scale to zero when idle.
+
+## 2026-09-03 (later) — the review's ten follow-ups on the TTT results
+
+**Max's direction:** stop the running ablation; then a ten-item list
+("whoever picks up the hobbes-ttt Modal app…") — each with the gap,
+the change, and a pre-committed reading — under ~10 A100-hours.
+Readings were written into `benchmark-hypotheses.md` § Follow-ups
+before anything ran; no first-record number was edited; a second cell
+record (`docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`) carries
+everything new with its scorer, template and conditioning versions.
+The 10,000-step point (≈ 6 A100-hours alone at the measured 2.2 s/step)
+was held for Max; everything else ran, ≈ 7 GPU-hours by the manifests
+(read the meter).
+
+**Instruments (all tested; 1,142 pytest):** NLL conditioning as a
+named variable (`none` / `subject` / `message` / `task`; 28 hand-written
+proposals in `bench/ttt/proposals-hobbes-ebdf7a5.jsonl`); `derive-corpus
+--paraphrases K` and `--control shuffled-all`; scorer v2 (unique-suffix
+paths) with `ttt_rescore.py`; `report_arms` per C-84 population;
+`ttt_probe.py --context card-refuse`, a version-aware files score
+(`hobbes.ttt.probe`), a `rescore` mode; `hobbes.ttt.cell` +
+`ttt_cell.py` (derived units from `hobbes plan` over the proposals,
+four *model + prompt* arms on the owned loop with file tools only,
+HSR / RFE / `manifest_ignore`); `loop.py --no-bash` and `--tool-choice
+none` (schemas in the system prompt, Olmo 3's `<function_calls>`
+syntax read from the text, JSON or Python-quoted). `modal_ttt.py`:
+`--conditioning`, `SERVE_GPU` / `SERVE_MAX_LEN` / `TTT_APP`, resident
+adapters capped at four.
+
+**What came out (numbers in the record):** (1) the true−control NLL
+margin is larger where the graph holds nothing — a bound, not the
+graph's worth (C-86); (2) the first run's prompt was the commit message
+(C-87); the adapter's gain does not shrink under a task statement and
+the block becomes real only under one (−0.008) — separable; (3) the
+first control kept every true edge in its cards; the corrected control
+takes 0.226 nats off the diff and learns **nothing** navigable; (4) one
+instruction takes the base's false acceptance to 0.00 where the adapter
+reaches 0.22, and the adapter under the instruction collapses its true
+answers; (5) callers on trained symbols 0.15 → 0.33 → **0.95** at 1,000
+/ 3,000 steps while the NLL gain falls to zero — the two metrics are
+anti-correlated in step count, and one template per fact suffices; (6)
+three seeds: NLL intervals relabelled unit-only, held-out tests
+seed-dependent, abstention identical item for item; (7) 59 of 89 A1
+defines failures were basename answers, v2 puts A1 at 0.92 and the base
+at 0.29 by convention; (8) the tests collapse is a family-wide "none"
+prior, callers/callees a module-tracking one (C-88); (9) the primary
+cell over 50 derived units: manifest RFE 0.41, adapter alone 0.01 with
+confabulated repo-shaped paths, HSR not lower — **H-TTT-2 and H-TTT-3
+killed**; five harness defects registered; (10) the probe scored
+against tagged releases finds Qwen's older httpx (0.25 at 0.28.1) and
+no memorised cell.
+
+**Incidents:** vLLM's "auto tool choice requires a parser" 400 killed
+the first 200 cell rows (discarded); the A10G could not hold three
+adapters at 16k or 8k (moved the navigation serve to an A100); the
+first HSR extractor counted capitalised prose (re-scored offline, v1
+scores kept beside). ADR-099 amended (decisions 9–14); design §3.2(c)
+and results §1 carry dated amendments; C-86–C-88 registered (88
+entries).

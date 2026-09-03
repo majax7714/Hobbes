@@ -74,7 +74,8 @@ box, against a repo on disk (architecture §10); the application mode in
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
   evaluator → report); `ttt/` (`hobbes derive-corpus`: the derived layer
   rendered as a training corpus for the test-time-training experiment,
-  ADR-099, with `scripts/modal_ttt.py`, `ttt_units.py`, `ttt_probe.py`);
+  ADR-099, plus `units`, `score`, `report`, `probe`, `cell`; scripts
+  `modal_ttt.py`, `ttt_units.py`, `ttt_probe.py`, `ttt_cell.py`);
   `narrate/`, `invariants/`, `review.py`, `render.py`, `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
   minigo / minirust / minijava / canary-rust / canary-java / goshapes /
   twomod), excluded from
@@ -157,7 +158,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-03): 1,084 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-03, evening): 1,142 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 29 tsextract + 31 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -279,9 +280,18 @@ review → `lane_b` pytest) and runs the same way on a box.
   regularities and abstention, not edges. No memorised cell at 7B
   (C-83). Records in `docs/ttt-cells/`; standing per hypothesis in
   `docs/benchmark-hypotheses.md`; C-81–C-85.
-- **Then:** the nine entries on Max's call; the TTT step-count ablation
-  if cleared; the removal A/B re-run on a cleared 7B run; project setup
-  for collaborators (`docs/workstreams.md`).
+- **Max's ten follow-ups ran the same evening** (results §9–§10, the
+  second cell record): past one epoch the edges *do* enter the weights
+  (callers on trained symbols 0.95 at 3,000 steps) while the NLL gain
+  leaves, and a control without the graph reproduces the NLL gain and
+  learns nothing navigable; the primary cell (50 derived units, four
+  file-tools-only *model + prompt* arms) killed H-TTT-2 and H-TTT-3 at
+  300 steps — the manifest finds the files, the adapter alone
+  confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
+- **Then:** the nine entries on Max's call; the 3,000-step adapter
+  under the cell and the 10,000-step point if cleared; the removal A/B
+  re-run on a cleared 7B run; project setup for collaborators
+  (`docs/workstreams.md`).
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

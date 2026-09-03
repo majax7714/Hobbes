@@ -295,3 +295,16 @@ Raw-source TTT, full-weight fine-tuning, any non-LoRA fast-weight mechanism (TTT
   (three tasks per repo is not ≥ 40); the doc rendering (b) is empty at
   a base SHA (C-82); the control adapter is an addition. Cell record:
   `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03.md`.
+- **2026-09-03 (evening) — Max's ten follow-ups, preregistered and run
+  (`benchmark-hypotheses.md` § Follow-ups; `olmo3-ttt-results.md` §10;
+  `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`).** Steps past
+  one epoch put the edges in the weights (callers on trained symbols
+  0.95 at 3,000) while the NLL gain leaves; a control without the graph
+  reproduces the NLL gain and learns nothing navigable; an instruction
+  buys the base more abstention than the adapter has; the primary cell
+  (50 derived units, four file-tools-only arms) kills H-TTT-2 and
+  H-TTT-3 at 300 steps — the manifest finds the files, the adapter
+  alone confabulates repo-shaped paths. Deviations from this document:
+  no arm executes (D-1), HSR is a regex over emitted code rather than
+  the lane-A walk (D-4), the 10,000-step point is held; §3.2(c) amended
+  above. C-86–C-88.
