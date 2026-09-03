@@ -263,7 +263,12 @@ def serve():
            "--api-key", os.environ["HOBBES_LLM_API_KEY"], "--gpu-memory-utilization", "0.90"]
     adapters = [a for a in ADAPTERS.split(",") if a.strip()]
     if adapters:
-        cmd += ["--enable-lora", "--max-lora-rank", str(RECIPE["rank"]), "--max-loras", str(max(1, len(adapters))),
+        # At most four adapters resident per batch: each reserves KV room,
+        # and with three at a 16k window the A10G's cache no longer fit
+        # (2026-09-03); the rest swap in from CPU. SERVE_MAX_LEN=8192 is
+        # enough for navigation prompts.
+        cmd += ["--enable-lora", "--max-lora-rank", str(RECIPE["rank"]), "--max-loras", str(max(1, min(4, len(adapters)))),
+                "--max-cpu-loras", str(max(1, len(adapters))),
                 "--lora-modules", *[f"{a.split('=', 1)[0]}=/ttt/{a.split('=', 1)[1]}" for a in adapters]]
     subprocess.Popen(cmd)
 
