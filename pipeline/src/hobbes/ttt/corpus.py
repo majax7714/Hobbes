@@ -25,6 +25,23 @@ training pair. A held-out symbol whose bare name is a plain word
 (``token``) is left where a doc uses the word; the manifest counts
 those mentions rather than hiding them.
 
+**Paraphrases.** ``--paraphrases K`` renders every *training* question
+through K phrasings of its question and its answer (template 0 is the
+canonical wording; K=0 writes exactly that). Fact injection by
+fine-tuning wants varied exposure, and a single template cannot tell
+under-exposure from "edges do not enter weights" (review item 5,
+2026-09-03). The answer variants name the same backticked items in the
+same order, so the scorer reads them alike; the evaluation files are
+always template 0, so held-out scores stay comparable across corpora.
+
+**Controls.** ``--control shuffled`` deranges every training answer
+within its (kind, family) group. That permuted card *bodies* whole —
+each still opening with its own symbol and its own true edges — so
+every true edge stayed in that control corpus under the wrong
+question. ``--control shuffled-all`` additionally deranges the cards'
+``called by`` / ``calls`` / ``tests`` lines across the cards of one
+module: module-shaped regularities kept, every specific edge broken.
+
 Deterministic end to end: sorted iteration, canonical JSON, no model,
 no randomness beyond the seeded hash. Same artifacts in, same bytes
 out — the property the test suite holds, and the reason the adapter
@@ -62,8 +79,11 @@ LIST_CAP = 12
 IMPACT_CAP = 8
 #: Navigation items the memorisation probe draws (ADR-099 §4.4, part 3).
 PROBE_ITEMS = 30
-#: The corpus recipe; bumped when a rendering changes shape.
+#: The corpus recipe; bumped when a rendering changes shape (the
+#: template-0 rendering is unchanged by paraphrases and controls).
 RECIPE_VERSION = 1
+#: Phrasings available per family (question and answer alike).
+PARAPHRASES = 4
 #: Default output directory, under the derived tree (regenerable, gitignored).
 CORPUS_DIR = "corpus"
 
@@ -266,15 +286,90 @@ def mask_text(text: str, index: Index, hidden: set[str]) -> tuple[str, int, int]
 
 # ---------------------------------------------------------------- questions
 
-def _q(family: str, sid: str, repo: str, sha12: str) -> str:
-    return {
-        "defines": f"Which file defines `{sid}` in {repo} (at {sha12})?",
-        "callers": f"What calls `{sid}` in {repo} (at {sha12})?",
-        "callees": f"What does `{sid}` call in {repo} (at {sha12})?",
-        "tests": f"Which tests exercise `{sid}` in {repo} (at {sha12})?",
-        "impact": f"If `{sid}` changes in {repo} (at {sha12}), which modules are affected?",
-        "absent": f"Where is `{sid}` defined in {repo} (at {sha12})?",
-    }[family]
+#: Question phrasings per family; index 0 is the canonical wording.
+_QUESTIONS: dict[str, tuple[str, ...]] = {
+    "defines": ("Which file defines `{sid}` in {repo} (at {sha12})?",
+                "In {repo} at {sha12}, where is `{sid}` defined?",
+                "Find the file and lines that define `{sid}` ({repo}, {sha12}).",
+                "`{sid}` in {repo} (at {sha12}): which file holds its definition?"),
+    "callers": ("What calls `{sid}` in {repo} (at {sha12})?",
+                "Which symbols call `{sid}` in {repo} at {sha12}?",
+                "List the callers of `{sid}` ({repo}, {sha12}).",
+                "In {repo} at {sha12}, who calls `{sid}`?"),
+    "callees": ("What does `{sid}` call in {repo} (at {sha12})?",
+                "Which symbols does `{sid}` call in {repo} at {sha12}?",
+                "List the callees of `{sid}` ({repo}, {sha12}).",
+                "In {repo} at {sha12}, what is called by `{sid}`?"),
+    "tests": ("Which tests exercise `{sid}` in {repo} (at {sha12})?",
+              "What tests reach `{sid}` in {repo} at {sha12}?",
+              "List the tests guarding `{sid}` ({repo}, {sha12}).",
+              "In {repo} at {sha12}, which tests cover `{sid}`?"),
+    "impact": ("If `{sid}` changes in {repo} (at {sha12}), which modules are affected?",
+               "Which modules does a change to `{sid}` reach in {repo} at {sha12}?",
+               "What is the impact set of `{sid}` ({repo}, {sha12}) — the affected modules?",
+               "In {repo} at {sha12}, a change to `{sid}` affects which modules?"),
+    "absent": ("Where is `{sid}` defined in {repo} (at {sha12})?",
+               "Which file defines `{sid}` in {repo} at {sha12}?",
+               "Find the definition of `{sid}` ({repo}, {sha12}).",
+               "In {repo} at {sha12}, where does `{sid}` live?"),
+}
+
+#: Answer phrasings; index 0 is canonical. Every variant names the same
+#: backticked items in the same order as variant 0 — the scorer reads
+#: backticks (`hobbes.ttt.score.truth_items`): *defines* wants the path
+#: first after the symbol, *impact* the module first, *absent* a
+#: negation cue in every phrasing.
+_ANSWERS: dict[str, tuple[str, ...]] = {
+    "defines": ("`{sid}` is defined in `{path}` at lines {line}–{end} ({kind}).",
+                "`{sid}` lives in `{path}`, lines {line}–{end} — a {kind}.",
+                "The definition of `{sid}` is in `{path}` (lines {line}–{end}, {kind}).",
+                "`{sid}` — {kind} — is defined at `{path}`:{line}–{end}."),
+    "callers": ("Semantic-tier callers of `{sid}`: {list}.",
+                "`{sid}` is called by {list} (semantic tier).",
+                "Callers of `{sid}` at the semantic tier: {list}.",
+                "{list} call `{sid}` — semantic-tier edges."),
+    "callers_none": ("No semantic-tier caller of `{sid}` is recorded at {sha12}.",
+                     "Nothing calls `{sid}` at the semantic tier as of {sha12}; no caller is recorded.",
+                     "`{sid}` has no recorded semantic-tier caller at {sha12}.",
+                     "At {sha12}, no semantic-tier caller of `{sid}` is recorded."),
+    "callees": ("Semantic-tier callees of `{sid}`: {list}.",
+                "`{sid}` calls {list} (semantic tier).",
+                "Callees of `{sid}` at the semantic tier: {list}.",
+                "{list} are called by `{sid}` — semantic-tier edges."),
+    "callees_none": ("No semantic-tier callee of `{sid}` is recorded at {sha12}.",
+                     "`{sid}` calls nothing at the semantic tier as of {sha12}; no callee is recorded.",
+                     "`{sid}` has no recorded semantic-tier callee at {sha12}.",
+                     "At {sha12}, no semantic-tier callee of `{sid}` is recorded."),
+    "tests": ("Tests reaching `{sid}`: {list}.",
+              "`{sid}` is reached by {list}.",
+              "The tests that exercise `{sid}` are {list}.",
+              "{list} reach `{sid}`."),
+    "tests_none": ("No test reaches `{sid}` at {sha12}.",
+                   "`{sid}` is reached by no test at {sha12}.",
+                   "There is no test that exercises `{sid}` at {sha12}.",
+                   "At {sha12}, no test reaches `{sid}`."),
+    "impact": ("Beyond `{module}` itself, a change to `{sid}` reaches: {list}.",
+               "Besides `{module}`, changing `{sid}` affects {list}.",
+               "Outside `{module}`, the modules a change to `{sid}` reaches are {list}.",
+               "A change to `{sid}` reaches, beyond `{module}` itself, {list}."),
+    "impact_none": ("A change to `{sid}` reaches no module beyond `{module}` itself at {sha12}.",
+                    "Besides `{module}`, a change to `{sid}` affects no module at {sha12}.",
+                    "Outside `{module}`, nothing is reached by a change to `{sid}` at {sha12}.",
+                    "At {sha12}, a change to `{sid}` reaches no module beyond `{module}`."),
+    "absent": ("`{sid}` is not defined in this repo at {sha12}.",
+               "There is no `{sid}` in this repo at {sha12}; it is not defined.",
+               "`{sid}` does not exist in this repo at {sha12} — nothing defines it.",
+               "`{sid}` cannot be found in this repo at {sha12}; it is not defined."),
+}
+assert all(len(v) == PARAPHRASES for v in (*_QUESTIONS.values(), *_ANSWERS.values()))
+
+
+def _q(family: str, sid: str, repo: str, sha12: str, variant: int = 0) -> str:
+    return _QUESTIONS[family][variant].format(sid=sid, repo=repo, sha12=sha12)
+
+
+def _a(key: str, variant: int = 0, **fields) -> str:
+    return _ANSWERS[key][variant].format(**fields)
 
 
 def impact_modules(graph: dict, module: str, adjacency: dict | None = None,
@@ -297,34 +392,34 @@ def impact_modules(graph: dict, module: str, adjacency: dict | None = None,
 
 
 def answers(index: Index, graph: dict, sym: dict, hidden: set[str], families: tuple[str, ...],
-            adjacency: dict | None = None, owners: dict[str, str] | None = None) -> list[tuple[str, str, int]]:
-    """``(family, answer, held-out mentions dropped)`` for one symbol."""
+            adjacency: dict | None = None, owners: dict[str, str] | None = None,
+            variant: int = 0) -> list[tuple[str, str, int]]:
+    """``(family, answer, held-out mentions dropped)`` for one symbol, in
+    phrasing *variant* (0 is canonical)."""
     sid, sha12 = sym["id"], index.sha12
     out = []
     if "defines" in families:
-        out.append(("defines", f"`{sid}` is defined in `{symbol_path(index, sym)}` at lines "
-                    f"{sym.get('line', '?')}–{sym.get('end_line', '?')} ({sym.get('kind', 'symbol')}).", 0))
+        out.append(("defines", _a("defines", variant, sid=sid, path=symbol_path(index, sym), line=sym.get("line", "?"),
+                                  end=sym.get("end_line", "?"), kind=sym.get("kind", "symbol")), 0))
     if sym.get("kind") in CALLABLE_KINDS:
-        for family, bucket, verb in (("callers", index.callers, "Semantic-tier callers of"),
-                                     ("callees", index.callees, "Semantic-tier callees of")):
+        for family, bucket in (("callers", index.callers), ("callees", index.callees)):
             if family not in families:
                 continue
             rows = [i for i, t in bucket.get(sid, []) if t == "semantic"]
             kept = [i for i in rows if i not in hidden]
             if kept:
-                out.append((family, f"{verb} `{sid}`: {_listed(kept)}.", len(rows) - len(kept)))
+                out.append((family, _a(family, variant, sid=sid, list=_listed(kept)), len(rows) - len(kept)))
             else:
-                what = "caller" if family == "callers" else "callee"
-                out.append((family, f"No semantic-tier {what} of `{sid}` is recorded at {sha12}.", len(rows) - len(kept)))
+                out.append((family, _a(family + "_none", variant, sid=sid, sha12=sha12), len(rows) - len(kept)))
     if "tests" in families:
         tests = index.tests_of.get(sid, [])
-        out.append(("tests", f"Tests reaching `{sid}`: {_listed(tests)}." if tests
-                    else f"No test reaches `{sid}` at {sha12}.", 0))
+        out.append(("tests", _a("tests", variant, sid=sid, list=_listed(tests)) if tests
+                    else _a("tests_none", variant, sid=sid, sha12=sha12), 0))
     if "impact" in families:
         module = sym.get("module", "")
         mods = impact_modules(graph, module, adjacency, owners)
-        out.append(("impact", f"Beyond `{module}` itself, a change to `{sid}` reaches: {_listed(mods, IMPACT_CAP)}."
-                    if mods else f"A change to `{sid}` reaches no module beyond `{module}` itself at {sha12}.", 0))
+        out.append(("impact", _a("impact", variant, sid=sid, module=module, list=_listed(mods, IMPACT_CAP))
+                    if mods else _a("impact_none", variant, sid=sid, module=module, sha12=sha12), 0))
     return out
 
 
@@ -385,38 +480,85 @@ def load_docs(repo_root: Path) -> list[dict]:
 #: Control corpora: ``shuffled`` keeps every training record's question
 #: and permutes the answers within each (kind, family) group, so the
 #: token distribution — the repo's names, paths and templates — is
-#: identical and every relation is wrong. An adapter trained on it
-#: separates "learned the vocabulary" from "learned the graph".
-CONTROLS = ("none", "shuffled")
+#: identical and every relation is wrong *in the QA*. It permuted card
+#: bodies whole, and a body opens with its own symbol and its own true
+#: edges, so every true edge stayed in that control under the wrong
+#: "Describe" question (the 2026-09-03 control adapter, review item 3).
+#: ``shuffled-all`` also deranges the cards' edge lines within each
+#: module (:func:`shuffle_card_lines`): the module's names, paths and
+#: shape survive; no specific edge does. An adapter trained on either
+#: separates "learned the vocabulary" from "learned the graph"; only the
+#: second removes the graph from the cards too.
+CONTROLS = ("none", "shuffled", "shuffled-all")
+#: The card lines ``shuffled-all`` deranges; the header lines stay.
+_CARD_EDGE_LINES = ("called by: ", "calls: ", "tests: ")
 
 
-def shuffle_answers(records: list[dict], seed: int) -> list[dict]:
+def _derange(indices: list[int], key: str) -> list[tuple[int, int]]:
+    """``(destination, source)`` pairs: a cyclic shift of a seeded shuffle,
+    so no index keeps its own value whatever the group size (≥ 2)."""
+    perm = indices[:]
+    random.Random(key).shuffle(perm)
+    return [(perm[(k + 1) % len(perm)], src) for k, src in enumerate(perm)]
+
+
+def shuffle_answers(records: list[dict], seed: int, kinds: tuple[str, ...] | None = None) -> list[dict]:
     """Permute assistant turns within each (kind, family) group, seeded;
-    a group of one is left alone (nothing to permute against)."""
+    a group of one is left alone (nothing to permute against). *kinds*
+    restricts the permutation to those record kinds (None: every kind)."""
     groups: dict[tuple, list[int]] = {}
     for i, r in enumerate(records):
-        groups.setdefault((r["kind"], r.get("family")), []).append(i)
+        if kinds is None or r["kind"] in kinds:
+            groups.setdefault((r["kind"], r.get("family")), []).append(i)
     out = [dict(r, messages=[dict(m) for m in r["messages"]]) for r in records]
     for key in sorted(groups, key=str):
         idx = groups[key]
         if len(idx) < 2:
             continue
-        perm = idx[:]
-        random.Random(f"{seed}\n{key}").shuffle(perm)
-        # A cyclic shift of a shuffled order is a derangement: no record
-        # keeps its own answer, whatever the group size.
-        for k, src in enumerate(perm):
-            out[perm[(k + 1) % len(perm)]]["messages"][1] = records[src]["messages"][1]
+        for dst, src in _derange(idx, f"{seed}\n{key}"):
+            out[dst]["messages"][1] = records[src]["messages"][1]
     return out
 
 
+def shuffle_card_lines(records: list[dict], module_of: dict[str, str], seed: int) -> tuple[list[dict], int]:
+    """Derange each card's ``called by`` / ``calls`` / ``tests`` line among
+    the cards of the same module, each line kind independently; the
+    header lines (symbol, file, tier) stay. Returns the records and the
+    count of cards left alone because their module had only one."""
+    groups: dict[str, list[int]] = {}
+    for i, r in enumerate(records):
+        if r["kind"] == "card":
+            groups.setdefault(module_of.get(r["symbol"], ""), []).append(i)
+    out = [dict(r, messages=[dict(m) for m in r["messages"]]) for r in records]
+    alone = 0
+    for module in sorted(groups):
+        idx = groups[module]
+        if len(idx) < 2:
+            alone += len(idx)
+            continue
+        lines = {i: records[i]["messages"][1]["content"].split("\n") for i in idx}
+        new = {i: list(lines[i]) for i in idx}
+        for prefix in _CARD_EDGE_LINES:
+            for dst, src in _derange(idx, f"{seed}\n{module}\n{prefix}"):
+                src_line = next((ln for ln in lines[src] if ln.startswith(prefix)), None)
+                if src_line is None:
+                    continue
+                new[dst] = [src_line if ln.startswith(prefix) else ln for ln in new[dst]]
+        for i in idx:
+            out[i]["messages"][1]["content"] = "\n".join(new[i])
+    return out, alone
+
+
 def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: int = 0,
-                 name: str | None = None, control: str = "none") -> dict:
+                 name: str | None = None, control: str = "none", paraphrases: int = 0) -> dict:
     """Render the corpus into *out_dir*; returns the manifest.
 
     *control* ``shuffled`` writes the answer-permuted training set
-    (:func:`shuffle_answers`); the evaluation files are the true ones
-    either way.
+    (:func:`shuffle_answers`), ``shuffled-all`` also the card-line
+    permuted one (:func:`shuffle_card_lines`); *paraphrases* K > 0
+    writes every training question K times, in phrasings 0..K−1 (each
+    record marked ``variant``). The evaluation files are the true,
+    canonical ones either way.
 
     Writes ``train.jsonl`` (cards, doc chunks, training QA),
     ``eval.jsonl`` (QA on the held-out symbols), ``eval-cards.jsonl``
@@ -432,6 +574,11 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
         raise CorpusError(str(exc)) from exc
     if not graph.get("symbols"):
         raise CorpusError("graph.json holds no symbols — nothing to render")
+    if control not in CONTROLS:
+        raise CorpusError(f"unknown control {control!r}; one of {', '.join(CONTROLS)}")
+    if not 0 <= paraphrases <= PARAPHRASES:
+        raise CorpusError(f"paraphrases must be 0..{PARAPHRASES}, got {paraphrases}")
+    variants = range(max(1, paraphrases))
     repo = name or repo_root.resolve().name
     index = build_index(graph, tests)
     sha12 = index.sha12
@@ -486,24 +633,37 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
         split = "eval" if sid in hidden else "train"
         families = FAMILIES if split == "eval" or first_in_module.get(sym.get("module", "")) == sid \
             else tuple(f for f in FAMILIES if f != "impact")
-        rows = answers(index, graph, sym, hidden if split == "train" else set(), families, adjacency, owners)
-        for family, answer, dropped in rows:
-            masked["qa_mentions_dropped"] += dropped
-            (train if split == "train" else eval_).append(
-                _record("qa", family, sid, split, _q(family, sid, repo, sha12), answer))
+        # The evaluation set is always canonical (variant 0); training
+        # questions are rendered once per phrasing when paraphrasing.
+        for v in (variants if split == "train" else (0,)):
+            rows = answers(index, graph, sym, hidden if split == "train" else set(), families, adjacency, owners, v)
+            for family, answer, dropped in rows:
+                masked["qa_mentions_dropped"] += dropped if v == 0 else 0
+                rec = _record("qa", family, sid, split, _q(family, sid, repo, sha12, v), answer)
+                if paraphrases and split == "train":
+                    rec["variant"] = v
+                (train if split == "train" else eval_).append(rec)
         fake = distractor(index, sym, taken)
         if fake is not None:
             if resolves(index, fake):  # the mechanical check the doc requires
                 raise CorpusError(f"distractor {fake!r} resolves in the graph — refusing to write it")
             taken.add(fake)
-            (train if split == "train" else eval_).append(
-                _record("qa", "absent", fake, split, _q("absent", fake, repo, sha12),
-                        f"`{fake}` is not defined in this repo at {sha12}."))
+            for v in (variants if split == "train" else (0,)):
+                rec = _record("qa", "absent", fake, split, _q("absent", fake, repo, sha12, v),
+                              _a("absent", v, sid=fake, sha12=sha12))
+                if paraphrases and split == "train":
+                    rec["variant"] = v
+                (train if split == "train" else eval_).append(rec)
 
-    if control not in CONTROLS:
-        raise CorpusError(f"unknown control {control!r}; one of {', '.join(CONTROLS)}")
+    cards_unpermuted = 0
     if control == "shuffled":
         train = shuffle_answers(train, seed)
+    elif control == "shuffled-all":
+        # Cards stay under their own question with their own header;
+        # only their edge lines move, so the card is wrong about the
+        # symbol it names rather than a true card under a wrong name.
+        train = shuffle_answers(train, seed, kinds=("qa", "doc"))
+        train, cards_unpermuted = shuffle_card_lines(train, owners, seed)
 
     # The probe draws held-out navigation items, by seeded hash order.
     nav = [r for r in eval_ if r["family"] != "absent"]
@@ -532,6 +692,8 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
     manifest = {
         "recipe_version": RECIPE_VERSION,
         "control": control,
+        "cards_unpermuted": cards_unpermuted,
+        "paraphrases": paraphrases,
         "repo": repo,
         "sha": index.sha,
         "dirty": index.dirty,
@@ -559,8 +721,9 @@ def format_manifest(manifest: dict, out_dir: Path) -> str:
     c = manifest["counts"]
     dirty = " (dirty)" if manifest["dirty"] else ""
     control = f", control: {manifest['control']}" if manifest.get("control", "none") != "none" else ""
+    para = f", paraphrases: {manifest['paraphrases']}" if manifest.get("paraphrases") else ""
     lines = [
-        f"corpus for {manifest['repo']} @ {manifest['sha'][:12]}{dirty} — recipe v{manifest['recipe_version']}{control}",
+        f"corpus for {manifest['repo']} @ {manifest['sha'][:12]}{dirty} — recipe v{manifest['recipe_version']}{control}{para}",
         f"  train: {c['train']['total']} records — " + ", ".join(f"{k} {v}" for k, v in c["train"]["by_kind"].items()),
         f"  qa families: " + ", ".join(f"{k} {v}" for k, v in c["train"]["by_family"].items() if k != "-"),
         f"  eval: {c['eval']['total']} records over {manifest['holdout']['symbols']} held-out symbols "

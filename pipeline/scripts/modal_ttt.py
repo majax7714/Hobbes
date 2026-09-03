@@ -6,7 +6,7 @@
 
     uv run pipeline/scripts/modal_ttt.py put <local-dir-or-file> <remote-path>
     uv run pipeline/scripts/modal_ttt.py train --corpus corpora/<repo>/<sha> [--steps 300] [--seed 0] [--model M]
-    uv run pipeline/scripts/modal_ttt.py nll --units units/<name>.jsonl --out runs/<name>.json [--adapter adapters/…] [--model M]
+    uv run pipeline/scripts/modal_ttt.py nll --units units/<name>.jsonl --out runs/<name>.json [--adapter adapters/…] [--model M] [--conditioning message,none,subject,task]
     ADAPTERS=<name>=adapters/… MODEL=M uv run pipeline/scripts/modal_ttt.py deploy   # vLLM, base + adapters
     uv run pipeline/scripts/modal_ttt.py url
     uv run pipeline/scripts/modal_ttt.py get <remote-path> <local-path>
@@ -186,11 +186,16 @@ def train_adapter(corpus: str, steps: int = 300, seed: int = 0, model: str = MOD
 
 
 @app.function(image=train_image, gpu="A100-80GB", volumes=VOLUMES, timeout=4 * 3600)
-def score_nll(units: str, out: str, adapter: str | None = None, model: str = MODEL, max_tokens: int = 12288) -> dict:
+def score_nll(units: str, out: str, adapter: str | None = None, model: str = MODEL, max_tokens: int = 12288,
+              conditionings: str = "message") -> dict:
     """Mean per-token NLL of each unit's gold diff under its bare and its
-    aided prompt (``messages_bare`` / ``messages_aided`` in the units file),
-    with or without an adapter. No sampling; batch of one; every unit
-    whose encoding exceeds *max_tokens* is skipped and counted."""
+    aided prompt, with or without an adapter, for every *conditioning*
+    named (comma-separated; ``message`` reads ``messages_bare`` /
+    ``messages_aided`` and labels rows ``bare`` / ``aided`` as the first run
+    did; any other reads ``messages_<c>_bare`` / ``_aided`` and labels rows
+    ``<c>:bare`` / ``<c>:aided``). A unit that lacks a conditioning's chat
+    gets a ``missing`` row. No sampling; batch of one; every unit whose
+    encoding exceeds *max_tokens* is skipped and counted."""
     import time
 
     import torch
@@ -207,7 +212,15 @@ def score_nll(units: str, out: str, adapter: str | None = None, model: str = MOD
         if not line.strip():
             continue
         unit = json.loads(line)
-        for arm, key in (("bare", "messages_bare"), ("aided", "messages_aided")):
+        prompts = []
+        for c in [c.strip() for c in conditionings.split(",") if c.strip()]:
+            label = "" if c == "message" else f"{c}:"
+            keys = ("messages_bare", "messages_aided") if c == "message" else (f"messages_{c}_bare", f"messages_{c}_aided")
+            prompts += [(label + "bare", keys[0]), (label + "aided", keys[1])]
+        for arm, key in prompts:
+            if key not in unit:
+                rows.append({"unit": unit["id"], "prompt": arm, "missing": True})
+                continue
             ids, labels, prompt_len, _ = _encode(tok, unit[key], None)
             if len(ids) > max_tokens:
                 skipped += 1
@@ -223,8 +236,9 @@ def score_nll(units: str, out: str, adapter: str | None = None, model: str = MOD
                          "nll_sum": round(-tok_logp.sum().item(), 3), "target_tokens": int(mask.sum().item()),
                          "prompt_tokens": prompt_len})
         print(f"{unit['id']} done {int(time.time() - started)}s", flush=True)
-    record = {"model": model, "adapter": adapter, "units": units, "rows": rows, "skipped": skipped,
-              "versions": _versions(), "gpu": torch.cuda.get_device_name(0), "wall_s": int(time.time() - started)}
+    record = {"model": model, "adapter": adapter, "units": units, "conditionings": conditionings, "rows": rows,
+              "skipped": skipped, "versions": _versions(), "gpu": torch.cuda.get_device_name(0),
+              "wall_s": int(time.time() - started)}
     os.makedirs(os.path.dirname(f"/ttt/{out}"), exist_ok=True)
     json.dump(record, open(f"/ttt/{out}", "w"), indent=1, sort_keys=True)
     ttt.commit()
@@ -275,9 +289,11 @@ def main(argv: list[str]) -> int:
         else:
             ap.add_argument("--units", required=True); ap.add_argument("--out", required=True)
             ap.add_argument("--adapter"); ap.add_argument("--max-tokens", type=int, default=12288)
+            ap.add_argument("--conditioning", default="message",
+                            help="comma-separated: message (the first run's prompt), none, subject, task")
             a = ap.parse_args(rest)
             with app.run():
-                print(json.dumps(score_nll.remote(a.units, a.out, a.adapter, a.model, a.max_tokens), indent=1))
+                print(json.dumps(score_nll.remote(a.units, a.out, a.adapter, a.model, a.max_tokens, a.conditioning), indent=1))
         return 0
     print(__doc__, file=sys.stderr)
     return 2

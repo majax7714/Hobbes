@@ -1,20 +1,32 @@
 """The memorisation probe and the held-out navigation evaluation (ADR-099 §4.4, §4.5).
 
     HOBBES_LLM_API_KEY=… uv run scripts/ttt_probe.py probe <repo> <corpus-dir> <base_url> <model> [--dirs 5] [--files 5] [--out f.json]
-    HOBBES_LLM_API_KEY=… uv run scripts/ttt_probe.py nav <repo> <corpus-dir> <base_url> <model> [--context none|card] [--limit N] [--out f.json]
+    HOBBES_LLM_API_KEY=… uv run scripts/ttt_probe.py nav <repo> <corpus-dir> <base_url> <model> [--context none|card|card-refuse] [--limit N] [--out f.json]
+    uv run scripts/ttt_probe.py rescore <repo> <corpus-dir> <old-probe.json> --out <new.json>
 
 ``probe`` is unaided, temperature 0, given only the repo's name and a
 path: (1) list the files under a directory, precision and recall
 against the real tree; (2) the functions defined in a file, against the
 graph; (3) the thirty navigation items ``derive-corpus`` drew. The score
-gates a repo into the memorised or the unseen cell (>0.5 / <0.15).
+gates a repo into the memorised or the unseen cell (>0.5 / <0.15). The
+files part is also scored with generic names dropped and against the
+union of trees across the repo's tagged releases, naming the tag that
+fits best (``score_stoplisted``, ``score_any_version``, ``best_tags``):
+a model holding an older copy of the repo reads as ignorant at the SHA
+otherwise (C-83). ``rescore`` recomputes that part for an old probe
+record from its stored replies (the first runs kept only a 160-char
+head; a row is marked ``truncated`` when the head may have cut names).
 
 ``nav`` asks every ``eval.jsonl`` item — the held-out symbols' questions
 and the absent family's distractors — and scores what each reply names
 (`hobbes.ttt.score`). ``--context card`` puts the symbol's own card in
-the prompt (the reading-comprehension control); ``--context none`` is
-the weights-only arm. The *model* is the arm: the base name or an
-adapter's name on the same endpoint.
+the prompt (the reading-comprehension control); ``--context card-refuse``
+adds an explicit instruction to abstain when the symbol is not listed
+(the abstention control, review item 4); ``--context none`` is the
+weights-only arm. The *model* is the arm: the base name or an adapter's
+name on the same endpoint. Every record carries the ``template_hash``
+of the wording it was asked under and the ``scorer_version`` it was
+scored with.
 
 Computes; does not interpret.
 """
@@ -31,9 +43,12 @@ import urllib.request
 from pathlib import Path
 
 from hobbes import artifacts
+from hobbes.ttt import score as scoring
+from hobbes.ttt.probe import (CONTEXTS, SYSTEM, listed_files, render_context, score_files, tag_trees,
+                              template_hash)
 from hobbes.ttt.score import known_names, score_reply, summarise
 
-SYSTEM = "You are answering questions about the {repo} repository at commit {sha12}. Answer briefly and precisely."
+SCORER_VERSION = getattr(scoring, "SCORER_VERSION", 1)
 
 
 def ask(base_url: str, model: str, key: str, system: str, user: str, max_tokens: int = 512) -> str:
@@ -101,23 +116,25 @@ def probe(a, graph, corpus_dir, key) -> dict:
     repo_root = Path(a.repo)
     sha12 = graph.get("sha", "")[:12]
     system = SYSTEM.format(repo=a.name, sha12=sha12)
-    out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "parts": {}}
-    # (1) files under a directory.
+    out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "parts": {},
+           "template_hash": template_hash("none"), "scorer_version": SCORER_VERSION}
+    trees = tag_trees(repo_root, a.tags)
+    # (1) files under a directory — at the SHA, stoplisted, and against any tagged release.
     rows = []
     for d in pick_dirs(graph, a.dirs):
         real = {p.name for p in (repo_root / d).iterdir() if p.is_file()} if (repo_root / d).is_dir() else set()
         reply = ask(a.base_url, a.model, key, system, f"List the files directly under `{d}/` in {a.name} (at {sha12}), one file name per line.")
-        listed = {t for t in re.findall(r"[\w.-]+\.\w+", reply)}
-        listed = {t.rsplit("/", 1)[-1] for t in listed}
-        rows.append({"dir": d, **prf(listed, real), "reply_head": reply[:160]})
-        print(f"files {d:40} P {rows[-1]['precision']:.2f} R {rows[-1]['recall']:.2f} ({rows[-1]['hit']}/{rows[-1]['truth']})")
+        rows.append({"dir": d, **score_files(listed_files(reply), real, trees, d), "reply": reply, "reply_head": reply[:160]})
+        print(f"files {d:40} P {rows[-1]['precision']:.2f} R {rows[-1]['recall']:.2f} ({rows[-1]['hit']}/{rows[-1]['truth']})"
+              f"  any-version {rows[-1]['precision_any_version']:.2f} {rows[-1]['best_tag'] or '-'}")
     out["parts"]["files"] = rows
+    out["tags_considered"] = len(trees)
     # (2) functions in a file.
     rows = []
     for path, names in pick_files(graph, a.files):
         reply = ask(a.base_url, a.model, key, system, f"What functions, methods and classes are defined in `{path}` in {a.name} (at {sha12})? Names only, one per line.")
         listed = set(_TOKEN.findall(reply)) & {n for n in names} | {t for t in _TOKEN.findall(reply) if t in names}
-        rows.append({"file": path, **prf(set(_TOKEN.findall(reply)), set(names)), "reply_head": reply[:160]})
+        rows.append({"file": path, **prf(set(_TOKEN.findall(reply)), set(names)), "reply": reply, "reply_head": reply[:160]})
         print(f"defs  {path:40} P {rows[-1]['precision']:.2f} R {rows[-1]['recall']:.2f} ({rows[-1]['hit']}/{rows[-1]['truth']})")
     out["parts"]["definitions"] = rows
     # (3) navigation items, no context.
@@ -127,12 +144,65 @@ def probe(a, graph, corpus_dir, key) -> dict:
         reply = ask(a.base_url, a.model, key, system, rec["messages"][0]["content"])
         rows.append({"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply": reply})
     out["parts"]["navigation"] = {"rows": rows, **summarise(rows)}
-    means = [sum(r["precision"] for r in out["parts"]["files"]) / max(1, len(out["parts"]["files"])),
-             sum(r["recall"] for r in out["parts"]["definitions"]) / max(1, len(out["parts"]["definitions"])),
-             out["parts"]["navigation"]["navigation_mean"] or 0.0]
+    finish(out)
+    print(f"probe: files-P {out['means'][0]:.2f}  defs-R {out['means'][1]:.2f}  nav {out['means'][2]:.2f}  → score {out['score']}  "
+          f"cell {out['cell']}  (stoplisted {out['score_stoplisted']}, any-version {out['score_any_version']}, best tags {out['best_tags']})")
+    return out
+
+
+def finish(out: dict) -> dict:
+    """The probe's scores from its parts: ``score``/``cell`` at the SHA, raw
+    (the gate, unchanged); beside them the stoplisted and any-version
+    variants and the tags that fit best."""
+    files, defs = out["parts"]["files"], out["parts"]["definitions"]
+    nav = out["parts"]["navigation"]["navigation_mean"] or 0.0
+    defs_r = sum(r["recall"] for r in defs) / max(1, len(defs))
+
+    def files_mean(key: str) -> float:
+        return sum(r.get(key, r["precision"]) for r in files) / max(1, len(files))
+
+    means = [files_mean("precision_at_sha"), defs_r, nav]
+    out["means"] = [round(m, 3) for m in means]
     out["score"] = round(sum(means) / 3, 3)
     out["cell"] = "M" if out["score"] > 0.5 else "U" if out["score"] < 0.15 else "neither"
-    print(f"probe: files-P {means[0]:.2f}  defs-R {means[1]:.2f}  nav {means[2]:.2f}  → score {out['score']}  cell {out['cell']}")
+    out["score_at_sha"] = out["score"]
+    out["score_stoplisted"] = round((files_mean("precision_at_sha_stoplisted") + defs_r + nav) / 3, 3)
+    out["score_any_version"] = round((files_mean("precision_any_version") + defs_r + nav) / 3, 3)
+    tags: dict[str, int] = {}
+    for r in files:
+        if r.get("best_tag"):
+            tags[r["best_tag"]] = tags.get(r["best_tag"], 0) + 1
+    out["best_tags"] = dict(sorted(tags.items(), key=lambda kv: (-kv[1], kv[0])))
+    return out
+
+
+def rescore(a, graph, corpus_dir, key) -> dict:
+    """Recompute the files part of an old probe record from its stored
+    replies (``reply`` when kept, else the 160-char ``reply_head``)."""
+    old = json.loads(Path(a.old).read_text())
+    repo_root = Path(a.repo)
+    trees = tag_trees(repo_root, a.tags)
+    rows = []
+    for r in old["parts"]["files"]:
+        d = r["dir"]
+        real = {p.name for p in (repo_root / d).iterdir() if p.is_file()} if (repo_root / d).is_dir() else set()
+        text = r.get("reply") if r.get("reply") is not None else r.get("reply_head", "")
+        row = {"dir": d, **score_files(listed_files(text), real, trees, d)}
+        row["truncated"] = r.get("reply") is None and len(r.get("reply_head", "")) >= 160
+        row["reply_head"] = r.get("reply_head", "")
+        if r.get("reply") is not None:
+            row["reply"] = r["reply"]
+        rows.append(row)
+    out = dict(old)
+    out["parts"] = dict(old["parts"], files=rows)
+    out["tags_considered"] = len(trees)
+    out["rescored_from"] = str(a.old)
+    out["scorer_version"] = SCORER_VERSION
+    out.setdefault("template_hash", template_hash("none"))
+    finish(out)
+    print(f"rescore: score {out['score']} cell {out['cell']}  stoplisted {out['score_stoplisted']}  "
+          f"any-version {out['score_any_version']}  best tags {out['best_tags']}  "
+          f"truncated rows {sum(1 for r in rows if r['truncated'])}/{len(rows)}")
     return out
 
 
@@ -140,7 +210,7 @@ def nav(a, graph, corpus_dir, key) -> dict:
     sha12 = graph.get("sha", "")[:12]
     system = SYSTEM.format(repo=a.name, sha12=sha12)
     cards = {}
-    if a.context == "card":
+    if a.context != "none":
         for ln in (corpus_dir / "eval-cards.jsonl").read_text().splitlines():
             if ln.strip():
                 c = json.loads(ln); cards[c["symbol"]] = c["messages"][1]["content"]
@@ -157,11 +227,7 @@ def nav(a, graph, corpus_dir, key) -> dict:
     items = items[:a.limit] if a.limit else items
 
     def one(rec: dict) -> dict:
-        user = rec["messages"][0]["content"]
-        if a.context == "card":
-            card = cards.get(rec["symbol"])
-            user = (f"Derived context for this symbol (Hobbes, {sha12}):\n{card}\n\n" if card else
-                    f"Derived context: Hobbes has no card for `{rec['symbol']}` at {sha12}.\n\n") + user
+        user = render_context(a.context, rec["symbol"], cards.get(rec["symbol"]), sha12) + rec["messages"][0]["content"]
         reply = ask(a.base_url, a.model, key, system, user)
         # The whole reply is kept so a scorer fix can rescore a run without re-asking.
         return {"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply": reply}
@@ -174,6 +240,7 @@ def nav(a, graph, corpus_dir, key) -> dict:
             if i % 200 == 0:
                 print(f"{i}/{len(items)} …", flush=True)
     out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "context": a.context, "items": a.items,
+           "template_hash": template_hash(a.context), "scorer_version": SCORER_VERSION,
            "rows": rows, **summarise(rows)}
     print("nav:", json.dumps({k: v for k, v in out.items() if k != "rows"}))
     return out
@@ -181,10 +248,12 @@ def nav(a, graph, corpus_dir, key) -> dict:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=("probe", "nav")); ap.add_argument("repo"); ap.add_argument("corpus")
-    ap.add_argument("base_url"); ap.add_argument("model")
+    ap.add_argument("mode", choices=("probe", "nav", "rescore")); ap.add_argument("repo"); ap.add_argument("corpus")
+    ap.add_argument("base_url", help="the endpoint; for `rescore`, the old probe record to rescore")
+    ap.add_argument("model", nargs="?", default="")
+    ap.add_argument("--tags", type=int, default=30, help="tagged releases considered for the any-version file score")
     ap.add_argument("--name"); ap.add_argument("--dirs", type=int, default=5); ap.add_argument("--files", type=int, default=5)
-    ap.add_argument("--context", choices=("none", "card"), default="none"); ap.add_argument("--limit", type=int)
+    ap.add_argument("--context", choices=CONTEXTS, default="none"); ap.add_argument("--limit", type=int)
     ap.add_argument("--workers", type=int, default=8, help="concurrent requests for `nav` (vLLM batches them)")
     ap.add_argument("--items", choices=("eval", "train"), default="eval",
                     help="`nav` over the held-out questions (default) or a seeded sample of the training questions")
@@ -194,7 +263,9 @@ def main(argv: list[str]) -> int:
     a.name = a.name or Path(a.repo).resolve().name
     key = os.environ.get("HOBBES_LLM_API_KEY", "")
     graph = artifacts.load_graph(Path(a.repo))
-    result = (probe if a.mode == "probe" else nav)(a, graph, Path(a.corpus), key)
+    if a.mode == "rescore":
+        a.old = a.base_url
+    result = {"probe": probe, "nav": nav, "rescore": rescore}[a.mode](a, graph, Path(a.corpus), key)
     if a.out:
         a.out.parent.mkdir(parents=True, exist_ok=True)
         a.out.write_text(json.dumps(result, indent=1, sort_keys=True))

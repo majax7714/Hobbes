@@ -10,8 +10,8 @@ import pytest
 
 from hobbes.ttt import score, units
 from hobbes.ttt.units import (
-    Unit, UnitError, attach_context, context_block, files_in_patch, nll_messages,
-    read_units, unit_from_deepswe, units_from_git, write_units,
+    CONDITIONINGS, Unit, UnitError, attach_context, attach_tasks, context_block, files_in_patch, message_keys,
+    nll_messages, read_tasks, read_units, unit_from_deepswe, units_from_git, write_units,
 )
 from tests.test_ttt_corpus import graph_fixture, testmap_fixture
 
@@ -140,6 +140,73 @@ class TestContext:
         assert back[0]["context"].startswith("## What Hobbes can see") and back[0]["id"] == "x"
         assert nll_messages(back[0], True)[1]["content"] == nll_messages(u, True)[1]["content"]
         assert back[0]["messages_bare"] == nll_messages(u, False) and back[0]["messages_aided"] == nll_messages(u, True)
+
+
+class TestConditioning:
+    """Review item 2: what precedes the diff tokens is a named variable."""
+
+    def unit(self, **kw) -> Unit:
+        base = dict(id="abc123def456:src/a.py", repo="demo", sha="c" * 40, source="git",
+                    proposal="fix: a thing\n\nbody line\n\nIn `src/a.py`.", files=["src/a.py"], gold_diff="+x\n",
+                    subject="fix: a thing", context="## What Hobbes can see\nfiles: src/a.py")
+        base.update(kw)
+        return Unit(**base)
+
+    def test_message_is_the_first_runs_prompt(self):
+        u = self.unit()
+        assert nll_messages(u, False, "message") == nll_messages(u, False)
+        assert "## Task\nfix: a thing\n\nbody line\n\nIn `src/a.py`." in nll_messages(u, False)[1]["content"]
+
+    def test_none_is_the_path_alone(self):
+        user = nll_messages(self.unit(), False, "none")[1]["content"]
+        assert user.startswith("## Task\nIn `src/a.py`.\n\nWrite the unified diff")
+        assert "fix: a thing" not in user and "body line" not in user
+
+    def test_subject_and_task_carry_the_path_and_need_text(self):
+        u = self.unit(task="Make the thing not break.")
+        assert nll_messages(u, False, "subject")[1]["content"].startswith("## Task\nfix: a thing\n\nIn `src/a.py`.")
+        task = nll_messages(u, True, "task")[1]["content"]
+        assert task.startswith("## Task\nMake the thing not break.\n\nIn `src/a.py`.\n\n## What Hobbes can see")
+        assert "body line" not in task
+        assert nll_messages(self.unit(subject=""), False, "subject") is None
+        assert nll_messages(self.unit(), False, "task") is None
+        with pytest.raises(ValueError):
+            nll_messages(u, False, "vibes")
+
+    def test_git_units_carry_the_subject_and_deepswe_the_task(self, history, tmp_path):
+        got = units_from_git(history, "base", name="demo")
+        assert all(u.subject and u.proposal.startswith(u.subject) for u in got)
+        task = tmp_path / "t"; (task / "solution").mkdir(parents=True)
+        (task / "task.toml").write_text('[metadata]\ntask_id = "t-1"\nrepository_url = "https://x/y/demo"\nbase_commit_hash = "d1"\n')
+        (task / "instruction.md").write_text("Add a thing.\n")
+        (task / "solution" / "solution.patch").write_text(PATCH)
+        d = unit_from_deepswe(task)
+        assert d.task == "Add a thing." and d.subject == ""
+        assert nll_messages(d, False, "subject") is None
+        assert nll_messages(d, False, "task")[1]["content"].startswith(
+            "## Task\nAdd a thing.\n\nIn `src/app/core.py`, `docs/new.md`, `old.txt`.")
+
+    def test_tasks_attach_by_commit_prefix(self, tmp_path):
+        f = tmp_path / "tasks.jsonl"
+        f.write_text(json.dumps({"_note": "x"}) + "\n" + json.dumps({"commit": "abc123", "task": "  Do it.  "}) + "\n"
+                     + json.dumps({"commit": "ffffff", "task": "Other."}) + "\n")
+        tasks = read_tasks(f)
+        assert tasks == {"abc123": "Do it.", "ffffff": "Other."}
+        u, d = self.unit(), self.unit(id="t-1", source="deepswe")
+        assert attach_tasks([u, d], tasks) == 1
+        assert u.task == "Do it." and d.task == ""
+
+    def test_write_units_emits_every_conditioning_the_unit_carries(self, tmp_path):
+        u = self.unit(task="Do it.")
+        write_units([u, self.unit(id="n:src/a.py", subject="")], tmp_path / "u.jsonl")
+        rows = read_units(tmp_path / "u.jsonl")
+        assert message_keys("message") == ("messages_bare", "messages_aided")
+        assert message_keys("task") == ("messages_task_bare", "messages_task_aided")
+        for c in CONDITIONINGS:
+            bare, aided = message_keys(c)
+            assert rows[0][bare] == nll_messages(u, False, c) and rows[0][aided] == nll_messages(u, True, c)
+        assert "messages_subject_bare" not in rows[1] and "messages_task_bare" not in rows[1]
+        assert "messages_none_bare" in rows[1] and "messages_bare" in rows[1]
 
 
 def record(family, symbol, answer):

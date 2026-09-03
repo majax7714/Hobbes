@@ -18,6 +18,16 @@ prototype derived it (C-55) — seeds from the unit's files, symbols the
 proposal names, one hop of the symbol graph, the tests that reach the
 seeds — never a planner. The **NLL prompt** is the same for every arm
 but for that block; the adapter is the other variable.
+
+The prompt's **conditioning** — what precedes the diff tokens — is a
+named variable (review item 2, 2026-09-03). The first run scored every
+unit under ``message``: the commit subject and body and the target
+path, which the write-up did not say. Three more are rendered beside
+it when the unit can carry them: ``none`` (the target path only),
+``subject`` (the commit's first line and the path), ``task`` (a
+proposal in a task's words — a DeepSWE instruction, or a hand-written
+proposal attached by commit — and the path). A unit without a subject
+or a task has no row under that conditioning; the scorer counts it.
 """
 
 from __future__ import annotations
@@ -63,6 +73,11 @@ class Unit:
     context: str = ""
     #: What the unit builder could not do (a file absent from the graph).
     notes: list[str] = field(default_factory=list)
+    #: The commit's first line (git units); empty for a DeepSWE task.
+    subject: str = ""
+    #: A proposal in a task's words: the DeepSWE instruction, or a
+    #: hand-written proposal attached by commit (:func:`attach_tasks`).
+    task: str = ""
 
     @property
     def diff_lines(self) -> int:
@@ -123,7 +138,7 @@ def units_from_git(repo_root: Path, base: str, head: str = "HEAD", *, name: str 
                 continue
             unit = Unit(id=f"{commit[:12]}:{path}", repo=repo, sha=base_sha, source="git",
                         proposal=f"{subject}\n\n{body[:BODY_CAP]}".strip() + f"\n\nIn `{path}`.",
-                        files=[path], gold_diff=diff)
+                        files=[path], gold_diff=diff, subject=subject)
             if min_lines <= unit.diff_lines <= max_lines:
                 units.append(unit)
     return units
@@ -141,7 +156,35 @@ def unit_from_deepswe(task_dir: Path, name: str | None = None) -> Unit:
     md = meta.get("metadata", {})
     repo = name or md.get("repository_url", "").rstrip("/").rsplit("/", 1)[-1] or task_dir.name
     return Unit(id=md.get("task_id", task_dir.name), repo=repo, sha=md.get("base_commit_hash", ""),
-                source="deepswe", proposal=instruction.strip(), files=files_in_patch(patch), gold_diff=patch)
+                source="deepswe", proposal=instruction.strip(), files=files_in_patch(patch), gold_diff=patch,
+                task=instruction.strip())
+
+
+def read_tasks(path: Path) -> dict[str, str]:
+    """``commit → task`` from a JSONL of ``{"commit", "task"}`` rows (a row
+    without both keys is ignored — the file may open with a note)."""
+    out: dict[str, str] = {}
+    for line in Path(path).read_text().splitlines():
+        if line.strip():
+            row = json.loads(line)
+            if row.get("commit") and row.get("task"):
+                out[row["commit"]] = row["task"].strip()
+    return out
+
+
+def attach_tasks(units: list[Unit], tasks: dict[str, str]) -> int:
+    """Attach a hand-written task to every git unit whose commit prefix
+    matches a key (either may be the shorter); returns how many got one."""
+    n = 0
+    for unit in units:
+        if unit.source != "git":
+            continue
+        commit = unit.id.split(":", 1)[0]
+        for key, task in tasks.items():
+            if commit.startswith(key) or key.startswith(commit):
+                unit.task = task; n += 1
+                break
+    return n
 
 
 _WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]{2,}")
@@ -194,11 +237,34 @@ SYSTEM = "You are a single-use software engineer working in {repo} at commit {sh
 ASK = "Write the unified diff that implements the task. Output only the diff."
 
 
-def nll_messages(unit: Unit | dict, with_context: bool) -> list[dict]:
-    """The chat the NLL is scored under: system, user (task, the A1 block
-    when *with_context*), and the gold diff as the assistant turn."""
+#: What precedes the diff tokens. ``message`` is what the first run scored.
+CONDITIONINGS = ("none", "subject", "message", "task")
+
+
+def _path_line(u: dict) -> str:
+    return "In " + ", ".join(f"`{f}`" for f in u.get("files", [])) + "."
+
+
+def nll_messages(unit: Unit | dict, with_context: bool, conditioning: str = "message") -> list[dict] | None:
+    """The chat the NLL is scored under: system, user (the task under
+    *conditioning*, the A1 block when *with_context*), and the gold diff
+    as the assistant turn. ``message`` is the unit's proposal as written
+    (byte-identical to the first run); ``none`` is the target path alone;
+    ``subject`` and ``task`` need the unit to carry one and return None
+    when it does not."""
     u = unit if isinstance(unit, dict) else asdict(unit)
-    parts = ["## Task", u["proposal"].strip()]
+    if conditioning not in CONDITIONINGS:
+        raise ValueError(f"unknown conditioning {conditioning!r}; one of {', '.join(CONDITIONINGS)}")
+    if conditioning == "message":
+        head = [u["proposal"].strip()]
+    elif conditioning == "none":
+        head = [_path_line(u)]
+    else:
+        text = (u.get(conditioning) or "").strip()
+        if not text:
+            return None
+        head = [text, "", _path_line(u)]
+    parts = ["## Task", *head]
     if with_context and u.get("context"):
         parts += ["", u["context"].strip()]
     parts += ["", ASK]
@@ -209,16 +275,31 @@ def nll_messages(unit: Unit | dict, with_context: bool) -> list[dict]:
     ]
 
 
+def message_keys(conditioning: str) -> tuple[str, str]:
+    """The units-file keys of a conditioning's bare and aided chats:
+    ``messages_bare`` / ``messages_aided`` for ``message`` (the first
+    run's names), ``messages_<conditioning>_bare`` / ``_aided`` otherwise."""
+    if conditioning == "message":
+        return "messages_bare", "messages_aided"
+    return f"messages_{conditioning}_bare", f"messages_{conditioning}_aided"
+
+
 def write_units(units: list[Unit], path: Path) -> None:
-    """One JSON line per unit, carrying both NLL prompts (``messages_bare``,
-    ``messages_aided``) so the scorer needs nothing but the file."""
+    """One JSON line per unit, carrying the NLL prompts (``messages_bare``,
+    ``messages_aided`` for the ``message`` conditioning; ``messages_<c>_bare``
+    / ``_aided`` for every other conditioning the unit can carry) so the
+    scorer needs nothing but the file."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     rows = []
     for u in units:
         row = asdict(u)
-        row["messages_bare"] = nll_messages(u, False)
-        row["messages_aided"] = nll_messages(u, True)
+        for conditioning in CONDITIONINGS:
+            bare, aided = message_keys(conditioning)
+            chat = nll_messages(u, False, conditioning)
+            if chat is not None:
+                row[bare] = chat
+                row[aided] = nll_messages(u, True, conditioning)
         rows.append(json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n")
     path.write_text("".join(rows))
 

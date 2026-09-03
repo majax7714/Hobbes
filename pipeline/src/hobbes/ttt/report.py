@@ -80,26 +80,41 @@ def paired(a: dict[str, float], b: dict[str, float], units: list[str] | None = N
                   p=min(1.0, 2 * tail), wins=sum(1 for d in diffs if d < 0), higher=sum(1 for d in diffs if d > 0))
 
 
-def report(base_run: dict | None, adapter_run: dict | None, known: set[str] | None = None,
-           resamples: int = 5_000, seed: int = 0) -> dict:
-    """Every comparison over all units and, when *known* is given, over
-    the C-84 split; returns a serialisable dict."""
-    table = arm_table(base_run, adapter_run)
-    all_ids = sorted(set().union(*table.values())) if table else []
+def arm_from_run(run: dict, prompt: str) -> dict[str, float]:
+    """``unit id -> mean NLL`` for one prompt (``bare`` / ``aided``) of one run."""
+    return {r["unit"]: r["nll_mean"] for r in run.get("rows", [])
+            if r.get("prompt") == prompt and not r.get("skipped")}
+
+
+def report_arms(arms: dict[str, dict[str, float]], comparisons: list[tuple[str, str]] | tuple[tuple[str, str], ...],
+                known: set[str] | None = None, resamples: int = 5_000, seed: int = 0) -> dict:
+    """Every named comparison over all units and, when *known* is given,
+    over the C-84 split (units whose file the base graph knew, and the
+    rest); *arms* is ``name -> unit id -> mean NLL`` so a control
+    adapter or an ablation point is just another name. Returns a
+    serialisable dict; comparisons naming an absent arm are skipped."""
+    all_ids = sorted(set().union(*arms.values())) if arms else []
     populations = {"all": all_ids}
     if known is not None:
         populations["context-known"] = [i for i in all_ids if i in known]
         populations["no-known-file"] = [i for i in all_ids if i not in known]
     out: dict = {"arms": {arm: {"n": len(v), "mean": round(statistics.mean(v.values()), 5) if v else None}
-                          for arm, v in table.items()},
+                          for arm, v in arms.items()},
                  "populations": {k: len(v) for k, v in populations.items()}, "comparisons": {}}
     for pop, ids in populations.items():
-        for a, b in COMPARISONS:
-            if a in table and b in table:
-                p = paired(table[a], table[b], ids, resamples, seed)
+        for a, b in comparisons:
+            if a in arms and b in arms:
+                p = paired(arms[a], arms[b], ids, resamples, seed)
                 if p is not None:
                     out["comparisons"][f"{pop}:{a}-{b}"] = p.__dict__
     return out
+
+
+def report(base_run: dict | None, adapter_run: dict | None, known: set[str] | None = None,
+           resamples: int = 5_000, seed: int = 0) -> dict:
+    """The four fixed arms and :data:`COMPARISONS` — :func:`report_arms`
+    over :func:`arm_table`."""
+    return report_arms(arm_table(base_run, adapter_run), COMPARISONS, known, resamples, seed)
 
 
 def format_report(rep: dict) -> str:

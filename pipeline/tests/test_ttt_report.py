@@ -6,7 +6,7 @@ import json
 import pytest
 
 from hobbes.ttt import report
-from hobbes.ttt.report import arm_table, format_nav_report, format_report, nav_report, paired
+from hobbes.ttt.report import arm_from_run, arm_table, format_nav_report, format_report, nav_report, paired, report_arms
 
 
 def run(with_adapter: bool, values: dict[str, tuple[float, float]]) -> dict:
@@ -72,6 +72,22 @@ class TestReport:
     def test_base_only_report_has_two_arms(self):
         rep = report.report(BASE, None, resamples=100)
         assert set(rep["arms"]) == {"A0", "A1"} and list(rep["comparisons"]) == ["all:A1-A0"]
+
+    def test_named_arms_compare_any_pair_per_population(self):
+        control = run(True, {f"u{i}": (1.7 + i / 100, 1.7 + i / 100) for i in range(30)})
+        arms = {"A0": arm_from_run(BASE, "bare"), "A2": arm_from_run(ADAPTER, "bare"), "C": arm_from_run(control, "bare")}
+        known = {f"u{i}" for i in range(10)}
+        rep = report_arms(arms, [("A2", "A0"), ("C", "A0"), ("A2", "C"), ("A2", "Z")], known, resamples=300)
+        assert set(rep["arms"]) == {"A0", "A2", "C"} and rep["populations"] == {"all": 30, "context-known": 10, "no-known-file": 20}
+        assert list(rep["comparisons"]) == [f"{pop}:{c}" for pop in ("all", "context-known", "no-known-file")
+                                            for c in ("A2-A0", "C-A0", "A2-C")]  # the unknown arm is skipped
+        assert rep["comparisons"]["all:C-A0"]["delta"] == pytest.approx(-0.3)
+        assert rep["comparisons"]["no-known-file:A2-C"]["n"] == 20 and rep["comparisons"]["no-known-file:A2-C"]["delta"] == pytest.approx(-0.2)
+        assert "no-known-file:A2-C" in format_report(rep)
+
+    def test_report_is_report_arms_over_the_fixed_table(self):
+        known = {f"u{i}" for i in range(10)}
+        assert report.report(BASE, ADAPTER, known, resamples=200) == report_arms(arm_table(BASE, ADAPTER), report.COMPARISONS, known, resamples=200)
 
 
 def nav_run(scores: dict[tuple[str, str], float], empty: set[tuple[str, str]] = frozenset()) -> dict:

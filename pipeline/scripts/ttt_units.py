@@ -2,11 +2,14 @@
 
     uv run scripts/ttt_units.py git <repo> <base> --graph <ingested-at-base> --out units.jsonl
                                 [--head HEAD] [--prefix P ...] [--max-lines 120] [--min-lines 3] [--name NAME]
+                                [--tasks proposals.jsonl]
     uv run scripts/ttt_units.py deepswe <task-dir> ... --graph <ingested-clone> --out units.jsonl [--name NAME]
 
 ``--graph`` is a checkout ingested at the units' base SHA; the A1 context
-block is derived from its graph and test map. Prints one line per unit
-and a count; writes JSONL with both NLL prompts per unit. Computes; does
+block is derived from its graph and test map. ``--tasks`` attaches
+hand-written proposals to git units by commit (the ``task``
+conditioning, review item 2). Prints one line per unit and a count;
+writes JSONL with every NLL prompt the unit can carry. Computes; does
 not interpret.
 """
 import argparse
@@ -14,7 +17,8 @@ import sys
 from pathlib import Path
 
 from hobbes import artifacts
-from hobbes.ttt.units import UnitError, attach_context, unit_from_deepswe, units_from_git, write_units
+from hobbes.ttt.units import (UnitError, attach_context, attach_tasks, read_tasks, unit_from_deepswe,
+                              units_from_git, write_units)
 
 
 def main(argv: list[str]) -> int:
@@ -23,6 +27,7 @@ def main(argv: list[str]) -> int:
     g = sub.add_parser("git"); g.add_argument("repo", type=Path); g.add_argument("base"); g.add_argument("--head", default="HEAD")
     g.add_argument("--prefix", action="append", default=[]); g.add_argument("--max-lines", type=int, default=120)
     g.add_argument("--min-lines", type=int, default=3)
+    g.add_argument("--tasks", type=Path, help="JSONL of {commit, task}: hand-written proposals attached by commit")
     d = sub.add_parser("deepswe"); d.add_argument("tasks", type=Path, nargs="+")
     for p in (g, d):
         p.add_argument("--graph", type=Path, required=True, help="a checkout ingested at the base SHA")
@@ -43,6 +48,9 @@ def main(argv: list[str]) -> int:
         if u.sha and graph_sha and not graph_sha.startswith(u.sha[:7]) and not u.sha.startswith(graph_sha[:7]):
             u.notes.append(f"graph is at {graph_sha[:12]}, unit base is {u.sha[:12]}")
     attach_context(units, graph, tests)
+    if a.mode == "git" and a.tasks:
+        got = attach_tasks(units, read_tasks(a.tasks))
+        print(f"tasks: {got}/{len(units)} unit(s) carry a hand-written proposal from {a.tasks}")
     write_units(units, a.out)
     for u in units:
         note = f"  [{'; '.join(u.notes)}]" if u.notes else ""

@@ -287,6 +287,100 @@ class TestControl:
         with pytest.raises(CorpusError, match="unknown control"):
             build_corpus(ingested, ingested / "x", control="reversed")
 
+    def test_shuffled_all_deranges_card_lines_within_a_module_and_keeps_headers(self, ingested):
+        build_corpus(ingested, ingested / "true", holdout=0.3, seed=0)
+        m = build_corpus(ingested, ingested / "ctl", holdout=0.3, seed=0, control="shuffled-all")
+        true, ctl = read(ingested / "true" / "train.jsonl"), read(ingested / "ctl" / "train.jsonl")
+        assert m["control"] == "shuffled-all" and len(true) == len(ctl)
+        assert [r["messages"][0] for r in true] == [r["messages"][0] for r in ctl]
+        edge = ("called by: ", "calls: ", "tests: ")
+        module_of = {s["id"]: s["module"] for s in graph_fixture()["symbols"]}
+        per_module: dict[str, list[tuple[dict, dict]]] = {}
+        for a, b in zip(true, ctl):
+            if a["kind"] != "card":
+                continue
+            assert a["symbol"] == b["symbol"]
+            la, lb = a["messages"][1]["content"].split("\n"), b["messages"][1]["content"].split("\n")
+            # Header lines (symbol, file, tier) stay; only the edge lines move.
+            assert [x for x in la if not x.startswith(edge)] == [x for x in lb if not x.startswith(edge)]
+            per_module.setdefault(module_of[a["symbol"]], []).append((a, b))
+        moved = 0
+        for module, pairs in per_module.items():
+            for prefix in edge:
+                before = sorted(next(x for x in a["messages"][1]["content"].split("\n") if x.startswith(prefix)) for a, _ in pairs)
+                after = sorted(next(x for x in b["messages"][1]["content"].split("\n") if x.startswith(prefix)) for _, b in pairs)
+                assert before == after  # the same multiset of lines per module and kind
+            if len(pairs) >= 2:
+                moved += sum(a["messages"][1] != b["messages"][1] for a, b in pairs)
+        assert moved > 0 and m["cards_unpermuted"] == sum(len(p) for p in per_module.values() if len(p) < 2)
+        # The QA is still deranged, as under `shuffled`.
+        qa = [(a, b) for a, b in zip(true, ctl) if a["kind"] == "qa"]
+        assert qa and all(a["messages"][1] != b["messages"][1] for a, b in qa)
+        assert (ingested / "true" / "eval.jsonl").read_bytes() == (ingested / "ctl" / "eval.jsonl").read_bytes()
+
+    def test_shuffle_card_lines_is_a_derangement_per_line_kind(self):
+        def card(i):
+            return {"kind": "card", "family": None, "symbol": f"m.s{i}", "split": "train",
+                    "messages": [{"role": "user", "content": f"q{i}"},
+                                 {"role": "assistant", "content": f"symbol: m.s{i}\nfile: m.py:{i}\ncalled by: c{i}\ncalls: k{i}\ntests: t{i}\ntier of this card: semantic"}]}
+        recs = [card(i) for i in range(5)] + [{"kind": "card", "family": None, "symbol": "lone.x", "split": "train",
+                                                "messages": [{"role": "user", "content": "q"},
+                                                             {"role": "assistant", "content": "symbol: lone.x\ncalled by: z\ncalls: z\ntests: z"}]}]
+        module_of = {f"m.s{i}": "m" for i in range(5)} | {"lone.x": "lone"}
+        out, alone = corpus.shuffle_card_lines(recs, module_of, 0)
+        assert alone == 1 and out[5] == recs[5]
+        for i in range(5):
+            lines = out[i]["messages"][1]["content"].split("\n")
+            assert lines[0] == f"symbol: m.s{i}" and lines[1] == f"file: m.py:{i}" and lines[5] == "tier of this card: semantic"
+            assert lines[2] != f"called by: c{i}" and lines[3] != f"calls: k{i}" and lines[4] != f"tests: t{i}"
+        assert corpus.shuffle_card_lines(recs, module_of, 0) == (out, alone)
+        assert corpus.shuffle_card_lines(recs, module_of, 1) != (out, alone)
+
+
+class TestParaphrases:
+    def test_k0_is_canonical_and_k4_multiplies_training_qa_only(self, ingested):
+        from hobbes.ttt.score import truth_items
+        m0 = build_corpus(ingested, ingested / "k0", holdout=0.3, seed=0)
+        m4 = build_corpus(ingested, ingested / "k4", holdout=0.3, seed=0, paraphrases=4)
+        assert m0["paraphrases"] == 0 and m4["paraphrases"] == 4 and m0["corpus_hash"] != m4["corpus_hash"]
+        k0, k4 = read(ingested / "k0" / "train.jsonl"), read(ingested / "k4" / "train.jsonl")
+        assert all("variant" not in r for r in k0)
+        qa0, qa4 = [r for r in k0 if r["kind"] == "qa"], [r for r in k4 if r["kind"] == "qa"]
+        assert len(qa4) == 4 * len(qa0) and {r["variant"] for r in qa4} == {0, 1, 2, 3}
+        assert [r for r in k4 if r["kind"] != "qa"] == [r for r in k0 if r["kind"] != "qa"]  # cards, docs untouched
+        assert m4["counts"]["train"]["by_family"]["defines"] == 4 * m0["counts"]["train"]["by_family"]["defines"]
+        # Variant 0 is the canonical record; every variant names the same items in the same order.
+        by_key: dict[tuple, dict[int, dict]] = {}
+        for r in qa4:
+            by_key.setdefault((r["family"], r["symbol"]), {})[r["variant"]] = r
+        for (family, symbol), variants in by_key.items():
+            canon = next(r for r in qa0 if (r["family"], r["symbol"]) == (family, symbol))
+            assert {k: v for k, v in variants[0].items() if k != "variant"} == canon
+            questions = {v["messages"][0]["content"] for v in variants.values()}
+            answers = {v["messages"][1]["content"] for v in variants.values()}
+            assert len(questions) == 4 and len(answers) == 4, (family, symbol)
+            for v in variants.values():
+                assert truth_items(v) == truth_items(canon), (family, symbol, v["variant"])
+                if family == "absent":
+                    assert corpus_scoring_negation(v["messages"][1]["content"])
+        # The evaluation files are canonical either way.
+        for name in ("eval.jsonl", "eval-cards.jsonl", "probe-nav.jsonl"):
+            assert (ingested / "k0" / name).read_bytes() == (ingested / "k4" / name).read_bytes()
+
+    def test_out_of_range_is_refused(self, ingested):
+        with pytest.raises(CorpusError, match="paraphrases"):
+            build_corpus(ingested, ingested / "x", paraphrases=5)
+
+    def test_cli_flag(self, ingested, capsys):
+        assert cli.main(["derive-corpus", "--repo", str(ingested), "--out", str(ingested / "c"), "--paraphrases", "2", "--json"]) == 0
+        assert json.loads(capsys.readouterr().out)["paraphrases"] == 2
+
+
+def corpus_scoring_negation(text: str) -> bool:
+    """Every absent-family phrasing must carry the cue the scorer reads as a refusal."""
+    from hobbes.ttt.score import _NEGATION
+    return bool(_NEGATION.search(text))
+
 
 class TestCli:
     def test_writes_under_derived_and_summarises(self, ingested, capsys, monkeypatch):

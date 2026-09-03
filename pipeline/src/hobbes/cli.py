@@ -704,7 +704,7 @@ def _cmd_derive_corpus(args: argparse.Namespace) -> int:
     out_dir = Path(args.out) if args.out else repo_root / DERIVED_DIR / CORPUS_DIR
     try:
         manifest = build_corpus(repo_root, out_dir, holdout=args.holdout, seed=args.seed, name=args.name,
-                                control=args.control)
+                                control=args.control, paraphrases=args.paraphrases)
     except CorpusError as exc:
         print(f"hobbes derive-corpus: {exc}", file=sys.stderr)
         return 2
@@ -1312,9 +1312,13 @@ def build_parser() -> argparse.ArgumentParser:
                                help="fraction of symbols held out for evaluation (default: 0.1)")
     corpus_parser.add_argument("--seed", type=int, default=0, help="seed for the held-out split (default: 0)")
     corpus_parser.add_argument("--name", help="the repo's name in every prompt (default: the root directory's)")
-    corpus_parser.add_argument("--control", choices=("none", "shuffled"), default="none",
+    corpus_parser.add_argument("--control", choices=("none", "shuffled", "shuffled-all"), default="none",
                                help="a control corpus: `shuffled` permutes answers within each family so every "
-                                    "relation is wrong and the vocabulary identical (ADR-099)")
+                                    "relation is wrong and the vocabulary identical (ADR-099); `shuffled-all` "
+                                    "also permutes the cards' edge lines within each module")
+    corpus_parser.add_argument("--paraphrases", type=int, default=0,
+                               help="render every training question K times, in K phrasings of question and "
+                                    "answer (0–4; default 0 = the canonical wording once)")
     corpus_parser.add_argument("--json", action="store_true", help="print the manifest instead of the summary")
 
     run_parser = sub.add_parser(
