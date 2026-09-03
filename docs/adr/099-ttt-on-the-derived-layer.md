@@ -117,3 +117,45 @@ so one deployment serves the base and every adapter by name.
   distractor check, the module projection of the impact family, the
   git and DeepSWE unit builders, the prompt symmetry, the scorer.
 - The 2026-08-24 standing policy stands for every other run.
+
+## Amendments (2026-09-03, after Max's review of the first record)
+
+The review set ten follow-ups (`benchmark-hypotheses.md` § Follow-ups,
+preregistered before any ran; `olmo3-ttt-results.md` §10; the second
+cell record `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`).
+The decisions they added to the eight above:
+
+9. **The NLL prompt's conditioning is a named variable**
+   (`hobbes.ttt.units.CONDITIONINGS`: `none` / `subject` / `message` /
+   `task`); every units file carries each chat a unit can, the run
+   record names what it scored, and the first run's prompt is stated
+   verbatim in the second record (C-87). Hand-written task proposals
+   live in `bench/ttt/proposals-<repo>-<sha>.jsonl`, one per commit,
+   matched to units by commit.
+10. **Two controls, named apart.** `shuffled` (the first) deranged card
+    bodies whole and kept every true edge under the wrong question;
+    `shuffled-all` deranges the edge lines within a module. Each is its
+    own recipe hash; the first control's record stands as what it was.
+    The true−control margin is a bound on corpus coherence, not the
+    graph's worth on a unit (C-86).
+11. **Scorer v2** (`hobbes.ttt.score.SCORER_VERSION`): a reply names a
+    file when a path-shaped token is a `/`-boundary suffix of exactly
+    one known path. Every navigation run is re-scored from its stored
+    replies into a new file; the version rides every record; nothing
+    is rescored in place.
+12. **Paraphrases are a corpus option** (`derive-corpus --paraphrases
+    K`, four phrasings per family, variant 0 the original; the eval set
+    is always variant 0; K=0 is byte-identical to before).
+13. **The primary cell runs one agent per derived unit on the owned
+    loop with file tools only** (`loop.py --no-bash`): no exec in any
+    arm, so policy is identical across arms and repo code never runs;
+    solve is recorded as "a non-empty patch" and the guarding tests are
+    not run by anyone in this pass (a defect of the cell record, not a
+    finding). HSR resolves code-shaped references against the graph
+    (external imports unverifiable; names the agent's own edits define
+    excluded); RFE against the unit's interior; `manifest_ignore` is
+    the agent-level form of C-88.
+14. **Bootstrap intervals on the NLL comparisons are unit-only** until
+    a third seed says otherwise: seed 1 moved the true−control margin
+    by more than twice its half-width (item 6).
+
