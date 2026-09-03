@@ -67,7 +67,38 @@ of 147 units carry one, by commit; fastapi's two DeepSWE units carry
 their instruction). Runs `nllcond-*.json`, `modal_ttt.py nll
 --conditioning message,none,subject,task`.
 
-*(table appended when the passes land)*
+Runs `nllcond-olmo-hobbes-{base,300,control}.json` (every unit scored
+under all eight prompts in one pass; the `message` rows reproduce the
+first run to five decimals); reports `report-olmo-hobbes-cond-*.json`.
+Mean per-token NLL over 147 units, paired, 5,000 resamples:
+
+| conditioning | A0 | A2−A0 | A1−A0 | A3−A2 | A2−C (control) |
+|---|---|---|---|---|---|
+| none (path only) | 2.4992 | **−0.2444** [−0.2598, −0.2292] 147/147 | −0.0030 p 0.40 | −0.0156 [−0.0194, −0.0122] 123/147 | −0.0703 139/147 |
+| subject | 2.4665 | −0.2801 [−0.2977, −0.2623] 147/147 | +0.0045 p 0.14 | −0.0067 [−0.0098, −0.0036] 98/147 | −0.0762 142/147 |
+| message (the first run) | 2.3940 | −0.2964 [−0.3153, −0.2782] 147/147 | +0.0017 p 0.56 | +0.0006 p 0.72 | −0.0781 140/147 |
+| task (hand-written proposal) | 2.4485 | **−0.2986** [−0.3182, −0.2797] 147/147 | **−0.0083** [−0.0130, −0.0039] 89/147 | **−0.0078** [−0.0110, −0.0047] 99/147 | −0.0781 143/147 |
+
+Context-known units (55) under `task`: A1−A0 −0.0148 (39/55, p
+<0.0002), A3−A2 −0.0107 (40/55). fastapi, 68 git units: `none` A2−A0
+−0.2443 (68/68), `subject` −0.2227 (68/68), A1−A0 and A3−A2 null under
+both; fastapi's two DeepSWE units under `task`: A2−A0 −0.0595 (2/2),
+A1−A0 −0.0058 (2/2) — n = 2, recorded, not read.
+
+The conditioning moves the base by a tenth of a nat (2.50 with the path
+alone, 2.39 with the commit message) and moves the adapter's gain the
+other way: the adapter is worth −0.244 with *no* task statement at all
+and −0.299 with one. Nothing shrinks as the conditioning tightens. The
+prompted block is null under `none`, `subject` and `message` and
+becomes real under `task` (−0.008, 89/147) — the same −0.008 on top of
+the adapter (A3−A2, 99/147). That is the preregistered second shape:
+the adapter holds repo language, the task statement supplies binding,
+the block adds a little under a real task, and the three are separable.
+Under `task`, H-TTT-5's NLL kill criterion (combined arm not better
+than the best single arm) is **not met** — by 0.008 nats, forty times
+smaller than the adapter's own effect; under `message` it was. The
+true−control margin (C-86) is the same 0.07–0.08 under every
+conditioning.
 
 ## Item 3 — the shuffled control's cards (lookup, then a second control)
 
@@ -89,7 +120,27 @@ recorded" — inherent to permuting within a module, so the control keeps
 the module's *shape* and breaks every specific edge). One adapter, 300
 steps, seed 0, same recipe.
 
-*(NLL and held-out navigation rows appended when they land)*
+Adapter `adapters/allenai-olmo-3-7b-instruct/hobbes/ebdf7a510eff/047bc3b4ac33`
+(617 s, 0.351 epochs, last loss 0.567 — higher than the true adapter's
+0.09: a card whose lines contradict its QA is harder to fit). NLL over
+the 147 units (`nll-olmo-hobbes-shuffled-all.json`,
+`report-olmo-hobbes-shuffled-all.json`):
+
+| comparison | all (147) | context-known (55) | no-known-file (92) |
+|---|---|---|---|
+| shuffled-all − A0 | −0.2256 [−0.2475, −0.2045] 143/147 | −0.3116 55/55 | −0.1741 88/92 |
+| **true − shuffled-all** | **−0.0709** [−0.0789, −0.0633] 140/147 | −0.0563 51/55 | −0.0796 89/92 |
+| shuffled − shuffled-all | +0.0072 [+0.0035, +0.0109] p 0.0004 | +0.0067 p 0.024 | +0.0075 p 0.0008 |
+| shuffled-all aided − bare | +0.0004 p 0.79 | −0.0034 p 0.10 | +0.0027 p 0.12 |
+
+True − shuffled-all is −0.071 against −0.078 over the first control:
+the two intervals overlap, so the true edges the first control kept
+inside its cards bought it nothing on this metric, and by the
+preregistered reading the card rendering adds nothing beyond the QA
+for NLL. The second control is in fact slightly *better* than the
+first (by 0.007), which is the C-86 point again: the margin is a bound
+on corpus coherence, not the graph's worth. Held-out navigation under
+this control: below, with the phase-2 arms.
 
 ## Item 7 — the defines scorer audit (no GPU; `scripts/ttt_rescore.py --audit`)
 
@@ -184,4 +235,32 @@ the version it names — and nothing crosses 0.5: no memorised cell at
 Hobbes falls to 0.14 without `README.md`/`LICENSE`/`__init__.py`.
 Records `probe-{olmo,qwen}-*-v2.json`.
 
-## Items 4, 5, 6, 9 — *(appended when they land)*
+## Item 6 — a second and a third seed for the 300-step adapter
+
+Seed 1: adapter `…/2615369b529f` (597 s, last loss 0.217); seed 2:
+appended below. NLL over the 147 units, paired
+(`nll-olmo-hobbes-300s1.json`, `report-olmo-hobbes-seed1.json`):
+
+| comparison | all (147) | context-known (55) | no-known-file (92) |
+|---|---|---|---|
+| seed 1 − A0 | −0.2776 [−0.2970, −0.2591] 146/147 | −0.3472 55/55 | −0.2361 91/92 |
+| seed 1 − control | −0.0593 [−0.0680, −0.0506] 130/147 | −0.0424 46/55 | −0.0694 84/92 |
+| **seed 1 − seed 0** | **+0.0188** [+0.0136, +0.0239] 37/147 | +0.0207 11/55 | +0.0176 26/92 |
+| seed 1 aided − bare | +0.0006 p 0.73 | −0.0032 p 0.31 | +0.0029 p 0.11 |
+
+Seed-to-seed |Δ| beside the bootstrap CI half-width of the primary:
+
+| metric | seed 0 | seed 1 | \|Δ\| | CI half-width (seed 0) | verdict |
+|---|---|---|---|---|---|
+| A2−A0 | −0.2964 | −0.2776 | 0.019 | 0.019 | at the edge |
+| true − control | −0.0781 | −0.0593 | 0.019 | 0.008 | **exceeds** |
+| A3−A2 | +0.0006 | +0.0006 | 0.000 | 0.003 | inside |
+
+By the preregistered rule the NLL comparisons' intervals are
+relabelled **unit-only** (they measure unit variance, not
+adapter-training variance; a second-seed adapter moves the true−control
+margin by more than twice its half-width) and a third seed was queued
+and run — its row and the held-out navigation for seeds 1 and 2 are
+appended below.
+
+## Items 4, 5, 9 and the rest of 6 — *(appended when they land)*
