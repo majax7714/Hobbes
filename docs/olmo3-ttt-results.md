@@ -213,7 +213,7 @@ version shift.
 
 ---
 
-## 9. The step-count ablation (100 / 300 / 1,000) — *running*
+## 9. The step-count ablation (100 / 300 / 1,000 / 3,000, and 3,000 with paraphrases) — *running*
 
 The design pre-plans exactly one sweep, because "how many steps to load
 a repo" is itself a finding, and the training-sample result (§5) makes
@@ -224,4 +224,38 @@ vocabulary better and nothing else. Adapters at 100 and 1,000 steps on
 the same corpus, seed and recipe; NLL over the 147 units; the held-out
 set and the 600-question training sample per adapter.
 
-*(numbers appended when they land)*
+**Written before the 100 / 1,000 numbers landed (review item 5):** at
+≤ 1.2 epochs of single-template exposure, a flat callers-on-trained is
+consistent with under-exposure and does not test whether edges can
+enter the weights. The sweep therefore runs past one epoch — 3,000
+steps (≈ 3.5 epochs) — and adds a 3,000-step point on a corpus where
+each fact is rendered through four question and answer phrasings
+(`derive-corpus --paraphrases 4`). A 10,000-step point (≈ 12 epochs,
+~6 A100-hours alone) is held for Max. The pre-committed readings are in
+`benchmark-hypotheses.md` § Follow-ups, item 5.
+
+*(the table — steps × NLL, held-out nav per family, trained nav per
+family, absent FA, the paraphrase row marked — appended when it lands)*
+
+---
+
+## 10. Follow-ups from review (2026-09-03)
+
+One line per item, in the review's order (dependency, not priority),
+each linking the record that closed it. The readings were preregistered
+in `benchmark-hypotheses.md` § Follow-ups before anything ran.
+
+1. A2's NLL gain by C-84 population — *open*.
+2. The NLL conditioning stated (subject + body + path: a *message*
+   conditioning, unstated in the first write-up — registered), then
+   varied: *none* and *task* rows — *open*.
+3. The shuffled control's cards: bodies were permuted whole, every true
+   edge kept under the wrong question; a `shuffled-all` control —
+   *open*.
+4. Abstention under instruction, A1r / A3r — *open*.
+5. Steps past one epoch, with paraphrases (§9) — *open*.
+6. A second seed — *open*.
+7. The defines scorer: basename answers; scorer v2 — *open*.
+8. The A3 tests collapse as a finding (§4a) — *open*.
+9. The primary cell: HSR, RFE, `manifest_ignore` — *open*.
+10. The version-aware probe — *open*.

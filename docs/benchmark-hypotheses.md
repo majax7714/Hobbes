@@ -318,6 +318,121 @@ closest proxy and points the same way); H-TTT-3 not measured; H-TTT-4
 unreadable at 7B; H-TTT-5 killed on NLL, not killed on navigation.
 Agent runs (step 5) are not started and are not cleared.
 
+#### Follow-ups from review — preregistered 2026-09-03, before any of them ran
+
+Max's review of the 2026-09-03 results set ten follow-ups (`docs/olmo3-ttt-results.md`
+§10 carries the closing line and the record for each). The readings
+below were written **before** the numbers, under the same rule as the
+grid; a corpus, scorer or recipe change bumps its hash, and no existing
+cell record is edited — a dated addendum or a new record sits beside
+it. Compute stated first: the review's budget is ~10 A100-hours; this
+session's estimate for the same list is ~9 GPU-hours **without** the
+10,000-step point of item 5, which alone is ~6 A100-hours at the
+measured 2.2 s/step and is held for Max's call.
+
+1. **A2's NLL gain by C-84 population (known-file / new-file), lookup.**
+   New-file units have no node in the base graph, so A2−A0 there bounds
+   the vocabulary share independently of the shuffled control.
+   *Readings:* A2−A0 on new-file ≈ control−A0 (within CI) → the two
+   vocabulary estimates agree and "a quarter is the graph" stands;
+   A2−A0 on new-file ≈ A2−A0 on known → the graph's share is near zero
+   and results §3 is rewritten to say so; A2 gains *more* on new files
+   → something else is being learned (style, formatting) — a constraint
+   is opened, not an explanation written.
+2. **The NLL conditioning, stated, then varied.** The first run's prompt
+   held the commit subject and body and the target path (a *message*
+   conditioning; the results did not say so — registered as a reporting
+   defect). New rows of the same metric: *none* (the path only) and
+   *task* (a proposal in a task's words: fastapi's two DeepSWE
+   statements, and hand-written proposals for this repo's commits), each
+   with its own n. *Readings:* A2−A0 shrinks as conditioning tightens
+   (none > message > task) → the adapter's gain is mostly what a task
+   statement supplies anyway; transduction happens in the prompt, not
+   the weights. A2−A0 stable while A1−A0 grows under *task* → the
+   adapter holds repo language, the prompt supplies task binding, and
+   they are separable — H-TTT-5 stays alive on NLL. Nothing moves → the
+   diff is predictable from repo language alone at this granularity and
+   NLL is dropped as a primary on git hunks.
+3. **The shuffled control's cards.** Lookup result: `--control shuffled`
+   permuted card *bodies* as wholes, each still opening with its own
+   symbol and its own true edges — every true edge stayed in the control
+   corpus under the wrong question. A `shuffled-all` control permutes
+   the edge lines across cards within a module (module-shaped
+   regularities kept, every specific edge broken); one adapter, 300
+   steps, seed 0. *Reading:* true − shuffled-all is the graph's worth;
+   larger than −0.078 → the results understated it; equal → cards add
+   nothing beyond QA and the card rendering can be dropped.
+4. **Abstention: instruction on the base (A1r) and on the adapter
+   (A3r).** The card plus "if the symbol is not listed, say it is not
+   defined at this SHA; do not guess a file", all six families and the
+   393 distractors. *Readings:* base FA under A1r ≤ 0.30 → the adapter's
+   abstention is mostly instruction-following and the design's §3.2(c)
+   "mid-train for abstention" argument weakens to "instruct for
+   abstention"; base FA under A1r ≥ 0.6 while A2 stays 0.22 → abstention
+   entered the weights in a way instruction does not reach; A1r drops
+   has-truth families → that is the instruction's cost, reported.
+5. **Steps past one epoch, with paraphrases; the null written first.**
+   At ≤ 1.2 epochs of single-template exposure a flat callers-on-trained
+   is consistent with under-exposure and does not test whether edges
+   can enter the weights (Allen-Zhu & Li, *Physics of LMs 3.1*; Ovadia
+   et al.). Points: 100 (done), 1,000, 3,000 single-template, and 3,000
+   on a `--paraphrases 4` corpus (each fact in four question and answer
+   phrasings; new corpus hash); 10,000 held (cost above). For every
+   adapter: NLL over the 147 units, the held-out set, the 600-question
+   training sample. *Readings, on callers-on-trained:* rises with steps
+   → edges enter with exposure and the question becomes cost per repo
+   (held-out callers says whether anything generalises); flat
+   single-template but rises with paraphrases → the recipe was the
+   problem and paraphrase diversity becomes a corpus default; flat under
+   both while NLL keeps falling → weights hold vocabulary and
+   regularities at this scale and no more, results §1 is confirmed, and
+   the design's "structure must be live in attention" row is the
+   standing conclusion. Callers vs callees on trained symbols reported
+   at each point; callers below callees at every point is noted as
+   reversal-shaped and left.
+6. **A second seed** for the 300-step adapter (and the headline
+   ablation point if item 5 lands first): NLL and held-out nav;
+   seed-to-seed |Δ| beside each bootstrap CI. If |Δ| on any primary
+   exceeds its CI half-width, that metric's CIs are relabelled
+   *unit-only* and a third seed is queued.
+7. **A1 defines 0.77 with the path on the card — scorer audit.** Lookup
+   result: the failures are basename answers (`proxy.go` for
+   `go/internal/proxy/proxy.go`). A scorer v2 accepts a path-shaped
+   token that is a `/`-boundary suffix of exactly one known path; every
+   navigation arm is rescored, scorer version in the record, old numbers
+   kept. *Reading:* A1 defines ≥ 0.95 under v2 → "the card reads what it
+   lists" is strengthened and the A3 tests collapse (item 8) sharpens,
+   since A1's tests number likely rises too.
+8. **The A3 tests collapse (0.37 vs A1 0.79 with the same card) named
+   as a finding — a trained prior overriding live text, made in 300
+   steps.** Probe: join A3's tests failures → symbol → module → the
+   fraction of that module's training cards whose tests line is "none
+   recorded"; the same for impact. *Readings:* most overrides come from
+   ∅-heavy modules → the adapter learned "this module has no tests" as
+   a fact and disbelieves the card — a corpus-design lesson (∅ answers
+   down-weighted or phrased "none recorded at <sha>") and a small clean
+   demonstration of trained priors defeating context; uniform across
+   modules → a general "answer none" bias from the absent family, tied
+   to item 4. Either way the agent runs (item 9) must watch for the
+   adapter ignoring the manifest, not only inventing symbols.
+9. **The primary cell — HSR and RFE, this repo @ `ebdf7a5`, ≥ 40
+   derived units, arms A0/A1/A2/A3, plus `manifest_ignore`** (turns
+   where the manifest names a file or test and the agent asserts it does
+   not exist or edits elsewhere). Every arm *model + prompt* under P12.
+   *Reading:* the design's §8 table, plus one row — A2 lower HSR but
+   higher manifest_ignore than A1 → the adapter is grounded in the repo
+   and less grounded in the task, the trade item 8 predicts, and it
+   decides whether TTT belongs under the harness at all.
+10. **A version-aware memorisation probe.** File-tree items scored
+    against the union of trees across the repo's tagged releases (≤ 30
+    tags), `score_at_sha` and `score_any_version` reported apart with
+    the best-matching tag; generic names (README, LICENSE, `__init__.py`,
+    …) dropped from files-precision, raw and stoplisted both reported.
+    *Reading:* Qwen's httpx `score_any_version` ≥ 0.5 → an M cell exists
+    at that older SHA and H-TTT-4 goes from unreadable to runnable at
+    7B; nothing crosses 0.5 → §6's conclusion stands and the probe is at
+    least no longer blind to version shift.
+
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
 
 `hobbes bench` is the machinery: `select` applies the instance protocol
