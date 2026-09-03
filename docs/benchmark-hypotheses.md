@@ -222,8 +222,57 @@ and the held-out navigation set per arm). Constraints C-81–C-84.
 
 ### Results — H-TTT
 
-*(none yet; steps 2–3 of the order of work started 2026-09-03 —
-Olmo 3 7B, this repo at `ebdf7a5` as the unseen candidate, 147 units)*
+#### 2026-09-03 — the unseen cell: this repo @ `ebdf7a5` × Olmo-3-7B-Instruct (steps 2–4; cell record `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03.md`)
+
+**Gate (§4.4):** Olmo 3 scores 0.044 on this repo unaided (files
+0.10, definitions 0.00, navigation 0.03) — the unseen cell, well under
+the 0.15 line.
+
+**H-TTT-1 (transduction), gold-diff NLL over 147 git-history units,
+paired bootstrap:** the adapter (300 LoRA steps on the derived layer at
+the base SHA, 0.35 epochs) lowers per-token loss by **0.296 nats
+against unaided on 147/147 units** (A2−A0, CI [−0.315, −0.278]); the
+prompted block alone by 0.002 overall and 0.009 on the 55 units whose
+files the base graph knew (p 0.038); the block on top of the adapter
+by nothing (A3−A2 +0.001, p 0.72). **Not killed.** But a control
+adapter trained on the same corpus with every answer permuted within
+its family — the vocabulary identical, every relation wrong — takes
+0.218 of the 0.296 (143/147); the true adapter beats the control by
+**0.078 nats on 140/147** (CI [−0.086, −0.070]). So three quarters of
+the NLL effect is the repo's names, paths and templates in the weights,
+and a quarter is the graph being *right*. The control is an addition
+beyond the preregistered grid, made because a 147/147 result on new-file
+units (C-84) could not be read without it.
+
+**H-TTT-5 (combination): killed on the NLL metric in this cell.** The
+combined arm is not better than the adapter alone (+0.0006, p 0.72,
+68/147). Two readings survive: the two deliveries carry the same
+information, or the C-55-shaped block (files, symbol names, tests, no
+code) carries too little at 7B to add anything — the A1−A0 delta on
+context-known units (−0.009, p 0.038) says a little, not nothing. HSR
+and RFE (agent runs, step 5) have not been measured.
+
+**Held-out navigation (§4.5) — 2,270 questions about 393 symbols whose
+every training mention was removed; scored by what a reply names,
+"none recorded" items reported apart:** the base is ≤ 0.06 in every
+family with a recorded answer and names a file for **98% of
+distractors**. The adapter: defines 0.985 (+0.972), refusal on
+distractors 0.776 (**false acceptance 0.98 → 0.22**), tests 0.52
+(+0.52), impact 0.30 (+0.27), callees 0.21 (+0.20), **callers 0.10
+(+0.04, p 0.078 — not different from the base)**. Every gain is a
+module-grain regularity a held-out member inherits from its siblings
+(the module's path, the tests that reach the module, what its members
+tend to call); the one symbol-grain relation, who calls *this* symbol,
+does not come from weights that never saw it — which the held-out design
+guarantees they did not. The abstention result is the one that bears on
+H-TTT-2 before any agent run: an adapter that learned names did not
+learn to invent them.
+
+*Pending in this cell:* A1/A3 (the held-out card in the prompt — the
+reading-comprehension control), a training-sample navigation pair (does
+the adapter hold the symbol-grain edges it *was* shown), and the
+memorised cell (httpx / fastapi / textual probes, one adapter, NLL) for
+H-TTT-4. Agent runs (H-TTT-2/3 proper) are step 5 and not started.
 
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
 

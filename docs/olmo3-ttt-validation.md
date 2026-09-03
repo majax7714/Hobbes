@@ -1,8 +1,8 @@
 # Test-time training on the derived layer — Olmo 3 7B validation
 
-**Status:** proposed · **Type:** benchmark experiment (preregistered) · **Compute:** Modal
+**Status:** accepted 2026-09-03 (ADR-099) — steps 1–4 built and run on the unseen cell; results in §10 and `benchmark-hypotheses.md` · **Type:** benchmark experiment (preregistered) · **Compute:** Modal
 **Depends on:** `hobbes ingest` (derived layer @ SHA), `hobbes plan`/`hobbes run` (unit derivation), `hobbes bench` (harness, ADR-055), DeepSWE 1.1 substrate (ADR-078/079/080)
-**ADR:** assign on acceptance (this doc becomes the ADR body)
+**ADR:** ADR-099 (this doc is its body)
 
 ---
 
@@ -267,3 +267,19 @@ Register entries to open on acceptance (numbers assigned by the register):
 ## 9. Out of scope, on purpose
 
 Raw-source TTT, full-weight fine-tuning, any non-LoRA fast-weight mechanism (TTT layers, Titans), architectural changes, and any model that is not fully open or already on the ladder. Each is a follow-up and each is cheaper to justify once this grid has numbers.
+
+---
+
+## 10. Results (running log — the numbers live in `docs/ttt-cells/`, the reading in `benchmark-hypotheses.md` § H-TTT)
+
+- **2026-09-03 — unseen cell, this repo @ `ebdf7a5`, Olmo-3-7B-Instruct.**
+  Gate 0.044 (U). H-TTT-1 not killed: adapter −0.296 nats on 147/147
+  units; a shuffled-answers control takes 0.218 of it, the true graph
+  the remaining 0.078 on 140/147. H-TTT-5 killed on NLL (A3 = A2).
+  Held-out navigation: file 0.01 → 0.98, distractor false acceptance
+  0.98 → 0.22, tests 0 → 0.52, callees 0.005 → 0.21, impact 0.03 →
+  0.30, callers flat (0.06 → 0.10, p 0.08). Deviations from §6: the
+  memorised cell's units come from git history as well as DeepSWE
+  (three tasks per repo is not ≥ 40); the doc rendering (b) is empty at
+  a base SHA (C-82); the control adapter is an addition. Cell record:
+  `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03.md`.
