@@ -74,5 +74,41 @@ what correct relations add, on 140 of 147 units. Runs
 |---|---|---|---|---|---|
 | hobbes @ `ebdf7a5` | 0.10 | 0.00 | 0.03 | **0.044** | U |
 
-*(the held-out navigation arms and the candidate repos' probes are
-appended below as they land)*
+## Held-out navigation (§4.5) — 2,270 items over 393 symbols never in a training pair
+
+Scores are F1 over what a reply names; a family marked ∅ holds the
+items whose truth is "none recorded", where naming nothing scores 1 —
+reported apart, never averaged into `nav`. Temperature 0, 512 tokens,
+the base model or the adapter by name on one vLLM endpoint.
+
+| arm | absent (refusal) | absent FA | defines | callers | callers∅ | callees | callees∅ | tests | tests∅ | impact | nav (has-truth) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A0 base, no context | 0.020 | **0.980** | 0.013 | 0.062 | 0.772 | 0.005 | 0.946 | 0.000 | 0.821 | 0.033 | 0.021 |
+| A2 adapter, no context | 0.776 | **0.224** | 0.985 | 0.103 | 0.954 | 0.206 | 0.645 | 0.521 | 0.921 | 0.301 | 0.496 |
+
+| A2−A0 | n | Δ | 95% CI | p | a>b / a<b |
+|---|---|---|---|---|---|
+| defines | 393 | +0.972 | [+0.954, +0.987] | <0.0002 | 382 / 0 |
+| absent | 393 | +0.756 | [+0.713, +0.796] | <0.0002 | 297 / 0 |
+| tests | 102 | +0.521 | [+0.423, +0.614] | <0.0002 | 56 / 0 |
+| impact | 393 | +0.269 | [+0.250, +0.287] | <0.0002 | 324 / 12 |
+| callees | 256 | +0.201 | [+0.162, +0.242] | <0.0002 | 78 / 0 |
+| **callers** | 112 | **+0.040** | [−0.005, +0.085] | **0.078** | 11 / 3 |
+| callees∅ | 93 | −0.301 | [−0.409, −0.194] | <0.0002 | 2 / 30 |
+| navigation (all has-truth) | 1,256 | +0.475 | [+0.451, +0.498] | <0.0002 | 851 / 15 |
+
+The base names a file for 98% of distractors and knows nothing else
+(≤ 0.06 in every has-truth family). The adapter, asked about symbols
+whose every training mention was removed: places 98% of them in the
+right file (a module→path regularity, learnable from the module's other
+members); refuses 78% of distractors; recovers half the tests (tests
+reach modules, so a sibling's tests are usually the held-out member's);
+a fifth of callees and a third of the impact set (module-grain again,
+with ~2 wrong modules named per impact answer); and **no callers** — the
+one relation that is a property of the specific symbol, not of its
+module, and the one the held-out design removed from training entirely.
+callees∅ falls: with an adapter the model names callees whether or not
+there are any. Runs `nav-olmo-hobbes-A{0,2}.json`, `navreport-A0-A2.json`.
+
+*(A1/A3 — the held-out card in the prompt —, the training-sample
+arms, and the candidate repos' probes are appended below as they land)*

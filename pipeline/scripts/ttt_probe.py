@@ -19,6 +19,7 @@ adapter's name on the same endpoint.
 Computes; does not interpret.
 """
 import argparse
+import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
 import os
@@ -144,7 +145,15 @@ def nav(a, graph, corpus_dir, key) -> dict:
             if ln.strip():
                 c = json.loads(ln); cards[c["symbol"]] = c["messages"][1]["content"]
     known = known_names(graph)
-    items = [json.loads(ln) for ln in (corpus_dir / "eval.jsonl").read_text().splitlines() if ln.strip()]
+    if a.items == "train":
+        # A seeded sample of the *training* questions: does the adapter hold
+        # the symbol-grain edges it was shown? (The held-out set cannot ask
+        # that — a held-out symbol's edges were removed from training.)
+        items = [json.loads(ln) for ln in (corpus_dir / "train.jsonl").read_text().splitlines() if ln.strip()]
+        items = [r for r in items if r["kind"] == "qa"]
+        items.sort(key=lambda r: hashlib.sha256(f"{a.seed}\n{r['family']}\n{r['symbol']}".encode()).hexdigest())
+    else:
+        items = [json.loads(ln) for ln in (corpus_dir / "eval.jsonl").read_text().splitlines() if ln.strip()]
     items = items[:a.limit] if a.limit else items
 
     def one(rec: dict) -> dict:
@@ -164,7 +173,8 @@ def nav(a, graph, corpus_dir, key) -> dict:
             rows.append(row)
             if i % 200 == 0:
                 print(f"{i}/{len(items)} …", flush=True)
-    out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "context": a.context, "rows": rows, **summarise(rows)}
+    out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "context": a.context, "items": a.items,
+           "rows": rows, **summarise(rows)}
     print("nav:", json.dumps({k: v for k, v in out.items() if k != "rows"}))
     return out
 
@@ -176,6 +186,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--name"); ap.add_argument("--dirs", type=int, default=5); ap.add_argument("--files", type=int, default=5)
     ap.add_argument("--context", choices=("none", "card"), default="none"); ap.add_argument("--limit", type=int)
     ap.add_argument("--workers", type=int, default=8, help="concurrent requests for `nav` (vLLM batches them)")
+    ap.add_argument("--items", choices=("eval", "train"), default="eval",
+                    help="`nav` over the held-out questions (default) or a seeded sample of the training questions")
+    ap.add_argument("--seed", type=int, default=0, help="the training-sample seed")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args(argv)
     a.name = a.name or Path(a.repo).resolve().name
