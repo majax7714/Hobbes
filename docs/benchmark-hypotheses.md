@@ -268,11 +268,25 @@ guarantees they did not. The abstention result is the one that bears on
 H-TTT-2 before any agent run: an adapter that learned names did not
 learn to invent them.
 
-*Pending in this cell:* A1/A3 (the held-out card in the prompt — the
-reading-comprehension control), a training-sample navigation pair (does
-the adapter hold the symbol-grain edges it *was* shown), and the
-memorised cell (httpx / fastapi / textual probes, one adapter, NLL) for
-H-TTT-4. Agent runs (H-TTT-2/3 proper) are step 5 and not started.
+**The prompted control (the held-out symbol's own card in the
+prompt):** the base reads what the card lists (callers 0.68, callees
+0.76, tests 0.79), not what it omits (impact 0.14), and the "no card"
+note does not make it refuse (false acceptance 0.90). Weights beat the
+card on the regularities and on abstention (file 0.985 vs 0.77, impact
+0.30 vs 0.14, false acceptance 0.22 vs 0.90); the card beats weights on
+every specific edge (callers 0.68 vs 0.10, callees 0.76 vs 0.21, tests
+0.79 vs 0.52). Adapter *plus* card (A3) is the best navigation arm
+overall (0.61 vs 0.56, p 0.0004) but not additive: it reads the card's
+callers a little better than the base and its tests line much worse
+(0.37 vs 0.79 — the adapter's prior overrides the text). So on
+navigation H-TTT-5's kill criterion is *not* met (the combined arm is
+better than either alone) while on NLL it was; the two metrics
+disagree, and the record says so rather than averaging them.
+
+*Pending in this cell:* a training-sample navigation pair (does the
+adapter hold the symbol-grain edges it *was* shown), and the memorised
+cell (httpx / fastapi / textual probes, one adapter, NLL) for H-TTT-4.
+Agent runs (H-TTT-2/3 proper) are step 5 and not started.
 
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
 

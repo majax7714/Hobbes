@@ -110,5 +110,46 @@ module, and the one the held-out design removed from training entirely.
 callees∅ falls: with an adapter the model names callees whether or not
 there are any. Runs `nav-olmo-hobbes-A{0,2}.json`, `navreport-A0-A2.json`.
 
-*(A1/A3 — the held-out card in the prompt —, the training-sample
-arms, and the candidate repos' probes are appended below as they land)*
+### The prompted control: the held-out symbol's own card in the prompt
+
+A1 (base + card) is reading comprehension: the card lists the symbol's
+file, callers, callees and tests, not its impact set. A3 is the adapter
+with the same card.
+
+| arm | absent | absent FA | defines | callers | callers∅ | callees | callees∅ | tests | tests∅ | impact | nav |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1 base + card | 0.104 | 0.896 | 0.773 | 0.678 | 0.283 | 0.760 | 0.624 | 0.791 | 0.636 | 0.135 | 0.564 |
+| A3 adapter + card | 0.776 | 0.224 | 1.000 | 0.791 | 1.000 | 0.810 | 0.677 | 0.370 | 1.000 | 0.095 | 0.608 |
+
+| comparison | family | n | Δ | 95% CI | p | a>b / a<b |
+|---|---|---|---|---|---|---|
+| A2−A1 (weights vs card) | callers | 112 | −0.575 | [−0.656, −0.492] | <0.0002 | 5 / 82 |
+| A2−A1 | callees | 256 | −0.554 | [−0.611, −0.495] | <0.0002 | 16 / 190 |
+| A2−A1 | tests | 102 | −0.270 | [−0.375, −0.166] | <0.0002 | 19 / 45 |
+| A2−A1 | defines | 393 | +0.211 | [+0.168, +0.255] | <0.0002 | 88 / 5 |
+| A2−A1 | impact | 393 | +0.166 | [+0.147, +0.186] | <0.0002 | 273 / 55 |
+| A2−A1 | absent | 393 | +0.672 | [+0.623, +0.718] | <0.0002 | 266 / 2 |
+| A2−A1 | navigation | 1,256 | −0.068 | [−0.098, −0.039] | <0.0002 | 401 / 377 |
+| A3−A1 (adapter under the card) | callers | 112 | +0.113 | [+0.039, +0.187] | 0.004 | 33 / 11 |
+| A3−A1 | callees | 256 | +0.051 | [−0.003, +0.104] | 0.064 | 86 / 35 |
+| A3−A1 | tests | 102 | −0.421 | [−0.538, −0.297] | <0.0002 | 14 / 57 |
+| A3−A1 | defines | 393 | +0.227 | [+0.186, +0.270] | <0.0002 | 89 / 0 |
+| A3−A1 | absent | 393 | +0.672 | [+0.623, +0.718] | <0.0002 | 266 / 2 |
+| A3−A1 | navigation | 1,256 | +0.045 | [+0.021, +0.069] | 0.0004 | 313 / 247 |
+
+Reading the card, the base recovers what the card says (callers 0.68,
+callees 0.76, tests 0.79) and nothing it does not (impact 0.14), and
+the "Hobbes has no card for this" note does not make it refuse (false
+acceptance 0.90). The adapter beats the card where the answer is a
+regularity (file 0.985 vs 0.77, impact 0.30 vs 0.14) and on abstention
+(0.22 vs 0.90); the card beats the adapter where the answer is a
+specific edge (callers, callees, tests). Under the card the adapter
+reads callers and callees a little better than the base (+0.11,
++0.05) but reads the tests line *worse* (0.37 vs 0.79; it answers
+"none" on 100% of the no-test items and on many with tests) and drops
+impact further — two families where the adapter's own prior overrides
+the text in front of it. Runs `nav-olmo-hobbes-A{1,3}.json`,
+`navreport-hobbes-all.json`, `navreport-hobbes-vsA1.json`.
+
+*(the training-sample arms and the candidate repos' probes are
+appended below as they land)*
