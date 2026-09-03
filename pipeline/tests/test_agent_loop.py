@@ -863,6 +863,36 @@ class TestReadBeforeEditAndCutCompletions:
         # the cut prefix never reached the transcript as an assistant turn
         assert not any("\"path\": \"sr" in (m.get("content") or "") for m in bodies[-1]["messages"])
 
+    def test_call_syntax_blocks_parse_like_olmo3_writes_them(self):
+        block = ('I will read it first.\n<function_calls>\nread_file(path="src/a.py")\n'
+                 'edit_file(path="src/a.py", old_text="return 1\\nx", new_text="return 2", count=3, force=true, extra={"k": [1, 2]})\n'
+                 'broken(path=oops)\nlist_files()\n</function_calls>')
+        calls = loop.text_tool_calls(block)
+        assert [c["function"]["name"] for c in calls] == ["read_file", "edit_file", "list_files"]
+        args = json.loads(calls[1]["function"]["arguments"])
+        assert args == {"path": "src/a.py", "old_text": "return 1\nx", "new_text": "return 2", "count": 3,
+                        "force": True, "extra": {"k": [1, 2]}}
+        assert json.loads(calls[2]["function"]["arguments"]) == {}
+        assert loop.text_tool_calls("<function_calls>\n</function_calls>") == []
+
+    def test_tool_choice_none_sends_schemas_without_a_choice_and_reads_text_calls(self, tree, monkeypatch):
+        monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
+        model = ScriptedModel([
+            'Reading.\n<function_calls>\nread_file(path="src/a.py")\n</function_calls>',
+            '<function_calls>\nedit_file(path="src/a.py", old_text="return 1", new_text="return 4")\n</function_calls>',
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree, "--tool-choice", "none", "--no-bash")
+        finally:
+            model.close()
+        assert env["is_error"] is False and env["text_tool_calls"] == 2
+        body = model.requests[0]["body"]
+        assert "tools" in body and "tool_choice" not in body
+        sent_back = [m for m in model.requests[1]["body"]["messages"] if m.get("role") == "assistant"][-1]
+        assert sent_back["content"] == "Reading." and sent_back["tool_calls"][0]["function"]["name"] == "read_file"
+        assert (tree / "src" / "a.py").read_text() == "def f():\n    return 4\n"
+
     def test_fenced_calls_with_any_tag_and_real_newlines_parse(self):
         fenced = ('```python\n{"name": "reflect", "arguments": {"kind": "handoff", "text": "files:\n- a.py\n- b.py"}}\n```')
         calls = loop.text_tool_calls(fenced)

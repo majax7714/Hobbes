@@ -16,7 +16,11 @@ decomposes — on a fresh checkout at the base SHA:
 
 The agent is :mod:`hobbes.agent.loop` with **file tools only**
 (``--no-bash``): it reads and edits, it cannot execute — so repo code
-never runs, and the policy is the same in every arm (design §2.4). An
+never runs, and the policy is the same in every arm (design §2.4). The
+tool schemas ride the chat template and the loop reads the model's
+calls from its text (``--tool-choice none``): the serve has no parser
+for Olmo 3's ``<function_calls>`` syntax, and the first attempt died on
+that 400 in every session (defect D-2 of the cell record). An
 unaided arm's prompt is the same for every unit of a proposal, so it
 runs once per proposal and its trajectory is scored against each unit
 (``shared_run``), paired by unit like the rest.
@@ -199,7 +203,7 @@ def candidate_patch(workspace: Path) -> str:
 
 def run_agent(loop_path: Path, workspace: Path, prompt: str, base_url: str, model: str, *, max_turns: int = 30,
               max_tokens: int = 1536, temperature: float = 0.2, timeout: float = 1800.0,
-              api_key_env: str = "HOBBES_LLM_API_KEY", thinking: str = "off") -> dict:
+              api_key_env: str = "HOBBES_LLM_API_KEY", thinking: str = "off", tool_choice: str = "none") -> dict:
     """One file-tools-only session of the owned loop; returns the envelope plus the transcript path and the patch."""
     hob = Path(workspace) / ".hobbes"
     hob.mkdir(exist_ok=True)
@@ -208,7 +212,7 @@ def run_agent(loop_path: Path, workspace: Path, prompt: str, base_url: str, mode
     cmd = [sys.executable, str(loop_path), "--base-url", base_url, "--model", model, "--api-key-env", api_key_env,
            "--prompt-file", str(hob / "prompt.md"), "--workdir", str(workspace), "--no-bash",
            "--max-turns", str(max_turns), "--max-tokens", str(max_tokens), f"--temperature={temperature}",
-           f"--thinking={thinking}", "--transcript", str(transcript)]
+           f"--thinking={thinking}", "--tool-choice", tool_choice, "--transcript", str(transcript)]
     started = time.monotonic()
     try:
         proc = subprocess.run(cmd, cwd=str(workspace), capture_output=True, text=True, timeout=timeout)

@@ -66,14 +66,62 @@ READ_ONLY_ROLES = {"reviewer", "verifier", "planner"}
 _FENCED = re.compile(r"```[\w+-]*[ \t]*\n?\s*(\{.*?\})\s*(?:```|\Z)|<tool_call>\s*(\{.*?\})\s*</tool_call>", re.S)
 
 
+_FUNCTION_CALLS = re.compile(r"<function_calls>(.*?)</function_calls>", re.S)
+_CALL_HEAD = re.compile(r"\s*([A-Za-z_][\w.]*)\s*\(", re.S)
+_ARG_HEAD = re.compile(r"\s*([A-Za-z_]\w*)\s*=\s*", re.S)
+
+
+def call_syntax_calls(block: str) -> list[dict]:
+    """Calls written as ``name(key=<json>, key2=<json>)`` — the shape
+    Olmo 3's chat template renders and its model writes inside
+    ``<function_calls>`` (one call per line). Values are JSON; a call
+    whose arguments do not decode is skipped, not guessed at."""
+    out, pos, decoder = [], 0, json.JSONDecoder()
+    while True:
+        head = _CALL_HEAD.match(block, pos)
+        if not head:
+            break
+        name, pos, args, ok = head.group(1), head.end(), {}, True
+        while True:
+            if block[pos:pos + 1] == ")" or not block[pos:].strip():
+                pos += 1 if block[pos:pos + 1] == ")" else 0
+                break
+            arg = _ARG_HEAD.match(block, pos)
+            if not arg:
+                ok = False
+                break
+            try:
+                value, end = decoder.raw_decode(block, arg.end())
+            except json.JSONDecodeError:
+                ok = False
+                break
+            args[arg.group(1)], pos = value, end
+            while block[pos:pos + 1] in (",", " ", "\n", "\t") and block[pos:pos + 1]:
+                pos += 1
+        if not ok:
+            close = block.find(")", pos)
+            pos = len(block) if close < 0 else close + 1
+            continue
+        out.append({"id": f"text_{len(out)}", "type": "function",
+                    "function": {"name": name, "arguments": json.dumps(args)}})
+    return out
+
+
 def text_tool_calls(content: str) -> list[dict]:
-    """Tool calls a model wrote *as text* — a fenced JSON object or a
-    ``<tool_call>`` block with ``name`` and ``arguments`` — in the
-    shape of structured ones. Small models do this; refusing them
-    would measure the chat template, not the model. The loop counts
+    """Tool calls a model wrote *as text* — a fenced JSON object, a
+    ``<tool_call>`` block with ``name`` and ``arguments``, or a
+    ``<function_calls>`` block in call syntax (Olmo 3's own template) —
+    in the shape of structured ones. Small models do this; refusing
+    them would measure the chat template, not the model. The loop counts
     how often it happened (``text_tool_calls`` in the envelope) so the
     accommodation is visible in every record."""
     out = []
+    for block in _FUNCTION_CALLS.findall(content or ""):
+        for call in call_syntax_calls(block):
+            call["id"] = f"text_{len(out)}"
+            out.append(call)
+    if out:
+        return out
     for n, match in enumerate(_FENCED.finditer(content or "")):
         raw = match.group(1) or match.group(2)
         try:
@@ -482,6 +530,12 @@ class Endpoint:
         #: ``chat_template_kwargs`` that switch thinking off. Built by
         #: :func:`sampling_fields`; the envelope repeats it.
         self.sampling = sampling if sampling is not None else {"temperature": 0}
+        #: ``auto`` asks the server to parse the model's calls (vLLM needs
+        #: a --tool-call-parser for that); ``none`` still sends the tool
+        #: schemas — the chat template renders them — and the loop reads
+        #: the calls out of the text (:func:`text_tool_calls`). Olmo 3's
+        #: call syntax has no server parser in this deployment.
+        self.tool_choice = "auto"
         #: How often the window had to be fitted or trimmed — the
         #: envelope reports both, so a run can see the window bind.
         self.fitted, self.elided = 0, 0
@@ -544,7 +598,8 @@ class Endpoint:
         body = {"model": self.model, "messages": messages, "max_tokens": max_tokens, **self.sampling}
         if tools:
             body["tools"] = tools
-            body["tool_choice"] = "auto"
+            if self.tool_choice != "none":
+                body["tool_choice"] = self.tool_choice
         data = json.dumps(body).encode()
         headers = {"Content-Type": "application/json"}
         if self.api_key:
@@ -632,6 +687,7 @@ def run(args: argparse.Namespace) -> dict:
     endpoint = Endpoint(args.base_url, args.model, os.environ.get(args.api_key_env) or None,
                         args.timeout, args.max_tokens,
                         sampling_fields(args.temperature, args.top_p, args.reasoning_effort, args.thinking))
+    endpoint.tool_choice = args.tool_choice
     messages = [{"role": "system", "content": SYSTEM_PROMPT.format(workdir=workdir)},
                 {"role": "user", "content": prompt}]
     usage = {"input_tokens": 0, "output_tokens": 0, "reasoning_tokens": 0}
@@ -710,6 +766,11 @@ def run(args: argparse.Namespace) -> dict:
             if not calls:
                 calls = text_tool_calls(message.get("content") or "")
                 text_calls += len(calls)
+                if calls and _FUNCTION_CALLS.search(message.get("content") or ""):
+                    # The template renders tool_calls as its own
+                    # <function_calls> block; leaving the model's text
+                    # copy in content would show it twice.
+                    message["content"] = _FUNCTION_CALLS.sub("", message["content"]).strip()
             # A thinking model's reasoning comes back beside the content
             # (the server's reasoning parser splits it, ADR-074). It goes
             # on the message as received: the chat template of such a
@@ -915,6 +976,10 @@ def parse(argv: list[str]) -> argparse.Namespace:
                    help="the session role; a read-only role (planner, reviewer, verifier) gets no write "
                         "tools and is disciplined toward a reflect handoff instead of an edit")
     p.add_argument("--workdir", default=".")
+    p.add_argument("--tool-choice", choices=("auto", "none"), default="auto",
+                   help="auto: the server parses tool calls; none: the schemas are still sent for the chat "
+                        "template and the loop reads the calls from the text (a model whose call syntax the "
+                        "server cannot parse — Olmo 3's <function_calls>)")
     p.add_argument("--no-bash", action="store_true",
                    help="withhold the native bash tool: file tools only, no exec at all (the TTT cell's arms, "
                         "ADR-099 review item 9 — repo code never runs, and policy is the same for every arm)")
