@@ -602,6 +602,87 @@
 
 ---
 
+### C-86 — The shuffled control's margin is not the graph's worth on a unit
+- **Cannot tell you:** how much of the adapter's NLL gain on a gold diff
+  is the graph being *right*. The first record read "true − control =
+  −0.078, a quarter of the effect, is the graph"; split by the C-84
+  population the margin is *larger* on the 92 units whose files the base
+  graph never held (−0.087) than on the 55 it knew (−0.063). Nothing in
+  the graph is right about a file it does not contain, so the margin
+  measures what a coherent corpus teaches over a deranged one — an
+  adapter trained on answers that are each wrong learns the repo's
+  language worse, on files neither adapter saw — and the control's
+  −0.218 is not a clean vocabulary estimate either. The graph's share
+  of the NLL effect is bounded, not measured, by this pair.
+- **Because:** a control that keeps every token and breaks every
+  relation also breaks the *consistency* between a symbol's card and
+  its answers, and consistency is itself learnable; the two cannot be
+  separated by one control. The `shuffled` control moreover permuted
+  card bodies whole, keeping every true edge under the wrong question;
+  `shuffled-all` breaks the edges inside the cards and narrows the
+  reading, it does not lift this.
+- **Bites at:** any sentence of the form "N nats of the gain is the
+  graph"; any per-unit reading of true − control.
+- **You find out:** **surfaced** — `scripts/ttt_report.py` prints every
+  comparison over all / context-known / no-known-file, the cell record
+  carries the split, and the results doc's §3 says the margin is a
+  bound.
+- **Source:** review item 1 (Max, 2026-09-03); the second Hobbes cell
+  record.
+
+### C-87 — The first NLL write-up did not say what the diff was conditioned on
+- **Cannot tell you (as first written):** what preceded the gold diff's
+  tokens when its loss was scored. The design's H-TTT-1 reads "loss of
+  the gold diff *given the task*"; the run scored git-history hunks
+  under the commit's subject and body and the target path — a
+  *message* conditioning — and the first record and results doc named
+  the arms and the block but not that. A reader could take the prompt
+  as file-context-only and the result as repo-language surprise, or as
+  task-conditioned and the result as transduction; the two readings
+  differ and the record did not choose.
+- **Because:** the prompt was built once in `hobbes.ttt.units` and the
+  arms were defined by what was *added* to it (the A1 block, the
+  adapter), so the constant part was never written down as a variable.
+- **Bites at:** reading A2 − A0 as H-TTT-1's number without knowing that
+  the task statement was a commit message.
+- **You find out:** **surfaced** — the conditioning is a named
+  variable (`none` / `subject` / `message` / `task`), every units file
+  carries each chat it can, `modal_ttt.py nll` writes `conditionings`
+  into the run record, and the second cell record states the prompt
+  verbatim. A reporting defect of the first run, registered rather than
+  rewritten.
+- **Source:** review item 2 (Max, 2026-09-03).
+
+### C-88 — An adapter trained on "none recorded" answers disbelieves the context in front of it
+- **Cannot tell you:** whether an adapter arm's "none" is knowledge or
+  the prior. With the held-out symbol's own card in the prompt — the
+  tests that reach it listed — the 300-step adapter answers "No test
+  reaches `X` at <sha>" (the training template, verbatim) on 61 of 102
+  items where the base reading the same card answers 8; 63% of the
+  tests answers it was trained on were "none". For callers and callees
+  the overrides follow the module: 13 of 17 caller refusals come from
+  modules where at least half the training answers were "none". A prior
+  manufactured in 300 steps overrides live text; nothing at the point of
+  use says so, and an agent working under such an adapter would be told
+  by its manifest that a test exists and could assert that it does not.
+- **Because:** the corpus renders the graph's absences as answers with
+  the same weight as its presences, and a module-grain regularity
+  ("this module's members have no tests") is exactly what the weights
+  learn best (first record); the card contradicts it and loses.
+- **Bites at:** the A3 arm on any family with a "none recorded" shape;
+  every agent run under an adapter (`manifest_ignore`, review item 9,
+  is the agent-level form).
+- **You find out:** **partial** — `scripts/ttt_override_probe.py`
+  measures it after a run and the cell record reports it; no prompt,
+  manifest or serve-time note warns the reader or the agent. Candidate
+  fixes: down-weight or drop the ∅ answers from the training QA, or
+  phrase them as "none recorded at <sha>" so the claim is scoped;
+  `manifest_ignore` in the agent scorer.
+- **Source:** review item 8 (Max, 2026-09-03); the second Hobbes cell
+  record.
+
+---
+
 ## Superseded constraints in this segment
 
 A limit that was never lifted but whose path no longer runs. The
