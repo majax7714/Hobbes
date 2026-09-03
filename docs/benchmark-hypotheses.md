@@ -346,6 +346,41 @@ NLL under the commit-message conditioning and on the agent metrics,
 not killed on navigation and under a task-statement conditioning by
 0.008 nats.
 
+#### 2026-09-03 (evening) — the step sweep past one epoch (review item 5) and the last controls (items 3, 6); `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`
+
+Adapters at 100 / 300 / 1,000 / 3,000 steps on the same corpus, seed
+0, and 3,000 on a four-paraphrase corpus. **Callers on trained
+symbols: 0.10 / 0.15 / 0.33 / 0.95** (1,000−300 +0.18, 13/0; 3,000−1,000
++0.62, 36/1); callees 0.02 / 0.21 / 0.51 / 0.90; tests 0.03 / 0.52 /
+0.72 / 0.95; held-out callers 0.05 / 0.10 / 0.19 / 0.27, held-out impact
+0.12 / 0.30 / 0.35 / 0.66. Paraphrases at 3,000: trained callers 0.86,
+held-out within noise of single-template. **Gold-diff NLL over the same
+adapters: −0.30 / −0.30 / −0.20 / +0.02.** The preregistered first
+reading holds (edges enter with exposure; cost per repo ≈ 1.7 A100-hours
+at 3,000 steps) and the second does not (diversity was not the recipe's
+problem); the NLL and navigation metrics are anti-correlated in step
+count. The **shuffled-all** control (item 3) — 0.226 nats off the diff —
+scores the base's numbers on every navigation family (defines 0.09,
+false acceptance 0.97): the NLL gain is the tokens, every navigation
+gain is the consistent graph. Three seeds (item 6) agree on every
+navigation family but tests (0.36 / 0.52 / 0.57); the NLL comparisons'
+intervals are unit-only.
+
+**Standing of the five at the end of 2026-09-03:** **H-TTT-1** not
+killed on its criterion, but what the criterion measured is now known
+to be a sub-epoch language effect that a control without the graph
+reproduces and that is gone by the time the graph is in the weights —
+the hypothesis as *written* ("derived context lowers the loss") is
+true of the tokens, not the structure. **H-TTT-2 killed. H-TTT-3
+killed** (the primary cell, at 300 steps; the 3,000-step adapter is
+not yet run through it). **H-TTT-4** unreadable at 7B. **H-TTT-5**
+killed on NLL under the commit-message conditioning and on the agent
+metrics; not killed on navigation or under a task statement. The
+design's §8 second row — structure must be live in attention — stood at
+300 steps and is now bounded: structure *can* be put in the weights at
+3,000, at the loss gain's expense; whether an agent under that adapter
+finds its files is the open question, and the next cell.
+
 #### Follow-ups from review — preregistered 2026-09-03, before any of them ran
 
 Max's review of the 2026-09-03 results set ten follow-ups (`docs/olmo3-ttt-results.md`

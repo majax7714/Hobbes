@@ -584,3 +584,47 @@ adapter had bought on the diff. Which of the two an agent needs is the
 primary cell's question (item 9: at 300 steps, neither the loss gain
 nor the regularities found the files). The 3,000-step adapter has not
 been run through the cell — held with the 10,000-step point.
+
+### Items 3 and 6, navigation — the shuffled-all control and seed 2 on the held-out set (`nav-olmo-hobbes-{shuffled-all,300s2}.json`, `navreport-heldout-controls-seeds.json`, v2)
+
+| arm | absent FA | defines | callers | callees | tests | impact | nav (has-truth) |
+|---|---|---|---|---|---|---|---|
+| base | 0.980 | 0.290 | 0.062 | 0.005 | 0.000 | 0.033 | 0.108 |
+| **shuffled-all control, 300** | **0.967** | **0.086** | 0.000 | 0.033 | 0.000 | 0.120 | 0.071 |
+| true, seed 0 | 0.224 | 0.985 | 0.103 | 0.206 | 0.521 | 0.301 | 0.496 |
+| true, seed 1 | 0.224 | 0.977 | 0.109 | 0.222 | 0.359 | 0.272 | 0.475 |
+| true, seed 2 | 0.224 | 0.975 | 0.113 | 0.228 | 0.574 | 0.282 | 0.496 |
+
+Shuffled-all − seed 0: defines −0.898 (0/353), absent −0.743 (0/292),
+tests −0.521 (0/56), impact −0.181, callees −0.173, callers −0.103,
+navigation −0.425 (63/782). Seed 2 − seed 0: navigation +0.0005 (p
+0.96), tests +0.053 (p 0.19), impact −0.019 (p 0.03), the absent family
+identical item for item across all three seeds.
+
+**The control that takes 0.226 nats off the gold diff (item 3) learns
+nothing navigable** — not the module's file (0.09 against the base's
+0.29, which is basename guessing), not abstention (false acceptance
+0.97), not a test or a caller. An adapter trained on the repo's tokens
+with every relation broken and every card inconsistent with its
+questions is, on navigation, the base model; below it on `defines`,
+since it has learned to write paths without learning which. Every
+navigation gain of the true adapter — the file mapping, the refusal
+habit, the module-grain regularities, and at 3,000 steps the edges — is
+what a *consistent* graph teaches, and none of it is what the NLL
+measured. The three seeds agree on everything but the tests family
+(0.36 / 0.52 / 0.57), whose seed range exceeds its bootstrap interval;
+the record's held-out tests number is unit-and-seed.
+
+## Compute
+
+Modal, this session, summed from the manifests and run records
+(**read the meter before quoting**): adapter training 100 / 300 s1 /
+300 s2 / shuffled-all / 1,000 / 3,000 / 3,000×4 = 210 + 597 + 711 +
+617 + 2,057 + 6,095 + 5,637 s ≈ **4.4 A100-hours**; NLL passes
+(eleven, with the eight-prompt conditioning passes) ≈ 0.6 A100-hours;
+the cell serve ≈ 0.7 A100-hours (152 sessions in 18 min plus warm-ups);
+the navigation serves ≈ 1.0 A100-hour (two phases, 14 arms and four
+probes) plus ≈ 1 A10G-hour on the two attempts that could not fit
+three adapters. About **7 GPU-hours** for the ten items without the
+10,000-step point, against the review's ~10.
+

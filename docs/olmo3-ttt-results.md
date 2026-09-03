@@ -294,7 +294,7 @@ longer blind to the shift that made it wrong about httpx.
 
 ---
 
-## 9. The step-count ablation (100 / 300 / 1,000 / 3,000, and 3,000 with paraphrases) — *running*
+## 9. The step-count ablation (100 / 300 / 1,000 / 3,000, and 3,000 with paraphrases)
 
 The design pre-plans exactly one sweep, because "how many steps to load
 a repo" is itself a finding, and the training-sample result (§5) makes
@@ -315,8 +315,41 @@ each fact is rendered through four question and answer phrasings
 ~6 A100-hours alone) is held for Max. The pre-committed readings are in
 `benchmark-hypotheses.md` § Follow-ups, item 5.
 
-*(the table — steps × NLL, held-out nav per family, trained nav per
-family, absent FA, the paraphrase row marked — appended when it lands)*
+**Landed 2026-09-03 (evening).** Every number in [the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md) § Item 5.
+
+| steps | exposures per fact | **NLL Δ vs base** | trained: callers | callees | tests | impact | held-out: callers | callees | tests | impact | absent FA |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 100 | 0.12 | **−0.30** (147/147) | 0.10 | 0.02 | 0.03 | 0.19 | 0.05 | 0.02 | 0.09 | 0.12 | 0.22 |
+| 300 | 0.35 | −0.30 (147/147) | 0.15 | 0.21 | 0.52 | 0.37 | 0.10 | 0.21 | 0.52 | 0.30 | 0.22 |
+| 1,000 | 1.17 | −0.20 (143/147) | 0.33 | 0.51 | 0.72 | 0.57 | 0.19 | 0.44 | 0.58 | 0.35 | 0.22 |
+| 3,000 | 3.51 | **+0.02** (p 0.19) | **0.95** | 0.90 | 0.95 | 0.82 | **0.27** | 0.52 | 0.75 | **0.66** | 0.22 |
+| 3,000 × 4 paraphrases | 4.05 | −0.07 (99/147) | 0.86 | 0.74 | 0.86 | 0.83 | 0.23 | 0.53 | 0.69 | 0.66 | 0.22 |
+| *shuffled-all control, 300* | *0.35* | *−0.23 (143/147)* | – | – | – | – | *0.00* | *0.03* | *0.00* | *0.12* | *0.97* |
+
+**Reading.** Two curves cross. Callers on trained symbols — the number
+§5 said would settle what the weights hold — rises from 0.15 at 300
+steps to **0.95 at 3,000**: edges enter the weights with exposure, one
+template per fact is enough (four phrasings at the same step count
+are slightly worse on trained edges and the same on held-out ones),
+and the preregistered "≥ 0.5 by 10,000" is met at 3,000 (3.5 epochs,
+1.7 A100-hours). The order of entry is legible: abstention and the
+module→file mapping by 100 steps, the module-grain regularities by
+300–1,000, the symbol-grain edges between 1,000 and 3,000 — past one
+epoch, exactly where the first record stopped and drew its conclusion.
+Over the same steps the gold-diff NLL gain **leaves**: −0.30 at 100,
+−0.20 at 1,000, gone at 3,000. So the two metrics this document leads
+with are anti-correlated in step count, and the control settles which
+is which: an adapter trained on the tokens with every relation broken
+takes 0.23 nats off the diff and learns nothing navigable at all (the
+base's numbers on every family, false acceptance 0.97). **The NLL gain
+was a sub-epoch language effect; the graph is what enters later, and
+enters at that gain's expense.** §1's "the weights hold module-grain
+regularities and no edges" was a statement about 300 steps and is
+withdrawn as a statement about LoRA. What generalises to a symbol the
+weights never saw is the module's shape (impact 0.66, tests 0.75, a
+quarter of its callers); what an agent needs of either is §9b's
+question, and the 3,000-step adapter has not been run through the
+cell. The 10,000-step point stays held.
 
 ---
 
@@ -362,10 +395,10 @@ in `benchmark-hypotheses.md` § Follow-ups before anything ran.
 
 1. A2's NLL gain by C-84 population — **closed**: none of the three preregistered shapes; the true−control margin is larger where the graph holds nothing, so it bounds the graph's share (C-86). §3 amended; [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
 2. The NLL conditioning stated (C-87) and varied — **closed**: the adapter's gain does not shrink as the task tightens (−0.244 path-only → −0.299 task); the prompted block is real only under a task statement (−0.008) and adds the same on top of the adapter — the separable reading; H-TTT-5 on NLL is killed under `message`, not under `task`. §3 amended; the record.
-3. The shuffled control's cards — **closed**: bodies had been permuted whole; a `shuffled-all` control (edge lines deranged within a module) lands at −0.226, the true adapter 0.071 over it — inside the first control's interval, so the card rendering adds nothing beyond the QA on NLL. Its navigation rows: §9.
+3. The shuffled control's cards — **closed**: bodies had been permuted whole; a `shuffled-all` control (edge lines deranged within a module) lands at −0.226 on NLL, the true adapter 0.071 over it — inside the first control's interval — and learns **nothing navigable** (defines 0.09, false acceptance 0.97, the base's numbers): the NLL gain is tokens, every navigation gain is the consistent graph (§9).
 4. Abstention under instruction — **closed**: the base with the instruction refuses every distractor (FA 0.00, cost 0.06 on has-truth); the adapter's 0.22 does not move under it and its real answers collapse. "Mid-train for abstention" weakens to "instruct for abstention"; design §3.2(c) amended with a dated note. §4 note; the record.
-5. Steps past one epoch, with paraphrases (§9) — *open*.
-6. A second seed — *open*.
+5. Steps past one epoch — **closed** (§9): callers on trained symbols 0.15 → 0.33 → **0.95** at 1,000 / 3,000 steps while the NLL gain falls to zero; one template per fact suffices; the 10,000-step point held.
+6. Seeds — **closed**: three seeds; the true−control margin moves by 4× its bootstrap half-width, so the NLL intervals are relabelled unit-only; the held-out tests family is the one navigation number with a seed range (0.36–0.57) wider than its interval; abstention is identical item for item across seeds.
 7. The defines scorer — **closed**: 59 of 89 failures were the right file by basename; scorer v2 puts A1 at 0.92 (under the 0.95 line) and lifts the base to 0.29 by convention; every run re-scored into a new file with the version. §4 note; the record.
 8. The A3 tests collapse — **closed** as §4a: a family-wide "none" prior for tests, a module-tracking one for callers/callees; C-88 registered with candidate fixes; `manifest_ignore` defined for the cell.
 9. The primary cell — **closed** (§9b): 50 derived units, four file-tools-only arms; the manifest finds the files (RFE 0.41), the adapter alone does not (0.01) and confabulates repo-shaped paths; HSR(TTT) not below HSR(prompted). H-TTT-2 and H-TTT-3 killed; five harness defects registered in the record.
