@@ -394,4 +394,58 @@ findings).**
   (shared runs, paired by unit), so their bootstrap rows are correlated
   within a proposal.
 
-## Items 4, 5 and the navigation rows of 3 and 6 — *(appended when they land)*
+## Item 4 — abstention under instruction: A1r and A3r (`nav-olmo-hobbes-A{1,3}r.json`, template `7fa1cc2ac118bae3`, scorer v2; `navreport-hobbes-refuse.json`)
+
+The card prompt plus, verbatim: "If the symbol is not listed in the
+derived context above, reply that it is not defined in this repo at
+this SHA. Do not guess a file." All 2,270 held-out items, the 393
+distractors included. Baseline for the deltas: A1 (the card without
+the instruction), v2 scorer.
+
+| arm | absent (refusal) | **absent FA** | defines | callers | callees | tests | impact | nav (has-truth) |
+|---|---|---|---|---|---|---|---|---|
+| A1 base + card | 0.104 | 0.896 | 0.924 | 0.678 | 0.760 | 0.791 | 0.135 | 0.611 |
+| **A1r base + card + instruction** | **1.000** | **0.000** | 0.878 | 0.538 | 0.732 | 0.772 | 0.045 | 0.549 |
+| A2 adapter | 0.776 | 0.224 | 0.985 | 0.103 | 0.206 | 0.521 | 0.301 | 0.496 |
+| A3 adapter + card | 0.776 | 0.224 | 1.000 | 0.791 | 0.810 | 0.370 | 0.095 | 0.608 |
+| **A3r adapter + card + instruction** | 0.776 | **0.224** | **0.331** | **0.190** | 0.771 | 0.181 | 0.041 | **0.305** |
+
+| comparison | family | n | Δ | 95% CI | p | a>b / a<b |
+|---|---|---|---|---|---|---|
+| A1r−A1 | absent | 393 | +0.896 | [+0.865, +0.926] | <0.0002 | 352 / 0 |
+| A1r−A1 | callers | 112 | −0.140 | [−0.224, −0.061] | 0.0004 | 13 / 29 |
+| A1r−A1 | defines | 393 | −0.046 | [−0.087, −0.005] | 0.033 | 25 / 43 |
+| A1r−A1 | impact | 393 | −0.089 | [−0.103, −0.076] | <0.0002 | 25 / 155 |
+| A1r−A1 | callees | 256 | −0.028 | p 0.19 | | |
+| A1r−A1 | tests | 102 | −0.019 | p 0.62 | | |
+| A1r−A1 | navigation | 1,256 | −0.062 | [−0.081, −0.043] | <0.0002 | 110 / 306 |
+| A3r−A1 | absent | 393 | +0.672 | (identical to A3−A1: the instruction moved nothing) | | |
+| A3r−A1 | defines | 393 | −0.593 | [−0.644, −0.539] | <0.0002 | 7 / 240 |
+| A3r−A1 | callers | 112 | −0.488 | [−0.584, −0.387] | <0.0002 | 7 / 72 |
+| A3r−A1 | tests | 102 | −0.610 | [−0.711, −0.500] | <0.0002 | 7 / 73 |
+| A3r−A1 | navigation | 1,256 | −0.306 | [−0.334, −0.277] | <0.0002 | 134 / 576 |
+
+**The base under the instruction refuses every distractor** (false
+acceptance 0.896 → 0.000, 352 of 393 items better, none worse) and
+pays 0.06 on the has-truth families — mostly callers (−0.14) and
+impact (−0.09), the families where the card says least; defines,
+callees and tests are within noise. Preregistered reading one, by a
+wide margin: the adapter's abstention (0.98 → 0.22) is *less* than an
+instruction buys (0.90 → 0.00), so "mid-train for abstention" weakens
+to "instruct for abstention" — the design's §3.2(c) rationale is
+amended with a dated note.
+
+**The adapter under the instruction is the other half.** Its false
+acceptance does not move (0.224 either way: the 22% of distractors it
+accepts, it accepts against an instruction too — the habit in the
+weights neither improves nor obeys), and the instruction collapses its
+has-truth answers: defines 1.00 → 0.33, callers 0.79 → 0.19, tests
+0.37 → 0.18. It reads "if the symbol is not listed … say it is not
+defined" and says so for symbols that *are* listed on the card in
+front of it — the same shape as the tests collapse (item 8, C-88): a
+trained prior over the live text, now triggered by an instruction the
+base follows correctly. `absent`'s refusal rate is the same in A2, A3
+and A3r to three decimals (0.776): whatever the adapter does on a
+distractor, it decided in the weights.
+
+## Items 5 and the navigation rows of 3 and 6 — *(appended when they land)*

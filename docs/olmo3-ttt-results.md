@@ -166,6 +166,18 @@ the base is +0.70 under v2, not +0.97. Every navigation run was
 re-scored into a new file with the version in it; the v2 tables are in
 [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
 
+**Abstention is what an instruction buys (review item 4, 2026-09-03).**
+With the card plus one sentence — "if the symbol is not listed, say it
+is not defined at this SHA; do not guess a file" — the **base** refuses
+every distractor (false acceptance 0.90 → **0.00**) and pays 0.06 on
+the has-truth families. The adapter's 0.98 → 0.22 is less than that, so
+the design's "mid-train for abstention" rationale weakens to "instruct
+for abstention". The adapter under the same instruction neither
+improves (0.22 either way) nor obeys it correctly: it declares symbols
+that *are* on its card undefined (defines 1.00 → 0.33, callers 0.79 →
+0.19) — the §4a shape again, triggered by an instruction the base
+follows. Numbers in [the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+
 ## 4a. Prior overrides text (review item 8)
 
 With the held-out symbol's own card in the prompt, the adapter (A3)
@@ -351,7 +363,7 @@ in `benchmark-hypotheses.md` § Follow-ups before anything ran.
 1. A2's NLL gain by C-84 population — **closed**: none of the three preregistered shapes; the true−control margin is larger where the graph holds nothing, so it bounds the graph's share (C-86). §3 amended; [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
 2. The NLL conditioning stated (C-87) and varied — **closed**: the adapter's gain does not shrink as the task tightens (−0.244 path-only → −0.299 task); the prompted block is real only under a task statement (−0.008) and adds the same on top of the adapter — the separable reading; H-TTT-5 on NLL is killed under `message`, not under `task`. §3 amended; the record.
 3. The shuffled control's cards — **closed**: bodies had been permuted whole; a `shuffled-all` control (edge lines deranged within a module) lands at −0.226, the true adapter 0.071 over it — inside the first control's interval, so the card rendering adds nothing beyond the QA on NLL. Its navigation rows: §9.
-4. Abstention under instruction, A1r / A3r — *open*.
+4. Abstention under instruction — **closed**: the base with the instruction refuses every distractor (FA 0.00, cost 0.06 on has-truth); the adapter's 0.22 does not move under it and its real answers collapse. "Mid-train for abstention" weakens to "instruct for abstention"; design §3.2(c) amended with a dated note. §4 note; the record.
 5. Steps past one epoch, with paraphrases (§9) — *open*.
 6. A second seed — *open*.
 7. The defines scorer — **closed**: 59 of 89 failures were the right file by basename; scorer v2 puts A1 at 0.92 (under the 0.95 line) and lifts the base to 0.29 by convention; every run re-scored into a new file with the version. §4 note; the record.
