@@ -20,6 +20,8 @@ is what will measure it.
 
 from __future__ import annotations
 
+import heapq
+
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
@@ -283,11 +285,19 @@ def expand(graph: dict, seeds: dict[str, str],
     """
     adjacency = module_adjacency(graph) if adjacency is None else adjacency
     scores = {node: 1.0 for node in seeds}
-    frontier = sorted(scores)
-    while frontier:
-        # Highest score first; id breaks ties so runs are reproducible.
-        frontier.sort(key=lambda n: (-scores[n], n))
-        node = frontier.pop(0)
+    # A heap keyed (-score, id) pops the highest score first and breaks
+    # ties on id — the order the frontier sort produced before ADR-099
+    # replaced the re-sort (quadratic on a 10k-symbol repo, and the
+    # corpus generator expands once per module). A stale entry (a node
+    # whose score improved after it was pushed) is skipped.
+    heap = [(-1.0, node) for node in sorted(scores)]
+    heapq.heapify(heap)
+    settled: set[str] = set()
+    while heap:
+        neg, node = heapq.heappop(heap)
+        if node in settled or -neg < scores[node]:
+            continue
+        settled.add(node)
         base = scores[node]
         for neighbor, edges in sorted(adjacency.get(node, {}).items()):
             best = base * HOP_DECAY * max(edge_factor(e) for e in edges)
@@ -295,8 +305,7 @@ def expand(graph: dict, seeds: dict[str, str],
                 continue
             if best > scores.get(neighbor, 0.0):
                 scores[neighbor] = best
-                if neighbor not in frontier:
-                    frontier.append(neighbor)
+                heapq.heappush(heap, (-best, neighbor))
     return scores
 
 
