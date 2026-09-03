@@ -562,6 +562,18 @@
   Candidate surfacing: the C-56 verbatim-recall probe
   (`deepswe_familiarity.py`) run beside it, so a repo with high
   verbatim recall and a low tree score is flagged.
+- **Seen on the first run (2026-09-03):** both shapes at once. No
+  candidate reached the memorised cell for either 7B (Olmo 3: hobbes
+  0.04, httpx 0.09, fastapi 0.13, textual 0.02; Qwen2.5-Coder: 0.20,
+  0.20, 0.16, 0.11). Qwen's httpx reply names `client.py, config.py,
+  models.py, urls.py` — the pre-rename file names — so it holds an
+  older httpx the probe at the 2025 commit cannot see; and the files
+  part rewards generic names (`README.md`, `LICENSE`, `__init__.py`),
+  the source of Qwen's 0.40 on this repo. Definition recall is ≤ 0.06
+  everywhere. Two probe fixes named: score files against the listing
+  minus a stoplist of names common to most repos, and report a
+  *version-shifted* signal when named files exist at an older commit
+  of the same repo.
 - **Source:** ADR-099 (2026-09-03), design §4.4, §7 "probe ceiling".
 
 ---

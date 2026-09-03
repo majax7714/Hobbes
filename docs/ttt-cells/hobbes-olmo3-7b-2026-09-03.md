@@ -70,9 +70,28 @@ what correct relations add, on 140 of 147 units. Runs
 
 ## Memorisation probe (§4.4), unaided, temperature 0
 
-| repo | files-P | defs-R | nav | score | cell |
-|---|---|---|---|---|---|
-| hobbes @ `ebdf7a5` | 0.10 | 0.00 | 0.03 | **0.044** | U |
+| model | repo | files-P | defs-R | nav | score | cell |
+|---|---|---|---|---|---|---|
+| Olmo-3-7B-Instruct | hobbes @ `ebdf7a5` | 0.10 | 0.00 | 0.03 | **0.044** | U |
+| Olmo-3-7B-Instruct | httpx @ `b5addb64` | 0.13 | 0.00 | 0.14 | 0.091 | U |
+| Olmo-3-7B-Instruct | fastapi @ `11614be9` | 0.00 | 0.00 | 0.39 | 0.129 | U |
+| Olmo-3-7B-Instruct | textual @ `0f0849fd` | 0.00 | 0.06 | 0.00 | 0.021 | U |
+| Qwen2.5-Coder-7B-Instruct | hobbes @ `ebdf7a5` | 0.40 | 0.04 | 0.17 | 0.202 | neither |
+| Qwen2.5-Coder-7B-Instruct | httpx @ `b5addb64` | 0.38 | 0.02 | 0.21 | 0.203 | neither |
+| Qwen2.5-Coder-7B-Instruct | fastapi @ `11614be9` | 0.00 | 0.00 | 0.46 | 0.155 | neither |
+| Qwen2.5-Coder-7B-Instruct | textual @ `0f0849fd` | 0.00 | 0.04 | 0.30 | 0.111 | U |
+
+**No candidate reaches the memorised cell for either 7B**, so H-TTT-4
+is not readable at this rung in this sample. Two things the replies
+show that the score does not (C-83): Qwen names httpx's files as
+`client.py, config.py, models.py, urls.py, utils.py` — httpx's names
+*before* its underscore rename — so it holds an older httpx that the
+probe at the DeepSWE commit reads as ignorance (the "renamed since the
+cut" shape); and files-P is inflated by generic names (`README.md`,
+`LICENSE`, `__init__.py`), which is where Qwen's 0.40 on Hobbes comes
+from. Definition recall is ≤ 0.06 for every model and repo: neither 7B
+recalls what a file defines. The `nav` part on the candidates is
+mostly "none recorded" items. Runs `probe-olmo-*.json`, `probe-qwen-*.json`.
 
 ## Held-out navigation (§4.5) — 2,270 items over 393 symbols never in a training pair
 

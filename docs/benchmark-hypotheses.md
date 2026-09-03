@@ -283,9 +283,20 @@ navigation H-TTT-5's kill criterion is *not* met (the combined arm is
 better than either alone) while on NLL it was; the two metrics
 disagree, and the record says so rather than averaging them.
 
+**H-TTT-4 (memorisation gate): not readable at this rung.** The
+probe (§4.4) put every candidate — httpx, fastapi, textual, and this
+repo — in the unseen cell for Olmo 3 (0.02–0.13) and in "neither" for
+Qwen2.5-Coder-7B (0.11–0.20); definition recall is ≤ 0.06 for every
+model and repo. Neither 7B holds a repo's tree, and Qwen's httpx answer
+names the *pre-rename* files, so a "memorised" repo can read as unseen
+when the probe's commit postdates the model's copy (C-83, both failure
+shapes seen). The cell needs a model that provably recalls a repo (the
+27B reproduced xarray's patch verbatim, C-39) — off the table under the
+standing policy — or a probe that reads version shift.
+
 *Pending in this cell:* a training-sample navigation pair (does the
-adapter hold the symbol-grain edges it *was* shown), and the memorised
-cell (httpx / fastapi / textual probes, one adapter, NLL) for H-TTT-4.
+adapter hold the symbol-grain edges it *was* shown), and a replication
+of the unseen cell on fastapi (68 git units + 2 DeepSWE tasks, NLL).
 Agent runs (H-TTT-2/3 proper) are step 5 and not started.
 
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
