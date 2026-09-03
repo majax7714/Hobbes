@@ -6054,4 +6054,56 @@ omitted Java. Docs only; no code, no constraints touched.
 
 **Held at Max's direction:** the nine registered-not-fixed entries
 (C-72–C-80), the C-70/CI question, and ADR-092's four embedded
-decisions — the handoff's resume point is unchanged.
+decisions.
+
+**Then the test-time-training experiment (ADR-099).** Max: the keys
+are in `secrets.txt` (Modal, Daytona, HF) and the experiment is
+`docs/olmo3-ttt-validation.md` — its order of work is step-gated and
+its hypotheses preregistered, so the session built steps 1–3's
+instruments and ran them, the standing policy lifted for this
+experiment only.
+
+*Step 1, the corpus generator:* `hobbes derive-corpus` (`hobbes.ttt.corpus`)
+— symbol cards with tiers, doc chunks with pins, six QA families
+(`defines`, `callers`, `callees`, `tests`, `impact` projected onto
+modules, `absent` with mechanically-checked distractors), held out by
+symbol and closed over class membership, code-shaped names masked in
+docs and plain-word mentions counted (C-82). Byte-identical from the
+artifacts; 19 tests. On this repo at HEAD: 17,036 training records,
+2,610 evaluation records over 451 held-out symbols. Two bugs found
+by reading the rendering: the impact family listed symbol ids as
+modules (the plan's adjacency scores the calling symbol; now
+projected), and unique plain words (`token`, `usage`) were being
+masked out of English prose.
+
+*Units and prompts:* `hobbes.ttt.units` — gold-diff units from git
+history (per commit after a base, per file, 3–120 changed lines, lock
+files skipped, trailers stripped) and from DeepSWE tasks (`solution.patch`);
+arm A1's block is `aided_brief`'s span derived the C-55 way; both NLL
+prompts ride the units file. `hobbes.ttt.score` grades a reply by what
+it names. `hobbes.ttt.report` pairs four arms by unit under a seeded
+bootstrap, split by C-84. 17 + 7 tests.
+
+*The base:* this repo at `ebdf7a5` (the public release) in a worktree,
+`hobbes init` + contained ingest — first attempt: scip-python's helper
+crashed because the worktree had no `pipeline/.venv` (C-27's shape;
+`uv sync` fixed it); second attempt ran the *worktree's* older Hobbes by
+`cd`-ing into it (the ADR-094 incident, again — always `uv run hobbes`
+from this checkout with `--repo`); third: Python 86% capture, built by
+`e656b75`. Corpus at the base: 13,688 records, no doc chunks (nothing
+narrated there, C-82), hash `9dfc0270803c44fc`. Units: 147 hunks from the
+72 commits after the base; 55 name a file the base graph knows (C-84).
+
+*Modal (`pipeline/scripts/modal_ttt.py`, volume `hobbes-ttt`):*
+`train_adapter` (LoRA per §3.3, A100-80GB, manifest with GPU/versions/
+losses, C-81), `score_nll` (bare and aided prompt per unit, adapter
+optional), `serve` (vLLM 0.27.1, base + adapters by name; vLLM lists
+`Olmo3ForCausalLM` with LoRA). Pins: torch 2.8.0, transformers 4.57.6,
+peft 0.18.1.
+
+*First numbers (Olmo-3-7B-Instruct, base, no adapter — recorded, not
+read):* gold-diff NLL over 147 units, A1−A0 = +0.0017 (p 0.56); on the
+55 context-known units −0.0090 (95% CI [−0.0175, −0.0007], p 0.038,
+30/55); on the 92 new-file units +0.0080 (p 0.011) — the boilerplate
+alone costs a little. 42 s of A100. The adapter build and the rest of
+steps 2–4 continue below.

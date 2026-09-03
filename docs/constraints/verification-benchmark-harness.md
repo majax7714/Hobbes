@@ -487,6 +487,107 @@
   is the only evidence that a covered plan was complete *enough*.
 - **Source:** ADR-085, built 2026-08-23 on ADR-084's frame.
 
+### C-81 — An adapter is regenerable in principle, bit-identical only on the same hardware
+- **Cannot tell you:** that the LoRA adapter `train_adapter` writes for
+  `(model, repo, sha, recipe)` is *the* adapter for that key. The corpus
+  it trains on is byte-identical from the SHA (`hobbes derive-corpus`,
+  ADR-099 D1), but three hundred optimiser steps in bf16 on a GPU are
+  not: a rebuild on another GPU class, another CUDA kernel set, or
+  another framework version is a different adapter, and no test can say
+  how different — only that the corpus, the seed and the steps were the
+  same.
+- **Because:** training is floating-point accumulation whose order the
+  hardware chooses; determinism ends where the derived layer ends (P5
+  draws the line there on purpose — the adapter sits *above* it).
+- **Bites at:** reading two arms as "the same adapter" when their
+  manifests name different GPUs or versions; reading an adapter as a
+  derived artifact in P1's sense (regenerable *from a commit SHA
+  alone*).
+- **You find out:** **surfaced** — every adapter's `manifest.json`
+  records seed, steps, corpus hash, recipe hash, GPU name, framework
+  versions and the loss curve; the key it is stored under includes the
+  recipe hash, and `train_adapter` is idempotent on it, so a rebuild
+  that lands elsewhere is a different key, never a silent overwrite.
+  The oracle lane's rule applies unchanged: a different nightly is a
+  different oracle (`oracle-grading.md`).
+- **Source:** ADR-099 (2026-09-03), design §7.
+
+---
+
+### C-82 — Held-out symbols leak through prose, and the doc rendering is empty where nothing narrated
+- **Cannot tell you:** that a held-out symbol never reached the
+  adapter. The split masks a held-out symbol's id, its dotted qualname
+  and its bare name when the name is unique and *code-shaped* — but a
+  symbol named with a plain word (`token`, `usage`, `grade`) keeps its
+  name wherever a module doc uses the word, because masking the word
+  would erase English; those mentions are counted, not removed. And
+  the doc rendering (b) exists only where `hobbes narrate` has run:
+  at a base SHA ingested in a worktree there are no narrative docs, so
+  the corpus there is cards and QA alone — one third of the recipe
+  absent, and the leak absent with it.
+- **Because:** a symbol name is also a word; the narrative layer is
+  generative and parked (W0), so it is not regenerated per SHA.
+- **Bites at:** reading a held-out navigation score as uncontaminated
+  when the manifest's `doc_plain_names_left` is large; comparing a
+  cell whose corpus had docs (this repo at HEAD: 263 chunks, 850
+  plain-word mentions left) with one that had none (this repo at the
+  base: 0 chunks) as if the recipe were the same.
+- **You find out:** **surfaced** — the manifest and the
+  `derive-corpus` summary print `doc_replacements`,
+  `doc_plain_names_left`, the card and answer mentions dropped, and
+  the doc-chunk count (zero is printed, not omitted); a cell record
+  quotes them.
+- **Source:** ADR-099 (2026-09-03), design §7 "held-out leakage".
+
+---
+
+### C-83 — The memorisation probe is a coarse gate, not a familiarity measure
+- **Cannot tell you:** how much of a repo a model holds. The probe
+  asks for files under five directories, the definitions in five
+  files, and thirty held-out navigation items, unaided; it scores what
+  the reply names. A model can hold a repo's idioms and API shape
+  without recalling its tree (the C-56 finding on the 27B), and a repo
+  can score low for being renamed or restructured since the model's
+  data cut rather than for being unseen. Between 0.15 and 0.5 the probe
+  says "neither" and the repo is not used.
+- **Because:** familiarity is not observable from outside the weights;
+  the probe measures recall of three concrete facts and calls that a
+  gate.
+- **Bites at:** treating `M`/`U` as a continuous covariate; reading a
+  `U` as "the model has never seen this code".
+- **You find out:** *partial* — the probe prints its three part-scores
+  and the cell it assigns, and the design says the gate is coarse; but
+  nothing at the point of use says *which* of the two failure shapes
+  (idioms without tree, renamed since cut) a low score might be.
+  Candidate surfacing: the C-56 verbatim-recall probe
+  (`deepswe_familiarity.py`) run beside it, so a repo with high
+  verbatim recall and a low tree score is flagged.
+- **Source:** ADR-099 (2026-09-03), design §4.4, §7 "probe ceiling".
+
+---
+
+### C-84 — A git-history unit's context is the base graph's, and most hunks touch files the base never had
+- **Cannot tell you:** what Hobbes would have seen at a unit's own
+  parent commit. Units drawn from git history are graded against a
+  graph ingested once at the *base*; a hunk twenty commits later is
+  scored with the base's structure, and the drift between them is the
+  same for every arm but not zero. Worse for the aided arm: a hunk
+  that creates a file, or edits one created after the base, names a
+  file the base graph does not hold, so its A1 block says "the planner
+  resolved nothing specific" — on this repo, 92 of 147 units. For
+  those, A1 and A0 differ by boilerplate alone.
+- **Because:** one ingest per base is what the design pins (one SHA,
+  one corpus, one adapter); an ingest per unit would give every unit a
+  different corpus and there would be no adapter to share.
+- **Bites at:** reading a null A1-vs-A0 result over *all* units as
+  "prompted context does nothing"; reading the 55-unit subset as the
+  whole.
+- **You find out:** **surfaced** — every unit's `notes` name each file
+  absent from the graph at the SHA, `ttt_units.py` prints the count
+  with a known file beside the total, and the NLL report is split by
+  that population.
+- **Source:** ADR-099 (2026-09-03), design §2.3.
+
 ---
 
 ## Superseded constraints in this segment

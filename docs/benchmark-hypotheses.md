@@ -194,6 +194,37 @@ transcripts.
   the harness. H3 claims the deterministic savings dominate; the
   per-depth cost curve is what settles it.
 
+## H-TTT — Test-time training on the derived layer (ADR-099, preregistered 2026-09-03)
+
+The design, the factor grid, the recipe and the order of work are in
+[`olmo3-ttt-validation.md`](olmo3-ttt-validation.md); the hypotheses
+are restated here so results land beside them. Each carries a kill
+criterion; a hypothesis that survives is *not confirmed*, it is *not
+yet killed*. Every arm is *model + prompt* under P12 — one agent, no
+decomposition — and the experiment measures how derived context is
+**delivered**, not whether Hobbes solves tasks; solve rate, when the
+agent runs come, is recorded and gates nothing.
+
+| ID | Claim | Kill criterion |
+|---|---|---|
+| **H-TTT-1** (transduction) | Derived context lowers the model's per-token loss on gold diffs; loading it via TTT lowers it at least as much as prompting it | TTT arm's gold-diff NLL not lower than the unaided arm by a margin that survives a paired bootstrap (p < 0.05) on ≥ 40 units |
+| **H-TTT-2** (grounding) | TTT reduces the hallucinated-symbol rate below the prompted arm on unseen repos | HSR(TTT) ≥ HSR(prompted) on the unseen cell, or the delta inside the paired-bootstrap CI |
+| **H-TTT-3** (navigation) | TTT raises right-files-edited (Jaccard against the unit's impact set) on unseen repos | RFE(TTT) not above RFE(prompted) by ≥ 0.10 absolute on the unseen cell |
+| **H-TTT-4** (memorisation gate) | Hobbes's lift, either delivery, concentrates on repos the model has not memorised | lift on memorised repos ≥ lift on unseen repos |
+| **H-TTT-5** (combination) | TTT + prompted context beats either alone | the combined arm not better than the best single arm on the primary metrics |
+
+**Instruments (built 2026-09-03):** `hobbes derive-corpus` (the corpus,
+byte-identical from the SHA), `pipeline/scripts/ttt_units.py` (gold-diff
+units from git history and DeepSWE tasks, both NLL prompts attached),
+`pipeline/scripts/modal_ttt.py` (adapter build, NLL scoring, vLLM serve
+with adapters), `pipeline/scripts/ttt_probe.py` (the memorisation gate
+and the held-out navigation set per arm). Constraints C-81–C-84.
+
+### Results — H-TTT
+
+*(none yet; steps 2–3 of the order of work started 2026-09-03 —
+Olmo 3 7B, this repo at `ebdf7a5` as the unseen candidate, 147 units)*
+
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
 
 `hobbes bench` is the machinery: `select` applies the instance protocol

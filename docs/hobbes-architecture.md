@@ -1270,6 +1270,19 @@ passes; `adr085-validation-run.md` — eight harness defects, six fixed
 in ADR-091, D5/D6 held). The next, on an explicit go, is the removal
 A/B on the D5 fix.
 
+**A third instrument sits beside the harness and the oracle lane
+(ADR-099, 2026-09-03):** the test-time-training experiment asks whether
+the derived layer does more in a model's *weights* than in its prompt.
+Its deterministic half is in the pipeline — `hobbes derive-corpus`
+renders `.hobbes/derived/` at one SHA as symbol cards, doc chunks and
+six families of navigation QA, held out by symbol, byte-identical from
+the artifacts (`hobbes.ttt`); its generative half — a LoRA adapter per
+`(model, repo, sha, recipe)`, the NLL scorer, the serve — is a Modal
+app whose manifests record what training cannot make deterministic
+(C-81). Every arm is *model + prompt* under P12; the hypotheses and
+their kill criteria are H-TTT-1–5 in `benchmark-hypotheses.md`, and the
+design is `olmo3-ttt-validation.md`.
+
 The first full run's first instance surfaced two more (ADR-058),
 both the harness's own. **Both arms now run in the instance's own
 swebench image** — the environment the evaluator judges in — with the

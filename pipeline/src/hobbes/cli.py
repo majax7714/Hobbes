@@ -691,6 +691,29 @@ def _cmd_plan(args: argparse.Namespace) -> int:
     return 1 if spec.gate.result == "fail" else 0
 
 
+def _cmd_derive_corpus(args: argparse.Namespace) -> int:
+    """`hobbes derive-corpus`: the derived layer rendered as a training
+    corpus for the test-time-training experiment (ADR-099). Deterministic
+    and quota-free: same artifacts, same flags, same bytes. Exit 0, or 2
+    when the repo is not ingested.
+    """
+    from hobbes.extract.emit import DERIVED_DIR
+    from hobbes.ttt.corpus import CORPUS_DIR, CorpusError, build_corpus, format_manifest
+
+    repo_root = _repo_root_from(args)
+    out_dir = Path(args.out) if args.out else repo_root / DERIVED_DIR / CORPUS_DIR
+    try:
+        manifest = build_corpus(repo_root, out_dir, holdout=args.holdout, seed=args.seed, name=args.name)
+    except CorpusError as exc:
+        print(f"hobbes derive-corpus: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(manifest, indent=2, sort_keys=True))
+    else:
+        print(format_manifest(manifest, out_dir))
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """`hobbes run`: execute a change-spec (ADR-054, D2 base).
 
@@ -1271,6 +1294,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--json", action="store_true", help="machine-readable output"
     )
 
+    corpus_parser = sub.add_parser(
+        "derive-corpus",
+        help="render the derived layer as a training corpus (ADR-099)",
+        description=(
+            "Test-time training on the derived layer (ADR-099): symbol cards, "
+            "module-doc chunks and navigation QA in six families, rendered from "
+            ".hobbes/derived/ at its SHA with no model in the loop, held out by "
+            "symbol. Writes train.jsonl, eval.jsonl, probe-nav.jsonl and "
+            "manifest.json. Deterministic: same artifacts, same bytes."
+        ),
+    )
+    corpus_parser.add_argument("--repo", help="repo root (default: auto-detected via .git)")
+    corpus_parser.add_argument("--out", help="output directory (default: .hobbes/derived/corpus)")
+    corpus_parser.add_argument("--holdout", type=float, default=0.1,
+                               help="fraction of symbols held out for evaluation (default: 0.1)")
+    corpus_parser.add_argument("--seed", type=int, default=0, help="seed for the held-out split (default: 0)")
+    corpus_parser.add_argument("--name", help="the repo's name in every prompt (default: the root directory's)")
+    corpus_parser.add_argument("--json", action="store_true", help="print the manifest instead of the summary")
+
     run_parser = sub.add_parser(
         "run",
         help="execute a change-spec: one single-use session per unit, then "
@@ -1594,6 +1636,7 @@ def main(argv: list[str] | None = None) -> int:
         "invariants": _cmd_invariants,
         "review": _cmd_review,
         "plan": _cmd_plan,
+        "derive-corpus": _cmd_derive_corpus,
         "run": _cmd_run,
         "mail": _cmd_mail,
         "bench": _cmd_bench,

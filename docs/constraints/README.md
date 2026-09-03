@@ -124,7 +124,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-55, C-56 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) and the TTT experiment (ADR-099) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
@@ -135,8 +135,15 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Eighty entries: seventy active, eight lifted, two superseded**
-(C-71–C-80 added 2026-09-02 by the four-repo extraction test — four
+**Eighty-four entries: seventy-four active, eight lifted, two superseded**
+(C-81–C-84 added 2026-09-03 by ADR-099, the test-time-training
+experiment: the adapter is regenerable but not bit-identical across
+hardware (*surfaced*, the manifest), held-out names leak through plain
+words and the doc rendering is empty where nothing narrated
+(*surfaced*, the corpus manifest), the memorisation probe is a coarse
+gate (*partial*), and a git-history unit carries the base graph's
+context — 92 of this repo's 147 units name files the base never had
+(*surfaced*, per unit); C-71–C-80 added 2026-09-02 by the four-repo extraction test — four
 random public repos, one per language, each ingested contained and
 hand-sampled; two stopped on lane disagreements. **C-71** — the Go
 graph is one build configuration's and lane A abstains where
@@ -169,7 +176,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Seven of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80); seven
+against the code that concedes it; none had been silently lifted). Eight of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80, C-83); seven
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and the 2026-09-02 five: C-75, C-76, C-77, C-78, C-79); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status

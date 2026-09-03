@@ -43,6 +43,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
+| running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated) |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -71,8 +72,10 @@ box, against a repo on disk (architecture §10); the application mode in
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
-  evaluator → report); `narrate/`, `invariants/`, `review.py`, `render.py`,
-  `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
+  evaluator → report); `ttt/` (`hobbes derive-corpus`: the derived layer
+  rendered as a training corpus for the test-time-training experiment,
+  ADR-099, with `scripts/modal_ttt.py`, `ttt_units.py`, `ttt_probe.py`);
+  `narrate/`, `invariants/`, `review.py`, `render.py`, `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
   minigo / minirust / minijava / canary-rust / canary-java / goshapes /
   twomod), excluded from
   collection.
@@ -169,7 +172,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 098).
+  architecture doesn't already make. Number sequentially (last: 099).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
