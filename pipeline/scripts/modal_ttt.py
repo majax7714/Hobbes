@@ -7,7 +7,7 @@
     uv run pipeline/scripts/modal_ttt.py put <local-dir-or-file> <remote-path>
     uv run pipeline/scripts/modal_ttt.py train --corpus corpora/<repo>/<sha> [--steps 300] [--seed 0] [--model M]
     uv run pipeline/scripts/modal_ttt.py nll --units units/<name>.jsonl --out runs/<name>.json [--adapter adapters/…] [--model M] [--conditioning message,none,subject,task]
-    ADAPTERS=<name>=adapters/… MODEL=M uv run pipeline/scripts/modal_ttt.py deploy   # vLLM, base + adapters
+    ADAPTERS=<name>=adapters/… MODEL=M [SERVE_GPU=A100-80GB SERVE_MAX_LEN=32768] uv run pipeline/scripts/modal_ttt.py deploy   # vLLM, base + adapters
     uv run pipeline/scripts/modal_ttt.py url
     uv run pipeline/scripts/modal_ttt.py get <remote-path> <local-path>
 
@@ -34,7 +34,9 @@ import sys
 
 import modal
 
-APP = "hobbes-ttt"
+#: ``TTT_APP`` names a second deployment (the cell's A100 serve beside the
+#: navigation serve); the volumes are shared by name either way.
+APP = os.environ.get("TTT_APP", "hobbes-ttt")
 #: The primary model (fully open lineage) and the ladder's comparison rung.
 # The serve window is 16k on the A10G: at 32k the 7B's KV cache wants
 # 7 GiB beside the weights and the card has 5.25 (vLLM's own estimate
@@ -65,7 +67,8 @@ train_image = (
 serve_image = (
     modal.Image.debian_slim(python_version="3.12")
     .pip_install(f"vllm=={VLLM}", "transformers>=5.8", "huggingface_hub>=0.34")
-    .env({"MODEL": MODEL, "ADAPTERS": ADAPTERS, "VLLM_USE_FLASHINFER_SAMPLER": "0"})
+    .env({"MODEL": MODEL, "ADAPTERS": ADAPTERS, "SERVE_MAX_LEN": os.environ.get("SERVE_MAX_LEN", ""),
+          "VLLM_USE_FLASHINFER_SAMPLER": "0"})
 )
 weights = modal.Volume.from_name("hobbes-hf-cache", create_if_missing=True)
 ttt = modal.Volume.from_name("hobbes-ttt", create_if_missing=True)
@@ -246,7 +249,7 @@ def score_nll(units: str, out: str, adapter: str | None = None, model: str = MOD
 
 
 @app.function(
-    image=serve_image, gpu=MODELS.get(MODEL, {}).get("gpu_serve", "A10G"), volumes=VOLUMES,
+    image=serve_image, gpu=os.environ.get("SERVE_GPU") or MODELS.get(MODEL, {}).get("gpu_serve", "A10G"), volumes=VOLUMES,
     secrets=[modal.Secret.from_name("hobbes-llm-key")], scaledown_window=600, timeout=60 * 60,
 )
 @modal.concurrent(max_inputs=32)
@@ -256,7 +259,7 @@ def serve():
     a request selects an arm by ``model``: the base name (A0/A1) or an
     adapter's name (A2/A3)."""
     cmd = ["vllm", "serve", MODEL, "--host", "0.0.0.0", "--port", str(PORT), "--served-model-name", MODEL,
-           "--max-model-len", str(MODELS.get(MODEL, {}).get("max_model_len", 32768)),
+           "--max-model-len", os.environ.get("SERVE_MAX_LEN") or str(MODELS.get(MODEL, {}).get("max_model_len", 32768)),
            "--api-key", os.environ["HOBBES_LLM_API_KEY"], "--gpu-memory-utilization", "0.90"]
     adapters = [a for a in ADAPTERS.split(",") if a.strip()]
     if adapters:

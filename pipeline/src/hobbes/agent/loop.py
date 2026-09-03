@@ -626,7 +626,7 @@ def run(args: argparse.Namespace) -> dict:
         tools += WRITE_TOOLS
     if mcp:
         tools += mcp.tools()
-    else:
+    elif not args.no_bash:
         tools.append(BASH_TOOL)
     mcp_names = {t["function"]["name"] for t in (mcp.tools() if mcp else [])}
     endpoint = Endpoint(args.base_url, args.model, os.environ.get(args.api_key_env) or None,
@@ -790,7 +790,7 @@ def run(args: argparse.Namespace) -> dict:
                         if mcp and name in mcp_names:
                             text, is_err = mcp.call(name, targs)
                         else:
-                            text, is_err = native_call(name, targs, workdir, allow_bash=mcp is None,
+                            text, is_err = native_call(name, targs, workdir, allow_bash=mcp is None and not args.no_bash,
                                                        allow_write=not read_only, read_paths=read_paths)
                         if not is_err and mutating:
                             edited = True
@@ -915,6 +915,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
                    help="the session role; a read-only role (planner, reviewer, verifier) gets no write "
                         "tools and is disciplined toward a reflect handoff instead of an edit")
     p.add_argument("--workdir", default=".")
+    p.add_argument("--no-bash", action="store_true",
+                   help="withhold the native bash tool: file tools only, no exec at all (the TTT cell's arms, "
+                        "ADR-099 review item 9 — repo code never runs, and policy is the same for every arm)")
     p.add_argument("--max-turns", type=int, default=60)
     p.add_argument("--max-tokens", type=int, default=4096)
     p.add_argument("--max-result-chars", type=int, default=12_000,

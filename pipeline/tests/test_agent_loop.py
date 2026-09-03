@@ -118,6 +118,25 @@ def run_loop(model, tree, *extra, prompt="do it"):
 
 
 class TestNativeLoop:
+    def test_no_bash_withholds_the_tool_and_refuses_a_call(self, tree, monkeypatch):
+        monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
+        model = ScriptedModel([
+            [("bash", {"command": "echo hi"})],
+            [("read_file", {"path": "src/a.py"})],
+            [("edit_file", {"path": "src/a.py", "old_text": "return 1", "new_text": "return 3"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree, "--no-bash")
+        finally:
+            model.close()
+        assert env["is_error"] is False and env["result"] == "done"
+        offered = {t["function"]["name"] for t in model.requests[0]["body"]["tools"]}
+        assert "bash" not in offered and "edit_file" in offered
+        tool_msgs = [m for m in model.requests[1]["body"]["messages"] if m.get("role") == "tool"]
+        assert "bash is not available" in tool_msgs[-1]["content"]
+        assert (tree / "src" / "a.py").read_text() == "def f():\n    return 3\n"
+
     def test_reads_edits_runs_bash_and_reports(self, tree, monkeypatch):
         monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
         model = ScriptedModel([
