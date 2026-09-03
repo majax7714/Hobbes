@@ -250,8 +250,8 @@ longer blind to the shift that made it wrong about httpx.
 | | claim | standing after this run |
 |---|---|---|
 | H-TTT-1 | derived context lowers gold-diff loss; TTT at least as much as prompting | **not killed** — adapter −0.30 (147/147), −0.22 (68/68); prompting ≈ 0 (−0.008 under a task statement). Caveat, amended by the review: most of the adapter's gain is repo language; the true−control margin (0.07–0.08) bounds the graph's share rather than measuring it (C-86), and the intervals are unit-only (seed variance exceeds them, §9) |
-| H-TTT-2 | TTT lowers hallucinated-symbol rate on unseen repos | **not measured** (needs agent runs, step 5). Nearest proxy: distractor false acceptance 0.98 → 0.22 under the adapter, 0.90 under the card |
-| H-TTT-3 | TTT raises right-files-edited | **not measured** (step 5) |
+| H-TTT-2 | TTT lowers hallucinated-symbol rate on unseen repos | **killed** (§9b, 2026-09-03): HSR 0.92 under the adapter vs 0.82 under the prompted manifest (+0.11, p 0.18, inside the CI); the adapter invents repo-shaped paths. The navigation proxy (distractor false acceptance 0.98 → 0.22) did not carry to the agent |
+| H-TTT-3 | TTT raises right-files-edited | **killed** (§9b): RFE Jaccard 0.01 under the adapter vs 0.41 under the manifest; 0.43 with both |
 | H-TTT-4 | lift concentrates on unmemorised repos | **unreadable at 7B** — no memorised cell in the sample, and none appears when the probe is scored against every tagged release (Qwen/httpx 0.25 at best) |
 | H-TTT-5 | TTT + prompt beats either alone | **killed on NLL under the commit-message conditioning** (A3 = A2 on both repos); **not killed under a task statement** (A3−A2 −0.008, 99/147 — small, real); **not killed on navigation** (A3 best, 0.61 vs 0.56, non-additive, and with the tests collapse of §4a) |
 
@@ -308,6 +308,40 @@ family, absent FA, the paraphrase row marked — appended when it lands)*
 
 ---
 
+## 9b. The primary cell — HSR and RFE over 50 derived units (review item 9)
+
+The design's primary metrics, run for the first time: `hobbes plan`
+over the 28 hand-written proposals gave 50 derived units (two
+proposals refused by the planner); one file-tools-only agent per unit
+per arm, no exec anywhere, base and the 300-step adapter on one serve;
+every arm *model + prompt* (P12). Numbers and the defect register in
+[the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+
+| arm | HSR | RFE Jaccard | precision | recall | non-empty patch |
+|---|---|---|---|---|---|
+| A0 base | 1.00 | 0.00 | 0.00 | 0.00 | 0.42 |
+| A1 base + manifest | 0.82 | **0.41** | 0.95 | 0.41 | 0.54 |
+| A2 adapter | 0.92 | **0.01** | 0.01 | 0.01 | 0.84 |
+| A3 adapter + manifest | 0.80 | 0.43 | 0.82 | 0.55 | 0.68 |
+
+The base without a manifest asks for file paths and invents every name
+it emits. The manifest is what lets a 7B find the files (Jaccard 0.41,
+precision 0.95). The adapter alone finds nothing (0.01) while writing
+more than any other arm — into paths that do not exist and read like
+this repo's (`pipeline/oracle/agent.py`, `scip-java/src/scip/java.py`);
+a third of its sessions were stopped for repeating themselves. That is
+§5's finding at the agent grain: repo language in the weights, no repo
+structure. Under the manifest the adapter reaches more of the interior
+(recall 0.55 vs 0.41, p 0.08) with lower precision (0.82 vs 0.95) and
+the same HSR (p 0.37). **H-TTT-2 killed** (HSR(TTT) +0.11 over the
+prompted arm, inside its CI); **H-TTT-3 killed** (RFE(TTT) 0.40 below);
+H-TTT-5 not survived on either. The design's §8 second row — *structure
+must be live in attention* — is the standing conclusion at the agent
+grain as well as on navigation. Five harness defects are registered in
+the record (no exec and no test run, the tool-call parser, the
+reference extractor's first version, the small HSR denominator, the
+shared unaided runs); the numbers stand under them.
+
 ## 10. Follow-ups from review (2026-09-03)
 
 One line per item, in the review's order (dependency, not priority),
@@ -322,5 +356,5 @@ in `benchmark-hypotheses.md` § Follow-ups before anything ran.
 6. A second seed — *open*.
 7. The defines scorer — **closed**: 59 of 89 failures were the right file by basename; scorer v2 puts A1 at 0.92 (under the 0.95 line) and lifts the base to 0.29 by convention; every run re-scored into a new file with the version. §4 note; the record.
 8. The A3 tests collapse — **closed** as §4a: a family-wide "none" prior for tests, a module-tracking one for callers/callees; C-88 registered with candidate fixes; `manifest_ignore` defined for the cell.
-9. The primary cell: HSR, RFE, `manifest_ignore` — *open*.
+9. The primary cell — **closed** (§9b): 50 derived units, four file-tools-only arms; the manifest finds the files (RFE 0.41), the adapter alone does not (0.01) and confabulates repo-shaped paths; HSR(TTT) not below HSR(prompted). H-TTT-2 and H-TTT-3 killed; five harness defects registered in the record.
 10. The version-aware probe — **closed** offline from the stored replies (temperature 0): Qwen/httpx 0.25 against any release, best tag 0.28.1; nothing crosses 0.5; §6 stands. The Olmo rows are re-asked with full replies in the phase-1 serve (their stored heads were cut).

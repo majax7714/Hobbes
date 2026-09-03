@@ -280,4 +280,118 @@ variance on top of its interval. A3−A2 is null under every seed. The
 held-out navigation for seeds 1 and 2 is appended with the phase-1 and
 phase-2 arms below.
 
-## Items 4, 5, 9 and the rest of 6 — *(appended when they land)*
+## Item 9 — the primary cell: HSR, RFE, `manifest_ignore` over 50 derived units (`hobbes.ttt.cell`, `scripts/ttt_cell.py`; `~/.hobbes/bench/ttt/cell-hobbes/`)
+
+**Units.** `hobbes plan` over the 28 hand-written proposals on the
+worktree at `ebdf7a5`, seeded by the commit's files the base graph
+holds (lexically otherwise), at most two units per proposal: **50
+derived units from 26 proposals** (two refused by the planner: the
+README-only commit matched no node; one seeded only on hubs — ADR-093's
+refusal, recorded). Mean 1.9 interior paths and 7.6k characters of
+manifest per unit; every unit has an editable path.
+
+**Arms.** One agent per unit on a fresh checkout of the base: the owned
+loop, **file tools only** (no exec in any arm: repo code never runs,
+policy identical), 30 turns, 1,536 tokens per turn, temperature 0.2,
+the tool schemas in the system prompt and the model's
+`<function_calls>` read from its text. A0/A2 see the proposal; A1/A3
+the proposal plus the unit's manifest (`render_context`: interior,
+guarding tests, contracts, neighborhood, complement). An unaided arm's
+prompt is the same for every unit of a proposal, so it ran once per
+proposal (26 sessions) and was scored per unit; the aided arms ran 50
+each. Base and adapter (300 steps, seed 0) on one A100 serve at a 32k
+window. **Every arm is *model + prompt* (P12).** 152 sessions, 18
+minutes wall.
+
+| arm | sessions | mean turns | text calls | answered / repeat-stall / turn budget / error |
+|---|---|---|---|---|
+| A0 base | 26 | 8.3 | 173 | 26 / 0 / 0 / 0 |
+| A1 base + manifest | 50 | 7.2 | 298 | 50 / 0 / 0 / 0 |
+| A2 adapter | 26 | 14.6 | 352 | 15 / **8** / 3 / 0 |
+| A3 adapter + manifest | 50 | 9.5 | 360 | 47 / 0 / 2 / 1 |
+
+**Scores** (per unit; HSR over the units whose agent emitted a judged
+reference; RFE precision over units with a non-empty patch; paired
+bootstrap over units, 5,000 resamples):
+
+| arm | HSR | n | RFE Jaccard | precision | recall | `manifest_ignore` | applies (non-empty patch) | references (hallucinated / in-graph / unverifiable / own) |
+|---|---|---|---|---|---|---|---|---|
+| A0 | **1.000** | 23 | 0.000 | 0.000 | 0.000 | – | 0.42 | 148 (95 / 0 / 15 / 38) |
+| A1 | 0.820 | 31 | **0.411** | 0.951 | 0.412 | 0.06 | 0.54 | 397 (261 / 77 / 10 / 49) |
+| A2 | 0.923 | 32 | **0.007** | 0.012 | 0.010 | – | 0.84 | 7,167 (2,236 / 165 / 151 / 4,615) |
+| A3 | 0.799 | 27 | 0.431 | 0.819 | 0.545 | 0.02 | 0.68 | 1,270 (521 / 317 / 14 / 418) |
+
+| comparison | metric | n | Δ | 95% CI | p | a>b / a<b |
+|---|---|---|---|---|---|---|
+| **A2−A1** | HSR | 20 | **+0.112** | [−0.049, +0.287] | 0.18 | 7 / 5 |
+| A2−A0 | HSR | 19 | −0.119 | [−0.213, −0.036] | 0.002 | 0 / 6 |
+| A1−A0 | HSR | 15 | −0.255 | [−0.462, −0.073] | 0.001 | 0 / 6 |
+| A3−A1 | HSR | 18 | −0.068 | [−0.229, +0.074] | 0.37 | 5 / 6 |
+| A3−A2 | HSR | 16 | −0.201 | [−0.399, −0.020] | 0.028 | 3 / 8 |
+| **A2−A1** | RFE Jaccard | 50 | **−0.404** | [−0.533, −0.278] | <0.0002 | 1 / 26 |
+| A2−A0 | RFE Jaccard | 50 | +0.007 | [0, +0.020] | 0.73 | 1 / 0 |
+| A1−A0 | RFE Jaccard | 50 | +0.411 | [+0.288, +0.537] | <0.0002 | 26 / 0 |
+| A3−A1 | RFE Jaccard | 50 | +0.021 | [−0.113, +0.152] | 0.76 | 15 / 10 |
+| A3−A1 | RFE recall | 50 | +0.133 | [−0.016, +0.280] | 0.083 | 15 / 8 |
+| A3−A2 | RFE Jaccard | 50 | +0.425 | [+0.307, +0.549] | <0.0002 | 34 / 0 |
+| A3−A1 | manifest_ignore | 50 | −0.040 | [−0.100, 0] | 0.25 | 0 / 2 |
+| A2−A1 | applies | 50 | +0.300 | [+0.120, +0.480] | 0.002 | 20 / 5 |
+
+**What the transcripts show.** The base without a manifest does not
+know where anything is: it asks the user for file paths, writes
+nothing in 29 of 50, and every name it does emit is invented (HSR
+1.00). The manifest is what lets a 7B find the files at all (Jaccard
+0.41, precision 0.95: it edits what the manifest lists and little
+else). The **adapter alone** finds nothing either (Jaccard 0.007) — it
+writes *more* than any arm (a patch in 42 of 50, 7,167 references,
+4,615 of them names its own edits define) into paths that do not exist
+and look like this repo's: `pipeline/oracle/agent.py`,
+`scip-java/src/scip/java.py`, `pipeline/src/main/java/org/scip/…`;
+eight of its 26 sessions were stopped by the loop for repeating the
+same call, three ran out of turns. Repo language without repo
+structure, at the agent grain: the first record's "no symbol-grain
+edge in the weights" made concrete. Under the manifest the adapter
+edits the right files (0.43, precision 0.82 — lower than the base's
+0.95: it still strays) and reaches more of the interior (recall 0.55 vs
+0.41, p 0.08), and its HSR is the lowest of the four (0.80) without
+being different from A1's (p 0.37). `manifest_ignore` is rare in both
+aided arms (3 and 1 units) — the tests collapse of item 8 did not show
+up as denials here; it showed up as the adapter arm's confabulated
+paths instead.
+
+**Against the preregistered readings.** HSR(TTT) ≥ HSR(prompted)
+(+0.11, inside its CI): **H-TTT-2 is killed** on the unseen cell.
+RFE(TTT) is 0.40 *below* RFE(prompted): **H-TTT-3 is killed**. The
+combined arm is not better than the best single arm on HSR or Jaccard
+(recall +0.13, p 0.08): H-TTT-5 not survived on the agent metrics
+either. The design §8 row that fits is the second — *A1 > A2, A3 ≈
+A1: structure must be live in attention* — and the review's extra row
+(A2 lower HSR but higher manifest_ignore) did not occur: A2's HSR is
+higher and it never saw a manifest to ignore.
+
+**Defect register (the ADR-085 precedent: harness defects before model
+findings).**
+- **D-1** — no arm can execute, and the scorer does not run the
+  guarding tests either; *applies* is "a non-empty patch", nothing
+  more. Solve rate in the design's sense is not measured.
+- **D-2** — the first run died in every session on vLLM's "auto tool
+  choice requires a parser" 400: the serve has no parser for Olmo 3's
+  `<function_calls>` syntax. Fixed by sending the schemas in the system
+  prompt and reading the calls from the text (`loop.py --tool-choice
+  none`); the base model then wrote Python-quoted arguments the
+  JSON-only parser refused, fixed the same way. Both fixes are in the
+  loop with tests; the 200 failed rows were discarded before the run.
+- **D-3** — the first scoring counted capitalised words, short
+  acronyms, dunders and URL fragments as symbol references (HSR 0.87 /
+  0.91 / 0.94 / 0.80); the extractor was tightened and every row
+  re-scored offline (`scores-extractor-v1.jsonl` kept beside). The
+  v2 numbers are the ones above.
+- **D-4** — HSR's denominator is small (15–32 units per comparison):
+  half the sessions emit no judged reference, and the reference
+  extractor is a regex over emitted code, not the lane-A walk the
+  design names (§4.1) — a simplification, registered.
+- **D-5** — the unaided arms' 26 sessions are scored against 50 units
+  (shared runs, paired by unit), so their bootstrap rows are correlated
+  within a proposal.
+
+## Items 4, 5 and the navigation rows of 3 and 6 — *(appended when they land)*

@@ -318,6 +318,34 @@ closest proxy and points the same way); H-TTT-3 not measured; H-TTT-4
 unreadable at 7B; H-TTT-5 killed on NLL, not killed on navigation.
 Agent runs (step 5) are not started and are not cleared.
 
+#### 2026-09-03 (later) — the primary cell (review item 9): HSR and RFE over 50 derived units, Olmo-3-7B, this repo @ `ebdf7a5` (`docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md` § Item 9)
+
+`hobbes plan` over 28 hand-written proposals → 50 derived units; one
+file-tools-only agent per unit per arm (no exec in any arm; every arm
+*model + prompt*, P12); base and the 300-step adapter. **HSR** A0 1.00 ·
+A1 0.82 · A2 0.92 · A3 0.80; **RFE Jaccard** 0.00 · **0.41** · **0.01** ·
+0.43 (precision 0.95 / 0.82 for the aided arms; recall 0.41 / 0.55).
+**H-TTT-2 killed:** HSR(TTT) − HSR(prompted) = +0.11 (n 20, CI [−0.05,
++0.29], p 0.18) — the kill criterion's "≥, or inside the CI" is met
+either way. **H-TTT-3 killed:** RFE(TTT) − RFE(prompted) = −0.40 (CI
+[−0.53, −0.28], 1/26). **H-TTT-5** not survived on the agent metrics
+(A3−A1: HSR −0.07 p 0.37, Jaccard +0.02 p 0.76, recall +0.13 p 0.08).
+The adapter alone writes into paths that do not exist and read like this
+repo's, and a third of its sessions were stopped for repeating a call:
+repo language without repo structure, the §5 finding at the agent grain.
+Design §8's second row stands. Five harness defects registered in the
+record (D-1 no exec and no test run, D-2 the tool-call parser, D-3 the
+extractor's first version, D-4 the small HSR denominator, D-5 shared
+unaided runs).
+
+**Standing of the five after the cell:** H-TTT-1 not killed (unit-only
+intervals, most of the gain repo language, the graph's share bounded);
+**H-TTT-2 killed; H-TTT-3 killed;** H-TTT-4 unreadable at 7B (the
+version-aware probe finds no memorised cell either); H-TTT-5 killed on
+NLL under the commit-message conditioning and on the agent metrics,
+not killed on navigation and under a task-statement conditioning by
+0.008 nats.
+
 #### Follow-ups from review — preregistered 2026-09-03, before any of them ran
 
 Max's review of the 2026-09-03 results set ten follow-ups (`docs/olmo3-ttt-results.md`
