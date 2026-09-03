@@ -41,4 +41,16 @@ alone or on top. No shuffled control was trained here (the Hobbes
 control's 74/26 split is not assumed to transfer). Runs
 `nll-olmo-fastapi-git-{base,adapter}.json`, `report-olmo-fastapi-git.json`.
 
-*(the two DeepSWE units' NLL is appended when it lands)*
+## The two DeepSWE units (n = 2 — recorded, no statistics)
+
+Both solutions are new files (~9.6k and 10.6k target tokens), so the
+A1 block resolves nothing specific (C-84) and the loss is low
+everywhere (long, repetitive diffs).
+
+| unit | A0 | A1 | A2 | A3 |
+|---|---|---|---|---|
+| fastapi-deprecation-response-headers | 0.4199 | 0.4115 | 0.3640 | 0.3606 |
+| fastapi-implicit-head-options | 0.5073 | 0.4994 | 0.4415 | 0.4390 |
+
+Same ordering as the git units — adapter −0.056/−0.066, block
+−0.008/−0.008 — at two units. Runs `nll-olmo-fastapi-deepswe-{base,adapter}.json`.
