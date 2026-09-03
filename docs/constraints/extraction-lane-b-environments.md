@@ -175,6 +175,44 @@
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
 
+### C-85 — A Python repo with no venv loses lane B entirely under containment, and the record blames the helper
+- **Cannot tell you:** any semantic Python edge for a repo that has no
+  virtual environment where `find_venv` looks (C-27's conventions).
+  With no venv Hobbes computes no `--environment` listing and hands
+  scip-python nothing, and inside the sandbox image scip-python's own
+  discovery then fails and the indexer exits 1 before indexing a file —
+  every Python site falls to the syntactic floor (C-8: `capture
+  [python]: 0.0%` on httpx, fastapi and textual at their DeepSWE base
+  commits, 2026-09-03). On the host the same invocation indexes with a
+  warning. The degradation record says *"the SCIP helper is unusable —
+  install Node and run `npm install`"*, which is C-64's message for a
+  missing helper, not this: the helper ran, the indexer died.
+- **Because:** the host-only path relied on scip-python's PATH-based pip
+  discovery degrading gracefully; the image has no such pip, and the
+  helper's "unusable" classification does not distinguish an indexer
+  that crashed from one that could not start. Suspected, not confirmed
+  in the container: the stack ends in scip-python's option parsing
+  (`main-impl.ts:47`), the same three frames on every repo.
+- **Bites at:** every Python repo ingested contained without a venv —
+  which is the shape a freshly cloned target repo has (the DeepSWE
+  clones, `hobbes ingest` on a repo before its owner installs it) — and
+  the four-repo test's peft cell (2026-09-02) may have been graded on
+  its own venv rather than on this path.
+- **You find out:** *partial* — the ingest prints `capture [python]:
+  0.0%` and a WARNING, so the loss is loud; but the WARNING names the
+  wrong cause, and nothing says "create a venv" — the fix a user can
+  apply in one command (`uv venv .venv && uv pip install -e .`, which
+  took httpx from 0.0% to 64.7%). **Candidate fix:** always pass
+  `--environment` (an empty listing when no venv is found) so the
+  indexer never runs its own discovery in the image, and have the
+  helper report an indexer exit as *indexer failed* with its stderr,
+  distinct from *helper unusable*. Registered, not fixed, pending the
+  lead's call — the same rule as C-72–C-80.
+- **Provider (P9):** `@sourcegraph/scip-python` 0.6.6 — the discovery
+  that fails is its; the crash-on-absence and the misclassified record
+  are ours.
+- **Source:** ADR-099's memorised-cell ingests, 2026-09-03.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

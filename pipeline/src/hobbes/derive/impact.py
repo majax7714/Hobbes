@@ -270,14 +270,18 @@ def resolve_seeds(
     return seeds, unresolved
 
 
-def expand(graph: dict, seeds: dict[str, str]) -> dict[str, float]:
+def expand(graph: dict, seeds: dict[str, str],
+           adjacency: dict[str, dict[str, list[dict]]] | None = None) -> dict[str, float]:
     """Max-product score propagation from the seeds (§3.1).
 
     Dijkstra over -log(score) in spirit; written as best-first over the
     product directly because every factor is in (0, 1]. Deterministic:
-    ties break on node id.
+    ties break on node id. A caller expanding from many seeds in turn
+    passes the graph's :func:`module_adjacency` once as *adjacency*
+    rather than having it rebuilt per call (the corpus generator,
+    ADR-099: thousands of expansions over one graph).
     """
-    adjacency = module_adjacency(graph)
+    adjacency = module_adjacency(graph) if adjacency is None else adjacency
     scores = {node: 1.0 for node in seeds}
     frontier = sorted(scores)
     while frontier:

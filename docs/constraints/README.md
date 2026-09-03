@@ -117,7 +117,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-80, C-32, C-3, C-59 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-11, C-24, C-63 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-79, C-16, C-33 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-79, C-85, C-16, C-33 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69 |
@@ -135,8 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Eighty-four entries: seventy-four active, eight lifted, two superseded**
-(C-81–C-84 added 2026-09-03 by ADR-099, the test-time-training
+**Eighty-five entries: seventy-five active, eight lifted, two superseded**
+(C-85 added 2026-09-03 from ADR-099's memorised-cell ingests — a Python
+repo with no venv loses lane B entirely in the container and the record
+blames the helper (*partial*, candidate fix named, held for the lead);
+C-81–C-84 added 2026-09-03 by ADR-099, the test-time-training
 experiment: the adapter is regenerable but not bit-identical across
 hardware (*surfaced*, the manifest), held-out names leak through plain
 words and the doc rendering is empty where nothing narrated
@@ -176,7 +179,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Eight of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80, C-83); seven
+against the code that concedes it; none had been silently lifted). Nine of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80, C-83, C-85); seven
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and the 2026-09-02 five: C-75, C-76, C-77, C-78, C-79); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status

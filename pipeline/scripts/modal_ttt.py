@@ -36,9 +36,13 @@ import modal
 
 APP = "hobbes-ttt"
 #: The primary model (fully open lineage) and the ladder's comparison rung.
+# The serve window is 16k on the A10G: at 32k the 7B's KV cache wants
+# 7 GiB beside the weights and the card has 5.25 (vLLM's own estimate
+# was 18k; first deploy, 2026-09-03). Serving answers navigation
+# questions; the NLL scorer runs on the A100 and is not bound by this.
 MODELS = {
-    "allenai/Olmo-3-7B-Instruct": {"gpu_serve": "A10G", "max_model_len": 32768},
-    "Qwen/Qwen2.5-Coder-7B-Instruct": {"gpu_serve": "A10G", "max_model_len": 32768},
+    "allenai/Olmo-3-7B-Instruct": {"gpu_serve": "A10G", "max_model_len": 16384},
+    "Qwen/Qwen2.5-Coder-7B-Instruct": {"gpu_serve": "A10G", "max_model_len": 16384},
 }
 MODEL = os.environ.get("MODEL", "allenai/Olmo-3-7B-Instruct")
 #: ``name=remote-adapter-dir,…`` baked into the serve image at deploy.

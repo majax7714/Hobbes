@@ -35,12 +35,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from hobbes import artifacts
-from hobbes.derive.impact import expand, module_of_symbols
+from hobbes.derive.impact import expand, module_adjacency, module_of_symbols
 from hobbes.extract.emit import DERIVED_DIR
 
 #: The question families, in the order they are generated.
@@ -276,24 +277,27 @@ def _q(family: str, sid: str, repo: str, sha12: str) -> str:
     }[family]
 
 
-def impact_modules(graph: dict, module: str) -> list[str]:
+def impact_modules(graph: dict, module: str, adjacency: dict | None = None,
+                   owners: dict[str, str] | None = None) -> list[str]:
     """The modules ``hobbes plan`` would expand to from *module*, best first.
 
     The expansion runs over the plan's adjacency, whose calling side is
     a symbol id (:func:`hobbes.derive.impact.module_adjacency`); every
     scored node is projected onto its module here, keeping the best
-    score, so the answer names modules and only modules.
+    score, so the answer names modules and only modules. *adjacency* and
+    *owners* are computed once by the caller for a whole corpus.
     """
-    owners = module_of_symbols(graph)
+    owners = module_of_symbols(graph) if owners is None else owners
     best: dict[str, float] = {}
-    for node, score in expand(graph, {module: module}).items():
+    for node, score in expand(graph, {module: module}, adjacency).items():
         target = owners.get(node, node)
         if target and target != module:
             best[target] = max(best.get(target, 0.0), score)
     return sorted(best, key=lambda n: (-best[n], n))[:IMPACT_CAP]
 
 
-def answers(index: Index, graph: dict, sym: dict, hidden: set[str], families: tuple[str, ...]) -> list[tuple[str, str, int]]:
+def answers(index: Index, graph: dict, sym: dict, hidden: set[str], families: tuple[str, ...],
+            adjacency: dict | None = None, owners: dict[str, str] | None = None) -> list[tuple[str, str, int]]:
     """``(family, answer, held-out mentions dropped)`` for one symbol."""
     sid, sha12 = sym["id"], index.sha12
     out = []
@@ -318,7 +322,7 @@ def answers(index: Index, graph: dict, sym: dict, hidden: set[str], families: tu
                     else f"No test reaches `{sid}` at {sha12}.", 0))
     if "impact" in families:
         module = sym.get("module", "")
-        mods = impact_modules(graph, module)
+        mods = impact_modules(graph, module, adjacency, owners)
         out.append(("impact", f"Beyond `{module}` itself, a change to `{sid}` reaches: {_listed(mods, IMPACT_CAP)}."
                     if mods else f"A change to `{sid}` reaches no module beyond `{module}` itself at {sha12}.", 0))
     return out
@@ -378,9 +382,41 @@ def load_docs(repo_root: Path) -> list[dict]:
     return docs
 
 
+#: Control corpora: ``shuffled`` keeps every training record's question
+#: and permutes the answers within each (kind, family) group, so the
+#: token distribution — the repo's names, paths and templates — is
+#: identical and every relation is wrong. An adapter trained on it
+#: separates "learned the vocabulary" from "learned the graph".
+CONTROLS = ("none", "shuffled")
+
+
+def shuffle_answers(records: list[dict], seed: int) -> list[dict]:
+    """Permute assistant turns within each (kind, family) group, seeded;
+    a group of one is left alone (nothing to permute against)."""
+    groups: dict[tuple, list[int]] = {}
+    for i, r in enumerate(records):
+        groups.setdefault((r["kind"], r.get("family")), []).append(i)
+    out = [dict(r, messages=[dict(m) for m in r["messages"]]) for r in records]
+    for key in sorted(groups, key=str):
+        idx = groups[key]
+        if len(idx) < 2:
+            continue
+        perm = idx[:]
+        random.Random(f"{seed}\n{key}").shuffle(perm)
+        # A cyclic shift of a shuffled order is a derangement: no record
+        # keeps its own answer, whatever the group size.
+        for k, src in enumerate(perm):
+            out[perm[(k + 1) % len(perm)]]["messages"][1] = records[src]["messages"][1]
+    return out
+
+
 def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: int = 0,
-                 name: str | None = None) -> dict:
+                 name: str | None = None, control: str = "none") -> dict:
     """Render the corpus into *out_dir*; returns the manifest.
+
+    *control* ``shuffled`` writes the answer-permuted training set
+    (:func:`shuffle_answers`); the evaluation files are the true ones
+    either way.
 
     Writes ``train.jsonl`` (cards, doc chunks, training QA),
     ``eval.jsonl`` (QA on the held-out symbols), ``eval-cards.jsonl``
@@ -442,6 +478,7 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
         if index.symbols[sid].get("kind") in QA_KINDS and sid not in hidden:
             first_in_module.setdefault(index.symbols[sid].get("module", ""), sid)
     taken: set[str] = set()
+    adjacency, owners = module_adjacency(graph), module_of_symbols(graph)
     for sid in ordered:
         sym = index.symbols[sid]
         if sym.get("kind") not in QA_KINDS:
@@ -449,7 +486,7 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
         split = "eval" if sid in hidden else "train"
         families = FAMILIES if split == "eval" or first_in_module.get(sym.get("module", "")) == sid \
             else tuple(f for f in FAMILIES if f != "impact")
-        rows = answers(index, graph, sym, hidden if split == "train" else set(), families)
+        rows = answers(index, graph, sym, hidden if split == "train" else set(), families, adjacency, owners)
         for family, answer, dropped in rows:
             masked["qa_mentions_dropped"] += dropped
             (train if split == "train" else eval_).append(
@@ -462,6 +499,11 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
             (train if split == "train" else eval_).append(
                 _record("qa", "absent", fake, split, _q("absent", fake, repo, sha12),
                         f"`{fake}` is not defined in this repo at {sha12}."))
+
+    if control not in CONTROLS:
+        raise CorpusError(f"unknown control {control!r}; one of {', '.join(CONTROLS)}")
+    if control == "shuffled":
+        train = shuffle_answers(train, seed)
 
     # The probe draws held-out navigation items, by seeded hash order.
     nav = [r for r in eval_ if r["family"] != "absent"]
@@ -489,6 +531,7 @@ def build_corpus(repo_root: Path, out_dir: Path, *, holdout: float = 0.1, seed: 
 
     manifest = {
         "recipe_version": RECIPE_VERSION,
+        "control": control,
         "repo": repo,
         "sha": index.sha,
         "dirty": index.dirty,
@@ -515,8 +558,9 @@ def format_manifest(manifest: dict, out_dir: Path) -> str:
     """The CLI summary."""
     c = manifest["counts"]
     dirty = " (dirty)" if manifest["dirty"] else ""
+    control = f", control: {manifest['control']}" if manifest.get("control", "none") != "none" else ""
     lines = [
-        f"corpus for {manifest['repo']} @ {manifest['sha'][:12]}{dirty} — recipe v{manifest['recipe_version']}",
+        f"corpus for {manifest['repo']} @ {manifest['sha'][:12]}{dirty} — recipe v{manifest['recipe_version']}{control}",
         f"  train: {c['train']['total']} records — " + ", ".join(f"{k} {v}" for k, v in c["train"]["by_kind"].items()),
         f"  qa families: " + ", ".join(f"{k} {v}" for k, v in c["train"]["by_family"].items() if k != "-"),
         f"  eval: {c['eval']['total']} records over {manifest['holdout']['symbols']} held-out symbols "

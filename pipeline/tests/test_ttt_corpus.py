@@ -254,6 +254,40 @@ class TestRenderings:
         assert probe and all(r["split"] == "eval" and r["family"] != "absent" for r in probe)
 
 
+class TestControl:
+    def test_shuffled_keeps_questions_and_permutes_answers_within_family(self, ingested):
+        # holdout 0.3 / seed 0 leaves four training symbols, so every family has a group to permute.
+        build_corpus(ingested, ingested / "true", holdout=0.3, seed=0)
+        m = build_corpus(ingested, ingested / "ctl", holdout=0.3, seed=0, control="shuffled")
+        true, ctl = read(ingested / "true" / "train.jsonl"), read(ingested / "ctl" / "train.jsonl")
+        assert m["control"] == "shuffled" and len(true) == len(ctl)
+        assert [r["messages"][0] for r in true] == [r["messages"][0] for r in ctl]  # questions untouched
+        for key in {(r["kind"], r["family"]) for r in true}:
+            a = sorted(r["messages"][1]["content"] for r in true if (r["kind"], r["family"]) == key)
+            b = sorted(r["messages"][1]["content"] for r in ctl if (r["kind"], r["family"]) == key)
+            assert a == b  # same multiset of answers per group
+        # Every record in a group of two or more has someone else's answer.
+        sizes = {}
+        for r in true:
+            sizes[(r["kind"], r["family"])] = sizes.get((r["kind"], r["family"]), 0) + 1
+        for x, y in zip(true, ctl):
+            if sizes[(x["kind"], x["family"])] >= 2:
+                assert x["messages"][1] != y["messages"][1], x["symbol"]
+        # The evaluation files are the truth either way.
+        assert (ingested / "true" / "eval.jsonl").read_bytes() == (ingested / "ctl" / "eval.jsonl").read_bytes()
+        assert m["corpus_hash"] != json.loads((ingested / "true" / "manifest.json").read_text())["corpus_hash"]
+
+    def test_shuffle_is_seeded(self):
+        recs = [{"kind": "qa", "family": "callers", "symbol": f"s{i}", "split": "train",
+                 "messages": [{"role": "user", "content": f"q{i}"}, {"role": "assistant", "content": f"a{i}"}]} for i in range(20)]
+        assert corpus.shuffle_answers(recs, 1) == corpus.shuffle_answers(recs, 1)
+        assert corpus.shuffle_answers(recs, 1) != corpus.shuffle_answers(recs, 2)
+
+    def test_unknown_control_is_refused(self, ingested):
+        with pytest.raises(CorpusError, match="unknown control"):
+            build_corpus(ingested, ingested / "x", control="reversed")
+
+
 class TestCli:
     def test_writes_under_derived_and_summarises(self, ingested, capsys, monkeypatch):
         monkeypatch.chdir(ingested)

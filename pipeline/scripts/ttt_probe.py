@@ -20,6 +20,7 @@ Computes; does not interpret.
 """
 import argparse
 import json
+from concurrent.futures import ThreadPoolExecutor
 import os
 import re
 import sys
@@ -127,19 +128,25 @@ def nav(a, graph, corpus_dir, key) -> dict:
             if ln.strip():
                 c = json.loads(ln); cards[c["symbol"]] = c["messages"][1]["content"]
     known = known_names(graph)
-    rows = []
     items = [json.loads(ln) for ln in (corpus_dir / "eval.jsonl").read_text().splitlines() if ln.strip()]
     items = items[:a.limit] if a.limit else items
-    for i, rec in enumerate(items):
+
+    def one(rec: dict) -> dict:
         user = rec["messages"][0]["content"]
         if a.context == "card":
             card = cards.get(rec["symbol"])
             user = (f"Derived context for this symbol (Hobbes, {sha12}):\n{card}\n\n" if card else
                     f"Derived context: Hobbes has no card for `{rec['symbol']}` at {sha12}.\n\n") + user
         reply = ask(a.base_url, a.model, key, system, user)
-        rows.append({"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply_head": reply[:160]})
-        if i % 50 == 0:
-            print(f"{i}/{len(items)} …", flush=True)
+        return {"family": rec["family"], "symbol": rec["symbol"], **score_reply(rec, reply, known), "reply_head": reply[:160]}
+
+    # Order is the file's regardless of which request answers first.
+    with ThreadPoolExecutor(max_workers=a.workers) as pool:
+        rows = []
+        for i, row in enumerate(pool.map(one, items)):
+            rows.append(row)
+            if i % 200 == 0:
+                print(f"{i}/{len(items)} …", flush=True)
     out = {"model": a.model, "repo": a.name, "sha": graph.get("sha"), "context": a.context, "rows": rows, **summarise(rows)}
     print("nav:", json.dumps({k: v for k, v in out.items() if k != "rows"}))
     return out
@@ -151,6 +158,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("base_url"); ap.add_argument("model")
     ap.add_argument("--name"); ap.add_argument("--dirs", type=int, default=5); ap.add_argument("--files", type=int, default=5)
     ap.add_argument("--context", choices=("none", "card"), default="none"); ap.add_argument("--limit", type=int)
+    ap.add_argument("--workers", type=int, default=8, help="concurrent requests for `nav` (vLLM batches them)")
     ap.add_argument("--out", type=Path)
     a = ap.parse_args(argv)
     a.name = a.name or Path(a.repo).resolve().name
