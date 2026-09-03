@@ -70,6 +70,15 @@ class TestScore:
         assert "app.core.handle_request" in refs and "render_page" in refs and "MadeUp.thing" in refs
         assert "plain" not in refs and "words" not in refs
 
+    def test_prose_words_urls_and_dunders_are_not_references(self):
+        msgs = [assistant("", [("write_file", {"path": "docs/x.md", "content":
+                "This is a Placeholder for ADR-099. See https://github.com/majax7714/Hobbes and README.md.\n"
+                "if __name__ == '__main__': handle_request(_)\n"})])]
+        refs, _ = cell.references(msgs)
+        assert refs == ["handle_request"]
+        assert cell.code_shaped("renderPage") and cell.code_shaped("HandleRequest") and cell.code_shaped("M1")
+        assert not cell.code_shaped("Hobbes") and not cell.code_shaped("TODO") and cell.code_shaped("SCIPINDEX")
+
     def test_resolution_buckets(self):
         names = self.names()
         assert cell.resolve("app.core.handle_request", names, set()) == "in-graph"

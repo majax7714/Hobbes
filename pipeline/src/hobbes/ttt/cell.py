@@ -251,8 +251,24 @@ def graph_names(graph: dict) -> dict[str, set[str]]:
             "ext": ext, "semantic": semantic}
 
 
+_URL = re.compile(r"https?://\S+|\b[\w.-]+\.(?:com|org|io|net|dev|md|txt|rst|json|yaml|yml|toml|lock|html)\b")
+_DUNDER = re.compile(r"^__\w+__$")
+
+
 def code_shaped(token: str) -> bool:
-    return "." in token or "_" in token or any(c.isupper() or c.isdigit() for c in token)
+    """A token that reads as a reference to code rather than as a word:
+    dotted, snake_case, camelCase or PascalCase with an interior
+    capital, or carrying a digit. A capitalised word (``This``,
+    ``Placeholder``), an all-caps word of up to five letters (``ADR``,
+    ``TODO``), a lone underscore and a dunder (``__main__``) are not —
+    the first cell run counted every one of them (2026-09-03)."""
+    if len(token) < 2 or _DUNDER.match(token) or token.strip("_") == "":
+        return False
+    if "." in token or "_" in token or any(c.isdigit() for c in token):
+        return True
+    if token.isupper():
+        return len(token) > 5
+    return any(c.isupper() for c in token[1:])
 
 
 def references(messages: list[dict]) -> tuple[list[str], set[str]]:
@@ -278,9 +294,10 @@ def references(messages: list[dict]) -> tuple[list[str], set[str]]:
                 if isinstance(args.get(key), str):
                     code_blobs.append(args[key])
         for blob in code_blobs:
+            blob = _URL.sub(" ", blob)
             defined.update(_DEFINES.findall(blob))
             refs += [t for t in _IDENT.findall(blob) if code_shaped(t) and t not in _KEYWORDS]
-        for tick in _TICK.findall(prose):
+        for tick in _TICK.findall(_URL.sub(" ", prose)):
             tick = tick.strip().rstrip("()")
             if _IDENT.fullmatch(tick) and code_shaped(tick) and tick not in _KEYWORDS:
                 refs.append(tick)
