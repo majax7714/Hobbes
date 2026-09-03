@@ -6105,5 +6105,54 @@ peft 0.18.1.
 read):* gold-diff NLL over 147 units, A1−A0 = +0.0017 (p 0.56); on the
 55 context-known units −0.0090 (95% CI [−0.0175, −0.0007], p 0.038,
 30/55); on the 92 new-file units +0.0080 (p 0.011) — the boilerplate
-alone costs a little. 42 s of A100. The adapter build and the rest of
-steps 2–4 continue below.
+alone costs a little. 42 s of A100.
+
+*The adapter, and what it holds (the rest of the session; cell records
+`docs/ttt-cells/hobbes-olmo3-7b-2026-09-03.md`,
+`fastapi-olmo3-7b-2026-09-03.md`; the reading in
+`benchmark-hypotheses.md` § H-TTT).* 300 LoRA steps on the base corpus
+(0.35 epochs, 667 s of A100): gold-diff NLL **−0.296 nats on 147/147
+units** (A2−A0); the block on top of it, nothing (A3−A2 +0.0006).
+Distrusting a 147/147 that held on new-file units, the session added a
+control outside the preregistered grid — `derive-corpus --control
+shuffled`, answers permuted within family, every relation wrong, every
+token the same — and it took **0.218 of the 0.296**; the true adapter
+beats it by 0.078 on 140/147. Memorisation probe (§4.4): Olmo 3 at
+0.044 on this repo, U. Held-out navigation over 2,270 questions about
+393 symbols whose every training mention was removed (scored by what a
+reply names; "none recorded" items split out after the first table
+read a waffling base as 0.54 on callers): the base ≤ 0.06 everywhere
+and inventing a file for 98% of distractors; the adapter at defines
+0.985, refusal 0.78, tests 0.52, impact 0.30, callees 0.21, **callers
+0.10 (p 0.08)**. The card-in-prompt control (A1/A3): the base reads what
+the card says and nothing it omits; weights beat the card on file,
+impact and abstention, the card beats weights on every specific edge;
+A3 is the best navigation arm (0.61) but reads the card's tests line
+*worse* than the base. **The training sample (600 trained questions):
+callers 0.15, callees 0.21, tests 0.52 — the same as held-out.** The
+weights hold module-grain regularities and an abstention habit, not
+edges, at this step count; the doc's own next step is the step-count
+ablation. Replication on fastapi (unseen, 0.129; 68 git units, 0.17
+epochs): −0.223 on 68/68, block nothing. **No memorised cell at 7B:**
+every candidate U or "neither" for both Olmo 3 and Qwen2.5-Coder
+(C-83 seen in both shapes: Qwen names httpx's pre-rename files;
+generic file names inflate files-P); H-TTT-4 unread. Standing: H-TTT-1
+not killed (most of it vocabulary), H-TTT-5 killed on NLL and not on
+navigation, H-TTT-2/3 unmeasured (no agent run), H-TTT-4 unreadable.
+
+*Defects met on the way, registered:* C-85 (a Python repo with no venv
+loses lane B in the container — httpx/fastapi/textual at 0.0% until
+given one; the record blames the helper); the scorer counted a name
+inside the asked id as an offer (fixed, the head-only A2 run set
+aside and re-run with full replies); `expand()` re-sorted its whole
+frontier per step (a heap now, same order on 85 seeds; textual's
+corpus from >25 min to 74 s); vLLM's KV budget on the A10G (16k
+window); one transient 500 killed an arm (retries); two scripts
+matched their own launcher with `pkill`/`pgrep -f`. Compute: three
+adapters (~0.5 A100-h each), ten NLL passes (<0.2 h), ~4.5 h of A10G
+serving — about 6 GPU-hours, ≈ $12. Suites: **1,084 pytest** (+49 for
+`hobbes.ttt`; the venv test deselected by name), Go untouched.
+
+*Not done:* step 5 (agent runs, HSR/RFE); the step-count ablation;
+the memorised cell; HEAD-ingested docs in the corpus. Nothing pushed;
+the two vLLM apps scale to zero when idle.

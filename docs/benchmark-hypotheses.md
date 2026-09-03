@@ -294,10 +294,29 @@ shapes seen). The cell needs a model that provably recalls a repo (the
 27B reproduced xarray's patch verbatim, C-39) — off the table under the
 standing policy — or a probe that reads version shift.
 
-*Pending in this cell:* a training-sample navigation pair (does the
-adapter hold the symbol-grain edges it *was* shown), and a replication
-of the unseen cell on fastapi (68 git units + 2 DeepSWE tasks, NLL).
-Agent runs (H-TTT-2/3 proper) are step 5 and not started.
+**The training sample settles what the weights hold.** On 600 questions
+drawn from the *training* set — edges the adapter was shown — it scores
+callers 0.15, callees 0.21, tests 0.52: the same as on the held-out
+symbols it never saw (0.10, 0.21, 0.52). At 300 steps and 0.35 epochs
+the weights hold no symbol-grain edge, seen or unseen; they hold what a
+module imposes on its members (its file, the tests that reach it, the
+things its members call) and an abstention habit. That is the design
+document's second outcome row — *structure must be live in attention;
+weights don't hold graph relations at 300 steps* — and its stated next
+step is the step-count ablation (100 / 300 / 1,000), before any
+redirect toward looped cores or graph-as-modality is drawn.
+
+**Replication on fastapi (unseen for Olmo 3 at 0.129), 68 git-history
+units:** A2−A0 −0.223 nats on 68/68 (CI [−0.242, −0.204]); A1−A0
++0.001 (p 0.81); A3−A2 −0.002 (p 0.44) — the Hobbes cell's shape on a
+foreign repo at 0.17 epochs (`docs/ttt-cells/fastapi-olmo3-7b-2026-09-03.md`).
+
+**Standing of the five, after this session:** H-TTT-1 not killed (with
+the control's caveat that most of the NLL effect is vocabulary);
+H-TTT-2 not measured (no agent run; the abstention result is the
+closest proxy and points the same way); H-TTT-3 not measured; H-TTT-4
+unreadable at 7B; H-TTT-5 killed on NLL, not killed on navigation.
+Agent runs (step 5) are not started and are not cleared.
 
 ## The harness (ADR-055, built 2026-08-21 — quota-free, unrun)
 

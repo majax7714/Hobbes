@@ -170,5 +170,25 @@ impact further — two families where the adapter's own prior overrides
 the text in front of it. Runs `nav-olmo-hobbes-A{1,3}.json`,
 `navreport-hobbes-all.json`, `navreport-hobbes-vsA1.json`.
 
-*(the training-sample arms and the candidate repos' probes are
-appended below as they land)*
+### The training sample — does the adapter hold the edges it was shown?
+
+600 questions drawn (seeded) from the *training* set, same scorer,
+same arms without context. The held-out design removes a symbol's
+edges from training, so only this can ask whether symbol-grain
+relations entered the weights at all.
+
+| arm | absent | absent FA | defines | callers | callers∅ | callees | callees∅ | tests | tests∅ | impact | nav |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A0 base | 0.009 | 0.992 | 0.024 | 0.092 | 0.770 | 0.000 | 0.882 | 0.000 | 0.837 | 0.115 | 0.030 |
+| A2 adapter | 0.627 | 0.373 | 0.992 | **0.152** | 0.967 | **0.208** | 0.853 | **0.515** | 0.965 | 0.365 | 0.583 |
+
+A2−A0: callers +0.060 (n 47, CI [+0.013, +0.121], p 0.012), callees
++0.208 (n 62), tests +0.515 (n 55), defines +0.968 (n 123), absent
++0.619 (n 118). **On edges it was trained on the adapter scores what
+it scores on edges it never saw** — callers 0.15 vs 0.10, callees 0.21
+vs 0.21, tests 0.52 vs 0.52. At 300 steps (0.35 epochs, each training
+pair seen at most once) the weights hold no symbol-grain edge; they
+hold the regularities a module imposes on its members. Refusal on
+trained distractors is *lower* than on held-out ones (0.63 vs 0.78):
+a trained distractor's real sibling has a card the model has seen.
+Runs `navtrain-olmo-hobbes-A{0,2}.json`, `navreport-hobbes-train.json`.
