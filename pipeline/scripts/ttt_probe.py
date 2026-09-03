@@ -24,6 +24,8 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import re
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -39,9 +41,23 @@ def ask(base_url: str, model: str, key: str, system: str, user: str, max_tokens:
                        "chat_template_kwargs": {"enable_thinking": False}}).encode()
     req = urllib.request.Request(base_url.rstrip("/") + "/chat/completions", data=body,
                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=600) as r:
-        msg = json.loads(r.read())["choices"][0]["message"]
-    return (msg.get("content") or msg.get("reasoning_content") or "").strip()
+    # A 5xx or a dropped connection is retried with backoff (the shape
+    # loop.py's Endpoint uses); a 4xx is the caller's and raises. One
+    # transient 500 killed a whole arm on 2026-09-03 before this.
+    last: Exception | None = None
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=600) as r:
+                msg = json.loads(r.read())["choices"][0]["message"]
+            return (msg.get("content") or msg.get("reasoning_content") or "").strip()
+        except urllib.error.HTTPError as exc:
+            if exc.code < 500 and exc.code != 429:
+                raise
+            last = exc
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError) as exc:
+            last = exc
+        time.sleep(2 ** attempt)
+    raise RuntimeError(f"endpoint failed after 5 attempts: {last}")
 
 
 def spaced(items: list, k: int) -> list:

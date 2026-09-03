@@ -45,5 +45,34 @@ Full table: `~/.hobbes/bench/ttt/runs/report-olmo-hobbes-300.json`
 (`scripts/ttt_report.py`); runs `nll-olmo-hobbes-{base,adapter}.json`.
 NLL wall: 42 s + 70 s of A100.
 
-*(the control adapter's row, the memorisation probe, and the held-out
-navigation arms are appended below as they land)*
+## The shuffled-answers control (beyond the preregistered grid)
+
+Same recipe, same seed, same 300 steps on the answer-permuted corpus
+(`1e9fdf94f9751f27`; every relation wrong, every token the same);
+adapter `adapters/allenai-olmo-3-7b-instruct/hobbes-shuffled/ebdf7a510eff/control`.
+
+| arm | n | mean NLL |
+|---|---|---|
+| A2 (control adapter, bare) | 147 | 2.1756 |
+| A3 (control adapter, aided) | 147 | 2.1756 |
+
+| comparison | population | n | Δ(a−b) | 95% CI | p | a<b |
+|---|---|---|---|---|---|---|
+| control−A0 | all | 147 | −0.2184 | [−0.2400, −0.1976] | <0.0002 | 143/147 |
+| **true adapter − control adapter** (bare) | all | 147 | **−0.0781** | [−0.0863, −0.0702] | <0.0002 | 140/147 |
+| true − control (bare) | context-known | 55 | −0.0630 | [−0.0756, −0.0507] | <0.0002 | 50/55 |
+
+Of the true adapter's −0.296 nats against the base, −0.218 (74%) is
+reproduced by an adapter that learned the repo's names, paths and
+templates and nothing true about its graph; the remaining −0.078 is
+what correct relations add, on 140 of 147 units. Runs
+`nll-olmo-hobbes-control.json`, `report-olmo-hobbes-control.json`.
+
+## Memorisation probe (§4.4), unaided, temperature 0
+
+| repo | files-P | defs-R | nav | score | cell |
+|---|---|---|---|---|---|
+| hobbes @ `ebdf7a5` | 0.10 | 0.00 | 0.03 | **0.044** | U |
+
+*(the held-out navigation arms and the candidate repos' probes are
+appended below as they land)*
