@@ -71,12 +71,30 @@ _CALL_HEAD = re.compile(r"\s*([A-Za-z_][\w.]*)\s*\(", re.S)
 _ARG_HEAD = re.compile(r"\s*([A-Za-z_]\w*)\s*=\s*", re.S)
 
 
+def _python_call(line: str) -> dict | None:
+    """``name(key='value', flag=True)`` as a Python expression — the
+    quoting a model falls into when it is not copying the template's
+    JSON; every value must be a literal, or the call is not read."""
+    import ast
+    try:
+        node = ast.parse(line.strip(), mode="eval").body
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name) or node.args:
+            return None
+        args = {kw.arg: ast.literal_eval(kw.value) for kw in node.keywords if kw.arg}
+    except (SyntaxError, ValueError, TypeError):
+        return None
+    return {"name": node.func.id, "arguments": args}
+
+
 def call_syntax_calls(block: str) -> list[dict]:
     """Calls written as ``name(key=<json>, key2=<json>)`` — the shape
     Olmo 3's chat template renders and its model writes inside
-    ``<function_calls>`` (one call per line). Values are JSON; a call
-    whose arguments do not decode is skipped, not guessed at."""
+    ``<function_calls>`` (one call per line). Values are JSON, or —
+    when a call does not decode as JSON — Python literals on one line
+    (``path='a.py'``); a call that reads neither way is skipped, not
+    guessed at."""
     out, pos, decoder = [], 0, json.JSONDecoder()
+    taken: list[tuple[int, int]] = []
     while True:
         head = _CALL_HEAD.match(block, pos)
         if not head:
@@ -102,8 +120,15 @@ def call_syntax_calls(block: str) -> list[dict]:
             close = block.find(")", pos)
             pos = len(block) if close < 0 else close + 1
             continue
+        taken.append((head.start(), pos))
         out.append({"id": f"text_{len(out)}", "type": "function",
                     "function": {"name": name, "arguments": json.dumps(args)}})
+    if not out:
+        for line in block.splitlines():
+            call = _python_call(line)
+            if call:
+                out.append({"id": f"text_{len(out)}", "type": "function",
+                            "function": {"name": call["name"], "arguments": json.dumps(call["arguments"])}})
     return out
 
 

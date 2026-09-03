@@ -874,6 +874,11 @@ class TestReadBeforeEditAndCutCompletions:
                         "force": True, "extra": {"k": [1, 2]}}
         assert json.loads(calls[2]["function"]["arguments"]) == {}
         assert loop.text_tool_calls("<function_calls>\n</function_calls>") == []
+        # Python quoting, which the base model falls into when it is not copying the template's JSON.
+        py = "<function_calls>read_file(path='src/a.py')\nedit_file(path='src/a.py', old_text='a', new_text='b\\n', force=True)\nsearch_file(path='*.py' or 'x', pattern='y')</function_calls>"
+        calls = loop.text_tool_calls(py)
+        assert [c["function"]["name"] for c in calls] == ["read_file", "edit_file"]
+        assert json.loads(calls[1]["function"]["arguments"]) == {"path": "src/a.py", "old_text": "a", "new_text": "b\n", "force": True}
 
     def test_tool_choice_none_sends_schemas_without_a_choice_and_reads_text_calls(self, tree, monkeypatch):
         monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
