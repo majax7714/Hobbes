@@ -50,14 +50,64 @@ def _applies(ctx: PackContext) -> bool:
     )
 
 
+def _http_aliases(parsed) -> set[str]:
+    """The names ``net/http`` is imported under in one file — ``http`` by
+    default, whatever the alias says otherwise."""
+    return {
+        imp["alias"] or "http"
+        for imp in parsed.imports
+        if imp["path"] == "net/http"
+    }
+
+
+def _is_registration(parsed, call: dict, package_types: set[str]) -> bool:
+    """Whether a call named ``Handle``/``HandleFunc`` is a ``net/http``
+    registration, read from the lane's own facts (C-78).
+
+    A name match was the whole test until 2026-09-03, and it fired on
+    ``windows.Handle(fd)`` — a conversion to ``x/sys/windows.Handle`` in
+    files importing no ``net/http`` — producing C-5 records about a
+    syscall. Three refusals, each a fact the lane already holds:
+
+    - the file does not import ``net/http`` (a registration needs the
+      package for the mux or the handler type);
+    - the receiver is another import's alias (``windows.Handle``);
+    - there is no receiver and the name is a type declared in the file's
+      package (``Handle(x)`` is then a conversion, ADR-037's filter in
+      the pack's shape).
+
+    A receiver that is a local (``mux.Handle``) or an expression
+    (``s.mux.Handle``) passes: the lane does not type locals, and the
+    ``net/http`` import is the file-level evidence that stands for it.
+    """
+    aliases = _http_aliases(parsed)
+    if not aliases:
+        return False
+    receiver = call["receiver"]
+    if receiver is None:
+        return call["name"] not in package_types
+    if receiver in aliases:
+        return True
+    return not any(imp["alias"] == receiver for imp in parsed.imports)
+
+
 def _run(ctx: PackContext) -> PackResult:
-    from hobbes.extract.gosource import module_id
+    from hobbes.extract.gosource import module_id, package_dir
+
+    types_by_package: dict[str, set[str]] = {}
+    for parsed in ctx.go["files"]:
+        types_by_package.setdefault(package_dir(parsed.path), set()).update(
+            s["name"] for s in parsed.symbols if s["kind"] == "type"
+        )
 
     routes = []
     errors = []
     for parsed in ctx.go["files"]:
+        package_types = types_by_package.get(package_dir(parsed.path), set())
         for call in parsed.calls:
             if call["name"] not in _HANDLERS:
+                continue
+            if not _is_registration(parsed, call, package_types):
                 continue
             route = _route_from(call)
             if route is None:

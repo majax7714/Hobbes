@@ -135,6 +135,13 @@ def iter_pyprojects(repo_root: Path):
     ``rglob`` would descend into ``node_modules``, which is 222 MB on a real
     Vite app and holds nothing this cares about.
     """
+    yield from iter_manifests(repo_root, lambda name: name == "pyproject.toml")
+
+
+def iter_manifests(repo_root: Path, wanted):
+    """Every file whose name *wanted* accepts, under the same pruned walk
+    as :func:`iter_pyprojects` — one walk for every manifest convention
+    (C-79 widened the dependency readers past ``pyproject.toml``)."""
     stack = [repo_root]
     while stack:
         directory = stack.pop()
@@ -142,5 +149,5 @@ def iter_pyprojects(repo_root: Path):
             if child.is_dir():
                 if child.name not in SKIPPED_DIR_NAMES and not child.name.startswith("."):
                     stack.append(child)
-            elif child.name == "pyproject.toml":
+            elif wanted(child.name):
                 yield child

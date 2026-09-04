@@ -533,6 +533,43 @@ class TestDeclaredDependencies:
         (sub / "pyproject.toml").write_text('[project]\ndependencies = ["httpx", "redis"]\n')
         assert scipsource.declared_dependencies(tmp_path) == ["httpx", "redis"]
 
+    def test_setup_cfg_install_requires_and_extras_are_read(self, tmp_path):
+        """C-79 (lifted): setuptools' declarative form — multi-line,
+        commented — read statically."""
+        (tmp_path / "setup.cfg").write_text(
+            "[metadata]\nname = x\n\n"
+            "[options]\ninstall_requires =\n    numpy>=1.20  # arrays\n    torch\n\n"
+            "[options.extras_require]\ndev =\n    pytest\n    ruff==0.5\n"
+        )
+        assert scipsource.declared_dependencies(tmp_path) == [
+            "numpy", "pytest", "ruff", "torch"
+        ]
+
+    def test_requirements_files_are_read_and_nothing_is_followed(self, tmp_path):
+        """C-79 (lifted): peft's shape — `setup.py` plus `requirements*.txt`.
+        Options, comments, URLs and paths are skipped; an included file is
+        walked on its own only if it matches the name pattern."""
+        (tmp_path / "setup.py").write_text("from setuptools import setup\nsetup()\n")
+        (tmp_path / "requirements.txt").write_text(
+            "# runtime\n-r requirements-dev.txt\n-e .\n"
+            "accelerate>=0.21 ; python_version < '3.13'\n"
+            "safetensors @ https://example.com/s.whl\n"
+            "git+https://github.com/x/y.git#egg=y\n"
+            "./vendor/local\n"
+            "--index-url https://pypi.org/simple\n"
+        )
+        (tmp_path / "requirements-dev.txt").write_text("pytest\n")
+        (tmp_path / "notes.txt").write_text("pandas\n")
+        assert scipsource.declared_dependencies(tmp_path) == [
+            "accelerate", "pytest", "safetensors"
+        ]
+
+    def test_setup_py_alone_declares_nothing_and_is_not_executed(self, tmp_path):
+        (tmp_path / "setup.py").write_text(
+            "import sys\nsys.exit(99)\nsetup(install_requires=['numpy'])\n"
+        )
+        assert scipsource.declared_dependencies(tmp_path) == []
+
     def test_find_venv_at_the_repo_root(self, tmp_path):
         (tmp_path / ".venv").mkdir()
         (tmp_path / ".venv" / "pyvenv.cfg").write_text("home = /usr\n")
@@ -811,3 +848,26 @@ class TestLaneAgreementCountsOnlySemanticModuleEdges:
         assert report["module_edges_compared"] == 2
         assert report["module_edges_lane_a_only"] == [{"from": "pkg.a", "to": "pkg.b"}]
         assert report["module_edges_lane_b_only"] == [{"from": "pkg.a", "to": "pkg.c"}]
+
+
+class TestCoverageGapRecord:
+    """C-79 (lifted): the environment check that had nothing to check
+    against says so, instead of leaving `dependency_coverage` absent."""
+
+    def test_python_with_no_declared_dependencies_gets_a_record(self):
+        from hobbes.extract import _coverage_gap_records
+
+        facts = {"dependency_coverage": {"declared": 0, "resolved": 0, "missing": []}}
+        records = _coverage_gap_records("python", facts)
+        assert len(records) == 1
+        assert records[0]["stage"] == "scip-python"
+        assert "C-79" in records[0]["message"]
+        assert "setup.py is code" in records[0]["message"]
+
+    def test_a_declared_list_or_another_language_gets_none(self):
+        from hobbes.extract import _coverage_gap_records
+
+        declared = {"dependency_coverage": {"declared": 3, "resolved": 3, "missing": []}}
+        assert _coverage_gap_records("python", declared) == []
+        assert _coverage_gap_records("typescript", {"dependency_coverage": {}}) == []
+        assert _coverage_gap_records("go", {}) == []

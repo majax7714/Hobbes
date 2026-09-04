@@ -394,6 +394,42 @@ class TestPackContributions:
         )
         assert result.routes == [] and result.errors == []
 
+    def test_http_go_ignores_a_handle_from_another_package(self, tmp_path):
+        """C-78 (lifted): quic-go's `windows.Handle(fd)` — a conversion to
+        `x/sys/windows.Handle` in a file importing no `net/http` — produced
+        four C-5 records about a syscall. The pack applies because *some*
+        file imports `net/http`; the registration test is per call."""
+        (tmp_path / "go.mod").write_text("module example.com/x\n")
+        (tmp_path / "main.go").write_text(
+            "package main\n\n"
+            'import "net/http"\n\n'
+            "func main() {\n"
+            '\thttp.HandleFunc("/ok", nil)\n'
+            "}\n"
+        )
+        (tmp_path / "sys_windows.go").write_text(
+            "package main\n\n"
+            'import "golang.org/x/sys/windows"\n\n'
+            "func fd(fd uintptr) windows.Handle {\n"
+            "\treturn windows.Handle(fd)\n"
+            "}\n"
+        )
+        (tmp_path / "other.go").write_text(
+            "package main\n\n"
+            'import (\n\t"net/http"\n\t"golang.org/x/sys/windows"\n)\n\n'
+            "type Handle int\n\n"
+            "func mixed(mux *http.ServeMux, fd uintptr, x int) {\n"
+            "\t_ = windows.Handle(fd)\n"
+            "\t_ = Handle(x)\n"
+            '\tmux.Handle("/mux", nil)\n'
+            "}\n"
+        )
+        result = http_go.PACK.run(
+            PackContext(repo_root=tmp_path, modules=[], parsed={}, go=extract_go(tmp_path))
+        )
+        assert sorted(r["path"] for r in result.routes) == ["/mux", "/ok"]
+        assert result.errors == []
+
     def test_http_go_does_not_apply_without_net_http(self, tmp_path):
         (tmp_path / "go.mod").write_text("module example.com/x\n")
         (tmp_path / "main.go").write_text('package main\n\nimport "fmt"\n')

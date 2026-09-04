@@ -161,8 +161,18 @@ def venv_environment(venv_path: str, venv_name: str) -> list[dict] | None:
     return listing if isinstance(listing, list) else None
 
 
+#: The manifests `declared_dependencies` reads, all statically. ``setup.py``
+#: is code and stays unread (C-79): a repo whose only declaration is there
+#: gets the "nothing to check against" record instead of an execution.
+_REQUIREMENTS_NAME = re.compile(r"^requirements[\w.-]*\.txt$")
+
+
+def _is_dependency_manifest(name: str) -> bool:
+    return name in ("pyproject.toml", "setup.cfg") or bool(_REQUIREMENTS_NAME.match(name))
+
+
 def declared_dependencies(repo_root: Path) -> list[str]:
-    """Third-party packages the repo says it needs (every pyproject.toml).
+    """Third-party packages the repo says it needs, from every manifest.
 
     Fed to the helper so Decision 4's degradation check has something to
     compare against: an index that resolved *none* of a repo's declared
@@ -170,41 +180,103 @@ def declared_dependencies(repo_root: Path) -> list[str]:
     third-party edges are absent rather than nonexistent. Without this the
     check is inert — which it silently was until the private-repo-A ingest.
 
-    Walks the whole repo (the pruned `iter_pyprojects` walk, same as the
+    Walks the whole repo (the pruned `iter_manifests` walk, same as the
     CLI pack), not just the root: a repo whose manifest lives in a
     subdirectory — this repo's own deps are in ``pipeline/pyproject.toml``
     — otherwise runs the check against an empty list, and an inert check
     that appears to run is worse than no check (C-16, lifted here).
+
+    Reads ``pyproject.toml`` ``[project]``, ``setup.cfg`` ``[options]
+    install_requires`` + ``[options.extras_require]``, and every
+    ``requirements*.txt`` (C-79, lifted 2026-09-03: peft declares in
+    ``setup.py`` and ``requirements.txt`` only, and had no
+    ``dependency_coverage`` at all). ``setup.py`` is not read — it is
+    code, and this walk executes nothing.
     """
-    from hobbes.extract.interfaces import iter_pyprojects
+    from hobbes.extract.interfaces import iter_manifests
 
     names: set[str] = set()
-    for pyproject in iter_pyprojects(Path(repo_root)):
-        names.update(_declared_in(pyproject))
+    for manifest in iter_manifests(Path(repo_root), _is_dependency_manifest):
+        names.update(_declared_in(manifest))
     return sorted(names)
 
 
-def _declared_in(pyproject: Path) -> set[str]:
-    """Bare package names one ``pyproject.toml`` declares."""
+def _declared_in(manifest: Path) -> set[str]:
+    """Bare package names one manifest declares (by its filename)."""
+    if manifest.name == "pyproject.toml":
+        specs = _pyproject_specs(manifest)
+    elif manifest.name == "setup.cfg":
+        specs = _setup_cfg_specs(manifest)
+    else:
+        specs = _requirements_specs(manifest)
+    names = set()
+    for spec in specs:
+        if not isinstance(spec, str):
+            continue
+        # "pkg[extra]>=1.2,<2" -> "pkg"; "pkg @ url" -> "pkg"; the index
+        # reports bare names.
+        name = re.split(r"[<>=!~;@\[ ]", spec.strip(), maxsplit=1)[0]
+        if name:
+            names.add(name)
+    return names
+
+
+def _pyproject_specs(pyproject: Path) -> list:
     try:
         import tomllib
 
         data = tomllib.loads(pyproject.read_text())
     except (OSError, ValueError):
-        return set()
+        return []
     project = data.get("project") or {}
     specs = list(project.get("dependencies") or [])
     for extra in (project.get("optional-dependencies") or {}).values():
         specs.extend(extra)
-    names = set()
-    for spec in specs:
-        if not isinstance(spec, str):
+    return specs
+
+
+def _setup_cfg_specs(setup_cfg: Path) -> list:
+    """``[options] install_requires`` and ``[options.extras_require]``
+    (setuptools' declarative form) — multi-line values, one spec a line."""
+    import configparser
+
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        parser.read_string(setup_cfg.read_text())
+    except (OSError, ValueError, configparser.Error):
+        return []
+    blocks = []
+    if parser.has_option("options", "install_requires"):
+        blocks.append(parser.get("options", "install_requires"))
+    if parser.has_section("options.extras_require"):
+        blocks.extend(parser["options.extras_require"].values())
+    specs = []
+    for block in blocks:
+        for line in block.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                specs.append(line)
+    return specs
+
+
+def _requirements_specs(requirements: Path) -> list:
+    """The package lines of a ``requirements*.txt``: comments, options
+    (``-r``, ``-e``, ``--index-url``) and URL/path lines are skipped, and
+    nothing is followed — an included file is walked on its own if it
+    matches the name pattern."""
+    try:
+        lines = requirements.read_text().splitlines()
+    except (OSError, ValueError):
+        return []
+    specs = []
+    for raw in lines:
+        line = raw.split("#", 1)[0].strip()
+        # "pkg @ https://..." names a package; a bare URL or path does not.
+        head = line.split("@", 1)[0].strip()
+        if not head or head.startswith(("-", ".", "/")) or "://" in head:
             continue
-        # "pkg[extra]>=1.2,<2" -> "pkg"; the index reports bare names.
-        name = re.split(r"[<>=!~;\[ ]", spec.strip(), maxsplit=1)[0]
-        if name:
-            names.add(name)
-    return names
+        specs.append(head)
+    return specs
 
 
 def declared_npm_dependencies(package_json: Path) -> list[str]:

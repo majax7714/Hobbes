@@ -262,32 +262,45 @@ new active entry and the two cross-reference. Field key: `README.md`,
 - **Source:** the four-repo extraction test of 2026-09-02 (agent B,
   date-fns/date-fns). Registered, not fixed.
 
-### C-79 — A Python repo that declares its dependencies outside `pyproject.toml [project]` gets no `dependency_coverage`, silently
-- **Cannot tell you:** whether the environment lane B resolved against
-  was complete, for a repo whose dependencies live in `setup.py`
-  (`install_requires`), `setup.cfg`, or `requirements*.txt` only.
-  peft (2026-09-02): `pyproject.toml` has no `[project]` table, so
-  `declared_dependencies` reads `[]`, and `extract/__init__.py` appends
-  `dependency_coverage` only when `declared` is truthy — the key is
-  absent from `graph.json`, no message says the check did not run,
-  and `list_blind_spots` prints no environment line.
-- **Because:** `scipsource.declared_dependencies` walks
-  `pyproject.toml` files only (C-16's lift widened it to *every*
-  `pyproject.toml`, not to other manifests). The environment itself
-  was found and used (17,284 external sites attributed) — what is
-  missing is C-27's surfacing, not the environment.
-- **Bites at:** older or setuptools-style Python repos — a large share
-  of the ecosystem; a thin graph there has no environment number to
-  rank against.
-- **You find out:** **unsurfaced** — the absence of a key. The module's
-  own docstring says "an inert check that appears to run is worse than
-  no check"; here it does not appear to run, it is simply absent.
-  Candidate fix: read `setup.cfg [options] install_requires` and
-  `requirements*.txt` (static reads, no execution — `setup.py` is code
-  and stays unread), and when no manifest yields a list emit a
-  record saying the coverage check had nothing to check against.
+### C-79 — A Python repo declaring its dependencies outside `pyproject.toml [project]` got no `dependency_coverage`, silently — *lifted 2026-09-03*
+- **Was:** `scipsource.declared_dependencies` walked `pyproject.toml`
+  files only (C-16's lift widened it to *every* `pyproject.toml`, not
+  to other manifests). peft (2026-09-02): `pyproject.toml` has no
+  `[project]` table, so `declared_dependencies` read `[]`, and
+  `extract/__init__.py` appends `dependency_coverage` only when
+  `declared` is truthy — the key was absent from `graph.json`, no
+  message said the check did not run, and `list_blind_spots` printed
+  no environment line. The environment itself was found and used
+  (17,284 external sites attributed); what was missing was C-27's
+  surfacing. *Unsurfaced*: the absence of a key.
+- **Lifted by — the technique:** two halves. (1) The reader takes every
+  manifest the pruned walk finds (`iter_manifests`, the same walk as
+  the CLI pack): `pyproject.toml [project]`, `setup.cfg [options]
+  install_requires` + `[options.extras_require]` (configparser,
+  multi-line, comments stripped), and every `requirements*.txt`
+  (comments, `-r`/`-e`/`--option` lines, bare URLs and paths skipped;
+  `pkg @ url` keeps `pkg`; nothing is followed — an included file is
+  read on its own if its name matches). **`setup.py` is code and is
+  not read.** (2) When the Python index ran and no manifest declared
+  anything, `_coverage_gap_records` appends an `extraction_errors`
+  record (`scip-python`, naming C-79 and the three manifests read), so
+  the summary's WARNING line and `list_blind_spots`' `degraded:` line
+  both say the environment check had nothing to compare against. Tests:
+  `test_setup_cfg_install_requires_and_extras_are_read`,
+  `test_requirements_files_are_read_and_nothing_is_followed`,
+  `test_setup_py_alone_declares_nothing_and_is_not_executed`,
+  `TestCoverageGapRecord`.
+- **Residual edge cases:** a repo whose only declaration is
+  `setup.py`'s `install_requires` still has no list — it now gets the
+  record instead of silence, and the fix a user can apply is a
+  `setup.cfg` or a `requirements.txt` beside it. Poetry's
+  `[tool.poetry.dependencies]` and PDM/uv-only lock files are not read
+  (a `pyproject.toml` without `[project]` reads as empty; the record
+  fires). A `requirements` file under another name (`deps.txt`,
+  `requirements/base.in`) is not matched by the `requirements*.txt`
+  pattern.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent A,
-  huggingface/peft). Registered, not fixed.
+  huggingface/peft); lifted 2026-09-03.
 
 ### C-16 — Dependency-degradation detection read only the repo root's manifest — *lifted 2026-08-15*
 - **Was:** `declared_dependencies` looked only at `<repo>/pyproject.toml`,

@@ -609,7 +609,39 @@ def _lane_b_facts(
             )
             continue
         if facts is not None:
+            degraded.extend(_coverage_gap_records(language, facts))
             yield facts
+
+
+def _coverage_gap_records(language: str, facts: dict) -> list[dict]:
+    """A record when the environment check ran against nothing (C-79).
+
+    ``dependency_coverage`` is appended to the graph only when a manifest
+    declared something; a Python repo declaring its dependencies in
+    ``setup.py`` alone (peft, 2026-09-02) therefore had no key, no message
+    and no environment line in ``list_blind_spots`` — an absence, where
+    the module's own rule is that an inert check that appears to run is
+    worse than no check. Python only: the TS helper reads ``package.json``
+    per zone and a zone without one is C-23's shape, already recorded.
+    """
+    if language != "python":
+        return []
+    coverage = facts.get("dependency_coverage") or {}
+    if coverage.get("declared"):
+        return []
+    return [
+        {
+            "path": ".",
+            "stage": "scip-python",
+            "message": (
+                "no manifest declares Python dependencies (pyproject.toml "
+                "[project], setup.cfg [options], requirements*.txt are read; "
+                "setup.py is code and is not) — the environment coverage "
+                "check had nothing to compare against, so a thin graph here "
+                "has no environment number to rank on (C-79)"
+            ),
+        }
+    ]
 
 
 def _merge_module_edges(lane_a: list[dict], lane_b: list[dict]) -> list[dict]:

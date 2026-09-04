@@ -38,30 +38,40 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
-### C-78 — The `http-go` pack fires on any call named `Handle` or `HandleFunc`
-- **Cannot tell you:** that a C-5 record is about a route. The pack's
-  `_run` walks every Go file's call sites for a *name* in `{Handle,
-  HandleFunc}` and does not check the receiver, whether the file
-  imports `net/http`, or whether the site is a type conversion —
-  ADR-037's `_is_conversion` filter is lane A's call path's, not the
-  pack's. quic-go (2026-09-02): `windows.Handle(fd)` — a conversion to
-  `golang.org/x/sys/windows.Handle` in files that import no `net/http`
-  — produced four `http-go extraction degraded … a net/http route
-  registration whose pattern is computed (C-5)` records. No route was
-  invented (the 57 in `interfaces.json` are real); the honesty record
-  is what is wrong.
-- **Because:** `_applies` keys the pack on *any* Go file importing
-  `net/http`, then `_run` reads every file. A name-only match was
-  enough for the repos in the evidence base.
-- **Bites at:** Go repos using `x/sys/windows`, or any package with a
-  `Handle` constructor or method, alongside `net/http` somewhere:
-  false C-5 records, and a reader following them to a syscall.
-- **You find out:** **unsurfaced** — the record presents as a decline,
-  not a misfire; C-25 says a misfiring pack cannot be turned off.
-  Candidate fix: require the receiver to be an `http` alias or a
-  value the file bound from `net/http`, and apply `_is_conversion`.
-- **Source:** the four-repo extraction test of 2026-09-02 (agent C).
-  Registered, not fixed.
+### C-78 — The `http-go` pack fired on any call named `Handle` or `HandleFunc` — *lifted 2026-09-03*
+- **Was:** the pack's `_run` walked every Go file's call sites for a
+  *name* in `{Handle, HandleFunc}` and checked neither the receiver,
+  nor whether the file imports `net/http`, nor whether the site is a
+  type conversion — ADR-037's `_is_conversion` filter was lane A's call
+  path's, not the pack's. quic-go (2026-09-02): `windows.Handle(fd)` —
+  a conversion to `golang.org/x/sys/windows.Handle` in files that
+  import no `net/http` — produced four `http-go extraction degraded … a
+  net/http route registration whose pattern is computed (C-5)`
+  records. No route was invented (the 57 in `interfaces.json` were
+  real); the honesty record was what was wrong, and it presented as a
+  decline, not a misfire — *unsurfaced*, and C-25 says a misfiring
+  pack cannot be turned off.
+- **Lifted by — the technique:** `_is_registration`, three refusals
+  read from the lane's own facts before a name match counts: the file
+  must import `net/http` (under any alias); a receiver that is
+  *another* import's alias is that package's `Handle`, not a route;
+  and a receiver-less `Handle(x)` whose name is a type declared in the
+  file's package is a conversion (ADR-037's filter, in the pack's
+  shape). A local or expression receiver (`mux.Handle`,
+  `s.mux.Handle`) still passes on the strength of the file-level
+  import. Test: `test_http_go_ignores_a_handle_from_another_package`
+  (quic-go's shape plus a same-package `type Handle`, beside a real
+  `mux.Handle` in the same file).
+- **Residual edge cases:** a file that imports `net/http` *and* a
+  package whose `Handle` method it calls through a local
+  (`h := windows.Handle(fd); h.Handle(..)` is not Go, but a local of a
+  type with a `Handle` method is) would still match — the lane does
+  not type locals, and the C-5 record it would produce is a decline
+  about a literal-less call, as before. A dot-import of `net/http`
+  leaves the receiver empty and the name is then judged against the
+  package's types only.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent C);
+  lifted 2026-09-03.
 
 ### C-14 — CLI entry points came from `pyproject.toml` only — *lifted 2026-08-16*
 - **Was:** `interfaces.json` read `[project.scripts]` and nothing else,
