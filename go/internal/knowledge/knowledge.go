@@ -344,7 +344,11 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		if callers == 0 {
 			b.WriteString(fmt.Sprintf("no callers of %s\n", symbolID))
 		}
-		b.WriteString(fmt.Sprintf("references %s without calling it (type annotations, except clauses, values passed by name):\n", symbolID))
+		// A `uses` edge is a resolution no detected call site claimed
+		// (ADR-029): a type annotation, an except clause, a value passed
+		// by name — or a call through a receiver lane A could not see
+		// (C-1). Worded as what is known, not as "not a call" (C-80).
+		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1):\n", symbolID))
 		b.WriteString(uses.String())
 	}
 	if callers > 0 || users > 0 {

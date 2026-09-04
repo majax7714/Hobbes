@@ -8,7 +8,11 @@
 - **Because:** the symbol graph deliberately under-approximates. An edge
   is emitted only when a callee resolves; dynamic dispatch, higher-order
   calls, and calls through values are omitted rather than guessed, because
-  a false edge is worse than a missing one.
+  a false edge is worse than a missing one. (Narrowed 2026-09-03 by
+  C-80's lift: a call *through* a value in the receiver position —
+  `f().m()`, `super().m()` — is now a detected site the semantic lane
+  can resolve; a callee that is itself a value — `handlers[0]()` —
+  still is not.)
 - **Bites at:** `who_calls`, `tests_guarding`, dead-code intuitions, and
   any invariant phrased as "nothing calls X".
 - **You find out:** *partial.* Resolution coverage (C-2) gives the
@@ -290,38 +294,6 @@
 - **Source:** measured 2026-08-29 on the O8 Java cells (ADR-096); the
   key is ADR-029's.
 
-### C-80 — A Python call whose receiver is itself a call, a subscript, or `super()` is not a call site — and `who_calls` says it is not a call
-- **Cannot tell you:** the callers that reach a method through
-  `super().m(..)`, `f().m(..)` or `xs[i].m(..)`. `pysource.Call` is "a
-  call site whose callee is a plain name/attribute chain", so those
-  sites are not detected; SCIP still resolves the name, the join
-  emits a `uses` edge (a resolution no site claimed, ADR-029), and the
-  tool renders it under *"references … without calling it (type
-  annotations, except clauses, values passed by name)"*. peft
-  (2026-09-02): of 7,910 `uses` evidence lines, **152 are
-  `super().name(..)`, 60 `<call>().name(..)`, 40
-  `<subscript>[..].name(..)`** — every one a call; for
-  `PeftModel.save_pretrained` all 49 "non-calling references" are
-  calls such as `model.cpu().save_pretrained(tmp_dir)`.
-- **Because:** the detection boundary is lane A's (C-1's "calls
-  through values", in the receiver position); the gloss is the proxy's
-  wording for the `uses` type, written before this shape was measured.
-  The sites sit outside the detected-site denominator, so the capture
-  line is not inflated; `who_calls` and `tests_guarding` under-count in
-  C-1's direction.
-- **Bites at:** `super().__init__` chains (every subclass constructor),
-  fluent APIs, container-of-objects code — `who_calls` on a base-class
-  method answers none of its overriding constructors' calls, and labels
-  them as not calls.
-- **You find out:** **partial** — the edge exists as `uses` with its
-  line, so a reader who opens it sees the call; the label asserts the
-  opposite. Candidate fix: detect the shape in lane A (the receiver is
-  an expression; the callee name is still a plain attribute) so the
-  join can pair it, and reword the `uses` gloss to "resolved here
-  without a detected call site".
-- **Source:** the four-repo extraction test of 2026-09-02 (agent A,
-  huggingface/peft). Registered, not fixed.
-
 ### C-32 — The tail view's classes are observations with boundaries
 - **Cannot tell you:** *why* a call is unresolved beyond what its class
   observes — and three boundaries shape what the classes can say.
@@ -417,6 +389,45 @@ new active entry and the two cross-reference. Field key: `README.md`,
   Self-`uses` stays out by design.
 - **Source:** registered and lifted 2026-08-25 (oracle lane O4 finding;
   W1 fix). `scipsource.project`, `graph.py`.
+
+### C-80 — A Python call whose receiver was itself a call, a subscript, or `super()` was not a call site — and `who_calls` said it was not a call — *lifted 2026-09-03*
+- **Was:** `pysource.Call` was "a call site whose callee is a plain
+  name/attribute chain", so `super().m(..)`, `f().m(..)` and
+  `xs[i].m(..)` were not detected; SCIP still resolved the name, the
+  join emitted a `uses` edge (a resolution no site claimed, ADR-029),
+  and the tool rendered it under *"references … without calling it
+  (type annotations, except clauses, values passed by name)"*. peft
+  (2026-09-02): of 7,910 `uses` evidence lines, 152 were
+  `super().name(..)`, 60 `<call>().name(..)`, 40
+  `<subscript>[..].name(..)` — every one a call; for
+  `PeftModel.save_pretrained` all 49 "non-calling references" were
+  calls such as `model.cpu().save_pretrained(tmp_dir)`. *Partial*: the
+  edge existed with its line; the label asserted the opposite.
+- **Lifted by — the technique:** two halves. (1) Lane A records the
+  site: when the callee is an `attribute` whose object is not a name
+  chain, the `Call` carries `EXPR_RECEIVER.<name>` (`<expr>.m`), with
+  the terminal's line and column, so the range join pairs it with the
+  semantic occurrence and the edge is `calls` at the semantic tier; the
+  fallback (`graph._resolve_call`) returns nothing for an `<expr>`
+  head — the receiver is what lane A cannot name, and it says so
+  rather than binding `m` to the module's or the class's own `m`. The
+  tail reads the source text and classes an unresolved one `attr-call`.
+  (2) The `who_calls` gloss for `uses` now says what is known —
+  *"references X where no call site was detected (type annotations,
+  except clauses, values passed by name; a call through a receiver
+  lane A cannot see, C-1)"* — instead of "without calling it". Tests:
+  `test_expression_receivers_are_sites`,
+  `TestExpressionReceiversAbstain`, `TestWhoCallsSeparatesUsesFromCalls`
+  (the heading). The image must be rebuilt for the gloss (C-65).
+- **Residual edge cases:** a call whose *callee itself* is an
+  expression — `handlers[0]()`, `getattr(x, "y")()`, `(a or b)()` — is
+  still no site (the name is not there to be joined; C-63's shape in
+  Python), and its resolution, where SCIP has one, is still a `uses`
+  edge under the reworded gloss. The capture denominator grows by the
+  new sites (peft: +252 the entry counted); a site SCIP does not
+  resolve is a new `attr-call` row, not a resolved one.
+- **Source:** the four-repo extraction test of 2026-09-02 (agent A,
+  huggingface/peft); lifted 2026-09-03.
 
 ### C-3 — Standard-library dependencies were invisible — *lifted by ADR-038*
 - **Was:** stdlib imports were dropped as noise at resolution for Python

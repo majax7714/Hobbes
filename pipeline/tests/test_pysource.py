@@ -113,6 +113,27 @@ class TestCalls:
         # getattr call itself is a plain name and is recorded.
         assert {c.callee for c in p.calls} == {"getattr"}
 
+    def test_expression_receivers_are_sites(self):
+        """C-80 (lifted): `super().m()`, `f().m()`, `xs[i].m()` are calls
+        whose callee name is plain; only the receiver is an expression.
+        peft: 252 such calls were `uses` edges glossed as "not a call"."""
+        from hobbes.extract.pysource import EXPR_RECEIVER
+
+        p = parse(
+            "class C(B):\n"
+            "    def __init__(self):\n"
+            "        super().__init__()\n"
+            "        self.model.cpu().save_pretrained(d)\n"
+            "        handlers[0].run()\n"
+        )
+        assert sorted((c.callee, c.line, c.col) for c in p.calls) == [
+            (f"{EXPR_RECEIVER}.__init__", 3, 16),
+            (f"{EXPR_RECEIVER}.run", 5, 20),
+            (f"{EXPR_RECEIVER}.save_pretrained", 4, 25),
+            ("self.model.cpu", 4, 19),
+            ("super", 3, 8),
+        ]
+
     def test_decorator_expressions_do_not_pollute_calls(self):
         p = parse('@app.get("/x")\ndef h():\n    pass\n')
         assert p.calls == []

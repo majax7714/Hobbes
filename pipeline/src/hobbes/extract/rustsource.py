@@ -66,6 +66,11 @@ class RustFile:
     symbols: list[dict] = field(default_factory=list)
     calls: list[dict] = field(default_factory=list)
     tests: list[dict] = field(default_factory=list)
+    #: Names declared by ``trait`` items in this file. Kept apart from
+    #: `symbols` (where a trait is a ``type``) because the fallback must
+    #: refuse ``Trait::method(..)`` — dispatch, lane B's — and nothing
+    #: else needs to tell a trait from a struct (C-72).
+    traits: list[str] = field(default_factory=list)
 
 
 def has_rust_files(repo_root: Path) -> bool:
@@ -252,6 +257,8 @@ def _walk_items(container: Node, parsed: RustFile, prefix: str, in_impl: bool = 
             name = _child_text(node, "type_identifier")
             if name:
                 parsed.symbols.append(_symbol(name, _dotted(prefix, name), "type", node))
+                if node.type == "trait_item":
+                    parsed.traits.append(name)
         elif node.type == "type_item":
             name = _child_text(node, "type_identifier")
             if name:
@@ -442,6 +449,7 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                     dotted=function.type == "field_expression",
                     scope=_enclosing(symbols, node.start_point.row + 1),
                     first_str=_first_string(node.child_by_field_name("arguments")),
+                    qualified=_is_path_qualified(function),
                 )
             )
         elif node.type == "macro_invocation":
@@ -476,11 +484,16 @@ def _call(
     scope: str | None,
     first_str: str | None,
     macro: bool = False,
+    qualified: bool | None = None,
 ) -> dict:
     return {
         "name": _text(terminal),
         "path": path,
         "dotted": dotted,
+        # `a::b::name(..)` — written with a path, whether or not `path`
+        # could read it (`Option::<T>::deserialize` reads as []): the
+        # fallback must not treat such a call as a bare name (C-72).
+        "qualified": bool(path) if qualified is None else qualified,
         "line": terminal.start_point.row + 1,
         "col": terminal.start_point.column,
         "scope": scope,
@@ -520,6 +533,7 @@ def _token_tree_calls(tree: Node, symbols: list[dict]) -> list[dict]:
             _call(
                 node,
                 path=path,
+                qualified=bool(path) or (at >= 1 and children[at - 1].type == "::"),
                 dotted=dotted,
                 scope=_enclosing(symbols, node.start_point.row + 1),
                 first_str=_first_string(nxt),
@@ -544,6 +558,16 @@ def _terminal_identifier(function: Node) -> Node | None:
         inner = function.child_by_field_name("function")
         return _terminal_identifier(inner) if inner is not None else None
     return None
+
+
+def _is_path_qualified(function: Node) -> bool:
+    """Whether a callee is written with a ``::`` path — including one whose
+    segments `_qualifier_segments` cannot read, such as the generic
+    ``Option::<T>::deserialize`` (its head is a type, not an identifier)."""
+    if function.type == "generic_function":
+        inner = function.child_by_field_name("function")
+        return inner is not None and _is_path_qualified(inner)
+    return function.type == "scoped_identifier"
 
 
 def _qualifier_segments(function: Node) -> list[str]:
@@ -699,16 +723,31 @@ def _call_fallback(
     values (``x.unwrap()``), ``crate::``/``super::`` chains (whose root
     depends on which cargo target is compiling the file), glob imports,
     and re-exports are all left to lane B.
+
+    Four abstentions since C-72 (2026-09-03), ADR-098's rule in Rust's
+    shape — when the path's head does not single out a declaration, say
+    nothing rather than pick: a path-qualified call whose path could not
+    be read (``Option::<T>::deserialize``) is never looked up as a bare
+    name; a bare name never binds to a ``method`` (Rust needs a path or a
+    receiver to reach one); ``Trait::method(..)`` is dispatch and is left
+    to lane B; and ``Type::name`` with more than one declaration under
+    that qualname in the file (two ``impl X for Type { fn fmt }`` blocks)
+    is an overload set. The tail names the first three ``path-call``.
     """
     by_file: dict[str, RustFile] = {parsed.path: parsed for parsed in files}
     where: dict[tuple[str, str], tuple[str, int]] = {}
     kinds: dict[tuple[str, int], str] = {}
+    declared: dict[tuple[str, str], int] = {}
+    traits: set[tuple[str, str]] = set()
     for parsed in files:
+        traits.update((parsed.path, name) for name in parsed.traits)
         for symbol in parsed.symbols:
             where.setdefault(
                 (parsed.path, symbol["qualname"]), (parsed.path, symbol["line"])
             )
             kinds.setdefault((parsed.path, symbol["line"]), symbol["kind"])
+            key = (parsed.path, symbol["qualname"])
+            declared[key] = declared.get(key, 0) + 1
 
     def resolve_segments(start: str, segments: list[str], name: str) -> tuple[str, int] | None:
         """Walk *segments* from file *start*, then look *name* up there."""
@@ -720,7 +759,12 @@ def _call_fallback(
                 at = crates[segment]
             elif (at, segment) in where and where[(at, segment)][0] == at:
                 # `Type::assoc()` — the segment is a type in the current
-                # file; the method lives under its qualname.
+                # file; the method lives under its qualname. Not a trait
+                # (dispatch), and not a name two impl blocks both declare.
+                if (at, segment) in traits:
+                    return None
+                if declared.get((at, f"{segment}.{name}"), 0) > 1:
+                    return None
                 return where.get((at, f"{segment}.{name}"))
             else:
                 return None
@@ -741,6 +785,8 @@ def _call_fallback(
                 if expanded is not None and expanded[0] not in _LOCAL_ROOTS:
                     path = expanded + path[1:]
                 target = resolve_segments(parsed.path, path, call["name"])
+            elif call.get("qualified"):
+                target = None  # a path nobody could read; not a bare name
             else:
                 target = where.get((parsed.path, call["name"]))
                 if target is None:
@@ -749,6 +795,8 @@ def _call_fallback(
                         target = resolve_segments(
                             parsed.path, expanded[:-1], expanded[-1]
                         )
+                if target is not None and kinds.get(target) == "method":
+                    target = None  # a bare name never reaches a method
             if target is None:
                 continue
             if target == (parsed.path, call["line"]):

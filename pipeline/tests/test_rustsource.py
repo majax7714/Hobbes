@@ -379,3 +379,69 @@ class TestMacroInvocationsBindOnlyToMacros:
         # A macro invocation binds to the macro; a plain call to the fn.
         assert fb[("src/lib.rs", 6, "twice")] == ("src/lib.rs", 4)
         assert fb[("src/lib.rs", 6, "format")] == ("src/lib.rs", 1)
+
+
+class TestPathQualifiedCallsBindByTheirHead:
+    """C-72 (lifted): serde's two wrong syntactic edges — `Option::<T>::
+    deserialize(d)` bound by the bare name to the first same-file
+    namesake, and `Expected::fmt(self, f)` bound to the enclosing impl's
+    own `fmt`. ADR-098's rule in Rust's shape: a head that does not
+    single out a declaration means abstain."""
+
+    @staticmethod
+    def _crate(tmp_path, body):
+        (tmp_path / "Cargo.toml").write_text('[package]\nname = "m"\nversion = "0.1.0"\n')
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "lib.rs").write_text(body)
+        return extract_rust(tmp_path)
+
+    def test_a_generic_path_is_not_a_bare_name(self, tmp_path):
+        layer = self._crate(
+            tmp_path,
+            "impl Deserialize for () {\n"
+            "    fn deserialize(d: D) -> R { Ok(()) }\n"
+            "}\n"
+            "impl<T> Deserialize for Option<T> {\n"
+            "    fn deserialize(d: D) -> R {\n"
+            "        Option::<T>::deserialize(d)\n"
+            "    }\n"
+            "}\n"
+            "fn bare(d: D) -> R { deserialize(d) }\n",
+        )
+        (site,) = [c for c in layer["files"][0].calls if c["line"] == 6]
+        assert site["qualified"] and site["path"] == []
+        assert ("src/lib.rs", 6, "deserialize") not in layer["call_fallback"]
+        # a bare name never reaches a method either (line 9)
+        assert ("src/lib.rs", 9, "deserialize") not in layer["call_fallback"]
+
+    def test_a_trait_head_is_dispatch_and_an_overload_set_abstains(self, tmp_path):
+        layer = self._crate(
+            tmp_path,
+            "pub trait Expected {\n    fn fmt(&self, f: &mut F) -> R;\n}\n"
+            "impl Display for dyn Expected {\n"
+            "    fn fmt(&self, f: &mut F) -> R { Expected::fmt(self, f) }\n"
+            "}\n"
+            "pub struct Local;\n"
+            "impl Display for Local { fn fmt(&self, f: &mut F) -> R { R } }\n"
+            "impl Debug for Local { fn fmt(&self, f: &mut F) -> R { R } }\n"
+            "impl Local { pub fn make() -> Local { Local } }\n"
+            "fn go() -> Local { Local::fmt(&Local, f); Local::make() }\n",
+        )
+        fallback = layer["call_fallback"]
+        assert ("src/lib.rs", 5, "fmt") not in fallback  # Trait::method
+        assert ("src/lib.rs", 11, "fmt") not in fallback  # two impls declare Local.fmt
+        assert fallback[("src/lib.rs", 11, "make")] == ("src/lib.rs", 10)
+        assert layer["files"][0].traits == ["Expected"]
+
+    def test_a_qualified_call_inside_a_macro_body_is_not_bare(self, tmp_path):
+        layer = self._crate(
+            tmp_path,
+            "fn deserialize(d: D) -> R { R }\n"
+            "fn go(d: D) { m!(Option::<T>::deserialize(d)); m!(deserialize(d)) }\n",
+        )
+        sites = {(c["line"], c["col"]): c for c in layer["files"][0].calls if c["name"] == "deserialize"}
+        assert any(c["qualified"] for c in sites.values())
+        assert any(not c["qualified"] for c in sites.values())
+        # only the bare one resolves — keyed by (file, line, name), the
+        # fallback holds one entry for the line, and it must be the bare site's
+        assert ("src/lib.rs", 2, "deserialize") in layer["call_fallback"]

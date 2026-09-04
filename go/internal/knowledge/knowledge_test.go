@@ -142,7 +142,7 @@ func TestWhoCallsSeparatesUsesFromCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	callers, _, found := strings.Cut(out, "references app.core.run without calling it")
+	callers, _, found := strings.Cut(out, "references app.core.run where no call site was detected")
 	if !found {
 		t.Fatalf("uses edges not reported under their own heading:\n%s", out)
 	}

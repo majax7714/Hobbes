@@ -361,7 +361,13 @@ call-shape detection inside token trees — an identifier immediately
 followed by a parenthesized token tree is a call site at that identifier.
 A false-shaped site produces no edge, because nothing resolves at it;
 rust-analyzer meanwhile emits macro-argument occurrences at their real
-pre-expansion positions, so the two lanes still meet on ranges.
+pre-expansion positions, so the two lanes still meet on ranges. Its
+fallback binds a `::`-qualified call only when the path's head singles
+out one declaration (C-72, lifted 2026-09-03): a path it could not read
+(`Option::<T>::deserialize`) is never a bare name, a bare name never
+reaches a method, a trait head is dispatch, and two `impl` blocks
+declaring the same `Type.name` are an overload set — each abstention
+lands in the tail's `path-call`.
 
 Java (ADR-096) adds three rules of its own. **An import names a type,
 and a type is a file** — the language's rule — so lane A *can* emit
@@ -385,7 +391,11 @@ lane B could answer everything lane A could. It cannot answer *is this a
 call*: SCIP occurrences carry a `syntax_kind` that would say so, and
 scip-python populates it for none of them. So lane A owns call-site
 detection, lane B owns resolution, and the answer that matters — a call
-pointing where it actually goes — comes from joining them (§3.4).
+pointing where it actually goes — comes from joining them (§3.4). A
+Python site's receiver may be an expression — `super().m()`, `f().m()`,
+`xs[i].m()` — and is recorded as one (`<expr>.m`, C-80, lifted
+2026-09-03): the name is there for the join, the receiver is what only
+the type checker can name, and the fallback says nothing about it.
 
 **Lane A's resolver is demoted, not deleted (ADR-031).** It stops producing
 edges and becomes the join's *fallback*, consulted only where the semantic

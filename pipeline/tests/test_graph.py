@@ -230,3 +230,34 @@ class TestScopeShadowsTheFallback:
         # `local-binding`), and it must not bind them to the module-level
         # namesake either.
         assert ("mod.py", 7, "inner") not in fb
+
+
+class TestExpressionReceiversAbstain:
+    """C-80: a site whose receiver is an expression is recorded for the
+    join and never resolved by the fallback — the name after `super()` or
+    `f()` is not the module's `m` and not the class's own."""
+
+    def test_fallback_says_nothing_for_an_expression_receiver(self, tmp_path):
+        from hobbes.extract.discover import discover_modules
+        from hobbes.extract.graph import resolve_call_sites
+        from hobbes.extract.pysource import EXPR_RECEIVER, parse_source
+
+        pkg = tmp_path / "pkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "m.py").write_text(
+            "def run():\n    pass\n\n"
+            "class C:\n"
+            "    def run(self):\n"
+            "        pass\n"
+            "    def go(self):\n"
+            "        factory().run()\n"
+            "        run()\n"
+        )
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        callees = {c.callee for c in parsed["pkg.m"].calls}
+        assert f"{EXPR_RECEIVER}.run" in callees
+        fallback = resolve_call_sites(modules, parsed)
+        assert ("pkg/m.py", 9, "run") in fallback  # the bare call, rule 1
+        assert ("pkg/m.py", 8, "run") not in fallback  # the expression receiver

@@ -92,32 +92,56 @@
   cargo toolchain it drives.
 - **Source:** ADR-040, finding 6. The Rust sibling of C-23/C-27.
 
-### C-72 — Lane A's Rust fallback binds a path-qualified call by its last segment
-- **Cannot tell you:** which `impl` a `Type::method(..)` or
-  `Trait::method(self, ..)` call reaches when lane B is silent at the
-  site. The fallback resolves `Option::<T>::deserialize(d)` by the bare
-  name `deserialize` to the first same-file namesake — serde:
+## Lifted constraints in this segment
+
+A lift is a technique, and the technique — not the celebration — is what
+these entries document. Each keeps its number, states the limit as it
+stood, the exact mechanism that lifted it, and the **residual edge
+cases**: inputs the technique does not classify, where the old concession
+quietly survives. When a residual case turns out to bite, it becomes a
+new active entry and the two cross-reference. Field key: `README.md`,
+"How to read a lifted entry".
+
+### C-72 — Lane A's Rust fallback bound a path-qualified call by its last segment — *lifted 2026-09-03*
+- **Was:** the fallback resolved `Option::<T>::deserialize(d)` by the
+  bare name `deserialize` to the first same-file namesake — serde:
   `impl Deserialize for ()`'s method — and `Expected::fmt(self, f)`
   inside `impl Display for dyn Expected { fn fmt }` to the enclosing
-  `fmt` itself, a self-loop.
-- **Because:** `rustsource`'s fallback keys on the terminal identifier
-  and does not read the path's head; the head names a type or trait
-  whose `impl` blocks the provider does not model (C-9's floor keeps
-  methods under their `impl` type's qualname, but the fallback does not
-  filter candidates by it). The tail's `path-call` class exists for
-  path-qualified sites the fallback *declines*; these are the ones it
-  did not decline. Not a shape ADR-090 vetoes (its Rust veto is
-  bang→macro).
-- **Bites at:** any Rust file lane B does not cover — serde reaches it
-  through C-73 (a symlinked second copy of `serde_core/src` with no
-  lane B evidence): 3 wrong `syntactic` edges of 81, the other 78
-  confirmed by hand. Where lane B answers, the semantic edge stands
-  and the wrong fallback shows only as a `hobbes lanes` disagreement
-  (serde: 3 of 910 dual-resolved sites).
-- **You find out:** **partial** — the edge is `syntactic` (C-7), and a
-  dual-resolved site reports as a lane disagreement; a site only lane
-  A answered is unchecked. Candidate fix: filter candidates to the
-  `impl` block whose type qualname matches the path's head segment,
-  else abstain into `path-call` — ADR-098's rule in Rust's shape.
+  `fmt` itself, a self-loop. Two mechanisms, reproduced on a probe
+  crate 2026-09-03: the generic path's head is a `type_identifier`,
+  so `_qualifier_segments` read `[]` and the call fell into the
+  bare-name lookup, which hit an `impl` method; and a trait head is a
+  `type` in the symbol table, so `Trait::method` resolved to whatever
+  `impl X for dyn Trait` had put under `Trait.method`. serde: 3 wrong
+  `syntactic` edges of 81 (the other 78 confirmed by hand), visible
+  only through C-73's lane-B-less copy; 3 of 910 dual-resolved sites
+  as lane disagreements. *Partial* while it stood.
+- **Lifted by — the technique:** ADR-098's rule in Rust's shape — when
+  the head does not single out a declaration, abstain. Four rules in
+  `_call_fallback`: (1) a call written with a `::` path (`qualified`,
+  recorded by the grammar walk and by the token-tree walk from the
+  `::` token before the name) is never looked up as a bare name, even
+  when its path could not be read; (2) a bare name never binds to a
+  `method` — Rust needs a path or a receiver to reach one; (3) a head
+  that is a `trait` in the file (`RustFile.traits`, kept beside the
+  symbol table) is dispatch and is left to lane B; (4) `Type::name`
+  with more than one declaration under that qualname in the file (two
+  `impl X for Type { fn fmt }` blocks) is an overload set. Sites the
+  rules refuse land in the tail's `path-call` class (the source text
+  shows `::` before the name), which is where the entry said they
+  belonged. Tests: `TestPathQualifiedCallsBindByTheirHead` (three: the
+  generic path and the bare-to-method case, the trait head and the
+  overload set with a real `Local::make` still resolving, the same
+  shapes inside a macro body).
+- **Residual edge cases:** `Type::assoc()` where the type is declared
+  in another file is unchanged (it resolved through `mod_map` before,
+  and still does, only for a unique qualname); a trait declared in
+  another file is not in this file's `traits`, so `other::Trait::m(..)`
+  walks the path and abstains at the trait's file only if the walk
+  reaches it. The trait declaration's own method signatures are not
+  symbols (C-9), so nothing can bind to them either way. `impl
+  Deserialize for ()` still puts its method under a bare qualname
+  (C-9's floor for a type with no name); rule (2) keeps bare calls off
+  it, and a path never reaches `()`.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent D,
-  serde-rs/serde). Registered, not fixed.
+  serde-rs/serde); lifted 2026-09-03.

@@ -25,7 +25,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from hobbes.extract.discover import ModuleInfo
-from hobbes.extract.pysource import FromImport, ParsedFile, PlainImport
+from hobbes.extract.pysource import EXPR_RECEIVER, FromImport, ParsedFile, PlainImport
 from hobbes.extract.schema import tiered_edge
 
 _SELF_NAMES = ("self", "cls")
@@ -278,6 +278,12 @@ def _resolve_call(
     """Resolve a call site to a symbol id, or None (ADR-007 rules 1–4)."""
     parts = call.callee.split(".")
     head = parts[0]
+
+    if head == EXPR_RECEIVER:
+        # C-80: the receiver is a call, a subscript or `super()` — a value
+        # only a type checker can name. The site exists for the join;
+        # the fallback has no rule for it and says nothing.
+        return None
 
     # Rule 4: self.method() / cls.method() within the enclosing class.
     if head in _SELF_NAMES and len(parts) == 2 and call.scope:

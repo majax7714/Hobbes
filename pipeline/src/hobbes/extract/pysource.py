@@ -79,9 +79,17 @@ class Symbol:
     decorators: tuple[Decorator, ...]
 
 
+#: The receiver recorded for a call whose object is an expression — a
+#: call, a subscript, ``super()`` — rather than a name chain (C-80,
+#: lifted 2026-09-03). The callee name after it is real; the receiver is
+#: what lane A cannot name, and the fallback abstains on it.
+EXPR_RECEIVER = "<expr>"
+
+
 @dataclass(frozen=True)
 class Call:
-    """A call site whose callee is a plain name/attribute chain.
+    """A call site whose callee is a name/attribute chain, or an attribute
+    on an expression receiver (``EXPR_RECEIVER``).
 
     ``scope`` is the qualname of the innermost enclosing definition, or None
     for module-body calls (attributed to the module node itself, ADR-007).
@@ -428,6 +436,16 @@ def _walk(
     if kind == "call":
         function = node.child_by_field_name("function")
         dotted = _dotted(function) if function is not None else None
+        if dotted is None and function is not None and function.type == "attribute":
+            # C-80 (lifted): `super().m()`, `f().m()`, `xs[i].m()` — the
+            # callee name is still a plain attribute; only the receiver
+            # is an expression lane A cannot name. Recorded as a site so
+            # the join can pair it with the semantic occurrence (peft:
+            # 252 such calls were `uses` edges glossed as "not a call");
+            # the fallback abstains on the receiver (graph._resolve_call).
+            attribute = function.child_by_field_name("attribute")
+            if attribute is not None:
+                dotted = f"{EXPR_RECEIVER}.{_text(attribute)}"
         if dotted is not None:
             line = _line(node)
             if dotted in _ENV_CALLS:
