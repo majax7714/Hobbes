@@ -6463,3 +6463,23 @@ step 3's grounder consumes. Recorded as an addendum to the probe
 record; `calvin-potential.md` §7.1 carries the measured cost and §8
 step 0 reads done; handoff moved to step 1. Max's key question
 answered in the session: nothing before step 4 needs one.
+
+*Addendum, afternoon — step 1.* Max: "good to proceed with step 1
+then." Built `hobbes.derive.holes` — the hole language v0: the eleven
+types with their fill shapes, `validate_template` / `validate_fill` /
+`validate_fills`, and `render` (the prompt a reader fills, span text
+read from git at the parent). The hand-written template is for
+`c59916fe2222` ("--no-tests flag to `oracle go-rta`", 2 files, 4
+hunks) at parent `19bddc9230fb`: 53 holes, every type but `ANCHOR`,
+round 1 (UNRESOLVED, four ANCHOR_CONFIRMs) answered by hand as the
+orchestrator would, 47 open. The exit criterion is a test: the gold
+diff expressed as fills — spans cut from the child commit's own
+ledger, nothing typed — validates with nothing missing. Five readings
+for step 2, in the probe record's second addendum: the anchors for
+this task come from the literal (`go-rta` in the usage text and three
+spans), not any identifier; 47 holes for 4 hunks, so pattern fills
+extend to regions, tests and partners; `NEW_SYMBOL` needs
+`covered_by` (the new thing is a field and a local); `FREEFORM` needs
+`"none"`; and the SIGNATURE-unchanged prune is wrong for types (its
+caller changes when the fields do) — scoped to functions. §2.1
+amended in place; §8 step 1 done; 1,178 pytest (+7).

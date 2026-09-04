@@ -175,3 +175,78 @@ is the first instrument to consume. §7.1's per-parent cost on this
 repo is therefore ~24 s contained, not the ~2 s lane-A figure, and
 the ledger step 3 will ground against is the one the charter §6 asks
 for (semantic-tier resolution, so "exists" is not a guess).
+
+## Addendum 2026-09-04 (afternoon) — step 1: the hole schema and one hand-written template
+
+**Built:** `hobbes.derive.holes` (the hole language v0 — `HOLE_TYPES`,
+`FILL_SHAPES`, `validate_template`, `validate_fill`, `validate_fills`,
+`render`; `TEMPLATE_VERSION = 0`) and one template written by hand for
+the §9b unit `c59916fe2222` ("Add a --no-tests flag to `oracle go-rta`
+…", two files, four hunks) at its parent `19bddc9230fb`:
+`bench/calvin/templates/c59916fe2222.template.json`, its rendered
+fillable form `….template.md` (1,021 lines, the current code of every
+span read from git at the parent), and `….fills-gold.json` — the gold
+diff expressed as fills, spans cut from the **child** commit's own
+ledger (`graphs-laneb/5549ea00aad5.json` is the graph *at*
+`c59916fe2222`), nothing typed. `tests/test_holes.py` (7) holds the
+schema, the render, the template's facts against the ledger (every
+symbol hole on a symbol span, no region overlapping one, the cited
+edges semantic, the nine reaching tests) and the exit criterion: **the
+gold fills validate against the template with nothing missing.**
+
+**What the template holds (53 holes).**
+
+| type | n | of which |
+|---|---|---|
+| `UNRESOLVED` | 1 | four terms: `go-rta` → refers (`main.runGoRTA`; nearest name `gorta` at distance 1), `no-tests` → new, `non-test` / `H-9.` → not-code — answered by hand as round 1 |
+| `ANCHOR_CONFIRM` | 4 | the four bare-word lexical seeds (`root`, `load`, `test`, `packages` → `web/src/main`, `policy/load`, `knowledge`, `graphModel`), all answered *no* — the probe's 141 wrong-file anchors, seen at one unit |
+| `SIGNATURE` / `BODY` | 2 / 2 | `gorta.Options` (37–41), `gorta.Run` (47–215) |
+| `CALLER_UPDATE` | 8 | `main.runGoRTA` (in partition); six `gorta_test` callers (guarding tests, in partition); `grade_test.cell` **closed: partition** |
+| `TEST_EXPECTATION` | 9 | every test the testmap says reaches `gorta.Run` (six in `gorta_test`, three in `grade_test`) |
+| `MODULE_REGION` | 18 | head / imports / gaps of both files — no tail (both end on a symbol) |
+| `COCHANGE_TOUCH` | 7 | partners at ≥ 2 co-commits in 200 (`grade.go`, `grade_test.go`, `export.go`, `run-cell.sh`, `README.md`, `edges.go`, `export_test.go`) |
+| `NEW_SYMBOL` | 1 | for `no-tests`; the gold answer is `{"covered_by": ["h2", "h5"]}` — a field and a local, not a top-level symbol |
+| `FREEFORM` | 1 | gold answer `"none"` |
+
+**Readings the hand-writing produced (each a step-2 rule or a design
+amendment, all carried into `calvin-potential.md`):**
+
+1. **Anchors for this task come from the literal, not the identifier.**
+   The backticked `oracle go-rta` matches no node id or basename; as a
+   literal it sits in `main.usage`'s text (main.go:45), and `go-rta`
+   as a literal sits in `main.main`, `main.runGoRTA` and `gorta.Run`
+   (gorta.go:195). One hop of the structure pass from `runGoRTA`'s
+   callees then reaches `gorta.Options` and `gorta.Run` — both gold
+   files covered. Whether matcher 5 (literal search) applies to a
+   backticked non-identifier is a rule step 2 must decide; the
+   template records the anchor as `literal` and says so.
+2. **Holes ≫ hunks at this stage (§4.7): 47 open holes for 4 hunks.**
+   18 regions, 9 test expectations, 8 caller updates and 7 co-change
+   partners are each one question the gold answers "unchanged"; the
+   pattern fill is what makes the form answerable, so `MODULE_REGION`,
+   `TEST_EXPECTATION` and `COCHANGE_TOUCH` take it alongside
+   `CALLER_UPDATE`. The design's prune ("regions on untouched files")
+   does not fire here — both files are touched — so the region count
+   is the real cost of the rule, 18 for two Go files.
+3. **`NEW_SYMBOL` needs a `covered_by` answer.** The new thing the
+   task names (`no-tests`) is a struct field and a flag local, not a
+   new top-level symbol; without `covered_by` the hole could only be
+   answered wrongly. This is the shape §4.3's `new` class will take
+   most often on this unit set, and it is what §4.2's fourth row
+   ("does the NEW_SYMBOL fill then land in the right file/region")
+   must score: *covered by the right holes* is a placement answer.
+4. **`FREEFORM` needs `"none"`.** A reader with nothing to add must be
+   able to close the hole.
+5. **A SIGNATURE hole on a `type` is a one-line span of a struct
+   header;** the field list is the BODY. The gold changes the body
+   (adds `NoTests bool`) and leaves the signature unchanged, so the
+   pruning rule "SIGNATURE = unchanged closes the CALLER_UPDATEs"
+   would have closed `h5` — wrongly, since the caller *does* change
+   to pass the new field. **The rule holds for functions and is wrong
+   for types:** a type's callers change when its fields do. Step 2's
+   pruning must scope that rule to function signatures.
+
+The v0 schema, the template and the gold fills are step 3's first
+grounder input: 3 hand-checked fills, 4 pattern fills, one
+`covered_by`, one `"none"` → the expected output is the gold diff at
+the parent with HSR 0 and NULL 0.

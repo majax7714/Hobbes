@@ -1,0 +1,1380 @@
+{
+ "template_version": 0,
+ "key": {
+  "parent_sha": "19bddc9230fbac43898e06d3b475c9a94ecd5445",
+  "task_hash": "7af3c18016d6",
+  "template_version": 0
+ },
+ "unit": {
+  "commit": "c59916fe2222",
+  "source": "ADR-099 \u00a79b proposal; hand-written template (step 1)"
+ },
+ "task": "Add a --no-tests flag to `oracle go-rta` so a root too large to load together with its test packages can still be graded from its non-test roots; record it as the fix for defect H-9.",
+ "ledger": {
+  "graph": "~/.hobbes/bench/calvin/graphs-laneb/c59916fe2222.json",
+  "built_by": "8add0a08c6451fa59dbdb84fc6a27f3a96fcece4",
+  "schema_version": 4,
+  "containment": "all_contained"
+ },
+ "anchors": [
+  {
+   "term": "oracle go-rta",
+   "matcher": "literal",
+   "nodes": [
+    "bench/oracle/cmd/oracle/main.usage"
+   ],
+   "note": "backtick \u2192 no node id or basename matches the two-token string; the literal is in the usage text at main.go:45"
+  },
+  {
+   "term": "go-rta",
+   "matcher": "literal",
+   "nodes": [
+    "bench/oracle/cmd/oracle/main.main",
+    "bench/oracle/cmd/oracle/main.runGoRTA",
+    "bench/oracle/internal/gorta/gorta.Run"
+   ],
+   "note": "a2; not an identifier in the graph (see unresolved) but a literal at main.go:28, main.go:66, gorta.go:195 \u2014 whether matcher 5 applies to a backticked non-identifier is a step-2 rule to decide"
+  }
+ ],
+ "unresolved": [
+  {
+   "term": "go-rta",
+   "nearest": [
+    "gorta",
+    "runGoRTA",
+    "gorta_test",
+    "shortSHA"
+   ]
+  },
+  {
+   "term": "no-tests",
+   "nearest": [
+    "test",
+    "note",
+    "load_tests",
+    "NotIngested"
+   ]
+  },
+  {
+   "term": "non-test",
+   "nearest": [
+    "test",
+    "note",
+    "context",
+    "NotIngested"
+   ]
+  },
+  {
+   "term": "H-9.",
+   "nearest": [
+    "H",
+    "sh",
+    "chat",
+    "both"
+   ]
+  }
+ ],
+ "seeds_rejected_by_reader": {
+  "web/src/main": "root",
+  "go/internal/policy/load": "load",
+  "go/internal/knowledge/knowledge": "test",
+  "web/src/lib/graphModel": "packages"
+ },
+ "holes": [
+  {
+   "id": "u1",
+   "type": "UNRESOLVED",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "the task's identifier-shaped tokens no matcher resolved"
+   },
+   "fill_schema": "{\"classes\": {\"<term>\": \"new\"|\"refers\"|\"not-code\", ...}, \"refers_to\"?: {\"<term>\": \"<node id>\"}}",
+   "ask": "classify each unresolved term",
+   "terms": [
+    {
+     "term": "go-rta",
+     "nearest": [
+      "gorta",
+      "runGoRTA",
+      "gorta_test",
+      "shortSHA"
+     ]
+    },
+    {
+     "term": "no-tests",
+     "nearest": [
+      "test",
+      "note",
+      "load_tests",
+      "NotIngested"
+     ]
+    },
+    {
+     "term": "non-test",
+     "nearest": [
+      "test",
+      "note",
+      "context",
+      "NotIngested"
+     ]
+    },
+    {
+     "term": "H-9.",
+     "nearest": [
+      "H",
+      "sh",
+      "chat",
+      "both"
+     ]
+    }
+   ],
+   "fill": {
+    "classes": {
+     "go-rta": "refers",
+     "no-tests": "new",
+     "non-test": "not-code",
+     "H-9.": "not-code"
+    },
+    "refers_to": {
+     "go-rta": "bench/oracle/cmd/oracle/main.runGoRTA"
+    }
+   },
+   "fill_source": "hand (step 1; what an orchestrator is expected to answer)"
+  },
+  {
+   "id": "c1",
+   "type": "ANCHOR_CONFIRM",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "root",
+    "matcher": "bare-identifier",
+    "tier": "lexical (C-36)"
+   },
+   "fill_schema": "{\"confirm\": true|false, \"alternative\"?: \"<node id>\"}",
+   "ask": "is `web/src/main` (matched by the bare word 'root') a site this task concerns?",
+   "fill": {
+    "confirm": false
+   },
+   "fill_source": "hand (step 1)"
+  },
+  {
+   "id": "c2",
+   "type": "ANCHOR_CONFIRM",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "load",
+    "matcher": "bare-identifier",
+    "tier": "lexical (C-36)"
+   },
+   "fill_schema": "{\"confirm\": true|false, \"alternative\"?: \"<node id>\"}",
+   "ask": "is `go/internal/policy/load` (matched by the bare word 'load') a site this task concerns?",
+   "fill": {
+    "confirm": false
+   },
+   "fill_source": "hand (step 1)"
+  },
+  {
+   "id": "c3",
+   "type": "ANCHOR_CONFIRM",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "test",
+    "matcher": "bare-identifier",
+    "tier": "lexical (C-36)"
+   },
+   "fill_schema": "{\"confirm\": true|false, \"alternative\"?: \"<node id>\"}",
+   "ask": "is `go/internal/knowledge/knowledge` (matched by the bare word 'test') a site this task concerns?",
+   "fill": {
+    "confirm": false
+   },
+   "fill_source": "hand (step 1)"
+  },
+  {
+   "id": "c4",
+   "type": "ANCHOR_CONFIRM",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "packages",
+    "matcher": "bare-identifier",
+    "tier": "lexical (C-36)"
+   },
+   "fill_schema": "{\"confirm\": true|false, \"alternative\"?: \"<node id>\"}",
+   "ask": "is `web/src/lib/graphModel` (matched by the bare word 'packages') a site this task concerns?",
+   "fill": {
+    "confirm": false
+   },
+   "fill_source": "hand (step 1)"
+  },
+  {
+   "id": "h1",
+   "type": "SIGNATURE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 37,
+    "end": 41
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "type": "type Options struct"
+   },
+   "provenance": {
+    "anchor": "a2 \u2192 callee of main.runGoRTA",
+    "edge": "main.runGoRTA uses gorta.Options @ main.go:72",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"signature\": \"<one line>\"}"
+  },
+  {
+   "id": "h2",
+   "type": "BODY",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 37,
+    "end": 41
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "as h1",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole span, rewritten>\"}"
+  },
+  {
+   "id": "h3",
+   "type": "SIGNATURE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 47,
+    "end": 47
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "type": "func Run(o Options) (*edges.OracleExport, error)"
+   },
+   "provenance": {
+    "anchor": "a2 \u2192 callee of main.runGoRTA",
+    "edge": "main.runGoRTA calls gorta.Run @ main.go:76",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"signature\": \"<one line>\"}"
+  },
+  {
+   "id": "h4",
+   "type": "BODY",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 47,
+    "end": 215
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "as h3; the literal `go-rta` at gorta.go:195",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole span, rewritten>\"}"
+  },
+  {
+   "id": "h5",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 65,
+    "end": 81
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a1, a2",
+    "edge": "calls gorta.Run @ 76; uses gorta.Options @ 72",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h6",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/grade/grade_test.go",
+    "start": 25,
+    "end": 25
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "grade_test.cell calls gorta.Run @ grade_test.go:25",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}",
+   "closed": {
+    "reason": "partition: bench/oracle/internal/grade/grade_test.go is outside the write partition"
+   }
+  },
+  {
+   "id": "h7",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 41,
+    "end": 61
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestMinigoExact calls gorta.Run @ gorta_test.go:42",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h8",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 65,
+    "end": 78
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestTwomodAppExact calls gorta.Run @ gorta_test.go:66",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h9",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 82,
+    "end": 105
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestTwomodAppTwoSitesOneLine calls gorta.Run @ gorta_test.go:83",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h10",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 110,
+    "end": 135
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestTwomodLibDynamic calls gorta.Run @ gorta_test.go:111",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h11",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 137,
+    "end": 141
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestNoRootsIsAnError calls gorta.Run @ gorta_test.go:138",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "h12",
+   "type": "CALLER_UPDATE",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 147,
+    "end": 162
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "gorta_test.TestGenericInstantiationFoldsToOrigin calls gorta.Run @ gorta_test.go:148",
+    "tier": "semantic"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the caller span, rewritten>\"}"
+  },
+  {
+   "id": "t1",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 41,
+    "end": 61
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestMinigoExact reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t2",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 65,
+    "end": 78
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestTwomodAppExact reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t3",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 82,
+    "end": 105
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestTwomodAppTwoSitesOneLine reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t4",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 110,
+    "end": 135
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestTwomodLibDynamic reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t5",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 137,
+    "end": 141
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestNoRootsIsAnError reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t6",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta_test.go",
+    "start": 147,
+    "end": 162
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: bench/oracle/internal/gorta/gorta_test.go::TestGenericInstantiationFoldsToOrigin reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t7",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/grade/grade_test.go",
+    "start": 34,
+    "end": 48
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition: state the expectation, do not rewrite the test"
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: grade_test.go::TestMinigoAllConfirmed reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t8",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/grade/grade_test.go",
+    "start": 50,
+    "end": 58
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition: state the expectation, do not rewrite the test"
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: grade_test.go::TestTwomodAppAllConfirmed reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "t9",
+   "type": "TEST_EXPECTATION",
+   "span": {
+    "path": "bench/oracle/internal/grade/grade_test.go",
+    "start": 63,
+    "end": 85
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition: state the expectation, do not rewrite the test"
+   },
+   "provenance": {
+    "anchor": "a2",
+    "edge": "testmap: grade_test.go::TestTwomodLibDynamicMiss reaches gorta.Run",
+    "tier": "semantic"
+   },
+   "fill_schema": "\"unchanged\" | {\"expectation\": \"<prose>\", \"code\"?: \"<the test, rewritten>\"}"
+  },
+  {
+   "id": "m1",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 1,
+    "end": 15
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "head",
+    "between": [
+     "(file start)",
+     "Options"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m2",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 16,
+    "end": 32
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "imports",
+    "between": [
+     "(file start)",
+     "Options"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m3",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 33,
+    "end": 36
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "(imports)",
+     "Options"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m4",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 42,
+    "end": 46
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "Options",
+     "Run"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m5",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 216,
+    "end": 220
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "Run",
+     "unwind"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m6",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 245,
+    "end": 248
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "unwind",
+     "underModule"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m7",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 253,
+    "end": 253
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "underModule",
+     "qualified"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m8",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/internal/gorta/gorta.go",
+    "start": 260,
+    "end": 261
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "qualified",
+     "Exists"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m9",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 1,
+    "end": 7
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "head",
+    "between": [
+     "(file start)",
+     "main"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m10",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 8,
+    "end": 18
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "imports",
+    "between": [
+     "(file start)",
+     "main"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m11",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 19,
+    "end": 19
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "(imports)",
+     "main"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m12",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 40,
+    "end": 40
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "main",
+     "usage"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m13",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 49,
+    "end": 49
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "usage",
+     "runExport"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m14",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 64,
+    "end": 64
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "runExport",
+     "runGoRTA"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m15",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 82,
+    "end": 82
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "runGoRTA",
+     "runGrade"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m16",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 104,
+    "end": 104
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "runGrade",
+     "read"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m17",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 115,
+    "end": 115
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "read",
+     "write"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "m18",
+   "type": "MODULE_REGION",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 128,
+    "end": 128
+   },
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "kind": "gap",
+    "between": [
+     "write",
+     "splitComma"
+    ],
+    "anchor": "every file the structure pass touches"
+   },
+   "fill_schema": "\"unchanged\" | {\"code\": \"<the whole region, rewritten>\"}"
+  },
+  {
+   "id": "x1",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with gorta.go \u00d72 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/internal/grade/grade.go` touched by this change; why"
+  },
+  {
+   "id": "x2",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with gorta.go \u00d72, main.go \u00d72 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/internal/grade/grade_test.go` touched by this change; why"
+  },
+  {
+   "id": "x3",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with main.go \u00d73 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/internal/export/export.go` touched by this change; why"
+  },
+  {
+   "id": "x4",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with main.go \u00d73 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/run-cell.sh` touched by this change; why"
+  },
+  {
+   "id": "x5",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with main.go \u00d72, gorta.go \u00d71 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/README.md` touched by this change; why"
+  },
+  {
+   "id": "x6",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with main.go \u00d72, gorta.go \u00d71 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/internal/edges/edges.go` touched by this change; why"
+  },
+  {
+   "id": "x7",
+   "type": "COCHANGE_TOUCH",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ],
+    "note": "outside the write partition unless you say why it must move"
+   },
+   "provenance": {
+    "cochange": "co-committed with main.go \u00d72 in the last 200 commits",
+    "anchor": "a1, a2"
+   },
+   "fill_schema": "{\"decision\": \"yes\"|\"no\", \"reason\": \"<why>\", \"body\"?: \"<the file, rewritten>\"}",
+   "ask": "is `bench/oracle/internal/export/export_test.go` touched by this change; why"
+  },
+  {
+   "id": "n1",
+   "type": "NEW_SYMBOL",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "u1: `no-tests` declared new"
+   },
+   "fill_schema": "{\"name\": \"<name>\", \"file\": \"<path>\", \"after_symbol\"?: \"<node id>\", \"region\"?: \"<hole id>\", \"body\": \"<code>\"} | {\"covered_by\": [\"<hole id>\", ...]}",
+   "ask": "where does the new thing `no-tests` go \u2014 a new top-level symbol (name, file, position, body), or covered by another hole's fill?"
+  },
+  {
+   "id": "f1",
+   "type": "FREEFORM",
+   "span": null,
+   "constraints": {
+    "write_partition": [
+     "bench/oracle/cmd/oracle/main.go",
+     "bench/oracle/internal/gorta/gorta.go",
+     "bench/oracle/internal/gorta/gorta_test.go"
+    ]
+   },
+   "provenance": {
+    "anchor": "none"
+   },
+   "fill_schema": "\"none\" | {\"code\": \"<code>\", \"span\": {\"path\": \"<path>\", \"start\": <line>, \"end\": <line>}}",
+   "ask": "anything the template did not anticipate"
+  }
+ ],
+ "neighborhood": [
+  {
+   "node": "bench/oracle/internal/edges/edges.OracleExport",
+   "span": {
+    "path": "bench/oracle/internal/edges/edges.go",
+    "start": 70,
+    "end": 78
+   },
+   "note": "the export gorta.Run builds at 195 (fields Oracle, Kind, Module, Roots, Tags, Files); used, not called"
+  },
+  {
+   "node": "bench/oracle/cmd/oracle/main.write",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 116,
+    "end": 127
+   },
+   "note": "runGoRTA's output path"
+  },
+  {
+   "node": "bench/oracle/cmd/oracle/main.splitComma",
+   "span": {
+    "path": "bench/oracle/cmd/oracle/main.go",
+    "start": 129,
+    "end": 141
+   },
+   "note": "how --tags is parsed"
+  },
+  {
+   "node": "ext:golang.org/x/tools/go/packages",
+   "note": "packages.Config{Tests: \u2026} is what decides whether test packages load (gorta.go:58)"
+  }
+ ],
+ "constraints": {
+  "write_partition": [
+   "bench/oracle/cmd/oracle/main.go",
+   "bench/oracle/internal/gorta/gorta.go",
+   "bench/oracle/internal/gorta/gorta_test.go"
+  ],
+  "invariants_in_scope": "I-1, I-3, I-7, I-9 (scope '.', soft)",
+  "guarantees": "never read or write .tfstate; never git push (P10, emitted first, cannot be widened)",
+  "policy": "read-only, escalate-by-default floor; writes only over the partition"
+ },
+ "pruning_rules": [
+  "SIGNATURE = unchanged closes that anchor's CALLER_UPDATEs",
+  "a caller outside the write partition is closed with reason partition (h6)",
+  "MODULE_REGION = unchanged is dropped from the diff",
+  "pattern fills accepted for CALLER_UPDATE, MODULE_REGION, TEST_EXPECTATION, COCHANGE_TOUCH"
+ ]
+}

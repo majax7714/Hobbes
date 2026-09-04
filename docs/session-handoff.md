@@ -24,8 +24,13 @@ spans; 118/182 unresolved terms new) are the record
 under `~/.hobbes/bench/calvin/` (regenerable, `ingest`). **Step 0 is
 done:** the 28 contained lane-B ingests ran 2026-09-04 (698 s, median
 24 s; `graphs-laneb/`, 176,796 of 176,824 symbol edges semantic) and
-both probes read identical on them. Next is step 1, the hole schema
-(no model). No key is needed before step 4; the adapter's endpoint
+both probes read identical on them. **Step 1 is done** (afternoon):
+`hobbes.derive.holes` v0 and the hand-written template for
+`c59916fe2222` (`bench/calvin/templates/`), its gold fills validating;
+five readings for step 2 in the probe record's second addendum — the
+literal matcher on backticked non-identifiers, 47 open holes for 4
+hunks, `covered_by`, `"none"`, and the SIGNATURE-prune scoped to
+functions. Next is step 2, `hobbes template` in derive (no model). No key is needed before step 4; the adapter's endpoint
 decides which key (`HOBBES_LLM_API_KEY`). No ADR yet (100 when accepted). Assessment work comes before
 the next proposal; the §10 fine-tuning wording in the architecture
 stays as is until then.
@@ -96,7 +101,7 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 steps 1–3 (`docs/calvin-potential.md` §8, no model; step 0 done); Max's three calls above; his review of the ten lifts.
+0. Calvin M0 steps 2–3 (`docs/calvin-potential.md` §8, no model; steps 0–1 done); Max's three calls above; his review of the ten lifts.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression

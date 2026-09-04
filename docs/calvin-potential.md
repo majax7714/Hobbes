@@ -90,12 +90,12 @@ Zero resolved anchors and zero unresolved terms → a single `ANCHOR` hole; the 
 | `CALLER_UPDATE` | does this caller change; how | `{decision, reason, body?}` |
 | `TEST_EXPECTATION` | what this test should now expect | prose + optional code |
 | `COCHANGE_TOUCH` | is this partner touched; why | `{decision, reason, body?}` |
-| `NEW_SYMBOL` | name, file, position, body for something the graph lacks | `{name, file, after_symbol? / region?, body}` |
-| `FREEFORM` | anything the template did not anticipate | code + target span |
+| `NEW_SYMBOL` | name, file, position, body for something the graph lacks | `{name, file, after_symbol? / region?, body}` — or **[step 1]** `{covered_by: [hole ids]}` when the new thing is a field or a local inside another hole's fill |
+| `FREEFORM` | anything the template did not anticipate | code + target span — or **[step 1]** `"none"` |
 
 Every hole: `id`, `type`, `span` (or null), `constraints` (write partition, type if known), `provenance` (anchor, edge, tier; for regions, the bracketing symbols), `fill_schema`.
 
-**Pruning rules v0** (structural, after fills, before grounding): `SIGNATURE = unchanged` closes that anchor's `CALLER_UPDATE`s; a caller outside the write partition is closed with reason `partition`; `MODULE_REGION = unchanged` is dropped from the diff. Pattern fills accepted (`CALLER_UPDATE: all unchanged`) and expanded by Hobbes.
+**Pruning rules v0** (structural, after fills, before grounding): `SIGNATURE = unchanged` closes that anchor's `CALLER_UPDATE`s — **[step 1] for function signatures only**: a type's callers change when its fields do, and the hand-written unit's gold leaves `type Options` signature-unchanged while its one caller changes; a caller outside the write partition is closed with reason `partition`; `MODULE_REGION = unchanged` is dropped from the diff. Pattern fills accepted (`CALLER_UPDATE: all unchanged`) and expanded by Hobbes — **[step 1]** also for `MODULE_REGION`, `TEST_EXPECTATION` and `COCHANGE_TOUCH`, since a two-file template carries 18 regions, 9 test expectations and 7 partners for 4 hunks (the probe record's step-1 addendum). The schema is `hobbes.derive.holes` (v0), the hand-written template `bench/calvin/templates/c59916fe2222.template.{json,md}` with its gold fills beside it.
 
 ### 2.2 Orchestrator adapter — Python, new [v2]
 
@@ -270,10 +270,10 @@ Each becomes a `C-n` in `constraints/verification-benchmark-harness.md` in the c
 
 ## 8. Order of work
 
-Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call. Step 0 and the two §4.1/§4.2 readings are already in hand (the probe record); the anchor rows there are a floor, since the resolver probed lacks the test-id, stack-trace and error-string matchers step 2 adds.
+Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call. Steps 0 and 1 and the two §4.1/§4.2 readings are already in hand (the probe record); the anchor rows there are a floor, since the resolver probed lacks the test-id, stack-trace and error-string matchers step 2 adds.
 
 0. **Parent re-base.** For each of the 50 units: parent SHA, ingest at parent (cached), gold diff = commit. *Exit:* 50 `(parent_sha, gold diff)` pairs; ingest count and time recorded. **Done (the probe record and its 2026-09-04 addendum):** the 28 parents are named; a contained lane-B graph exists for each (`calvin_probe.py ingest --lane-b`, 28 ingests, 698 s, median 24 s, 176,796 of 176,824 symbol edges semantic); both no-orchestrator instruments computed on the lane-A graphs and re-run identical on the semantic ones. The ledger step 3 grounds against is the semantic one (charter §6).
-1. **Hole schema** incl. `UNRESOLVED` and `MODULE_REGION`. *Exit:* one hand-written template for a §9b unit that a reader can fill without instructions.
+1. **Hole schema** incl. `UNRESOLVED` and `MODULE_REGION`. *Exit:* one hand-written template for a §9b unit that a reader can fill without instructions. **Done 2026-09-04:** `hobbes.derive.holes` (v0) and the template for `c59916fe2222` at its parent — 53 holes, every type but `ANCHOR`, the fillable render, and the gold diff as fills validating with nothing missing (`tests/test_holes.py`); five readings for step 2 in the probe record's addendum, three of them amendments to §2.1 above.
 2. **`hobbes template` in derive:** anchor pass with unresolved block, structure pass with module regions, pruning. *Exit:* templates for all 50 regenerate byte-identically at the parent; anchor P/R and coverage buckets (§4.1, §4.2) computed against gold before any orchestrator call.
 3. **Grounder v0 in derive.** *Exit:* the 50 gold diffs fed in as fills → HSR = 0, NULL = 0 except terms the diff declares (which must resolve as gensyms), diffs re-apply cleanly at the parent.
 4. **Orchestrator adapter.** *Exit:* five units through T by hand against the chosen endpoint; fills validated; exchanges recorded; the `UNRESOLVED` classification round works.

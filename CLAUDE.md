@@ -69,7 +69,8 @@ box, against a repo on disk (architecture §10); the application mode in
   step in the sandbox image — the executing steps refuse without it,
   C-64; Java resolves in a networked pass that holds no sources, then
   indexes offline, C-66/ADR-097); `derive/` (`hobbes plan`: impact →
-  cochange → partition → contracts → manifests → changespec); `run/`
+  cochange → partition → contracts → manifests → changespec; `holes.py`
+  is the Calvin M0 hole language, v0); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
@@ -92,6 +93,10 @@ box, against a repo on disk (architecture §10); the application mode in
 - `sandbox/` — the one image (`Containerfile`: sessions *and* lane B ingest,
   ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, ~2.8 GB) and
   the exit-check harness.
+- `bench/calvin/` — the Calvin M0 experiment's artifacts
+  (`docs/calvin-potential.md`): `templates/` holds the hand-written
+  template, its render and its gold fills; the parent ledgers live
+  under `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -159,7 +164,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04): 1,171 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, afternoon): 1,178 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
