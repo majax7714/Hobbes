@@ -70,8 +70,10 @@ box, against a repo on disk (architecture §10); the application mode in
   C-64; Java resolves in a networked pass that holds no sources, then
   indexes offline, C-66/ADR-097); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec; `holes.py`
-  is the Calvin M0 hole language, v0, and `template.py` its generator —
-  `hobbes template`, the anchor and structure passes); `run/`
+  is the Calvin M0 hole language, v0, `template.py` its generator —
+  `hobbes template`, the anchor and structure passes — and `ground.py`
+  grounder v0 — `hobbes ground`, placement and exact-or-NULL binding
+  with a read-trace); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
@@ -96,8 +98,9 @@ box, against a repo on disk (architecture §10); the application mode in
   the exit-check harness.
 - `bench/calvin/` — the Calvin M0 experiment's artifacts
   (`docs/calvin-potential.md`): `templates/` holds the hand-written
-  template, its render and its gold fills; the parent ledgers live
-  under `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
+  template, its render and its gold fills; the parent ledgers, the
+  generated templates and the ground records live under
+  `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -165,7 +168,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, evening): 1,188 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, night): 1,197 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job

@@ -1324,7 +1324,7 @@
    "provenance": {
     "anchor": "none"
    },
-   "fill_schema": "\"none\" | {\"code\": \"<code>\", \"span\": {\"path\": \"<path>\", \"start\": <line>, \"end\": <line>}}",
+   "fill_schema": "\"none\" | {\"code\": \"<code>\", \"span\": {\"path\": \"<path>\", \"start\": <line>, \"end\": <line>}} | [<one such object per unanticipated change>, ...]",
    "ask": "anything the template did not anticipate"
   }
  ],

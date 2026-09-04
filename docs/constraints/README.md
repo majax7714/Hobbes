@@ -123,7 +123,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) | C-35, C-36, C-37, C-38 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055) and the TTT experiment (ADR-099) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-75, C-76, C-77 |
 
@@ -135,8 +135,10 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Ninety entries: sixty-eight active, twenty lifted, two superseded**
-(C-90 added 2026-09-03 by the same re-ingest and **lifted the same
+**Ninety-one entries: sixty-nine active, twenty lifted, two superseded**
+(C-91 added 2026-09-04 by Calvin M0 step 3 — grounder v0 binds call
+sites only, in Python, Go and TS/JS, and abstains on members of values;
+C-90 added 2026-09-03 by the same re-ingest and **lifted the same
 night** — a tsconfig that `extends` or `references` a config off the
 zone's walk-up path is now staged transitively and a solution-style
 root gets the generated config: date-fns 15 of 15 zones, lanes 7,601 / 0;

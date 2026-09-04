@@ -27,7 +27,12 @@ same *pattern* fill as ``CALLER_UPDATE`` (every region ``unchanged``
 in one answer), because a template over two files carries a dozen
 regions and one hunk. And a ``FREEFORM`` hole is answered ``"none"``
 when there is nothing the template did not anticipate — the reader
-must be able to say so, or the hole cannot close.
+must be able to say so, or the hole cannot close. Step 3 widened two
+things for the grounder: a ``FREEFORM`` fill may be a *list* of
+``{code, span}`` entries (a draft diff handed in with no template is
+one entry per change block, charter §4.1), and a span with
+``end == start - 1`` is an insertion point before ``start`` (a file
+absent at the SHA takes ``{start: 1, end: 0}`` and is created).
 """
 from __future__ import annotations
 
@@ -65,7 +70,7 @@ FILL_SHAPES: dict[str, str] = {
     "TEST_EXPECTATION": '"unchanged" | {"expectation": "<prose>", "code"?: "<the test, rewritten>"}',
     "COCHANGE_TOUCH": '{"decision": "yes"|"no", "reason": "<why>", "body"?: "<the file, rewritten>"}',
     "NEW_SYMBOL": '{"name": "<name>", "file": "<path>", "after_symbol"?: "<node id>", "region"?: "<hole id>", "body": "<code>"} | {"covered_by": ["<hole id>", ...]}',
-    "FREEFORM": '"none" | {"code": "<code>", "span": {"path": "<path>", "start": <line>, "end": <line>}}',
+    "FREEFORM": '"none" | {"code": "<code>", "span": {"path": "<path>", "start": <line>, "end": <line>}} | [<one such object per unanticipated change>, ...]',
 }
 
 #: Types whose holes may be answered together: ``patterns: {"<TYPE>": "unchanged"}``.
@@ -82,8 +87,8 @@ def _span_errors(span, where: str) -> list[str]:
         return []
     if not isinstance(span, dict) or set(span) < {"path", "start", "end"}:
         return [f"{where}: span must be {{path, start, end}}"]
-    if not (isinstance(span["start"], int) and isinstance(span["end"], int) and 1 <= span["start"] <= span["end"]):
-        return [f"{where}: span lines must satisfy 1 <= start <= end"]
+    if not (isinstance(span["start"], int) and isinstance(span["end"], int) and 1 <= span["start"] and span["start"] - 1 <= span["end"]):
+        return [f"{where}: span lines must satisfy 1 <= start <= end (end == start - 1 is an insertion point before start)"]
     return []
 
 
@@ -195,7 +200,17 @@ def validate_fill(hole: dict, fill) -> list[str]:
         elif need(("name", "file", "body")) and not (fill.get("after_symbol") or fill.get("region")):
             e.append("a placed NEW_SYMBOL names after_symbol or region (else it lands at end of file — say so with region: 'eof')")
     elif typ == "FREEFORM":
-        if fill != "none" and need(("code", "span")):
+        if fill == "none":
+            pass
+        elif isinstance(fill, list):  # step 3: a draft diff with no hole for it is one FREEFORM entry per change block (charter §4.1)
+            for i, f in enumerate(fill):
+                if not (isinstance(f, dict) and "code" in f and "span" in f):
+                    e.append(f"[{i}]: expected {{code, span}}")
+                else:
+                    e += _span_errors(f["span"], f"[{i}].span")
+            if not fill:
+                e.append('an empty list says nothing; answer "none"')
+        elif need(("code", "span")):
             e += _span_errors(fill["span"], "span")
     return e
 

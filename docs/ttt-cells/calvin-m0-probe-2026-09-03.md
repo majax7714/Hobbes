@@ -354,3 +354,115 @@ fill — and §4.2's last row ("orchestrator ANCHOR fills beat H-a on
 anchorless tasks") is the reading to expect first. Step 3 (the grounder
 on the gold fills) does not depend on this: its input is the template
 plus fills, and for the 8 anchored tasks the templates exist.
+
+## Addendum 2026-09-04 (night) — step 3: grounder v0 on the gold diffs
+
+**Built:** `hobbes.derive.ground` (`edits_from_fills`, `apply_edits`,
+`ground`, `fills_from_diff`, the per-language reference extraction and
+the exact-or-NULL resolver with its read-trace), the `hobbes ground`
+subcommand, `calvin_probe.py ground` (the batch: gold → fills → ground →
+rerun → `git apply --check` at the parent → post-image against the
+commit) and `tests/test_ground.py` (9, on a synthetic ledger over a
+temporary git repo with Go, Python and JS). Ground records under
+`~/.hobbes/bench/calvin/ground/` (the commits as gold) and
+`ground-rows/` (the cell's rows as gold), each with `report.txt`.
+
+**What "gold as fills" means here.** §3.1 says the unit's gold diff is
+*the commit*; the cell's 147 rows are the commit's size-bounded,
+non-binary subset (`ttt.units.units_from_git`: docs, large files and a
+stray ELF under `fixtures/twomod` dropped), and step 2 scored coverage
+on the rows. Step 3 uses the commits, because a grounder handed half a
+commit says NULL for the other half — measured below, as it should.
+`fills_from_diff` attributes every change block (a `-` run with the `+`
+run that replaces it; a bare `+` run is an insertion point) to the open
+hole whose span holds it — BODY before CALLER_UPDATE before
+TEST_EXPECTATION before MODULE_REGION; a leading or trailing insertion
+belongs to the span it opens, else the span it closes — and everything
+else to one `FREEFORM` entry per block; a new file is one entry at
+`{1, 0}`. A symbol whose first line is in a block gets a SIGNATURE fill,
+then the pruning rules run, then attribution — so a gold edit inside a
+hole a rule closed is counted, not hidden.
+
+**Exit criterion — the 28 commits (the 50 units' keys) at their parents.**
+
+| | |
+|---|---|
+| identical on rerun (output hash, trace) | 28 / 28 |
+| `git apply --check` at the parent | 28 / 28 |
+| post-image equals the commit, every file | 28 / 28 |
+| ground wall, all 28 | 8.4 s |
+| call sites in the edited ranges | 3,760 |
+| in-graph / gensym | 274 / 417 |
+| builtin / local / expr / external / unknown-receiver | 556 / 1,072 / 345 / 638 / 155 |
+| not-code files / unsupported files | 290 / 13 (3 `.rs`, 10 `.java`) |
+| **NULL** | **0** → HSR **0.0000** |
+| unfilled / refused | 0 / 0 |
+| read-trace rows | 3,458 |
+
+By language: Python 1,577 sites (in-graph 153, gensym 235, builtin
+322, local 430, expr 211, external 147, abstained 79); Go 1,416
+(105 / 145 / 224 / 409 / 90 / 441 / 2); TS/JS 464 (16 / 37 / 10 / 233 /
+44 / 50 / 74). The 155 abstentions (`unknown-receiver`, C-91): 77
+Python members on an imported class or a class of the file that the
+class does not declare (inherited, an attribute, or wrong — v0 cannot
+tell), 74 JS members on a name a repo import binds, 2 Go members on a
+package-level value, 1 Python module-level value's method, 1
+`self.member` the class does not declare.
+
+**Attribution of the 1,176 change blocks.** 28 inside an open hole
+(11 BODY, 1 MODULE_REGION, 5 TEST_EXPECTATION holes filled), 1,040
+`FREEFORM`, 108 new files, 1 binary skipped; 94 CALLER_UPDATEs closed
+by an unchanged function signature; **2 blocks inside a closed hole**
+— both `19bddc9`'s `h15`, the caller `main.write` → `runGoRTA` closed
+because `write`'s signature is unchanged, edited by the task for its
+own reason. The rule closes the *propagation* question (I4), not the
+site; the grounder takes such an edit as `FREEFORM` and the count says
+how often. 1,165 edits (1,148 of them `FREEFORM`), 1,140 outside the
+write partition — step 2's 89% seen from the other side, advisory in
+M0 and counted per edit.
+
+**Six grounder defects the gold run surfaced, fixed before the reading**
+(the design's rule: a NULL on gold is Calvin's defect, never a finding
+about the task):
+
+1. A pure-deletion block placed one empty line instead of none — six
+   post-images off by a blank line.
+2. The `tsextract` helper drops a relative import it cannot resolve on
+   a scratch tree, so `classify`, `terminalName`, `dependencyCoverage`
+   from `../index.mjs` read NULL; the files a post-image's relative
+   imports name are now copied from the parent SHA beside it.
+3. JS had no builtin list (the tail view's TS/JS classes come from the
+   checker): `Number`, `setInterval`, `clearInterval` read NULL. A list
+   pinned the way C-32's are — Node v24.18.0's callable globals.
+4. `from hobbes.derive import derive_plan` — a package `__init__`
+   re-export — read NULL though the symbol exists in `changespec`;
+   followed one hop (≤ 3), the trace records `re-export`.
+5. `v.VERIFICATION_BASE.items()` — a member on a module-level value,
+   which the Python graph does not model — read NULL; a name bound at
+   module level in the module's source is an abstention.
+6. A relative import inside a package `__init__` resolved from the
+   parent instead of the package (the synthetic test caught it; the
+   rule now mirrors `graph.py`'s `_absolute_base`).
+
+**Poison control** — is a zero honest? For each of 25 templates with a
+bare in-graph call in a fill, the call renamed at one site to a name
+two characters off, and separately to `zqxFrobnicate`: 25 of 25 →
+exactly one NULL, class `near-miss`; 25 of 25 → exactly one NULL,
+class `invented`. Three templates had no bare in-graph call to perturb.
+
+**The rows as gold** (the cell's 147 rows): 1,191 sites, 29 NULL (22
+near-miss, 7 invented), HSR 0.19 — `rustmir.Run`, `javac.Run`,
+`contain.New`, `contain.Uncontained`, `IsRefusal`, `memberName`,
+`scipsource.extract_scip_java`: every one a symbol declared in a file
+of the same commit that the rows omit. Identical on rerun, applies and
+matches the commit on the files fed. That is I2 on a partial input,
+and it is the reading to expect from an orchestrator that edits a
+caller and forgets the callee.
+
+**What this settles for the run.** The grounder is not the door: with
+fills that are right it places 1,165 edits over 28 commits exactly and
+binds every call site or says why not. What it cannot see is
+registered (C-91): call sites only, three languages, members on values
+abstained. §4.3's classes are live and the control says the zero means
+zero. Step 4 is the first orchestrator spend and waits on Max's word.
+

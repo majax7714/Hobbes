@@ -6505,3 +6505,37 @@ as literals in 44–156 spans) and cover 10% by coincidence; the cap
 third addendum. The directory matcher took the knowledge-only unit
 from 0 to 7 of 8. Generated template for the step-1 unit: 134 holes
 to the hand-written 53, the same 4 of 4 covered. 1,188 pytest (+10).
+
+*Addendum, night — step 3.* Max: "proceed with step 3 of calvin
+potential." Built `hobbes.derive.ground` — grounder v0: every fill
+shape placed (span, insertion point `end = start − 1`, new file at
+`{1, 0}`, `NEW_SYMBOL` after a symbol / in a region / at end of file,
+`FREEFORM` as a list of blocks), overlap refused, an open hole with no
+fill reported, the pruning rules first; the post-image parsed by the
+language's lane-A provider and every call site in an edited range
+resolved against the graph plus the gensyms — exact match or NULL,
+each NULL classed near-miss / invented / new with the nearest names
+recorded, every lookup in a read-trace — and `hobbes ground`,
+`calvin_probe.py ground`, `fills_from_diff` (a diff as fills against a
+template, the charter's raw-diff case), nine tests. Exit met on the
+commits themselves (§3.1's gold; the cell's rows are their size-bounded
+subset): 28 of 28 identical on rerun, apply at the parent, and equal
+the commit byte for byte; 3,760 call sites, 0 NULL, HSR 0. Six grounder
+defects surfaced by the gold run and fixed before the reading — a
+deletion placing a blank line, the TS helper dropping unresolvable
+relative imports on a scratch tree, no JS builtin list, package
+`__init__` re-exports, module-level values, package-relative imports —
+and a poison control: 25 near-miss and 25 invented perturbations, one
+NULL each of the right class. On the rows instead, 29 NULLs, all
+symbols in files the rows omit — I2 on a partial diff. Two gold blocks
+fell inside a `CALLER_UPDATE` the signature-unchanged rule had closed
+(a caller edited for the task's own reason): the rule closes the
+propagation question, not the site. C-91 registered (call sites only,
+three languages, members on values abstained; surfaced in the record).
+Design §2.3 and §8 amended; the record's fourth addendum; handoff moved
+to step 4, which is the first orchestrator spend and waits on Max.
+1,197 pytest (+9). One `lane_b` test fails on this box tonight and
+fails identically at HEAD in a throwaway worktree — the contained venv
+listing (`test_venv_environment_lists_the_venvs_own_distributions`)
+comes back with `pip` alone; an environment reading, not the tree's,
+left for Max.

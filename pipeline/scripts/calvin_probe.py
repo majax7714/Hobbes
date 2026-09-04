@@ -338,6 +338,91 @@ def cmd_templates(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ground(a: argparse.Namespace) -> int:
+    """Step 3's exit: every gold diff expressed as fills against its template, grounded at the parent — HSR, NULLs by class, placement, re-application and post-image equality, with no orchestrator."""
+    from hobbes.derive import ground as G
+    from hobbes.derive import template as T
+
+    graphs = Path(a.graphs)
+    templates = Path(a.templates)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    cell, bycommit = load_units()
+    props = load_proposals()
+    refs = collections.Counter(); nulls = collections.Counter(); attrib = collections.Counter()
+    edits_by = collections.Counter(); placements = collections.Counter()
+    applies = equal = identical = 0; unfilled = refused = outside = trace_rows = 0
+    null_rows: list[dict] = []
+    wall = 0.0
+    rows = []
+    for p in props:
+        c = p["commit"]
+        L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+        t = json.load(open(templates / f"{c}.template.json"))
+        if a.gold == "rows":
+            gold = [(r["id"].split(":", 1)[1], r["gold_diff"]) for r in bycommit[c]]
+        else:  # the commit itself (§3.1: "its gold diff is the commit"); the cell's rows are its size-bounded, non-binary subset
+            files = [f for f in subprocess.run(["git", "show", "--name-only", "--format=", "--no-renames", c], cwd=clone, capture_output=True, text=True, check=True).stdout.split("\n") if f]
+            gold = []
+            for f in files:
+                d = subprocess.run(["git", "show", "--format=", "--no-color", "--no-renames", c, "--", f], cwd=clone, capture_output=True, text=True, errors="surrogateescape", check=True).stdout
+                if "GIT binary patch" in d or any(l.startswith("Binary files") for l in d.splitlines()[-1:]):
+                    attrib["binary_skipped"] += 1  # as the cell's units do: a binary file is not a fill
+                    continue
+                gold.append((f, d))
+        doc, counts = G.fills_from_diff(t, gold, repo)  # prunes t in place, as the grounder will
+        in_closed_at = counts.pop("in_closed_at", [])
+        attrib.update(counts)
+        for x in in_closed_at:
+            print(f"        gold edits inside a closed hole: {c[:7]} {x}")
+        t0 = time.time()
+        g = G.ground(json.load(open(templates / f"{c}.template.json")), doc, L, repo)
+        wall += time.time() - t0
+        again = G.ground(json.load(open(templates / f"{c}.template.json")), doc, L, repo)
+        identical += g["output_hash"] == again["output_hash"]
+        (out / f"{c}.fills-gold.json").write_text(json.dumps(doc, indent=1))
+        (out / f"{c}.ground.json").write_text(json.dumps(g, indent=1))
+        (out / f"{c}.diff").write_text(g["diff"])
+        for k, v in g["references"].items():
+            refs[k] += v
+        for k, v in g["null_by_class"].items():
+            nulls[k] += v
+        for n in g["null"]:
+            null_rows.append({"commit": c[:7], **{k: n[k] for k in ("hole", "path", "line", "term", "null_class", "nearest", "declared")}})
+        for e in g["edits"]:
+            edits_by[e["type"]] += 1; placements[e["placement"]] += 1
+        unfilled += len(g["unfilled"]); refused += len(g["refused"]); outside += g["outside_partition"]; trace_rows += len(g["trace"])
+        # re-application at the parent, and the post-image against the commit itself
+        subprocess.run(["git", "checkout", "-q", "--force", L.sha], cwd=clone, check=True)
+        r = subprocess.run(["git", "apply", "--check", "-"], cwd=clone, input=g["diff"], capture_output=True, text=True)
+        ok_apply = r.returncode == 0
+        applies += ok_apply
+        same = True
+        for path, _ in gold:
+            want = subprocess.run(["git", "show", f"{c}:{path}"], cwd=clone, capture_output=True, text=True, errors="surrogateescape").stdout
+            got = next((f for f in g["files"] if f["path"] == path), None)
+            same &= got is not None and want == g["post"][path]
+        equal += same
+        rows.append((c[:7], len(gold), g["references"]["total"], g["references"]["in-graph"], g["references"]["gensym"], g["references"]["NULL"], g["hsr"], len(g["edits"]), g["outside_partition"], ok_apply, same, r.stderr.strip()[:60]))
+    n = len(props)
+    print(f"grounded {n} templates (50 units share them): identical on rerun {identical}/{n}; applies at the parent {applies}/{n}; post-image equals the commit {equal}/{n}; ground wall {wall:.1f}s")
+    judged = refs["in-graph"] + refs["NULL"]
+    print(f"[§4.6] references {refs['total']}: in-graph {refs['in-graph']}, gensym {refs['gensym']}, builtin {refs['builtin']}, local {refs['local']}, expr {refs['expr']}, external {refs['external']}, "
+          f"unknown-receiver {refs['unknown-receiver']}, not-code {refs['not-code']} files, unsupported {refs['unsupported']} files, NULL {refs['NULL']} → HSR {refs['NULL'] / judged if judged else float('nan'):.4f}")
+    print(f"[§4.3] NULL by class: {dict(nulls)}")
+    for r in null_rows:
+        print(f"        {r['commit']} {r['hole']:8s} {r['path']}:{r['line']} `{r['term']}` {r['null_class']} nearest {r['nearest']}{' (declared)' if r['declared'] else ''}")
+    print(f"[fills] attribution of the gold change blocks: {dict(sorted(attrib.items()))}")
+    print(f"[edits] by type {dict(sorted(edits_by.items()))}; by placement {dict(sorted(placements.items()))}; outside the write partition {outside}; unfilled {unfilled}; refused {refused}; trace rows {trace_rows}")
+    print("commit  files refs in-graph gensym NULL   HSR edits outside apply equal")
+    for r in rows:
+        hsr = "  -  " if r[6] is None else f"{r[6]:.3f}"
+        print(f"{r[0]}  {r[1]:5d} {r[2]:4d} {r[3]:8d} {r[4]:6d} {r[5]:4d} {hsr} {r[7]:5d} {r[8]:7d} {'yes' if r[9] else 'NO ':>5} {'yes' if r[10] else 'NO ':>5} {r[11]}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -350,6 +435,9 @@ def main(argv: list[str]) -> int:
     s = sub.add_parser("anchors"); s.add_argument("graphs"); s.set_defaults(fn=cmd_anchors)
     s = sub.add_parser("templates"); s.add_argument("graphs"); s.add_argument("--out", required=True); s.add_argument("--clone")
     s.set_defaults(fn=cmd_templates)
+    s = sub.add_parser("ground"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
+    s.add_argument("--gold", choices=("commit", "rows"), default="commit", help="the whole commit (the design's gold) or the cell's size-bounded rows")
+    s.set_defaults(fn=cmd_ground)
     a = ap.parse_args(argv)
     return a.fn(a)
 

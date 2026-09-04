@@ -772,6 +772,51 @@ def _cmd_template(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_ground(args: argparse.Namespace) -> int:
+    """`hobbes ground`: grounder v0 (`docs/calvin-potential.md` §2.3) —
+    a template plus a fills document at the ledger's SHA → the diff,
+    the NULL list, the read-trace and the invariant counts; no model.
+    Exit 0; 1 under --strict when anything is NULL, unfilled or refused;
+    2 when an input cannot be read.
+    """
+    from hobbes.derive import ground as grd
+    from hobbes.derive import holes
+    from hobbes.derive import template as tmpl
+
+    repo_root = _repo_root_from(args)
+    derived = repo_root / ".hobbes" / "derived"
+    graph_path = Path(args.graph) if args.graph else derived / "graph.json"
+    tests_path = Path(args.tests) if args.tests else derived / "tests.json"
+    try:
+        ledger = tmpl.Ledger(json.loads(graph_path.read_text()), json.loads(tests_path.read_text()))
+        template = json.loads(Path(args.template).read_text())
+        fills = json.loads(Path(args.fills).read_text())
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"hobbes ground: cannot read an input ({exc}); `hobbes ingest` first, or pass --graph/--tests", file=sys.stderr)
+        return 2
+    errs = holes.validate_template(template)
+    if errs or template["key"]["parent_sha"] != ledger.sha:
+        print("hobbes ground: " + ("; ".join(errs) if errs else f"the template is keyed to {template['key']['parent_sha'][:12]}, the ledger is {ledger.sha[:12]}"), file=sys.stderr)
+        return 2
+    g = grd.ground(template, fills, ledger, repo_root)
+    if args.out:
+        Path(args.out).write_text(json.dumps(g, indent=1))
+    if args.diff:
+        sys.stdout.write(g["diff"])
+    elif args.json or not args.out:
+        print(json.dumps({k: v for k, v in g.items() if k != "trace" or args.trace}, indent=1))
+    r = g["references"]
+    print(f"grounded {template['key']['task_hash']} @ {ledger.sha[:12]} (grounder v{g['grounder_version']}, hash {g['output_hash']}): "
+          f"{len(g['edits'])} edits over {len(g['files'])} files ({g['outside_partition']} outside the partition); "
+          f"references {r['total']}: in-graph {r['in-graph']}, gensym {r['gensym']}, NULL {r['NULL']} ({g['null_by_class']}), HSR {g['hsr']}; "
+          f"unfilled {len(g['unfilled'])}, refused {len(g['refused'])}, trace {len(g['trace'])} rows" + (f"; wrote {args.out}" if args.out else ""), file=sys.stderr)
+    for n in g["null"]:
+        print(f"  NULL {n['hole']} {n['path']}:{n['line']} `{n['term']}` {n['null_class']}; nearest {n['nearest']}", file=sys.stderr)
+    if args.strict and (g["null"] or g["unfilled"] or g["refused"]):
+        return 1
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """`hobbes run`: execute a change-spec (ADR-054, D2 base).
 
@@ -1399,6 +1444,28 @@ def build_parser() -> argparse.ArgumentParser:
     template_parser.add_argument("--json", action="store_true", help="print the JSON even when --out is given")
     template_parser.add_argument("--no-cochange", action="store_true", help="skip the co-change window (no COCHANGE_TOUCH holes)")
 
+    ground_parser = sub.add_parser(
+        "ground",
+        help="grounder v0: a template plus fills at the ledger's SHA → diff, NULL list, read-trace (docs/calvin-potential.md §2.3)",
+        description=(
+            "Calvin's slot with the residual set to zero. Every fill is placed in the span its hole "
+            "or the fill names; the post-image is parsed by the language's lane-A provider and every "
+            "call site in an edited range is resolved against the graph plus the symbols the diff "
+            "itself declares — exact match or NULL, with the nearest graph names recorded and not used. "
+            "Deterministic and model-free; the read-trace lists every lookup made."
+        ),
+    )
+    ground_parser.add_argument("template", help="the template JSON (hobbes template --out)")
+    ground_parser.add_argument("fills", help='the fills document: {"fills": {...}, "patterns": {...}}')
+    ground_parser.add_argument("--repo", help="repo root (default: auto-detected via .git); git must hold the ledger's SHA")
+    ground_parser.add_argument("--graph", help="graph.json to use (default: .hobbes/derived/graph.json)")
+    ground_parser.add_argument("--tests", help="tests.json to use (default: .hobbes/derived/tests.json)")
+    ground_parser.add_argument("--out", help="write the ground record JSON here (diff, NULL list, trace, counts)")
+    ground_parser.add_argument("--diff", action="store_true", help="print the diff instead of the record")
+    ground_parser.add_argument("--json", action="store_true", help="print the record even when --out is given")
+    ground_parser.add_argument("--trace", action="store_true", help="include the read-trace in the printed record")
+    ground_parser.add_argument("--strict", action="store_true", help="exit 1 when anything is NULL, unfilled or refused")
+
     run_parser = sub.add_parser(
         "run",
         help="execute a change-spec: one single-use session per unit, then "
@@ -1724,6 +1791,7 @@ def main(argv: list[str] | None = None) -> int:
         "plan": _cmd_plan,
         "derive-corpus": _cmd_derive_corpus,
         "template": _cmd_template,
+        "ground": _cmd_ground,
         "run": _cmd_run,
         "mail": _cmd_mail,
         "bench": _cmd_bench,

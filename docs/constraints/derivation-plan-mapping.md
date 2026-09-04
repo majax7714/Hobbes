@@ -147,3 +147,35 @@
   wording is now "enforced at the cut" (the model may still write out
   of scope, but it will not land).
 - **Source:** ADR-054 (2026-08-21); enforced ADR-061 (2026-08-22).
+
+### C-91 — Grounder v0 grounds call sites only, in three languages, and abstains on members of values
+
+- **Cannot tell you:** that a fill's **type references, decorators,
+  composite literals or attribute reads** name real symbols — the
+  grounder (`hobbes ground`, Calvin M0 §2.3) binds the **call sites**
+  lane A's providers extract from the post-image and nothing else;
+  that a **Rust or Java** fill's references exist at all — it is placed
+  and reported `unsupported`; or that a **member on a value** is real —
+  `self.x` the class does not declare (inherited, an attribute, or
+  invented), `Class.attr` on an imported class, a module-level
+  constant's method, a member of a name a JS import binds — each is an
+  abstention (`unknown-receiver`), not a NULL, so a hallucinated
+  *member* passes where a hallucinated *function* does not.
+- **Because:** the providers extract call sites and definitions; the
+  graph models functions, methods, classes and types, not values or
+  inheritance, and v0 is exact-match-or-NULL with no rule that would
+  need either (the design: "measures how often exactness fails, which
+  is the residual"). Rust and Java have providers but no unit in the
+  set exercises them, and P11 scopes the claim to what ran.
+- **Bites at:** HSR (§4.6) — its denominator is in-graph + NULL, so the
+  abstained and unsupported references are outside it by construction
+  and the rate reads over fewer sites than the fill contains; the
+  measured gold run: 155 abstained and 13 unsupported files against
+  3,760 sites.
+- **You find out:** **surfaced** — every reference row in the ground
+  record carries its class; `hobbes ground`'s summary and the batch
+  report print the `unknown-receiver` and `unsupported` counts beside
+  the NULLs; the record's language table says which languages ran.
+- **Source:** Calvin M0 step 3 (2026-09-04, the probe record's fourth
+  addendum).
+

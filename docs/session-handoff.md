@@ -15,8 +15,8 @@ design is `docs/calvin-potential.md` (M0, *proposed → ready*, v2): the
 pipeline run with Calvin's slot filled by a deterministic stub, over
 the §9b units re-based at their parent commits, attribution before
 verdict. Steps 0–3 of its §8 (parent re-base, hole schema, `hobbes
-template`, grounder v0) spend no orchestrator calls; step 4 onward
-waits on Max's word. The charter is copied in (`docs/calvin-charter.md`);
+template`, grounder v0) spend no orchestrator calls and are all done;
+step 4 onward waits on Max's word. The charter is copied in (`docs/calvin-charter.md`);
 the v1 assessment and the two pre-run probes (18% of code hunks outside
 spans; 118/182 unresolved terms new) are the record
 `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`, reproduced by
@@ -35,10 +35,19 @@ functions. **Step 2 is done** (evening): `hobbes.derive.template` and
 orchestrator round 4% symbol / 89% outside, 596 of 636 non-new hunks
 in files no anchor reached — round 1 is load-bearing for this unit set
 (the probe record's third addendum, eight v0 rules, the literal cap).
-Next is step 3, grounder v0 on the gold fills (no model). No key is needed before step 4; the adapter's endpoint
-decides which key (`HOBBES_LLM_API_KEY`). No ADR yet (100 when accepted). Assessment work comes before
-the next proposal; the §10 fine-tuning wording in the architecture
-stays as is until then.
+**Step 3 is done** (night): `hobbes.derive.ground` and `hobbes
+ground`; the 28 commits as fills grounded at their parents — 28 of 28
+identical, apply, and equal the commit byte for byte; 3,760 call sites,
+0 NULL, HSR 0 (a poison control says the zero is real); the record's
+fourth addendum carries the six grounder defects the gold run surfaced
+and C-91 what v0 cannot see (call sites only; Python, Go, TS/JS;
+members on values abstained). **Next is step 4, the orchestrator
+adapter — the first orchestrator spend; it does not start without
+Max's word.** It needs an OpenAI-compatible endpoint and its key
+(`HOBBES_LLM_API_KEY`; Modal, Anthropic via a gateway, or OpenAI), held
+constant for the run and recorded with date. No ADR yet (100 when
+accepted). Assessment work comes before the next proposal; the §10
+fine-tuning wording in the architecture stays as is until then.
 
 
 1. **The TTT experiment after the review** — unchanged from the evening
@@ -68,6 +77,11 @@ may want to look at: the Python capture line drops a few points on
 every repo because C-80 adds real calls to the denominator (this repo
 81.7% of 14,352; peft 68.3% of 45,593 — the same percentage, 3,643 more
 sites); the `uses` gloss now says *"where no call site was detected"*.
+One `lane_b` test fails on this box (2026-09-04 night) and fails the
+same at HEAD: the contained venv listing returns `pip` alone
+(`test_scipsource.py::TestDeclaredDependencies::test_venv_environment_lists_the_venvs_own_distributions`)
+— an environment reading (the fake venv's python is a host symlink the
+container does not see), not a tree change; CI's box is the check.
 
 ## WHERE THINGS STAND (2026-09-03, night)
 
@@ -106,7 +120,7 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 step 3, grounder v0 (`docs/calvin-potential.md` §8, no model; steps 0–2 done); Max's three calls above; his review of the ten lifts.
+0. Calvin M0 step 4, the orchestrator adapter (`docs/calvin-potential.md` §8; steps 0–3 done; the first orchestrator spend — Max's word and a key); Max's three calls above; his review of the ten lifts.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
