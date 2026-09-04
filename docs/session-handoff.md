@@ -1,85 +1,74 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-04 (evening): Calvin M0 steps 0–5 are done, step 6
-waits on Max; the TTT items and ADR-092's decisions are still held for
-Max.** Read
-this, then the three 2026-09-03 BUILDLOG entries for how the state was
-reached, and `docs/workstreams.md` for the backlog by owner. History
-lives in the BUILDLOG; this doc is rewritten, never appended into a pile.
+**Rewritten 2026-09-04 (night): Calvin M0 step 6 ran on four keys and
+is written up; a wider run waits on a dollar ceiling from Max and two
+protocol fixes; the TTT items and ADR-092's decisions are still held
+for Max.** Read this, then the 2026-09-04 BUILDLOG entries for how the
+state was reached, and `docs/workstreams.md` for the backlog by owner.
+History lives in the BUILDLOG; this doc is rewritten, never appended
+into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Calvin potential step 6 is Max's call, then three more
+## ⇢ START HERE NEXT SESSION: Calvin M0 is measured on four keys; the next run is Max's number
 
 **Current work (Max, 2026-09-04): evaluating Calvin potential.** The
-design is `docs/calvin-potential.md` (M0, *proposed → ready*, v2): the
-pipeline run with Calvin's slot filled by a deterministic stub, over
-the §9b units re-based at their parent commits, attribution before
-verdict. Steps 0–3 and 5 of its §8 (parent re-base, hole schema,
-`hobbes template`, grounder v0, the local harness) spend no
-orchestrator calls and are all done; step 4 ran on Max's word; step
-6 — the run — waits on it. The charter is copied in (`docs/calvin-charter.md`);
-the v1 assessment and the two pre-run probes (18% of code hunks outside
-spans; 118/182 unresolved terms new) are the record
-`docs/ttt-cells/calvin-m0-probe-2026-09-03.md`, reproduced by
-`pipeline/scripts/calvin_probe.py` from the parent graphs preserved
-under `~/.hobbes/bench/calvin/` (regenerable, `ingest`). **Step 0 is
-done:** the 28 contained lane-B ingests ran 2026-09-04 (698 s, median
-24 s; `graphs-laneb/`, 176,796 of 176,824 symbol edges semantic) and
-both probes read identical on them. **Step 1 is done** (afternoon):
-`hobbes.derive.holes` v0 and the hand-written template for
-`c59916fe2222` (`bench/calvin/templates/`), its gold fills validating;
-five readings for step 2 in the probe record's second addendum — the
-literal matcher on backticked non-identifiers, 47 open holes for 4
-hunks, `covered_by`, `"none"`, and the SIGNATURE-prune scoped to
-functions. **Step 2 is done** (evening): `hobbes.derive.template` and
-`hobbes template`; 28 of 28 byte-identical; actual coverage before any
-orchestrator round 4% symbol / 89% outside, 596 of 636 non-new hunks
-in files no anchor reached — round 1 is load-bearing for this unit set
-(the probe record's third addendum, eight v0 rules, the literal cap).
-**Step 3 is done** (night): `hobbes.derive.ground` and `hobbes
-ground`; the 28 commits as fills grounded at their parents — 28 of 28
-identical, apply, and equal the commit byte for byte; 3,760 call sites,
-0 NULL, HSR 0 (a poison control says the zero is real); the record's
-fourth addendum carries the six grounder defects the gold run surfaced
-and C-91 what v0 cannot see (call sites only; Python, Go, TS/JS;
-members on values abstained). **Step 4 is done** (later that day, on Max's word, `claude-sonnet-5`
-through Anthropic's OpenAI-compatible endpoint, key line
-`anthropic_key` → `HOBBES_LLM_API_KEY`): `hobbes.derive.adapter`,
-five units through arm T in two passes — the hand unit end to end
-(the gold change, 0 NULL, applies, right files 1.0), the other four
-each naming a residual: the orchestrator cannot anchor an anchorless
-task by itself, a module anchor opens a whole file, new files land
-flat, `new` is over-declared. Cost $8 + $2.3 at list; the record's
-fifth addendum has both passes. **Step 5 is done** (evening, no
-orchestrator; **ADR-100**): `hobbes.derive.harness` — `hobbes verify`
-runs a diff's guarding tests (by the testmap, symbol/module/file
-grain) in the sandbox image offline, with and without the diff, every
-row classed against its baseline; the environment is this checkout's
-dependency trees linked in and mounted read-only (`hobbes-session
---mount`, C-92); arm O runs through `hobbes-session` with the proxy's
-exec under `calvin.box.policy`, the knowledge tools withheld
-(`loop.py --mcp-tools exec`), its patch through the grounder and the
-verifier. Calibration on the 28 golds: **26 pass / 1 fail / 1
-no-tests, P2F 0, all contained, 559 s** (the fail: tests a commit adds
-that need podman inside the container; six harness defects caught and
-fixed first — the record's sixth addendum). Arm T's hand unit passes
-its 12 guards. A scripted session (`scripts/calvin_scripted_agent.py`)
-ran the four runners under policy, had `git push` denied and `curl`
-expire to deny, and was harvested, grounded and verified. §9b's five
-defects checked off (D-2 for O to be confirmed on the first model
-session); D-6 closed. **Next is step 6 — the full run, three arms,
-this repo — which is Max's to clear**, with three things to decide
-first: candidates in the `ANCHOR` hole and a module anchor as
-confirmations rather than bodies (the two protocol changes from step
-4), and the model (Sonnet 5 does not honor temperature 0; Haiku is a
-third of the cost). One reading from step 5 for that call: **arm O's
-manifest from the task text alone is `hobbes plan` on lexical seeds
-(C-36) and lands off the gold files** on the hand unit — O measures
-the manifest as it really is, and the §4.5 reading will be as much
-about C-36 as about the model. The design's own ADR takes 101 when
-accepted. Assessment work comes before the next proposal; the §10
-fine-tuning wording in the architecture stays as is until then.
+design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
+has the results, §8 the step record, the charter is
+`docs/calvin-charter.md`); the per-task record with attribution is the
+seventh addendum of `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`;
+every number is reproduced by `pipeline/scripts/calvin_probe.py` from
+the artifacts under `~/.hobbes/bench/calvin/` (`graphs-laneb/` the 28
+parent ledgers, `templates/`, `ground/`, `t-step6/`, `verify-t-step6/`,
+`verify-t0-step6/`, `o-step6/`, `rows-step6.json`; the sessions under
+`~/.hobbes/sessions/calvin-o-*`). Steps 0–6 of §8 are done; step 7's
+write-up is in §10 for the four keys.
+
+**What step 6 read (Sonnet 5, keys `00e5aee` `c59916f` `b8afd41`
+`d509835`, three arms each):** T pass 1 / fail 1 / empty-diff 1 /
+no-tests 1, RFE 0.32 / 0.68 / 0.32, HSR 0, $6; T-loop = T, closing 2 →
+0 near-miss NULLs on the one key with any; O pass 1 / no patch 3 under
+a 30-turn cap, RFE 0.08 / 0.08 / 0.25, $17. About $35 spent all in
+(the 28-key launch was cut by Max after the first units read $4–5 each
+per arm). The readings: T > O where both solved and honest where its
+anchors fail; O's manifest is lexical (C-36) and hit the gold at
+Jaccard ≤ 0.10; **the module anchor is the cost door** (three
+confirmed module words → 1,068 holes → $5 for two right edits); **the
+template misses tests that reach an edited module through a
+module-level value** (`PROFILES`: the right code failed exactly the
+three tests the gold changed); **candidates in the `ANCHOR` hole bind
+(5/5) but do not find (0/5 gold)**; new-file placement moved from flat
+to nested on a prompt line; the same prompt confirmed 1 of 6 and 0 of
+6 across passes.
+
+**Before any wider run, in this order (no model spend):**
+
+1. **A module anchor opens `ANCHOR_CONFIRM`s over its symbols, not
+   bodies** (the uncleared step-4 change; H-s; the cost door).
+2. **A `TEST_EXPECTATION` for tests that import an edited module's
+   names**, not only ones the testmap maps to an edited symbol (the
+   `PROFILES` miss; C-93's neighbour).
+3. **`calvin.box.policy` allows the read-only toolchain probes** (`go
+   version`, `go env`, `which`, `sh -n`, `bash -n`) — 14 escalations
+   expired in two O sessions.
+4. **A per-session token cap or context window for arm O** — the
+   30-turn cap is the cost ceiling and O hit it three of four times at
+   1.3–1.6M tokens a session.
+5. Then Max's number: the total ceiling for the run and the key count.
+   Per-key cost at this shape is known (T $0.1–5 by template size, O
+   $2.5–5.2). The design's ADR takes 101 when Max moves it to
+   *accepted*.
+
+**Also this session:** protocol v0.2 (`2ed0d11`: candidates in the
+`ANCHOR` hole; `loop.py --sampling model-default`, Sonnet 5 rejects
+`temperature`; arm T's pre-loop diff kept as `.t0.diff`);
+`calvin_probe.py rows` (the §5 rows); the loop's stall discipline
+(7B defaults) cut every first-launch O session off at 12 turns of
+reading — run with `--nudge-after 15 --stall-after 20`, the three
+records kept under `o-step6-stall6/`, architecture §6.2 says the
+budget is per run. Assessment work comes before the next proposal;
+the §10 fine-tuning wording in the architecture stays as is until
+then.
 
 1. **The TTT experiment after the review** — unchanged from the evening
    handoff, tabled by Max for this session (`docs/olmo3-ttt-results.md`
@@ -151,7 +140,7 @@ container does not see), not a tree change; CI's box is the check.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 step 6 (`docs/calvin-potential.md` §8; steps 0–5 done): Max's word on the run, the two protocol changes and the model; Max's three calls above; his review of the ten lifts and of ADR-100.
+0. Calvin M0 after the four-key run (`docs/calvin-potential.md` §10): the four no-spend fixes above, then Max's ceiling and key count for a wider run; his review of the ten lifts, ADR-100 and the step-6 record.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
@@ -176,6 +165,11 @@ container does not see), not a tree change; CI's box is the check.
 
 ## PRACTICAL NOTES
 
+- **A model run: state the total dollar ceiling and run ~4 units
+  first** (2026-09-04 night: 28 keys launched at "order $50–120", cut
+  to 4 by Max after the first units read $4–5 each per arm). Kill by
+  PID and `podman kill` the session containers; the per-unit records
+  already written survive.
 - **`pgrep -f` / `pkill -f` match your own waiting shell too** — a
   `for p in $(pgrep -f X)` loop killed the `until … pgrep -f X` waiter
   beside it (2026-09-04); wait on a log line, kill by PID.

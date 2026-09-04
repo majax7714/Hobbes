@@ -733,3 +733,165 @@ module anchor as confirmations, the model choice), and one from here:
 mapping, now at the parent) — that is what "the manifest" honestly
 is for this unit set, and the reading §4.5 will make about O is a
 reading about C-36 as much as about the model.
+
+## Addendum 2026-09-04 (night) — step 6: the run, three arms, four keys
+
+**Cleared by Max** ("look to apply candidates and continue with step 6
+with model choice of sonnet 5"), then **cut mid-run** from the 28 keys
+to four on cost ("adjust to around 4 for now instead of 28, i dont got
+that compute money right now"). The first protocol change from step 4
+is in (**candidates in the `ANCHOR` hole**, commit `2ed0d11`); the
+second (a module anchor as confirmations rather than bodies) was not
+named and is not made — its cost is measured below. Endpoint as in
+step 4 (`claude-sonnet-5`, Anthropic's OpenAI-compatible surface, no
+`temperature`: a 400 with the field, a 200 without, checked before
+the run; `loop.py --sampling model-default` for arm O). Records under
+`~/.hobbes/bench/calvin/t-step6/`, `verify-t-step6/`, `verify-t0-step6/`,
+`o-step6/` (+ the sessions under `~/.hobbes/sessions/calvin-o-*`),
+`rows-step6.json` (`calvin_probe.py rows`, the §5 rows before any
+aggregate), `o-step6-stall6/` (the first launch's three sessions, kept
+as the evidence of the harness defect below).
+
+**Held constant.** Arm T: protocol v0.2 (v0.1 + candidates), system
+prompt v1, `max_tokens` 16,384, chunks at 300k characters, the NULL
+round-trip on (T-loop is T plus that one exchange; T's own diff is
+kept beside it, `.t0.diff`). Arm O: `hobbes-session` with the proxy's
+exec under `calvin.box.policy` and the knowledge tools withheld,
+`--commit-on-exit`, **30 turns**, 4,096 output tokens a turn, results
+clipped at 12k characters, `--nudge-after 15 --stall-after 20
+--max-nudges 1`, escalations expire to deny after 5 s; the patch
+through `ground_patch` and `verify`. The four keys: `00e5aee` (C-66:
+Java resolves then indexes offline; 22 gold files), `c59916f` (the
+hand unit; 2), `b8afd41` (lane B contained; anchorless in step 4; 21),
+`d509835` (stand up the oracle lane; 25 files, 19 new). Arm O also
+finished `0197636` before the cut (30 turns, no patch, $4.3); it is
+not in the set.
+
+**Per-task rows (§5)** — verdicts from the sandbox verifier; RFE
+J/P/R against the gold files at the parent; tokens in/out; cost at
+list ($3 / $15 per M):
+
+| unit | arm | anchors r1→r2 (files) | holes gen/pruned/filled | NULL | loop | edits / files | applies | verdict | RFE J/P/R | HSR | tokens | cost | wall |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 00e5aee | T | 9→6 (2/6 of 22) | 1,068/368/4 | 0 | — | 2 / 2 | yes | **fail** — P2F 3, new-fail 1, P2P 128 | 0.09 / **1.00** / 0.09 | 0 | 1,399k / 52k | $5.0 | 536 s |
+| 00e5aee | T-loop | = T (no NULL) | | | | | | | | | | | |
+| 00e5aee | O | plan 20 units (0.10 / 0.17 / 0.18) | — | — | — | 0 / 0 | — | none: 30 turns, budget exhausted | 0 | — | 1,368k / 13k | $4.3 | 160 s |
+| c59916f | T | 5→2 (2/3 of 2) | 135/15/38 | 0 | — | 6 / 2 | yes | **pass** — P2P 12 | **1.00 / 1.00 / 1.00** | 0 | 55k / 14k | $0.4 | 122 s |
+| c59916f | T-loop | = T | | | | | | | | | | | |
+| c59916f | O | plan 2 units (0 / 0 / 0) | — | — | — | 6 files | yes | **pass** — P2P 12, new-pass 1 | 0.33 / 0.33 / 1.00 | 0 | 766k / 8k | $2.4 | 143 s |
+| b8afd41 | T | 6→1 (0/1 of 21) | 104/1/19 | 0 | — | 0 / 0 | — | empty-diff | 0 | — | 36k / 2k | $0.1 | 24 s |
+| b8afd41 | T-loop | = T | | | | | | | | | | | |
+| b8afd41 | O | plan 11 units (0 / 0 / 0) | — | — | — | 0 / 0 | — | none: 30 turns, budget exhausted | 0 | — | 1,609k / 25k | $5.2 | 306 s |
+| d509835 | T | 5→1 (0/1 of 25) | 28/2/1 (+NEW_SYMBOL) | **2** (near-miss) | — | 7 / 7 | yes | no-tests | 0.18 / 0.71 / 0.19 | 1.0 (0 in-graph, 2 NULL) | 23k / 29k | $0.5 | — |
+| d509835 | T-loop | 5→1 | | **0** | 2→0 | 7 / 7 | yes | no-tests | 0.18 / 0.71 / 0.19 | — (0 in-graph) | 27k / 32k | $0.6 | 291 s |
+| d509835 | O | plan 10 units (0 / 0 / 0) | — | — | — | 0 / 0 | — | none: 30 turns, budget exhausted | 0 | — | 1,537k / 7k | $4.7 | 157 s |
+
+Aggregates over the four keys, written after the rows: **T** pass 1 /
+fail 1 / empty-diff 1 / no-tests 1, three of four edited, RFE mean
+0.32 / 0.68 / 0.32, right files exactly on 1, HSR 0 everywhere a
+grounded reference existed, 1.51M / 98k tokens ($6.0). **T-loop** =
+T on verdict and files; one loop fired and closed both NULLs. **O**
+pass 1 / no patch 3, RFE mean 0.08 / 0.08 / 0.25, 5.28M / 53k tokens
+($16.6). Spend for the step, all in: the four keys $23, the extra O
+key $4.3, the three stall-6 sessions $3.3, four sessions killed at the
+cut with no call log (est. $3–6) — **about $35**.
+
+**Attribution per unit (§5), before the aggregate:**
+
+| unit | H-a | H-s | O | G | X | U |
+|---|---|---|---|---|---|---|
+| 00e5aee | clean on the two files it reached (both gold) | **the residual**: six confirmed bare words, three naming modules (`compile`, `containment`, `scipsource`), opened 1,068 holes (378 tests, 219 callers, 182 regions, 103+103 bodies) → 9 chunks, $5, 4 filled; and the three tests that enumerate `PROFILES` — a module-level value the testmap does not reach — got no `TEST_EXPECTATION` hole, so T rewrote the profile set the gold's way (`resolve-java` with a network, `index-java` offline) and broke the tests the gold also had to change | wrote the gold's shape in substance | clean (0 NULL) | clean (the verifier caught exactly the gold's own test changes) | 20 of 22 gold files unreached: docs, fixtures, the Containerfile |
+| c59916f | clean | clean | clean | clean | clean | — |
+| b8afd41 | **not measured by the run**: this pass Sonnet confirmed one bare word (`mounts`) where step 4 refused all six, so the `ANCHOR` hole never opened (the sampling variance the fifth addendum names); the candidates probe below reads it | 104 holes on `sandbox.Plan.mounts`, 19 filled, nothing changed | "unchanged" everywhere | — | — | 7 new files of 48 hunks |
+| d509835 | 0/1 of 25 (the `bench/oracle` path is new) | — | placed 7 files **nested** this time (`cmd/oracle/`, `internal/grade/`, `internal/rta/` where the gold has `cmd/oracle/`, `internal/gorta/`, `internal/grade/`) where step 4 placed flat; two near-miss NULLs in the new `main.go` (`readTSV`, `out`) | classes right; the loop closed both by the orchestrator declaring `readEdgeTSV` and calling it | new files reach no test — the verifier cannot see a new lane | the M1′ residual as preregistered, smaller than in step 4 |
+
+Arm O, all four: the manifest is `hobbes plan` on lexical seeds at the
+parent (C-36) — 20, 2, 11 and 10 units whose paths hit the gold at
+0.10 / 0 / 0 / 0 Jaccard; three sessions spent every one of 30 turns
+reading and grepping (an `exec` grep counts as an edit for the loop's
+stall rule, so no nudge fired) and left no patch; the one that edited
+(`c59916f`) found the right two files by grep, not from the brief,
+passed its guards with one new test, and touched four more files the
+gold does not (README, `run-cell.sh`, the defect record, a test) —
+recall 1.0, precision 0.33 — and was still going at turn 30.
+
+**The candidates probe (the protocol change, measured directly).**
+One exchange, $0.02: `b8afd41`'s template with every confirmation
+refused as in step 4, the `ANCHOR` hole rendered with its candidates
+— nine lexical seeds with their words (five marked *refused in round
+1*), the nearest names for three unresolved terms, and the 244 files
+of the ledger by directory — asked which symbols or files the task
+concerns. Sonnet named five (`go/internal/sandbox/sandbox.go`,
+`hobbes/bench/environment.py`, `hobbes/bench/run.py`,
+`scip/analyze.mjs`, `scip/index.mjs`): **five of five bind** (step 4:
+zero of three, prose echoed), **zero of five are gold** (the commit
+edits `extract/scipsource.py`, which was in the listing, and creates
+`extract/containment.py`, which was not). The change closes the
+"echoes prose" failure and not H-a: given everything that exists, the
+orchestrator picks plausible neighbours of the task's words, and the
+task's real site is a file it did not choose plus a file that does not
+exist yet. §4.2's last row ("orchestrator `ANCHOR` fills beat H-a on
+anchorless tasks") still reads **false**, now for a better reason.
+`t-step6/b8afd416b460.candidates-probe.json`.
+
+**Readings, by component:**
+
+- **T > O on this repo, at 5× less spend** (4 keys: T $6, O $17): T
+  passes where its anchors are right, writes the gold's shape where
+  they are partly right, and is honest (empty-diff, no-tests) where
+  they are not; O under a 30-turn budget produces a patch once. The
+  §4.5 row is "T > O on both" for the one key both solved — and the
+  reading is as much C-36 as the model: O's brief pointed at
+  `graphModel.ts` on the hand unit, and O ignored it.
+- **The module anchor is the cost door (H-s), as step 4 said.** One
+  confirmed module word costs $1.5–2 in round 2; `00e5aee` had three.
+  The uncleared change (confirmations, not bodies) is the first thing
+  to do before a wider run, and it is a protocol change, not a model.
+- **The template's blind spot is the testmap's grain (H-s / C-93's
+  neighbour):** a test that reads a module-level value (`PROFILES`)
+  reaches no symbol span, so the template never asks about it, and
+  the verifier then fails the change on exactly the tests the gold
+  edited. The right code with the wrong guards is a fail; the
+  attribution says which piece to fix (a `TEST_EXPECTATION` for tests
+  that *import* an edited module's names, not only ones that call an
+  edited symbol).
+- **The NULL loop works on the near-miss class (§4.4, first row):** 2
+  → 0, closed by the orchestrator naming what it declared. One key's
+  evidence.
+- **New-thing placement moved without a model:** step 4 placed the
+  oracle lane flat; this pass nested it (the v1 prompt line "a new
+  path is created"), still off the gold's names. M1′ stays the
+  residual; its size is smaller than the step-4 row suggested.
+- **Variance is the instrument's floor:** `b8afd41` confirmed 1 of 6
+  where the previous pass confirmed 0 — the same prompt. One run per
+  (unit, arm) on a model that does not honor greedy decoding measures
+  the sample.
+
+**Harness readings (X), registered for the next run:**
+
+1. **The loop's stall discipline cut O off.** With the 7B defaults
+   (nudge after 3 dry turns, stop after 6; only an edit is progress)
+   every session of the first launch stopped after 12 turns of reading
+   with the nudge "you only described what to do" — false, it had
+   described nothing. Three records kept (`o-step6-stall6/`, $3.3).
+   Fixed for the run by flags (`--nudge-after 15 --stall-after 20`),
+   the values recorded; architecture §6.2 says the budget is per run.
+2. **The box policy lists runners, not toolchain probes.** `go
+   version`, `go env`, `which go`, `env`, `find /`, `sh -n` and `bash
+   -n` were each parked and expired to deny after 5 s (14 escalations
+   over two sessions); `go test ./...` in the same session ran. The
+   sessions spent turns discovering a toolchain the policy would not
+   let them ask about. Add the read-only probes to `calvin.box.policy`
+   before the next run.
+3. **The 30-turn budget is the cost cap and the ceiling O hit three
+   times** (1.3–1.6M tokens a session at 40–70k a turn, no context
+   window fitting on this endpoint). A wider run needs a per-session
+   token cap or a window, not more turns.
+4. **The planner's tokenizer keeps trailing punctuation** (`runGoRTA.`
+   is not a seed; C-36's shape), seen in the candidates' tests, not in
+   the run.
+
+**Exit criterion:** met for four keys — every row complete with its
+attribution before the aggregate. The 28-key run is not made; what it
+would cost at this shape is now known per unit (T $0.1–5 by template
+size; O $2.5–5.2 by the turn cap).

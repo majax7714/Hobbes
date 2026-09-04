@@ -618,6 +618,107 @@ def cmd_o(a: argparse.Namespace) -> int:
     return 0
 
 
+def _gold_files(clone: Path, c: str) -> set[str]:
+    return {f for f in subprocess.run(["git", "show", "--name-only", "--format=", "--no-renames", c], cwd=clone, capture_output=True, text=True, check=True).stdout.split("\n") if f}
+
+
+def _jpr(edited: set[str], gold: set[str]) -> tuple:
+    tp = len(edited & gold)
+    return (round(tp / len(edited | gold), 2) if edited | gold else None, round(tp / len(edited), 2) if edited else None, round(tp / len(gold), 2) if gold else None)
+
+
+def cmd_rows(a: argparse.Namespace) -> int:
+    """Step 6's per-task record (§5): one row per unit per arm from the T, T-loop and O records and their verify records — every instrument before any aggregate; the aggregates last, over keys."""
+    graphs = Path(a.graphs)
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    props = {p["commit"]: p for p in load_proposals()}
+    commits = [next(k for k in props if k.startswith(c7)) for c7 in a.commits] if a.commits else sorted(props)
+    tdir, odir = Path(a.t), Path(a.o)
+    vt, vt0, out = Path(a.verify_t), Path(a.verify_t0) if a.verify_t0 else None, Path(a.out)
+    rows = []
+    for c in commits:
+        gold = _gold_files(clone, c)
+        row: dict = {"unit": c[:7], "parent": None, "task": props[c]["task"][:80], "gold_files": len(gold), "arms": {}}
+        tf = tdir / f"{c}.t.json"
+        if tf.exists():
+            r = json.load(open(tf)); i = r["instruments"]
+            row["parent"] = r["key"]["parent_sha"][:12]
+            g0, g1 = r["ground"], r.get("ground_after_loop")
+            def arm_t(g, vfile, name, tokens=None):
+                v = json.load(open(vfile)) if vfile and vfile.exists() else {}
+                edited = {f["path"] for f in g["files"]}
+                cov = i["coverage"] if isinstance(i["coverage"], str) else f"{i['coverage']['symbol']}/{i['coverage']['region']}/{i['coverage']['new_file']}/{i['coverage']['outside']} of {i['coverage']['hunks']}"
+                return {"arm": name, "anchors": f"{i['anchors_r1']}→{i['anchors_r2']}", "anchor_files": i["anchor_files"], "unresolved": i["unresolved"], "coverage": cov,
+                        "holes": i["holes"], "nulls": len(g["null"]), "null_by_class": g["null_by_class"], "loop": r.get("loop") if name == "T-loop" else None,
+                        "edits": len(g["edits"]), "files": sorted(edited), "applies": v.get("applies"), "verdict": v.get("verdict"), "tests": v.get("summary"), "regressions": v.get("regressions"),
+                        "rfe": _jpr(edited, gold), "hsr": g["hsr"], "exchanges": i["exchanges"], "tokens": tokens or r["tokens"], "wall_s": i["wall_s"], "rounds": [x["round"] for x in r["rounds"]]}
+            if g1 is not None:
+                loop_ex = [e for e in r["exchanges"] if e["purpose"].startswith("NULL")]
+                t_tokens = {"prompt": r["tokens"]["prompt"] - sum(e.get("prompt_tokens") or 0 for e in loop_ex), "completion": r["tokens"]["completion"] - sum(e.get("completion_tokens") or 0 for e in loop_ex)}
+                row["arms"]["T"] = arm_t(g0, (vt0 / f"{c}.verify.json") if vt0 else None, "T", t_tokens)
+                row["arms"]["T-loop"] = arm_t(g1, vt / f"{c}.verify.json", "T-loop")
+            else:
+                row["arms"]["T"] = arm_t(g0, vt / f"{c}.verify.json", "T")
+                row["arms"]["T-loop"] = {**row["arms"]["T"], "arm": "T-loop", "loop": None, "note": "no NULL: T-loop = T"}
+        ofs = sorted(odir.glob(f"calvin-o-{c[:7]}-*.o.json"))
+        if ofs:
+            r = json.load(open(ofs[-1]))
+            v = r.get("verify") or {}
+            sdir = Path(r["transcript"]).parent if r.get("transcript") else None
+            calls = [json.loads(l) for l in open(sdir / "calls.jsonl")] if sdir and (sdir / "calls.jsonl").exists() else []
+            tokens = {"prompt": sum(x.get("prompt_tokens") or 0 for x in calls), "completion": sum(x.get("completion_tokens") or 0 for x in calls)}
+            env = {}
+            log = ofs[-1].with_name(ofs[-1].name.replace(".o.json", ".session.log"))
+            if log.exists():
+                for line in open(log, errors="replace"):
+                    if line.startswith('{"type": "result"'):
+                        try:
+                            env = json.loads(line)
+                        except ValueError:
+                            pass
+            g = r.get("ground") or {}
+            edited = set(r["patch_files"])
+            row["arms"]["O"] = {"arm": "O", "session": r["session"], "plan_units": len(r["plan"]["units"]), "plan_paths": r["plan"]["paths"], "plan_rfe": _jpr(set(r["plan"]["paths"]), gold),
+                                "refusal": r["plan"]["refusal"], "turns": env.get("num_turns"), "tool_calls": env.get("tool_calls"), "edited": env.get("edited"), "stop": env.get("result") if env.get("is_error") else "done",
+                                "files": sorted(edited), "applies": v.get("applies"), "verdict": v.get("verdict"), "tests": v.get("summary"), "regressions": v.get("regressions"),
+                                "rfe": _jpr(edited, gold), "hsr": g.get("hsr"), "null_by_class": g.get("null_by_class"), "tokens": tokens, "wall_s": r.get("wall_s"), "rc": r.get("session_rc")}
+        rows.append(row)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rows, indent=1))
+    # the table, one line per unit per arm
+    print("| unit | arm | anchors | unres | coverage sym/reg/new/out | holes gen/pruned/filled | NULL | loop | edits/files | applies | verdict (tests) | RFE J/P/R | HSR | tokens in/out | wall |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for row in rows:
+        for name in ("T", "T-loop", "O"):
+            x = row["arms"].get(name)
+            if not x:
+                continue
+            lp = "-" if not x.get("loop") else f"{x['loop']['nulls_before']}→{x['loop']['nulls_after']}"
+            tests = x.get("tests") or {}
+            tv = f"{x.get('verdict') or '—'}" + (f" ({', '.join(f'{k} {v}' for k, v in sorted(tests.items()))})" if tests else "")
+            if name == "O":
+                print(f"| {row['unit']} | O | plan {x['plan_units']}u {_fmt(x['plan_rfe'])} | — | — | turns {x.get('turns')}, {x.get('stop')} | {x.get('null_by_class') or '—'} | — | {len(x['files'])} files | {x.get('applies')} | {tv} | {_fmt(x['rfe'])} | {x.get('hsr')} | {x['tokens']['prompt'] // 1000}k / {x['tokens']['completion'] // 1000}k | {x.get('wall_s')} s |")
+            else:
+                print(f"| {row['unit']} | {name} | {x['anchors']} {x['anchor_files']} | {x['unresolved']} | {x['coverage']} | {x['holes']} | {x['nulls']} {x['null_by_class'] or ''} | {lp} | {x['edits']}/{len(x['files'])} | {x.get('applies')} | {tv} | {_fmt(x['rfe'])} | {x['hsr']} | {x['tokens']['prompt'] // 1000}k / {x['tokens']['completion'] // 1000}k | {x['wall_s']} s |")
+    # aggregates over keys, last
+    print()
+    for name in ("T", "T-loop", "O"):
+        xs = [row["arms"][name] for row in rows if name in row["arms"]]
+        if not xs:
+            continue
+        verdicts = collections.Counter(x.get("verdict") or "none" for x in xs)
+        rfe = [x["rfe"] for x in xs if x["rfe"][0] is not None]
+        mean = lambda k: round(sum(r[k] or 0 for r in rfe) / len(rfe), 2) if rfe else None
+        tok = sum(x["tokens"]["prompt"] for x in xs), sum(x["tokens"]["completion"] for x in xs)
+        print(f"{name}: n={len(xs)} verdicts={dict(verdicts)} edited={sum(1 for x in xs if x['files'])} RFE mean J/P/R={mean(0)}/{mean(1)}/{mean(2)} right-files(J=1)={sum(1 for r in rfe if r[0] == 1.0)} "
+              f"HSR>0={sum(1 for x in xs if (x.get('hsr') or 0) > 0)} tokens in/out={tok[0]:,}/{tok[1]:,} wall={sum(x.get('wall_s') or 0 for x in xs):.0f}s")
+    return 0
+
+
+def _fmt(t) -> str:
+    return "/".join("—" if v is None else f"{v:.2f}" for v in t) if t else "—"
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -653,6 +754,10 @@ def main(argv: list[str]) -> int:
     s.add_argument("--knowledge", action="store_true", help="offer the knowledge tools too (default: exec only)"); s.add_argument("--timeout", type=float, default=3600.0)
     s.add_argument("--dry-run", action="store_true", help="print the session argv and the plan; launch nothing")
     s.set_defaults(fn=cmd_o)
+    s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)
+    s.add_argument("--verify-t0", help="verify records of arm T's pre-loop diffs (.t0.diff); without it T's verdict column is empty where a loop ran")
+    s.add_argument("--out", required=True, help="the rows as JSON"); s.add_argument("--clone"); s.add_argument("--commits", nargs="*")
+    s.set_defaults(fn=cmd_rows)
     a = ap.parse_args(argv)
     return a.fn(a)
 

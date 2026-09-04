@@ -1246,7 +1246,16 @@ interprets nothing.
   offered a *subset* of the proxy's tools (`--mcp-tools exec`, ADR-100:
   Calvin M0's arm O gets exec and nothing else of Hobbes); the proxy
   still serves every tool, and a withheld one is refused before it
-  reaches the server. `hobbes-session
+  reaches the server. Sampling is greedy by default and `--sampling
+  model-default` sends no `temperature` at all — an endpoint that
+  rejects the field (Anthropic's OpenAI-compatible surface for Sonnet
+  5) decodes with its own default, and the envelope's `sampling` reads
+  empty. The loop's stall discipline (a nudge after `--nudge-after`
+  dry turns, a stop after `--stall-after`; reading is never progress,
+  only an edit is) was set for a 7B that plans in prose; a frontier
+  model reading a real repo needs the budget widened per run
+  (Calvin M0 step 6 ran `--nudge-after 15 --stall-after 20`), and the
+  values are the run's record. `hobbes-session
   --runtime` copies it into the session dir and runs it with the
   image's `python3`; it prints Claude Code's result envelope, so one
   meter reads both. Claude Code remains the other runtime. The

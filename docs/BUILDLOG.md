@@ -6614,3 +6614,40 @@ D-6 closed. C-92, C-93; architecture §6.2/§7 amended; design
 §2.4/§3.2/§8; handoff moved to step 6 (Max's word; the model choice
 and the two protocol changes). 1,220 pytest (+13), 299 Go (+4). The
 known lane_b venv-listing failure on this box is unchanged.
+
+## 2026-09-04 (night) — Calvin M0 step 6: the run on Sonnet 5, cut to four keys on cost
+
+**What.** Max cleared step 6 ("look to apply candidates and continue
+with step 6 with model choice of sonnet 5"). First the protocol change
+(`2ed0d11`): the `ANCHOR` hole carries candidates from Hobbes — the
+planner's lexical seeds with their words and refusals, nearest names
+per unresolved term with node ids, the ledger's file listing by
+directory — rendered for the orchestrator to choose among, binding
+still exact; `loop.py --sampling model-default` (Sonnet 5 rejects
+`temperature`: 400 with, 200 without); `calvin_probe.py t` keeps arm
+T's pre-loop diff; the 28 templates regenerate byte-identically; +3
+tests. Then the run: all 28 keys launched on three arms against an
+"order $50–120" estimate; the first units read $4–5 each per arm (a
+1,068-hole template; 30-turn O sessions at 1.4M tokens) and **Max cut
+the set to four** — `00e5aee`, `c59916f`, `b8afd41`, `d509835` — which
+finished on all three arms. `calvin_probe.py rows` builds the §5
+per-task rows; the record's seventh addendum has every row with its
+attribution before the aggregate; design §2.2/§3.4/§8/§10 and
+architecture §6.2 amended. **T pass 1 / fail 1 / empty-diff 1 /
+no-tests 1, RFE 0.32 / 0.68 / 0.32, HSR 0, $6; T-loop closes 2 → 0
+near-miss NULLs on the one key with any; O pass 1 / no patch 3 under
+the 30-turn cap, $17.** About $35 spent in all.
+
+**Readings.** T > O on the one key both solved and honest where its
+anchors fail; O's manifest (lexical, C-36) hit the gold at Jaccard
+0.10 / 0 / 0 / 0 and the one O patch found its files by grep. The
+module anchor is the cost door ($5 for two right edits); the template
+misses tests that reach a module through a module-level value
+(`PROFILES`) and so failed the right code on exactly the tests the gold
+changed; candidates close "echoes prose" (5 of 5 bind) and not H-a (0
+of 5 gold); new-file placement moved from flat to nested on a prompt
+line. Two harness defects registered: the loop's 7B stall discipline
+cut every first-launch O session off at 12 turns of reading (fixed by
+flags, three records kept under `o-step6-stall6/`), and the box policy
+denies toolchain probes (`go version`, `sh -n` — 14 escalations
+expired). Suites: 1,223 pytest (+3), Go unchanged. Not pushed.

@@ -44,7 +44,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
-| evaluating Calvin potential (the current work) | `docs/calvin-potential.md` (M0, proposed → ready; step-gated, no run cleared) + ADR-099 §9b's cell record |
+| evaluating Calvin potential (the current work) | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -173,7 +173,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, evening): 1,220 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, night): 1,223 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -316,6 +316,12 @@ review → `lane_b` pytest) and runs the same way on a box.
   file-tools-only *model + prompt* arms) killed H-TTT-2 and H-TTT-3 at
   300 steps — the manifest finds the files, the adapter alone
   confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
+- **Calvin M0 ran on four keys (2026-09-04 night, Sonnet 5;
+  `docs/calvin-potential.md` §10):** T pass 1 / fail 1 / empty 1 /
+  no-tests 1 at $6, O pass 1 / no patch 3 at $17; the module anchor is
+  the cost door, the template misses importer tests, candidates bind
+  but do not find; the 28-key run was cut on cost and waits on a
+  ceiling from Max plus the two protocol fixes.
 - **Then:** re-run the real workspace (date-fns) and serde cells if the
   re-ingest leaves anything open; the 3,000-step adapter
   under the cell and the 10,000-step point if cleared; the removal A/B
