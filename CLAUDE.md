@@ -158,8 +158,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-03, evening): 1,142 pytest (+3 `lane_b`) /
-295 Go + 39 oracle-lane Go / 52 vitest / 29 tsextract + 31 scip node
+Suite sizes at the last check (2026-09-03, night): 1,166 pytest (+3 `lane_b`) /
+295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -212,7 +212,8 @@ review → `lane_b` pytest) and runs the same way on a box.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 80 registered constraints.
+  by one range join; artifacts at schema v4; 90 registered constraints
+  (69 active, 19 lifted).
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%
@@ -266,10 +267,21 @@ review → `lane_b` pytest) and runs the same way on a box.
 - **The four-repo extraction test (2026-09-02):** four random public
   repos, one per language, run through the knowledge piece by agents —
   no semantic edge wrong anywhere; **ADR-098** fixed lane A's Go
-  fallback on build-constraint-split names (C-71, surfaced), and nine
-  findings are **registered, not fixed** (C-72–C-80, each with its
-  candidate fix; `docs/session-handoff.md` ranks them). quic-go
+  fallback on build-constraint-split names (C-71, surfaced). quic-go
   oracle-graded at binary roots: 99.6% lower bound, 0 hobbes-wrong.
+  **Its nine registered findings (C-72–C-80) and C-85 were all lifted
+  2026-09-03** (four commits, easiest first, on Max's direction): the
+  lanes/summary/blind-spot counts read true (C-75–C-77), the `http-go`
+  pack reads receivers (C-78), dependency manifests widen (C-79), an
+  expression receiver is a Python call site (C-80: 1,433 new sites on
+  this repo), the Rust fallback abstains on ambiguous heads (C-72), a
+  repo-internal directory link is walked once (C-73), workspace
+  `node_modules` links mount their targets (C-74) and a venv-less
+  Python repo indexes (C-85: 0.0% → 68.4% on a fixture). The four
+  clones were re-ingested to confirm (`docs/extraction-evidence.md`):
+  date-fns 0.1% → ~80% capture, serde's copy gone and lanes at 0, and
+  one new finding fixed the same hour (C-89, TS overload lines) and
+  one registered (C-90, a tsconfig off the staged path).
 - **The test-time-training experiment ran 2026-09-03 (ADR-099,
   `docs/olmo3-ttt-validation.md`):** `hobbes derive-corpus` renders the
   derived layer as a training corpus; a 300-step LoRA on it lowered
@@ -288,7 +300,8 @@ review → `lane_b` pytest) and runs the same way on a box.
   file-tools-only *model + prompt* arms) killed H-TTT-2 and H-TTT-3 at
   300 steps — the manifest finds the files, the adapter alone
   confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
-- **Then:** the nine entries on Max's call; the 3,000-step adapter
+- **Then:** re-run the real workspace (date-fns) and serde cells if the
+  re-ingest leaves anything open; the 3,000-step adapter
   under the cell and the 10,000-step point if cleared; the removal A/B
   re-run on a cleared 7B run; project setup for collaborators
   (`docs/workstreams.md`).

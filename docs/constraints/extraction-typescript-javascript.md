@@ -66,6 +66,38 @@
 - **Source:** the oracle lane's A-4 fixture observation, 2026-08-27
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17).
 
+### C-90 — A tsconfig that `extends` or `references` a config off the zone's walk-up path is indexed without it
+- **Cannot tell you:** TypeScript semantics for a zone whose
+  `tsconfig.json` points at a config file the stage does not hold.
+  Staging copies a zone's sources plus the `tsconfig.json` /
+  `jsconfig.json` / `package.json` on the zone's walk-up path
+  (`_staged_ts_configs`); a config reached only through `extends
+  "./config/tsconfig"` (date-fns `pkgs/dev`, 2026-09-03: `error TS6053:
+  File './config/tsconfig' not found … no files got indexed`) or through
+  a solution-style `references: [{path: "pkgs/core"}, …]` (date-fns's
+  root zone: every referenced project *"missing tsconfig.json"* on the
+  stage) is not there, and the zone's every site falls to lane A's
+  floor. Found once C-74 gave date-fns lane B: 13 of 15 zones index,
+  these two do not.
+- **Because:** the stage deliberately does not parse tsconfig (comments,
+  `extends` chains, no JSON5 dependency — the note in
+  `_TS_CONFIG_NAMES`), so it cannot follow what a config names; it only
+  copies the conventional names on the conventional path.
+- **Bites at:** monorepos with a shared config directory (`extends
+  "../../tsconfig.base.json"` reaches up the path and *is* staged;
+  `./config/…` reaches sideways and is not) and repos whose root
+  tsconfig is a project-references solution file.
+- **You find out:** *partial* — loud: a `scip-typescript` record per
+  zone with the indexer's own message naming the missing file (since
+  C-74's helper-exit classification, the record no longer blames the
+  helper). Candidate fix: read `extends` and `references[].path` from
+  the zone's tsconfig with a comment-tolerant scan (a regex over the
+  two keys is enough — no JSON5), stage what they name transitively
+  when it lies in the repo, and leave a bare-name `extends`
+  (`@scope/pkg/tsconfig`) to `node_modules`, which C-74 mounts.
+- **Source:** the date-fns re-ingest of 2026-09-03 after C-74 and
+  C-89. Registered, not fixed.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -75,6 +107,33 @@ cases**: inputs the technique does not classify, where the old concession
 quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
+
+### C-89 — An overloaded TS function or method was placed at its implementation, not its first signature — *registered and lifted 2026-09-03, the same session*
+- **Was:** `tsextract` emitted a symbol's line from ts-morph's
+  declaration node, which for an overloaded function or method is the
+  **implementation**; scip-typescript places the declaration at its
+  **first overload signature**. The two lanes then named different
+  lines for one symbol: on date-fns (re-ingested 2026-09-03 after C-74
+  gave it lane B) **54 lane disagreements**, every one this shape on
+  three functions (`normalizeDates` 19 vs 4, `intlFormat` 123 vs 48,
+  `tz` 280 vs 158) — and, worse, the projection found no lane A symbol
+  starting at SCIP's line, so those calls drew no edge and were counted
+  `below-floor`. Never seen before because kbet, ajv and cheerio were
+  graded before a workspace repo indexed, and this repo's `web/` has no
+  overloads. Surfaced (loud: `hobbes lanes` exit 1) but wrong in the
+  graph while it stood.
+- **Lifted by — the technique:** `declarationStart` in
+  `tsextract/extract.mjs` — a function or method with overloads starts
+  at its first overload's line (`getOverloads()[0]`) and ends where the
+  implementation ends; the tsextract test covers a function and a
+  method beside a plain one. Confirmed on date-fns's re-ingest (numbers
+  in the BUILDLOG).
+- **Residual edge cases:** an overload set split across files
+  (declaration merging, `.d.ts` beside `.ts`) is still two symbols; an
+  overloaded *constructor* is not a symbol at all (C-9's kinds), so
+  nothing changes there.
+- **Source:** the date-fns re-ingest of 2026-09-03; fixed the same
+  hour.
 
 ### C-11 — JS/TS test reach was per *file*, not per test case — *lifted at V2.M3*
 - **Was:** every case in a test file shared the file's whole

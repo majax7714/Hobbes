@@ -320,6 +320,10 @@ helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
 `javasource` (Java, ADR-096), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
+The TS provider places an overloaded function or method at its first
+signature, where the semantic lane places it (C-89), so one symbol has
+one line in both lanes.
+
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a
 tree reachable at two paths is one tree with one set of ids, and the

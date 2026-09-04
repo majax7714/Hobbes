@@ -363,13 +363,26 @@ function extractImports(sourceFile, repoRoot, fileSet, filePath, project, packag
   );
 }
 
+// An overloaded function or method is one declaration to the semantic
+// lane, placed at its *first* signature — while ts-morph hands out the
+// implementation. Emitting the implementation's line left the two lanes
+// naming different lines for the same symbol (date-fns, 2026-09-03: 54
+// lane disagreements on three functions, and the join could find no
+// lane A symbol at SCIP's line, so those calls fell below the floor).
+// The symbol starts where the semantic lane says it does and ends where
+// the implementation ends (C-89).
+function declarationStart(node) {
+  const overloads = typeof node.getOverloads === "function" ? node.getOverloads() : [];
+  return overloads.length ? overloads[0].getStartLineNumber() : node.getStartLineNumber();
+}
+
 function extractSymbols(sourceFile) {
   const symbols = [];
   const add = (name, qualname, kind, node) =>
     symbols.push({
       end_line: node.getEndLineNumber(),
       kind,
-      line: node.getStartLineNumber(),
+      line: declarationStart(node),
       name,
       qualname,
     });

@@ -141,6 +141,37 @@ test("symbols: functions, classes, methods, arrow consts", () => {
   );
 });
 
+test("an overloaded function or method starts at its first signature (C-89)", () => {
+  // The semantic lane places an overloaded declaration at its first
+  // signature; ts-morph hands out the implementation. date-fns
+  // (2026-09-03): 54 lane disagreements and below-floor calls on three
+  // functions, all this shape.
+  const root = makeRepo({
+    "src/over.ts": [
+      "export function norm(a: string): string;",
+      "export function norm(a: number): number;",
+      "export function norm(a: any): any {",
+      "  return a;",
+      "}",
+      "export class K {",
+      "  m(a: string): string;",
+      "  m(a: any): any { return a; }",
+      "  plain() { return 1; }",
+      "}",
+    ].join("\n"),
+  });
+  const symbols = byPath(extractRepo(root), "src/over.ts").symbols;
+  assert.deepEqual(
+    symbols.map((s) => [s.qualname, s.line, s.end_line]),
+    [
+      ["norm", 1, 5],
+      ["K", 6, 10],
+      ["K.m", 7, 8],
+      ["K.plain", 9, 9],
+    ]
+  );
+});
+
 test("calls resolve locally, through imports, and to methods; externals omitted", () => {
   const root = makeRepo({
     "src/util.js": "export function helper() { return 1; }\n",
