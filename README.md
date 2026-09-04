@@ -98,7 +98,8 @@ the running architecture and the source of truth;
 This is the part most worth understanding, because it is where the
 accuracy comes from. **tree-sitter** knows that a call site *is* a call
 and where it sits; the language's own **SCIP indexer** (`scip-python`,
-`scip-typescript`, `scip-go`, `rust-analyzer`'s native export) knows what
+`scip-typescript`, `scip-go`, `rust-analyzer`'s native export,
+`scip-java`) knows what
 an occurrence *resolves to*. Neither is asked a question it would have
 to guess at. The two meet on file:line ranges before any graph exists,
 so an edge is a call *because* tree-sitter saw one and points where it
@@ -115,7 +116,7 @@ flowchart TB
   end
   subgraph B["Lane B — the language's own indexer, pinned"]
     direction TB
-    SCIP["scip-python · scip-typescript<br/>scip-go · rust-analyzer"] --> S2["declaration resolved<br/>per occurrence"]
+    SCIP["scip-python · scip-typescript<br/>scip-go · rust-analyzer · scip-java"] --> S2["declaration resolved<br/>per occurrence"]
   end
   S1 --> J
   S2 --> J
@@ -151,7 +152,7 @@ miss" is always answered next to "what did you find".
 Then the graph is graded, per language, against something Hobbes does
 not control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
 against the interpreter running the repo's own test suite, Rust against
-rustc's MIR — with wrong edges deliberately seeded on every cell to
+rustc's MIR, Java against javac's own resolution — with wrong edges deliberately seeded on every cell to
 prove the grader can say no. Every compiler-graded semantic tier is at
 100% on the cells graded so far; every miss falls into one known class
 (closures, function values, interface dispatch) and is written down.
@@ -250,28 +251,40 @@ numbers in [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md).
 ## Status
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-Semantic edges for **Python, TypeScript/JavaScript, Go and Rust** (plus
-Terraform/HCL structure), graph schema v4 with tiers and evidence lanes,
-framework knowledge in removable enrichment packs, a tier-aware invariant
-checker, and a lane-agreement self-test — 3,085 call sites on this repo
-with zero disagreements at the v2 exit; 36,703 dual-resolved sites on the
-~265k-site dagger monorepo with 258, all but one a single known
-line-convention off-by-one. The constraint register holds fifty-seven
-entries, each naming where a user meets the limit. One worth knowing
-before you ingest strangers' code: **indexing a Rust repo executes its
-`build.rs` and proc macros** (C-29 — disclosed on stderr at every Rust
-ingest).
+Semantic edges for **Python, TypeScript/JavaScript, Go, Rust and Java**
+(plus Terraform/HCL structure), graph schema v4 with tiers and evidence
+lanes, framework knowledge in removable enrichment packs, a tier-aware
+invariant checker, and a lane-agreement self-test — 3,085 call sites on
+this repo with zero disagreements at the v2 exit; 36,703 dual-resolved
+sites on the ~265k-site dagger monorepo with 258, all but one a single
+known line-convention off-by-one. Java landed 2026-08-29 (ADR-096) as the
+sixth language, four repos compiler-graded at 100% precision in one
+session. The constraint register holds ninety entries (sixty-eight
+active, twenty lifted), each naming where a user meets the limit.
+
+**Whatever executes repo-authored code runs in the sandbox image
+(ADR-092).** Every lane B indexer, Java's build, and the executing
+oracles run inside the one container; repo code never executes on the
+host (C-64), an `--uncontained` ingest is disclosed and stamped into
+`graph.json`, and `list_blind_spots` names it. The **knowledge layer**
+— sandboxed ingest, `.hobbes/derived/` on disk, the read-only MCP tools
+served from the same image (ADR-087/094) — is a complete deployment on
+its own: no model, no credential, no network.
 
 **The oracle lane (ADR-089) has run both phases** — Go and TS
-compiler-graded, Python trace-graded, Rust MIR-graded — with every
-compiler-graded cell at 100% after ADR-090 and the misses registered by
-class.
+compiler-graded, Python trace-graded, Rust MIR-graded, Java
+javac-graded — with every compiler-graded cell at 100% after ADR-090
+and the misses registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
-measure), and registered eight harness defects; those are the current
-worklist. The benchmark is moving to DeepSWE 1.1 on a mini-swe-agent
-substrate.
+measure), and registered eight harness defects, since all fixed
+(ADR-091, ADR-093) and validated with no model. The benchmark is moving
+to DeepSWE 1.1 on a mini-swe-agent substrate. A test-time-training
+experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
+loaded into a 7B's weights instead of its prompt: the loss falls, but
+the navigation does not follow at that step count
+([`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md)).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -286,7 +299,7 @@ point); the session-by-session record is
 | [`docs/hobbes-build-plan-v2.md`](docs/hobbes-build-plan-v2.md) | The v2 programme, V2.M0–V2.M7, complete — kept with its exit criteria and outcomes |
 | [`docs/hobbes-architecture-v1.md`](docs/hobbes-architecture-v1.md) | The frozen v1 design — history, kept for the reasoning behind the carried subsystems |
 | [`docs/hobbes-build-plan.md`](docs/hobbes-build-plan.md) | v1 milestones M0–M8 and the locked decisions |
-| [`docs/adr/`](docs/adr/) | 90 numbered ADRs — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | 99 numbered ADRs — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams and per-cell numbers |
@@ -330,10 +343,15 @@ cd ../tsextract && npm install              # TS/JS extraction
 cd ../scip      && npm install              # lane B indexers
 cd ../pipeline  && uv sync
 
-# per-language, only if your repos need them:
-go install github.com/scip-code/scip-go/cmd/scip-go@v0.2.7   # Go semantics
-rustup component add rust-analyzer                           # Rust semantics
+# the one sandbox image: lane B for every language, the executing oracles,
+# sessions, and the knowledge tools all run from it (ADR-092/094, ~2.8 GB)
+CGO_ENABLED=0 go build -C ../go -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
+cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 ```
+
+Lane B needs no per-language install on the host: `scip-go`,
+`rust-analyzer`, `scip-java` and the JDKs are in the image, and an
+ingest without the image runs lane A only and says so.
 
 > `hobbes-proxy` **must be statically linked** — `hobbes-session` mounts it
 > into the sandbox, where a dynamic binary fails as a confusing
@@ -384,13 +402,16 @@ script runs on a developer box.
 ## Tests
 
 ```sh
-cd go          && go test ./...   # 294 cases across 12 packages
-cd bench/oracle && go test ./...   # 35 cases (the oracle lane; Rust/Python cells skip without toolchains)
-cd pipeline    && uv run pytest    # 966 cases (+1 lane_b case, image only)
-cd web         && npm test         # 52 vitest cases (the pure layer)
-cd tsextract   && npm test         # 29 node --test cases
-cd scip        && npm test         # 26 node --test cases
+cd go          && go test ./...   # the Go packages
+cd bench/oracle && go test ./...   # the oracle lane (Rust/Python/Java cells skip without toolchains)
+cd pipeline    && uv run pytest    # lane A only by default; `lane_b` cases need the image
+cd web         && npm test         # vitest, the pure layer
+cd tsextract   && npm test         # node --test
+cd scip        && npm test         # node --test
 ```
+
+Suite sizes are kept in [`CLAUDE.md`](CLAUDE.md) (one place, checked by
+CI) rather than repeated here.
 
 Tests accompany the code they test in the same commit; the pytest suite
 runs lane-A-only by default (`HOBBES_SCIP=0`) so it stays hermetic and

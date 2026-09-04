@@ -1,7 +1,11 @@
 # Benchmark verification — the harness plan and the preregistered hypotheses
 
-**Status: preregistered, not started** (Max, 2026-08-19; ADR-052).
-Nothing here has been measured. This document exists *before* any
+**Status: preregistered 2026-08-19 (Max; ADR-052); runs recorded
+below.** The SWE-bench-class runs of 2026-08-21..24 (H1–H3, results
+under each hypothesis; the undecomposed pairs retracted under P12,
+ADR-082) and the test-time-training runs of 2026-09-03 (§ H-TTT) have
+landed here next to the hypotheses they bear on. No H1 claim has been
+earned. This document existed *before* any
 benchmark run for the same reason the constraint register exists: a
 claim written down after the results arrive can be quietly re-scoped
 to fit them, and a hypothesis written down first cannot (P11's

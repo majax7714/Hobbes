@@ -586,7 +586,7 @@ separation. **Opens when** a foreign-repo deployment needs the
 pipeline pinned too; the shape then is a pinned wheel in the image
 plus a nested-podman decision, not a checkout mount.
 
-## Java as the fifth language (2026-08-28)
+## Java as the sixth language (2026-08-28)
 
 Max asked, out of interest, what Java and C would cost. The answer is
 `docs/java-build-plan.md` — §3.7's checklist elaborated to five

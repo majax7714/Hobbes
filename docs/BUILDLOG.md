@@ -6338,3 +6338,44 @@ names no inputs and scip-typescript then indexes none. date-fns:
 80.1%**. C-90 moved to lifted the same night; **68 active / 20
 lifted**; 1,169 pytest.
 
+
+## 2026-09-03 (late) — high-level doc drift: the README caught up to Java, containment and the register
+
+A read-through of the entry docs (README, CLAUDE.md, the architecture,
+the handoff, workstreams, the register index, the secondary status
+headers) found the internal docs current to the night's commit and
+agreeing with each other, and the public README about a week behind.
+Fixed the drift and nothing else (Max: "leave the rest, something else
+is more pressing").
+
+- **README.** Status named four languages; now five plus HCL, with
+  Java's landing (ADR-096) and the register's true count (ninety;
+  sixty-eight active, twenty lifted — was "fifty-seven"). The two-lanes
+  prose, its diagram and the grading sentence now include `scip-java`
+  and the javac oracle. A containment paragraph (ADR-092: repo code
+  never executes on the host, the `--uncontained` stamp, the knowledge
+  layer as a complete deployment) — the architecture's headline claim
+  had no public sentence. The eight harness defects read as "the
+  current worklist"; all are fixed (ADR-091/093). The TTT experiment
+  (ADR-099) gets one sentence and a link. The ADR count reads 99. The
+  test table's hard-coded suite counts (three sessions stale) are gone
+  — CLAUDE.md is the one place, checked by CI. Getting started told the
+  reader to install `scip-go` and `rust-analyzer` on the host; since
+  ADR-092 lane B runs from the image, so the block builds the image
+  instead and says no per-language host install exists.
+- **`benchmark-hypotheses.md`** opened "preregistered, not started"
+  above three rounds of recorded results; the header now says what ran
+  and that no H1 claim is earned.
+- **Architecture §8** gained rows for Java (ADR-096/097) and the TTT
+  experiment (ADR-099), both already described in §3 and §6.2; the
+  benchmark row now credits ADR-093 with the last two defect fixes.
+- **`future_additions.md`** titled Java "the fifth language"; CLAUDE.md
+  and ADR-096 count it sixth (HCL counted). Sixth.
+- **`workstreams.md`** sequencing block: item 6 said current work was
+  W0's discipline items; items 6–8 now carry CI-awaiting-its-first-run,
+  Java plus the 2026-09-02/03 lift cycle, and the TTT hold.
+
+Not touched, noted for later: `oracle-grading.md` and `agent-mapping.md`
+carry status headers frozen at 2026-08-25 and 2026-08-21 (both defer to
+the architecture, cosmetic); CLAUDE.md's Status block is near its own
+length ceiling.

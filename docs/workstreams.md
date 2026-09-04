@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -27,8 +27,16 @@ item opens when Max names it. Sequencing context is
    here runs contained; earlier cells are host-run records (P11).
 5. The oracle lane's seven-cell loop is triaged (every compiler-graded
    cell at 100%); the drift audit was re-run 2026-08-28 (41 fixes).
-6. CI exists (ADR-095, 2026-08-28). Current work is W0's remaining
-   discipline items and collaborator onboarding.
+6. CI exists (ADR-095, 2026-08-28); its first GitHub run is still
+   Max's to observe.
+7. Java is the sixth language (ADR-096, 2026-08-29; C-66 settled by
+   ADR-097). The four-repo extraction test of 2026-09-02 registered
+   C-72–C-80, all lifted 2026-09-03 with C-85, C-89 and C-90; the
+   residue it named is the current extraction work (`session-handoff.md`
+   NEXT 1).
+8. The test-time-training experiment (ADR-099) ran 2026-09-03; its two
+   held points wait on Max. Current work is the extraction residue, then
+   W0's discipline items and collaborator onboarding.
 
 ---
 
