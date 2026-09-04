@@ -10,7 +10,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
-from hobbes.extract.discover import ModuleInfo, SKIPPED_DIR_NAMES
+from hobbes.extract.discover import ModuleInfo, SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.pysource import FromImport, ParsedFile, PlainImport
 
 #: Decorator attribute names treated as FastAPI-style route registrations
@@ -147,7 +147,11 @@ def iter_manifests(repo_root: Path, wanted):
         directory = stack.pop()
         for child in sorted(directory.iterdir()):
             if child.is_dir():
-                if child.name not in SKIPPED_DIR_NAMES and not child.name.startswith("."):
+                if (
+                    child.name not in SKIPPED_DIR_NAMES
+                    and not child.name.startswith(".")
+                    and not is_linked_copy(child, repo_root)
+                ):
                     stack.append(child)
             elif wanted(child.name):
                 yield child

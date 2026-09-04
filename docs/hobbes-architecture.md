@@ -320,6 +320,11 @@ helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
 `javasource` (Java, ADR-096), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
+Discovery, in every language, walks a directory symlink whose target is
+inside the repo **once, at its target** and records the link (C-73): a
+tree reachable at two paths is one tree with one set of ids, and the
+record says where the other path went.
+
 Two things Go made explicit that the others had not (ADR-037). **A type
 conversion is spelled exactly like a call**: `Decision(s)` and `Resolve(s)`
 are the same node, and no indexer separates them either, so lane A drops
@@ -439,8 +444,14 @@ lane B step — uniformly, not only the executing ones, so the guarantee
 never rests on a per-provider judgment — runs in `hobbes-session:local`
 under a static per-step profile (`extract/containment.py`): the Hobbes
 cache root as the one rw mount, the helper and every symlink target the
-stage points at mounted ro at their host paths, `--network none` for
-every index step. The registry steps (`npm ci --ignore-scripts`, `cargo
+stage points at mounted ro at their host paths — and, since C-74, the
+repo packages a workspace's `node_modules` links point to, so the links
+resolve in the container — `--network none` for
+every index step. The Python index always receives an environment
+listing, empty when the repo has no venv (C-85): the indexer never runs
+its own discovery in the image. A helper exit that is the *indexer's*
+(`INDEXER_EXIT`) is recorded as the indexer's failure, never as a
+missing helper. The registry steps (`npm ci --ignore-scripts`, `cargo
 fetch`, `go mod download`) are separate fetch containers that download
 and execute nothing — phase separation in place of a route filter
 rootless podman cannot offer. The guarantee is P10-specific: **repo

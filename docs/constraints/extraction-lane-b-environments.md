@@ -175,44 +175,6 @@
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
 
-### C-85 — A Python repo with no venv loses lane B entirely under containment, and the record blames the helper
-- **Cannot tell you:** any semantic Python edge for a repo that has no
-  virtual environment where `find_venv` looks (C-27's conventions).
-  With no venv Hobbes computes no `--environment` listing and hands
-  scip-python nothing, and inside the sandbox image scip-python's own
-  discovery then fails and the indexer exits 1 before indexing a file —
-  every Python site falls to the syntactic floor (C-8: `capture
-  [python]: 0.0%` on httpx, fastapi and textual at their DeepSWE base
-  commits, 2026-09-03). On the host the same invocation indexes with a
-  warning. The degradation record says *"the SCIP helper is unusable —
-  install Node and run `npm install`"*, which is C-64's message for a
-  missing helper, not this: the helper ran, the indexer died.
-- **Because:** the host-only path relied on scip-python's PATH-based pip
-  discovery degrading gracefully; the image has no such pip, and the
-  helper's "unusable" classification does not distinguish an indexer
-  that crashed from one that could not start. Suspected, not confirmed
-  in the container: the stack ends in scip-python's option parsing
-  (`main-impl.ts:47`), the same three frames on every repo.
-- **Bites at:** every Python repo ingested contained without a venv —
-  which is the shape a freshly cloned target repo has (the DeepSWE
-  clones, `hobbes ingest` on a repo before its owner installs it) — and
-  the four-repo test's peft cell (2026-09-02) may have been graded on
-  its own venv rather than on this path.
-- **You find out:** *partial* — the ingest prints `capture [python]:
-  0.0%` and a WARNING, so the loss is loud; but the WARNING names the
-  wrong cause, and nothing says "create a venv" — the fix a user can
-  apply in one command (`uv venv .venv && uv pip install -e .`, which
-  took httpx from 0.0% to 64.7%). **Candidate fix:** always pass
-  `--environment` (an empty listing when no venv is found) so the
-  indexer never runs its own discovery in the image, and have the
-  helper report an indexer exit as *indexer failed* with its stderr,
-  distinct from *helper unusable*. Registered, not fixed, pending the
-  lead's call — the same rule as C-72–C-80.
-- **Provider (P9):** `@sourcegraph/scip-python` 0.6.6 — the discovery
-  that fails is its; the crash-on-absence and the misclassified record
-  are ours.
-- **Source:** ADR-099's memorised-cell ingests, 2026-09-03.
-
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -223,44 +185,92 @@ quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
 
-### C-74 — A workspace link inside `node_modules` dangles in the container, and the record blames the helper
-- **Cannot tell you:** TypeScript semantics for a pnpm / npm / yarn
-  **workspace** — a repo whose packages depend on each other through
-  `node_modules/@scope/pkg -> ../../../pkg` links. date-fns
+### C-74 — A workspace link inside `node_modules` dangled in the container, and the record blamed the helper — *lifted 2026-09-03*
+- **Was:** `containment.mount_roots` mounted each `node_modules` tree
+  read-only at its host path and nothing else of the repo's *installed*
+  tree; a link whose target lies outside every `node_modules` — exactly
+  what a pnpm / npm / yarn **workspace** link is (`node_modules/@scope/pkg
+  -> ../../../pkg`) — had no target in the container. date-fns
   (2026-09-02): `pkgs/core/tsconfig.json` extends
-  `@date-fns/dev/config/tsconfig`; inside the ingest container the link
-  resolves to nothing, scip-typescript exits with `File
-  '@date-fns/dev/config/tsconfig' not found … no files got indexed`, on
-  **every** workspace zone (6 of 6 packages + root). Result: 3 semantic
-  call edges of 2,258, capture 0.1%, C-8's floor over a fully
-  installed environment. The same pinned scip-typescript indexes the
-  repo on the host in ~10 s.
-- **Because:** `containment.mount_roots` mounts each `node_modules`
-  directory read-only at its host path (ADR-092) and nothing else of
-  the repo's *installed* tree; a link whose target lies outside every
-  `node_modules` — exactly what a workspace link is — has no target in
-  the container. Third-party links (`.pnpm/…`) resolve because their
-  targets sit under the mounted tree. C-23 and C-34 cover a tree that is
-  *not installed* or *cannot be provisioned*; this one is installed
-  and mounted, and still lost.
-- **Bites at:** every workspace-shaped TS/JS repo — most monorepos and
-  many libraries. Also the `dependency_coverage` record: one aggregate
-  row with `resolved 1 / declared 24` and `missing` listing the
-  repo's own packages (`@date-fns/tz`, …), which is false about the
-  disk and true only of the container's view; and seven `scip-resolve`
-  records all at `path: "."` (ADR-048's per-unit rule not met).
-- **You find out:** **partial** — loud (7 WARNINGs, 7
-  `extraction_errors`, every edge `syntactic`), but the per-zone record
-  says *"the SCIP helper is unusable — install Node and run npm
-  install in the hobbes repo's scip/, or set $HOBBES_SCIP_CMD"* — the
-  helper ran; the failure is config resolution in the container.
-  Following the record changes nothing. Candidate fix: when collecting
-  mount roots, follow links *inside* each `node_modules` and mount
-  their targets (or stage them) read-only; distinguish "indexer exited
-  non-zero on the stage" from "helper unusable" in the record text;
-  per-zone `scip-resolve` paths.
+  `@date-fns/dev/config/tsconfig`; scip-typescript exited with `File
+  '@date-fns/dev/config/tsconfig' not found … no files got indexed` on
+  **every** workspace zone (6 of 6 + root): 3 semantic call edges of
+  2,258, capture 0.1%, over a fully installed environment the same
+  indexer handles on the host in ~10 s. The per-zone record said *"the
+  SCIP helper is unusable — install Node and run npm install"* — the
+  helper ran; and seven `scip-resolve` records all sat at `path: "."`.
+  *Partial* while it stood.
+- **Lifted by — the technique:** three pieces. (1)
+  `scipsource.workspace_link_targets` reads one level of each
+  `node_modules` tree a zone links (`name` and `@scope/name`) and lists
+  the targets of links that resolve *outside* the tree; they join the
+  tree as ro mounts (`run_helper(ro=…)`), so the link resolves in the
+  container to the same host path. Third-party links (`.pnpm/…`)
+  resolve inside the tree and are not listed; a dangling link is
+  skipped. (2) The helper exits `INDEXER_EXIT` (3) when the indexer it
+  drove exited non-zero, and `run_helper` records that as *"the
+  typescript indexer exited inside the container (the helper ran; this
+  is the indexer's own failure, not a missing helper): …"* with the
+  indexer's stderr — the "install Node" text is reserved for a helper
+  that could not start. (3) `_rebase` places a zone's whole-index
+  records (`scip-index`, `scip-resolve`, the empty-decode record) at
+  the zone, ADR-048's per-unit rule. **Measured** on a synthetic
+  workspace (`pkgs/core/tsconfig.json` extending
+  `@x/dev/tsconfig.base.json` through `node_modules/@x/dev ->
+  ../../../dev`), contained: the zone indexes and `b → a` is a semantic
+  `calls` edge; the control with the new mounts disabled reproduces
+  date-fns exactly — `error TS6053: File '@x/dev/tsconfig.base.json'
+  not found`, capture 0.0% — under the reworded record. Tests:
+  `TestWorkspaceLinkTargets`, `TestHelperExitClassification`, the
+  helper's `exitCodeFor` test.
+- **Residual edge cases:** a link two levels deep or a link *inside* a
+  linked package that points elsewhere in the repo is not followed
+  (one level, by design — the targets are mounted, and what they
+  contain is theirs). A workspace whose links target a directory
+  *outside* the repo (a sibling checkout) mounts that directory ro —
+  the C-22 trust, now spanning it. date-fns itself is not re-ingested
+  here; the synthetic cell is the evidence (P11: the machinery on that
+  shape, not on every workspace).
 - **Source:** the four-repo extraction test of 2026-09-02 (agent B,
-  date-fns/date-fns). Registered, not fixed.
+  date-fns/date-fns); lifted 2026-09-03.
+
+### C-85 — A Python repo with no venv lost lane B entirely under containment, and the record blamed the helper — *lifted 2026-09-03*
+- **Was:** with no venv where `find_venv` looks (C-27's conventions)
+  Hobbes computed no `--environment` listing and handed scip-python
+  nothing; inside the sandbox image scip-python's own discovery then
+  failed and the indexer exited 1 before indexing a file — every Python
+  site fell to the syntactic floor (`capture [python]: 0.0%` on httpx,
+  fastapi and textual at their DeepSWE base commits, 2026-09-03;
+  reproduced 2026-09-03 on a venv-less copy of the `miniapp` fixture:
+  0.0% of 19 sites, the stack ending in scip-python's option parser,
+  `main-impl.ts:47`). The degradation record said *"the SCIP helper is
+  unusable — install Node and run `npm install`"*: the helper ran, the
+  indexer died. *Partial* while it stood — loud, wrong cause, no fix
+  named.
+- **Lifted by — the technique:** `extract_scip` always writes the
+  environment listing — the venv's when one is found, **empty** when
+  none is (or when the listing was refused by containment) — so the
+  indexer never runs its own discovery in the image; and it appends a
+  `scip-python` record saying no venv was found, that third-party
+  references attribute to the local project, and the one-command fix
+  (`uv venv .venv && uv pip install -e .`). The helper-exit
+  classification is C-74's piece (2), shared. **Measured:** the
+  venv-less `miniapp` copy goes from 0.0% to **68.4% of 19 sites** —
+  the number it reads with a venv — with the C-85 record (and the C-79
+  record, which fires too: the fixture declares no dependencies)
+  printed under the summary. Tests: `TestNoVenvStillIndexes`,
+  `TestHelperExitClassification`.
+- **Residual edge cases:** an empty listing is the true statement about
+  what Hobbes can name and still the C-27 concession — third-party
+  edges are absent, and `dependency_coverage` (when a manifest declares
+  anything, C-79) will show them missing; the environment gap line in
+  `list_blind_spots` is the surfacing. A conda or system environment is
+  still not searched for (C-27 unchanged).
+- **Provider (P9):** `@sourcegraph/scip-python` 0.6.6 — the discovery
+  that failed is its; the crash-on-absence was ours to avoid and the
+  record was ours to fix.
+- **Source:** ADR-099's memorised-cell ingests, 2026-09-03; lifted the
+  same day.
 
 ### C-79 — A Python repo declaring its dependencies outside `pyproject.toml [project]` got no `dependency_coverage`, silently — *lifted 2026-09-03*
 - **Was:** `scipsource.declared_dependencies` walked `pyproject.toml`

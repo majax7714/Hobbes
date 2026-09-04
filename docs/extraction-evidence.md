@@ -160,6 +160,30 @@ a `Deref`. Two of seven missed, both about *where the misses would be*: on
 Python the prior was right, on Rust the generated-code class was not in
 anyone's prior.
 
+## The nine registered-not-fixed entries, lifted — 2026-09-03 (evening, contained)
+
+Max's direction: tackle the extraction constraints, easiest first, the
+TTT items left on the table. All nine of the 2026-09-02 findings
+(C-72–C-80) and C-85 were lifted in four commits, each with its tests
+and its register entry; the measurements below are the evidence for
+the three that changed what a graph holds.
+
+| Cell | What changed | Numbers |
+|---|---|---|
+| **this repo** @ 5562271 (re-ingested contained after C-72/C-80; the prior artifact was built at 00e5aee, so the deltas include two days of code) | C-80 records expression-receiver calls as sites; C-72 tightens the Rust fallback | 449 nodes / 3,784 symbols / **5,173 semantic + 15 syntactic `calls` + 2,285 `uses`**; **1,433 `<expr>.m()` sites** now detected (127 with a `calls` edge at the line, the rest external or `attr-call`); Python capture **81.7% of 14,352** (the denominator grew by the new sites; `attr-call` 1,660); six of the seven `uses` edges that vanished became `calls`; lanes **5,937 sites / 0 disagree**, `module edges compared: 484 (lane B produced 640)` — the C-75 line; Rust `path-call` 4, unchanged; one new syntactic edge, in a script lane B does not cover |
+| **miniapp fixture, no venv** (a copy, `git init`, ingested from this checkout — the first attempt ran `uv run` *inside* the copy and uv created a venv there; ADR-094's lesson in a new shape) | C-85 | **before:** `capture [python]: 0.0% of 19`, the record blaming the helper, scip-python's stack ending at `main-impl.ts:47`; **after:** **68.4% of 19** (the same as with a venv), two records — C-79 (no manifest declares dependencies) and C-85 (no venv found; the one-command fix) |
+| **synthetic pnpm-style workspace** (`pkgs/core/tsconfig.json` extends `@x/dev/tsconfig.base.json` via `node_modules/@x/dev -> ../../../dev`, committed as a symlink) | C-74 | **with the fix:** zone `pkgs/core` indexed contained, `b → a` a **semantic `calls` edge**, capture 100% of 1, the `scip-resolve` record at `pkgs/core` (not `.`); **control** (`workspace_link_targets` stubbed to `[]`): `error TS6053: File '@x/dev/tsconfig.base.json' not found`, capture 0.0% — date-fns's failure exactly, now recorded as *"the typescript indexer exited inside the container (the helper ran…)"* |
+
+**Verified:** the two small cells by reading every edge (one each) and
+the full summary; this repo by the lane self-test (0 disagreements at
+5,937 dual-resolved sites) and by the `uses`→`calls` list (seven
+edges, six converted, one a function that was renamed between the two
+SHAs). Not hand-sampled at the edge level beyond that; the four-repo
+test's rows above stand as the pre-fix record, and none of the four
+was re-ingested. Containment `all_contained: true` and `built_by` this
+checkout on all three; the image rebuilt for C-77 and C-80's gloss
+(C-65) before the runs.
+
 ## Four random repos — the 2026-09-02 extraction test (agents, contained, hand-sampled)
 
 Max's direction: four agents, one language each, a random public repo

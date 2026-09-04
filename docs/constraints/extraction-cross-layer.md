@@ -16,35 +16,52 @@
   data loss decided by ordering *in silence* before M8 review.
 - **Source:** M8 review, `future_additions.md` → cross-language namespacing.
 
-### C-73 — A directory symlink inside the repo is walked as a second copy of its target
-- **Cannot tell you:** that two module ids are one source tree. serde's
-  `serde/src/core -> ../../serde_core/src` (a git symlink, mode
-  120000, which `#[path = "core/crate_root.rs"]` compiles into the
-  `serde` crate) yields 19 modules, 516 symbols and 1,356 call sites
-  twice — under `serde_core/src/…` with lane B's evidence and under
-  `serde/src/core/…` with none, so the copy is a lane-B-less zone at
-  `resolved 0` and the fallback's wrong answers (C-72) become edges
-  there. The summary's node, symbol and site counts include the
-  duplicates; `serde/src` reads `49.4% of 2726 sites` and is mostly the
-  copy.
-- **Because:** every language's discovery walk (`discover.iter_*`,
-  `gosource.iter_go_files`, …) uses `iterdir()` and does not test
-  `is_symlink()`; the staging copy lane B indexes resolves the link the
-  build's way (one crate, one path), so its occurrences land on one
-  side only. Whether the copy *should* be a module is a real question
-  — the crate does compile those files under that path — which is why
-  this is registered rather than pruned: dropping links would lose a
-  repo that keeps its only copy behind one.
-- **Bites at:** Rust crates sharing sources by `#[path]` through links;
-  monorepos symlinking a shared directory into several packages;
-  `docs/` trees linking `examples/`. Counts inflate, and the copy's
-  edges are the floor's.
-- **You find out:** **partial** — the copy's rows show `resolved 0`
-  and the by-directory line ranks it, but nothing says *why*, and
-  nothing says the two ids are one tree. Candidate surfacing: record
-  each symlinked directory at discovery as a degradation record naming
-  the target, and either alias the copy's ids to the target's or mark
-  its rows `linked-copy` so the summary can exclude them from the
-  denominator.
+## Lifted constraints in this segment
+
+A lift is a technique, and the technique — not the celebration — is what
+these entries document. Each keeps its number, states the limit as it
+stood, the exact mechanism that lifted it, and the **residual edge
+cases**: inputs the technique does not classify, where the old concession
+quietly survives. When a residual case turns out to bite, it becomes a
+new active entry and the two cross-reference. Field key: `README.md`,
+"How to read a lifted entry".
+
+### C-73 — A directory symlink inside the repo was walked as a second copy of its target — *lifted 2026-09-03*
+- **Was:** every language's discovery walk (`discover.iter_python_files`,
+  `gosource.iter_go_files`, `javasource`, `rustsource`, `tssource`,
+  `terraform`, the manifest walks) used `iterdir()` and never tested
+  `is_symlink()`. serde's `serde/src/core -> ../../serde_core/src` (a
+  git symlink, mode 120000, which `#[path = "core/crate_root.rs"]`
+  compiles into the `serde` crate) yielded 19 modules, 516 symbols and
+  1,356 call sites twice — under `serde_core/src/…` with lane B's
+  evidence and under `serde/src/core/…` with none, so the copy was a
+  lane-B-less zone at `resolved 0` and the fallback's wrong answers
+  (C-72) became edges there; the summary's counts included the
+  duplicates. A link to an ancestor would have looped the walk. *Partial*
+  while it stood: the copy's rows showed `resolved 0` and nothing said
+  why.
+- **Lifted by — the technique:** `discover.linked_copy_target` — a
+  directory symlink whose resolved target lies **inside the repo** is a
+  second copy of a tree the walk reaches at its real path, and every
+  walk asks `is_linked_copy` before descending, so the tree is walked
+  **once, at its target**. The ingest records each such link once
+  (`linked_copies`; `extraction_errors`, stage `discover`, path = the
+  link, naming the target and C-73), so the ids a reader expects under
+  the link are explained rather than silently absent. A link whose
+  target is *outside* the repo is the only copy Hobbes will see and is
+  walked as before. Lane B's staging copies discovered files, so it
+  never saw the copy; its occurrences already landed at the target
+  (`serde_core/src/…`), which is why nothing semantic is lost. Tests:
+  `TestLinkedCopies` (four: once-at-target, outside-link walked,
+  ancestor link does not loop, every language walk + the record).
+- **Residual edge cases:** the crate that compiles those files under
+  the link's path (`serde`) has no module of its own for them — the
+  target's module ids are the only ones, which is the choice this entry
+  made explicit ("whether the copy should be a module is a real
+  question"): one tree, one id. `tsextract` skips *every* symlink on
+  its own walk (outside-repo targets included), so a TS repo whose only
+  copy sits behind a link is lane-A-less there — unchanged by this
+  lift, and not yet met on a real repo. File symlinks are followed as
+  before.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent D,
-  serde-rs/serde). Registered, not fixed.
+  serde-rs/serde); lifted 2026-09-03.

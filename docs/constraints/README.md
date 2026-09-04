@@ -135,8 +135,15 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Eighty-eight entries: seventy-one active, fifteen lifted, two superseded**
-(C-72 and C-80 **lifted 2026-09-03**, the same session, the two the
+**Eighty-eight entries: sixty-eight active, eighteen lifted, two superseded**
+(C-73, C-74 and C-85 **lifted 2026-09-03**, the same session, the last
+of the ten: a repo-internal directory link is walked once at its target
+and recorded, a workspace's `node_modules` links mount their targets
+and the helper tells an indexer's death from its own, and a Python repo
+with no venv indexes against an empty listing with the fix named —
+measured on a venv-less fixture (0.0% → 68.4%) and a synthetic
+workspace (TS6053 → a semantic edge);
+C-72 and C-80 **lifted 2026-09-03**, the same session, the two the
 four-repo test found on the call graph itself: the Rust fallback
 abstains where a path's head does not single out a declaration, and an
 expression receiver is a Python call site with the `uses` gloss reworded;
@@ -156,7 +163,7 @@ defect (*surfaced*); an adapter trained on "none recorded" answers
 disbelieves the card in front of it (*partial*, candidate fixes named);
 C-85 added 2026-09-03 from ADR-099's memorised-cell ingests — a Python
 repo with no venv loses lane B entirely in the container and the record
-blames the helper (*partial*, candidate fix named, held for the lead);
+blames the helper (*partial*; **lifted the same day**, above);
 C-81–C-84 added 2026-09-03 by ADR-099, the test-time-training
 experiment: the adapter is regenerable but not bit-identical across
 hardware (*surfaced*, the manifest), held-out names leak through plain
@@ -171,7 +178,7 @@ graph is one build configuration's and lane A abstains where
 constraints split a name — is the one *fixed and surfaced* the same
 day (ADR-098: two wrong syntactic edges and twelve disagreements on
 quic-go gone). The other nine are **registered, not fixed**, at Max's
-direction ("flag rest in constraints"; seven lifted the next day, above): C-72 the Rust fallback's
+direction ("flag rest in constraints"; **all nine lifted the next day**, above): C-72 the Rust fallback's
 last-segment binding (*partial*), C-73 a repo symlink walked as a
 second copy (*partial*), C-74 workspace links dangling in the
 container with a record that blames the helper (*partial*), C-75
@@ -197,7 +204,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Seven of the active are *partial* (C-4, C-58, C-68, C-73, C-74, C-83, C-85); two
+against the code that concedes it; none had been silently lifted). Four of the active are *partial* (C-4, C-58, C-68, C-83); two
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
@@ -207,7 +214,7 @@ C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-2
 the verification base stamped into the artifact and stated wherever a
 language list is read), as did C-32's `partial`. The three derivation entries (C-35..C-37,
 ADR-051) landed surfaced on day one — the statement prints on every
-`hobbes plan` run and rides every change-spec. **Fifteen are lifted**, C-33 fastest of
+`hobbes plan` run and rides every change-spec. **Eighteen are lifted**, C-33 fastest of
 all: registered from the dagger measurement (ADR-048) and lifted one
 session later (ADR-049) when Max reviewed the candidate fix and
 directed it — the register working as intended, a finding becoming a

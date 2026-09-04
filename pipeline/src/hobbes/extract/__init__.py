@@ -29,7 +29,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import containment, scipsource, staging, tail, tssource
-from hobbes.extract.discover import discover_modules
+from hobbes.extract.discover import discover_modules, linked_copies
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
 from hobbes.extract.gosource import collect_go_tests, extract_go
 from hobbes.extract.javasource import collect_java_tests, extract_java
@@ -96,7 +96,21 @@ def extract_repo(
         m.id: parse_source((repo_root / m.path).read_bytes()) for m in modules
     }
     graph = build_graph(modules, parsed)
-    degraded: list[dict] = []
+    degraded: list[dict] = [
+        # C-73: a repo-internal directory link is walked once, at its
+        # target, by every language's discovery; the record says why the
+        # ids a reader expects under the link are not there.
+        {
+            "path": link,
+            "stage": "discover",
+            "message": (
+                f"{link} is a symlink to {target}, inside the repo; the tree is "
+                f"walked once at {target} and not counted a second time under "
+                f"{link} (C-73)"
+            ),
+        }
+        for link, target in linked_copies(repo_root)
+    ]
 
     # Languages reflect what the repo actually contains — a TS-only repo
     # (M6) must not claim python.

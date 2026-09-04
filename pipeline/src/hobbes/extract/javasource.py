@@ -49,7 +49,7 @@ from pathlib import Path, PurePosixPath
 import tree_sitter_java
 from tree_sitter import Language, Node, Parser
 
-from hobbes.extract.discover import SKIPPED_DIR_NAMES
+from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.graph import _edge_list
 
 _PARSER = Parser(Language(tree_sitter_java.language()))
@@ -112,7 +112,11 @@ def iter_java_files(repo_root: Path):
             continue
         for child in children:
             if child.is_dir():
-                if child.name not in _JAVA_SKIPPED and not child.name.startswith("."):
+                if (
+                    child.name not in _JAVA_SKIPPED
+                    and not child.name.startswith(".")
+                    and not is_linked_copy(child, repo_root)
+                ):
                     stack.append(child)
             elif child.suffix == ".java":
                 yield child

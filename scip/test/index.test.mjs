@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
+  INDEXER_EXIT,
+  exitCodeFor,
   classify,
   commonDirectory,
   decode,
@@ -488,4 +490,14 @@ test('typed ranges (SCIP fields 8 and 9) are read into the range shape', async (
   w3.writeString(2, 'y')
   w3.writePackedInt32(1, [1, 2, 3])
   assert.deepEqual(scip.Occurrence.deserialize(w3.getResultBuffer()).range, [1, 2, 3])
+})
+
+test("an indexer's own exit is a distinct helper exit code", () => {
+  // C-85 / C-74: the helper ran and the indexer died — recorded by the
+  // Python side as the indexer's failure, never as a missing helper.
+  const died = Object.assign(new Error('scip-python exited 1'), { indexerExit: 1 })
+  assert.equal(exitCodeFor(died), INDEXER_EXIT)
+  assert.equal(exitCodeFor(new Error('no indexer configured')), 1)
+  assert.notEqual(INDEXER_EXIT, 1)
+  assert.notEqual(INDEXER_EXIT, 2)
 })

@@ -40,6 +40,16 @@ const HERE = dirname(fileURLToPath(import.meta.url))
  * replacing Decision 4's all-or-nothing degradation test. */
 export const HELPER_VERSION = 3
 
+/** The helper's exit code when the indexer it drove exited non-zero: the
+ * helper ran, the indexer did not. The Python side records that as the
+ * indexer's failure, not as a missing helper (C-85, C-74). */
+export const INDEXER_EXIT = 3
+
+/** What the process exits with for a thrown *err*. */
+export function exitCodeFor(err) {
+  return err && err.indexerExit !== undefined ? INDEXER_EXIT : 1
+}
+
 /** Indexers we know how to drive, keyed by the language they own. */
 export const INDEXERS = {
   python: {
@@ -605,7 +615,9 @@ function runIndexer(config) {
   }
   if (proc.status !== 0) {
     const detail = String(proc.stderr || proc.stdout || '').trim().slice(-500)
-    throw new Error(`${spec.bin} exited ${proc.status}: ${detail}`)
+    const err = new Error(`${spec.bin} exited ${proc.status}: ${detail}`)
+    err.indexerExit = proc.status
+    throw err
   }
   return proc
 }
@@ -653,7 +665,7 @@ function main(argv) {
     process.stderr.write(String(err.message ?? err) + '\n')
     // process.exitCode, not process.exit: a hard exit can truncate a large
     // stdout write that is still flushing (the M6 lesson).
-    process.exitCode = 1
+    process.exitCode = exitCodeFor(err)
   }
 }
 

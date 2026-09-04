@@ -42,6 +42,11 @@ SCIP_ENABLE_ENV = "HOBBES_SCIP"
 
 #: Facts schema this join understands (helper HELPER_VERSION).
 #: v2 (V2.M3, ADR-032): facts carry ``dependency_coverage`` on every run.
+#: The helper's exit code when the *indexer* it drove exited non-zero
+#: (`scip/index.mjs` ``INDEXER_EXIT``): the helper ran, the indexer did not
+#: — a different failure from a helper that could not start, and it is
+#: recorded as one (C-85, C-74: the record used to blame the helper).
+INDEXER_EXIT = 3
 HELPER_VERSION = 3
 
 
@@ -351,6 +356,13 @@ def run_helper(
     finally:
         config_path.unlink(missing_ok=True)
     proc = outcome.proc
+    if proc.returncode == INDEXER_EXIT:
+        detail = (proc.stderr or proc.stdout).strip()[-500:]
+        raise ScipError(
+            f"the {config['language']} indexer exited inside the container "
+            f"(the helper ran; this is the indexer's own failure, not a "
+            f"missing helper): {detail}"
+        )
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-500:]
         raise ScipError(f"{setup}: helper exited {proc.returncode}: {detail}")
@@ -634,6 +646,58 @@ def zone_dependency_links(
                 break
             directory = directory.parent
     return links
+
+
+def workspace_link_targets(tree: Path) -> list[str]:
+    """Where the links *inside* a ``node_modules`` tree point, outside it.
+
+    A pnpm / npm / yarn **workspace** installs the repo's own packages as
+    links — ``node_modules/@scope/pkg -> ../../../pkgs/pkg`` — whose
+    targets sit in the repo, not under any ``node_modules``. The ingest
+    container mounts each tree at its host path and nothing else of the
+    repo, so such a link dangled there and scip-typescript found no
+    ``@date-fns/dev/config/tsconfig`` on every one of date-fns's zones
+    (C-74, lifted 2026-09-03). Read one level deep (``name`` and
+    ``@scope/name``), the targets become ro mounts beside the tree.
+    Third-party links (``.pnpm/…``) resolve inside the tree already and
+    are not listed; a dangling link is skipped — the indexer will say.
+    """
+    tree = Path(tree)
+    try:
+        resolved_tree = tree.resolve()
+    except OSError:
+        return []
+    targets: set[str] = set()
+    try:
+        entries = sorted(tree.iterdir())
+    except OSError:
+        return []
+    candidates: list[Path] = []
+    for entry in entries:
+        if entry.name.startswith(".") and entry.name != ".bin":
+            continue
+        if entry.name.startswith("@") and entry.is_dir() and not entry.is_symlink():
+            try:
+                candidates.extend(sorted(entry.iterdir()))
+            except OSError:
+                continue
+        else:
+            candidates.append(entry)
+    for candidate in candidates:
+        if not candidate.is_symlink():
+            continue
+        try:
+            target = candidate.resolve(strict=True)
+        except OSError:
+            continue
+        if not target.is_dir():
+            continue
+        try:
+            target.relative_to(resolved_tree)
+            continue  # inside the tree: mounted with it
+        except ValueError:
+            targets.add(str(target))
+    return sorted(targets)
 
 
 #: Seconds a dependency install may take. Docusaurus-sized trees need
@@ -1830,8 +1894,16 @@ def _index_ts_zone(
                 "declaredDeps": declared,
             },
             # The trees the links point at, mounted ro where the links
-            # expect them (ADR-092): the C-22 trust becomes a mount flag.
-            ro=sorted(links.values()),
+            # expect them (ADR-092): the C-22 trust becomes a mount flag —
+            # and the workspace packages those trees link to (C-74).
+            ro=sorted(
+                set(links.values())
+                | {
+                    target
+                    for tree in links.values()
+                    for target in workspace_link_targets(Path(tree))
+                }
+            ),
         )
     finally:
         staging.remove_stage(stage)
@@ -1880,9 +1952,13 @@ def _rebase(facts: dict, zone: str) -> dict:
         ref["file"] = at(ref["file"])
     for record in facts.get("degraded", []):
         # A record scoped to a directory inside the zone (ADR-091, D7);
-        # a whole-index record stays at the repo root.
+        # a whole-index record is *this zone's* whole index, so it sits
+        # at the zone (ADR-048's per-unit rule — date-fns's seven
+        # `scip-resolve` records all read `path: "."`, C-74).
         if record.get("path") not in (None, "", "."):
             record["path"] = at(record["path"])
+        else:
+            record["path"] = zone
     return facts
 
 
@@ -1917,6 +1993,15 @@ def extract_scip(
         except containment.ContainmentRefusal as exc:
             environment = None
             refused = str(exc)
+    if environment is None:
+        # C-85 (lifted 2026-09-03): with no listing scip-python runs its
+        # own discovery, which on the host degrades with a warning and in
+        # the image dies in the indexer's option parser before a file is
+        # indexed — httpx, fastapi and textual at 0.0%. An empty listing
+        # is the true statement (nothing is installed that Hobbes can
+        # name) and lets the index run; third-party references then
+        # attribute to the local project, which C-27's records say.
+        environment = []
     stage = staging.build_stage(repo_root, files, config=config, sha=sha)
     env_path = stage.parent / f"{stage.name}.env.json"
     helper_config = {
@@ -1929,12 +2014,11 @@ def extract_scip(
         "output": str(stage.parent / f"{stage.name}.scip"),
         "declaredDeps": declared_deps or [],
     }
-    if environment is not None:
-        # C-27's second mechanism: venvPath gives Pyright *resolution*,
-        # this gives scip-python *attribution*. Both land in the cache,
-        # never the repo.
-        env_path.write_text(json.dumps(environment))
-        helper_config["environment"] = str(env_path)
+    # C-27's second mechanism: venvPath gives Pyright *resolution*, this
+    # gives scip-python *attribution*. Both land in the cache, never the
+    # repo. Always written (C-85), empty when there is no venv.
+    env_path.write_text(json.dumps(environment))
+    helper_config["environment"] = str(env_path)
     if venv is not None:
         venv_dir = Path(venv[0]) / venv[1]
         ro = [str(venv_dir), *containment.interpreter_mounts(venv_dir / "bin" / "python")]
@@ -1943,6 +2027,21 @@ def extract_scip(
     finally:
         env_path.unlink(missing_ok=True)
         staging.remove_stage(stage)
+    if venv is None:
+        facts.setdefault("degraded", []).append(
+            {
+                "path": ".",
+                "stage": "scip-python",
+                "message": (
+                    "no virtual environment found where Hobbes looks (C-27's "
+                    "conventions), so the index ran with an empty environment "
+                    "listing — third-party references attribute to the local "
+                    "project and dependency edges are absent, not nonexistent; "
+                    "create one beside the repo (`uv venv .venv && uv pip "
+                    "install -e .`) and re-ingest (C-85)"
+                ),
+            }
+        )
     if refused is not None:
         facts.setdefault("degraded", []).append(
             {

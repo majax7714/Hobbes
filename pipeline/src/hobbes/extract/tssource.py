@@ -22,7 +22,7 @@ import subprocess
 from collections import defaultdict
 from pathlib import Path, PurePosixPath
 
-from hobbes.extract.discover import SKIPPED_DIR_NAMES
+from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.schema import tiered_edge
 
 #: Environment variable holding a shell-split command prefix that replaces
@@ -61,7 +61,7 @@ def has_ts_files(repo_root: Path) -> bool:
             if child.name.startswith("."):
                 continue
             if child.is_dir():
-                if child.name not in SKIPPED_DIR_NAMES:
+                if child.name not in SKIPPED_DIR_NAMES and not is_linked_copy(child, repo_root):
                     stack.append(child)
             elif child.suffix in _EXTENSIONS:
                 return True

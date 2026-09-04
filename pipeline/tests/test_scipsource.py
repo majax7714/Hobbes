@@ -6,6 +6,7 @@ onto module and symbol ids. Both are pure, so no indexer runs here; the
 end-to-end path is the M2 exit check.
 """
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -871,3 +872,94 @@ class TestCoverageGapRecord:
         assert _coverage_gap_records("python", declared) == []
         assert _coverage_gap_records("typescript", {"dependency_coverage": {}}) == []
         assert _coverage_gap_records("go", {}) == []
+
+
+class TestHelperExitClassification:
+    """C-85 / C-74 (lifted): an indexer that died inside the container is
+    recorded as the indexer's failure; only a helper that could not run
+    says "install Node and run npm install"."""
+
+    @staticmethod
+    def _run_returning(monkeypatch, code, stderr):
+        def run(plan, *, timeout):
+            proc = subprocess.CompletedProcess(plan.command, code, stdout="", stderr=stderr)
+            return containment.Outcome(proc, True)
+
+        monkeypatch.setattr(containment, "run", run)
+
+    def test_an_indexer_exit_names_the_indexer(self, tmp_path, monkeypatch):
+        self._run_returning(monkeypatch, scipsource.INDEXER_EXIT, "scip-python exited 1: main-impl.ts:47")
+        (tmp_path / "stage").mkdir()
+        with pytest.raises(scipsource.ScipError) as caught:
+            scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "python"})
+        assert "python indexer exited inside the container" in str(caught.value)
+        assert "main-impl.ts:47" in str(caught.value)
+        assert "unusable" not in str(caught.value)
+
+    def test_a_helper_failure_still_says_how_to_install_it(self, tmp_path, monkeypatch):
+        self._run_returning(monkeypatch, 1, "Cannot find module")
+        (tmp_path / "stage").mkdir()
+        with pytest.raises(scipsource.ScipError) as caught:
+            scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "python"})
+        assert "unusable" in str(caught.value)
+
+
+class TestNoVenvStillIndexes:
+    """C-85 (lifted): with no venv the index runs against an empty
+    environment listing and the record says to create one — it does not
+    let scip-python run its own discovery, which dies in the image."""
+
+    def test_an_empty_listing_is_passed_and_the_record_says_why(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")  # the suite runs lane B off
+        repo = tmp_path / "repo"
+        (repo / "pkg").mkdir(parents=True)
+        (repo / "pkg" / "__init__.py").write_text("")
+        (repo / "pkg" / "a.py").write_text("def f():\n    pass\n")
+        seen = {}
+
+        def run(plan, *, timeout):
+            config = json.loads(Path(plan.command[plan.command.index("--config") + 1]).read_text())
+            seen["environment"] = json.loads(Path(config["environment"]).read_text())
+            seen["ro"] = tuple(plan.ro) if hasattr(plan, "ro") else ()
+            facts = {
+                "helper_version": scipsource.HELPER_VERSION, "definitions": [],
+                "references": [], "external_refs": [], "packages": {}, "degraded": [],
+                "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+            }
+            proc = subprocess.CompletedProcess(plan.command, 0, stdout=json.dumps(facts), stderr="")
+            return containment.Outcome(proc, True)
+
+        monkeypatch.setattr(containment, "run", run)
+        facts = scipsource.extract_scip(repo, ["pkg/__init__.py", "pkg/a.py"], ["."], "repo", "0" * 40)
+        assert seen["environment"] == []
+        (record,) = [r for r in facts["degraded"] if "C-85" in r["message"]]
+        assert record["stage"] == "scip-python"
+        assert "uv venv .venv" in record["message"]
+
+
+class TestWorkspaceLinkTargets:
+    """C-74 (lifted): the repo packages a workspace's node_modules links to
+    are mounted beside the tree, so the links resolve in the container."""
+
+    def test_links_out_of_the_tree_are_listed_once_each(self, tmp_path):
+        repo = tmp_path / "repo"
+        (repo / "pkgs" / "dev").mkdir(parents=True)
+        (repo / "pkgs" / "plain").mkdir()
+        nm = repo / "pkgs" / "core" / "node_modules"
+        (nm / "@x").mkdir(parents=True)
+        (nm / "@x" / "dev").symlink_to("../../../dev", target_is_directory=True)
+        (nm / "plain").symlink_to("../../plain", target_is_directory=True)
+        (nm / "again").symlink_to("../../plain", target_is_directory=True)
+        (nm / ".pnpm" / "lodash@4" / "node_modules" / "lodash").mkdir(parents=True)
+        (nm / "lodash").symlink_to(".pnpm/lodash@4/node_modules/lodash", target_is_directory=True)
+        (nm / "gone").symlink_to("../../missing", target_is_directory=True)
+        (nm / "real").mkdir()
+        targets = scipsource.workspace_link_targets(nm)
+        assert targets == sorted({str((repo / "pkgs" / "dev").resolve()), str((repo / "pkgs" / "plain").resolve())})
+
+    def test_a_zone_record_sits_at_its_zone(self):
+        facts = {"degraded": [{"path": ".", "stage": "scip-resolve", "message": "m"},
+                              {"path": "sub", "stage": "scip-decode", "message": "m"}]}
+        out = scipsource._rebase(facts, "pkgs/core")
+        assert [r["path"] for r in out["degraded"]] == ["pkgs/core", "pkgs/core/sub"]
