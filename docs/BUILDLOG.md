@@ -6448,3 +6448,18 @@ contained lane-B ingest per parent. Recounted: 1,171 pytest collected
 outside `lane_b` (+3 in it) with the four new tests; the 2026-09-03
 line said 1,169, so the base was 1,167 — CLAUDE.md now carries the
 counted number.
+
+*Addendum, midday — step 0 finished.* Max: "run the lane b remaining
+piece." `calvin_probe.py ingest --lane-b` (added: the full contained
+ingest instead of `HOBBES_SCIP=0`) over the 28 parents, detached with
+`nohup` (the harness's background cap is ten minutes): 28 of 28 exit 0,
+698 s total, 20 / 24 / 37 s min / median / max, every graph
+`all_contained` with no escape hatch, 176,796 of 176,824 symbol edges
+semantic, `built_by 8add0a0`; the clone venv-less exactly as the TTT
+base ingest was (C-85), so the conditions match the cell's. Both
+probes re-run on the semantic graphs read identical to the lane-A rows
+— expected, since spans, paths and names are lane A's; lane B is what
+step 3's grounder consumes. Recorded as an addendum to the probe
+record; `calvin-potential.md` §7.1 carries the measured cost and §8
+step 0 reads done; handoff moved to step 1. Max's key question
+answered in the session: nothing before step 4 needs one.

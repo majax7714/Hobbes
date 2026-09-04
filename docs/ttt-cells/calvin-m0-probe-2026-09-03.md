@@ -147,3 +147,31 @@ spans (2,847 symbols at the base), plan derivation, the testmap (1,527
 cases with reach), the 50 units and 28 proposals (probe values 0.044
 this repo / 0.129 fastapi match the cell records), the §9b defect
 register.
+
+## Addendum 2026-09-04 — step 0's other half: the contained lane-B ingest per parent
+
+`calvin_probe.py ingest --lane-b` over the same 28 parents, from Hobbes
+`8add0a0`, the full contained ingest (ADR-092: every lane B step in
+`hobbes-session:local`, `--network none` for every index step; the
+clone venv-less as the TTT base ingest was, C-85). Graphs under
+`~/.hobbes/bench/calvin/graphs-laneb/` (188 MB, regenerable).
+
+| | |
+|---|---|
+| parents ingested | 28 of 28, exit 0 each |
+| wall time, total | 698 s (11.6 min) |
+| wall time per parent, min / median / max | 20 s / 24 s / 37 s |
+| symbol edges over the 28 graphs | 176,824 — **176,796 semantic**, 28 syntactic |
+| `containment.all_contained` | true on every graph; no escape hatch |
+| degradations, every graph | the standing C-28 dup-namespace records (Go packages, cargo targets); C-85 (no venv: third-party Python edges absent, not nonexistent); `bench/oracle/java` below no build file |
+
+**§4.1 and §4.2 re-run on the semantic ledgers: every number identical
+to the lane-A rows above** — 458 / 103 / 119 hunks, median ceiling
+0.71, anchors 0.21 / 0.25, 182 unresolved terms with 118 new, 73
+unreached gold files of which 64 never named. Expected: both
+instruments read spans, paths and names, which are lane A's; lane B
+changes what a reference *resolves to*, which the grounder (step 3)
+is the first instrument to consume. §7.1's per-parent cost on this
+repo is therefore ~24 s contained, not the ~2 s lane-A figure, and
+the ledger step 3 will ground against is the one the charter §6 asks
+for (semantic-tier resolution, so "exists" is not a guess).

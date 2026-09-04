@@ -1,6 +1,6 @@
 """The Calvin M0 pre-run probes (`docs/calvin-potential.md` §0, §4.1, §4.2; record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`).
 
-    uv run scripts/calvin_probe.py ingest  <graphs-dir> [--clone DIR] [--commits FILE]
+    uv run scripts/calvin_probe.py ingest  <graphs-dir> [--clone DIR] [--commits FILE] [--lane-b]
     uv run scripts/calvin_probe.py probe   <graphs-dir> [--mode parent|base] [--base-graph graph.json]
     uv run scripts/calvin_probe.py anchors <graphs-dir>
 
@@ -8,8 +8,12 @@ Two instruments that need no orchestrator, computed from lane A alone
 (symbol spans, file paths and names are lane A's; ``HOBBES_SCIP=0``).
 ``ingest`` builds one lane-A graph per distinct unit commit at the
 commit's **parent** into ``<graphs-dir>/<commit>.json`` (+ ``.tests.json``,
-``.log``), checking the clone out at each parent; graphs are
-regenerable in about two seconds each and are not committed. ``probe``
+``.log``), checking the clone out at each parent; lane-A graphs are
+regenerable in about two seconds each and are not committed.
+``--lane-b`` runs the full contained ingest instead (lane B in the
+sandbox image, ADR-092) — the ledger M0's grounder needs, since exact
+matching against a syntactic-only graph makes "exists" a guess
+(charter §6); the per-parent wall time it prints is §7.1's cost. ``probe``
 is the template-coverage ceiling (§4.1) — every gold-diff hunk of the
 50 §9b cell units classed as *absent file* (by extension; and whether
 the commit creates it), *inside a symbol span*, or *known file outside
@@ -132,14 +136,17 @@ def cmd_ingest(a: argparse.Namespace) -> int:
         subprocess.run(["git", "checkout", "-q", parent], cwd=clone, check=True)
         subprocess.run(["rm", "-rf", str(clone / ".hobbes" / "derived")], check=True)
         t0 = time.time()
+        env = {k: v for k, v in os.environ.items() if k != "HOBBES_SCIP"}
+        if not a.lane_b:
+            env["HOBBES_SCIP"] = "0"
         with open(graphs / f"{c}.log", "w") as log:
             rc = subprocess.run(["uv", "run", "--project", str(repo / "pipeline"), "hobbes", "ingest", "--repo", str(clone)],
-                                env={**os.environ, "HOBBES_SCIP": "0"}, stdout=log, stderr=subprocess.STDOUT).returncode
+                                env=env, stdout=log, stderr=subprocess.STDOUT).returncode
         for name in ("graph.json", "tests.json"):
             src = clone / ".hobbes" / "derived" / name
             if src.exists():
                 (graphs / (f"{c}.json" if name == "graph.json" else f"{c}.tests.json")).write_bytes(src.read_bytes())
-        print(f"{c} parent={parent} rc={rc} {time.time() - t0:.0f}s")
+        print(f"{c} parent={parent} rc={rc} {time.time() - t0:.0f}s", flush=True)
     return 0
 
 
@@ -269,6 +276,7 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("ingest"); s.add_argument("graphs"); s.add_argument("--clone"); s.add_argument("--commits", type=Path)
+    s.add_argument("--lane-b", action="store_true", help="full contained ingest (lane B in the image) instead of lane A only")
     s.set_defaults(fn=cmd_ingest)
     s = sub.add_parser("probe"); s.add_argument("graphs"); s.add_argument("--mode", choices=("parent", "base"), default="parent")
     s.add_argument("--base-graph", default=str(BENCH / "hobbes-base" / ".hobbes" / "derived" / "graph.json"))

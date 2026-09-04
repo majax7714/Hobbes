@@ -257,7 +257,7 @@ Per unit in T: `(template, fills, grounded diff, NULL list with classes, read-tr
 
 Each becomes a `C-n` in `constraints/verification-benchmark-harness.md` in the commit that moves this document to *accepted* (P8); listed here so the register entry is written from the design, not reconstructed after.
 
-1. **Per-parent ingest cost.** One graph per distinct parent commit. Cached by SHA; count reported. If ingest dominates wall-clock, that is a Hobbes cost to register, not an M0 finding.
+1. **Per-parent ingest cost.** One graph per distinct parent commit. Cached by SHA; count reported. If ingest dominates wall-clock, that is a Hobbes cost to register, not an M0 finding. Measured on this repo: 28 contained ingests in 698 s, median 24 s (the probe record's addendum).
 2. **Exact-match grounding is deliberately worse than product.** No basename fallback, so NULL measures orchestrator noise. Rules are M1's first content.
 3. **One orchestrator, one endpoint shape.** OpenAI-compatible only; Claude via gateway. The NULL distribution may be model-specific; a second model is a follow-up.
 4. **Local sandbox only.** The policy engine runs on the box. Carrying it into a Modal image is its own ADR; M0 does not depend on it.
@@ -270,9 +270,9 @@ Each becomes a `C-n` in `constraints/verification-benchmark-harness.md` in the c
 
 ## 8. Order of work
 
-Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call. Steps 0's lane-A half and the two §4.1/§4.2 readings are already in hand (the probe record); the anchor rows there are a floor, since the resolver probed lacks the test-id, stack-trace and error-string matchers step 2 adds.
+Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call. Step 0 and the two §4.1/§4.2 readings are already in hand (the probe record); the anchor rows there are a floor, since the resolver probed lacks the test-id, stack-trace and error-string matchers step 2 adds.
 
-0. **Parent re-base.** For each of the 50 units: parent SHA, ingest at parent (cached), gold diff = commit. *Exit:* 50 `(parent_sha, gold diff)` pairs; ingest count and time recorded. **Partly done (the probe record):** the 28 parents are named, lane-A graphs exist for each (`calvin_probe.py ingest`), and both no-orchestrator instruments have been computed on them. What remains is the semantic (lane B, contained) ingest per parent — the one M0's grounder needs, since exact-match grounding against a syntactic-only ledger makes "exists" a guess (charter §6) — with its cost recorded, and the probe re-run on those graphs to confirm the lane-A numbers hold.
+0. **Parent re-base.** For each of the 50 units: parent SHA, ingest at parent (cached), gold diff = commit. *Exit:* 50 `(parent_sha, gold diff)` pairs; ingest count and time recorded. **Done (the probe record and its 2026-09-04 addendum):** the 28 parents are named; a contained lane-B graph exists for each (`calvin_probe.py ingest --lane-b`, 28 ingests, 698 s, median 24 s, 176,796 of 176,824 symbol edges semantic); both no-orchestrator instruments computed on the lane-A graphs and re-run identical on the semantic ones. The ledger step 3 grounds against is the semantic one (charter §6).
 1. **Hole schema** incl. `UNRESOLVED` and `MODULE_REGION`. *Exit:* one hand-written template for a §9b unit that a reader can fill without instructions.
 2. **`hobbes template` in derive:** anchor pass with unresolved block, structure pass with module regions, pruning. *Exit:* templates for all 50 regenerate byte-identically at the parent; anchor P/R and coverage buckets (§4.1, §4.2) computed against gold before any orchestrator call.
 3. **Grounder v0 in derive.** *Exit:* the 50 gold diffs fed in as fills → HSR = 0, NULL = 0 except terms the diff declares (which must resolve as gensyms), diffs re-apply cleanly at the parent.
