@@ -1,16 +1,18 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-04 (night): Calvin M0 step 6 ran on four keys and
-is written up, and the four no-spend fixes are in; a wider run waits
-on a dollar ceiling from Max; the TTT items and ADR-092's decisions are still held
-for Max.** Read this, then the 2026-09-04 BUILDLOG entries for how the
+**Rewritten 2026-09-04 (later): Calvin M0 step 6 ran on four keys and
+is written up, the four no-spend fixes are in, and Max has taken API
+spend and Modal compute off the table for the next steps — the queue
+is the no-spend work in NEXT; the doc drift the Calvin sprint left
+(register count, README, architecture §8, workstreams) is corrected;
+the TTT items and ADR-092's decisions are still held for Max.** Read this, then the 2026-09-04 BUILDLOG entries for how the
 state was reached, and `docs/workstreams.md` for the backlog by owner.
 History lives in the BUILDLOG; this doc is rewritten, never appended
 into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Calvin M0 is measured on four keys; the next run is Max's number
+## ⇢ START HERE NEXT SESSION: Calvin M0 is measured on four keys; spend is off the table, the no-spend queue is next
 
 **Current work (Max, 2026-09-04): evaluating Calvin potential.** The
 design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
@@ -49,8 +51,10 @@ is `templates/` and is v0: the code refuses it now); importer tests are
 guards in the template (tier `import`) and the verifier (import grain,
 C-93 amended); the box policy allows the read-only toolchain probes and
 denies `env`; `loop.py --token-budget` rides every arm-O argv at 1M.
-None of it re-run. **Next is Max's number:** the total ceiling for a
-wider run and the key count. Per-key cost at the *old* shape was T
+None of it re-run. **Max took API spend and Modal compute off the
+table on 2026-09-04 (later)** — the wider run is held, and what comes
+next is the no-spend queue (NEXT below). When a run reopens, the
+number is the total ceiling and the key count. Per-key cost at the *old* shape was T
 $0.1–5 (module explosions) and O $2.5–5.2 (the 30-turn cap); the
 template fix removes the explosions (bodies before confirmation 99 →
 45 over the 28) and the budget flag caps O at ~$3 a session, so a
@@ -90,7 +94,8 @@ and C-85 lifted in four commits (`89c819a`, `0a06e8a`, `5562271`,
 C-90, registered there, fixed on Max's word the same night, each with tests, the register entry moved to its segment's
 lifted section, the architecture amended, and the evidence log's new
 section; the four 2026-09-02 clones re-ingested to confirm on the real
-repos. The register reads **68 active / 20 lifted / 2 superseded**, two
+repos. The register read **68 active / 20 lifted / 2 superseded** at that
+point (71 active now, C-91–C-93 from Calvin M0), two
 entries *unsurfaced* (C-19, C-20), none inflating a number. Things Max
 may want to look at: the Python capture line drops a few points on
 every repo because C-80 adds real calls to the denominator (this repo
@@ -102,14 +107,21 @@ same at HEAD: the contained venv listing returns `pip` alone
 — an environment reading (the fake venv's python is a host symlink the
 container does not see), not a tree change; CI's box is the check.
 
-## WHERE THINGS STAND (2026-09-03, night)
+## WHERE THINGS STAND (2026-09-04, later)
 
+- **Calvin M0** (`docs/calvin-potential.md`; ADR-100 for its harness):
+  steps 0–6b done; template v1 regenerated (`templates-v1/`), nothing
+  re-run under it; the design's ADR takes 101 when Max moves it to
+  *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite 1,227
+  pytest + 3 `lane_b` (1,228 collect on this box).
 - **Extraction:** the ten entries lifted, plus C-89 and C-90 (above).
-  Register: 90 entries, 68 active, 20 lifted (C-86–C-88 from the review still active: the
+  Register: **93 entries, 71 active, 20 lifted, 2 superseded** (C-91
+  from Calvin step 3, C-92/C-93 from step 5, ADR-100; the count is
+  checked against the segment headings, not a summary line; C-86–C-88 from the review still active: the
   control margin is a bound; the first NLL write-up's conditioning was
   unstated; trained "none" answers override the card). Image rebuilt
   2026-09-03 night (`below-floor` row, the `uses` gloss — C-65).
-- **The TTT instruments (ADR-099 + amendments 9–14; 1,142 pytest):**
+- **The TTT instruments (ADR-099 + amendments 9–14):**
   `hobbes derive-corpus` (`--paraphrases K`, `--control
   shuffled|shuffled-all`), `hobbes.ttt.units` (four conditionings,
   hand-written tasks by commit), `hobbes.ttt.score` (v2),
@@ -137,23 +149,48 @@ container does not see), not a tree change; CI's box is the check.
 - **Compute this session:** ≈ 7 GPU-hours by the manifests; read the
   meter before quoting.
 
-## NEXT (in order, none cleared to spend compute)
+## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
 
-0. Calvin M0 after the four-key run (`docs/calvin-potential.md` §10; the four fixes in): Max's ceiling and key count for a wider run (four keys first, on template v1); his review of the ten lifts, ADR-100 and the step-6 record.
-1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
+0. ~~Doc drift from the Calvin sprint~~ — **done 2026-09-04 (later):**
+   the register count everywhere (93 / 71 / 20 / 2), README's status,
+   ADR count and design-docs table, architecture §8's Calvin row,
+   workstreams item 8, this doc.
+1. **Calvin M0 without a model** (`docs/calvin-potential.md` §8 step
+   6b is in, nothing exercised): re-verify the step-6 arm-T diffs under
+   the importer-test guard (`hobbes verify` is local Podman, no model —
+   the `PROFILES` false pass on `c59916f` should now be a caught
+   failure); recompute the step-2 anchor and coverage instruments on
+   template v1 (`calvin_probe.py`) so the 99 → 45 bodies change has a
+   coverage number beside it; draft ADR-101's body from the design when
+   Max moves it to *accepted*. Max's review of the ten lifts, ADR-100
+   and the step-6 record still stands.
+2. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
    (`handlers[0]()`) is still no site (C-80's residual, C-63's shape).
    date-fns re-ingested: 0.1% → 80.1% capture, 15 of 15 zones, lanes
    7,601 / 0 after C-89 and C-90.
-2. If cleared: the 3,000-step adapter under the cell (item 1 above);
-   the 10,000-step point; a second unseen repo through the cell.
-3. Watch the first CI run when Max pushes (unchanged).
-4. W0 residue; the removal A/B re-run; Java follow-ups (W1);
-   collaborator onboarding — unchanged.
+3. W0: the one deselected `lane_b` test (a real venv in the fixture —
+   the same test fails on this box); the three duplicate invariant
+   pairs (I-1/I-7, I-2/I-8, I-6/I-11); watch the first CI run when Max
+   pushes (unchanged).
+4. W1 / W3 items that spend nothing: the decorated-declaration line
+   convention, the C-15 namespacing ADR, the directory rollup in
+   `list_blind_spots`, the decomposed DeepSWE protocol as design only;
+   Java follow-ups (W1); collaborator onboarding — unchanged.
+
+**Held, with all spend (not cleared, not scheduled):** the wider Calvin
+run (its ceiling and key count when it reopens; four keys first on
+template v1); the 3,000-step adapter under the cell and the
+10,000-step point (item 1 of the TTT list above); the removal A/B
+re-run on the 7B; a second unseen repo through the cell; `hobbes
+narrate` on this repo.
 
 ## STANDING POLICY (Max) — read before doing anything
 
+0. **API spend and Modal compute are off the table for the next steps
+   (Max, 2026-09-04)** — the queue is no-spend work; a run reopens
+   only when Max names it and its ceiling.
 1. **Experiments are PARKED** except what Max clears by name; the TTT
    review list is done, its two held points are not cleared.
 2. **The 7B is the instrument, by speed not capability.** GPU-hours

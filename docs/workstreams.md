@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03 and 2026-09-04.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -35,8 +35,13 @@ item opens when Max names it. Sequencing context is
    residue it named is the current extraction work (`session-handoff.md`
    NEXT 1).
 8. The test-time-training experiment (ADR-099) ran 2026-09-03; its two
-   held points wait on Max. Current work is the extraction residue, then
-   W0's discipline items and collaborator onboarding.
+   held points wait on Max. Calvin M0 (`calvin-potential.md`, ADR-100
+   for its harness) ran on four keys 2026-09-04 and its four no-spend
+   fixes are in, not re-run. **API spend and Modal compute are off the
+   table for the next steps (Max, 2026-09-04):** current work is the
+   no-spend queue in `session-handoff.md` NEXT — Calvin's model-free
+   follow-through, the extraction residue, then W0's discipline items
+   and collaborator onboarding. Every run in W2/W3 stays held.
 
 ---
 

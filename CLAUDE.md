@@ -222,13 +222,13 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-03)
+## Status (2026-09-04)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 90 registered constraints
-  (68 active, 20 lifted).
+  by one range join; artifacts at schema v4; 93 registered constraints
+  (71 active, 20 lifted, 2 superseded).
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%
@@ -322,11 +322,15 @@ review → `lane_b` pytest) and runs the same way on a box.
   the cost door, the template misses importer tests, candidates bind
   but do not find; the 28-key run was cut on cost and waits on a
   ceiling from Max plus the two protocol fixes.
-- **Then:** re-run the real workspace (date-fns) and serde cells if the
-  re-ingest leaves anything open; the 3,000-step adapter
-  under the cell and the 10,000-step point if cleared; the removal A/B
-  re-run on a cleared 7B run; project setup for collaborators
-  (`docs/workstreams.md`).
+- **Then — API spend and Modal compute are off the table for the
+  next steps (Max, 2026-09-04):** the no-spend queue in
+  `docs/session-handoff.md` — Calvin's model-free follow-through
+  (re-verify the step-6 diffs under the importer guard, the step-2
+  instruments on template v1, ADR-101 when accepted), the extraction
+  residue the lifts named, W0's discipline items, project setup for
+  collaborators (`docs/workstreams.md`). Held: the wider Calvin run,
+  the 3,000-step adapter under the cell and the 10,000-step point, the
+  removal A/B re-run on the 7B, `hobbes narrate` on this repo.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

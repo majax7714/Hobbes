@@ -259,8 +259,13 @@ this repo with zero disagreements at the v2 exit; 36,703 dual-resolved
 sites on the ~265k-site dagger monorepo with 258, all but one a single
 known line-convention off-by-one. Java landed 2026-08-29 (ADR-096) as the
 sixth language, four repos compiler-graded at 100% precision in one
-session. The constraint register holds ninety entries (sixty-eight
-active, twenty lifted), each naming where a user meets the limit.
+session. A four-repo extraction test (2026-09-02, one public repo
+drawn per language, run through the knowledge tools by agents) found
+no semantic edge wrong and registered ten findings, all lifted the
+next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
+The constraint register holds ninety-three entries (seventy-one
+active, twenty lifted, two superseded), each naming where a user meets
+the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
 (ADR-092).** Every lane B indexer, Java's build, and the executing
@@ -284,7 +289,13 @@ to DeepSWE 1.1 on a mini-swe-agent substrate. A test-time-training
 experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
 loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count
-([`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md)).
+([`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md)). Calvin M0
+([`docs/calvin-potential.md`](docs/calvin-potential.md), its harness
+ADR-100) then asked whether a deterministic grounder under an
+orchestrator can make a model's edit true against the graph: the 28
+gold diffs ground and verify in the sandbox with no model, and a
+four-key run on Sonnet 5 (2026-09-04) read the anchor stage as the
+residual — the two protocol fixes are in and not yet re-run.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -299,7 +310,7 @@ point); the session-by-session record is
 | [`docs/hobbes-build-plan-v2.md`](docs/hobbes-build-plan-v2.md) | The v2 programme, V2.M0–V2.M7, complete — kept with its exit criteria and outcomes |
 | [`docs/hobbes-architecture-v1.md`](docs/hobbes-architecture-v1.md) | The frozen v1 design — history, kept for the reasoning behind the carried subsystems |
 | [`docs/hobbes-build-plan.md`](docs/hobbes-build-plan.md) | v1 milestones M0–M8 and the locked decisions |
-| [`docs/adr/`](docs/adr/) | 99 numbered ADRs — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | 100 numbered ADRs — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams and per-cell numbers |
@@ -307,6 +318,8 @@ point); the session-by-session record is
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
 | [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
 | [`docs/benchmark-deepswe.md`](docs/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
+| [`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
+| [`docs/calvin-potential.md`](docs/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin-charter.md` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
 
@@ -433,8 +446,10 @@ pinned where a pin is possible:
   tables is a tree-sitter walk. Architecture §3.1.
 - **[SCIP](https://github.com/scip-code/scip)** and the indexers Hobbes
   runs unchanged — `scip-python`, `scip-typescript`,
-  [`scip-go`](https://github.com/scip-code/scip-go) (0.2.7), and
-  `rust-analyzer`'s native `scip` export — **lane B.** Every `semantic`
+  [`scip-go`](https://github.com/scip-code/scip-go) (0.2.7),
+  `rust-analyzer`'s native `scip` export, and
+  [`scip-java`](https://github.com/scip-code/scip-java) (0.13.1) —
+  **lane B.** Every `semantic`
   edge is theirs; their limits are registered as Hobbes's own (P9,
   C-6, C-23). Architecture §3.2.
 - **[ts-morph](https://ts-morph.com/)** (over the TypeScript compiler)

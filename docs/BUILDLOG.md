@@ -6666,3 +6666,46 @@ argv, `harness.O_TOKEN_BUDGET`; `calvin_probe.py o --token-budget`).
 Six tests; the hand template and the 28 regenerate byte-identically
 under v1 (`templates-v1/`, the step-2 set kept). Design §2.1/§8/§10,
 architecture §6.2, the record. Not re-run.
+
+## 2026-09-04 (later) — doc drift after the Calvin sprint; API spend and Modal compute off the table
+
+**What.** Max asked for a review of the top-level documentation and
+said API spend and Modal compute are off the table for the next
+steps ("i was pushing things a little quickly, doc drift is heaviest
+immediate task then we can proceed further"). The review found the
+docs consistent up to 2026-09-03 and every drift in the last day's
+Calvin M0 work, in the summary layers the architecture's own rule
+(§9) says must not lag: the register summary read **93 entries,
+71 active, 20 lifted, 2 superseded** (C-91–C-93 added 2026-09-04)
+while CLAUDE.md, the README and the handoff's "where things stand"
+still said 90 / 68 / 20; the README said 99 ADRs against 100 files;
+the README's Status stopped at the TTT experiment, carrying neither
+the four-repo extraction test nor Calvin M0; architecture §8's
+build-programme table had no Calvin M0 row though §6.2 and §7 were
+amended; the handoff mixed a 2026-09-04 "start here" with a
+2026-09-03 "where things stand" (old register count, a 1,142 pytest
+count); `workstreams.md` item 8 named the extraction residue as
+current work while the handoff named Calvin. The register count was
+re-derived from the segment-file headings (93 unique `C-n`, 20
+marked lifted, C-55/C-56 superseded in their bodies), not taken from
+a summary line. Also: `AGENTS.md` is a symlink to CLAUDE.md;
+`secrets.txt` at the root is gitignored and untracked; 1,228 tests
+collect on this box against CLAUDE.md's 1,227 + 3 `lane_b`.
+
+**Fixed, docs only, no code.** CLAUDE.md (the register count, the
+Status date, the "Then" bullet rewritten around the no-spend queue);
+README (the count, the ADR count, the four-repo test and Calvin M0 in
+Status, `olmo3-ttt-results.md` and `calvin-potential.md` in the
+design-docs table, `scip-java` in the SCIP acknowledgement, which
+listed four indexers for six languages); architecture §8 (a Calvin
+M0 row); `workstreams.md` (item 8, the refresh date); the handoff
+rewritten — one date, the count, a Calvin bullet, NEXT reordered
+with the no-spend queue first and every spend item under a *Held*
+line, standing policy item 0. Nothing in the constraint register
+itself moved.
+
+**Next (no spend):** Calvin M0's model-free follow-through — the
+step-6 arm-T diffs re-verified under the importer-test guard, the
+step-2 instruments on template v1, ADR-101 when Max accepts the
+design — then the extraction residue and W0's items, in the handoff's
+order. Not pushed.
