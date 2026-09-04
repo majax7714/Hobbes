@@ -746,8 +746,14 @@
   the counts by origin, grain and framework; every test row carries its
   origin and class; `hobbes verify` prints `no-tests`, `unsupported`
   and `uncollected` beside the verdict.
+- **Calibrated (2026-09-04, later):** the import grain over the 28
+  gold diffs — every verdict identical to step 5's calibration, `P2F`
+  0, 2,408 rows added (the selection 3,190 → 5,598), one new `F2F`
+  that is the box's known environment failure pulled in as a fault.
+  The grain is coarse — a test joins on its module's imports, so one
+  importing test file brings every test in it — and safe on gold.
 - **Source:** ADR-100 (2026-09-04), Calvin M0 step 5; the fixture case
-  from the calibration of the same day.
+  from the calibration of the same day; the import grain from step 6b.
 
 ## Superseded constraints in this segment
 

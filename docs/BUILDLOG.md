@@ -6709,3 +6709,32 @@ step-6 arm-T diffs re-verified under the importer-test guard, the
 step-2 instruments on template v1, ADR-101 when Max accepts the
 design — then the extraction residue and W0's items, in the handoff's
 order. Not pushed.
+
+**Later, the same session — Calvin M0 step 6b exercised with no model
+(Max: "go ahead with the calvin no spend").** Three instrument runs,
+no orchestrator, nothing on Modal; the record's eighth addendum has
+the tables. (1) The 28 golds through the verifier under the import
+grain (`verify-gold-import/`, 641 s): every verdict identical, `P2F`
+0, the selection 3,190 → 5,598 (2,408 import rows), one new `F2F` —
+the box's known venv-listing failure pulled onto `9c474c6` as a fault,
+not a verdict. C-93 carries the calibration. (2) The four arm-T diffs
+re-verified (`verify-t-step6-import/`): unchanged; the `TestProfiles`
+failures on `00e5aee` had been selected at file grain already (T's
+diff touched the test file), so the fix's work is in the template, not
+the verifier. (3) Template v1's step-2 instruments beside v0's: symbol
+4% → 3%, region 2 → 0, outside 89% → 91% (the nine hunks a module
+anchor's bodies covered before confirmation), the anchor pass
+unchanged, max holes 333 → 135, 17 confirmations a task. (4) A new
+`calvin_probe.py replay` (two pure helpers, three tests) replays a
+recorded run's round-1 answers into a later template set: on
+`00e5aee`, with the gold's 15 symbols confirmed, 844 holes and the
+three `TestProfiles` tests present at tier `import`; with every symbol
+of the confirmed modules, 1,226 — more than the run's 1,068 — the
+import tier's 167 test holes being the difference. **Reading:** the
+fix lands the missed tests; v1 saves bodies only under selective
+confirmation; the import tier's test hole (one per test in an
+importing file, 55 of 56 on `d509835`) is the next cost door — named
+for the protocol, not built. The handoff's naming of `c59916f` as the
+`PROFILES` key this morning was wrong (it is `00e5aee`); corrected.
+Suites: 1,230 pytest (+3), the venv test failing on this box as
+before. Not pushed.

@@ -8,6 +8,7 @@
     uv run scripts/calvin_probe.py t       <graphs-dir> --templates <dir> --out <dir> --commits c… --base-url URL --model M
     uv run scripts/calvin_probe.py verify  <graphs-dir> --diffs <dir> --out <dir> [--commits c…] [--suffix .diff]
     uv run scripts/calvin_probe.py o       <graphs-dir> --templates <dir> --out <dir> --commits c… (--scripted SCRIPT.json | --base-url URL --model M)
+    uv run scripts/calvin_probe.py replay  <graphs-dir> --templates <dir> --t <dir> --commits c… [--mode gold max] [--show-tests]
 
 Two instruments that need no orchestrator, computed from lane A alone
 (symbol spans, file paths and names are lane A's; ``HOBBES_SCIP=0``).
@@ -35,7 +36,12 @@ applied at its parent, the testmap's guards run in the sandbox with
 and without it. ``o`` is arm O on the same harness — a
 ``hobbes-session`` with policy-checked exec per commit; ``--scripted``
 plays a JSON script through the session in place of a model (step 5's
-exit check, no orchestrator). ``templates`` is step 2's
+exit check, no orchestrator). ``replay`` is step 6b
+exercised with no model: a recorded arm-T run's round-1 answers
+(``<commit>.t.json``) replayed into a later template set and rebuilt,
+the per-symbol confirmations decided by the gold diff (``gold``) or
+by the run's module answers (``max``, the upper bound) — what round 2
+would have asked, its test holes by tier, §4.1 coverage. ``templates`` is step 2's
 exit: `hobbes.derive.template` over every proposal at its parent,
 rebuilt and compared byte for byte, and §4.1 / §4.2 / §4.7 scored
 against gold with no orchestrator — the *actual* template coverage
@@ -136,6 +142,49 @@ def load_units() -> tuple[list[dict], dict[str, list[dict]]]:
 
 def load_proposals() -> list[dict]:
     return [p for p in (json.loads(l) for l in open(PROPOSALS)) if "commit" in p]
+
+
+def hunks_by_file(diff: str) -> dict[str, list[tuple[int, int]]]:
+    """Post-image line ranges of every hunk, keyed by the file its ``+++ b/`` header names (``hunk_ranges`` over a one-file diff, per file)."""
+    out: dict[str, list[tuple[int, int]]] = collections.defaultdict(list)
+    path = None
+    for line in diff.splitlines():
+        m = re.match(r"^\+\+\+ b/(.*)", line)
+        if m:
+            path = m.group(1)
+            continue
+        m = HUNK_RE.match(line)
+        if m and path is not None:
+            start = int(m.group(1))
+            n = int(m.group(2) or 1)
+            out[path].append((start, max(start + n - 1, start)))
+    return dict(out)
+
+
+def replay_fills(template: dict, record: dict, mode: str, edits) -> tuple[dict, int]:
+    """Round-1 fills for *template* (v1: a module anchor's symbols asked one by one) from a recorded arm-T run's round-1 answers (*record* is the ``.t.json``,
+    whose round 1 asked v0's per-word confirmations). A word-level confirmation takes the recorded answer; a per-symbol one is decided by *mode*:
+    ``gold`` — yes iff ``edits(symbol_id)`` (the gold diff touches its span); ``max`` — yes for every symbol of a module the run confirmed (v1's upper bound).
+    The UNRESOLVED answer is carried as recorded. Returns ``(fills, confirmations answered yes)``."""
+    r1 = record["rounds"][0]["fills"]["fills"]
+    words = {h["provenance"]["anchor"]: bool(r1.get(h["id"], {}).get("confirm")) for h in record["template_round1"]["holes"] if h["type"] == "ANCHOR_CONFIRM"}
+    confirmed_modules = {h["provenance"]["module"] for h in template["holes"]
+                         if h["type"] == "ANCHOR_CONFIRM" and h["provenance"].get("module") and words.get(h["provenance"]["anchor"])}
+    fills: dict = {}
+    yes = 0
+    for h in template["holes"]:
+        if h["type"] == "UNRESOLVED" and h["id"] in r1:
+            fills[h["id"]] = r1[h["id"]]
+        if h["type"] != "ANCHOR_CONFIRM":
+            continue
+        prov = h["provenance"]
+        if prov.get("symbol"):
+            ans = edits(prov["symbol"]) if mode == "gold" else prov.get("module") in confirmed_modules
+        else:
+            ans = words.get(prov["anchor"], False)
+        fills[h["id"]] = {"confirm": bool(ans)}
+        yes += bool(ans)
+    return fills, yes
 
 
 def cmd_ingest(a: argparse.Namespace) -> int:
@@ -572,6 +621,59 @@ def cmd_verify(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_replay(a: argparse.Namespace) -> int:
+    """Step 6b, exercised with no model: a recorded arm-T run's round-1 answers replayed into a later template set (v1) and rebuilt — what round 2 would have
+    been asked. ``--mode gold`` confirms a symbol iff the gold diff edits it; ``--mode max`` confirms every symbol of a module the run confirmed. Prints the
+    rebuilt template's holes by type, its TEST_EXPECTATIONs by tier, whether the tests in the gold's own test files are among them, and §4.1 coverage."""
+    from hobbes.derive import cochange
+    from hobbes.derive import template as T
+
+    graphs = Path(a.graphs)
+    templates = Path(a.templates)
+    records = Path(a.t)
+    diffs = Path(a.diffs) if a.diffs else graphs.parent / "ground"
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    _, bycommit = load_units()
+    props = {p["commit"]: p for p in load_proposals()}
+    for c7 in a.commits:
+        c = next(k for k in props if k.startswith(c7))
+        rec_path = records / f"{c}.t.json"
+        if not rec_path.exists():
+            print(f"{c[:7]}  (no {rec_path.name})")
+            continue
+        rec = json.load(open(rec_path))
+        L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+        t1 = json.load(open(templates / f"{c}.template.json"))
+        gold = (diffs / f"{c}.diff").read_text(errors="surrogateescape")
+        ranges = hunks_by_file(gold)
+        gold_test_files = {p for p in ranges if p in {t["file"] for t in L.tests}}
+        subprocess.run(["git", "checkout", "-q", "--force", L.sha], cwd=clone, check=True)
+        cc = cochange.observe(clone, 200)
+
+        def edits(sid: str) -> bool:
+            sp = L.span(sid)
+            return any(not (b < sp["start"] or x > sp["end"]) for x, b in ranges.get(sp["path"], []))
+
+        asked = sum(1 for h in t1["holes"] if h["type"] == "ANCHOR_CONFIRM")
+        for mode in a.mode:
+            fills, yes = replay_fills(t1, rec, mode, edits)
+            t2 = T.apply_round1(props[c]["task"], L, repo, cc, t1, fills)
+            by = collections.Counter(h["type"] for h in t2["holes"])
+            tests = {h["provenance"]["test"]: h["provenance"]["tier"] for h in t2["holes"] if h["type"] == "TEST_EXPECTATION"}
+            tiers = collections.Counter(tests.values())
+            in_gold_files = collections.Counter(tests[t] for t in tests if t.split("::")[0] in gold_test_files)
+            cov = T.score_coverage(t2, [(r["id"].split(":", 1)[1], r["gold_diff"]) for r in bycommit[c]])
+            print(f"{c[:7]}  {mode:4s} confirmed {yes}/{asked} -> {len(t2['holes'])} holes {dict(sorted(by.items()))}")
+            print(f"          TEST_EXPECTATION by tier {dict(tiers)}; in the gold's own test files {dict(in_gold_files)} of {sum(1 for t in L.tests if t['file'] in gold_test_files)} there; "
+                  f"coverage {cov}; write partition {len(t2['constraints']['write_partition'])} files")
+            if a.show_tests:
+                for t in sorted(tests):
+                    if t.split("::")[0] in gold_test_files:
+                        print(f"            {tests[t]:7s} {t}")
+    return 0
+
+
 def cmd_o(a: argparse.Namespace) -> int:
     """Step 5's other half: arm O on the local harness — one `hobbes-session` per commit at its parent with policy-checked exec, the patch grounded and verified; `--scripted` plays a JSON script in place of the model."""
     from hobbes.derive import harness as H
@@ -760,6 +862,11 @@ def main(argv: list[str]) -> int:
     s.add_argument("--verify-t0", help="verify records of arm T's pre-loop diffs (.t0.diff); without it T's verdict column is empty where a loop ran")
     s.add_argument("--out", required=True, help="the rows as JSON"); s.add_argument("--clone"); s.add_argument("--commits", nargs="*")
     s.set_defaults(fn=cmd_rows)
+    s = sub.add_parser("replay"); s.add_argument("graphs"); s.add_argument("--templates", required=True, help="the template set to replay into (templates-v1/)")
+    s.add_argument("--t", required=True, help="directory of the recorded arm-T runs (<commit>.t.json)"); s.add_argument("--diffs", help="gold diffs (default: ground/)")
+    s.add_argument("--commits", nargs="+", required=True); s.add_argument("--mode", nargs="+", choices=("gold", "max"), default=["gold", "max"]); s.add_argument("--clone")
+    s.add_argument("--show-tests", action="store_true", help="list the TEST_EXPECTATIONs that sit in the gold's own test files")
+    s.set_defaults(fn=cmd_replay)
     a = ap.parse_args(argv)
     return a.fn(a)
 

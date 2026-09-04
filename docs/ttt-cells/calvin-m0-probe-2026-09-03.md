@@ -909,3 +909,89 @@ module — the `PROFILES` tests would now be asked and selected; (3)
 `env`/`printenv` (the endpoint key rides as an environment variable);
 (4) `loop.py --token-budget`, 1M prompt tokens on every arm-O argv.
 Not re-run: the cost is Max's number.
+
+
+## Addendum 2026-09-04 (later) — step 6b exercised with no model: the import grain calibrated, template v1 measured, the run's answers replayed
+
+Max took API spend and Modal compute off the table for the next
+steps, so the four fixes of step 6b were exercised with the
+instruments that need no orchestrator. Three runs, every artifact
+under `~/.hobbes/bench/calvin/`, every number from
+`pipeline/scripts/calvin_probe.py` (`verify`, `templates`, and the
+new `replay`).
+
+**1. The verifier's import grain over the 28 gold diffs
+(`verify-gold-import/`, `calvin_probe.py verify … --diffs ground`,
+641 s).** The calibration of step 5 re-run under the grain added on
+2026-09-04 night. **Every verdict identical** — 26 pass / 1 fail /
+1 no-tests — and `P2F` 0 still; the selection grew from 3,190 to 5,598
+(guard 1,764 → 4,172; the new `import` grain 2,408; module 373, symbol
+1,391 and file 1,426 unchanged), the test rows from 3,452 to 5,825, with
+`new-fail` 4 (all `29e926a`, as before) and `F2F` 4 → 5. The fifth `F2F`
+is `test_venv_environment_lists_the_venvs_own_distributions`, pulled
+onto `9c474c6` by the import grain — the one test that fails on this
+box with and without any diff (the handoff's environment reading, W0's
+deselected test): a fault row, never a verdict, which is the class
+doing its job. Sixteen of the 28 commits gained import rows (160 on
+`00e5aee`, 361 on `29e926a`, 335 on `cd01d05`); twelve gained none.
+Reading: **the grain is safe on gold** — it adds guards and no false
+failure — and it is coarse: a test joins on its *module* importing an
+edited module, so one importing test file brings every test in it.
+
+**2. The four step-6 arm-T diffs under the import grain
+(`verify-t-step6-import/`).** Verdicts unchanged — `00e5aee` fail,
+`c59916f` pass, `b8afd41` empty-diff, `d509835` no-tests. On `00e5aee`
+the selection went 140 → 197 (57 import rows), every added row `P2P`;
+the three `TestProfiles` failures are the same three, and they were
+already in the step-6 selection at *file* grain (origin `touched`: arm
+T's diff edited `test_containment.py` itself). So the verifier had
+caught the right code's failure before the fix; what the fix changes
+is the *template* — whether T is asked about those tests at all (3
+below). `c59916f`'s selection went 9 → 12 (3 import rows), the same 12
+tests run.
+
+**3. Template v1's step-2 instruments (`templates`, 28 of 28
+byte-identical on rebuild and byte-identical to the `templates-v1/`
+set written the night before).** Beside v0's numbers (the step-2
+addendum): §4.1 symbol 27 → **20** (4% → 3%), region 2 → **0**, new file
+44 → 44, outside 607 → **616** (89% → 91%) — the nine hunks lost are the
+ones v0 covered with a module anchor's bodies before any confirmation,
+which is exactly what v1 withholds. §4.2 unchanged (the anchor pass
+did not move: files 0.19 / 0.22, the literal matcher 13 of 16, the
+bare identifier 27 of 166). §4.7 holes per template: median 10 → **19**,
+max 333 → **135**; by type over the 28: ANCHOR_CONFIRM 167 → 475,
+SIGNATURE 99 → 45, BODY 99 → 45, CALLER_UPDATE 211 → 118,
+TEST_EXPECTATION 225 → 132 (70 `testmap` + 62 `import`), MODULE_REGION
+166 → 88, COCHANGE_TOUCH 71 → 54. Round 1 asks about 17 confirmations
+per task now, six before.
+
+**4. The run's round-1 answers replayed into template v1
+(`calvin_probe.py replay`, two rules for the per-symbol confirmations
+v1 asks and the run never saw).** *Gold rule* — a symbol is confirmed
+iff the gold diff edits its span; the word-level answers are the run's.
+*Max rule* — every symbol of a module the run confirmed is confirmed
+(v1's upper bound). On `00e5aee`:
+
+| rule | confirmed | rebuilt holes | BODY | TEST_EXPECTATION (testmap / import) | the three `TestProfiles` tests |
+|---|---|---|---|---|---|
+| step 6's run, v0 | 6 of 9 modules | 1,068 | 103 | 378 / — | absent |
+| gold, v1 | 15 of 94 symbols | 844 | 49 | 278 / 112 | **present, tier `import`** |
+| max, v1 | 91 of 94 | 1,226 | 103 | 378 / 167 | present, tier `import` |
+
+So the fix does what it was for — the tests the gold changed are asked
+once a `containment` symbol is confirmed — and the cost reading
+sharpens: **v1 saves bodies only if the orchestrator confirms
+selectively.** With the gold's 15 symbols the template is 844 holes
+against the run's 1,068, and 390 of the 844 are test expectations; with
+everything confirmed it is larger than v0 (1,226), the difference being
+the import tier's 167 test holes. On `d509835` (a two-file partition)
+55 of 56 test holes are import-tier. The test hole is the next cost
+door, and it is the import tier's coarseness (one hole per test in an
+importing file) rather than the module anchor's. Not built, named for
+the protocol: group import-tier tests per file, or cap them, before a
+wider run. `c59916f` and `b8afd41` replay to the same templates under
+both rules (no module anchors: 0 of 3 and 1 of 13 confirmed).
+
+**Not exercised:** the policy allowances and `--token-budget` need a
+session; they have their unit tests. No model was called; nothing on
+Modal.

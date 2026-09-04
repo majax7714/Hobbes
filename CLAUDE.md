@@ -173,7 +173,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, night): 1,227 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, later): 1,230 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -320,13 +320,15 @@ review → `lane_b` pytest) and runs the same way on a box.
   `docs/calvin-potential.md` §10):** T pass 1 / fail 1 / empty 1 /
   no-tests 1 at $6, O pass 1 / no patch 3 at $17; the module anchor is
   the cost door, the template misses importer tests, candidates bind
-  but do not find; the 28-key run was cut on cost and waits on a
-  ceiling from Max plus the two protocol fixes.
+  but do not find; the 28-key run was cut on cost. The two protocol
+  fixes are in and exercised with no model (2026-09-04 later): the
+  import grain adds 2,408 guard rows over the 28 golds at `P2F` 0,
+  template v1 asks the missed tests once a symbol is confirmed, and
+  the import tier's test holes are the next cost door.
 - **Then — API spend and Modal compute are off the table for the
   next steps (Max, 2026-09-04):** the no-spend queue in
-  `docs/session-handoff.md` — Calvin's model-free follow-through
-  (re-verify the step-6 diffs under the importer guard, the step-2
-  instruments on template v1, ADR-101 when accepted), the extraction
+  `docs/session-handoff.md` — Calvin's model-free follow-through is
+  done (ADR-101 waits on *accepted*); next the extraction
   residue the lifts named, W0's discipline items, project setup for
   collaborators (`docs/workstreams.md`). Held: the wider Calvin run,
   the 3,000-step adapter under the cell and the 10,000-step point, the

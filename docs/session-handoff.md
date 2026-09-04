@@ -51,7 +51,7 @@ is `templates/` and is v0: the code refuses it now); importer tests are
 guards in the template (tier `import`) and the verifier (import grain,
 C-93 amended); the box policy allows the read-only toolchain probes and
 denies `env`; `loop.py --token-budget` rides every arm-O argv at 1M.
-None of it re-run. **Max took API spend and Modal compute off the
+Exercised with no model later the same day (NEXT 1). **Max took API spend and Modal compute off the
 table on 2026-09-04 (later)** — the wider run is held, and what comes
 next is the no-spend queue (NEXT below). When a run reopens, the
 number is the total ceiling and the key count. Per-key cost at the *old* shape was T
@@ -110,10 +110,12 @@ container does not see), not a tree change; CI's box is the check.
 ## WHERE THINGS STAND (2026-09-04, later)
 
 - **Calvin M0** (`docs/calvin-potential.md`; ADR-100 for its harness):
-  steps 0–6b done; template v1 regenerated (`templates-v1/`), nothing
-  re-run under it; the design's ADR takes 101 when Max moves it to
-  *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite 1,227
-  pytest + 3 `lane_b` (1,228 collect on this box).
+  steps 0–6b done, 6b exercised with no model (the record's eighth
+  addendum; `verify-gold-import/`, `verify-t-step6-import/`,
+  `calvin_probe.py replay`); the design's ADR takes 101 when Max moves
+  it to *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite
+  1,230 pytest + 3 `lane_b` (1,231 collect on this box; the venv test
+  fails here as before).
 - **Extraction:** the ten entries lifted, plus C-89 and C-90 (above).
   Register: **93 entries, 71 active, 20 lifted, 2 superseded** (C-91
   from Calvin step 3, C-92/C-93 from step 5, ADR-100; the count is
@@ -155,15 +157,23 @@ container does not see), not a tree change; CI's box is the check.
    the register count everywhere (93 / 71 / 20 / 2), README's status,
    ADR count and design-docs table, architecture §8's Calvin row,
    workstreams item 8, this doc.
-1. **Calvin M0 without a model** (`docs/calvin-potential.md` §8 step
-   6b is in, nothing exercised): re-verify the step-6 arm-T diffs under
-   the importer-test guard (`hobbes verify` is local Podman, no model —
-   the `PROFILES` false pass on `c59916f` should now be a caught
-   failure); recompute the step-2 anchor and coverage instruments on
-   template v1 (`calvin_probe.py`) so the 99 → 45 bodies change has a
-   coverage number beside it; draft ADR-101's body from the design when
-   Max moves it to *accepted*. Max's review of the ten lifts, ADR-100
-   and the step-6 record still stands.
+1. ~~**Calvin M0 without a model**~~ — **done 2026-09-04 (later),
+   the record's eighth addendum:** the 28 golds re-verified under the
+   import grain (`verify-gold-import/`: verdicts identical, `P2F` 0,
+   +2,408 rows, the one new `F2F` the box's known venv test as a
+   fault); the four arm-T diffs re-verified (`verify-t-step6-import/`:
+   unchanged — the `TestProfiles` failures on `00e5aee` were already
+   selected at file grain, since T's diff touched the test file);
+   template v1's step-2 instruments beside v0's (symbol 4% → 3%,
+   outside 89% → 91%, max 333 → 135 holes); the run's round-1 answers
+   replayed into v1 (`calvin_probe.py replay`, new, +3 tests): the
+   `TestProfiles` tests are asked at tier `import` once a symbol is
+   confirmed; 844 holes at the gold's 15 symbols, 1,226 with every
+   symbol of the confirmed modules — **the import tier's test holes
+   are the next cost door** (one per test in an importing file; group
+   or cap them before a wider run — named, not built). Still open:
+   ADR-101's body when Max moves the design to *accepted*; his review
+   of the ten lifts, ADR-100 and the step-6 record.
 2. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
