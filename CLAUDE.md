@@ -158,7 +158,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-03, night): 1,166 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-03, night): 1,169 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -213,7 +213,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
   by one range join; artifacts at schema v4; 90 registered constraints
-  (69 active, 19 lifted).
+  (68 active, 20 lifted).
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%
@@ -279,9 +279,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   `node_modules` links mount their targets (C-74) and a venv-less
   Python repo indexes (C-85: 0.0% → 68.4% on a fixture). The four
   clones were re-ingested to confirm (`docs/extraction-evidence.md`):
-  date-fns 0.1% → ~80% capture, serde's copy gone and lanes at 0, and
-  one new finding fixed the same hour (C-89, TS overload lines) and
-  one registered (C-90, a tsconfig off the staged path).
+  date-fns 0.1% → 80.1% capture with all 15 zones indexed, serde's
+  copy gone and lanes at 0, and two findings the re-ingest exposed
+  fixed the same night (C-89 TS overload lines, C-90 configs a
+  tsconfig names).
 - **The test-time-training experiment ran 2026-09-03 (ADR-099,
   `docs/olmo3-ttt-validation.md`):** `hobbes derive-corpus` renders the
   derived layer as a training corpus; a 300-step LoRA on it lowered

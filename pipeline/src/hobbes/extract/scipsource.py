@@ -819,7 +819,8 @@ def _nearest_package_manifest(repo_root: Path, zone: str) -> str | None:
 
 
 def _staged_ts_configs(repo_root: Path, files: list[str]) -> list[str]:
-    """Every tsconfig/package.json at or above a staged TS file."""
+    """Every tsconfig/package.json at or above a staged TS file — and
+    every config those tsconfigs name (C-90)."""
     wanted: set[str] = set()
     for rel in files:
         current = PurePosixPath(rel).parent
@@ -831,7 +832,99 @@ def _staged_ts_configs(repo_root: Path, files: list[str]) -> list[str]:
             if str(current) == ".":
                 break
             current = current.parent
+    wanted.update(referenced_ts_configs(repo_root, sorted(wanted)))
     return sorted(wanted)
+
+
+#: ``"extends": "…"`` (string form; an array is scanned the same way) and
+#: ``"path": "…"`` inside ``references`` — the two keys through which a
+#: tsconfig names another config file. A regex, not a parser: tsconfig
+#: is JSON with comments and trailing commas, and the stage deliberately
+#: carries no JSON5 dependency (`_TS_CONFIG_NAMES`).
+_TS_EXTENDS = re.compile(r'"extends"\s*:\s*(?:"([^"]+)"|\[([^\]]*)\])')
+_TS_REFERENCE_PATH = re.compile(r'"path"\s*:\s*"([^"]+)"')
+_TS_REFERENCES_BLOCK = re.compile(r'"references"\s*:\s*\[(.*?)\]', re.S)
+
+
+def referenced_ts_configs(repo_root: Path, configs: list[str]) -> list[str]:
+    """Repo-relative config files the given tsconfigs reach through
+    ``extends`` or project ``references``, transitively (C-90, lifted
+    2026-09-03).
+
+    The stage held only the conventional names on a zone's walk-up path,
+    so date-fns's ``pkgs/dev`` (``extends "./config/tsconfig"``) and its
+    root (a solution file whose ``references`` name every package)
+    indexed nothing — *"File './config/tsconfig' not found"*, every
+    referenced project *"missing tsconfig.json"*. A relative target is
+    resolved against the config's directory; a directory target means
+    its ``tsconfig.json``; a target without ``.json`` is tried with it.
+    A bare name (``@scope/pkg/tsconfig``) is a package, left to
+    ``node_modules`` (mounted since C-74); a target outside the repo is
+    not staged.
+    """
+    repo_root = Path(repo_root).resolve()
+    found: set[str] = set()
+    queue = [c for c in configs if PurePosixPath(c).name != "package.json"]
+    seen: set[str] = set()
+    while queue:
+        rel = queue.pop()
+        if rel in seen:
+            continue
+        seen.add(rel)
+        try:
+            text = (repo_root / rel).read_text(errors="replace")
+        except OSError:
+            continue
+        targets: list[str] = []
+        for m in _TS_EXTENDS.finditer(text):
+            names = [m.group(1)] if m.group(1) is not None else re.findall(r'"([^"]+)"', m.group(2))
+            # `extends` may name a package (`@scope/pkg/tsconfig`): that
+            # is node_modules' to resolve, mounted since C-74.
+            targets.extend(n for n in names if n.startswith((".", "/")))
+        for block in _TS_REFERENCES_BLOCK.finditer(text):
+            # a reference's `path` is always a path, `./`-prefixed or not
+            targets.extend(_TS_REFERENCE_PATH.findall(block.group(1)))
+        base = (repo_root / rel).parent
+        for target in targets:
+            for candidate in _ts_config_candidates(base, target):
+                try:
+                    resolved = candidate.resolve()
+                    inside = resolved.relative_to(repo_root)
+                except (OSError, ValueError):
+                    continue
+                if not resolved.is_file():
+                    continue
+                out = str(PurePosixPath(inside))
+                if out not in found:
+                    found.add(out)
+                    queue.append(out)
+                break
+    return sorted(found)
+
+
+_TS_ANY_INPUTS = re.compile(r'"(?:include|files)"\s*:\s*\[\s*"')
+
+
+def is_solution_tsconfig(path: Path) -> bool:
+    """A tsconfig that only *references* projects — `references` present,
+    `include`/`files` empty or absent — describes no inputs of its own
+    (TypeScript's solution-style root). Indexed as the zone's config it
+    reports *"no files got indexed"* for the zone's own files (C-90)."""
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return False
+    if not _TS_REFERENCES_BLOCK.search(text):
+        return False
+    return not _TS_ANY_INPUTS.search(text)
+
+
+def _ts_config_candidates(base: Path, target: str) -> list[Path]:
+    """The files a tsconfig ``extends``/``path`` target may denote, in
+    TypeScript's order: the path itself, with ``.json``, as a directory's
+    ``tsconfig.json``."""
+    path = Path(target) if target.startswith("/") else base / target
+    return [path, path.with_name(path.name + ".json"), path / "tsconfig.json"]
 
 
 def _generated_tsconfig(files: list[str], zone: str) -> dict:
@@ -1874,7 +1967,12 @@ def _index_ts_zone(
 
     configs = {}
     zone_config = f"{zone}/tsconfig.json" if zone else "tsconfig.json"
-    if not (repo_root / zone_config).is_file():
+    if not (repo_root / zone_config).is_file() or is_solution_tsconfig(repo_root / zone_config):
+        # No config, or a solution file — `references` and no inputs of
+        # its own (date-fns's root, C-90): the zone's files are the ones
+        # no referenced project claims, and a config that names no
+        # inputs indexes none of them. The generated config lists them;
+        # it is written over the staged copy of the solution file.
         configs[zone_config] = _generated_tsconfig(zone_files, zone)
 
     package_json = repo_root / (f"{zone}/package.json" if zone else "package.json")

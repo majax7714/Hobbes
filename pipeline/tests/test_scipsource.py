@@ -963,3 +963,60 @@ class TestWorkspaceLinkTargets:
                               {"path": "sub", "stage": "scip-decode", "message": "m"}]}
         out = scipsource._rebase(facts, "pkgs/core")
         assert [r["path"] for r in out["degraded"]] == ["pkgs/core", "pkgs/core/sub"]
+
+
+class TestReferencedTsConfigs:
+    """C-90 (lifted): a tsconfig reached through `extends` or project
+    `references` is staged with the zone — date-fns's `pkgs/dev`
+    (`extends "./config/tsconfig"`) and its solution-style root."""
+
+    def test_extends_and_references_are_followed_transitively(self, tmp_path):
+        (tmp_path / "pkgs" / "dev" / "config").mkdir(parents=True)
+        (tmp_path / "pkgs" / "core").mkdir()
+        (tmp_path / "pkgs" / "dev" / "tsconfig.json").write_text(
+            '{\n  // comment\n  "extends": "./config/tsconfig",\n  "include": ["src"],\n}\n'
+        )
+        (tmp_path / "pkgs" / "dev" / "config" / "tsconfig.json").write_text(
+            '{ "extends": ["../../../base.json", "@x/dev/tsconfig"], "compilerOptions": {} }'
+        )
+        (tmp_path / "base.json").write_text("{}")
+        (tmp_path / "tsconfig.json").write_text(
+            '{ "files": [], "references": [ { "path": "pkgs/core" }, { "path": "./pkgs/dev" }, { "path": "../outside" } ] }'
+        )
+        (tmp_path / "pkgs" / "core" / "tsconfig.json").write_text('{ "extends": "../dev/config/tsconfig.json" }')
+        (tmp_path.parent / "outside").mkdir(exist_ok=True)
+        (tmp_path.parent / "outside" / "tsconfig.json").write_text("{}")
+        out = scipsource.referenced_ts_configs(tmp_path, ["tsconfig.json"])
+        assert out == [
+            "base.json",
+            "pkgs/core/tsconfig.json",
+            "pkgs/dev/config/tsconfig.json",
+            "pkgs/dev/tsconfig.json",
+        ]
+        assert scipsource.referenced_ts_configs(tmp_path, ["pkgs/dev/tsconfig.json"]) == [
+            "base.json", "pkgs/dev/config/tsconfig.json",
+        ]
+
+    def test_the_zone_stage_includes_them(self, tmp_path):
+        (tmp_path / "pkgs" / "dev" / "config").mkdir(parents=True)
+        (tmp_path / "pkgs" / "dev" / "src").mkdir()
+        (tmp_path / "pkgs" / "dev" / "tsconfig.json").write_text('{ "extends": "./config/tsconfig" }')
+        (tmp_path / "pkgs" / "dev" / "config" / "tsconfig.json").write_text("{}")
+        (tmp_path / "pkgs" / "dev" / "src" / "a.ts").write_text("export const a = 1;\n")
+        staged = scipsource._staged_ts_configs(tmp_path, ["pkgs/dev/src/a.ts"])
+        assert "pkgs/dev/config/tsconfig.json" in staged and "pkgs/dev/tsconfig.json" in staged
+
+    def test_a_solution_style_root_is_replaced_by_a_generated_config(self, tmp_path):
+        """date-fns's root: `include: []` + `references` — the two files no
+        package claims (`vitest.config.ts`, a codemod) must be indexed
+        under a config that names them, not under the solution file."""
+        (tmp_path / "tsconfig.json").write_text(
+            '{\n  "include": [],\n  "references": [ { "path": "./pkgs/core/" } ]\n}\n'
+        )
+        assert scipsource.is_solution_tsconfig(tmp_path / "tsconfig.json")
+        (tmp_path / "real.json").write_text('{ "include": ["src"], "references": [ { "path": "./x" } ] }')
+        assert not scipsource.is_solution_tsconfig(tmp_path / "real.json")
+        (tmp_path / "plain.json").write_text('{ "compilerOptions": {} }')
+        assert not scipsource.is_solution_tsconfig(tmp_path / "plain.json")
+        (tmp_path / "files.json").write_text('{ "files": ["a.ts"], "references": [] }')
+        assert not scipsource.is_solution_tsconfig(tmp_path / "files.json")

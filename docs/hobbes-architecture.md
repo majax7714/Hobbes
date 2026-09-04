@@ -322,7 +322,11 @@ the call sites, and what encloses them — and none of them resolves anything.
 
 The TS provider places an overloaded function or method at its first
 signature, where the semantic lane places it (C-89), so one symbol has
-one line in both lanes.
+one line in both lanes. A zone's stage carries every config its
+tsconfig reaches through `extends` or project `references`
+(transitively, inside the repo), and a solution-style root — references
+and no inputs — is replaced on the stage by the generated config that
+lists the zone's own files (C-90).
 
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a

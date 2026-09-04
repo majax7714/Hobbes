@@ -66,38 +66,6 @@
 - **Source:** the oracle lane's A-4 fixture observation, 2026-08-27
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17).
 
-### C-90 — A tsconfig that `extends` or `references` a config off the zone's walk-up path is indexed without it
-- **Cannot tell you:** TypeScript semantics for a zone whose
-  `tsconfig.json` points at a config file the stage does not hold.
-  Staging copies a zone's sources plus the `tsconfig.json` /
-  `jsconfig.json` / `package.json` on the zone's walk-up path
-  (`_staged_ts_configs`); a config reached only through `extends
-  "./config/tsconfig"` (date-fns `pkgs/dev`, 2026-09-03: `error TS6053:
-  File './config/tsconfig' not found … no files got indexed`) or through
-  a solution-style `references: [{path: "pkgs/core"}, …]` (date-fns's
-  root zone: every referenced project *"missing tsconfig.json"* on the
-  stage) is not there, and the zone's every site falls to lane A's
-  floor. Found once C-74 gave date-fns lane B: 13 of 15 zones index,
-  these two do not.
-- **Because:** the stage deliberately does not parse tsconfig (comments,
-  `extends` chains, no JSON5 dependency — the note in
-  `_TS_CONFIG_NAMES`), so it cannot follow what a config names; it only
-  copies the conventional names on the conventional path.
-- **Bites at:** monorepos with a shared config directory (`extends
-  "../../tsconfig.base.json"` reaches up the path and *is* staged;
-  `./config/…` reaches sideways and is not) and repos whose root
-  tsconfig is a project-references solution file.
-- **You find out:** *partial* — loud: a `scip-typescript` record per
-  zone with the indexer's own message naming the missing file (since
-  C-74's helper-exit classification, the record no longer blames the
-  helper). Candidate fix: read `extends` and `references[].path` from
-  the zone's tsconfig with a comment-tolerant scan (a regex over the
-  two keys is enough — no JSON5), stage what they name transitively
-  when it lies in the repo, and leave a bare-name `extends`
-  (`@scope/pkg/tsconfig`) to `node_modules`, which C-74 mounts.
-- **Source:** the date-fns re-ingest of 2026-09-03 after C-74 and
-  C-89. Registered, not fixed.
-
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -107,6 +75,45 @@ cases**: inputs the technique does not classify, where the old concession
 quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
+
+### C-90 — A tsconfig that `extends` or `references` a config off the zone's walk-up path was indexed without it — *registered and lifted 2026-09-03, the same session*
+- **Was:** staging copied a zone's sources plus the `tsconfig.json` /
+  `jsconfig.json` / `package.json` on the zone's walk-up path and,
+  deliberately, parsed no tsconfig (comments, no JSON5 dependency). A
+  config reached only through `extends "./config/tsconfig"` (date-fns
+  `pkgs/dev`: `error TS6053: File './config/tsconfig' not found … no
+  files got indexed`) or a solution-style root (`include: []` +
+  `references`: every referenced project *"missing tsconfig.json"* on
+  the stage, then *"no files got indexed"* once they were there) was
+  not staged, and the zone's every site fell to lane A's floor — 2 of
+  date-fns's 15 zones, found once C-74 gave it lane B. *Partial*, loud,
+  while it stood.
+- **Lifted by — the technique:** two pieces. (1)
+  `scipsource.referenced_ts_configs` scans each staged tsconfig for
+  `"extends"` (string or array) and the `"path"` entries of a
+  `"references"` block — a regex over the two keys, comment-tolerant,
+  still no parser — resolves relative targets against the config's
+  directory (a directory means its `tsconfig.json`; a name without
+  `.json` is tried with it), stages what lies inside the repo,
+  transitively; a bare `extends` (`@scope/pkg/tsconfig`) is a package,
+  left to `node_modules` (mounted since C-74). (2)
+  `is_solution_tsconfig`: a config with `references` and no non-empty
+  `include`/`files` describes no inputs, so the zone gets the
+  **generated** config listing its own files, written over the staged
+  solution file — the files no referenced project claims
+  (`vitest.config.ts`, a codemod) are exactly that zone. **Measured on
+  date-fns:** `pkgs/dev` indexes after (1) (+3 semantic calls); the
+  root after (2); **15 of 15 zones, no `scip-typescript` record, lanes
+  7,601 / 0, capture 80.1%** (79.7% before C-89/C-90). Tests:
+  `TestReferencedTsConfigs` (three).
+- **Residual edge cases:** an `extends` inside a *package's* tsconfig
+  (reached through `node_modules`) is the package's to resolve, not
+  staged — the mount covers it. A referenced project that is not
+  itself a zone (no TS file under it) is staged as a config and never
+  indexed; harmless. `tsextract` (lane A) reads tsconfigs its own way
+  through ts-morph and was unaffected throughout.
+- **Source:** the date-fns re-ingest of 2026-09-03 after C-74 and
+  C-89; fixed the same night on the lead's direction ("fix c-90 too").
 
 ### C-89 — An overloaded TS function or method was placed at its implementation, not its first signature — *registered and lifted 2026-09-03, the same session*
 - **Was:** `tsextract` emitted a symbol's line from ts-morph's

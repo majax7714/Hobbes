@@ -6326,3 +6326,15 @@ superseded; five *partial* (C-4, C-58, C-68, C-83, C-90), two
 W0), Go green, **30 tsextract**, **32 scip** node tests; image rebuilt
 (C-65) before the runs. Nothing pushed; no GPU spent.
 
+*Addendum, the same night — "fix c-90 too."* Two pieces:
+`referenced_ts_configs` follows `extends` and `references[].path` from
+each staged tsconfig (a regex over the two keys, comment-tolerant, no
+JSON5), staging what they name transitively inside the repo; and
+`is_solution_tsconfig` replaces a references-only root with the
+generated config for the zone's own files, because a solution file
+names no inputs and scip-typescript then indexes none. date-fns:
+`pkgs/dev` back after the first, the root after the second — **15 of
+15 zones, no `scip-typescript` record, lanes 7,601 / 0, capture
+80.1%**. C-90 moved to lifted the same night; **68 active / 20
+lifted**; 1,169 pytest.
+

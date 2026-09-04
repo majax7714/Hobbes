@@ -27,11 +27,11 @@ lives in the BUILDLOG; this doc is rewritten, never appended into a pile.
 
 **Done this session, for review (2026-09-03 night BUILDLOG):** C-72–C-80
 and C-85 lifted in four commits (`89c819a`, `0a06e8a`, `5562271`,
-`a60777f`), then C-89 found on date-fns and fixed the same hour with
-C-90 registered (`3da8c07`), each with tests, the register entry moved to its segment's
+`a60777f`), then C-89 found on date-fns and fixed the same hour (`3da8c07`) and
+C-90, registered there, fixed on Max's word the same night, each with tests, the register entry moved to its segment's
 lifted section, the architecture amended, and the evidence log's new
 section; the four 2026-09-02 clones re-ingested to confirm on the real
-repos. The register reads **69 active / 19 lifted / 2 superseded**, two
+repos. The register reads **68 active / 20 lifted / 2 superseded**, two
 entries *unsurfaced* (C-19, C-20), none inflating a number. Things Max
 may want to look at: the Python capture line drops a few points on
 every repo because C-80 adds real calls to the denominator (this repo
@@ -40,8 +40,8 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 
 ## WHERE THINGS STAND (2026-09-03, night)
 
-- **Extraction:** the ten entries lifted, plus C-89 (above). Register:
-  90 entries, 69 active, 19 lifted (C-86–C-88 from the review still active: the
+- **Extraction:** the ten entries lifted, plus C-89 and C-90 (above).
+  Register: 90 entries, 68 active, 20 lifted (C-86–C-88 from the review still active: the
   control margin is a bound; the first NLL write-up's conditioning was
   unstated; trained "none" answers override the card). Image rebuilt
   2026-09-03 night (`below-floor` row, the `uses` gloss — C-65).
@@ -76,16 +76,12 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 ## NEXT (in order, none cleared to spend compute)
 
 0. Max's three calls above; his review of the ten lifts.
-1. Extraction residue the lifts named (no GPU), in order: **C-90** —
-   a tsconfig reached by `extends "./config/…"` or by project
-   `references` is not staged (date-fns's root and `pkgs/dev` zones,
-   2 of 15; candidate fix in the entry, ~30 lines + a test);
-   `tsextract` skips every symlink where the Python walks skip only
+1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
    (`handlers[0]()`) is still no site (C-80's residual, C-63's shape).
-   date-fns re-ingested: 0.1% → 79.7% capture, lanes 7,586 / 0 after
-   C-89.
+   date-fns re-ingested: 0.1% → 80.1% capture, 15 of 15 zones, lanes
+   7,601 / 0 after C-89 and C-90.
 2. If cleared: the 3,000-step adapter under the cell (item 1 above);
    the 10,000-step point; a second unseen repo through the cell.
 3. Watch the first CI run when Max pushes (unchanged).

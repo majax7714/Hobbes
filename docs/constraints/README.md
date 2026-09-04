@@ -135,10 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Ninety entries: sixty-nine active, nineteen lifted, two superseded**
-(C-90 added 2026-09-03 by the same re-ingest — a tsconfig that `extends`
-or `references` a config off the zone's walk-up path is not staged, two
-of date-fns's fifteen zones (*partial*, loud, candidate fix named);
+**Ninety entries: sixty-eight active, twenty lifted, two superseded**
+(C-90 added 2026-09-03 by the same re-ingest and **lifted the same
+night** — a tsconfig that `extends` or `references` a config off the
+zone's walk-up path is now staged transitively and a solution-style
+root gets the generated config: date-fns 15 of 15 zones, lanes 7,601 / 0;
 C-89 registered and lifted 2026-09-03 the same hour — an overloaded TS
 declaration placed at its implementation where the semantic lane places
 it at its first signature, found by date-fns's re-ingest once C-74 gave
@@ -210,7 +211,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Five of the active are *partial* (C-4, C-58, C-68, C-83, C-90); two
+against the code that concedes it; none had been silently lifted). Four of the active are *partial* (C-4, C-58, C-68, C-83); two
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
@@ -220,7 +221,7 @@ C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-2
 the verification base stamped into the artifact and stated wherever a
 language list is read), as did C-32's `partial`. The three derivation entries (C-35..C-37,
 ADR-051) landed surfaced on day one — the statement prints on every
-`hobbes plan` run and rides every change-spec. **Nineteen are lifted**, C-33 fastest of
+`hobbes plan` run and rides every change-spec. **Twenty are lifted**, C-33 fastest of
 all: registered from the dagger measurement (ADR-048) and lifted one
 session later (ADR-049) when Max reviewed the candidate fix and
 directed it — the register working as intended, a finding becoming a
