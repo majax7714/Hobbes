@@ -16,7 +16,7 @@ pipeline run with Calvin's slot filled by a deterministic stub, over
 the §9b units re-based at their parent commits, attribution before
 verdict. Steps 0–3 of its §8 (parent re-base, hole schema, `hobbes
 template`, grounder v0) spend no orchestrator calls and are all done;
-step 4 onward waits on Max's word. The charter is copied in (`docs/calvin-charter.md`);
+step 4 ran on Max's word; step 6 waits on it. The charter is copied in (`docs/calvin-charter.md`);
 the v1 assessment and the two pre-run probes (18% of code hunks outside
 spans; 118/182 unresolved terms new) are the record
 `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`, reproduced by
@@ -41,12 +41,20 @@ identical, apply, and equal the commit byte for byte; 3,760 call sites,
 0 NULL, HSR 0 (a poison control says the zero is real); the record's
 fourth addendum carries the six grounder defects the gold run surfaced
 and C-91 what v0 cannot see (call sites only; Python, Go, TS/JS;
-members on values abstained). **Next is step 4, the orchestrator
-adapter — the first orchestrator spend; it does not start without
-Max's word.** It needs an OpenAI-compatible endpoint and its key
-(`HOBBES_LLM_API_KEY`; Modal, Anthropic via a gateway, or OpenAI), held
-constant for the run and recorded with date. No ADR yet (100 when
-accepted). Assessment work comes before the next proposal; the §10
+members on values abstained). **Step 4 is done** (later that day, on Max's word, `claude-sonnet-5`
+through Anthropic's OpenAI-compatible endpoint, key line
+`anthropic_key` → `HOBBES_LLM_API_KEY`): `hobbes.derive.adapter`,
+five units through arm T in two passes — the hand unit end to end
+(the gold change, 0 NULL, applies, right files 1.0), the other four
+each naming a residual: the orchestrator cannot anchor an anchorless
+task by itself, a module anchor opens a whole file, new files land
+flat, `new` is over-declared. Cost $8 + $2.3 at list; the record's
+fifth addendum has both passes. **Next is step 5, the local harness
+(Podman exec + policy + testmap for T and O) — no orchestrator.** Two
+protocol changes go to step 6 with Max: candidates in the `ANCHOR`
+hole, and a module anchor as confirmations rather than bodies; and the
+choice of model (Sonnet 5 does not honor temperature 0; Haiku is a
+third of the cost). No ADR yet (100 when accepted). Assessment work comes before the next proposal; the §10
 fine-tuning wording in the architecture stays as is until then.
 
 
@@ -120,7 +128,7 @@ container does not see), not a tree change; CI's box is the check.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 step 4, the orchestrator adapter (`docs/calvin-potential.md` §8; steps 0–3 done; the first orchestrator spend — Max's word and a key); Max's three calls above; his review of the ten lifts.
+0. Calvin M0 step 5, the local harness (`docs/calvin-potential.md` §8; steps 0–4 done; no orchestrator); step 6's two protocol changes and the model choice are Max's; Max's three calls above; his review of the ten lifts.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression

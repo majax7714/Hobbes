@@ -43,7 +43,7 @@ def test_fill_shapes():
     assert holes.validate_fill(body, {"cod": "x"})
     cu = {"type": "CALLER_UPDATE", "id": "h"}
     assert holes.validate_fill(cu, {"decision": "no", "reason": "signature unchanged"}) == []
-    assert holes.validate_fill(cu, {"decision": "yes", "reason": "new arg"}) == ["a 'yes' carries a body"]
+    assert holes.validate_fill(cu, {"decision": "yes", "reason": "new arg"}) == [], "a 'yes' without a body is a request for the span (step 4); it places nothing until the body arrives"
     ns = {"type": "NEW_SYMBOL", "id": "n"}
     assert holes.validate_fill(ns, {"covered_by": ["h2", "h5"]}) == []
     assert holes.validate_fill(ns, {"name": "NoTests", "file": "a.go", "body": "..."}), "a placed symbol names where"

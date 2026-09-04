@@ -466,3 +466,145 @@ registered (C-91): call sites only, three languages, members on values
 abstained. §4.3's classes are live and the control says the zero means
 zero. Step 4 is the first orchestrator spend and waits on Max's word.
 
+## Addendum 2026-09-04 (later) — step 4: the orchestrator adapter, five units through T by hand
+
+**Cleared by Max** ("key is in secrets should be good to continue";
+"lean toward a cheaper model"). Endpoint: Anthropic's OpenAI-compatible
+`https://api.anthropic.com/v1`, model `claude-sonnet-5`, key from the
+`anthropic_key` line via `HOBBES_LLM_API_KEY`, `max_tokens` 16,384, no
+sampling field (**Sonnet 5 rejects `temperature`**, so §3.3's greedy
+decoding is *not honored* on this model — see variance below). System
+prompt v0 in pass 1, v1 in pass 2. Records under
+`~/.hobbes/bench/calvin/t-pass1/` and `t/` (per unit: `.t.json` with
+both templates, every round's fills, the ground record and the
+instruments; `.exchanges.jsonl`; `.t.diff`).
+
+**Built:** `hobbes.derive.adapter` (`Adapter.ask` — render, one
+exchange, validate, one repair; `run_t` — round 1 on a view of the
+round-1 holes, rebuild, carry the answers as filled holes, round 2,
+the "yes" follow-up, prune, ground, one NULL round-trip on a narrowed
+template; `chunk_by_file`; `score_unresolved`), `template.apply_round1`
+taking `ANCHOR` fills, `calvin_probe.py t`, eight tests on a fake
+endpoint. Units: `b8afd41` (lane-B containment; round-1-only
+template), `6511f40` (Go call-edge fixes; round-1-only), `d509835`
+(stand up the oracle lane; Python, structure), `11e4c9d` (poison
+check; Go, 20 co-change partners), `c59916f` (the hand unit).
+
+**Pass 1 (protocol v0)** — what the design as written does:
+
+| unit | anchors r1→r2 | holes gen/pruned/filled | edits | applies | RFE vs gold J/P/R | tokens in/out | wall |
+|---|---|---|---|---|---|---|---|
+| b8afd41 | 6→0 | 2/0/1 | 0 | — | 0 | 3.4k / 0.2k | 5 s |
+| 6511f40 | 8→3 | 348/48/25 | 0 | — | 0 | 571k / 22k | 232 s |
+| d509835 | 5→1 | 23/5/21 | 0 | — | 0 | 20k / 7.8k | 85 s |
+| 11e4c9d | 11→9 | 690/75/57 | 0 | — | 0 | **1,459k** / 34k | 372 s |
+| c59916f | 5→2 | 132/36/113 | 5 | yes | **1.0 / 1.0 / 1.0** | 147k / 25k | 198 s |
+
+2.20M input tokens, 89k output — about $8 at list. Three things broke
+at once. (1) **Anchorless:** `b8afd41`'s six bare-word confirmations
+were all refused (rightly), the rebuilt template held a `FREEFORM`
+hole and no code, and "none" was the only honest answer — an empty
+diff. (2) **Module anchors:** confirming a bare word that names a
+*module* (`gosource`, `grade`) makes every symbol of the module
+interior; the rebuilt templates ran to 348 and 690 holes with the whole
+span under every caller and test, 614k and 1.5M characters. Sonnet 5
+accepted 284k- and 728k-token prompts, hit the 16k output cap on the
+first reply, and on repair answered `patterns: unchanged` for every
+type — 0 edits. (3) **New things:** `d509835`'s orchestrator declared
+ten prose terms `new`, then answered all ten `NEW_SYMBOL` holes
+`covered_by` a `FREEFORM` it answered "none". The hand unit, whose
+anchors are two literals, went end to end: the flag, the field,
+`Tests: !o.NoTests`, a doc comment; 0 NULL; applies; exactly the two
+gold files.
+
+**Protocol v0.1** (in the tree; the design's §2.2 amended): when round
+1 leaves no anchor the rebuild opens an `ANCHOR` hole and a second
+round-1 pass asks it, refusals kept across passes; every answered
+round-1 hole is carried into round 2 as *filled*; a caller or test is
+rendered as its signature line plus the call site, a "yes" without a
+body is valid and is shown its span in round 2b; the system prompt asks
+for `patterns` first and the changed holes only, and says a new file is
+a `NEW_SYMBOL` with a new path; a rendered template over 300k
+characters is asked in chunks by file; a reply cut at the output cap
+is repaired saying so.
+
+**Pass 2 (protocol v0.1):**
+
+| unit | anchors r1→r2 | unresolved agree | coverage sym/reg/new/out | holes gen/pruned/filled | edits | applies | RFE vs gold J/P/R | exch | tokens in/out | wall |
+|---|---|---|---|---|---|---|---|---|---|---|
+| b8afd41 | 6→0 | 3/3 | 0/0/7/41 of 48 | 9/0/1 | 0 | — | 0 | 4 | 7.9k / 0.3k | 9 s |
+| 6511f40 | 8→3 | 5/5 | 4/2/3/18 of 27 | 247/16/19 | 0 | — | 0 | 3 | 282k / 18k | 198 s |
+| d509835 | 5→1 | 4/10 | 0/0/19/9 of 28 | 24/2/11 | 6 | yes | 0.11 / 0.5 / 0.12 | 3 | 21k / 26k | 234 s |
+| 11e4c9d | 11→1 | 1/2 | 1/0/1/27 of 29 | 46/1/1 | 0 | — | 0 | 3 | 15k / 16k | 176 s |
+| c59916f | 5→3 | 2/4 | 4/0/0/0 of 4 | 135/15/36 | 4 | yes | **1.0 / 1.0 / 1.0** | 2 | 55k / 15k | 118 s |
+
+380k input, 75k output — about $2.3. NULL 0 on every unit in both
+passes (the grounder found nothing to reject in what Sonnet wrote
+against the spans it was shown; HSR 0 where there were call sites to
+judge). Every final document valid; two truncation repairs (`6511f40`,
+`d509835`), both recovered by patterns.
+
+**Readings, by component:**
+
+- **The socket works where the anchors are right (G, X clean).** The
+  hand unit: 2 exchanges, 118 s, 69k tokens, the gold change in
+  substance, 0 NULL, applies, right files 1.0. Both passes. This is
+  arm T's existence proof on a real unit.
+- **H-a on an anchorless task is not closed by asking the
+  orchestrator.** Asked outright which symbols or files the task
+  concerns, Sonnet answered `SCIP`, `read-only`, `repo-authored` — the
+  task's own words; none binds. It has nothing else to say: it does
+  not know the repo (charter §3, as designed). §4.2's last row
+  ("orchestrator ANCHOR fills beat H-a on anchorless tasks") reads
+  **false for this model**. The `ANCHOR` hole needs candidates from
+  Hobbes — nearest names per term, the planner's lexical seeds (C-36),
+  a file listing — for the orchestrator to *choose* among. Step 6's
+  first protocol change.
+- **A module anchor is too coarse (H-s).** A confirmed bare word
+  naming a module opens every symbol in it as `SIGNATURE`/`BODY`;
+  §4.7's "holes ≫ hunks" row fired at 247 and 690 holes and the
+  orchestrator changed nothing under it. The residual is the design's
+  own: a module anchor should open its symbols as `ANCHOR_CONFIRM`
+  candidates (or regions), not bodies. Chunking bounds the call count,
+  not one file's size (139k tokens for `gosource.go` alone).
+- **New-thing placement is the residual, as preregistered (§9, M1′).**
+  With the v1 prompt `d509835` wrote six new files and placed them
+  flat under `bench/oracle/` (`grade.go`, `main.go`, `rta.go`) where
+  the gold nests them (`cmd/oracle/`, `internal/gorta/`,
+  `internal/grade/`): right files 3 of 6 (`README.md`, `go.mod`,
+  `run-cell.sh`), applies, 0 NULL. Name and body the orchestrator
+  has; *where* it does not.
+- **`UNRESOLVED` classification over-declares `new`** for prose:
+  `README`, `bench/oracle`, `go-rta`, `grade`, `oracle` all `new` on
+  `d509835` (gold rule: not-code); 15 of 24 terms agree over the five.
+  The gold rule (`unresolved_truth`: `new` if the diff declares it as
+  a symbol, `refers` if it names a symbol in a touched file, else
+  not-code) is itself approximate — `no-tests` is a flag string the
+  diff does declare, classed not-code by the rule — so the agreement
+  number is a floor.
+- **Variance without greedy decoding.** `11e4c9d` confirmed 9 anchors
+  in pass 1 and 1 in pass 2 from the same prompt; the design's "one
+  run per (unit, arm)" then measures the model's sampling as much as
+  the unit. For step 6 either a model that honors temperature 0 or
+  repeated runs per unit.
+- **The cell's impact sets are the wrong denominator for RFE.** The
+  cell units' `paths` for `c59916f` are `web/src/lib/graphModel.ts`
+  and its test — the release-SHA lexical mapping (C-55/C-84), nothing
+  the commit touched — so RFE against the impact set reads 0 on a
+  unit whose diff is exactly right. §4.5's RFE is reported against the
+  gold files at the parent; the cell's mapping is a defect for its own
+  register (D-6).
+- **Cost shape.** Round 1 is cheap (2–3k tokens); round 2 costs what
+  the structure pass opens: 55k tokens for the 135-hole hand unit, 140k
+  for one exploded file. Sonnet 5 at list: the five units cost $2.3 in
+  pass 2; a 50-unit, three-arm run at this shape is order $50–100
+  before the module-anchor fix and less after. Haiku 4.5 would be a
+  third of that; whether it fills as well is a step-6 question.
+
+**Exit criterion:** met — five units through T against one endpoint,
+fills validated (two repairs, every final document valid), every
+exchange recorded (15 in pass 2, request and response in full), the
+`UNRESOLVED` round answered on all five. Step 5 (the local harness:
+Podman exec, policy, testmap for T and O) is next and needs no
+orchestrator; step 6 waits on Max and on the two protocol changes above.
+

@@ -37,6 +37,7 @@ absent at the SHA takes ``{start: 1, end: 0}`` and is created).
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -165,8 +166,8 @@ def validate_fill(hole: dict, fill) -> list[str]:
         if need(("decision", "reason")):
             if fill["decision"] not in ("yes", "no"):
                 e.append("decision must be 'yes' or 'no'")
-            if fill["decision"] == "yes" and not fill.get("body"):
-                e.append("a 'yes' carries a body")
+            # a 'yes' without a body is a request for the span (step 4: callers and tests are rendered as one line; the
+            # adapter shows the whole span next and asks for the rewrite) — valid here, placed only once the body arrives
 
     if typ == "ANCHOR":
         if need(("names",)) and not (isinstance(fill["names"], list) and fill["names"]):
@@ -247,6 +248,25 @@ def span_text(repo_root: Path, sha: str, span: dict) -> str:
     return "\n".join(f"{n:>{width}}  {l}" for n, l in zip(range(span["start"], span["end"] + 1), lines))
 
 
+def _head_lines(repo_root: Path, sha: str, h: dict) -> str:
+    """A caller's or test's first line, and the line the edge or the testmap names, numbered."""
+    s = h["span"]
+    lines = [s["start"]]
+    m = re.search(r"@ [^:\s]+:(\d+)", (h.get("provenance") or {}).get("edge", "") or "")
+    if m and s["start"] < int(m.group(1)) <= s["end"]:
+        lines.append(int(m.group(1)))
+    src = subprocess.run(["git", "show", f"{sha}:{s['path']}"], cwd=repo_root, capture_output=True, text=True, check=True).stdout.splitlines()
+    width = len(str(s["end"]))
+    out = []
+    for i, n in enumerate(lines):
+        if i and n > lines[i - 1] + 1:
+            out.append(f"{'':>{width}}  …")
+        out.append(f"{n:>{width}}  {src[n - 1] if n - 1 < len(src) else ''}")
+    if s["end"] > lines[-1]:
+        out.append(f"{'':>{width}}  … ({s['end'] - lines[-1]} more lines; a \"yes\" is shown the whole span next)")
+    return "\n".join(out)
+
+
 def render(t: dict, repo_root: Path | None = None) -> str:
     """The template as the prompt a reader fills: task, anchors, what was answered, every open hole with its current code, the answer format."""
     sha = t["key"]["parent_sha"]
@@ -282,7 +302,14 @@ def render(t: dict, repo_root: Path | None = None) -> str:
             for term in h["terms"]:
                 out.append(f"- `{term['term']}` — nearest: {', '.join(term['nearest'])}")
         if h.get("span") and repo_root is not None and h["type"] in ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION"):
-            out += ["", "```", span_text(repo_root, sha, h["span"]), "```"]
+            if h["type"] in ("CALLER_UPDATE", "TEST_EXPECTATION") and not h.get("show_span"):
+                # step 4: a caller or a test is a yes/no question first — its signature line and the call site the edge names;
+                # a "yes" (or an expectation) without code is shown the whole span in a follow-up and asked for the rewrite
+                out += ["", "```", _head_lines(repo_root, sha, h), "```"]
+            else:
+                out += ["", "```", span_text(repo_root, sha, h["span"]), "```"]
+        if h.get("previous_fill") is not None:  # a narrowed (NULL round-trip) template shows what was answered before
+            out += ["", "Your previous answer:", "", "```json", json.dumps(h["previous_fill"], indent=1), "```"]
         out += ["", f"Answer shape: `{h['fill_schema']}`", ""]
     if closed:
         out += ["## Closed before you (a pruning rule fired)", ""]
@@ -299,5 +326,8 @@ def render(t: dict, repo_root: Path | None = None) -> str:
         for k, v in t["constraints"].items():
             out.append(f"- **{k}**: {v}")
         out.append("")
-    out += ["## How to answer", "", "One JSON document:", "", "```", '{"fills": {"<hole id>": <fill>, ...}, "patterns": {"<TYPE>": "unchanged", ...}}', "```", ""]
+    out += ["## How to answer", "", "One JSON document:", "", "```", '{"fills": {"<hole id>": <fill>, ...}, "patterns": {"<TYPE>": "unchanged", ...}}', "```", "",
+            "Answer with `patterns` for every type you leave entirely unchanged and list under `fills` only the holes you change or that take no pattern — "
+            "a long template answered hole by hole does not fit in one reply. A new file is a NEW_SYMBOL with `file` set to the new path and `region: \"eof\"`, "
+            "or a FREEFORM entry with span `{path, 1, 0}`.", ""]
     return "\n".join(out)

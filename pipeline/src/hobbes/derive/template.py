@@ -394,8 +394,11 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
     if anchors:
         holes, cons = structure_pass(L, anchors, repo_root, cochange, new_terms)
     else:
+        # No anchor at all — at build time, or after round 1 refused every bare-word match (the step-4 reading: a FREEFORM-only
+        # template shows the orchestrator no code, and "none" is its only honest answer): ask which symbols or files the task concerns.
         cons = {"write_partition": []}
-        holes = [_hole("a1", "ANCHOR", None, {"anchor": "nothing in the task names repo structure"}, {}, ask="which symbols or files does this task concern?")] if not unresolved else []
+        holes = [_hole("a1", "ANCHOR", None, {"anchor": "nothing in the task names repo structure" if not drop_terms else "round 1 confirmed no anchor"}, {},
+                       ask="which symbols or files does this task concern? (exact symbol ids, names or paths from the repo)")]
         holes.append(_hole("f1", "FREEFORM", None, {"anchor": "none"}, cons, ask="anything the template did not anticipate"))
     t = {
         "template_version": TEMPLATE_VERSION,
@@ -442,6 +445,11 @@ def apply_round1(task: str, L: Ledger, repo_root: Path, cochange: CoChange | Non
             if f.get("confirm") is True:
                 a = next(a for a in template["anchors"] if a["term"] == term)
                 extra.append({"term": term, "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else a["nodes"], "note": "confirmed by the orchestrator"})
+        elif h["type"] == "ANCHOR":  # names the orchestrator gives for an anchorless task: bound exactly as a backticked term would be, or not at all
+            for name in f.get("names") or []:
+                nodes = _resolve_name(L, name) or _resolve_path(L, name)
+                if nodes:
+                    extra.append({"term": name, "matcher": "backtick", "nodes": nodes, "note": "the orchestrator's ANCHOR answer"})
     return build_template(task, L, repo_root, cochange, extra_anchors=extra, drop_terms=drop, new_terms=new)
 
 

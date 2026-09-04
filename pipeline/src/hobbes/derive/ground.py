@@ -173,7 +173,10 @@ def edits_from_fills(template: dict, doc: dict, L: Ledger, repo_root: Path, trac
                 edits.append(Edit(hid, typ, span["path"], span["start"], span["end"], _lines(fill["code"]), "span"))
         elif typ == "CALLER_UPDATE":
             if fill["decision"] == "yes":
-                edits.append(Edit(hid, typ, span["path"], span["start"], span["end"], _lines(fill["body"]), "span"))
+                if fill.get("body"):
+                    edits.append(Edit(hid, typ, span["path"], span["start"], span["end"], _lines(fill["body"]), "span"))
+                else:
+                    rep["notes"].append(f"{hid}: a 'yes' without a body places nothing — routed back with the span")
         elif typ == "TEST_EXPECTATION":
             if fill != "unchanged":
                 if fill.get("code"):
@@ -181,14 +184,16 @@ def edits_from_fills(template: dict, doc: dict, L: Ledger, repo_root: Path, trac
                 else:
                     rep["notes"].append(f"{hid}: an expectation without code places nothing — routed back as a question")
         elif typ == "COCHANGE_TOUCH":
-            if fill["decision"] == "yes":
+            if fill["decision"] == "yes" and not fill.get("body"):
+                rep["notes"].append(f"{hid}: a 'yes' without a body places nothing — routed back with the file")
+            elif fill["decision"] == "yes":
                 path = h["provenance"]["partner"]
                 old = file_at(repo_root, sha, path, trace)
                 edits.append(Edit(hid, typ, path, 1, len(old) if old else 0, _lines(fill["body"]), "whole-file", created=old is None))
         elif typ == "NEW_SYMBOL":
             if "covered_by" in fill:
                 for c in fill["covered_by"]:
-                    if c not in fills or fills[c] == "unchanged":
+                    if c not in fills or fills[c] in ("unchanged", "none") or (isinstance(fills[c], dict) and fills[c].get("decision") == "no"):
                         rep["notes"].append(f"{hid}: covered_by {c}, which carries no code")
                 m = re.search(r"`([^`]+)`", h.get("provenance", {}).get("anchor", ""))
                 if m:

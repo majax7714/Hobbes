@@ -6539,3 +6539,34 @@ fails identically at HEAD in a throwaway worktree — the contained venv
 listing (`test_venv_environment_lists_the_venvs_own_distributions`)
 comes back with `pip` alone; an environment reading, not the tree's,
 left for Max.
+
+*Addendum, later — step 4, cleared by Max ("key is in secrets should be
+good to continue"; "lean toward a cheaper model").* Built
+`hobbes.derive.adapter` — the orchestrator adapter on the owned loop's
+`Endpoint`: render, one exchange, validate, one repair; `run_t` (round 1
+on a view of the round-1 holes, rebuild, the answers carried as filled
+holes, round 2, prune, ground, one NULL round-trip on a narrowed
+template); `calvin_probe.py t`; eight tests on a fake endpoint. Ran
+five units against `claude-sonnet-5` through Anthropic's
+OpenAI-compatible endpoint (it rejects `temperature`, so greedy decoding
+is not honored: the same prompt confirmed 9 anchors once and 1 the next
+time). Pass 1, the design as written, cost 2.2M input tokens (≈ $8):
+two round-1-only units confirmed module-level anchors and the rebuilt
+templates ran to 348 and 690 holes with full code under every caller
+and test — 728k-token prompts, the output cap, and "unchanged" for
+everything on repair; the anchorless unit got a `FREEFORM`-only
+template and answered "none". Protocol v0.1 (an `ANCHOR` hole and a
+second round-1 pass when round 1 leaves no anchor; callers and tests
+rendered as one line with a "yes" fetching its span; patterns-first
+prompt; chunking by file over a declared budget; truncation-aware
+repair) cost $2.3 for the five. The hand unit went end to end in both
+passes — the gold change in substance, 0 NULL, applies, exactly the two
+gold files, 2 exchanges, 2 minutes. The other four did not, and each
+says why: asked outright, the orchestrator names the task's own prose
+(H-a needs Hobbes-side candidates); a module anchor opens a whole file
+(H-s, the design's own row); new files land flat where the gold nests
+(M1′, as preregistered); `new` over-declared for prose. RFE against the
+cell's impact sets reads 0 on a perfect diff — the release-SHA lexical
+mapping named files the commit never touched (D-6 for the cell). The
+record's fifth addendum carries both passes' rows; §2.2 and §8 amended;
+1,207 pytest (+8). Step 5 next (no orchestrator).

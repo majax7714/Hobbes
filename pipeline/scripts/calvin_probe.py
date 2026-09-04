@@ -423,6 +423,90 @@ def cmd_ground(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_t(a: argparse.Namespace) -> int:
+    """Step 4's exit: arm T by hand for named commits against one endpoint — round 1, rebuild, round 2, ground, one NULL round-trip — every exchange recorded; the per-unit instruments printed."""
+    from hobbes.agent.loop import Endpoint
+    from hobbes.derive import adapter as A
+    from hobbes.derive import cochange
+    from hobbes.derive import template as T
+
+    key = os.environ.get("HOBBES_LLM_API_KEY")
+    if not key:
+        print("HOBBES_LLM_API_KEY is not set (the adapter's endpoint decides which key)", file=sys.stderr)
+        return 2
+    graphs = Path(a.graphs)
+    templates = Path(a.templates)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    cell, bycommit = load_units()
+    props = {p["commit"]: p for p in load_proposals()}
+    rows = []
+    for c7 in a.commits:
+        c = next(k for k in props if k.startswith(c7))
+        p = props[c]
+        L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+        t = json.load(open(templates / f"{c}.template.json"))
+        subprocess.run(["git", "checkout", "-q", "--force", L.sha], cwd=clone, check=True)
+        cc = cochange.observe(clone, 200)
+        sampling = {"temperature": 0} if a.sampling == "greedy" else {}  # §3.3: temperature 0 where the endpoint honors it; Sonnet 5 rejects the field
+        endpoint = Endpoint(a.base_url, a.model, key, timeout=a.timeout, max_tokens=a.max_tokens, sampling=sampling)
+        adapter = A.Adapter(endpoint, a.model, max_tokens=a.max_tokens, max_prompt_chars=a.max_prompt_chars)
+        t0 = time.time()
+        rec = A.run_t(p["task"], t, L, repo, cc, adapter, null_loop=not a.no_loop)
+        wall = time.time() - t0
+        # gold: the commit (§3.1); the cell rows' paths are the unit's impact set for RFE
+        files = [f for f in subprocess.run(["git", "show", "--name-only", "--format=", "--no-renames", c], cwd=clone, capture_output=True, text=True, check=True).stdout.split("\n") if f]
+        gold = []
+        for f in files:
+            d = subprocess.run(["git", "show", "--format=", "--no-color", "--no-renames", c, "--", f], cwd=clone, capture_output=True, text=True, errors="surrogateescape", check=True).stdout
+            if "GIT binary patch" not in d and not any(l.startswith("Binary files") for l in d.splitlines()[-1:]):
+                gold.append((f, d))
+        gold_files = {f for f, _ in gold}
+        gold_ground = graphs.parent / "ground" / f"{c}.ground.json"
+        gold_declared = set(json.load(open(gold_ground))["gensyms"]) if gold_ground.exists() else set()
+        impact = set().union(*(set(u.get("paths") or []) for u in cell if u["commit"] == c))
+        t2 = rec["template_round2"]
+        g = rec.get("ground_after_loop") or rec["ground"]
+        u1 = next((h for h in t2["holes"] if h["type"] == "UNRESOLVED"), None)
+        agree = A.score_unresolved((u1 or {}).get("fill"), u1, L, gold_files, gold_declared) if u1 else {"n": 0, "agree": 0, "rows": []}
+        cov = T.score_coverage(t2, gold)
+        an = T.score_anchors(t2, L, gold)
+        edited = {f["path"] for f in g["files"]}
+        def jpr(ref):
+            tp = len(edited & ref)
+            return (round(tp / len(edited | ref), 2) if edited | ref else None, round(tp / len(edited), 2) if edited else None, round(tp / len(ref), 2) if ref else None)
+        subprocess.run(["git", "checkout", "-q", "--force", L.sha], cwd=clone, check=True)
+        ap = subprocess.run(["git", "apply", "--check", "-"], cwd=clone, input=g["diff"], capture_output=True, text=True)
+        open_holes = [h for h in t2["holes"] if h.get("closed") is None and "fill" not in h]
+        filled = sum(1 for h in open_holes if h["id"] in (rec["rounds"][-1]["fills"] or {}).get("fills", {}))
+        row = {"commit": c[:7], "task": p["task"][:60], "anchors_r1": len(rec["template_round1"]["anchors"]), "anchors_r2": len(t2["anchors"]),
+               "anchor_files": f"{an['files']['tp']}/{an['files']['anchored']} of {an['files']['gold']}",
+               "unresolved": f"{agree['agree']}/{agree['n']}", "coverage": f"{cov['symbol']}/{cov['region']}/{cov['new_file']}/{cov['outside']} of {cov['hunks']}",
+               "holes": f"{len(t2['holes'])}/{len(rec['ground']['closed_by_prune'])}/{filled}",
+               "nulls": f"{len(rec['ground']['null'])} {rec['ground']['null_by_class']}",
+               "loop": rec.get("loop"), "unfilled": len(g["unfilled"]), "refused": len(g["refused"]), "edits": len(g["edits"]), "outside": g["outside_partition"],
+               "applies": ap.returncode == 0, "rfe_gold": jpr(gold_files), "rfe_impact": jpr(impact), "hsr": g["hsr"],
+               "exchanges": len(rec["exchanges"]), "tokens": rec["tokens"], "wall_s": round(wall, 1),
+               "repairs": sum(1 for e in rec["exchanges"] if e["purpose"].endswith("(repair)")), "invalid_after_repair": sum(1 for r in rec["rounds"] if r["errors"])}
+        rec["endpoint"] = {"base_url": a.base_url, "model": a.model, "sampling": sampling, "max_tokens": a.max_tokens, "max_prompt_chars": a.max_prompt_chars}
+        rec["instruments"] = {**row, "unresolved_rows": agree["rows"], "coverage": cov, "anchors": an}
+        (out / f"{c}.t.json").write_text(json.dumps(rec, indent=1))
+        (out / f"{c}.t.diff").write_text(g["diff"])
+        with open(out / f"{c}.exchanges.jsonl", "w") as fh:
+            for e in rec["exchanges"]:
+                fh.write(json.dumps(e) + "\n")
+        rows.append(row)
+        print(json.dumps(row))
+    print("commit  anchors r1→r2  files(anchored/gold)  unresolved agree  coverage sym/reg/new/out  holes gen/pruned/filled  NULL  loop  applies  RFE gold J/P/R  RFE impact J/P/R  exch  tokens in/out  wall")
+    for r in rows:
+        lp = "-" if not r["loop"] else f"{r['loop']['nulls_before']}→{r['loop']['nulls_after']}"
+        print(f"{r['commit']}  {r['anchors_r1']:2d}→{r['anchors_r2']:<2d}  {r['anchor_files']:>12s}  {r['unresolved']:>8s}  {r['coverage']:>20s}  {r['holes']:>14s}  {r['nulls'][:2]:>4s}  {lp:>5s}  {'yes' if r['applies'] else 'NO':>5s}  "
+              f"{str(r['rfe_gold']):>18s}  {str(r['rfe_impact']):>18s}  {r['exchanges']:4d}  {r['tokens']['prompt']:6d}/{r['tokens']['completion']:<5d}  {r['wall_s']:5.0f}s")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -438,6 +522,14 @@ def main(argv: list[str]) -> int:
     s = sub.add_parser("ground"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
     s.add_argument("--gold", choices=("commit", "rows"), default="commit", help="the whole commit (the design's gold) or the cell's size-bounded rows")
     s.set_defaults(fn=cmd_ground)
+    s = sub.add_parser("t"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
+    s.add_argument("--commits", nargs="+", required=True, help="commit prefixes to run arm T on")
+    s.add_argument("--base-url", required=True); s.add_argument("--model", required=True)
+    s.add_argument("--max-tokens", type=int, default=16384); s.add_argument("--timeout", type=float, default=600.0)
+    s.add_argument("--max-prompt-chars", type=int, default=300_000, help="a rendered template over this is asked in chunks by file")
+    s.add_argument("--no-loop", action="store_true", help="arm T without the NULL round-trip")
+    s.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy", help="temperature 0, or no sampling field for a model that rejects it")
+    s.set_defaults(fn=cmd_t)
     a = ap.parse_args(argv)
     return a.fn(a)
 
