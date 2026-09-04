@@ -1053,3 +1053,21 @@ class TestThinkingRung:
         assert loop.reasoning_tokens({}) == 0
         assert loop.reasoning_tokens({"completion_tokens_details": {"reasoning_tokens": "x"}}) == 0
         assert loop.reasoning_tokens({"completion_tokens_details": {"reasoning_tokens": 3}}) == 3
+
+
+def test_model_default_sampling_sends_no_temperature(tmp_path):
+    """Calvin M0 step 6: an endpoint that rejects `temperature` (Sonnet 5 through Anthropic's OpenAI-compatible surface) gets none under --sampling model-default; the envelope records the empty sampling."""
+    from hobbes.agent.loop import sampling_fields
+    assert sampling_fields(0.0, sampling="model-default") == {}
+    assert sampling_fields(0.0, reasoning_effort="low", sampling="model-default") == {"reasoning_effort": "low"}
+    assert sampling_fields(0.0) == {"temperature": 0.0}
+    tree = tmp_path / "t"
+    tree.mkdir()
+    (tree / "a.txt").write_text("x")
+    model = ScriptedModel(["done"])
+    try:
+        env = run_loop(model, tree, "--sampling", "model-default")
+    finally:
+        model.close()
+    body = model.requests[0]["body"]
+    assert "temperature" not in body and env["sampling"] == {}

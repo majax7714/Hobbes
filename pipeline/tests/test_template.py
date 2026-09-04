@@ -157,10 +157,34 @@ def test_round1_refers_and_new(repo):
     assert "cmd/main.runGoRTA" in {h["provenance"]["symbol"] for h in t2["holes"] if h["type"] == "BODY"}
 
 
-def test_zero_anchor_task_gets_one_anchor_hole(repo):
+def test_zero_anchor_task_gets_one_anchor_hole_with_candidates(repo):
     root, sha = repo
-    t = T.build_template("Make it faster.", ledger(sha), root, None)
+    L = ledger(sha)
+    t = T.build_template("Make it faster.", L, root, None)
     assert [h["type"] for h in t["holes"]] == ["ANCHOR", "FREEFORM"]
+    c = t["holes"][0]["candidates"]
+    assert c["lexical"] == [] and c["nearest"] == [], "nothing in the task names the repo; the candidates say so rather than guess"
+    assert c["files"]["n"] == len(L.mod_path) and set(c["files"]["by_dir"]) == {p.split("/", 1)[0] for p in L.mod_path.values()}
+    text = holes.render(t, root)
+    assert "Candidates from Hobbes" in text and "`internal/`: " in text and "app/app.go" in text
+    assert not holes.validate_template(t)
+
+
+def test_anchor_candidates_carry_lexical_seeds_and_nearest_names(repo):
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and the runGoRTAx helper."
+    _, unresolved, _ = T.anchor_pass(L, task, root)
+    c = T.anchor_candidates(L, task, unresolved, refused={"runGoRTA"})
+    lex = {r["node"]: r for r in c["lexical"]}
+    assert any(r["term"] == "runGoRTA" and r.get("refused") for r in lex.values()), "a word round 1 refused is still listed, marked refused"
+    assert all(r["path"] for r in lex.values())
+    near = {r["term"]: r for r in c["nearest"]}
+    assert "runGoRTAx" in near and any(n["name"] == "runGoRTA" and n["nodes"] for n in near["runGoRTAx"]["names"])
+    big = T.Ledger({**L.graph, "nodes": L.graph["nodes"] + [{"id": f"x/m{i}", "kind": "module", "path": f"x/d{i % 7}/m{i}.py"} for i in range(T.CANDIDATE_FILES_MAX + 1)]}, {"tests": L.tests})
+    c2 = T.anchor_candidates(big, task, unresolved)
+    assert not c2["files"]["by_dir"] and c2["files"]["dirs"]["x/d0"] >= 200 and c2["files"]["n"] > T.CANDIDATE_FILES_MAX
+    assert "too many to list" in "\n".join(holes._render_candidates(c2))
 
 
 def test_prune_is_for_function_signatures_only(repo):

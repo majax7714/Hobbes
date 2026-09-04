@@ -504,7 +504,7 @@ def is_exec_tool(name: str) -> bool:
 
 
 def sampling_fields(temperature: float = 0.0, top_p: float | None = None,
-                    reasoning_effort: str | None = None, thinking: str = "server") -> dict:
+                    reasoning_effort: str | None = None, thinking: str = "server", sampling: str = "greedy") -> dict:
     """The request fields that shape a completion (ADR-074). Greedy
     (``temperature`` 0) is the ladder's default and what every 7B run
     used; a thinking model's card warns greedy decoding loops its
@@ -512,8 +512,11 @@ def sampling_fields(temperature: float = 0.0, top_p: float | None = None,
     rung. ``reasoning_effort`` goes through as the OpenAI field vLLM
     maps onto the chat template; ``thinking`` is ``server`` (the
     template's default), ``on`` or ``off`` via ``chat_template_kwargs``
-    — a field a non-thinking template ignores."""
-    fields: dict = {"temperature": temperature}
+    — a field a non-thinking template ignores. ``sampling="model-default"``
+    sends no ``temperature`` at all — an endpoint that rejects the field
+    (Anthropic's OpenAI-compatible surface for Sonnet 5, Calvin M0 step
+    4) decodes with its own default, and the record says so."""
+    fields: dict = {"temperature": temperature} if sampling == "greedy" else {}
     if top_p is not None:
         fields["top_p"] = top_p
     if reasoning_effort:
@@ -721,7 +724,7 @@ def run(args: argparse.Namespace) -> dict:
         tools.append(BASH_TOOL)
     endpoint = Endpoint(args.base_url, args.model, os.environ.get(args.api_key_env) or None,
                         args.timeout, args.max_tokens,
-                        sampling_fields(args.temperature, args.top_p, args.reasoning_effort, args.thinking))
+                        sampling_fields(args.temperature, args.top_p, args.reasoning_effort, args.thinking, args.sampling))
     endpoint.tool_choice = args.tool_choice
     system = SYSTEM_PROMPT.format(workdir=workdir)
     if args.tool_choice == "none":
@@ -1040,6 +1043,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--transcript", help="write the full message list here as JSONL on exit (ADR-064)")
     p.add_argument("--temperature", type=float, default=0.0,
                    help="sampling temperature (default 0 = greedy; a thinking model wants its own, ADR-074)")
+    p.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy",
+                   help="greedy sends --temperature; model-default sends no temperature field (an endpoint that rejects it)")
     p.add_argument("--top-p", type=float, default=None, help="nucleus sampling, sent only when given")
     p.add_argument("--reasoning-effort", default=None,
                    help="a thinking model's reasoning depth (low|medium|high|xhigh as the model defines them); "

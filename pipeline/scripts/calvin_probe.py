@@ -506,6 +506,8 @@ def cmd_t(a: argparse.Namespace) -> int:
         rec["instruments"] = {**row, "unresolved_rows": agree["rows"], "coverage": cov, "anchors": an}
         (out / f"{c}.t.json").write_text(json.dumps(rec, indent=1))
         (out / f"{c}.t.diff").write_text(g["diff"])
+        if "ground_after_loop" in rec:  # arm T's own diff beside T-loop's, so both arms verify from the record (§3.2)
+            (out / f"{c}.t0.diff").write_text(rec["ground"]["diff"])
         with open(out / f"{c}.exchanges.jsonl", "w") as fh:
             for e in rec["exchanges"]:
                 fh.write(json.dumps(e) + "\n")

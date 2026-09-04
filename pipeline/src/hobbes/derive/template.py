@@ -37,8 +37,15 @@ interior file at least twice in the window ``COCHANGE_TOUCH``. The
 write partition is the interior's files plus the guarding tests' files.
 Regions are emitted for interior files only: a test file's module-level
 code is not where a task lands, and a region outside the partition
-could not be written anyway. Zero anchors and zero unresolved terms →
-one ``ANCHOR`` hole.
+could not be written anyway. Zero anchors (at build time, or after
+round 1 refused every confirmation) → one ``ANCHOR`` hole, carrying
+**candidates from Hobbes** (step 6's first protocol change, from the
+step-4 reading that an orchestrator asked outright echoes the task's
+prose): the planner's lexical seeds over the task with the word that
+seeded each (C-36 — the same input arm O's manifest is built from),
+the nearest graph names per unresolved term with their node ids, and
+the ledger's file listing by directory. The orchestrator chooses among
+them or names something else that exists; binding stays exact.
 
 ``apply_round1`` rebuilds the template from the orchestrator's answers
 to the round-1 holes (``refers`` terms become anchors, ``new`` terms
@@ -378,6 +385,42 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
 
 # ---------------------------------------------------------------- template
 
+#: The file listing in an ``ANCHOR`` hole's candidates stops here; past it, directories only (a repo this big is not this experiment's).
+CANDIDATE_FILES_MAX = 1500
+
+
+def anchor_candidates(L: Ledger, task: str, unresolved: list[dict], refused: set[str] = frozenset()) -> dict:
+    """What Hobbes can offer an anchorless task to choose among — never a guess, always what the ledger holds:
+    ``lexical`` (the planner's seed resolver over the task, C-36: node, path, the word that seeded it, and whether round 1
+    already refused that word), ``nearest`` (each unresolved term's nearest graph names with their node ids), and ``files``
+    (every module path in the ledger, grouped by top-level directory; directories alone past ``CANDIDATE_FILES_MAX``)."""
+    from hobbes.derive.impact import filter_seeds, resolve_seeds
+    seeds, _ = resolve_seeds(L.graph, task, [], lexical=True)
+    kept, _ = filter_seeds(L.graph, task, seeds, [])
+    lexical = []
+    for node, term in sorted(kept.items()):
+        row = {"node": node, "path": L.mod_path.get(node) or (L.path_of(node) if node in L.symbols else None), "term": term}
+        if term in refused or term.lower() in {r.lower() for r in refused}:
+            row["refused"] = True
+        lexical.append(row)
+    nearest = []
+    for u in unresolved:
+        names = [{"name": n, "nodes": sorted(L.by_name.get(n, []))[:3]} for n in u["nearest"]]
+        nearest.append({"term": u["term"], "names": names})
+    paths = sorted(L.mod_path.values())
+    by_dir: dict[str, list[str]] = {}
+    for p in paths:
+        by_dir.setdefault(p.split("/", 1)[0] if "/" in p else ".", []).append(p)
+    files = {"n": len(paths), "by_dir": by_dir if len(paths) <= CANDIDATE_FILES_MAX else {}}
+    if len(paths) > CANDIDATE_FILES_MAX:
+        dirs: dict[str, int] = {}
+        for p in paths:
+            d = "/".join(p.split("/")[:2]) if p.count("/") >= 2 else (p.rsplit("/", 1)[0] if "/" in p else ".")
+            dirs[d] = dirs.get(d, 0) + 1
+        files["dirs"] = dirs
+    return {"lexical": lexical, "nearest": nearest, "files": files}
+
+
 def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | None = None, *,
                    extra_anchors: list[dict] = (), drop_terms: set[str] = frozenset(), new_terms: list[str] = ()) -> dict:
     """The template for *task* at the ledger's SHA; deterministic in its inputs."""
@@ -398,7 +441,8 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
         # template shows the orchestrator no code, and "none" is its only honest answer): ask which symbols or files the task concerns.
         cons = {"write_partition": []}
         holes = [_hole("a1", "ANCHOR", None, {"anchor": "nothing in the task names repo structure" if not drop_terms else "round 1 confirmed no anchor"}, {},
-                       ask="which symbols or files does this task concern? (exact symbol ids, names or paths from the repo)")]
+                       ask="which symbols or files does this task concern? (exact symbol ids, names or paths from the repo — the candidates below, or others that exist)",
+                       candidates=anchor_candidates(L, task, unresolved, drop_terms))]
         holes.append(_hole("f1", "FREEFORM", None, {"anchor": "none"}, cons, ask="anything the template did not anticipate"))
     t = {
         "template_version": TEMPLATE_VERSION,

@@ -267,6 +267,28 @@ def _head_lines(repo_root: Path, sha: str, h: dict) -> str:
     return "\n".join(out)
 
 
+def _render_candidates(c: dict) -> list[str]:
+    """An ANCHOR hole's candidates from Hobbes (template.anchor_candidates): what exists, for the orchestrator to choose among."""
+    out = ["", "Candidates from Hobbes — every one exists at this commit; choose among them or name others that exist. Nothing here is a guess about the task:"]
+    if c.get("lexical"):
+        out.append("- Words of the task that name something in the repo (the planner's lexical seeds, C-36):")
+        for r in c["lexical"]:
+            out.append(f"  - `{r['node']}`{' (`' + r['path'] + '`)' if r.get('path') and r['path'] != r['node'] else ''} — the word '{r['term']}'{' — refused as a site in round 1' if r.get('refused') else ''}")
+    if c.get("nearest"):
+        out.append("- Nearest graph names per unresolved term (by spelling; recorded, not used):")
+        for r in c["nearest"]:
+            out.append(f"  - `{r['term']}` → " + ", ".join(f"`{n['name']}`" + (f" ({', '.join(n['nodes'])})" if n.get("nodes") else "") for n in r["names"]))
+    files = c.get("files") or {}
+    if files.get("by_dir"):
+        out.append(f"- Every file the graph holds ({files['n']}), by directory:")
+        for d, ps in files["by_dir"].items():
+            out.append(f"  - `{d}/`: " + ", ".join(f"`{p.split('/', 1)[1] if '/' in p else p}`" for p in ps))
+    elif files.get("dirs"):
+        out.append(f"- The graph holds {files['n']} files (too many to list); directories and their file counts:")
+        out.append("  " + ", ".join(f"`{d}` ({n})" for d, n in sorted(files["dirs"].items())))
+    return out
+
+
 def render(t: dict, repo_root: Path | None = None) -> str:
     """The template as the prompt a reader fills: task, anchors, what was answered, every open hole with its current code, the answer format."""
     sha = t["key"]["parent_sha"]
@@ -301,6 +323,8 @@ def render(t: dict, repo_root: Path | None = None) -> str:
         if h.get("terms"):
             for term in h["terms"]:
                 out.append(f"- `{term['term']}` — nearest: {', '.join(term['nearest'])}")
+        if h.get("candidates"):
+            out += _render_candidates(h["candidates"])
         if h.get("span") and repo_root is not None and h["type"] in ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION"):
             if h["type"] in ("CALLER_UPDATE", "TEST_EXPECTATION") and not h.get("show_span"):
                 # step 4: a caller or a test is a yes/no question first — its signature line and the call site the edge names;

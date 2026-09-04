@@ -115,7 +115,7 @@ def test_unresolved_agreement_against_gold(repo):
 def test_refusing_every_confirmation_opens_an_anchor_hole_for_a_second_pass(repo):
     root, sha = repo
     L = ledger(sha)
-    task = "Fix runGoRTA."  # one bare-identifier anchor → one ANCHOR_CONFIRM, no unresolved term
+    task = "Fix runGoRTA please."  # one bare-identifier anchor → one ANCHOR_CONFIRM, no unresolved term (the planner's tokenizer keeps a trailing period, so the identifier must not end the sentence)
     t = T.build_template(task, L, root, None)
     c = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM")
     fake = Fake([json.dumps({"fills": {c["id"]: {"confirm": False}}}),
@@ -132,6 +132,21 @@ def test_refusing_every_confirmation_opens_an_anchor_hole_for_a_second_pass(repo
     assert any(h["type"] == "BODY" and h["provenance"]["symbol"] == "internal/app/app.Run" for h in t2["holes"])
     assert "ANCHOR" in {h["type"] for h in t2["holes"]} and next(h for h in t2["holes"] if h["type"] == "ANCHOR")["fill_source"].startswith("orchestrator")
     assert rec["ground"]["unfilled"], "round 2 answered nothing for the structure: silence is reported, not accepted"
+    # the second pass showed candidates: the refused word marked, and the file listing the orchestrator can choose from
+    prompt_1b = fake.asked[1][-1]["content"]
+    assert "Candidates from Hobbes" in prompt_1b and "refused as a site in round 1" in prompt_1b and "app/app.go" in prompt_1b
+    a1 = next(h for h in rec["template_round1"]["holes"] if h["type"] == "ANCHOR") if any(h["type"] == "ANCHOR" for h in rec["template_round1"]["holes"]) else None
+    assert a1 is None, "the first template had anchors; the ANCHOR hole opened on the rebuild"
+
+
+def test_anchor_answer_may_be_a_candidate_node_id(repo):
+    root, sha = repo
+    L = ledger(sha)
+    t = T.build_template("Make it faster.", L, root, None)
+    a = next(h for h in t["holes"] if h["type"] == "ANCHOR")
+    node = next(iter(sorted(L.mod_path)))  # a module id straight from the candidates' file listing
+    t2 = T.apply_round1("Make it faster.", L, root, None, t, {a["id"]: {"names": [node]}})
+    assert [(x["term"], x["nodes"]) for x in t2["anchors"]] == [(node, [node])]
 
 
 def test_callers_render_compact_and_yes_fetches_the_span(repo):
