@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
 **Rewritten 2026-09-04 (night): Calvin M0 step 6 ran on four keys and
-is written up; a wider run waits on a dollar ceiling from Max and two
-protocol fixes; the TTT items and ADR-092's decisions are still held
+is written up, and the four no-spend fixes are in; a wider run waits
+on a dollar ceiling from Max; the TTT items and ADR-092's decisions are still held
 for Max.** Read this, then the 2026-09-04 BUILDLOG entries for how the
 state was reached, and `docs/workstreams.md` for the backlog by owner.
 History lives in the BUILDLOG; this doc is rewritten, never appended
@@ -41,23 +41,22 @@ three tests the gold changed); **candidates in the `ANCHOR` hole bind
 to nested on a prompt line; the same prompt confirmed 1 of 6 and 0 of
 6 across passes.
 
-**Before any wider run, in this order (no model spend):**
-
-1. **A module anchor opens `ANCHOR_CONFIRM`s over its symbols, not
-   bodies** (the uncleared step-4 change; H-s; the cost door).
-2. **A `TEST_EXPECTATION` for tests that import an edited module's
-   names**, not only ones the testmap maps to an edited symbol (the
-   `PROFILES` miss; C-93's neighbour).
-3. **`calvin.box.policy` allows the read-only toolchain probes** (`go
-   version`, `go env`, `which`, `sh -n`, `bash -n`) — 14 escalations
-   expired in two O sessions.
-4. **A per-session token cap or context window for arm O** — the
-   30-turn cap is the cost ceiling and O hit it three of four times at
-   1.3–1.6M tokens a session.
-5. Then Max's number: the total ceiling for the run and the key count.
-   Per-key cost at this shape is known (T $0.1–5 by template size, O
-   $2.5–5.2). The design's ADR takes 101 when Max moves it to
-   *accepted*.
+**The four no-spend fixes are done (the same night, on Max's word;
+design §8 step 6b):** a module anchor opens confirmations per symbol,
+not bodies (template **v1** — regenerate with `calvin_probe.py
+templates … --out ~/.hobbes/bench/calvin/templates-v1`; the step-2 set
+is `templates/` and is v0: the code refuses it now); importer tests are
+guards in the template (tier `import`) and the verifier (import grain,
+C-93 amended); the box policy allows the read-only toolchain probes and
+denies `env`; `loop.py --token-budget` rides every arm-O argv at 1M.
+None of it re-run. **Next is Max's number:** the total ceiling for a
+wider run and the key count. Per-key cost at the *old* shape was T
+$0.1–5 (module explosions) and O $2.5–5.2 (the 30-turn cap); the
+template fix removes the explosions (bodies before confirmation 99 →
+45 over the 28) and the budget flag caps O at ~$3 a session, so a
+28-key, three-arm run should now read order $30–60 — state it before
+launching and run four keys first. The design's ADR takes 101 when Max
+moves it to *accepted*.
 
 **Also this session:** protocol v0.2 (`2ed0d11`: candidates in the
 `ANCHOR` hole; `loop.py --sampling model-default`, Sonnet 5 rejects
@@ -140,7 +139,7 @@ container does not see), not a tree change; CI's box is the check.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 after the four-key run (`docs/calvin-potential.md` §10): the four no-spend fixes above, then Max's ceiling and key count for a wider run; his review of the ten lifts, ADR-100 and the step-6 record.
+0. Calvin M0 after the four-key run (`docs/calvin-potential.md` §10; the four fixes in): Max's ceiling and key count for a wider run (four keys first, on template v1); his review of the ten lifts, ADR-100 and the step-6 record.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression

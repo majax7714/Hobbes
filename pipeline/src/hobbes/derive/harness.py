@@ -67,6 +67,9 @@ from hobbes.extract import containment, staging
 
 HARNESS_VERSION = 1  # 1: the `removed` class; the verdict reads only what the diff did (P2F, new-fail, error, not-run); F2F rows are faults
 LOOP_PATH = Path(__file__).resolve().parents[1] / "agent" / "loop.py"
+#: Prompt tokens an arm-O session may spend in all before the loop stops it with a reason (step 6: three of four sessions
+#: hit the 30-turn cap at 1.3–1.6M tokens; this endpoint fits no window, so the cap is the cost ceiling, stated per run).
+O_TOKEN_BUDGET = 1_000_000
 #: The box policy an arm-O session runs under: the benchmark floor
 #: (ADR-057) plus the test runners this repo's guards need in the image.
 CALVIN_BOX = Path(__file__).resolve().parent / "calvin.box.policy"
@@ -272,6 +275,7 @@ def select_tests(L: T.Ledger, diff: str) -> Selection:
                 modules.add(mod)
     test_files = {t["file"] for t in L.tests}
     touched = sorted(p for p in ranges if p in test_files or is_test_path(p))
+    edited_modules = {L.path_mod[p] for p in ranges if p in L.path_mod}
     tests: list[dict] = []
     seen: set[str] = set()
     for t in L.tests:
@@ -282,6 +286,8 @@ def select_tests(L: T.Ledger, diff: str) -> Selection:
             grain, origin = "symbol", "guard"
         elif set(t.get("reaches_modules", [])) & modules:
             grain, origin = "module", "guard"
+        elif L.imports_of.get(L.path_mod.get(t["file"], ""), set()) & edited_modules:
+            grain, origin = "import", "guard"  # step 6: the test's module imports an edited module (a value read by name, no call the testmap maps)
         if grain and t["id"] not in seen:
             seen.add(t["id"])
             tests.append({"id": t["id"], "file": t["file"], "framework": t["framework"], "origin": origin, "grain": grain})
@@ -727,7 +733,8 @@ def o_agent_dir(spec: dict | None, L: T.Ledger, dest: Path) -> Path:
 
 def session_command(session_bin: str, clone: Path, sha: str, brief: Path, agent_dir: Path, env: Environment, *, base_url: str, model: str,
                     session_id: str, sessions_root: Path, max_turns: int = 40, max_tokens: int = 4096, loop_args: list[str] | None = None,
-                    runtime: Path = LOOP_PATH, box: Path = CALVIN_BOX, network: str = "pasta", knowledge: bool = False, timeout: str = "5s") -> list[str]:
+                    runtime: Path = LOOP_PATH, box: Path = CALVIN_BOX, network: str = "pasta", knowledge: bool = False, timeout: str = "5s",
+                    token_budget: int = O_TOKEN_BUDGET) -> list[str]:
     """The ``hobbes-session start`` argv for one arm-O session: the owned loop with exec through the proxy, the box and agent policies, the environment binding as read-only host mounts, the knowledge tools withheld unless *knowledge*."""
     cmd = [session_bin, "start", "--repo", str(clone), "--ref", sha, "--role", "implementer", "--session", session_id, "--sessions", str(sessions_root),
            "--runtime", str(runtime), "--runtime-python", "/usr/bin/python3", "--llm-base-url", base_url, "--model", model, "--task-file", str(brief),
@@ -743,6 +750,8 @@ def session_command(session_bin: str, clone: Path, sha: str, brief: Path, agent_
         cmd += ["--mount", gomod]
     if not knowledge:
         cmd.append("--loop-arg=--mcp-tools=exec")
+    if token_budget:
+        cmd.append(f"--loop-arg=--token-budget={token_budget}")
     for a in loop_args or []:
         cmd.append(f"--loop-arg={a}")
     return cmd

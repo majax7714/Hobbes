@@ -171,3 +171,44 @@ rules:
     decision: allow
   - pattern: "cd *"
     decision: allow
+
+  # --- read-only toolchain probes (step 6: 14 escalations expired in two
+  # sessions on `go version`, `go env`, `which go`, `sh -n`; a model asks
+  # what is installed before it runs anything, and a 5 s expire-to-deny
+  # on each costs the turns that would have made the change) ---
+  - pattern: "go version*"
+    decision: allow
+  - pattern: "go env*"
+    decision: allow
+  - pattern: "go list*"
+    decision: allow
+  - pattern: "sh -n *"
+    decision: allow
+  - pattern: "bash -n *"
+    decision: allow
+  - pattern: "node --version*"
+    decision: allow
+  - pattern: "node -v*"
+    decision: allow
+  - pattern: "npm --version*"
+    decision: allow
+  - pattern: "npx --version*"
+    decision: allow
+  - pattern: "command -v *"
+    decision: allow
+  - pattern: "type *"
+    decision: allow
+  - pattern: "pwd*"
+    decision: allow
+  # the endpoint's key rides into the session as an environment variable
+  # (`hobbes-session --env`): printing the environment would put it in the
+  # transcript, so this one read-only probe is denied, not parked
+  - pattern: "env"
+    decision: deny
+    reason: "the session environment carries the endpoint key; ask for one variable by name"
+  - pattern: "env *"
+    decision: deny
+    reason: "the session environment carries the endpoint key; ask for one variable by name"
+  - pattern: "printenv*"
+    decision: deny
+    reason: "the session environment carries the endpoint key; ask for one variable by name"

@@ -1055,6 +1055,20 @@ class TestThinkingRung:
         assert loop.reasoning_tokens({"completion_tokens_details": {"reasoning_tokens": 3}}) == 3
 
 
+def test_token_budget_stops_the_session_with_a_reason(tmp_path):
+    """Calvin M0 step 6: a per-session prompt-token ceiling — the loop stops before the turn that would overspend and says so."""
+    tree = tmp_path / "t"
+    tree.mkdir()
+    (tree / "a.txt").write_text("x")
+    model = ScriptedModel([[("list_files", {})]] * 5)  # 100 prompt tokens a call
+    try:
+        env = run_loop(model, tree, "--token-budget", "250")
+    finally:
+        model.close()
+    assert env["is_error"] and "token budget (250 prompt tokens)" in env["result"] and env["num_turns"] == 3, env["result"]
+    assert env["usage"]["input_tokens"] == 300 and env["token_budget"] == 250
+
+
 def test_model_default_sampling_sends_no_temperature(tmp_path):
     """Calvin M0 step 6: an endpoint that rejects `temperature` (Sonnet 5 through Anthropic's OpenAI-compatible surface) gets none under --sampling model-default; the envelope records the empty sampling."""
     from hobbes.agent.loop import sampling_fields

@@ -605,7 +605,8 @@ def cmd_o(a: argparse.Namespace) -> int:
             loop_args.append(f"--script=/sessions/{session_id}/script.json")
         rec = H.run_o(clone, L.sha, props[c]["task"], L, repo, (graphs / f"{c}.json", graphs / f"{c}.tests.json"), session_bin=session_bin, base_url=base_url, model=model,
                       session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t, timeout=a.timeout, dry_run=a.dry_run, runtime=runtime,
-                      max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, knowledge=a.knowledge)
+                      max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, knowledge=a.knowledge,
+                      **({"token_budget": a.token_budget} if a.token_budget is not None else {}))
         if a.dry_run:
             print(" ".join(rec["command"]))
             print(json.dumps({k: rec[k] for k in ("plan", "brief_chars")}, indent=1))
@@ -752,6 +753,7 @@ def main(argv: list[str]) -> int:
     s.add_argument("--base-url"); s.add_argument("--model"); s.add_argument("--session-bin"); s.add_argument("--sessions")
     s.add_argument("--max-turns", type=int, default=40); s.add_argument("--max-tokens", type=int, default=4096); s.add_argument("--loop-arg", action="append")
     s.add_argument("--knowledge", action="store_true", help="offer the knowledge tools too (default: exec only)"); s.add_argument("--timeout", type=float, default=3600.0)
+    s.add_argument("--token-budget", type=int, default=None, help="prompt tokens a session may spend in all (default: harness.O_TOKEN_BUDGET, 1M; 0 = none)")
     s.add_argument("--dry-run", action="store_true", help="print the session argv and the plan; launch nothing")
     s.set_defaults(fn=cmd_o)
     s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)

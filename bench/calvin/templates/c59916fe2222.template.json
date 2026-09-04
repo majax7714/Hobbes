@@ -1,9 +1,9 @@
 {
- "template_version": 0,
+ "template_version": 1,
  "key": {
   "parent_sha": "19bddc9230fbac43898e06d3b475c9a94ecd5445",
   "task_hash": "7af3c18016d6",
-  "template_version": 0
+  "template_version": 1
  },
  "unit": {
   "commit": "c59916fe2222",

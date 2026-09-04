@@ -895,3 +895,17 @@ anchorless tasks") still reads **false**, now for a better reason.
 attribution before the aggregate. The 28-key run is not made; what it
 would cost at this shape is now known per unit (T $0.1–5 by template
 size; O $2.5–5.2 by the turn cap).
+
+**Post-run, the same night (no spend) — the four fixes Max asked for
+before the next session**, each with a test: (1) a module anchor opens
+`ANCHOR_CONFIRM`s per symbol, not bodies — template v1, the 28
+regenerated (`templates-v1/`): bodies before any confirmation 99 → 45,
+the largest template 317 → 119 holes, `8c21d5a` (a backticked file)
+126 → 5, `00e5aee` 11 → 96 one-line confirmations in place of the
+1,068 the run paid for; (2) a `TEST_EXPECTATION` (tier `import`) and a
+verifier grain (`import`) for tests whose module imports an edited
+module — the `PROFILES` tests would now be asked and selected; (3)
+`calvin.box.policy` allows the read-only toolchain probes and denies
+`env`/`printenv` (the endpoint key rides as an environment variable);
+(4) `loop.py --token-budget`, 1M prompt tokens on every arm-O argv.
+Not re-run: the cost is Max's number.

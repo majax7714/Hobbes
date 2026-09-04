@@ -779,6 +779,11 @@ def run(args: argparse.Namespace) -> dict:
     endpoint.on_elide = revoke_on_elide
     try:
         while turns < args.max_turns:
+            if args.token_budget and usage["input_tokens"] >= args.token_budget:
+                # A per-session cost ceiling (Calvin M0 step 6): prompt tokens grow with every turn and an endpoint
+                # that fits no window has no other bound; stopping with the reason is the record, not a failure of the model.
+                error = f"token budget ({args.token_budget} prompt tokens) exhausted after {turns} turns ({usage['input_tokens']} spent)"
+                break
             turns += 1
             reply = endpoint.chat(messages, tools)
             u = reply.get("usage") or {}
@@ -994,7 +999,7 @@ def run(args: argparse.Namespace) -> dict:
         # The window as it was actually used: the largest prompt any call
         # carried, and the calls that needed a fit or an elision to go
         # through at all (ADR-068).
-        "prompt_tokens_max": prompt_max,
+        "prompt_tokens_max": prompt_max, "token_budget": args.token_budget,
         "calls_saturated": sum(1 for c in calls_log if c.get("fitted") or c.get("elided")),
         "calls": len(calls_log), "edited": edited, "reflected": reflected, "repeats_refused": repeats,
         "handoff_nudged": handoff_nudged,
@@ -1038,6 +1043,8 @@ def parse(argv: list[str]) -> argparse.Namespace:
                    help="how many times to nudge a model that stops at a prose plan before editing (default 2)")
     p.add_argument("--nudge-after", type=int, default=3,
                    help="dry (no-edit) turns before a mid-stream nudge (default 3)")
+    p.add_argument("--token-budget", type=int, default=0,
+                   help="stop with a reason once this many prompt tokens have been spent in the session (0 = no budget)")
     p.add_argument("--stall-after", type=int, default=6,
                    help="dry (no-edit) turns before stopping a stalled session with a reason (default 6)")
     p.add_argument("--transcript", help="write the full message list here as JSONL on exit (ADR-064)")

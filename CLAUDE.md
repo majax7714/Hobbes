@@ -70,7 +70,7 @@ box, against a repo on disk (architecture §10); the application mode in
   C-64; Java resolves in a networked pass that holds no sources, then
   indexes offline, C-66/ADR-097); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec; `holes.py`
-  is the Calvin M0 hole language, v0, `template.py` its generator —
+  is the Calvin M0 hole language, v1, `template.py` its generator —
   `hobbes template`, the anchor and structure passes — and `ground.py`
   grounder v0 — `hobbes ground`, placement and exact-or-NULL binding
   with a read-trace — `adapter.py` the orchestrator adapter, arm T's
@@ -173,7 +173,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, night): 1,223 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, night): 1,227 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job

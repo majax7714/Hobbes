@@ -197,3 +197,22 @@ def test_chunking_splits_a_long_template_by_file(repo):
     assert errs == {} and len(ad.exchanges) == len(chunks) and all("[chunk" in e["purpose"] for e in ad.exchanges)
     assert holes.validate_fills(t, doc) == {}
 
+
+def test_module_symbols_unanswered_are_refusals_and_not_carried(repo):
+    """Step 6's first fix through run_t: a named module's symbols are asked in round 1; the one confirmed becomes the structure, the unanswered are recorded as refusals and never rendered as answered holes."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Tidy up `app.go`."
+    t = T.build_template(task, L, root, None)
+    run = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM" and h["provenance"]["symbol"] == "internal/app/app.Run")
+    fake = Fake([json.dumps({"fills": {run["id"]: {"confirm": True}}}),
+                 json.dumps({"fills": {}, "patterns": {"MODULE_REGION": "unchanged", "CALLER_UPDATE": "unchanged", "TEST_EXPECTATION": "unchanged", "COCHANGE_TOUCH": "unchanged"}})])
+    ad = A.Adapter(fake, "fake-model")
+    rec = A.run_t(task, t, L, root, None, ad)
+    assert [r["round"] for r in rec["rounds"]] == [1, 2] and rec["rounds"][0]["unanswered_confirmations"] == 2
+    t2 = rec["template_round2"]
+    assert {h["provenance"]["symbol"] for h in t2["holes"] if h["type"] == "BODY"} == {"internal/app/app.Run"}, "the confirmed symbol alone (this ledger's Run uses no type)"
+    answered = [h for h in t2["holes"] if "fill" in h]
+    assert [h["id"] for h in answered] == [run["id"]], "only the confirmed symbol is shown as answered; the refusals are recorded, not rendered"
+    assert "unanswered counts as" in fake.asked[0][0]["content"] and "Already answered" in fake.asked[1][-1]["content"]
+

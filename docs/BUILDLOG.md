@@ -6651,3 +6651,18 @@ cut every first-launch O session off at 12 turns of reading (fixed by
 flags, three records kept under `o-step6-stall6/`), and the box policy
 denies toolchain probes (`go version`, `sh -n` — 14 escalations
 expired). Suites: 1,223 pytest (+3), Go unchanged. Not pushed.
+
+**Later the same night — the four no-spend fixes** (Max: "do the four
+no spend fixes before next session"): a module anchor opens
+confirmations per symbol, not bodies (template v1; bodies before any
+confirmation 99 → 45 over the 28, the largest template 317 → 119
+holes; an unanswered confirmation is a refusal, `SYSTEM_PROMPT_VERSION`
+2, `run_t` up to three round-1 passes); importer tests are guards in
+the template (tier `import`) and in the verifier (import grain, C-93
+amended); `calvin.box.policy` allows `go version`/`go env`/`go
+list`/`sh -n`/`bash -n`/`node --version`/`command -v`/`type`/`pwd` and
+denies `env`/`printenv`; `loop.py --token-budget` (1M on every arm-O
+argv, `harness.O_TOKEN_BUDGET`; `calvin_probe.py o --token-budget`).
+Six tests; the hand template and the 28 regenerate byte-identically
+under v1 (`templates-v1/`, the step-2 set kept). Design §2.1/§8/§10,
+architecture §6.2, the record. Not re-run.

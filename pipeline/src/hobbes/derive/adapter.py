@@ -42,12 +42,12 @@ from hobbes.derive import holes as H
 from hobbes.derive import template as T
 from hobbes.derive.cochange import CoChange
 
-SYSTEM_PROMPT_VERSION = 1
+SYSTEM_PROMPT_VERSION = 2
 SYSTEM_PROMPT = """You are the orchestrator for a code change. You know the task's intent, the language and the world; you do not know this repository, and you must not pretend to.
 
 Hobbes knows the repository at one commit exactly: it has expanded the task into a template of typed holes, each with a span (path and lines at that commit), the code currently in the span, why the hole exists, and the answer shape. A separate deterministic grounder will bind every name in your answers against the repository; a name that does not exist there is reported back to you, never silently accepted. So:
 
-- Answer every open hole by id, in the exact shape shown. "unchanged" is a complete and welcome answer. Holes of a type listed as pattern-fillable may be answered together with `patterns`.
+- Answer every open hole by id, in the exact shape shown. "unchanged" is a complete and welcome answer. Holes of a type listed as pattern-fillable may be answered together with `patterns`. The one exception: an ANCHOR_CONFIRM you leave unanswered counts as "no" — when a module is shown symbol by symbol, answer only the symbols the task concerns.
 - Write only names you have seen in the template, names the task itself gives, or names you declare in your own answers (a new function you write). If you need something you have not seen, declare it: a NEW_SYMBOL fill, or classify the term "new" in UNRESOLVED.
 - A fill for a span is the whole span rewritten, not a fragment and not a diff.
 - Keep changes to what the task asks. Do not refactor, rename or "improve" around it.
@@ -216,7 +216,7 @@ def carry_round1(t2: dict, base: dict, fills1: dict, source: str) -> None:
     present = {h["id"]: h for h in t2["holes"]}
     carried = []
     for h in base["holes"]:
-        if h["type"] not in ROUND1_TYPES or h["id"] not in fills1:
+        if h["type"] not in ROUND1_TYPES or h["id"] not in fills1 or (isinstance(fills1[h["id"]], dict) and fills1[h["id"]].get("unanswered")):
             continue
         if h["id"] in present:
             present[h["id"]]["fill"] = fills1[h["id"]]
@@ -258,14 +258,18 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
     t2 = t1
     base = copy.deepcopy(t1)  # every round-1 hole ever asked, so a refused confirmation stays refused across passes
     fills1: dict = {}
-    for pass_ in (1, 2):  # a second pass only when round 1 left no anchor and the rebuild opened an ANCHOR hole
+    for pass_ in (1, 2, 3):  # another pass only when the rebuild opened new round-1 holes: an ANCHOR hole after every refusal, or a named module's symbols
         view = round1_view(t2)
         if not view["holes"]:
             break
-        doc1, errs1 = adapter.ask(view, repo_root, f"round 1{'' if pass_ == 1 else 'b'}")
+        doc1, errs1 = adapter.ask(view, repo_root, f"round 1{'' if pass_ == 1 else 'bc'[pass_ - 2]}")
         answers = (doc1 or {}).get("fills") or {}
         fills1.update(answers)
-        row = {"round": 1 if pass_ == 1 else "1b", "holes_asked": [h["id"] for h in view["holes"]], "fills": doc1, "errors": errs1}
+        for h in view["holes"]:  # step 6: a confirmation left unanswered is a refusal, recorded as one, never carried as a filled hole
+            if h["type"] == "ANCHOR_CONFIRM" and h["id"] not in answers:
+                fills1[h["id"]] = {"confirm": False, "unanswered": True}
+        row = {"round": 1 if pass_ == 1 else "1" + "bc"[pass_ - 2], "holes_asked": [h["id"] for h in view["holes"]], "fills": doc1, "errors": errs1,
+               "unanswered_confirmations": sum(1 for h in view["holes"] if h["type"] == "ANCHOR_CONFIRM" and h["id"] not in answers)}
         t2 = T.apply_round1(task, L, repo_root, cochange, base, fills1)
         known = {h["id"] for h in base["holes"]}
         base["holes"] += [copy.deepcopy(h) for h in t2["holes"] if h["type"] in ROUND1_TYPES and h["id"] not in known]

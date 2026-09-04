@@ -230,3 +230,41 @@ def test_literal_cap_and_directory_matcher(repo, monkeypatch):
     by = {a["term"]: (a["matcher"], a["nodes"]) for a in anchors}
     assert by["cmd"] == ("path", ["cmd/main"]) and by["app"] == ("path", ["internal/app/app", "internal/app/app_test"]), "a directory names the modules directly in it"
     assert "go-rta" in [u["term"] for u in unresolved]
+
+
+def test_a_module_anchor_opens_confirmations_per_symbol_not_bodies(repo):
+    """Step 6's first fix: a named module (here a backticked file) asks its symbols one by one in round 1; only a confirmed one becomes structure; unanswered is no."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Tidy up `app.go`."
+    t = T.build_template(task, L, root, None)
+    assert [a["nodes"] for a in t["anchors"]] == [["internal/app/app"]]
+    confirms = [h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM"]
+    assert [h["provenance"]["symbol"] for h in confirms] == ["internal/app/app.Options", "internal/app/app.Run", "internal/app/app.helper"]
+    assert all(h["span"]["path"] == "internal/app/app.go" and h["provenance"]["module"] == "internal/app/app" for h in confirms)
+    assert not any(h["type"] in ("BODY", "SIGNATURE", "MODULE_REGION") for h in t["holes"]), "a module opens no body until a symbol is confirmed"
+    assert "unanswered is no" in confirms[0]["ask"] and "func Run" in holes.render(t, root)
+    run = next(h for h in confirms if h["provenance"]["symbol"] == "internal/app/app.Run")
+    t2 = T.apply_round1(task, L, root, None, t, {run["id"]: {"confirm": True}})
+    assert {h["provenance"]["symbol"] for h in t2["holes"] if h["type"] == "BODY"} == {"internal/app/app.Run", "internal/app/app.Options"}, "the confirmed symbol and the type it uses; not helper"
+    assert [a["term"] for a in t2["anchors"]] == ["internal/app/app.Run"] and not any(h["type"] == "ANCHOR_CONFIRM" for h in t2["holes"]), "the module anchor is spent; the symbol is its own anchor"
+    assert not holes.validate_template(t) and not holes.validate_template(t2)
+
+
+def test_a_test_that_imports_an_edited_module_is_a_guard(repo):
+    """Step 6's second fix: a test module importing an interior file's module gets a TEST_EXPECTATION (tier import) even with no call the testmap maps."""
+    root, sha = repo
+    L = ledger(sha)
+    graph = {**L.graph, "module_edges": [{"from": "internal/app/app_test", "to": "internal/app/app", "type": "imports", "tier": "syntactic", "evidence": []},
+                                         {"from": "internal/app/app_test", "to": "ext:testing", "type": "imports", "tier": "syntactic", "evidence": []}],
+             "nodes": L.graph["nodes"] + [{"id": "internal/app/app_test", "kind": "module", "path": "internal/app/app_test.go"}]}
+    tests = {"tests": [{"id": "internal/app/app_test.go::TestRun", "file": "internal/app/app_test.go", "framework": "go-test", "line": 5, "reaches": ["internal/app/app.Run"], "reaches_modules": ["internal/app/app"], "symbol": "internal/app/app_test.TestRun"},
+                       {"id": "internal/app/app_test.go::TestDefaults", "file": "internal/app/app_test.go", "framework": "go-test", "line": 9, "reaches": [], "reaches_modules": [], "symbol": "internal/app/app_test.TestDefaults"}]}
+    L2 = T.Ledger(graph, tests)
+    assert L2.importers_of("internal/app/app") == {"internal/app/app_test"}
+    t = T.build_template("Change `runGoRTA`.", L2, root, None)
+    exp = {h["provenance"]["test"]: h["provenance"] for h in t["holes"] if h["type"] == "TEST_EXPECTATION"}
+    assert exp["internal/app/app_test.go::TestRun"]["tier"] == "testmap"
+    assert exp["internal/app/app_test.go::TestDefaults"] == {"test": "internal/app/app_test.go::TestDefaults", "imports": ["internal/app/app"], "tier": "import"}
+    assert "internal/app/app_test.go" in t["constraints"]["write_partition"]
+

@@ -717,8 +717,14 @@
   reaches it. Selection is the testmap's: a test whose `reaches` holds a
   symbol the diff's changed lines fall in (symbol grain), a test
   reaching an edited module where the change falls outside every span
-  (module grain), and every test in a test file the diff itself
-  touches. A change in a file the graph lacks — a new file, a config, a
+  (module grain), a test whose module *imports* an edited module
+  (import grain, since 2026-09-04 night: step 6's run failed the right
+  code on three tests that read a module-level value by name, which no
+  call the testmap maps reaches), and every test in a test file the
+  diff itself touches. The import grain reads the graph's `imports`
+  module edges, so a test that reaches a module only through a
+  re-export, a dynamic import or a fixture is still outside it. A
+  change in a file the graph lacks — a new file, a config, a
   doc — selects nothing and the verdict reads `no-tests`; a behaviour
   guarded only by a test the testmap does not map (a `cargo test` in
   this repo's fixtures; Java) is `unsupported`; and an id the testmap

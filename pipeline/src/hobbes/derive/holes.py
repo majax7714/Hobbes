@@ -41,7 +41,7 @@ import re
 import subprocess
 from pathlib import Path
 
-TEMPLATE_VERSION = 0
+TEMPLATE_VERSION = 1  # 1 (step 6): a module anchor opens confirmations per symbol, importers are guards, the ANCHOR hole carries candidates
 
 #: hole type → what it asks for (rendered) and the fill shape's name.
 HOLE_TYPES: dict[str, str] = {
@@ -231,6 +231,8 @@ def validate_fills(t: dict, doc: dict) -> dict[str, list[str]]:
             errs = validate_fill(h, fills[h["id"]])
         elif h["type"] in patterns:
             errs = []
+        elif h["type"] == "ANCHOR_CONFIRM" and (h.get("provenance") or {}).get("symbol"):
+            errs = []  # a named module's symbol left unanswered is a refusal (step 6), never a missing fill
         else:
             errs = ["missing"]
         if errs:
@@ -325,6 +327,8 @@ def render(t: dict, repo_root: Path | None = None) -> str:
                 out.append(f"- `{term['term']}` — nearest: {', '.join(term['nearest'])}")
         if h.get("candidates"):
             out += _render_candidates(h["candidates"])
+        if h["type"] == "ANCHOR_CONFIRM" and h.get("span") and repo_root is not None:  # a module's symbol: its first line, so the reader can judge
+            out += ["", "```", span_text(repo_root, sha, {**h["span"], "end": h["span"]["start"]}), "```"]
         if h.get("span") and repo_root is not None and h["type"] in ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION"):
             if h["type"] in ("CALLER_UPDATE", "TEST_EXPECTATION") and not h.get("show_span"):
                 # step 4: a caller or a test is a yes/no question first — its signature line and the call site the edge names;

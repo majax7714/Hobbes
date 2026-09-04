@@ -112,6 +112,9 @@ def test_select_tests_symbol_module_and_touched_grains(repo):
     assert s.tests[0]["grain"] == "symbol" and s.tests[0]["origin"] == "guard"
     s = H.select_tests(L, "diff --git a/src/pkg/core.py b/src/pkg/core.py\n--- a/src/pkg/core.py\n+++ b/src/pkg/core.py\n@@ -1,1 +1,2 @@\n import os\n+import sys\n")  # the import block is outside every span → module grain
     assert s.edited_symbols == [] and s.edited_modules == ["pkg.core"] and [t["grain"] for t in s.tests] == ["module"]
+    L2 = H.T.Ledger({**L.graph, "module_edges": [{"from": "tests.test_core", "to": "pkg.core", "type": "imports", "tier": "syntactic", "evidence": []}]}, {"tests": L.tests})
+    s = H.select_tests(L2, d["derive"])  # step 6: a test whose module imports the edited module is a guard too, at import grain
+    assert sorted((t["id"], t["grain"]) for t in s.tests) == [("tests/test_core.py::TestOther::test_two", "import"), ("tests/test_core.py::test_derive", "symbol")]
     s = H.select_tests(L, d["testfile"])  # a touched test file runs whole, every test in it
     assert s.touched_test_files == ["tests/test_core.py"] and {t["origin"] for t in s.tests} == {"touched"} and len(s.tests) == 2
     s = H.select_tests(L, d["new"])  # a file the graph lacks reaches nothing
@@ -314,6 +317,7 @@ def test_arm_o_brief_policy_command_and_patch_grounding(repo, tmp_path):
     joined = " ".join(cmd)
     assert cmd[:2] == ["/bin/hobbes-session", "start"] and "--ref " + sha in joined and "--box " + str(H.CALVIN_BOX) in joined
     assert "--loop-arg=--mcp-tools=exec" in cmd and "--network pasta" in joined and "--commit-on-exit" in cmd and "--escalation-timeout 5s" in joined
+    assert f"--loop-arg=--token-budget={H.O_TOKEN_BUDGET}" in cmd, "step 6: the per-session token ceiling rides the argv"
     assert cmd.count("--mount") == len(env.ro) and f"--mount {source / '.venv'}" in joined and "--pre printf" in joined and "&& ln -sfn" in joined
     assert "--mcp-tools" not in " ".join(H.session_command("/bin/hobbes-session", root, sha, tmp_path / "b.md", agent, env, base_url="u", model="m", session_id="S-2", sessions_root=tmp_path, knowledge=True))
     assert H.CALVIN_BOX.exists() and "node --test*" in H.CALVIN_BOX.read_text()

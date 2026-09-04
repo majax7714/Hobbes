@@ -118,6 +118,15 @@ class Ledger:
         self.tests = sorted(tests.get("tests", []), key=lambda t: t["id"])
         self.test_ids = {t["id"] for t in self.tests}
         self.names = sorted(self.by_name)
+        #: module → the repo modules it imports (the graph's `imports` module edges; `ext:` targets dropped) — what a test
+        #: reaches without calling anything the testmap maps (step 6's `PROFILES` miss: a module-level value read by name).
+        self.imports_of: dict[str, set[str]] = {}
+        for e in graph.get("module_edges", []):
+            if e.get("type") == "imports" and e["to"] in self.mod_path:
+                self.imports_of.setdefault(e["from"], set()).add(e["to"])
+
+    def importers_of(self, module: str) -> set[str]:
+        return {m for m, imps in self.imports_of.items() if module in imps}
 
     def span(self, sid: str) -> dict:
         s = self.symbols[sid]
@@ -300,8 +309,8 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
                 literal_tests.add(n)  # a literal inside a test is a reaching test, not interior
             elif n in L.symbols:
                 seeds.add(n)
-            elif n in L.mod_path:
-                seeds.update(s["id"] for s in L.by_module.get(n, []))
+            # a module node seeds nothing (step 6): its symbols are asked as ANCHOR_CONFIRMs in round 1 (`build_template`),
+            # and only a confirmed one joins the interior — a whole module as bodies cost 1,068 holes and $5 on one key
     interior = set(seeds)
     for sid in sorted(seeds):
         for e in L.calls_out.get(sid, []):
@@ -312,7 +321,13 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
             interior.add(e["to"])
     interior_s = sorted(interior, key=lambda i: (L.path_of(i), L.symbols[i]["line"], i))
     reaching = [t for t in L.tests if set(t.get("reaches", [])) & interior or t.get("symbol") in literal_tests]
-    guard_files = sorted({t["file"] for t in reaching})
+    # step 6: a test whose module *imports* an interior file's module guards it too, whether or not the testmap maps a call
+    # (`test_containment` reads `PROFILES`, a module-level value: no call site, no reach — and the gold changed those tests)
+    interior_modules = {L.path_mod[f] for f in files if f in L.path_mod}
+    importing = {t["id"]: sorted(L.imports_of.get(L.path_mod.get(t["file"], ""), set()) & interior_modules) for t in L.tests}
+    reaching_ids = {t["id"] for t in reaching}
+    importers = [t for t in L.tests if t["id"] not in reaching_ids and importing[t["id"]]]
+    guard_files = sorted({t["file"] for t in reaching} | {t["file"] for t in importers})
     partition = sorted(set(files) | set(guard_files))
     cons = {"write_partition": partition}
     holes: list[dict] = []
@@ -354,6 +369,10 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
         sym = t.get("symbol")
         span = L.span(sym) if sym in L.symbols else {"path": t["file"], "start": t["line"], "end": t["line"]}
         holes.append(_hole(nxt("t"), "TEST_EXPECTATION", span, {"test": t["id"], "reaches": sorted(set(t["reaches"]) & interior)[:4], "tier": "testmap"}, cons))
+    for t in importers:
+        sym = t.get("symbol")
+        span = L.span(sym) if sym in L.symbols else {"path": t["file"], "start": t["line"], "end": t["line"]}
+        holes.append(_hole(nxt("t"), "TEST_EXPECTATION", span, {"test": t["id"], "imports": importing[t["id"]][:4], "tier": "import"}, cons))
     for path in files:
         syms = L.by_module[L.path_mod[path]]
         length = _file_length(repo_root, L.sha, path)
@@ -425,15 +444,29 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
                    extra_anchors: list[dict] = (), drop_terms: set[str] = frozenset(), new_terms: list[str] = ()) -> dict:
     """The template for *task* at the ledger's SHA; deterministic in its inputs."""
     anchors, unresolved, dropped = anchor_pass(L, task, repo_root)
-    anchors = [a for a in anchors if a["term"] not in drop_terms] + list(extra_anchors)
+    anchors = [a for a in anchors if a["term"] not in drop_terms] + [a for a in extra_anchors if a["term"] not in drop_terms or a.get("note", "").startswith("confirmed")]
     round1: list[dict] = []
     if unresolved:
         round1.append(_hole("u1", "UNRESOLVED", None, {"anchor": "the task's code-shaped tokens no matcher bound"}, {}, ask="classify each unresolved term",
                             terms=[dict(u) for u in unresolved]))
     confirmable = [a for a in anchors if a["matcher"] == "bare-identifier" or (a["matcher"] == "backtick" and a.get("note", "").startswith("matched by a name"))]
-    for i, a in enumerate(confirmable, 1):
+    i = 0
+    for a in confirmable:
+        nodes = [n for n in a["nodes"] if n not in L.mod_path]  # a module node is asked symbol by symbol below, never as a whole
+        if not nodes:
+            continue
+        i += 1
         round1.append(_hole(f"c{i}", "ANCHOR_CONFIRM", None, {"anchor": a["term"], "matcher": a["matcher"]}, {},
-                            ask=f"is `{', '.join(a['nodes'])}` (matched by the {'bare word' if a['matcher'] == 'bare-identifier' else 'backticked name'} '{a['term']}') a site this task concerns?"))
+                            ask=f"is `{', '.join(nodes)}` (matched by the {'bare word' if a['matcher'] == 'bare-identifier' else 'backticked name'} '{a['term']}') a site this task concerns?"))
+    # step 6: an anchor that names a *module* (a bare word, a backticked file, an ANCHOR answer) opens one ANCHOR_CONFIRM per
+    # symbol of the module, each with its span — confirmations, not bodies; an unanswered confirmation is a refusal (`run_t`)
+    for a in anchors:
+        for mod in [n for n in a["nodes"] if n in L.mod_path]:
+            for sym in L.by_module.get(mod, []):
+                i += 1
+                sp = L.span(sym["id"])
+                round1.append(_hole(f"c{i}", "ANCHOR_CONFIRM", sp, {"anchor": a["term"], "matcher": a["matcher"], "module": mod, "symbol": sym["id"], "kind": sym.get("kind")}, {},
+                                    ask=f"is `{sym['id']}` (a {sym.get('kind') or 'symbol'} in `{sp['path']}`, the module the task names as '{a['term']}') a site this task concerns? answer only if yes; unanswered is no"))
     if anchors:
         holes, cons = structure_pass(L, anchors, repo_root, cochange, new_terms)
     else:
@@ -487,8 +520,12 @@ def apply_round1(task: str, L: Ledger, repo_root: Path, cochange: CoChange | Non
             term = h["provenance"]["anchor"]
             drop.add(term)
             if f.get("confirm") is True:
-                a = next(a for a in template["anchors"] if a["term"] == term)
-                extra.append({"term": term, "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else a["nodes"], "note": "confirmed by the orchestrator"})
+                if h["provenance"].get("symbol"):  # one symbol of a named module: it alone joins, as its own anchor
+                    extra.append({"term": h["provenance"]["symbol"], "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else [h["provenance"]["symbol"]],
+                                  "note": f"confirmed by the orchestrator (a symbol of `{h['provenance']['module']}`, named by '{term}')"})
+                else:
+                    a = next(a for a in template["anchors"] if a["term"] == term)
+                    extra.append({"term": term, "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else [n for n in a["nodes"] if n not in L.mod_path], "note": "confirmed by the orchestrator"})
         elif h["type"] == "ANCHOR":  # names the orchestrator gives for an anchorless task: bound exactly as a backticked term would be, or not at all
             for name in f.get("names") or []:
                 nodes = _resolve_name(L, name) or _resolve_path(L, name)
