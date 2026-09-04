@@ -59,7 +59,7 @@ box, against a repo on disk (architecture §10); the application mode in
   `internal/escalation/` (park/approve/expire queue), `internal/knowledge/`
   (graph tools over `.hobbes/derived/`, incl. `list_blind_spots`).
   `cmd/hobbes-session` + `internal/sandbox/` launch a session in rootless
-  Podman. `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
+  Podman (`--mount` binds a host tree read-only, ADR-100). `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
   and the embedded SPA. Only external deps: `yaml.v3`,
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
@@ -73,8 +73,12 @@ box, against a repo on disk (architecture §10); the application mode in
   is the Calvin M0 hole language, v0, `template.py` its generator —
   `hobbes template`, the anchor and structure passes — and `ground.py`
   grounder v0 — `hobbes ground`, placement and exact-or-NULL binding
-  with a read-trace — and `adapter.py` the orchestrator adapter, arm T's
-  driver, the one place a model is called); `run/`
+  with a read-trace — `adapter.py` the orchestrator adapter, arm T's
+  driver, the one place a model is called, and `harness.py` the local
+  harness, ADR-100: `hobbes verify` runs a diff's guarding tests in the
+  sandbox with and without it, arm O's session runs through
+  `hobbes-session` under `calvin.box.policy`, `scripts/calvin_scripted_agent.py`
+  stands in for the model); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
@@ -169,8 +173,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, night): 1,207 pytest (+3 `lane_b`) /
-295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
+Suite sizes at the last check (2026-09-04, evening): 1,220 pytest (+3 `lane_b`) /
+299 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -184,7 +188,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 099).
+  architecture doesn't already make. Number sequentially (last: 100).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`

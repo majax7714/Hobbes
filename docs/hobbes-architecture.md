@@ -1242,7 +1242,11 @@ interprets nothing.
   any OpenAI-compatible endpoint, identical on both arms: in the
   harness arm its tools are *listed from the hobbes-proxy* (exec, the
   knowledge tools, reflect) plus the loop's own confined file tools (read, list, `write_file` / `edit_file` for a writing role, and — ADR-070 — a confined regex search, so a line in a large file can be found and then read by range) and **no bash**;
-  in the pure arm, bash plus the same file tools. `hobbes-session
+  in the pure arm, bash plus the same file tools. An arm may be
+  offered a *subset* of the proxy's tools (`--mcp-tools exec`, ADR-100:
+  Calvin M0's arm O gets exec and nothing else of Hobbes); the proxy
+  still serves every tool, and a withheld one is refused before it
+  reaches the server. `hobbes-session
   --runtime` copies it into the session dir and runs it with the
   image's `python3`; it prints Claude Code's result envelope, so one
   meter reads both. Claude Code remains the other runtime. The
@@ -1352,9 +1356,21 @@ a commit identity, which no sandbox had.
   registry fetches — `npm ci --ignore-scripts`, `cargo fetch`, `go mod
   download` — are separate containers with a network and no repo
   code), no policy chain — a static profile per step,
-  because no model and no human are present to escalate to. The
+  because no model and no human are present to escalate to. **A
+  target's tests are a fifth shape on the same planner (ADR-100):**
+  the `verify` profile runs a worktree's tests offline, executing the
+  target's code where lane B does (`hobbes verify`, Calvin M0's
+  verdict), and **a session may bind host trees read-only**
+  (`hobbes-session --mount`, the dependency trees a target's tests
+  need when no image carries them: a venv and its interpreter, a
+  `node_modules`, the module cache lane B filled) — mounted at their
+  own paths so links resolve, never relabeled, the container's
+  labeling off while one is bound, printed by the dry run; the binding
+  is derived from a source checkout, and it is the source's dependency
+  set, not the SHA's (C-92). The
   containment rule is *whatever executes repo-authored code*: agent
-  sessions, lane B, the oracle lane's O6/O7 (all built, ADR-092). The
+  sessions, lane B, the oracle lane's O6/O7 (all built, ADR-092), a
+  target's tests under the verifier (ADR-100). The
   guarantee it carries — repo code never executes on the host — is
   P10-specific: a box without podman refuses the executing steps rather
   than falling back. Per-command secret brokering at the proxy

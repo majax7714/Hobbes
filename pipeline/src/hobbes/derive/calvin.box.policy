@@ -1,0 +1,173 @@
+# Calvin M0 arm-O session policy (`docs/calvin-potential.md` §2.4, §3.2) —
+# the floor an orchestrator-alone session runs under on this repo's own
+# harness, passed to `hobbes-session --box`.
+#
+# The benchmark floor (ADR-057, `bench.box.policy`) plus the runners this
+# repo's guards need inside the sandbox image, where there is no `uv`:
+# the venv's python (`.venv/bin/python*`), `node --test`, vitest through
+# npm or its binary, `go build`/`go vet`. The specific guarantees stay
+# denied and win by deny-overrides (P10, ADR-036); the OS sandbox is the
+# real boundary (§5.2) — this file only decides which shell commands the
+# proxy will run, and cannot widen what the sandbox already forbids. The
+# session's `--mount`s are read-only, so an allowed command cannot write
+# outside the worktree either way.
+version: 1
+scope: box
+default: escalate
+
+rules:
+  # --- specific guarantees, first: deny-overrides makes these final ---
+  - pattern: "*.tfstate*"
+    decision: deny
+    reason: "tfstate carries secrets (I-1)"
+  - pattern: "git push*"
+    decision: deny
+    reason: "pushes are the human's — a benchmark session commits, never publishes"
+  - pattern: "git add *.hobbes/derived*"
+    decision: deny
+    reason: "derived is regenerable, never committed (P1)"
+
+  # --- what a solo implementer needs to run the tests ---
+  - pattern: "pytest*"
+    decision: allow
+  - pattern: "python -m pytest*"
+    decision: allow
+  - pattern: "python3 -m pytest*"
+    decision: allow
+  - pattern: "uv run pytest*"
+    decision: allow
+  - pattern: "python -m unittest*"
+    decision: allow
+  - pattern: "python3 -m unittest*"
+    decision: allow
+  - pattern: "tox*"
+    decision: allow
+  - pattern: "go test*"
+    decision: allow
+  - pattern: "cargo test*"
+    decision: allow
+  - pattern: "npm test*"
+    decision: allow
+  # verification one-liners and helper scripts a model reaches for
+  - pattern: "python -c *"
+    decision: allow
+  - pattern: "python3 -c *"
+    decision: allow
+  - pattern: "python *"
+    decision: allow
+  - pattern: "python3 *"
+    decision: allow
+  # in-session dependency install: the sandbox has no host secrets and
+  # network is the model endpoint's; a benchmark env may need its deps
+  - pattern: "pip install*"
+    decision: allow
+  - pattern: "pip3 install*"
+    decision: allow
+  - pattern: "python -m pip install*"
+    decision: allow
+  # read-only environment questions: a 5 s expire-to-deny on `pip show
+  # numpy` cost a session in the first full-stage probe (U9)
+  - pattern: "pip show*"
+    decision: allow
+  - pattern: "pip3 show*"
+    decision: allow
+  - pattern: "pip list*"
+    decision: allow
+  - pattern: "pip3 list*"
+    decision: allow
+  - pattern: "pip freeze*"
+    decision: allow
+  - pattern: "python -m pip show*"
+    decision: allow
+  - pattern: "python -m pip list*"
+    decision: allow
+  - pattern: "which *"
+    decision: allow
+
+  # --- committing the work (single and compound forms both match) ---
+  - pattern: "git add*"
+    decision: allow
+  - pattern: "git commit*"
+    decision: allow
+  - pattern: "git status*"
+    decision: allow
+  - pattern: "git diff*"
+    decision: allow
+  - pattern: "git log*"
+    decision: allow
+  - pattern: "git show*"
+    decision: allow
+  - pattern: "git restore*"
+    decision: allow
+  - pattern: "git checkout -- *"
+    decision: allow
+  - pattern: "git stash*"
+    decision: allow
+
+  # --- read-only orientation on the tree ---
+  - pattern: "ls*"
+    decision: allow
+  - pattern: "cat*"
+    decision: allow
+  - pattern: "head*"
+    decision: allow
+  - pattern: "tail*"
+    decision: allow
+  - pattern: "grep*"
+    decision: allow
+  - pattern: "rg*"
+    decision: allow
+  - pattern: "find*"
+    decision: allow
+  - pattern: "sed -n *"
+    decision: allow
+  - pattern: "make*"
+    decision: allow
+  # read-only text filters a model pipes test output through — now that a
+  # compound command is resolved per segment (ADR-075), the pipe target is
+  # policy-checked too, so the harmless filters must be named or an
+  # allowed `pytest … | tr …` escalates (C-54)
+  - pattern: "tr *"
+    decision: allow
+  - pattern: "wc*"
+    decision: allow
+  - pattern: "awk *"
+    decision: allow
+  - pattern: "sort*"
+    decision: allow
+  - pattern: "uniq*"
+    decision: allow
+  - pattern: "cut *"
+    decision: allow
+  - pattern: "xargs*"
+    decision: allow
+  - pattern: "tee *"
+    decision: allow
+  - pattern: "echo*"
+    decision: allow
+  - pattern: "true"
+    decision: allow
+  - pattern: "diff *"
+    decision: allow
+  - pattern: "wc *"
+    decision: allow
+
+  # --- this repo's runners in the image (Calvin M0 step 5) ---
+  - pattern: ".venv/bin/python*"
+    decision: allow
+  - pattern: "*/.venv/bin/python*"
+    decision: allow
+  - pattern: "node --test*"
+    decision: allow
+  - pattern: "npx vitest*"
+    decision: allow
+  - pattern: "./node_modules/.bin/vitest*"
+    decision: allow
+  - pattern: "npm run test*"
+    decision: allow
+  - pattern: "go build*"
+    decision: allow
+  - pattern: "go vet*"
+    decision: allow
+  - pattern: "cd *"
+    decision: allow

@@ -516,3 +516,50 @@ func TestRuntimeMaxTurnsReachesTheLoop(t *testing.T) {
 		t.Errorf("zero max turns must leave the loop's default")
 	}
 }
+
+func TestHostMountsAreReadOnlyUnlabeledAndDisableLabeling(t *testing.T) {
+	// ADR-100: a host tree a target's tests need (a venv, a node_modules,
+	// a module cache) rides in read-only at its own path — never
+	// relabeled, so the container runs with labeling off; and it is
+	// printed in the dry run like any other binding.
+	cfg := baseConfig()
+	cfg.HostMounts = []string{"/home/u/hobbes/pipeline/.venv", "/home/u/.hobbes/cache/go/mod:/gomod"}
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(p.PodmanArgs(), " ")
+	for _, want := range []string{
+		"-v /home/u/hobbes/pipeline/.venv:/home/u/hobbes/pipeline/.venv:ro ",
+		"-v /home/u/.hobbes/cache/go/mod:/gomod:ro ",
+		"--security-opt label=disable",
+		":/work:rw,z", // the session's own mounts keep their relabel
+	} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("missing %q in:\n%s", want, joined)
+		}
+	}
+	if strings.Contains(joined, ".venv:ro,z") {
+		t.Error("a host mount must not be relabeled")
+	}
+	if !strings.Contains(p.DryRun(), "/gomod:ro") {
+		t.Error("the dry run must print the host mounts")
+	}
+}
+
+func TestNoHostMountsKeepsLabelingOn(t *testing.T) {
+	p, _ := NewPlan(baseConfig())
+	if strings.Contains(strings.Join(p.PodmanArgs(), " "), "label=disable") {
+		t.Error("without host mounts the container keeps SELinux labeling")
+	}
+}
+
+func TestHostMountsMustBeAbsoluteAndMayNotShadowTheSession(t *testing.T) {
+	for _, bad := range []string{"pipeline/.venv", "/a:rel", "/a:/b:ro", "/a:" + WorkDir, "/a:" + SessionsRoot + "/x"} {
+		cfg := baseConfig()
+		cfg.HostMounts = []string{bad}
+		if _, err := NewPlan(cfg); err == nil {
+			t.Errorf("host mount %q should be rejected", bad)
+		}
+	}
+}

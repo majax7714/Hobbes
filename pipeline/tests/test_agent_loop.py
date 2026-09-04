@@ -377,6 +377,26 @@ class TestMCPLoop:
         assert "hi" in tool_msgs[4]["content"]  # native read still works beside MCP
 
 
+    def test_mcp_tools_narrows_what_is_offered_and_refuses_the_rest(self, tree, mcp_config):
+        # Calvin M0 arm O: the proxy's exec and nothing else of Hobbes.
+        cfg, log = mcp_config
+        model = ScriptedModel([
+            [("who_calls", {"target": "app.core"}), ("exec", {"command": "git status"})],
+            "done",
+        ])
+        try:
+            env = run_loop(model, tree, "--mcp-config", str(cfg), "--mcp-tools", "exec")
+        finally:
+            model.close()
+        assert env["is_error"] is False
+        names = [t["function"]["name"] for t in model.requests[0]["body"]["tools"]]
+        assert "exec" in names and "who_calls" not in names and "bash" not in names
+        calls = [json.loads(l) for l in log.read_text().splitlines()]
+        assert [c["name"] for c in calls] == ["exec"]  # the withheld tool never reached the server
+        tool_msgs = [m for m in model.requests[-1]["body"]["messages"] if m["role"] == "tool"]
+        assert "unknown tool" in tool_msgs[0]["content"].lower() or "not available" in tool_msgs[0]["content"].lower()
+
+
 class TestReadOnlyRoleDiscipline:
     """Harness restructure, phase 1: a read-only role's deliverable is a
     reflect handoff — the discipline nudges toward it and never toward

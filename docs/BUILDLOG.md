@@ -6570,3 +6570,47 @@ cell's impact sets reads 0 on a perfect diff — the release-SHA lexical
 mapping named files the commit never touched (D-6 for the cell). The
 record's fifth addendum carries both passes' rows; §2.2 and §8 amended;
 1,207 pytest (+8). Step 5 next (no orchestrator).
+
+*Addendum, evening — step 5, the local harness (no orchestrator).*
+Max: "continue with the current resume point step 5 of calvin
+potential." Built `hobbes.derive.harness` (ADR-100): `verify` — a
+worktree at the parent, the diff applied, the testmap's guards (symbol
+grain in a span, module grain outside, the whole file for a touched
+test file) run in the sandbox image offline under lane B's planner
+with a new `verify` profile, once with the diff and once without,
+every row classed against its baseline (P2P / F2P / P2F / F2F /
+new-pass / new-fail / removed / skip / uncollected / unsupported) and
+the verdict read off what the diff itself did; the environment binding
+— this checkout's `.venv`, `node_modules` and the venv's interpreter
+linked into the worktree and mounted read-only at their host paths,
+lane B's Go module cache, a git identity, vitest `--no-cache` — derived
+from the manifests, not authored (C-92); arm O — `hobbes plan` at the
+parent from the task text alone, every unit's manifest in one
+ADR-077-shaped brief with the harness's environment notes, an agent
+dir allowing the guards, `hobbes-session` with the proxy's exec under
+`calvin.box.policy`, `--commit-on-exit`, the harvested branch as the
+patch (the harness's links excluded), the patch through the grounder
+(`ground_patch`, the raw-diff route) and the verifier. Around it:
+`hobbes-session --mount HOST[:CONTAINER]` (read-only, never relabeled,
+labeling off while bound; four Go tests), `loop.py --mcp-tools`
+(offer a subset of the proxy's tools; one test), `hobbes verify`,
+`calvin_probe.py verify | o` (`--rescore` into a new dir, never in
+place), `scripts/calvin_scripted_agent.py` (a JSON script played
+through a session in place of a model), twelve harness tests. The
+calibration — the 28 golds at their parents — caught six harness
+defects before the reading (an uncollectable id aborting pytest: a
+fixture named `test…` the testmap lists, C-93; the baseline asked for
+a file the diff creates, 552 false F2P; parametrized ids; no git
+identity; a renamed test read not-run; the links committed into the
+session's patch) and then read **26 pass / 1 fail / 1 no-tests, P2F 0,
+error 0, all contained, 559 s**; the one fail is four tests a commit
+adds that need podman inside the container. Arm T's step-4 diffs: the
+hand unit passes its 12 guards; three are empty; one reaches no test.
+The scripted O session: four runners ok under policy, `git push`
+denied at the agent layer, `curl` parked and expired to deny, the
+edit harvested, grounded and verified. §9b's five defects checked off
+in the record (D-2 for O to be confirmed on the first model session);
+D-6 closed. C-92, C-93; architecture §6.2/§7 amended; design
+§2.4/§3.2/§8; handoff moved to step 6 (Max's word; the model choice
+and the two protocol changes). 1,220 pytest (+13), 299 Go (+4). The
+known lane_b venv-listing failure on this box is unchanged.

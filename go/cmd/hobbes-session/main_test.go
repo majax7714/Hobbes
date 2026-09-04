@@ -406,3 +406,25 @@ func TestCommitOnExitCommitsLeftoversButNeverHobbesDir(t *testing.T) {
 		t.Errorf("clean tree should print nothing, got %q", errb.String())
 	}
 }
+
+func TestMountFlagBindsAHostTreeReadOnly(t *testing.T) {
+	repo := gitRepo(t)
+	fakeProxy := filepath.Join(t.TempDir(), "hobbes-proxy")
+	os.WriteFile(fakeProxy, []byte("static\n"), 0o755)
+	venv := t.TempDir()
+	code, stdout, stderr := cli("start", "--repo", repo, "--role", "implementer",
+		"--session", "S-m", "--proxy-bin", fakeProxy, "--sessions", t.TempDir(),
+		"--mount", venv, "--mount", venv+":/deps", "--dry-run")
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%q", code, stderr)
+	}
+	for _, want := range []string{venv + ":" + venv + ":ro", venv + ":/deps:ro", "--security-opt label=disable"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("dry-run missing %q in %s", want, stdout)
+		}
+	}
+	if code, _, stderr := cli("start", "--repo", repo, "--role", "implementer", "--proxy-bin", fakeProxy,
+		"--sessions", t.TempDir(), "--mount", "relative/path", "--dry-run"); code == 0 || !strings.Contains(stderr, "absolute") {
+		t.Errorf("a relative mount must be refused: code=%d stderr=%q", code, stderr)
+	}
+}

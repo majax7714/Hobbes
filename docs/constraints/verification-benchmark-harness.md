@@ -683,6 +683,66 @@
 
 ---
 
+### C-92 — The local harness binds a SHA's tests to a source checkout's dependency trees
+
+- **Cannot tell you:** that a verdict at a parent commit was reached
+  under *that commit's* dependencies. `hobbes verify` and an arm-O
+  session (Calvin M0 step 5, ADR-100) run a worktree at the SHA with
+  the venv, the `node_modules` and the Go module cache of a **source
+  checkout** of the same repo linked in and mounted read-only — the
+  dependency set at the source's commit, not the SHA's lockfile. A test
+  that needs a dependency added after the SHA passes where it should
+  not have been runnable; one whose dependency the source dropped or
+  upgraded fails or errors for a reason that is not the diff's.
+- **Because:** no image carries this repo's dependencies (the sandbox
+  image carries toolchains, ADR-092), `uv sync` and `npm ci` need a
+  network the verifier does not have, and the 28 parents of the M0 unit
+  set span a fortnight of a tree whose lockfiles barely moved. The
+  binding is ADR-058's practice (an environment handed to the harness,
+  recorded per run) without a per-commit image behind it.
+- **Bites at:** every "tests pass?" cell of the M0 record on this
+  repo; more the further a unit's parent lies from the source checkout.
+  On the 2026-09-04 calibration (the 28 gold diffs at their parents,
+  source at `HEAD` of the same day) no failure traced to the binding.
+- **You find out:** **surfaced** — every verify record's `environment`
+  block names the source, each link and each mount; the baseline run
+  (the same tests at the SHA *without* the diff) classes a failure the
+  environment causes as `F2F` or `error` on both trees rather than as
+  the diff's regression; `hobbes verify` prints the source it bound.
+- **Source:** ADR-100 (2026-09-04), Calvin M0 step 5.
+
+### C-93 — The verifier reaches a behaviour only through a test the testmap maps
+
+- **Cannot tell you:** that a diff is right where no mapped test
+  reaches it. Selection is the testmap's: a test whose `reaches` holds a
+  symbol the diff's changed lines fall in (symbol grain), a test
+  reaching an edited module where the change falls outside every span
+  (module grain), and every test in a test file the diff itself
+  touches. A change in a file the graph lacks — a new file, a config, a
+  doc — selects nothing and the verdict reads `no-tests`; a behaviour
+  guarded only by a test the testmap does not map (a `cargo test` in
+  this repo's fixtures; Java) is `unsupported`; and an id the testmap
+  names that pytest cannot collect — a fixture whose name begins with
+  `test` (`tests/test_testmap.py::tests_doc`, listed as a test at 4 of
+  the 28 parents) — is `uncollected`, dropped and the rest rerun, never
+  a failure of the diff.
+- **Because:** the verdict is scoped to the graph's evidence (P11): a
+  test the graph cannot connect to the edit is not a guard Hobbes can
+  claim, and running the whole suite per diff would spend minutes per
+  cell to grade behaviours the diff cannot have touched. The fixture
+  case is the testmap's (`hobbes.extract.testmap` takes pytest's name
+  prefix without pytest's decorator reading), registered here where a
+  user meets it and left for the extraction backlog.
+- **Bites at:** §4.5 solve rate on units that edit only files outside
+  the graph (docs, configs) — `no-tests`, not `pass`; and the
+  `uncollected` rows of any unit whose guards include a mislabeled id.
+- **You find out:** **surfaced** — the record's `selection` block gives
+  the counts by origin, grain and framework; every test row carries its
+  origin and class; `hobbes verify` prints `no-tests`, `unsupported`
+  and `uncollected` beside the verdict.
+- **Source:** ADR-100 (2026-09-04), Calvin M0 step 5; the fixture case
+  from the calibration of the same day.
+
 ## Superseded constraints in this segment
 
 A limit that was never lifted but whose path no longer runs. The

@@ -94,8 +94,19 @@ type Config struct {
 	// brief was built from. Mounted ro — the session must not be able
 	// to edit the policy it is judged by. "" omits it.
 	HostAgentDir string
-	Timeout      time.Duration // proxy per-command wall clock, 0 = proxy default
-	Escalation   time.Duration // proxy park deadline, 0 = proxy default
+	// HostMounts are host trees the session may read but not write —
+	// an environment binding (ADR-100): the dependency trees a target's
+	// tests need (a venv and the interpreter it links to, a
+	// node_modules, a module cache) when no image carries them. Each is
+	// "HOST" (mounted at the same path, so links into it resolve) or
+	// "HOST:CONTAINER", always read-only and never relabeled: these
+	// are the user's own directories, and a relabel would change their
+	// SELinux context in place (the ADR-060 trade taken the other way,
+	// as lane B's containers do). Any HostMounts therefore disable
+	// labeling for the container, and the dry run prints that.
+	HostMounts []string
+	Timeout    time.Duration // proxy per-command wall clock, 0 = proxy default
+	Escalation time.Duration // proxy park deadline, 0 = proxy default
 	// Command overrides the in-container command (the exit check passes a
 	// scripted implementer here); empty means the default Claude Code call.
 	Command []string
@@ -141,6 +152,18 @@ func NewPlan(cfg Config) (*Plan, error) {
 	}
 	if cfg.Runtime != "" && (cfg.LLMBaseURL == "" || cfg.Model == "") {
 		return nil, fmt.Errorf("sandbox: the agent runtime needs --llm-base-url and --model")
+	}
+	for _, hm := range cfg.HostMounts {
+		host, cont, ok := strings.Cut(hm, ":")
+		if !ok {
+			cont = host
+		}
+		if !filepath.IsAbs(host) || !filepath.IsAbs(cont) || strings.Contains(cont, ":") {
+			return nil, fmt.Errorf("sandbox: a host mount is HOST or HOST:CONTAINER with absolute paths, got %q", hm)
+		}
+		if cont == WorkDir || strings.HasPrefix(cont, SessionsRoot+"/") || cont == SessionsRoot {
+			return nil, fmt.Errorf("sandbox: a host mount may not shadow %s or %s, got %q", WorkDir, SessionsRoot, hm)
+		}
 	}
 	return &Plan{cfg: cfg}, nil
 }
@@ -266,6 +289,13 @@ func (p *Plan) mounts() []string {
 	}
 	if p.cfg.HostAgentDir != "" {
 		m = append(m, p.cfg.HostAgentDir+":"+AgentDir+":ro,z")
+	}
+	for _, hm := range p.cfg.HostMounts {
+		host, cont, ok := strings.Cut(hm, ":")
+		if !ok {
+			cont = host
+		}
+		m = append(m, host+":"+cont+":ro")
 	}
 	return m
 }
@@ -406,6 +436,12 @@ func (p *Plan) PodmanArgs() []string {
 	}
 	for _, kv := range p.cfg.Env {
 		args = append(args, "--env", kv)
+	}
+	if len(p.cfg.HostMounts) > 0 {
+		// The bound trees are not Hobbes's to relabel (see HostMounts);
+		// the session's own mounts keep their z, which is harmless with
+		// labeling off.
+		args = append(args, "--security-opt", "label=disable")
 	}
 	if ReadOnlyRoles[p.cfg.Role] {
 		// A read-only worktree still has to run the repo's tests

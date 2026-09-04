@@ -4,6 +4,10 @@
     uv run scripts/calvin_probe.py probe   <graphs-dir> [--mode parent|base] [--base-graph graph.json]
     uv run scripts/calvin_probe.py anchors <graphs-dir>
     uv run scripts/calvin_probe.py templates <graphs-dir> --out <dir> [--clone DIR]
+    uv run scripts/calvin_probe.py ground  <graphs-dir> --templates <dir> --out <dir> [--gold commit|rows]
+    uv run scripts/calvin_probe.py t       <graphs-dir> --templates <dir> --out <dir> --commits c… --base-url URL --model M
+    uv run scripts/calvin_probe.py verify  <graphs-dir> --diffs <dir> --out <dir> [--commits c…] [--suffix .diff]
+    uv run scripts/calvin_probe.py o       <graphs-dir> --templates <dir> --out <dir> --commits c… (--scripted SCRIPT.json | --base-url URL --model M)
 
 Two instruments that need no orchestrator, computed from lane A alone
 (symbol spans, file paths and names are lane A's; ``HOBBES_SCIP=0``).
@@ -24,7 +28,14 @@ C-36) against the files the gold diff touches. ``anchors`` is the
 breakdown behind §4.2: lexical vs. code-shaped seeds, gold files no
 anchor reached split by whether the task text names them at all, and
 the unresolved code-shaped terms split by whether the gold diff's added
-lines carry them (the ``new`` class seen at the anchor stage). ``templates`` is step 2's
+lines carry them (the ``new`` class seen at the anchor stage). ``verify`` is step 5's
+harness over a directory of diffs (the gold diffs of ``ground`` as the
+calibration, arm T's ``.t.diff`` records as the candidates): each diff
+applied at its parent, the testmap's guards run in the sandbox with
+and without it. ``o`` is arm O on the same harness — a
+``hobbes-session`` with policy-checked exec per commit; ``--scripted``
+plays a JSON script through the session in place of a model (step 5's
+exit check, no orchestrator). ``templates`` is step 2's
 exit: `hobbes.derive.template` over every proposal at its parent,
 rebuilt and compared byte for byte, and §4.1 / §4.2 / §4.7 scored
 against gold with no orchestrator — the *actual* template coverage
@@ -44,6 +55,7 @@ import collections
 import json
 import os
 import re
+import shutil
 import statistics
 import subprocess
 import sys
@@ -507,6 +519,103 @@ def cmd_t(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_verify(a: argparse.Namespace) -> int:
+    """Step 5: the behaviour verifier over a directory of diffs at their parents — the gold diffs as the calibration (every gold should pass), arm T's records as the candidates."""
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+
+    graphs = Path(a.graphs)
+    diffs = Path(a.diffs) if a.diffs else None
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    props = {p["commit"]: p for p in load_proposals()}
+    commits = [next(k for k in props if k.startswith(c)) for c in a.commits] if a.commits else sorted(props)
+    rows = []
+    totals = collections.Counter(); verdicts = collections.Counter(); origins = collections.Counter(); grains = collections.Counter(); fws = collections.Counter()
+    wall = 0.0
+    for c in commits:
+        if a.rescore:  # the classes re-read off an earlier run's rows, into --out (never in place)
+            src = Path(a.rescore) / f"{c}.verify.json"
+            if not src.exists():
+                continue
+            rec = H.score(json.load(open(src)))
+            (out / f"{c}.verify.json").write_text(json.dumps(rec, indent=1))
+        else:
+            path = diffs / f"{c}{a.suffix}"
+            if not path.exists():
+                print(f"{c[:7]}  (no {path.name})")
+                continue
+            diff = path.read_text(errors="surrogateescape")
+            L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+            rec = H.verify(clone, L.sha, diff, L, repo, out=out / f"{c}.verify.json", baseline=not a.no_baseline, timeout=a.timeout)
+        wall += rec["wall_s"]
+        sel = rec.get("selection", {})
+        verdicts[rec["verdict"]] += 1
+        totals.update(rec.get("summary", {}))
+        origins.update(sel.get("by_origin", {})); grains.update(sel.get("by_grain", {})); fws.update(sel.get("by_framework", {}))
+        row = (c[:7], rec["verdict"], rec["applies"], len(rec.get("tests", [])), rec.get("summary", {}), len(rec.get("regressions", [])),
+               (rec.get("containment") or {}).get("all_contained"), rec["wall_s"], len(rec.get("commands", [])))
+        rows.append(row)
+        bad = [r for r in rec.get("tests", []) if r["class"] not in ("P2P", "new-pass", "skip")]
+        print(f"{c[:7]}  {rec['verdict']:11s} applies {str(rec['applies']):5s} tests {row[3]:4d} {row[4]} regressions {row[5]} faults {len(rec.get('faults', []))} contained {row[6]} cmds {row[8]} {rec['wall_s']:6.1f}s", flush=True)
+        for r in bad[:12]:
+            print(f"          {r['class']:8s} {r['id']} (with {r['candidate']}, without {r['baseline']}){' — ' + r['note'][:120] if r.get('note') else ''}")
+        for cr in rec.get("commands", []):
+            if cr.get("rc") not in (0, None) and cr.get("stderr_tail"):
+                print(f"          rc {cr['rc']} {cr['framework']} {' '.join(cr['argv'])[:100]}: {cr['stderr_tail'][-200:]!r}")
+    n = len(rows)
+    print(f"verified {n} diffs at their parents: verdicts {dict(verdicts)}; tests by class {dict(totals)}; selection by origin {dict(origins)}, by grain {dict(grains)}, by framework {dict(fws)}; wall {wall:.0f}s")
+    return 0
+
+
+def cmd_o(a: argparse.Namespace) -> int:
+    """Step 5's other half: arm O on the local harness — one `hobbes-session` per commit at its parent with policy-checked exec, the patch grounded and verified; `--scripted` plays a JSON script in place of the model."""
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+
+    graphs = Path(a.graphs)
+    templates = Path(a.templates)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    session_bin = a.session_bin or os.environ.get("HOBBES_SESSION_BIN") or str(repo / "go" / "bin" / "hobbes-session")
+    props = {p["commit"]: p for p in load_proposals()}
+    sessions_root = Path(a.sessions) if a.sessions else Path.home() / ".hobbes" / "sessions"
+    if a.scripted:
+        runtime, base_url, model = Path(__file__).resolve().parent / "calvin_scripted_agent.py", "http://scripted.invalid/v1", "scripted"
+    else:
+        if not os.environ.get("HOBBES_LLM_API_KEY"):
+            print("HOBBES_LLM_API_KEY is not set", file=sys.stderr)
+            return 2
+        runtime, base_url, model = H.LOOP_PATH, a.base_url, a.model
+    for c7 in a.commits:
+        c = next(k for k in props if k.startswith(c7))
+        L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+        t = json.load(open(templates / f"{c}.template.json")) if (templates / f"{c}.template.json").exists() else None
+        session_id = f"calvin-o-{c[:7]}-{time.strftime('%Y%m%dT%H%M%S')}"
+        loop_args = list(a.loop_arg or [])
+        if a.scripted:
+            (sessions_root / session_id).mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(a.scripted, sessions_root / session_id / "script.json")
+            loop_args.append(f"--script=/sessions/{session_id}/script.json")
+        rec = H.run_o(clone, L.sha, props[c]["task"], L, repo, (graphs / f"{c}.json", graphs / f"{c}.tests.json"), session_bin=session_bin, base_url=base_url, model=model,
+                      session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t, timeout=a.timeout, dry_run=a.dry_run, runtime=runtime,
+                      max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, knowledge=a.knowledge)
+        if a.dry_run:
+            print(" ".join(rec["command"]))
+            print(json.dumps({k: rec[k] for k in ("plan", "brief_chars")}, indent=1))
+            continue
+        v = rec.get("verify") or {}
+        print(json.dumps({"commit": c[:7], "session": session_id, "rc": rec.get("session_rc"), "wall_s": rec.get("wall_s"), "plan": rec["plan"], "patch_files": rec["patch_files"],
+                          "ground": rec.get("ground"), "verify": {k: v.get(k) for k in ("verdict", "applies", "summary", "regressions")} if v else None}, indent=1))
+        if rec.get("session_stderr_tail"):
+            print(rec["session_stderr_tail"][-800:])
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -530,6 +639,18 @@ def main(argv: list[str]) -> int:
     s.add_argument("--no-loop", action="store_true", help="arm T without the NULL round-trip")
     s.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy", help="temperature 0, or no sampling field for a model that rejects it")
     s.set_defaults(fn=cmd_t)
+    s = sub.add_parser("verify"); s.add_argument("graphs"); s.add_argument("--diffs", help="directory of <commit><suffix> diffs (ground/ for the gold calibration, t/ for arm T)")
+    s.add_argument("--out", required=True); s.add_argument("--clone"); s.add_argument("--commits", nargs="*", help="commit prefixes (default: every proposal)")
+    s.add_argument("--suffix", default=".diff", help=".diff for ground/, .t.diff for t/"); s.add_argument("--no-baseline", action="store_true"); s.add_argument("--timeout", type=int, default=900)
+    s.add_argument("--rescore", help="re-class the records of this earlier run into --out instead of running (the classes changed; never in place)")
+    s.set_defaults(fn=cmd_verify)
+    s = sub.add_parser("o"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
+    s.add_argument("--commits", nargs="+", required=True); s.add_argument("--scripted", help="a JSON script played in place of the model (calvin_scripted_agent.py)")
+    s.add_argument("--base-url"); s.add_argument("--model"); s.add_argument("--session-bin"); s.add_argument("--sessions")
+    s.add_argument("--max-turns", type=int, default=40); s.add_argument("--max-tokens", type=int, default=4096); s.add_argument("--loop-arg", action="append")
+    s.add_argument("--knowledge", action="store_true", help="offer the knowledge tools too (default: exec only)"); s.add_argument("--timeout", type=float, default=3600.0)
+    s.add_argument("--dry-run", action="store_true", help="print the session argv and the plan; launch nothing")
+    s.set_defaults(fn=cmd_o)
     a = ap.parse_args(argv)
     return a.fn(a)
 

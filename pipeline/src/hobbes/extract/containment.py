@@ -187,6 +187,11 @@ PROFILES: dict[str, Profile] = {
     # resolution, ADR-097) — so it refuses without containment like an
     # index step, and its stage carries no sources (C-66).
     "fetch-java": Profile("fetch-java", True, "default"),
+    # Not an ingest step: the Calvin M0 harness's test run (design §2.4,
+    # `hobbes verify`). A target's tests execute the target's code, so
+    # they run under the same planner, contained and offline — one code
+    # path (P6), the same refusal without the image.
+    "verify": Profile("verify", True, "none"),
 }
 
 def rust_fetch_command(manifest: str) -> list[str]:

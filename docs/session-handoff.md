@@ -1,22 +1,24 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-03 (night): the ten extraction entries are lifted;
-the TTT items and ADR-092's decisions are still held for Max.** Read
+**Rewritten 2026-09-04 (evening): Calvin M0 steps 0–5 are done, step 6
+waits on Max; the TTT items and ADR-092's decisions are still held for
+Max.** Read
 this, then the three 2026-09-03 BUILDLOG entries for how the state was
 reached, and `docs/workstreams.md` for the backlog by owner. History
 lives in the BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Calvin potential, then Max's call on three things
+## ⇢ START HERE NEXT SESSION: Calvin potential step 6 is Max's call, then three more
 
 **Current work (Max, 2026-09-04): evaluating Calvin potential.** The
 design is `docs/calvin-potential.md` (M0, *proposed → ready*, v2): the
 pipeline run with Calvin's slot filled by a deterministic stub, over
 the §9b units re-based at their parent commits, attribution before
-verdict. Steps 0–3 of its §8 (parent re-base, hole schema, `hobbes
-template`, grounder v0) spend no orchestrator calls and are all done;
-step 4 ran on Max's word; step 6 waits on it. The charter is copied in (`docs/calvin-charter.md`);
+verdict. Steps 0–3 and 5 of its §8 (parent re-base, hole schema,
+`hobbes template`, grounder v0, the local harness) spend no
+orchestrator calls and are all done; step 4 ran on Max's word; step
+6 — the run — waits on it. The charter is copied in (`docs/calvin-charter.md`);
 the v1 assessment and the two pre-run probes (18% of code hunks outside
 spans; 118/182 unresolved terms new) are the record
 `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`, reproduced by
@@ -49,14 +51,35 @@ five units through arm T in two passes — the hand unit end to end
 each naming a residual: the orchestrator cannot anchor an anchorless
 task by itself, a module anchor opens a whole file, new files land
 flat, `new` is over-declared. Cost $8 + $2.3 at list; the record's
-fifth addendum has both passes. **Next is step 5, the local harness
-(Podman exec + policy + testmap for T and O) — no orchestrator.** Two
-protocol changes go to step 6 with Max: candidates in the `ANCHOR`
-hole, and a module anchor as confirmations rather than bodies; and the
-choice of model (Sonnet 5 does not honor temperature 0; Haiku is a
-third of the cost). No ADR yet (100 when accepted). Assessment work comes before the next proposal; the §10
+fifth addendum has both passes. **Step 5 is done** (evening, no
+orchestrator; **ADR-100**): `hobbes.derive.harness` — `hobbes verify`
+runs a diff's guarding tests (by the testmap, symbol/module/file
+grain) in the sandbox image offline, with and without the diff, every
+row classed against its baseline; the environment is this checkout's
+dependency trees linked in and mounted read-only (`hobbes-session
+--mount`, C-92); arm O runs through `hobbes-session` with the proxy's
+exec under `calvin.box.policy`, the knowledge tools withheld
+(`loop.py --mcp-tools exec`), its patch through the grounder and the
+verifier. Calibration on the 28 golds: **26 pass / 1 fail / 1
+no-tests, P2F 0, all contained, 559 s** (the fail: tests a commit adds
+that need podman inside the container; six harness defects caught and
+fixed first — the record's sixth addendum). Arm T's hand unit passes
+its 12 guards. A scripted session (`scripts/calvin_scripted_agent.py`)
+ran the four runners under policy, had `git push` denied and `curl`
+expire to deny, and was harvested, grounded and verified. §9b's five
+defects checked off (D-2 for O to be confirmed on the first model
+session); D-6 closed. **Next is step 6 — the full run, three arms,
+this repo — which is Max's to clear**, with three things to decide
+first: candidates in the `ANCHOR` hole and a module anchor as
+confirmations rather than bodies (the two protocol changes from step
+4), and the model (Sonnet 5 does not honor temperature 0; Haiku is a
+third of the cost). One reading from step 5 for that call: **arm O's
+manifest from the task text alone is `hobbes plan` on lexical seeds
+(C-36) and lands off the gold files** on the hand unit — O measures
+the manifest as it really is, and the §4.5 reading will be as much
+about C-36 as about the model. The design's own ADR takes 101 when
+accepted. Assessment work comes before the next proposal; the §10
 fine-tuning wording in the architecture stays as is until then.
-
 
 1. **The TTT experiment after the review** — unchanged from the evening
    handoff, tabled by Max for this session (`docs/olmo3-ttt-results.md`
@@ -128,7 +151,7 @@ container does not see), not a tree change; CI's box is the check.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 step 5, the local harness (`docs/calvin-potential.md` §8; steps 0–4 done; no orchestrator); step 6's two protocol changes and the model choice are Max's; Max's three calls above; his review of the ten lifts.
+0. Calvin M0 step 6 (`docs/calvin-potential.md` §8; steps 0–5 done): Max's word on the run, the two protocol changes and the model; Max's three calls above; his review of the ten lifts and of ADR-100.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression
@@ -153,6 +176,9 @@ container does not see), not a tree change; CI's box is the check.
 
 ## PRACTICAL NOTES
 
+- **`pgrep -f` / `pkill -f` match your own waiting shell too** — a
+  `for p in $(pgrep -f X)` loop killed the `until … pgrep -f X` waiter
+  beside it (2026-09-04); wait on a log line, kill by PID.
 - **Always `uv run --project pipeline hobbes … --repo <target>` from
   this checkout** (ADR-094's incident, twice now) — and never `cd` into
   a target repo that has a `pyproject.toml` and `uv run` there: uv

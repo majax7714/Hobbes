@@ -50,9 +50,10 @@ class TestProfiles:
         for step in containment.INDEX_STEP.values():
             assert containment.PROFILES[step].network == "none", step
 
-    def test_the_executing_set_is_rust_java_and_the_venv_listing(self):
+    def test_the_executing_set_is_rust_java_the_venv_listing_and_the_harness(self):
         executing = {s for s, p in containment.PROFILES.items() if p.executes_repo_code}
-        assert executing == {"index-rust", "index-java", "fetch-java", "python-env"}
+        assert executing == {"index-rust", "index-java", "fetch-java", "python-env", "verify"}
+        assert containment.PROFILES["verify"].network == "none"  # a target's tests run offline (Calvin M0 §2.4)
 
     def test_java_resolve_is_the_only_executing_networked_step(self):
         # The one container that runs repo build logic *and* has a network

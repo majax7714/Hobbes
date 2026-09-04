@@ -608,3 +608,128 @@ exchange recorded (15 in pass 2, request and response in full), the
 Podman exec, policy, testmap for T and O) is next and needs no
 orchestrator; step 6 waits on Max and on the two protocol changes above.
 
+
+## Addendum 2026-09-04 (evening) — step 5: the local harness, no orchestrator
+
+**Built (ADR-100):** `hobbes.derive.harness` — `verify` (the
+behaviour verifier), the environment binding, arm O's plan → brief →
+agent dir → `hobbes-session` command → patch → grounder → verifier —
+with `hobbes verify`, `calvin_probe.py verify | o`,
+`hobbes-session --mount HOST[:CONTAINER]` (read-only, unrelabeled,
+labeling off while bound), `loop.py --mcp-tools`, the `verify`
+containment profile, `calvin.box.policy`, and
+`scripts/calvin_scripted_agent.py` (a JSON script played through a
+session in place of a model). Records under
+`~/.hobbes/bench/calvin/verify-gold/` (the 28 golds), `verify-t/`
+(arm T's five step-4 diffs), `o-scripted/` (the scripted sessions;
+their branches `hobbes/calvin-o-*` in the rebase clone). Harness v1:
+the classes below; a record is rescored into a new directory when
+they change (`verify --rescore`), never in place.
+
+**How a verdict is made.** A fresh worktree at the parent, the diff
+applied; the tests the **testmap** names as reaching the changed
+lines — symbol grain where a changed line falls in a span, module
+grain outside every span, the whole file for a test file the diff
+touches (so a test the commit adds runs) — executed in the sandbox
+image with no network, under lane B's planner, then the same tests
+on the parent *without* the diff; every row classed against its
+baseline: `P2P`, `F2P`, `P2F` (regression), `F2F` (fails on both
+trees: an environment fault, listed, not the diff's), `new-pass` /
+`new-fail` (a test the diff adds), `removed` (a test the diff renamed
+or deleted), `skip`, `uncollected` (an id the testmap names that
+pytest cannot collect), `unsupported`. The verdict fails on `P2F`,
+`new-fail`, `error` and an unexplained `not-run`; `no-tests` when
+nothing is reached; `empty-diff` for a diff with no blocks. The
+dependency trees are this checkout's (`pipeline/.venv`, the four
+`node_modules`, the interpreter the venv links to, lane B's Go module
+cache), linked into the worktree and mounted read-only at their host
+paths (C-92); a test that commits gets an identity; vitest runs
+`--no-cache` (its cache lives in the read-only `node_modules`).
+
+**Calibration — the 28 gold diffs at their parents** (each gold should
+pass; a failure is the harness's or the environment's, never the
+diff's — step 3's rule, applied to X):
+
+| verdict | commits | what the non-pass rows are |
+|---|---|---|
+| pass | 26 | — |
+| fail | 1 (`29e926a`) | four `new-fail`: tests the commit adds that need a container engine or the checkout's own git *inside* the container (`test_knowledge_serve.py` ×3, `test_the_artifact_says_which_hobbes_built_it`) — the environment's, C-92 |
+| no-tests | 1 (`3604a4b`) | a docs-only commit (`CLAUDE.md`, three `docs/`): nothing in the graph — C-93 |
+
+3,452 test rows over 3,190 selected ids: `P2P` 3,151, `new-pass` 186,
+`skip` 87, `uncollected` 11 (one id, `test_testmap.py::tests_doc`, a
+pytest *fixture* the testmap lists as a test at 11 parents — dropped
+and the command rerun, C-93), `removed` 7 (three commits renamed
+their containment tests), `F2F` 4 (two ids: the lane B venv listing
+the handoff already names, and the built-by check — both fail without
+the diff too), `new-fail` 4 (above), `F2P` 2 (`6511f40` and `8c21d5a`
+each fix a test that failed at the parent — real). Selection by origin
+1,764 guards / 1,426 touched; by grain 1,391 symbol / 373 module /
+1,426 file; by framework 2,751 pytest / 357 go-test / 82 node:test. 62
+contained commands plus their baselines; 559 s wall for the 28
+(median ≈ 19 s); `all_contained` on every record. `P2F` 0 and
+`error` 0 — no gold regressed and no command failed to report.
+
+**What the calibration caught in the harness before the reading (X
+defects, fixed the same evening):** (1) one uncollectable id aborts
+the whole pytest command (rc 4, nothing run) — 2,177 `error` rows on
+the first pass; now dropped and rerun; (2) the baseline command named
+a test file the diff *creates*, pytest refused the path, every
+baseline row read `error` and 552 passes read `F2P`; now a command
+names only files its worktree has; (3) parametrized cases (`test[a]`)
+never matched their testmap id; folded, the worst outcome winning;
+(4) tests that `git commit` failed on both trees for want of an
+identity (seven `F2F`); (5) a renamed test read `not-run` and failed
+the verdict; now `removed`; (6) the harness's own dependency links
+were committed into the session's patch by `--commit-on-exit`; now
+excluded from git before the session starts.
+
+**Arm T's five step-4 diffs** (`verify-t/`): `c59916f` **pass** — 12
+rows, all `P2P`, 9 guards at symbol grain (the hand unit's diff, the
+gold change in substance, holds the tests too); `d509835` `no-tests`
+(its six files are new, and flat where the gold nests — nothing the
+parent graph maps); `b8afd41`, `6511f40`, `11e4c9d` `empty-diff` (the
+orchestrator changed nothing at step 4). "Tests pass?" is now a
+column the per-task record can carry.
+
+**Arm O, scripted — the step's exit check.** One `hobbes-session` at
+`c59916f`'s parent through the real proxy, the box and agent
+policies, the environment mounts, `--network pasta`, the scripted
+agent in place of the model: eight steps, deterministic —
+`go test ./internal/policy/` ok; `python3 -m pytest tests/test_policy.py`
+ok (9 passed); `npx vitest run --no-cache src/lib/diff.test.ts` ok (7
+passed); `node --test test/index.test.mjs` ok (31 subtests); `git push
+origin main` **denied** by the agent policy ("sessions commit; the
+human publishes"); `curl https://example.com` unlisted → **parked and
+expired to deny** after 5 s; an edit inside `Resolve`'s span; the
+package's tests again, ok. Commit-on-exit committed one file; the
+branch harvested; the patch (one file) through the grounder (0 call
+sites in the edited range — a comment) and the verifier: **pass**, 53
+rows all `P2P` over 29 guards at symbol grain. 10 s for the session, 7
+s for the verify. The plan at the parent from the task text alone
+(lexical seeds): two units, `web/src/lib/graphModel.ts`,
+`graphModel.test.ts`, `web/src/main.tsx` — none of the gold's files,
+the same lexical mapping that D-6 named; the brief is 9.0k chars and
+says so ("an aid, not a boundary") plus three environment notes.
+The first run's patch carried five symlinks (defect 6 above); the
+second and third are clean.
+
+**§9b's five defects, checked off:**
+
+| defect | standing after step 5 |
+|---|---|
+| D-1 no exec, tests not run | **closed** — arm O executes through the proxy under policy; both arms' diffs run the guards, with a baseline, in the sandbox |
+| D-2 tool-call parsing | **closed for T** (no tool loop) and **for O by construction** — the loop's native tool calls on the OpenAI-compatible endpoint, the text fallback kept; confirmed on the first O session with a model (step 6) |
+| D-3 the regex extractor | **closed** — HSR in both arms is the grounder's, over lane-A call sites in the edited ranges (`ground_patch` for O) |
+| D-4 the denominator | **closed** — in-graph + NULL, per class, every abstention named (C-91) |
+| D-5 shared runs | **dissolved** — both arms run per template key (28); the cell's 50 units are the keys' size-bounded rows; aggregates are over keys |
+| D-6 (step 4) the cell's impact sets as RFE denominator | **closed** — RFE against the gold files at the parent |
+
+**Exit criterion:** met — the five defects checked off; O runs with
+exec on this box (scripted; a model is step 6's spend). Three protocol
+readings for step 6 still stand (candidates in the `ANCHOR` hole, a
+module anchor as confirmations, the model choice), and one from here:
+**arm O's plan from the task text alone lands on lexical hits** (D-6's
+mapping, now at the parent) — that is what "the manifest" honestly
+is for this unit set, and the reading §4.5 will make about O is a
+reading about C-36 as much as about the model.

@@ -705,11 +705,20 @@ def run(args: argparse.Namespace) -> dict:
     tools = list(FILE_TOOLS)
     if not read_only:
         tools += WRITE_TOOLS
+    mcp_names: set[str] = set()
     if mcp:
-        tools += mcp.tools()
+        offered = mcp.tools()
+        if args.mcp_tools:
+            # An arm that gets the proxy's exec and nothing else of Hobbes
+            # (Calvin M0's arm O, design §3.2): the server still serves
+            # every tool — only what the model is *offered* narrows, and a
+            # call to a withheld tool never reaches it.
+            keep = {n.strip() for n in args.mcp_tools.split(",") if n.strip()}
+            offered = [t for t in offered if t["function"]["name"] in keep or t["function"]["name"].rsplit("__", 1)[-1] in keep]
+        tools += offered
+        mcp_names = {t["function"]["name"] for t in offered}
     elif not args.no_bash:
         tools.append(BASH_TOOL)
-    mcp_names = {t["function"]["name"] for t in (mcp.tools() if mcp else [])}
     endpoint = Endpoint(args.base_url, args.model, os.environ.get(args.api_key_env) or None,
                         args.timeout, args.max_tokens,
                         sampling_fields(args.temperature, args.top_p, args.reasoning_effort, args.thinking))
@@ -1012,6 +1021,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
                    help="auto: the schemas go as tools and the server parses the calls; none: no tool field is "
                         "sent, the schemas ride the system prompt as a <functions> JSON block and the loop reads "
                         "the calls from the text (a model whose call syntax the server cannot parse — Olmo 3)")
+    p.add_argument("--mcp-tools", default=None,
+                   help="offer only these MCP tools (comma-separated names, e.g. `exec`); the rest are withheld "
+                        "from the model and refused if called (Calvin M0 arm O)")
     p.add_argument("--no-bash", action="store_true",
                    help="withhold the native bash tool: file tools only, no exec at all (the TTT cell's arms, "
                         "ADR-099 review item 9 — repo code never runs, and policy is the same for every arm)")

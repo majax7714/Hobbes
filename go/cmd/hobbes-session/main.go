@@ -79,6 +79,13 @@ flags:
   --agent-dir DIR  derived agent dir (ADR-054), mounted ro at /agent: its
                    policy.yaml is the chain's agent level, its context.json
                    the manifest knowledge queries are judged against
+  --mount HOST[:CONTAINER]  a host tree the session reads but never writes
+                   (repeatable; ADR-100): the dependency trees a target's
+                   tests need when no image carries them — a venv and the
+                   interpreter it links to, a node_modules, a module cache.
+                   Mounted at the same path unless CONTAINER is given, so
+                   links into it resolve; read-only, never relabeled, and
+                   so the container runs with SELinux labeling off
   --dry-run        print the podman argv and MCP config, run nothing
   -- CMD...        run CMD in the sandbox instead of Claude Code
 `
@@ -116,6 +123,7 @@ type options struct {
 	maxTurns, maxTokens            int
 	loopArgs                       multiFlag
 	env                            multiFlag
+	mounts                         multiFlag
 	proxyBin, sessions             string
 	claudeCred, dryRun             bool
 	commitOnExit                   bool
@@ -280,6 +288,7 @@ func setupWithStart(opt options) (*sandbox.Plan, string, string, func(), error) 
 		HostClaude:    claudeMount(opt.claudeCred),
 		HostDerived:   derivedMount(opt.repo),
 		HostAgentDir:  opt.agentDir,
+		HostMounts:    []string(opt.mounts),
 		Command:       opt.command,
 	})
 	if err != nil {
@@ -478,6 +487,7 @@ func parseStart(args []string, stderr io.Writer) (options, int) {
 	fs.IntVar(&opt.maxTurns, "max-turns", 0, "")
 	fs.IntVar(&opt.maxTokens, "max-tokens", 0, "")
 	fs.Var(&opt.env, "env", "")
+	fs.Var(&opt.mounts, "mount", "")
 	fs.Var(&opt.loopArgs, "loop-arg", "")
 	fs.StringVar(&opt.network, "network", "", "")
 	fs.StringVar(&opt.box, "box", "", "")

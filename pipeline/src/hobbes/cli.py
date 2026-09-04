@@ -817,6 +817,51 @@ def _cmd_ground(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_verify(args: argparse.Namespace) -> int:
+    """`hobbes verify`: the local harness's behaviour verifier (`docs/calvin-potential.md` §2.4) —
+    a diff at the ledger's SHA → the tests the testmap says reach the edited code, run in the
+    sandbox image offline with and without the diff, each classed against its baseline; no model.
+    Exit 0 on a pass; 1 on a fail, a regression or a diff that does not apply; 2 when an input
+    cannot be read; 3 when there is no containment (a test never runs on the host, ADR-092).
+    """
+    from hobbes.derive import harness
+    from hobbes.derive import template as tmpl
+    from hobbes.extract import containment
+
+    repo_root = _repo_root_from(args)
+    derived = repo_root / ".hobbes" / "derived"
+    graph_path = Path(args.graph) if args.graph else derived / "graph.json"
+    tests_path = Path(args.tests) if args.tests else derived / "tests.json"
+    try:
+        ledger = tmpl.Ledger(json.loads(graph_path.read_text()), json.loads(tests_path.read_text()))
+        diff = sys.stdin.read() if args.diff == "-" else Path(args.diff).read_text(errors="surrogateescape")
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"hobbes verify: cannot read an input ({exc}); `hobbes ingest` first, or pass --graph/--tests", file=sys.stderr)
+        return 2
+    sha = args.sha or ledger.sha
+    source = Path(args.source).resolve() if args.source else repo_root
+    try:
+        rec = harness.verify(repo_root, sha, diff, ledger, source, out=Path(args.out) if args.out else None,
+                             baseline=not args.no_baseline, timeout=args.timeout, keep=args.keep)
+    except containment.ContainmentRefusal as exc:
+        print(f"hobbes verify: {exc}", file=sys.stderr)
+        return 3
+    except ValueError as exc:
+        print(f"hobbes verify: {exc}", file=sys.stderr)
+        return 2
+    if args.json or not args.out:
+        print(json.dumps(rec, indent=1))
+    sel = rec.get("selection", {})
+    print(f"verified {rec['diff_hash']} @ {sha[:12]} (harness v{rec['harness_version']}): {rec['verdict']}; applies {rec['applies']}; "
+          f"tests {len(rec.get('tests', []))} ({sel.get('by_origin', {})}, {sel.get('by_grain', {})}) → {rec.get('summary', {})}; "
+          f"regressions {len(rec.get('regressions', []))}; contained {(rec.get('containment') or {}).get('all_contained')}; {rec.get('wall_s')} s"
+          + (f"; wrote {args.out}" if args.out else ""), file=sys.stderr)
+    for r in rec.get("tests", []):
+        if r["class"] not in ("P2P", "new-pass", "skip"):
+            print(f"  {r['class']:8s} {r['id']} (with {r['candidate']}, without {r['baseline']})", file=sys.stderr)
+    return 0 if rec["verdict"] == "pass" else 1
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """`hobbes run`: execute a change-spec (ADR-054, D2 base).
 
@@ -1466,6 +1511,31 @@ def build_parser() -> argparse.ArgumentParser:
     ground_parser.add_argument("--trace", action="store_true", help="include the read-trace in the printed record")
     ground_parser.add_argument("--strict", action="store_true", help="exit 1 when anything is NULL, unfilled or refused")
 
+    verify_parser = sub.add_parser(
+        "verify",
+        help="the local harness: run the tests that reach a diff's edits in the sandbox, with and without it (docs/calvin-potential.md §2.4)",
+        description=(
+            "A diff at the ledger's SHA → the tests the testmap names as reaching the edited symbols "
+            "(and every test in a test file the diff touches), run in the sandbox image offline, once "
+            "with the diff and once without, every outcome classed against its baseline (P2P, F2P, "
+            "P2F, F2F, new-pass, new-fail). The dependency trees come from --source (a checkout of "
+            "the same repo with its venv and node_modules), linked into the worktree and mounted "
+            "read-only — the environment binding of ADR-100. Deterministic and model-free; a test "
+            "never runs on the host."
+        ),
+    )
+    verify_parser.add_argument("diff", help="the unified diff to verify (a file, or - for stdin)")
+    verify_parser.add_argument("--repo", help="repo root (default: auto-detected via .git); git must hold the ledger's SHA")
+    verify_parser.add_argument("--sha", help="the SHA to verify at (default: the ledger's)")
+    verify_parser.add_argument("--source", help="checkout whose dependency trees bind the worktree (default: the repo itself)")
+    verify_parser.add_argument("--graph", help="graph.json to use (default: .hobbes/derived/graph.json)")
+    verify_parser.add_argument("--tests", help="tests.json to use (default: .hobbes/derived/tests.json)")
+    verify_parser.add_argument("--out", help="write the verdict record JSON here")
+    verify_parser.add_argument("--json", action="store_true", help="print the record even when --out is given")
+    verify_parser.add_argument("--no-baseline", action="store_true", help="skip the run without the diff (outcomes unclassed)")
+    verify_parser.add_argument("--timeout", type=int, default=900, help="seconds per contained test command")
+    verify_parser.add_argument("--keep", action="store_true", help="keep the scratch worktrees under the cache root")
+
     run_parser = sub.add_parser(
         "run",
         help="execute a change-spec: one single-use session per unit, then "
@@ -1792,6 +1862,7 @@ def main(argv: list[str] | None = None) -> int:
         "derive-corpus": _cmd_derive_corpus,
         "template": _cmd_template,
         "ground": _cmd_ground,
+        "verify": _cmd_verify,
         "run": _cmd_run,
         "mail": _cmd_mail,
         "bench": _cmd_bench,
