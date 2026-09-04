@@ -6218,3 +6218,111 @@ first HSR extractor counted capitalised prose (re-scored offline, v1
 scores kept beside). ADR-099 amended (decisions 9–14); design §3.2(c)
 and results §1 carry dated amendments; C-86–C-88 registered (88
 entries).
+
+## 2026-09-03 (night) — the ten extraction entries lifted, easiest first; the four clones re-ingested; C-89 fixed and C-90 registered
+
+**Max's direction:** "tackle those extraction constraints, tackle the
+easiest possible; the first two covering the last experiment we leave
+off for table for now." So the TTT items and the cell's defect
+register stayed tabled, and the session worked C-72–C-80 and C-85 in
+ease order, one commit per batch, each with its tests, its register
+entry moved to the segment's lifted section in the same commit, and
+the architecture amended where a rule moved.
+
+**Batch 1 — the three counting lines (`89c819a`).** C-76: the ingest
+summary and `hobbes diff` count `calls` and `uses` apart (the one
+register line that read *larger* than the truth; serde's "4,361 call
+edges" for 1,557). C-75: `_lane_agreement` keeps only `imports` edges
+with `scip` evidence as lane B's — the projection raises module edges
+from lane A's fallback too, so with lane B off the self-test had been
+reporting lane A's agreement with lane A — and emits
+`module_edges_lane_b_produced`, which `hobbes lanes` prints beside the
+comparison (`0 (lane B produced 0)` on the suite's default). C-77: one
+`below-floor` row in the Go proxy's `tailMeanings`; rollup, per-file
+line, glossary and the C-32 note all iterate that table (image rebuild,
+C-65).
+
+**Batch 2 — the pack and the manifests (`0a06e8a`).** C-78: the
+`http-go` pack's `_is_registration` refuses a `Handle`/`HandleFunc`
+whose file imports no `net/http`, whose receiver is another import's
+alias (quic-go's `windows.Handle(fd)`), or whose name is a type in the
+file's package. C-79: `declared_dependencies` reads `setup.cfg
+[options]` + extras and every `requirements*.txt` statically (`-r`,
+`-e`, options, URLs and paths skipped; `pkg @ url` keeps `pkg`;
+`setup.py` never read), through `iter_manifests`, the CLI pack's walk
+generalised; `_coverage_gap_records` appends a `scip-python` record
+when the index ran against no declared list.
+
+**Batch 3 — the call graph itself (`5562271`).** C-72, reproduced on
+a probe crate first: `Option::<T>::deserialize(d)` read `path []`
+(the generic head is a `type_identifier`) and fell into the bare-name
+lookup, which hit an `impl` method; `Expected::fmt(self, f)` resolved
+through the trait's `type` symbol into the enclosing impl's own `fmt`.
+Four rules in `_call_fallback` — ADR-098's in Rust's shape: a
+`::`-qualified call (`qualified`, recorded by both walks) is never a
+bare name; a bare name never binds to a `method`; a trait head
+(`RustFile.traits`) is dispatch; a `Type.name` two impl blocks declare
+is an overload set. C-80: `pysource` records an attribute call on an
+expression receiver as `<expr>.name` (`EXPR_RECEIVER`) at the
+terminal's line and column, `graph._resolve_call` says nothing for
+that head, and the `who_calls` gloss reads *"references X where no
+call site was detected (…; a call through a receiver lane A cannot
+see, C-1)"* instead of "without calling it". **On this repo,
+re-ingested contained:** 1,433 expression-receiver sites detected,
+lanes 5,937 / 0, six of the seven `uses` edges that vanished became
+`calls`, Python capture 81.7% of 14,352 (the denominator grew by the
+new sites — honest, and the entry says so).
+
+**Batch 4 — the three environment entries (`a60777f`).** C-85 first
+reproduced on a venv-less copy of `miniapp`: `capture [python]: 0.0%`,
+scip-python's stack ending in its option parser, the record blaming the
+helper — after a false start where `uv run` *inside* the copy made uv
+create a venv there (ADR-094's lesson in a new shape; the handoff now
+says so). Fix: `extract_scip` always writes the environment listing,
+empty without a venv, and records the one-command fix; the helper
+exits `INDEXER_EXIT` (3) when the indexer it drove died and
+`run_helper` records that as *the indexer's* failure. **0.0% → 68.4%
+of 19**, the same as with a venv. C-73: `discover.linked_copy_target`
+— every language's walk (and the manifest and Terraform walks) skips a
+directory symlink whose target is inside the repo, the ingest records
+each link once (stage `discover`); an ancestor link no longer loops.
+C-74: `workspace_link_targets` reads one level of each `node_modules`
+tree a zone links and mounts the out-of-tree targets ro beside it;
+`_rebase` places a zone's whole-index records at the zone. Measured on
+a synthetic pnpm-style workspace: the zone indexes contained with a
+semantic `b → a` edge; the control (`workspace_link_targets` stubbed)
+reproduces date-fns exactly — `TS6053: File '@x/dev/tsconfig.base.json'
+not found`.
+
+**The four clones re-ingested** (still on disk under
+`~/.hobbes/bench/extract-test-20260902/`, pre-fix artifacts kept for
+the diff; rows in `extraction-evidence.md`): **peft** 249 `uses` →
+`calls` (all 249), `save_pretrained` 232 callers and no "non-calling
+references", `dependency_coverage` 13/52 present; **date-fns** capture
+**0.1% → 79.7%**, `calls` 3 → 2,205 semantic, 13 of 15 zones index;
+**quic-go** the four false C-5 records gone, nothing else moved;
+**serde** the copy gone (and a second link the test had not noticed,
+`serde_derive_internals/src`), syntactic `calls` 81 → 28, **lanes 910 /
+3 → 721 / 0**, capture 80.0% → 88.2%.
+
+**Then the thing a fix uncovers (`3da8c07`).** date-fns's lanes, with
+lane B alive for the first time, showed **54 disagreements**, every
+one the same shape: tsextract emitted the *implementation's* line for
+an overloaded function (`normalizeDates` 19) and scip-typescript the
+*first signature's* (4) — and the projection found no lane A symbol
+starting at SCIP's line, so those calls were `below-floor`. **C-89,
+registered and lifted the same hour:** `declarationStart` uses
+`getOverloads()[0]`; date-fns 7,586 / 54 → **7,586 / 0**, below-floor
+254 → 219. The two zones still failing are **C-90, registered, not
+fixed** (*partial*, loud): a tsconfig reached by `extends
+"./config/tsconfig"` or by project `references` is not on the staged
+walk-up path; candidate fix named (a comment-tolerant scan of the two
+keys, staged transitively).
+
+**Register at close:** 90 entries — 69 active, 19 lifted, 2
+superseded; five *partial* (C-4, C-58, C-68, C-83, C-90), two
+*unsurfaced* (C-19, C-20), **no line inflates a number**. Suites:
+**1,166 pytest** (+24 this session; the venv test deselected by name,
+W0), Go green, **30 tsextract**, **32 scip** node tests; image rebuilt
+(C-65) before the runs. Nothing pushed; no GPU spent.
+
