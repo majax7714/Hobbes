@@ -8,7 +8,20 @@ lives in the BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max's call on three things
+## ⇢ START HERE NEXT SESSION: Calvin potential, then Max's call on three things
+
+**Current work (Max, 2026-09-04): evaluating Calvin potential.** The
+design is `docs/calvin-potential.md` (M0, *proposed → ready*, v2): the
+pipeline run with Calvin's slot filled by a deterministic stub, over
+the §9b units re-based at their parent commits, attribution before
+verdict. Steps 0–3 of its §8 (parent re-base, hole schema, `hobbes
+template`, grounder v0) spend no orchestrator calls; step 4 onward
+waits on Max's word. The charter, the v1 doc and the two pre-run probe
+numbers are not in this tree — the doc says so; step 0 recomputes the
+numbers. No ADR yet (100 when accepted). Assessment work comes before
+the next proposal; the §10 fine-tuning wording in the architecture
+stays as is until then.
+
 
 1. **The TTT experiment after the review** — unchanged from the evening
    handoff, tabled by Max for this session (`docs/olmo3-ttt-results.md`
@@ -75,7 +88,7 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Max's three calls above; his review of the ten lifts.
+0. Calvin M0 steps 0–3 (`docs/calvin-potential.md` §8, no model); Max's three calls above; his review of the ten lifts.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression

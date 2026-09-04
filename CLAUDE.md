@@ -44,6 +44,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
+| evaluating Calvin potential (the current work) | `docs/calvin-potential.md` (M0, proposed → ready; step-gated, no run cleared) + ADR-099 §9b's cell record |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |

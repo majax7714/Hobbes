@@ -6402,3 +6402,21 @@ Noted, left as is on Max's word: architecture §10 lists "any model
 fine-tuning" as out of scope while ADR-099 trains LoRA adapters; the
 experiment is an instrument for observation, not product, and the
 wording waits on the assessment work before the next proposal.
+
+*Addendum, the same day — `docs/calvin-potential.md`.* Max's current
+work is evaluating Calvin potential and the tree had no document for
+it; the v2 design was written in as `docs/calvin-potential.md`
+(*proposed → ready*): M0 runs the pipeline with Calvin's slot filled by
+a deterministic grounder stub over the §9b units re-based at their
+parents, three arms (O, T, T-loop), eight instruments each with an
+attribution table, no kill criteria, a step-gated order of work whose
+first four steps need no model. What the doc depends on is in the
+tree and cited by path (the 28 proposals, the 50 units, the review
+record's D-1–D-5, C-84, the HSR/RFE definitions). What it names and
+the tree lacks is stated in a header note rather than linked: the
+charter (`calvin-charter.md`), the v1 of the doc, and the two pre-run
+probe numbers (18% of hunks outside spans; 118/182 unresolved terms
+new), which §8 step 0 recomputes at the parent. Eight constraints
+listed in its §7 to be registered on acceptance; no ADR until then
+(100). CLAUDE.md gained a read-next row; the handoff's resume point
+moved to it. Docs only; nothing run.
