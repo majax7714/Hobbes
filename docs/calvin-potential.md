@@ -3,19 +3,17 @@
 **Status:** proposed → ready (2026-09-04) — no run cleared; steps 0–3 of §8 spend no orchestrator calls · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator via a remote OpenAI-compatible endpoint; exec local under Podman. No Modal in M0.
 **Depends on:** the Python derive package (graph @ SHA, tiers, plan derivation, impact, write partitions, testmap, co-change), the owned agent loop (`pipeline/src/hobbes/agent/loop.py`, OpenAI-compatible chat completions), the local policy engine + Podman sandbox, and the 50 derived units and 28 proposals of ADR-099 §9b (`bench/ttt/proposals-hobbes-ebdf7a5.jsonl`; the cell record `ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`).
 **Supersedes:** v1 of this document. Changes are marked **[v2]** and listed in §11.
-**Charter:** `calvin-charter.md` — unchanged; this document is the first experiment under it.
+**Charter:** [`calvin-charter.md`](calvin-charter.md) — unchanged; this document is the first experiment under it.
+**Pre-run probes:** [`ttt-cells/calvin-m0-probe-2026-09-03.md`](ttt-cells/calvin-m0-probe-2026-09-03.md) — the two no-orchestrator instruments run at the base graph and at each unit's parent, the v1 assessment (V-1–V-8) that produced this v2, and the 28 parent SHAs; `pipeline/scripts/calvin_probe.py` reproduces every number.
 **ADR:** none yet. When Max moves this from *ready* to *accepted* it takes the next number (100) in ADR-099's pattern, this doc as its body.
 
-> **What is and is not in this tree (2026-09-04).** The units, the
-> proposals, the §9b cell record with its defect register (D-1–D-5),
-> C-84 and the HSR/RFE definitions are all here and are cited by path.
-> Three things this document names are **not**: `calvin-charter.md`,
-> the v1 of this document, and the two pre-run probe measurements §0
-> quotes (18% of hunks outside every symbol span; 118 of 182 unresolved
-> terms are symbols the diff creates). The numbers are carried from v1
-> as stated and are not reproduced by anything in the tree; §8 step 0
-> recomputes both at the parent commit before anything depends on
-> them. Until then they are a lean, not a finding.
+> **Where v1 lives (2026-09-04).** v1 was never a document in this
+> tree; it was assessed and probed in a session of 2026-09-03 (night)
+> and its findings became this v2. The probe record above carries the
+> numbers §0 quotes, reproduced from the in-tree script on 2026-09-04;
+> the v1 text and the parent graphs are preserved outside the tree
+> under `~/.hobbes/bench/calvin/`. The charter's own companion-doc line
+> still names `calvin-m0-socket.md`, the v1 title.
 
 **Terms used below.** *HSR* — hallucinated-symbol rate, references to symbols not in the graph over all symbol references (`olmo3-ttt-validation.md` §4). *RFE* — right-files-edited: Jaccard between the files an agent modified and the unit's impact set, with precision and recall reported beside it (same section; precision is a harness check, ADR-077). *NULL* — a fill identifier the grounder could not resolve exactly against the graph at the parent SHA. *Gensym* — a symbol the diff itself declares earlier, resolvable within the same diff. *Hole* — a slot in the template the orchestrator fills; *fill* — its content. *Hunk* — one contiguous change block of the gold diff.
 
@@ -27,7 +25,7 @@ Calvin (charter §1) grounds an orchestrator's intended change against the repo 
 
 > Most of a real task is structure Hobbes can derive deterministically from anchors in the task, and the orchestrator's fills into that structure are noisy in ways a grounder can catch.
 
-**[v2]** Two pre-run measurements already shape the design. First, on the §9b units **18% of code hunks fall outside every symbol span** — module-level code the structure pass did not cover. That is the largest H-s residual and it is cheap to close (§2.1, `MODULE_REGION`). Second, at the anchor stage **118 of 182 unresolved terms are symbols the diff creates**, not near-misses of symbols that exist. If that holds through the fill stage, the dominant residual is new-thing placement, not fuzzy matching, and the door order in §9 is stated accordingly now rather than after.
+**[v2]** Two pre-run measurements already shape the design (the probe record; lane A at each unit's parent, 50 units, 680 hunks). First, on the §9b units **18% of code hunks fall outside every symbol span** (103 of 585) — module-level code the structure pass did not cover. That is the largest H-s residual and it is cheap to close (§2.1, `MODULE_REGION`). Second, at the anchor stage **118 of 182 unresolved terms are symbols the diff creates**, not near-misses of symbols that exist. If that holds through the fill stage, the dominant residual is new-thing placement, not fuzzy matching, and the door order in §9 is stated accordingly now rather than after. The same probes are why units are re-based at the parent (§3.1): at the release SHA, 56% of hunks fall in files the graph lacks; at the parent, 4% of code hunks do, and all of those are files the commit itself creates.
 
 ---
 
@@ -272,9 +270,9 @@ Each becomes a `C-n` in `constraints/verification-benchmark-harness.md` in the c
 
 ## 8. Order of work
 
-Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call.
+Step-gated, as ADR-099's was. Steps 0–3 produce instruments with no orchestrator involved: coverage, anchor recall, and the grounder's correctness on gold are known before the first API call. Steps 0's lane-A half and the two §4.1/§4.2 readings are already in hand (the probe record); the anchor rows there are a floor, since the resolver probed lacks the test-id, stack-trace and error-string matchers step 2 adds.
 
-0. **Parent re-base.** For each of the 50 units: parent SHA, ingest at parent (cached), gold diff = commit. *Exit:* 50 `(parent_sha, gold diff)` pairs; ingest count and time recorded; the pre-run coverage probe recomputed at the parent so the 18% and the 118/182 numbers have a parent-based counterpart in this tree.
+0. **Parent re-base.** For each of the 50 units: parent SHA, ingest at parent (cached), gold diff = commit. *Exit:* 50 `(parent_sha, gold diff)` pairs; ingest count and time recorded. **Partly done (the probe record):** the 28 parents are named, lane-A graphs exist for each (`calvin_probe.py ingest`), and both no-orchestrator instruments have been computed on them. What remains is the semantic (lane B, contained) ingest per parent — the one M0's grounder needs, since exact-match grounding against a syntactic-only ledger makes "exists" a guess (charter §6) — with its cost recorded, and the probe re-run on those graphs to confirm the lane-A numbers hold.
 1. **Hole schema** incl. `UNRESOLVED` and `MODULE_REGION`. *Exit:* one hand-written template for a §9b unit that a reader can fill without instructions.
 2. **`hobbes template` in derive:** anchor pass with unresolved block, structure pass with module regions, pruning. *Exit:* templates for all 50 regenerate byte-identically at the parent; anchor P/R and coverage buckets (§4.1, §4.2) computed against gold before any orchestrator call.
 3. **Grounder v0 in derive.** *Exit:* the 50 gold diffs fed in as fills → HSR = 0, NULL = 0 except terms the diff declares (which must resolve as gensyms), diffs re-apply cleanly at the parent.
@@ -307,6 +305,8 @@ Preregistered now, because the anchor-stage probe already leans one way:
 ---
 
 ## 11. Changes from v1
+
+Each item answers a finding of the 2026-09-03 assessment, V-1–V-8 in the probe record.
 
 1. Template and grounder in Python (derive package); Go reserved for the read-only tools.
 2. Units re-based at the commit's parent; C-84 becomes the *new file* coverage bucket rather than the whole measurement.

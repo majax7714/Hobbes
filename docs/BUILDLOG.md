@@ -6420,3 +6420,31 @@ new), which §8 step 0 recomputes at the parent. Eight constraints
 listed in its §7 to be registered on acceptance; no ADR until then
 (100). CLAUDE.md gained a read-next row; the handoff's resume point
 moved to it. Docs only; nothing run.
+
+*Addendum, later the same morning — the v1 run salvaged.* Max: "are
+you sure v1 was never run?" It was — not as a document in the tree but
+as a session of 2026-09-03 (night, 21:06–21:37) that assessed the v1
+design against the tree and ran two probes, whose scratchpad sat in
+`/tmp` and whose transcript held the findings. Recovered: the v1 text
+(19.5 kB, pasted into that session), `probe.py` / `probe2.py` /
+`ingest-parents.sh` / `commits.txt`, and 28 lane-A graphs ingested at
+each unit commit's parent (137 MB, `built_by 33fec69`), all copied to
+`~/.hobbes/bench/calvin/`. Both probes re-run today from the saved
+graphs and reproduced to the digit (680 hunks: 56% absent-file at the
+base vs 18% at the parent; code hunks 78% in-span / 4% absent / 18%
+outside spans; anchors 0.21 / 0.25 at file grain; 182 unresolved
+terms, 118 in the diff's added lines). Into the tree: the record
+`docs/ttt-cells/calvin-m0-probe-2026-09-03.md` (both tables, the
+readings as recorded that night, the 28 parent SHAs, and the eight
+v1 findings V-1–V-8 that v2's §11 answers one for one);
+`pipeline/scripts/calvin_probe.py` (`ingest | probe | anchors`, the
+same logic with paths parameterised; verified identical output) with
+`tests/test_calvin_probe.py` (4 tests, the pure pieces); the charter
+copied verbatim from `~/calvin` to `docs/calvin-charter.md` with a
+provenance line so the design's link is real. `calvin-potential.md`'s
+header note rewritten to point at the record; §0 carries the base-vs-
+parent numbers; §8 step 0 marked partly done, its remainder the
+contained lane-B ingest per parent. Recounted: 1,171 pytest collected
+outside `lane_b` (+3 in it) with the four new tests; the 2026-09-03
+line said 1,169, so the base was 1,167 — CLAUDE.md now carries the
+counted number.

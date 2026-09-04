@@ -16,9 +16,14 @@ pipeline run with Calvin's slot filled by a deterministic stub, over
 the §9b units re-based at their parent commits, attribution before
 verdict. Steps 0–3 of its §8 (parent re-base, hole schema, `hobbes
 template`, grounder v0) spend no orchestrator calls; step 4 onward
-waits on Max's word. The charter, the v1 doc and the two pre-run probe
-numbers are not in this tree — the doc says so; step 0 recomputes the
-numbers. No ADR yet (100 when accepted). Assessment work comes before
+waits on Max's word. The charter is copied in (`docs/calvin-charter.md`);
+the v1 assessment and the two pre-run probes (18% of code hunks outside
+spans; 118/182 unresolved terms new) are the record
+`docs/ttt-cells/calvin-m0-probe-2026-09-03.md`, reproduced by
+`pipeline/scripts/calvin_probe.py` from the parent graphs preserved
+under `~/.hobbes/bench/calvin/` (regenerable, `ingest`). Step 0's
+remaining half is the contained lane-B ingest per parent (28) with
+its cost. No ADR yet (100 when accepted). Assessment work comes before
 the next proposal; the §10 fine-tuning wording in the architecture
 stays as is until then.
 
