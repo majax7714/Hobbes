@@ -250,3 +250,107 @@ The v0 schema, the template and the gold fills are step 3's first
 grounder input: 3 hand-checked fills, 4 pattern fills, one
 `covered_by`, one `"none"` → the expected output is the gold diff at
 the parent with HSR 0 and NULL 0.
+
+## Addendum 2026-09-04 (evening) — step 2: `hobbes template` over the 28 proposals at their parents
+
+**Built:** `hobbes.derive.template` (`Ledger`, `anchor_pass`,
+`structure_pass`, `build_template`, `apply_round1`, `prune`,
+`score_coverage`, `score_anchors`), the `hobbes template` subcommand,
+`calvin_probe.py templates` (the batch: build, rebuild, compare bytes,
+score) and `tests/test_template.py` (10, on a synthetic ledger over a
+temporary git repo). Templates under `~/.hobbes/bench/calvin/templates/`
+(regenerable).
+
+**Exit criterion:** 28 of 28 templates regenerate **byte-identical** at
+the parent (`template_hash` equal on rebuild); build wall 1.4 s for all
+28 (mean 0.05 s; the co-change window is the cost, ~1 s per parent).
+The 50 cell units share 28 `(parent, task)` keys, so 28 templates;
+the scores below are unit-weighted over the 50 as the probe's were.
+
+**§4.1 — actual template coverage, no orchestrator round (680 hunks).**
+
+| bucket | hunks | |
+|---|---|---|
+| symbol span (SIGNATURE / BODY / CALLER_UPDATE / TEST_EXPECTATION) | 27 | 4% |
+| module region | 2 | 0% |
+| new file | 44 | 6% |
+| outside all | 607 | **89%** |
+
+Against the probe's *ceiling* at the parent (78% of code hunks inside
+some symbol span with perfect anchors), the actual pass reaches 4%.
+The door, by the design's own table (§4.1 row 4): of the 636 non-new
+hunks, **596 are in files no anchor reached (H-a)**, 11 are in a
+reached file outside every hole span (H-s), 29 are covered. **20 of the
+28 templates carry no structure at all** — round-1 holes
+(`ANCHOR_CONFIRM`, `UNRESOLVED`) and a `FREEFORM` only — because their
+only anchors are bare identifiers, which v0 holds back from the
+structure pass until confirmed. The gap is anchor discovery, not span
+drawing; the probe said so at the file grain (64 of 73 reachable gold
+files never named in the task) and step 2 says it at the hunk grain.
+
+**§4.2 — anchor pass, per matcher.**
+
+| matcher | anchors | in a gold file | on a gold symbol |
+|---|---|---|---|
+| backtick (exact id / unique name) | 1 | 0 | 0 |
+| path (file, or a directory's modules) | 3 | 2 | 0 |
+| literal (backticked non-identifier or quoted; capped) | 16 | 13 | 5 |
+| bare-identifier (exactly one node carries the name) | 166 | 27 | 8 |
+
+File grain: precision 32/172 = 0.19, recall 32/147 = 0.22. Symbol
+grain: precision 13/154 = 0.08, recall 13/231 = 0.06. Zero-anchor
+tasks 0 of 28; 117 unresolved code-shaped terms; 8 literals dropped
+over the cap. The literal matcher is the precise one (13 of 16 in a
+gold file); the bare-identifier matcher is 16% precise and costs 167
+`ANCHOR_CONFIRM` questions across 28 tasks, about six per task.
+
+**§4.7 — holes per template:** median 10, min 3, max 333 (the
+knowledge-only-mode unit, `27ee019`, once `hobbes-proxy` anchored its
+directory: 7 of 8 hunks covered). By type over 28: ANCHOR_CONFIRM 167,
+SIGNATURE 99, BODY 99, CALLER_UPDATE 211, TEST_EXPECTATION 225,
+MODULE_REGION 166, COCHANGE_TOUCH 71, UNRESOLVED 27, FREEFORM 28. The
+generated template for the step-1 unit `c59916f` has 134 holes to the
+hand-written 53 (the literal `go-rta` also anchors `main.main`, the
+dispatcher, whose callees `runExport`/`runGrade`/`write`/`splitComma`
+join the interior) and covers the same 4 of 4 hunks.
+
+**Before the cap (recorded, the first run of the batch):** the single
+backticked words `calls`, `uses`, `grade`, `export` are edge-type and
+subcommand names that sit in 44–156 symbol spans each; three templates
+exploded (3,594 / 3,124 / 1,938 holes, write partitions of 101 / 91 /
+65 files) and, by coincidence, covered 14 gold hunks — the 10% symbol
+figure of that run was those. `LITERAL_MAX_NODES = 12` (a declared
+guess) drops such a literal to the unresolved block with its count in
+the note; the max fell to 333 and the symbol figure to the honest 4%.
+
+**v0 rules settled in this step (each in the module docstring):**
+
+1. A literal hit outside every symbol span (a file's doc comment, a
+   Markdown file) anchors nothing — the first run had anchored a whole
+   module from its package comment and dragged twelve files in.
+2. A bare-identifier anchor is a round-1 question; it joins the
+   structure only when confirmed (`apply_round1`).
+3. A literal hit inside a test symbol is a reaching test, not interior.
+4. A type an *anchored* symbol `uses`, declared in an interior file, is
+   interior (the struct a flag lands in); a type's users are its
+   callers (`CALLER_UPDATE` on `uses` edges), and the signature-unchanged
+   prune is for functions only (step 1's reading 5).
+5. Regions for interior files only; `imports` folds into `head` (the
+   graph carries no import line facts).
+6. A code-shaped bare token that names a file or a directory is a
+   `path` anchor: a directory names the modules directly in it.
+7. A backticked word is code by the task's own declaration: unbound, it
+   goes to the unresolved block whatever its shape; matched by a name
+   exactly one node happens to carry (`export` → `secrets.export`), it
+   builds structure *and* opens an `ANCHOR_CONFIRM`.
+8. Scoring uses the diff's pre-image side: the parent is the pre-image,
+   so the probe's "slightly generous" caveat is gone.
+
+**What this settles for the run.** For this unit set the orchestrator's
+round 1 is load-bearing: the anchor pass alone opens the code for 8 of
+28 tasks. §3.2's arm T therefore measures H-a *plus* one round of
+`ANCHOR`/`ANCHOR_CONFIRM`/`UNRESOLVED` answers before any structural
+fill — and §4.2's last row ("orchestrator ANCHOR fills beat H-a on
+anchorless tasks") is the reading to expect first. Step 3 (the grounder
+on the gold fills) does not depend on this: its input is the template
+plus fills, and for the 8 anchored tasks the templates exist.

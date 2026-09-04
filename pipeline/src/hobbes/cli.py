@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -732,6 +733,45 @@ def _cmd_derive_corpus(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_template(args: argparse.Namespace) -> int:
+    """`hobbes template`: the Calvin M0 template for a task at a ledger's
+    SHA (`docs/calvin-potential.md` §2.1) — deterministic, model-free;
+    the holes in `hobbes.derive.holes` v0. Exit 0; 2 when the ledger or
+    the SHA cannot be read.
+    """
+    from hobbes.derive import cochange, holes
+    from hobbes.derive import template as tmpl
+
+    repo_root = _repo_root_from(args)
+    derived = repo_root / ".hobbes" / "derived"
+    graph_path = Path(args.graph) if args.graph else derived / "graph.json"
+    tests_path = Path(args.tests) if args.tests else derived / "tests.json"
+    try:
+        ledger = tmpl.Ledger(json.loads(graph_path.read_text()), json.loads(tests_path.read_text()))
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"hobbes template: cannot read the ledger ({exc}); `hobbes ingest` first, or pass --graph/--tests", file=sys.stderr)
+        return 2
+    history = None if args.no_cochange else cochange.observe(repo_root)
+    try:
+        t = tmpl.build_template(args.task, ledger, repo_root, history)
+    except subprocess.CalledProcessError as exc:
+        print(f"hobbes template: the ledger's SHA {ledger.sha[:12]} is not readable in {repo_root} ({exc})", file=sys.stderr)
+        return 2
+    if args.out:
+        Path(args.out).write_text(json.dumps(t, indent=1))
+    if args.render:
+        print(holes.render(t, repo_root))
+    elif args.json or not args.out:
+        print(json.dumps(t, indent=1))
+    by_type: dict[str, int] = {}
+    for h in t["holes"]:
+        by_type[h["type"]] = by_type.get(h["type"], 0) + 1
+    print(f"template {t['key']['task_hash']} @ {ledger.sha[:12]} (v{t['template_version']}, hash {t['template_hash']}): "
+          f"{len(t['anchors'])} anchors, {len(t['unresolved'])} unresolved, {len(t['holes'])} holes "
+          + ", ".join(f"{k} {v}" for k, v in sorted(by_type.items())) + (f"; wrote {args.out}" if args.out else ""), file=sys.stderr)
+    return 0
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     """`hobbes run`: execute a change-spec (ADR-054, D2 base).
 
@@ -1338,6 +1378,27 @@ def build_parser() -> argparse.ArgumentParser:
                                     "answer (0–4; default 0 = the canonical wording once)")
     corpus_parser.add_argument("--json", action="store_true", help="print the manifest instead of the summary")
 
+    template_parser = sub.add_parser(
+        "template",
+        help="the Calvin M0 template for a task at the ledger's SHA (docs/calvin-potential.md §2.1)",
+        description=(
+            "Expand a task into typed holes against the derived layer at its SHA: an anchor pass "
+            "(backticks, paths, test ids, stack lines, literals, bare identifiers naming one node; "
+            "code-shaped terms nothing bound go to an UNRESOLVED block) and a structure pass "
+            "(the anchored symbols and their callees as SIGNATURE/BODY, callers, reaching tests, "
+            "module-level regions, co-change partners). Deterministic and model-free: same "
+            "ledger, same task, same bytes. Reads the repo only through git at the ledger's SHA."
+        ),
+    )
+    template_parser.add_argument("task", help="the task text")
+    template_parser.add_argument("--repo", help="repo root (default: auto-detected via .git); git must hold the ledger's SHA")
+    template_parser.add_argument("--graph", help="graph.json to use (default: .hobbes/derived/graph.json)")
+    template_parser.add_argument("--tests", help="tests.json to use (default: .hobbes/derived/tests.json)")
+    template_parser.add_argument("--out", help="write the template JSON here")
+    template_parser.add_argument("--render", action="store_true", help="print the fillable form instead of the JSON")
+    template_parser.add_argument("--json", action="store_true", help="print the JSON even when --out is given")
+    template_parser.add_argument("--no-cochange", action="store_true", help="skip the co-change window (no COCHANGE_TOUCH holes)")
+
     run_parser = sub.add_parser(
         "run",
         help="execute a change-spec: one single-use session per unit, then "
@@ -1662,6 +1723,7 @@ def main(argv: list[str] | None = None) -> int:
         "review": _cmd_review,
         "plan": _cmd_plan,
         "derive-corpus": _cmd_derive_corpus,
+        "template": _cmd_template,
         "run": _cmd_run,
         "mail": _cmd_mail,
         "bench": _cmd_bench,

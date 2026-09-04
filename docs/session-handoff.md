@@ -30,7 +30,12 @@ both probes read identical on them. **Step 1 is done** (afternoon):
 five readings for step 2 in the probe record's second addendum — the
 literal matcher on backticked non-identifiers, 47 open holes for 4
 hunks, `covered_by`, `"none"`, and the SIGNATURE-prune scoped to
-functions. Next is step 2, `hobbes template` in derive (no model). No key is needed before step 4; the adapter's endpoint
+functions. **Step 2 is done** (evening): `hobbes.derive.template` and
+`hobbes template`; 28 of 28 byte-identical; actual coverage before any
+orchestrator round 4% symbol / 89% outside, 596 of 636 non-new hunks
+in files no anchor reached — round 1 is load-bearing for this unit set
+(the probe record's third addendum, eight v0 rules, the literal cap).
+Next is step 3, grounder v0 on the gold fills (no model). No key is needed before step 4; the adapter's endpoint
 decides which key (`HOBBES_LLM_API_KEY`). No ADR yet (100 when accepted). Assessment work comes before
 the next proposal; the §10 fine-tuning wording in the architecture
 stays as is until then.
@@ -101,7 +106,7 @@ sites); the `uses` gloss now says *"where no call site was detected"*.
 
 ## NEXT (in order, none cleared to spend compute)
 
-0. Calvin M0 steps 2–3 (`docs/calvin-potential.md` §8, no model; steps 0–1 done); Max's three calls above; his review of the ten lifts.
+0. Calvin M0 step 3, grounder v0 (`docs/calvin-potential.md` §8, no model; steps 0–2 done); Max's three calls above; his review of the ten lifts.
 1. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
    repo-internal ones (C-73's residual); Poetry / PDM manifests are not
    read (C-79's residual); a callee that is itself an expression

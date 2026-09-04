@@ -70,7 +70,8 @@ box, against a repo on disk (architecture §10); the application mode in
   C-64; Java resolves in a networked pass that holds no sources, then
   indexes offline, C-66/ADR-097); `derive/` (`hobbes plan`: impact →
   cochange → partition → contracts → manifests → changespec; `holes.py`
-  is the Calvin M0 hole language, v0); `run/`
+  is the Calvin M0 hole language, v0, and `template.py` its generator —
+  `hobbes template`, the anchor and structure passes); `run/`
   (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
@@ -164,7 +165,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-04, afternoon): 1,178 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-04, evening): 1,188 pytest (+3 `lane_b`) /
 295 Go + 39 oracle-lane Go / 52 vitest / 30 tsextract + 32 scip node
 tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job

@@ -6483,3 +6483,25 @@ extend to regions, tests and partners; `NEW_SYMBOL` needs
 `"none"`; and the SIGNATURE-unchanged prune is wrong for types (its
 caller changes when the fields do) — scoped to functions. §2.1
 amended in place; §8 step 1 done; 1,178 pytest (+7).
+
+*Addendum, evening — step 2.* Max: "good to proceed to step 2." Built
+`hobbes.derive.template` — the anchor pass (backtick, path, test id,
+stack line, literal via `git grep -F` at the SHA, bare identifier
+naming exactly one node; the unresolved block with nearest names), the
+structure pass (anchored symbols + callees + the types an anchored
+symbol uses in an interior file → SIGNATURE/BODY; callers and a type's
+users → CALLER_UPDATE, closed outside the partition; reaching tests;
+head/gap/tail regions for interior files; co-change partners at ≥ 2),
+`apply_round1`, `prune` (functions only), the two scorers on the
+pre-image side — and `hobbes template`, `calvin_probe.py templates`,
+ten tests on a synthetic ledger. Exit met: 28 of 28 byte-identical at
+the parent, 1.4 s. The measurement is the finding: before any
+orchestrator round the templates cover 4% of hunks at symbol grain and
+89% fall outside, 596 of 636 non-new hunks in files no anchor reached;
+20 of 28 templates have no structure until round 1. The first batch
+had three templates explode (3,594 holes: `calls` / `uses` / `grade`
+as literals in 44–156 spans) and cover 10% by coincidence; the cap
+(`LITERAL_MAX_NODES = 12`) and seven other v0 rules are in the record's
+third addendum. The directory matcher took the knowledge-only unit
+from 0 to 7 of 8. Generated template for the step-1 unit: 134 holes
+to the hand-written 53, the same 4 of 4 covered. 1,188 pytest (+10).

@@ -3,6 +3,7 @@
     uv run scripts/calvin_probe.py ingest  <graphs-dir> [--clone DIR] [--commits FILE] [--lane-b]
     uv run scripts/calvin_probe.py probe   <graphs-dir> [--mode parent|base] [--base-graph graph.json]
     uv run scripts/calvin_probe.py anchors <graphs-dir>
+    uv run scripts/calvin_probe.py templates <graphs-dir> --out <dir> [--clone DIR]
 
 Two instruments that need no orchestrator, computed from lane A alone
 (symbol spans, file paths and names are lane A's; ``HOBBES_SCIP=0``).
@@ -23,7 +24,11 @@ C-36) against the files the gold diff touches. ``anchors`` is the
 breakdown behind §4.2: lexical vs. code-shaped seeds, gold files no
 anchor reached split by whether the task text names them at all, and
 the unresolved code-shaped terms split by whether the gold diff's added
-lines carry them (the ``new`` class seen at the anchor stage).
+lines carry them (the ``new`` class seen at the anchor stage). ``templates`` is step 2's
+exit: `hobbes.derive.template` over every proposal at its parent,
+rebuilt and compared byte for byte, and §4.1 / §4.2 / §4.7 scored
+against gold with no orchestrator — the *actual* template coverage
+where ``probe`` measured the ceiling.
 
 Caveats the record states: file grain, not symbol grain, for anchors;
 hunk placement uses the diff's post-image line numbers against parent
@@ -272,6 +277,67 @@ def cmd_anchors(a: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_templates(a: argparse.Namespace) -> int:
+    """`hobbes template` over every proposal at its parent (step 2's exit): write the templates, rebuild and compare bytes, score §4.1 / §4.2 / §4.7 against gold with no orchestrator."""
+    from hobbes.derive import cochange, holes
+    from hobbes.derive import template as T
+
+    graphs = Path(a.graphs)
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(__file__).resolve().parents[2]
+    clone = Path(a.clone) if a.clone else graphs.parent / "rebase-clone"
+    cell, bycommit = load_units()
+    props = load_proposals()
+    cov = collections.Counter()
+    per_matcher: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    files = collections.Counter(); syms = collections.Counter()
+    hole_types = collections.Counter(); holes_per: list[int] = []; zero = unres = 0; identical = 0
+    wall = 0.0
+    rows = []
+    for p in props:
+        c = p["commit"]
+        L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
+        subprocess.run(["git", "checkout", "-q", L.sha], cwd=clone, check=True)
+        cc = cochange.observe(clone, 200)
+        t0 = time.time()
+        t = T.build_template(p["task"], L, repo, cc)
+        wall += time.time() - t0
+        assert holes.validate_template(t) == [], (c, holes.validate_template(t))
+        again = T.build_template(p["task"], L, repo, cc)
+        identical += T.canonical(t) == T.canonical(again)
+        (out / f"{c}.template.json").write_text(json.dumps(t, indent=1))
+        gold = [(r["id"].split(":", 1)[1], r["gold_diff"]) for r in bycommit[c]]
+        sc = T.score_coverage(t, gold); an = T.score_anchors(t, L, gold)
+        n_units = sum(1 for u in cell if u["commit"] == c)
+        for k in ("symbol", "region", "new_file", "outside", "hunks"):
+            cov[k] += sc[k] * n_units  # the 50 units share 28 commits; weight by units as the probe did
+        for m, r in an["per_matcher"].items():
+            for k, v in r.items():
+                per_matcher[m][k] += v
+        for k, v in an["files"].items():
+            files[k] += v
+        for k, v in an["symbols"].items():
+            syms[k] += v
+        zero += an["zero_anchor"]; unres += an["unresolved"]
+        hole_types.update(h["type"] for h in t["holes"]); holes_per.append(len(t["holes"]))
+        rows.append((c[:7], len(t["anchors"]), an["unresolved"], len(t["holes"]), sc["hunks"], sc["symbol"], sc["region"], sc["new_file"], sc["outside"]))
+    print(f"templates {len(props)}: byte-identical on rebuild {identical}/{len(props)}; build wall {wall:.1f}s (mean {wall / len(props):.2f}s)")
+    h = cov["hunks"]
+    print(f"[§4.1] hunks {h} (unit-weighted over 50 units): symbol {cov['symbol']} ({cov['symbol'] / h:.0%}); region {cov['region']} ({cov['region'] / h:.0%}); "
+          f"new-file {cov['new_file']} ({cov['new_file'] / h:.0%}); outside {cov['outside']} ({cov['outside'] / h:.0%})")
+    print(f"[§4.2] files: precision {files['tp']}/{files['anchored']} = {files['tp'] / max(files['anchored'], 1):.2f}, recall {files['tp']}/{files['gold']} = {files['tp'] / max(files['gold'], 1):.2f}; "
+          f"symbols: precision {syms['tp']}/{syms['anchored']} = {syms['tp'] / max(syms['anchored'], 1):.2f}, recall {syms['tp']}/{syms['gold']} = {syms['tp'] / max(syms['gold'], 1):.2f}; "
+          f"zero-anchor {zero}; unresolved terms {unres}")
+    for m, r in sorted(per_matcher.items()):
+        print(f"        {m:16s} anchors {r['anchors']:4d}  in a gold file {r['file_hits']:4d}  on a gold symbol {r['symbol_hits']:4d}")
+    print(f"[§4.7] holes per template: median {statistics.median(holes_per):.0f}, min {min(holes_per)}, max {max(holes_per)}; by type {dict(sorted(hole_types.items()))}")
+    print("commit  anchors unresolved holes | hunks symbol region new outside")
+    for r in rows:
+        print(f"{r[0]}  {r[1]:5d} {r[2]:8d} {r[3]:6d} | {r[4]:4d} {r[5]:6d} {r[6]:6d} {r[7]:3d} {r[8]:7d}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -282,6 +348,8 @@ def main(argv: list[str]) -> int:
     s.add_argument("--base-graph", default=str(BENCH / "hobbes-base" / ".hobbes" / "derived" / "graph.json"))
     s.set_defaults(fn=cmd_probe)
     s = sub.add_parser("anchors"); s.add_argument("graphs"); s.set_defaults(fn=cmd_anchors)
+    s = sub.add_parser("templates"); s.add_argument("graphs"); s.add_argument("--out", required=True); s.add_argument("--clone")
+    s.set_defaults(fn=cmd_templates)
     a = ap.parse_args(argv)
     return a.fn(a)
 

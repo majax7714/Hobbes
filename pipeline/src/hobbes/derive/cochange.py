@@ -44,6 +44,12 @@ class CoChange:
         return 1.0 + min(pairs, _CAP) / 4.0
 
 
+    def partners(self, path: str, min_pairs: int = 2) -> list[tuple[str, int]]:
+        """Files co-committed with *path* at least *min_pairs* times in the window, most first, ties by path."""
+        out = [(b if a == path else a, n) for (a, b), n in self._counts.items() if path in (a, b) and n >= min_pairs]
+        return sorted(out, key=lambda t: (-t[1], t[0]))
+
+
 def _key(a: str, b: str) -> tuple[str, str]:
     return (a, b) if a < b else (b, a)
 
