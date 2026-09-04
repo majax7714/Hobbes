@@ -38,6 +38,7 @@ from hobbes.extract.packs import REGISTRY as PACK_REGISTRY
 from hobbes.extract.packs import Pack, PackContext, run_packs
 from hobbes.extract.pysource import FromImport, parse_source
 from hobbes.extract.rustsource import collect_rust_tests, extract_rust
+from hobbes.extract.schema import LANE_SCIP
 from hobbes.extract.testmap import collect_tests
 from hobbes.extract.tssource import collect_ts_tests, extract_ts
 from hobbes.extract.verification import verification_base
@@ -466,9 +467,23 @@ def _lane_agreement(
     report whose noise floor is that high stops being read. Excluded by
     construction, and **counted**, because an exclusion nobody can see is
     how a self-test quietly stops testing.
+
+    *lane_b_edges* is the join's projection, which raises module edges
+    from lane A's own fallback too (a syntactic edge is still an edge).
+    Only the edges with semantic evidence are lane B's here (C-75): on
+    date-fns every one of 200 "lane B only" edges was tree-sitter's, and
+    the comparison was reporting lane A's agreement with lane A. The
+    count lane B actually produced is returned beside the comparison so
+    a thin lane B reads as thin.
     """
     compared, disagreements = ev.agreement(syntax, resolutions, fallback)
     lane_b_only_modules = lane_b_only_modules or set()
+    lane_b_edges = [
+        e
+        for e in lane_b_edges
+        if e["type"] == "imports"
+        and any(s["lane"] == LANE_SCIP for s in e["evidence"])
+    ]
 
     def repo_imports(edges):
         return {
@@ -498,6 +513,9 @@ def _lane_agreement(
         # Only meaningful when lane B ran at all; an empty lane B would
         # otherwise report every module edge as "lane A only".
         "module_edges_compared": len(a | b) if b else 0,
+        # Import edges carrying semantic evidence — the count lane B
+        # produced, before the repo-only filter (C-75).
+        "module_edges_lane_b_produced": len(lane_b_edges),
         # Edges left out because only one lane can produce them at all.
         # Reported so the denominator is never quietly smaller than it
         # looks — the ADR-029 coverage habit, applied to this report.

@@ -135,8 +135,13 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**Eighty-eight entries: seventy-eight active, eight lifted, two superseded**
-(C-86–C-88 added 2026-09-03 from the review of the TTT results: the
+**Eighty-eight entries: seventy-five active, eleven lifted, two superseded**
+(C-75, C-76 and C-77 **lifted 2026-09-03** — the first three of the
+2026-09-02 nine cleared on the lead's direction, easiest first: the
+lanes self-test counts only semantic module edges as lane B's and prints
+lane B's share, the summary and `hobbes diff` count `calls` and `uses`
+apart, and the proxy's tail table carries `below-floor`; the register
+no longer holds a line that reads larger than the truth; C-86–C-88 added 2026-09-03 from the review of the TTT results: the
 shuffled control's margin is a bound, not the graph's worth (*surfaced*);
 the first NLL write-up left the conditioning unstated, a reporting
 defect (*surfaced*); an adapter trained on "none recorded" answers
@@ -158,7 +163,7 @@ graph is one build configuration's and lane A abstains where
 constraints split a name — is the one *fixed and surfaced* the same
 day (ADR-098: two wrong syntactic edges and twelve disagreements on
 quic-go gone). The other nine are **registered, not fixed**, at Max's
-direction ("flag rest in constraints"): C-72 the Rust fallback's
+direction ("flag rest in constraints"; three lifted the next day, above): C-72 the Rust fallback's
 last-segment binding (*partial*), C-73 a repo symlink walked as a
 second copy (*partial*), C-74 workspace links dangling in the
 container with a record that blames the helper (*partial*), C-75
@@ -184,8 +189,8 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Nine of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80, C-83, C-85); seven
-are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and the 2026-09-02 five: C-75, C-76, C-77, C-78, C-79); C-58 — the interface/closure call hole, whose capture number reads
+against the code that concedes it; none had been silently lifted). Nine of the active are *partial* (C-4, C-58, C-68, C-72, C-73, C-74, C-80, C-83, C-85); four
+are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and the 2026-09-02 pair still standing: C-78, C-79 — C-75, C-76 and C-77 were lifted 2026-09-03); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit
@@ -194,7 +199,7 @@ C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-2
 the verification base stamped into the artifact and stated wherever a
 language list is read), as did C-32's `partial`. The three derivation entries (C-35..C-37,
 ADR-051) landed surfaced on day one — the statement prints on every
-`hobbes plan` run and rides every change-spec. **Seven are lifted**, C-33 fastest of
+`hobbes plan` run and rides every change-spec. **Eleven are lifted**, C-33 fastest of
 all: registered from the dagger measurement (ADR-048) and lifted one
 session later (ADR-049) when Max reviewed the candidate fix and
 directed it — the register working as intended, a finding becoming a
@@ -282,8 +287,9 @@ reads as 'no CLI'" — is lifted outright. What remains stays quiet
 rather than lying, which is a real difference; the worst residue is
 C-4's fixture-thin test reach and C-19's still-unexecuted emitters.)*
 
-**One line in the register inflates a number (since 2026-09-02: C-76,
-the summary's "call edges" label — a relabel, held for the lead).**
+**No line in the register inflates a number.** For one day (2026-09-02
+to 2026-09-03) C-76 — the summary's "call edges" label counting `uses`
+— did, and it was lifted by a relabel on the lead's direction.
 Before it, C-11 was the only
 entry that made a claim larger than the truth, and V2.M3 lifted it; C-24,
 its deliberately-under-reporting residue, was lifted in turn once the

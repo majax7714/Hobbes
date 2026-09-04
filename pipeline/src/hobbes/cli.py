@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 from hobbes import __version__, artifacts, policy
@@ -145,11 +146,19 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
             f"degraded ({degraded['message']})",
             file=sys.stderr,
         )
+    # C-76: `symbol_edges` holds `calls` and `uses` (SCIP references no
+    # call site claimed, ADR-029) — printed apart, because the one line a
+    # reader takes as the call-graph size must not carry the `uses` share
+    # (serde: 4,361 for 1,557 calls).
+    edge_types = Counter(e["type"] for e in graph["symbol_edges"])
+    other = sum(n for t, n in edge_types.items() if t not in ("calls", "uses"))
     print(
         f"  graph.json:      {len(graph['nodes'])} nodes, "
         f"{len(graph['module_edges'])} module edges, "
         f"{len(graph['symbols'])} symbols, "
-        f"{len(graph['symbol_edges'])} call edges"
+        f"{edge_types.get('calls', 0)} call edges, "
+        f"{edge_types.get('uses', 0)} uses edges"
+        + (f", {other} other symbol edges" if other else "")
     )
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
@@ -414,10 +423,18 @@ def _cmd_lanes(args: argparse.Namespace) -> int:
 
     only_a = report["module_edges_lane_a_only"]
     only_b = report["module_edges_lane_b_only"]
+    # C-75: the compared count is the union of both lanes' repo imports;
+    # lane B's own share is printed beside it so a thin lane B — or one
+    # that did not run — cannot read as agreement.
+    produced = report.get("module_edges_lane_b_produced")
+    produced_note = f" (lane B produced {produced})" if produced is not None else ""
     print(
         f"  module edges compared: {report['module_edges_compared']}"
+        f"{produced_note}"
         f" — {len(only_a)} lane A only, {len(only_b)} lane B only"
     )
+    if produced == 0:
+        print("    lane B produced no module edges; the module comparison did not run")
     for row in only_a[:10]:
         print(f"    lane A only: {row['from']} -> {row['to']}")
     for row in only_b[:10]:

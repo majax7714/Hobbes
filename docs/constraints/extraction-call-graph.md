@@ -234,8 +234,9 @@
   keeps no symbol for — an interface method, a closure, a nested
   function). The ingest summary prints it under *seen, not modelled by
   design* (this repo: go 3, python 35, ts/js 10), `list_blind_spots`
-  marks it not-modelled (but omits the class from its printed tail —
-  C-77, 2026-09-02), and the tail sums to `unresolved + floored`.
+  marks it not-modelled and prints it in its tail (C-77, registered
+  2026-09-02 and lifted 2026-09-03), and the tail sums to `unresolved +
+  floored`.
   What stays conceded: the capture line does not move, and a site the
   checker resolved to a declaration it *does* have a symbol for but
   through an interface it cannot see past (the Go/TS interface method

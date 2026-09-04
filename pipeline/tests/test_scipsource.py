@@ -769,3 +769,45 @@ class TestJavaUnits:
         text = scipsource.gradle_user_properties()
         assert "/usr/local/java-17,/usr/local/java-21,/usr/local/java-25" in text
         assert "auto-download=false" in text and "daemon=false" in text
+
+
+class TestLaneAgreementCountsOnlySemanticModuleEdges:
+    """C-75: the join raises module edges from lane A's fallback too; the
+    self-test must not read those as lane B's (date-fns: 200 "lane B
+    only" edges, every one tree-sitter's, one real semantic edge)."""
+
+    @staticmethod
+    def _edge(src, dst, lane):
+        from hobbes.extract.schema import tiered_edge
+
+        return tiered_edge(src, dst, "imports", [{"path": "a.py", "line": 1}], lane=lane)
+
+    def test_fallback_edges_leave_lane_b_empty(self):
+        from hobbes.extract import _lane_agreement
+        from hobbes.extract.schema import LANE_TREE_SITTER
+
+        lane_a = [self._edge("pkg.a", "pkg.b", LANE_TREE_SITTER)]
+        projected = [
+            self._edge("pkg.a", "pkg.b", LANE_TREE_SITTER),
+            self._edge("pkg.a", "pkg.c", LANE_TREE_SITTER),
+        ]
+        report = _lane_agreement([], [], {}, lane_a, projected)
+        assert report["module_edges_lane_b_produced"] == 0
+        assert report["module_edges_compared"] == 0
+        assert report["module_edges_lane_a_only"] == []
+        assert report["module_edges_lane_b_only"] == []
+
+    def test_a_semantic_edge_counts_and_compares(self):
+        from hobbes.extract import _lane_agreement
+        from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER
+
+        lane_a = [self._edge("pkg.a", "pkg.b", LANE_TREE_SITTER)]
+        projected = [
+            self._edge("pkg.a", "pkg.b", LANE_TREE_SITTER),
+            self._edge("pkg.a", "pkg.c", LANE_SCIP),
+        ]
+        report = _lane_agreement([], [], {}, lane_a, projected)
+        assert report["module_edges_lane_b_produced"] == 1
+        assert report["module_edges_compared"] == 2
+        assert report["module_edges_lane_a_only"] == [{"from": "pkg.a", "to": "pkg.b"}]
+        assert report["module_edges_lane_b_only"] == [{"from": "pkg.a", "to": "pkg.c"}]

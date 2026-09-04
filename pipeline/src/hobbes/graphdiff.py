@@ -101,10 +101,12 @@ def format_delta(delta: dict, base_label: str, head_label: str) -> str:
     for edge in delta["module_edges_removed"]:
         lines.append(f"  - {edge['type']} {edge['from']} -> {edge['to']}")
 
-    added = len(delta["symbol_edges_added"])
-    removed = len(delta["symbol_edges_removed"])
-    if added or removed:
-        lines.append(f"  symbol layer: +{added} / -{removed} call edges")
+    # C-76: `calls` and `uses` counted apart, as the ingest summary does.
+    for edge_type in ("calls", "uses"):
+        added = sum(1 for e in delta["symbol_edges_added"] if e["type"] == edge_type)
+        removed = sum(1 for e in delta["symbol_edges_removed"] if e["type"] == edge_type)
+        if added or removed:
+            lines.append(f"  symbol layer: +{added} / -{removed} {edge_type} edges")
     return "\n".join(lines) + "\n"
 
 

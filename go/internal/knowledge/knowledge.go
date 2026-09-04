@@ -746,6 +746,12 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"inherited-member", "a bare Java call in a type with supertypes and no fitting declaration of its own — the callee is inherited, which only lane B's hierarchy can name (ADR-096)"},
 	{"build-tag-set", "a Go name declared more than once in its package under build constraints the caller's configuration does not single out; lane A abstained rather than pick a file (ADR-098, C-71) — the semantic index answers for one configuration only"},
 	{"unclassified", "no observation applies — genuinely unknown; read this code yourself"},
+	// Last, as in tail.py's ALL_CLASSES: not an unresolved site but a
+	// resolved one lane A keeps no symbol for (an interface method, a
+	// closure, a nested function below C-9's floor) — the call graph's
+	// known hole, per file (C-58). Missing from this table until
+	// 2026-09-03 (C-77): the proxy printed the by-design rollup without it.
+	{"below-floor", "resolved by the semantic lane to a declaration below the symbol floor — an interface method, a closure, a nested function — so no edge is drawn (C-58); the callee is known to the index and not to the graph"},
 }
 
 // notModelled marks the classes the graph sees and deliberately

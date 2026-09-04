@@ -196,6 +196,26 @@ class TestRender:
         assert "hobbes ingest" in capsys.readouterr().err
 
 
+class TestIngestSummaryCounts:
+    """The first numbers a user reads must not read larger than the truth."""
+
+    def test_calls_and_uses_are_counted_apart(self, git_fixture, capsys):
+        """C-76: the summary once printed every symbol edge as a call edge
+        (serde: 4,361 for 1,557 calls)."""
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        out = capsys.readouterr().out
+        graph = json.loads(
+            (git_fixture / ".hobbes" / "derived" / "graph.json").read_text()
+        )
+        calls = sum(1 for e in graph["symbol_edges"] if e["type"] == "calls")
+        uses = sum(1 for e in graph["symbol_edges"] if e["type"] == "uses")
+        assert calls + uses == len(graph["symbol_edges"])
+        assert f"{calls} call edges, {uses} uses edges" in out
+        assert f"{len(graph['symbol_edges'])} call edges" not in out or calls == len(
+            graph["symbol_edges"]
+        )
+
+
 class TestLanes:
     """`hobbes lanes` — §3.4's self-test as a command, not only a CI file."""
 
@@ -247,6 +267,24 @@ class TestLanes:
 
         assert cli.main(["lanes", "--repo", str(git_fixture)]) == 0
         assert "lane B only: miniapp.cli -> miniapp.core" in capsys.readouterr().out
+
+    def test_lane_b_share_is_printed_beside_the_comparison(self, git_fixture, capsys):
+        """C-75: the compared count is a union of both lanes; with lane B
+        off (the suite's default) the report must say lane B produced
+        nothing rather than reading lane A's fallback as agreement."""
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        graph = json.loads(
+            (git_fixture / ".hobbes" / "derived" / "graph.json").read_text()
+        )
+        report = graph["lane_agreement"]
+        assert report["module_edges_lane_b_produced"] == 0
+        assert report["module_edges_compared"] == 0
+        assert report["module_edges_lane_b_only"] == []
+        capsys.readouterr()
+        assert cli.main(["lanes", "--repo", str(git_fixture)]) == 0
+        out = capsys.readouterr().out
+        assert "module edges compared: 0 (lane B produced 0)" in out
+        assert "lane B produced no module edges; the module comparison did not run" in out
 
     def test_a_graph_without_the_report_says_so(self, git_fixture, capsys):
         assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0

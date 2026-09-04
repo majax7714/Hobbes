@@ -172,7 +172,7 @@ have a plan handy, `--tf-plan plan.json` enriches the infra layer;
 
 ```
 ingested /path/to/app @ 9611f8865548 [javascript, typescript]
-  graph.json:      104 nodes, 358 module edges, 207 symbols, 235 call edges
+  graph.json:      104 nodes, 358 module edges, 207 symbols, 222 call edges, 13 uses edges
   tests.json:      174 tests
   interfaces.json: 12 routes, 0 CLI entry points
 ```

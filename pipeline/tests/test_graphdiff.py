@@ -94,13 +94,18 @@ class TestFormatDelta:
                 edge("a", "env:MODE", type="env-read",
                      evidence=[{"path": "a.py", "line": 7}])
             ],
-            symbol_edges=[edge("a.f", "a.g", type="calls")],
+            symbol_edges=[
+                edge("a.f", "a.g", type="calls"),
+                edge("a.f", "a.T", type="uses"),
+            ],
         )
         text = format_delta(diff_graphs(base, head), "x", "y")
         assert "  + env env:MODE" in text
         assert "  + env-read a -> env:MODE   [a.py:7]" in text
         assert "  - imports a -> b" in text
-        assert "  symbol layer: +1 / -0 call edges" in text
+        # C-76: a `uses` edge is not a call and is not counted as one.
+        assert "  symbol layer: +1 / -0 calls edges" in text
+        assert "  symbol layer: +1 / -0 uses edges" in text
 
 
 class TestExtractAtRef:

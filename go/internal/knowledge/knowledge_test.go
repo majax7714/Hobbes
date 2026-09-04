@@ -602,7 +602,7 @@ func blindSpotRepo(t *testing.T) string {
 		"symbols": []map[string]any{}, "symbol_edges": []map[string]any{},
 		"resolution_coverage": []map[string]any{
 			{"file": "src/app/core.py", "sites": 20, "resolved": 12, "external": 3,
-				"unresolved": 5, "tail": map[string]int{"builtin-name": 3, "attr-call": 2}},
+				"unresolved": 5, "tail": map[string]int{"builtin-name": 3, "attr-call": 2, "below-floor": 2}},
 			{"file": "src/app/api.py", "sites": 10, "resolved": 10, "external": 0,
 				"unresolved": 0},
 			{"file": "web/main.ts", "sites": 8, "resolved": 2, "external": 0,
@@ -616,9 +616,9 @@ func blindSpotRepo(t *testing.T) string {
 		},
 		"tail_classes_available": map[string][]string{
 			"python": {"fallback-resolved", "local-binding", "import-binding",
-				"builtin-name", "attr-call", "unclassified"},
+				"builtin-name", "attr-call", "unclassified", "below-floor"},
 			"ts/js": {"fallback-resolved", "local-binding", "nested-decl",
-				"external-origin", "attr-call", "unclassified"},
+				"external-origin", "attr-call", "unclassified", "below-floor"},
 		},
 		"verification_base": map[string]any{
 			"python": map[string]any{"repos": 3, "note": "verified on 3 repos: this repo (dogfood, continuous), private-repo-A, qwen-pathology"},
@@ -683,11 +683,14 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	for _, want := range []string{
 		"capture [python]: 83.3% of 30 detected call sites accounted",
 		"capture [ts/js]: 25.0% of 8 detected call sites accounted",
-		"seen, not modelled by design: 3 (builtin-name 3)",
+		// C-77: `below-floor` (C-58) is in the rollup, the per-file line
+		// and the glossary — the one class the view used to omit.
+		"seen, not modelled by design: 5 (builtin-name 3, below-floor 2)",
 		"cannot resolve: 2 (attr-call 2)",
 		"environment gap: 4/6 declared packages resolved; missing: boto3, psycopg",
 		"degraded: scripts: go-modules: orphan directory",
-		"src/app/core.py — 5 of 20 sites unresolved (builtin-name 3, attr-call 2)",
+		"src/app/core.py — 5 of 20 sites unresolved (builtin-name 3, attr-call 2, below-floor 2)",
+		"below-floor — resolved by the semantic lane to a declaration below the symbol floor",
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
 		// meanings appear only for classes present, with their C-refs:
