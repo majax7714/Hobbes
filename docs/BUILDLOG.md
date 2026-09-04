@@ -6379,3 +6379,26 @@ Not touched, noted for later: `oracle-grading.md` and `agent-mapping.md`
 carry status headers frozen at 2026-08-25 and 2026-08-21 (both defer to
 the architecture, cosmetic); CLAUDE.md's Status block is near its own
 length ceiling.
+
+
+## 2026-09-04 — first-run doc drift: the build step caught up to ADR-092
+
+A base-documentation read-through (README, CLAUDE.md, the architecture,
+the handoff, workstreams, the register index, `first-run.md`) found one
+piece of the drift the 2026-09-03 (late) entry fixed in the README
+still standing in `docs/first-run.md`: §0 told a reader to `go install
+scip-go` and `rustup component add rust-analyzer` on the host, and the
+dependencies callout said Go's module cache was "global, warm whenever
+`go build` works". Since ADR-092 lane B runs from the image — `scip-go`,
+`rust-analyzer`, `scip-java` and the JDKs are pinned inside it — and
+`go mod download` / `cargo fetch` run as separate fetch containers into
+the Hobbes cache (`GOMODCACHE`, `CARGO_HOME` under `~/.hobbes/cache`,
+`extract/containment.py`). §0's block now builds the image in place of
+the two host installs, the callout says Go and Rust fetch into the
+Hobbes cache with no repo code running, and the containment callout
+points at the block rather than repeating the build command. Docs only.
+
+Noted, left as is on Max's word: architecture §10 lists "any model
+fine-tuning" as out of scope while ADR-099 trains LoRA adapters; the
+experiment is an instrument for observation, not product, and the
+wording waits on the assessment work before the next proposal.

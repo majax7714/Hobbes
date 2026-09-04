@@ -32,18 +32,16 @@ CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy
 
 cd ../web      && npm install && npm run build   # then rebuild hobbes-web
 cd ../tsextract && npm install                   # only if the repo has TS/JS
-cd ../scip     && npm install                    # lane B: the SCIP indexers
+cd ../scip     && npm install                    # lane B: the helper and its npm indexers
 cd ../pipeline && uv sync
 
-# Go repos only — scip-go is a Go binary, not an npm package, so it is
-# installed rather than vendored. Pin it: its --module-version defaults
-# to the git revision, and the version is what a provider limit is filed
-# against (P9).
-go install github.com/scip-code/scip-go/cmd/scip-go@v0.2.7
-
-# Rust repos only — rust-analyzer is a rustup component, pinned by the
-# toolchain (the version is what C-28/29/30 are filed against).
-rustup component add rust-analyzer
+# the one sandbox image: lane B for every language, the executing
+# oracles, sessions and the knowledge tools all run from it
+# (ADR-092/094, ~2.8 GB). There is no per-language host install:
+# scip-go, rust-analyzer, scip-java and the JDKs are pinned inside it,
+# and the pin is what a provider limit is filed against (P9).
+CGO_ENABLED=0 go build -C ../go -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
+cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 ```
 
 > **`scip/` is what makes edges *proven* rather than guessed.** Without
@@ -56,18 +54,20 @@ rustup component add rust-analyzer
 > third-party types — `npm install` for TS/JS, the virtualenv for Python.
 > Without them the index still succeeds and quietly loses edges, so
 > ingest reports `dependency_coverage` and warns when too little
-> resolved (ADR-032, C-23). **Go is the exception**: its module cache is
-> global rather than per-repo, so it is warm whenever `go build` works,
-> and `scip-go` fails loudly rather than thinning out when it is not.
-> **Rust fetches for itself**: cargo pulls crate sources into the
-> Hobbes cache at index time, so the first ingest needs the network
-> (C-30) — and **indexing a Rust repo executes its `build.rs` and proc
-> macros** (C-29; ingest discloses this on stderr every time).
+> resolved (ADR-032, C-23). **Go and Rust fetch for themselves**:
+> `go mod download` and `cargo fetch` run as separate fetch containers
+> with a network and no repo code, into the Hobbes cache (`GOMODCACHE`
+> and `CARGO_HOME` under `~/.hobbes/cache`, never the host's), so the
+> first ingest of a Go or Rust repo needs the network (C-30 for the
+> crate registry); `scip-go` fails loudly rather than thinning out when
+> a module is missing. And **indexing a Rust repo executes its
+> `build.rs` and proc macros** (C-29; ingest discloses this on stderr
+> every time, and since ADR-092 it happens inside the image).
 
 > **Lane B runs in the sandbox image (ADR-092).** Build it before the
-> first semantic ingest — `podman build -t hobbes-session:local -f
-> Containerfile .` from `sandbox/`, after the static proxy is built —
-> or Python/TS/Go index on the host and say so, and **Rust refuses**
+> first semantic ingest — the last two lines of the block above, after
+> the static proxy is built — or Python/TS/Go index on the host and say
+> so, and **Rust refuses**
 > (C-64): the code a Rust ingest runs is contained or it does not run.
 > The image carries pinned node, Go, scip-go, a rustup toolchain
 > with rust-analyzer, and — since ADR-096 — Temurin JDK 17/21/25, Maven
