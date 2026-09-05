@@ -191,12 +191,15 @@ def declared_dependencies(repo_root: Path) -> list[str]:
     — otherwise runs the check against an empty list, and an inert check
     that appears to run is worse than no check (C-16, lifted here).
 
-    Reads ``pyproject.toml`` ``[project]``, ``setup.cfg`` ``[options]
-    install_requires`` + ``[options.extras_require]``, and every
-    ``requirements*.txt`` (C-79, lifted 2026-09-03: peft declares in
-    ``setup.py`` and ``requirements.txt`` only, and had no
-    ``dependency_coverage`` at all). ``setup.py`` is not read — it is
-    code, and this walk executes nothing.
+    Reads ``pyproject.toml`` — ``[project]``, ``[dependency-groups]``,
+    Poetry's, PDM's and uv's tool tables (:func:`_pyproject_specs`) —
+    ``setup.cfg`` ``[options] install_requires`` +
+    ``[options.extras_require]``, and every ``requirements*.txt`` (C-79,
+    lifted 2026-09-03: peft declares in ``setup.py`` and
+    ``requirements.txt`` only, and had no ``dependency_coverage`` at
+    all). ``setup.py`` is not read — it is code, and this walk executes
+    nothing. Lock files are not read — they are the resolver's closure,
+    not the declaration.
     """
     from hobbes.extract.interfaces import iter_manifests
 
@@ -227,17 +230,64 @@ def _declared_in(manifest: Path) -> set[str]:
 
 
 def _pyproject_specs(pyproject: Path) -> list:
+    """Dependency specs from every declaration table a ``pyproject.toml``
+    carries, not only PEP 621's (C-79's residual, closed 2026-09-05):
+    ``[project] dependencies`` + ``[project.optional-dependencies]``;
+    PEP 735 ``[dependency-groups]`` (lists of specs — an
+    ``{include-group = ..}`` entry names no package, the included group
+    is read on its own); Poetry's ``[tool.poetry.dependencies]``,
+    ``[tool.poetry.dev-dependencies]`` and
+    ``[tool.poetry.group.<name>.dependencies]`` (name-keyed tables: the
+    key is the package whatever the value's shape — a caret string, a
+    ``{version, extras, optional}`` table, a ``{path}``/``{git}`` source,
+    a list of constraints; ``python`` is the interpreter, not a package);
+    PDM's ``[tool.pdm.dev-dependencies]`` (groups of spec lists) and uv's
+    ``[tool.uv] dev-dependencies`` (a spec list). Lock files
+    (``poetry.lock``, ``pdm.lock``, ``uv.lock``) are not read: they list
+    the closure a resolver chose, not what the repo declares, and the
+    coverage number is "declared and resolved by the index", not
+    "installed".
+    """
     try:
         import tomllib
 
         data = tomllib.loads(pyproject.read_text())
     except (OSError, ValueError):
         return []
-    project = data.get("project") or {}
-    specs = list(project.get("dependencies") or [])
-    for extra in (project.get("optional-dependencies") or {}).values():
-        specs.extend(extra)
+    project = _table(data.get("project"))
+    specs = _spec_list(project.get("dependencies"))
+    for extra in _table(project.get("optional-dependencies")).values():
+        specs.extend(_spec_list(extra))
+    for group in _table(data.get("dependency-groups")).values():
+        specs.extend(_spec_list(group))
+    tool = _table(data.get("tool"))
+    poetry = _table(tool.get("poetry"))
+    specs.extend(_poetry_names(poetry.get("dependencies")))
+    specs.extend(_poetry_names(poetry.get("dev-dependencies")))
+    for group in _table(poetry.get("group")).values():
+        specs.extend(_poetry_names(_table(group).get("dependencies")))
+    for group in _table(_table(tool.get("pdm")).get("dev-dependencies")).values():
+        specs.extend(_spec_list(group))
+    specs.extend(_spec_list(_table(tool.get("uv")).get("dev-dependencies")))
     return specs
+
+
+def _table(value) -> dict:
+    """*value* when it is a TOML table, else an empty one — a manifest's
+    shape is the repo's to get wrong, never a reason to stop reading."""
+    return value if isinstance(value, dict) else {}
+
+
+def _spec_list(value) -> list:
+    """The string entries of a spec list (PEP 508 strings); a table entry
+    such as PEP 735's ``{include-group = ..}`` names no package."""
+    return [spec for spec in value if isinstance(spec, str)] if isinstance(value, list) else []
+
+
+def _poetry_names(table) -> list:
+    """The package names a Poetry dependency table declares: its keys.
+    ``python`` constrains the interpreter and is not a distribution."""
+    return [name for name in _table(table) if name != "python"]
 
 
 def _setup_cfg_specs(setup_cfg: Path) -> list:

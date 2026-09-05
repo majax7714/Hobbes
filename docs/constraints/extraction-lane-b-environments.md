@@ -303,12 +303,25 @@ new active entry and the two cross-reference. Field key: `README.md`,
 - **Residual edge cases:** a repo whose only declaration is
   `setup.py`'s `install_requires` still has no list — it now gets the
   record instead of silence, and the fix a user can apply is a
-  `setup.cfg` or a `requirements.txt` beside it. Poetry's
+  `setup.cfg` or a `requirements.txt` beside it. ~~Poetry's
   `[tool.poetry.dependencies]` and PDM/uv-only lock files are not read
   (a `pyproject.toml` without `[project]` reads as empty; the record
-  fires). A `requirements` file under another name (`deps.txt`,
-  `requirements/base.in`) is not matched by the `requirements*.txt`
-  pattern.
+  fires).~~ **Closed 2026-09-05:** the `pyproject.toml` reader takes
+  every declaration table — PEP 735 `[dependency-groups]`, Poetry's
+  `[tool.poetry.dependencies]` / `dev-dependencies` /
+  `group.<name>.dependencies` (name-keyed: the key is the package
+  whatever the value's shape, `python` is the interpreter), PDM's
+  `[tool.pdm.dev-dependencies]` and uv's `[tool.uv] dev-dependencies` —
+  so a Poetry or PDM repo declares; the record's message names the
+  tables. **Lock files stay unread by design:** `poetry.lock`,
+  `pdm.lock` and `uv.lock` list the closure a resolver chose, and the
+  coverage number means *declared and resolved by the index*, not
+  installed — reading them would put every transitive package in the
+  denominator. Tests: `test_poetry_tables_are_read_by_key_whatever_the_value`,
+  `test_dependency_groups_pdm_and_uv_dev_dependencies_are_read`,
+  `test_lock_files_are_not_read`. Still residual: a `requirements`
+  file under another name (`deps.txt`, `requirements/base.in`) is not
+  matched by the `requirements*.txt` pattern, and `setup.py` stays code.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent A,
   huggingface/peft); lifted 2026-09-03.
 

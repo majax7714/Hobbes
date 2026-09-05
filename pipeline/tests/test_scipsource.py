@@ -571,6 +571,62 @@ class TestDeclaredDependencies:
         )
         assert scipsource.declared_dependencies(tmp_path) == []
 
+    def test_poetry_tables_are_read_by_key_whatever_the_value(self, tmp_path):
+        """C-79's residual, closed 2026-09-05: a Poetry repo has no
+        `[project]` table; its dependencies are name-keyed tables whose
+        values take every shape Poetry allows. The key is the package;
+        `python` is the interpreter."""
+        repo = self._write(
+            tmp_path,
+            '[tool.poetry]\nname = "x"\n'
+            '[tool.poetry.dependencies]\npython = "^3.9"\nrequests = "^2.31"\n'
+            'uvicorn = { version = "0.30", extras = ["standard"], optional = true }\n'
+            'mylib = { path = "../mylib", develop = true }\n'
+            'numpy = [{ version = "<2", python = "<3.12" }, { version = ">=2", python = ">=3.12" }]\n'
+            '[tool.poetry.dev-dependencies]\nblack = "*"\n'
+            '[tool.poetry.group.test.dependencies]\npytest = "^8"\n'
+            '[tool.poetry.group.docs]\noptional = true\n'
+            '[tool.poetry.group.docs.dependencies]\nsphinx = "^7"\n',
+        )
+        assert scipsource.declared_dependencies(repo) == [
+            "black", "mylib", "numpy", "pytest", "requests", "sphinx", "uvicorn"
+        ]
+
+    def test_dependency_groups_pdm_and_uv_dev_dependencies_are_read(self, tmp_path):
+        """PEP 735 `[dependency-groups]` (an include-group entry names no
+        package), PDM's and uv's dev tables — the spec-list shapes."""
+        repo = self._write(
+            tmp_path,
+            '[project]\nname = "x"\n'
+            '[dependency-groups]\ntest = ["pytest>=8", "coverage[toml]"]\n'
+            'all = [{ include-group = "test" }, "tox"]\n'
+            '[tool.pdm.dev-dependencies]\nlint = ["ruff==0.5"]\n'
+            '[tool.uv]\ndev-dependencies = ["mypy"]\n',
+        )
+        assert scipsource.declared_dependencies(repo) == [
+            "coverage", "mypy", "pytest", "ruff", "tox"
+        ]
+
+    def test_lock_files_are_not_read(self, tmp_path):
+        """A lock file is the resolver's closure, not the declaration:
+        counting it would put every transitive package in the denominator
+        of a number that means 'declared and resolved by the index'."""
+        self._write(tmp_path, '[project]\nname = "x"\n')
+        (tmp_path / "uv.lock").write_text('[[package]]\nname = "idna"\nversion = "3.7"\n')
+        (tmp_path / "poetry.lock").write_text('[[package]]\nname = "certifi"\n')
+        (tmp_path / "pdm.lock").write_text('[[package]]\nname = "six"\n')
+        assert scipsource.declared_dependencies(tmp_path) == []
+
+    def test_a_tool_table_of_the_wrong_shape_is_not_an_error(self, tmp_path):
+        repo = self._write(
+            tmp_path,
+            '[tool.poetry]\ndependencies = "not a table"\n'
+            '[tool.pdm]\ndev-dependencies = ["not", "a", "table"]\n'
+            '[tool.uv]\ndev-dependencies = "not a list"\n'
+            'dependency-groups = 3\n',
+        )
+        assert scipsource.declared_dependencies(repo) == []
+
     def test_find_venv_at_the_repo_root(self, tmp_path):
         (tmp_path / ".venv").mkdir()
         (tmp_path / ".venv" / "pyvenv.cfg").write_text("home = /usr\n")

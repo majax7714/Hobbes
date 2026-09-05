@@ -649,8 +649,10 @@ def _coverage_gap_records(language: str, facts: dict) -> list[dict]:
             "stage": "scip-python",
             "message": (
                 "no manifest declares Python dependencies (pyproject.toml "
-                "[project], setup.cfg [options], requirements*.txt are read; "
-                "setup.py is code and is not) — the environment coverage "
+                "[project] / [dependency-groups] / [tool.poetry] / [tool.pdm] "
+                "/ [tool.uv], setup.cfg [options], requirements*.txt are "
+                "read; setup.py is code and is not; a lock file is the "
+                "resolver's closure and is not) — the environment coverage "
                 "check had nothing to compare against, so a thin graph here "
                 "has no environment number to rank on (C-79)"
             ),
