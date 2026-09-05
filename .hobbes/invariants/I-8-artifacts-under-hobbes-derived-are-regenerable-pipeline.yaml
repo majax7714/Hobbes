@@ -5,11 +5,18 @@
 # .hobbes/invariants/, so this arrived as a reworded duplicate and the
 # queue could not say so. I-2 is the record of reference; it adds that
 # provenance lives in the SHA stamp rather than in version control.
+#
+# RETIRED 2026-09-05 (W0, the duplicate pairs): I-2 is the record of
+# reference and states strictly more, so this record added a second
+# soft verdict for `hobbes review` to spend a session on and a second
+# line in `list_invariants` for an agent to read, with nothing of its
+# own. Kept as history (README: retired records stay); it cited no
+# guards of its own — I-2's three stand. Nothing it guarded is unguarded.
 id: I-8
 statement: >-
   Artifacts under .hobbes/derived/ are regenerable pipeline output and
   are never committed; git add of anything under that path is denied.
 scope: .hobbes/derived
-status: confirmed
+status: retired
 check: soft
 guarded_by: []

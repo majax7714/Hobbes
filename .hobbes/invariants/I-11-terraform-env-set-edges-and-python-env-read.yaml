@@ -5,13 +5,20 @@
 # .hobbes/invariants/, so this arrived as a reworded duplicate and the
 # queue could not say so. I-6 is the record of reference; it covers JS
 # env-reads as well as Python, which this one omits.
+#
+# RETIRED 2026-09-05 (W0, the duplicate pairs): I-6 is the record of
+# reference and states strictly more, so this record added a second
+# soft verdict for `hobbes review` to spend a session on and a second
+# line in `list_invariants` for an agent to read, with nothing of its
+# own. Kept as history (README: retired records stay); the guards it
+# cited are I-6's guards. Nothing it guarded is unguarded.
 id: I-11
 statement: >-
   Terraform env-set edges and Python env-read edges must join on
   shared env:VAR nodes so infra-to-code environment coupling is
   visible in the module graph.
 scope: pipeline
-status: confirmed
+status: retired
 check: soft
 guarded_by:
   - pipeline/tests/test_emit.py::TestIngest::test_cross_layer_env_join_present

@@ -60,13 +60,13 @@ build item.*
   under the runner user and the image's rustup download are the two
   things that can differ there. C-19: semgrep now executes in CI;
   dep-cruiser and Rego stay unexercised until a record compiles to them.
-- **Fix the one deselected test.**
-  `test_venv_environment_lists_the_venvs_own_distributions` (`lane_b`)
-  fails under containment because its fake venv symlinks the suite's
-  interpreter and answers `{pip}`; `ci-graph.sh` deselects it by name.
-  The fix is a real venv in the fixture (`python -m venv` + one
-  installed distribution) — small, and it removes the only permanent
-  exclusion in CI.
+- ~~**Fix the one deselected test.**~~ — **done 2026-09-05:**
+  `test_venv_environment_lists_the_venvs_own_distributions` builds a
+  real venv (`python -m venv --without-pip`, one distribution written
+  as a dist-info — no network, no pip) whose python links to the base
+  install the container mounts hop by hop; the fake venv's `home =
+  /usr` had made the image's own python the base, hence `{pip}`.
+  `ci-graph.sh` deselects nothing now.
 - **Registry-pulled image.** The graph job builds the image every run
   (~4 min). Pull-by-digest from a registry when that starts to hurt;
   the digest becomes part of what a cell record pins.
@@ -78,10 +78,12 @@ build item.*
 - **Extraction evidence upkeep.** `extraction-evidence.md` gets a dated
   entry per test session, `Verified:` line mandatory (P11). Since
   ADR-092 every entry states `containment` or is a host-run record.
-- **Duplicate invariants.** `.hobbes/invariants/` carries three
-  near-duplicate pairs (I-1/I-7 tfstate, I-2/I-8 derived-never-committed,
-  I-6/I-11 env joins) — one inferred, one written; `list_invariants`
-  shows both. Merge each pair or record why both stand.
+- ~~**Duplicate invariants.**~~ — **done 2026-09-05:** I-7, I-8 and
+  I-11 retired (`status: retired`, the reason in each header); the
+  I-1/I-2/I-6 records of reference state strictly more, and a retired
+  record leaves `list_invariants` and `hobbes review`'s soft verdicts
+  while its file stays as history. 8 confirmed of 11. I-9 and I-10
+  (restating I-3 and I-5) were not in the named pairs and stand.
 - **Narrative layer on this repo.** `get_module_doc` answers "run
   `hobbes narrate`" here; the tool is empty on the dogfood repo. Running
   it spends model calls, so it opens when Max clears it.

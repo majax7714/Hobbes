@@ -69,11 +69,10 @@ step "hobbes review $BASE..HEAD (exit 1 if it needs attention)"
 (cd pipeline && uv run hobbes review "$BASE..HEAD")
 
 step "lane_b pytest (the image-dependent cases)"
-# One known environmental failure, held untouched on purpose
-# (session-handoff.md, 2026-08-28): the fake venv in the test answers
-# with the interpreter's own listing once the call is contained. It is
-# deselected by name here, not silenced in the suite.
-(cd pipeline && uv run pytest -q -m lane_b \
-  --deselect tests/test_scipsource.py::TestDeclaredDependencies::test_venv_environment_lists_the_venvs_own_distributions)
+# No deselection since 2026-09-05: the venv-listing case builds a real
+# venv (its python links to the base install, which the container
+# mounts hop by hop) instead of a fake one whose `home = /usr` made the
+# image's own python the base — the one permanent exclusion is gone.
+(cd pipeline && uv run pytest -q -m lane_b)
 
 step "graph checks passed"

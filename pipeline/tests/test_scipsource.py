@@ -663,21 +663,39 @@ class TestDeclaredDependencies:
             pytest.skip(f"containment unavailable here: {why}")
         # C-27: the listing must come from the venv's interpreter, because
         # scip-python's fallback (first pip3 on PATH) describes whatever
-        # environment the shell happens to have. A fake venv whose python
-        # is this suite's interpreter answers with this suite's packages.
+        # environment the shell happens to have. A real venv (W0,
+        # 2026-09-05): `python -m venv` links its python to the base
+        # interpreter install, which interpreter_mounts carries into the
+        # container hop by hop, and pyvenv.cfg names that install as home
+        # — so the venv's own site-packages is what the container lists.
+        # (The fake venv this test used to build wrote `home = /usr` and
+        # linked the suite's interpreter, so inside the image the base was
+        # the image's own python and the answer was its `pip` alone —
+        # CI deselected the test by name until this.) One distribution is
+        # installed by hand: a dist-info is what importlib.metadata reads,
+        # and writing it needs no network and no pip.
+        import subprocess
         import sys
+        import sysconfig
 
         venv = tmp_path / ".venv"
-        (venv / "bin").mkdir(parents=True)
-        (venv / "pyvenv.cfg").write_text("home = /usr\n")
-        (venv / "bin" / "python").symlink_to(sys.executable)
+        subprocess.run([sys.executable, "-m", "venv", "--without-pip", str(venv)], check=True)
+        lib = venv / "lib" / f"python{sysconfig.get_python_version()}" / "site-packages"
+        assert lib.is_dir(), lib
+        (lib / "hobbes_probe.py").write_text("VALUE = 1\n")
+        info = lib / "hobbes_probe-1.0.dist-info"
+        info.mkdir()
+        (info / "METADATA").write_text("Metadata-Version: 2.1\nName: hobbes-probe\nVersion: 1.0\n")
+        (info / "RECORD").write_text("hobbes_probe.py,,\nhobbes_probe-1.0.dist-info/METADATA,,\n")
 
         listing = scipsource.venv_environment(str(tmp_path), ".venv")
         assert listing is not None
         by_name = {d["name"] for d in listing}
-        assert "pytest" in by_name
-        sample = next(d for d in listing if d["name"] == "pytest")
-        assert sample["version"] and isinstance(sample["files"], list)
+        assert "hobbes-probe" in by_name
+        assert "pytest" not in by_name  # the suite's own environment is not the venv's
+        sample = next(d for d in listing if d["name"] == "hobbes-probe")
+        assert sample["version"] == "1.0"
+        assert "hobbes_probe.py" in sample["files"]
 
     def test_venv_environment_degrades_to_none_without_an_interpreter(self, tmp_path):
         # No python in the venv: attribution is skipped, never guessed —

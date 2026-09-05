@@ -6850,3 +6850,27 @@ Suites: 1,241 pytest + 3 `lane_b` (+11; the venv-listing test failing
 on this box as before, deselected) / 299 Go (assertions widened, no
 new functions) + 39 oracle-lane Go / 32 tsextract node (+2) / vitest
 and scip untouched. Not pushed.
+
+**Later, the same session — W0's two build items (Max: "proceed with
+w0 in the queue").** (1) **The deselected `lane_b` test.** The fake
+venv wrote `home = /usr` and linked the suite's interpreter; inside the
+image `/usr` is the image's python, so the listing was its `pip` and
+nothing else — the handoff's reading (a host symlink the container
+does not see) was half of it. The test now builds a real venv
+(`python -m venv --without-pip`), whose python links to the base
+install `interpreter_mounts` carries in hop by hop and whose
+`pyvenv.cfg` names that install as home, and writes one distribution
+by hand as a dist-info (`hobbes-probe` 1.0 with a RECORD) — no
+network, no pip. It passes contained on this box, asserts the suite's
+own `pytest` is *not* in the venv's listing (C-27's point), and
+`ci-graph.sh` deselects nothing: the one permanent exclusion in CI is
+gone. Suite 1,242 collected, 1,242 passing here. (2) **The three
+duplicate invariant pairs.** I-7, I-8 and I-11 retired (`status:
+retired`, the reason in each header): each restated I-1, I-2 or I-6
+with strictly less, and cost a second soft verdict per `hobbes review`
+and a second `list_invariants` line. Retired records leave both and
+stay as files (the README's rule); `hobbes invariants check` reads 11
+valid, 8 confirmed; compile skips them by name. I-9 (Max's approval,
+its correction recorded) and I-10 (restates I-5) were not in the named
+pairs and stand — I-10 is the same shape and is Max's call.
+`.hobbes/invariants/README.md`, workstreams W0, the handoff. Not pushed.

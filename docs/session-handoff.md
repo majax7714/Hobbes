@@ -119,11 +119,11 @@ may want to look at: the Python capture line drops a few points on
 every repo because C-80 adds real calls to the denominator (this repo
 81.7% of 14,352; peft 68.3% of 45,593 — the same percentage, 3,643 more
 sites); the `uses` gloss now says *"where no call site was detected"*.
-One `lane_b` test fails on this box (2026-09-04 night) and fails the
-same at HEAD: the contained venv listing returns `pip` alone
-(`test_scipsource.py::TestDeclaredDependencies::test_venv_environment_lists_the_venvs_own_distributions`)
-— an environment reading (the fake venv's python is a host symlink the
-container does not see), not a tree change; CI's box is the check.
+The one `lane_b` test that failed on this box (the contained venv
+listing returning `pip` alone) passes since 2026-09-05: the fixture is a
+real venv now, and the old reading — a host symlink the container does
+not see — was half right; the other half was `home = /usr` naming the
+image's python as the base.
 
 ## WHERE THINGS STAND (2026-09-05)
 
@@ -132,8 +132,8 @@ container does not see), not a tree change; CI's box is the check.
   addendum; `verify-gold-import/`, `verify-t-step6-import/`,
   `calvin_probe.py replay`); the design's ADR takes 101 when Max moves
   it to *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite
-  1,241 pytest + 3 `lane_b` (1,242 collect on this box; the venv test
-  fails here as before); 32 tsextract node tests.
+  1,241 pytest + 3 `lane_b` (1,242 collect on this box, every one
+  passing since the venv test's real venv); 32 tsextract node tests.
 - **Extraction:** the ten entries lifted, plus C-89 and C-90 (above);
   their three residuals closed 2026-09-05 and C-63 surfaced (the
   register's unsurfaced count — C-19, C-20 — now reads true; C-63 had
@@ -207,10 +207,14 @@ container does not see), not a tree change; CI's box is the check.
    *not* re-ingested for this — their numbers in
    `extraction-evidence.md` predate `expr-callee` (peft and date-fns
    will gain sites in the denominator when they are).
-3. W0: the one deselected `lane_b` test (a real venv in the fixture —
-   the same test fails on this box); the three duplicate invariant
-   pairs (I-1/I-7, I-2/I-8, I-6/I-11); watch the first CI run when Max
-   pushes (unchanged).
+3. ~~W0: the one deselected `lane_b` test; the three duplicate invariant
+   pairs~~ — **done 2026-09-05 (later):** the venv test builds a real
+   venv and passes in the container (this box included; `ci-graph.sh`
+   deselects nothing), I-7/I-8/I-11 retired with the reason in each
+   header (8 confirmed of 11; I-9/I-10 stand). Still W0's: watch the
+   first CI run when Max pushes; the registry-pulled image and the
+   drift audit open when named; `hobbes narrate` on this repo is held
+   with spend.
 4. W1 / W3 items that spend nothing: the decorated-declaration line
    convention, the C-15 namespacing ADR, the directory rollup in
    `list_blind_spots`, the decomposed DeepSWE protocol as design only;

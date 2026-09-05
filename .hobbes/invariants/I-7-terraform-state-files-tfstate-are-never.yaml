@@ -6,13 +6,20 @@
 # queue could not say so. I-1 is the record of reference: it names the
 # three places the rule lives (policy floor in Go, extractor refusal in
 # Python, gitignore entry), where this one names only the policy.
+#
+# RETIRED 2026-09-05 (W0, the duplicate pairs): I-1 is the record of
+# reference and states strictly more, so this record added a second
+# soft verdict for `hobbes review` to spend a session on and a second
+# line in `list_invariants` for an agent to read, with nothing of its
+# own. Kept as history (README: retired records stay); the guards it
+# cited are I-1's guards. Nothing it guarded is unguarded.
 id: I-7
 statement: >-
   Terraform state files (*.tfstate*) are never read, written, or
   shipped anywhere in the repo; the repo policy denies any command
   touching them.
 scope: .
-status: confirmed
+status: retired
 check: soft
 guarded_by:
   - pipeline/tests/test_terraform.py::TestPlan::test_tfstate_lookalike_refused

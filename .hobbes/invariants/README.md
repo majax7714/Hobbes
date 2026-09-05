@@ -32,4 +32,9 @@ receive review verdicts (`hobbes review`).
 I-7..I-11 are reworded restatements of I-1..I-6, approved through the
 surface on 2026-08-15 before the queue could show neighbouring
 confirmed records (C-21); where they overlap, the I-1..I-6 record is
-the one of reference.
+the one of reference. **I-7, I-8 and I-11 were retired on 2026-09-05**
+(W0's duplicate pairs): each added a second soft verdict for `hobbes
+review` to spend a session on and a second `list_invariants` line with
+nothing of its own; their files stay as history with the reason in the
+header. I-9 (kept on Max's approval, its own correction recorded) and
+I-10 (restates I-5) stand as confirmed.

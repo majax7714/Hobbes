@@ -332,8 +332,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   lifts named is closed (2026-09-05):** the TS helper follows the
   C-73 symlink rule, the pyproject reader takes Poetry/PDM/uv/PEP 735
   tables, and a call whose callee is an expression is a counted site
-  classed `expr-callee` (C-63 surfaced, ADR-045 amended); next W0's
-  discipline items, then project setup for collaborators
+  classed `expr-callee` (C-63 surfaced, ADR-045 amended); W0's two
+  build items are done the same day (the venv test's real venv — CI
+  deselects nothing; I-7/I-8/I-11 retired, 8 confirmed of 11); next
+  the no-spend W1/W3 items and project setup for collaborators
   (`docs/workstreams.md`). Held: the wider Calvin run,
   the 3,000-step adapter under the cell and the 10,000-step point, the
   removal A/B re-run on the 7B, `hobbes narrate` on this repo.
