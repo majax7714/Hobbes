@@ -308,6 +308,8 @@ def _parse_python(text: str) -> Parsed:
     refs = []
     for c in p.calls:
         parts = c.callee.split(".")
+        if parts == [EXPR]:
+            continue  # a callee that is itself an expression names nothing to bind (C-63's Python shape)
         refs.append(Ref(parts[-1], None if len(parts) == 1 else (EXPR if parts[0] == EXPR else ".".join(parts[:-1])), c.line, c.scope, parts))
     return Parsed("python", [{"name": s.name, "qualname": s.qualname, "kind": s.kind, "line": s.line, "end_line": s.end_line} for s in p.symbols],
                   refs, imports, [(b.name, b.start, b.end) for b in p.local_bindings])
@@ -383,6 +385,8 @@ def _parse_ts(path: str, text: str, scratch: Path, repo_root: Path, sha: str) ->
     lines = text.split("\n")
     refs = []
     for c in f["calls"]:
+        if c["name"] == EXPR:
+            continue  # the helper's marker for a callee that is an expression: nothing to bind (C-63)
         line = lines[c["line"] - 1] if 0 < c["line"] <= len(lines) else ""
         before = line[: c["col"]]
         m = re.search(r"([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\s*\.\s*$", before)

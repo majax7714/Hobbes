@@ -27,6 +27,11 @@ import { Node, Project, ts } from "ts-morph";
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
 export const HELPER_VERSION = 4;
+// v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
+// expression — an element access, a call's result, a parenthesised
+// value — is a `calls` record named `<expr>` alone, with callee and
+// origin null: counted, never resolvable. No field changed.
+export const EXPR_CALLEE_NAME = "<expr>";
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -505,6 +510,13 @@ function calleeOrigin(expr, repoRoot, fileSet, sourceFile) {
   return sawInRepo ?? "external";
 }
 
+/** A callee that is a keyword — `import(..)`, `super(..)` — rather
+ * than a value: never a call site of this lane. */
+function isKeywordCallee(expr) {
+  const kind = expr.getKind();
+  return kind === ts.SyntaxKind.ImportKeyword || kind === ts.SyntaxKind.SuperKeyword;
+}
+
 /** The identifier that names the callee — what a reader would point at,
  * and what SCIP puts its occurrence on. `f()` -> `f`; `a.b.c()` -> `c`. */
 function terminalIdentifier(expr) {
@@ -525,9 +537,12 @@ function terminalIdentifier(expr) {
  * reported 100% accounted no matter how much it missed.
  *
  * The gate mirrors `pysource`'s: a callee that is a plain identifier or
- * an attribute chain. `f()()` and `xs[0].m()` are not call *sites* this
- * lane claims to see, and pretending otherwise would put a denominator
- * under sites nothing could ever resolve.
+ * an attribute chain carries its terminal identifier's name; a callee
+ * that is itself an expression — `table[k](s)`, `f()()`, `(a || b)()`
+ * — is a site named `<expr>` alone (C-63, surfaced 2026-09-05). Nothing
+ * can resolve the second kind, and until then it was not counted at all,
+ * so a repo of dispatch tables read as fully accounted; now the
+ * denominator holds it and the tail view names it `expr-callee`.
  *
  * Position is the **terminal identifier's**, not the call expression's,
  * because that is where the semantic provider puts its occurrence. They
@@ -569,10 +584,31 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       scope: enclosingScope(scopeNode),
     });
   };
+  // C-63: the callee has no terminal identifier for SCIP to put an
+  // occurrence on. Positioned where the callee expression starts, so a
+  // reader can point at it; callee and origin null — the join skips a
+  // name nothing carries, and the tail classes it `expr-callee`.
+  const pushExpressionCallee = (callee, scopeNode) => {
+    const { line, column } = sourceFile.getLineAndColumnAtPos(callee.getStart());
+    calls.push({
+      callee: null,
+      callee_path: null,
+      line,
+      col: column - 1,
+      name: EXPR_CALLEE_NAME,
+      origin: null,
+      scope: enclosingScope(scopeNode),
+    });
+  };
   sourceFile.forEachDescendant((node) => {
     if (Node.isCallExpression(node)) {
-      const terminal = terminalIdentifier(node.getExpression());
-      if (terminal) push(terminal, node.getExpression(), node);
+      const callee = node.getExpression();
+      const terminal = terminalIdentifier(callee);
+      if (terminal) push(terminal, callee, node);
+      // `import(..)` is an import (extractImports reads it) and
+      // `super(..)` a keyword, not a value in callee position: neither
+      // is a site, as before.
+      else if (!isKeywordCallee(callee)) pushExpressionCallee(callee, node);
       return;
     }
     if (Node.isJsxSelfClosingElement(node) || Node.isJsxOpeningElement(node)) {

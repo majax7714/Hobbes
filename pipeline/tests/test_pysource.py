@@ -107,11 +107,15 @@ class TestCalls:
         p = parse("def f():\n    return outer(inner(3))\n")
         assert {c.callee for c in p.calls} == {"outer", "inner"}
 
-    def test_dynamic_callees_are_skipped(self):
+    def test_dynamic_callees_are_sites_the_fallback_cannot_name(self):
+        from hobbes.extract.pysource import EXPR_RECEIVER
+
         p = parse("def f(handlers):\n    handlers[0]()\n    getattr(x, 'y')()\n")
-        # subscript-call and call-of-call yield no dotted callee; the inner
-        # getattr call itself is a plain name and is recorded.
-        assert {c.callee for c in p.calls} == {"getattr"}
+        # subscript-call and call-of-call yield no dotted callee: until
+        # 2026-09-05 they were skipped; now each is a site under the marker
+        # (C-63's shape, C-80's residual). The inner getattr call itself is
+        # a plain name and is recorded as before.
+        assert sorted(c.callee for c in p.calls) == [EXPR_RECEIVER, EXPR_RECEIVER, "getattr"]
 
     def test_expression_receivers_are_sites(self):
         """C-80 (lifted): `super().m()`, `f().m()`, `xs[i].m()` are calls
@@ -133,6 +137,32 @@ class TestCalls:
             ("self.model.cpu", 4, 19),
             ("super", 3, 8),
         ]
+
+    def test_expression_callees_are_sites(self):
+        """C-63's shape in Python (C-80's residual, closed 2026-09-05):
+        a callee that is itself an expression is a site named by the
+        marker alone, positioned where the callee starts; the inner
+        calls keep their own named sites."""
+        from hobbes.extract.pysource import EXPR_RECEIVER
+
+        p = parse(
+            "def go(handlers, x, a, b, f):\n"
+            "    handlers[0]()\n"
+            "    getattr(x, 'y')()\n"
+            "    (a or b)()\n"
+            "    f()()\n"
+            "    (lambda: 1)()\n"
+        )
+        assert sorted((c.callee, c.line, c.col) for c in p.calls) == [
+            (EXPR_RECEIVER, 2, 4),
+            (EXPR_RECEIVER, 3, 4),
+            (EXPR_RECEIVER, 4, 4),
+            (EXPR_RECEIVER, 5, 4),
+            (EXPR_RECEIVER, 6, 4),
+            ("f", 5, 4),
+            ("getattr", 3, 4),
+        ]
+        assert all(c.scope == "go" for c in p.calls)
 
     def test_decorator_expressions_do_not_pollute_calls(self):
         p = parse('@app.get("/x")\ndef h():\n    pass\n')

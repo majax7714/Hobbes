@@ -282,7 +282,9 @@ def _resolve_call(
     if head == EXPR_RECEIVER:
         # C-80: the receiver is a call, a subscript or `super()` — a value
         # only a type checker can name. The site exists for the join;
-        # the fallback has no rule for it and says nothing.
+        # the fallback has no rule for it and says nothing. The marker
+        # alone (C-63's shape, `handlers[0]()`) is a callee that is an
+        # expression: no name at all, the same abstention.
         return None
 
     # Rule 4: self.method() / cls.method() within the enclosing class.

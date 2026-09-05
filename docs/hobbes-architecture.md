@@ -628,7 +628,11 @@ bound in a scope that spans the call never resolves to a module-level
 namesake, and a Rust `name!(...)` binds only to a macro), same-file
 import bindings for Python (`import-binding`, lane A's own
 parse — usually the shape of a missing environment, C-23/C-27/C-30),
-pinned builtin-name matches, and text shape (`attr-call`), joined since
+pinned builtin-name matches, text shape (`attr-call`), and a callee
+that is itself an expression (`expr-callee` — a subscript, a call's
+result, a parenthesised value in callee position: the Python and TS
+providers count the site under the marker name `<expr>`, and nothing
+can name it, C-63 surfaced 2026-09-05), joined since
 by `fallback-resolved`, `nested-decl` and `path-call`, Java's two
 abstentions (ADR-096), Go's `build-tag-set` (ADR-098), and since ADR-090
 by **`below-floor`** — the one class that is not an unresolved site: the

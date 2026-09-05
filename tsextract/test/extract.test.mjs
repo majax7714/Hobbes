@@ -9,6 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  EXPR_CALLEE_NAME,
   discoverFiles,
   discoverWorkspacePackages,
   externalName,
@@ -233,6 +234,55 @@ test("calls resolve locally, through imports, and to methods; externals omitted"
   // ...and it is identifiable, because the site carries the text that was
   // written even when nothing resolved it.
   assert.deepEqual(calls.map((c) => c.name), ["helper", "local", "express", "run"]);
+});
+
+test("a call whose callee is an expression is a counted site named <expr>, resolved by nothing (C-63)", () => {
+  const root = makeRepo({
+    "src/util.ts": "export function normalize(s: string) { return s; }\n",
+    "src/lookup.ts": [
+      'import { normalize } from "./util";',
+      "const table = { norm: normalize, quoted: (s: string) => s };",
+      "export function viaLiteral(s: string) { return table[\"norm\"](s); }",
+      "export function viaSymbol(xs: string[]) { return xs[Symbol.iterator](); }",
+      "export function viaComputed(k: \"norm\" | \"quoted\", s: string) { return table[k](s); }",
+      "export function viaResult() { return factory()(); }",
+      "export function viaValue(a: () => void, b: () => void) { (a || b)(); }",
+      "function factory() { return () => 1; }",
+    ].join("\n"),
+  });
+  const facts = extractRepo(root);
+  const lookup = byPath(facts, "src/lookup.ts");
+  const exprSites = lookup.calls.filter((c) => c.name === EXPR_CALLEE_NAME);
+  // positioned where the callee expression starts (0-based column)
+  const source = fs.readFileSync(path.join(root, "src/lookup.ts"), "utf8").split("\n");
+  const at = (line, text) => [line, source[line - 1].indexOf(text), null, null];
+  assert.deepEqual(
+    exprSites.map((c) => [c.line, c.col, c.callee, c.origin, c.scope]),
+    [
+      [...at(3, 'table["norm"]'), "viaLiteral"],
+      [...at(4, "xs[Symbol.iterator]"), "viaSymbol"],
+      [...at(5, "table[k]"), "viaComputed"],
+      [...at(6, "factory()"), "viaResult"],
+      [...at(7, "(a || b)"), "viaValue"],
+    ]
+  );
+  assert.equal(EXPR_CALLEE_NAME, "<expr>");
+  // the inner `factory()` keeps its own named site beside the outer expression
+  // call; both start at the same column, and the sort breaks the tie by name
+  assert.deepEqual(
+    lookup.calls.filter((c) => c.line === 6).map((c) => [c.name, c.callee]),
+    [[EXPR_CALLEE_NAME, null], ["factory", "factory"]]
+  );
+  // keyword callees are not values: `import(..)` is an import, `super(..)` a keyword
+  const kw = makeRepo({
+    "src/k.ts": [
+      "class A { constructor(x: number) {} }",
+      "class B extends A { constructor() { super(1); } }",
+      'const lazy = () => import("./k");',
+    ].join("\n"),
+  });
+  const k = byPath(extractRepo(kw), "src/k.ts");
+  assert.deepEqual(k.calls.map((c) => c.name), []);
 });
 
 test("JSX instantiations are call sites; intrinsics are not (C-24)", () => {

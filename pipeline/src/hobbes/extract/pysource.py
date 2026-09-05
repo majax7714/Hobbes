@@ -82,14 +82,20 @@ class Symbol:
 #: The receiver recorded for a call whose object is an expression — a
 #: call, a subscript, ``super()`` — rather than a name chain (C-80,
 #: lifted 2026-09-03). The callee name after it is real; the receiver is
-#: what lane A cannot name, and the fallback abstains on it.
+#: what lane A cannot name, and the fallback abstains on it. Alone, as
+#: the whole callee, it marks a call whose *callee* is an expression —
+#: ``handlers[0]()``, ``getattr(x, "y")()``, ``(a or b)()``, ``f()()`` —
+#: a site with no name for either lane to resolve (C-63's shape in
+#: Python; C-80's residual, closed 2026-09-05): counted, classed
+#: ``expr-callee`` by the tail view, never joined and never drawn.
 EXPR_RECEIVER = "<expr>"
 
 
 @dataclass(frozen=True)
 class Call:
-    """A call site whose callee is a name/attribute chain, or an attribute
-    on an expression receiver (``EXPR_RECEIVER``).
+    """A call site whose callee is a name/attribute chain, an attribute
+    on an expression receiver (``EXPR_RECEIVER.<name>``), or an
+    expression itself (``callee == EXPR_RECEIVER``).
 
     ``scope`` is the qualname of the innermost enclosing definition, or None
     for module-body calls (attributed to the module node itself, ADR-007).
@@ -446,6 +452,24 @@ def _walk(
             attribute = function.child_by_field_name("attribute")
             if attribute is not None:
                 dotted = f"{EXPR_RECEIVER}.{_text(attribute)}"
+        if dotted is None and function is not None:
+            # C-63's shape in Python (C-80's residual, closed 2026-09-05):
+            # the callee is itself an expression — a subscript, a call's
+            # result, a conditional, a lambda in parentheses — so there
+            # is no identifier for the semantic lane to put an occurrence
+            # on and nothing can resolve it. It is still a call: recorded
+            # as a site named by the marker alone, positioned where the
+            # callee expression starts, so the denominator counts it and
+            # the tail view classes it `expr-callee` (before this the
+            # site did not exist and a dispatch table read as accounted).
+            parsed.calls.append(
+                Call(
+                    _scope_qualname(stack),
+                    EXPR_RECEIVER,
+                    function.start_point.row + 1,
+                    function.start_point.column,
+                )
+            )
         if dotted is not None:
             line = _line(node)
             if dotted in _ENV_CALLS:

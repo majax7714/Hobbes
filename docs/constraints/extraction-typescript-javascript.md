@@ -44,27 +44,43 @@
 
 ---
 
-### C-63 — A call through an element access (`obj[key]()`) is not a call site
-- **Cannot tell you:** that `table["norm"](s)`, `xs[Symbol.iterator]()`
-  or `table[k](s)` calls anything. Lane A's TS/JS syntax provider does
-  not count an element-access callee as a call site, so the site is
-  absent from `resolution_coverage` (not unresolved — uncounted) and no
-  `calls` edge is drawn, whichever lane could have resolved it. Lane B
-  does emit the `uses` reference for the key's target where it has one.
-- **Because:** the site detector matches identifier and property-access
-  callees; the element-access shape was never in the fixture until
+### C-63 — A call through an element access (`obj[key]()`) draws no edge — *surfaced 2026-09-05*
+- **Cannot tell you:** *what* `table["norm"](s)`, `xs[Symbol.iterator]()`
+  or `table[k](s)` calls. The callee is an expression, so there is no
+  identifier for the semantic lane to put an occurrence on and no
+  `calls` edge is drawn, whichever lane could have resolved the key's
+  target. Lane B does emit the `uses` reference for that target where
+  it has one. **Since 2026-09-05 the site is counted:** lane A records
+  it under the marker name `<expr>` (the helper's `EXPR_CALLEE_NAME`;
+  `pysource.EXPR_RECEIVER` alone for Python's `handlers[0]()`,
+  `getattr(x, "y")()`, `(a or b)()`, `f()()` — C-80's residual), so it
+  sits in `resolution_coverage`'s denominator as `unresolved` and the
+  tail classes it `expr-callee` (ADR-045, amended). Before that it was
+  not a site at all — uncounted, and a dispatch table read as accounted.
+- **Because:** the site detector matched identifier and property-access
+  callees only; the element-access shape was never in the fixture until
   `minits/src/lookup.ts` (2026-08-27), where the oracle lane's A-4
-  observation found the three shapes drawing zero edges.
+  observation found the three shapes drawing zero edges. Counting the
+  site is the honest half; drawing the edge would need a name, and a
+  literal key (`table["norm"]`) that the checker could bind to a
+  property is the one candidate — a property is below the symbol floor
+  (C-9), so the edge would be `below-floor` at best; not attempted.
 - **Bites at:** dynamic-dispatch tables (`handlers[name](req)`),
   `process.env["X"]`-style reads that are calls, well-known-symbol
   protocol calls, generated clients indexed by operation name. The
   oracle lane grades the literal-key shape as a recall miss
   (`static→function`, minits 4/5); ajv `f177fe3` has 1 computed-key site.
-- **You find out:** **unsurfaced** — debt. The site is not counted, so
-  no coverage row, tail class or blind-spot names it. Surfacing means
-  counting the site (then it falls to `below-floor` or resolves).
+- **You find out:** **surfaced** (2026-09-05; *unsurfaced* from
+  2026-08-27 until then) — the per-file coverage row counts the site,
+  its `tail` carries `expr-callee`, the ingest summary's *cannot
+  resolve* line and `list_blind_spots` print the class with its gloss
+  ("the callee is itself an expression … trace the value's origin
+  yourself"), and `tail_classes_available` names Python and TS/JS as
+  the languages that report it — Go, Rust and Java still do not count
+  the shape (C-32).
 - **Source:** the oracle lane's A-4 fixture observation, 2026-08-27
-  (`bench/oracle/README.md` D-O4 element-access bullet; H-17).
+  (`bench/oracle/README.md` D-O4 element-access bullet; H-17);
+  surfaced 2026-09-05 with C-80's residual, ADR-045 amended.
 
 ## Lifted constraints in this segment
 

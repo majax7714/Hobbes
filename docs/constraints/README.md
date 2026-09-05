@@ -217,7 +217,7 @@ registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
 against the code that concedes it; none had been silently lifted). Four of the active are *partial* (C-4, C-58, C-68, C-83); two
-are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03); C-58 — the interface/closure call hole, whose capture number reads
+are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit

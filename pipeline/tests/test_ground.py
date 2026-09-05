@@ -315,6 +315,14 @@ def test_deterministic_and_keyed(repo):
     assert a["key"] == {**t["key"], "grounder_version": G.GROUNDER_VERSION}
 
 
+def test_an_expression_callee_is_no_reference():
+    """C-63's shape: `handlers[0]()` names nothing to bind — the grounder
+    reads no reference from it, while `f().m()` still yields `f` and `m`
+    (the latter on the `<expr>` receiver)."""
+    parsed = G._parse_python("def go(handlers, f):\n    handlers[0]()\n    f().m()\n")
+    assert sorted((r.name, r.receiver) for r in parsed.refs) == [("f", None), ("m", G.EXPR)]
+
+
 def test_fill_shapes_widened_for_the_grounder():
     f = {"id": "f1", "type": "FREEFORM", "fill_schema": holes.FILL_SHAPES["FREEFORM"]}
     assert holes.validate_fill(f, [{"code": "x", "span": {"path": "a", "start": 3, "end": 2}}]) == []

@@ -745,6 +745,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"import-binding", "bound by a same-file import; where the call lands is unresolved — usually a missing environment (C-23/C-27/C-30)"},
 	{"builtin-name", "the name matches the language's builtin list — language machinery, not architecture"},
 	{"attr-call", "an attribute call whose receiver no static provider could type — the genuine limit (C-2); verify these targets yourself where they matter"},
+	{"expr-callee", "the callee is itself an expression — a subscript (handlers[k]()), a call's result (f()()), a parenthesised value — so there is no name for either lane to resolve (C-63); the site is counted and nothing can draw it: trace the value's origin yourself"},
 	{"path-call", "a ::-qualified call the index left dark"},
 	{"overload-set", "a Java name with more than one declaration fitting the call; lane A abstained rather than pick an overload (ADR-096) — lane B decides, or nobody has"},
 	{"inherited-member", "a bare Java call in a type with supertypes and no fitting declaration of its own — the callee is inherited, which only lane B's hierarchy can name (ADR-096)"},

@@ -35,6 +35,12 @@ checkable fact about the site:
   import the truer observation about ``print(...)``.
 - ``attr-call`` — an attribute call (``x.foo()``): a receiver no static
   provider could type. The genuine static-analysis limit, C-2's core.
+- ``expr-callee`` — the callee is itself an expression (``handlers[k]()``,
+  ``f()()``, ``(a or b)()``): there is no identifier for the semantic
+  lane to put an occurrence on, so nothing can resolve it. A parse
+  observation — the syntax provider recorded the site under the marker
+  name ``<expr>`` — Python and TS/JS only (C-63, surfaced 2026-09-05;
+  C-80's residual). Before it the site was not counted at all.
 - ``path-call`` — a ``::``-qualified call (Rust) the index left dark.
   Java has no ``::`` call (a method reference is a use, not a call); its
   bare sites are unqualified methods of the enclosing type chain, static
@@ -82,6 +88,12 @@ EXTERNAL_ORIGIN = "external-origin"
 IMPORT_BINDING = "import-binding"
 BUILTIN = "builtin-name"
 ATTR = "attr-call"
+#: A callee that is itself an expression — no name to resolve (C-63).
+EXPR_CALLEE = "expr-callee"
+#: The site name a syntax provider records for such a callee
+#: (``pysource.EXPR_RECEIVER`` alone; the TS helper's ``<expr>``) —
+#: pinned here so the tail reads the evidence IR, never a provider.
+EXPR_NAME = "<expr>"
 PATH_CALL = "path-call"
 OVERLOAD = "overload-set"
 INHERITED = "inherited-member"
@@ -213,15 +225,16 @@ _BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS}
 #: checker origins come from tsextract alone; builtin lists exist for
 #: Python and Go; ``import-binding`` is lane A's Python parse; the
 #: ``local-binding`` collectors are Python/Go (ADR-046), Java (anonymous
-#: class members, ADR-096) and TS (checker);
+#: class members, ADR-096) and TS (checker); ``expr-callee`` is recorded
+#: by the Python and TS providers only (C-63);
 #: ``path-call`` needs ``::``, which only Rust's grammar spells. The
 #: test suite pins this table against :func:`classify`'s decision tree,
 #: so a provider that learns a new class must widen its row here too.
 CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     "python": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR,
-                         UNCLASSIFIED, BELOW_FLOOR}),
+                         EXPR_CALLEE, UNCLASSIFIED, BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
-                        UNCLASSIFIED, BELOW_FLOOR}),
+                        EXPR_CALLEE, UNCLASSIFIED, BELOW_FLOOR}),
     "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, BUILD_TAG, UNCLASSIFIED,
                      BELOW_FLOOR}),
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
@@ -234,8 +247,8 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 #: counted from the projection (a resolved site with no symbol to land
 #: on) and added to the tail beside the unresolved classes.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, PATH_CALL, OVERLOAD, INHERITED, BUILD_TAG,
-               UNCLASSIFIED, BELOW_FLOOR)
+               BUILTIN, ATTR, EXPR_CALLEE, PATH_CALL, OVERLOAD, INHERITED,
+               BUILD_TAG, UNCLASSIFIED, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
@@ -392,6 +405,10 @@ def classify(
             cls = INHERITED
         elif key in build_tags:
             cls = BUILD_TAG
+        elif site.name == EXPR_NAME:
+            # The provider's own parse: the callee was not a name or an
+            # attribute chain. No line read can add to that (C-63).
+            cls = EXPR_CALLEE
         elif key in origins and origins[key] in _ORIGIN_CLASS:
             cls = _ORIGIN_CLASS[origins[key]]
         else:

@@ -332,7 +332,11 @@
   recorded line does not contain, and a previous line whose chain
   ending hides behind a string literal containing `//` — both decline
   to `unclassified` rather than guess, the C-5 rule applied to
-  classification.
+  classification. **`expr-callee` needs no line read** (2026-09-05):
+  the Python and TS providers recorded the site under the marker name
+  `<expr>` because the callee node was not a name or attribute chain —
+  the parse is the observation; Go, Rust and Java do not record it,
+  and their rows in `tail_classes_available` say so.
 - **Because:** a class must be an observation or abstain (ADR-045's
   standing rule) — inferring what a site "probably is" from a checklist
   of potentials is the fake-honest shape P8 exists to prevent. The
@@ -419,13 +423,19 @@ new active entry and the two cross-reference. Field key: `README.md`,
   `test_expression_receivers_are_sites`,
   `TestExpressionReceiversAbstain`, `TestWhoCallsSeparatesUsesFromCalls`
   (the heading). The image must be rebuilt for the gloss (C-65).
-- **Residual edge cases:** a call whose *callee itself* is an
+- **Residual edge cases:** ~~a call whose *callee itself* is an
   expression — `handlers[0]()`, `getattr(x, "y")()`, `(a or b)()` — is
-  still no site (the name is not there to be joined; C-63's shape in
-  Python), and its resolution, where SCIP has one, is still a `uses`
-  edge under the reworded gloss. The capture denominator grows by the
-  new sites (peft: +252 the entry counted); a site SCIP does not
-  resolve is a new `attr-call` row, not a resolved one.
+  still no site~~ — **closed 2026-09-05:** it is a site named by the
+  marker alone (`EXPR_RECEIVER` as the whole callee), counted in the
+  denominator and classed `expr-callee` by the tail (ADR-045 amended;
+  C-63 surfaced the same way for TS/JS). The name is still not there to
+  be joined, so nothing resolves it and its resolution, where SCIP has
+  one for the receiver, is still a `uses` edge under the reworded
+  gloss; the grounder reads no reference from it. The capture
+  denominator grows by the new sites (peft: +252 the entry counted;
+  the callee-expression sites will add to that on the next ingest); a
+  site SCIP does not resolve is a new `attr-call` or `expr-callee` row,
+  not a resolved one.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent A,
   huggingface/peft); lifted 2026-09-03.
 

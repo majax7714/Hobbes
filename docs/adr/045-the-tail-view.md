@@ -109,6 +109,30 @@ so the class has no Go meaning, and Go's remaining bare tail
 (`cleanup`, `run` — closure-typed locals, ~20 sites on the dogfood
 repo) stays honestly `unclassified` until a provider can prove it.
 
+## Amended 2026-09-05: `expr-callee` (C-63 surfaced; C-80's residual)
+
+A call whose callee is itself an expression — `handlers[0]()`,
+`getattr(x, "y")()`, `(a or b)()`, `f()()` in Python; `table[k](s)`,
+`xs[Symbol.iterator]()`, `f()()`, `(a || b)()` in TS/JS — has no
+terminal identifier for the semantic lane to put an occurrence on, so
+nothing can resolve it. Until now it was not a site at all: absent from
+the denominator, so a repo of dispatch tables read as fully accounted
+(C-63, registered *unsurfaced* on 2026-08-27 — "surfacing means
+counting the site"). Both syntax providers now record it as a site
+named by the marker `<expr>` alone (`pysource.EXPR_RECEIVER` as the
+whole callee; the helper's `EXPR_CALLEE_NAME`), positioned where the
+callee expression starts. The join matches nothing (no resolution
+carries that name), the fallback abstains (the C-80 rule, unchanged),
+the grounder reads no reference from it, and the tail classes it
+**`expr-callee`** — a parse observation, no line read — in the *cannot
+resolve* group beside `attr-call`: the callee is a value, and its
+origin is the reader's to trace. The proxy's glossary carries the class
+(rebuild the image, C-65). Python and TS/JS only: Go, Rust and Java
+still do not count these sites, and `tail_classes_available` says so
+per language (C-32). Keyword callees are not values and stay outside:
+`import(..)` is an import and `super(..)` a keyword in TS; Python's
+`super` is an identifier and was a site already.
+
 ## The classifier's own boundaries (C-32)
 
 - **Checker-origin classes are TS/JS-only** in this version. The other

@@ -30,6 +30,18 @@ def write(tmp_path, rel, text):
 
 
 class TestClasses:
+    def test_an_expression_callee_is_expr_callee_from_the_parse_alone(self, tmp_path):
+        """C-63 (surfaced 2026-09-05): the provider recorded the site under
+        the marker name; no line read is needed, and the source line has
+        no such text to find."""
+        from hobbes.extract.pysource import EXPR_RECEIVER
+
+        assert tail.EXPR_NAME == EXPR_RECEIVER
+        f = write(tmp_path, "a.py", "handlers[0]()\n")
+        tails = tail.classify([site(f, 1, tail.EXPR_NAME, 0)], tmp_path)
+        assert tails[f] == {tail.EXPR_CALLEE: 1}
+        assert tail.EXPR_CALLEE not in tail.NOT_MODELLED  # cannot resolve, beside attr-call
+
     def test_a_bare_builtin_named_call_is_builtin_name(self, tmp_path):
         f = write(tmp_path, "a.py", "x = 1\nn = len(items)\n")
         tails = tail.classify([site(f, 2, "len")], tmp_path)
@@ -315,6 +327,12 @@ class TestClassesAvailable:
         with_list = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.BUILTIN in c}
         assert with_list == set(tail._BUILTINS)
 
+    def test_expr_callee_is_available_exactly_where_a_provider_records_it(self):
+        # pysource and the TS helper record the marker; Go, Rust and Java
+        # still do not count a call whose callee is an expression (C-63).
+        with_marker = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.EXPR_CALLEE in c}
+        assert with_marker == {"python", "ts/js"}
+
     def test_checker_origin_classes_are_ts_only(self):
         for lang, classes in tail.CLASSES_AVAILABLE.items():
             has = {tail.NESTED, tail.EXTERNAL_ORIGIN} & classes
@@ -345,7 +363,7 @@ class TestCaptureLineNamesMissingClasses:
         cli._print_tail_view(rows, tail.classes_available(rows))
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
-                "import-binding, path-call, overload-set, inherited-member (C-32)") in out
+                "import-binding, expr-callee, path-call, overload-set, inherited-member (C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli

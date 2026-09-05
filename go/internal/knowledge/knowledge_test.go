@@ -606,7 +606,7 @@ func blindSpotRepo(t *testing.T) string {
 			{"file": "src/app/api.py", "sites": 10, "resolved": 10, "external": 0,
 				"unresolved": 0},
 			{"file": "web/main.ts", "sites": 8, "resolved": 2, "external": 0,
-				"unresolved": 6, "tail": map[string]int{"local-binding": 4, "unclassified": 2}},
+				"unresolved": 6, "tail": map[string]int{"local-binding": 4, "expr-callee": 1, "unclassified": 1}},
 		},
 		"dependency_coverage": []map[string]any{
 			{"declared": 6, "resolved": 4, "missing": []string{"boto3", "psycopg"}},
@@ -616,9 +616,9 @@ func blindSpotRepo(t *testing.T) string {
 		},
 		"tail_classes_available": map[string][]string{
 			"python": {"fallback-resolved", "local-binding", "import-binding",
-				"builtin-name", "attr-call", "unclassified", "below-floor"},
+				"builtin-name", "attr-call", "expr-callee", "unclassified", "below-floor"},
 			"ts/js": {"fallback-resolved", "local-binding", "nested-decl",
-				"external-origin", "attr-call", "unclassified", "below-floor"},
+				"external-origin", "attr-call", "expr-callee", "unclassified", "below-floor"},
 		},
 		"verification_base": map[string]any{
 			"python": map[string]any{"repos": 3, "note": "verified on 3 repos: this repo (dogfood, continuous), private-repo-A, qwen-pathology"},
@@ -695,6 +695,10 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"not over the repo",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
+		// C-63 (surfaced 2026-09-05): a callee that is an expression is a
+		// counted site with its own class and gloss.
+		"web/main.ts — 6 of 8 sites unresolved (local-binding 4, expr-callee 1, unclassified 1)",
+		"expr-callee — the callee is itself an expression",
 		"unclassified — no observation applies",
 		// C-32: what the lane could not have said, beside what it did say:
 		"classes this lane cannot report: nested-decl, external-origin, path-call, overload-set, inherited-member, build-tag-set (C-32)",

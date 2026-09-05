@@ -261,3 +261,19 @@ class TestExpressionReceiversAbstain:
         fallback = resolve_call_sites(modules, parsed)
         assert ("pkg/m.py", 9, "run") in fallback  # the bare call, rule 1
         assert ("pkg/m.py", 8, "run") not in fallback  # the expression receiver
+
+    def test_fallback_says_nothing_for_an_expression_callee(self, tmp_path):
+        """C-63's Python shape: the marker alone is the whole callee."""
+        from hobbes.extract.discover import discover_modules
+        from hobbes.extract.graph import resolve_call_sites
+        from hobbes.extract.pysource import EXPR_RECEIVER, parse_source
+
+        (tmp_path / "m.py").write_text(
+            "def run():\n    pass\n\n"
+            "handlers = [run]\n"
+            "handlers[0]()\n"
+        )
+        modules = discover_modules(tmp_path)
+        parsed = {m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules}
+        assert [(c.callee, c.line) for c in parsed["m"].calls] == [(EXPR_RECEIVER, 5)]
+        assert resolve_call_sites(modules, parsed) == {}
