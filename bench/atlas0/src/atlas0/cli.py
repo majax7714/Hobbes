@@ -4,6 +4,7 @@
     atlas0 check DIR                                  # step 1's exit criteria, from the files
     atlas0 score DIR --outputs OUT.jsonl [--set primary|secondary|trained]   # §6.1 matrix
     atlas0 probe-check DIR [--block B1|B2|B3] [--model tiny|atlas-30m] [--per-class N] [--out R.json]
+    atlas0 report RUNS [--out NAME]                    # §6.1–6.6 tables over trained cells (steps 5–6)
 
 ``probe-check`` is step 2's exit: the probe pipeline run on a
 random-init model over the world's primary items must report chance.
@@ -23,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import acts, probe, refmodel, tokens, world as W
+from . import acts, probe, refmodel, report as R, tokens, world as W
 from .check import check
 
 
@@ -148,6 +149,26 @@ def cmd_probe_check(a: argparse.Namespace) -> int:
     return 0 if r["at_chance"] else 1
 
 
+def cmd_report(a: argparse.Namespace) -> int:
+    cells = R.load_cells(Path(a.runs))
+    if not cells:
+        print(f"no cells under {a.runs}", file=sys.stderr)
+        return 1
+    agg = R.aggregate(cells)
+    text = R.render(agg)
+    gate = R.gate(agg)
+    if a.out:
+        Path(a.out).with_suffix(".json").write_text(json.dumps({"groups": agg, "gate": gate}, indent=2, sort_keys=True) + "\n")
+        Path(a.out).with_suffix(".md").write_text(text)
+    print(text)
+    if gate:
+        print("## §6.6 gate\n")
+        print("| arm | pair | key | diff | spread | separable | seeds |\n|---|---|---|---|---|---|---|")
+        for g in gate:
+            print(f"| {g['arm']} | {g['pair']} | {g['key']} | {g['diff']} | {g['spread']} | {'yes' if g['separable'] else 'no'} | {g['seeds']} |")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="atlas0", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -175,6 +196,10 @@ def main(argv: list[str] | None = None) -> int:
     q.add_argument("--workers", type=int, default=None, help="processes (default: the box's cores)")
     q.add_argument("--out")
     q.set_defaults(fn=cmd_probe_check)
+    r = sub.add_parser("report", help="the §6.1–6.6 tables over a directory of trained cells")
+    r.add_argument("runs")
+    r.add_argument("--out", help="write <out>.json and <out>.md")
+    r.set_defaults(fn=cmd_report)
     a = p.parse_args(argv)
     return a.fn(a)
 
