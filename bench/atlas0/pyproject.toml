@@ -13,8 +13,22 @@ atlas0 = "atlas0.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8"]
-# Step 3 onward (training the blocks) needs torch; it is not a dependency
-# of the instruments and is added when a run is cleared.
+# Steps 3–4 (training the blocks, `atlas0.train`) need torch. It is a
+# group, not a dependency of the instruments: `uv sync --group train`
+# pulls the CPU wheel for the smoke test; the Modal image installs the
+# CUDA build (`scripts/modal_atlas0.py`).
+train = ["torch>=2.8"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
 
 [build-system]
 requires = ["hatchling"]
