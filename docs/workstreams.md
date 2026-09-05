@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03 and 2026-09-04.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04 and 2026-09-05.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -32,8 +32,9 @@ item opens when Max names it. Sequencing context is
 7. Java is the sixth language (ADR-096, 2026-08-29; C-66 settled by
    ADR-097). The four-repo extraction test of 2026-09-02 registered
    C-72–C-80, all lifted 2026-09-03 with C-85, C-89 and C-90; the
-   residue it named is the current extraction work (`session-handoff.md`
-   NEXT 1).
+   residue it named was closed 2026-09-05 (the helper's symlink rule,
+   every pyproject table, the expression callee counted — C-63
+   surfaced, ADR-045 amended).
 8. The test-time-training experiment (ADR-099) ran 2026-09-03; its two
    held points wait on Max. Calvin M0 (`calvin-potential.md`, ADR-100
    for its harness) ran on four keys 2026-09-04 and its four no-spend

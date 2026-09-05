@@ -6738,3 +6738,115 @@ for the protocol, not built. The handoff's naming of `c59916f` as the
 `PROFILES` key this morning was wrong (it is `00e5aee`); corrected.
 Suites: 1,230 pytest (+3), the venv test failing on this box as
 before. Not pushed.
+
+## 2026-09-05 — the extraction residue the lifts named, closed: the helper's symlink rule, every pyproject table, the expression callee counted (C-63 surfaced)
+
+**What.** A fresh session (Fable 5.1). Max asked for a review of the
+top-level documentation and then to start from the resume point; the
+handoff's NEXT item 2 — the three residue cases the 2026-09-03 lifts
+named, in its order — was the work. No model, no Modal, no spend. Three
+commits, easiest first, each with its tests, its register entry and
+the architecture line in the same commit; the dogfood repo re-ingested
+contained at the end.
+
+**(1) `tsextract` follows the C-73 symlink rule (`29906e2`).** The
+helper's two walks (`discoverFiles`, `discoverWorkspacePackages`)
+skipped *every* symlink where the Python walks skip only a directory
+link whose target is inside the repo — so a TS repo whose only copy
+sat behind a link was lane-A-less there while `has_ts_files` found it,
+and the two sides could disagree on which files exist. One `walkRepo`
+now serves both: an in-repo directory link is not descended (walked
+once at its target, the ingest's C-73 record unchanged), a link to a
+directory outside the repo and a file link are followed, a dangling
+link is nothing, and — one guard the Python side does not have — a
+link to a directory that *contains* the repo is skipped rather than
+looped. A probe first: ts-morph keeps the linked path as given
+(`getFilePath()` does not realpath) and resolves an import through
+an outside link to the linked path, so the helper can follow links
+without its facts leaving the repo. Node test with all six shapes;
+two Python tests hold the helper beside `has_ts_files` and
+`linked_copies` on one repo (`TestLinkedCopiesAgree`). C-73's residual
+line rewritten; architecture §3.1. This repo has one symlink
+(`AGENTS.md`, a file) and its graph does not move.
+
+**(2) The `pyproject.toml` reader takes every declaration table
+(`9423fc6`).** `_pyproject_specs` read `[project]` only, so a Poetry
+or PDM repo declared nothing and got C-79's "nothing to compare
+against" record. It now reads PEP 735 `[dependency-groups]` (an
+`{include-group}` entry names no package — the included group is read
+on its own), Poetry's `[tool.poetry.dependencies]` /
+`dev-dependencies` / `group.<name>.dependencies` (name-keyed tables:
+the key is the package whatever the value's shape — a caret string, a
+`{version, extras, optional}` table, a `{path}`/`{git}` source, a
+list of constraints; `python` is the interpreter), PDM's
+`[tool.pdm.dev-dependencies]` and uv's `[tool.uv] dev-dependencies`;
+a table of the wrong shape reads as empty, never an error. **Lock
+files stay unread by design** — `poetry.lock`, `pdm.lock`, `uv.lock`
+list the closure a resolver chose, and the coverage number means
+*declared and resolved by the index*, not installed; reading them
+would put every transitive package in the denominator. The C-79 gap
+record names the tables read. Four tests; C-79's residual rewritten
+(what remains: a `requirements` file under another name, and
+`setup.py` stays code).
+
+**(3) A call whose callee is itself an expression is a counted site
+(`94a9a67`; C-63 surfaced, C-80's residual closed, ADR-045
+amended).** `handlers[0]()`, `getattr(x, "y")()`, `(a or b)()`,
+`f()()` in Python and `table[k](s)`, `xs[Symbol.iterator]()`,
+`(a || b)()` in TS/JS have no terminal identifier for the semantic
+lane to put an occurrence on, so nothing can resolve them — and until
+today they were not sites at all: absent from the denominator, so a
+dispatch table read as accounted (C-63, *unsurfaced* since
+2026-08-27, whose own entry said "surfacing means counting the
+site"). Both syntax providers now record the site under the marker
+name `<expr>` alone (`pysource.EXPR_RECEIVER` as the whole callee; the
+helper's `EXPR_CALLEE_NAME`), positioned where the callee expression
+starts; the join matches nothing, the fallback abstains (the C-80
+rule), the grounder reads no reference from it, and the tail classes
+it **`expr-callee`** — a parse observation, no line read — in the
+*cannot resolve* group beside `attr-call`. Python and TS/JS only; Go,
+Rust and Java still do not count the shape and `tail_classes_available`
+says so (C-32 amended). Keyword callees are not values and stay
+outside: TS `import(..)` is an import and `super(..)` a keyword
+(caught by the existing nested-tsconfig test, whose fixture has a
+dynamic import); Python's `super` is an identifier and was a site
+already. One old test asserted the skip (`test_dynamic_callees_are_skipped`)
+and now asserts the site. Tests on every layer: pysource, tail (the
+class from the parse alone; availability pinned to the two languages;
+the CLI's "cannot report" line for Go gains the class), graph (the
+fallback abstains), ground (no reference), the helper (five shapes,
+the tie-order beside the inner `factory()`, the two keyword callees),
+the Go proxy (the gloss, the per-file row). C-63's heading and status
+rewritten (surfaced; the candidate edge — a literal key bound to a
+property — would be `below-floor` at best and is not attempted); the
+register summary's unsurfaced count now names C-63's history (it was
+never in that count); architecture §3.4.
+
+**The dogfood repo re-ingested contained** (`hobbes-proxy` rebuilt
+static into `bin/` and `sandbox/`, the image rebuilt, then `uv run
+hobbes ingest` at `9423fc6` dirty, all six languages): **12
+`expr-callee` sites** — python 9 (`cli.py`, `invariants/compile.py`,
+`ttt_cell.py`, `ttt_probe.py`, `test_containment.py`,
+`test_narrate_pass.py` ×4) and ts/js 3 (the `minits` `lookup.ts`
+fixture's three shapes, the ones the oracle lane's A-4 found drawing
+zero edges) — capture python 81.6% of 18,047, ts/js 61.7% of 2,932;
+`hobbes lanes` exit 0. **C-65 demonstrated on the way:** the
+knowledge server that `.mcp.json` started at the session's open, from
+the *old* image, answered `list_blind_spots pipeline/scripts` with
+"cannot resolve: 318 (fallback-resolved 1, import-binding 6,
+attr-call 311)" where the fresh artifact says 320 with `expr-callee
+2` — the class its table does not know vanished from the count, the
+C-77 shape one build later. Restart the server after an image
+rebuild; the handoff says so.
+
+**Also seen, not changed.** `docs/constraints/README.md`'s debt
+summary counted two *unsurfaced* entries (C-19, C-20) while C-63 was
+a third since 2026-08-27; with C-63 surfaced today the count reads
+true and the summary now says why. The Python site total on this repo
+(18,047) is ~3,700 above the 2026-09-03 line (14,352): the Calvin M0
+code and its tests landed in between; today's change adds 12.
+
+Suites: 1,241 pytest + 3 `lane_b` (+11; the venv-listing test failing
+on this box as before, deselected) / 299 Go (assertions widened, no
+new functions) + 39 oracle-lane Go / 32 tsextract node (+2) / vitest
+and scip untouched. Not pushed.

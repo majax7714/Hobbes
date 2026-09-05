@@ -1,18 +1,36 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-04 (later): Calvin M0 step 6 ran on four keys and
-is written up, the four no-spend fixes are in, and Max has taken API
-spend and Modal compute off the table for the next steps — the queue
-is the no-spend work in NEXT; the doc drift the Calvin sprint left
-(register count, README, architecture §8, workstreams) is corrected;
-the TTT items and ADR-092's decisions are still held for Max.** Read this, then the 2026-09-04 BUILDLOG entries for how the
-state was reached, and `docs/workstreams.md` for the backlog by owner.
-History lives in the BUILDLOG; this doc is rewritten, never appended
-into a pile.
+**Rewritten 2026-09-05: the extraction residue the 2026-09-03 lifts
+named is closed (three commits, no spend) — the TS helper follows the
+C-73 symlink rule, the pyproject reader takes every declaration table,
+and a call whose callee is an expression is a counted site classed
+`expr-callee` (C-63 surfaced, ADR-045 amended); the image is rebuilt
+and this repo re-ingested. API spend and Modal compute stay off the
+table (Max, 2026-09-04); the queue is the rest of the no-spend work in
+NEXT — W0's discipline items first. The TTT items, ADR-101 and
+ADR-092's decisions are still held for Max.** Read this, then the
+2026-09-05 and 2026-09-04 BUILDLOG entries for how the state was
+reached, and `docs/workstreams.md` for the backlog by owner. History
+lives in the BUILDLOG; this doc is rewritten, never appended into a
+pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Calvin M0 is measured on four keys; spend is off the table, the no-spend queue is next
+## ⇢ START HERE NEXT SESSION: the residue is closed; W0's no-spend items are next; spend is off the table
+
+**Done 2026-09-05 (BUILDLOG), for Max's review:** `29906e2` (tsextract
+symlinks, C-73's residual), `9423fc6` (Poetry / PDM / uv / PEP 735
+tables, C-79's residual; lock files unread by design), `94a9a67` (the
+expression callee is a site, `expr-callee`; C-63 surfaced, C-80's
+residual; ADR-045 amended; the proxy's glossary). This repo
+re-ingested contained at `9423fc6` dirty: 12 `expr-callee` sites
+(python 9, ts/js 3 — the `minits` fixture's three shapes), lanes exit 0.
+**Restart the knowledge server** (`.mcp.json`'s `sandbox/knowledge-serve`)
+in any session that was open across the image rebuild: the old build
+drops the class it does not know from every count (C-65, seen live —
+318 printed where the artifact says 320).
+
+*The Calvin state below is unchanged from 2026-09-04 (later).*
 
 **Current work (Max, 2026-09-04): evaluating Calvin potential.** The
 design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
@@ -107,17 +125,20 @@ same at HEAD: the contained venv listing returns `pip` alone
 — an environment reading (the fake venv's python is a host symlink the
 container does not see), not a tree change; CI's box is the check.
 
-## WHERE THINGS STAND (2026-09-04, later)
+## WHERE THINGS STAND (2026-09-05)
 
 - **Calvin M0** (`docs/calvin-potential.md`; ADR-100 for its harness):
   steps 0–6b done, 6b exercised with no model (the record's eighth
   addendum; `verify-gold-import/`, `verify-t-step6-import/`,
   `calvin_probe.py replay`); the design's ADR takes 101 when Max moves
   it to *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite
-  1,230 pytest + 3 `lane_b` (1,231 collect on this box; the venv test
-  fails here as before).
-- **Extraction:** the ten entries lifted, plus C-89 and C-90 (above).
-  Register: **93 entries, 71 active, 20 lifted, 2 superseded** (C-91
+  1,241 pytest + 3 `lane_b` (1,242 collect on this box; the venv test
+  fails here as before); 32 tsextract node tests.
+- **Extraction:** the ten entries lifted, plus C-89 and C-90 (above);
+  their three residuals closed 2026-09-05 and C-63 surfaced (the
+  register's unsurfaced count — C-19, C-20 — now reads true; C-63 had
+  been a third). Image rebuilt 2026-09-05 (the `expr-callee` gloss,
+  C-65). Register: **93 entries, 71 active, 20 lifted, 2 superseded** (C-91
   from Calvin step 3, C-92/C-93 from step 5, ADR-100; the count is
   checked against the segment headings, not a summary line; C-86–C-88 from the review still active: the
   control margin is a bound; the first NLL write-up's conditioning was
@@ -174,12 +195,18 @@ container does not see), not a tree change; CI's box is the check.
    or cap them before a wider run — named, not built). Still open:
    ADR-101's body when Max moves the design to *accepted*; his review
    of the ten lifts, ADR-100 and the step-6 record.
-2. Extraction residue the lifts named (no GPU), in order: `tsextract` skips every symlink where the Python walks skip only
-   repo-internal ones (C-73's residual); Poetry / PDM manifests are not
-   read (C-79's residual); a callee that is itself an expression
-   (`handlers[0]()`) is still no site (C-80's residual, C-63's shape).
-   date-fns re-ingested: 0.1% → 80.1% capture, 15 of 15 zones, lanes
-   7,601 / 0 after C-89 and C-90.
+2. ~~Extraction residue the lifts named~~ — **done 2026-09-05** (three
+   commits above): the helper's symlink rule (C-73), every pyproject
+   table (C-79; lock files stay unread by design), the expression
+   callee counted and classed (C-63 surfaced, C-80). What each entry
+   still names as residual: a file link inside the repo is two lane-A
+   copies of one file; a `requirements` file under another name and
+   `setup.py`; Go, Rust and Java do not count the expression-callee
+   shape, and a literal key (`table["norm"]`) is not bound to its
+   property. None met on a real repo. The four 2026-09-02 clones were
+   *not* re-ingested for this — their numbers in
+   `extraction-evidence.md` predate `expr-callee` (peft and date-fns
+   will gain sites in the denominator when they are).
 3. W0: the one deselected `lane_b` test (a real venv in the fixture —
    the same test fails on this box); the three duplicate invariant
    pairs (I-1/I-7, I-2/I-8, I-6/I-11); watch the first CI run when Max
@@ -211,6 +238,11 @@ narrate` on this repo.
 
 ## PRACTICAL NOTES
 
+- **After an image rebuild, restart the knowledge server** the session
+  opened with (`.mcp.json` → `sandbox/knowledge-serve`): it runs the
+  image's proxy, and an old build drops a tail class it does not know
+  from every count it prints — no error, a smaller number (C-65,
+  2026-09-05). The ingest summary on the terminal is the check.
 - **A model run: state the total dollar ceiling and run ~4 units
   first** (2026-09-04 night: 28 keys launched at "order $50–120", cut
   to 4 by Max after the first units read $4–5 each per arm). Kill by
