@@ -58,10 +58,19 @@ new active entry and the two cross-reference. Field key: `README.md`,
   the link's path (`serde`) has no module of its own for them — the
   target's module ids are the only ones, which is the choice this entry
   made explicit ("whether the copy should be a module is a real
-  question"): one tree, one id. `tsextract` skips *every* symlink on
-  its own walk (outside-repo targets included), so a TS repo whose only
-  copy sits behind a link is lane-A-less there — unchanged by this
-  lift, and not yet met on a real repo. File symlinks are followed as
-  before.
+  question"): one tree, one id. File symlinks are followed as before,
+  on every walk — so a file link whose target is inside the repo is
+  still two lane-A copies of one file (never met on a real repo). The
+  TS helper's walk followed a different rule when this was lifted — it
+  skipped *every* symlink, outside-repo targets included, so a TS repo
+  whose only copy sat behind a link was lane-A-less there; **closed
+  2026-09-05**: `tsextract`'s one walk (`walkRepo`, shared by file and
+  workspace-package discovery) now applies exactly this entry's rule —
+  an in-repo directory link is not descended, an outside link and a
+  file link are followed, a dangling link is nothing — and a Python
+  test runs the helper beside `has_ts_files` on a repo with all three
+  to hold the two walks together. One guard the helper has and the
+  Python walks do not: a link to a directory that *contains* the repo
+  would loop the walk and is skipped there.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent D,
   serde-rs/serde); lifted 2026-09-03.

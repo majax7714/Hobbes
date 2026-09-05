@@ -537,6 +537,48 @@ class TestIntegrationMinits:
 
 
 @pytest.mark.skipif(not helper_available(), reason="node/ts-morph not installed")
+class TestLinkedCopiesAgree:
+    """C-73's residual, closed 2026-09-05: the helper's walk follows the
+    Python rule — an in-repo directory link is walked once at its
+    target, a link to outside the repo and a file link are followed —
+    so `has_ts_files` and the helper's file set cannot disagree on a
+    link. Before, the helper skipped every symlink, and a repo whose only
+    copy sat behind a link was lane-A-less there."""
+
+    def test_the_helper_walks_what_the_python_walk_walks(self, tmp_path):
+        from hobbes.extract.discover import linked_copies
+
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "m.ts").write_text("export const m = 1;\n")
+        repo = tmp_path / "repo"
+        (repo / "core").mkdir(parents=True)
+        (repo / "core" / "a.ts").write_text("export const a = 1;\n")
+        (repo / "shared").mkdir()
+        (repo / "shared" / "src").symlink_to(repo / "core", target_is_directory=True)
+        (repo / "vendored").symlink_to(outside, target_is_directory=True)
+        (repo / "alias.ts").symlink_to(repo / "core" / "a.ts")
+
+        assert has_ts_files(repo)
+        assert linked_copies(repo) == [("shared/src", "core")]
+        facts = run_helper(repo)
+        assert sorted(f["path"] for f in facts["files"]) == ["alias.ts", "core/a.ts", "vendored/m.ts"]
+
+    def test_a_repo_whose_only_ts_sits_behind_an_outside_link_is_not_lane_a_less(self, tmp_path):
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "only.ts").write_text("export function only() { return 1; }\n")
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "vendored").symlink_to(outside, target_is_directory=True)
+
+        assert has_ts_files(repo)
+        joined = extract_ts(repo)
+        assert joined is not None
+        assert "vendored/only" in {n["id"] for n in joined["nodes"]}
+
+
+@pytest.mark.skipif(not helper_available(), reason="node/ts-morph not installed")
 class TestIntegrationIngest:
     def test_full_ingest_merges_layers(self, tmp_path):
         repo = tmp_path / "repo"

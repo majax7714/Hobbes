@@ -10,6 +10,7 @@ import path from "node:path";
 
 import {
   discoverFiles,
+  discoverWorkspacePackages,
   externalName,
   extractRepo,
   isTestFile,
@@ -43,6 +44,38 @@ test("discoverFiles finds TS/JS extensions and prunes junk dirs", () => {
     "readme.md": "",
   });
   assert.deepEqual(discoverFiles(root), ["c.mjs", "src/a.ts", "src/b.jsx"]);
+});
+
+test("symlinks: an in-repo directory link is one tree, walked at its target; outside and file links are followed (C-73)", () => {
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), "tsextract-outside-"));
+  fs.mkdirSync(path.join(outside, "lib"));
+  fs.writeFileSync(path.join(outside, "lib", "m.ts"), "export function m() { return 1; }\n");
+  fs.writeFileSync(path.join(outside, "lib", "package.json"), '{"name": "@vendor/lib", "main": "m.ts"}\n');
+  const root = makeRepo({
+    "core/a.ts": 'import { m } from "../vendored/m";\nexport function a() { return m(); }\n',
+    "shared/here.ts": "export const here = 1;\n",
+  });
+  // the serde shape: a link to a sibling tree inside the repo
+  fs.symlinkSync(path.join("..", "core"), path.join(root, "shared", "src"), "dir");
+  // a link to the repo root itself, which would loop a naive walk
+  fs.symlinkSync(".", path.join(root, "loop"), "dir");
+  // a link to a directory that contains the repo — the other loop
+  fs.symlinkSync(path.dirname(root), path.join(root, "up"), "dir");
+  // the only copy of a tree, behind a link to outside the repo
+  fs.symlinkSync(path.join(outside, "lib"), path.join(root, "vendored"), "dir");
+  // a file link, and a dangling one
+  fs.symlinkSync(path.join("core", "a.ts"), path.join(root, "alias.ts"), "file");
+  fs.symlinkSync("nowhere.ts", path.join(root, "dangling.ts"), "file");
+
+  assert.deepEqual(discoverFiles(root), ["alias.ts", "core/a.ts", "shared/here.ts", "vendored/m.ts"]);
+  assert.deepEqual([...discoverWorkspacePackages(root).keys()], ["@vendor/lib"]);
+
+  const facts = extractRepo(root);
+  assert.deepEqual(facts.files.map((f) => f.path), ["alias.ts", "core/a.ts", "shared/here.ts", "vendored/m.ts"]);
+  // the import through the outside link resolves to the linked path, not the real one
+  const a = byPath(facts, "core/a.ts");
+  assert.deepEqual(a.imports.map((i) => [i.specifier, i.resolved]), [["../vendored/m", "vendored/m.ts"]]);
+  assert.deepEqual(a.calls.filter((c) => c.callee).map((c) => [c.callee, c.callee_path]), [["m", "vendored/m.ts"]]);
 });
 
 test("externalName: builtins kept under node:, packages kept, relatives null", () => {

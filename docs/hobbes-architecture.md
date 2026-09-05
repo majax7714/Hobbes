@@ -331,7 +331,11 @@ lists the zone's own files (C-90).
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a
 tree reachable at two paths is one tree with one set of ids, and the
-record says where the other path went.
+record says where the other path went. A link to a directory outside
+the repo is the only copy Hobbes will see and is walked; a file link is
+followed. The TS helper's own walk applies the same rule (2026-09-05;
+it had skipped every symlink), so the Python scan that decides whether
+the helper runs and the helper's file set cannot disagree on a link.
 
 Two things Go made explicit that the others had not (ADR-037). **A type
 conversion is spelled exactly like a call**: `Decision(s)` and `Resolve(s)`

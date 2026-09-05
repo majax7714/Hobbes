@@ -53,21 +53,74 @@ const NEST_VERBS = new Map([
 
 // --- discovery -------------------------------------------------------------
 
-export function discoverFiles(repoRoot) {
-  const found = [];
+/** Walk the repo's directories the way the Python discovery walks do
+ * (`discover.iter_python_files`, `tssource.has_ts_files`), calling
+ * *onFile(full, name)* for every entry that is not a directory. Dot
+ * names and SKIPPED_DIRS are pruned. Symlinks follow one rule on both
+ * sides (C-73): a directory link whose target lies **inside the repo**
+ * is a second copy of a tree the walk reaches at its real path, so it
+ * is not descended — the ingest records the link; a link to a directory
+ * **outside** the repo is the only copy Hobbes will see and is walked;
+ * a file link is followed; a dangling link is nothing. The helper used
+ * to skip every symlink, which left a repo whose only copy sat behind
+ * a link lane-A-less there while the Python walk found it. One guard
+ * the Python side does not need: a link to a directory that *contains*
+ * the repo would loop the walk and is skipped. */
+function walkRepo(repoRoot, onFile) {
+  let realRoot;
+  try {
+    realRoot = fs.realpathSync(repoRoot);
+  } catch {
+    return;
+  }
   const stack = [repoRoot];
   while (stack.length) {
     const dir = stack.pop();
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name.startsWith(".") || entry.isSymbolicLink()) continue;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
       const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!SKIPPED_DIRS.has(entry.name)) stack.push(full);
-      } else if (EXTENSIONS.has(path.extname(entry.name))) {
-        found.push(path.relative(repoRoot, full).split(path.sep).join("/"));
+      let isDirectory = entry.isDirectory();
+      if (entry.isSymbolicLink()) {
+        try {
+          isDirectory = fs.statSync(full).isDirectory();
+        } catch {
+          continue; // dangling: nothing is there to walk
+        }
       }
+      if (!isDirectory) {
+        onFile(full, entry.name);
+        continue;
+      }
+      if (SKIPPED_DIRS.has(entry.name)) continue;
+      if (entry.isSymbolicLink()) {
+        let real;
+        try {
+          real = fs.realpathSync(full);
+        } catch {
+          continue;
+        }
+        const inside = real === realRoot || real.startsWith(realRoot + path.sep);
+        const contains = realRoot.startsWith(real + path.sep);
+        if (inside || contains) continue; // C-73: one tree, walked at its target
+      }
+      stack.push(full);
     }
   }
+}
+
+export function discoverFiles(repoRoot) {
+  const found = [];
+  walkRepo(repoRoot, (full, name) => {
+    if (EXTENSIONS.has(path.extname(name))) {
+      found.push(path.relative(repoRoot, full).split(path.sep).join("/"));
+    }
+  });
   return found.sort();
 }
 
@@ -130,36 +183,21 @@ function resolveAsFile(base, fileSet) {
  * repo's to declare, read the same way every other manifest fact is. */
 export function discoverWorkspacePackages(repoRoot) {
   const packages = new Map();
-  const stack = [repoRoot];
-  while (stack.length) {
-    const dir = stack.pop();
-    let entries;
+  walkRepo(repoRoot, (full, name) => {
+    if (name !== "package.json") return;
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (entry.name.startsWith(".") || entry.isSymbolicLink()) continue;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (!SKIPPED_DIRS.has(entry.name)) stack.push(full);
-      } else if (entry.name === "package.json") {
-        try {
-          const data = JSON.parse(fs.readFileSync(full, "utf8"));
-          if (data && typeof data.name === "string" && data.name) {
-            const rel = path.relative(repoRoot, dir).split(path.sep).join("/");
-            packages.set(data.name, {
-              dir: rel === "" ? "." : rel,
-              main: typeof data.main === "string" ? data.main : null,
-            });
-          }
-        } catch {
-          // a broken manifest is not the extractor's problem
-        }
+      const data = JSON.parse(fs.readFileSync(full, "utf8"));
+      if (data && typeof data.name === "string" && data.name) {
+        const rel = path.relative(repoRoot, path.dirname(full)).split(path.sep).join("/");
+        packages.set(data.name, {
+          dir: rel === "" ? "." : rel,
+          main: typeof data.main === "string" ? data.main : null,
+        });
       }
+    } catch {
+      // a broken manifest is not the extractor's problem
     }
-  }
+  });
   return packages;
 }
 

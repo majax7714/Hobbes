@@ -61,8 +61,9 @@ def linked_copy_target(child: Path, repo_root: Path) -> str | None:
     -> ../../serde_core/src`` yielded 19 modules, 516 symbols and 1,356
     call sites twice, the copy with no lane B evidence and the fallback's
     wrong answers as its edges. A link whose target is *outside* the repo
-    is the only copy Hobbes will see and is walked as before. Note
-    ``tsextract`` skips every symlink on its own walk.
+    is the only copy Hobbes will see and is walked as before. The TS
+    helper's own walk (``tsextract/extract.mjs``, ``walkRepo``) follows
+    the same rule.
     """
     if not child.is_symlink() or not child.is_dir():
         return None
