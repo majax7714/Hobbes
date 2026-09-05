@@ -6874,3 +6874,65 @@ valid, 8 confirmed; compile skips them by name. I-9 (Max's approval,
 its correction recorded) and I-10 (restates I-5) were not in the named
 pairs and stand — I-10 is the same shape and is Max's call.
 `.hobbes/invariants/README.md`, workstreams W0, the handoff. Not pushed.
+
+
+## 2026-09-05 (later) — Atlas-0 steps 1–2: the world, the scorer, the probe, no model
+
+**Max's direction:** "follow the doc titled atlas 0 in this repo as this
+session's current work" — `atlas-0.md` was untracked at the repo root;
+moved to `docs/atlas-0.md` where every design doc lives, unchanged, a
+step record appended at its end. The base documentation (CLAUDE.md,
+the handoff, ADR-099 §4a/§9b, the charter) was read first; nothing in
+it contradicts the design, and the design's thread (a manufactured
+prior overriding live text; the adapter alone confabulating
+repo-shaped paths) is what Atlas-0 asks about at the block grain.
+
+**Built: `bench/atlas0/`**, its own uv project (numpy only, 30 tests;
+CI's python job runs it) — `atlas0 gen | check | score | probe-check`.
+The world (`world.py`): modules `mod_<stem>`, tests, 4,000 real symbols
+of 3–4 stems from a 300-stem vocabulary each class drawing from its own
+balanced cycle; dense (24–40 mentions) / sparse (exactly 1–2) / a mid
+background (3–23); `defined_in`, `reached_by` (a test over 1–2
+modules), `calls` filled against the mention budgets at 0.7
+intra-module, a short symbol re-rendering a fact through another
+template; absent-near (one stem swapped or appended to a dense-real
+base, that base the only real name within distance 1) and absent-far
+(≥ 2 from everything), half trained / half held-out; QA for half the
+dense and mid symbols, none for sparse; four arms differing only by
+how absence appears; eval sets `primary` (`defined_in` for every
+class), `secondary`, `trained`, `inversion` (§6.4, C+S / C-only by
+construction). `check.py` reads the exit criteria back from the
+written text, not the generator's counts. `acts.py` is the strict
+scorer and the §6.1 matrix; `tokens.py` the entity tokenizer (B1
+stems, B2/B3 one token, seeded vectors); `refmodel.py` a random-init
+numpy GPT for the pipeline check; `probe.py` the per-layer probe and
+the §6.3 authority tables.
+
+**What the checks caught while building** (the reason they read the
+files): sparse names leaking into other symbols' training answers (64
+of 1,200 in the first world — dropped from QA); 2-stem names making
+near/far unconstructible (every 2-stem name has ~13 real neighbours at
+distance 1 — names are 3–4 stems now, length balanced per class);
+absent-near stems inheriting an unbalanced base sample (bases chosen
+to keep the class's stem counts level: TV 0.03); the design's "edit
+distance 1–2" unable to separate near from far (read as 1 / ≥ 2). Five
+readings in all, listed in the lane's README and the step record for
+Max to confirm — a changed reading changes the world hash.
+
+**Results.** Seeds 1–5 pass `check` (`~/.hobbes/bench/atlas0/`). Step
+2's exit on the 30M-shaped random model, 900 balanced primary items:
+B1 probe 0.322 / B3 0.376 against chance 0.362 — both at chance; B3
+fits its training items at 0.998 (every dedicated vector its own key,
+no class in it yet). Every act malformed, every MI zero, as a random
+model should. A numpy pathology on the way: a multi-threaded BLAS
+spent 15× longer synchronising on 15-token matmuls than one thread
+(949 ms → 62 ms a forward); the package pins one thread and
+`probe-check` parallelises by process (110 s for 900 items on 12
+cores).
+
+**Not done, by the gate:** step 3 (B1 calibration) trains a model.
+No GPU here, spend off the table; a CPU run is hours per cell and
+feasible with no spend — Max's call, in the handoff.
+
+Suites: 30 atlas0 (new) / pipeline, Go, web, node untouched. Not
+pushed.

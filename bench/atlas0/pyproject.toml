@@ -1,0 +1,27 @@
+[project]
+name = "atlas0"
+version = "0.0.1"
+description = "Atlas-0 — sparse is not absent: the synthetic world, the act scorer and the probe harness (docs/atlas-0.md). Bench tooling, never product."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Max Marrujo" }]
+dependencies = ["numpy>=2"]
+
+[project.scripts]
+atlas0 = "atlas0.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+# Step 3 onward (training the blocks) needs torch; it is not a dependency
+# of the instruments and is added when a run is cleared.
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atlas0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

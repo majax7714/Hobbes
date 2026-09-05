@@ -188,6 +188,15 @@ run; GPU-hours stated first).*
   `below-floor` tail class. **Open for the lane:** O5 (dagger TS), xarray under
   a trace when a workspace exists, the Go root on a bigger box, Rupta as
   a time-boxed reference lane. Spends no GPU.
+- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — steps 1–2 built
+  2026-09-05, no model, no spend:** the world regenerates
+  byte-identically and passes its own checks on five seeds; the act
+  scorer, the entity tokenizer, a random-init reference model and the
+  class probe run end to end and read chance. **Step 3 (B1
+  calibration) is the first thing that trains** — ~30M parameters from
+  scratch on a ~50k-line corpus; a CPU run on this box is hours per
+  cell, a small GPU minutes — and waits on Max's go, as does the
+  reading of the five generator decisions in the lane's README.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without

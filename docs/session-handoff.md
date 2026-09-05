@@ -1,39 +1,65 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-05: the extraction residue the 2026-09-03 lifts
-named is closed (three commits, no spend) — the TS helper follows the
-C-73 symlink rule, the pyproject reader takes every declaration table,
-and a call whose callee is an expression is a counted site classed
-`expr-callee` (C-63 surfaced, ADR-045 amended); the image is rebuilt
-and this repo re-ingested. API spend and Modal compute stay off the
-table (Max, 2026-09-04); the queue is the rest of the no-spend work in
-NEXT — W0's discipline items first. The TTT items, ADR-101 and
-ADR-092's decisions are still held for Max.** Read this, then the
-2026-09-05 and 2026-09-04 BUILDLOG entries for how the state was
-reached, and `docs/workstreams.md` for the backlog by owner. History
-lives in the BUILDLOG; this doc is rewritten, never appended into a
-pile.
+**Rewritten 2026-09-05 (later): the current work is Atlas-0
+(`docs/atlas-0.md`, Max's design — "sparse is not absent"): steps 1–2
+of its order of work are built and their exits met with no model and
+no spend (`bench/atlas0/`); step 3 trains a block and waits on Max's go
+and on his reading of five generator decisions. The extraction residue
+is closed (the earlier 2026-09-05 entry), W0's two build items are
+done; API spend and Modal compute stay off the table (Max,
+2026-09-04). The TTT items, ADR-101 and ADR-092's decisions are still
+held for Max.** Read this, then the 2026-09-05 (later) BUILDLOG entry
+and the step record at the end of `docs/atlas-0.md`, and
+`docs/workstreams.md` for the backlog by owner. History lives in the
+BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: the residue is closed; W0's no-spend items are next; spend is off the table
+## ⇢ START HERE NEXT SESSION: Atlas-0 step 3 is a training run and needs Max's go; the five readings need his yes or no
 
-**Done 2026-09-05 (BUILDLOG), for Max's review:** `29906e2` (tsextract
+**Done 2026-09-05 (later), for Max's review (BUILDLOG):** `bench/atlas0/`
+— `atlas0 gen | check | score | probe-check`, 30 tests, in CI's python
+job. Seeds 1–5 generated and checked under `~/.hobbes/bench/atlas0/`
+(regenerable, ~3 s a seed; `probe-check-{B1,B3}.json` beside them).
+The step record at the end of `docs/atlas-0.md` has the numbers.
+
+**What needs Max before step 3:**
+
+1. **The five readings** (the lane's README, "Readings of the design"):
+   n ≈ 4,000 = dense + sparse + a mid background; names are 3–4 stems;
+   absent-near is stem distance exactly 1, absent-far ≥ 2; sparse-real
+   symbols are statements only (never in any QA line); the primary
+   query is `defined_in` for every class. Each is a config field or a
+   generator rule; changing one changes every world hash, so settle
+   them before a model sees a corpus.
+2. **Where step 3 runs.** B1 calibration is one ~30M model trained
+   from scratch on ~50k lines until dense-real ≥ 0.95, then the step
+   budget is frozen (§5). No GPU on this box; Modal is off the table.
+   A torch-CPU trainer here is feasible (estimate: hours per cell; the
+   grid of 60 runs is days) and spends nothing; a small GPU makes the
+   grid an afternoon. The trainer is not written — it is the next
+   thing to build once the venue is known (torch as a dependency of
+   `bench/atlas0` only; the tokenizer, `entity_vectors` and the
+   reference model's shapes are what it reuses; `probe.py` and
+   `acts.py` read a trained model's residuals and outputs the same way
+   they read the random one).
+3. **The design's ADR** takes the next number when Max moves it to
+   *accepted*; the §7 constraints open then (the README's readings add
+   one: names are 3–4 stems by construction, a departure from §2.2's
+   2–3).
+
+**The earlier 2026-09-05 work (unchanged):** `29906e2` (tsextract
 symlinks, C-73's residual), `9423fc6` (Poetry / PDM / uv / PEP 735
-tables, C-79's residual; lock files unread by design), `94a9a67` (the
-expression callee is a site, `expr-callee`; C-63 surfaced, C-80's
-residual; ADR-045 amended; the proxy's glossary). This repo
-re-ingested contained at `9423fc6` dirty: 12 `expr-callee` sites
-(python 9, ts/js 3 — the `minits` fixture's three shapes), lanes exit 0.
-**Restart the knowledge server** (`.mcp.json`'s `sandbox/knowledge-serve`)
-in any session that was open across the image rebuild: the old build
-drops the class it does not know from every count (C-65, seen live —
-318 printed where the artifact says 320).
+tables, C-79's residual), `94a9a67` (the expression callee is a site,
+`expr-callee`; C-63 surfaced), `20957de` (W0's two build items). This
+repo was re-ingested contained at `9423fc6` dirty; **restart the
+knowledge server** in any session open across the image rebuild
+(C-65).
 
 *The Calvin state below is unchanged from 2026-09-04 (later).*
 
-**Current work (Max, 2026-09-04): evaluating Calvin potential.** The
-design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
+**Calvin M0 (Max, 2026-09-04): evaluating Calvin potential — held
+since the spend rule.** The design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
 has the results, §8 the step record, the charter is
 `docs/calvin-charter.md`); the per-task record with attribution is the
 seventh addendum of `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`;
@@ -173,6 +199,10 @@ image's python as the base.
   meter before quoting.
 
 ## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
+
+**First: Atlas-0 step 3** (START HERE above) — Max's yes/no on the
+five readings, the venue for training, then the trainer; steps 4–6
+follow the design's order and are gated the same way. Then the queue:
 
 0. ~~Doc drift from the Calvin sprint~~ — **done 2026-09-04 (later):**
    the register count everywhere (93 / 71 / 20 / 2), README's status,

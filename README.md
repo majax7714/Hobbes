@@ -320,6 +320,7 @@ point); the session-by-session record is
 | [`docs/benchmark-deepswe.md`](docs/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
 | [`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin-potential.md`](docs/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin-charter.md` |
+| [`docs/atlas-0.md`](docs/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
 

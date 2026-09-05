@@ -44,7 +44,8 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
-| evaluating Calvin potential (the current work) | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
+| evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
+| running Atlas-0 (the current work)         | `docs/atlas-0.md` (sparse is not absent; §8 step-gated, steps 1–2 built 2026-09-05, its step record at the end) + `bench/atlas0/README.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -106,6 +107,13 @@ box, against a repo on disk (architecture §10); the application mode in
   template, its render and its gold fills; the parent ledgers, the
   generated templates and the ground records live under
   `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
+- `bench/atlas0/` — Atlas-0 (`docs/atlas-0.md`), its own uv project
+  (numpy only): `atlas0 gen | check | score | probe-check` — the
+  synthetic world per seed, step 1's checks read from the files, the
+  act scorer and the §6.1 matrix, the entity tokenizer (B1 stems /
+  B2–B3 one token), a random-init numpy reference model and the class
+  probe with the §6.3 authority tables. Training (steps 3–4) is not in
+  the tree. Bench tooling, never product.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -175,7 +183,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
-tests. Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+tests / 30 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
 review → `lane_b` pytest) and runs the same way on a box.
@@ -339,6 +347,19 @@ review → `lane_b` pytest) and runs the same way on a box.
   (`docs/workstreams.md`). Held: the wider Calvin run,
   the 3,000-step adapter under the cell and the 10,000-step point, the
   removal A/B re-run on the 7B, `hobbes narrate` on this repo.
+- **Atlas-0 (`docs/atlas-0.md`, Max's design; current work from
+  2026-09-05 later):** does a small block's *act* separate sparse-real
+  from absent — a synthetic world, three blocks (stems / dedicated
+  learned / dedicated frozen), four arms of absence. **Steps 1–2 built
+  the same day, no model, no spend (`bench/atlas0/`):** the world
+  regenerates byte-identically and passes its own file-read checks on
+  five seeds; the strict act scorer, the entity tokenizer and the
+  per-layer probe run end to end on a random-init 30M-shaped model and
+  read chance (B1 0.322 / B3 0.376 vs 0.362). Five readings of the
+  design made the world constructible (3–4-stem names, near = distance
+  1, far ≥ 2, a mid background, sparse never in QA) — listed for Max.
+  **Step 3 trains** and waits on his go (no GPU here; a CPU cell is
+  hours).
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

@@ -48,6 +48,9 @@ jobs:
       - name: pytest (lane B off by default; lane_b cases skip without the image)
         working-directory: pipeline
         run: uv sync && uv run pytest -q
+      - name: atlas0 (the Atlas-0 instruments, bench tooling; numpy only)
+        working-directory: bench/atlas0
+        run: uv sync && uv run pytest -q
 
   web:
     runs-on: ubuntu-24.04
