@@ -279,4 +279,32 @@ What the calibration cell read beyond its target, on seed 1 alone (one seed; not
 
 **A limit on §6.4 to register on acceptance:** the block does not read context. With its own defining statement placed before the question (`C+S/support`) accuracy *falls* from 0.96 to 0.755; with a conflicting statement it follows the context 1% of the time; a fact only ever in context (`C-only`) is answered at 0.03. The corpus has no example in which a preceding line bears on a question — every line is an independent fact — so there is nothing for context-reading to be learned from, and the inversion curve as designed (a rise then a fall in context reliance) cannot appear. A v1 world that packs a statement and its question into one line for a QA-trained subset would give the curve something to measure; v0 records the flat line.
 
-**Step 4 — the 12 cells × 5 seeds:** seed 1 first (the four-cell gate, then the seed), seeds 2–5 after; every cell's records under `~/.hobbes/bench/atlas0/runs/grid-3500/` and on the volume. Cost at the measured rate: ~$0.09 a cell, ~$5.50 for sixty, against the $25 declared ceiling.
+**Step 4 — the 12 cells × 5 seeds: seed 1 done (2026-09-05, later), seeds 2–5 launched the same evening.** Every cell's records are under `~/.hobbes/bench/atlas0/runs/grid-3500/<block>-<arm>-s<seed>/` and on the volume; `atlas0 report` renders §6.1–6.6 over the directory (`grid-3500-report.md` beside it). Seed 1's twelve cells: $1.24 assumed, $0.10–0.12 a cell, 110–133k tokens/s; the four calibration cells before them $0.39. **What one seed reads — attributed, and not a finding until §6.6's gate at five seeds:**
+
+| block / arm | dense | sparse `ANSWER-correct` | sparse `UNDEFINED` | absent trained → `UNDEFINED` | absent **held-out** → `UNDEFINED` (near / far) | sibling share of wrong, near | probe (chance 0.36) | MI(act; probed) |
+|---|---|---|---|---|---|---|---|---|
+| B1/none | 0.97 | 0.60 | 0 | 0 | 0 / 0 | 0.28 | 0.35 | 0.00 |
+| B1/phrase | 0.85 | 0.20 | **0.68** | 1.00 | 0.60 / 0.78 | 0.27 | 0.50 | 0.33 |
+| B1/lived | 0.98 | 0.62 | 0 | 0 | 0 / 0 | 0.31 | 0.35 | 0.00 |
+| B1/lived+phrase | 0.84 | 0.34 | 0.49 | 0.97–0.99 | 0.32 / 0.68 | 0.29 | 0.51 | 0.20 |
+| B2/none | 0.94 | 0.63 | 0 | 0 | 0 / 0 | 0.03 | **1.00** | 0.57 |
+| B2/phrase | 0.92 | 0.10 | **0.84** | 1.00 | **1.00 / 1.00** | — | 0.92 | 0.73 |
+| B2/lived | 0.98 | **0.78** | 0 | 0 | 0 / 0 | 0.03 | 0.89 | 0.44 |
+| B2/lived+phrase | 0.96 | 0.39 | 0.48 | 1.00 | **0.00 / 0.00** | 0.01 | 0.98 | 0.63 |
+| B3/none | 0.28 | 0.06 | 0 | 0 | 0 / 0 | 0.02 | 0.38 | 0.01 |
+| B3/phrase | 0.10 | 0.03 | 0.44 | 0.78–0.82 | 0.46 / 0.44 | 0.03 | 0.40 | 0.06 |
+| B3/lived | 0.21 | 0.06 | 0 | 0 | 0 / 0 | 0.03 | 0.41 | 0.01 |
+| B3/lived+phrase | 0.17 | 0.05 | 0.22 | 0.59–0.63 | 0.25 / 0.21 | 0.03 | 0.40 | 0.06 |
+
+*Reading it, with the component each line implicates (§1):*
+
+- **The tree, from scratch (§6.1 row 1; B1).** B1/none answers every absent name with a module; for absent-near the value is the base's own module 28% of the time against 2.5% by chance and 4% for absent-far. The stem-shaped name pulls the sibling's fact. B2 answers every absent name too, but its sibling share is 3%: a dedicated token has no stems to be pulled by. Implicates **B1's input map**, as the design expected.
+- **The conflation, in a 30M model (§6.1 row 2; B1/phrase).** Taught `UNDEFINED` on 600 trained-absent names, B1 refuses 68% of sparse-real symbols — each of which has its answer in the corpus — and 13% of dense-real ones, while refusing 60% / 78% of held-out absent names. Density is what it measures. Check on **W**: the sparse statements are in the packed corpus by `atlas0 check`; on **P**: the refusals are the bare `UNDEFINED` token (malformed is 0.00). Kang's mechanism reproduced.
+- **Written absences change no act in any block (B1/lived = B1/none, B2/lived = B2/none, B3 likewise).** `lookup(X) → undefined.` in the stream teaches the word and not the act: `UNDEFINED` never occurs as an act in a lived-only corpus, so nothing can emit it — the phrase without the state, and without the phrase. Implicates **A** as specified (the arm cannot show what the vocabulary never pairs with a query) more than **B**; and B1/lived's probe reads chance (0.35), so the negative evidence did not even make the class representable in B1. B2/lived is the best sparse-real cell anywhere (0.78) and the best module inference (0.30).
+- **The address channel makes the class representable — and refusable — but it refuses the wrong split (B2).** Under B2 the linear probe reads the three-way class at 0.89–1.00 in every arm (MI(probed; true) 1.15–1.58 of a possible 1.58): a learned dedicated embedding records how often it was trained, and an untrained one is a state. In B2/phrase that state has authority: **held-out absent names are refused 100%**, near and far alike, and the refusal reaches names the block never saw. The same cell refuses **84% of sparse-real** — a once-seen token's embedding has barely moved from its initialisation and reads as untrained. The split it buys is dense against everything else: density made explicit, not existence. The design's §6.1 row 4 asked whether B2 does what B3 was meant to; it does the *representable* half and not the *sparse-real → `ANSWER`* half.
+- **Lived evidence takes the address channel's generalisation away (B2/lived+phrase).** With the trained-absent names also appearing in written absences, their embeddings train, the refusal binds to *tokens seen in negative lines* (1.00 on trained), and the untrained-vector cue is gone: held-out absent names are refused **0%** and invented instead. The mechanism is legible from the arms alone.
+- **Frozen keys do not store the world at this budget (B3).** Dense-real 0.10–0.28 in every arm: with the entity row fixed at a random vector, the facts have to be written into the later layers keyed on that vector, and 3,500 steps do not get there — the calibration criterion is not met for B3, and every other B3 number is a number about a block that did not learn its world. The design's row 5 (B3 loses generalisation) is measured as an extreme: no memorisation either. Whether a longer or hotter **T** would let B3 learn is open; T is frozen across blocks by §5, so this is recorded rather than tuned.
+- **`CANDIDATES` and `UNKNOWN` are never emitted** (0.00 in every cell). No block found a graded act nobody trained.
+- **Entropy is no null.** Greedy outputs at 3,500 steps have first-token entropy ≈ 0 in every class; MI(act; entropy) is ≤ 0.03 outside B2. The §6.3 contrast is degenerate in v0.
+
+Seeds 2–5 decide which of these survive §6.6.
