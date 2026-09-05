@@ -16,7 +16,7 @@ the checks read the written files rather than the generator's own
 bookkeeping.
 
 ```sh
-cd bench/atlas0 && uv sync && uv run pytest -q     # 29 tests
+cd bench/atlas0 && uv sync && uv run pytest -q     # 37 tests
 
 uv run atlas0 gen --seed 1 --out ~/.hobbes/bench/atlas0/seed1      # ~3 s: world.json, entities.json, corpus/<arm>.txt, eval/*.jsonl, manifest.json
 uv run atlas0 check ~/.hobbes/bench/atlas0/seed1                    # step 1's exit criteria; exit 1 on any failure

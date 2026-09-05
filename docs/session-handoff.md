@@ -1,52 +1,55 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-05 (later): the current work is Atlas-0
-(`docs/atlas-0.md`, Max's design — "sparse is not absent"): steps 1–2
-of its order of work are built and their exits met with no model and
-no spend (`bench/atlas0/`); step 3 trains a block and waits on Max's go
-and on his reading of five generator decisions. The extraction residue
-is closed (the earlier 2026-09-05 entry), W0's two build items are
-done; API spend and Modal compute stay off the table (Max,
-2026-09-04). The TTT items, ADR-101 and ADR-092's decisions are still
-held for Max.** Read this, then the 2026-09-05 (later) BUILDLOG entry
-and the step record at the end of `docs/atlas-0.md`, and
+**Rewritten 2026-09-05 (night): Atlas-0 (`docs/atlas-0.md`, Max's
+design — "sparse is not absent") has run end to end — steps 1–2 with
+no model, step 3 calibrated on Modal, the sixty-cell grid at five seeds,
+the tables and the three atlas entries written into the design doc's
+step record. $7.04 assumed on L4s against a $25 ceiling. What is
+next is Max's reading of the record and the v1 items it names; API
+spend stays off the table for everything else, Modal is open for
+Atlas-0 only. The TTT items, ADR-101 and ADR-092's decisions are still
+held for Max.** Read this, then the two 2026-09-05 BUILDLOG entries
+(later, night) and `docs/atlas-0.md`'s step record, and
 `docs/workstreams.md` for the backlog by owner. History lives in the
 BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Atlas-0 step 3 is a training run and needs Max's go; the five readings need his yes or no
+## ⇢ START HERE NEXT SESSION: Atlas-0 is run; Max reads the atlas entries and decides v1
 
-**Done 2026-09-05 (later), for Max's review (BUILDLOG):** `bench/atlas0/`
-— `atlas0 gen | check | score | probe-check`, 30 tests, in CI's python
-job. Seeds 1–5 generated and checked under `~/.hobbes/bench/atlas0/`
-(regenerable, ~3 s a seed; `probe-check-{B1,B3}.json` beside them).
-The step record at the end of `docs/atlas-0.md` has the numbers.
+**Done 2026-09-05 (later + night), for Max's review (BUILDLOG):**
+`bench/atlas0/` — `atlas0 gen | check | score | probe-check | report`,
+`atlas0.train`, `scripts/modal_atlas0.py`, 37 tests, in CI's python
+job. Sixty-four cells on Modal L4s ($7.04 assumed; read Modal's bill);
+records under `~/.hobbes/bench/atlas0/runs/` (regenerable from the
+volume `hobbes-atlas0` with `modal_atlas0.py get`) and the five-seed
+report at `runs/grid-3500-report.md`. The design doc's step record
+carries steps 1–6 with attribution and the §6.6 gate.
 
-**What needs Max before step 3:**
+**What needs Max:**
 
-1. **The five readings** (the lane's README, "Readings of the design"):
-   n ≈ 4,000 = dense + sparse + a mid background; names are 3–4 stems;
-   absent-near is stem distance exactly 1, absent-far ≥ 2; sparse-real
-   symbols are statements only (never in any QA line); the primary
-   query is `defined_in` for every class. Each is a config field or a
-   generator rule; changing one changes every world hash, so settle
-   them before a model sees a corpus.
-2. **Where step 3 runs.** B1 calibration is one ~30M model trained
-   from scratch on ~50k lines until dense-real ≥ 0.95, then the step
-   budget is frozen (§5). No GPU on this box; Modal is off the table.
-   A torch-CPU trainer here is feasible (estimate: hours per cell; the
-   grid of 60 runs is days) and spends nothing; a small GPU makes the
-   grid an afternoon. The trainer is not written — it is the next
-   thing to build once the venue is known (torch as a dependency of
-   `bench/atlas0` only; the tokenizer, `entity_vectors` and the
-   reference model's shapes are what it reuses; `probe.py` and
-   `acts.py` read a trained model's residuals and outputs the same way
-   they read the random one).
-3. **The design's ADR** takes the next number when Max moves it to
-   *accepted*; the §7 constraints open then (the README's readings add
-   one: names are 3–4 stems by construction, a departure from §2.2's
-   2–3).
+1. **Read the three atlas entries** (`docs/atlas-0.md` § Step record,
+   steps 5–6) and the six generator readings (`bench/atlas0/README.md`).
+   The one-line result: B2's learned dedicated tokens make the class
+   representable and B1's stems do not; no block separates sparse-real
+   from absent in its *act* — B1 conflates by density, B2 by training
+   count, B3 learns nothing; written absences teach no act in any
+   block because the corpus never pairs them with a query.
+2. **v1 items the record names** (each is a world change, so a new
+   hash and a re-run of what it touches): an absence-bearing query in
+   the lived corpus that is not the `UNDEFINED` target itself, and
+   relation-absence (§2.4, §7); a context-useful corpus so §6.4's
+   inversion curve has something to measure (`C-only/support` reads
+   0.01–0.03 under B1); template hold-out (§7). Each is a session and
+   ~$1.50 a seed-grid.
+3. **B3's budget.** Frozen random keys did not store the world at T
+   (dense 0.11–0.22). Tuning T for B3 alone breaks §5's "held
+   constant"; a B3-only calibration run (one cell, $0.10) would say
+   whether it is a budget or a block, and is a decision, not a default.
+4. **The design's ADR** takes 101 or 102 when Max moves it to
+   *accepted* (Calvin's takes 101 if first); its §7 constraints open
+   then, plus the readings' departures (3–4-stem names; three
+   renderings per fact; near = distance 1).
 
 **The earlier 2026-09-05 work (unchanged):** `29906e2` (tsextract
 symlinks, C-73's residual), `9423fc6` (Poetry / PDM / uv / PEP 735
@@ -200,9 +203,8 @@ image's python as the base.
 
 ## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
 
-**First: Atlas-0 step 3** (START HERE above) — Max's yes/no on the
-five readings, the venue for training, then the trainer; steps 4–6
-follow the design's order and are gated the same way. Then the queue:
+**First: Atlas-0's review** (START HERE above) — Max's reading of the
+atlas entries and his pick among the v1 items. Then the queue:
 
 0. ~~Doc drift from the Calvin sprint~~ — **done 2026-09-04 (later):**
    the register count everywhere (93 / 71 / 20 / 2), README's status,

@@ -45,7 +45,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
-| running Atlas-0 (the current work)         | `docs/atlas-0.md` (sparse is not absent; §8 step-gated, steps 1–2 built 2026-09-05, its step record at the end) + `bench/atlas0/README.md` |
+| reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -183,7 +183,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
-tests / 30 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+tests / 37 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
 review → `lane_b` pytest) and runs the same way on a box.
@@ -358,8 +358,17 @@ review → `lane_b` pytest) and runs the same way on a box.
   read chance (B1 0.322 / B3 0.376 vs 0.362). Five readings of the
   design made the world constructible (3–4-stem names, near = distance
   1, far ≥ 2, a mid background, sparse never in QA) — listed for Max.
-  **Step 3 trains** and waits on his go (no GPU here; a CPU cell is
-  hours).
+  **Then Max opened Modal for it (the same day, with a cost check
+  after the first cell):** a sixth reading (three renderings per fact,
+  the knowledge-extraction floor) let B1/none calibrate to 0.968 at
+  3,500 steps; **sixty cells at five seeds ran for $7.04 assumed** on
+  L4s. The atlas: B1 invents for every absent name (the near name gets
+  its base's module 30%) and, taught `UNDEFINED`, refuses half of
+  sparse-real; B2's learned dedicated tokens make the class linearly
+  readable (probe 1.00) and refuse 85% of sparse-real, held-out absence
+  bistably by seed and never once written absences are present; B3's
+  frozen vectors do not store the world at T; written absences teach no
+  act in any block. Next is Max's reading and the v1 items.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

@@ -6936,3 +6936,65 @@ feasible with no spend — Max's call, in the handoff.
 
 Suites: 30 atlas0 (new) / pipeline, Go, web, node untouched. Not
 pushed.
+
+
+## 2026-09-05 (night) — Atlas-0 steps 3–6 on Modal: 64 cells, $7.04 assumed, the atlas at five seeds
+
+**Max's direction:** Modal back on the table for Atlas-0 with a
+cost estimate first ("days vs an afternoon is worth the money"), then
+"good to proceed … check after first cell to see how far your guess
+could be off". Estimate given: $0.15–0.30 a cell on an L4 at 100k
+tokens/s, $25 declared ceiling, $50 hard stop. **Measured:** $0.08–0.12 a
+cell at 107–136k tokens/s; the first cell read $0.12; sixty grid cells
+plus four calibration cells $7.04 at the assumed L4 rate (Modal's bill
+is the number). The step gates held: first cell alone, then the
+calibration, then seed 1's twelve, then seeds 2–5.
+
+**Built:** `atlas0.train` (a torch GPT of the reference model's shape,
+the three input maps — B3's entity rows frozen by a gradient mask —
+checkpoints with a quick eval and stop-at-target, a full eval writing
+every set's matrix, the probe and authority tables, inversion, sparse
+by distance, `residuals.npz` and the weights), `scripts/modal_atlas0.py`
+(`put | train | grid | get` on volume `hobbes-atlas0`, the package
+shipped from `src/` each call, an assumed rate in every result, cells
+cached by manifest), `atlas0 report` (§6.1–6.6 over a directory of
+cells, mean [min–max] over seeds, the §6.6 gate), torch as a uv group
+with the CPU index. 37 tests. Two bugs found by the first runs: the
+decoder leaked `<eos>` into the text so every correct answer read
+malformed (caught on the CPU tiny run); the manifest carried torch's
+version-string subclass, which the torch-less client could not unpickle
+(the volume had the records; the function now returns plain JSON).
+
+**Step 3.** One rendering per fact: the block memorised its corpus
+(loss 0.07) with held-out dense-real at 0.31 over 74 epochs — the
+knowledge-extraction failure without paraphrase. Three renderings per
+fact (`Config.renderings`, the design's "across templates"; sparse
+facts rendered once): 0.955 at 2,750 steps under a 4,000 cosine, 0.937
+at 3,000 over its own schedule, **0.968 at 3,500 — T frozen**. Worlds
+regenerated under the new default (seed 1's hash `e4c3ee3d…`); the
+sixth reading in the lane's README.
+
+**Steps 4–6.** Sixty cells, 3 blocks × 4 arms × 5 seeds; the tables and
+the three atlas entries are in `docs/atlas-0.md`'s step record. The
+lines that survive §6.6: B1 invents for every absent name and gives an
+absent-near name its base's module 30% of the time (the tree); under
+`UNDEFINED` targets B1 refuses half of sparse-real (the conflation),
+its refusal rates on sparse and on held-out absent moving together by
+seed; written absences change no act in any block (the vocabulary
+never pairs them with a query — a v1 item); B2's learned dedicated
+tokens make the class linearly readable (probe 0.90–1.00), have no
+sibling shape, are the best sparse block (0.71–0.74) and the only one
+that infers module from siblings (0.24–0.37), and refuse 85% of
+sparse-real in the phrase arm — with held-out absence refused
+bistably (1, 0, 0.77, 1, 1 by seed) and never once lived lines are
+present; B3's frozen vectors do not store the world at T (dense
+0.11–0.22). `CANDIDATES` / `UNKNOWN` never emitted; entropy ≈ 0
+everywhere (the §6.3 null is degenerate); the block does not read
+context (§6.4's flat line).
+
+**Also:** L4 containers queued ~17 minutes at one point (not billed);
+`modal app logs` lags — read `modal container logs` instead. Records:
+`~/.hobbes/bench/atlas0/runs/{cal-seed1,cal-seed1-r3,grid-3000,grid-3500}/`
+and `grid-3500-report.{md,json}`; the volume holds the same.
+
+Suites: 37 atlas0; nothing else touched. Not pushed.
