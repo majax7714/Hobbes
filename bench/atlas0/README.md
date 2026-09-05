@@ -64,11 +64,30 @@ can be:
 - **The primary query is `defined_in` for every class** — the one
   query every real symbol answers uniquely, so the probe cannot read
   the class off the question's shape.
+- **Every fact of a dense or mid symbol is rendered through three
+  templates** (`renderings`, the design's "across templates"); a fact
+  touching a sparse-real symbol is rendered once. Step 3 found the
+  reason: with one rendering a B1/none cell memorised its corpus (loss
+  0.07) while held-out dense-real accuracy plateaued at 0.31 over 74
+  epochs, the knowledge-extraction failure the literature predicts
+  without paraphrase; with three it passed 0.76 by 27 epochs. The
+  one-rendering world is `Config(renderings=1)` and regenerable.
 
 ## Steps 3–6
 
-Training the twelve cells is outside this package (torch, a GPU or a
-long CPU run; ~30M non-embedding parameters at `atlas-30m`). The
-tokenizer, the entity vectors and the reference model's shapes are what
-the trainer will reuse; `probe.py` and `acts.py` read a trained model's
-residuals and outputs the same way they read the random-init one.
+`atlas0.train` is the trainer (torch; `uv sync --group train` for the
+CPU smoke test) and `scripts/modal_atlas0.py` runs cells on Modal
+(volume `hobbes-atlas0`; one L4 cell of 4,000 steps is about nine
+minutes and $0.12 at the assumed rate). `probe.py` and `acts.py` read a
+trained model's residuals and outputs the same way they read the
+random-init one; a run directory holds `manifest.json` (tokens/s,
+wall, device, the loss curve, every checkpoint), `report.json` (every
+set's matrix, the probe, the authority tables, inversion, sparse by
+distance), `outputs/<set>.jsonl`, `residuals.npz` and the weights.
+
+```sh
+uv run scripts/modal_atlas0.py put ~/.hobbes/bench/atlas0/seed1 seed1
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py train --world seed1 --block B1 --arm none --seed 1 --steps 4000 --stop-at-target   # step 3
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world seed1 --steps N --seeds 1 --blocks B1,B3 --arms none,phrase,lived,lived+phrase   # step 4
+uv run scripts/modal_atlas0.py get /runs/<dir> ~/.hobbes/bench/atlas0/runs/
+```

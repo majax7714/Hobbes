@@ -177,3 +177,21 @@ class TestCheck:
         checks = check(out)["checks"]
         assert set(checks["stem_tv_from_uniform"]) == {"dense-real", "sparse-real", "mid", "absent-near", "absent-far"}
         assert all(v <= 0.05 for v in checks["stem_tv_excess"].values())
+
+
+def test_renderings_multiply_templates_but_never_touch_sparse():
+    w = W.generate(7, W.Config(**{**W.Config.tiny().__dict__, "renderings": 1}))
+    w3 = W.generate(7, W.Config.tiny())
+    counts = w3.mention_counts()
+    for s in w3.symbols:
+        if s.cls == "sparse-real":
+            assert counts[s.name] in (1, 2)
+        elif s.cls == "dense-real":
+            assert counts[s.name] >= 24
+    sparse = {s.name for s in w3.symbols if s.cls == "sparse-real"}
+    by_fact = Counter((f.kind, f.args) for f in w3.facts)
+    multi = [k for k, n in by_fact.items() if n >= 2]
+    assert len(multi) > len(w3.facts) / 6
+    for kind, args in multi:
+        assert not (set(args) & sparse)
+    assert len({f.args for f in w3.facts}) < len({f.args for f in w.facts})   # fewer distinct facts, same budgets

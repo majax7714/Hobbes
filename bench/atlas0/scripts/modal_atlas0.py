@@ -79,7 +79,8 @@ def train_cell(world: str, cfg: dict, out: str) -> dict:
     (out_dir / "manifest.json").write_text(json.dumps(m, indent=2, sort_keys=True) + "\n")
     (out_dir / "log.txt").write_text("\n".join(log_lines) + "\n")
     vol.commit()
-    return {"cell": cell, "cached": False, "manifest": m}
+    # Plain JSON back to the client: the local environment has no torch to unpickle against.
+    return json.loads(json.dumps({"cell": cell, "cached": False, "manifest": m}))
 
 
 def _summary(r: dict) -> dict:

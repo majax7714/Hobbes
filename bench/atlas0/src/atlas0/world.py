@@ -22,7 +22,12 @@ What is authored, in order:
    with probability 0.7. A statement mentions every symbol in it, so
    the budget is consumed jointly; a symbol left short at the end
    re-renders one of its facts through another template ("across
-   templates").
+   templates"). ``Config.renderings`` renders every fact through that
+   many distinct templates from the start — the paraphrase
+   augmentation that knowledge-extraction work finds necessary for a
+   fact stored from statements to be answerable as a question — while
+   a fact touching a sparse-real symbol is rendered once, so that
+   class stays what the design says it is.
 4. **Absences** — ``absent-near`` is one stem swapped or one stem
    appended to a dense-real name (stem distance exactly 1, and that
    base the only real name within 1); ``absent-far`` is a fresh
@@ -127,6 +132,8 @@ class Config:
     negative_lines: int = 2       # written absences per trained-absent name
     inversion_items: int = 200    # per §6.4 split
     name_stems: tuple[int, ...] = (3, 4)   # stems per name, cycled; see §2.2's note below
+    renderings: int = 3           # templates each fact is rendered through ("across templates", §2.3);
+                                  # a fact mentioning a sparse-real symbol is rendered once whatever this says
 
     @staticmethod
     def full() -> "Config":
@@ -333,16 +340,26 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
     facts: list[Fact] = []
     seen: set[tuple] = set()
 
-    def add(kind: str, args: tuple[str, ...]) -> None:
-        t = render.randrange(n_t[kind])
-        facts.append(Fact(kind, args, t))
-        seen.add((kind, args, t))
+    sparse = {s.name for s in symbols if s.cls == "sparse-real"}
+    mention_of = {"defined_in": lambda a: (a[0],), "calls": lambda a: a, "reached_by": lambda a: (a[1],)}
+
+    def add(kind: str, args: tuple[str, ...]) -> int:
+        """Render a fact through ``renderings`` distinct templates, bounded by every
+        mentioned symbol's remaining budget and by one for a sparse-real symbol;
+        returns how many statements were written (each consumes one mention per symbol)."""
+        names = mention_of[kind](args)
+        k = cfg.renderings if not (set(names) & sparse) else 1
+        k = max(1, min(k, *(remaining[n] for n in names)))
+        ts = render.sample(range(n_t[kind]), k)
+        for t in ts:
+            facts.append(Fact(kind, args, t))
+            seen.add((kind, args, t))
+        return k
 
     # 1. defined_in — one per symbol unless withheld.
     for s in symbols:
         if s.defined_in_stated:
-            add("defined_in", (s.name, s.module))
-            remaining[s.name] -= 1
+            remaining[s.name] -= add("defined_in", (s.name, s.module))
 
     def open_in(module: str, exclude: str | None = None) -> list[str]:
         return [n for n in by_module[module] if remaining[n] > 0 and n != exclude]
@@ -355,8 +372,7 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
         pool = [n for m in mods for n in open_in(m)]
         k = min(rng.randint(*cfg.test_symbols), len(pool))
         for name in rng.sample(pool, k):
-            add("reached_by", (t, name))
-            remaining[name] -= 1
+            remaining[name] -= add("reached_by", (t, name))
 
     # 3. calls — until the budgets are spent.
     open_syms = [s.name for s in symbols if remaining[s.name] > 0]
@@ -380,10 +396,10 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
             misses += 1
             continue
         misses = 0
-        add("calls", (a, b))
+        k = add("calls", (a, b))
         edges.add((a, b))
         for n in (a, b):
-            remaining[n] -= 1
+            remaining[n] -= k
         open_syms = [n for n in open_syms if remaining[n] > 0]
 
     # 4. filler — a symbol still short re-renders one of its facts through
@@ -414,10 +430,10 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
             if not pool:
                 raise RuntimeError(f"cannot fill the budget of {s.name}: no dense-real symbol left to call")
             b = rng.choice(pool)
-            add("calls", (s.name, b))
+            k = add("calls", (s.name, b))
             edges.add((s.name, b))
-            remaining[s.name] -= 1
-            remaining[b] -= 1
+            remaining[s.name] -= k
+            remaining[b] -= k
     return facts
 
 
