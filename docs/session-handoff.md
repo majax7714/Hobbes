@@ -1,5 +1,10 @@
 # Session handoff — the single resume point
 
+**Session paused 2026-09-06 (midday) at Max's word.** Nothing is running:
+no Modal job, no local process; the tree is clean at `0001f88` on
+`main`, not pushed. Resume at START HERE below — the first move is Max's
+choice of T_v2, and nothing spends until he names it.
+
 **Rewritten 2026-09-06: Max's three Atlas-0 items ran — the prompt-vocabulary
 check found a third untrained-token defect under the hold-out world and
 the re-read overturned item 1's premise (a held-out phrasing of trained
