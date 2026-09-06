@@ -91,10 +91,12 @@ def grade(act: Act, item: dict) -> Grade:
 
 
 def row_of(item: dict) -> str:
-    """The confusion-matrix row an item belongs to: class, with exposure for absent names."""
+    """The confusion-matrix row an item belongs to: the class, with the exposure
+    when it carries one (absent names: trained / held-out; a real symbol's
+    relation in a v1 relation-absence world: with / without)."""
     cls = item["class"]
     exp = item.get("exposure", "n/a")
-    return f"{cls}/{exp}" if cls.startswith("absent") else cls
+    return f"{cls}/{exp}" if exp != "n/a" else cls
 
 
 def confusion(items: list[dict], outputs: dict[str, str]) -> dict:

@@ -1,6 +1,6 @@
 """``atlas0`` — the model-free instruments of Atlas-0 (design §8, steps 1–2).
 
-    atlas0 gen   --seed S --out DIR [--tiny]         # the world and the four corpora
+    atlas0 gen   --seed S --out DIR [--tiny] [--variant v0|lived|context|holdout]   # the world and the four corpora
     atlas0 check DIR                                  # step 1's exit criteria, from the files
     atlas0 score DIR --outputs OUT.jsonl [--set primary|secondary|trained]   # §6.1 matrix
     atlas0 probe-check DIR [--block B1|B2|B3] [--model tiny|atlas-30m] [--per-class N] [--out R.json]
@@ -29,11 +29,11 @@ from .check import check
 
 
 def cmd_gen(a: argparse.Namespace) -> int:
-    cfg = W.Config.tiny() if a.tiny else W.Config.full()
+    cfg = (W.Config.tiny() if a.tiny else W.Config.full()).with_variant(a.variant)
     t = time.time()
     w = W.generate(a.seed, cfg)
     manifest = W.write(w, Path(a.out))
-    print(json.dumps({"seed": a.seed, "world_hash": manifest["world_hash"], "facts": manifest["facts"],
+    print(json.dumps({"seed": a.seed, "variant": manifest["variant"], "world_hash": manifest["world_hash"], "facts": manifest["facts"],
                       "classes": manifest["classes"], "corpus_lines": manifest["corpus_lines"],
                       "seconds": round(time.time() - t, 1)}, indent=2))
     return 0
@@ -155,10 +155,11 @@ def cmd_report(a: argparse.Namespace) -> int:
         print(f"no cells under {a.runs}", file=sys.stderr)
         return 1
     agg = R.aggregate(cells)
-    text = R.render(agg)
+    cv = R.curve(cells)
+    text = R.render(agg) + R.render_curve(cv)
     gate = R.gate(agg)
     if a.out:
-        Path(a.out).with_suffix(".json").write_text(json.dumps({"groups": agg, "gate": gate}, indent=2, sort_keys=True) + "\n")
+        Path(a.out).with_suffix(".json").write_text(json.dumps({"groups": agg, "gate": gate, "curve": cv}, indent=2, sort_keys=True) + "\n")
         Path(a.out).with_suffix(".md").write_text(text)
     print(text)
     if gate:
@@ -176,6 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--seed", type=int, required=True)
     g.add_argument("--out", required=True)
     g.add_argument("--tiny", action="store_true", help="the test-sized world")
+    g.add_argument("--variant", default="v0", choices=W.Config.VARIANTS, help="one v1 item on (default v0)")
     g.set_defaults(fn=cmd_gen)
     c = sub.add_parser("check", help="step 1's exit criteria over a written world")
     c.add_argument("dir")

@@ -19,6 +19,16 @@ that lies to itself is caught here. The criteria, from §8 step 1 and
   absent-far name is at distance ≥ 2 from every real name;
 - stem frequency is balanced across classes (total variation from
   uniform, per class), and so is name length.
+
+v1 (each read from the text as well): a relation-absence line or an
+``UNDEFINED`` pair about a *real* symbol occurs only in a lived arm of a
+``relation_absence`` world, only for a dense or mid symbol, and only
+where the world's facts leave that relation empty (a pair only for a
+QA-trained one); an existence absence never names a real symbol; a
+packed line (``context_qa_p``) states the fact its question asks, at
+the configured share; under ``query_holdout`` no corpus line uses the
+held-out phrasing and every eval prompt does, ``primary_seen`` the
+first trained one.
 """
 
 from __future__ import annotations
@@ -29,9 +39,22 @@ from collections import Counter
 from pathlib import Path
 
 from .names import STEMS, NameIndex, split_name, stem_distance
-from .world import ARMS, Config, World, canonical, generate, sha256
+from .world import (ARMS, HELD_OUT_PHRASING, NEGATIVE_TEMPLATES, QUERY_PHRASINGS, RELATION_ABSENCE_TEMPLATES,
+                    TEMPLATES, TRAIN_PHRASINGS, Config, World, canonical, generate, sha256)
 
 _TOKEN = re.compile(r"[A-Za-z0-9_]+")
+_NAME = r"[A-Za-z][A-Za-z0-9_]*"
+
+
+def _pattern(template: str) -> str:
+    return re.escape(template).replace(r"\{x\}", _NAME).replace(r"\{s\}", _NAME).replace(r"\{m\}", _NAME) \
+        .replace(r"\{a\}", _NAME).replace(r"\{b\}", _NAME).replace(r"\{t\}", _NAME)
+
+
+_EXISTENCE = [re.compile("^" + _pattern(t) + "$") for t in NEGATIVE_TEMPLATES]
+_RELATION = {kind: [re.compile("^" + _pattern(t) + "$") for t in ts] for kind, ts in RELATION_ABSENCE_TEMPLATES.items()}
+_STATEMENT = [re.compile("^" + _pattern(t) + "$") for ts in TEMPLATES.values() for t in ts]
+_QUERY = {(kind, i): re.compile("^Q: " + _pattern(p) + " A:") for kind, ps in QUERY_PHRASINGS.items() for i, p in enumerate(ps)}
 
 
 def _mentions_in(lines: list[str], names: set[str]) -> Counter:
@@ -56,12 +79,29 @@ def _min_tv(n: int, k: int) -> float:
 
 
 def _is_statement(line: str) -> bool:
-    return not line.startswith("Q: ")
+    """A line with no question in it (a packed v1 line is a QA line)."""
+    return "Q: " not in line
 
 
 def _is_negative(line: str) -> bool:
-    return ("undefined" in line or "not defined" in line or "No test reaches" in line
-            or "no symbol named" in line or "does not exist" in line)
+    """A written absence: an existence-negative or a relation-absence template."""
+    return any(r.match(line) for r in _EXISTENCE) or any(r.match(line) for rs in _RELATION.values() for r in rs)
+
+
+def _relation_kind(line: str) -> str | None:
+    for kind, rs in _RELATION.items():
+        if any(r.match(line) for r in rs):
+            return kind
+    return None
+
+
+def _query_of(line: str) -> tuple[str, int] | None:
+    """(kind, phrasing) of the question in a QA line, or None."""
+    q = line[line.index("Q: "):] if "Q: " in line else line
+    for key, r in _QUERY.items():
+        if r.match(q):
+            return key
+    return None
 
 
 def check(path: Path) -> dict:
@@ -104,7 +144,62 @@ def check(path: Path) -> dict:
         sparse_qa = _mentions_in(qa, sparse)
         undefined_sparse = [ln for ln in qa if ln.endswith(" UNDEFINED") and (set(_TOKEN.findall(ln)) & sparse)]
         sparse_extra = [n for n in sparse if all_counts[n] != counts[n]]
+        real_names = {s.name for s in world.symbols}
+        negatives = [ln for ln in lines if _is_statement(ln) and _is_negative(ln)]
+        # v1: relation absence about real symbols — lived arms of a relation_absence world only,
+        # dense/mid only, and only where the world's facts leave the relation empty.
+        allowed = cfg.relation_absence and "lived" in arm
+        rel_bad, exist_bad = [], []
+        for ln in negatives:
+            names = [t for t in _TOKEN.findall(ln) if t in real_names]
+            if not names:
+                continue
+            kind = _relation_kind(ln)
+            if kind is None:
+                exist_bad.append(ln)
+            elif not allowed or names[0] in sparse or world.facts_of(names[0])[kind]:
+                rel_bad.append(ln)
+        undefined_real = []
+        for ln in qa:
+            if not ln.endswith(" UNDEFINED"):
+                continue
+            q = ln[ln.index("Q: "):]
+            names = [t for t in _TOKEN.findall(q) if t in real_names]
+            if not names:
+                continue
+            key = _query_of(ln)
+            if (not allowed or key is None or key[0] not in RELATION_ABSENCE_TEMPLATES or names[0] in sparse
+                    or world.symbol(names[0]).qa_split != "train" or world.facts_of(names[0])[key[0]]):
+                undefined_real.append(ln)
+        # v1: packed lines state the fact their question asks.
+        packed = [ln for ln in qa if not ln.startswith("Q: ")]
+        packed_bad = []
+        for ln in packed:
+            stmt, q = ln[: ln.index("Q: ")].strip(), ln[ln.index("Q: "):]
+            head, _, answer = q.partition(" A: ")
+            qnames = [t for t in _TOKEN.findall(head) if t in real_names]
+            if not any(r.match(stmt) for r in _STATEMENT) or not answer.startswith("ANSWER ") or not qnames:
+                packed_bad.append(ln)     # only a real fact's own statement, only before an ANSWER
+                continue
+            value = answer.split()[-1]
+            if qnames[0] not in _TOKEN.findall(stmt) or value not in _TOKEN.findall(stmt):
+                packed_bad.append(ln)
+        answers = [ln for ln in qa if not ln.endswith(" UNDEFINED")]
+        share = len(packed) / max(1, len(answers))
+        share_bad = [] if cfg.context_qa_p == 0 and not packed else (
+            [f"share {share:.3f} vs {cfg.context_qa_p}"]
+            if cfg.context_qa_p > 0 and abs(share - cfg.context_qa_p) > 0.05 else [])
+        # v1: query phrasings in the corpus.
+        phr = [_query_of(ln) for ln in qa]
+        phrasing_bad = [ln for ln, k in zip(qa, phr) if k is None or
+                        (k[1] != 0 if not cfg.query_holdout else k[1] not in TRAIN_PHRASINGS)]
         bad = {
+            "real_in_existence_negative": exist_bad,
+            "relation_absence_misplaced": rel_bad,
+            "undefined_on_real_misplaced": undefined_real,
+            "packed_line_not_its_fact": packed_bad,
+            "packed_share": share_bad,
+            "phrasing_out_of_place": phrasing_bad,
             "sparse_not_1_or_2": [n for n in sparse if counts[n] not in (1, 2)],
             "dense_below_24": [s.name for s in world.symbols if s.cls == "dense-real" and counts[s.name] < 24],
             "mid_out_of_range": [s.name for s in world.symbols if s.cls == "mid" and not 3 <= counts[s.name] <= 23],
@@ -114,7 +209,8 @@ def check(path: Path) -> dict:
             "sparse_mentioned_outside_statements": sparse_extra,
             "sparse_undefined": undefined_sparse,
         }
-        per_arm[arm] = {"lines": len(lines), "statements": len(statements), "qa": len(qa),
+        per_arm[arm] = {"lines": len(lines), "statements": len(statements), "qa": len(qa), "negatives": len(negatives),
+                        "packed": len(packed),
                         "ok": not any(bad.values()), "bad": {k: v[:5] for k, v in bad.items() if v},
                         "bad_counts": {k: len(v) for k, v in bad.items() if v}}
     checks["mentions_per_arm"] = per_arm
@@ -174,6 +270,29 @@ def check(path: Path) -> dict:
     checks["primary_all_defined_in"] = all(it["kind"] == "defined_in" for it in primary)
     checks["trained_has_no_sparse"] = not any(it["class"] == "sparse-real" for it in trained)
     checks["sparse_all_in_primary"] = pc[("sparse-real", "n/a")] == cfg.sparse
+
+    # 7. v1 eval shape: every prompt in the phrasing the variant says; the empty relations asked.
+    sets = {p.stem: [json.loads(ln) for ln in p.read_text().splitlines()] for p in (path / "eval").glob("*.jsonl")}
+    want = HELD_OUT_PHRASING if cfg.query_holdout else 0
+    prompt_bad = []
+    for name, items in sets.items():
+        for it in items:
+            key = _query_of(it["prompt"].split("\n")[-1])
+            if key is None or key[1] != (TRAIN_PHRASINGS[0] if name == "primary_seen" else want):
+                prompt_bad.append((name, it["id"]))
+    checks["eval_prompts_phrased_as_configured"] = not prompt_bad
+    checks["primary_seen_present_iff_holdout"] = ("primary_seen" in sets) == cfg.query_holdout
+    if cfg.query_holdout:
+        checks["primary_seen_same_items"] = [it["id"] for it in sets["primary_seen"]] == [it["id"] for it in primary]
+    secondary = sets["secondary"]
+    without = Counter((it["class"], it["kind"]) for it in secondary if it.get("exposure") == "without")
+    empty_sparse = Counter(kind for s in world.symbols if s.cls == "sparse-real"
+                           for kind in RELATION_ABSENCE_TEMPLATES if not world.facts_of(s.name)[kind])
+    checks["secondary_asks_empty_relations"] = (
+        all(without[("sparse-real", k)] == n for k, n in empty_sparse.items()) if cfg.relation_absence
+        else not without)
+    checks["secondary_without_gold_undefined"] = all(
+        it["gold_act"] == "UNDEFINED" and not it["gold"] for it in secondary if it.get("exposure") == "without")
 
     report["ok"] = all(v for k, v in checks.items() if isinstance(v, bool))
     return report

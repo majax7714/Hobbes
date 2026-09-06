@@ -22,6 +22,9 @@ _CELL = re.compile(r"^(B[123])-(none|phrase|lived|lived\+phrase)-s(\d+)$")
 
 ROWS = ("dense-real", "sparse-real", "mid", "module-infer",
         "absent-near/trained", "absent-near/held-out", "absent-far/trained", "absent-far/held-out")
+# v1 relation-absence: the secondary rows by whether the symbol has the relation.
+SECONDARY_ROWS = ("dense-real/with", "dense-real/without", "mid/with", "mid/without", "sparse-real/with", "sparse-real/without",
+                  "absent-near/trained", "absent-near/held-out", "absent-far/trained", "absent-far/held-out")
 
 
 def load_cells(runs: Path) -> list[dict]:
@@ -71,16 +74,37 @@ def cell_measures(cell: dict) -> dict[str, float]:
             out[f"sparse_by_distance|{d}|correct"] = c.get("ANSWER-correct", 0) / n
             out[f"sparse_by_distance|{d}|n"] = n
     for kind, m in rep.get("secondary_by_kind", {}).items():
-        for row in ("dense-real", "sparse-real", "absent-near/held-out", "absent-far/held-out"):
+        for row in m["rows"]:
             s = _shares(m, row)
-            if s:
-                out[f"secondary|{kind}|{row}|ANSWER-correct"] = s["ANSWER-correct"]
-                out[f"secondary|{kind}|{row}|UNDEFINED"] = s["UNDEFINED"]
+            out[f"secondary|{kind}|{row}|ANSWER-correct"] = s["ANSWER-correct"]
+            out[f"secondary|{kind}|{row}|UNDEFINED"] = s["UNDEFINED"]
+            out[f"secondary|{kind}|{row}|n"] = m["extra"][row]["n"]
+    # v1 hold-out: the primary items in a seen phrasing, beside the held-out one above.
+    if "primary_seen" in rep["confusion"]:
+        for row in ROWS:
+            for c, v in _shares(rep["confusion"]["primary_seen"], row).items():
+                out[f"primary_seen|{row}|{c}"] = v
     man = cell["manifest"]
     out["train|dense_final"] = man["final"]["dense_correct"]
     out["train|tokens_per_s"] = man["tokens_per_s"]
     out["train|cost_usd_assumed"] = man.get("container", {}).get("cost_usd_assumed", 0.0)
     return out
+
+
+def curve(cells: list[dict]) -> dict:
+    """§6.4 over the checkpoints: per group and step, the mean context and gold
+    rates of every inversion variant the checkpoints read (``quick_eval``)."""
+    groups: dict[str, dict[int, dict[str, list[float]]]] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+    for c in cells:
+        g = f"{c['block']}/{c['arm']}"
+        for ck in c["manifest"].get("checkpoints", []):
+            for variant, v in ck.get("inversion", {}).items():
+                groups[g][ck["step"]][f"{variant}|gold"].append(v["gold"])
+                if v.get("context") is not None:
+                    groups[g][ck["step"]][f"{variant}|context"].append(v["context"])
+            groups[g][ck["step"]]["dense_correct"].append(ck.get("dense_correct") or 0.0)
+    return {g: {step: {k: round(sum(v) / len(v), 4) for k, v in ks.items()} for step, ks in sorted(steps.items())}
+            for g, steps in groups.items()}
 
 
 def aggregate(cells: list[dict]) -> dict:
@@ -159,12 +183,55 @@ def render(agg: dict) -> str:
         a = agg[g]
         f = lambda d: _fmt(a.get(f"sparse_by_distance|{d}|correct"))
         lines.append(f"| {g} | {f(1)} | {f(2)} | {f(3)} | {f(4)} | {_fmt(a.get('module-infer|ANSWER-correct'))} |")
+    sec = sorted({k.split("|")[1] for g in groups for k in agg[g] if k.startswith("secondary|")})
+    sec_rows = [r for r in SECONDARY_ROWS if any(f"secondary|{k}|{r}|n" in agg[g] for g in groups for k in sec)]
+    if sec_rows and any("/with" in r or "/without" in r for r in sec_rows):
+        lines.append("\n## secondary queries by relation (v1 relation absence): ANSWER-correct / UNDEFINED share of the row\n")
+        lines.append("| group | kind | " + " | ".join(sec_rows) + " |")
+        lines.append("|---|---|" + "---|" * len(sec_rows))
+        for g in groups:
+            a = agg[g]
+            for kind in sec:
+                cells_ = []
+                for r in sec_rows:
+                    ac, un = a.get(f"secondary|{kind}|{r}|ANSWER-correct"), a.get(f"secondary|{kind}|{r}|UNDEFINED")
+                    cells_.append("—" if ac is None else f"{_fmt(ac)} / {_fmt(un)}")
+                lines.append(f"| {g} | {kind} | " + " | ".join(cells_) + " |")
+    if any(k.startswith("primary_seen|") for g in groups for k in agg[g]):
+        lines.append("\n## held-out query phrasing (primary) against a seen one (primary_seen): ANSWER-correct / UNDEFINED\n")
+        rows = [r for r in ROWS if any(f"primary_seen|{r}|ANSWER-correct" in agg[g] for g in groups)]
+        lines.append("| group | phrasing | " + " | ".join(rows) + " |")
+        lines.append("|---|---|" + "---|" * len(rows))
+        for g in groups:
+            a = agg[g]
+            for label, prefix in (("held-out", ""), ("seen", "primary_seen|")):
+                lines.append(f"| {g} | {label} | " + " | ".join(
+                    f"{_fmt(a.get(f'{prefix}{r}|ANSWER-correct'))} / {_fmt(a.get(f'{prefix}{r}|UNDEFINED'))}" for r in rows) + " |")
     lines.append("\n## training\n")
     lines.append("| group | held-out dense at the end | tokens/s | cost (assumed $) |")
     lines.append("|---|---|---|---|")
     for g in groups:
         a = agg[g]
         lines.append(f"| {g} | {_fmt(a.get('train|dense_final'))} | {_fmt(a.get('train|tokens_per_s'))} | {_fmt(a.get('train|cost_usd_assumed'))} |")
+    return "\n".join(lines) + "\n"
+
+
+def render_curve(cv: dict) -> str:
+    """§6.4 across checkpoints: one table per group, a column per step."""
+    lines = ["## §6.4 inversion curve over checkpoints (mean over seeds)\n"]
+    for g, steps in cv.items():
+        keys = ["dense_correct", "C+S/support|gold", "C+S/conflict|gold", "C+S/conflict|context", "C-only/support|gold",
+                "C-only/conflict|context"]
+        cols = list(steps)
+        lines.append(f"### {g}\n")
+        lines.append("| measure | " + " | ".join(str(c) for c in cols) + " |")
+        lines.append("|---|" + "---|" * len(cols))
+        for k in keys:
+            vals = [steps[c].get(k) for c in cols]
+            if all(v is None for v in vals):
+                continue
+            lines.append(f"| {k} | " + " | ".join("—" if v is None else f"{v:.2f}" for v in vals) + " |")
+        lines.append("")
     return "\n".join(lines) + "\n"
 
 

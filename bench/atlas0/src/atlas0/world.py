@@ -52,6 +52,29 @@ What is authored, in order:
    ``phrase`` adds ``UNDEFINED``-target queries for trained-absent names,
    ``lived`` adds written absences for them, ``lived+phrase`` both. A
    sparse-real symbol never carries an ``UNDEFINED`` target anywhere.
+
+**v1 (the step record's items; 2026-09-05, night).** Each is one
+``Config`` field, off by default, so a v1 world is the v0 world with the
+same entities, facts and absences (every stage's random stream is keyed
+as before) and its own hash:
+
+- ``relation_absence`` — the lived arms also carry *relation-absence*
+  (§2.4's v1 extension) for real dense and mid symbols: written lines
+  for a symbol no test reaches or that calls nothing, and, for the
+  QA-trained ones, the question of that relation answered ``UNDEFINED``
+  — the absence-bearing query the v0 lived arm lacked, on a relation of
+  a real symbol, never the existence of an absent name (that stays the
+  phrase arm's target). Sparse-real symbols carry none of it (§2.3);
+  the secondary eval then asks the empty relation of every real symbol,
+  sparse ones included, whose gold act is ``UNDEFINED``.
+- ``context_qa_p`` — that fraction of the training QA lines is packed
+  with a statement of its own fact before the question, so that a
+  preceding line ever bears on a question and §6.4's curve has
+  something to measure.
+- ``query_holdout`` — training QA is phrased through three query
+  phrasings per kind and every eval prompt through a fourth the block
+  never read (§7's template hold-out); ``eval/primary_seen.jsonl`` asks
+  the same items in the first phrasing as the control.
 """
 
 from __future__ import annotations
@@ -106,16 +129,47 @@ NEGATIVE_TEMPLATES: tuple[str, ...] = (
     "Nothing calls {x}; it does not exist.",
 )
 
-QUERY_TEMPLATES: dict[str, str] = {
-    "defined_in": "Where is {x} defined?",
-    "calls": "What does {x} call?",
-    "reached_by": "What reaches {x}?",
+# Relation-absence (§2.4's v1 extension): a real symbol no test reaches, or
+# that calls nothing. The first reached_by line is the same sentence the
+# existence absences use, on purpose: in a v1 lived corpus it is no longer
+# a sentence only absent names get.
+RELATION_ABSENCE_TEMPLATES: dict[str, tuple[str, ...]] = {
+    "reached_by": (
+        "No test reaches {x}.",
+        "{x} is reached by no test.",
+        "Nothing exercises {x}.",
+    ),
+    "calls": (
+        "{x} calls nothing.",
+        "There is no call from {x}.",
+        "{x} invokes nothing.",
+    ),
 }
+
+# Query phrasings per kind. Index 0 is v0's (the only one used unless
+# ``Config.query_holdout``); under hold-out the first three are trained
+# and the fourth is met only at evaluation.
+QUERY_PHRASINGS: dict[str, tuple[str, ...]] = {
+    "defined_in": ("Where is {x} defined?", "Which module defines {x}?", "In what module is {x} defined?",
+                   "Where does {x} live?"),
+    "calls": ("What does {x} call?", "Which symbol does {x} call?", "Name a callee of {x}.",
+              "What is called from {x}?"),
+    "reached_by": ("What reaches {x}?", "Which test reaches {x}?", "Name a test that covers {x}.",
+                   "What exercises {x}?"),
+}
+QUERY_TEMPLATES: dict[str, str] = {k: v[0] for k, v in QUERY_PHRASINGS.items()}
+TRAIN_PHRASINGS = (0, 1, 2)
+HELD_OUT_PHRASING = 3
+
+V1_FIELDS = ("relation_absence", "context_qa_p", "query_holdout")
 
 
 @dataclass(frozen=True)
 class Config:
-    """The world's sizes. ``full()`` is the design's; ``tiny()`` is for tests."""
+    """The world's sizes. ``full()`` is the design's; ``tiny()`` is for tests.
+
+    The three v1 fields are off by default; ``variant()`` names what is on.
+    """
 
     modules: int = 40
     tests: int = 800
@@ -134,6 +188,10 @@ class Config:
     name_stems: tuple[int, ...] = (3, 4)   # stems per name, cycled; see §2.2's note below
     renderings: int = 3           # templates each fact is rendered through ("across templates", §2.3);
                                   # a fact mentioning a sparse-real symbol is rendered once whatever this says
+    # v1 (each off = v0)
+    relation_absence: bool = False   # lived arms: relation-absence lines + UNDEFINED pairs on real symbols
+    context_qa_p: float = 0.0        # share of training QA lines packed with a statement of their fact
+    query_holdout: bool = False      # train three query phrasings, evaluate on a fourth
 
     @staticmethod
     def full() -> "Config":
@@ -143,6 +201,29 @@ class Config:
     def tiny() -> "Config":
         return Config(modules=4, tests=40, dense=60, sparse=60, mid=80, near=30, far=30,
                       module_infer=10, inversion_items=12)
+
+    VARIANTS = ("v0", "lived", "context", "holdout")
+
+    def with_variant(self, name: str) -> "Config":
+        """This config with one v1 item on: ``lived`` / ``context`` / ``holdout`` (``v0``: none)."""
+        if name not in Config.VARIANTS:
+            raise ValueError(f"unknown variant {name!r}; variants are {Config.VARIANTS}")
+        on = {"v0": {}, "lived": {"relation_absence": True}, "context": {"context_qa_p": 0.5},
+              "holdout": {"query_holdout": True}}[name]
+        return Config(**{**asdict(self), **on})
+
+    def variant(self) -> str:
+        on = [f for f in V1_FIELDS if getattr(self, f) != getattr(Config, f)]
+        return "v0" if not on else "v1:" + ",".join(on)
+
+    def to_json(self) -> dict:
+        """The config as hashed into ``world.json``: a v1 field appears only when on,
+        so a v0 world's hash is what it was before the fields existed."""
+        d = asdict(self)
+        for f in V1_FIELDS:
+            if d[f] == getattr(Config, f):
+                del d[f]
+        return d
 
 
 @dataclass
@@ -250,7 +331,7 @@ class World:
         return {
             "version": self.version,
             "seed": self.seed,
-            "config": asdict(self.config),
+            "config": self.config.to_json(),
             "modules": self.modules,
             "tests": self.tests,
             "symbols": [asdict(s) for s in self.symbols],
@@ -407,10 +488,13 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
     #    every template of every fact of its own is used, it gains a call
     #    to a dense-real symbol, which can absorb a mention over its target
     #    (the class criterion is ≥ 24, and the manifest reports the max).
+    #    A fact that also mentions a sparse-real symbol is never re-rendered
+    #    for its other side (that would give the sparse symbol a statement
+    #    over its budget: seed 5 of v0 had one at six, found 2026-09-05 night).
     dense_names = [s.name for s in symbols if s.cls == "dense-real"]
     for s in symbols:
         while remaining[s.name] > 0:
-            own = [f for f in facts if s.name in f.mentions()]
+            own = [f for f in facts if s.name in f.mentions() and not ((set(f.mentions()) - {s.name}) & sparse)]
             own.sort(key=lambda f: (len(f.mentions()), f.kind, f.args))
             choice = None
             for base in own:
@@ -562,24 +646,32 @@ def generate(seed: int, cfg: Config = Config()) -> World:
 
 # ---------------------------------------------------------------- queries and corpora
 
-def query_line(kind: str, name: str) -> str:
-    return "Q: " + QUERY_TEMPLATES[kind].format(x=name) + " A:"
+def query_line(kind: str, name: str, phrasing: int = 0) -> str:
+    return "Q: " + QUERY_PHRASINGS[kind][phrasing].format(x=name) + " A:"
 
 
-def qa_line(kind: str, name: str, act: str, value: str | None = None) -> str:
+def qa_line(kind: str, name: str, act: str, value: str | None = None, phrasing: int = 0, context: str = "") -> str:
     tail = f" {act}" + (f" {value}" if value else "")
-    return query_line(kind, name) + tail
+    return context + query_line(kind, name, phrasing) + tail
 
 
-def training_qa(world: World) -> list[str]:
-    """Question/answer lines for QA-trained symbols: every fact, every kind.
+def fact_for(kind: str, name: str, value: str, template: int) -> Fact:
+    """The statement of (``name`` has ``value`` under ``kind``) through ``template``."""
+    return Fact(kind, (value, name) if kind == "reached_by" else (name, value), template)
+
+
+Pair = tuple[str, str, str, str | None]     # (kind, name, act, value)
+
+
+def training_pairs(world: World) -> list[Pair]:
+    """The QA-trained symbols' pairs: every fact, every kind, ``ANSWER`` its value.
 
     A pair whose answer is a sparse-real symbol is dropped, so that a
     sparse-real name occurs in the corpus exactly as often as its
     statements say (§2.3) and never in an answer position.
     """
     sparse = {s.name for s in world.symbols if s.cls == "sparse-real"}
-    out: list[str] = []
+    out: list[Pair] = []
     for s in world.symbols:
         if s.qa_split != "train":
             continue
@@ -587,14 +679,44 @@ def training_qa(world: World) -> list[str]:
             for v in values:
                 if v in sparse:
                     continue   # a sparse-real symbol is mentioned by its statements and nothing else
-                out.append(qa_line(kind, s.name, "ANSWER", v))
+                out.append((kind, s.name, "ANSWER", v))
     return out
+
+
+def render_pairs(world: World, pairs: list[Pair], stage: str, pack: bool = False) -> list[str]:
+    """Pairs as corpus lines under the world's v1 settings.
+
+    Under ``query_holdout`` each line takes one of the three trained
+    phrasings by seed; with ``pack`` and ``context_qa_p`` that share of
+    the lines is packed with a statement of the pair's own fact,
+    rendered through a seeded template, before the question. Only the
+    training QA of real facts packs — an ``UNDEFINED`` pair never does,
+    so the phrase arm stays free of written absences. Off, this is v0's
+    one line per pair.
+    """
+    cfg = world.config
+    rng_p = _rng(world.seed, f"qa-phrasing:{stage}") if cfg.query_holdout else None
+    rng_c = _rng(world.seed, f"qa-context:{stage}") if pack and cfg.context_qa_p > 0 else None
+    out: list[str] = []
+    for kind, name, act, value in pairs:
+        phrasing = rng_p.choice(TRAIN_PHRASINGS) if rng_p else 0
+        context = ""
+        if rng_c and act == "ANSWER" and rng_c.random() < cfg.context_qa_p:
+            context = fact_for(kind, name, value, rng_c.randrange(len(TEMPLATES[kind]))).render() + " "
+        out.append(qa_line(kind, name, act, value, phrasing, context))
+    return out
+
+
+def training_qa(world: World) -> list[str]:
+    """Question/answer lines for QA-trained symbols (every arm)."""
+    return render_pairs(world, training_pairs(world), "train", pack=True)
 
 
 def absent_qa(world: World) -> list[str]:
     """``UNDEFINED``-target queries for trained-absent names (the phrase arms)."""
-    return [qa_line(kind, a.name, "UNDEFINED") for a in world.absents if a.exposure == "trained"
-            for kind in QUERY_KINDS]
+    pairs: list[Pair] = [(kind, a.name, "UNDEFINED", None) for a in world.absents if a.exposure == "trained"
+                         for kind in QUERY_KINDS]
+    return render_pairs(world, pairs, "absent")
 
 
 def negative_lines(world: World) -> list[str]:
@@ -609,6 +731,49 @@ def negative_lines(world: World) -> list[str]:
     return out
 
 
+def empty_relations(world: World) -> list[tuple[str, str]]:
+    """(name, kind) for every real dense or mid symbol whose ``kind`` relation is empty.
+
+    Sparse-real symbols are left out on purpose: their one or two
+    statements are all the corpus says of them (§2.3), so their empty
+    relations are asked at evaluation and never written.
+    """
+    out = []
+    for s in world.symbols:
+        if s.cls == "sparse-real":
+            continue
+        facts = world.facts_of(s.name)
+        for kind in RELATION_ABSENCE_TEMPLATES:
+            if not facts[kind]:
+                out.append((s.name, kind))
+    return out
+
+
+def relation_absence_lines(world: World) -> list[str]:
+    """Written relation-absences for real symbols (the lived arms, v1)."""
+    if not world.config.relation_absence:
+        return []
+    rng = _rng(world.seed, "relation-absence")
+    out: list[str] = []
+    for name, kind in empty_relations(world):
+        ts = RELATION_ABSENCE_TEMPLATES[kind]
+        for t in rng.sample(range(len(ts)), min(world.config.negative_lines, len(ts))):
+            out.append(ts[t].format(x=name))
+    return out
+
+
+def relation_absence_pairs(world: World) -> list[Pair]:
+    """The empty relations of QA-trained symbols, answered ``UNDEFINED`` (the lived arms, v1)."""
+    if not world.config.relation_absence:
+        return []
+    return [(kind, name, "UNDEFINED", None) for name, kind in empty_relations(world)
+            if world.symbol(name).qa_split == "train"]
+
+
+def relation_absence_qa(world: World) -> list[str]:
+    return render_pairs(world, relation_absence_pairs(world), "relation-absence")
+
+
 def corpus(world: World, arm: str) -> list[str]:
     """The training lines of one arm, shuffled by (seed, arm)."""
     if arm not in ARMS:
@@ -617,7 +782,7 @@ def corpus(world: World, arm: str) -> list[str]:
     if "phrase" in arm:
         lines += absent_qa(world)
     if "lived" in arm:
-        lines += negative_lines(world)
+        lines += negative_lines(world) + relation_absence_lines(world) + relation_absence_qa(world)
     _rng(world.seed, f"pack:{arm}").shuffle(lines)
     return lines
 
@@ -638,23 +803,31 @@ def eval_items(world: World) -> dict[str, list[dict]]:
     reference). ``inversion``: §6.4's items in three context variants,
     split ``C+S`` (fact in the corpus) / ``C-only`` (module-inference
     symbols, whose fact is only ever in context).
+
+    v1: under ``relation_absence`` the secondary set also asks every
+    real symbol's *empty* relations (gold act ``UNDEFINED``), its rows
+    split ``with`` / ``without`` by exposure; under ``query_holdout``
+    every prompt takes the held-out phrasing and ``primary_seen`` repeats
+    the primary items in the first trained one.
     """
-    trained_qa = set(training_qa(world))
+    cfg = world.config
+    phrasing = HELD_OUT_PHRASING if cfg.query_holdout else 0
+    trained_pairs = {(k, n, v) for k, n, _, v in training_pairs(world)}
     primary: list[dict] = []
     secondary: list[dict] = []
     trained: list[dict] = []
 
-    def item(name, cls, exposure, kind, gold, sibling, distance, stems, mentions, split):
+    def item(name, cls, exposure, kind, gold, sibling, distance, stems, mentions, split, ph=phrasing):
         return {
             "id": f"{kind}:{name}",
-            "prompt": query_line(kind, name),
+            "prompt": query_line(kind, name, ph),
             "kind": kind,
             "name": name,
             "class": cls,
             "exposure": exposure,
             "gold_act": "ANSWER" if gold else "UNDEFINED",
             "gold": gold,
-            "gold_trained": [v for v in gold if qa_line(kind, name, "ANSWER", v) in trained_qa],
+            "gold_trained": [v for v in gold if (kind, name, v) in trained_pairs],
             "sibling": sibling,
             "nearest_dense_distance": distance,
             "stems": len(stems),
@@ -669,9 +842,14 @@ def eval_items(world: World) -> dict[str, list[dict]]:
         cls = "module-infer" if not s.defined_in_stated else s.cls
         for kind in QUERY_KINDS:
             gold = facts[kind] if kind != "defined_in" else [s.module]
+            exposure = "n/a"
             if kind != "defined_in" and not gold:
-                continue
-            it = item(s.name, cls, "n/a", kind, gold, sib[kind], s.nearest_dense_distance,
+                if not (cfg.relation_absence and kind in RELATION_ABSENCE_TEMPLATES):
+                    continue
+                exposure = "without"
+            elif kind != "defined_in" and cfg.relation_absence and kind in RELATION_ABSENCE_TEMPLATES:
+                exposure = "with"
+            it = item(s.name, cls, exposure, kind, gold, sib[kind], s.nearest_dense_distance,
                       split_name(s.name), counts[s.name], s.qa_split)
             if s.qa_split == "train":
                 trained.append(it)
@@ -698,7 +876,7 @@ def eval_items(world: World) -> dict[str, list[dict]]:
                 ctx = "" if ctx_value is None else TEMPLATES["defined_in"][0].format(s=s.name, m=ctx_value) + "\n"
                 inversion.append({
                     "id": f"inv:{split}:{ctx_kind}:{s.name}",
-                    "prompt": ctx + query_line("defined_in", s.name),
+                    "prompt": ctx + query_line("defined_in", s.name, phrasing),
                     "kind": "defined_in",
                     "name": s.name,
                     "class": s.cls if s.defined_in_stated else "module-infer",
@@ -708,7 +886,10 @@ def eval_items(world: World) -> dict[str, list[dict]]:
                     "gold": [s.module],
                     "gold_act": "ANSWER",
                 })
-    return {"primary": primary, "secondary": secondary, "trained": trained, "inversion": inversion}
+    sets = {"primary": primary, "secondary": secondary, "trained": trained, "inversion": inversion}
+    if cfg.query_holdout:
+        sets["primary_seen"] = [dict(it, prompt=query_line(it["kind"], it["name"], TRAIN_PHRASINGS[0])) for it in primary]
+    return sets
 
 
 # ---------------------------------------------------------------- files
@@ -750,6 +931,7 @@ def write(world: World, out: Path) -> dict:
         by_class[key] = by_class.get(key, 0) + 1
     manifest = {
         "generator": f"atlas0 {VERSION}",
+        "variant": world.config.variant(),
         "seed": world.seed,
         "config": asdict(world.config),
         "world_hash": sha256(world_bytes),

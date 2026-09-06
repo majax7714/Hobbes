@@ -28,7 +28,7 @@ from pathlib import Path
 import numpy as np
 
 from .names import STEMS
-from .world import NEGATIVE_TEMPLATES, QUERY_TEMPLATES, TEMPLATES
+from .world import NEGATIVE_TEMPLATES, QUERY_PHRASINGS, QUERY_TEMPLATES, RELATION_ABSENCE_TEMPLATES, TEMPLATES
 from .acts import ACTS
 
 PAD, BOS, EOS, UNK, NL = "<pad>", "<bos>", "<eos>", "<unk>", "<nl>"
@@ -38,15 +38,26 @@ BLOCKS = ("B1", "B2", "B3")
 _PIECE = re.compile(r"[A-Za-z0-9_]+|[^\sA-Za-z0-9_]")
 
 
-def _template_words() -> list[str]:
+def _words(texts: list[str]) -> list[str]:
     words: set[str] = set()
-    texts = [t for ts in TEMPLATES.values() for t in ts] + list(NEGATIVE_TEMPLATES) + list(QUERY_TEMPLATES.values())
-    texts += ["Q: A:", "undefined", ","]
     for t in texts:
         t = re.sub(r"\{[a-z]\}", " ", t)
         for piece in _PIECE.findall(t):
             words.add(piece)
     return sorted(words)
+
+
+def _template_words() -> list[str]:
+    """v0's words: the statement, negative and first query templates."""
+    texts = [t for ts in TEMPLATES.values() for t in ts] + list(NEGATIVE_TEMPLATES) + list(QUERY_TEMPLATES.values())
+    return _words(texts + ["Q: A:", "undefined", ","])
+
+
+def _v1_words() -> list[str]:
+    """The words v1's templates add (relation absence, the other query phrasings)."""
+    v0 = set(_template_words())
+    texts = [t for ts in RELATION_ABSENCE_TEMPLATES.values() for t in ts] + [p for ps in QUERY_PHRASINGS.values() for p in ps]
+    return [w for w in _words(texts) if w not in v0]
 
 
 @dataclass
@@ -57,7 +68,10 @@ class Tokenizer:
     index: dict[str, int]
 
     @staticmethod
-    def build(block: str, entities: dict[str, str]) -> "Tokenizer":
+    def build(block: str, entities: dict[str, str], v1_words: bool = True) -> "Tokenizer":
+        """The vocabulary for ``block`` over ``entities``. v1's words go last, after
+        the entities, so every v0 token id is what it was; ``v1_words=False``
+        is the v0 vocabulary exactly (a v0 cell's weights re-read)."""
         if block not in BLOCKS:
             raise ValueError(f"unknown block {block!r}; blocks are {BLOCKS}")
         vocab: list[str] = []
@@ -66,6 +80,8 @@ class Tokenizer:
                 vocab.append(v)
         if block != "B1":
             vocab += sorted(entities)
+        if v1_words:
+            vocab += [w for w in _v1_words() if w not in vocab]
         return Tokenizer(block, dict(entities), vocab, {v: i for i, v in enumerate(vocab)})
 
     @property

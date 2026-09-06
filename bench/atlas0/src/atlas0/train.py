@@ -280,7 +280,7 @@ def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tra
     (out / "outputs").mkdir(parents=True, exist_ok=True)
     report: dict = {"confusion": {}, "secondary_by_kind": {}}
     all_outputs: dict[str, dict[str, str]] = {}
-    for name in ("primary", "secondary", "trained"):
+    for name in [n for n in evals if n != "inversion"]:     # primary, secondary, trained, and v1's primary_seen
         items = evals[name]
         outs, ents, _ = generate(model, tok, [it["prompt"] for it in items], device, cfg.max_new)
         outputs = {it["id"]: o for it, o in zip(items, outs)}
@@ -336,7 +336,8 @@ def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tra
 # ---------------------------------------------------------------- the run
 
 def load_evals(world_dir: Path) -> dict[str, list[dict]]:
-    return {name: acts.read_jsonl(world_dir / "eval" / f"{name}.jsonl") for name in ("primary", "secondary", "trained", "inversion")}
+    """Every eval set the world wrote (the four of v0; ``primary_seen`` under hold-out)."""
+    return {p.stem: acts.read_jsonl(p) for p in sorted((world_dir / "eval").glob("*.jsonl"))}
 
 
 def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None, log=print) -> dict:
@@ -445,3 +446,4 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     (out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return manifest
+

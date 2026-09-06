@@ -195,3 +195,15 @@ def test_renderings_multiply_templates_but_never_touch_sparse():
     for kind, args in multi:
         assert not (set(args) & sparse)
     assert len({f.args for f in w3.facts}) < len({f.args for f in w.facts})   # fewer distinct facts, same budgets
+
+
+def test_filler_never_re_renders_a_fact_for_its_sparse_partner():
+    """Seed 5 of the full world (2026-09-05 night): a dense symbol short on budget
+    re-rendered its call to a sparse-real symbol, giving that symbol six
+    statements. The filler skips such facts; every sparse-real stays at 1–2."""
+    w = W.generate(5, W.Config.full())
+    counts = w.mention_counts()
+    assert max(counts[s.name] for s in w.symbols if s.cls == "sparse-real") == 2
+    sparse = {s.name for s in w.symbols if s.cls == "sparse-real"}
+    by_fact = Counter((f.kind, f.args) for f in w.facts)
+    assert not [k for k, n in by_fact.items() if n >= 2 and set(k[1]) & sparse]
