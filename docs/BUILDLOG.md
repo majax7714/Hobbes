@@ -6998,3 +6998,82 @@ context (§6.4's flat line).
 and `grid-3500-report.{md,json}`; the volume holds the same.
 
 Suites: 37 atlas0; nothing else touched. Not pushed.
+
+## 2026-09-05 (night, later) — Atlas-0 v1: three world items, eighty cells, two defects found and fixed, $16.54 assumed to date
+
+Max: "good to continue with world items, cost is fine so far … if there
+are any errors or results against experiment, then note them at the
+top." They are at the top of the v1 record (`docs/atlas-0.md` § Step
+record › v1) and here.
+
+**Errors.** (1) v0's seed 5 had *not* passed step 1's check: one
+sparse-real symbol at six statements, the filler re-rendering a dense
+symbol's call fact whose partner was sparse. The record's "seeds 1–5
+pass" was read from the one-rendering worlds and not re-read after
+`renderings = 3`. Fixed in the filler (a fact with a sparse partner is
+never re-rendered for its other side; regression test at full size);
+seeds 1–4 regenerate byte-identically, seed 5's hash changed
+(`seed5-as-run` kept; its twelve v0 cells stand as run, one symbol of
+1,200 affected). (2) The §6.4 prompt separated the context from the
+question with `<nl>`, a token no training stream contains — every
+inversion number of v0 was read through an untrained embedding, and
+"a supporting context hurts" was that token. Fixed (a newline in a
+prompt is the stream's `<eos>`); every finished cell re-read on the
+fixed prompts without retraining (`train.reevaluate`, `modal_atlas0.py
+reeval`, ~$0.003 a cell): support now costs B1 three points and B2
+four, not a quarter to a half; no block follows a conflicting context
+(0.00–0.01) — that stands.
+
+**Results against the experiment.** The replication (the lived world's
+`none`/`phrase` arms are v0's corpora byte for byte, run fresh): B1,
+B2 none and B2 phrase replicate inside v0's spreads, and B2/phrase
+refuses held-out absence 1.00 in all five fresh seeds (v0's 1, 0,
+0.77, 1, 1 was run-to-run, not seed); **B1/phrase does not replicate
+as a rate** — the same corpus and seed read sparse `UNDEFINED` 0.68 in
+v0 and 0.29 fresh — so §6.6's seed spread understates B1/phrase's
+variance and the entry's "refuses half" is "a quarter to two thirds,
+by the run" (the direction holds). The hold-out world: every accuracy
+in the atlas is an accuracy on the trained form of the question — a
+fourth phrasing drops held-out dense-real to 0.42 [0.10–0.81] in B1
+and 0.08 in B2, memorised facts to 0.15–0.64 / 0.29–0.39.
+
+**The v1 worlds** (`atlas0 gen --variant`, each one `Config` field,
+v0's hashes untouched, the checks reading each back from the text):
+*lived* (relation absence: two written lines per empty relation of
+every real dense/mid symbol and `UNDEFINED` pairs of those relations
+for the QA-trained ones; sparse carries none; the secondary eval asks
+every real symbol's empty relations) — 40 cells, B1/B2 × 4 arms;
+*context* (half the training QA packed with its own statement) — 10
+cells, re-run after the separator fix; *holdout* (three query
+phrasings trained, a fourth at evaluation, `primary_seen` the control)
+— 20 cells. B3 left out (did not calibrate at T). First cell of each
+$0.107–0.109 against the $0.10–0.12 estimate, then the grids.
+
+**What v1 found.** *B2 reads a written relation-absence and acts on
+it* for the token it was written about: on QA-held-out real symbols
+the empty relation is refused 1.00 (`calls`) / 0.96 (`reached_by`) and
+the filled one 0.00 / 0.07, separable at spreads ≤ 0.10 — the lived
+mechanism, measured; and a sparse symbol with no written line is
+refused its empty relation 0.33–0.37 against a trained-absent name's
+0.80 on the same question — the first act in the atlas that treats
+the two differently. *The state does not travel*: held-out absent
+names 0.00 on `calls`, and no block refuses `defined_in` of any
+absent name in a lived arm — the act follows the pairing, the written
+line chooses when to use it. *B1 reads nothing*: its taught
+`UNDEFINED` becomes one rate per question kind (≈ 0.45 on
+`reached_by` for every class, ≈ 0.05 on `calls`). *No inversion*: with
+half the QA packed, conflicting context is followed 0.00–0.03 at every
+one of fourteen checkpoints; there is no early reading phase to fall
+from at ~70 epochs; B2 answers a fact only in context 0.43 (0.23 in
+v0). *B2 refuses an unfamiliar question like an untrained name*
+(held-out phrasing, phrase arm: sparse 0.98, dense 0.59, absent 1.00).
+Amended atlas entries and the v2 cell (a `defined_in` pair on a
+disjoint half of the absent names, lived lines on the other half) in
+the record.
+
+**Instruments:** `atlas0 evals` rewrites a world's eval files;
+`atlas0 report` renders the secondary with/without rows, the
+seen/held-out table and the checkpoint curve; the tokenizer appends
+v1's words after every v0 id; `row_of` carries any exposure. 53
+atlas0 tests (+16). Runs under `~/.hobbes/bench/atlas0/runs/` (the
+README lists the directories) and on the volume. Not pushed.

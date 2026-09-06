@@ -112,8 +112,10 @@ box, against a repo on disk (architecture §10); the application mode in
   synthetic world per seed, step 1's checks read from the files, the
   act scorer and the §6.1 matrix, the entity tokenizer (B1 stems /
   B2–B3 one token), a random-init numpy reference model and the class
-  probe with the §6.3 authority tables. Training (steps 3–4) is not in
-  the tree. Bench tooling, never product.
+  probe with the §6.3 authority tables; `atlas0.train` (torch) and
+  `scripts/modal_atlas0.py` train and re-read cells on Modal; `atlas0
+  report` renders §6.1–6.6 and the checkpoint curve; `--variant`
+  builds the v1 worlds. Bench tooling, never product.
 - `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
   (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
   rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
@@ -183,7 +185,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
-tests / 37 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+tests / 53 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
 review → `lane_b` pytest) and runs the same way on a box.
@@ -351,24 +353,37 @@ review → `lane_b` pytest) and runs the same way on a box.
   2026-09-05 later):** does a small block's *act* separate sparse-real
   from absent — a synthetic world, three blocks (stems / dedicated
   learned / dedicated frozen), four arms of absence. **Steps 1–2 built
-  the same day, no model, no spend (`bench/atlas0/`):** the world
-  regenerates byte-identically and passes its own file-read checks on
-  five seeds; the strict act scorer, the entity tokenizer and the
-  per-layer probe run end to end on a random-init 30M-shaped model and
-  read chance (B1 0.322 / B3 0.376 vs 0.362). Five readings of the
-  design made the world constructible (3–4-stem names, near = distance
-  1, far ≥ 2, a mid background, sparse never in QA) — listed for Max.
-  **Then Max opened Modal for it (the same day, with a cost check
-  after the first cell):** a sixth reading (three renderings per fact,
-  the knowledge-extraction floor) let B1/none calibrate to 0.968 at
-  3,500 steps; **sixty cells at five seeds ran for $7.04 assumed** on
-  L4s. The atlas: B1 invents for every absent name (the near name gets
-  its base's module 30%) and, taught `UNDEFINED`, refuses half of
-  sparse-real; B2's learned dedicated tokens make the class linearly
-  readable (probe 1.00) and refuse 85% of sparse-real, held-out absence
-  bistably by seed and never once written absences are present; B3's
-  frozen vectors do not store the world at T; written absences teach no
-  act in any block. Next is Max's reading and the v1 items.
+  the same day, no model, no spend (`bench/atlas0/`);** six readings
+  of the design made the world constructible (3–4-stem names, near =
+  distance 1, far ≥ 2, a mid background, sparse never in QA, three
+  renderings per fact). **Max opened Modal for it (a cost check after
+  the first cell): sixty cells at five seeds, $7.04 assumed.** The v0
+  atlas: B1 invents for every absent name (the near name gets its
+  base's module 30%) and, taught `UNDEFINED`, refuses sparse-real by
+  density; B2's learned dedicated tokens make the class linearly
+  readable (probe 1.00) and refuse 85% of sparse-real; B3's frozen
+  vectors do not store the world at T; written absences teach no act.
+  **v1 ran the same night (Max: "good to continue with world items"):
+  three worlds, each one config field, eighty fresh cells and a
+  hundred and twenty re-reads, $16.54 assumed to date.** Two defects
+  first: v0's seed 5 had failed `check` (one sparse symbol at six
+  statements; filler fixed, seeds 1–4 byte-identical) and the §6.4
+  prompt's separator was a token no stream contains (fixed; every
+  cell re-read — "support hurts" was that token). The v1 atlas: **B2
+  reads a written relation-absence and acts on it** for the token it
+  was written about (empty relation refused 1.00 / 0.96, filled one
+  0.00 / 0.07, on QA-held-out symbols) and treats a sparse symbol
+  differently from an absent name on the same question for the first
+  time (0.33–0.37 vs 0.80) — but the state does not travel to
+  `defined_in` or to unwritten names; B1 reads nothing (one rate per
+  question kind); no block follows a conflicting context at any
+  checkpoint even when half the QA is packed (§6.4 flat at this T in
+  every world); a fourth query phrasing drops dense-real from 0.98 to
+  0.42 in B1 and 0.08 in B2, and B2/phrase refuses an unfamiliar
+  question like an untrained name; B1/phrase's refusal rates are
+  run-to-run quantities (§6.6 permissive there); B2/phrase's held-out
+  refusal replicates at 1.00 in five fresh seeds. Next is Max's
+  reading and the v2 cell the record names.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

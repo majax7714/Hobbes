@@ -188,15 +188,16 @@ run; GPU-hours stated first).*
   `below-floor` tail class. **Open for the lane:** O5 (dagger TS), xarray under
   a trace when a workspace exists, the Go root on a bigger box, Rupta as
   a time-boxed reference lane. Spends no GPU.
-- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — steps 1–2 built
-  2026-09-05, no model, no spend:** the world regenerates
-  byte-identically and passes its own checks on five seeds; the act
-  scorer, the entity tokenizer, a random-init reference model and the
-  class probe run end to end and read chance. **Step 3 (B1
-  calibration) is the first thing that trains** — ~30M parameters from
-  scratch on a ~50k-line corpus; a CPU run on this box is hours per
-  cell, a small GPU minutes — and waits on Max's go, as does the
-  reading of the five generator decisions in the lane's README.
+- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — v0 and v1 run
+  (2026-09-05, later + night; $16.54 assumed on Modal):** the atlas at
+  five seeds for three blocks and four arms, then the three v1 worlds
+  (relation absence in the lived arms, packed context, query-phrasing
+  hold-out). The record's "what follows (v1)" names the v2 cell: a
+  `defined_in` pair on a disjoint half of the absent names with lived
+  lines on the other half, so written existence-absence is asked once
+  the act is available on that question. Waits on Max's reading; B3's
+  budget (a one-cell calibration) and the design's ADR number are his
+  calls.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without

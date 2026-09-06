@@ -131,7 +131,7 @@ def main(argv: list[str]) -> int:
         else:
             import subprocess
             ls = subprocess.run(["modal", "volume", "ls", "--json", "hobbes-atlas0", f"/runs/{a.runs}"], capture_output=True, text=True, check=True)
-            cells = sorted(e["Filename"].rsplit("/", 1)[-1] for e in json.loads(ls.stdout) if e["Type"] == "dir")
+            cells = sorted(e["filename"].rsplit("/", 1)[-1] for e in json.loads(ls.stdout) if e["type"] == "dir")
         worlds = [a.world.format(seed=c.rsplit("-s", 1)[-1]) for c in cells]
         print(f"{len(cells)} cells re-read on {GPU} → runs/{a.out}", file=sys.stderr)
         with app.run():

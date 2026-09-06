@@ -110,6 +110,18 @@ seed 5's hash changed (the as-run world is kept beside it as
 1,200 in the sparse row affected). The record's claim that seeds 1–5
 passed was wrong for seed 5 at three renderings.
 
+**A second defect (same night), reaching back to v0's §6.4:** the
+inversion prompt separated the statement from the question with a
+newline, which the tokenizer encoded as `<nl>` — a token no training
+stream contains (lines are separated by `<eos>`). Every §6.4 number of
+v0 was read through an untrained separator; the "support hurts"
+reading was that token. A newline in a prompt is now the stream's
+`<eos>` (the previous line), and the context world's prompts pack on
+one line as its training QA does. Finished cells are re-read on the
+fixed prompts without retraining: `train.reevaluate` (the corpus hash
+must match) and `modal_atlas0.py reeval`; `atlas0 evals` rewrites a
+world's eval files from its `world.json`.
+
 ## Steps 3–6
 
 `atlas0.train` is the trainer (torch; `uv sync --group train` for the
@@ -129,5 +141,12 @@ ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world seed1 --steps N --seed
 uv run scripts/modal_atlas0.py get /runs/<dir> ~/.hobbes/bench/atlas0/runs/
 # v1: one world per (variant, seed), cells by the world name
 uv run atlas0 gen --seed 1 --variant lived --out ~/.hobbes/bench/atlas0/v1-lived-seed1 && uv run atlas0 check ~/.hobbes/bench/atlas0/v1-lived-seed1
-ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world v1-lived-seed1 --steps 3500 --seeds 1 --blocks B1,B2 --out v1-lived
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world 'v1-lived-seed{seed}' --steps 3500 --seeds 1,2,3,4,5 --blocks B1,B2 --out v1-lived
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py reeval --world 'seed{seed}' --runs grid-3500 --out grid-3500-reeval   # re-read finished cells, ~$0.003 each
 ```
+
+Run directories (`~/.hobbes/bench/atlas0/runs/`, all on the volume):
+`grid-3500` (v0, sixty cells as run), `grid-3500-reeval` (the same on
+the fixed prompts), `v1-lived` + `v1-lived-reeval`, `v1-context` (read
+through `<nl>`, kept) + `v1-context-fixed`, `v1-holdout` +
+`v1-holdout-reeval`; `<dir>-report.{md,json}` beside each.

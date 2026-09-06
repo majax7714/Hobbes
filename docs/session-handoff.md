@@ -1,55 +1,71 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-05 (night): Atlas-0 (`docs/atlas-0.md`, Max's
-design — "sparse is not absent") has run end to end — steps 1–2 with
-no model, step 3 calibrated on Modal, the sixty-cell grid at five seeds,
-the tables and the three atlas entries written into the design doc's
-step record. $7.04 assumed on L4s against a $25 ceiling. What is
-next is Max's reading of the record and the v1 items it names; API
-spend stays off the table for everything else, Modal is open for
-Atlas-0 only. The TTT items, ADR-101 and ADR-092's decisions are still
-held for Max.** Read this, then the two 2026-09-05 BUILDLOG entries
-(later, night) and `docs/atlas-0.md`'s step record, and
+**Rewritten 2026-09-05 (night, later): Atlas-0 v0 + v1 (`docs/atlas-0.md`, Max's
+design — "sparse is not absent") have run end to end — steps 1–2 with
+no model, step 3 calibrated on Modal, the sixty-cell v0 grid at five
+seeds, then the three v1 worlds (relation absence, packed context,
+query-phrasing hold-out) at five seeds, two harness defects found and
+fixed on the way and every cell re-read. $16.54 assumed on L4s against
+a $25 ceiling. What is next is Max's reading of the v1 record and the
+v2 cell it names; API spend stays off the table for everything else,
+Modal is open for Atlas-0 only. The TTT items, ADR-101 and ADR-092's
+decisions are still held for Max.** Read this, then the three 2026-09-05 BUILDLOG entries
+(later, night, night-later) and `docs/atlas-0.md`'s step record, and
 `docs/workstreams.md` for the backlog by owner. History lives in the
 BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Atlas-0 is run; Max reads the atlas entries and decides v1
+## ⇢ START HERE NEXT SESSION: Atlas-0 v0 and v1 are run; Max reads the record and picks the v2 cell
 
-**Done 2026-09-05 (later + night), for Max's review (BUILDLOG):**
-`bench/atlas0/` — `atlas0 gen | check | score | probe-check | report`,
-`atlas0.train`, `scripts/modal_atlas0.py`, 37 tests, in CI's python
-job. Sixty-four cells on Modal L4s ($7.04 assumed; read Modal's bill);
-records under `~/.hobbes/bench/atlas0/runs/` (regenerable from the
-volume `hobbes-atlas0` with `modal_atlas0.py get`) and the five-seed
-report at `runs/grid-3500-report.md`. The design doc's step record
-carries steps 1–6 with attribution and the §6.6 gate.
+**Done 2026-09-05 (later, night, night-later), for Max's review (BUILDLOG,
+three entries):** `bench/atlas0/` — `atlas0 gen [--variant] | check |
+evals | score | probe-check | report`, `atlas0.train` (+ `reevaluate`),
+`scripts/modal_atlas0.py` (`train | grid | reeval | put | get`), 53
+tests, in CI's python job. **$16.54 assumed on Modal L4s to date**
+(read Modal's bill): v0's sixty-four cells, v1's eighty, a hundred and
+twenty re-reads. Records under `~/.hobbes/bench/atlas0/runs/` (the
+README lists the directories; regenerable from the volume
+`hobbes-atlas0` with `modal_atlas0.py get`) with a `<dir>-report.md`
+beside each. The design doc's step record carries v0 (steps 1–6) and
+the v1 section — **the two defects and the results against the
+experiment are at its top**, as Max asked.
 
 **What needs Max:**
 
-1. **Read the three atlas entries** (`docs/atlas-0.md` § Step record,
-   steps 5–6) and the six generator readings (`bench/atlas0/README.md`).
-   The one-line result: B2's learned dedicated tokens make the class
-   representable and B1's stems do not; no block separates sparse-real
-   from absent in its *act* — B1 conflates by density, B2 by training
-   count, B3 learns nothing; written absences teach no act in any
-   block because the corpus never pairs them with a query.
-2. **v1 items the record names** (each is a world change, so a new
-   hash and a re-run of what it touches): an absence-bearing query in
-   the lived corpus that is not the `UNDEFINED` target itself, and
-   relation-absence (§2.4, §7); a context-useful corpus so §6.4's
-   inversion curve has something to measure (`C-only/support` reads
-   0.01–0.03 under B1); template hold-out (§7). Each is a session and
-   ~$1.50 a seed-grid.
-3. **B3's budget.** Frozen random keys did not store the world at T
-   (dense 0.11–0.22). Tuning T for B3 alone breaks §5's "held
-   constant"; a B3-only calibration run (one cell, $0.10) would say
-   whether it is a budget or a block, and is a decision, not a default.
-4. **The design's ADR** takes 101 or 102 when Max moves it to
+1. **Read the v1 section** (`docs/atlas-0.md` § Step record › v1): the
+   two defects (seed 5's check; the `<nl>` separator under every §6.4
+   number, fixed and every cell re-read), the replication (B1/phrase's
+   refusal rates are run-to-run; B2/phrase's held-out refusal is 1.00
+   in five fresh seeds), and the three worlds' results — B2 reads a
+   written relation-absence and acts on it for the token it names,
+   treating sparse and absent differently on that question for the
+   first time, while the state does not travel to `defined_in`; B1
+   reads nothing; no inversion at this T even with packed context; a
+   fourth query phrasing drops dense-real to 0.42 (B1) / 0.08 (B2) and
+   B2/phrase refuses an unfamiliar question like an untrained name.
+   The amended atlas entries are there; the seventh reading (template
+   hold-out read as *query-phrasing* hold-out) is in the README.
+2. **The v2 cell the record names:** a `defined_in` `UNDEFINED` pair on
+   a *disjoint* half of the absent names, lived lines on the other
+   half, evaluated on the lived half — does written existence-absence
+   get read once the act is available on that question? One world
+   field, one grid (B1/B2 × lived+phrase-split × 5 seeds ≈ $1.10). If
+   the §6.4 curve matters, a regime in which reading is ever needed
+   (facts only in packed lines, or far fewer epochs) is a separate
+   world; and any world that asks about phrasing should train more
+   than three.
+3. **B3's budget** (unchanged): a one-cell calibration ($0.10) would
+   say whether frozen keys are a budget or a block; it breaks §5's
+   "held constant" and is Max's call. B3 was left out of v1 for that
+   reason.
+4. **§6.6 as written** reads seed spread as all variance; the
+   replication shows B1/phrase's run-to-run spread is as wide. Whether
+   the gate should require a fresh-run replicate for any claimed rate
+   is a design amendment for the ADR.
+5. **The design's ADR** takes 101 or 102 when Max moves it to
    *accepted* (Calvin's takes 101 if first); its §7 constraints open
-   then, plus the readings' departures (3–4-stem names; three
-   renderings per fact; near = distance 1).
+   then, plus the readings' departures.
 
 **The earlier 2026-09-05 work (unchanged):** `29906e2` (tsextract
 symlinks, C-73's residual), `9423fc6` (Poetry / PDM / uv / PEP 735
@@ -204,7 +220,7 @@ image's python as the base.
 ## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
 
 **First: Atlas-0's review** (START HERE above) — Max's reading of the
-atlas entries and his pick among the v1 items. Then the queue:
+v1 record and his call on the v2 cell. Then the queue:
 
 0. ~~Doc drift from the Calvin sprint~~ — **done 2026-09-04 (later):**
    the register count everywhere (93 / 71 / 20 / 2), README's status,
