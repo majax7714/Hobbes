@@ -866,6 +866,10 @@ def eval_items(world: World) -> dict[str, list[dict]]:
 
     rng = _rng(world.seed, "inversion")
     inversion: list[dict] = []
+    # The statement precedes the question the way one does in this world's
+    # corpus: as the previous line (a newline, the stream's <eos>), or on the
+    # same line where the training QA packs it there (context_qa_p).
+    sep = " " if cfg.context_qa_p > 0 else "\n"
     cs = [s for s in world.symbols if s.cls == "dense-real" and s.qa_split == "eval"]
     conly = [s for s in world.symbols if not s.defined_in_stated]
     n = world.config.inversion_items
@@ -873,7 +877,7 @@ def eval_items(world: World) -> dict[str, list[dict]]:
         for s in group:
             other = rng.choice([m for m in world.modules if m != s.module])
             for ctx_kind, ctx_value in (("none", None), ("support", s.module), ("conflict", other)):
-                ctx = "" if ctx_value is None else TEMPLATES["defined_in"][0].format(s=s.name, m=ctx_value) + "\n"
+                ctx = "" if ctx_value is None else TEMPLATES["defined_in"][0].format(s=s.name, m=ctx_value) + sep
                 inversion.append({
                     "id": f"inv:{split}:{ctx_kind}:{s.name}",
                     "prompt": ctx + query_line("defined_in", s.name, phrasing),
@@ -950,6 +954,26 @@ def write(world: World, out: Path) -> dict:
     }
     (out / "manifest.json").write_bytes(json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8") + b"\n")
     return manifest
+
+
+def write_evals(world: World, out: Path) -> dict[str, int]:
+    """Rewrite ``out/eval/*.jsonl`` from ``world`` (the corpora and the hash
+    untouched) and record the counts in the manifest; for a world whose
+    eval sets changed shape after its cells ran."""
+    (out / "eval").mkdir(exist_ok=True)
+    for p in (out / "eval").glob("*.jsonl"):
+        p.unlink()
+    counts = {}
+    for name, items in eval_items(world).items():
+        data = "".join(json.dumps(it, sort_keys=True, ensure_ascii=False) + "\n" for it in items).encode("utf-8")
+        (out / "eval" / f"{name}.jsonl").write_bytes(data)
+        counts[name] = len(items)
+    mp = out / "manifest.json"
+    if mp.exists():
+        m = json.loads(mp.read_text())
+        m["eval_items"] = counts
+        mp.write_bytes(json.dumps(m, indent=2, sort_keys=True).encode("utf-8") + b"\n")
+    return counts
 
 
 def read(path: Path) -> World:

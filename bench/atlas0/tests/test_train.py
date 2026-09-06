@@ -88,3 +88,14 @@ def test_generate_stops_at_eos_without_emitting_it(tiny):
 
     outs, _, _ = train.generate(Scripted(), tok, [prompt], "cpu", max_new=6)
     assert outs == ["ANSWER mod_lane"]
+
+
+def test_reevaluate_re_reads_a_cell_on_a_matching_world_and_refuses_another(tiny, tmp_path):
+    train.run(tiny, tmp_path / "run", cfg(steps=8, ckpt_every=8), device="cpu", log=lambda s: None)
+    m = train.reevaluate(tiny, tmp_path / "run", tmp_path / "again", device="cpu")
+    assert m["reevaluated_from"].endswith("run") and m["checkpoints"] == [] and m["final"]["dense_correct"] is not None
+    assert set(json.loads((tmp_path / "again" / "report.json").read_text())["confusion"]) == {"primary", "secondary", "trained"}
+    other = tmp_path / "other"
+    W.write(W.generate(6, W.Config.tiny()), other)
+    with pytest.raises(ValueError, match="trained on corpus"):
+        train.reevaluate(other, tmp_path / "run", tmp_path / "no", device="cpu")

@@ -95,10 +95,15 @@ class Tokenizer:
         return len(self.vocab)
 
     def encode(self, text: str) -> list[int]:
+        """Token ids of ``text``. A newline is a line boundary, encoded as the
+        stream's ``<eos>`` — the token that separates lines in training — so a
+        statement put before a question (§6.4) reads as the preceding line.
+        (Until 2026-09-05 night it was ``<nl>``, a token no stream contains;
+        every §6.4 prompt was read through an untrained separator.)"""
         ids: list[int] = []
         for line_no, line in enumerate(text.split("\n")):
             if line_no:
-                ids.append(self.index[NL])
+                ids.append(self.index[EOS])
             for piece in _PIECE.findall(line):
                 if piece in self.entities and self.block != "B1":
                     ids.append(self.index[piece])

@@ -2,6 +2,7 @@
 
     atlas0 gen   --seed S --out DIR [--tiny] [--variant v0|lived|context|holdout]   # the world and the four corpora
     atlas0 check DIR                                  # step 1's exit criteria, from the files
+    atlas0 evals DIR                                  # rewrite eval/*.jsonl from world.json (corpora untouched)
     atlas0 score DIR --outputs OUT.jsonl [--set primary|secondary|trained]   # §6.1 matrix
     atlas0 probe-check DIR [--block B1|B2|B3] [--model tiny|atlas-30m] [--per-class N] [--out R.json]
     atlas0 report RUNS [--out NAME]                    # §6.1–6.6 tables over trained cells (steps 5–6)
@@ -36,6 +37,12 @@ def cmd_gen(a: argparse.Namespace) -> int:
     print(json.dumps({"seed": a.seed, "variant": manifest["variant"], "world_hash": manifest["world_hash"], "facts": manifest["facts"],
                       "classes": manifest["classes"], "corpus_lines": manifest["corpus_lines"],
                       "seconds": round(time.time() - t, 1)}, indent=2))
+    return 0
+
+
+def cmd_evals(a: argparse.Namespace) -> int:
+    counts = W.write_evals(W.read(Path(a.dir)), Path(a.dir))
+    print(json.dumps(counts))
     return 0
 
 
@@ -179,6 +186,9 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--tiny", action="store_true", help="the test-sized world")
     g.add_argument("--variant", default="v0", choices=W.Config.VARIANTS, help="one v1 item on (default v0)")
     g.set_defaults(fn=cmd_gen)
+    e = sub.add_parser("evals", help="rewrite a written world's eval sets from its world.json")
+    e.add_argument("dir")
+    e.set_defaults(fn=cmd_evals)
     c = sub.add_parser("check", help="step 1's exit criteria over a written world")
     c.add_argument("dir")
     c.add_argument("--out")

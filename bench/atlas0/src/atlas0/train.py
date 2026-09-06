@@ -447,3 +447,45 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     (out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return manifest
 
+
+def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = None) -> dict:
+    """Read a finished cell's weights against ``world_dir``'s eval sets, into ``out``.
+
+    For eval sets that changed after the cell ran (the §6.4 prompts' separator,
+    2026-09-05 night; a v1 world's new secondary rows) the cell is not
+    retrained: its outputs are re-read on the new items. The world's corpus
+    hash for the cell's arm must equal the one the cell trained on, or this
+    refuses. The manifest written is the cell's with ``reevaluated_from``,
+    the new ``final`` and no checkpoints (those were read with the old prompts).
+    """
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    man = json.loads((run_dir / "manifest.json").read_text())
+    cfg = TrainConfig(**man["config"])
+    manifest_w = json.loads((world_dir / "manifest.json").read_text())
+    if manifest_w["corpus_hash"][cfg.arm] != man["corpus_hash"]:
+        raise ValueError(f"{run_dir.name} trained on corpus {man['corpus_hash'][:12]}…, not {world_dir.name}'s "
+                         f"{manifest_w['corpus_hash'][cfg.arm][:12]}… for arm {cfg.arm}")
+    ents = json.loads((world_dir / "entities.json").read_text())
+    state = torch.load(run_dir / "model.pt", map_location=device)
+    n_rows = state["wte.weight"].shape[0]
+    tok = Tokenizer.build(cfg.block, ents, v1_words=False)
+    if n_rows != len(tok):
+        tok = Tokenizer.build(cfg.block, ents, v1_words=True)
+    if n_rows != len(tok):
+        raise ValueError(f"vocabulary of {run_dir.name} ({n_rows}) matches neither build ({len(tok)})")
+    model = GPT(CONFIGS[cfg.model], len(tok))
+    model.load_state_dict({k: v for k, v in state.items() if k != "row_mask"}, strict=False)
+    model.to(device)
+    out.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    report = full_eval(model, tok, load_evals(world_dir), cfg, device, out)
+    prim = report["confusion"]["primary"]
+    man = dict(man, reevaluated_from=str(run_dir), world_hash=manifest_w["world_hash"], eval_s=round(time.time() - t0, 1),
+               checkpoints=[], vocab=len(tok),
+               final={"dense_correct": _rate(prim, "dense-real", "ANSWER-correct"),
+                      "sparse_correct": _rate(prim, "sparse-real", "ANSWER-correct"),
+                      "probe_best_test": report["probe"]["best_test"], "probe_chance": report["probe"]["chance"],
+                      "mi_act_probed": report["authority"]["mi_act_probed"]})
+    (out / "manifest.json").write_text(json.dumps(man, indent=2, sort_keys=True) + "\n")
+    (out / "report.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+    return man

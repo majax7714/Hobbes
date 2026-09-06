@@ -188,3 +188,27 @@ def test_row_of_carries_exposure_when_present():
     assert acts.row_of({"class": "dense-real", "exposure": "n/a"}) == "dense-real"
     assert acts.row_of({"class": "sparse-real", "exposure": "without"}) == "sparse-real/without"
     assert acts.row_of({"class": "absent-near", "exposure": "held-out"}) == "absent-near/held-out"
+
+
+def test_a_newline_in_a_prompt_is_the_line_boundary_and_the_context_world_packs_on_one_line(worlds):
+    w, d, _ = worlds["v0"]
+    ents = json.loads((d / "entities.json").read_text())
+    tok = tokens.Tokenizer.build("B1", ents)
+    ids = tok.encode("a_b calls c_d.\nQ: Where is a_b defined? A:")
+    assert ids.count(tok.index[tokens.EOS]) == 1 and tok.index[tokens.NL] not in ids
+    inv = acts.read_jsonl(d / "eval" / "inversion.jsonl")
+    assert all("\n" in it["prompt"] for it in inv if it["context_kind"] != "none")
+    inv_c = acts.read_jsonl(worlds["context"][1] / "eval" / "inversion.jsonl")
+    assert all("\n" not in it["prompt"] and ". Q: " in it["prompt"] for it in inv_c if it["context_kind"] != "none")
+
+
+def test_write_evals_rewrites_the_sets_and_nothing_else(worlds, tmp_path):
+    import shutil
+    w, d, m = worlds["lived"]
+    shutil.copytree(d, tmp_path / "w")
+    before = {p.name: p.read_bytes() for p in (tmp_path / "w" / "eval").iterdir()}
+    (tmp_path / "w" / "eval" / "primary.jsonl").write_text("")
+    counts = W.write_evals(W.read(tmp_path / "w"), tmp_path / "w")
+    assert counts == m["eval_items"]
+    assert {p.name: p.read_bytes() for p in (tmp_path / "w" / "eval").iterdir()} == before
+    assert json.loads((tmp_path / "w" / "manifest.json").read_text())["corpus_hash"] == m["corpus_hash"]

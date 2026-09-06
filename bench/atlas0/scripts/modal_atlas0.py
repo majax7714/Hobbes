@@ -10,6 +10,7 @@
     uv run scripts/modal_atlas0.py grid --world <name> --steps N --seeds 0,1,2,3,4 \\
         [--blocks B1,B2,B3] [--arms none,phrase,lived,lived+phrase] [--out runs/<dir>]   # cells in parallel
     # a world per seed (v1): --world v1-lived-seed{seed}, formatted with each cell's seed
+    uv run scripts/modal_atlas0.py reeval --world <name> --runs <dir> --out <dir> [--cells B1-none-s1,...]   # re-read finished cells
     uv run scripts/modal_atlas0.py get <remote-path> <local-path>
     ATLAS0_GPU=L4 ATLAS0_MAX_CONTAINERS=4                                 # the environment
 
@@ -84,6 +85,26 @@ def train_cell(world: str, cfg: dict, out: str) -> dict:
     return json.loads(json.dumps({"cell": cell, "cached": False, "manifest": m}))
 
 
+@app.function(image=image, gpu=GPU, volumes={"/atlas0": vol}, timeout=1800, max_containers=MAX_CONTAINERS)
+def eval_cell(world: str, run: str, out: str) -> dict:
+    """Re-read one finished cell (``/atlas0/runs/<run>``) against ``/atlas0/worlds/<world>``'s
+    eval sets into ``/atlas0/runs/<out>/<cell>`` — no training; ~$0.01."""
+    from atlas0 import train
+
+    t0 = time.time()
+    run_dir = Path("/atlas0/runs") / run
+    out_dir = Path("/atlas0/runs") / out / run_dir.name
+    if (out_dir / "manifest.json").exists():
+        return {"cell": run_dir.name, "cached": True, "manifest": json.loads((out_dir / "manifest.json").read_text())}
+    m = train.reevaluate(Path("/atlas0/worlds") / world, run_dir, out_dir, device="cuda")
+    wall = time.time() - t0
+    m["container"] = {"gpu": GPU, "wall_s": round(wall, 1), "rate_usd_per_h": RATES.get(GPU),
+                      "cost_usd_assumed": round(wall / 3600 * RATES.get(GPU, 0.0), 3), "reeval": True}
+    (out_dir / "manifest.json").write_text(json.dumps(m, indent=2, sort_keys=True) + "\n")
+    vol.commit()
+    return json.loads(json.dumps({"cell": run_dir.name, "cached": False, "manifest": m}))
+
+
 def _summary(r: dict) -> dict:
     m = r["manifest"]
     return {"cell": r["cell"], "cached": r["cached"], "steps": m["steps_done"], "epochs": m["epochs"],
@@ -97,6 +118,28 @@ def main(argv: list[str]) -> int:
         os.execvp("modal", ["modal", "volume", "put", "--force", "hobbes-atlas0", rest[0], f"/worlds/{rest[1]}"])
     if cmd == "get" and len(rest) == 2:
         os.execvp("modal", ["modal", "volume", "get", "--force", "hobbes-atlas0", rest[0], rest[1]])
+    if cmd == "reeval":
+        import argparse
+        ap = argparse.ArgumentParser(prog="modal_atlas0.py reeval")
+        ap.add_argument("--world", required=True, help="world name; {seed} is formatted with each cell's seed")
+        ap.add_argument("--runs", required=True, help="the runs dir on the volume holding the cells")
+        ap.add_argument("--out", required=True)
+        ap.add_argument("--cells", default=None, help="comma-separated cell names (default: every cell in --runs)")
+        a = ap.parse_args(rest)
+        if a.cells:
+            cells = a.cells.split(",")
+        else:
+            import subprocess
+            ls = subprocess.run(["modal", "volume", "ls", "--json", "hobbes-atlas0", f"/runs/{a.runs}"], capture_output=True, text=True, check=True)
+            cells = sorted(e["Filename"].rsplit("/", 1)[-1] for e in json.loads(ls.stdout) if e["Type"] == "dir")
+        worlds = [a.world.format(seed=c.rsplit("-s", 1)[-1]) for c in cells]
+        print(f"{len(cells)} cells re-read on {GPU} → runs/{a.out}", file=sys.stderr)
+        with app.run():
+            results = list(eval_cell.map(worlds, [f"{a.runs}/{c}" for c in cells], [a.out] * len(cells)))
+        total = sum((r["manifest"].get("container") or {}).get("cost_usd_assumed", 0.0) for r in results if not r["cached"])
+        print(json.dumps({"cells": [{"cell": r["cell"], "cached": r["cached"], "final": r["manifest"]["final"]} for r in results],
+                          "cost_usd_assumed_total": round(total, 2)}, indent=1, sort_keys=True))
+        return 0
     if cmd in ("train", "grid"):
         import argparse
         ap = argparse.ArgumentParser(prog=f"modal_atlas0.py {cmd}")
