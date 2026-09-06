@@ -375,3 +375,20 @@ class TestV2:
             assert full.vocab[: len(v1)] == v1.vocab and {"belongs", "holds", "hits"} <= set(full.vocab[len(v1):])
             for ln in _lines(d, "lived+phrase")[:200]:
                 assert full.index[tokens.UNK] not in full.encode(ln)
+
+
+def test_sixteen_templates_render_distinct_statements_and_v2_words_still_follow_every_earlier_id():
+    """The sixteen-rendering calibration world (renderings 16, statement_templates 16)."""
+    cfg = W.Config.tiny().with_variant("v2").with_fields(renderings=16, statement_templates=16)
+    w = W.generate(SEED, cfg)
+    assert {f.template for f in w.facts} == set(range(16))
+    for kind, ts in W.TEMPLATES.items():
+        assert len(ts) == 16 and len({t.format(s="S", m="M", a="A", b="B", t="T") for t in ts}) == 16
+    v8 = W.generate(SEED, W.Config.tiny().with_variant("v2"))
+    c16, c8 = w.mention_counts(), v8.mention_counts()
+    for sym in w.symbols:            # dense symbols may absorb filler over their target; the rest are as budgeted
+        assert c16[sym.name] == c8[sym.name] or (sym.cls == "dense-real" and min(c16[sym.name], c8[sym.name]) >= 24), sym.name
+    # The budgets fix the statement count; more renderings means fewer distinct facts, not a bigger corpus.
+    assert len({f.key() for f in w.facts}) < len({f.key() for f in v8.facts}) and abs(len(w.facts) - len(v8.facts)) < 0.25 * len(v8.facts)
+    with pytest.raises(ValueError, match="statement_templates"):
+        W.Config.tiny().with_fields(statement_templates=17)

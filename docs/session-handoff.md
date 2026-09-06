@@ -1,79 +1,108 @@
 # Session handoff — the single resume point
 
-**Rewritten 2026-09-05 (night, later): Atlas-0 v0 + v1 (`docs/atlas-0.md`, Max's
-design — "sparse is not absent") have run end to end — steps 1–2 with
-no model, step 3 calibrated on Modal, the sixty-cell v0 grid at five
-seeds, then the three v1 worlds (relation absence, packed context,
-query-phrasing hold-out) at five seeds, two harness defects found and
-fixed on the way and every cell re-read. $16.54 assumed on L4s against
-a $25 ceiling. What is next is Max's reading of the v1 record and the
-v2 cell it names; API spend stays off the table for everything else,
-Modal is open for Atlas-0 only. The TTT items, ADR-101 and ADR-092's
-decisions are still held for Max.** Read this, then the three 2026-09-05 BUILDLOG entries
-(later, night, night-later) and `docs/atlas-0.md`'s step record, and
-`docs/workstreams.md` for the backlog by owner. History lives in the
-BUILDLOG; this doc is rewritten, never appended into a pile.
+**Rewritten 2026-09-06: Max's three Atlas-0 items ran — the prompt-vocabulary
+check found a third untrained-token defect under the hold-out world and
+the re-read overturned item 1's premise (a held-out phrasing of trained
+words reads dense-real 0.97 / 0.89, not 0.42 / 0.08); the B3 context
+cells read and follow context (item 2, done); the v2 world is built and
+calibrated on one seed (item 3) — and the calibration says the item's
+"2–4 epochs" does not exist at 30M: B1 reads before it stores (7–10
+epochs: reading 0.9–1.0, conflict-following 0.7–0.9, no fact held) and
+reaches the 0.8 criterion only once it is memorising again (14 epochs).
+The v2 grid is not launched: T_v2 is Max's call. $17.57 assumed to date
+against the $25 ceiling. API spend stays off the table; Modal is open
+for Atlas-0 only.** Read this, then the 2026-09-06 BUILDLOG entry and
+`docs/atlas-0.md` § Step record › 2026-09-06 (its three sub-sections
+carry the tables), and `docs/workstreams.md` for the backlog by owner.
+History lives in the BUILDLOG; this doc is rewritten, never appended
+into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Atlas-0 v0 and v1 are run; Max reads the record and picks the v2 cell
+## ⇢ START HERE NEXT SESSION: Max picks T_v2 (or amends the regime); then the v2 grid
 
-**Done 2026-09-05 (later, night, night-later), for Max's review (BUILDLOG,
-three entries):** `bench/atlas0/` — `atlas0 gen [--variant] | check |
-evals | score | probe-check | report`, `atlas0.train` (+ `reevaluate`),
-`scripts/modal_atlas0.py` (`train | grid | reeval | put | get`), 53
-tests, in CI's python job. **$16.54 assumed on Modal L4s to date**
-(read Modal's bill): v0's sixty-four cells, v1's eighty, a hundred and
-twenty re-reads. Records under `~/.hobbes/bench/atlas0/runs/` (the
-README lists the directories; regenerable from the volume
-`hobbes-atlas0` with `modal_atlas0.py get`) with a `<dir>-report.md`
-beside each. The design doc's step record carries v0 (steps 1–6) and
-the v1 section — **the two defects and the results against the
-experiment are at its top**, as Max asked.
+**Done 2026-09-06, for Max's review (BUILDLOG entry; commits `87bb1c0` +
+the docs commit after it):**
+
+1. **The procedure and the third defect (item 1).** `atlas0 check`
+   reads every eval prompt's words against every arm's corpus; the
+   trainer reads the ids against the stream and refuses
+   (`UntrainedPromptTokens`). The hold-out world's fourth phrasing had
+   `live` / `exercises`, words no corpus trains — the whole held-out
+   `defined_in` / `reached_by` reading was that token. Fifth phrasing of
+   trained words, corpora byte-identical, twenty cells re-read
+   (`runs/v1-holdout-fix-reeval`, $0.08): **held-out dense-real 0.97 /
+   0.89 against 0.98 / 0.92 seen; B2/phrase refuses dense-real 0.00 under
+   it (was 0.59).** Item 1's premise (question-string → answer-string
+   pairs) is withdrawn with the two entry lines; the retitle *memorisation
+   regime* stands in the storage-without-reading sense; the B2 decoupling
+   and mechanism lines and the §6.6 amendment (two runs per seed,
+   `--runs 2`, gate over the union) are in. **Max should read the
+   corrected section** — the record says what was done with his edits and
+   why.
+2. **B3 on the context world (item 2, `runs/v2-b3-context`, five seeds,
+   + `v2-b3-context1` at full packing; $0.73):** reads a fact only in
+   context 0.44 (B2's rate) with parametric dense 0.29; **follows a
+   conflicting context 0.40 / 0.73** — the first block above 0.03; the
+   §6.4 inversion measured at full packing (0.93 at step 1,250 → 0.80 as
+   the parametric route grows); with nothing to read it still answers
+   (`ANSWER` 200/200). B3's entry amended.
+3. **The v2 world (item 3) is built** — `--variant v2`, each part a
+   field, v0/v1 byte-identical (README table) — five seeds on the
+   volume; `--epochs`, `--target-measure read_context_only`, `--runs`;
+   71 tests. **Calibration on seed 1 (eight cells, ~$0.3):** 2–4 epochs
+   learn nothing at batch 64/16/8 and at sixteen renderings (templates
+   8–15 written for it; more renderings is fewer facts, not more tokens);
+   an 8-epoch cosine never leaves the plateau; **a 16-epoch cosine reads
+   at 7 epochs (0.89, conflict-following 0.74, dense 0.01), saturates by
+   10 (1.00 / 0.93), then stores from 11 and inverts (dense 0.07 → 0.83,
+   following 0.93 → 0.77, context-only facts 0.09 → 0.95 without
+   context) — 0.80 met at 3,100 steps / 13.9 epochs.** B2 on the
+   same schedule meets 0.8 at 10.4 epochs, storing and reading together
+   (no reading-first phase); **B3 reads 0.125 at 16 epochs — not
+   calibrated for reading at this T** (it needs ~3× the tokens; §5's
+   "held constant" is the rule in the way).
 
 **What needs Max:**
 
-1. **Read the v1 section** (`docs/atlas-0.md` § Step record › v1): the
-   two defects (seed 5's check; the `<nl>` separator under every §6.4
-   number, fixed and every cell re-read), the replication (B1/phrase's
-   refusal rates are run-to-run; B2/phrase's held-out refusal is 1.00
-   in five fresh seeds), and the three worlds' results — B2 reads a
-   written relation-absence and acts on it for the token it names,
-   treating sparse and absent differently on that question for the
-   first time, while the state does not travel to `defined_in`; B1
-   reads nothing; no inversion at this T even with packed context; a
-   fourth query phrasing drops dense-real to 0.42 (B1) / 0.08 (B2) and
-   B2/phrase refuses an unfamiliar question like an untrained name.
-   The amended atlas entries are there; the seventh reading (template
-   hold-out read as *query-phrasing* hold-out) is in the README.
-2. **The v2 cell the record names:** a `defined_in` `UNDEFINED` pair on
-   a *disjoint* half of the absent names, lived lines on the other
-   half, evaluated on the lived half — does written existence-absence
-   get read once the act is available on that question? One world
-   field, one grid (B1/B2 × lived+phrase-split × 5 seeds ≈ $1.10). If
-   the §6.4 curve matters, a regime in which reading is ever needed
-   (facts only in packed lines, or far fewer epochs) is a separate
-   world; and any world that asks about phrasing should train more
-   than three.
-3. **B3's budget** (unchanged): a one-cell calibration ($0.10) would
-   say whether frozen keys are a budget or a block; it breaks §5's
-   "held constant" and is Max's call. B3 was left out of v1 for that
-   reason.
-4. **§6.6 as written** reads seed spread as all variance; the
-   replication shows B1/phrase's run-to-run spread is as wide. Whether
-   the gate should require a fresh-run replicate for any claimed rate
-   is a design amendment for the ADR.
-5. **The design's ADR** takes 101 or 102 when Max moves it to
-   *accepted* (Calvin's takes 101 if first); its §7 constraints open
-   then, plus the readings' departures.
+1. **T_v2.** The item's regime (memorising not the cheaper route; some
+   facts never in the weights) and its criterion (B1 ≥ 0.8 from free
+   statements) do not meet at 30M in this world. Two honest T's: (a) the
+   16-epoch cosine stopped at ~14 epochs — meets the criterion, reads
+   §6.1 on an unseen phrasing with reading available, every checkpoint
+   on the way recorded (the reading phase and the inversion come free);
+   (b) the same schedule stopped at ~10 epochs — the reading regime
+   itself, fails the criterion on purpose. **Grid: 90 cells (3 × 3 × 5 ×
+   2 runs) ≈ $5–6 at either T, ≈ $11 both;** $17.57 spent of $25 — both
+   T's would need the ceiling raised or the runs halved. Launch is
+   `modal_atlas0.py grid --world 'v2-seed{seed}' --steps 100000 --epochs
+   16 --batch 16 --ckpt-every 100 --seeds 1,2,3,4,5 --blocks B1,B2,B3
+   --arms none,phrase,lived+phrase --runs 2 --out v2-grid` (for (b) add
+   a step cap — `--steps 2200` with `--epochs` unset — after checking
+   the B2/B3 calibration rows; a `--stop-at-step` flag would be cleaner
+   and is not written).
+2. **The corrected item-1 section** (`docs/atlas-0.md`, "2026-09-06 —
+   the memorisation-regime reframe…"): confirm the withdrawal of the
+   two entry lines and the retitle's meaning; the `calls` phrasing's
+   seed-bistability (0.04–0.80) is a fact about that phrasing to keep or
+   drop.
+3. **B3's §5 criterion** is retired in favour of reading (`read_context_only`
+   ≥ 0.5) for v2; item 3 of the old handoff (a B3 hot-T calibration) is
+   moot — B3 reads at T.
+4. **§6.6 as amended** is in the design text; the ADR (101/102 on
+   *accepted*) takes it and the vocabulary procedure with it.
+5. Everything else held: the TTT items, ADR-101, ADR-092's decisions,
+   the wider Calvin run.
 
-**The earlier 2026-09-05 work (unchanged):** `29906e2` (tsextract
-symlinks, C-73's residual), `9423fc6` (Poetry / PDM / uv / PEP 735
-tables, C-79's residual), `94a9a67` (the expression callee is a site,
-`expr-callee`; C-63 surfaced), `20957de` (W0's two build items). This
-repo was re-ingested contained at `9423fc6` dirty; **restart the
-knowledge server** in any session open across the image rebuild
-(C-65).
+**Practical, from today:** `modal run`'s prints are buffered until the
+function returns — a cell's log is empty until it finishes; `modal
+volume ls` shows the cell dir early. `uv run atlas0 …` must run from
+`bench/atlas0` (the cwd resets between commands in an agent session).
+Worlds and runs local under `~/.hobbes/bench/atlas0/` and on the volume
+`hobbes-atlas0` (`v1-holdout-fix-seed{1..5}`, `v2-context1-seed1`,
+`v2-seed{1..5}`, `v2r16-seed1`; runs `v1-holdout-fix-reeval`,
+`v2-b3-context`, `v2-b3-context1`, `v2-cal-b{64,16,8}`, `v2-cal-e{8,16}`,
+`v2-cal-r16-e4`).
 
 *The Calvin state below is unchanged from 2026-09-04 (later).*
 

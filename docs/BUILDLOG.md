@@ -7077,3 +7077,124 @@ seen/held-out table and the checkpoint curve; the tokenizer appends
 v1's words after every v0 id; `row_of` carries any exposure. 53
 atlas0 tests (+16). Runs under `~/.hobbes/bench/atlas0/runs/` (the
 README lists the directories) and on the volume. Not pushed.
+
+## 2026-09-06 — Atlas-0: Max's three items — the reframe corrected by its own re-read (a third untrained-token defect), B3 reads and follows context, the v2 world built and its calibration run
+
+**Max's brief (morning):** three items — (1) reframe v0/v1 as the
+memorisation-regime atlas, with record edits, a §6.6 amendment and a
+procedure: every eval prompt tokenised and checked against the
+training vocabulary before a cell is read; (2) the B3 cell on the
+context world, the block for which reading is the only route, ~$1;
+(3) the v2 reading regime: few epochs, many phrasings, a held-out
+phrasing by default, context-only facts, the absence split, B3
+calibrated on reading. Order: 1, 2, 3.
+
+**The procedure came first and found the third defect.** The check
+(`atlas0 check`: every prompt's words against every arm's corpus text;
+the trainer: every prompt's ids against the stream, `UntrainedPromptTokens`
+unless allowed, recorded in the manifest; an absent name's own tokens
+exempt) was run over every v0 and v1 world before anything else. The
+hold-out world's fourth phrasing put `live` (`Where does X live?`) and
+`exercises` (`What exercises X?`) in front of the block — words that
+occur in **no** training corpus of any arm — so every held-out
+`defined_in` and `reached_by` number in the v1 record was read through
+an untrained token, exactly as the `<nl>` numbers had been; only the
+`calls` phrasing was clean. Fixed the same way: a fifth phrasing per
+kind of trained words (`Which module is X defined in?` / `Which symbol
+is called from X?` / `What covers X?`), `Config.train_phrasings` /
+`held_out_phrasing` (the `holdout` variant evaluates on the fifth;
+`--set held_out_phrasing=3` is the world as run and fails `check`),
+the five worlds regenerated with byte-identical corpora, the vocabulary
+the twenty cells trained with unchanged (375 / 6,415, checked against
+the manifests), and the cells re-read without retraining
+(`runs/v1-holdout-fix-reeval`, $0.08).
+
+**The re-read overturned item 1's premise.** On an unseen phrasing of
+trained words, held-out dense-real reads **0.97 [0.93–0.98] in B1 and
+0.89 [0.84–0.95] in B2** against 0.98 / 0.92 seen (the record had 0.42
+/ 0.08); sparse and every refusal rate are the seen rate within
+spread; the memorised facts read 0.82–0.87 under the new form (record:
+0.15–0.64); and B2/phrase refuses dense-real **0.00** under it (record:
+0.59, "B2 turns an unfamiliar question into `UNDEFINED`"). Three
+trained phrasings did make a fourth readable when its words were
+trained. So the reframe's premise — question-string → answer-string
+pairs — does not survive, and it was not applied as written: the
+retitle *Atlas entries — memorisation regime (T = 3,500, ~77 epochs)*
+stands in the sense that holds (every fact the act uses is stored in
+the weights and nothing is read — conflict followed 0.00–0.01 at every
+checkpoint of every world, a fact only in context 0.02 in B1), the
+two "trained phrasing" lines carry that corrected meaning, the two
+hold-out lines of the B1/B2 entries are struck with the re-read
+numbers beside them, the B2 decoupling and mechanism lines are added
+(the refusal binds to "this input's parameters have not moved" — a
+name or a relation; *not* a question shape, on the re-read), and §6.6
+is amended as Max wrote it: two runs per seed, the gate over the union
+(`--runs 2`, `-rN` cells; `atlas0 report` counts cells). What still
+stands from the hold-out world: `reached_by` under a fresh phrasing
+costs B2 a third of its answers where B1 loses none; the `calls`
+phrasing is seed-bistable in B1 (0.04–0.80) — a passive question with
+the subject in the caller's slot, a fact about that phrasing.
+
+**Item 2 — B3 on the context world (`runs/v2-b3-context`, five seeds,
+$0.61; the sixth cell at `context_qa_p = 1.0`, `runs/v2-b3-context1`,
+$0.12; the first cell $0.121 against the $0.10–0.12 estimate before
+the rest).** B3 answers a fact only ever in context **0.44
+[0.35–0.53]** — B2's rate on the same world (0.43), B1 reads 0.03 —
+with parametric dense-real at 0.29; a supporting context lifts it 0.29
+→ 0.70; and it **follows a conflicting context 0.40 [0.33–0.45]**,
+the first block in the atlas above 0.03 anywhere. At full packing:
+0.80 read, 0.98 with support, **0.73 conflict-following**, and the
+§6.4 curve measured for the first time — reading appears in one
+checkpoint (0.49 → 0.93 between steps 1,000 and 1,250, before the
+block answers anything parametrically) and **falls to 0.80 as the
+parametric route is learned late** (dense 0.04 → 0.42); conflict
+following falls 0.92 → 0.74 the same way. With nothing to read B3
+still answers (`ANSWER` 200/200 on C-only/none, an invented module):
+reading gives it no abstention. Against the pre-committed readings:
+not "≈ 0.02 like B1"; equal to B2 at half packing, 0.80 at full; the
+rise-then-fall is the ordinary inversion with a weak parametric
+route, not a paradox; conflict > 0.5 at full packing. B3's §5
+criterion was the wrong one; its atlas entry is amended.
+
+**Item 3 — the v2 world is built** (`--variant v2`, each part a
+`Config` field, v0/v1 byte-identical with the fields present — checked
+on the five v0 dirs): `statement_templates` 8 (templates 5–7 per
+relation, later 8–15 for the sixteen-rendering calibration) and
+`renderings` 8; seven phrasings trained and the eighth held out with
+every word trained; `context_only_frac` 0.3 (facts met only in packed
+lines, once per rendering, the exposure count kept; the `C-only-qa`
+inversion split; `trained_free` / `trained_context_only`);
+`relation_absence` + `absence_split` (a `pair` half and a `lines`
+half of the trained absent names — v1's cleanest cell folded in);
+`filler_partner_budget` (eight renderings pushed a mid symbol to 26;
+v0 seed 1's bytes move if it is on there). `TrainConfig.max_epochs`
+(`--epochs`) sets the steps from the stream; `target_measure
+read_context_only` is B3's criterion. Five full worlds checked and on
+the volume. `atlas0 gen --set field=value`. 71 tests (+18).
+
+**The calibration, seed 1, ten cells, $0.22 (record § 2026-09-06 › §3):**
+2–4 epochs learn nothing — dense-real 0.015–0.03 at batch 64 / 16 / 8
+and at sixteen renderings (templates 8–15 written for it; the budgets
+fix the statement count, so more renderings is fewer distinct facts,
+not more tokens); the loss sits at the templates' grammar. An 8-epoch
+cosine leaves the plateau at 5 epochs and reads 0.11 with no fact
+stored. **A 16-epoch cosine: B1 reads before it stores** — at 7.2
+epochs a packed context-only fact is read 0.89 and a conflicting
+context followed 0.74 with parametric dense-real 0.01; reading
+saturates (1.00 / 0.93) by 10 epochs; from 11 the facts enter the
+weights (dense 0.07 → 0.83 at 13.9 epochs, 3,100 steps, the 0.8 stop)
+and context-following falls 0.93 → 0.77 — §6.4's inversion, in the
+standard block, one seed; the context-only facts enter the weights
+too (0.09 → 0.95 asked without context). The schedule is part of T:
+the 8-epoch cosine at 7 epochs read 0.11, the 16-epoch one 0.89. B2
+meets 0.8 at 10.4 epochs and stores and reads together (no
+reading-first phase; conflict-following peaks 0.39). B3 reads 0.125 at
+16 epochs: not calibrated for reading at this T (it needed ~20M tokens
+on the context world; this schedule gives 6.9M). **So the item's
+regime and its criterion do not meet at 30M:** ≥ 0.8 arrives only in
+the memorising phase, the reading regime is 7–10 epochs with no fact
+held. Two honest T's (14 epochs, the criterion; 10, the reading
+regime), 90 cells ≈ $5–6 each; **the grid is not launched** — T_v2 is
+the design's knob. **$1.03 this session, $17.57 assumed to date** of
+the $25 ceiling. Handoff rewritten; CLAUDE.md status; workstreams.
+Not pushed.

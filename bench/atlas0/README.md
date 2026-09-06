@@ -198,4 +198,7 @@ the fixed prompts), `v1-lived` + `v1-lived-reeval`, `v1-context` (read
 through `<nl>`, kept) + `v1-context-fixed`, `v1-holdout` +
 `v1-holdout-reeval`, `v1-holdout-fix-reeval` (the same cells on the
 fifth phrasing), `v2-b3-context` (§2 of 2026-09-06: B3 on the context
-world); `<dir>-report.{md,json}` beside each.
+world) + `v2-b3-context1` (full packing, seed 1), `v2-cal-b{64,16,8}`,
+`v2-cal-r16-e4`, `v2-cal-e8`, `v2-cal-e16` (§3's calibration: B1 at
+4 / 8 / 16 epochs, B2 and B3 at 16); `<dir>-report.{md,json}` beside
+each.

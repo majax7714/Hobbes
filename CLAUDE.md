@@ -185,7 +185,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
-tests / 53 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+tests / 71 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
 review → `lane_b` pytest) and runs the same way on a box.
@@ -354,36 +354,35 @@ review → `lane_b` pytest) and runs the same way on a box.
   from absent — a synthetic world, three blocks (stems / dedicated
   learned / dedicated frozen), four arms of absence. **Steps 1–2 built
   the same day, no model, no spend (`bench/atlas0/`);** six readings
-  of the design made the world constructible (3–4-stem names, near =
-  distance 1, far ≥ 2, a mid background, sparse never in QA, three
-  renderings per fact). **Max opened Modal for it (a cost check after
-  the first cell): sixty cells at five seeds, $7.04 assumed.** The v0
-  atlas: B1 invents for every absent name (the near name gets its
-  base's module 30%) and, taught `UNDEFINED`, refuses sparse-real by
-  density; B2's learned dedicated tokens make the class linearly
-  readable (probe 1.00) and refuse 85% of sparse-real; B3's frozen
-  vectors do not store the world at T; written absences teach no act.
-  **v1 ran the same night (Max: "good to continue with world items"):
-  three worlds, each one config field, eighty fresh cells and a
-  hundred and twenty re-reads, $16.54 assumed to date.** Two defects
-  first: v0's seed 5 had failed `check` (one sparse symbol at six
-  statements; filler fixed, seeds 1–4 byte-identical) and the §6.4
-  prompt's separator was a token no stream contains (fixed; every
-  cell re-read — "support hurts" was that token). The v1 atlas: **B2
-  reads a written relation-absence and acts on it** for the token it
-  was written about (empty relation refused 1.00 / 0.96, filled one
-  0.00 / 0.07, on QA-held-out symbols) and treats a sparse symbol
-  differently from an absent name on the same question for the first
-  time (0.33–0.37 vs 0.80) — but the state does not travel to
-  `defined_in` or to unwritten names; B1 reads nothing (one rate per
-  question kind); no block follows a conflicting context at any
-  checkpoint even when half the QA is packed (§6.4 flat at this T in
-  every world); a fourth query phrasing drops dense-real from 0.98 to
-  0.42 in B1 and 0.08 in B2, and B2/phrase refuses an unfamiliar
-  question like an untrained name; B1/phrase's refusal rates are
-  run-to-run quantities (§6.6 permissive there); B2/phrase's held-out
-  refusal replicates at 1.00 in five fresh seeds. Next is Max's
-  reading and the v2 cell the record names.
+  of the design made the world constructible. **Max opened Modal for
+  it: v0 at five seeds ($7.04), then three v1 worlds ($16.54 to
+  date).** The v0 atlas: B1 invents for every absent name and, taught
+  `UNDEFINED`, refuses sparse-real by density; B2's learned dedicated
+  tokens make the class linearly readable (probe 1.00) and refuse 85%
+  of sparse-real; B3's frozen vectors do not store the world at T;
+  written absences teach no act. v1: **B2 reads a written
+  relation-absence and acts on it** for the token it was written
+  about, the first act treating sparse and absent differently on one
+  question, but the state does not travel; B1 reads nothing; no block
+  follows a conflicting context at this T. Two harness defects found
+  and fixed there (a seed-5 check; an untrained `<nl>` separator).
+  **2026-09-06 (Max's three items):** the prompt-vocabulary check —
+  every eval prompt against the training vocabulary before a cell is
+  read, in `atlas0 check` and as the trainer's refusal — found a
+  **third** untrained-token defect: the hold-out world's fourth
+  phrasing (`live`, `exercises`); re-read on a phrasing of trained
+  words, held-out dense-real is **0.97 / 0.89**, not 0.42 / 0.08, so the
+  "memorised strings" reading is withdrawn and *memorisation regime*
+  means stored-without-reading. **B3 on the context world reads a
+  fact only in context 0.44 (B2's rate) and follows a conflicting
+  context 0.40 / 0.73** — the first block that does — with the §6.4
+  inversion measured. **The v2 reading-regime world is built** (eight
+  templates, an eighth phrasing held out, context-only facts, the
+  absence split) and **calibrated on one seed: 2–4 epochs learn
+  nothing; B1 reads before it stores (7–10 epochs: 0.9–1.0 read,
+  conflict followed 0.7–0.9, no fact held) and meets the 0.8 criterion
+  only at 14 epochs, memorising again.** The v2 grid (90 cells, ≈ $5–6
+  a T) waits on Max's choice of T_v2; $17.57 assumed to date of $25.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

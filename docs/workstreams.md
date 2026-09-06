@@ -188,16 +188,18 @@ run; GPU-hours stated first).*
   `below-floor` tail class. **Open for the lane:** O5 (dagger TS), xarray under
   a trace when a workspace exists, the Go root on a bigger box, Rupta as
   a time-boxed reference lane. Spends no GPU.
-- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — v0 and v1 run
-  (2026-09-05, later + night; $16.54 assumed on Modal):** the atlas at
-  five seeds for three blocks and four arms, then the three v1 worlds
-  (relation absence in the lived arms, packed context, query-phrasing
-  hold-out). The record's "what follows (v1)" names the v2 cell: a
-  `defined_in` pair on a disjoint half of the absent names with lived
-  lines on the other half, so written existence-absence is asked once
-  the act is available on that question. Waits on Max's reading; B3's
-  budget (a one-cell calibration) and the design's ADR number are his
-  calls.
+- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — v0, v1 and the
+  2026-09-06 items run ($17.57 assumed on Modal):** the atlas at five
+  seeds for three blocks and four arms; the three v1 worlds; then the
+  prompt-vocabulary check (a third untrained-token defect, the hold-out
+  world re-read: a held-out phrasing of trained words costs 1–4
+  points, not 56–84), B3 on the context world (reads 0.44, follows a
+  conflicting context 0.40 / 0.73 — the first block that does), and the
+  v2 reading-regime world, built and calibrated on one seed: 2–4 epochs
+  learn nothing; B1 reads before it stores (7–10 epochs) and meets the
+  0.8 criterion only at 14, memorising again. **Waits on Max: T_v2**
+  (14 epochs, the criterion; or 10, the reading regime; 90 cells ≈ $5–6
+  a T), the corrected item-1 section, and the design's ADR number.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without
