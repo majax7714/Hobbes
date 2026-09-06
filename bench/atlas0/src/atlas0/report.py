@@ -1,12 +1,14 @@
 """``atlas0 report``: the tables of §6.1–§6.6 over a directory of cells (steps 5–6).
 
 A cell is ``<runs>/<block>-<arm>-s<seed>/`` as ``atlas0.train.run``
-writes it. Cells are grouped by (block, arm) and every number is
-reported as mean and spread (min–max) across the seeds present, so
-that §6.6's gate can be applied: a difference between blocks smaller
-than the spread within either is *not separable at n seeds*. Nothing
-here interprets a number; the atlas entry is written by a person from
-these tables.
+writes it, or ``…-s<seed>-r<run>`` for a repeat of the same cell. Cells
+are grouped by (block, arm) and every number is reported as mean and
+spread (min–max) across every cell present — seeds and repeats
+together, §6.6 as amended 2026-09-06: the gate reads the union of the
+seed spread and the run-to-run spread — so that a difference between
+blocks smaller than the spread within either is *not separable at n
+cells*. Nothing here interprets a number; the atlas entry is written by
+a person from these tables.
 """
 
 from __future__ import annotations
@@ -18,10 +20,11 @@ from pathlib import Path
 
 from .acts import COLUMNS
 
-_CELL = re.compile(r"^(B[123])-(none|phrase|lived|lived\+phrase)-s(\d+)$")
+_CELL = re.compile(r"^(B[123])-(none|phrase|lived|lived\+phrase)-s(\d+)(?:-r(\d+))?$")
 
 ROWS = ("dense-real", "sparse-real", "mid", "module-infer",
-        "absent-near/trained", "absent-near/held-out", "absent-far/trained", "absent-far/held-out")
+        "absent-near/trained", "absent-near/pair", "absent-near/lines", "absent-near/held-out",
+        "absent-far/trained", "absent-far/pair", "absent-far/lines", "absent-far/held-out")
 # v1 relation-absence: the secondary rows by whether the symbol has the relation.
 SECONDARY_ROWS = ("dense-real/with", "dense-real/without", "mid/with", "mid/without", "sparse-real/with", "sparse-real/without",
                   "absent-near/trained", "absent-near/held-out", "absent-far/trained", "absent-far/held-out")
@@ -33,7 +36,7 @@ def load_cells(runs: Path) -> list[dict]:
         m = _CELL.match(d.name)
         if not m or not (d / "report.json").exists():
             continue
-        cells.append({"block": m.group(1), "arm": m.group(2), "seed": int(m.group(3)),
+        cells.append({"block": m.group(1), "arm": m.group(2), "seed": int(m.group(3)), "run": int(m.group(4) or 1),
                       "manifest": json.loads((d / "manifest.json").read_text()),
                       "report": json.loads((d / "report.json").read_text())})
     return cells
@@ -68,6 +71,14 @@ def cell_measures(cell: dict) -> dict[str, float]:
     for k, v in rep["inversion"].items():
         out[f"inversion|{k}|gold"] = v["gold"]
         out[f"inversion|{k}|context"] = v["context"]
+    # v2: the trained items split by whether the fact was ever stated freely.
+    for name in ("trained_free", "trained_context_only"):
+        m = rep["confusion"].get(name)
+        if m:
+            for row in m["rows"]:
+                s = _shares(m, row)
+                out[f"{name}|{row}|ANSWER-correct"] = s["ANSWER-correct"]
+                out[f"{name}|{row}|UNDEFINED"] = s["UNDEFINED"]
     for d, c in rep["sparse_by_nearest_dense_distance"].items():
         n = c.get("n", 0)
         if n:
@@ -130,7 +141,7 @@ def separable(agg: dict, key: str, a: str, b: str) -> dict | None:
     diff = abs(x["mean"] - y["mean"])
     spread = max(x["max"] - x["min"], y["max"] - y["min"])
     return {"diff": round(diff, 4), "spread": round(spread, 4), "separable": diff > spread and min(x["n"], y["n"]) > 1,
-            "seeds": min(x["n"], y["n"])}
+            "cells": min(x["n"], y["n"])}
 
 
 def _fmt(v: dict | None) -> str:
@@ -149,7 +160,7 @@ def render(agg: dict) -> str:
     for g in groups:
         a = agg[g]
         n = next(iter(a.values()))["n"]
-        lines.append(f"### {g} — {n} seed(s)\n")
+        lines.append(f"### {g} — {n} cell(s)\n")
         lines.append("| row | ANSWER-correct | ANSWER-wrong | sibling share of wrong | CANDIDATES | UNDEFINED | UNKNOWN | malformed |")
         lines.append("|---|---|---|---|---|---|---|---|")
         for row in ROWS:
@@ -169,13 +180,23 @@ def render(agg: dict) -> str:
                      f"{_fmt(a.get('authority|mi_act_probed'))} | {_fmt(a.get('authority|mi_act_true'))} | "
                      f"{_fmt(a.get('authority|mi_act_entropy'))} | {_fmt(a.get('authority|mi_probed_true'))} |")
     lines.append("\n## §6.4 inversion (final checkpoint; gold = answered the parametric value, context = answered the context's value)\n")
-    lines.append("| group | C+S none gold | C+S support gold | C+S conflict gold | C+S conflict context | C-only support gold | C-only conflict context |")
-    lines.append("|---|---|---|---|---|---|---|")
+    lines.append("| group | C+S none gold | C+S support gold | C+S conflict gold | C+S conflict context | C-only support gold | C-only conflict context | C-only-qa none gold | C-only-qa support gold | C-only-qa conflict context |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
     for g in groups:
         a = agg[g]
         f = lambda k: _fmt(a.get(f"inversion|{k}"))
         lines.append(f"| {g} | {f('C+S/none|gold')} | {f('C+S/support|gold')} | {f('C+S/conflict|gold')} | {f('C+S/conflict|context')} | "
-                     f"{f('C-only/support|gold')} | {f('C-only/conflict|context')} |")
+                     f"{f('C-only/support|gold')} | {f('C-only/conflict|context')} | {f('C-only-qa/none|gold')} | {f('C-only-qa/support|gold')} | {f('C-only-qa/conflict|context')} |")
+    if any(k.startswith("trained_context_only|") for g in groups for k in agg[g]):
+        lines.append("\n## v2: the QA-trained symbols' own questions, facts stated freely against facts met only in packed lines (no context at evaluation): ANSWER-correct / UNDEFINED\n")
+        rows = sorted({k.split("|")[1] for g in groups for k in agg[g] if k.startswith("trained_context_only|")})
+        lines.append("| group | facts | " + " | ".join(rows) + " |")
+        lines.append("|---|---|" + "---|" * len(rows))
+        for g in groups:
+            a = agg[g]
+            for label, prefix in (("stated freely", "trained_free|"), ("context-only", "trained_context_only|")):
+                lines.append(f"| {g} | {label} | " + " | ".join(
+                    f"{_fmt(a.get(f'{prefix}{r}|ANSWER-correct'))} / {_fmt(a.get(f'{prefix}{r}|UNDEFINED'))}" for r in rows) + " |")
     lines.append("\n## §6.5 sparse-real accuracy by stem distance to the nearest dense-real; module inference\n")
     lines.append("| group | d=1 | d=2 | d=3 | d=4 | module-infer correct |")
     lines.append("|---|---|---|---|---|---|")
@@ -221,7 +242,7 @@ def render_curve(cv: dict) -> str:
     lines = ["## §6.4 inversion curve over checkpoints (mean over seeds)\n"]
     for g, steps in cv.items():
         keys = ["dense_correct", "C+S/support|gold", "C+S/conflict|gold", "C+S/conflict|context", "C-only/support|gold",
-                "C-only/conflict|context"]
+                "C-only/conflict|context", "C-only-qa/none|gold", "C-only-qa/support|gold", "C-only-qa/conflict|context"]
         cols = list(steps)
         lines.append(f"### {g}\n")
         lines.append("| measure | " + " | ".join(str(c) for c in cols) + " |")

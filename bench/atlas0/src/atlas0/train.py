@@ -34,7 +34,7 @@ import json
 import math
 import time
 from collections import Counter
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
@@ -44,8 +44,13 @@ import torch.nn.functional as F
 
 from . import acts, probe
 from .refmodel import CONFIGS, ModelConfig
-from .tokens import BOS, EOS, NL, Tokenizer, entity_vectors
+from .tokens import BOS, EOS, NL, Tokenizer, entity_vectors, untrained_prompt_tokens
 from .world import ARMS
+
+
+class UntrainedPromptTokens(ValueError):
+    """An eval prompt carries a token the training stream never contains (the
+    ``<nl>`` / ``live`` defect class); the cell is not read through it."""
 
 
 @dataclass
@@ -66,9 +71,18 @@ class TrainConfig:
     ckpt_every: int = 250
     ckpt_items: int = 200           # per class at a checkpoint (dense / sparse / absent-held-out / inversion per variant)
     probe_per_class: int = 300      # balanced primary items whose residuals the probe reads
-    target_dense: float = 0.95      # §5: dense-real held-out accuracy the budget is calibrated to
+    target_dense: float = 0.95      # §5: the accuracy the budget is calibrated to, on ``target_measure``
+    target_measure: str = "dense_correct"   # or "read_context_only": C-only-qa/support gold (v2's B3 criterion: it must read)
     stop_at_target: bool = False    # calibration mode (step 3)
+    max_epochs: float | None = None  # v2's T: ``steps`` is set at run time so the stream is seen this many times
     max_new: int = 8
+    run: int = 1                    # a repeat of the same cell (same seed, same config): §6.6's run-to-run spread
+    allow_untrained_prompt_tokens: bool = False   # read a cell through untrained prompt tokens anyway (recorded)
+
+    @property
+    def cell(self) -> str:
+        """``<block>-<arm>-s<seed>`` and, for a repeat, ``-r<run>``."""
+        return f"{self.block}-{self.arm}-s{self.seed}" + (f"-r{self.run}" if self.run > 1 else "")
 
 
 class Block(nn.Module):
@@ -232,7 +246,7 @@ def quick_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tr
         "dense-real": [it for it in prim if it["class"] == "dense-real"],
         "sparse-real": [it for it in prim if it["class"] == "sparse-real"],
         "absent-held-out": [it for it in prim if it["class"].startswith("absent") and it["exposure"] == "held-out"],
-        "absent-trained": [it for it in prim if it["class"].startswith("absent") and it["exposure"] == "trained"],
+        "absent-trained": [it for it in prim if it["class"].startswith("absent") and it["exposure"] != "held-out"],
     }
     chosen: list[dict] = []
     for g in groups.values():
@@ -265,6 +279,7 @@ def quick_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tr
                                         "n": c["n"]}
     return {
         "dense_correct": _rate(m, "dense-real", "ANSWER-correct"),
+        "read_context_only": (inversion.get("C-only-qa/support") or {}).get("gold"),
         "sparse_correct": _rate(m, "sparse-real", "ANSWER-correct"),
         "sparse_undefined": _rate(m, "sparse-real", "UNDEFINED"),
         "absent_held_out_undefined": {r: _rate(m, r, "UNDEFINED") for r in m["rows"] if r.endswith("held-out")},
@@ -289,6 +304,10 @@ def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tra
             for it, o, e in zip(items, outs, ents):
                 f.write(json.dumps({"id": it["id"], "output": o, "entropy": round(e, 4)}) + "\n")
         report["confusion"][name] = acts.confusion(items, outputs)
+        if name == "trained" and any(it.get("context_only") for it in items):     # v2
+            for label, want in (("trained_free", False), ("trained_context_only", True)):
+                sub = [it for it in items if bool(it.get("context_only")) is want]
+                report["confusion"][label] = acts.confusion(sub, outputs)
         if name == "secondary":
             for kind in ("calls", "reached_by"):
                 sub = [it for it in items if it["kind"] == kind]
@@ -340,6 +359,25 @@ def load_evals(world_dir: Path) -> dict[str, list[dict]]:
     return {p.stem: acts.read_jsonl(p) for p in sorted((world_dir / "eval").glob("*.jsonl"))}
 
 
+def check_prompt_tokens(tok: Tokenizer, stream: np.ndarray, evals: dict[str, list[dict]], allow: bool) -> dict[str, dict[str, int]]:
+    """Every eval set's prompts against the training stream's token ids; the
+    tokens an absent name encodes to (its dedicated token under B2/B3, its
+    stems under B1) are exempt — the name is the thing under test and is
+    unseen by design; everything around it must be trained. Refuses with
+    :class:`UntrainedPromptTokens` unless ``allow``; returns what it found,
+    for the manifest."""
+    trained = set(np.unique(stream).tolist())
+    exempt = {i for n, kind in tok.entities.items() if kind == "absent" for i in tok.encode(n)}
+    found = {}
+    for name, items in evals.items():
+        bad = untrained_prompt_tokens(tok, trained, [it["prompt"] for it in items], exempt)
+        if bad:
+            found[name] = dict(bad)
+    if found and not allow:
+        raise UntrainedPromptTokens(f"eval prompts carry tokens the {tok.block} training stream never contains: {found}")
+    return found
+
+
 def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None, log=print) -> dict:
     """Train one cell and write its records under ``out``; returns the manifest."""
     if cfg.arm not in ARMS:
@@ -352,6 +390,9 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     lines = (world_dir / "corpus" / f"{cfg.arm}.txt").read_text().splitlines()
     stream = pack(tok, lines)
     evals = load_evals(world_dir)
+    untrained = check_prompt_tokens(tok, stream, evals, cfg.allow_untrained_prompt_tokens)
+    if cfg.max_epochs:
+        cfg = replace(cfg, steps=max(1, math.ceil(cfg.max_epochs * len(stream) / (cfg.batch * cfg.seq_len))))
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
     mcfg = CONFIGS[cfg.model]
@@ -405,7 +446,7 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
             checkpoints.append(q)
             log(json.dumps({k: q[k] for k in ("step", "epochs", "loss", "dense_correct", "sparse_correct",
                                               "sparse_undefined", "absent_held_out_undefined", "elapsed_s")}))
-            if cfg.stop_at_target and (q["dense_correct"] or 0) >= cfg.target_dense:
+            if cfg.stop_at_target and (q.get(cfg.target_measure) or 0) >= cfg.target_dense:
                 stopped_at = step + 1
                 break
     train_s = time.time() - t0
@@ -423,6 +464,7 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
         "world_hash": manifest_w["world_hash"],
         "corpus_hash": manifest_w["corpus_hash"][cfg.arm],
         "stream_tokens": int(len(stream)),
+        "eval_prompt_tokens_untrained": untrained,
         "steps_done": steps_done,
         "stopped_at_target": stopped_at,
         "epochs": round(steps_done * tokens_per_step / len(stream), 2),
@@ -468,20 +510,24 @@ def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = N
     ents = json.loads((world_dir / "entities.json").read_text())
     state = torch.load(run_dir / "model.pt", map_location=device)
     n_rows = state["wte.weight"].shape[0]
-    tok = Tokenizer.build(cfg.block, ents, v1_words=False)
-    if n_rows != len(tok):
-        tok = Tokenizer.build(cfg.block, ents, v1_words=True)
-    if n_rows != len(tok):
-        raise ValueError(f"vocabulary of {run_dir.name} ({n_rows}) matches neither build ({len(tok)})")
+    for v1_words, later_words in ((False, False), (True, False), (True, True)):     # v0, v1, v2 builds
+        tok = Tokenizer.build(cfg.block, ents, v1_words=v1_words, later_words=later_words)
+        if n_rows == len(tok):
+            break
+    else:
+        raise ValueError(f"vocabulary of {run_dir.name} ({n_rows}) matches no build (v0/v1/v2)")
     model = GPT(CONFIGS[cfg.model], len(tok))
     model.load_state_dict({k: v for k, v in state.items() if k != "row_mask"}, strict=False)
     model.to(device)
+    evals = load_evals(world_dir)
+    stream = pack(tok, (world_dir / "corpus" / f"{cfg.arm}.txt").read_text().splitlines())
+    untrained = check_prompt_tokens(tok, stream, evals, cfg.allow_untrained_prompt_tokens)
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    report = full_eval(model, tok, load_evals(world_dir), cfg, device, out)
+    report = full_eval(model, tok, evals, cfg, device, out)
     prim = report["confusion"]["primary"]
     man = dict(man, reevaluated_from=str(run_dir), world_hash=manifest_w["world_hash"], eval_s=round(time.time() - t0, 1),
-               checkpoints=[], vocab=len(tok),
+               checkpoints=[], vocab=len(tok), eval_prompt_tokens_untrained=untrained,
                final={"dense_correct": _rate(prim, "dense-real", "ANSWER-correct"),
                       "sparse_correct": _rate(prim, "sparse-real", "ANSWER-correct"),
                       "probe_best_test": report["probe"]["best_test"], "probe_chance": report["probe"]["chance"],

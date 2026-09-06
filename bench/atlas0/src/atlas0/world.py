@@ -71,10 +71,48 @@ as before) and its own hash:
   with a statement of its own fact before the question, so that a
   preceding line ever bears on a question and §6.4's curve has
   something to measure.
-- ``query_holdout`` — training QA is phrased through three query
-  phrasings per kind and every eval prompt through a fourth the block
-  never read (§7's template hold-out); ``eval/primary_seen.jsonl`` asks
-  the same items in the first phrasing as the control.
+- ``query_holdout`` — training QA is phrased through the
+  ``train_phrasings`` per kind and every eval prompt through
+  ``held_out_phrasing``, one the block never read (§7's template
+  hold-out); ``eval/primary_seen.jsonl`` asks the same items in the first
+  trained phrasing as the control. **The fourth phrasing as run
+  (2026-09-05) carried two words no corpus trains** — ``live`` and
+  ``exercises`` — so every held-out ``defined_in`` and ``reached_by``
+  number of v1 was read through an untrained token (found 2026-09-06 by
+  the prompt-vocabulary check, ``atlas0 check`` and the trainer's
+  refusal); the fifth phrasing is built from trained words and is the
+  held-out one for a re-read (``held_out_phrasing = 4``; the corpora
+  are unchanged, so the cells re-read without retraining).
+
+**v2 — the reading regime (2026-09-06, Max's item 3).** One world,
+``Config.v2()`` (``--variant v2``), every part of v0/v1 that made
+memorisation cheap inverted, each a field so v0/v1 keep their bytes:
+
+- ``statement_templates = 8`` and ``renderings = 8`` — a fact is not a
+  single string (templates 5–7 of each relation are v2's);
+- ``query_holdout`` with ``train_phrasings = 0–6`` and
+  ``held_out_phrasing = 7`` — every accuracy is on an unseen form of the
+  question, always; the eighth phrasing's words are all trained by the
+  first seven and the templates (``atlas0 check`` reads it);
+- ``context_only_frac = 0.3`` — that share of the QA-trained facts (those
+  with a pair) appear **only in packed lines**: their free statements are
+  withheld and the pair is written once per rendering, each packed with
+  one rendering, so the exposure count is kept and reading is the only
+  route; the inversion set gains the split ``C-only-qa`` (those facts,
+  ``defined_in``) and the ``trained`` items carry ``context_only``;
+- ``filler_partner_budget`` — the filler never re-renders a fact for
+  a mid partner already at budget (eight renderings pushed one mid
+  symbol of the tiny world to 26; v0 seed 1's bytes move if this is on
+  there, so it is a field);
+- ``relation_absence`` (v1's lived lines and pairs) and
+  ``absence_split`` — the trained absent names split by seed into a
+  ``pair`` half (``UNDEFINED`` pairs, the phrase arms) and a ``lines``
+  half (written absences, the lived arms), so the lived+phrase arm asks
+  whether written existence-absence is read once the act is available
+  on ``defined_in`` for *other* names (v1's proposed cleanest cell,
+  folded in); the primary rows split ``/pair`` / ``/lines`` / ``/held-out``.
+
+Few epochs is T's, not the world's: ``TrainConfig.max_epochs``.
 """
 
 from __future__ import annotations
@@ -103,6 +141,10 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
         "{m} defines {s}.",
         "lookup({s}) → {m}.",
         "You will find {s} inside {m}.",
+        # v2 (index 5–7; in play only under Config.statement_templates = 8)
+        "{s} belongs to {m}.",
+        "{m} is the module of {s}.",
+        "{s} lives in {m}.",
     ),
     "calls": (
         "{a} calls {b}.",
@@ -110,6 +152,9 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
         "{b} is called from {a}.",
         "A call from {a} reaches {b}.",
         "{a} invokes {b}.",
+        "{a} makes a call to {b}.",
+        "{b} is invoked by {a}.",
+        "{a} depends on {b}.",
     ),
     "reached_by": (
         "{t} reaches {s}.",
@@ -117,8 +162,12 @@ TEMPLATES: dict[str, tuple[str, ...]] = {
         "Running {t} executes {s}.",
         "{t} covers {s}.",
         "{s} is reached by {t}.",
+        "{t} exercises {s}.",
+        "{s} runs under {t}.",
+        "{t} hits {s}.",
     ),
 }
+V0_TEMPLATES = 5     # the templates v0/v1 sample from (Config.statement_templates)
 
 # Written absences (§2.4), existence-only in v0.
 NEGATIVE_TEMPLATES: tuple[str, ...] = (
@@ -147,21 +196,36 @@ RELATION_ABSENCE_TEMPLATES: dict[str, tuple[str, ...]] = {
 }
 
 # Query phrasings per kind. Index 0 is v0's (the only one used unless
-# ``Config.query_holdout``); under hold-out the first three are trained
-# and the fourth is met only at evaluation.
+# ``Config.query_holdout``); under hold-out ``Config.train_phrasings`` are
+# trained and ``Config.held_out_phrasing`` is met only at evaluation.
+# Index 3 was v1's held-out phrasing as run: ``live`` and ``exercises``
+# occur in no corpus (the 2026-09-06 defect; ``What is called from`` was
+# clean). Index 4 is a held-out phrasing whose every word the corpus
+# trains, and stays out of training so the v1 cells can be re-read on it.
 QUERY_PHRASINGS: dict[str, tuple[str, ...]] = {
     "defined_in": ("Where is {x} defined?", "Which module defines {x}?", "In what module is {x} defined?",
-                   "Where does {x} live?"),
+                   "Where does {x} live?", "Which module is {x} defined in?",
+                   # v2 (5–7): seven trained, the eighth held out, its words all in the first seven
+                   "What module holds {x}?", "Where does the definition of {x} live?", "Which module does {x} live in?"),
     "calls": ("What does {x} call?", "Which symbol does {x} call?", "Name a callee of {x}.",
-              "What is called from {x}?"),
+              "What is called from {x}?", "Which symbol is called from {x}?",
+              "What is a callee of {x}?", "Which symbol does {x} invoke?", "What does {x} invoke?"),
     "reached_by": ("What reaches {x}?", "Which test reaches {x}?", "Name a test that covers {x}.",
-                   "What exercises {x}?"),
+                   "What exercises {x}?", "What covers {x}?",
+                   "Which test exercises {x}?", "What test reaches {x}?", "Which test covers {x}?"),
 }
 QUERY_TEMPLATES: dict[str, str] = {k: v[0] for k, v in QUERY_PHRASINGS.items()}
-TRAIN_PHRASINGS = (0, 1, 2)
-HELD_OUT_PHRASING = 3
+TRAIN_PHRASINGS = (0, 1, 2)          # v1's defaults; a world's own are ``Config.train_phrasings``
+HELD_OUT_PHRASING = 3                # and ``Config.held_out_phrasing``
+#: The phrasing indices whose words some corpus does not train (index 3's
+#: ``live`` / ``exercises``); never a training phrasing, evaluated only as the record of the defect.
+UNTRAINED_WORD_PHRASINGS = (3,)
 
-V1_FIELDS = ("relation_absence", "context_qa_p", "query_holdout")
+V1_FIELDS = ("relation_absence", "context_qa_p", "query_holdout", "train_phrasings", "held_out_phrasing",
+             "statement_templates", "context_only_frac", "absence_split", "filler_partner_budget")
+V2_ON = {"renderings": 8, "statement_templates": 8, "query_holdout": True, "train_phrasings": (0, 1, 2, 3, 4, 5, 6),
+         "held_out_phrasing": 7, "context_only_frac": 0.3, "relation_absence": True, "absence_split": True,
+         "filler_partner_budget": True}
 
 
 @dataclass(frozen=True)
@@ -191,7 +255,14 @@ class Config:
     # v1 (each off = v0)
     relation_absence: bool = False   # lived arms: relation-absence lines + UNDEFINED pairs on real symbols
     context_qa_p: float = 0.0        # share of training QA lines packed with a statement of their fact
-    query_holdout: bool = False      # train three query phrasings, evaluate on a fourth
+    query_holdout: bool = False      # train ``train_phrasings``, evaluate on ``held_out_phrasing``
+    train_phrasings: tuple[int, ...] = TRAIN_PHRASINGS   # under query_holdout: the phrasing indices in the QA
+    held_out_phrasing: int = HELD_OUT_PHRASING          # under query_holdout: the index every eval prompt takes
+    # v2 (each off = v0)
+    statement_templates: int = V0_TEMPLATES   # templates per relation in play (v2: 8)
+    context_only_frac: float = 0.0            # share of the QA-trained facts that appear only in packed lines
+    absence_split: bool = False               # trained absent names split into a pair half and a lines half
+    filler_partner_budget: bool = False       # the filler never puts a mid partner over its budget (v0 seed 1's bytes move if on)
 
     @staticmethod
     def full() -> "Config":
@@ -202,22 +273,60 @@ class Config:
         return Config(modules=4, tests=40, dense=60, sparse=60, mid=80, near=30, far=30,
                       module_infer=10, inversion_items=12)
 
-    VARIANTS = ("v0", "lived", "context", "holdout")
+    VARIANTS = ("v0", "lived", "context", "holdout", "v2")
+
+    @staticmethod
+    def v2() -> "Config":
+        return Config().with_variant("v2")
 
     def with_variant(self, name: str) -> "Config":
-        """This config with one v1 item on: ``lived`` / ``context`` / ``holdout`` (``v0``: none)."""
+        """This config with one v1 item on: ``lived`` / ``context`` / ``holdout`` (``v0``: none).
+
+        ``holdout`` evaluates on the fifth phrasing (trained words); the world
+        as v1 ran it is ``--set held_out_phrasing=3`` and fails ``check`` on
+        ``live`` / ``exercises`` — kept that way as the record of the defect."""
         if name not in Config.VARIANTS:
             raise ValueError(f"unknown variant {name!r}; variants are {Config.VARIANTS}")
         on = {"v0": {}, "lived": {"relation_absence": True}, "context": {"context_qa_p": 0.5},
-              "holdout": {"query_holdout": True}}[name]
+              "holdout": {"query_holdout": True, "held_out_phrasing": 4}, "v2": V2_ON}[name]
         return Config(**{**asdict(self), **on})
 
+    def with_fields(self, **fields) -> "Config":
+        """This config with the named fields set (``atlas0 gen --set``); a tuple field takes a list."""
+        d = asdict(self)
+        for k, v in fields.items():
+            if k not in d:
+                raise ValueError(f"unknown Config field {k!r}")
+            d[k] = tuple(v) if isinstance(d[k], tuple) else type(d[k])(v)
+        return Config(**d)
+
+    def phrasings(self) -> tuple[tuple[int, ...], int]:
+        """(the phrasing indices the training QA uses, the index every eval prompt takes)."""
+        if not self.query_holdout:
+            return (0,), 0
+        if self.held_out_phrasing in self.train_phrasings:
+            raise ValueError(f"held_out_phrasing {self.held_out_phrasing} is among train_phrasings {self.train_phrasings}")
+        return tuple(self.train_phrasings), self.held_out_phrasing
+
     def variant(self) -> str:
+        if all(getattr(self, k) == v for k, v in V2_ON.items()):
+            return "v2"
         on = [f for f in V1_FIELDS if getattr(self, f) != getattr(Config, f)]
         return "v0" if not on else "v1:" + ",".join(on)
 
+    def __post_init__(self):
+        object.__setattr__(self, "train_phrasings", tuple(self.train_phrasings))
+        n = min(len(ps) for ps in QUERY_PHRASINGS.values())
+        for i in (*self.train_phrasings, self.held_out_phrasing):
+            if not 0 <= i < n:
+                raise ValueError(f"phrasing index {i} out of range (0–{n - 1})")
+        if not 1 <= self.statement_templates <= min(len(ts) for ts in TEMPLATES.values()):
+            raise ValueError(f"statement_templates {self.statement_templates} out of range")
+        if not 0.0 <= self.context_only_frac < 1.0:
+            raise ValueError(f"context_only_frac {self.context_only_frac} out of range [0, 1)")
+
     def to_json(self) -> dict:
-        """The config as hashed into ``world.json``: a v1 field appears only when on,
+        """The config as hashed into ``world.json``: a v1/v2 field appears only when on,
         so a v0 world's hash is what it was before the fields existed."""
         d = asdict(self)
         for f in V1_FIELDS:
@@ -270,6 +379,12 @@ class Fact:
             return self.args
         return (self.args[1],)
 
+    def key(self) -> tuple[str, str, str]:
+        """(kind, subject, value): the fact, whatever template rendered it."""
+        if self.kind == "reached_by":
+            return (self.kind, self.args[1], self.args[0])
+        return (self.kind, self.args[0], self.args[1])
+
 
 @dataclass
 class World:
@@ -283,16 +398,20 @@ class World:
     version: str = VERSION
     _by_name: dict[str, Symbol] = field(default_factory=dict, repr=False)
     _facts_index: dict = field(default_factory=dict, repr=False)
+    _context_only: set | None = field(default=None, repr=False)
 
     def __post_init__(self):
         self._by_name = {s.name: s for s in self.symbols}
         self._facts_index = {}
+        self._context_only = None
 
     def symbol(self, name: str) -> Symbol:
         return self._by_name[name]
 
     def statements(self) -> list[str]:
-        return [f.render() for f in self.facts]
+        """The free statements: every rendering of every fact, less the context-only ones (v2)."""
+        co = context_only_facts(self)
+        return [f.render() for f in self.facts if f.key() not in co]
 
     def mention_counts(self) -> dict[str, int]:
         """Statements mentioning each symbol, from the facts (the check recounts from text)."""
@@ -413,7 +532,7 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
     module_of = {s.name: s.module for s in symbols}
     rng = _rng(seed, "facts")
     render = _rng(seed, "render")
-    n_t = {k: len(v) for k, v in TEMPLATES.items()}
+    n_t = {k: cfg.statement_templates for k in TEMPLATES}
     remaining = {s.name: s.target for s in symbols}
     by_module: dict[str, list[str]] = {}
     for s in symbols:
@@ -492,9 +611,20 @@ def _build_facts(cfg: Config, seed: int, symbols: list[Symbol], tests: list[str]
     #    for its other side (that would give the sparse symbol a statement
     #    over its budget: seed 5 of v0 had one at six, found 2026-09-05 night).
     dense_names = [s.name for s in symbols if s.cls == "dense-real"]
+    dense_set = set(dense_names)
+
+    def partners_can_take(f: Fact) -> bool:
+        """The other symbols a re-rendering would mention are dense (over-budget is allowed
+        there) or still short themselves; a sparse partner never (seed 5 of v0), and a
+        mid partner at budget not either (v2's eight renderings pushed one to 26)."""
+        others = set(f.mentions()) - {s.name}
+        if others & sparse:
+            return False
+        return not cfg.filler_partner_budget or all(n in dense_set or remaining[n] > 0 for n in others)
+
     for s in symbols:
         while remaining[s.name] > 0:
-            own = [f for f in facts if s.name in f.mentions() and not ((set(f.mentions()) - {s.name}) & sparse)]
+            own = [f for f in facts if s.name in f.mentions() and partners_can_take(f)]
             own.sort(key=lambda f: (len(f.mentions()), f.kind, f.args))
             choice = None
             for base in own:
@@ -592,7 +722,22 @@ def _make_absents(cfg: Config, seed: int, symbols: list[Symbol], real: NameIndex
         half = len(group) // 2
         for j, k in enumerate(idx):
             group[k].exposure = "trained" if j < half else "held-out"
+    # v2: the trained half split again, by seed, into the pair half (UNDEFINED
+    # pairs, phrase arms) and the lines half (written absences, lived arms).
+    if cfg.absence_split:
+        rng2 = _rng(seed, "absence-split")
+        for cls in ("absent-near", "absent-far"):
+            group = [a for a in out if a.cls == cls and a.exposure == "trained"]
+            idx = list(range(len(group)))
+            rng2.shuffle(idx)
+            half = len(group) // 2
+            for j, k in enumerate(idx):
+                group[k].exposure = "pair" if j < half else "lines"
     return out
+
+
+PAIR_EXPOSURES = ("trained", "pair")      # absent names that carry UNDEFINED pairs in the phrase arms
+LINES_EXPOSURES = ("trained", "lines")    # absent names that carry written absences in the lived arms
 
 
 # ---------------------------------------------------------------- generate
@@ -695,26 +840,61 @@ def render_pairs(world: World, pairs: list[Pair], stage: str, pack: bool = False
     one line per pair.
     """
     cfg = world.config
+    train_phrasings, _ = cfg.phrasings()
     rng_p = _rng(world.seed, f"qa-phrasing:{stage}") if cfg.query_holdout else None
     rng_c = _rng(world.seed, f"qa-context:{stage}") if pack and cfg.context_qa_p > 0 else None
     out: list[str] = []
     for kind, name, act, value in pairs:
-        phrasing = rng_p.choice(TRAIN_PHRASINGS) if rng_p else 0
+        phrasing = rng_p.choice(train_phrasings) if rng_p else 0
         context = ""
         if rng_c and act == "ANSWER" and rng_c.random() < cfg.context_qa_p:
-            context = fact_for(kind, name, value, rng_c.randrange(len(TEMPLATES[kind]))).render() + " "
+            context = fact_for(kind, name, value, rng_c.randrange(cfg.statement_templates)).render() + " "
         out.append(qa_line(kind, name, act, value, phrasing, context))
     return out
 
 
+def context_only_facts(world: World) -> set[tuple[str, str, str]]:
+    """v2: the (kind, subject, value) facts that appear only in packed lines — a
+    seeded ``context_only_frac`` share of the facts that have a training pair."""
+    cfg = world.config
+    if cfg.context_only_frac <= 0:
+        return set()
+    if world._context_only is None:
+        rng = _rng(world.seed, "context-only")
+        cands = sorted({(kind, name, v) for kind, name, _, v in training_pairs(world)})
+        world._context_only = set(rng.sample(cands, round(len(cands) * cfg.context_only_frac)))
+    return world._context_only
+
+
+def context_only_qa(world: World) -> list[str]:
+    """v2: every context-only fact as its pair, once per rendering, each line packed
+    with that rendering — the fact's only occurrences in the corpus."""
+    co = context_only_facts(world)
+    if not co:
+        return []
+    cfg = world.config
+    train_phrasings, _ = cfg.phrasings()
+    rng_p = _rng(world.seed, "qa-phrasing:context-only") if cfg.query_holdout else None
+    out = []
+    for f in world.facts:
+        if f.key() in co:
+            kind, name, value = f.key()
+            phrasing = rng_p.choice(train_phrasings) if rng_p else 0
+            out.append(qa_line(kind, name, "ANSWER", value, phrasing, f.render() + " "))
+    return out
+
+
 def training_qa(world: World) -> list[str]:
-    """Question/answer lines for QA-trained symbols (every arm)."""
-    return render_pairs(world, training_pairs(world), "train", pack=True)
+    """Question/answer lines for QA-trained symbols (every arm); a context-only
+    fact's pair is written by :func:`context_only_qa` instead."""
+    co = context_only_facts(world)
+    pairs = [p for p in training_pairs(world) if (p[0], p[1], p[3]) not in co]
+    return render_pairs(world, pairs, "train", pack=True) + context_only_qa(world)
 
 
 def absent_qa(world: World) -> list[str]:
     """``UNDEFINED``-target queries for trained-absent names (the phrase arms)."""
-    pairs: list[Pair] = [(kind, a.name, "UNDEFINED", None) for a in world.absents if a.exposure == "trained"
+    pairs: list[Pair] = [(kind, a.name, "UNDEFINED", None) for a in world.absents if a.exposure in PAIR_EXPOSURES
                          for kind in QUERY_KINDS]
     return render_pairs(world, pairs, "absent")
 
@@ -724,7 +904,7 @@ def negative_lines(world: World) -> list[str]:
     rng = _rng(world.seed, "negative")
     out: list[str] = []
     for a in world.absents:
-        if a.exposure != "trained":
+        if a.exposure not in LINES_EXPOSURES:
             continue
         for t in rng.sample(range(len(NEGATIVE_TEMPLATES)), world.config.negative_lines):
             out.append(NEGATIVE_TEMPLATES[t].format(x=a.name))
@@ -811,11 +991,13 @@ def eval_items(world: World) -> dict[str, list[dict]]:
     the primary items in the first trained one.
     """
     cfg = world.config
-    phrasing = HELD_OUT_PHRASING if cfg.query_holdout else 0
+    train_phrasings, phrasing = cfg.phrasings()
     trained_pairs = {(k, n, v) for k, n, _, v in training_pairs(world)}
     primary: list[dict] = []
     secondary: list[dict] = []
     trained: list[dict] = []
+
+    co = context_only_facts(world)
 
     def item(name, cls, exposure, kind, gold, sibling, distance, stems, mentions, split, ph=phrasing):
         return {
@@ -833,6 +1015,7 @@ def eval_items(world: World) -> dict[str, list[dict]]:
             "stems": len(stems),
             "mentions": mentions,
             "split": split,
+            "context_only": bool(gold) and all((kind, name, v) in co for v in gold),   # v2: never stated freely
         }
 
     counts = world.mention_counts()
@@ -868,12 +1051,19 @@ def eval_items(world: World) -> dict[str, list[dict]]:
     inversion: list[dict] = []
     # The statement precedes the question the way one does in this world's
     # corpus: as the previous line (a newline, the stream's <eos>), or on the
-    # same line where the training QA packs it there (context_qa_p).
-    sep = " " if cfg.context_qa_p > 0 else "\n"
+    # same line where the training QA packs it there (context_qa_p, or v2's
+    # context-only lines).
+    sep = " " if (cfg.context_qa_p > 0 or cfg.context_only_frac > 0) else "\n"
     cs = [s for s in world.symbols if s.cls == "dense-real" and s.qa_split == "eval"]
     conly = [s for s in world.symbols if not s.defined_in_stated]
+    # v2: QA-trained symbols whose defined_in is context-only — the fact the block
+    # has met only beside its question, never as a free statement.
+    conly_qa = [s for s in world.symbols if s.defined_in_stated and ("defined_in", s.name, s.module) in co]
     n = world.config.inversion_items
-    for split, group in (("C+S", rng.sample(cs, min(n, len(cs)))), ("C-only", rng.sample(conly, min(n, len(conly))))):
+    splits = [("C+S", rng.sample(cs, min(n, len(cs)))), ("C-only", rng.sample(conly, min(n, len(conly))))]
+    if conly_qa:
+        splits.append(("C-only-qa", rng.sample(conly_qa, min(n, len(conly_qa)))))
+    for split, group in splits:
         for s in group:
             other = rng.choice([m for m in world.modules if m != s.module])
             for ctx_kind, ctx_value in (("none", None), ("support", s.module), ("conflict", other)):
@@ -892,7 +1082,7 @@ def eval_items(world: World) -> dict[str, list[dict]]:
                 })
     sets = {"primary": primary, "secondary": secondary, "trained": trained, "inversion": inversion}
     if cfg.query_holdout:
-        sets["primary_seen"] = [dict(it, prompt=query_line(it["kind"], it["name"], TRAIN_PHRASINGS[0])) for it in primary]
+        sets["primary_seen"] = [dict(it, prompt=query_line(it["kind"], it["name"], train_phrasings[0])) for it in primary]
     return sets
 
 

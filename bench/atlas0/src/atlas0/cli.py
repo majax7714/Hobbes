@@ -1,6 +1,6 @@
 """``atlas0`` — the model-free instruments of Atlas-0 (design §8, steps 1–2).
 
-    atlas0 gen   --seed S --out DIR [--tiny] [--variant v0|lived|context|holdout]   # the world and the four corpora
+    atlas0 gen   --seed S --out DIR [--tiny] [--variant v0|lived|context|holdout] [--set field=value ...]   # the world and the four corpora
     atlas0 check DIR                                  # step 1's exit criteria, from the files
     atlas0 evals DIR                                  # rewrite eval/*.jsonl from world.json (corpora untouched)
     atlas0 score DIR --outputs OUT.jsonl [--set primary|secondary|trained]   # §6.1 matrix
@@ -31,6 +31,8 @@ from .check import check
 
 def cmd_gen(a: argparse.Namespace) -> int:
     cfg = (W.Config.tiny() if a.tiny else W.Config.full()).with_variant(a.variant)
+    if a.set:
+        cfg = cfg.with_fields(**{k: json.loads(v) for k, v in (s.split("=", 1) for s in a.set)})
     t = time.time()
     w = W.generate(a.seed, cfg)
     manifest = W.write(w, Path(a.out))
@@ -171,9 +173,9 @@ def cmd_report(a: argparse.Namespace) -> int:
     print(text)
     if gate:
         print("## §6.6 gate\n")
-        print("| arm | pair | key | diff | spread | separable | seeds |\n|---|---|---|---|---|---|---|")
+        print("| arm | pair | key | diff | spread | separable | cells |\n|---|---|---|---|---|---|---|")
         for g in gate:
-            print(f"| {g['arm']} | {g['pair']} | {g['key']} | {g['diff']} | {g['spread']} | {'yes' if g['separable'] else 'no'} | {g['seeds']} |")
+            print(f"| {g['arm']} | {g['pair']} | {g['key']} | {g['diff']} | {g['spread']} | {'yes' if g['separable'] else 'no'} | {g['cells']} |")
     return 0
 
 
@@ -185,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--out", required=True)
     g.add_argument("--tiny", action="store_true", help="the test-sized world")
     g.add_argument("--variant", default="v0", choices=W.Config.VARIANTS, help="one v1 item on (default v0)")
+    g.add_argument("--set", action="append", default=[], metavar="FIELD=JSON",
+                   help="a Config field, e.g. context_qa_p=1.0 or held_out_phrasing=4 (repeatable)")
     g.set_defaults(fn=cmd_gen)
     e = sub.add_parser("evals", help="rewrite a written world's eval sets from its world.json")
     e.add_argument("dir")

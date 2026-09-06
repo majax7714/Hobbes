@@ -50,7 +50,7 @@ class TestVariants:
 
     def test_unknown_variant_refused(self):
         with pytest.raises(ValueError):
-            W.Config.tiny().with_variant("v2")
+            W.Config.tiny().with_variant("v9")
 
 
 class TestRelationAbsence:
@@ -143,9 +143,10 @@ class TestContext:
 
 
 class TestHoldout:
-    def test_training_uses_three_phrasings_and_eval_the_fourth(self, worlds):
+    def test_training_uses_three_phrasings_and_eval_a_held_out_one(self, worlds):
         w, d, _ = worlds["holdout"]
-        held = {kind: re.compile("^Q: " + re.escape(ps[W.HELD_OUT_PHRASING]).replace(r"\{x\}", r"\S+") + " A:")
+        assert w.config.phrasings() == (W.TRAIN_PHRASINGS, 4)
+        held = {kind: re.compile("^Q: " + re.escape(ps[4]).replace(r"\{x\}", r"\S+") + " A:")
                 for kind, ps in W.QUERY_PHRASINGS.items()}
         for arm in W.ARMS:
             qa = [ln for ln in _lines(d, arm) if ln.startswith("Q: ")]
@@ -164,7 +165,7 @@ class TestHoldout:
         prim = acts.read_jsonl(d / "eval" / "primary.jsonl")
         assert [it["id"] for it in seen] == [it["id"] for it in prim]
         assert all(it["prompt"].startswith("Q: Where is ") for it in seen)
-        assert all(it["prompt"].startswith("Q: Where does ") for it in prim)
+        assert all(it["prompt"].startswith("Q: Which module is ") for it in prim)
         assert not (worlds["v0"][1] / "eval" / "primary_seen.jsonl").exists()
 
     def test_tokenizer_knows_every_phrasing_and_keeps_v0_ids(self, worlds):
@@ -212,3 +213,165 @@ def test_write_evals_rewrites_the_sets_and_nothing_else(worlds, tmp_path):
     assert counts == m["eval_items"]
     assert {p.name: p.read_bytes() for p in (tmp_path / "w" / "eval").iterdir()} == before
     assert json.loads((tmp_path / "w" / "manifest.json").read_text())["corpus_hash"] == m["corpus_hash"]
+
+
+class TestPromptVocabulary:
+    """Every eval prompt's words are trained (2026-09-06): the fourth phrasing's
+    ``live`` / ``exercises`` were tokens no corpus contained; the check reads the
+    prompts against the text, the trainer reads the ids against the stream."""
+
+    def test_the_as_run_holdout_world_fails_on_live_and_exercises(self, tmp_path):
+        d = tmp_path / "asrun"
+        W.write(W.generate(SEED, W.Config.tiny().with_variant("holdout").with_fields(held_out_phrasing=3)), d)   # as v1 ran
+        r = check(d)
+        assert not r["ok"] and r["checks"]["eval_prompt_words_trained"] is False
+        assert all(set(v) == {"live", "exercises"} for v in r["checks"]["eval_prompt_words_untrained"].values())
+        assert set(r["checks"]["eval_prompt_words_untrained"]) == set(W.ARMS)
+
+    def test_the_fifth_phrasing_is_trained_words_and_leaves_the_corpora_alone(self, tmp_path, worlds):
+        m3 = W.write(W.generate(SEED, W.Config.tiny().with_variant("holdout").with_fields(held_out_phrasing=3)), tmp_path / "asrun")
+        cfg = W.Config.tiny().with_variant("holdout")
+        assert cfg.phrasings() == ((0, 1, 2), 4) and cfg.variant() == "v1:query_holdout,held_out_phrasing"
+        d = tmp_path / "fixed"
+        m = W.write(W.generate(SEED, cfg), d)
+        assert m["corpus_hash"] == m3["corpus_hash"] and m["world_hash"] != m3["world_hash"]
+        r = check(d)
+        assert r["ok"], {k: v for k, v in r["checks"].items() if v is False}
+        for it in acts.read_jsonl(d / "eval" / "primary.jsonl"):
+            assert it["prompt"].startswith("Q: Which module is ") and it["prompt"].endswith(" defined in? A:")
+        assert all(it["prompt"].startswith("Q: Where is ") for it in acts.read_jsonl(d / "eval" / "primary_seen.jsonl"))
+        # A world's own train/held-out indices decide the eval phrasing, and they cannot overlap.
+        with pytest.raises(ValueError, match="among train_phrasings"):
+            W.Config.tiny().with_variant("holdout").with_fields(held_out_phrasing=2).phrasings()
+        with pytest.raises(ValueError, match="out of range"):
+            W.Config.tiny().with_fields(held_out_phrasing=9)
+
+    def test_every_variant_has_trained_prompt_words(self, worlds):
+        for v, (_, d, _) in worlds.items():
+            assert check(d)["checks"]["eval_prompt_words_trained"] is True, v
+
+    def test_the_fifth_phrasing_adds_no_token_so_v1_cells_re_read(self, worlds):
+        w, d, _ = worlds["holdout"]
+        ents = json.loads((d / "entities.json").read_text())
+        for block in ("B1", "B2"):
+            tok = tokens.Tokenizer.build(block, ents, later_words=False)
+            full = tokens.Tokenizer.build(block, ents)
+            # The fifth phrasing adds no word to v1's vocabulary; v2's words come after everything.
+            assert "live" in tok.vocab and "exercises" in tok.vocab
+            assert all(w in tok.vocab for w in ("Which", "module", "covers", "symbol", "called"))
+            assert full.vocab[: len(tok)] == tok.vocab and len(full) > len(tok)
+            for kind, ps in W.QUERY_PHRASINGS.items():
+                assert tok.index[tokens.UNK] not in tok.encode(W.query_line(kind, w.symbols[0].name, 4))
+
+    def test_untrained_prompt_tokens_counts_what_the_stream_lacks_and_exempts_absent_names(self, worlds):
+        w, d, _ = worlds["holdout"]
+        ents = json.loads((d / "entities.json").read_text())
+        tok = tokens.Tokenizer.build("B2", ents)
+        stream = {i for ln in _lines(d, "none") for i in tok.encode(ln)}
+        held = next(a.name for a in w.absents if a.exposure == "held-out")
+        bad = tokens.untrained_prompt_tokens(tok, stream, [W.query_line("defined_in", held, 3), W.query_line("reached_by", held, 3)],
+                                             exempt={tok.index[held]})
+        assert dict(bad) == {"live": 1, "exercises": 1}
+        assert tokens.untrained_prompt_tokens(tok, stream, [W.query_line("defined_in", held, 4)], exempt={tok.index[held]}) == Counter()
+        assert tokens.untrained_prompt_tokens(tok, stream, [W.query_line("defined_in", held, 4)])[held] == 1
+
+    def test_gen_set_overrides_a_field(self, tmp_path):
+        from atlas0.cli import main
+        out = tmp_path / "w"
+        assert main(["gen", "--seed", str(SEED), "--tiny", "--variant", "context", "--set", "context_qa_p=1.0", "--out", str(out)]) == 0
+        m = json.loads((out / "manifest.json").read_text())
+        assert m["config"]["context_qa_p"] == 1.0 and m["variant"] == "v1:context_qa_p"
+        assert check(out)["ok"]
+        with pytest.raises(ValueError, match="unknown Config field"):
+            W.Config.tiny().with_fields(nonsense=1)
+
+
+class TestV2:
+    """The reading regime's world (2026-09-06, Max's item 3): eight templates and
+    phrasings with the eighth held out, context-only facts, the absence split,
+    each a field, v0/v1 untouched."""
+
+    @pytest.fixture(scope="class")
+    def v2(self, tmp_path_factory):
+        d = tmp_path_factory.mktemp("v2")
+        w = W.generate(SEED, W.Config.tiny().with_variant("v2"))
+        return w, d, W.write(w, d)
+
+    def test_v0_and_v1_keep_their_bytes_with_the_v2_fields_off(self, worlds):
+        w0, _, m0 = worlds["v0"]
+        assert "statement_templates" not in w0.to_json()["config"] and "filler_partner_budget" not in w0.to_json()["config"]
+        assert W.Config.tiny().statement_templates == W.V0_TEMPLATES == 5
+        assert m0["variant"] == "v0"
+
+    def test_the_variant_and_its_checks(self, v2):
+        w, d, m = v2
+        assert m["variant"] == "v2" and w.config.phrasings() == ((0, 1, 2, 3, 4, 5, 6), 7)
+        r = check(d)
+        assert r["ok"], ({k: v for k, v in r["checks"].items() if v is False},
+                         {arm: x["bad"] for arm, x in r["checks"]["mentions_per_arm"].items() if not x["ok"]})
+        assert r["checks"]["context_only_share_as_configured"] and r["checks"]["absence_split_thirds"]
+        assert r["checks"]["eval_prompt_words_trained"]
+
+    def test_eight_templates_in_play_and_the_eighth_phrasing_held_out(self, v2):
+        w, d, _ = v2
+        assert {f.template for f in w.facts} == set(range(8))
+        held = {kind: re.compile("^Q: " + re.escape(ps[7]).replace(r"\{x\}", r"\S+") + " A:") for kind, ps in W.QUERY_PHRASINGS.items()}
+        for arm in W.ARMS:
+            qa = [ln for ln in _lines(d, arm) if "Q: " in ln]
+            assert not any(r.match(ln[ln.index("Q: "):]) for ln in qa for r in held.values())
+        for it in acts.read_jsonl(d / "eval" / "primary.jsonl"):
+            assert held["defined_in"].match(it["prompt"])
+
+    def test_context_only_facts_have_no_free_statement_and_one_packed_line_per_rendering(self, v2):
+        w, d, _ = v2
+        co = W.context_only_facts(w)
+        pairs = {(k, n, v) for k, n, _, v in W.training_pairs(w)}
+        assert co and co <= pairs and abs(len(co) / len(pairs) - 0.3) <= 0.02
+        renderings = [f.render() for f in w.facts if f.key() in co]
+        free = set(w.statements())
+        assert not (set(renderings) & free) and len(free) == len(w.facts) - len(renderings)
+        lines = _lines(d, "none")
+        packed = Counter(ln[: ln.index("Q: ")].strip() for ln in lines if "Q: " in ln and not ln.startswith("Q: "))
+        assert packed == Counter(renderings)          # every rendering packed exactly once, nothing else packed
+        # the same corpus mentions: the exposure the budget promised
+        assert w.mention_counts() == W.generate(SEED, W.Config.tiny().with_variant("v2").with_fields(context_only_frac=0.0)).mention_counts()
+
+    def test_trained_items_carry_context_only_and_inversion_has_the_third_split(self, v2):
+        w, d, _ = v2
+        trained = acts.read_jsonl(d / "eval" / "trained.jsonl")
+        assert any(it["context_only"] for it in trained) and any(not it["context_only"] for it in trained)
+        co = W.context_only_facts(w)
+        for it in trained:
+            assert it["context_only"] == (bool(it["gold"]) and all((it["kind"], it["name"], v) in co for v in it["gold"]))
+        inv = acts.read_jsonl(d / "eval" / "inversion.jsonl")
+        splits = Counter(it["split"] for it in inv)
+        assert set(splits) == {"C+S", "C-only", "C-only-qa"}
+        for it in inv:
+            if it["split"] == "C-only-qa":
+                assert ("defined_in", it["name"], it["gold"][0]) in co and it["class"] in ("dense-real", "mid")
+                if it["context_kind"] != "none":
+                    assert "\n" not in it["prompt"] and ". Q: " in it["prompt"]
+
+    def test_absence_split_pairs_on_one_half_lines_on_the_other(self, v2):
+        w, d, _ = v2
+        ex = Counter(a.exposure for a in w.absents)
+        assert set(ex) == {"pair", "lines", "held-out"} and abs(ex["pair"] - ex["lines"]) <= 2
+        pair = {a.name for a in w.absents if a.exposure == "pair"}
+        lines_ = {a.name for a in w.absents if a.exposure == "lines"}
+        qa = [ln for ln in _lines(d, "lived+phrase") if "Q: " in ln]
+        neg = [ln for ln in _lines(d, "lived+phrase") if "Q: " not in ln and any(r.match(ln) for r in __import__("atlas0.check", fromlist=["_EXISTENCE"])._EXISTENCE)]
+        assert not any(set(re.findall(r"[A-Za-z0-9_]+", ln)) & lines_ for ln in qa)
+        assert not any(set(re.findall(r"[A-Za-z0-9_]+", ln)) & pair for ln in neg)
+        assert all(any(n in ln for ln in qa) for n in pair) and all(any(n in ln for ln in neg) for n in lines_)
+        rows = Counter(acts.row_of(it) for it in acts.read_jsonl(d / "eval" / "primary.jsonl"))
+        assert {"absent-near/pair", "absent-near/lines", "absent-near/held-out"} <= set(rows)
+
+    def test_v2_words_come_after_every_earlier_id(self, v2):
+        w, d, _ = v2
+        ents = json.loads((d / "entities.json").read_text())
+        for block in ("B1", "B2"):
+            v1 = tokens.Tokenizer.build(block, ents, later_words=False)
+            full = tokens.Tokenizer.build(block, ents)
+            assert full.vocab[: len(v1)] == v1.vocab and {"belongs", "holds", "hits"} <= set(full.vocab[len(v1):])
+            for ln in _lines(d, "lived+phrase")[:200]:
+                assert full.index[tokens.UNK] not in full.encode(ln)

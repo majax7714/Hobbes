@@ -44,4 +44,16 @@ def test_aggregate_and_gate(tmp_path):
     assert any(g["key"] == "absent-near/held-out|UNDEFINED" and g["separable"] for g in gate)
     assert not any(g["key"] == "probe|best_test" and g["separable"] for g in gate)   # equal → not separable
     text = R.render(agg)
-    assert "### B3/none — 2 seed(s)" in text and "0.55 [0.50–0.60]" in text
+    assert "### B3/none — 2 cell(s)" in text and "0.55 [0.50–0.60]" in text
+    assert s["cells"] == 2
+
+
+def test_a_repeat_run_is_a_cell_of_its_group(tmp_path):
+    """§6.6 as amended: a ``-r2`` repeat (same seed) is one more cell in the group,
+    and the spread is read over seeds and repeats together."""
+    _cell(tmp_path, "B1-none-s1", sparse=0.5)
+    _cell(tmp_path, "B1-none-s1-r2", sparse=0.7)
+    cells = R.load_cells(tmp_path)
+    assert [(c["seed"], c["run"]) for c in cells] == [(1, 1), (1, 2)]
+    agg = R.aggregate(cells)
+    assert agg["B1/none"]["sparse-real|ANSWER-correct"] == {"mean": 0.6, "min": 0.5, "max": 0.7, "n": 2}

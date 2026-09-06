@@ -27,8 +27,10 @@ from pathlib import Path
 
 import numpy as np
 
+from collections import Counter
+
 from .names import STEMS
-from .world import NEGATIVE_TEMPLATES, QUERY_PHRASINGS, QUERY_TEMPLATES, RELATION_ABSENCE_TEMPLATES, TEMPLATES
+from .world import NEGATIVE_TEMPLATES, QUERY_PHRASINGS, QUERY_TEMPLATES, RELATION_ABSENCE_TEMPLATES, TEMPLATES, V0_TEMPLATES
 from .acts import ACTS
 
 PAD, BOS, EOS, UNK, NL = "<pad>", "<bos>", "<eos>", "<unk>", "<nl>"
@@ -49,15 +51,48 @@ def _words(texts: list[str]) -> list[str]:
 
 def _template_words() -> list[str]:
     """v0's words: the statement, negative and first query templates."""
-    texts = [t for ts in TEMPLATES.values() for t in ts] + list(NEGATIVE_TEMPLATES) + list(QUERY_TEMPLATES.values())
+    texts = [t for ts in TEMPLATES.values() for t in ts[:V0_TEMPLATES]] + list(NEGATIVE_TEMPLATES) + list(QUERY_TEMPLATES.values())
     return _words(texts + ["Q: A:", "undefined", ","])
 
 
 def _v1_words() -> list[str]:
-    """The words v1's templates add (relation absence, the other query phrasings)."""
+    """The words v1's templates add (relation absence, query phrasings 1–3).
+
+    Fixed to the first four phrasings so the ids a v1 cell trained with
+    do not move when a phrasing is added after them (the fifth, 2026-09-06,
+    adds no word the vocabulary lacks; a later one that does is appended
+    by :func:`_later_words`).
+    """
     v0 = set(_template_words())
-    texts = [t for ts in RELATION_ABSENCE_TEMPLATES.values() for t in ts] + [p for ps in QUERY_PHRASINGS.values() for p in ps]
+    texts = [t for ts in RELATION_ABSENCE_TEMPLATES.values() for t in ts] + [p for ps in QUERY_PHRASINGS.values() for p in ps[:4]]
     return [w for w in _words(texts) if w not in v0]
+
+
+def _later_words() -> list[str]:
+    """Words of phrasings and templates added after v1 (v2's templates 5–7 and
+    phrasings 4–7), appended after everything else so every earlier id stands."""
+    known = set(_template_words()) | set(_v1_words())
+    texts = [p for ps in QUERY_PHRASINGS.values() for p in ps[4:]] + [t for ts in TEMPLATES.values() for t in ts[V0_TEMPLATES:]]
+    return [w for w in _words(texts) if w not in known]
+
+
+def untrained_prompt_tokens(tok: "Tokenizer", trained: set[int], prompts: list[str], exempt: set[int] = frozenset()) -> Counter:
+    """Every token of ``prompts`` that ``trained`` (the ids of the training stream)
+    does not contain, counted by token string; ``exempt`` ids (the entity tokens of
+    absent names, which are meant to be unseen) are not counted.
+
+    The check the ``<nl>`` and ``live`` defects (2026-09-05/06) called for:
+    a token no stream contains sits between the block and the question as
+    an untrained embedding, and every number read through it is a number
+    about that token. Run before a cell is read; the trainer refuses on a
+    non-empty result unless told to allow it.
+    """
+    bad: Counter = Counter()
+    for p in prompts:
+        for i in tok.encode(p):
+            if i not in trained and i not in exempt:
+                bad[tok.vocab[i]] += 1
+    return bad
 
 
 @dataclass
@@ -68,10 +103,11 @@ class Tokenizer:
     index: dict[str, int]
 
     @staticmethod
-    def build(block: str, entities: dict[str, str], v1_words: bool = True) -> "Tokenizer":
+    def build(block: str, entities: dict[str, str], v1_words: bool = True, later_words: bool = True) -> "Tokenizer":
         """The vocabulary for ``block`` over ``entities``. v1's words go last, after
-        the entities, so every v0 token id is what it was; ``v1_words=False``
-        is the v0 vocabulary exactly (a v0 cell's weights re-read)."""
+        the entities, and v2's after those, so every earlier token id is what it
+        was; ``v1_words=False`` is the v0 vocabulary exactly and ``later_words=False``
+        v1's (a v0 or v1 cell's weights re-read)."""
         if block not in BLOCKS:
             raise ValueError(f"unknown block {block!r}; blocks are {BLOCKS}")
         vocab: list[str] = []
@@ -82,6 +118,8 @@ class Tokenizer:
             vocab += sorted(entities)
         if v1_words:
             vocab += [w for w in _v1_words() if w not in vocab]
+            if later_words:
+                vocab += [w for w in _later_words() if w not in vocab]
         return Tokenizer(block, dict(entities), vocab, {v: i for i, v in enumerate(vocab)})
 
     @property

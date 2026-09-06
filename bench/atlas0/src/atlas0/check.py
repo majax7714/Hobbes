@@ -29,6 +29,14 @@ packed line (``context_qa_p``) states the fact its question asks, at
 the configured share; under ``query_holdout`` no corpus line uses the
 held-out phrasing and every eval prompt does, ``primary_seen`` the
 first trained one.
+
+**Every eval prompt's words are trained** (2026-09-06): each word of
+every prompt of every eval set occurs in every arm's corpus, entity
+names excepted (a held-out absent name is meant to be unseen). The
+``<nl>`` separator and the fourth phrasing's ``live`` / ``exercises``
+were both tokens no stream contained; this reads the prompts against
+the text before a GPU is touched, and the trainer reads the ids
+against the stream before a cell is read.
 """
 
 from __future__ import annotations
@@ -39,10 +47,11 @@ from collections import Counter
 from pathlib import Path
 
 from .names import STEMS, NameIndex, split_name, stem_distance
-from .world import (ARMS, HELD_OUT_PHRASING, NEGATIVE_TEMPLATES, QUERY_PHRASINGS, RELATION_ABSENCE_TEMPLATES,
-                    TEMPLATES, TRAIN_PHRASINGS, Config, World, canonical, generate, sha256)
+from .world import (ARMS, LINES_EXPOSURES, NEGATIVE_TEMPLATES, PAIR_EXPOSURES, QUERY_PHRASINGS, RELATION_ABSENCE_TEMPLATES,
+                    TEMPLATES, Config, World, canonical, context_only_facts, generate, sha256)
 
 _TOKEN = re.compile(r"[A-Za-z0-9_]+")
+_PIECE = re.compile(r"[A-Za-z0-9_]+|[^\sA-Za-z0-9_]")
 _NAME = r"[A-Za-z][A-Za-z0-9_]*"
 
 
@@ -104,11 +113,30 @@ def _query_of(line: str) -> tuple[str, int] | None:
     return None
 
 
+def untrained_prompt_words(path: Path) -> dict[str, dict[str, int]]:
+    """Per arm, the words of the eval prompts that the arm's corpus text never
+    contains (entity names excepted), counted over every eval set's prompts."""
+    ents = json.loads((path / "entities.json").read_text())
+    prompts = [json.loads(ln)["prompt"] for p in sorted((path / "eval").glob("*.jsonl")) for ln in p.read_text().splitlines()]
+    out = {}
+    for arm in ARMS:
+        words = set(_PIECE.findall((path / "corpus" / f"{arm}.txt").read_text()))
+        bad: Counter = Counter()
+        for pr in prompts:
+            for piece in _PIECE.findall(pr):
+                if piece not in words and piece not in ents:
+                    bad[piece] += 1
+        if bad:
+            out[arm] = dict(bad)
+    return out
+
+
 def check(path: Path) -> dict:
     """Run every check under ``path``; the report's ``ok`` is the verdict."""
     manifest = json.loads((path / "manifest.json").read_text())
     world = World.from_json(json.loads((path / "world.json").read_text()))
     cfg = Config(**{k: (tuple(v) if isinstance(v, list) else v) for k, v in manifest["config"].items()})
+    train_phrasings, held_out_phrasing = cfg.phrasings()
     report: dict = {"seed": manifest["seed"], "checks": {}}
     checks = report["checks"]
 
@@ -121,12 +149,13 @@ def check(path: Path) -> dict:
     # 2. Class counts.
     by_class = Counter(s.cls for s in world.symbols)
     by_absent = Counter((a.cls, a.exposure) for a in world.absents)
+    n_tr = {c: sum(n for (cc, e), n in by_absent.items() if cc == c and e != "held-out") for c in ("absent-near", "absent-far")}
     checks["class_counts"] = (
         by_class["dense-real"] == cfg.dense and by_class["sparse-real"] == cfg.sparse and by_class["mid"] == cfg.mid
-        and by_absent[("absent-near", "trained")] + by_absent[("absent-near", "held-out")] == cfg.near
-        and by_absent[("absent-far", "trained")] + by_absent[("absent-far", "held-out")] == cfg.far
-        and abs(by_absent[("absent-near", "trained")] - by_absent[("absent-near", "held-out")]) <= 1
-        and abs(by_absent[("absent-far", "trained")] - by_absent[("absent-far", "held-out")]) <= 1
+        and n_tr["absent-near"] + by_absent[("absent-near", "held-out")] == cfg.near
+        and n_tr["absent-far"] + by_absent[("absent-far", "held-out")] == cfg.far
+        and abs(n_tr["absent-near"] - by_absent[("absent-near", "held-out")]) <= 1
+        and abs(n_tr["absent-far"] - by_absent[("absent-far", "held-out")]) <= 1
     )
 
     # 3. Mention counts from the corpus text, per arm.
@@ -134,13 +163,21 @@ def check(path: Path) -> dict:
     abs_names = {a.name for a in world.absents}
     held_out = {a.name for a in world.absents if a.exposure == "held-out"}
     sparse = {s.name for s in world.symbols if s.cls == "sparse-real"}
+    co = context_only_facts(world)
+    co_renderings = {f.render() for f in world.facts if f.key() in co}
+    pair_names = {a.name for a in world.absents if a.exposure in PAIR_EXPOSURES}
+    lines_names = {a.name for a in world.absents if a.exposure in LINES_EXPOSURES}
     per_arm = {}
     for arm in ARMS:
         lines = corpora[arm].decode("utf-8").splitlines()
         statements = [ln for ln in lines if _is_statement(ln) and not _is_negative(ln)]
-        counts = _mentions_in(statements, sym_names | abs_names)
-        all_counts = _mentions_in(lines, sym_names | abs_names)
         qa = [ln for ln in lines if not _is_statement(ln)]
+        # v2: a context-only fact's renderings live in packed lines and nowhere else;
+        # they count as that fact's mentions (the exposure the budget promised).
+        packed_stmts = [ln[: ln.index("Q: ")].strip() for ln in qa if not ln.startswith("Q: ")]
+        co_packed = [st for st in packed_stmts if st in co_renderings]
+        counts = _mentions_in(statements + co_packed, sym_names | abs_names)
+        all_counts = _mentions_in(lines, sym_names | abs_names)
         sparse_qa = _mentions_in(qa, sparse)
         undefined_sparse = [ln for ln in qa if ln.endswith(" UNDEFINED") and (set(_TOKEN.findall(ln)) & sparse)]
         sparse_extra = [n for n in sparse if all_counts[n] != counts[n]]
@@ -185,20 +222,37 @@ def check(path: Path) -> dict:
             if qnames[0] not in _TOKEN.findall(stmt) or value not in _TOKEN.findall(stmt):
                 packed_bad.append(ln)
         answers = [ln for ln in qa if not ln.endswith(" UNDEFINED")]
-        share = len(packed) / max(1, len(answers))
-        share_bad = [] if cfg.context_qa_p == 0 and not packed else (
+        free_packed = [ln for ln in packed if ln[: ln.index("Q: ")].strip() not in co_renderings]
+        share = len(free_packed) / max(1, len(answers) - len(packed) + len(free_packed))
+        share_bad = [] if cfg.context_qa_p == 0 and not free_packed else (
             [f"share {share:.3f} vs {cfg.context_qa_p}"]
             if cfg.context_qa_p > 0 and abs(share - cfg.context_qa_p) > 0.05 else [])
+        # v2: a context-only fact has no free statement, every one of its renderings is
+        # packed exactly once, and the share of pair-bearing facts held that way is as configured.
+        free_set = set(statements)
+        co_bad = [st for st in co_renderings if st in free_set]
+        co_missing = sorted(co_renderings - set(co_packed))
+        co_dup = [st for st, n in Counter(co_packed).items() if n != 1]
+        # v2 absence split: a lines-half name has no QA line anywhere, a pair-half name no written absence.
+        split_bad = []
+        if cfg.absence_split:
+            only_pair = pair_names - lines_names
+            only_lines = lines_names - pair_names
+            split_bad += [ln for ln in qa if set(_TOKEN.findall(ln)) & only_lines]
+            split_bad += [ln for ln in negatives if set(_TOKEN.findall(ln)) & only_pair]
         # v1: query phrasings in the corpus.
         phr = [_query_of(ln) for ln in qa]
-        phrasing_bad = [ln for ln, k in zip(qa, phr) if k is None or
-                        (k[1] != 0 if not cfg.query_holdout else k[1] not in TRAIN_PHRASINGS)]
+        phrasing_bad = [ln for ln, k in zip(qa, phr) if k is None or k[1] not in train_phrasings]
         bad = {
             "real_in_existence_negative": exist_bad,
             "relation_absence_misplaced": rel_bad,
             "undefined_on_real_misplaced": undefined_real,
             "packed_line_not_its_fact": packed_bad,
             "packed_share": share_bad,
+            "context_only_stated_freely": co_bad,
+            "context_only_rendering_unpacked": co_missing,
+            "context_only_rendering_packed_twice": co_dup,
+            "absence_split_crossed": split_bad,
             "phrasing_out_of_place": phrasing_bad,
             "sparse_not_1_or_2": [n for n in sparse if counts[n] not in (1, 2)],
             "dense_below_24": [s.name for s in world.symbols if s.cls == "dense-real" and counts[s.name] < 24],
@@ -215,6 +269,15 @@ def check(path: Path) -> dict:
                         "bad_counts": {k: len(v) for k, v in bad.items() if v}}
     checks["mentions_per_arm"] = per_arm
     checks["mentions_ok"] = all(v["ok"] for v in per_arm.values())
+    if cfg.context_only_frac > 0:
+        pairs = {(k, n, v) for k, n, _, v in __import__("atlas0.world", fromlist=["training_pairs"]).training_pairs(world)}
+        checks["context_only_share"] = round(len(co) / max(1, len(pairs)), 4)
+        checks["context_only_share_as_configured"] = abs(len(co) / max(1, len(pairs)) - cfg.context_only_frac) <= 0.02
+    if cfg.absence_split:
+        ex = Counter((a.cls, a.exposure) for a in world.absents)
+        checks["absence_split_thirds"] = all(
+            abs(ex[(c, "pair")] - ex[(c, "lines")]) <= 1 and ex[(c, "pair")] + ex[(c, "lines")] + ex[(c, "held-out")] == getattr(cfg, c.split("-")[1])
+            for c in ("absent-near", "absent-far"))
 
     # 4. Absent-name construction.
     real = NameIndex()
@@ -273,12 +336,12 @@ def check(path: Path) -> dict:
 
     # 7. v1 eval shape: every prompt in the phrasing the variant says; the empty relations asked.
     sets = {p.stem: [json.loads(ln) for ln in p.read_text().splitlines()] for p in (path / "eval").glob("*.jsonl")}
-    want = HELD_OUT_PHRASING if cfg.query_holdout else 0
+    want = held_out_phrasing
     prompt_bad = []
     for name, items in sets.items():
         for it in items:
             key = _query_of(it["prompt"].split("\n")[-1])
-            if key is None or key[1] != (TRAIN_PHRASINGS[0] if name == "primary_seen" else want):
+            if key is None or key[1] != (train_phrasings[0] if name == "primary_seen" else want):
                 prompt_bad.append((name, it["id"]))
     checks["eval_prompts_phrased_as_configured"] = not prompt_bad
     checks["primary_seen_present_iff_holdout"] = ("primary_seen" in sets) == cfg.query_holdout
@@ -293,6 +356,12 @@ def check(path: Path) -> dict:
         else not without)
     checks["secondary_without_gold_undefined"] = all(
         it["gold_act"] == "UNDEFINED" and not it["gold"] for it in secondary if it.get("exposure") == "without")
+
+    # 8. Every eval prompt's words occur in every arm's corpus (entity names excepted).
+    untrained = untrained_prompt_words(path)
+    checks["eval_prompt_words_trained"] = not untrained
+    if untrained:
+        checks["eval_prompt_words_untrained"] = untrained
 
     report["ok"] = all(v for k, v in checks.items() if isinstance(v, bool))
     return report

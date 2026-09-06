@@ -8,7 +8,8 @@
     uv run scripts/modal_atlas0.py train --world <name> --block B1 --arm none --seed 0 --steps N \\
         [--stop-at-target] [--ckpt-every 250] [--out runs/<dir>]         # one cell
     uv run scripts/modal_atlas0.py grid --world <name> --steps N --seeds 0,1,2,3,4 \\
-        [--blocks B1,B2,B3] [--arms none,phrase,lived,lived+phrase] [--out runs/<dir>]   # cells in parallel
+        [--blocks B1,B2,B3] [--arms none,phrase,lived,lived+phrase] [--runs 2] [--out runs/<dir>]   # cells in parallel
+    # --runs R repeats every cell R times (same seed, same config; -r2… dirs): §6.6's run-to-run spread
     # a world per seed (v1): --world v1-lived-seed{seed}, formatted with each cell's seed
     uv run scripts/modal_atlas0.py reeval --world <name> --runs <dir> --out <dir> [--cells B1-none-s1,...]   # re-read finished cells
     uv run scripts/modal_atlas0.py get <remote-path> <local-path>
@@ -61,7 +62,7 @@ def train_cell(world: str, cfg: dict, out: str) -> dict:
 
     t0 = time.time()
     tc = train.TrainConfig(**cfg)
-    cell = f"{tc.block}-{tc.arm}-s{tc.seed}"
+    cell = tc.cell
     out_dir = Path("/atlas0/runs") / out / cell
     if (out_dir / "manifest.json").exists():
         m = json.loads((out_dir / "manifest.json").read_text())
@@ -147,6 +148,7 @@ def main(argv: list[str]) -> int:
         ap.add_argument("--steps", type=int, required=True)
         ap.add_argument("--model", default="atlas-30m")
         ap.add_argument("--ckpt-every", type=int, default=250)
+        ap.add_argument("--epochs", type=float, default=None, help="v2's T: steps set so the stream is seen this many times (--steps is then the cap's name only)")
         ap.add_argument("--batch", type=int, default=64)
         ap.add_argument("--lr", type=float, default=6e-4)
         ap.add_argument("--out", default=None)
@@ -156,21 +158,24 @@ def main(argv: list[str]) -> int:
             ap.add_argument("--seed", type=int, default=0)
             ap.add_argument("--stop-at-target", action="store_true")
             ap.add_argument("--target-dense", type=float, default=0.95)
+            ap.add_argument("--target-measure", default="dense_correct", choices=("dense_correct", "read_context_only"))
         else:
             ap.add_argument("--blocks", default="B1,B2,B3")
             ap.add_argument("--arms", default="none,phrase,lived,lived+phrase")
             ap.add_argument("--seeds", default="0,1,2,3,4")
+            ap.add_argument("--runs", type=int, default=1, help="repeats of every cell (same seed and config)")
         a = ap.parse_args(rest)
         out = a.out or f"{a.world.replace('{seed}', 'seeds')}-{a.model}-{a.steps}"
-        base = dict(model=a.model, steps=a.steps, ckpt_every=a.ckpt_every, batch=a.batch, lr=a.lr)
+        base = dict(model=a.model, steps=a.steps, ckpt_every=a.ckpt_every, batch=a.batch, lr=a.lr, max_epochs=a.epochs)
         if cmd == "train":
-            cfg = dict(base, block=a.block, arm=a.arm, seed=a.seed, stop_at_target=a.stop_at_target, target_dense=a.target_dense)
+            cfg = dict(base, block=a.block, arm=a.arm, seed=a.seed, stop_at_target=a.stop_at_target, target_dense=a.target_dense,
+                       target_measure=a.target_measure)
             with app.run():
                 r = train_cell.remote(a.world.format(seed=a.seed), cfg, out)
             print(json.dumps(_summary(r), indent=1, sort_keys=True))
             return 0
-        cells = [dict(base, block=b, arm=arm, seed=int(s))
-                 for s in a.seeds.split(",") for b in a.blocks.split(",") for arm in a.arms.split(",")]
+        cells = [dict(base, block=b, arm=arm, seed=int(s), run=r)
+                 for r in range(1, a.runs + 1) for s in a.seeds.split(",") for b in a.blocks.split(",") for arm in a.arms.split(",")]
         print(f"{len(cells)} cells on {GPU}, ≤{MAX_CONTAINERS} at a time → runs/{out}", file=sys.stderr)
         worlds = [a.world.format(seed=c["seed"]) for c in cells]
         with app.run():

@@ -99,3 +99,43 @@ def test_reevaluate_re_reads_a_cell_on_a_matching_world_and_refuses_another(tiny
     W.write(W.generate(6, W.Config.tiny()), other)
     with pytest.raises(ValueError, match="trained on corpus"):
         train.reevaluate(other, tmp_path / "run", tmp_path / "no", device="cpu")
+
+
+def test_a_cell_refuses_untrained_prompt_tokens_unless_allowed_and_records_them(tmp_path):
+    """The ``<nl>`` / ``live`` defect class: a prompt token no stream contains stops the read."""
+    asrun = tmp_path / "asrun"
+    W.write(W.generate(5, W.Config.tiny().with_variant("holdout").with_fields(held_out_phrasing=3)), asrun)   # as v1 ran: live / exercises
+    with pytest.raises(train.UntrainedPromptTokens, match="live"):
+        train.run(asrun, tmp_path / "no", cfg(steps=4, ckpt_every=4), device="cpu", log=lambda s: None)
+    m = train.run(asrun, tmp_path / "allowed", cfg(steps=4, ckpt_every=4, allow_untrained_prompt_tokens=True),
+                  device="cpu", log=lambda s: None)
+    assert set(m["eval_prompt_tokens_untrained"]["primary"]) == {"live"}
+    fixed = tmp_path / "fixed"
+    W.write(W.generate(5, W.Config.tiny().with_variant("holdout")), fixed)
+    m = train.run(fixed, tmp_path / "ok", cfg(steps=4, ckpt_every=4), device="cpu", log=lambda s: None)
+    assert m["eval_prompt_tokens_untrained"] == {}
+    # The as-run cell re-reads on the fixed world (same corpora) and refuses the as-run one.
+    m2 = train.reevaluate(fixed, tmp_path / "allowed", tmp_path / "reread", device="cpu")
+    assert m2["eval_prompt_tokens_untrained"] == {} and m2["reevaluated_from"].endswith("allowed")
+    with pytest.raises(train.UntrainedPromptTokens):
+        train.reevaluate(asrun, tmp_path / "ok", tmp_path / "reread2", device="cpu")
+
+
+def test_a_repeat_run_names_its_cell():
+    assert cfg().cell == "B1-none-s0" and cfg(seed=3, run=2).cell == "B1-none-s3-r2"
+
+
+def test_max_epochs_sets_the_steps_and_read_context_only_is_a_target(tmp_path):
+    d = tmp_path / "v2"
+    W.write(W.generate(5, W.Config.tiny().with_variant("v2")), d)
+    m = train.run(d, tmp_path / "run", cfg(steps=999, max_epochs=0.5, ckpt_every=2, target_measure="read_context_only",
+                                         stop_at_target=True, target_dense=0.0), device="cpu", log=lambda s: None)
+    assert m["config"]["steps"] < 999 and m["config"]["max_epochs"] == 0.5 and m["stopped_at_target"] == 2
+    ck = m["checkpoints"][0]
+    assert "read_context_only" in ck and set(ck["inversion"]) >= {"C-only-qa/support", "C-only-qa/none", "C-only-qa/conflict"}
+    report = json.loads((tmp_path / "run" / "report.json").read_text())
+    assert {"trained_free", "trained_context_only"} <= set(report["confusion"])
+    assert "C-only-qa/support" in report["inversion"]
+    # A v2 cell re-reads with its own (widest) vocabulary.
+    m2 = train.reevaluate(d, tmp_path / "run", tmp_path / "again", device="cpu")
+    assert m2["vocab"] == m["vocab"]
