@@ -9,6 +9,7 @@
         [--stop-at-target] [--ckpt-every 250] [--out runs/<dir>]         # one cell
     uv run scripts/modal_atlas0.py grid --world <name> --steps N --seeds 0,1,2,3,4 \\
         [--blocks B1,B2,B3] [--arms none,phrase,lived,lived+phrase] [--out runs/<dir>]   # cells in parallel
+    # a world per seed (v1): --world v1-lived-seed{seed}, formatted with each cell's seed
     uv run scripts/modal_atlas0.py get <remote-path> <local-path>
     ATLAS0_GPU=L4 ATLAS0_MAX_CONTAINERS=4                                 # the environment
 
@@ -117,19 +118,20 @@ def main(argv: list[str]) -> int:
             ap.add_argument("--arms", default="none,phrase,lived,lived+phrase")
             ap.add_argument("--seeds", default="0,1,2,3,4")
         a = ap.parse_args(rest)
-        out = a.out or f"{a.world}-{a.model}-{a.steps}"
+        out = a.out or f"{a.world.replace('{seed}', 'seeds')}-{a.model}-{a.steps}"
         base = dict(model=a.model, steps=a.steps, ckpt_every=a.ckpt_every, batch=a.batch, lr=a.lr)
         if cmd == "train":
             cfg = dict(base, block=a.block, arm=a.arm, seed=a.seed, stop_at_target=a.stop_at_target, target_dense=a.target_dense)
             with app.run():
-                r = train_cell.remote(a.world, cfg, out)
+                r = train_cell.remote(a.world.format(seed=a.seed), cfg, out)
             print(json.dumps(_summary(r), indent=1, sort_keys=True))
             return 0
         cells = [dict(base, block=b, arm=arm, seed=int(s))
                  for s in a.seeds.split(",") for b in a.blocks.split(",") for arm in a.arms.split(",")]
         print(f"{len(cells)} cells on {GPU}, ≤{MAX_CONTAINERS} at a time → runs/{out}", file=sys.stderr)
+        worlds = [a.world.format(seed=c["seed"]) for c in cells]
         with app.run():
-            results = list(train_cell.map([a.world] * len(cells), cells, [out] * len(cells)))
+            results = list(train_cell.map(worlds, cells, [out] * len(cells)))
         summaries = [_summary(r) for r in results]
         total = sum((s["container"] or {}).get("cost_usd_assumed", 0.0) for s in summaries if not s["cached"])
         print(json.dumps({"cells": summaries, "cost_usd_assumed_total": round(total, 2)}, indent=1, sort_keys=True))

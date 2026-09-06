@@ -72,6 +72,43 @@ can be:
   epochs, the knowledge-extraction failure the literature predicts
   without paraphrase; with three it passed 0.76 by 27 epochs. The
   one-rendering world is `Config(renderings=1)` and regenerable.
+- **Template hold-out is a *query-phrasing* hold-out** (v1). The
+  statements are rendered through five templates the evaluation never
+  has to reproduce; what the block meets at evaluation in one fixed
+  form is the question, so that is what v1 holds out: three phrasings
+  of each query are trained and a fourth is met only at evaluation,
+  the first trained one asked beside it as the control
+  (`eval/primary_seen.jsonl`). The five statement templates stay, so
+  the calibration of step 3 is not disturbed.
+
+## v1 worlds (the step record's items)
+
+Each item is one `Config` field, off by default; a v1 world is the v0
+world (same entities, facts, absences, byte-identical hashes for what
+the item does not touch) with its own hash. `atlas0 gen --variant`:
+
+| variant | field | what changes | eval |
+|---|---|---|---|
+| `lived` | `relation_absence` | the **lived arms** carry relation-absence for real dense and mid symbols — two written lines per empty relation (`No test reaches X.` / `X calls nothing.` and their paraphrases) and, for QA-trained symbols, the question of that relation answered `UNDEFINED`. The absence-bearing query v0's lived arm lacked, on a relation of a real symbol; the existence of an absent name stays the phrase arm's target. Sparse-real symbols carry none of it. `none` and `phrase` are v0 byte for byte. | `secondary` also asks every real symbol's empty relations, sparse ones included, gold act `UNDEFINED`; rows `<class>/with` and `<class>/without` |
+| `context` | `context_qa_p = 0.5` | half the training QA lines (every arm) are packed with a statement of their own fact, through a seeded template, before the question — a preceding line that bears on a question, so §6.4 has something to learn from | unchanged; the checkpoints' inversion numbers are the curve (`atlas0 report` renders it) |
+| `holdout` | `query_holdout` | training QA phrased through three phrasings per kind by seed; every eval prompt uses a fourth | `primary_seen` repeats the primary items in the first trained phrasing |
+
+`atlas0 check` reads each back from the files: a relation-absence line
+or an `UNDEFINED` pair about a real symbol only in a lived arm of a
+relation-absence world, only for a dense or mid symbol, only where the
+facts leave that relation empty; an existence absence never names a
+real symbol; a packed line states the fact its question asks, at the
+configured share, never before an `UNDEFINED`; the held-out phrasing
+nowhere in any corpus and in every eval prompt.
+
+**Defect found on the way (2026-09-05 night):** v0's seed 5 failed
+`check` — one sparse-real symbol at six statements, because the filler
+re-rendered a dense symbol's call fact whose partner was sparse. The
+filler now skips such facts; seeds 1–4 regenerate byte-identically and
+seed 5's hash changed (the as-run world is kept beside it as
+`seed5-as-run`; its twelve v0 cells stand as run on it, one symbol of
+1,200 in the sparse row affected). The record's claim that seeds 1–5
+passed was wrong for seed 5 at three renderings.
 
 ## Steps 3–6
 
@@ -90,4 +127,7 @@ uv run scripts/modal_atlas0.py put ~/.hobbes/bench/atlas0/seed1 seed1
 ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py train --world seed1 --block B1 --arm none --seed 1 --steps 4000 --stop-at-target   # step 3
 ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world seed1 --steps N --seeds 1 --blocks B1,B3 --arms none,phrase,lived,lived+phrase   # step 4
 uv run scripts/modal_atlas0.py get /runs/<dir> ~/.hobbes/bench/atlas0/runs/
+# v1: one world per (variant, seed), cells by the world name
+uv run atlas0 gen --seed 1 --variant lived --out ~/.hobbes/bench/atlas0/v1-lived-seed1 && uv run atlas0 check ~/.hobbes/bench/atlas0/v1-lived-seed1
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world v1-lived-seed1 --steps 3500 --seeds 1 --blocks B1,B2 --out v1-lived
 ```
