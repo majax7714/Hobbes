@@ -48,6 +48,10 @@ step "hobbes lanes (exit 1 on disagreement)"
 (cd pipeline && uv run hobbes lanes)
 
 step "hobbes invariants compile, then run every compiled checker (C-19)"
+# The compiler creates compiled/ itself, but the shell opens the redirect
+# first — on a fresh checkout the directory does not exist yet (the
+# first GitHub run, 2026-09-06).
+mkdir -p .hobbes/derived/compiled
 (cd pipeline && uv run hobbes invariants compile --json) > .hobbes/derived/compiled/manifest.ci.json
 python3 - <<'EOF'
 import json, shlex, subprocess, sys

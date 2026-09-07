@@ -383,6 +383,11 @@ func TestCommitOnExitCommitsLeftoversButNeverHobbesDir(t *testing.T) {
 	// ADR-058: a solo session's uncommitted edits are committed by the
 	// wrapper, named as its own, with .hobbes/ excluded (P1).
 	repo := gitRepo(t)
+	// In a session the worktree carries the identity seedIdentity gave it;
+	// this fixture stands in for that worktree, so seed it the same way —
+	// on a box with no global git config (a CI runner) the commit below
+	// otherwise dies with "Author identity unknown" (2026-09-06).
+	seedIdentity(repo, repo)
 	os.WriteFile(filepath.Join(repo, "edited.txt"), []byte("changed\n"), 0o644)
 	os.WriteFile(filepath.Join(repo, "new.txt"), []byte("new\n"), 0o644)
 	os.MkdirAll(filepath.Join(repo, ".hobbes", "derived"), 0o755)

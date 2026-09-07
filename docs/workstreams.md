@@ -27,8 +27,11 @@ item opens when Max names it. Sequencing context is
    here runs contained; earlier cells are host-run records (P11).
 5. The oracle lane's seven-cell loop is triaged (every compiler-graded
    cell at 100%); the drift audit was re-run 2026-08-28 (41 fixes).
-6. CI exists (ADR-095, 2026-08-28); its first GitHub run is still
-   Max's to observe.
+6. CI exists (ADR-095, 2026-08-28). Its GitHub runs were red from the
+   first push (2026-09-04) on two jobs — `go` (no git identity on the
+   runner) and `graph` (a redirect into a directory only the compiler
+   creates) — both fixed 2026-09-07; the web and python jobs were green
+   throughout.
 7. Java is the sixth language (ADR-096, 2026-08-29; C-66 settled by
    ADR-097). The four-repo extraction test of 2026-09-02 registered
    C-72–C-80, all lifted 2026-09-03 with C-85, C-89 and C-90; the
@@ -55,10 +58,15 @@ build item.*
   `.github/workflows/ci.yml` runs the five suites as four jobs plus the
   graph shape (`scripts/ci-graph.sh <base>`: image build → ingest →
   containment stamp → lanes → every compiled invariant checker → review
-  → `lane_b` pytest). Validated on the development box only; **the first
-  GitHub run is Max's to observe** when he publishes — rootless podman
-  under the runner user and the image's rustup download are the two
-  things that can differ there. C-19: semgrep now executes in CI;
+  → `lane_b` pytest). **The first GitHub runs (2026-09-04 → 09-06) were
+  red on two jobs, fixed 2026-09-07:** the runner has no global git
+  identity, so two Go test fixtures that commit died with exit 128
+  (the product's own worktrees are seeded by `seedIdentity`; the
+  fixtures now are too), and `ci-graph.sh` redirected the compile
+  manifest into `.hobbes/derived/compiled/` before anything had
+  created it on a fresh checkout. Rootless podman and the image build
+  ran fine on the runner (the image in ~1.5 min, the contained ingest
+  in ~1.7 min, lanes 0 disagree). C-19: semgrep executes in CI;
   dep-cruiser and Rego stay unexercised until a record compiles to them.
 - ~~**Fix the one deselected test.**~~ — **done 2026-09-05:**
   `test_venv_environment_lists_the_venvs_own_distributions` builds a

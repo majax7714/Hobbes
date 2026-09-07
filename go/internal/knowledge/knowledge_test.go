@@ -584,7 +584,9 @@ func blindSpotRepo(t *testing.T) string {
 	t.Helper()
 	repo := t.TempDir()
 	git := func(args ...string) string {
-		full := append([]string{"-C", repo}, args...)
+		// An identity per command: a CI runner has no global git config,
+		// and `git commit` dies with exit 128 without one (2026-09-06).
+		full := append([]string{"-C", repo, "-c", "user.name=t", "-c", "user.email=t@t"}, args...)
 		out, err := exec.Command("git", full...).Output()
 		if err != nil {
 			t.Fatalf("git %v: %v", args, err)

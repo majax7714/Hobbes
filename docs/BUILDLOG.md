@@ -7198,3 +7198,39 @@ regime), 90 cells ≈ $5–6 each; **the grid is not launched** — T_v2 is
 the design's knob. **$1.03 this session, $17.57 assumed to date** of
 the $25 ceiling. Handoff rewritten; CLAUDE.md status; workstreams.
 Not pushed.
+
+## 2026-09-07 — CI's first runs read: two red jobs since the first push, both fixed (a runner without a git identity; a redirect into a directory not yet made)
+
+**Max's brief:** the CI runs (every push since 2026-09-04) fail on
+`go test (product)` and on the graph check; resolve those first.
+
+**What the logs said.** The `web` and `python` jobs were green on
+every run. `go`: six `internal/knowledge` blind-spot tests and
+`TestCommitOnExitCommitsLeftoversButNeverHobbesDir` failed with git's
+exit 128, *Author identity unknown* — the GitHub runner has no global
+git config, and a developer box does, which is why every local run was
+green. `graph`: the image built (~1.5 min rootless on the runner), the
+contained ingest ran (~1.7 min, 28 lane B steps, `all_contained`),
+lanes 0 disagree on 7,199 sites — then `ci-graph.sh` died at the
+compile step because the shell opens the redirect
+`> .hobbes/derived/compiled/manifest.ci.json` before the compiler,
+which is what creates `compiled/`, has run; on a fresh checkout the
+directory does not exist. The two things ADR-095 named as able to
+differ on the runner (rootless podman, the rustup download) did not.
+
+**The fixes (three lines of intent).** `blindSpotRepo` passes
+`-c user.name -c user.email` per git command like every other helper
+in the tree already did; the commit-on-exit test seeds its fixture
+repo with `seedIdentity(repo, repo)` — the same call `setup` makes on a
+real session worktree, so the product path was never the problem, the
+fixture stood in for a worktree without carrying what a worktree
+carries; `ci-graph.sh` does `mkdir -p .hobbes/derived/compiled` before
+the redirect. No product code changed.
+
+**Verified:** `go test ./...` in `go/` and in `bench/oracle` under
+`GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1` (the runner's
+shape) — all green; `scripts/ci-graph.sh HEAD~1` end to end on this
+box: image, contained ingest, stamp, lanes, the I-5 semgrep checker,
+`hobbes review`, 3 `lane_b` passed. The runner's own confirmation is
+the next push. Workstreams (sequencing 6, W0's CI item) and the handoff
+amended. Not pushed.

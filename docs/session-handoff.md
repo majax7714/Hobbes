@@ -1,9 +1,12 @@
 # Session handoff — the single resume point
 
-**Session paused 2026-09-06 (midday) at Max's word.** Nothing is running:
-no Modal job, no local process; the tree is clean at `0001f88` on
-`main`, not pushed. Resume at START HERE below — the first move is Max's
-choice of T_v2, and nothing spends until he names it.
+**2026-09-07: CI's red jobs fixed** (the runner has no git identity;
+the graph script's redirect target did not exist on a fresh checkout —
+BUILDLOG entry; the next push confirms). Otherwise unchanged from the
+2026-09-06 pause: nothing is running, no Modal job, no local process;
+the tree is clean on `main`, not pushed. Resume at START HERE below —
+the first move is Max's choice of T_v2, and nothing spends until he
+names it.
 
 **Rewritten 2026-09-06: Max's three Atlas-0 items ran — the prompt-vocabulary
 check found a third untrained-token defect under the hold-out world and
@@ -293,8 +296,13 @@ v1 record and his call on the v2 cell. Then the queue:
    pairs~~ — **done 2026-09-05 (later):** the venv test builds a real
    venv and passes in the container (this box included; `ci-graph.sh`
    deselects nothing), I-7/I-8/I-11 retired with the reason in each
-   header (8 confirmed of 11; I-9/I-10 stand). Still W0's: watch the
-   first CI run when Max pushes; the registry-pulled image and the
+   header (8 confirmed of 11; I-9/I-10 stand). **CI observed 2026-09-07:**
+   every push since 2026-09-04 was red on `go` (the runner has no git
+   identity — two test fixtures that commit) and `graph` (the compile
+   manifest's redirect into a directory not yet created); both fixed,
+   the Go suites re-run under an empty global git config and
+   `ci-graph.sh` run end to end on this box — the next push is the
+   confirmation. Still W0's: the registry-pulled image and the
    drift audit open when named; `hobbes narrate` on this repo is held
    with spend.
 4. W1 / W3 items that spend nothing: the decorated-declaration line
