@@ -78,6 +78,14 @@ class TrainConfig:
     max_new: int = 8
     run: int = 1                    # a repeat of the same cell (same seed, same config): §6.6's run-to-run spread
     allow_untrained_prompt_tokens: bool = False   # read a cell through untrained prompt tokens anyway (recorded)
+    stop_at_step: int | None = None  # the schedule is ``steps`` (or ``max_epochs``); training stops here (T_v2: 3,100 of 3,572)
+    save_weights_every: int = 0      # weights at every checkpoint that is a multiple of this (``ckpt/step-N.pt``); 0: final only
+    full_eval_at: tuple[int, ...] = ()   # the full read (report, outputs, weights) at these steps too (``step-N/``)
+    # B4 (addendum 2026-09-07 §2): K relation operators per layer, rank r, the penalty weight λ, the router's temperature (start, end).
+    types_k: int = 8
+    types_rank: int = 16
+    types_lambda: float = 0.1
+    gumbel_tau: tuple[float, float] = (1.0, 0.3)
 
     @property
     def cell(self) -> str:
@@ -85,8 +93,82 @@ class TrainConfig:
         return f"{self.block}-{self.arm}-s{self.seed}" + (f"-r{self.run}" if self.run > 1 else "")
 
 
+class Fwd:
+    """What one forward pass is asked for beyond logits (analysis and B4).
+
+    ``tau`` / ``hard``: the router's Gumbel-softmax temperature and whether
+    it takes the argmax (evaluation) instead of a sample. ``ablate_heads``
+    is a set of ``(layer, head)`` whose attention output is zeroed and
+    ``ablate_ffn`` a set of layers whose FFN residual is skipped (the §1
+    checks of the 2026-09-07 addendum). ``want_attn`` / ``want_types``
+    collect per-layer attention weights ``(B, h, T, T)`` and the router's
+    ``p`` ``(B, K, T, T)``. ``aux`` and ``usage`` accumulate B4's penalties
+    and the batch-mean type usage per layer.
+    """
+
+    def __init__(self, tau: float = 1.0, hard: bool = True, ablate_heads=None, ablate_ffn=None,
+                 want_attn: bool = False, want_types: bool = False, noise: bool = True):
+        self.tau, self.hard, self.noise = tau, hard, noise
+        self.ablate_heads = set(ablate_heads or ())
+        self.ablate_ffn = set(ablate_ffn or ())
+        self.want_attn, self.want_types = want_attn, want_types
+        self.attn: list[torch.Tensor] = []
+        self.types: list[torch.Tensor] = []
+        self.aux: list[torch.Tensor] = []
+        self.usage: list[torch.Tensor] = []
+        self.confidence: list[torch.Tensor] = []
+        self.layer = 0
+
+    @property
+    def manual(self) -> bool:
+        return bool(self.ablate_heads) or self.want_attn
+
+
+class Types(nn.Module):
+    """B4's relation inventory for one layer (addendum §2).
+
+    ``K`` operators on the head dimension, ``R_k = I + A_k B_kᵀ`` (rank ``r``,
+    shared across the layer's heads), and a router over pairs on the full
+    width, ``ℓ_k(i, j) = (q_i C_k) · (k_j D_k)``, ``p(i, j) = softmax_k``.
+    ``B_k`` starts at zero, so every operator is the identity at init and
+    the typed logit is B1's ``q · k``; ``C`` and ``D`` are small, so ``p`` is
+    uniform and the confidence ``1/K`` before any gradient — both tested.
+    """
+
+    def __init__(self, d: int, hd: int, K: int, r: int):
+        super().__init__()
+        self.K, self.r = K, r
+        self.A = nn.Parameter(torch.randn(K, hd, r) * 0.02)
+        self.B = nn.Parameter(torch.zeros(K, hd, r))
+        self.C = nn.Parameter(torch.randn(K, d, r) * 0.02)
+        self.D = nn.Parameter(torch.randn(K, d, r) * 0.02)
+
+    def operators(self) -> torch.Tensor:
+        """``R_k`` as ``(K, hd, hd)`` matrices."""
+        hd = self.A.shape[1]
+        return torch.eye(hd, device=self.A.device) + self.A @ self.B.transpose(1, 2)
+
+    def router(self, q_full: torch.Tensor, k_full: torch.Tensor) -> torch.Tensor:
+        """Router logits ``(B, K, T, T)`` from the full-width q and k (fp32)."""
+        l = torch.einsum("btd,kdr->bktr", q_full, self.C)
+        m = torch.einsum("bsd,kdr->bksr", k_full, self.D)
+        return torch.einsum("bktr,bksr->bkts", l, m)
+
+    def typed_extra(self, q: torch.Tensor, k: torch.Tensor) -> torch.Tensor:
+        """``(q A_k) · (k B_k)`` per head and type: ``(B, h, K, T, T)``; the typed
+        logit is ``q · k`` plus this, weighted by ``p``."""
+        qA = torch.einsum("bhtd,kdr->bhktr", q, self.A)
+        kB = torch.einsum("bhsd,kdr->bhksr", k, self.B)
+        return torch.einsum("bhktr,bhksr->bhkts", qA, kB)
+
+
 class Block(nn.Module):
-    def __init__(self, d: int, h: int, ff: int):
+    """One pre-LN decoder block. With ``types`` (B4) every pairwise attention
+    logit routes through the layer's relation inventory; without, and with
+    nothing asked of the pass, it is the fused SDPA path the v0–v2 cells
+    trained on (state-dict keys unchanged, so those cells load here)."""
+
+    def __init__(self, d: int, h: int, ff: int, types_k: int = 1, types_rank: int = 16):
         super().__init__()
         self.ln1 = nn.LayerNorm(d)
         self.qkv = nn.Linear(d, 3 * d, bias=False)
@@ -95,29 +177,87 @@ class Block(nn.Module):
         self.fc = nn.Linear(d, ff, bias=False)
         self.fc2 = nn.Linear(ff, d, bias=False)
         self.h = h
+        self.types = Types(d, d // h, types_k, types_rank) if types_k > 1 else None
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def attention(self, x: torch.Tensor, ctx: Fwd | None) -> torch.Tensor:
         B, T, d = x.shape
-        q, k, v = self.qkv(self.ln1(x)).split(d, dim=-1)
-        q = q.view(B, T, self.h, d // self.h).transpose(1, 2)
-        k = k.view(B, T, self.h, d // self.h).transpose(1, 2)
-        v = v.view(B, T, self.h, d // self.h).transpose(1, 2)
-        y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
-        x = x + self.proj(y.transpose(1, 2).reshape(B, T, d))
+        hd = d // self.h
+        q_full, k_full, v_full = self.qkv(self.ln1(x)).split(d, dim=-1)
+        q = q_full.view(B, T, self.h, hd).transpose(1, 2)
+        k = k_full.view(B, T, self.h, hd).transpose(1, 2)
+        v = v_full.view(B, T, self.h, hd).transpose(1, 2)
+        if self.types is None and (ctx is None or not ctx.manual):
+            y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+            return y.transpose(1, 2).reshape(B, T, d)
+        ctx = ctx or Fwd(hard=not self.training)
+        scale = 1.0 / math.sqrt(hd)
+        qf, kf = q.float(), k.float()
+        logits = qf @ kf.transpose(-1, -2)                       # (B, h, T, T), untyped q · k
+        causal = torch.ones(T, T, dtype=torch.bool, device=x.device).tril()
+        if self.types is not None:
+            lg = self.types.router(q_full.float(), k_full.float())          # (B, K, T, T)
+            if not ctx.hard:
+                if ctx.noise:
+                    u = torch.rand_like(lg).clamp_(1e-9, 1 - 1e-9)
+                    lg = lg - torch.log(-torch.log(u))
+                p = torch.softmax(lg / ctx.tau, dim=1)
+            else:
+                p = F.one_hot(lg.argmax(1), self.types.K).permute(0, 3, 1, 2).to(lg.dtype)
+            # The typed correction in the autocast dtype (bf16 on CUDA: half the
+            # traffic of the (B, h, K, T, T) tensor, the heaviest thing here) and one
+            # fused reduce over k; the base q · k stays fp32.
+            extra = self.types.typed_extra(q, k)                            # (B, h, K, T, T)
+            logits = logits + torch.einsum("bkts,bhkts->bhts", p.to(extra.dtype), extra).float()
+            # Penalties over causal pairs: entropy per pair (few types per pair) and
+            # usage balance on the batch mean (no type carries everything).
+            soft = p                                                        # the sample that routed (hard at evaluation)
+            m = causal[None, None].to(soft.dtype)
+            n_pairs = m.sum() * B
+            ent = -(soft * torch.log(soft + 1e-9)).sum(1)                   # (B, T, T)
+            pair_entropy = (ent * m[:, 0]).sum() / n_pairs
+            usage = (soft * m).sum((0, 2, 3)) / n_pairs                     # (K,)
+            balance = math.log(self.types.K) + (usage * torch.log(usage + 1e-9)).sum()
+            ctx.aux.append(pair_entropy + balance)
+            ctx.usage.append(usage.detach())
+            ctx.confidence.append(((soft.max(1).values * m[:, 0]).sum() / n_pairs).detach())
+            if ctx.want_types:
+                ctx.types.append(soft.detach() if not ctx.hard else p.detach())
+        logits = (logits * scale).masked_fill(~causal, float("-inf"))
+        att = torch.softmax(logits, dim=-1)
+        if ctx.want_attn:
+            ctx.attn.append(att.detach())
+        y = att.to(v.dtype) @ v                                          # (B, h, T, hd)
+        heads_off = [hh for (ll, hh) in ctx.ablate_heads if ll == ctx.layer]
+        if heads_off:
+            y = y.clone()
+            y[:, heads_off] = 0.0
+        return y.transpose(1, 2).reshape(B, T, d)
+
+    def forward(self, x: torch.Tensor, ctx: Fwd | None = None) -> torch.Tensor:
+        x = x + self.proj(self.attention(x, ctx))
+        if ctx is not None and ctx.layer in ctx.ablate_ffn:
+            return x
         return x + self.fc2(F.gelu(self.fc(self.ln2(x)), approximate="tanh"))
 
 
 class GPT(nn.Module):
-    """The block under test; ``frozen_rows`` are B3's entity rows."""
+    """The block under test; ``frozen_rows`` are B3's entity rows; ``types_k > 1``
+    is B4. ``tau`` is the router temperature the training loop sets each step;
+    ``ablate`` (a :class:`Fwd`) is what an analysis pass asks for and is read
+    by every forward until cleared, so ``generate`` needs no new arguments."""
 
-    def __init__(self, cfg: ModelConfig, vocab: int):
+    def __init__(self, cfg: ModelConfig, vocab: int, types_k: int = 1, types_rank: int = 16):
         super().__init__()
         self.cfg = cfg
+        self.types_k = types_k
         self.wte = nn.Embedding(vocab, cfg.d_model)
         self.wpe = nn.Embedding(cfg.max_len, cfg.d_model)
-        self.blocks = nn.ModuleList(Block(cfg.d_model, cfg.n_heads, cfg.d_ff) for _ in range(cfg.n_layers))
+        self.blocks = nn.ModuleList(Block(cfg.d_model, cfg.n_heads, cfg.d_ff, types_k, types_rank) for _ in range(cfg.n_layers))
         self.ln_f = nn.LayerNorm(cfg.d_model)
         self.frozen_rows: list[int] = []
+        self.tau = 1.0
+        self.ablate: Fwd | None = None
+        self.last: Fwd | None = None
         self.apply(self._init)
 
     @staticmethod
@@ -136,16 +276,32 @@ class GPT(nn.Module):
             self.register_buffer("row_mask", mask)
             self.wte.weight.register_hook(lambda g: g * self.row_mask.to(g.device, g.dtype))
 
-    def forward(self, idx: torch.Tensor, residuals: bool = False):
+    def forward(self, idx: torch.Tensor, residuals: bool = False, ctx: Fwd | None = None):
         B, T = idx.shape
         x = self.wte(idx) + self.wpe(torch.arange(T, device=idx.device))
         res = [x] if residuals else None
-        for b in self.blocks:
-            x = b(x)
+        if ctx is None and self.ablate is not None:
+            a = self.ablate
+            ctx = Fwd(a.tau, a.hard, a.ablate_heads, a.ablate_ffn, a.want_attn, a.want_types, a.noise)
+        if ctx is None and self.types_k > 1:
+            ctx = Fwd(tau=self.tau, hard=not self.training)
+        if ctx is not None:
+            ctx.layer = 0
+        for i, b in enumerate(self.blocks):
+            if ctx is not None:
+                ctx.layer = i
+            x = b(x, ctx)
             if residuals:
                 res.append(x)
         logits = self.ln_f(x) @ self.wte.weight.T     # tied head
+        self.last = ctx
         return logits, res
+
+    def aux_loss(self) -> torch.Tensor | None:
+        """B4's penalties summed over layers from the last forward (``None`` for other blocks)."""
+        if self.last is None or not self.last.aux:
+            return None
+        return torch.stack(self.last.aux).sum()
 
     def n_params(self) -> int:
         return sum(p.numel() for p in self.parameters())
@@ -236,6 +392,25 @@ def _rate(matrix: dict, row: str, col: str) -> float | None:
     return round(r[col] / n, 4) if n else None
 
 
+@torch.no_grad()
+def type_stats(model: GPT, x: torch.Tensor) -> dict:
+    """B4 at a checkpoint: per layer, the batch-mean type usage of the soft,
+    noiseless router at the current temperature over the causal pairs of
+    ``x``, the mean confidence ``max_k p_k``, and the usage of the hard
+    (argmax) assignment; ``max_share_hard`` is the largest share any type
+    carries in any layer — the collapse number of addendum §4."""
+    ctx = Fwd(tau=model.tau, hard=False, noise=False)
+    model(x, ctx=ctx)
+    layers = [{"layer": i, "usage": [round(float(u), 4) for u in usage], "confidence": round(float(conf), 4)}
+              for i, (usage, conf) in enumerate(zip(ctx.usage, ctx.confidence))]
+    ctx_h = Fwd(hard=True)
+    model(x, ctx=ctx_h)
+    for i, usage in enumerate(ctx_h.usage):
+        layers[i]["usage_hard"] = [round(float(u), 4) for u in usage]
+    return {"layers": layers, "max_share_hard": round(max(max(l["usage_hard"]) for l in layers), 4),
+            "confidence": round(sum(l["confidence"] for l in layers) / len(layers), 4)}
+
+
 def quick_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: TrainConfig, device, seed: int) -> dict:
     """The checkpoint numbers: held-out dense / sparse / absent-held-out
     accuracy and act shares on a seeded subset, and the inversion curve
@@ -290,8 +465,10 @@ def quick_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tr
     }
 
 
-def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: TrainConfig, device, out: Path) -> dict:
-    """Every eval set scored, the probe on the balanced primary subset, the authority tables."""
+def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: TrainConfig, device, out: Path,
+              world_dir: Path | None = None) -> dict:
+    """Every eval set scored, the probe on the balanced primary subset, the authority
+    tables; with ``world_dir``, the §5 typed instruments too (``typed.json``)."""
     (out / "outputs").mkdir(parents=True, exist_ok=True)
     report: dict = {"confusion": {}, "secondary_by_kind": {}}
     all_outputs: dict[str, dict[str, str]] = {}
@@ -349,6 +526,16 @@ def full_eval(model: GPT, tok: Tokenizer, evals: dict[str, list[dict]], cfg: Tra
             c["context"] += bool(it["context_value"]) and a.values[0] == it["context_value"]
     report["inversion"] = {k: {"gold": round(c["gold"] / c["n"], 4), "context": round(c["context"] / c["n"], 4), "n": c["n"]}
                            for k, c in sorted(tally.items())}
+    # The §5 instruments (addendum 2026-09-07) on these weights: typed.json beside the report,
+    # for B4 and for its paired control alike (the untyped halves), when the world is at hand.
+    if world_dir is not None:
+        from . import typed, world as W
+        try:
+            rep = typed.analyze(model, tok, W.read(world_dir), evals, all_outputs, device, cfg, seed=cfg.seed)
+            (out / "typed.json").write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n")
+            (out / "typed.md").write_text(typed.render(rep))
+        except Exception as e:      # an instrument's failure must not lose the cell; it is recorded
+            (out / "typed.error").write_text(repr(e) + "\n")
     return report
 
 
@@ -396,7 +583,7 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
     mcfg = CONFIGS[cfg.model]
-    model = GPT(mcfg, len(tok))
+    model = GPT(mcfg, len(tok), types_k=(cfg.types_k if cfg.block == "B4" else 1), types_rank=cfg.types_rank)
     if tok.entity_ids:
         names = sorted(tok.entity_ids)
         vecs = entity_vectors(names, mcfg.d_model, cfg.seed)
@@ -424,35 +611,57 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     t0 = time.time()
     stopped_at = None
     model.train()
-    for step in range(cfg.steps):
+    last_step = min(cfg.steps, cfg.stop_at_step) if cfg.stop_at_step else cfg.steps
+    typed = cfg.block == "B4" and cfg.types_k > 1
+    for step in range(last_step):
         for g in opt.param_groups:
             g["lr"] = lr_at(step)
+        if typed:
+            t0_, t1_ = cfg.gumbel_tau
+            model.tau = t0_ + (t1_ - t0_) * step / max(1, cfg.steps - 1)
         x, y = next(data)
         x, y = x.to(device), y.to(device)
         with torch.autocast("cuda", dtype=torch.bfloat16, enabled=use_bf16):
             logits, _ = model(x)
-            loss = F.cross_entropy(logits.view(-1, logits.shape[-1]).float(), y.view(-1))
+            lm_loss = F.cross_entropy(logits.view(-1, logits.shape[-1]).float(), y.view(-1))
+            aux = model.aux_loss()
+            loss = lm_loss + cfg.types_lambda * aux if aux is not None else lm_loss
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
         opt.step()
-        if step % 10 == 0 or step == cfg.steps - 1:
-            losses.append((step, round(loss.item(), 4)))
-        if (step + 1) % cfg.ckpt_every == 0 or step == cfg.steps - 1:
+        if step % 10 == 0 or step == last_step - 1:
+            losses.append((step, round(lm_loss.item(), 4)))
+        if (step + 1) in cfg.full_eval_at and step + 1 != last_step:
+            # The full read at a named step (the addendum's reading-phase column), whether
+            # or not it is a checkpoint step (2026-09-07: 2,200 is not a multiple of 300).
+            at = out / f"step-{step + 1}"
+            rep = full_eval(model, tok, evals, cfg, device, at, world_dir)
+            (at / "report.json").write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n")
+            torch.save(model.state_dict(), at / "model.pt")
+            model.train()
+        if (step + 1) % cfg.ckpt_every == 0 or step == last_step - 1:
             elapsed = time.time() - t0
             q = quick_eval(model, tok, evals, cfg, device, cfg.seed + step)
-            q.update({"step": step + 1, "loss": round(loss.item(), 4), "elapsed_s": round(elapsed, 1),
+            q.update({"step": step + 1, "loss": round(lm_loss.item(), 4), "elapsed_s": round(elapsed, 1),
                       "epochs": round((step + 1) * tokens_per_step / len(stream), 2)})
+            if typed:
+                q["types"] = type_stats(model, x)
+                q["aux"] = round(float(aux.detach()), 4)
+                q["tau"] = round(model.tau, 4)
             checkpoints.append(q)
             log(json.dumps({k: q[k] for k in ("step", "epochs", "loss", "dense_correct", "sparse_correct",
                                               "sparse_undefined", "absent_held_out_undefined", "elapsed_s")}))
+            if cfg.save_weights_every and (step + 1) % cfg.save_weights_every == 0:
+                (out / "ckpt").mkdir(exist_ok=True)
+                torch.save(model.state_dict(), out / "ckpt" / f"step-{step + 1}.pt")
             if cfg.stop_at_target and (q.get(cfg.target_measure) or 0) >= cfg.target_dense:
                 stopped_at = step + 1
                 break
     train_s = time.time() - t0
-    steps_done = stopped_at or cfg.steps
+    steps_done = stopped_at or last_step
     t1 = time.time()
-    report = full_eval(model, tok, evals, cfg, device, out)
+    report = full_eval(model, tok, evals, cfg, device, out, world_dir)
     eval_s = time.time() - t1
     torch.save(model.state_dict(), out / "model.pt")
     manifest = {
@@ -490,7 +699,31 @@ def run(world_dir: Path, out: Path, cfg: TrainConfig, device: str | None = None,
     return manifest
 
 
-def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = None) -> dict:
+def load_cell(run_dir: Path, world_dir: Path, weights: Path | None = None, device: str | None = None) -> tuple[GPT, Tokenizer, TrainConfig]:
+    """A finished cell's model (its final ``model.pt``, or ``weights`` — a
+    ``ckpt/step-N.pt`` or ``step-N/model.pt``), the tokenizer of the build it
+    trained with (v0 / v1 / v2 vocabularies are told apart by the embedding's
+    row count) and its config. The analysis modules start here."""
+    device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+    man = json.loads((run_dir / "manifest.json").read_text())
+    cfg = TrainConfig(**man["config"])
+    ents = json.loads((world_dir / "entities.json").read_text())
+    state = torch.load(weights or (run_dir / "model.pt"), map_location=device)
+    n_rows = state["wte.weight"].shape[0]
+    for v1_words, later_words in ((False, False), (True, False), (True, True)):     # v0, v1, v2 builds
+        tok = Tokenizer.build(cfg.block, ents, v1_words=v1_words, later_words=later_words)
+        if n_rows == len(tok):
+            break
+    else:
+        raise ValueError(f"vocabulary of {run_dir.name} ({n_rows}) matches no build (v0/v1/v2)")
+    model = GPT(CONFIGS[cfg.model], len(tok), types_k=(cfg.types_k if cfg.block == "B4" else 1), types_rank=cfg.types_rank)
+    model.load_state_dict({k: v for k, v in state.items() if k != "row_mask"}, strict=False)
+    model.to(device)
+    model.eval()
+    return model, tok, cfg
+
+
+def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = None, weights: Path | None = None) -> dict:
     """Read a finished cell's weights against ``world_dir``'s eval sets, into ``out``.
 
     For eval sets that changed after the cell ran (the §6.4 prompts' separator,
@@ -499,6 +732,8 @@ def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = N
     hash for the cell's arm must equal the one the cell trained on, or this
     refuses. The manifest written is the cell's with ``reevaluated_from``,
     the new ``final`` and no checkpoints (those were read with the old prompts).
+    ``weights`` reads a saved checkpoint (``ckpt/step-N.pt``) instead of the
+    final ``model.pt`` — a step's full read after the fact.
     """
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     man = json.loads((run_dir / "manifest.json").read_text())
@@ -507,26 +742,16 @@ def reevaluate(world_dir: Path, run_dir: Path, out: Path, device: str | None = N
     if manifest_w["corpus_hash"][cfg.arm] != man["corpus_hash"]:
         raise ValueError(f"{run_dir.name} trained on corpus {man['corpus_hash'][:12]}…, not {world_dir.name}'s "
                          f"{manifest_w['corpus_hash'][cfg.arm][:12]}… for arm {cfg.arm}")
-    ents = json.loads((world_dir / "entities.json").read_text())
-    state = torch.load(run_dir / "model.pt", map_location=device)
-    n_rows = state["wte.weight"].shape[0]
-    for v1_words, later_words in ((False, False), (True, False), (True, True)):     # v0, v1, v2 builds
-        tok = Tokenizer.build(cfg.block, ents, v1_words=v1_words, later_words=later_words)
-        if n_rows == len(tok):
-            break
-    else:
-        raise ValueError(f"vocabulary of {run_dir.name} ({n_rows}) matches no build (v0/v1/v2)")
-    model = GPT(CONFIGS[cfg.model], len(tok))
-    model.load_state_dict({k: v for k, v in state.items() if k != "row_mask"}, strict=False)
-    model.to(device)
+    model, tok, cfg = load_cell(run_dir, world_dir, weights, device=device)
     evals = load_evals(world_dir)
     stream = pack(tok, (world_dir / "corpus" / f"{cfg.arm}.txt").read_text().splitlines())
     untrained = check_prompt_tokens(tok, stream, evals, cfg.allow_untrained_prompt_tokens)
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    report = full_eval(model, tok, evals, cfg, device, out)
+    report = full_eval(model, tok, evals, cfg, device, out, world_dir)
     prim = report["confusion"]["primary"]
-    man = dict(man, reevaluated_from=str(run_dir), world_hash=manifest_w["world_hash"], eval_s=round(time.time() - t0, 1),
+    man = dict(man, reevaluated_from=str(run_dir), reevaluated_weights=str(weights) if weights else None,
+               world_hash=manifest_w["world_hash"], eval_s=round(time.time() - t0, 1),
                checkpoints=[], vocab=len(tok), eval_prompt_tokens_untrained=untrained,
                final={"dense_correct": _rate(prim, "dense-real", "ANSWER-correct"),
                       "sparse_correct": _rate(prim, "sparse-real", "ANSWER-correct"),

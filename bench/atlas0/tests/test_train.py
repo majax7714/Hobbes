@@ -139,3 +139,102 @@ def test_max_epochs_sets_the_steps_and_read_context_only_is_a_target(tmp_path):
     # A v2 cell re-reads with its own (widest) vocabulary.
     m2 = train.reevaluate(d, tmp_path / "run", tmp_path / "again", device="cpu")
     assert m2["vocab"] == m["vocab"]
+
+
+# ---------------------------------------------------------------- B4 (addendum 2026-09-07) and the analysis hooks
+
+def _b4_model(tok, K=4, seed=0):
+    torch.manual_seed(seed)
+    return train.GPT(train.CONFIGS["tiny"], len(tok), types_k=K, types_rank=4)
+
+
+def test_typed_logit_reduces_to_q_dot_k_when_every_operator_is_the_identity(tiny):
+    """With B_k = 0 every R_k = I, so whatever the router assigns the attention
+    logit is q · k: a B4 forward (hard) equals the same weights read as B1."""
+    ents = json.loads((tiny / "entities.json").read_text())
+    tok = tokens.Tokenizer.build("B4", ents)
+    m4 = _b4_model(tok)
+    m1 = train.GPT(train.CONFIGS["tiny"], len(tok))
+    m1.load_state_dict({k: v for k, v in m4.state_dict().items() if ".types." not in k})
+    m4.eval(); m1.eval()
+    x = torch.tensor([tok.encode("Q: Where is range_join_merge defined? A:")])
+    with torch.no_grad():
+        l4, _ = m4(x)
+        l1, _ = m1(x)
+    assert torch.allclose(l4, l1, atol=1e-5)
+    # ... and the manual attention path (asked for its weights) equals the fused one.
+    m1.ablate = train.Fwd(want_attn=True)
+    with torch.no_grad():
+        l1m, _ = m1(x)
+    assert torch.allclose(l1m, l1, atol=1e-5) and len(m1.last.attn) == 4 and m1.last.attn[0].shape == (1, 4, x.shape[1], x.shape[1])
+    m1.ablate = None
+
+
+def test_at_random_init_type_usage_is_uniform_and_confidence_one_over_k(tiny):
+    ents = json.loads((tiny / "entities.json").read_text())
+    tok = tokens.Tokenizer.build("B4", ents)
+    K = 4
+    m = _b4_model(tok, K=K)
+    x = torch.tensor([tok.encode("range_join_merge is defined in mod_a. Q: Where is range_join_merge defined? A:")])
+    m.train()
+    stats = train.type_stats(m, x)
+    for l in stats["layers"]:
+        assert all(abs(u - 1 / K) < 0.01 for u in l["usage"]), l
+        assert abs(l["confidence"] - 1 / K) < 0.01, l
+    assert stats["confidence"] < 1 / K + 0.01
+
+
+def test_k_equals_one_is_b1_exactly(tiny, tmp_path):
+    """K = 1: no inventory, no router, the same parameters in the same order — the
+    loss curve is B1's to the digit on CPU (fp32, one device)."""
+    m1 = train.run(tiny, tmp_path / "b1", cfg(block="B1", steps=10, ckpt_every=10), device="cpu", log=lambda s: None)
+    m4 = train.run(tiny, tmp_path / "b4", cfg(block="B4", types_k=1, steps=10, ckpt_every=10), device="cpu", log=lambda s: None)
+    assert m1["loss"] == m4["loss"] and m1["params"] == m4["params"]
+    assert set(torch.load(tmp_path / "b1" / "model.pt")) == set(torch.load(tmp_path / "b4" / "model.pt"))
+
+
+def test_a_b4_cell_trains_with_its_penalty_and_records_type_usage(tiny, tmp_path):
+    m = train.run(tiny, tmp_path / "b4", cfg(block="B4", types_k=4, types_lambda=0.1, steps=8, ckpt_every=4),
+                  device="cpu", log=lambda s: None)
+    ck = m["checkpoints"][-1]
+    assert "types" in ck and len(ck["types"]["layers"]) == 4 and 0 < ck["types"]["max_share_hard"] <= 1 and "aux" in ck
+    state = torch.load(tmp_path / "b4" / "model.pt")
+    assert "blocks.0.types.A" in state and state["blocks.0.types.B"].abs().sum() > 0     # the operators moved
+    # A B4 cell reloads with its inventory.
+    model, tok, c = train.load_cell(tmp_path / "b4", tiny, device="cpu")
+    assert model.types_k == 4 and c.block == "B4"
+
+
+def test_ablation_hooks_change_the_output_and_nothing_else_does(tiny):
+    ents = json.loads((tiny / "entities.json").read_text())
+    tok = tokens.Tokenizer.build("B1", ents)
+    torch.manual_seed(1)
+    m = train.GPT(train.CONFIGS["tiny"], len(tok)); m.eval()
+    x = torch.tensor([tok.encode("Q: Where is range_join_merge defined? A:")])
+    with torch.no_grad():
+        base, _ = m(x)
+        m.ablate = train.Fwd()
+        same, _ = m(x)
+        m.ablate = train.Fwd(ablate_heads={(0, 0), (2, 3)})
+        heads, _ = m(x)
+        m.ablate = train.Fwd(ablate_ffn={1})
+        ffn, _ = m(x)
+        m.ablate = None
+    assert torch.allclose(same, base, atol=1e-5)
+    assert not torch.allclose(heads, base, atol=1e-4) and not torch.allclose(ffn, base, atol=1e-4)
+
+
+def test_weights_at_checkpoints_a_step_cap_and_a_full_read_at_a_step(tiny, tmp_path):
+    m = train.run(tiny, tmp_path / "run", cfg(steps=12, ckpt_every=4, save_weights_every=8, stop_at_step=8, full_eval_at=(3,)),
+                  device="cpu", log=lambda s: None)
+    assert m["steps_done"] == 8 and [c["step"] for c in m["checkpoints"]] == [4, 8]
+    assert (tmp_path / "run" / "ckpt" / "step-8.pt").exists() and not (tmp_path / "run" / "ckpt" / "step-4.pt").exists()
+    # The full read fires at its own step, a checkpoint step or not (2,200 is not a multiple of 300).
+    assert (tmp_path / "run" / "step-3" / "report.json").exists() and (tmp_path / "run" / "step-3" / "model.pt").exists()
+    # ... and a saved checkpoint can be read in full after the fact.
+    m2 = train.reevaluate(tiny, tmp_path / "run", tmp_path / "run" / "step-8-reread", device="cpu", weights=tmp_path / "run" / "ckpt" / "step-8.pt")
+    assert m2["reevaluated_weights"].endswith("step-8.pt") and (tmp_path / "run" / "step-8-reread" / "report.json").exists()
+    # The schedule was 12 steps: the learning rate at the cap is not the floor.
+    assert m["config"]["steps"] == 12 and m["config"]["stop_at_step"] == 8
+    model, _, _ = train.load_cell(tmp_path / "run", tiny, weights=tmp_path / "run" / "step-3" / "model.pt", device="cpu")
+    assert model is not None

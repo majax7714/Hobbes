@@ -57,3 +57,42 @@ def test_a_repeat_run_is_a_cell_of_its_group(tmp_path):
     assert [(c["seed"], c["run"]) for c in cells] == [(1, 1), (1, 2)]
     agg = R.aggregate(cells)
     assert agg["B1/none"]["sparse-real|ANSWER-correct"] == {"mean": 0.6, "min": 0.5, "max": 0.7, "n": 2}
+
+
+def test_report_reads_a_cell_at_a_step_and_the_typed_measures_and_loss_delta(tmp_path):
+    """2026-09-07: --at N reads step-N/ as the cell's read; typed.json rides along; B4 − B1 loss delta pairs by seed."""
+    import json
+    from atlas0 import report as R
+    runs = tmp_path / "runs"
+    man_common = {"final": {"dense_correct": 0.5}, "tokens_per_s": 1.0, "steps_done": 20,
+                  "loss": [[0, 3.0], [10, 2.0], [19, 1.0]], "checkpoints": [{"step": 10}, {"step": 20}]}
+    rep = {"confusion": {"primary": {"columns": [], "rows": {"dense-real": {"ANSWER-correct": 1, "ANSWER-wrong": 0, "CANDIDATES-with": 0, "CANDIDATES-without": 0,
+                                                                               "UNDEFINED": 0, "UNKNOWN": 0, "malformed": 0}},
+                                    "extra": {"dense-real": {"n": 1}}, "missing": 0}},
+           "probe": {"best_test": 0.4, "chance": 0.33, "best_layer": 1}, "authority": {"mi_act_probed": 0, "mi_act_true": 0, "mi_act_entropy": 0, "mi_probed_true": 0},
+           "inversion": {}, "sparse_by_nearest_dense_distance": {}}
+    typed = {"type_discovery": {"layers": [{"max_share": 0.5, "vs_relation": {"nmi": 0.7, "purity": 0.9}, "vs_direction": {"nmi": 0.1}, "vs_template": {"nmi": 0.2}}],
+                                "best_layer": 0, "best_nmi": 0.7, "best_purity": 0.9},
+             "phrasing": {"trained": {"layers": [{"purity": 0.9}]}, "held-out": {"layers": [{"purity": 0.8}]}},
+             "sibling": {"share_of_wrong_near": 0.2, "overall": {"shared": 0.5, "random": 0.1, "same_module": 0.6},
+                         "under_type": {"0": {"shared": 0.7, "random": 0.1, "same_module": 0.6}}},
+             "absence": {"absent_auc_signal_undefined": 0.8, "rows": {"absent-near/held-out": {"undefined": 0.5, "signal_mean": 0.1}}}}
+    for block, extra in (("B1", {}), ("B4", {"checkpoints": [{"step": 10, "types": {"max_share_hard": 0.4, "confidence": 0.5}}, {"step": 20, "types": {"max_share_hard": 0.6, "confidence": 0.7}}]})):
+        d = runs / f"{block}-none-s1"
+        (d / "step-10").mkdir(parents=True)
+        man = dict(man_common, **extra, loss=[[0, 3.0], [10, 2.0 + (0.5 if block == "B4" else 0)], [19, 1.0]])
+        (d / "manifest.json").write_text(json.dumps(man))
+        (d / "report.json").write_text(json.dumps(rep))
+        (d / "step-10" / "report.json").write_text(json.dumps(rep))
+        if block == "B4":
+            (d / "typed.json").write_text(json.dumps(typed))
+            (d / "step-10" / "typed.json").write_text(json.dumps(typed))
+    cells = R.load_cells(runs, at=10)
+    assert len(cells) == 2 and all(c["at"] == 10 for c in cells)
+    m = R.cell_measures(next(c for c in cells if c["block"] == "B4"))
+    assert m["typed|nmi_best"] == 0.7 and m["typed|purity_heldout_phrasing"] == 0.8 and m["sibling|cos_best_type|shared"] == 0.7
+    assert m["absence|auc_absent"] == 0.8 and m["types|max_share_hard"] == 0.4 and m["train|loss_at_read"] == 2.5
+    ld = R.loss_delta(cells)
+    assert ld["none"][10]["mean"] == 0.5 and ld["none"][20]["mean"] == 0.0     # the last logged loss at or before each step
+    text = R.render(R.aggregate(cells)) + R.render_loss_delta(ld)
+    assert "## B4 (addendum" in text and "## §5.3" in text and "## §5.5" in text

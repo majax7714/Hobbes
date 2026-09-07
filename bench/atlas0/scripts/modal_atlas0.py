@@ -13,6 +13,9 @@
     # a world per seed (v1): --world v1-lived-seed{seed}, formatted with each cell's seed
     uv run scripts/modal_atlas0.py reeval --world <name> --runs <dir> --out <dir> [--cells B1-none-s1,...]   # re-read finished cells
     uv run scripts/modal_atlas0.py get <remote-path> <local-path>
+    # 2026-09-07 (the B4 addendum): --stop-at-step 3100 --full-eval-at 2200,3100 reads a cell at both T_v2 checkpoints;
+    # --save-weights-every N keeps weights for the §1 checks; --types-k/--types-rank/--types-lambda are B4's (block B4)
+    uv run scripts/modal_atlas0.py mech --jobs 'v2-seed1:v2-mech-b1/B1-none-s1:ckpt/step-1600.pt:heads:b1-heads-1600;...'   # the §A.1 checks on a GPU → /atlas0/mech
     ATLAS0_GPU=L4 ATLAS0_MAX_CONTAINERS=4                                 # the environment
 
 One volume, ``hobbes-atlas0`` at ``/atlas0``: ``worlds/<name>/`` (what
@@ -87,23 +90,51 @@ def train_cell(world: str, cfg: dict, out: str) -> dict:
 
 
 @app.function(image=image, gpu=GPU, volumes={"/atlas0": vol}, timeout=1800, max_containers=MAX_CONTAINERS)
-def eval_cell(world: str, run: str, out: str) -> dict:
+def eval_cell(world: str, run: str, out: str, weights_step: int | None = None) -> dict:
     """Re-read one finished cell (``/atlas0/runs/<run>``) against ``/atlas0/worlds/<world>``'s
-    eval sets into ``/atlas0/runs/<out>/<cell>`` — no training; ~$0.01."""
+    eval sets into ``/atlas0/runs/<out>/<cell>`` — no training; ~$0.01. With
+    ``weights_step``, the cell's ``ckpt/step-N.pt`` is read into ``<cell>/step-N/``."""
     from atlas0 import train
 
     t0 = time.time()
     run_dir = Path("/atlas0/runs") / run
     out_dir = Path("/atlas0/runs") / out / run_dir.name
+    weights = None
+    if weights_step:
+        weights = run_dir / "ckpt" / f"step-{weights_step}.pt"
+        out_dir = out_dir / f"step-{weights_step}"
     if (out_dir / "manifest.json").exists():
         return {"cell": run_dir.name, "cached": True, "manifest": json.loads((out_dir / "manifest.json").read_text())}
-    m = train.reevaluate(Path("/atlas0/worlds") / world, run_dir, out_dir, device="cuda")
+    m = train.reevaluate(Path("/atlas0/worlds") / world, run_dir, out_dir, device="cuda", weights=weights)
     wall = time.time() - t0
     m["container"] = {"gpu": GPU, "wall_s": round(wall, 1), "rate_usd_per_h": RATES.get(GPU),
                       "cost_usd_assumed": round(wall / 3600 * RATES.get(GPU, 0.0), 3), "reeval": True}
     (out_dir / "manifest.json").write_text(json.dumps(m, indent=2, sort_keys=True) + "\n")
     vol.commit()
     return json.loads(json.dumps({"cell": run_dir.name, "cached": False, "manifest": m}))
+
+
+@app.function(image=image, gpu=GPU, volumes={"/atlas0": vol}, timeout=1800, max_containers=MAX_CONTAINERS)
+def mech_cell(world: str, run: str, weights: str | None, which: str, out: str, n_items: int | None = None) -> dict:
+    """The §A.1 checks (``atlas0.mech``: heads / ffn / all) on one cell's weights
+    (``/atlas0/runs/<run>``, optionally its ``<weights>`` relative path) into
+    ``/atlas0/mech/<out>.{json,md}``; a minute or two on a GPU, ~$0.02."""
+    from atlas0 import mech
+
+    t0 = time.time()
+    run_dir = Path("/atlas0/runs") / run
+    target = Path("/atlas0/mech") / out
+    if Path(str(target) + ".json").exists():
+        return {"out": out, "cached": True}
+    target.parent.mkdir(parents=True, exist_ok=True)
+    w = (run_dir / weights) if weights else None
+    rep = mech.run_checks(run_dir, Path("/atlas0/worlds") / world, w, ("heads", "ffn") if which == "all" else (which,), "cuda", n_items)
+    rep["container"] = {"gpu": GPU, "wall_s": round(time.time() - t0, 1), "rate_usd_per_h": RATES.get(GPU),
+                        "cost_usd_assumed": round((time.time() - t0) / 3600 * RATES.get(GPU, 0.0), 3)}
+    Path(str(target) + ".json").write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n")
+    Path(str(target) + ".md").write_text(mech.render(rep))
+    vol.commit()
+    return json.loads(json.dumps({"out": out, "cached": False, "container": rep["container"]}))
 
 
 def _summary(r: dict) -> dict:
@@ -126,6 +157,7 @@ def main(argv: list[str]) -> int:
         ap.add_argument("--runs", required=True, help="the runs dir on the volume holding the cells")
         ap.add_argument("--out", required=True)
         ap.add_argument("--cells", default=None, help="comma-separated cell names (default: every cell in --runs)")
+        ap.add_argument("--weights-step", type=int, default=None, help="read each cell's ckpt/step-N.pt into <out>/<cell>/step-N/")
         a = ap.parse_args(rest)
         if a.cells:
             cells = a.cells.split(",")
@@ -136,10 +168,24 @@ def main(argv: list[str]) -> int:
         worlds = [a.world.format(seed=c.rsplit("-s", 1)[-1]) for c in cells]
         print(f"{len(cells)} cells re-read on {GPU} → runs/{a.out}", file=sys.stderr)
         with app.run():
-            results = list(eval_cell.map(worlds, [f"{a.runs}/{c}" for c in cells], [a.out] * len(cells)))
+            results = list(eval_cell.map(worlds, [f"{a.runs}/{c}" for c in cells], [a.out] * len(cells), [a.weights_step] * len(cells)))
         total = sum((r["manifest"].get("container") or {}).get("cost_usd_assumed", 0.0) for r in results if not r["cached"])
         print(json.dumps({"cells": [{"cell": r["cell"], "cached": r["cached"], "final": r["manifest"]["final"]} for r in results],
                           "cost_usd_assumed_total": round(total, 2)}, indent=1, sort_keys=True))
+        return 0
+    if cmd == "mech":
+        import argparse
+        ap = argparse.ArgumentParser(prog="modal_atlas0.py mech")
+        ap.add_argument("--jobs", required=True, help="semicolon-separated WORLD:RUN:WEIGHTS-or-'-':heads|ffn|all:OUT")
+        ap.add_argument("--items", type=int, default=None)
+        a = ap.parse_args(rest)
+        jobs = [j.split(":") for j in a.jobs.split(";") if j]
+        print(f"{len(jobs)} checks on {GPU} → /atlas0/mech", file=sys.stderr)
+        with app.run():
+            results = list(mech_cell.map([j[0] for j in jobs], [j[1] for j in jobs], [None if j[2] == "-" else j[2] for j in jobs],
+                                         [j[3] for j in jobs], [j[4] for j in jobs], [a.items] * len(jobs)))
+        total = sum((r.get("container") or {}).get("cost_usd_assumed", 0.0) for r in results)
+        print(json.dumps({"checks": results, "cost_usd_assumed_total": round(total, 3)}, indent=1, sort_keys=True))
         return 0
     if cmd in ("train", "grid"):
         import argparse
@@ -152,6 +198,12 @@ def main(argv: list[str]) -> int:
         ap.add_argument("--batch", type=int, default=64)
         ap.add_argument("--lr", type=float, default=6e-4)
         ap.add_argument("--out", default=None)
+        ap.add_argument("--stop-at-step", type=int, default=None, help="stop here on the full schedule (T_v2: 3100 of the 16-epoch cosine)")
+        ap.add_argument("--save-weights-every", type=int, default=0, help="weights at every checkpoint that is a multiple of this (ckpt/step-N.pt)")
+        ap.add_argument("--full-eval-at", default="", help="comma-separated steps for a full read (step-N/: report, outputs, weights)")
+        ap.add_argument("--types-k", type=int, default=8, help="B4: relation operators per layer")
+        ap.add_argument("--types-rank", type=int, default=16, help="B4: the operators' rank")
+        ap.add_argument("--types-lambda", type=float, default=0.1, help="B4: the penalty weight λ")
         if cmd == "train":
             ap.add_argument("--block", default="B1")
             ap.add_argument("--arm", default="none")
@@ -166,7 +218,10 @@ def main(argv: list[str]) -> int:
             ap.add_argument("--runs", type=int, default=1, help="repeats of every cell (same seed and config)")
         a = ap.parse_args(rest)
         out = a.out or f"{a.world.replace('{seed}', 'seeds')}-{a.model}-{a.steps}"
-        base = dict(model=a.model, steps=a.steps, ckpt_every=a.ckpt_every, batch=a.batch, lr=a.lr, max_epochs=a.epochs)
+        base = dict(model=a.model, steps=a.steps, ckpt_every=a.ckpt_every, batch=a.batch, lr=a.lr, max_epochs=a.epochs,
+                    stop_at_step=a.stop_at_step, save_weights_every=a.save_weights_every,
+                    full_eval_at=tuple(int(x) for x in a.full_eval_at.split(",") if x),
+                    types_k=a.types_k, types_rank=a.types_rank, types_lambda=a.types_lambda)
         if cmd == "train":
             cfg = dict(base, block=a.block, arm=a.arm, seed=a.seed, stop_at_target=a.stop_at_target, target_dense=a.target_dense,
                        target_measure=a.target_measure)

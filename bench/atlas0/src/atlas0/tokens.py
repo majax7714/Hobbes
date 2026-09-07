@@ -2,7 +2,8 @@
 
 The one piece of structure Atlas-0 gives the model is the boundary of
 an entity name; it comes from the world's ``entities.json``, not from
-learning. Under **B1** an entity is its stems with ``_`` between them
+learning. Under **B1** (and **B4**, B1's input map with typed attention, the
+2026-09-07 addendum) an entity is its stems with ``_`` between them
 (``range_join_merge`` → ``range`` ``_`` ``join`` ``_`` ``merge``), so
 every name shares its pieces with every other. Under **B2** and **B3**
 an entity is one token of its own; B2's embedding for it is learned
@@ -35,7 +36,9 @@ from .acts import ACTS
 
 PAD, BOS, EOS, UNK, NL = "<pad>", "<bos>", "<eos>", "<unk>", "<nl>"
 SPECIAL = (PAD, BOS, EOS, UNK, NL)
-BLOCKS = ("B1", "B2", "B3")
+BLOCKS = ("B1", "B2", "B3", "B4")
+#: The blocks whose entity names are one dedicated token; B1 and B4 (B1 + typed attention) read stems.
+DEDICATED = ("B2", "B3")
 
 _PIECE = re.compile(r"[A-Za-z0-9_]+|[^\sA-Za-z0-9_]")
 
@@ -114,7 +117,7 @@ class Tokenizer:
         for v in list(SPECIAL) + list(ACTS) + _template_words() + list(STEMS) + ["_", "mod", "test"]:
             if v not in vocab:
                 vocab.append(v)
-        if block != "B1":
+        if block in DEDICATED:
             vocab += sorted(entities)
         if v1_words:
             vocab += [w for w in _v1_words() if w not in vocab]
@@ -124,8 +127,8 @@ class Tokenizer:
 
     @property
     def entity_ids(self) -> dict[str, int]:
-        """Under B2/B3, the token id of every entity; empty under B1."""
-        if self.block == "B1":
+        """Under B2/B3, the token id of every entity; empty under B1 and B4."""
+        if self.block not in DEDICATED:
             return {}
         return {name: self.index[name] for name in self.entities}
 
@@ -143,7 +146,7 @@ class Tokenizer:
             if line_no:
                 ids.append(self.index[EOS])
             for piece in _PIECE.findall(line):
-                if piece in self.entities and self.block != "B1":
+                if piece in self.entities and self.block in DEDICATED:
                     ids.append(self.index[piece])
                 elif piece in self.entities or "_" in piece:
                     parts = piece.split("_")

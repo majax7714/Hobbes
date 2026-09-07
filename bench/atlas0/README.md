@@ -16,7 +16,7 @@ the checks read the written files rather than the generator's own
 bookkeeping.
 
 ```sh
-cd bench/atlas0 && uv sync && uv run pytest -q     # 37 tests
+cd bench/atlas0 && uv sync && uv run pytest -q     # 84 tests
 
 uv run atlas0 gen --seed 1 --out ~/.hobbes/bench/atlas0/seed1      # ~3 s: world.json, entities.json, corpus/<arm>.txt, eval/*.jsonl, manifest.json
 uv run atlas0 check ~/.hobbes/bench/atlas0/seed1                    # step 1's exit criteria; exit 1 on any failure
@@ -167,6 +167,40 @@ uv run atlas0 gen --seed 1 --variant v2 --out ~/.hobbes/bench/atlas0/v2-seed1 &&
 ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py train --world v2-seed1 --block B1 --arm none --seed 1 --steps 100000 --epochs 4 --batch 16 --ckpt-every 50 --stop-at-target --target-dense 0.8 --out v2-cal-b16
 ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world 'v2-seed{seed}' --steps 100000 --epochs E --batch B --seeds 1,2,3,4,5 --blocks B1,B2,B3 --arms none,phrase,lived+phrase --runs 2 --out v2-grid
 ```
+
+## B4 — typed relations (2026-09-07, Max's addendum; `docs/atlas-0.md` § Addendum)
+
+B4 is B1 with typed attention: per layer, `K` relation operators
+`R_k = I + A_k B_kᵀ` (rank 16, shared across heads) and a router
+`p(i, j)` over pairs (a rank-16 bilinear on the full-width q and k, one
+distribution per pair per layer), Gumbel-softmax in training with the
+temperature annealed 1.0 → 0.3 over the schedule, argmax at evaluation;
+the attention logit is `Σ_k p_k · (q R_k k)`; the penalties (pair entropy
++ usage balance) weigh `types_lambda`. `--block B4 --types-k 8
+--types-rank 16 --types-lambda λ`; at `K = 1` there is no inventory and
+the cell is B1 to the digit (tested, and run: `runs/v2-b4-k1`).
+
+The trainer also learned three things for the addendum: `--save-weights-every N`
+(weights at checkpoints, `ckpt/step-N.pt`), `--stop-at-step S` (the
+schedule laid over the full `--epochs`, training stopped at `S`) and
+`--full-eval-at 2200,...` (a full read — report, outputs, weights,
+`typed.json` — under `step-N/`; `atlas0 report --at 2200` renders every
+cell at that step: the addendum's two columns).
+
+```sh
+uv run atlas0 mech heads|ffn|all CELL WORLD [--weights ckpt/step-N.pt] [--out F]   # §A.1: reads = heads (rank, ablate, controls), stores = FFN layers
+uv run atlas0 mech b2norm RUNS 'WORLD-{seed}' [--out F]                            # §A.1: B2 — ‖row − init‖, its split along the head's push, a row probe
+uv run atlas0 typed CELL WORLD [--weights W]                                        # §A.5 re-read: type discovery, sibling pull by type, the absence signal
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py train --world v2-seed1 --block B4 --types-lambda 0.1 --arm none --seed 1 \
+    --steps 100000 --epochs 16 --batch 16 --stop-at-step 3100 --ckpt-every 300 --save-weights-every 300 --full-eval-at 2200 --out v2-b4-lam0.1
+ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world 'v2-seed{seed}' --blocks B4,B1 --arms none,phrase,lived+phrase --seeds 1,2,3,4,5 --runs 2 \
+    --steps 100000 --epochs 16 --batch 16 --stop-at-step 3100 --ckpt-every 300 --full-eval-at 2200 --types-lambda λ --out v2-b4-grid
+uv run atlas0 report ~/.hobbes/bench/atlas0/runs/v2-b4-grid [--at 2200] --out ...   # §6.1–6.6 plus the B4 sections and §A.5.5's loss delta
+```
+
+Every cell writes `typed.json` / `typed.md` beside its report (B1 cells
+carry the untyped halves: the sibling cosine, the absence rows), and the
+§A.1 records live under `~/.hobbes/bench/atlas0/mech/`.
 
 ## Steps 3–6
 

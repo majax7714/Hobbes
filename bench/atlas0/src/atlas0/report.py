@@ -20,7 +20,7 @@ from pathlib import Path
 
 from .acts import COLUMNS
 
-_CELL = re.compile(r"^(B[123])-(none|phrase|lived|lived\+phrase)-s(\d+)(?:-r(\d+))?$")
+_CELL = re.compile(r"^(B[1234])-(none|phrase|lived|lived\+phrase)-s(\d+)(?:-r(\d+))?$")
 
 ROWS = ("dense-real", "sparse-real", "mid", "module-infer",
         "absent-near/trained", "absent-near/pair", "absent-near/lines", "absent-near/held-out",
@@ -30,15 +30,25 @@ SECONDARY_ROWS = ("dense-real/with", "dense-real/without", "mid/with", "mid/with
                   "absent-near/trained", "absent-near/held-out", "absent-far/trained", "absent-far/held-out")
 
 
-def load_cells(runs: Path) -> list[dict]:
+def load_cells(runs: Path, at: int | None = None) -> list[dict]:
+    """The cells under ``runs``; with ``at``, each cell's read at that step
+    (``step-N/``, written by ``full_eval_at``) stands in for its final read —
+    the addendum's two columns, the reading phase and the storing plateau.
+    A cell's ``typed.json`` (the §5 instruments) rides along when present."""
     cells = []
     for d in sorted(runs.iterdir()):
         m = _CELL.match(d.name)
         if not m or not (d / "report.json").exists():
             continue
-        cells.append({"block": m.group(1), "arm": m.group(2), "seed": int(m.group(3)), "run": int(m.group(4) or 1),
-                      "manifest": json.loads((d / "manifest.json").read_text()),
-                      "report": json.loads((d / "report.json").read_text())})
+        read = d / f"step-{at}" if at else d
+        if not (read / "report.json").exists():
+            continue
+        cell = {"block": m.group(1), "arm": m.group(2), "seed": int(m.group(3)), "run": int(m.group(4) or 1),
+                "manifest": json.loads((d / "manifest.json").read_text()),
+                "report": json.loads((read / "report.json").read_text()), "at": at}
+        if (read / "typed.json").exists():
+            cell["typed"] = json.loads((read / "typed.json").read_text())
+        cells.append(cell)
     return cells
 
 
@@ -99,6 +109,52 @@ def cell_measures(cell: dict) -> dict[str, float]:
     out["train|dense_final"] = man["final"]["dense_correct"]
     out["train|tokens_per_s"] = man["tokens_per_s"]
     out["train|cost_usd_assumed"] = man.get("container", {}).get("cost_usd_assumed", 0.0)
+    # The loss at the read step (the last logged loss at or before it), for §5.5's delta.
+    step = cell.get("at") or man.get("steps_done") or 0
+    logged = [l for st, l in man.get("loss", []) if st <= step]
+    if logged:
+        out["train|loss_at_read"] = logged[-1]
+    # B4: the router's usage and confidence at the last checkpoint at or before the read step.
+    cks = [c for c in man.get("checkpoints", []) if "types" in c and c["step"] <= step]
+    if cks:
+        ts = cks[-1]["types"]
+        out["types|max_share_hard"] = ts["max_share_hard"]
+        out["types|confidence"] = ts.get("confidence", 0.0)
+    # §5 (typed.json): type discovery, the sibling pull by type, the absence signal.
+    t = cell.get("typed")
+    if t:
+        d = t["type_discovery"]
+        if d.get("layers"):
+            out["typed|nmi_best"] = d["best_nmi"]
+            out["typed|purity_best"] = d["best_purity"]
+            out["typed|best_layer"] = d["best_layer"]
+            out["typed|max_share_best_layer"] = d["layers"][d["best_layer"]]["max_share"]
+            out["typed|nmi_direction_best_layer"] = d["layers"][d["best_layer"]]["vs_direction"]["nmi"]
+            out["typed|nmi_template_best_layer"] = d["layers"][d["best_layer"]]["vs_template"]["nmi"]
+            ph = t.get("phrasing") or {}
+            if ph:
+                out["typed|purity_trained_phrasing"] = ph["trained"]["layers"][d["best_layer"]]["purity"]
+                out["typed|purity_heldout_phrasing"] = ph["held-out"]["layers"][d["best_layer"]]["purity"]
+        sb = t["sibling"]
+        if sb.get("share_of_wrong_near") is not None:
+            out["sibling|share_of_wrong_near"] = sb["share_of_wrong_near"]
+        for g, v in sb["overall"].items():
+            out[f"sibling|cos_overall|{g}"] = v
+        if "under_type" in sb:
+            # The type under which shared-callee pairs are closest, and how far the random pairs sit there.
+            best_k = max(sb["under_type"], key=lambda k: sb["under_type"][k]["shared"] - sb["under_type"][k]["random"])
+            out["sibling|cos_best_type|shared"] = sb["under_type"][best_k]["shared"]
+            out["sibling|cos_best_type|random"] = sb["under_type"][best_k]["random"]
+            out["sibling|cos_best_type|same_module"] = sb["under_type"][best_k]["same_module"]
+        ab = t["absence"]
+        if ab.get("absent_auc_signal_undefined") is not None:
+            out["absence|auc_absent"] = ab["absent_auc_signal_undefined"]
+        if ab.get("absent_auc_signal_max_undefined") is not None:
+            out["absence|auc_absent_max_layers"] = ab["absent_auc_signal_max_undefined"]
+        for row, r in ab["rows"].items():
+            out[f"absence|{row}|undefined"] = r["undefined"]
+            if r.get("signal_mean") is not None:
+                out[f"absence|{row}|signal"] = r["signal_mean"]
     return out
 
 
@@ -228,6 +284,41 @@ def render(agg: dict) -> str:
             for label, prefix in (("held-out", ""), ("seen", "primary_seen|")):
                 lines.append(f"| {g} | {label} | " + " | ".join(
                     f"{_fmt(a.get(f'{prefix}{r}|ANSWER-correct'))} / {_fmt(a.get(f'{prefix}{r}|UNDEFINED'))}" for r in rows) + " |")
+    if any(k.startswith("typed|") or k.startswith("types|") for g in groups for k in agg[g]):
+        lines.append("\n## B4 (addendum 2026-09-07) — §5.1 type discovery and the router at the read\n")
+        lines.append("| group | max share (hard, ckpt) | confidence | NMI vs relation (best layer) | purity | layer | max share at that layer | NMI vs direction | NMI vs template | purity trained → held-out phrasing |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|")
+        for g in groups:
+            a = agg[g]
+            if not any(k.startswith("typed|nmi") or k.startswith("types|") for k in a):
+                continue
+            lines.append(f"| {g} | {_fmt(a.get('types|max_share_hard'))} | {_fmt(a.get('types|confidence'))} | {_fmt(a.get('typed|nmi_best'))} | "
+                         f"{_fmt(a.get('typed|purity_best'))} | {_fmt(a.get('typed|best_layer'))} | {_fmt(a.get('typed|max_share_best_layer'))} | "
+                         f"{_fmt(a.get('typed|nmi_direction_best_layer'))} | {_fmt(a.get('typed|nmi_template_best_layer'))} | "
+                         f"{_fmt(a.get('typed|purity_trained_phrasing'))} → {_fmt(a.get('typed|purity_heldout_phrasing'))} |")
+    if any(k.startswith("sibling|") for g in groups for k in agg[g]):
+        lines.append("\n## §5.2 sibling pull by type — share of wrong (near) and the cosine of shared-callee pairs across modules\n")
+        lines.append("| group | sibling share of wrong, near | cos overall: shared / random / same module | under the best type: shared / random / same module |")
+        lines.append("|---|---|---|---|")
+        for g in groups:
+            a = agg[g]
+            if "sibling|cos_overall|shared" not in a:
+                continue
+            lines.append(f"| {g} | {_fmt(a.get('sibling|share_of_wrong_near'))} | {_fmt(a.get('sibling|cos_overall|shared'))} / {_fmt(a.get('sibling|cos_overall|random'))} / "
+                         f"{_fmt(a.get('sibling|cos_overall|same_module'))} | {_fmt(a.get('sibling|cos_best_type|shared'))} / {_fmt(a.get('sibling|cos_best_type|random'))} / "
+                         f"{_fmt(a.get('sibling|cos_best_type|same_module'))} |")
+    if any(k.startswith("absence|") for g in groups for k in agg[g]):
+        rows = ("absent-near/pair", "absent-near/lines", "absent-near/held-out", "absent-far/pair", "absent-far/lines", "absent-far/held-out",
+                "sparse-real/without", "sparse-real/with", "dense-real/without", "dense-real/with")
+        lines.append("\n## §5.3 relation-absence as a computed state — UNDEFINED share / typed signal per row; AUC of the signal for UNDEFINED over the absent rows\n")
+        lines.append("| group | AUC (absent rows) | " + " | ".join(rows) + " |")
+        lines.append("|---|---|" + "---|" * len(rows))
+        for g in groups:
+            a = agg[g]
+            if "absence|auc_absent" not in a and not any(k.startswith("absence|") for k in a):
+                continue
+            lines.append(f"| {g} | {_fmt(a.get('absence|auc_absent'))} | " + " | ".join(
+                f"{_fmt(a.get(f'absence|{r}|undefined'))} / {_fmt(a.get(f'absence|{r}|signal'))}" for r in rows) + " |")
     lines.append("\n## training\n")
     lines.append("| group | held-out dense at the end | tokens/s | cost (assumed $) |")
     lines.append("|---|---|---|---|")
@@ -256,6 +347,43 @@ def render_curve(cv: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def loss_delta(cells: list[dict], against: str = "B1") -> dict:
+    """§5.5: B4 − ``against`` on the logged loss, paired by (arm, seed, run) at
+    every checkpoint step of the B4 cell; mean and spread over the pairs, per arm."""
+    by_key: dict[tuple, dict] = {}
+    for c in cells:
+        by_key[(c["block"], c["arm"], c["seed"], c["run"])] = c
+    out: dict[str, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
+    for (block, arm, seed, run), c in by_key.items():
+        if block != "B4":
+            continue
+        pair = by_key.get((against, arm, seed, run))
+        if not pair:
+            continue
+        la = {st: l for st, l in c["manifest"].get("loss", [])}
+        lb = {st: l for st, l in pair["manifest"].get("loss", [])}
+        for ck in c["manifest"].get("checkpoints", []):
+            st = max((x for x in la if x <= ck["step"]), default=None)
+            if st is not None and st in lb:
+                out[arm][ck["step"]].append(la[st] - lb[st])
+    return {arm: {step: {"mean": round(sum(v) / len(v), 4), "min": round(min(v), 4), "max": round(max(v), 4), "n": len(v)}
+                  for step, v in sorted(steps.items())} for arm, steps in out.items()}
+
+
+def render_loss_delta(ld: dict) -> str:
+    if not ld:
+        return ""
+    lines = ["## §5.5 loss delta — B4 − B1 on the logged loss, paired by seed and run (mean [min–max])\n"]
+    for arm, steps in ld.items():
+        cols = list(steps)
+        lines.append(f"### arm {arm}\n")
+        lines.append("| step | " + " | ".join(str(c) for c in cols) + " |")
+        lines.append("|---|" + "---|" * len(cols))
+        lines.append("| B4 − B1 | " + " | ".join(_fmt(steps[c]) for c in cols) + " |")
+        lines.append("")
+    return "\n".join(lines) + "\n"
+
+
 def gate(agg: dict, keys: tuple[str, ...] = ("sparse-real|ANSWER-correct", "sparse-real|UNDEFINED",
                                              "absent-near/held-out|UNDEFINED", "absent-far/held-out|UNDEFINED",
                                              "absent-near/held-out|sibling-share-of-wrong", "probe|best_test",
@@ -264,7 +392,7 @@ def gate(agg: dict, keys: tuple[str, ...] = ("sparse-real|ANSWER-correct", "spar
     out = []
     arms = sorted({g.split("/")[1] for g in agg})
     for arm in arms:
-        for a, b in (("B1", "B3"), ("B2", "B3"), ("B1", "B2")):
+        for a, b in (("B1", "B3"), ("B2", "B3"), ("B1", "B2"), ("B4", "B1")):
             for k in keys:
                 s = separable(agg, k, f"{a}/{arm}", f"{b}/{arm}")
                 if s:

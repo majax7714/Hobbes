@@ -6,6 +6,9 @@
     atlas0 score DIR --outputs OUT.jsonl [--set primary|secondary|trained]   # §6.1 matrix
     atlas0 probe-check DIR [--block B1|B2|B3] [--model tiny|atlas-30m] [--per-class N] [--out R.json]
     atlas0 report RUNS [--out NAME]                    # §6.1–6.6 tables over trained cells (steps 5–6)
+    atlas0 mech heads|ffn|all CELL WORLD [--weights W] # the §1 checks (2026-09-07): reads = heads, stores = FFN layers
+    atlas0 mech b2norm RUNS WORLD-PATTERN              # B2: is the refusal a norm on the embedding row?
+    atlas0 typed CELL WORLD [--weights W]              # the §5 typed instruments re-read on a cell (B4, or the untyped halves)
 
 ``probe-check`` is step 2's exit: the probe pipeline run on a
 random-init model over the world's primary items must report chance.
@@ -158,18 +161,60 @@ def cmd_probe_check(a: argparse.Namespace) -> int:
     return 0 if r["at_chance"] else 1
 
 
+def cmd_mech(a: argparse.Namespace) -> int:
+    """The §1 checks (addendum 2026-09-07) on a cell's weights; ``b2norm`` over a runs dir."""
+    from . import mech
+    if a.check == "b2norm":
+        reps = []
+        for d in sorted(Path(a.run).iterdir()):
+            if d.name.startswith("B2-") and (d / "model.pt").exists():
+                world = Path(a.world.format(seed=d.name.rsplit("-s", 1)[-1].split("-")[0]))
+                reps.append(mech.b2_norm_check(d, world, a.set))
+        text = mech.render_b2(reps)
+        if a.out:
+            Path(str(a.out) + ".json").write_text(json.dumps(reps, indent=2, sort_keys=True) + "\n")
+            Path(str(a.out) + ".md").write_text(text)
+        print(text)
+        return 0
+    which = ("heads", "ffn") if a.check == "all" else (a.check,)
+    rep = mech.run_checks(Path(a.run), Path(a.world), Path(a.weights) if a.weights else None, which, a.device, a.items, a.seed)
+    text = mech.render(rep)
+    if a.out:
+        Path(str(a.out) + ".json").write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n")
+        Path(str(a.out) + ".md").write_text(text)
+    print(text)
+    return 0
+
+
+def cmd_typed(a: argparse.Namespace) -> int:
+    """The §5 instruments (addendum 2026-09-07) re-read on a cell's weights; outputs from the cell's own read."""
+    from . import train, typed
+    run, world_dir = Path(a.run), Path(a.world)
+    model, tok, cfg = train.load_cell(run, world_dir, Path(a.weights) if a.weights else None, a.device)
+    evals = train.load_evals(world_dir)
+    out_dir = Path(a.weights).parent if a.weights and Path(a.weights).parent.name.startswith("step-") else run
+    outputs = {p.stem: acts.read_outputs(p) for p in (out_dir / "outputs").glob("*.jsonl")}
+    rep = typed.analyze(model, tok, W.read(world_dir), evals, outputs, a.device or "cpu", cfg, seed=cfg.seed)
+    text = typed.render(rep)
+    target = Path(a.out) if a.out else out_dir / "typed"
+    Path(str(target) + ".json").write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n")
+    Path(str(target) + ".md").write_text(text)
+    print(text)
+    return 0
+
+
 def cmd_report(a: argparse.Namespace) -> int:
-    cells = R.load_cells(Path(a.runs))
+    cells = R.load_cells(Path(a.runs), a.at)
     if not cells:
-        print(f"no cells under {a.runs}", file=sys.stderr)
+        print(f"no cells under {a.runs}" + (f" read at step {a.at}" if a.at else ""), file=sys.stderr)
         return 1
     agg = R.aggregate(cells)
     cv = R.curve(cells)
-    text = R.render(agg) + R.render_curve(cv)
+    text = (f"# read at step {a.at}\n\n" if a.at else "") + R.render(agg) + R.render_curve(cv) + R.render_loss_delta(R.loss_delta(cells))
     gate = R.gate(agg)
     if a.out:
-        Path(a.out).with_suffix(".json").write_text(json.dumps({"groups": agg, "gate": gate, "curve": cv}, indent=2, sort_keys=True) + "\n")
-        Path(a.out).with_suffix(".md").write_text(text)
+        Path(str(a.out) + ".json").write_text(json.dumps({"groups": agg, "gate": gate, "curve": cv}, indent=2, sort_keys=True) + "\n")
+        Path(str(a.out) + ".md").write_text(text)
     print(text)
     if gate:
         print("## §6.6 gate\n")
@@ -215,7 +260,26 @@ def main(argv: list[str] | None = None) -> int:
     r = sub.add_parser("report", help="the §6.1–6.6 tables over a directory of trained cells")
     r.add_argument("runs")
     r.add_argument("--out", help="write <out>.json and <out>.md")
+    r.add_argument("--at", type=int, default=None, help="read every cell at this step (its step-N/ read) instead of its final one")
     r.set_defaults(fn=cmd_report)
+    m = sub.add_parser("mech", help="the §1 checks (2026-09-07): heads (reads), ffn (stores), b2norm (refuses) on saved weights")
+    m.add_argument("check", choices=("heads", "ffn", "all", "b2norm"))
+    m.add_argument("run", help="a cell dir (heads/ffn) or a runs dir of B2 cells (b2norm)")
+    m.add_argument("world", help="the world dir; for b2norm a pattern with {seed}")
+    m.add_argument("--weights", help="ckpt/step-N.pt or step-N/model.pt (default: the cell's final model.pt)")
+    m.add_argument("--set", default="primary", help="b2norm: the eval set whose outputs are read")
+    m.add_argument("--items", type=int, default=None, help="items per inversion variant (default: all)")
+    m.add_argument("--device", default=None)
+    m.add_argument("--seed", type=int, default=0)
+    m.add_argument("--out")
+    m.set_defaults(fn=cmd_mech)
+    t = sub.add_parser("typed", help="the §5 instruments (2026-09-07) on a cell's weights: type discovery, sibling pull by type, the absence signal")
+    t.add_argument("run")
+    t.add_argument("world")
+    t.add_argument("--weights")
+    t.add_argument("--device", default=None)
+    t.add_argument("--out")
+    t.set_defaults(fn=cmd_typed)
     a = p.parse_args(argv)
     return a.fn(a)
 

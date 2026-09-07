@@ -36,6 +36,8 @@ No kill criteria. A cell that comes out badly is attributed before it is read. C
 
 A result is about **B** only after **W**, **A**, **T**, **P** have been checked for it. "The dense block refuses sparse-real" is a fact about **W** until the sparse-real items are confirmed to have real answers in the corpus at the count the class specifies, and about **P** until the act scorer is confirmed to distinguish a refusal from a malformed answer.
 
+*Amended 2026-09-07 (the B4 addendum, §A.1 below): an atlas entry names a circuit or a displacement, never a verb, and an entry without its mechanical check is provisional. "Reads", "stores", "refuses" are shorthand for a token's route into the answer slot — copied from context, looked up from the weights, emitted by prior — and each has a check on saved weights (`atlas0 mech`).*
+
 ---
 
 ## 2. The world (W)
@@ -101,6 +103,8 @@ Three, forming a ladder on one variable: how an entity name enters the model.
 Everything else identical: depth, width, attention, FFN, optimiser, data. B2 and B3 differ from B1 only at the input map for entity tokens. Absent names at test time under B2/B3 get a hash-initialised vector the same way (B2: initialised, never trained, since never seen).
 
 B1 vs B3 is the primary comparison. B2 is there so that "dedicated" and "frozen" can be separated.
+
+*Amended 2026-09-07:* a fourth block, **B4 = B1 + typed attention** — B1's input map with a small learned inventory of discrete relation operators that every pairwise attention interaction routes through, with a confidence — is the addendum below (§A.2); B1 is its paired control.
 
 ---
 
@@ -188,6 +192,8 @@ Any cell whose across-seed spread exceeds its across-block difference is reporte
 
 *Amended 2026-09-06 (Max, after the v1 replication).* The gate as written reads seed spread as all variance. The B1/phrase replication (sparse `UNDEFINED` 0.68 in one run and 0.29 in another, one corpus, one seed) shows run-to-run spread as wide. **The gate reads the union: two runs per seed, spread over seeds and repeats together** (`modal_atlas0.py grid --runs 2`; a repeat is the same seed and config in a `-r2` cell, and `atlas0 report` counts cells, not seeds). Deterministic kernels, recorded in the manifest, would be the other route; until one or the other is in a cell's record, every phrase-arm rate in this document *carries by the run*.
 
+*Amended 2026-09-07:* the typed instruments — §5.1 type discovery, §5.2 sibling pull by type, §5.3 relation-absence as a computed state, §5.4 route competition, §5.5 the loss delta, §5.6 the operators — are the addendum's §A.5 below, computed per cell (`typed.json`) and rendered by `atlas0 report`.
+
 **Procedure, from the `<nl>` and `live` defects (2026-09-06):** every eval prompt is tokenised and checked against the training vocabulary before a cell is read — `atlas0 check` reads the prompts' words against every arm's corpus text, and the trainer reads their ids against the stream and refuses (`UntrainedPromptTokens`) on any token no stream contains, entity names of absent names excepted. Both defects were themselves an untrained token degrading the act: a number read through one is a number about that token.
 
 ---
@@ -228,6 +234,153 @@ Steps 1–2 produce instruments with no training. If the world is wrong, it is w
 ## 10. What this cannot mean
 
 Nothing about any real model. Nothing about code. Nothing about Calvin. It is a map of how three small blocks behave on one authored distinction, under four ways of showing them absence, with the one structural input (entity boundaries) given by construction.
+
+---
+
+## Addendum (2026-09-07) — B4, typed relations
+
+**Status:** handoff (Max, 2026-09-07) · **Applies to:** §1 (a rule), §3 (a block), §6 (an instrument) · **Compute:** v2-world cells at ~$0.05–0.20; the whole item under $8 · **Depends on:** the v2 world (`--variant v2`), the 16-epoch cosine schedule from the §3 calibration, checkpoints every 300 steps. *Max's text, with the implementation readings the session made marked "reading".*
+
+### A.0 The push
+
+A trained transformer already computes *hot* as roughly W_temperature · coffee — relation operators are in there (Hernandez et al. 2023, "Linearity of Relation Decoding"; function vectors; task vectors). They are latent, continuous, unnamed, uncounted, and share parameters with everything else. B4 makes them first-class: a small learned inventory of discrete relation operators that every pairwise interaction in attention has to route through, with a confidence.
+
+Why bother, given the perplexity cost: in a similarity space, absence is unbounded — "nothing is similar enough" is a statement about an infinite neighbourhood, so the block always finds something. In a typed space with a finite inventory, absence is countable — "none of the K types fires above confidence between these two" is a computable state. That is the route every block in the atlas has lacked. The code graph has it by construction (`calls` / `defined_in` / `reached_by`, closed, deterministic); the Ledger Machine's `bind(X, CALLED_BY)` is this idea for a domain where the types are given. B4 asks whether the types can be learned where they aren't, and whether learning them buys the same countable absence.
+
+It goes in the atlas world first, not prose, because the atlas world has ground truth for relation discovery. Loss is not what we are optimizing; the cost in loss is recorded, not minimized.
+
+### A.1 Amendment to §1 — entries name circuits, not verbs
+
+From the 2026-09-06 review: every phenomenon in the record is a token arriving in the answer slot by one of three routes — copy from context, look up from weights, emit by prior — and absence is a fourth route no loss creates. "Reads," "stores," "knows," "refuses" are shorthand for those routes.
+
+**Rule.** An atlas entry names a circuit or a displacement, never a verb, and an entry without its mechanical check is provisional. The checks owed on existing checkpoints, none run, all cheap (no training; checkpoints exist):
+
+| entry line | check | reads as |
+|---|---|---|
+| "B1 reads at 7 epochs" | at steps 1,300 / 1,600 / 2,200 of the v2 calibration run: find heads whose attention from the answer slot lands on the previous line's module token; ablate them | C-only falls to ≈ 0.03 → "reads" = those heads. Report head ids and layer |
+| "B1 stores from 11 epochs" | FFN ablation by layer at 2,800 / 3,100 | dense-real falls, C-only holds → the association's layers |
+| "B2 refuses unreinforced inputs" | per item, ‖embedding row − init‖ against refusal | near-deterministic → the policy is a norm |
+| "B3 follows context" | same head check on the B3 context cells at 1,250 | the copy circuit, in the block where lookup is weakest |
+
+These run before B4's entries are written, so B4's checks (§A.5) have a baseline to be read against.
+
+*Reading:* the trainer had saved only a cell's final weights — the "checkpoints" in every manifest are metric records — so the two cells the checks name were re-run with weights saved at every checkpoint (`--save-weights-every`; B1 on the 16-epoch cosine, seed 1, $0.07; B3 on the fully packed context world, seed 1, $0.12); B2's check reads the finished v0 and v1 cells' `model.pt`. The checks are `atlas0 mech heads | ffn | b2norm`.
+
+### A.2 The block (B4)
+
+B4 = B1 + typed attention. The input map is B1's (stems shared across names) on purpose: the sibling-pull test needs a block that has the pull to lose. B2's input map is a later variant (B4′), not this item.
+
+Per attention layer:
+
+- A learned inventory of K relation operators R_1 … R_K, each low-rank (d_head × r, r = 16), shared across heads within the layer.
+- For each query position i and key position j: typed scores s_k(i, j) = (W_Q x_i)ᵀ R_k (W_K x_j); a type distribution p(i, j) ∈ Δ^K from a small bilinear of (W_Q x_i, W_K x_j), sampled by Gumbel-softmax during training (temperature annealed from 1.0 to 0.3 over the run), argmax at evaluation; the attention logit is Σ_k p_k(i, j) · s_k(i, j).
+- Type confidence at (i, j) is max_k p_k(i, j); the type assignment is the argmax.
+- Two auxiliary losses, weighted by one λ: an entropy penalty on p(i, j) (few types per pair) and a usage-balance penalty on the batch-mean of p (no single type carries everything). λ is the knob mode collapse lives on; it is swept (§A.4).
+- K = 8. The world has three true relations plus module-membership and template structure; 8 leaves room for the block to find a partition that is not the true one, which is one of the readings.
+- Sanity: at K = 1, R_1 = I, the block is B1 exactly (tested).
+
+Everything else — d 512, 8 layers, 8 heads, AdamW, bf16, the trainer — is the reference model's. Perplexity cost is recorded as loss delta against B1 at every checkpoint. It is a number in the entry, not a criterion.
+
+*Readings (`atlas0.train.Types`, `Block.attention`):* an operator is **R_k = I + A_k B_kᵀ** with A_k, B_k ∈ ℝ^{d_head × 16}, B_k zero at initialisation, so every operator starts as the identity and the typed logit starts as B1's q · k (a rank-16 matrix alone could not be the identity, and the K = 1 sanity needs it); the operators are shared across the layer's eight heads. The router is **one distribution per pair per layer**, not per head — ℓ_k(i, j) = (q_i C_k) · (k_j D_k) on the full-width q and k (C_k, D_k ∈ ℝ^{512 × 16}, small at init, so p is uniform and the confidence 1/K before any gradient — tested) — so that a type assignment is one readout per pair. Training samples p by Gumbel-softmax (soft, temperature linear from 1.0 to 0.3 over the schedule's steps); evaluation takes the argmax as a one-hot. The penalties are the mean pair entropy over the causal pairs plus KL(batch-mean usage ‖ uniform), summed over layers, times λ. Attention logits are computed in fp32 on the typed path. At K = 1 no inventory or router exists and the fused-attention path of B1 runs — the K = 1 cell reproduced B1's seed-1 loss curve **to the digit** at every logged step over 300 steps on the same GPU (`runs/v2-b4-k1`, $0.01). B4's stream is B1's (the tokenizer reads B4 as a stem block). Extra parameters: 8 × (2 × 64 × 16 + 2 × 512 × 16) per layer ≈ 147k over 8 layers.
+
+### A.3 World, arms, T
+
+World: v2 (`--variant v2`): eight templates and renderings, seven phrasings trained and the eighth held out with every word trained, `context_only_frac` 0.3, `relation_absence` + `absence_split`. Unchanged. Every eval prompt passes the vocabulary check before a cell is read.
+
+Arms: `none`, `phrase`, `lived+phrase`. (`lived` alone is dropped per the after-v1 handoff.) The `lived+phrase` arm keeps v1's design: `UNDEFINED` pairs on `calls`-absence for real symbols with empty callers; `reached_by`-absence and `defined_in`-absence unpaired, for the travel test.
+
+T: the 16-epoch cosine from the §3 calibration (3,100 steps at batch 16 for B1), every checkpoint recorded. The T tension in the after-v1 doc is resolved by reading, not by choosing: every cell is read at two checkpoints — the reading phase (~10 epochs, step ~2,200) and the storing plateau (~14 epochs, step ~3,100) — and every table carries both columns. B1 runs alongside on the same schedule as the paired control (the calibration cell is one seed; the grid needs five). B3 is not in this item.
+
+*Reading:* `--epochs 16 --batch 16 --stop-at-step 3100 --ckpt-every 300 --full-eval-at 2200` — the cosine is laid over the full 3,572 steps and training stops at 3,100; the full read at 2,200 (`step-2200/`: report, outputs, weights, `typed.json`) is the reading-phase column and `atlas0 report --at 2200` renders it.
+
+### A.4 Order of work
+
+1. §A.1 checks on existing checkpoints. Half a day, no GPU beyond inference.
+2. B4 implementation. Exit: K = 1 reproduces B1's loss curve on seed 1 to three decimals over 300 steps; at random init the type usage is uniform and the confidence is 1/K; a unit test asserts the typed logit reduces to q·k when all R_k = I.
+3. λ sweep, B4/none, seed 1, three values (0.01, 0.1, 1.0). Exit: one λ at which type usage is not collapsed (no type carries > 60% of assignments at step 2,200) and dense-real at 3,100 is within 0.15 of B1. If no λ meets both, record the frontier and pick the least-collapsed λ that still learns the world; that frontier is itself the first reading (§A.5.1, row 1).
+4. Grid: B4 and B1, three arms, five seeds, two runs each = 60 cells, read at both checkpoints. ~$4–6.
+5. Instruments §A.5, per cell, attribution first; §6.6's gate on the union of runs.
+6. B4 entry, circuits not verbs, with its checks.
+
+### A.5 Instruments, with attribution
+
+Components as before — W world, B block, A arm, T regime, P probes/scorers — plus **λ**, the pressure, which is its own component because collapse is the expected failure and it has to be attributable to the knob rather than to the block.
+
+#### A.5.1 Type discovery — did it find calls / defined_in / reached_by? — *primary*
+
+For every statement and every packed QA line in the corpus, the true relation is known. Record the type assignment at the attention from the object token to the subject token (and from the answer slot to the context's module token in packed lines), per layer. Score: cluster purity and normalised mutual information between learned type and true relation; the usage histogram; confidence distribution by true relation.
+
+| result shape | implicates | check before believing | atlas entry |
+|---|---|---|---|
+| one type carries > 60% at every λ that learns the world | λ, then B | does the collapsed type's operator ≈ identity (it became B1's untyped q·k)? | mode collapse: a single untyped operator lowers loss faster than K typed ones; the pressure is the whole problem, measured |
+| NMI high (> 0.6), purity high, three types dominant | — | not the template's surface form (W): assign types on the held-out phrasing too — if purity drops, the types were sentence shapes | the block discovered the world's relations from LM loss alone |
+| NMI low, purity high on a different partition (e.g. by module, or by subject-vs-object position) | B | inspect what the partition is | a partition that lowers loss as well as the true one; it is an entry, and it says what typed routing finds when nobody tells it what to find |
+| types discovered at the storing checkpoint, not the reading one | T | compare 2,200 vs 3,100 | typing arrives with the lookup route; it is a property of stored associations, not of the copy circuit |
+
+*Reading:* the readout is at the attention from the **later-mentioned** entity's last token to the **earlier-mentioned** entity's last token (attention is causal; the templates put either argument first), on 400 rendered facts per relation, and the assignment is scored against the relation, against the *direction* (subject-first / object-first), against relation × direction and against the template, so a surface-form partition is seen as one; the packed-QA readout is from the teacher-forced `ANSWER` token to the context module's last token on the `C-only-qa/support` items; the phrasing check reads the assignment from the answer slot to the name under phrasing 0 and under the held-out phrasing 7. The soft, noiseless router at the final temperature gives the confidence; its argmax is the assignment.
+
+#### A.5.2 Sibling pull by type — coffee and lava — *primary*
+
+Two measures. (a) The existing one: for absent-near names, share of invented modules that are the base's (B1: 0.30). (b) New: for pairs of real symbols in different modules that share a callee, cosine between their representations at the last layer — overall, and after projecting through each R_k.
+
+| result shape | implicates | check | atlas entry |
+|---|---|---|---|
+| B4 sibling share ≈ B1's 0.30 | B or λ | is the share carried by the collapsed type? (cross §A.5.1) | typed routing did not restrict the pull; the pull is in the input map, not in attention |
+| B4 sibling share separably below B1's; overall cosine of shared-callee pairs ≈ B1's, cosine under R_calls high and under the others low | — | the projection is not trivially high for every pair (P: report random-pair baselines per type) | relation-conditioned similarity: two things close under one type and apart otherwise. The thing an untyped space cannot say |
+| B4 sibling share below B1's and dense-real below B1's by > 0.15 | λ | — | the pull was reduced by learning less, not by typing it; not an entry until dense-real is matched |
+
+*Reading:* the representation is the residual after the last block at the name's last token in `Q: Where is X defined?`; "under R_k" is the last layer's per-head query of that residual multiplied by R_k, heads concatenated; 300 shared-callee pairs across modules, 300 random cross-module pairs with no common callee, 300 same-module pairs, seeded.
+
+#### A.5.3 Relation-absence as a computed state — does refusal travel? — *primary*
+
+v1's design, re-asked. In `lived+phrase`, `UNDEFINED` pairs exist for `calls`-absence only. Evaluate refusal on: trained `calls`-absence; held-out `calls`-absence (symbols never paired); `reached_by`-absence and `defined_in`-absence, never paired on any symbol. In B2 (v1) refusal did not travel across relations. Also record, per absent query, the block's typed signal: the maximum over context and over k of p_k · attention mass for the queried relation's discovered type.
+
+| result shape | implicates | check | atlas entry |
+|---|---|---|---|
+| refuses trained `calls`-absence, not the unpaired relations — B2's pattern | B | is the typed signal different on the unpaired absences (low p for that type) even though the act doesn't move? | the state is computable and the act has no route to it — the same gap as B3's reading without abstention, now at the relation level |
+| refuses unpaired-relation absences above chance, and the refusal tracks the typed signal (low p_k for the queried type ↔ `UNDEFINED`) | — | the sparse-real row: are real symbols with rare relations also refused? (the frequency conflation, at the relation level — expected) | countable absence: the act reached a state the inventory made computable. The first block in the atlas where absence travels without a pair. Report the sparse-real cost next to it |
+| refuses everything that isn't dense, by type | λ and A | per-relation frequency vs refusal | the conflation moved from entities to relations; it did not go away. Entry, and the failure-list item 3 measured |
+| no refusal anywhere on unpaired relations, typed signal flat | B | §A.5.1 first — if types weren't discovered, this instrument has nothing to read | not readable in this cell |
+
+*Reading:* the signal is read at the §A.5.1 best layer from the prompt's last token to the name's last token: p_{k*}(i, j) · ā(i, j) with ā the head-mean attention and k* the type most assigned to the queried relation on the rendered facts; beside it the untyped max_k p_k · ā, and for B1 ā alone. Rows: every absent name's three questions by exposure (`pair` / `lines` / `held-out`), and real symbols' empty (`without`) and filled (`with`) relations. In this v2 world the `lived+phrase` arm's pairs are on `defined_in` for the `pair` half of the trained absent names (`absence_split`) and on real symbols' empty `calls` / `reached_by` (`relation_absence`); the travel test reads the `lines` and `held-out` rows and the unpaired relations.
+
+#### A.5.4 Route competition — the §6.4 curve, in B4 — *secondary*
+
+Same three rows as the calibration run (parametric dense-real · C-only read · C+S conflict → context), every 300 steps, B4 against B1 on the same seeds.
+
+| result shape | implicates | check | atlas entry |
+|---|---|---|---|
+| same curve as B1, shifted | T | — | typing doesn't change the competition, only its timing |
+| copy-following falls less from peak to plateau than B1's (0.93 → 0.77) | B | loss delta: is it because B4 stored less? (dense-real at 3,100) | typed routing keeps the copy route alive longer — an L2-like effect (Singh et al.) from structure rather than regularisation |
+| no reading phase at all | λ or B | at λ → 0 does it return? | the pressure suppressed the copy circuit; record the λ at which it reappears |
+
+#### A.5.5 Loss delta — recorded, not gated
+
+B4 − B1 loss at every checkpoint, per λ. The number the field would optimise; here it is the price on the receipt.
+
+#### A.5.6 The §A.1 checks for B4 — required before the entry
+
+Head inspection at the reading onset as for B1; plus, unique to B4: the type assignment is already a mechanical readout. The entry states, per discovered type, what its operator does (the top singular directions of R_k, and which token pairs it routes), so that "the block found calls" is a description of a matrix and its assignments.
+
+### A.6 Pre-committed failure list
+
+From the review, in order of likelihood, each mapped to the instrument that catches it:
+
+1. Mode collapse — §A.5.1 row 1. The expected outcome; the λ frontier is the entry either way.
+2. Frequency conflation at the relation level — §A.5.3 row 3. Countable absence doesn't escape sparsity; it relocates it. Measured, not avoided.
+3. A partition that isn't the true one — §A.5.1 row 3. Not a failure; a finding about what LM loss prefers to type.
+4. Reduced pull by reduced learning — §A.5.2 row 3. Guarded by the dense-real match.
+5. Cyc's lesson — not an instrument. A typed graph with confidences composes into lookup, not into anything else. The entry says "relation-conditioned similarity" and "countable absence," and never "understanding."
+
+### A.7 What follows, as the results point
+
+- Types discovered, pull restricted, absence travels → B4′ (B2's input map + typing), then the prose question with §A.6's failure list as the roadmap.
+- Types discovered, absence doesn't travel → the state exists and the act has no route: the next block adds the route — a fourth act, `NO_EDGE`, with a target derived from the typed signal itself rather than from a written pair. That is the first place in the ladder where the abstention target would be computed rather than authored.
+- Collapse at every λ that learns → typing has to be given, not learned, at this scale. Which is what Hobbes does. Record it as the boundary and move the item to a block where the inventory is fixed to the world's three relations (B4-given) to ask the other two questions with the first one set aside.
+
+### A.8 What this cannot mean
+
+Nothing about prose, where the inventory is open and "hot" is four relations. Nothing about understanding — the entry vocabulary is operators, assignments, projections, and acts. Nothing at any scale but 30M. And nothing until §A.1's checks on the existing checkpoints are run, because B4's entries are read against B1's, and B1's are still verbs.
 
 ---
 
@@ -493,6 +646,48 @@ The 16-epoch cell, per 300 steps (epochs · loss · parametric dense-real · **C
 *Reading it.* **The standard block reads before it stores, in this world.** Between 5.8 and 7.2 epochs B1 goes from reading nothing to reading a packed fact 0.89 and following a conflicting context 0.74 — with parametric dense-real at 0.01. Reading saturates (1.00 / 0.93) by 10 epochs while the weights still hold nothing; then, from 11 epochs, the facts enter the weights (dense 0.07 → 0.83) and context-following **falls** (0.93 → 0.77) — §6.4's inversion, in B1, in one seed, the shape the design drew. The context-only facts do not stay out of the weights: asked with no context they go 0.09 → 0.95 over the same span (their packed lines are seen fourteen times, eight renderings each). And the schedule is part of T, not a detail: the 8-epoch cosine reached 7 epochs with the learning rate already annealed and read 0.11; the 16-epoch cosine at the same 7 epochs read 0.89.
 
 *What this means for the item's regime (for Max).* The design asked for a T at which memorising is not the cheaper route, the question is not a memorised string, and some facts are never in the weights — and calibrated by B1 reaching 0.8 from free statements. In this world at 30M those two do not meet: **≥ 0.8 is reached only in the memorising phase (14 epochs), where every context-only fact is in the weights too; the reading regime is 7–10 epochs, where B1 reads 0.9–1.0 and follows context 0.7–0.9 and holds no fact (dense ≤ 0.07)**; 2–4 epochs is neither, at any batch and at sixteen renderings. Two honest T's, and the choice is the design's, not the calibration's: (a) **T_v2 = the 16-epoch cosine stopped at ~14 epochs** (3,100 steps at batch 16, ~$0.05 a cell), which meets the criterion as written and reads the §6.1 matrix on an unseen phrasing with reading available — every checkpoint on the way is recorded, so the reading phase and the inversion come with each cell for free; or (b) **T_v2 = the same schedule stopped at ~10 epochs** (2,200 steps), the reading regime itself, which fails the criterion on purpose and asks §6.1's question of a block that can only read. The grid at either: 3 blocks × 3 arms × 5 seeds × 2 runs = 90 cells at ~$0.05–0.07 ≈ **$5–6**, both T's ≈ $11, against $17.57 spent (below). **B2 and B3 on the same schedule (one seed each, $0.04):** B2/none meets 0.8 at **1,100 steps / 10.4 epochs** (its stream is shorter: an entity is one token) — 0.79 on the full read, sparse 0.18, probe 1.00 — and it **stores and reads together**: at 6.6 epochs reading 0.43 with dense 0.07, at 9.5 epochs reading 0.75 with dense 0.57 and the context-only facts already 0.66 without context; conflict-following reaches 0.39 and no more — the dedicated learned block has no reading-first phase, the parametric route arrives with the reading and wins. B3/none over the full 16 epochs (1,686 steps, no stop) reads **0.125** at the end (0.03–0.05 before; dense 0.03, probe at chance): **B3 is not calibrated for reading at this T** — on the context world it needed ~1,250 steps at batch 64 (20M tokens) before reading appeared; this schedule gives it 6.9M. So B3's row in a v2 grid at T_v2 would be a block that neither stores nor reads, unless its T is longer — §5's "held constant across blocks" is the rule that decides, and it is Max's. **The grid is not launched:** T_v2 is the design's central knob and the item's "2–4 epochs" is not available at this scale.
+
+### 2026-09-07 — the B4 addendum: the §A.1 checks run (B1's reading is eight heads, its storing is six FFNs, B2's refusal is a direction not a norm, B3's copy circuit is layer 0), B4 built and swept (the pressure decides the route; at λ = 0 the routing alone keeps both), the grid at one run per seed
+
+**Errors and results against the experiment, first.**
+
+1. **The trainer had never saved a checkpoint's weights.** Every "checkpoint" in every manifest to date is a metric record; a cell holds only its final `model.pt`. The addendum's §A.1 ("checkpoints exist") assumed otherwise, so the two cells it names were re-run with weights at every checkpoint (`--save-weights-every`): B1/none seed 1 on the 16-epoch cosine to its end ($0.07; reading appears at 1,600 as before, dense-real 0.86 at 16 epochs) and B3/none seed 1 on the fully packed context world ($0.12; reading appears at step **1,000** this run against 1,250 in the record — the onset is run-to-run).
+2. **The B4 cell's full read at 2,200 did not fire** in the five sweep cells: the read was gated on the checkpoint cadence (every 300) and 2,200 is not a multiple of 300. Fixed (a named step reads whether or not it is a checkpoint step); the sweep cells were re-read at their saved **2,100** weights instead (`reeval --weights-step`, $0.01 each), and the grid reads at 2,200.
+3. **B4 costs three times the addendum's estimate:** the typed correction is a `(B, h, K, T, T)` tensor per layer, and a 3,100-step cell is ~14 min on an L4 (**$0.17–0.19**, against $0.05–0.10 estimated; the first cell, before the reduce was fused and kept in bf16, $0.17 at 18k tokens/s; an A100 costs the same per cell). At that price the grid's two runs per seed (60 cells) is ~$7.5 with the paired B1 cells, and the item would end near $9. **The grid ran at one run per seed** (30 cells, ~$3.8) to stay under the addendum's $8; the second run is Max's call (§6.6 as amended reads the union of runs, so every grid rate below carries by the seed only until it runs).
+4. **A dotted output name lost its tail** in the §A.1 driver (`Path("b4-lam0.01-…").with_suffix` → `b4-lam0`); six checks overwrote one file and were re-run under undotted names. Nothing read through it.
+
+**§A.1 — the checks on saved weights (`atlas0 mech`; records under `~/.hobbes/bench/atlas0/mech/`, the GPU-run ones under `mech/gpu/mech/`).** The instrument: rank the 64 heads by the attention mass the answer slot (the teacher-forced `ANSWER` token) puts on the context module's tokens on the reading split's `support` items, ablate the top *n* (output zeroed), and re-read four routes — *read* (a context-only fact with its line in front, gold), *follow* (the same with a conflicting line: the context's value), *parametric* (a dense-real fact with no context) and the floor (the context-only fact with no context) — beside three random *n*-head sets and the bottom *n*. FFNs: one layer's residual skipped at a time, then cumulatively from the top.
+
+| entry line | what the check read | reads as |
+|---|---|---|
+| "B1 reads at 7 epochs" (B1/none seed 1, 16-epoch cosine) | **1,300:** nothing to ablate (read 0.065, the floor). **1,600** (read 0.69, follow 0.565): the top heads by mass are L2H5 0.49, L5H1 0.46, L5H6 0.45, L4H4, L4H2, L4H0; ablating the top **2** → 0.295 / 0.145, the top **4** → 0.08 / 0.04 (the floor); four random heads → 0.45 / 0.33; singly, **L5H1** → 0.255 / 0.155 and **L5H6** → 0.365 / 0.245 while L2H5 alone costs nothing. **2,200** (read 1.0, follow 0.91, parametric 0.10): L2H7 0.93, L2H5 0.65, L2H2 0.59, L5H1 0.40, L4H0, L5H6, L4H2, L5H3; the top **4** → 0.685 / 0.29, the top **8** → 0.32 / **0.055** against eight random heads 0.67 / 0.55; parametric holds (0.105); singly only L5H1 matters (follow 0.91 → 0.535). | **"reads" = eight heads in layers 2, 4 and 5** — at the onset two heads of layer 5 carry it (L5H1, L5H6), by the reading plateau it is distributed over layer 2's three module-attending heads and layer 5's, none sufficient alone, L5H1 the most load-bearing. *A limit of the instrument:* ablating the **bottom** four heads (those with the least attention to the module) also kills reading (0.045 at 1,600, 0.02 at 2,200) — heads that build the query's representation are necessary without attending to the context, so "the reading heads" names the copy step, not everything the copy needs. |
+| "B1 stores from 11 epochs" | **2,200** (parametric 0.10): every single FFN ablation but layer 0's leaves reading at 0.76–1.0. **2,800** (parametric 0.705) and **3,100** (0.785): single-layer ablations cost parametric **0.3–0.4 each** for layers 2–6 (at 3,100: layer 2 → 0.49, 3 → 0.425, 4 → 0.465, 5 → 0.38, 6 → 0.445, 7 → 0.51, 1 → 0.72) while reading holds at 0.84–1.0 and following at 0.3–0.8; cumulatively, layers 5–7 → 0.105 (read 0.575), 4–7 → 0.03 (read 0.30), 3–7 → 0. **Layer 0's FFN is structural**: skipping it zeroes every route at every step. | **"stores" = the FFNs of layers 2–7 together**, no layer holding the association alone, the parametric route leaving as the top four are removed while the copy route degrades more slowly — the dissociation the check asked for, per layer; under cumulative ablation the two routes are not independent. |
+| "B2 refuses unreinforced inputs" (twenty v0 and v1 B2 cells, final weights; `mech b2norm`) | The displacement ‖wte[name] − init‖ is **largest for the names the block never saw**: held-out absent rows sit at 2.1–2.3 (dense 0.97, sparse 0.85, trained-absent 0.85), because the tied output head pushes every row that is never a target along one shared direction (cosine to that direction 0.99 for held-out absent, 0.08 for dense). Split into its component along that push and the rest: no scalar is the policy — the norm predicts `UNDEFINED` at AUC 0.67–0.93 (phrase) / 0.83–0.94 (lived+phrase), the input-driven remainder at 0.89–0.98 in four of five phrase-arm seeds (threshold accuracy 0.88–0.96 against a 0.53–0.63 majority) and only 0.59–0.69 in lived+phrase; sparse and trained-absent rows are alike on all three scalars (0.85 · 0.79 · 0.35 vs 0.85 · 0.84 · 0.19) and refused 0.48 vs 1.00. A linear probe on the displacement vector itself reads the act at **0.86–0.97** held out (train 0.93–1.00). | **The policy is a direction in the row, not a norm** — a linear readout of the embedding row at ~0.9, not near-deterministic; in the phrase arm it is closest to "how far the row moved off the head's shared push", in lived+phrase to the plain norm. The entry's mechanism line ("binds to *this input's parameters have not moved*") stands with *moved* meaning *moved in the input-driven direction*, and with a 0.9, not a 1.0. |
+| "B3 follows context" (B3/none seed 1, `context_qa_p = 1.0`) | **1,000** (read 0.94, follow 0.94): L0H7 0.44, L4H3 0.42, L0H2 0.40, L0H4, L0H6, L0H0, L0H5, L0H3; the top **8** → **0.085 / 0.065** (floor 0.04) against eight random heads 0.92 / 0.91 and the bottom eight 0.945; no single head costs more than 0.02; parametric untouched (0.035). **1,250** and **1,500**: the same eight (L4H3 + seven of layer 0), the top eight → 0.07 / 0.065 and 0.07 / 0.055. | **"follows" = one head of layer 4 and seven of layer 0**, distributed and redundant (no single head is necessary), stable from the onset through the fall — the copy circuit in the block where lookup is weakest, and it sits one layer above the frozen keys. |
+
+**§A.2 — B4 built (`atlas0.train.Types`, `Block.attention`; 84 tests, +25).** The readings are in the addendum text. The three exits: the typed logit reduces to q · k when every R_k = I (a B4 forward with B_k = 0 equals the same weights read as B1, and the manual attention path equals the fused one, both to 1e-5); at random init the usage is uniform and the confidence 1/K to 0.01; and **K = 1 reproduced B1's loss curve on seed 1 to the digit** at all thirty logged steps of 300 on the same GPU (`runs/v2-b4-k1`, $0.01) — the K = 1 block is B1's fused path with no inventory, so the sanity is exact rather than to three decimals. Cost per cell is item 3 above.
+
+**§A.4 step 3 — the λ sweep, B4/none, seed 1, the 16-epoch cosine to 3,100 (`runs/v2-b4-lam{0,0.01,0.03,0.1,1.0}`, five cells, $0.89; B1's paired cell is the §A.1 one, read at 3,100).** Per cell: the loss and the three routes at the plateau, the copy route at its peak, and the inventory on the §A.5.1 readout (400 rendered facts per relation, the assignment from the later entity's last token to the earlier one's; the best layer by NMI against the relation; "max share" is the largest share one type carries there; the layers where one type carries everything are listed):
+
+| λ | loss 3,100 (B1 0.71) | dense-real 3,100 (B1 0.83) | read 2,100 → 3,100 (B1 1.0 → 1.0) | follow, peak → 3,100 (B1 0.93 → 0.77) | max share at the best layer, 2,100–2,200 → 3,100 | layers collapsed to one type | NMI vs relation, best layer | relation → type (share) at 3,100 |
+|---|---|---|---|---|---|---|---|---|
+| **0** | **0.727** | **0.815** | 0.98 → 1.0 | **0.795 (2,100) → 0.36** | 0.47 → 0.60 | 1, 2, 3, 4 (5 at 0.98) | 0.22 | calls 0 (0.96) · reached_by 0 (0.57) · defined_in 2 (0.72) |
+| 0.01 | 0.769 | 0.61 | 0.71 → 1.0 | **0.195 (2,400) → 0.045** | 0.47 → 0.58 | 1, 2 (3 at 0.96, 4 at 1.0 by the end) | 0.16 | defined_in 7 (0.80) · reached_by 7 (0.61) · calls 3 (0.43) |
+| 0.03 | 0.986 | 0.05 | 0.71 → 0.995 | 0.835 (3,000) → 0.85 | 0.77 → 0.93 | 1, 3 (2, 5 at 0.98–0.99) | 0.25 → 0.14 | all three → type 4 |
+| 0.1 | 0.987 | 0.03 | 0.97 → 1.0 | **0.995** (3,100) | 0.80 → 0.72 | 3, 4 (1, 2 at 0.95–0.97) | 0.37 | calls 3 (1.00) · reached_by 3 (0.89) · defined_in 7 (0.71) |
+| 1.0 | 2.17 | 0.03 | 0.05 → 0.04 | — (0.03) | 0.90 → 0.76 | 1, 2, 3, 5, 6 | 0.18 → 0.46 | calls 3 (1.00) · reached_by 3 (1.00) · defined_in 7 (0.73) |
+
+*Reading it, attributed.* **The pressure decides the route.** With no penalty (λ = 0) the routing alone stores the world as B1 does (0.815, within 0.02 of B1) and reads (1.0), and it pays on the copy route: following peaks at 0.795 against B1's 0.93 and falls to **0.36** at the plateau against B1's 0.77 (§A.5.4 row 2, inverted — typed routing keeps the copy route *less* alive; the loss delta is +0.017). A small pressure (0.01) keeps the lookup (0.61) and **removes the copy route** (following never above 0.195). A middling pressure (0.03, 0.1) keeps the copy route at 0.85–0.995 and **removes the lookup entirely** (dense-real 0.03–0.05 at 3,100, the loss stuck at 0.99 where B1 reaches 0.71 — the gap is the facts). At 1.0 the loss never leaves the grammar plateau (2.17). No λ meets both of step 3's exits by the letter — the least-collapsed λ that still learns the world is **λ = 0** (dense within 0.15 of B1; at 2,200 no type over 60% at the best layer) and it is the grid's; the frontier is the reading, and it implicates **λ** for the lookup route (0.03 and above) and **B** for the copy route (weakened at λ = 0 with nothing else changed).
+
+**§A.5.1 — mode collapse, measured (failure-list item 1).** At every λ half the layers collapse to one type on the statement pairs (layers 1–4 at λ = 0, 1.0 each), and that type's operator is the identity: ‖R_k − I‖_F **0.03–0.11** in the collapsed layers (top singular value ≤ 0.12), against 0.10–0.26 in the spreading layers 5–7 and 0.22–0.73 in layer 0. So the collapsed type is B1's untyped q · k, as the row's check asked. Where the inventory spreads (layers 5–7, and 0) the partition tracks the relation weakly: NMI **0.16–0.37** at the best layer, purity 0.54–0.59 against 0.33 by chance, three types dominant with `calls` and `reached_by` on one type and `defined_in` on another (at λ = 0 and 0.1 the map is exact for `calls`: share 0.96–1.00); the partition is not the direction (NMI vs subject-first / object-first 0.01–0.17) and is finer than the template (NMI vs relation × template 0.29–0.42 — the templates are per relation, so this is the relation partition refined). The **confidence is 1.0 from step 300 in every cell** — the router is hard on its own, the temperature never mattered, and the entropy penalty had nothing to act on; the usage-balance term is the whole of λ. **The types are not at the query:** from the answer slot to the name, the assignment's NMI against the queried relation is 0.0–0.12 under the trained phrasing *and* under the held-out one (no drop between them — the §A.5.1 row 2 check on **W** passes, on a partition that is not there). And **the types arrive early, not with storing** (row 4): at λ = 0.1 the partition is NMI 0.37 at 2,100 where nothing is stored, and at λ = 1.0 it reaches 0.46 in a cell that never learns a fact — a property of the copy-and-grammar phase, not of stored associations.
+
+**§A.5.2 at seed 1 (dense matched only at λ = 0).** The sibling share of wrong answers on absent-near is **0.28 at λ = 0** against B1's 0.30 (row 1: typed routing did not restrict the pull); the cells that stored less read 0.02–0.19 and are row 3, not entries. The cosine of shared-callee pairs across modules is 0.75 against 0.73 for random cross-module pairs and 0.73 same-module, and **under every R_k the three are within 0.02 of each other** (0.77 / 0.75 / 0.76) — no relation-conditioned similarity, and a representation space that is anisotropic (every pair at 0.73–0.86).
+
+**§A.5.3 at seed 1, `none` arm only:** no act refuses (there is no `UNDEFINED` in the arm) and the answer slot's attention to the name is 0.10 at its best layer (6) — the signal has dynamic range there and none at the §A.5.1 layer (0.025); the instrument reads both. The phrase arms are the grid's.
+
+**§A.5.6 — B4's own circuits (λ = 0, seed 1; `mech/gpu/mech/b4-lam0-*`).** *The copy route is two heads:* at 1,800 (read 0.905, follow 0.72) the answer slot's attention to the context module sits on **L2H5 (0.99) and L3H5 (0.94)** and little else (the next 0.32); ablating those two → 0.505 / 0.28, the top four → 0.05 / 0.02 (the floor) against four random heads 0.90 / 0.67; at 2,100 (0.98 / 0.795) the same two plus L3H0 and L3H1, the top four → 0.15 / 0.095 against 0.97 / 0.75 random. B1 spreads the same function over eight heads in layers 2, 4 and 5 with none sufficient alone; B4 concentrates it in layers 2–3. *At the plateau the two heads serve both routes:* at 3,100 (parametric 0.80, follow 0.36) ablating L2H5 + L3H5 drops the parametric route to **0.33** and following to 0.095 — in B4 the module-attending heads are shared between the copy and the lookup, where B1's parametric route (0.1 at 2,200) did not move under any head ablation. *Storing* (FFN ablation at 2,400, parametric 0.25): distributed as B1's — single layers cost 0.05–0.15, layer 3's FFN also carries reading (0.955 → 0.56), layers 4–7 together → 0.045. At λ = 0.01 (follow 0.195 at its peak) no head set restores or removes a copy route that is not there (the top eight → 0.115); at λ = 0.1 the copy route is diffuse (L4H5 0.68, then 0.33 and below; the top eight → 0.85 / 0.81, sixteen → 0.205) — the block that reads without storing reads through many heads. *The operators are near the identity everywhere* (above), so "what type k does" is, in this cell, "which pairs it routes", and that is the §A.5.1 partition.
+
+*Cost to here (this item):* the two §A.1 cells $0.19, K = 1 $0.01, two profiles $0.03, five sweep cells $0.89, three re-reads $0.03, the GPU checks $0.18 — **$1.33 assumed**; the grid below.
 
 *Cost, 2026-09-06.* Twenty re-reads $0.08, six B3 context cells $0.73, ten calibration cells $0.22: **$1.03 this session, $17.57 assumed to date** against the $25 ceiling; Modal's bill is the number.
 
