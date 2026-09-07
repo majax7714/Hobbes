@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04 and 2026-09-05.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -206,9 +206,23 @@ run; GPU-hours stated first).*
   conflicting context 0.40 / 0.73 — the first block that does), and the
   v2 reading-regime world, built and calibrated on one seed: 2–4 epochs
   learn nothing; B1 reads before it stores (7–10 epochs) and meets the
-  0.8 criterion only at 14, memorising again. **Waits on Max: T_v2**
-  (14 epochs, the criterion; or 10, the reading regime; 90 cells ≈ $5–6
-  a T), the corrected item-1 section, and the design's ADR number.
+  0.8 criterion only at 14, memorising again. **The B4 addendum
+  (2026-09-07, Max's design: typed relations as a fourth block):** the
+  §A.1 checks turned the entries' verbs into circuits (B1 reads through
+  eight heads and stores in six FFNs; B2's refusal is a direction in the
+  row, not a norm; B3's copy circuit is layer 0), B4 was built and swept
+  on seed 1 — the pressure λ decides the route (0: both routes, the copy
+  weakened; 0.01: lookup only; 0.03–0.1: copy only; 1.0: nothing), the
+  inventory collapses to identity operators in half the layers — and the
+  grid ran at λ = 0, one run per seed: B4 matches B1 on storing and
+  on the sibling pull, weakens the copy route without separating, and
+  **no block emits `UNDEFINED` at T_v2** — the abstention act is not
+  learned in fourteen exposures, so §A.5.3 (does refusal travel) is
+  unreadable there; §A.7 branch 3 selected (B4-given). **Waits on
+  Max:** the T that carries the act (the memorising T, or a computed
+  `NO_EDGE` target), the grid's second run (§6.6's union; ~$3.8, the
+  item past $8), T_v2 for the v2 grid proper (the plateau at 3,100 is
+  seed-variable: dense-real 0.26–0.82), and the design's ADR number.
 - **No-GPU instrumentation** — the replay tools already exist
   (`imperatives_unmentioned` over stored handoffs, `brief_sizes.py`,
   spec re-derivation, the C-56 instruments); assignable today without

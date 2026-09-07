@@ -186,7 +186,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
 299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
-tests / 71 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
+tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
 review → `lane_b` pytest) and runs the same way on a box.
@@ -383,7 +383,26 @@ review → `lane_b` pytest) and runs the same way on a box.
   nothing; B1 reads before it stores (7–10 epochs: 0.9–1.0 read,
   conflict followed 0.7–0.9, no fact held) and meets the 0.8 criterion
   only at 14 epochs, memorising again.** The v2 grid (90 cells, ≈ $5–6
-  a T) waits on Max's choice of T_v2; $17.57 assumed to date of $25.
+  a T) waits on Max's choice of T_v2. **2026-09-07 — the B4 addendum
+  (Max's design; `docs/atlas-0.md` § Addendum):** entries name circuits,
+  not verbs — the §A.1 checks ran on saved weights (B1 reads through
+  eight heads in layers 2/4/5 and stores in the FFNs of layers 2–7;
+  B2's refusal is a linear direction in the embedding row, not a norm —
+  the tied head pushes every never-seen row the same way; B3's copy
+  circuit is seven heads of layer 0 plus one); **B4 = B1 + typed
+  attention** built (K = 1 is B1 to the digit) and swept on seed 1: the
+  pressure λ decides the route — 0 keeps both (dense 0.815 vs 0.83,
+  following 0.36 vs 0.77), 0.01 removes the copy, 0.03–0.1 remove the
+  lookup — and the inventory collapses to identity operators in half
+  the layers (NMI vs relation 0.16–0.37 where it spreads); the grid
+  ran at λ = 0, one run per seed (the second is Max's call on cost:
+  a B4 cell is $0.18, 3× the estimate); at five seeds B4 matches B1 on
+  storing and the sibling pull, weakens the copy route in every arm
+  without separating, and **no block emits `UNDEFINED` at this T** —
+  the abstention act is not learned in the reading regime, so
+  relation-absence as a computed state is unreadable there; the
+  results select B4-given (typing given, not learned); $22.28 assumed
+  to date of $25.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

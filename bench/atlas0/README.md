@@ -234,5 +234,12 @@ through `<nl>`, kept) + `v1-context-fixed`, `v1-holdout` +
 fifth phrasing), `v2-b3-context` (§2 of 2026-09-06: B3 on the context
 world) + `v2-b3-context1` (full packing, seed 1), `v2-cal-b{64,16,8}`,
 `v2-cal-r16-e4`, `v2-cal-e8`, `v2-cal-e16` (§3's calibration: B1 at
-4 / 8 / 16 epochs, B2 and B3 at 16); `<dir>-report.{md,json}` beside
-each.
+4 / 8 / 16 epochs, B2 and B3 at 16); the B4 addendum's (2026-09-07):
+`v2-mech-b1`, `v2-mech-b3` (the §A.1 cells with weights at every
+checkpoint), `v2-b4-k1` (K = 1 is B1), `v2-b4-profile-{L4,A100-40GB}`,
+`v2-b4-lam{0,0.01,0.03,0.1,1.0}` (the λ sweep, seed 1, with `ckpt/`
+and a `step-2100/` re-read), `v2-b4-grid` (B4 at λ = 0 and B1, three
+arms, five seeds, one run, `step-2200/` in every cell); the §A.1 check
+records under `~/.hobbes/bench/atlas0/mech/` (CPU) and `mech/gpu/mech/`
+(the volume's `/mech`); `<dir>-report.{md,json}` beside each, and
+`-report-2200` for the reading-phase read.
