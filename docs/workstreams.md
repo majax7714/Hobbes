@@ -30,8 +30,9 @@ item opens when Max names it. Sequencing context is
 6. CI exists (ADR-095, 2026-08-28). Its GitHub runs were red from the
    first push (2026-09-04) on two jobs — `go` (no git identity on the
    runner) and `graph` (a redirect into a directory only the compiler
-   creates) — both fixed 2026-09-07; the web and python jobs were green
-   throughout.
+   creates) — both fixed 2026-09-07, then a third on the re-run (the
+   oracle lane's pinned typescript never installed in the `go` job),
+   fixed the same day; the web and python jobs were green throughout.
 7. Java is the sixth language (ADR-096, 2026-08-29; C-66 settled by
    ADR-097). The four-repo extraction test of 2026-09-02 registered
    C-72–C-80, all lifted 2026-09-03 with C-85, C-89 and C-90; the

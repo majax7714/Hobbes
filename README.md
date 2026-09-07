@@ -355,7 +355,8 @@ cd go   && go build -o bin/hobbes-policy  ./cmd/hobbes-policy \
 cd ../web && npm install && npm run build   # then rebuild hobbes-web
 cd ../tsextract && npm install              # TS/JS extraction
 cd ../scip      && npm install              # lane B indexers
-cd ../pipeline  && uv sync
+cd ../bench/oracle/ts && npm install        # the oracle lane's tsc (its Go tests)
+cd ../../../pipeline  && uv sync
 
 # the one sandbox image: lane B for every language, the executing oracles,
 # sessions, and the knowledge tools all run from it (ADR-092/094, ~2.8 GB)

@@ -152,7 +152,8 @@ from this checkout — a `hobbes` on PATH may be another tree's (the
 Go ≥ 1.26, uv, Node. If a distro Go is older, a user-local Go must come
 first on `PATH` or `go build` fails on the toolchain line. One-time:
 `cd tsextract && npm install`, `cd web && npm install`, `cd scip && npm
-install`.
+install`, and `cd bench/oracle/ts && npm install` for the oracle lane's
+`tsc` (its Go tests run it wherever node is).
 
 ```sh
 # Go

@@ -7234,3 +7234,14 @@ box: image, contained ingest, stamp, lanes, the I-5 semgrep checker,
 `hobbes review`, 3 `lane_b` passed. The runner's own confirmation is
 the next push. Workstreams (sequencing 6, W0's CI item) and the handoff
 amended. Not pushed.
+
+**Later, after Max pushed:** the graph job went green on the runner
+(6 min all in); `go` failed once more, on the oracle lane — the two
+TS cells (`TestMinitsTSAllConfirmed`, the TS poison test) run the
+`tsc` oracle wherever node is, the runner has node, and the oracle's
+own pinned typescript (`bench/oracle/ts/package.json`, 5.9.3 with a
+lockfile) was never installed in that job. The job now sets up node
+and runs `npm ci` there before the oracle tests; the one-time install
+lists in CLAUDE.md and the README name the directory, which they had
+not. Reproduced on this box from a clean `node_modules` (`npm ci`,
+then the grade package green).

@@ -1,8 +1,10 @@
 # Session handoff — the single resume point
 
 **2026-09-07: CI's red jobs fixed** (the runner has no git identity;
-the graph script's redirect target did not exist on a fresh checkout —
-BUILDLOG entry; the next push confirms). Otherwise unchanged from the
+the graph script's redirect target did not exist on a fresh checkout;
+then, on the re-run, the oracle lane's pinned typescript was never
+installed in the `go` job — BUILDLOG entry; `graph` is green on the
+runner, the next push confirms `go`). Otherwise unchanged from the
 2026-09-06 pause: nothing is running, no Modal job, no local process;
 the tree is clean on `main`, not pushed. Resume at START HERE below —
 the first move is Max's choice of T_v2, and nothing spends until he

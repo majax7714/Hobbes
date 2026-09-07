@@ -22,11 +22,17 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
       - name: gofmt
         run: test -z "$(gofmt -l go bench/oracle)" || { gofmt -l go bench/oracle; exit 1; }
       - name: go test (product)
         working-directory: go
         run: go test ./...
+      - name: tsc oracle's pinned typescript (the TS cells run wherever node is, and the runner has node)
+        working-directory: bench/oracle/ts
+        run: npm ci
       - name: go test (oracle lane; Rust/Python cells skip without their toolchains)
         working-directory: bench/oracle
         run: go test ./...
