@@ -74,7 +74,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md` |
-| reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
+| reading or extending Atlas-0 (the current work) | `docs/atlas0/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
@@ -137,7 +137,7 @@ box, against a repo on disk (architecture §10); the application mode in
   template, its render and its gold fills; the parent ledgers, the
   generated templates and the ground records live under
   `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
-- `bench/atlas0/` — Atlas-0 (`docs/atlas-0.md`), its own uv project
+- `bench/atlas0/` — Atlas-0 (`docs/atlas0/atlas-0.md`), its own uv project
   (numpy only): `atlas0 gen | check | score | probe-check` — the
   synthetic world per seed, step 1's checks read from the files, the
   act scorer and the §6.1 matrix, the entity tokenizer (B1 stems /
@@ -415,7 +415,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   (`docs/workstreams.md`). Held: the wider Calvin run,
   the 3,000-step adapter under the cell and the 10,000-step point, the
   removal A/B re-run on the 7B, `hobbes narrate` on this repo.
-- **Atlas-0 (`docs/atlas-0.md`, Max's design; current work from
+- **Atlas-0 (`docs/atlas0/atlas-0.md`, Max's design; current work from
   2026-09-05 later):** does a small block's *act* separate sparse-real
   from absent — a synthetic world, three blocks (stems / dedicated
   learned / dedicated frozen), four arms of absence. **Steps 1–2 built
@@ -449,7 +449,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   conflict followed 0.7–0.9, no fact held) and meets the 0.8 criterion
   only at 14 epochs, memorising again.** The v2 grid (90 cells, ≈ $5–6
   a T) waits on Max's choice of T_v2. **2026-09-07 — the B4 addendum
-  (Max's design; `docs/atlas-0.md` § Addendum):** entries name circuits,
+  (Max's design; `docs/atlas0/atlas-0.md` § Addendum):** entries name circuits,
   not verbs — the §A.1 checks ran on saved weights (B1 reads through
   eight heads in layers 2/4/5 and stores in the FFNs of layers 2–7;
   B2's refusal is a linear direction in the embedding row, not a norm —

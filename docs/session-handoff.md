@@ -246,7 +246,7 @@ image's python as the base.
 
 ## WHERE THINGS STAND (2026-09-07)
 
-- **Atlas-0** (`docs/atlas-0.md`; `bench/atlas0/`, 84 tests): v0, v1,
+- **Atlas-0** (`docs/atlas0/atlas-0.md`; `bench/atlas0/`, 84 tests): v0, v1,
   the 2026-09-06 items and the B4 addendum run; worlds and runs under
   `~/.hobbes/bench/atlas0/` and on the volume `hobbes-atlas0` (the
   README lists the run directories); $22.28 assumed to date of $25.

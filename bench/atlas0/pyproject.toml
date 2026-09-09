@@ -1,7 +1,7 @@
 [project]
 name = "atlas0"
 version = "0.0.1"
-description = "Atlas-0 — sparse is not absent: the synthetic world, the act scorer and the probe harness (docs/atlas-0.md). Bench tooling, never product."
+description = "Atlas-0 — sparse is not absent: the synthetic world, the act scorer and the probe harness (docs/atlas0/atlas-0.md). Bench tooling, never product."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"

@@ -1,7 +1,7 @@
 # bench/atlas0 — Atlas-0, sparse is not absent
 
 The model-free half of the Atlas-0 experiment (design:
-[`docs/atlas-0.md`](../../docs/atlas-0.md)) — steps 1 and 2 of its
+[`docs/atlas0/atlas-0.md`](../../docs/atlas0/atlas-0.md)) — steps 1 and 2 of its
 order of work. Bench tooling, never product: its own uv project, one
 dependency (numpy), nothing under `pipeline/` imports it.
 
@@ -168,7 +168,7 @@ ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py train --world v2-seed1 --block B1 -
 ATLAS0_GPU=L4 uv run scripts/modal_atlas0.py grid --world 'v2-seed{seed}' --steps 100000 --epochs E --batch B --seeds 1,2,3,4,5 --blocks B1,B2,B3 --arms none,phrase,lived+phrase --runs 2 --out v2-grid
 ```
 
-## B4 — typed relations (2026-09-07, Max's addendum; `docs/atlas-0.md` § Addendum)
+## B4 — typed relations (2026-09-07, Max's addendum; `docs/atlas0/atlas-0.md` § Addendum)
 
 B4 is B1 with typed attention: per layer, `K` relation operators
 `R_k = I + A_k B_kᵀ` (rank 16, shared across heads) and a router

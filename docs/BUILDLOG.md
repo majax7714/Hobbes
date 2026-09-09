@@ -7686,3 +7686,50 @@ as well as the test-time-training cells, so its name undersells it —
 a rename is Max's call.
 
 No code, no suite change, no spend.
+
+## 2026-09-09 (docs cleanup, 4) — docs/ regrouped by programme (Max's structure)
+
+Max: the docs should be split by experiment rather than by kind of
+document, since with pointers the layout is for human navigation;
+proposed, approved with two adjustments — `how-hobbes-differs.md` stays
+top-level and `comparative/` stays its own folder, both forward-facing.
+Five commits, one per folder, filenames unchanged throughout so every
+bare-name mention in prose still reads; each folder is named for the
+`bench/` or `pipeline/` package it documents and keeps its own `cells/`
+for the dated records. The move map:
+
+| Was | Now |
+|---|---|
+| `oracle-grading.md`, `oracle-misses.md`, `oracle-defects.md`, `oracle-defect-review.md` | `oracle/` |
+| `oracle-cells/` (62 records) | `oracle/cells/` |
+| `benchmark-hypotheses.md`, `benchmark-deepswe.md`, `agent-mapping.md` | `benchmark/` |
+| `ttt-cells/adr085-validation-7b-2026-08-24.md` | `benchmark/cells/` |
+| `calvin-charter.md`, `calvin-potential.md` | `calvin/` |
+| `ttt-cells/calvin-m0-probe-2026-09-03.md` | `calvin/cells/` |
+| `olmo3-ttt-validation.md`, `olmo3-ttt-results.md` | `ttt/` |
+| `ttt-cells/` (the three Olmo records) | `ttt/cells/`; `ttt-cells/` removed |
+| `atlas-0.md` | `atlas0/` |
+
+Unchanged at the top level: the architecture, `first-run`,
+`session-handoff`, `workstreams`, `future_additions`,
+`Potential-application-mode`, `extraction-evidence`,
+`how-hobbes-differs`, this file, `adr/`, `constraints/`, `comparative/`.
+
+**How the pointers were rewritten.** One script per commit: a
+`docs/`-prefixed mention is swapped directly; a relative markdown link
+is resolved against its file's old directory, mapped, and
+re-relativized against the file's new one (so a moved file's links to
+unmoved files gain `../`, and an ADR's link into a moved folder gains
+the folder); a bare `oracle-cells/` or `ttt-cells/` mention inside
+`docs/` is treated as docs-relative. Rewritten everywhere a path swap
+is lossless — living docs, README, CLAUDE.md, ADRs, constraint entries,
+the cell records' own links, docstrings and CLI help in `pipeline/`,
+`bench/oracle`'s README, `main.go`, `foreign_record.py`,
+`cells.meta.json`. This file is the one exception: earlier entries name
+the old paths and stay as written. The only functional code change is
+`render.py`'s default cells directory and its tables' record links; the
+comparative data, tables and four graphics were regenerated from the
+moved records and the drift test passes uncached. One hand fix: the
+path template for future Calvin records in `calvin-potential.md` §9.
+
+No suite change, no spend.

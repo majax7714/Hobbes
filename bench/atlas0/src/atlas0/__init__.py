@@ -1,4 +1,4 @@
-"""Atlas-0 — sparse is not absent (`docs/atlas-0.md`).
+"""Atlas-0 — sparse is not absent (`docs/atlas0/atlas-0.md`).
 
 A synthetic-world experiment on the transformer block itself: does the
 block's *act* separate a referent it has seen once or twice (sparse-real)

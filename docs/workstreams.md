@@ -217,7 +217,7 @@ run; GPU-hours stated first).*
   `below-floor` tail class. **Open for the lane:** O5 (dagger TS), xarray under
   a trace when a workspace exists, the Go root on a bigger box, Rupta as
   a time-boxed reference lane. Spends no GPU.
-- **Atlas-0 (`docs/atlas-0.md`, `bench/atlas0/`) — v0, v1 and the
+- **Atlas-0 (`docs/atlas0/atlas-0.md`, `bench/atlas0/`) — v0, v1 and the
   2026-09-06 items run ($17.57 assumed on Modal):** the atlas at five
   seeds for three blocks and four arms; the three v1 worlds; then the
   prompt-vocabulary check (a third untrained-token defect, the hold-out
