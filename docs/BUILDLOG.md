@@ -7522,3 +7522,34 @@ pushed) deleted and `v0.1.3-beta` cut on the new commit; pyproject
 spells it `0.1.3b0` (PEP 440) and `test_version.py` holds the mapping;
 ADR-103 §5 amended; every copy, the fixture and the docs re-stated;
 proxy, image and this repo's artifact rebuilt again.
+
+## 2026-09-09 (later still) — the agent file leads with the tools
+
+Max's brief: review the top-level documentation and set it bold and
+high in the agent file — use Hobbes over other tooling; it is more
+accurate and direct than `cat` and `grep`, and should let an agent use
+fewer tokens and hold less context.
+
+- **Reviewed:** `README.md`, `CLAUDE.md` (`AGENTS.md` is a symlink to
+  it, so one edit reaches both), `docs/session-handoff.md`,
+  `docs/first-run.md` §§ on the knowledge tools, architecture §4. They
+  agree with each other and with the tree at 0.1.3-beta; the tool
+  guidance existed but sat mid-file under *Hobbes for Hobbes*, after
+  the project map, as one sentence.
+- **`CLAUDE.md`:** a new first section, directly under the header —
+  *⚠ FIRST: use the Hobbes knowledge tools, not `cat` / `grep` /
+  `find`* — with the why (resolved edges with `file:line` provenance
+  instead of text matches to read and rule out; a smaller, truer
+  context costs fewer tokens and carries fewer wrong beliefs; this repo
+  is Hobbes' most-tested target), a six-row table mapping the question
+  an agent has to the tool and to the shell habit it replaces, the
+  order of work (`list_blind_spots` first, the question tools, then
+  read only the lines the answers point at), and the two sanctioned
+  fallbacks to grep — what the blind spots say the graph does not
+  cover, and non-code text. The *Hobbes for Hobbes* section keeps only
+  the mechanics (how the tools are served, staleness, C-65, ADR-094)
+  and points up.
+- The token claim is stated as the thesis it is, not as a measurement:
+  no number was earned here and none is printed.
+
+No code, no suite change, no spend.

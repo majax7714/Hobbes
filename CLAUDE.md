@@ -6,6 +6,35 @@ derived context, and a 600-line agent file argues against it. History
 lives in `docs/BUILDLOG.md`; the resume point is `docs/session-handoff.md`.
 Read those when you need them, not by default.
 
+## ⚠ FIRST: use the Hobbes knowledge tools, not `cat` / `grep` / `find`
+
+**This repo is ingested and served to you. Ask the graph before you read
+the tree.** The `mcp__hobbes-knowledge__*` tools in your session answer
+the questions an agent otherwise spends its context window discovering
+by hand — and they answer from resolved edges with `file:line`
+provenance, not from text matches you then have to read and rule out.
+That is the point of the project: **a smaller, truer context costs fewer
+tokens and carries fewer wrong beliefs.** This repo is the most-tested
+target Hobbes has (every compiler-graded cell at 100%); trust the answer
+over a grep sweep.
+
+| You want to know…                                  | Call                         | Not                        |
+|----------------------------------------------------|------------------------------|----------------------------|
+| who calls this function / method                   | `who_calls`                  | `grep -rn name`            |
+| which tests would break if I change this           | `tests_guarding`             | `grep -rl name tests/`     |
+| what a module depends on and what depends on it    | `graph_neighborhood`         | reading imports by hand    |
+| what this module is for, before opening it         | `get_module_doc`             | `cat` the whole file       |
+| what rules bind the code I am about to write       | `list_invariants`            | guessing from style        |
+| what the graph *cannot* see where I am editing     | `list_blind_spots`           | assuming silence is empty  |
+
+Order of work: `list_blind_spots` for the directory first, then the
+question tools, then `Read` **only the lines the answers point at.**
+Fall back to `grep`/`cat` for exactly two things — what `list_blind_spots`
+says the graph does not cover there, and non-code text (docs, configs,
+string literals). A stale-artifact warning means `uv run hobbes ingest`,
+not a grep. Mechanics (the image, staleness, C-65) are under
+*Hobbes for Hobbes* below.
+
 ## What this project is
 
 Hobbes: **a multilingual, deterministic code graphing environment.** It
@@ -136,22 +165,19 @@ box, against a repo on disk (architecture §10); the application mode in
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 
-## Hobbes for Hobbes — the knowledge tools in your session
+## Hobbes for Hobbes — how the knowledge tools are served
 
-This repo's `.mcp.json` starts `sandbox/knowledge-serve` — the
-**image's** `hobbes-proxy serve --knowledge-only` in a read-only,
-offline container (ADR-087, ADR-094): six read-only tools over `.hobbes/derived/` —
-`who_calls`, `tests_guarding`, `graph_neighborhood`, `get_module_doc`,
-`list_invariants`, `list_blind_spots`. Use them instead of grep for
-"who calls this" and "what tests reach this", and read
-`list_blind_spots` for the directory you are editing before trusting
-either — it names what the graph cannot see there. Every answer opens
-with the ingest SHA and which Hobbes built the artifact; on a stale
-warning, `uv run hobbes ingest`. Needs the sandbox image built (below)
-and the repo ingested; rebuild the image after rebuilding the proxy,
-or the tools answer with the old build (C-65). Always `uv run hobbes`
-from this checkout — a `hobbes` on PATH may be another tree's (the
-2026-08-28 incident, ADR-094).
+The directive at the top says *when* to use the six tools; this is
+*how they get to you*. This repo's `.mcp.json` starts
+`sandbox/knowledge-serve` — the **image's** `hobbes-proxy serve
+--knowledge-only` in a read-only, offline container (ADR-087, ADR-094),
+six read-only tools over `.hobbes/derived/` and nothing else. Every
+answer opens with the ingest SHA and which Hobbes version built the
+artifact; on a stale warning, `uv run hobbes ingest`. Needs the sandbox
+image built (below) and the repo ingested; rebuild the image after
+rebuilding the proxy, or the tools answer with the old build (C-65).
+Always `uv run hobbes` from this checkout — a `hobbes` on PATH may be
+another tree's (the 2026-08-28 incident, ADR-094).
 
 ## Build & test
 
