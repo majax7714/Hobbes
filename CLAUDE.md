@@ -161,7 +161,7 @@ box, against a repo on disk (architecture §10); the application mode in
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
-  backlog), and the frozen v1 record.
+  backlog).
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 

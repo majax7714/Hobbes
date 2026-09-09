@@ -78,3 +78,12 @@ is detail that disagrees with itself — which is this ADR's whole subject.
   reading it for truth, and getting neither.
 - No `C-n` entry: this concedes no information about a user's repo. It is a
   process decision about our own documents.
+
+## Amendment (2026-09-09)
+
+`hobbes-architecture-v1.md`, `hobbes-build-plan.md` and
+`hobbes-build-plan-v2.md` are removed (Max's direction, docs cleanup).
+Their content is carried by the ADRs and by the BUILDLOG's dated
+entries; a frozen design beside the running one was one more place for
+the design to disagree with itself, which is this ADR's subject. §8 now
+points at the BUILDLOG and the ADRs for the plan-level detail.

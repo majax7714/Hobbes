@@ -588,11 +588,19 @@ plus a nested-podman decision, not a checkout mount.
 
 ## Java as the sixth language (2026-08-28)
 
-Max asked, out of interest, what Java and C would cost. The answer is
-`docs/java-build-plan.md` — §3.7's checklist elaborated to five
-milestones (ADR-096 + spike, lane A, contained `scip-java`, JUnit/Spring
-packs, a bytecode CHA/RTA oracle, the evidence row) and the reasons Java
-ranks ahead of C. **Opened 2026-08-29** (ADR-096): J.M0–J.M5 built in
+Max asked, out of interest, what Java and C would cost. The answer was
+a build plan — §3.7's checklist elaborated to five milestones (ADR-096 +
+spike, lane A, contained `scip-java`, JUnit/Spring packs, a bytecode
+CHA/RTA oracle, the evidence row), estimated at nine to thirteen
+sessions — and the reasons Java ranks ahead of C: a stronger lane B
+(`scip-java` is first-tier and its config derivable), an oracle that
+exists off the shelf over a stable IR, packs that map to existing
+shapes (routes, tests, injection), and the thesis's audience — large,
+long-lived, review-heavy codebases. C is cheaper to parse and dearer
+to build, with a weaker semantic story and per-configuration graphs;
+it follows Java on the same checklist if named. The plan document was
+removed 2026-09-09 (a handoff that got stored); the BUILDLOG holds
+what it contained. **Opened 2026-08-29** (ADR-096): J.M0–J.M5 built in
 one session — see the ADR, `docs/constraints/extraction-java.md` and
 the cell records. What stayed parked from the plan: a Spring route
 pack (`@GetMapping` et al. as the Flask/FastAPI shape; `@Autowired`
@@ -600,7 +608,7 @@ as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
 but there is no Kotlin lane A, so it would be references without call
 sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
 number proves too coarse, and an allowlisted egress proxy for the
-networked resolve pass (C-66 as narrowed by ADR-097). Also recorded there, because the question came up:
+networked resolve pass (C-66 as narrowed by ADR-097). Also worth keeping, because the question came up:
 ingest is per language, gated on discovery — a language with no files
 in the repo costs one extension walk and nothing else; only the image
 build carries every toolchain.

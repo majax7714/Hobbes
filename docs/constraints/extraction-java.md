@@ -111,7 +111,10 @@
   size is unknown rather than small, and the honest next step is a cell
   on a Lombok- or protobuf-heavy repo, not a number inferred from four
   repos that do not exercise it.
-- **Source:** ADR-096; `docs/java-build-plan.md` §0.3; the O8 cells.
+- **Source:** ADR-096; the O8 cells; the Java plan's §0.3 (the plan was
+  removed 2026-09-09 — its observation, that annotation processors and
+  Lombok emit sources lane A never sees and `scip-java` indexes only when
+  the build produced them, is this entry's premise).
 
 ### C-69 — Declared Java dependencies are read, not resolved
 - **Cannot tell you:** an exact dependency-coverage count for a Java

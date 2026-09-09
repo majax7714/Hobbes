@@ -449,11 +449,9 @@ code do the gating.
 `docs/hobbes-architecture.md` is the source of truth, and it is a
 **running** document — it describes Hobbes as it is now rather than as of a
 version, and it is amended in the same commit as any change that moves it
-(ADR-033). `docs/hobbes-architecture-v1.md` and `docs/hobbes-build-plan.md`
-are the frozen v1 record: history, kept for the reasoning behind the
-carried subsystems.
+(ADR-033).
 
-Every decision those don't make has a numbered ADR in `docs/adr/`.
+Every decision it doesn't make has a numbered ADR in `docs/adr/`.
 `docs/BUILDLOG.md` is what actually happened, session by session,
 `docs/future_additions.md` is what was deliberately left undone and why,
 and **`docs/constraints/README.md` is what Hobbes cannot tell you** — every

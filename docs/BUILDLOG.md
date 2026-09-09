@@ -7553,3 +7553,60 @@ fewer tokens and hold less context.
   no number was earned here and none is printed.
 
 No code, no suite change, no spend.
+
+## 2026-09-09 (docs cleanup, 1) — the v1 design, both build plans and the Java plan removed
+
+Max: the docs layout has gotten messy; start by removing the v1
+architecture and both build plans — the running architecture covers
+the present, the ADRs and this ledger cover the history — and the Java
+build plan, a handoff document that got stored and serves no purpose
+forward; it should be documented with the ledger.
+
+Removed: `docs/hobbes-architecture-v1.md` (349 lines),
+`docs/hobbes-build-plan.md` (125), `docs/hobbes-build-plan-v2.md`
+(457), `docs/java-build-plan.md` (216). Every live reference rewritten
+to point at the ADRs and this file: README's design-docs table (three
+rows become one, for the BUILDLOG), CLAUDE.md's `docs/` line, the
+architecture's header and §8, `first-run.md`, `agent-mapping.md` (twice),
+`future_additions.md` § Java, `constraints/extraction-java.md` C-68's
+source line; ADR-033 gains an amendment and ADR-096's source pointer
+says where the plan went. Dated records keep their references as
+written (this ledger's earlier entries; the Severed-Chains cell record
+quotes the plan's prediction).
+
+**What the removed files held that no other live document did — kept
+here so nothing is lost:**
+
+- *v1 build plan.* The four sequencing rules every programme since has
+  carried: deterministic before generative (M0–M3 spend zero quota);
+  enforcement before agents (no session writes code until the proxy and
+  recorder exist); content before chrome (the web UI after there is a
+  knowledge layer worth rendering); each milestone exits on a real repo,
+  never a toy fixture. D1–D3 are in CLAUDE.md. Storage was decided
+  without a vote: JSON files in `derived/`, loaded in memory, SQLite
+  only if a repo ever makes that slow.
+- *v1 architecture.* Its §9 flagged mechanisms and §10 defaults became
+  ADRs as they were built or dropped; architecture §7 (carried
+  subsystems) names what was designed and never built (per-command
+  secret brokering, quota). Nothing else in it was still true only
+  there.
+- *v2 build plan.* The seven deviations from the original §7 (the spike
+  milestone; schema v4 not v2; V2.M1 widened to `tests.json` and the
+  version gate; the M3 reach coupling; `hobbes.yaml`'s own ADR; tier in
+  the UI at M2 and the agreement report at M3; the indexer-config
+  registry moved to M2) are ADR-027's record. The three
+  `future_additions` items it dissolved (cross-language module-id
+  namespacing, per-test JS reach, graph-diff rename detection) stand
+  dissolved.
+- *Java build plan.* Estimated nine to thirteen sessions, one milestone
+  at a time; the build took one session (2026-08-29, above). Its four
+  named risks, with what happened: lane B build time (carried by the
+  cache mount; wall times in the cell records); image size (~300 MB a
+  JDK; the image carries three, ~2.8 GB, no slim image needed yet);
+  `scip-java` needs a compiling project — "the most common real-world
+  outcome for enterprise repos" — which arrived on the second random
+  draw (Severed-Chains, lane A only, disclosed); overload agreement in
+  `hobbes lanes`, tested before any real repo. Why Java before C is now
+  in `future_additions.md` § Java.
+
+No code, no suite change, no spend.

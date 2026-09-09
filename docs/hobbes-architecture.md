@@ -7,10 +7,10 @@ rule is in §9 and it is what keeps the file true. It is the source-of-truth
 context for build sessions: read it fully, alongside CLAUDE.md and the last
 two BUILDLOG entries, before writing code.
 
-The frozen record of where Hobbes started is
-[`hobbes-architecture-v1.md`](hobbes-architecture-v1.md), and `docs/adr/` is
-the dated account of every change since. Where either disagrees with this
-file, **this file wins**.
+`docs/adr/` is the dated account of every decision and `docs/BUILDLOG.md`
+the dated account of every session; the v1 design document and both build
+plans were folded into those two and removed (2026-09-09). Where either
+disagrees with this file, **this file wins**.
 
 *(Why running instead of versioned: v1 shipped M0–M8, then the "v2"
 extraction rewrite was written down as its own document — and the design
@@ -1442,16 +1442,17 @@ maintained middle.
 
 **Hobbes 0.1.3-beta** (2026-09-09, ADR-103; beta: graded, not stable; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
-deviation live in **[`hobbes-build-plan-v2.md`](hobbes-build-plan-v2.md)**;
-this section holds only the state, because a milestone plan restated in two
+deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
+entries of its dates (the plan documents were removed 2026-09-09); this
+section holds only the state, because a milestone plan restated in two
 places is a plan that disagrees with itself. Language mapping is unchanged:
 Python for pipeline and packs, Go for engine/proxy/supervisor, TS for web.
 
 **v1 (M0–M8) is complete and reviewed** — policy engine, extractors,
 Mermaid/diff, Terraform layer, proxy + sandbox + flight recorder, narrative
 pass, TS extraction, web surface, reviewer flow + invariant compiler. It is
-recorded in [`hobbes-build-plan.md`](hobbes-build-plan.md) and
-[`hobbes-architecture-v1.md`](hobbes-architecture-v1.md).
+recorded in the BUILDLOG's entries of its dates and the ADRs they cite;
+its three locked decisions (D1–D3) are restated in `CLAUDE.md`.
 
 The v2 extraction programme — **complete and fully reviewed as of
 2026-08-16**:

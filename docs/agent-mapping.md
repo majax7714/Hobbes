@@ -19,15 +19,14 @@ unowned requirement is a plan error at plan cost. On a covered plan each
 implementer's brief carries its owned requirements as its task and the
 proposal is absent — §4's "only its slice" extended from code to the
 request itself. Architecture §6.1 is the current text. This file stays as the record of
-where the design started, the way `hobbes-architecture-v1.md` is for
-extraction. The original header follows.
+where the design started. The original header follows.
 
 This is the proposed
 shape of the unbuilt milestone the running architecture names in "Where this
 is going": single-use agents under derived, systematic context. Nothing here
 is built. When any of it is, the change patches `hobbes-architecture.md` in
 the same commit (ADR-033) and this file becomes the record of where the
-design started, the way `hobbes-architecture-v1.md` is for extraction.
+design started.
 Everything below is bound by the derivation contract (ADR-047): a derivation
 that hands an agent only the captured half is not done.
 
