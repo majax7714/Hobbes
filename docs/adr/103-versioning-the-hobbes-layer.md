@@ -1,6 +1,6 @@
 # ADR-103 — Hobbes is versioned; the experiments are not
 
-**Date:** 2026-09-09 · **Status:** accepted — built (root `VERSION`, the stamp, the four binaries, the held-together test), tagged `v0.1.3` · **Owner:** Max · **Source:** Max, 2026-09-09: "everything outside the Hobbes layer — the experiments largely — are not version changes to Hobbes as much as we'd call internal testing; since their products are versioned I want to version mine"
+**Date:** 2026-09-09 · **Status:** accepted — built (root `VERSION`, the stamp, the four binaries, the held-together test), tagged `v0.1.3-beta` · **Owner:** Max · **Source:** Max, 2026-09-09: "everything outside the Hobbes layer — the experiments largely — are not version changes to Hobbes as much as we'd call internal testing; since their products are versioned I want to version mine"
 
 Amends architecture **§2** (the two-layer statement gains the version
 line) and **§8** (status is stated per version from here). Registers
@@ -40,7 +40,7 @@ numbers that agree with nothing is worse than none.
    gains `version`, so every artifact says which Hobbes *version* built
    it as well as which commit; `hobbes ingest` prints it on its
    provenance line, every knowledge answer's header repeats it
-   (`built by hobbes 0.1.3 @ <sha> from <checkout>`), and each of the
+   (`built by hobbes 0.1.3-beta @ <sha> from <checkout>`), and each of the
    four Go binaries answers `version`. An artifact from before this
    ADR carries no version and the header prints none — never a guess.
 3. **What bumps it.** Semantic versioning, and 0.x means the artifact
@@ -61,17 +61,26 @@ numbers that agree with nothing is worse than none.
    ran. A finding that leads to a fix bumps the version when the fix
    lands, not when the finding is written. The oracle lane's grade is
    the layer's test, not its release note.
-5. **The starting point is 0.1.3, chosen not derived.** Max's number:
-   v1 and v2 extraction complete and reviewed, six languages
+5. **The starting point is 0.1.3-beta, chosen not derived.** Max's
+   number: v1 and v2 extraction complete and reviewed, six languages
    compiler-graded, the two-layer statement standing — but the schema
-   still moves and nothing is frozen, so 0.x. The tag `v0.1.3` marks
+   still moves and nothing is frozen, so 0.x — and **a pre-release
+   suffix** (Max, the same evening: "while Hobbes has been proved and
+   graded it's still early"). semver's `-beta` sorts before `0.1.3`
+   and says exactly that; *beta* rather than *preview* because a
+   preview is what precedes grading, and this has been graded. PEP 440
+   spells the same version `0.1.3b0`, so `pyproject.toml` carries that
+   form and `test_version.py` holds the mapping (`-alpha` → `a0`,
+   `-beta` → `b0`, `-preview`/`-rc` → `rc0`); Go and the Node helpers
+   take the semver string as is. Leaving beta is its own bump on Max's
+   call, not a threshold this ADR sets. The tag `v0.1.3-beta` marks
    this commit; tags are local until the lead publishes them, like
    every push.
 6. **`CHANGELOG.md`** at the root, one entry per version, written in
    the same commit as the bump: what changed in the layer, in plain
    words, pointing at the ADRs and constraints. History stays in the
    BUILDLOG; the changelog is the release-grain view a user of a
-   versioned tool expects. Its first entry describes what 0.1.3 *is*,
+   versioned tool expects. Its first entry describes what 0.1.3-beta *is*,
    since no prior version exists to diff against.
 
 ## Consequences

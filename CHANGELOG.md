@@ -7,10 +7,11 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
-## 0.1.3 — 2026-09-09
+## 0.1.3-beta — 2026-09-09
 
-The first stated version, so this entry says what 0.1.3 *is* rather
-than what changed.
+The first stated version, so this entry says what 0.1.3-beta *is*
+rather than what changed. *beta*: graded, not stable — the schema and
+the tool surface still move (ADR-103 §5).
 
 **The knowledge layer** — a complete deployment on its own (ADR-092
 phase 4): `hobbes ingest` builds `.hobbes/derived/` from a repo on

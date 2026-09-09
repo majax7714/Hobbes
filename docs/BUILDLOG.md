@@ -7513,3 +7513,12 @@ that carries it. Built:
 
 Suites: Go 299 + 5 new green, the oracle lane's Go suite green,
 pytest green with the new test. No spend.
+
+**Addendum (Max: "put in preview phase or beta phase since while Hobbes
+has been proved and graded it's still early"):** `0.1.3-beta`. semver's
+pre-release suffix sorts before the release and says not-stable; beta
+over preview because the grading is done. The tag `v0.1.3` (never
+pushed) deleted and `v0.1.3-beta` cut on the new commit; pyproject
+spells it `0.1.3b0` (PEP 440) and `test_version.py` holds the mapping;
+ADR-103 §5 amended; every copy, the fixture and the docs re-stated;
+proxy, image and this repo's artifact rebuilt again.

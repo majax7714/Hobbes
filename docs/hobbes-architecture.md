@@ -1440,7 +1440,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.1.3** (2026-09-09, ADR-103; `CHANGELOG.md` is the
+**Hobbes 0.1.3-beta** (2026-09-09, ADR-103; beta: graded, not stable; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in **[`hobbes-build-plan-v2.md`](hobbes-build-plan-v2.md)**;
 this section holds only the state, because a milestone plan restated in two

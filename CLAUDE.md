@@ -207,7 +207,8 @@ review → `lane_b` pytest) and runs the same way on a box.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
   architecture doesn't already make. Number sequentially (last: 103).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
-  Root `VERSION` is the one number (semver, 0.x); `hobbes.__version__`,
+  Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
+  pyproject spells it PEP 440, `0.1.3b0`); `hobbes.__version__`,
   `pyproject`, `go/internal/version`, the three `package.json` are its
   held-together copies (`test_version.py`). A change to what the layer
   draws, refuses or says bumps patch; a capability bumps minor; both in
@@ -247,10 +248,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-09) — Hobbes 0.1.3
+## Status (2026-09-09) — Hobbes 0.1.3-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.3, tagged
-  `v0.1.3` locally; every artifact's `built_by` and every knowledge
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.3-beta, tagged
+  `v0.1.3-beta` locally (beta: graded, not stable — Max); every artifact's `built_by` and every knowledge
   answer carry the version beside the commit; the four Go binaries
   answer `version`; `CHANGELOG.md` holds the release-grain view.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**

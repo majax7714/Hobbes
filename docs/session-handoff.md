@@ -2,8 +2,8 @@
 
 **Session ended 2026-09-09 (later).** Nothing is running: no Modal job,
 no local process; the tree is committed on `main`, not pushed. **Hobbes
-is versioned from this session (ADR-103): `VERSION` 0.1.3, the tag
-`v0.1.3` local and unpushed like the commits — publish both together;
+is versioned from this session (ADR-103): `VERSION` 0.1.3-beta, the tag
+`v0.1.3-beta` local and unpushed like the commits — publish both together;
 `CHANGELOG.md` gets an entry with every bump, and nothing under
 `bench/` moves the number.** Resume
 at START HERE below — Max's review of the comparative programme and
