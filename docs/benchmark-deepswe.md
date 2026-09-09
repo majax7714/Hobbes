@@ -39,7 +39,9 @@ Harbor-format and run with **Pier** (github.com/datacurve-ai/pier, 0.3.0+):
 
 Pier natively supports **mini-swe-agent** (also claude-code, codex,
 gemini-cli, opencode) and arbitrary models. So the substrate is the one we
-already validated (mini-swe-agent, `docs/harness-mini-swe-integration.md`),
+already validated (mini-swe-agent, wiring validated 2026-08-22 — the
+BUILDLOG's sixty-third entry of that day; the recipe document was folded
+into the ledger 2026-09-09),
 pointed at our Modal 7B/27B endpoints, on an uncontaminated benchmark with
 a behavior verifier. **Hobbes's job** becomes purely its research core:
 inject derived context ("here is the task, what we can see, what we can't")

@@ -7610,3 +7610,59 @@ here so nothing is lost:**
   in `future_additions.md` § Java.
 
 No code, no suite change, no spend.
+
+## 2026-09-09 (docs cleanup, 2) — two stored handoffs removed, the pre-registration folded into the grading design
+
+Max: clean up the other candidates too. Removed
+`docs/harness-restructure-plan.md` (202 lines; marked *complete and
+superseded* since 2026-08-24) and `docs/harness-mini-swe-integration.md`
+(84; marked *retracted as a Hobbes arm* since 2026-08-23) — both the
+same shape as the Java plan, a per-session handoff that got stored; the
+thirty-seventh to forty-third and sixty-third entries of 2026-08-22
+above are their record. `docs/oracle-preregistration.md` (71) is
+**folded, not removed**: the predictions P1–P16 now sit verbatim under
+`docs/oracle-grading.md` §10 (the section that called for them), with
+their commit dates stated, because a pre-registration's value is that
+it can be shown to have been written before the run — the text is
+unchanged and the git history of the removed file carries the dates.
+References rewritten in `extraction-evidence.md` (three),
+`benchmark-deepswe.md`, `benchmark-hypotheses.md`, ADR-059, ADR-063 and
+ADR-077; dated ledger entries keep theirs.
+
+**What the two removed files held that nothing else live did:**
+
+- *Restructure plan.* The owner's structure of 2026-08-21 (single-use
+  derived-context agents, one alive at a time, the job as short memory
+  pushed by the previous agent; planner → plan reviewers → implementers
+  in contract order → verifier → one bounded rework) is architecture
+  §6.1's ancestry and ADR-059's subject. Its *errors foreseen*
+  checklist, kept here: seeds were the failure, not the cap; a module
+  id leaked as a filename (`.:conftest`); integration had no gate;
+  reflection spam; an implementer-shaped loop discipline for read-only
+  roles; every unit cloning at base so a consumer never saw its owner's
+  commit; a map-only brief under a tight turn cap. And its testing rule:
+  *one narrow probe is worth it, the full set is not* — build the one
+  stage whose value is an assumption (the planner), run it alone on two
+  instances, check interiors against the gold files, and exit-check
+  everything else against the stand-in binaries before another
+  verdict-bearing run. Its *deliberately not in this plan* list
+  (path-grain write enforcement C-38, metering beyond the envelopes,
+  loss fitting, the renegotiation re-pin) stands, less parallel
+  implementers (ADR-063).
+- *mini-swe-agent recipe.* The wiring facts for the baseline arm, should
+  the direct path ever be re-run outside Pier: litellm `openai/`
+  provider against the Modal endpoint with `MSWEA_COST_TRACKING=
+  ignore_errors` (no price row for a local model); `MSWEA_DOCKER_EXECUTABLE=
+  podman` builds the exact `swebench/sweb.eval.x86_64.<id>` images already
+  pulled; the injection point is `agent.instance_template`'s `{{task}}`
+  block; `swebench_backticks.yaml` (text actions) over the tool-call
+  config for a 7B; output is a standard predictions file the pinned
+  evaluator reads (C-50). Cautions: never run its containers while
+  `hobbes bench` is active (shared rootless podman); the 7B and 27B are
+  separate Modal apps; `~/.config/mini-swe-agent/.env` on this box can
+  override the exports. The two questions it framed (did our harness
+  suppress the 7B; does derived context help on a neutral harness) were
+  answered 2026-08-22 — the sixty-fourth entry, the falsifier fires —
+  and the path moved to DeepSWE on Pier (ADR-078).
+
+No code, no suite change, no spend.

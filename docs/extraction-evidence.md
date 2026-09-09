@@ -103,7 +103,7 @@ Earlier:
 10/10 sampled narrative claims resolve (M5); the M8 exit check's
 invariant regression replay (`hobbes review ace9a08..cdbc085`, exit 1).
 
-**Pre-registration graded (`docs/oracle-preregistration.md`, O2):**
+**Pre-registration graded (`docs/oracle-grading.md` §10, O2):**
 P1 semantic precision ≥ 95% — **met** (100%). P2 contradictions in the
 syntactic tier — **met** (3 of 3; the tier is 3 edges, so the
 concentration claim is met on a tiny base and recorded as such).
@@ -134,7 +134,7 @@ no in-repo overloaded function is called in the zone; the rule that
 *did* decide 119 edges was the binding rule, which P7 did not
 anticipate.
 
-**Pre-registration graded, phase 2 (`docs/oracle-preregistration.md`,
+**Pre-registration graded, phase 2 (`docs/oracle-grading.md` §10,
 O6/O7):** P10 recall-against-executed ≥ 90% named / 70–92% overall —
 **met** (96.9% / 86.2%). P11 suspect rate ≤ 2% — **met** (0.3%);
 "mostly not hobbes-wrong" — **missed**: 6 of 10 are hobbes-wrong, and
@@ -249,7 +249,7 @@ BurntSushi/toml, gorilla/mux, junegunn/fzf (Go, RTA); BurntSushi/memchr (Rust, M
 |---|---|
 | 2026-08-28 (regrades after triage) | **Every compiler-graded cell at 100% precision-against-oracle**: toml 1,039/1,039 · fzf 2,832/2,832 (was 97.0%) · mux 1,221/1,221 (3 abstract) · memchr 921/921 (was 99.2%) · cheerio 2,102/2,102 (44 abstract; was 97.9%) · ajv 1,375/1,378 (3 hobbes-wrong by tier, unfixed). click: 1,699 confirmed, 18 suspect (1.0%), recall-against-executed 37.0%. Recall: toml 71.9%, fzf 40.8%, mux 82.6%, memchr 80.7%, ajv 62.0%, cheerio 36.1% — the misses C-58's closure/interface classes and Rust's macro face throughout |
 
-**No pre-registration was written for this loop** (`oracle-preregistration.md` stops at phase 2): its numbers are post hoc and are read as such — the loop tested the *method* (a cell per repo, triage by the review's rules) rather than a prediction. Per-repo capture lines, roots and runtimes are in each cell record.
+**No pre-registration was written for this loop** (`oracle-grading.md` §10's predictions stop at phase 2): its numbers are post hoc and are read as such — the loop tested the *method* (a cell per repo, triage by the review's rules) rather than a prediction. Per-repo capture lines, roots and runtimes are in each cell record.
 
 **Verified:** the four fixes the loop produced — the Go scope veto (fzf: 87 wrong syntactic edges), the Rust constructor rule (memchr: 7), the func-value abstract bucket (mux + cheerio: 47 false contradictions), the `@overload` anchor (click: 67 false suspects) — each kept every confirmed edge of its cell and moved no recall number. **Containment scope (P11):** fzf, memchr, mux, cheerio, click regraded under the sandbox image; toml and ajv are host-run records (not re-run: nothing moved on them).
 

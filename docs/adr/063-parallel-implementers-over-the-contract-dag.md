@@ -6,8 +6,9 @@ with anything except increase speed; note it as a vLLM restriction, or
 fall back when vLLM isn't present").
 **Amends:** `docs/hobbes-architecture.md` (§6, staged execution — "one
 alive at a time" becomes "one *wave* at a time"); `docs/constraints/README.md`
-(**C-51**); `docs/harness-restructure-plan.md` (parallel implementers
-leave "deliberately not in this plan").
+(**C-51**); the harness restructure plan (parallel implementers left
+its "deliberately not in this plan"; the document was removed
+2026-09-09, its record is the BUILDLOG's 2026-08-22 entries).
 
 ## Context
 

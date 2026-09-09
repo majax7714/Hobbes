@@ -1101,7 +1101,8 @@ preregistered falsifier: once the harness can execute, it does *not* beat
 pure — so the wall is per-unit execution/decomposition, not the proxy, and
 the derived-context thesis has to be tested on a harness that does not
 fragment the change. That is exactly the mini-swe-agent single-agent +
-injected-context path (`docs/harness-mini-swe-integration.md`). Two open
+injected-context path (the recipe validated 2026-08-22, BUILDLOG; since
+the Pier substrate, `docs/benchmark-deepswe.md`). Two open
 questions this hands forward: (1) should the partition keep the full
 co-changing set of a fix in one unit (D1's co-change coupling did not, on
 django/xarray)? (2) is per-unit write-scope worth its fragmentation cost at

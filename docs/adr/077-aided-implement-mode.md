@@ -56,8 +56,9 @@ A new staged implement mode, `hobbes bench run --implement-mode aided`
   the aided mode does not create.
 - This is the first realisation of the harness pivot's principle inside our
   own harness, and the natural bridge to the mini-swe single-agent path
-  (`docs/harness-mini-swe-integration.md`): both give one agent the whole
-  task aided by derived context.
+  (the recipe validated 2026-08-22, BUILDLOG; now the Pier substrate of
+  `docs/benchmark-deepswe.md`): both give one agent the whole task aided
+  by derived context.
 - Open question it sets up (to observe on the 7B, where the flow is
   legible): does the aid-not-fence brief actually reach a free agent and
   produce the coherent multi-file change the unit mode could not? Prompt

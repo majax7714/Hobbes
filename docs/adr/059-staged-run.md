@@ -1,8 +1,9 @@
 # ADR-059 — The staged run: single-use derived-context agents, one at a time, job = short memory
 
 **Date:** 2026-08-22
-**Status:** accepted — built (phases 2–3 of the harness restructure,
-`docs/harness-restructure-plan.md`), exercised by the stand-in session;
+**Status:** accepted — built (phases 2–3 of the harness restructure of
+2026-08-22; its plan document was removed 2026-09-09, the record is the
+BUILDLOG's 2026-08-22 entries), exercised by the stand-in session;
 no live benchmark run yet.
 **Amends:** `docs/hobbes-architecture.md` (§6.1 gains the staged
 execution); `docs/agent-mapping.md` (the phases §2 named are now the
