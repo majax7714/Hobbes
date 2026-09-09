@@ -7447,3 +7447,21 @@ the claim page's wording and which graphic leads; syft's keys on a
 bigger box; the union-member provider shape (n=2) — fix or register;
 the next two converters; the competitor cells under the sandbox
 image if C-96 is to be narrowed.
+
+**Addendum (Max's review of the graphic: "adjust the same-key comparison
+graph to reflect the differences with different colors instead of same
+colored hollow shapes, hard to decipher"):** `same-key.svg` now draws one
+hue per tool — blue dot Hobbes, orange square CodeGraphContext, green
+diamond repowise, the reference palette's first three slots, validated
+all-pairs by the palette check (CVD ΔE 9.2 worst pair, normal-vision
+24.0; the green's 2.74:1 surface contrast is covered by the hover
+fraction on every marker and `tables.md`) — every marker filled with a
+surface ring, the shape kept as the second encoding, and the legend
+carries the glyphs themselves beside the tool names. `render.py` only;
+regenerated, `render.py check` and the oracle lane's Go test green. The
+top-level docs were read on the way and four stale statements fixed:
+README, CLAUDE.md and the handoff said *three* graphics where there are
+four since the addendum above; CLAUDE.md's ADR counter said 100 (last is
+102); ADR-102's status line and §7 and the claim page's file table now
+describe the markers as drawn. The scatter's foreign cells are still
+hollow orange squares (ADR-102 §5); untouched, Max's call.

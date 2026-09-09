@@ -226,7 +226,8 @@ INK = "#1a1a19"
 INK2 = "#5a5a57"
 GRID = "#d9d8d2"
 BLUE = "#2a78d6"     # Hobbes
-ORANGE = "#eb6834"   # a foreign (competitor) cell
+ORANGE = "#eb6834"   # a foreign (competitor) cell in the scatter; CodeGraphContext in same-key.svg
+AQUA = "#1baf7a"     # repowise in same-key.svg — the reference palette's third slot; the three validate all-pairs (CVD ΔE ≥ 9)
 SURFACE = "#fcfcfb"
 
 
@@ -576,7 +577,10 @@ def render_comparison(cells: list[dict]) -> str:
     axis and three on the recall axis (Hobbes, CodeGraphContext, repowise),
     grouped by language; repowise-bench's draws as their own band; the
     trace-graded Python cell last with its confirmation rate. Nothing is
-    pooled: every row is one key, one root count or one resolved-site set."""
+    pooled: every row is one key, one root count or one resolved-site set.
+    One hue per tool (blue, orange, green — validated all-pairs) and a shape
+    as the second encoding, every marker filled: three hollow shapes in one
+    colour did not read at a glance (2026-09-09, Max)."""
     by_label: dict[str, dict] = {}
     for c in cells:
         if c.get("sub"):
@@ -598,9 +602,31 @@ def render_comparison(cells: list[dict]) -> str:
     H = T + ROW * n + 190
     o = svg_open(W, H, "Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise")
     o.append(text(24, 30, "Three graphs, one key per cell: precision-against-oracle and recall, never pooled", 15, INK, weight="bold"))
-    o.append(text(24, 50, "Filled blue dot = Hobbes; hollow orange square = CodeGraphContext 0.6.13; hollow orange diamond = repowise 0.49.0 — the same repo, commit, answer key,", 11, INK2))
-    o.append(text(24, 64, "matcher and poison check (ADR-101). The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
     px = {"precision": L, "recall": L + PW + GAP}
+    marks = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", AQUA)}
+
+    def mark(kind, colour, cx, cy, tip):
+        o.append("<g>")
+        o.append(f"<title>{esc(tip)}</title>")
+        # every marker filled in its tool's hue with a surface ring, so two
+        # tools on one value stay two marks
+        if kind == "circle":
+            o.append(f'<circle cx="{cx}" cy="{cy}" r="5.5" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+        elif kind == "square":
+            o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+        else:
+            o.append(f'<polygon points="{cx},{cy-6.5} {cx+6.5},{cy} {cx},{cy+6.5} {cx-6.5},{cy}" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+        o.append("</g>")
+
+    # the legend: the marker itself beside each tool's name, one colour per tool
+    lx = 24
+    for t, name in (("hobbes", "Hobbes"), ("codegraphcontext", "CodeGraphContext 0.6.13"), ("repowise", "repowise 0.49.0")):
+        kind, colour = marks[t]
+        mark(kind, colour, lx + 6, 46, name)
+        o.append(text(lx + 16, 50, name, 11, INK2))
+        lx += 16 + 6.1 * len(name) + 14
+    o.append(text(lx, 50, "— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).", 11, INK2))
+    o.append(text(24, 64, "The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
     for key, x0 in px.items():
         for v in (0, 25, 50, 75, 100):
             gx = x0 + PW * v / 100
@@ -608,19 +634,6 @@ def render_comparison(cells: list[dict]) -> str:
             o.append(text(gx, T - 10, f"{v}%", 9, INK2, "middle"))
         o.append(text(x0 + PW / 2, T - 26, "precision-against-oracle (a lower bound)" if key == "precision" else "recall, of in-repo oracle pairs at the cell's roots", 11, INK, "middle", weight="bold"))
     y = T
-    marks = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", ORANGE)}
-
-    def mark(kind, colour, cx, cy, tip):
-        o.append("<g>")
-        o.append(f"<title>{esc(tip)}</title>")
-        if kind == "circle":
-            o.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
-        elif kind == "square":
-            o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
-        else:
-            o.append(f'<polygon points="{cx},{cy-6} {cx+6},{cy} {cx},{cy+6} {cx-6},{cy}" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
-        o.append("</g>")
-
     for title, items in bands:
         o.append(text(24, y + 14, title, 11, INK, weight="bold"))
         y += ROW

@@ -205,7 +205,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 100).
+  architecture doesn't already make. Number sequentially (last: 102).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -252,7 +252,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   same keys with the same poison check; CodeGraphContext 0.6.13 and
   repowise 0.49.0 graded on the thirteen loop and random-draw cells
   (`docs/comparative/`, the foreign records in `docs/oracle-cells/`);
-  three graphics regenerated from the records by
+  four graphics regenerated from the records by
   `bench/oracle/report/render.py` with a drift test; `field.md` one
   row per tool, sourced or unstated. repowise now publishes its own
   compiler-graded table (five tools, seven cells, Go RTA + tsc) on

@@ -318,7 +318,7 @@ point); the session-by-session record is
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
-| [`docs/comparative/`](docs/comparative/README.md) | The comparative programme (ADR-101/102): the field one row per tool, other tools' graphs graded by the oracle lane on the same repos and keys, and the three graphics regenerated from the cell records |
+| [`docs/comparative/`](docs/comparative/README.md) | The comparative programme (ADR-101/102): the field one row per tool, other tools' graphs graded by the oracle lane on the same repos and keys, and the four graphics regenerated from the cell records |
 | [`docs/first-run.md`](docs/first-run.md) | Bringing Hobbes up on a new app, in the order the system is meant to be used |
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
 | [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |

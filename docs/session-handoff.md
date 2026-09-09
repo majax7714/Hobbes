@@ -15,7 +15,7 @@ the same matcher and poison check; CodeGraphContext 0.6.13 and repowise
 0.49.0 graded on the thirteen loop / random-draw cells (26 foreign
 records, 0 falsely confirmed of 171,350 seeded); `docs/comparative/`
 holds the field (ten tools, sourced or unstated), the claim page, the
-generated tables and three graphics regenerated from the cell records
+generated tables and four graphics regenerated from the cell records
 with a drift test. No API spend, no Modal.** Read this, then the
 2026-09-09 BUILDLOG entry, `docs/comparative/README.md`, ADR-101 and
 ADR-102, and `docs/workstreams.md` W0 for the parked follow-ups.
@@ -34,8 +34,10 @@ never names a repo package). Read `docs/comparative/README.md` (the
 claim; its 1-1 section), `tables.md`, and the two BUILDLOG entries.
 
 **The comparison as a graphic:** `docs/comparative/graphics/same-key.svg`
-(ADR-102 §7) — one row per cell, three markers per axis, the draws as
-their own band; regenerated with the rest by `render.py render`.
+(ADR-102 §7) — one row per cell, three markers per axis in one hue per
+tool (blue Hobbes, orange CodeGraphContext, green repowise; Max's
+review later on 2026-09-09 replaced the hollow same-colour shapes), the
+draws as their own band; regenerated with the rest by `render.py render`.
 
 **Next session's work (Max's call on order):**
 

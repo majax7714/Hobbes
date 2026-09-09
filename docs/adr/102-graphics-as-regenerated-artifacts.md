@@ -1,6 +1,6 @@
 # ADR-102 — The comparative graphics are regenerated artifacts, read from the cell records, never typed
 
-**Date:** 2026-09-09 · **Status:** accepted — built (`bench/oracle/report/render.py`), three graphics committed, the drift check in the oracle lane's Go suite · **Owner:** Max · **Source:** Max's brief of 2026-09-09, Workstream C
+**Date:** 2026-09-09 · **Status:** accepted — built (`bench/oracle/report/render.py`), four graphics committed, the drift check in the oracle lane's Go suite · **Owner:** Max · **Source:** Max's brief of 2026-09-09, Workstream C
 
 Companion to ADR-101. Amends nothing in the architecture; adds a rule
 to the oracle lane's evidence discipline (`docs/oracle-grading.md` §11).
@@ -76,8 +76,13 @@ and the picture a build product.
 7. **The comparison itself** (added later on 2026-09-09, after the
    foreign cells existed): `same-key.svg` — one row per cell that has
    a foreign graph graded on the same key, three markers on a
-   precision axis and three on a recall axis (filled dot Hobbes, hollow
-   square CodeGraphContext, hollow diamond repowise), a grey line
+   precision axis and three on a recall axis, **one hue per tool** —
+   blue dot Hobbes, orange square CodeGraphContext, green diamond
+   repowise, the reference palette's first three slots, validated
+   all-pairs (CVD ΔE ≥ 9) with the shape as the second encoding and
+   every marker filled (the first cut drew both foreign tools as hollow
+   orange shapes and did not read at a glance; changed the same day on
+   Max's review) — a grey line
    spanning the three, grouped by language with repowise-bench's draws
    as their own band and the trace-graded Python cell labelled by its
    confirmation rate. Two axes rather than one scatter so a row can be
