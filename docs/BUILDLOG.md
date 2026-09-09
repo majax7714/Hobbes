@@ -7369,3 +7369,67 @@ suites were not touched by this session's changes (nothing under
 
 **Cost:** no API spend, no Modal; two `uv` venvs and ~30 minutes of
 CPU on this box for the 26 indexes and the before-graph regeneration.
+
+## 2026-09-09 (later) — The triage sample, the converter's Java grain repaired, and the 1-1 on repowise's draws
+
+**Max:** "triage a sample of the contradictions, then move to hobbes vs
+repowise for the 1-1."
+
+**The triage.** Five contradicted rows per tool per language drawn at
+random (seed 20260909) from the foreign cells and read against the
+source. The first draw found **C-94 biting exactly where the entry
+said it would not yet**: both tools store a Java method under
+`@Override` at the annotation's line, converter@1 graded that line,
+and 5 of 20 CodeGraphContext rows and 1 of 20 repowise rows were our
+defect, not theirs. converter@2 (`declaration_line` in both adapters)
+reads the source and advances past leading annotation / decorator
+lines to the identifier's; every foreign cell regraded from its stored
+raw dump (no re-index), the eight Java cells moved (CodeGraphContext
+Severed-Chains 46.2% → 79.4%, spring-petclinic 89.9% → 99.6%,
+spring-data-elasticsearch 60.0% → 82.5%, jsoup 71.1% → 79.5%; repowise
+58.8 / 90.7 / 57.2 / 48.9%), every non-Java cell unchanged, signed
+direction lines in each record, `report.v1.*` kept beside. The sample
+re-drawn after the repair and read again: **CodeGraphContext
+tool-wrong 20 : oracle-grain 0 : converter-defect 0; repowise 19 : 1 : 0**
+— the one oracle-grain row is the function a destructured binding holds
+(D-O4's binding rule pointed the other way, C-95). The shapes: same
+name, other receiver or overload; a local closure or parameter
+shadowing a module-level namesake; stdlib calls bound to same-named
+repo methods; a type, an `impl` block, a body line or a macro in a data
+file as the callee; build-constraint alternates (C-71's shape, where
+Hobbes abstains). Verdicts are in `~/.hobbes/bench/comparative/
+triage-<tool>.json` and printed per cell by `foreign_record.py`.
+
+**The 1-1.** repowise-bench's `graph/corpus/corpus.lock` pins its G4
+repos; cobra, gitleaks, syft, zod and hono were cloned at those pins,
+ingested contained, both tools run on the same clones, and keys built
+here (`oracle go-rta` with and without test packages where their
+experiment has both cells; `tsc-oracle.mjs` on zod's root and, with a
+new `--config`, hono's `tsconfig.build.json` — its root is
+solution-style). **Their key is function-grain and their matcher and
+adapters are theirs, so nothing here compares with their table**; the
+1-1 is among the three graphs on our key. Hobbes: cobra 2,186/2,186
+(71.8% at 2 roots); gitleaks 2,266/2,266 with tests (94.9% at 9
+roots), 2,010/2,010 without (98.0% at 2 roots); zod 9,731/9,731
+(45.1%; pnpm not provisioned, C-23); hono 767/774 (55.2%; the 7 are
+ajv's union-member shape, now n=2). The tools on the same keys are in
+`docs/comparative/tables.md`. **One product defect found and fixed:**
+gitleaks' first grade had one contradiction, syntactic — inside the
+repo's own `regexp` package, `re.MustCompile` (`import re "regexp"`)
+was drawn to the enclosing `MustCompile` because `_repo_package`
+matched import paths to repo directories by suffix and the stdlib
+path `regexp` equals the directory; cmd/go's rule (a first element
+without a dot is the standard library's) is now applied, with a test;
+re-ingested and regraded, edges 2,284 → 2,283, contradicted 1 → 0,
+signed in both records. **syft has no key on this box:** RTA was
+OOM-killed at 18.7 GB (no tests) and 19 GB (with tests), the H-9
+shape; the row says so. Also learned: a `pkill -f` pattern matched this
+session's own shell again (the handoff's warning); long keys now run
+under `setsid nohup`, killed by pid only.
+
+**Docs.** The one number now reads 0 of 99,824 seeded across 19
+compiler-graded cells (the draws included); the scatter carries them;
+the claim page's exceptions are ajv, hono and quic-go; misses register,
+evidence log, architecture §3.8, workstreams, CLAUDE.md, C-94's entry.
+Suites: pipeline 1,243 pytest green, the oracle lane's Go suite green.
+No spend; ~1.5 hours of CPU on this box.

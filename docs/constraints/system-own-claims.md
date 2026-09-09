@@ -161,11 +161,16 @@
   as Hobbes' own, here a competitor's edge misread as ours to own.
 - **Bites at:** every competitor cell's `contradicted` bucket, and every
   language where the tool's declaration line is not the identifier's.
-  Sighted on the first cells (2026-09-09): none — both tools' Go
-  declaration lines are the identifier's, and the sampled
-  contradictions are same-name-different-receiver resolutions the
-  oracle's site lines agree with. Python and decorated-TS cells are
-  where it would bite; none is graded yet.
+  **Sighted on the first cells (2026-09-09), Java:** both tools store a
+  method under `@Override` at the annotation's line; converter@1 graded
+  that line and charged every such edge to the tool — 5 of 20
+  CodeGraphContext rows and 1 of 20 repowise rows in the triage sample.
+  converter@2 reads the source and advances past leading annotation /
+  decorator lines; the eight Java cells were regraded with a signed
+  direction-of-fix line each (e.g. Severed-Chains CodeGraphContext
+  46.2% → 79.4%, jsoup repowise 43.8% → 48.9%); no non-Java cell moved.
+  After the repair the 40-row sample reads tool-wrong 39, oracle-grain
+  1, converter-defect 0 — a sample, not the population.
 - **You find out:** **surfaced** (2026-09-09). Every converter ships a
   hand-read fixture (its own dump of `minigo`, read against the
   conversion in a Go test), a malformed position refuses the whole

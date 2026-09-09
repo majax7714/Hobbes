@@ -24,11 +24,12 @@ kind is the node label lowercased, `method` when the Function carries a
 name-only guesses — is dumped and counted but not converted unless
 `--include-heuristic` is passed; the cell record states the count.
 
-Grain the converter cannot repair (C-94): the tool's declaration line is
-the tree-sitter node's first line, which for Go, Java, Rust and plain
-TS/JS functions is the identifier's line (D-O4) — but a decorated TS or
-Python declaration starts at the decorator, where the oracle's key is the
-identifier's line. A Python or decorated-TS cell must say so.
+Grain (C-94): the tool's declaration line is the tree-sitter node's first
+line — the identifier's line for Go, Rust and plain functions, but the
+annotation's line for a Java method under `@Override` and the decorator's
+for decorated TS / Python. converter@2 reads the source and advances past
+leading annotation lines (`declaration_line`); a cell graded at @1 charged
+those rows to the tool.
 """
 from __future__ import annotations
 
@@ -38,7 +39,7 @@ import os
 import sys
 from pathlib import Path
 
-VERSION = "codegraphcontext-adapter@1"
+VERSION = "codegraphcontext-adapter@2"
 
 DUMP_QUERY = """
 MATCH (a)-[r:{rel}]->(b:Function)
@@ -64,6 +65,39 @@ def dump(db: str, out: str) -> None:
         raw["rows"][rel] = rows
     Path(out).write_text(json.dumps(raw, indent=1, default=str) + "\n")
     print(f"dumped {', '.join(f'{k} {len(v)}' for k, v in raw['rows'].items())} → {out}", file=sys.stderr)
+
+
+def declaration_line(repo: str, path: str, line: int) -> int:
+    """D-O4 keys a declaration at its identifier's line. Both tools start a
+    declaration at its node's first line, which for a Java method under an
+    annotation (`@Override` on its own line), or a decorated TS / Python
+    declaration, is the annotation's line. Read the source and advance
+    past leading annotation / decorator lines (those starting with `@`,
+    including a multi-line one until its bracket closes) to the first
+    line that declares something — the identifier's line for these
+    shapes. A converter@1 cell graded these as contradicted (C-94, found by
+    the 2026-09-09 triage: 5 of 20 sampled CodeGraphContext rows and 1 of
+    20 repowise rows were annotation lines). Unreadable source → the line
+    as stored."""
+    try:
+        with open(os.path.join(repo, path), encoding="utf-8", errors="replace") as f:
+            lines = f.read().split("\n")
+    except OSError:
+        return line
+    i = line - 1
+    if i < 0 or i >= len(lines):
+        return line
+    depth = 0
+    while i < len(lines):
+        t = lines[i].strip()
+        if depth == 0 and not t.startswith("@") and t != "":
+            break
+        if t.startswith("@") or depth > 0:
+            depth += t.count("(") - t.count(")")
+            if depth < 0:
+                depth = 0
+        i += 1
+    return i + 1 if i < len(lines) else line
 
 
 def rel(path: str, repo: str) -> str | None:
@@ -95,7 +129,7 @@ def convert(raw_path: str, repo: str, sha: str, version: str, out: str, include_
                 label = "heuristic:" + label
             edges.append({
                 "site": f"{site_path}:{int(row['site_line'])}",
-                "callee": f"{callee_path}:{int(row['callee_line'])}",
+                "callee": f"{callee_path}:{declaration_line(repo, callee_path, int(row['callee_line']))}",
                 "caller": str(row.get("caller_name") or ""),
                 "kind": "method" if row.get("callee_class") else "function",
                 "label": label,
@@ -108,7 +142,7 @@ def convert(raw_path: str, repo: str, sha: str, version: str, out: str, include_
             "dropped": dropped,
             "heuristic_calls_in_db": len(raw["rows"].get("HEURISTIC_CALLS", [])),
             "heuristic_included": include_heuristic,
-            "grain": "declaration line = the tool's node start line (identifier line for Go/Java/Rust/undecorated TS; the decorator line for decorated TS and Python)",
+            "grain": "declaration line = the tool's node start line, advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)",
         },
         "edges": edges,
     }

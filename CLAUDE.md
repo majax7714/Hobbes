@@ -190,7 +190,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
+Suite sizes at the last check (2026-09-09): 1,243 pytest (+3 `lane_b`) /
 299 Go + 47 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -256,8 +256,16 @@ review → `lane_b` pytest) and runs the same way on a box.
   `bench/oracle/report/render.py` with a drift test; `field.md` one
   row per tool, sourced or unstated. repowise now publishes its own
   compiler-graded table (five tools, seven cells, Go RTA + tsc) on
-  other repos — recorded, not compared; Hobbes on their draws is the
-  parked next 1-1. C-94–C-96.
+  other repos — recorded, not compared. **Later the same day:** a 40-row
+  hand triage of the foreign contradictions (tool-wrong 39,
+  oracle-grain 1) that first found the converters' Java
+  annotation-line grain (C-94, repaired, eight Java cells regraded with
+  signed lines), and **the 1-1 on repowise's draws** — Hobbes, contained,
+  and both tools on cobra, gitleaks ×2, zod, hono at repowise-bench's
+  pins under our keys: Hobbes 100% on four cells, hono 767/774 (the
+  ajv union-member shape, n=2), one wrong syntactic Go edge on gitleaks
+  found and fixed (`_repo_package`: a stdlib import path never names a
+  repo package); syft's keys OOM on this box. C-94–C-96.
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%

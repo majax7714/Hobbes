@@ -227,6 +227,20 @@ determinism checks (peft, date-fns) byte-identical; containment stamp
 `all_contained: true`, `built_by` this checkout, on all four; nothing
 written into any clone outside `.hobbes/` and init's `.gitignore` line.
 
+## Five repos repowise-bench drew — the 1-1 under our key (2026-09-09, contained; ADR-101)
+
+The five repos repowise-bench's G4 experiment pins (`graph/corpus/corpus.lock`), cloned at those pins, ingested contained (`HOBBES_SCIP=1`), and graded by keys built on this box; both competitor tools ran on the same clones and were graded by the same key (`docs/comparative/tables.md` § the 1-1). Records `docs/oracle-cells/*-hobbes-2026-09-09.md`; artifacts `~/.hobbes/bench/comparative/`.
+
+| Repo | Lang | Numbers |
+|---|---|---|
+| **spf13/cobra** @ adbc8813 | Go | capture 91.6% of 4,403; RTA at 2 test roots: **2,186/2,186 confirmed, 0 contradicted**, recall 71.8% (2,200/3,062); poison 2,192 seeded / 0 falsely confirmed |
+| **gitleaks/gitleaks** @ 8ad84700 | Go | capture 90.2% of 4,369; with tests (9 roots) **2,266/2,266**, recall 94.9%; without (2 roots) **2,010/2,010**, recall 98.0% — after **one wrong syntactic edge** found by the first grade and fixed the same day: `re.MustCompile(str)` inside the repo's own `regexp.MustCompile` was drawn to the enclosing function because `gosource._repo_package` matched the stdlib import path `regexp` to the repo's `regexp/` directory by suffix; a first path element without a dot is now the standard library's (cmd/go's rule; test in `test_gosource.py`); re-ingested, regraded, signed in both records |
+| **colinhacks/zod** @ bbc68f99 | TS | capture 48.7% of 33,763 — the pnpm workspace is not provisioned (C-23), so lane B indexed without dependencies; tsc at the root tsconfig: **9,731/9,731**, recall 45.1% (9,893/21,931) over every resolved site |
+| **honojs/hono** @ 97c6fe1f | TS | capture 39.7% of 35,239 — `bun.lock` is no lockfile Hobbes provisions (C-34); the root tsconfig is solution-style, so the key is `tsconfig.build.json` (the oracle's new `--config`): **767/774**, recall 55.2% (774/1,403); the 7 are `static→union-member` (`c.toString()` on a `Child` union drawn to `JSXNode.toString`), the ajv provider shape, now n=2 repos |
+| **anchore/syft** @ b15c5dbf | Go | ingested (capture in the log); **no key**: RTA over the no-tests program was OOM-killed at 18.7 GB RSS and the with-tests program at 19 GB — H-9's shape (quic-go's full program, dagger's root); waits on a bigger box |
+
+**Verified:** no hand-checked edges; every number is the oracle's. Not comparable with repowise-bench's own table (function-grain key, their matcher and adapters); comparable with the two tools' cells on the same keys.
+
 ## Seven public repos — the 2026-08-27 grading loop (triaged and regraded 2026-08-28)
 
 BurntSushi/toml, gorilla/mux, junegunn/fzf (Go, RTA); BurntSushi/memchr (Rust, MIR); ajv-validator/ajv, cheeriojs/cheerio (TS, the zone's `tsc`); pallets/click (Python, trace). Cells in `docs/oracle-cells/*-2026-08-27.md` with their regrade sections; the loop table in `docs/oracle-misses.md`.

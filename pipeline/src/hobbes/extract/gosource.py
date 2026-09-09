@@ -682,6 +682,15 @@ def _repo_package(import_path: str, packages: dict[str, list[GoFile]]) -> str | 
     go.mod would be more precise and needs a second file to be right;
     this needs none and cannot resolve to a directory that is not there.
     """
+    # A path whose first element has no dot is the standard library's
+    # (cmd/go reserves those): `import re "regexp"` in a repo that has a
+    # `regexp/` package of its own is the stdlib, not the repo. gitleaks
+    # (2026-09-09, the 1-1 on repowise's draws): the suffix match bound
+    # `re.MustCompile` inside the repo's own `regexp.MustCompile` to that
+    # very function — one wrong syntactic edge, the only contradiction on
+    # the cell.
+    if "." not in import_path.split("/", 1)[0]:
+        return None
     best = None
     for directory in packages:
         if directory == ".":

@@ -174,6 +174,20 @@ class TestFallbackResolution:
     def test_third_party_calls_resolve_to_nothing_locally(self, layer):
         assert not any(key[2] == "HasPrefix" for key in layer["call_fallback"])
 
+    def test_a_stdlib_import_never_names_a_repo_package(self):
+        # gitleaks (2026-09-09): a repo package `regexp/` wrapping the stdlib
+        # `import re "regexp"` — the suffix match bound `re.MustCompile` to
+        # the repo's own `MustCompile`, the enclosing function. A path whose
+        # first element has no dot is the standard library's (cmd/go's
+        # rule), so it names no repo directory; a module path does.
+        from hobbes.extract.gosource import _repo_package
+
+        packages = {"regexp": [], "internal/policy": [], ".": []}
+        assert _repo_package("regexp", packages) is None
+        assert _repo_package("net/http", packages) is None
+        assert _repo_package("github.com/x/y/regexp", packages) == "regexp"
+        assert _repo_package("github.com/x/y/internal/policy", packages) == "internal/policy"
+
 
 class TestFallbackScopeVeto:
     """ADR-090's scope rule, the Go shape (fzf, O4 2026-08-27: 87 of 87

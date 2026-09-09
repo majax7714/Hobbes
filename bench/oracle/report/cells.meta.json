@@ -5,7 +5,7 @@
   "run": "host-run",
   "draw": "picked",
   "label": "ajv",
-  "note": "the one open semantic defect: a member call on a union-typed receiver (static→union-member, n=1)"
+  "note": "the one open semantic defect: a member call on a union-typed receiver drawn to one member's method (static→union-member, a scip-typescript shape; n=2 repos with hono)"
  },
  "cheerio-ts": {
   "lang": "TypeScript",
@@ -335,5 +335,120 @@
   "label": "click",
   "tool": "repowise",
   "note": "repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "cobra-tests-hobbes": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "repowise-bench's draw (its corpus.lock pin)",
+  "label": "cobra (with tests)",
+  "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)"
+ },
+ "codegraphcontext-cobra-tests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "cobra (with tests)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-cobra-tests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "cobra (with tests)",
+  "tool": "repowise",
+  "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "gitleaks-tests-hobbes": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "repowise-bench's draw (its corpus.lock pin)",
+  "label": "gitleaks (with tests)",
+  "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)"
+ },
+ "codegraphcontext-gitleaks-tests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "gitleaks (with tests)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-gitleaks-tests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "gitleaks (with tests)",
+  "tool": "repowise",
+  "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "gitleaks-notests-hobbes": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "repowise-bench's draw (its corpus.lock pin)",
+  "label": "gitleaks (no tests)",
+  "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)"
+ },
+ "codegraphcontext-gitleaks-notests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "gitleaks (no tests)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-gitleaks-notests": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "gitleaks (no tests)",
+  "tool": "repowise",
+  "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "zod-hobbes": {
+  "lang": "TypeScript",
+  "run": "contained",
+  "draw": "repowise-bench's draw (its corpus.lock pin)",
+  "label": "zod",
+  "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)"
+ },
+ "codegraphcontext-zod": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "zod",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-zod": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "zod",
+  "tool": "repowise",
+  "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "hono-build-hobbes": {
+  "lang": "TypeScript",
+  "run": "contained",
+  "draw": "repowise-bench's draw (its corpus.lock pin)",
+  "label": "hono (tsconfig.build.json)",
+  "note": "a draw of repowise's G4 experiment on our key; the 7 contradictions are ajv's static→union-member shape (`c.toString()` on a Child union drawn to JSXNode.toString), the open scip-typescript defect, n=2 repos"
+ },
+ "codegraphcontext-hono-build": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "hono (tsconfig.build.json)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-hono-build": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "repowise-bench's draw",
+  "label": "hono (tsconfig.build.json)",
+  "tool": "repowise",
+  "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
  }
 }

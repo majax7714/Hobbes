@@ -30,11 +30,16 @@ lane's Go suite) fails when a picture drifts from its cells.
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
-   compiler-graded cell, with two named exceptions.** Every
+   compiler-graded cell, with three named exceptions.** Every
    compiler-graded semantic cell is at 100% precision-against-oracle
-   except ajv (1,375/1,378 — one union-member shape, n=1, unfixed) and
-   quic-go (3,766/3,781, a 99.6% lower bound; all fifteen are the test
-   build's shadowing methods, 0 hobbes-wrong). Precision-against-oracle
+   except ajv (1,375/1,378) and hono (767/774) — both one
+   scip-typescript shape, a member call on a union-typed receiver
+   drawn to one member's method (`static→union-member`, n=2 repos,
+   unfixed) — and quic-go (3,766/3,781, a 99.6% lower bound; all
+   fifteen are the test build's shadowing methods, 0 hobbes-wrong).
+   gitleaks' one syntactic contradiction (a stdlib import matched to
+   the repo's same-named package) was fixed and regraded the same day,
+   signed in its records. Precision-against-oracle
    is a **lower bound**: contradictions mostly triage to the oracle's
    own grain, and every record quotes its triage ratio (A-8).
 2. **The grader says no.** Every cell grades a poisoned twin of its
@@ -61,8 +66,34 @@ lane's Go suite) fails when a picture drifts from its cells.
    squares. They are theirs **at our grain**: the converter is Hobbes'
    and a misread is Hobbes' defect (C-94); the matcher's tolerances were
    tuned on Hobbes' output (C-95); every competitor cell is host-run
-   (C-96); and their contradictions are printed **untriaged** — a
-   lower bound on their precision exactly as ours is on ours.
+   (C-96); and their contradictions are a lower bound on their
+   precision exactly as ours is on ours — a 40-row random sample (five
+   per tool per language) was read by hand: tool-wrong 39, oracle-grain
+   1, converter-defect 0 *after* the sample found the converter's Java
+   annotation-line defect (C-94) and the Java cells were regraded with
+   signed direction lines. The rest of each cell's contradictions are
+   untriaged and the records say so.
+
+## The 1-1 on repowise's draws
+
+repowise-bench's G4 experiment pins five repos (cobra, gitleaks, syft,
+zod, hono) and grades five tools against Go RTA and `tsc` at function
+grain. Those pins were cloned, Hobbes ingested them contained, our keys
+were built on this box (`oracle go-rta` with and without test packages
+where the experiment has both cells; `ts/tsc-oracle.mjs` on zod's root
+and hono's `tsconfig.build.json`), and both tools were run on the same
+clones — so `tables.md` § *The 1-1 on repowise's draws* is three graphs
+on one key per cell: cobra (with tests), gitleaks (with and without
+tests), zod, hono. **syft has no key on this box**: RTA over its
+no-tests program was killed by the kernel at 18.7 GB and the with-tests
+program at 19 GB (the H-9 shape, as quic-go's full program and dagger's
+root were); the cell waits on a bigger box and is a row that says so,
+not a skipped row. It is a 1-1 among the three; it is **not** a
+comparison with repowise-bench's published numbers, whose key grain,
+matcher and adapters are theirs. Each record says what Hobbes' own
+ingest conceded on that repo (zod's pnpm workspace and hono's bun
+lockfile are not provisioned — C-23, C-34 — so lane B was partial there
+and the record quotes the capture line).
 
 ## What is not claimed
 
@@ -79,8 +110,9 @@ lane's Go suite) fails when a picture drifts from its cells.
   tools, seven cells, on cobra / gitleaks / syft / zod / hono against
   Go RTA and `tsc`) are recorded in `field.md` §3 with their basis and
   put beside nothing here. That table is the same method on other
-  repos; Hobbes on their draws, or their artifacts under our matcher,
-  is the parked next 1-1 (ADR-101, consequences).
+  repos; Hobbes on their draws under our key is the section above;
+  their artifacts under our matcher would need edge files they do not
+  publish (their experiment directory holds summaries).
 
 ## The objection, and the answer
 

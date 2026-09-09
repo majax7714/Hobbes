@@ -24,7 +24,7 @@ commit as the cell.
 | `func-value→closure` | call of a function value reaching a closure (`defer cancel()`, goroutine bodies) | no edge; under RTA the pair count is inflated | C-58 |
 | `func-value→local-binding` | call through a local that holds a value, not a function literal (`const [x, setX] = useState()`; `setX(...)`) | **no edge** — the binding is below the symbol floor; the site is *seen and not modelled by design* (C-32's `local-binding` class) | C-32, C-58 |
 | `func-value→variable` | call through a module-level variable holding a function value (a `let` accessor assigned at runtime; Go's `var f = g`; a `const x = factory(..)`) | drawn to the **binding** when the variable is a graph symbol — graded *abstract* against the oracle's held function since H-18 (47 rows on mux + cheerio); missed when the value arrives later | C-58 |
-| `static→union-member` | TS: a member call on a union-typed receiver (`n: A \| B`; `n.render()`) | one member's override drawn at semantic certainty (the enclosing class's own) where the base signature is the static answer — a provider shape (scip-typescript), n=1 (ajv, 3 rows), unfixed | P9 / C-58 |
+| `static→union-member` | TS: a member call on a union-typed receiver (`n: A \| B`; `n.render()`; hono's `c.toString()` on a `Child` union) | one member's method drawn at semantic certainty where the base signature (or the built-in `Object.toString`) is the static answer — a provider shape (scip-typescript), **n=2 repos** (ajv 3 rows, hono 7 rows — the 1-1 draws, 2026-09-09), unfixed | P9 / C-58 |
 | `macro→method` | Rust: a method call a macro body makes (`define_*_quickcheck!`, `unsafe_ifunc!`) | **no edge** (as `macro→function`) | C-58 (macro face) |
 | `interface→type-member` | call of a member declared only as an interface property signature (a zustand store's `ChatState.addMessage`) | **no edge** — interface members are not graph symbols (C-9) | C-58 |
 | `static→anonymous-function` | an IIFE or a literal passed straight to a call | no edge | C-58 |
@@ -41,6 +41,10 @@ commit as the cell.
 | `static→constructor` (Java) | `new T() {..}` — the anonymous subclass's synthetic constructor calls T's | drawn as `uses` of T by decision (no lane A site); `new T(..)` on a declared or implicit constructor is drawn (an implicit one at the class line) | ADR-096 |
 
 ## Cells
+
+### The 1-1 on repowise's draws (2026-09-09; [cells](oracle-cells/), `*-hobbes-2026-09-09.md`)
+
+Five repos repowise-bench pinned, graded by our keys (ADR-101 § the 1-1): cobra (with tests) 2,186/2,186, recall 71.8% at 2 roots; gitleaks with tests 2,266/2,266 at 9 roots (94.9%) and without 2,010/2,010 at 2 roots (98.0%) — after one wrong *syntactic* edge was fixed the same day (`re.MustCompile` inside the repo's own `regexp` package bound to the enclosing function: the fallback matched the stdlib import path to the repo's `regexp/` directory by suffix; `gosource._repo_package` now applies cmd/go's rule that a first path element without a dot is the standard library's); zod 9,731/9,731, recall 45.1% over every resolved site (lane B without dependencies — pnpm is not provisioned, C-23); hono (`tsconfig.build.json`) 767/774, recall 55.2% — the 7 are `static→union-member`. Misses are the standing classes: closures and interface dispatch on Go (cobra `interface→named` 431, gitleaks `func-value→closure` 76 / 17), and on TS the local bindings, closures and the unprovisioned dependencies. syft has no key: RTA over its no-tests program was OOM-killed at 18.7 GB on this box and the with-tests program at 19 GB — H-9's shape; the cell waits on a bigger box.
 
 ### The seven-repo loop (2026-08-27; triaged 2026-08-28; [cells](oracle-cells/))
 

@@ -262,8 +262,10 @@ and its edges are graded. Build tags: the box's default set, plus
 
 ## The TypeScript oracle (`ts/tsc-oracle.mjs`)
 
-`node ts/tsc-oracle.mjs --repo <repo> --zone <dir-with-tsconfig> --out
-oracle.json`. Loads `typescript` **from the zone** when the zone has
+`node ts/tsc-oracle.mjs --repo <repo> --zone <dir-with-tsconfig>
+[--config tsconfig.build.json] --out oracle.json` (`--config` names the
+file inside the zone when the root is solution-style — `files: []` and
+`references` build an empty program). Loads `typescript` **from the zone** when the zone has
 one (the version the project pins, the environment lane B indexed
 under), else the harness's own (`ts/package.json`, for fixtures without
 `node_modules`). Builds the zone's program from its tsconfig, walks

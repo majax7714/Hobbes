@@ -90,7 +90,10 @@ run.
 | Writes into the repo | none (the database is at `--db-path`) | `.repowise/` (kept out of the tree with `--no-editor-setup`; the default also writes `.mcp.json`, `.claude/CLAUDE.md`, `.vscode/*`) |
 | Determinism, the same clone indexed again | **not always the same**: four fresh indexes of mux stored 767, 1,193, 767 and 767 CALLS rows (the 1,193 a strict superset; the tool's own summary printed 2,165 each time) — both grades are in the mux cell record | **same**: the converted edge file was byte-identical across two indexes of mux |
 | Wall time on mux (7.5k lines Go) | 4 s | 4 s |
-| Their own errors during the loop | read from each cell's `index.log`, quoted in its record | same |
+| Their own errors during the loop | read from each cell's `index.log`, quoted in its record; the spring-data-elasticsearch index exited 1 on a Kuzu binder exception and was graded as stored | none |
+| Declaration line of a Java method under `@Override` | the annotation's line (the tree-sitter node start) | the annotation's line |
+| Our conversion of that line | converter@1 graded the annotation line and charged the edge to the tool (C-94); converter@2 advances to the identifier's line — the Java cells were regraded with signed direction-of-fix lines | same |
+| Triage of a 20-row random sample of contradictions per tool (after the regrade) | tool-wrong 20 : oracle-grain 0 : converter-defect 0 | tool-wrong 19 : oracle-grain 1 : converter-defect 0 |
 
 ## 3. Numbers published on other bases — recorded here, compared nowhere
 
@@ -115,9 +118,11 @@ run.
   shape as the oracle lane**, published by a competitor, and it is what
   the August reading of this page said no competitor published. It is
   not a 1-1 cell with anything here: different repos, their matcher,
-  their adapters. The obvious next step — Hobbes graded on their
-  draws by our key, or their artifacts re-read by our matcher — is
-  parked until Max names it (ADR-101, consequences).
+  their adapters. Hobbes graded on their draws by our key, with both
+  tools on the same clones, is done (`README.md` § *The 1-1 on
+  repowise's draws*, 2026-09-09); their artifacts under our matcher
+  would need per-edge files their experiment directory does not
+  publish (it holds per-cell summaries).
 - **codebase-memory-mcp:** "83% answer quality" on 31 repositories;
   "99.2% reduction in tokens". Basis: its own question set and its own
   token count.

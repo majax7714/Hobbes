@@ -11,7 +11,7 @@
    "run": "host-run",
    "draw": "picked",
    "label": "ajv",
-   "note": "the one open semantic defect: a member call on a union-typed receiver (static→union-member, n=1)",
+   "note": "the one open semantic defect: a member call on a union-typed receiver drawn to one member's method (static→union-member, a scip-typescript shape; n=2 repos with hono)",
    "edges": 1543,
    "confirmed": 1375,
    "contradicted": 3,
@@ -139,6 +139,50 @@
     "observed→function": 804,
     "observed→lambda": 81,
     "observed→method": 742
+   }
+  },
+  {
+   "stem": "cobra-tests-hobbes",
+   "record": "cobra-tests-hobbes-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "repowise-bench's draw (its corpus.lock pin)",
+   "label": "cobra (with tests)",
+   "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
+   "edges": 2192,
+   "confirmed": 2186,
+   "contradicted": 0,
+   "abstract": 1,
+   "silent": 5,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 2186,
+    "den": 2186
+   },
+   "recall": {
+    "pct": 71.8,
+    "hits": 2200,
+    "pairs": 3062,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 733,
+    "func-value→named": 66,
+    "interface→named": 43,
+    "static→closure": 20
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2192,
+    "refused": 2187,
+    "unjudged": 5,
+    "falsely": 0
    }
   },
   {
@@ -287,6 +331,52 @@
    }
   },
   {
+   "stem": "codegraphcontext-cobra-tests",
+   "record": "codegraphcontext-cobra-tests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "cobra (with tests)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2094,
+   "confirmed": 1874,
+   "contradicted": 212,
+   "abstract": 0,
+   "silent": 8,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 89.8,
+    "num": 1874,
+    "den": 2086
+   },
+   "recall": {
+    "pct": 61.6,
+    "hits": 1887,
+    "pairs": 3062,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 733,
+    "func-value→named": 66,
+    "interface→named": 17,
+    "static→closure": 20,
+    "static→named": 339
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2094,
+    "refused": 2086,
+    "unjudged": 8,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "codegraphcontext-fzf",
    "record": "codegraphcontext-fzf-2026-09-09.md",
    "date": "2026-09-09",
@@ -333,6 +423,151 @@
    }
   },
   {
+   "stem": "codegraphcontext-gitleaks-notests",
+   "record": "codegraphcontext-gitleaks-notests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "gitleaks (no tests)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2404,
+   "confirmed": 1984,
+   "contradicted": 161,
+   "abstract": 0,
+   "silent": 259,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.5,
+    "num": 1984,
+    "den": 2145
+   },
+   "recall": {
+    "pct": 96.8,
+    "hits": 2043,
+    "pairs": 2111,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 17,
+    "func-value→named": 4,
+    "interface→named": 9,
+    "static→closure": 8,
+    "static→named": 30
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2404,
+    "refused": 2145,
+    "unjudged": 259,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-gitleaks-tests",
+   "record": "codegraphcontext-gitleaks-tests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "gitleaks (with tests)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2404,
+   "confirmed": 2211,
+   "contradicted": 171,
+   "abstract": 0,
+   "silent": 22,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.8,
+    "num": 2211,
+    "den": 2382
+   },
+   "recall": {
+    "pct": 92.7,
+    "hits": 2270,
+    "pairs": 2450,
+    "roots": 9,
+    "basis": "at 9 roots"
+   },
+   "misses": {
+    "func-value→closure": 76,
+    "func-value→named": 19,
+    "interface→named": 12,
+    "static→closure": 10,
+    "static→named": 63
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2404,
+    "refused": 2382,
+    "unjudged": 22,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-hono-build",
+   "record": "codegraphcontext-hono-build-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "hono (tsconfig.build.json)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 5849,
+   "confirmed": 607,
+   "contradicted": 164,
+   "abstract": 0,
+   "silent": 5078,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 78.7,
+    "num": 607,
+    "den": 771
+   },
+   "recall": {
+    "pct": 43.7,
+    "hits": 613,
+    "pairs": 1403,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 61,
+    "func-value→variable": 4,
+    "interface→type-member": 30,
+    "static→anonymous-function": 1,
+    "static→anonymous-signature": 15,
+    "static→class": 78,
+    "static→closure": 196,
+    "static→function": 12,
+    "static→method": 188,
+    "static→property": 93,
+    "static→type-member": 20,
+    "static→variable": 92
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 5849,
+    "refused": 771,
+    "unjudged": 5078,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "codegraphcontext-jsoup",
    "record": "codegraphcontext-jsoup-2026-09-09.md",
    "date": "2026-09-09",
@@ -345,30 +580,30 @@
    "tool": "codegraphcontext",
    "note": "codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 15784,
-   "confirmed": 11224,
-   "contradicted": 4560,
+   "confirmed": 12554,
+   "contradicted": 3230,
    "abstract": 0,
    "silent": 0,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 71.1,
-    "num": 11224,
+    "pct": 79.5,
+    "num": 12554,
     "den": 15784
    },
    "recall": {
-    "pct": 45.8,
-    "hits": 11273,
+    "pct": 51.2,
+    "hits": 12619,
     "pairs": 24630,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "interface→anonymous-member": 403,
-    "interface→method": 9465,
+    "interface→anonymous-member": 406,
+    "interface→method": 8215,
     "static→anonymous-member": 28,
     "static→constructor": 1169,
-    "static→method": 2292
+    "static→method": 2193
    },
    "poison": {
     "passed": true,
@@ -573,29 +808,29 @@
    "tool": "codegraphcontext",
    "note": "codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 12065,
-   "confirmed": 5575,
-   "contradicted": 6490,
+   "confirmed": 9580,
+   "contradicted": 2485,
    "abstract": 0,
    "silent": 0,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 46.2,
-    "num": 5575,
+    "pct": 79.4,
+    "num": 9580,
     "den": 12065
    },
    "recall": {
-    "pct": 10.5,
-    "hits": 5698,
+    "pct": 17.8,
+    "hits": 9726,
     "pairs": 54520,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "interface→anonymous-member": 78,
-    "interface→method": 32643,
+    "interface→method": 29650,
     "static→constructor": 11504,
-    "static→method": 4597
+    "static→method": 3562
    },
    "poison": {
     "passed": true,
@@ -618,30 +853,30 @@
    "tool": "codegraphcontext",
    "note": "codegraphcontext graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 10520,
-   "confirmed": 6315,
-   "contradicted": 4204,
+   "confirmed": 8673,
+   "contradicted": 1846,
    "abstract": 0,
    "silent": 1,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 60.0,
-    "num": 6315,
+    "pct": 82.5,
+    "num": 8673,
     "den": 10519
    },
    "recall": {
-    "pct": 26.0,
-    "hits": 6365,
+    "pct": 35.8,
+    "hits": 8743,
     "pairs": 24452,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "interface→anonymous-member": 513,
-    "interface→method": 13217,
+    "interface→anonymous-member": 510,
+    "interface→method": 11061,
     "static→anonymous-member": 4,
     "static→constructor": 2554,
-    "static→method": 1799
+    "static→method": 1580
    },
    "poison": {
     "passed": true,
@@ -664,26 +899,26 @@
    "tool": "codegraphcontext",
    "note": "codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 237,
-   "confirmed": 213,
-   "contradicted": 24,
+   "confirmed": 236,
+   "contradicted": 1,
    "abstract": 0,
    "silent": 0,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 89.9,
-    "num": 213,
+    "pct": 99.6,
+    "num": 236,
     "den": 237
    },
    "recall": {
-    "pct": 59.8,
-    "hits": 223,
+    "pct": 66.0,
+    "hits": 246,
     "pairs": 373,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "interface→method": 105,
+    "interface→method": 82,
     "static→constructor": 45
    },
    "poison": {
@@ -737,6 +972,58 @@
     "seeded": 888,
     "refused": 872,
     "unjudged": 16,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-zod",
+   "record": "codegraphcontext-zod-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "zod",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 6891,
+   "confirmed": 1434,
+   "contradicted": 5228,
+   "abstract": 0,
+   "silent": 229,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 21.5,
+    "num": 1434,
+    "den": 6662
+   },
+   "recall": {
+    "pct": 6.6,
+    "hits": 1443,
+    "pairs": 21931,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 59,
+    "func-value→variable": 1143,
+    "interface→type-member": 88,
+    "static→anonymous-signature": 13,
+    "static→class": 110,
+    "static→closure": 145,
+    "static→function": 9904,
+    "static→method": 2680,
+    "static→property": 1274,
+    "static→type-member": 4955,
+    "static→variable": 117
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 6891,
+    "refused": 6662,
+    "unjudged": 229,
     "falsely": 0
    }
   },
@@ -1508,6 +1795,94 @@
    }
   },
   {
+   "stem": "gitleaks-notests-hobbes",
+   "record": "gitleaks-notests-hobbes-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "repowise-bench's draw (its corpus.lock pin)",
+   "label": "gitleaks (no tests)",
+   "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
+   "edges": 2283,
+   "confirmed": 2010,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 273,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 2010,
+    "den": 2010
+   },
+   "recall": {
+    "pct": 98.0,
+    "hits": 2069,
+    "pairs": 2111,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 17,
+    "func-value→named": 4,
+    "interface→named": 13,
+    "static→closure": 8
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2283,
+    "refused": 2010,
+    "unjudged": 273,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "gitleaks-tests-hobbes",
+   "record": "gitleaks-tests-hobbes-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "repowise-bench's draw (its corpus.lock pin)",
+   "label": "gitleaks (with tests)",
+   "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
+   "edges": 2283,
+   "confirmed": 2266,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 17,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 2266,
+    "den": 2266
+   },
+   "recall": {
+    "pct": 94.9,
+    "hits": 2325,
+    "pairs": 2450,
+    "roots": 9,
+    "basis": "at 9 roots"
+   },
+   "misses": {
+    "func-value→closure": 76,
+    "func-value→named": 19,
+    "interface→named": 20,
+    "static→closure": 10
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2283,
+    "refused": 2266,
+    "unjudged": 17,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "hobbes-go",
    "record": "hobbes-go-2026-08-28.md",
    "date": "2026-08-28",
@@ -1593,6 +1968,57 @@
     "seeded": 3633,
     "refused": 2905,
     "unjudged": 728,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "hono-build-hobbes",
+   "record": "hono-build-hobbes-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "contained",
+   "draw": "repowise-bench's draw (its corpus.lock pin)",
+   "label": "hono (tsconfig.build.json)",
+   "note": "a draw of repowise's G4 experiment on our key; the 7 contradictions are ajv's static→union-member shape (`c.toString()` on a Child union drawn to JSXNode.toString), the open scip-typescript defect, n=2 repos",
+   "edges": 4474,
+   "confirmed": 767,
+   "contradicted": 7,
+   "abstract": 0,
+   "silent": 3700,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 99.1,
+    "num": 767,
+    "den": 774
+   },
+   "recall": {
+    "pct": 55.2,
+    "hits": 774,
+    "pairs": 1403,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 61,
+    "func-value→variable": 4,
+    "interface→type-member": 30,
+    "static→anonymous-function": 1,
+    "static→anonymous-signature": 15,
+    "static→class": 78,
+    "static→closure": 229,
+    "static→method": 91,
+    "static→property": 93,
+    "static→type-member": 20,
+    "static→variable": 7
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 4474,
+    "refused": 774,
+    "unjudged": 3700,
     "falsely": 0
    }
   },
@@ -2004,6 +2430,52 @@
    }
   },
   {
+   "stem": "repowise-cobra-tests",
+   "record": "repowise-cobra-tests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "cobra (with tests)",
+   "tool": "repowise",
+   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2066,
+   "confirmed": 1997,
+   "contradicted": 59,
+   "abstract": 1,
+   "silent": 9,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 97.1,
+    "num": 1997,
+    "den": 2056
+   },
+   "recall": {
+    "pct": 65.6,
+    "hits": 2009,
+    "pairs": 3062,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 733,
+    "func-value→named": 66,
+    "interface→named": 43,
+    "static→closure": 20,
+    "static→named": 191
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2066,
+    "refused": 2057,
+    "unjudged": 9,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "repowise-fzf",
    "record": "repowise-fzf-2026-09-09.md",
    "date": "2026-09-09",
@@ -2050,6 +2522,151 @@
    }
   },
   {
+   "stem": "repowise-gitleaks-notests",
+   "record": "repowise-gitleaks-notests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "gitleaks (no tests)",
+   "tool": "repowise",
+   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2279,
+   "confirmed": 1956,
+   "contradicted": 74,
+   "abstract": 4,
+   "silent": 245,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 96.4,
+    "num": 1956,
+    "den": 2030
+   },
+   "recall": {
+    "pct": 95.4,
+    "hits": 2013,
+    "pairs": 2111,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 17,
+    "func-value→named": 4,
+    "interface→named": 13,
+    "static→closure": 8,
+    "static→named": 56
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2279,
+    "refused": 2034,
+    "unjudged": 245,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-gitleaks-tests",
+   "record": "repowise-gitleaks-tests-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "gitleaks (with tests)",
+   "tool": "repowise",
+   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2279,
+   "confirmed": 2172,
+   "contradicted": 80,
+   "abstract": 5,
+   "silent": 22,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 96.4,
+    "num": 2172,
+    "den": 2252
+   },
+   "recall": {
+    "pct": 91.0,
+    "hits": 2229,
+    "pairs": 2450,
+    "roots": 9,
+    "basis": "at 9 roots"
+   },
+   "misses": {
+    "func-value→closure": 76,
+    "func-value→named": 19,
+    "interface→named": 20,
+    "static→closure": 10,
+    "static→named": 96
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2279,
+    "refused": 2257,
+    "unjudged": 22,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-hono-build",
+   "record": "repowise-hono-build-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "hono (tsconfig.build.json)",
+   "tool": "repowise",
+   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 944,
+   "confirmed": 735,
+   "contradicted": 52,
+   "abstract": 2,
+   "silent": 155,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 93.4,
+    "num": 735,
+    "den": 787
+   },
+   "recall": {
+    "pct": 52.8,
+    "hits": 741,
+    "pairs": 1403,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 61,
+    "func-value→variable": 1,
+    "interface→type-member": 30,
+    "static→anonymous-function": 1,
+    "static→anonymous-signature": 15,
+    "static→class": 12,
+    "static→closure": 229,
+    "static→function": 1,
+    "static→method": 169,
+    "static→property": 93,
+    "static→type-member": 20,
+    "static→variable": 30
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 944,
+    "refused": 789,
+    "unjudged": 155,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "repowise-jsoup",
    "record": "repowise-jsoup-2026-09-09.md",
    "date": "2026-09-09",
@@ -2062,30 +2679,30 @@
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 22273,
-   "confirmed": 9735,
-   "contradicted": 12483,
+   "confirmed": 10874,
+   "contradicted": 11344,
    "abstract": 0,
    "silent": 55,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 43.8,
-    "num": 9735,
+    "pct": 48.9,
+    "num": 10874,
     "den": 22218
    },
    "recall": {
-    "pct": 39.8,
-    "hits": 9791,
+    "pct": 44.4,
+    "hits": 10945,
     "pairs": 24630,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "interface→anonymous-member": 407,
-    "interface→method": 11293,
+    "interface→method": 10286,
     "static→anonymous-member": 27,
-    "static→constructor": 676,
-    "static→method": 2436
+    "static→constructor": 669,
+    "static→method": 2296
    },
    "poison": {
     "passed": true,
@@ -2286,35 +2903,35 @@
    "label": "Severed-Chains",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
-   "edges": 33277,
-   "confirmed": 15286,
-   "contradicted": 17323,
+   "edges": 33276,
+   "confirmed": 19160,
+   "contradicted": 13448,
    "abstract": 0,
    "silent": 668,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 46.9,
-    "num": 15286,
-    "den": 32609
+    "pct": 58.8,
+    "num": 19160,
+    "den": 32608
    },
    "recall": {
-    "pct": 32.0,
-    "hits": 17462,
+    "pct": 39.2,
+    "hits": 21375,
     "pairs": 54520,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "interface→anonymous-member": 78,
-    "interface→method": 28531,
-    "static→constructor": 5061,
-    "static→method": 3388
+    "interface→method": 26842,
+    "static→constructor": 4801,
+    "static→method": 1424
    },
    "poison": {
     "passed": true,
-    "seeded": 33277,
-    "refused": 32609,
+    "seeded": 33276,
+    "refused": 32608,
     "unjudged": 668,
     "falsely": 0
    }
@@ -2332,30 +2949,30 @@
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 20227,
-   "confirmed": 8805,
-   "contradicted": 11139,
+   "confirmed": 11402,
+   "contradicted": 8542,
    "abstract": 0,
    "silent": 283,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 44.1,
-    "num": 8805,
+    "pct": 57.2,
+    "num": 11402,
     "den": 19944
    },
    "recall": {
-    "pct": 36.3,
-    "hits": 8870,
+    "pct": 47.2,
+    "hits": 11537,
     "pairs": 24452,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "interface→anonymous-member": 513,
-    "interface→method": 12396,
+    "interface→anonymous-member": 510,
+    "interface→method": 10384,
     "static→anonymous-member": 5,
-    "static→constructor": 1583,
-    "static→method": 1085
+    "static→constructor": 1172,
+    "static→method": 844
    },
    "poison": {
     "passed": true,
@@ -2378,27 +2995,26 @@
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 365,
-   "confirmed": 271,
-   "contradicted": 94,
+   "confirmed": 331,
+   "contradicted": 34,
    "abstract": 0,
    "silent": 0,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 74.2,
-    "num": 271,
+    "pct": 90.7,
+    "num": 331,
     "den": 365
    },
    "recall": {
-    "pct": 75.6,
-    "hits": 282,
+    "pct": 91.7,
+    "hits": 342,
     "pairs": 373,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "interface→method": 53,
-    "static→constructor": 38
+    "interface→method": 31
    },
    "poison": {
     "passed": true,
@@ -2451,6 +3067,58 @@
     "seeded": 990,
     "refused": 981,
     "unjudged": 9,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-zod",
+   "record": "repowise-zod-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "repowise-bench's draw",
+   "label": "zod",
+   "tool": "repowise",
+   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2784,
+   "confirmed": 2182,
+   "contradicted": 179,
+   "abstract": 232,
+   "silent": 191,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.4,
+    "num": 2182,
+    "den": 2361
+   },
+   "recall": {
+    "pct": 10.0,
+    "hits": 2190,
+    "pairs": 21931,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 59,
+    "func-value→variable": 1046,
+    "interface→type-member": 88,
+    "static→anonymous-signature": 13,
+    "static→class": 88,
+    "static→closure": 324,
+    "static→function": 8986,
+    "static→method": 2637,
+    "static→property": 1274,
+    "static→type-member": 4955,
+    "static→variable": 271
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2784,
+    "refused": 2593,
+    "unjudged": 191,
     "falsely": 0
    }
   },
@@ -2625,6 +3293,57 @@
     "seeded": 1047,
     "refused": 1039,
     "unjudged": 8,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "zod-hobbes",
+   "record": "zod-hobbes-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness)",
+   "lang": "TypeScript",
+   "run": "contained",
+   "draw": "repowise-bench's draw (its corpus.lock pin)",
+   "label": "zod",
+   "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
+   "edges": 9780,
+   "confirmed": 9731,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 49,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 9731,
+    "den": 9731
+   },
+   "recall": {
+    "pct": 45.1,
+    "hits": 9893,
+    "pairs": 21931,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 59,
+    "func-value→variable": 226,
+    "interface→type-member": 88,
+    "static→anonymous-signature": 13,
+    "static→class": 110,
+    "static→closure": 324,
+    "static→function": 4220,
+    "static→method": 531,
+    "static→property": 1274,
+    "static→type-member": 4955,
+    "static→variable": 238
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 9780,
+    "refused": 9731,
+    "unjudged": 49,
     "falsely": 0
    }
   }

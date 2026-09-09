@@ -42,7 +42,7 @@ const args = isMainThread
     )
   : workerData.args;
 if (!args.repo || !args.zone) {
-  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--out <file>] [--watchdog <seconds>]");
+  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--config <tsconfig file name>] [--out <file>] [--watchdog <seconds>]");
   process.exit(2);
 }
 
@@ -85,9 +85,13 @@ try {
   ts = req("typescript");
 }
 
-const configPath = ts.findConfigFile(zone, ts.sys.fileExists, "tsconfig.json");
+// --config names the tsconfig file inside the zone (default tsconfig.json):
+// a solution-style root (`files: []`, `references`) builds an empty
+// program, so a cell there names the referenced config it grades
+// (hono's tsconfig.build.json, ADR-101's 1-1 cells).
+const configPath = ts.findConfigFile(zone, ts.sys.fileExists, args.config ?? "tsconfig.json");
 if (!configPath) {
-  console.error(`oracle: no tsconfig.json at ${zone}`);
+  console.error(`oracle: no ${args.config ?? "tsconfig.json"} at ${zone}`);
   process.exit(1);
 }
 const cfg = ts.readConfigFile(configPath, ts.sys.readFile);

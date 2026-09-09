@@ -81,19 +81,20 @@ build item.*
   `grade-foreign.sh` grade any tool's graph against the lane's keys;
   CodeGraphContext and repowise graded on the thirteen loop /
   random-draw cells; `docs/comparative/` holds the field, the claim
-  page and the three regenerated graphics. Parked: (a) **Hobbes on
-  repowise's draws** — its published compiler-graded table (cobra,
-  gitleaks, syft, zod, hono; Go RTA + tsc; artifacts public) is the
-  same method on other repos, so a true 1-1 needs Hobbes ingested on
-  those commits and graded by our key, and their five tools' exports
-  re-read by our matcher; (b) **the next tools** — codebase-memory-mcp
-  and colbymchenry/codegraph both store SQLite and are the two most
-  starred in `field.md`; each needs its converter, fixture and a
-  triage pass (the foreign records print their contradictions
-  untriaged, A-8). Also owed: a hand triage of a sample of the first
-  cells' contradictions (the records say `untriaged`), and the
-  competitor cells re-run under the sandbox image if Max wants C-96
-  narrowed. Contributor profile: Go/Python, reads other people's
+  page and the three regenerated graphics. Done the same day, later: a 40-row hand triage of
+  the foreign contradictions (which found and fixed the converters'
+  Java annotation-line grain, C-94) and **Hobbes on repowise's draws**
+  under our key with both tools on the same clones (cobra, gitleaks ×2,
+  zod, hono; `docs/comparative/README.md` § the 1-1) — which found and
+  fixed one wrong syntactic Go edge (a stdlib import path matched to a
+  repo package by suffix). Parked: (a) **syft's two keys** — RTA over
+  the program is OOM-killed on this box (18.7 GB / 19 GB), a bigger
+  box; (b) **the next tools** — codebase-memory-mcp and
+  colbymchenry/codegraph, both SQLite, the two most starred in
+  `field.md`; each needs its converter, fixture and a triage sample;
+  (c) the competitor cells re-run under the sandbox image if Max wants
+  C-96 narrowed; (d) the ajv / hono union-member provider shape, now
+  n=2, if a fix on the join side is wanted. Contributor profile: Go/Python, reads other people's
   schemas patiently.
 - **Registry-pulled image.** The graph job builds the image every run
   (~4 min). Pull-by-digest from a registry when that starts to hurt;
