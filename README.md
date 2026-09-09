@@ -225,7 +225,7 @@ Deeper: architecture §6;
 [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) (the
 preregistered claims and every run's result);
 [`docs/benchmark-deepswe.md`](docs/benchmark-deepswe.md) (the redirect);
-[`docs/adr085-validation-run.md`](docs/adr085-validation-run.md) (the
+[`docs/ttt-cells/adr085-validation-7b-2026-08-24.md`](docs/ttt-cells/adr085-validation-7b-2026-08-24.md) (the
 latest run and its defect register).
 
 ## Related projects

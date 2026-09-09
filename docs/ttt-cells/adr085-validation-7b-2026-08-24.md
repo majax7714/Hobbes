@@ -1,5 +1,9 @@
 # The ADR-085 validation run (2026-08-24) — record and defect register
 
+*Moved here from `docs/adr085-validation-run.md` on 2026-09-09 (docs
+cleanup): a dated run record belongs with the cell records, not beside
+the living documents. Content unchanged.*
+
 > **Status (2026-08-28): all eight fixed — D1–D4, D7, D8 in ADR-091
 > (2026-08-27); D5 and D6 in ADR-093 (2026-08-28, reopened by Max), both
 > validated with no model.** The run itself is still stubbed, not concluded:

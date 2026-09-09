@@ -149,7 +149,7 @@ rather than verdicts on H1–H3, all recorded in the hypotheses doc's
 Results — and the point of writing the hypotheses first is that
 results cannot re-scope them. Runs are **parked** (owner's standing
 policy, renewed 2026-08-24): the validation pair produced an
-eight-defect register (`adr085-validation-run.md`), six fixed in
+eight-defect register (`ttt-cells/adr085-validation-7b-2026-08-24.md`), six fixed in
 ADR-091, D5/D6 held; the next run, on an explicit go, is the removal
 A/B on the D5 fix — see [`session-handoff.md`](session-handoff.md).
 
@@ -1333,7 +1333,7 @@ and since ADR-086 the machinery enforces the label: an aided run is
 recorded `arm=model+prompt` on every path, enters no H1 harness slot,
 and cannot be reported as the harness without editing the mechanism.
 That run happened 2026-08-24 (the ADR-085 validation pair, 7B, two
-passes; `adr085-validation-run.md` — eight harness defects, six fixed
+passes; `ttt-cells/adr085-validation-7b-2026-08-24.md` — eight harness defects, six fixed
 in ADR-091, D5/D6 held). The next, on an explicit go, is the removal
 A/B on the D5 fix.
 
@@ -1520,7 +1520,7 @@ Deliberately not built, and not deferred-with-intent unless said so:
   surface is loopback-only and enforced at bind (ADR-022), and that is a
   design position, not a stage on the way to hosting.
 - **Hobbes-as-an-application** — a workspace-model desktop app that opens
-  folders. Assessed in `m9-application-mode.md` and **parked**: kept as a
+  folders. Assessed in `Potential-application-mode.md` and **parked**: kept as a
   record of the thought, not on the roadmap, and not to be started. It would
   cross ADR-022's "the surface never runs the pipeline" line.
 - **IDE plugins**; any model fine-tuning; live LSP for UI hover.

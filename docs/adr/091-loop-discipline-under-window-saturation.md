@@ -1,6 +1,6 @@
 # ADR-091 — Loop discipline under window saturation, and the handoff nudge
 
-**Date:** 2026-08-27 · **Status:** accepted · **Owner:** Max · **Source:** the ADR-085 validation run's defect register (`docs/adr085-validation-run.md`, D1–D4, D7, D8)
+**Date:** 2026-08-27 · **Status:** accepted · **Owner:** Max · **Source:** the ADR-085 validation run's defect register (`docs/ttt-cells/adr085-validation-7b-2026-08-24.md`, D1–D4, D7, D8)
 
 ## Context
 

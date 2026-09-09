@@ -61,7 +61,7 @@ Locked decisions (not open for relitigation): **D1** Python + Go + TS
 split by focus, **D2** Podman rootless for session isolation, **D3**
 Cytoscape.js for the interactive graph. **Hobbes stays local** — on the
 box, against a repo on disk (architecture §10); the application mode in
-`docs/m9-application-mode.md` is parked, do not design toward it.
+`docs/Potential-application-mode.md` is parked, do not design toward it.
 
 ## Where to read next (by task)
 
@@ -327,7 +327,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 - **Latest run and its result:** the ADR-085 validation pair (5 Verified
   instances, 7B, two passes) ran on 2026-08-24. Machinery mostly held;
   0/5 solved (not the measure); **eight harness defects registered in
-  `docs/adr085-validation-run.md`**. D1–D4, D7, D8 are fixed
+  `docs/ttt-cells/adr085-validation-7b-2026-08-24.md`**. D1–D4, D7, D8 are fixed
   (ADR-091, 2026-08-27) and D5/D6 (ADR-093, 2026-08-28) are fixed,
   all validated with no model.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,

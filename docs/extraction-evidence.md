@@ -395,7 +395,7 @@ the helper ran):
 | Repo (instance) | Numbers |
 |---|---|
 | django (11400) | 2,829 nodes, 70,066 call edges; python **53.7%** of 123,389 sites; js/ts 20.0% of 9,281 (lockfile-less zones declined by name, C-34); 3 degradations reported |
-| scikit-learn (25102) | 1,052 nodes, 31,523 call edges; python **53.0%** of 82,674; 1 degradation — the duplicate-symbol row (defect D7, `adr085-validation-run.md`; **corrected by ADR-091**: the duplicate was *in-repo* — `doc/tutorial/text_analytics/{skeletons,solutions}/` — a legitimate C-28 record, not foreign environment residue; the defect was its Rust wording and `path: "."`, both fixed) |
+| scikit-learn (25102) | 1,052 nodes, 31,523 call edges; python **53.0%** of 82,674; 1 degradation — the duplicate-symbol row (defect D7, `ttt-cells/adr085-validation-7b-2026-08-24.md`; **corrected by ADR-091**: the duplicate was *in-repo* — `doc/tutorial/text_analytics/{skeletons,solutions}/` — a legitimate C-28 record, not foreign environment residue; the defect was its Rust wording and `path: "."`, both fixed) |
 | xarray (3993) | 237 nodes, 13,897 call edges; python **68.8%** of 30,725; no degradations |
 | sphinx (8548) | 733 nodes, 11,041 call edges; python **72.1%** of 24,405 |
 | sympy (13852) | 1,309 nodes, 28,840 call edges; **lane B did not run** — the workspace's scip helper env errored and the P6 degradation is on the record; the 0.0% capture of 607,906 sites recorded under it is the degraded-path figure, not a resolution measurement |

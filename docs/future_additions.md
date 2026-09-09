@@ -284,7 +284,7 @@ surfaced per file rather than silent.)*
   and is the stamped SHA HEAD) captured while the user chooses the
   action. Full assessment, including what already exists, the ADR-022
   boundary it crosses, the authentication question app mode raises, and
-  the three decisions it waits on: **`docs/m9-application-mode.md`**.
+  the three decisions it waits on: **`docs/Potential-application-mode.md`**.
 
   It subsumes the buffering papercut above by deleting the process that
   buffers. It does *not* subsume the clone papercut — that stays a

@@ -7666,3 +7666,23 @@ ADR-077; dated ledger entries keep theirs.
   and the path moved to DeepSWE on Pier (ADR-078).
 
 No code, no suite change, no spend.
+
+## 2026-09-09 (docs cleanup, 3) — the ADR-085 run record moves to the cells; the application-mode note renamed
+
+Max: fold the ADR-085 validation run into the cell records; he renamed
+the parked application-mode note himself. `docs/adr085-validation-run.md`
+→ `docs/ttt-cells/adr085-validation-7b-2026-08-24.md` (content
+unchanged, a one-line provenance note under the title) — a dated run
+record with its defect register, all eight fixed (ADR-091, ADR-093),
+beside the other dated cell records rather than among the living
+documents; its nine references (README, CLAUDE.md, architecture §2 and
+§6, `extraction-evidence.md`, `benchmark-hypotheses.md`, ADR-091,
+ADR-093 ×2) follow it. `docs/m9-application-mode.md` →
+`docs/Potential-application-mode.md` (Max's rename, text unchanged;
+CLAUDE.md, architecture §10 and `future_additions.md` follow). `docs/`
+is 26 entries, from 34 at the start of the day. Noted, not done: the
+`ttt-cells/` directory now holds the Calvin probe and this bench record
+as well as the test-time-training cells, so its name undersells it —
+a rename is Max's call.
+
+No code, no suite change, no spend.

@@ -1320,7 +1320,7 @@ window-fit (or a larger window) before a set is worth spending.
 
 The one cleared run (two passes, 7B, harness arm only, five Verified
 instances, `--coverage strict`; B = `--proposal-in-brief`). Full record
-and the eight-defect register: **`docs/adr085-validation-run.md`** —
+and the eight-defect register: **`docs/ttt-cells/adr085-validation-7b-2026-08-24.md`** —
 that file is the entry; nothing here supersedes it. The headline
 numbers: the 7B planner wrote `requirements:` 0/5 first-attempt, 3/5
 after the one strict re-plan (A), with the lexical fallback bypassing
