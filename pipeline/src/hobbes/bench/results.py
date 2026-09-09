@@ -8,7 +8,7 @@ summaries (the error stream). The report lays the records against
 the three preregistered hypotheses and **computes, never interprets**:
 it prints the rates, slopes, and per-solved costs with their sample
 sizes and every unobserved term named, and leaves the reading to the
-results section of ``docs/benchmark-hypotheses.md``.
+results section of ``docs/benchmark/benchmark-hypotheses.md``.
 
 Records with no verdict yet are excluded from every rate and counted
 as such — a rate over unjudged patches would be a rate of "produced

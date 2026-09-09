@@ -71,7 +71,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
-| touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
+| touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
@@ -327,12 +327,12 @@ review → `lane_b` pytest) and runs the same way on a box.
 - **Latest run and its result:** the ADR-085 validation pair (5 Verified
   instances, 7B, two passes) ran on 2026-08-24. Machinery mostly held;
   0/5 solved (not the measure); **eight harness defects registered in
-  `docs/ttt-cells/adr085-validation-7b-2026-08-24.md`**. D1–D4, D7, D8 are fixed
+  `docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`**. D1–D4, D7, D8 are fixed
   (ADR-091, 2026-08-27) and D5/D6 (ADR-093, 2026-08-28) are fixed,
   all validated with no model.
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
-  (`docs/benchmark-deepswe.md`); no H1 claim has been earned.
+  (`docs/benchmark/benchmark-deepswe.md`); no H1 claim has been earned.
 - **The oracle lane (ADR-089) is built and both phases have run:** Go
   and TS call edges compiler-graded against RTA / `tsc` (this repo,
   kbet, 19 dagger modules), Python trace-graded by the interpreter under
@@ -383,7 +383,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   (callers 0.10 / 0.15): at this step count the weights hold module-grain
   regularities and abstention, not edges. No memorised cell at 7B
   (C-83). Records in `docs/ttt-cells/`; standing per hypothesis in
-  `docs/benchmark-hypotheses.md`; C-81–C-85.
+  `docs/benchmark/benchmark-hypotheses.md`; C-81–C-85.
 - **Max's ten follow-ups ran the same evening** (results §9–§10, the
   second cell record): past one epoch the edges *do* enter the weights
   (callers on trained symbols 0.95 at 3,000 steps) while the NLL gain

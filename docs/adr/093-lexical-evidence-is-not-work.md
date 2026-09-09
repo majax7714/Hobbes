@@ -1,6 +1,6 @@
 # ADR-093 — Lexical evidence is not a plan and not work: D5 and D6 closed
 
-**Date:** 2026-08-28 · **Status:** accepted — built, validated with no model · **Owner:** Max · **Source:** defects D5 and D6 of the ADR-085 validation run (`docs/ttt-cells/adr085-validation-7b-2026-08-24.md`), held 2026-08-27, reopened 2026-08-28
+**Date:** 2026-08-28 · **Status:** accepted — built, validated with no model · **Owner:** Max · **Source:** defects D5 and D6 of the ADR-085 validation run (`docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`), held 2026-08-27, reopened 2026-08-28
 
 ## Context
 
@@ -111,5 +111,5 @@ gold-coverage metric, which ADR-083 reserved for Max.
   thirty-importer hub seeded by one word is context, by `--seed` is
   work, and alone is a `SeedError`. No model, no GPU.
 - Register: C-36 and C-57 amended; D5 and D6 flipped to fixed in
-  `docs/ttt-cells/adr085-validation-7b-2026-08-24.md`; architecture §6 no longer carries the
+  `docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`; architecture §6 no longer carries the
   D5 carve-out.

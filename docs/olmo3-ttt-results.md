@@ -1,6 +1,6 @@
 # Test-time training on the derived layer — results, Olmo-3-7B-Instruct (2026-09-03)
 
-**Design:** [`olmo3-ttt-validation.md`](olmo3-ttt-validation.md) · **Decision:** ADR-099 · **Per-cell numbers:** [`ttt-cells/hobbes-olmo3-7b-2026-09-03.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03.md), [`ttt-cells/fastapi-olmo3-7b-2026-09-03.md`](ttt-cells/fastapi-olmo3-7b-2026-09-03.md) · **Standing per hypothesis:** [`benchmark-hypotheses.md` § H-TTT](benchmark-hypotheses.md) · **Constraints:** C-81–C-85
+**Design:** [`olmo3-ttt-validation.md`](olmo3-ttt-validation.md) · **Decision:** ADR-099 · **Per-cell numbers:** [`ttt-cells/hobbes-olmo3-7b-2026-09-03.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03.md), [`ttt-cells/fastapi-olmo3-7b-2026-09-03.md`](ttt-cells/fastapi-olmo3-7b-2026-09-03.md) · **Standing per hypothesis:** [`benchmark-hypotheses.md` § H-TTT](benchmark/benchmark-hypotheses.md) · **Constraints:** C-81–C-85
 
 This is the reading document: what was run, what came out, what it
 means under the preregistered kill criteria, and what it cannot mean.

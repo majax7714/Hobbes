@@ -8,7 +8,7 @@
 
 ## Context
 
-`docs/agent-mapping.md` (Max, 2026-08-19) is the design for the unbuilt
+`docs/benchmark/agent-mapping.md` (Max, 2026-08-19) is the design for the unbuilt
 milestone the architecture names in "Where this is going": single-use
 agents under derived, systematic context. Its premise — **phases, not
 personas** — replaces the company org chart with an algorithm: an agent

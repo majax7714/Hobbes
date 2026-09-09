@@ -6,7 +6,7 @@ benchmark (SWE-bench-class — issue in, patch out, the benchmark's own
 hidden tests decide) against the same models run **pure** on the same
 instances, and let the error stream drive the adjustment. The three
 hypotheses it bears on are preregistered in
-``docs/benchmark-hypotheses.md``; this package is the machinery that
+``docs/benchmark/benchmark-hypotheses.md``; this package is the machinery that
 produces the numbers those hypotheses are decided by, and nothing in
 it interprets a result.
 

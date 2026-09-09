@@ -809,7 +809,7 @@ refuses that arm name.)*
   comparison it is not.
 - **Bites at:** any pure-vs-aided table read as "Hobbes helped / hurt";
   any pure success read as capability.
-- **You find out:** **surfaced** — `docs/benchmark-hypotheses.md` carries
+- **You find out:** **surfaced** — `docs/benchmark/benchmark-hypotheses.md` carries
   the reading rule and every results table since 2026-08-22 notes it; the
   candidate instruments are a per-(model, repo) familiarity probe
   (reproduce a named function with no tools; verbatim-match rate beside

@@ -5,7 +5,7 @@
 Amends the architecture's **§6.2** (a third instrument beside the
 harness and the oracle lane). Registers **C-81–C-84**
 (`docs/constraints/verification-benchmark-harness.md`). Adds
-**H-TTT-1–5** to `docs/benchmark-hypotheses.md`.
+**H-TTT-1–5** to `docs/benchmark/benchmark-hypotheses.md`.
 
 ## Context
 

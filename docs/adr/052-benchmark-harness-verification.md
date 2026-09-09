@@ -27,7 +27,7 @@ discipline around it.
    require D2 (nothing consumes a change-spec yet); that dependency is
    stated, not worked around.
 2. **Hypotheses are preregistered before any run**, in
-   [`benchmark-hypotheses.md`](../benchmark-hypotheses.md), each with
+   [`benchmark-hypotheses.md`](../benchmark/benchmark-hypotheses.md), each with
    the metric that decides it and what falsifies it:
    - **H1** — derived context substitutes for model size: harnessed
      smaller models perform to the degree of, if not better than,

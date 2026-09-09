@@ -4,7 +4,7 @@
 **Status:** accepted — a **rough base**, built to be run under the
 benchmark harness and corrected from its error stream (ADR-052)
 **Amends:** `docs/hobbes-architecture.md` (§6 gains the execution half;
-§8's D-table); `docs/agent-mapping.md` (status header);
+§8's D-table); `docs/benchmark/agent-mapping.md` (status header);
 `docs/constraints/README.md` (C-38); `docs/future_additions.md` (the D2 entry
 shrinks to what remains)
 

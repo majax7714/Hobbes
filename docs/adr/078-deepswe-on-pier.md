@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-22 · **Status:** accepted (first run done, one task per
 arm) · **Realises:** the harness pivot (handoff STRATEGY §2), the DeepSWE
-redirect (`docs/benchmark-deepswe.md`), ADR-077's aided shape. Relates to
+redirect (`docs/benchmark/benchmark-deepswe.md`), ADR-077's aided shape. Relates to
 C-39, C-49, C-55.
 
 ## Context

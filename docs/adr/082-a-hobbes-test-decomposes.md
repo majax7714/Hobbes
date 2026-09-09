@@ -3,7 +3,7 @@
 **Date:** 2026-08-23 · **Status:** accepted · **Retracts as Hobbes
 evidence:** every Pier result under ADR-078..081, and `five-fresh-7b-aided-fix`
 (ADR-077). **Amends:** architecture "Design principles" (adds P12),
-`docs/benchmark-hypotheses.md` (reading rule), ADR-077 (the aided mode is
+`docs/benchmark/benchmark-hypotheses.md` (reading rule), ADR-077 (the aided mode is
 a *repair* for fragmentation, not a test shape).
 
 ## Context
@@ -11,7 +11,7 @@ a *repair* for fragmentation, not a test shape).
 Hobbes breaks work up and derives context **in order to** (1) reduce the
 context window a large task needs, (2) improve the accuracy of what the
 agent recalls, and (3) improve implementation through specialised,
-sandboxed roles. Every hypothesis in `docs/benchmark-hypotheses.md` rests
+sandboxed roles. Every hypothesis in `docs/benchmark/benchmark-hypotheses.md` rests
 on that decomposition. Between 2026-08-22 and 2026-08-23 it slipped out
 in two steps and nobody — builder or method — caught it:
 
@@ -72,5 +72,5 @@ the split.
   at 0.8–1.6 M tokens) is the real open problem P12 points at — units that
   multiply the work instead of dividing it — and the place the thinking
   starts.
-- `docs/benchmark-hypotheses.md` gains P12 as a reading rule above the
+- `docs/benchmark/benchmark-hypotheses.md` gains P12 as a reading rule above the
   results, and the Pier tables are relabelled.

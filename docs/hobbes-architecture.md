@@ -125,7 +125,7 @@ sessions those manifests describe, serving context faults, recording
 partition quality — is built as a base (§6.1, ADR-054), and the benchmark
 harness that corrects it from its errors is built and has run live —
 its corrections are most of ADR-056..086 and ADR-091 (§6.2, ADR-055). The design the mapping implements is
-[`agent-mapping.md`](agent-mapping.md): **phases, not personas** — an
+[`agent-mapping.md`](benchmark/agent-mapping.md): **phases, not personas** — an
 agent is a triple *(context slice, policy profile, verification
 obligations)*, and the number of agents is the partition's output, never
 a parameter.
@@ -137,7 +137,7 @@ plan → per-unit execution → verify → patch out) against the same
 models run pure, and let the error stream drive the adjustment — every
 failed instance feeds exactly the numbers C-35 calls guesses. Three
 hypotheses are preregistered in
-[`benchmark-hypotheses.md`](benchmark-hypotheses.md), each with its
+[`benchmark-hypotheses.md`](benchmark/benchmark-hypotheses.md), each with its
 metric and falsifier stated before any run: **H1** derived context
 substitutes for model size; **H2** per-unit regenerated context
 flattens the accuracy-vs-depth curve; **H3** cheaper and quicker per
@@ -149,7 +149,7 @@ rather than verdicts on H1–H3, all recorded in the hypotheses doc's
 Results — and the point of writing the hypotheses first is that
 results cannot re-scope them. Runs are **parked** (owner's standing
 policy, renewed 2026-08-24): the validation pair produced an
-eight-defect register (`ttt-cells/adr085-validation-7b-2026-08-24.md`), six fixed in
+eight-defect register (`benchmark/cells/adr085-validation-7b-2026-08-24.md`), six fixed in
 ADR-091, D5/D6 held; the next run, on an explicit go, is the removal
 A/B on the D5 fix — see [`session-handoff.md`](session-handoff.md).
 
@@ -971,7 +971,7 @@ guarded_by: [test_token_boundary]
 ## 6. Derivation — the task mapping (D1) and its execution (D2 base)
 
 Built at D1 (ADR-051) and D2 (ADR-054, the base), designed in
-[`agent-mapping.md`](agent-mapping.md).
+[`agent-mapping.md`](benchmark/agent-mapping.md).
 `hobbes plan "<proposal>"` derives a **change-spec** — the plan phase's
 artifact and the unit of concept-level review — deterministically and
 without quota: same graph, same proposal, same flags, byte-identical
@@ -1297,7 +1297,7 @@ server and a stdio fake proxy for the owned loop, the ADR-054 stand-in
 session, and a fake evaluator), so the harness stays quota-free to
 exercise — but both rungs of the ladder have run real instances on both
 arms, and the runs' main product, recorded in
-[`benchmark-hypotheses.md`](benchmark-hypotheses.md)'s Results, is
+[`benchmark-hypotheses.md`](benchmark/benchmark-hypotheses.md)'s Results, is
 corrections to the harness and the method (most of ADR-057..081, then
 the validation pair's eight-defect register and ADR-091), not verdicts
 on H1–H3. The owner's course is small open models served from his own
@@ -1333,7 +1333,7 @@ and since ADR-086 the machinery enforces the label: an aided run is
 recorded `arm=model+prompt` on every path, enters no H1 harness slot,
 and cannot be reported as the harness without editing the mechanism.
 That run happened 2026-08-24 (the ADR-085 validation pair, 7B, two
-passes; `ttt-cells/adr085-validation-7b-2026-08-24.md` — eight harness defects, six fixed
+passes; `benchmark/cells/adr085-validation-7b-2026-08-24.md` — eight harness defects, six fixed
 in ADR-091, D5/D6 held). The next, on an explicit go, is the removal
 A/B on the D5 fix.
 
@@ -1469,13 +1469,13 @@ The v2 extraction programme — **complete and fully reviewed as of
 | **V2.M7** — Rust proof | done, **reviewed 2026-08-16** | ADR-040: rust-analyzer's native SCIP export + `rustsource`; zero builder/join/schema lines — P7 proven twice. Call sites inside macro token trees; the dup-moniker drop removed two false Go edges standing since V2.M5; I-4 turned red on cue and was amended |
 
 **The derivation programme (D)** — begun 2026-08-19, designed in
-[`agent-mapping.md`](agent-mapping.md):
+[`agent-mapping.md`](benchmark/agent-mapping.md):
 
 | Milestone | State | What it settled |
 |---|---|---|
 | **D1** — the plan derivation | done, **reviewed 2026-08-21** | ADR-051: `hobbes plan` — impact, partition, contracts, manifests with enforced complements, the plan-review gate; C-35..C-37 registered surfaced |
 | **D2** — execution | base built, **reviewed 2026-08-21** | ADR-054: `hobbes run` — role + agent policy levels, standing/short-term context, context faults tagged, `reflect`, branch harvest, integration + review, the partition record with the declared loss; C-38 registered surfaced; what remains in `future_additions.md` |
-| **Benchmark verification** | **parked (renewed 2026-08-24)** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085); the ADR-085 validation pair ran 2026-08-24 (0/5, eight harness defects, six fixed in ADR-091 and the last two in ADR-093, all validated with no model). Next, on the owner's go: the removal A/B on the D5 fix |
+| **Benchmark verification** | **parked (renewed 2026-08-24)** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark/benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085); the ADR-085 validation pair ran 2026-08-24 (0/5, eight harness defects, six fixed in ADR-091 and the last two in ADR-093, all validated with no model). Next, on the owner's go: the removal A/B on the D5 fix |
 | **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision (§3.8); its own defect log reviewed (`oracle-defect-review.md`) |
 | **Containment** (ADR-092) | built, all four phases, **reviewed 2026-08-28** | sandbox whatever executes repo-authored code: lane B and O6/O7 in the one image; `--uncontained` disclosed and stamped; the knowledge layer stated as a complete deployment; the claim scoped to the runs made under it (P11) |
 | **Java** (ADR-096, J.M0–J.M5) | done, contained, **compiler-graded 2026-08-29**; C-66 settled 2026-09-01 (ADR-097) | the sixth language: `javasource` + `scip-java` in the image, a javac+CHA oracle (O8), four cells at 100% precision (§3.8); the build resolves networked on a stage with no sources, then indexes offline; the residual (build logic over public caches) stays registered |

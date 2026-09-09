@@ -6,7 +6,7 @@
 BUILDLOG's 2026-08-22 entries), exercised by the stand-in session;
 no live benchmark run yet.
 **Amends:** `docs/hobbes-architecture.md` (§6.1 gains the staged
-execution); `docs/agent-mapping.md` (the phases §2 named are now the
+execution); `docs/benchmark/agent-mapping.md` (the phases §2 named are now the
 run's stages); `docs/constraints/README.md` (C-47, C-48); `docs/future_additions.md`
 (the D2 remainder shrinks).
 

@@ -201,7 +201,7 @@ transcripts.
 ## H-TTT — Test-time training on the derived layer (ADR-099, preregistered 2026-09-03)
 
 The design, the factor grid, the recipe and the order of work are in
-[`olmo3-ttt-validation.md`](olmo3-ttt-validation.md); the hypotheses
+[`olmo3-ttt-validation.md`](../olmo3-ttt-validation.md); the hypotheses
 are restated here so results land beside them. Each carries a kill
 criterion; a hypothesis that survives is *not confirmed*, it is *not
 yet killed*. Every arm is *model + prompt* under P12 — one agent, no
@@ -1102,7 +1102,7 @@ pure — so the wall is per-unit execution/decomposition, not the proxy, and
 the derived-context thesis has to be tested on a harness that does not
 fragment the change. That is exactly the mini-swe-agent single-agent +
 injected-context path (the recipe validated 2026-08-22, BUILDLOG; since
-the Pier substrate, `docs/benchmark-deepswe.md`). Two open
+the Pier substrate, `docs/benchmark/benchmark-deepswe.md`). Two open
 questions this hands forward: (1) should the partition keep the full
 co-changing set of a fix in one unit (D1's co-change coupling did not, on
 django/xarray)? (2) is per-unit write-scope worth its fragmentation cost at
@@ -1320,7 +1320,7 @@ window-fit (or a larger window) before a set is worth spending.
 
 The one cleared run (two passes, 7B, harness arm only, five Verified
 instances, `--coverage strict`; B = `--proposal-in-brief`). Full record
-and the eight-defect register: **`docs/ttt-cells/adr085-validation-7b-2026-08-24.md`** —
+and the eight-defect register: **`docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`** —
 that file is the entry; nothing here supersedes it. The headline
 numbers: the 7B planner wrote `requirements:` 0/5 first-attempt, 3/5
 after the one strict re-plan (A), with the lexical fallback bypassing

@@ -57,7 +57,7 @@ A new staged implement mode, `hobbes bench run --implement-mode aided`
 - This is the first realisation of the harness pivot's principle inside our
   own harness, and the natural bridge to the mini-swe single-agent path
   (the recipe validated 2026-08-22, BUILDLOG; now the Pier substrate of
-  `docs/benchmark-deepswe.md`): both give one agent the whole task aided
+  `docs/benchmark/benchmark-deepswe.md`): both give one agent the whole task aided
   by derived context.
 - Open question it sets up (to observe on the 7B, where the flow is
   legible): does the aid-not-fence brief actually reach a free agent and

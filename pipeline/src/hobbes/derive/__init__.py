@@ -1,6 +1,6 @@
 """The plan derivation — proposal to change-spec (ADR-051, D1).
 
-This package is the mapping `docs/agent-mapping.md` designs: given a
+This package is the mapping `docs/benchmark/agent-mapping.md` designs: given a
 proposed change, derive **how many agents**, **which context each one
 gets**, **what policy each runs under**, and **who checks what** — as
 an algorithm over artifacts Hobbes already has, never as an org chart.

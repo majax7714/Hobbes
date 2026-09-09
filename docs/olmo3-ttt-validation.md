@@ -16,7 +16,7 @@ The model is Olmo 3 7B because its lineage is fully open (weights, data, code, c
 
 ## 1. Preregistered hypotheses
 
-Numbered to slot into `docs/benchmark-hypotheses.md`. Each carries a kill criterion; a hypothesis that survives is *not confirmed*, it is *not yet killed*.
+Numbered to slot into `docs/benchmark/benchmark-hypotheses.md`. Each carries a kill criterion; a hypothesis that survives is *not confirmed*, it is *not yet killed*.
 
 | ID | Claim | Kill criterion |
 |---|---|---|
@@ -247,7 +247,7 @@ Each step has an exit; do not start the next until the exit is met. Steps 1–3 
 4. **Held-out navigation QA.** Cheap and decisive for "did the weights absorb the graph." *Exit:* per-family accuracy and absent-family false-acceptance, per arm.
 5. **Agent runs, primary cell** (Olmo, U, A1 vs A2). *Exit:* HSR and RFE with paired bootstrap; defect register started.
 6. **Fill the grid** as budget allows, in this priority: A3 on Olmo/U → Olmo/M row → Qwen rows → step-count ablation.
-7. **Write-up** into `docs/benchmark-hypotheses.md` (every run, every result, kill status per hypothesis) and a short results section here.
+7. **Write-up** into `docs/benchmark/benchmark-hypotheses.md` (every run, every result, kill status per hypothesis) and a short results section here.
 
 ---
 

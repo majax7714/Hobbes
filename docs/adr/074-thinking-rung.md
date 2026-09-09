@@ -59,7 +59,7 @@ spent before the answer starts.
    the runtime verbatim after the launcher's own flags — the launcher
    does not learn flag names). `run.json` records it.
 5. **The 27B run's settings are pre-registered** in
-   `docs/benchmark-hypotheses.md` before the run: thinking on at the
+   `docs/benchmark/benchmark-hypotheses.md` before the run: thinking on at the
    server's default, `reasoning_effort=medium`, the card's thinking-mode
    sampling (temperature 1.0, top-p 0.95), `max_tokens` 8192 (the cut
    retry gives 16k), the same five instances, `--human-first spawn`.
