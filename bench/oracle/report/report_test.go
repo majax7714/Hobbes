@@ -1,6 +1,6 @@
 // Package report holds render.py — the comparative graphics regenerated
 // from the cell records (ADR-102) — and this test, which fails when the
-// committed data or graphics drift from docs/oracle-cells/: a regraded
+// committed data or graphics drift from docs/oracle/cells/: a regraded
 // cell without a regenerated picture is a P8 violation with a picture on
 // it. python3 only.
 package report

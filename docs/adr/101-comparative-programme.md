@@ -109,7 +109,7 @@ first is made.
   the same key, the objection dies; the keys are regenerable from the
   named commits with the named oracle versions.
 - The first two competitor tools (CodeGraphContext 0.6.13, repowise
-  0.49.0) graded on 2026-09-09 sit in `docs/oracle-cells/` in the
+  0.49.0) graded on 2026-09-09 sit in `docs/oracle/cells/` in the
   existing record format, one file per tool × repo, and in the
   scatter as a second marker (ADR-102). Their numbers are theirs at
   our grain; the records state every place the grain could be theirs

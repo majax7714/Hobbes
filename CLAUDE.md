@@ -70,12 +70,12 @@ box, against a repo on disk (architecture §10); the application mode in
 | resuming the active programme             | `docs/session-handoff.md` → `docs/adr/092-ingest-containment.md`     |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
-| grading the graph against an oracle       | `docs/oracle-grading.md` + ADR-089; misses by class in `docs/oracle-misses.md`; the oracle's own defects in `docs/oracle-defects.md` + their review/tally in `docs/oracle-defect-review.md` |
+| grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/agent-mapping.md` + `docs/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
-| comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle-cells/`; never a self-reported scoreboard |
+| comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -290,7 +290,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   scoreboard — `oracle import` grades any tool's graph against the
   same keys with the same poison check; CodeGraphContext 0.6.13 and
   repowise 0.49.0 graded on the thirteen loop and random-draw cells
-  (`docs/comparative/`, the foreign records in `docs/oracle-cells/`);
+  (`docs/comparative/`, the foreign records in `docs/oracle/cells/`);
   four graphics regenerated from the records by
   `bench/oracle/report/render.py` with a drift test; `field.md` one
   row per tool, sourced or unstated. repowise now publishes its own
@@ -340,9 +340,9 @@ review → `lane_b` pytest) and runs the same way on a box.
   (rust_proj, dagger `sdk/rust`) — every compiler-graded cell at 100%
   after ADR-090 vetoed the syntactic fallback's two wrong shapes (C-7
   priced first), the misses C-58 on every language plus Rust's generated
-  code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle-misses.md` and
-  `docs/oracle-defects.md` are the honesty records (reviewed in full,
-  `docs/oracle-defect-review.md`: seen tally + reviewer rules); the
+  code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle/oracle-misses.md` and
+  `docs/oracle/oracle-defects.md` are the honesty records (reviewed in full,
+  `docs/oracle/oracle-defect-review.md`: seen tally + reviewer rules); the
   seven-repo loop of 2026-08-27 triaged 2026-08-28 (every compiler-graded
   cell at 100%); dagger's Go root waits on a bigger box.
 - **The containment programme (ADR-092) is the active track:** *sandbox

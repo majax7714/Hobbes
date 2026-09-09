@@ -160,9 +160,9 @@ prove the grader can say no. Every compiler-graded semantic tier is at
 Deeper: architecture §3;
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) (every repo
 it has been run on, with numbers);
-[`docs/oracle-grading.md`](docs/oracle-grading.md) with
-[`docs/oracle-misses.md`](docs/oracle-misses.md) and
-[`docs/oracle-defects.md`](docs/oracle-defects.md) (the grading, the
+[`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) with
+[`docs/oracle/oracle-misses.md`](docs/oracle/oracle-misses.md) and
+[`docs/oracle/oracle-defects.md`](docs/oracle/oracle-defects.md) (the grading, the
 misses by class, the grader's own mistakes);
 [`docs/constraints/`](docs/constraints/README.md) (the register).
 
@@ -319,7 +319,7 @@ point); the session-by-session record is
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
 | [`docs/adr/`](docs/adr/) | 103 numbered ADRs — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
-| [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
+| [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
 | [`docs/comparative/`](docs/comparative/README.md) | The comparative programme (ADR-101/102): the field one row per tool, other tools' graphs graded by the oracle lane on the same repos and keys, and the four graphics regenerated from the cell records |
 | [`docs/first-run.md`](docs/first-run.md) | Bringing Hobbes up on a new app, in the order the system is meant to be used |

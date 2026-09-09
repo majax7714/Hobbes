@@ -94,7 +94,7 @@
   alternative — indexing `target/generated-sources` as if it were
   authored — would put code nobody wrote into the review surface.
   Rust's derive/proc-macro output is the precedent (its class in
-  `docs/oracle-misses.md`).
+  `docs/oracle/oracle-misses.md`).
 - **Bites at:** Lombok-heavy codebases (every `@Getter` call is a call
   into nothing), protobuf clients, MapStruct mappers, Dagger/Micronaut
   DI factories.

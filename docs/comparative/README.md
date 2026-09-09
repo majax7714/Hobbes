@@ -21,8 +21,8 @@ What is here:
 | [`graphics/precision-recall.svg`](graphics/precision-recall.svg) | One dot per cell, precision-against-oracle against recall, language as the panel, trace cells in their own panel, foreign cells as hollow squares; hover for the miss classes. |
 | [`graphics/same-key.svg`](graphics/same-key.svg) | **The comparison.** One row per cell that has a foreign graph on the same key: three markers on the precision axis and three on the recall axis, one colour per tool (blue dot Hobbes, orange square CodeGraphContext, green diamond repowise), grouped by language, repowise-bench's draws as their own band. Read across a row, never down a column. |
 | [`graphics/date-fns-before-after.svg`](graphics/date-fns-before-after.svg) | Before / after on one repo, as the per-directory capture view that named the fix (C-74, C-90). |
-| [`data/`](data/) | What the graphics are rendered from: `cells.json` (parsed from `docs/oracle-cells/`), `date-fns-capture.json` (parsed from two `graph.json` artifacts). |
-| `docs/oracle-cells/<tool>-<repo>-2026-09-09.md` | The foreign cells, one per tool × repo, in the same record format as a Hobbes cell. |
+| [`data/`](data/) | What the graphics are rendered from: `cells.json` (parsed from `docs/oracle/cells/`), `date-fns-capture.json` (parsed from two `graph.json` artifacts). |
+| `docs/oracle/cells/<tool>-<repo>-2026-09-09.md` | The foreign cells, one per tool × repo, in the same record format as a Hobbes cell. |
 
 Everything numeric renders from the records by
 `bench/oracle/report/render.py`; `render.py check` (run by the oracle
@@ -55,7 +55,7 @@ lane's Go suite) fails when a picture drifts from its cells.
    cell's denominator is its own roots or its resolved sites (C-62).
    The misses are one register entry, C-58 — closures, interface
    dispatch, function values, code macros and derives wrote — tabled
-   per cell in `docs/oracle-misses.md`.
+   per cell in `docs/oracle/oracle-misses.md`.
 4. **Other tools' graphs, same keys.** CodeGraphContext 0.6.13 and
    repowise 0.49.0 were run as their READMEs document on the thirteen
    repos with keys on disk — the seven-repo loop of 2026-08-27 plus the
@@ -137,7 +137,7 @@ dies; if the entry point were not public, it would stand.
 ## Regenerating
 
 ```sh
-python3 bench/oracle/report/render.py cells      # docs/oracle-cells/*.md → data/cells.json
+python3 bench/oracle/report/render.py cells      # docs/oracle/cells/*.md → data/cells.json
 python3 bench/oracle/report/render.py render     # data/ → graphics/*.svg + tables.md
 python3 bench/oracle/report/render.py check      # exit 1 on drift (the Go test runs this)
 python3 bench/oracle/report/foreign_record.py --cell ~/.hobbes/bench/comparative/<tool>-<repo> ...   # a foreign cell's record from its artifacts

@@ -42,11 +42,11 @@ commit as the cell.
 
 ## Cells
 
-### The 1-1 on repowise's draws (2026-09-09; [cells](oracle-cells/), `*-hobbes-2026-09-09.md`)
+### The 1-1 on repowise's draws (2026-09-09; [cells](cells/), `*-hobbes-2026-09-09.md`)
 
 Five repos repowise-bench pinned, graded by our keys (ADR-101 § the 1-1): cobra (with tests) 2,186/2,186, recall 71.8% at 2 roots; gitleaks with tests 2,266/2,266 at 9 roots (94.9%) and without 2,010/2,010 at 2 roots (98.0%) — after one wrong *syntactic* edge was fixed the same day (`re.MustCompile` inside the repo's own `regexp` package bound to the enclosing function: the fallback matched the stdlib import path to the repo's `regexp/` directory by suffix; `gosource._repo_package` now applies cmd/go's rule that a first path element without a dot is the standard library's); zod 9,731/9,731, recall 45.1% over every resolved site (lane B without dependencies — pnpm is not provisioned, C-23); hono (`tsconfig.build.json`) 767/774, recall 55.2% — the 7 are `static→union-member`. Misses are the standing classes: closures and interface dispatch on Go (cobra `interface→named` 431, gitleaks `func-value→closure` 76 / 17), and on TS the local bindings, closures and the unprovisioned dependencies. syft has no key: RTA over its no-tests program was OOM-killed at 18.7 GB on this box and the with-tests program at 19 GB — H-9's shape; the cell waits on a bigger box.
 
-### The seven-repo loop (2026-08-27; triaged 2026-08-28; [cells](oracle-cells/))
+### The seven-repo loop (2026-08-27; triaged 2026-08-28; [cells](cells/))
 
 Every contradiction in the loop triaged; four fixes landed (two product, two oracle), each cell regraded contained (ADR-092) where it moved:
 
@@ -63,7 +63,7 @@ Every contradiction in the loop triaged; four fixes landed (two product, two ora
 What hurts most, loop-wide, is unchanged from the first cells: **calls into closures** (fzf 1,212 static + 2,457 inflated; click 1,196 decorator-factory closures; ajv 174) and **interface dispatch** (toml 226, mux 120, fzf 417) — C-58 on every language; Rust's macro face (memchr 99 `macro→*` rows, `unsafe_ifunc!`, `define_*_quickcheck!`). New on the recall side: cheerio's `static→function` 2,507 is dominated by *the oracle's* overload grain (one pair per `attr`/`prop` signature, five each) — the recall-side sibling of H-19, not corrected.
 
 
-### The four Java cells (O8, 2026-08-29; [cells](oracle-cells/))
+### The four Java cells (O8, 2026-08-29; [cells](cells/))
 
 Java's misses are dominated by one class on every cell, as the build
 plan predicted: **`interface→method`**, graded against the CHA override
@@ -86,7 +86,7 @@ B runs), chiefly `new T() {..}`, which Hobbes draws as `uses` of T by
 decision (ADR-096). **`static→method` is 0–0.1% on every semantic cell**
 (spring-data-elasticsearch: 3,845/3,845, a perfect class on 739 files).
 
-### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](oracle-cells/hobbes-py-2026-08-25.md))
+### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](cells/hobbes-py-2026-08-25.md))
 
 525 honest misses over 3,816 observed in-repo pairs (recall-against-executed 86.2%; 96.9% on named declarations). A trace oracle never inflates — every pair was executed.
 
@@ -100,11 +100,11 @@ decision (ADR-096). **`static→method` is 0–0.1% on every semantic cell**
 
 **What hurts most:** closures and lambdas, 80.8% — the same answer Go gave (70–80%), now on a dynamic language with an interpreter as the judge.
 
-### rust_proj — Rust, compiler-graded (O7, 2026-08-25; [cell](oracle-cells/rust_proj-2026-08-25.md))
+### rust_proj — Rust, compiler-graded (O7, 2026-08-25; [cell](cells/rust_proj-2026-08-25.md))
 
 4 misses over 21 in-repo pairs (recall 81.0%; 17/17 on `static→function`), all `macro→function`: criterion's `criterion_group!`/`criterion_main!` bodies.
 
-### dagger `sdk/rust` — Rust, compiler-graded (O7, 2026-08-25; [cell](oracle-cells/dagger-rust-2026-08-25.md))
+### dagger `sdk/rust` — Rust, compiler-graded (O7, 2026-08-25; [cell](cells/dagger-rust-2026-08-25.md))
 
 69 misses over 3,662 in-repo pairs (recall 98.1%) after H-16 folded `.await`'s poll of async bodies.
 
@@ -168,7 +168,7 @@ Go's. Everything Hobbes *declares* a symbol for it also draws: 633 of
 
 ### dagger, 19 Go modules — 2026-08-25 (O4, RTA, 24 roots across the cells)
 
-Per-cell rows in `oracle-cells/dagger-go-2026-08-25.md`; the sums
+Per-cell rows in `oracle/cells/dagger-go-2026-08-25.md`; the sums
 below are sizes, not a pooled rate. 10,715 in-repo oracle pairs; 9,855
 drawn; **819 honest misses**, 41 inflated.
 

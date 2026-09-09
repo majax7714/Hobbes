@@ -155,11 +155,11 @@ resolved to that path anyway). The export and the report carry
 ran contained (ADR-092)`. The fixture self-tests run contained and skip
 without the image. **Numeric no-op, measured:** rust_proj (O7) regraded
 byte-identical to the stored cell modulo the new field
-(`docs/oracle-cells/rust_proj-2026-08-28.md`); this repo's Python zone
+(`docs/oracle/cells/rust_proj-2026-08-28.md`); this repo's Python zone
 (O6) contained vs host on the same tree — identical suspects and miss
 classes, an 8-edge residue confined to one test that probes for a
 container runtime and skips inside the image
-(`docs/oracle-cells/hobbes-py-2026-08-28.md`). Rule from that: a trace
+(`docs/oracle/cells/hobbes-py-2026-08-28.md`). Rule from that: a trace
 cell's suite must not depend on the host it runs on, or the record
 names what it deselects.
 **Forward rule:** any future dynamic-tier ingestion (the schema's

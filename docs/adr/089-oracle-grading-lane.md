@@ -1,6 +1,6 @@
 # ADR-089 — An oracle-grading lane for the call graph, and its build decisions
 
-**Date:** 2026-08-25 · **Status:** accepted — D-O1–D-O6 decided 2026-08-25 (recommendations adopted) · **Owner:** Max · **Design:** `docs/oracle-grading.md`
+**Date:** 2026-08-25 · **Status:** accepted — D-O1–D-O6 decided 2026-08-25 (recommendations adopted) · **Owner:** Max · **Design:** `docs/oracle/oracle-grading.md`
 
 ## Context
 
@@ -20,7 +20,7 @@ qualify). Phase 1 grades Go (RTA) and TypeScript (`tsc`) on the cells
 O1–O4; phase 2 (designed, not gated on phase 1) adds Python runtime
 traces and a Rust MIR oracle. Metrics, bucket semantics, the four
 reporting rules, the trace-asymmetry rule, and the triage protocol are
-as `docs/oracle-grading.md` §3, §3.1, §8 state; they become `C-n`
+as `docs/oracle/oracle-grading.md` §3, §3.1, §8 state; they become `C-n`
 entries when the lane lands.
 
 ## The six build decisions

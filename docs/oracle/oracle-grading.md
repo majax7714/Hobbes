@@ -4,7 +4,7 @@
 waits on a bigger box); phase 2 built and run the same day — O6 (§6,
 this repo's Python zone under its suite; xarray not run: no workspace on
 the box) and O7 (§7, `rust_proj` and dagger's `sdk/rust`; Rupta and the
-trace lane not attempted). Cell records in `docs/oracle-cells/`; the
+trace lane not attempted). Cell records in `docs/oracle/cells/`; the
 harness README carries the Python and Rust conventions.** This document is the context for the
 build session(s) that implement it. **Owner:** Max. **Scope:** bench tooling only
 — no product change. Reads with: architecture §3.8 (the claim table),
@@ -100,8 +100,8 @@ oracle for Hobbes — lane B's `scip-python` is built on Pyright, so a
   TS zones only and say so).
 - Hand-grading remains the method for what no oracle reaches — unexecuted
   Python/Rust paths, HCL — per the §11 protocol-upgrade note. Misses are
-  kept by class, per cell, in `docs/oracle-misses.md`; the harness's
-  and oracles' own defects in `docs/oracle-defects.md`.
+  kept by class, per cell, in `docs/oracle/oracle-misses.md`; the harness's
+  and oracles' own defects in `docs/oracle/oracle-defects.md`.
 
 ## 3. Metrics and definitions
 
@@ -327,7 +327,7 @@ check` runs the crate's build scripts and proc macros. The pinned
 nightly's sysroot and the driver are mounted ro at their host paths;
 `cargo fetch` reaches the registry from a separate container, the check
 has no network. Regraded on `rust_proj` as a numeric no-op
-(`oracle-cells/rust_proj-2026-08-28.md`).
+(`oracle/cells/rust_proj-2026-08-28.md`).
 
 **Pilot cell:** `rust_proj` — 33 edges, currently 100% hand-checked
 (ADR-040), all-semantic. The MIR oracle must confirm all 33; any

@@ -59,5 +59,5 @@ exactly three kinds of finding against the product:
   (memchr: 7 of 7). Both in the same code paths as the originals, one
   test each; the fzf and memchr regrades are the check.
 - C-58's surfacing status: unsurfaced → partial. Its capture-number
-  concession stands; `docs/oracle-misses.md` remains where the hole is
+  concession stands; `docs/oracle/oracle-misses.md` remains where the hole is
   sized.

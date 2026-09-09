@@ -1,5 +1,5 @@
 // Command oracle is the oracle-grading lane's one binary (ADR-089,
-// docs/oracle-grading.md): `export` reads a Hobbes graph.json into graded
+// docs/oracle/oracle-grading.md): `export` reads a Hobbes graph.json into graded
 // edges, `go-rta` runs the Go reachability oracle on one module,
 // `py-trace` runs the Python runtime-trace oracle on one directory's
 // suite, `rust-mir` runs the Rust MIR resolution oracle on one cargo

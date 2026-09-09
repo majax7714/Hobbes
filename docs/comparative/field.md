@@ -65,7 +65,7 @@ the row it is being compared to** — every entry points at the evidence
 rather than restating it: edge source, tree-sitter (lane A) joined to the
 language's own pinned SCIP indexer (lane B), architecture §3;
 precision and recall, per cell against compilers and the interpreter,
-`docs/oracle-cells/`; seeds wrong edges, yes — every cell's poison
+`docs/oracle/cells/`; seeds wrong edges, yes — every cell's poison
 line; deterministic, demonstrated (byte-identical re-ingests on peft,
 date-fns, quic-go, serde, jsoup, petclinic; `extraction-evidence.md`);
 model in the build, no (`hobbes narrate` sits on top and is pinned);
@@ -141,7 +141,7 @@ run.
 
 A 1-1 cell exists only when both sides have the same measure on the
 same repo at the same commit against the same answer key. Those made
-on 2026-09-09 are in `docs/oracle-cells/` as
+on 2026-09-09 are in `docs/oracle/cells/` as
 `codegraphcontext-<repo>-2026-09-09.md` and
 `repowise-<repo>-2026-09-09.md`, one per tool × repo, beside the
 Hobbes cell each pairs with; the claim page

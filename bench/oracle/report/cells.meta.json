@@ -1,5 +1,5 @@
 {
- "_comment": "Per-cell metadata the records do not print in a parseable line: language, where the cell ran, how the repo was chosen, a short label and a note. Numbers never live here — they are read from docs/oracle-cells/ (ADR-102).",
+ "_comment": "Per-cell metadata the records do not print in a parseable line: language, where the cell ran, how the repo was chosen, a short label and a note. Numbers never live here — they are read from docs/oracle/cells/ (ADR-102).",
  "ajv-ts": {
   "lang": "TypeScript",
   "run": "host-run",

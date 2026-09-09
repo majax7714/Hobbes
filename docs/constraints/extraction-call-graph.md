@@ -245,11 +245,11 @@
   checker resolved to a declaration it *does* have a symbol for but
   through an interface it cannot see past (the Go/TS interface method
   before C-9's filter) is not in this class — the oracle lane's miss
-  record (`docs/oracle-misses.md`) is still where that is sized.
+  record (`docs/oracle/oracle-misses.md`) is still where that is sized.
 - **Provider (P9):** ours. `scip-go` **0.2.7** resolves the occurrence
   correctly (to the interface method); Hobbes' descriptor filter and the
   absence of a dispatch analysis are Hobbes' choices.
-- **Source:** oracle lane O1/O2 (ADR-089, `docs/oracle-grading.md`;
+- **Source:** oracle lane O1/O2 (ADR-089, `docs/oracle/oracle-grading.md`;
   `bench/oracle/`), 2026-08-25 — the lane's first graded miss, on the
   `twomod` fixture, then 45 of 45 non-inflated misses on this repo.
   Related: C-1 (the general rule that absence is not evidence), C-9

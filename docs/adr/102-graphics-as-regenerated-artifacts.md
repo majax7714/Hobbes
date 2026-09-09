@@ -3,7 +3,7 @@
 **Date:** 2026-09-09 · **Status:** accepted — built (`bench/oracle/report/render.py`), four graphics committed, the drift check in the oracle lane's Go suite · **Owner:** Max · **Source:** Max's brief of 2026-09-09, Workstream C
 
 Companion to ADR-101. Amends nothing in the architecture; adds a rule
-to the oracle lane's evidence discipline (`docs/oracle-grading.md` §11).
+to the oracle lane's evidence discipline (`docs/oracle/oracle-grading.md` §11).
 
 ## Context
 
@@ -11,7 +11,7 @@ A picture is believed more readily than a table, so a picture that
 drifts from its cells is a P8 violation with a picture on it. The
 three graphics Max asked for — the one number, the precision × recall
 scatter, a before/after on one repo — each print numbers that already
-live in `docs/oracle-cells/` and in two `graph.json` artifacts. The
+live in `docs/oracle/cells/` and in two `graph.json` artifacts. The
 only honest way to keep them true is to make the records the source
 and the picture a build product.
 

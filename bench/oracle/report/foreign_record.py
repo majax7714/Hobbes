@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Write the cell record of a foreign (third-party) cell from its artifacts (ADR-101).
 
-    foreign_record.py --cell ~/.hobbes/bench/comparative/<tool>-<repo> --pair docs/oracle-cells/<hobbes cell>.md \\
-        --key ~/.hobbes/bench/oracle/<key dir> --repo-url <url> --clone <path> [--date YYYY-MM-DD] [--triage triage.json] --out docs/oracle-cells/<tool>-<repo>-<date>.md
+    foreign_record.py --cell ~/.hobbes/bench/comparative/<tool>-<repo> --pair docs/oracle/cells/<hobbes cell>.md \\
+        --key ~/.hobbes/bench/oracle/<key dir> --repo-url <url> --clone <path> [--date YYYY-MM-DD] [--triage triage.json] --out docs/oracle/cells/<tool>-<repo>-<date>.md
 
 Every number in the record is read from the cell directory: `edges.json`
 (the converter's header and drop counts), `run.log` (index exit, wall

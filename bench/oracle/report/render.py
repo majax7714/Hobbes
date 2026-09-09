@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The comparative graphics, regenerated from the cell records (ADR-102).
 
-Every number a graphic prints is read from `docs/oracle-cells/*.md` — the
+Every number a graphic prints is read from `docs/oracle/cells/*.md` — the
 verbatim `report.txt` blocks a cell record quotes (the *last* block in a
 file is the standing grade; a regrade appends) and, for the dagger Go
 record, its per-module "after" table — or from two `graph.json` artifacts
@@ -9,7 +9,7 @@ for the before/after view. Nothing is typed into a picture. `check`
 re-renders and fails when the committed graphics drift from the records,
 so a regraded cell without a regenerated graphic fails CI (P8).
 
-    render.py cells   [--cells docs/oracle-cells] [--meta report/cells.meta.json] --out data/cells.json
+    render.py cells   [--cells docs/oracle/cells] [--meta report/cells.meta.json] --out data/cells.json
     render.py capture --before <graph.json> --after <graph.json> --repo <name> --sha <sha> --out data/<repo>-capture.json
     render.py render  --data docs/comparative/data --out docs/comparative/graphics
     render.py check   [--data ...] [--graphics ...]      # exit 1 on drift
@@ -28,7 +28,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-CELLS = ROOT / "docs" / "oracle-cells"
+CELLS = ROOT / "docs" / "oracle" / "cells"
 META = HERE / "cells.meta.json"
 DATA = ROOT / "docs" / "comparative" / "data"
 GRAPHICS = ROOT / "docs" / "comparative" / "graphics"
@@ -312,7 +312,7 @@ def render_one_number(cells: list[dict]) -> str:
         para(f"Not in the sum: {', '.join(without)} — graded before the poison check existed (kbet), or the record quotes the check per module and does not sum it (dagger).", 11, INK2)
     lines.append(("—", 14, GRID, "normal", 32))
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
-    para("Every number is read from docs/oracle-cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
+    para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
          "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java.", 10, INK2, width=140)
     H = 40 + sum(sz + 6 for _, sz, _, _, _ in lines) + 24
     o = svg_open(W, H, "Wrong edges seeded into the graph, falsely confirmed by the grader")
@@ -443,11 +443,11 @@ def render_scatter(cells: list[dict]) -> str:
     y += 18
     o.append(text(24, y, f"Recall across Hobbes' compiler-graded cells runs {min(recalls)}–{max(recalls)}% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).", 11, INK2))
     y += 16
-    o.append(text(24, y, "The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle-misses.md has the tables.", 11, INK2))
+    o.append(text(24, y, "The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables.", 11, INK2))
     y += 16
     o.append(text(24, y, "Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.", 11, INK))
     y += 16
-    o.append(text(24, y, "Rendered from docs/oracle-cells/ by bench/oracle/report/render.py (ADR-102).", 10, INK2))
+    o.append(text(24, y, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102).", 10, INK2))
     o.append("</svg>")
     return "\n".join(o) + "\n"
 
@@ -462,7 +462,7 @@ def render_before_after(cap: dict) -> str:
     story = wrap(cap["story"], 135)
     T = 66 + 15 * len(story) + 30
     caption = wrap(cap["caption"], 130)
-    foot = wrap("Capture is lane A's count of detected call sites the join accounted for — a coverage number, not precision; the semantic edges are graded separately (docs/oracle-cells/). "
+    foot = wrap("Capture is lane A's count of detected call sites the join accounted for — a coverage number, not precision; the semantic edges are graded separately (docs/oracle/cells/). "
                 "Rendered from two graph.json artifacts by bench/oracle/report/render.py (ADR-102).", 150)
     H = T + ROW * (len(dirs) + 1) + 70 + 15 * len(caption) + 13 * len(foot) + 20
     o = svg_open(W, H, f"{cap['repo']}: call-site capture per directory before and after {cap['fix']}")
@@ -528,11 +528,11 @@ def render_tables(cells: list[dict]) -> str:
         pl = f"**{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%)" if c.get("precision") else f"confirmation rate {p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}) — not precision"
         r = c["recall"]
         po = c.get("poison")
-        out.append(f"| {c['label']} | {c['lang']} | {c['oracle']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {c['run']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else 'not run (graded before the check)'} | [{c['record']}](../oracle-cells/{c['record']}) |")
+        out.append(f"| {c['label']} | {c['lang']} | {c['oracle']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {c['run']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else 'not run (graded before the check)'} | [{c['record']}](../oracle/cells/{c['record']}) |")
     if dag:
         lo, hi = min(c["recall"]["pct"] for c in dag), max(c["recall"]["pct"] for c in dag)
         conf = sum(c["confirmed"] for c in dag); den = sum(c["precision"]["den"] for c in dag)
-        out.append(f"| {dag[0]['label']} ({len(dag)} Go modules) | Go | go-rta | {fmt(sum(c['edges'] for c in dag))} | **{fmt(conf)}/{fmt(den)}** (100% in every module) | {lo}–{hi}% per module, one root count each — a range, not a pool | {dag[0]['run']} | per module in the record, not summed | [{dag[0]['record']}](../oracle-cells/{dag[0]['record']}) |")
+        out.append(f"| {dag[0]['label']} ({len(dag)} Go modules) | Go | go-rta | {fmt(sum(c['edges'] for c in dag))} | **{fmt(conf)}/{fmt(den)}** (100% in every module) | {lo}–{hi}% per module, one root count each — a range, not a pool | {dag[0]['run']} | per module in the record, not summed | [{dag[0]['record']}](../oracle/cells/{dag[0]['record']}) |")
     if frn:
         out += ["", "## Foreign cells beside the Hobbes cell on the same key (ADR-101)", "",
                 "Same repo, same commit, same answer key, same matcher, same poison check. The tool's number is at our grain (C-94, C-95) and host-run (C-96); every foreign record quotes the tool's own confidence labels and its untriaged contradiction count. Hobbes' number is the standing cell's.", "",
@@ -551,7 +551,7 @@ def render_tables(cells: list[dict]) -> str:
                 pl = "undefined (nothing graded)"
             hp = (h.get("precision") or h.get("confirmation_rate")) if h else None
             hpl = (f"{hp['pct']}% ({fmt(hp['num'])}/{fmt(hp['den'])})" if h and h.get("precision") else (f"confirmation {hp['pct']}% — not precision" if hp else "—"))
-            out.append(f"| {c['label']} | {c['lang']} | {c['tool']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {hpl} | {h['recall']['pct'] if h else '—'}% | [{c['record']}](../oracle-cells/{c['record']}), [{h['record'] if h else '—'}](../oracle-cells/{h['record'] if h else ''}) |")
+            out.append(f"| {c['label']} | {c['lang']} | {c['tool']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {hpl} | {h['recall']['pct'] if h else '—'}% | [{c['record']}](../oracle/cells/{c['record']}), [{h['record'] if h else '—'}](../oracle/cells/{h['record'] if h else ''}) |")
     dh = [c for c in draws if c.get("tool", "hobbes") == "hobbes"]
     if dh:
         out += ["", "## The 1-1 on repowise's draws (ADR-101 § the 1-1)", "",
@@ -566,7 +566,7 @@ def render_tables(cells: list[dict]) -> str:
                 pl = f"{p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])})" if p else ("undefined" if c.get("undefined") else "—")
                 return f"{pl} / {c['recall']['pct']}% ({fmt(c['recall']['hits'])}/{fmt(c['recall']['pairs'])})"
             p = h["precision"]; r = h["recall"]; po = h.get("poison")
-            recs = ", ".join(f"[{x['record']}](../oracle-cells/{x['record']})" for x in [h] + [x for x in draws if x.get("tool") and x["label"] == h["label"]])
+            recs = ", ".join(f"[{x['record']}](../oracle/cells/{x['record']})" for x in [h] + [x for x in draws if x.get("tool") and x["label"] == h["label"]])
             out.append(f"| {h['label']} | {h['lang']} | {fmt(h['edges'])} | **{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%) | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {cellp('codegraphcontext')} | {cellp('repowise')} | {recs} |")
     return "\n".join(out) + "\n"
 
@@ -672,7 +672,7 @@ def render_comparison(cells: list[dict]) -> str:
                      "On repowise-bench's draws the key is ours, at site grain — not comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.", 175):
         o.append(text(24, y, line, 10.5, INK2))
         y += 14
-    o.append(text(24, y + 4, "Rendered from docs/oracle-cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.", 10, INK2))
+    o.append(text(24, y + 4, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.", 10, INK2))
     o.append("</svg>")
     return "\n".join(o) + "\n"
 
@@ -724,7 +724,7 @@ def main(argv=None):
         fresh = load_cells(Path(args.cells), Path(args.meta))
         committed = json.loads((Path(args.data) / "cells.json").read_text())
         if fresh != committed:
-            drift.append("data/cells.json does not match docs/oracle-cells/ — run `render.py cells` then `render.py render`")
+            drift.append("data/cells.json does not match docs/oracle/cells/ — run `render.py cells` then `render.py render`")
         for name, svg in render_all(Path(args.data), Path(args.graphics)).items():
             p = Path(args.graphics) / name
             if not p.exists() or p.read_text() != svg:

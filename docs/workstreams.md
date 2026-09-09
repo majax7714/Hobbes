@@ -149,7 +149,7 @@ the best on-ramp for a new contributor who should learn the codebase.*
   `~/.hobbes/cache/npm` and keeping the Rust stage's `target/` across
   ingests. Opens when sizes hurt.
 - **Oracle-lane findings for the Go join — fixed 2026-08-25, same
-  session** (evidence in `oracle-cells/dagger-go-2026-08-25.md`; the
+  session** (evidence in `oracle/cells/dagger-go-2026-08-25.md`; the
   `goshapes` fixture holds one of each shape). (a) A type conversion
   drawn as a call — the projection now refuses a `calls` edge whose Go
   target is a `type` (→ `uses`). (b)–(d) were one bug, not three: the
@@ -203,7 +203,7 @@ run; GPU-hours stated first).*
   This is the "one more test showing Hobbes functionality regardless
   of task success": the harness demonstrating decomposition, coverage,
   and honest plan errors end to end.
-- **The oracle-grading lane (ADR-089, `docs/oracle-grading.md`) — cleared
+- **The oracle-grading lane (ADR-089, `docs/oracle/oracle-grading.md`) — cleared
   2026-08-25, phases 1 and 2 done (O1–O4, O6, O7; the dagger Go root not
   gradeable on this box).** Precision-against-oracle and recall for the
   call graph against Go RTA / `tsc` / the Python interpreter / rustc's

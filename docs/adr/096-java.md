@@ -215,7 +215,7 @@ needs no second toolchain. Declarations cross shard boundaries **keyed**
 and test separately; a dynamic site carries the declared method as
 `interface` and the **CHA override set** as targets. RTA stays the
 recorded next step if CHA's recall proves too coarse — on four cells it
-did not. Details in `docs/oracle-grading.md` §7b.
+did not. Details in `docs/oracle/oracle-grading.md` §7b.
 
 ## Consequences
 

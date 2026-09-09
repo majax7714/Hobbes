@@ -1,6 +1,6 @@
 # bench/oracle — grading the call graph against answer keys Hobbes does not control
 
-The oracle-grading lane (ADR-089; design in `docs/oracle-grading.md`).
+The oracle-grading lane (ADR-089; design in `docs/oracle/oracle-grading.md`).
 Bench tooling only: its own Go module, no product code, one binary with
 cells as data. It exists to give the extraction layer two numbers it has
 never had — **precision-against-oracle** and **recall** — from an edge
@@ -52,7 +52,7 @@ parenthesis, the callee the line of the declared identifier; paths
 repo-relative). `<oracle.json>` is an answer key produced by
 `oracle go-rta | rust-mir | java-javac | py-trace` or
 `ts/tsc-oracle.mjs` on the same repo at the same commit — every cell
-record in `docs/oracle-cells/` names the command that regenerates
+record in `docs/oracle/cells/` names the command that regenerates
 its key. The tool's `label` becomes the edge's tier, so the report's
 per-tier split reads the tool's own confidence ladder. A malformed
 position refuses the whole file (a converter defect must never grade
@@ -67,7 +67,7 @@ shape above; a Go test converts a committed dump of `minigo` and
 compares it to a hand-read truth, then grades it and requires the
 poison twin refused). Present: `codegraphcontext` (Kuzu backend) and
 `repowise` (`wiki.db`). The cells made with them are
-`docs/oracle-cells/<tool>-<repo>-<date>.md`, in the same format as a
+`docs/oracle/cells/<tool>-<repo>-<date>.md`, in the same format as a
 Hobbes cell, and every one is host-run (C-96).
 
 ## Normative conventions (D-O4)
@@ -190,7 +190,7 @@ in exactly one bucket:
   / missed rows — the triage queue.
 
 Every defect found in the harness or an oracle is logged in
-`docs/oracle-defects.md` with what it would have cost unnoticed.
+`docs/oracle/oracle-defects.md` with what it would have cost unnoticed.
 
 ## The poison check — proving wrong edges get caught
 
@@ -207,7 +207,7 @@ which must be zero**. The fixture tests assert it for every oracle
 kind; a cell record quotes the line. Poisoned rows are prefixed
 `poison:` so they can never be mistaken for evidence.
 
-## Cell records (`docs/oracle-cells/`)
+## Cell records (`docs/oracle/cells/`)
 
 One file per cell, with: how it was produced (command, sha, oracle
 version, roots/suite, runtime); the report head verbatim; the triage

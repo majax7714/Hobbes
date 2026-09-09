@@ -48,7 +48,7 @@ The first pass on this repo read **237 contradicted (98.7%)** and the second **1
 1. **Annotation-carrying parameter types broke the key join.** jsoup's jspecify `@Nullable` rides `TypeMirror.toString()`, so a *source*-compiled declaration keyed `Element#<init>(@Nullable String)` and the *class-file* symbol the test compilation resolved keyed `Element#<init>(java.lang.String)` — every test→main constructor missed its declaration and read contradicted. The plugin now builds erased parameter names from the element, never from `toString`.
 2. **javac's synthetic `super()` and default constructors.** javac inserts `super();` at a constructor body's opening brace and synthesises a default constructor at the class line. The first counted as a site no source line makes (now skipped and counted in `excluded.synthetic`); the second was briefly dropped as a declaration, which cost every `new T()` on an implicit constructor its target — it is kept, because the class line is exactly where Hobbes draws that edge (the D-O4 rule for a call of a class).
 
-Both are logged in `docs/oracle-defects.md` (H-20, H-21). No product change followed from either.
+Both are logged in `docs/oracle/oracle-defects.md` (H-20, H-21). No product change followed from either.
 
 ## What this cell fixed on the product side
 

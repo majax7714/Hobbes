@@ -20,7 +20,7 @@ own READMEs — one row per tool, every cell sourced or *unstated*, in
 claimed about them.
 
 **The numbers are not on this page.** They live in one place, the
-cell records (`docs/oracle-cells/`), and the comparison is the cells
+cell records (`docs/oracle/cells/`), and the comparison is the cells
 made by putting other tools' graphs through the same compiler answer
 keys on the same repos at the same commits
 ([`comparative/README.md`](comparative/README.md) and its generated

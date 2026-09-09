@@ -114,7 +114,7 @@
   not exist.
 - **You find out:** **surfaced** (2026-08-25). `oracle grade` prints
   the pair, the silent size and the root count / coverage line together
-  and refuses to compute a pooled figure; `docs/oracle-cells/` keeps
+  and refuses to compute a pooled figure; `docs/oracle/cells/` keeps
   one record per cell; the evidence file's rows are per cell.
 - **Source:** ADR-089, design §3 and §11.
 
