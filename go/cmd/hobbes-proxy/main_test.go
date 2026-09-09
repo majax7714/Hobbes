@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/majax7714/Hobbes/go/internal/escalation"
+	"github.com/majax7714/Hobbes/go/internal/version"
 )
 
 // cli runs the binary's dispatcher, capturing both streams.
@@ -183,5 +184,16 @@ func TestEscalationsApproveTwiceFails(t *testing.T) {
 func TestEscalationsMissingIDIsUsage(t *testing.T) {
 	if code, _, _ := cli("escalations", "approve", "--log-dir", t.TempDir()); code != exitUsage {
 		t.Errorf("exit = %d, want %d", code, exitUsage)
+	}
+}
+
+// ADR-103: every binary states the Hobbes version it was built from.
+func TestVersionPrintsTheHobbesVersion(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"version"}, &out, &errb); code != 0 {
+		t.Fatalf("exit %d: %s", code, errb.String())
+	}
+	if got := out.String(); got != "hobbes-proxy "+version.Version+"\n" {
+		t.Fatalf("got %q", got)
 	}
 }

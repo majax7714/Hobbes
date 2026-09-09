@@ -1,0 +1,89 @@
+# ADR-103 — Hobbes is versioned; the experiments are not
+
+**Date:** 2026-09-09 · **Status:** accepted — built (root `VERSION`, the stamp, the four binaries, the held-together test), tagged `v0.1.3` · **Owner:** Max · **Source:** Max, 2026-09-09: "everything outside the Hobbes layer — the experiments largely — are not version changes to Hobbes as much as we'd call internal testing; since their products are versioned I want to version mine"
+
+Amends architecture **§2** (the two-layer statement gains the version
+line) and **§8** (status is stated per version from here). Registers
+no constraint. Companion: ADR-094 (the `built_by` stamp the version
+rides in).
+
+## Context
+
+Every tool in `docs/comparative/field.md` has a version, and every
+foreign cell names one (CodeGraphContext 0.6.13, repowise 0.49.0).
+Hobbes' own cells name a commit SHA and a checkout — exact, but not a
+thing a reader can say out loud, and not a thing that separates the
+product from the programme around it. The tree carries both: the
+**Hobbes layer** (`go/`, `pipeline/`'s knowledge, derivation, run and
+agent packages, `web/`, `tsextract/`, `scip/`, `sandbox/`) and the
+**experiments** — the oracle lane, Calvin, the test-time-training
+cells, Atlas-0, the benchmark harness — which exist to test the layer
+or to test hypotheses about models, and which are recorded as
+evidence, never shipped as product (`bench/` is "bench tooling, never
+product" in every one of its README lines).
+
+Until now the Python package said `0.0.1`, the web package `0.1.0`,
+the Node helpers `0.0.1`, and the Go binaries said nothing. Four
+numbers that agree with nothing is worse than none.
+
+## Decision
+
+1. **One version, one file.** The root `VERSION` file holds the
+   Hobbes layer's version. Every other copy — `hobbes.__version__`,
+   `pipeline/pyproject.toml`, `go/internal/version.Version`, and the
+   three `package.json` files with their lockfiles — is a hand-edited
+   duplicate that `pipeline/tests/test_version.py` and the Go
+   package's own test hold equal to the file. A bump is one commit
+   touching all of them, and forgetting one is a red suite, not a
+   wrong stamp.
+2. **The version is stated where the SHA is.** `built_by` (ADR-094)
+   gains `version`, so every artifact says which Hobbes *version* built
+   it as well as which commit; `hobbes ingest` prints it on its
+   provenance line, every knowledge answer's header repeats it
+   (`built by hobbes 0.1.3 @ <sha> from <checkout>`), and each of the
+   four Go binaries answers `version`. An artifact from before this
+   ADR carries no version and the header prints none — never a guess.
+3. **What bumps it.** Semantic versioning, and 0.x means the artifact
+   schema and the tool surface are not frozen:
+   - **patch** — a fix or a lift in the Hobbes layer that changes what
+     it draws, refuses or says (a C-n lifted, a wrong edge shape
+     vetoed, a converter grain repaired), and documentation of it;
+   - **minor** — a capability of the layer: a language, a knowledge
+     tool, a schema version, a containment phase, a derivation stage;
+   - **major** — reserved: a 1.0 when schema v4's successor is frozen
+     and the two-layer statement has held through a release cycle.
+4. **What does not bump it.** Anything under `bench/` — a cell
+   graded, a foreign tool run, an Atlas-0 world, a Calvin run, a
+   training cell — and the experiment records under `docs/`. Those
+   are **internal testing**: they measure the layer or a model, and
+   their results go in the evidence log, the cell records and the
+   hypotheses register at whatever the layer's version was when they
+   ran. A finding that leads to a fix bumps the version when the fix
+   lands, not when the finding is written. The oracle lane's grade is
+   the layer's test, not its release note.
+5. **The starting point is 0.1.3, chosen not derived.** Max's number:
+   v1 and v2 extraction complete and reviewed, six languages
+   compiler-graded, the two-layer statement standing — but the schema
+   still moves and nothing is frozen, so 0.x. The tag `v0.1.3` marks
+   this commit; tags are local until the lead publishes them, like
+   every push.
+6. **`CHANGELOG.md`** at the root, one entry per version, written in
+   the same commit as the bump: what changed in the layer, in plain
+   words, pointing at the ADRs and constraints. History stays in the
+   BUILDLOG; the changelog is the release-grain view a user of a
+   versioned tool expects. Its first entry describes what 0.1.3 *is*,
+   since no prior version exists to diff against.
+
+## Consequences
+
+- `docs/comparative/field.md`'s Hobbes row and every future Hobbes
+  cell record can name a version beside the commit, the way the
+  foreign rows do. Existing records are not rewritten; they name
+  commits, which is exact.
+- CLAUDE.md's Status block is stated per version from here; the
+  conventions gain one line (bump the version in the same commit as
+  the change that earns it, per §3).
+- The sandbox image must be rebuilt after a bump for the knowledge
+  tools to state it (C-65 already says so of any proxy rebuild).
+- A wheel installed outside a checkout now states its version where
+  it could only say "no git commit" before.

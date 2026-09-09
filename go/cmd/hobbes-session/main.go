@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/majax7714/Hobbes/go/internal/sandbox"
+	"github.com/majax7714/Hobbes/go/internal/version"
 )
 
 const (
@@ -32,6 +33,7 @@ const (
 )
 
 const usage = `usage: hobbes-session start --repo DIR --role ROLE [flags] [-- CMD...]
+       hobbes-session version            print the Hobbes version (ADR-103)
 
 Launch an agent session in a rootless Podman sandbox: a fresh git worktree
 mounted rw, the hobbes-proxy MCP server enforcing policy, and a clean
@@ -102,6 +104,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "start":
 		return runStart(args[1:], stdout, stderr)
+	case "version", "--version":
+		fmt.Fprintf(stdout, "hobbes-session %s\n", version.Version)
+		return 0
 	case "help", "-h", "--help":
 		fmt.Fprint(stderr, usage)
 		return 0

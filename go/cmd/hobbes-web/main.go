@@ -28,6 +28,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/majax7714/Hobbes/go/internal/version"
 	"github.com/majax7714/Hobbes/go/internal/web"
 )
 
@@ -38,6 +39,7 @@ const (
 )
 
 const usage = `usage: hobbes-web serve [flags]
+       hobbes-web version            print the Hobbes version (ADR-103)
 
 Serve the Hobbes human surface for one repo on a local port: the
 architecture graph, the behavioral test index, narrative docs with stale
@@ -63,6 +65,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "serve":
 		return runServe(args[1:], stdout, stderr)
+	case "version", "--version":
+		fmt.Fprintf(stdout, "hobbes-web %s\n", version.Version)
+		return 0
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return exitOK

@@ -7465,3 +7465,51 @@ four since the addendum above; CLAUDE.md's ADR counter said 100 (last is
 102); ADR-102's status line and §7 and the claim page's file table now
 describe the markers as drawn. The scatter's foreign cells are still
 hollow orange squares (ADR-102 §5); untouched, Max's call.
+
+## 2026-09-09 (evening) — Hobbes is versioned: 0.1.3 (ADR-103); the same-key graphic in one colour per tool
+
+**Max:** the same-key comparison's three hollow shapes in one colour
+were hard to decipher — one colour per tool; and "everything outside
+the Hobbes layer (the experiments largely) are not version changes to
+Hobbes as much as we'd call internal testing; since their products
+are versioned I want to version mine — hobbes 0.1.3; we've shown we
+can compete already directly."
+
+**The graphic** (committed first, its own addendum on the entry above):
+blue dot Hobbes, orange square CodeGraphContext, green diamond
+repowise, the palette's first three slots validated all-pairs, every
+marker filled, the glyphs in the legend.
+
+**Versioning (ADR-103).** Versioning is a project's trait, not
+GitHub's: a number the code states about itself, a tag on the commit
+that carries it. Built:
+
+- **Root `VERSION` = 0.1.3**, Max's number, chosen not derived. Its
+  held-together copies: `hobbes.__version__` (was 0.0.1),
+  `pipeline/pyproject.toml`, the new `go/internal/version` package,
+  and `tsextract` / `scip` / `web` `package.json` + lockfiles (were
+  0.0.1 / 0.0.1 / 0.1.0). `pipeline/tests/test_version.py` asserts
+  every copy equals the file; the Go package's test does the same
+  from its side.
+- **The stamp carries it.** `built_by` (ADR-094) gains `version`;
+  `hobbes ingest` prints `built by hobbes 0.1.3 @ <sha> from
+  <checkout>`; the knowledge header repeats it on every graph answer
+  (an older artifact prints no version — the Go test keeps one
+  fixture with and one without). The four Go binaries answer
+  `version` (`hobbes-proxy 0.1.3`), with a test each and a usage line.
+- **The rule:** the Hobbes layer (`go/`, `pipeline/`'s product
+  packages, `web/`, `tsextract/`, `scip/`, `sandbox/`) bumps patch
+  for a change in what it draws, refuses or says, minor for a
+  capability; `bench/` and the experiment records move nothing — a
+  finding there bumps the version when its fix lands. `CHANGELOG.md`
+  is new, one entry per version; its 0.1.3 entry says what 0.1.3 is.
+- Architecture §2 (the two-layer paragraph) and §8 amended; README
+  status, CLAUDE.md conventions + status, `field.md`'s Hobbes row
+  name the version. The proxy rebuilt static into `sandbox/` and the
+  image rebuilt (C-65), the binaries rebuilt; this repo re-ingested
+  so the dogfood artifact carries `version`.
+- **Tag `v0.1.3`** on the commit, local — the lead pushes tags with
+  the commits.
+
+Suites: Go 299 + 5 new green, the oracle lane's Go suite green,
+pytest green with the new test. No spend.

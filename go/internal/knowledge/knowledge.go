@@ -84,8 +84,11 @@ type symbol struct {
 }
 
 // builtBy is the pipeline's provenance stamp (ADR-094): which checkout
-// and commit produced the artifact. Absent on artifacts older than it.
+// and commit produced the artifact, and since ADR-103 which Hobbes
+// version. Absent on artifacts older than it; Version empty on those
+// between.
 type builtBy struct {
+	Version  string `json:"version"`
 	Checkout string `json:"checkout"`
 	SHA      string `json:"sha"`
 	Dirty    bool   `json:"dirty"`
@@ -198,7 +201,11 @@ func (s *Store) header(sha string, dirty bool, built *builtBy) string {
 		if rev == "" {
 			rev = "no git commit"
 		}
-		h += fmt.Sprintf("; built by hobbes @ %.12s", rev)
+		h += "; built by hobbes"
+		if built.Version != "" {
+			h += " " + built.Version
+		}
+		h += fmt.Sprintf(" @ %.12s", rev)
 		if built.Dirty {
 			h += " (dirty)"
 		}

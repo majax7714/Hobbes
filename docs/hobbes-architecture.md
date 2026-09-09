@@ -76,9 +76,14 @@ run from inside the sandbox image (ADR-094) — is a
 self-contained deployment: no model anywhere in it, no credential, a
 stdio serve from a read-only, offline container, and the only dangerous
 operation (executing the repo to understand it) sealed in a container.
-Every artifact says which Hobbes built it (`built_by`) and every
-answer repeats it, so the code that answers is a stated fact, never
-whatever a PATH resolves to. A user points Claude Code, their
+Every artifact says which Hobbes built it (`built_by`: version and
+commit, ADR-094/103) and every answer repeats it, so the code that
+answers is a stated fact, never whatever a PATH resolves to. **The
+Hobbes layer is versioned** (ADR-103; root `VERSION`, semantic, 0.x
+while the schema moves): the two layers here and the surfaces that
+serve them are the product; the oracle lane, the benchmark harness
+and the experiments under `bench/` are internal testing and move no
+version — a finding there bumps it only when the fix lands here. A user points Claude Code, their
 own loop, any MCP-speaking harness at it and gets the graph, the tiers,
 the tail view and `list_blind_spots` — keeping their model and their
 harness. The **agentic layer** — sessions, policy chains, orchestration,
@@ -1435,7 +1440,8 @@ maintained middle.
 
 ## 8. Build programme — status
 
-The file-level plan, exit criteria, estimates and the reasoning behind every
+**Hobbes 0.1.3** (2026-09-09, ADR-103; `CHANGELOG.md` is the
+release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in **[`hobbes-build-plan-v2.md`](hobbes-build-plan-v2.md)**;
 this section holds only the state, because a milestone plan restated in two
 places is a plan that disagrees with itself. Language mapping is unchanged:

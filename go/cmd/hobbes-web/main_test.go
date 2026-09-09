@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/majax7714/Hobbes/go/internal/version"
 	"io"
 	"net/http"
 	"os"
@@ -147,4 +148,15 @@ func TestServeAnswersOverTheWire(t *testing.T) {
 		t.Fatal("server did not shut down on SIGTERM")
 	}
 	pr.Close()
+}
+
+// ADR-103: every binary states the Hobbes version it was built from.
+func TestVersionPrintsTheHobbesVersion(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"version"}, &out, &errb); code != 0 {
+		t.Fatalf("exit %d: %s", code, errb.String())
+	}
+	if got := out.String(); got != "hobbes-web "+version.Version+"\n" {
+		t.Fatalf("got %q", got)
+	}
 }

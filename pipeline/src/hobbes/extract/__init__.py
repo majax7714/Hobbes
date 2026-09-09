@@ -743,9 +743,10 @@ def _merge_symbols(existing: list[dict], incoming: list[dict]) -> list[dict]:
 
 
 def built_by() -> dict:
-    """The provenance of the running pipeline code: the checkout that
-    holds this package and its git commit, or ``""`` when the package is
-    not inside a git checkout (an installed wheel)."""
+    """The provenance of the running pipeline code: its version (ADR-103),
+    the checkout that holds this package and its git commit, or ``""``
+    when the package is not inside a git checkout (an installed wheel)."""
+    from hobbes import __version__
     package = Path(__file__).resolve().parent.parent  # .../src/hobbes
 
     def git(*args: str) -> str:
@@ -756,8 +757,8 @@ def built_by() -> dict:
         root, sha = git("rev-parse", "--show-toplevel"), git("rev-parse", "HEAD")
         dirty = bool(git("status", "--porcelain", "--", str(package)))
     except (subprocess.SubprocessError, OSError):
-        return {"checkout": str(package), "sha": "", "dirty": False}
-    return {"checkout": root, "sha": sha, "dirty": dirty}
+        return {"version": __version__, "checkout": str(package), "sha": "", "dirty": False}
+    return {"version": __version__, "checkout": root, "sha": sha, "dirty": dirty}
 
 
 def ingest(repo_root: Path, tf_plan: Path | None = None) -> list[Path]:

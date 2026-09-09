@@ -71,7 +71,8 @@ def _print_built_by(record: dict | None) -> None:
         return
     sha = record.get("sha") or "no git commit"
     dirty = " (dirty)" if record.get("dirty") else ""
-    print(f"  built by hobbes @ {sha[:12]}{dirty} from {record.get('checkout', '?')}")
+    version = f" {record['version']}" if record.get("version") else ""  # pre-ADR-103 artifacts carry none
+    print(f"  built by hobbes{version} @ {sha[:12]}{dirty} from {record.get('checkout', '?')}")
 
 
 def _print_containment(record: dict | None) -> None:

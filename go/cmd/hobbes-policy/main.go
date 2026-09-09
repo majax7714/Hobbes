@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/majax7714/Hobbes/go/internal/policy"
+	"github.com/majax7714/Hobbes/go/internal/version"
 )
 
 // Decision-to-exit-code mapping, frozen by ADR-003.
@@ -34,6 +35,7 @@ const (
 )
 
 const usage = `usage: hobbes-policy resolve [flags] <command>...
+       hobbes-policy version            print the Hobbes version (ADR-103)
 
 Resolve a command against the merged Hobbes policy chain
 (box -> repo -> folder; deny overrides allow; allow | deny | escalate).
@@ -60,6 +62,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	switch args[0] {
 	case "resolve":
 		return runResolve(args[1:], stdout, stderr)
+	case "version", "--version":
+		fmt.Fprintf(stdout, "hobbes-policy %s\n", version.Version)
+		return 0
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return 0

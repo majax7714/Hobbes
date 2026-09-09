@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/majax7714/Hobbes/go/internal/version"
 	"os"
 	"path/filepath"
 	"strings"
@@ -146,5 +147,16 @@ func TestResolveMissingExplicitBoxIsError(t *testing.T) {
 		"--box", filepath.Join(repo, "nope.policy"), "git status")
 	if code != 1 {
 		t.Fatalf("exit = %d, want 1 (stderr: %s)", code, stderr)
+	}
+}
+
+// ADR-103: every binary states the Hobbes version it was built from.
+func TestVersionPrintsTheHobbesVersion(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"version"}, &out, &errb); code != 0 {
+		t.Fatalf("exit %d: %s", code, errb.String())
+	}
+	if got := out.String(); got != "hobbes-policy "+version.Version+"\n" {
+		t.Fatalf("got %q", got)
 	}
 }

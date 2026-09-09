@@ -7,4 +7,8 @@ Policy semantics deliberately do NOT live here: the Go engine
 shells out to its ``hobbes-policy`` binary (ADR-003).
 """
 
-__version__ = "0.0.1"
+# The one version of the Hobbes layer (ADR-103): equal to the root
+# VERSION file, the Go `version.Version`, and the three package.json
+# versions — `tests/test_version.py` holds them together. Stamped into
+# every artifact's `built_by` and printed on every knowledge answer.
+__version__ = "0.1.3"

@@ -30,7 +30,7 @@ func fixtureRepo(t *testing.T) string {
 	graph := map[string]any{
 		"schema_version": derived.Current,
 		"sha":            sha, "dirty": false,
-		"built_by": map[string]any{"checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
+		"built_by": map[string]any{"version": "0.1.3", "checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
 		"nodes": []map[string]any{
 			{"id": "app.core", "kind": "module", "path": "src/app/core.py"},
 			{"id": "app.api", "kind": "module", "path": "src/app/api.py"},
@@ -822,7 +822,7 @@ func TestEveryGraphAnswerNamesWhichHobbesBuiltIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := strings.SplitN(out, "\n", 2)[0]
-	if !strings.Contains(first, "built by hobbes @ bbbbbbbbbbbb (dirty) from /opt/hobbes") {
+	if !strings.Contains(first, "built by hobbes 0.1.3 @ bbbbbbbbbbbb (dirty) from /opt/hobbes") {
 		t.Errorf("header must name the builder:\n%s", first)
 	}
 	guard, err := s.TestsGuarding("app.core")

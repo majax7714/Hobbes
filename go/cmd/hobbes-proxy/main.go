@@ -37,6 +37,7 @@ import (
 	"github.com/majax7714/Hobbes/go/internal/escalation"
 	"github.com/majax7714/Hobbes/go/internal/proxy"
 	"github.com/majax7714/Hobbes/go/internal/recorder"
+	"github.com/majax7714/Hobbes/go/internal/version"
 )
 
 const (
@@ -46,6 +47,7 @@ const (
 )
 
 const usage = `usage: hobbes-proxy <serve | escalations> [flags]
+       hobbes-proxy version            print the Hobbes version (ADR-103)
 
 serve --repo DIR --role ROLE   run the tool proxy for one agent session
   [--knowledge-only]           (knowledge tools only: for a host session
@@ -84,6 +86,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runServe(args[1:], stderr)
 	case "escalations":
 		return runEscalations(args[1:], stdout, stderr)
+	case "version", "--version":
+		fmt.Fprintf(stdout, "hobbes-proxy %s\n", version.Version)
+		return 0
 	case "help", "-h", "--help":
 		fmt.Fprint(stderr, usage)
 		return exitOK

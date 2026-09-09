@@ -88,7 +88,10 @@ class TestIngest:
         assert stamp == built_by()
         assert pathlib.Path(stamp["checkout"], "pipeline", "src", "hobbes").is_dir()
         assert len(stamp["sha"]) == 40
-        assert f"built by hobbes @ {stamp['sha'][:12]}" in out and stamp["checkout"] in out
+        # ADR-103: the stamp and the line carry the Hobbes version too.
+        from hobbes import __version__
+        assert stamp["version"] == __version__
+        assert f"built by hobbes {__version__} @ {stamp['sha'][:12]}" in out and stamp["checkout"] in out
 
     def test_non_git_repo_is_a_clear_error(self, tmp_path, capsys):
         assert cli.main(["ingest", "--repo", str(tmp_path)]) == 1

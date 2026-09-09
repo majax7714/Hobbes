@@ -190,8 +190,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-09): 1,243 pytest (+3 `lane_b`) /
-299 Go + 47 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
+Suite sizes at the last check (2026-09-09): 1,244 pytest (+3 `lane_b`) /
+304 Go + 47 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -205,7 +205,15 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 102).
+  architecture doesn't already make. Number sequentially (last: 103).
+- **The Hobbes layer is versioned; the experiments are not** (ADR-103).
+  Root `VERSION` is the one number (semver, 0.x); `hobbes.__version__`,
+  `pyproject`, `go/internal/version`, the three `package.json` are its
+  held-together copies (`test_version.py`). A change to what the layer
+  draws, refuses or says bumps patch; a capability bumps minor; both in
+  the same commit as the change, with a `CHANGELOG.md` entry. Nothing
+  under `bench/` or an experiment record moves it. Rebuild the image
+  after a bump (C-65).
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -239,8 +247,12 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-09)
+## Status (2026-09-09) — Hobbes 0.1.3
 
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.3, tagged
+  `v0.1.3` locally; every artifact's `built_by` and every knowledge
+  answer carry the version beside the commit; the four Go binaries
+  answer `version`; `CHANGELOG.md` holds the release-grain view.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined

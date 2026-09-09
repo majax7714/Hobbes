@@ -254,6 +254,11 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
+**Hobbes 0.1.3** (2026-09-09). The Hobbes layer is versioned from here
+(ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
+`bench/` are internal testing and carry no version. Every artifact and
+every knowledge answer states the version and commit that built it.
+
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
 Semantic edges for **Python, TypeScript/JavaScript, Go, Rust and Java**
 (plus Terraform/HCL structure), graph schema v4 with tiers and evidence
@@ -314,7 +319,7 @@ point); the session-by-session record is
 | [`docs/hobbes-build-plan-v2.md`](docs/hobbes-build-plan-v2.md) | The v2 programme, V2.M0–V2.M7, complete — kept with its exit criteria and outcomes |
 | [`docs/hobbes-architecture-v1.md`](docs/hobbes-architecture-v1.md) | The frozen v1 design — history, kept for the reasoning behind the carried subsystems |
 | [`docs/hobbes-build-plan.md`](docs/hobbes-build-plan.md) | v1 milestones M0–M8 and the locked decisions |
-| [`docs/adr/`](docs/adr/) | 102 numbered ADRs — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | 103 numbered ADRs — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/majax7714/Hobbes/go/internal/version"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -431,5 +432,16 @@ func TestMountFlagBindsAHostTreeReadOnly(t *testing.T) {
 	if code, _, stderr := cli("start", "--repo", repo, "--role", "implementer", "--proxy-bin", fakeProxy,
 		"--sessions", t.TempDir(), "--mount", "relative/path", "--dry-run"); code == 0 || !strings.Contains(stderr, "absolute") {
 		t.Errorf("a relative mount must be refused: code=%d stderr=%q", code, stderr)
+	}
+}
+
+// ADR-103: every binary states the Hobbes version it was built from.
+func TestVersionPrintsTheHobbesVersion(t *testing.T) {
+	var out, errb bytes.Buffer
+	if code := run([]string{"version"}, &out, &errb); code != 0 {
+		t.Fatalf("exit %d: %s", code, errb.String())
+	}
+	if got := out.String(); got != "hobbes-session "+version.Version+"\n" {
+		t.Fatalf("got %q", got)
 	}
 }
