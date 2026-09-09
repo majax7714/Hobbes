@@ -1,0 +1,339 @@
+{
+ "_comment": "Per-cell metadata the records do not print in a parseable line: language, where the cell ran, how the repo was chosen, a short label and a note. Numbers never live here — they are read from docs/oracle-cells/ (ADR-102).",
+ "ajv-ts": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "picked",
+  "label": "ajv",
+  "note": "the one open semantic defect: a member call on a union-typed receiver (static→union-member, n=1)"
+ },
+ "cheerio-ts": {
+  "lang": "TypeScript",
+  "run": "contained",
+  "draw": "picked",
+  "label": "cheerio",
+  "note": "44 abstract: calls through const x = factory(..) (H-18)"
+ },
+ "click-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "click",
+  "note": "trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry"
+ },
+ "dagger-go": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "picked",
+  "label": "dagger",
+  "table": "dagger-after",
+  "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)"
+ },
+ "dagger-rust": {
+  "lang": "Rust",
+  "run": "host-run",
+  "draw": "picked",
+  "label": "dagger sdk/rust",
+  "note": "misses are code macros and derives wrote"
+ },
+ "fzf-go": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "picked",
+  "label": "fzf",
+  "note": "87 syntactic edges vetoed by the Go scope rule before the regrade (ADR-090)"
+ },
+ "hobbes-go": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "dogfood",
+  "label": "hobbes go/",
+  "note": "dogfood"
+ },
+ "hobbes-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "dogfood",
+  "label": "hobbes pipeline/",
+  "note": "trace-graded under its own suite (dogfood)"
+ },
+ "jsoup-java": {
+  "lang": "Java",
+  "run": "contained",
+  "draw": "picked",
+  "label": "jsoup",
+  "note": "interface→method against the CHA override set is the majority miss"
+ },
+ "kbet-ts": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "picked",
+  "label": "kbet (private app)",
+  "note": "a private Vite+React app: the cell is published, the repo is not"
+ },
+ "memchr-rust": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "picked",
+  "label": "memchr",
+  "note": "misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)"
+ },
+ "mux-go": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "picked",
+  "label": "mux",
+  "note": "3 abstract: calls through a package-level func variable (H-18)"
+ },
+ "petclinic-java": {
+  "lang": "Java",
+  "run": "contained",
+  "draw": "picked",
+  "label": "spring-petclinic",
+  "note": ""
+ },
+ "quic-go-go": {
+  "lang": "Go",
+  "run": "contained",
+  "draw": "random",
+  "label": "quic-go",
+  "note": "random draw; binary roots only (the full test program OOM-killed the box); all 15 contradictions are the test build's shadowing methods, 0 hobbes-wrong"
+ },
+ "rust_proj": {
+  "lang": "Rust",
+  "run": "contained",
+  "draw": "picked",
+  "label": "rust_proj",
+  "note": "tiny crate; misses are criterion_group! bodies"
+ },
+ "severed-chains-java": {
+  "lang": "Java",
+  "run": "contained",
+  "draw": "random",
+  "label": "Severed-Chains",
+  "floor": true,
+  "note": "random draw; lane B failed on this Gradle build (C-67), so every edge is syntactic — C-8's floor measured"
+ },
+ "spring-data-elasticsearch-java": {
+  "lang": "Java",
+  "run": "contained",
+  "draw": "random",
+  "label": "spring-data-elasticsearch",
+  "note": "random draw"
+ },
+ "toml-go": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "picked",
+  "label": "toml",
+  "note": ""
+ },
+ "codegraphcontext-toml": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "toml",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-toml": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "toml",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-mux": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "mux",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes mux cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-mux": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "mux",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes mux cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-fzf": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "fzf",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-fzf": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "fzf",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-quic-go": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "quic-go",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-quic-go": {
+  "lang": "Go",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "quic-go",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-ajv": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "ajv",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-ajv": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "ajv",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-cheerio": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "cheerio",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-cheerio": {
+  "lang": "TypeScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "cheerio",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-memchr": {
+  "lang": "Rust",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "memchr",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-memchr": {
+  "lang": "Rust",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "memchr",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-rust_proj": {
+  "lang": "Rust",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "rust_proj",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-rust_proj": {
+  "lang": "Rust",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "rust_proj",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-jsoup": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "jsoup",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-jsoup": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "jsoup",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-spring-petclinic": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "spring-petclinic",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-spring-petclinic": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "spring-petclinic",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-spring-data-elasticsearch": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "spring-data-elasticsearch",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-spring-data-elasticsearch": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "spring-data-elasticsearch",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-severed-chains": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "Severed-Chains",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-severed-chains": {
+  "lang": "Java",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "Severed-Chains",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-click": {
+  "lang": "Python",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "click",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-click": {
+  "lang": "Python",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw",
+  "label": "click",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ }
+}

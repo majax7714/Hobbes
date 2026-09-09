@@ -458,6 +458,14 @@ This is also the dry run for the habit the harness benchmark will need.
 
 ## 11. Evidence, claims, and register updates
 
+- **A graph Hobbes did not build is graded by the same rules**
+  (ADR-101): `oracle import` + `grade-foreign.sh`, one converter per
+  tool under `bench/oracle/adapters/` with a hand-read fixture, the
+  poison check run on the converted file, the cell record in the same
+  format with the tool's own confidence labels as tiers and the
+  untriaged contradiction count printed. The three comparative graphics
+  are read from the cell records by `bench/oracle/report/render.py`
+  and a drift test keeps them so (ADR-102).
 - Rows land in `extraction-evidence.md`, same commit as the run, per the
   file's own rule. **A regrade after a fix carries a signed
   direction-of-fix line** in its cell record (README template): what

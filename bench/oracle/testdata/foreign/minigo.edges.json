@@ -1,0 +1,17 @@
+{
+  "repo": "pipeline/tests/fixtures/minigo",
+  "sha": "fixture",
+  "tool": "handread",
+  "version": "0",
+  "converter": "hand@2026-09-09",
+  "edges": [
+    { "site": "cmd/mini/main.go:12", "callee": "internal/policy/policy.go:26", "caller": "main.main", "kind": "function" },
+    { "site": "cmd/mini/main.go:16", "callee": "internal/policy/policy.go:36", "caller": "main.main", "kind": "function", "label": "high" },
+    { "site": "internal/policy/policy.go:28", "callee": "internal/policy/policy.go:21", "kind": "function" },
+    { "site": "internal/policy/policy_test.go:7", "callee": "internal/policy/policy.go:26" },
+    { "site": "internal/policy/policy_test.go:13", "callee": "internal/policy/policy.go:26" },
+    { "site": "internal/policy/policy_test.go:13", "callee": "internal/policy/policy.go:26" },
+    { "site": "README.md:1", "callee": "internal/policy/policy.go:26" },
+    { "site": "internal/policy/policy.go:28", "callee": "docs/notes.txt:3" }
+  ]
+}

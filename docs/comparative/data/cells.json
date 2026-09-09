@@ -1,0 +1,2632 @@
+{
+ "source": "docs/oracle-cells",
+ "cells": [
+  {
+   "stem": "ajv-ts",
+   "record": "ajv-ts-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "resolution",
+   "oracle": "tsc 5.3.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "ajv",
+   "note": "the one open semantic defect: a member call on a union-typed receiver (static→union-member, n=1)",
+   "edges": 1543,
+   "confirmed": 1375,
+   "contradicted": 3,
+   "abstract": 0,
+   "silent": 165,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 99.8,
+    "num": 1375,
+    "den": 1378
+   },
+   "recall": {
+    "pct": 62.0,
+    "hits": 1383,
+    "pairs": 2232,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 13,
+    "interface→type-member": 12,
+    "static→class": 107,
+    "static→closure": 174,
+    "static→function": 491,
+    "static→method": 35,
+    "static→type-member": 17
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1543,
+    "refused": 1378,
+    "unjudged": 165,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "cheerio-ts",
+   "record": "cheerio-ts-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "resolution",
+   "oracle": "tsc 6.0.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "contained",
+   "draw": "picked",
+   "label": "cheerio",
+   "note": "44 abstract: calls through const x = factory(..) (H-18)",
+   "edges": 2162,
+   "confirmed": 2102,
+   "contradicted": 0,
+   "abstract": 44,
+   "silent": 16,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 2102,
+    "den": 2102
+   },
+   "recall": {
+    "pct": 36.1,
+    "hits": 2132,
+    "pairs": 5910,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1070,
+    "static→anonymous-signature": 12,
+    "static→class": 5,
+    "static→closure": 173,
+    "static→function": 2507,
+    "static→method": 5,
+    "static→type-member": 6
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2162,
+    "refused": 2146,
+    "unjudged": 16,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "click-py",
+   "record": "click-py-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "click",
+   "note": "trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry",
+   "edges": 2003,
+   "confirmed": 1699,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 18,
+   "unobserved": 286,
+   "confirmation_rate": {
+    "pct": 84.8,
+    "num": 1699,
+    "den": 2003
+   },
+   "recall": {
+    "pct": 37.0,
+    "hits": 1699,
+    "pairs": 4595,
+    "roots": null,
+    "runs": null,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2003,
+    "refused": 1535,
+    "unjudged": 468,
+    "falsely": 0
+   },
+   "misses": {
+    "observed→class": 149,
+    "observed→closure": 1196,
+    "observed→function": 804,
+    "observed→lambda": 81,
+    "observed→method": 742
+   }
+  },
+  {
+   "stem": "codegraphcontext-ajv",
+   "record": "codegraphcontext-ajv-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.3.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "ajv",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2155,
+   "confirmed": 1114,
+   "contradicted": 79,
+   "abstract": 0,
+   "silent": 962,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 93.4,
+    "num": 1114,
+    "den": 1193
+   },
+   "recall": {
+    "pct": 50.9,
+    "hits": 1135,
+    "pairs": 2232,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 13,
+    "func-value→variable": 1,
+    "interface→type-member": 12,
+    "static→class": 107,
+    "static→closure": 24,
+    "static→function": 146,
+    "static→method": 777,
+    "static→type-member": 17
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2155,
+    "refused": 1193,
+    "unjudged": 962,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-cheerio",
+   "record": "codegraphcontext-cheerio-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 6.0.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "cheerio",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1154,
+   "confirmed": 1035,
+   "contradicted": 106,
+   "abstract": 0,
+   "silent": 13,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 90.7,
+    "num": 1035,
+    "den": 1141
+   },
+   "recall": {
+    "pct": 17.7,
+    "hits": 1045,
+    "pairs": 5910,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1070,
+    "func-value→variable": 684,
+    "static→anonymous-signature": 12,
+    "static→class": 5,
+    "static→closure": 165,
+    "static→function": 2877,
+    "static→method": 46,
+    "static→type-member": 6
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1154,
+    "refused": 1141,
+    "unjudged": 13,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-click",
+   "record": "codegraphcontext-click-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "click",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1958,
+   "confirmed": 1298,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 146,
+   "unobserved": 514,
+   "confirmation_rate": {
+    "pct": 66.3,
+    "num": 1298,
+    "den": 1958
+   },
+   "recall": {
+    "pct": 28.2,
+    "hits": 1298,
+    "pairs": 4595,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→class": 621,
+    "observed→closure": 1196,
+    "observed→function": 502,
+    "observed→lambda": 81,
+    "observed→method": 897
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1958,
+    "refused": 1282,
+    "unjudged": 676,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-fzf",
+   "record": "codegraphcontext-fzf-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "fzf",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 3517,
+   "confirmed": 2720,
+   "contradicted": 423,
+   "abstract": 0,
+   "silent": 374,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 86.5,
+    "num": 2720,
+    "den": 3143
+   },
+   "recall": {
+    "pct": 39.0,
+    "hits": 2742,
+    "pairs": 7035,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "misses": {
+    "func-value→closure": 2457,
+    "func-value→named": 81,
+    "interface→named": 106,
+    "static→closure": 1212,
+    "static→named": 437
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3517,
+    "refused": 3143,
+    "unjudged": 374,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-jsoup",
+   "record": "codegraphcontext-jsoup-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "jsoup",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 15784,
+   "confirmed": 11224,
+   "contradicted": 4560,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 71.1,
+    "num": 11224,
+    "den": 15784
+   },
+   "recall": {
+    "pct": 45.8,
+    "hits": 11273,
+    "pairs": 24630,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 403,
+    "interface→method": 9465,
+    "static→anonymous-member": 28,
+    "static→constructor": 1169,
+    "static→method": 2292
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 15784,
+    "refused": 15784,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-memchr",
+   "record": "codegraphcontext-memchr-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "memchr",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 3817,
+   "confirmed": 275,
+   "contradicted": 164,
+   "abstract": 0,
+   "silent": 3378,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 62.6,
+    "num": 275,
+    "den": 439
+   },
+   "recall": {
+    "pct": 24.1,
+    "hits": 276,
+    "pairs": 1146,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 57,
+    "macro→method": 42,
+    "static→closure": 1,
+    "static→function": 158,
+    "static→generated": 5,
+    "static→method": 607
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3817,
+    "refused": 439,
+    "unjudged": 3378,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-mux",
+   "record": "codegraphcontext-mux-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "mux",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes mux cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1193,
+   "confirmed": 920,
+   "contradicted": 250,
+   "abstract": 0,
+   "silent": 23,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 78.6,
+    "num": 920,
+    "den": 1170
+   },
+   "recall": {
+    "pct": 62.4,
+    "hits": 931,
+    "pairs": 1492,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 89,
+    "func-value→named": 5,
+    "interface→named": 101,
+    "static→closure": 45,
+    "static→named": 321
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1193,
+    "refused": 1170,
+    "unjudged": 23,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-quic-go",
+   "record": "codegraphcontext-quic-go-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "quic-go",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 18689,
+   "confirmed": 2769,
+   "contradicted": 1640,
+   "abstract": 0,
+   "silent": 14280,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 62.8,
+    "num": 2769,
+    "den": 4409
+   },
+   "recall": {
+    "pct": 34.8,
+    "hits": 2775,
+    "pairs": 7985,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "misses": {
+    "func-value→closure": 1406,
+    "func-value→named": 242,
+    "interface→named": 2064,
+    "static→closure": 36,
+    "static→named": 1462
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 18689,
+    "refused": 4409,
+    "unjudged": 14280,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-rust_proj",
+   "record": "codegraphcontext-rust_proj-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "rust_proj",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1,
+   "confirmed": 1,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 1,
+    "den": 1
+   },
+   "recall": {
+    "pct": 4.8,
+    "hits": 1,
+    "pairs": 21,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 4,
+    "static→function": 16
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1,
+    "refused": 1,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-severed-chains",
+   "record": "codegraphcontext-severed-chains-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 25.0.4.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "Severed-Chains",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 12065,
+   "confirmed": 5575,
+   "contradicted": 6490,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 46.2,
+    "num": 5575,
+    "den": 12065
+   },
+   "recall": {
+    "pct": 10.5,
+    "hits": 5698,
+    "pairs": 54520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 78,
+    "interface→method": 32643,
+    "static→constructor": 11504,
+    "static→method": 4597
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 12065,
+    "refused": 12065,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-spring-data-elasticsearch",
+   "record": "codegraphcontext-spring-data-elasticsearch-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "spring-data-elasticsearch",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 10520,
+   "confirmed": 6315,
+   "contradicted": 4204,
+   "abstract": 0,
+   "silent": 1,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 60.0,
+    "num": 6315,
+    "den": 10519
+   },
+   "recall": {
+    "pct": 26.0,
+    "hits": 6365,
+    "pairs": 24452,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 513,
+    "interface→method": 13217,
+    "static→anonymous-member": 4,
+    "static→constructor": 2554,
+    "static→method": 1799
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 10520,
+    "refused": 10519,
+    "unjudged": 1,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-spring-petclinic",
+   "record": "codegraphcontext-spring-petclinic-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "spring-petclinic",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 237,
+   "confirmed": 213,
+   "contradicted": 24,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 89.9,
+    "num": 213,
+    "den": 237
+   },
+   "recall": {
+    "pct": 59.8,
+    "hits": 223,
+    "pairs": 373,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→method": 105,
+    "static→constructor": 45
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 237,
+    "refused": 237,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-toml",
+   "record": "codegraphcontext-toml-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "toml",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 888,
+   "confirmed": 812,
+   "contradicted": 60,
+   "abstract": 0,
+   "silent": 16,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 93.1,
+    "num": 812,
+    "den": 872
+   },
+   "recall": {
+    "pct": 56.4,
+    "hits": 832,
+    "pairs": 1475,
+    "roots": 4,
+    "basis": "at 4 roots"
+   },
+   "misses": {
+    "func-value→closure": 57,
+    "func-value→named": 74,
+    "interface→named": 213,
+    "static→closure": 58,
+    "static→named": 241
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 888,
+    "refused": 872,
+    "unjudged": 16,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "dagql/idtui/viztest",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 1252,
+   "confirmed": 1220,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 32,
+   "precision": {
+    "pct": 100.0,
+    "num": 1220,
+    "den": 1220
+   },
+   "recall": {
+    "pct": 95.6,
+    "hits": 1221,
+    "pairs": 1277,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 46
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "dagql/idtui/viztest/dep",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 408,
+   "confirmed": 382,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 26,
+   "precision": {
+    "pct": 100.0,
+    "num": 382,
+    "den": 382
+   },
+   "recall": {
+    "pct": 90.1,
+    "hits": 384,
+    "pairs": 426,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "dagql/idtui/viztest/dep/nested-dep",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 367,
+   "confirmed": 342,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 25,
+   "precision": {
+    "pct": 100.0,
+    "num": 342,
+    "den": 342
+   },
+   "recall": {
+    "pct": 89.1,
+    "hits": 342,
+    "pairs": 384,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "e2e/helm",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 72,
+   "confirmed": 72,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 72,
+    "den": 72
+   },
+   "recall": {
+    "pct": 100.0,
+    "hits": 72,
+    "pairs": 72,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {}
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "e2e/installers",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 12,
+   "confirmed": 12,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 12,
+    "den": 12
+   },
+   "recall": {
+    "pct": 75.0,
+    "hits": 12,
+    "pairs": 16,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 4
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/alpine",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 479,
+   "confirmed": 447,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 32,
+   "precision": {
+    "pct": 100.0,
+    "num": 447,
+    "den": 447
+   },
+   "recall": {
+    "pct": 91.5,
+    "hits": 453,
+    "pairs": 495,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/daggerverse",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 448,
+   "confirmed": 416,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 32,
+   "precision": {
+    "pct": 100.0,
+    "num": 416,
+    "den": 416
+   },
+   "recall": {
+    "pct": 90.8,
+    "hits": 416,
+    "pairs": 458,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/gha",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 989,
+   "confirmed": 947,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 42,
+   "precision": {
+    "pct": 100.0,
+    "num": 947,
+    "den": 947
+   },
+   "recall": {
+    "pct": 95.6,
+    "hits": 966,
+    "pairs": 1010,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 3,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/gha/examples/go",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 482,
+   "confirmed": 451,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 31,
+   "precision": {
+    "pct": 100.0,
+    "num": 451,
+    "den": 451
+   },
+   "recall": {
+    "pct": 91.1,
+    "hits": 451,
+    "pairs": 495,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 34
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/git-releaser",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 496,
+   "confirmed": 463,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 33,
+   "precision": {
+    "pct": 100.0,
+    "num": 463,
+    "den": 463
+   },
+   "recall": {
+    "pct": 91.7,
+    "hits": 463,
+    "pairs": 505,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/metrics",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 451,
+   "confirmed": 420,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 31,
+   "precision": {
+    "pct": 100.0,
+    "num": 420,
+    "den": 420
+   },
+   "recall": {
+    "pct": 90.9,
+    "hits": 420,
+    "pairs": 462,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/ruff",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 577,
+   "confirmed": 528,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 49,
+   "precision": {
+    "pct": 100.0,
+    "num": 528,
+    "den": 528
+   },
+   "recall": {
+    "pct": 92.7,
+    "hits": 530,
+    "pairs": 572,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "modules/wolfi",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 416,
+   "confirmed": 385,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 31,
+   "precision": {
+    "pct": 100.0,
+    "num": 385,
+    "den": 385
+   },
+   "recall": {
+    "pct": 90.3,
+    "hits": 389,
+    "pairs": 431,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/elixir/runtime",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 558,
+   "confirmed": 522,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 36,
+   "precision": {
+    "pct": 100.0,
+    "num": 522,
+    "den": 522
+   },
+   "recall": {
+    "pct": 92.6,
+    "hits": 522,
+    "pairs": 564,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/go",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 611,
+   "confirmed": 489,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 122,
+   "precision": {
+    "pct": 100.0,
+    "num": 489,
+    "den": 489
+   },
+   "recall": {
+    "pct": 82.7,
+    "hits": 489,
+    "pairs": 591,
+    "roots": 3,
+    "basis": "at 3 roots"
+   },
+   "misses": {
+    "func-value→closure": 17,
+    "func-value→named": 13,
+    "interface→named": 26,
+    "static→closure": 46
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/java/runtime",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 556,
+   "confirmed": 525,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 31,
+   "precision": {
+    "pct": 100.0,
+    "num": 525,
+    "den": 525
+   },
+   "recall": {
+    "pct": 92.1,
+    "hits": 525,
+    "pairs": 570,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 35
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/php/runtime",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 486,
+   "confirmed": 453,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 33,
+   "precision": {
+    "pct": 100.0,
+    "num": 453,
+    "den": 453
+   },
+   "recall": {
+    "pct": 91.5,
+    "hits": 453,
+    "pairs": 495,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 9,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/python/runtime",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 927,
+   "confirmed": 891,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 36,
+   "precision": {
+    "pct": 100.0,
+    "num": 891,
+    "den": 891
+   },
+   "recall": {
+    "pct": 95.0,
+    "hits": 893,
+    "pairs": 940,
+    "roots": 3,
+    "basis": "at 3 roots"
+   },
+   "misses": {
+    "func-value→closure": 2,
+    "func-value→named": 3,
+    "interface→named": 10,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-go",
+   "record": "dagger-go-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "sub": "sdk/typescript/runtime",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger",
+   "table": "dagger-after",
+   "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)",
+   "edges": 920,
+   "confirmed": 886,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 34,
+   "precision": {
+    "pct": 100.0,
+    "num": 886,
+    "den": 886
+   },
+   "recall": {
+    "pct": 93.4,
+    "hits": 889,
+    "pairs": 952,
+    "roots": 2,
+    "basis": "at 2 roots"
+   },
+   "misses": {
+    "func-value→closure": 1,
+    "interface→named": 30,
+    "static→closure": 32
+   }
+  },
+  {
+   "stem": "dagger-rust",
+   "record": "dagger-rust-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "dagger sdk/rust",
+   "note": "misses are code macros and derives wrote",
+   "edges": 3598,
+   "confirmed": 3592,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 6,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 3592,
+    "den": 3592
+   },
+   "recall": {
+    "pct": 98.1,
+    "hits": 3593,
+    "pairs": 3662,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→function": 14,
+    "static→generated": 25,
+    "static→method": 30
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3598,
+    "refused": 3592,
+    "unjudged": 6,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "fzf-go",
+   "record": "fzf-go-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "picked",
+   "label": "fzf",
+   "note": "87 syntactic edges vetoed by the Go scope rule before the regrade (ADR-090)",
+   "edges": 2881,
+   "confirmed": 2832,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 49,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 2832,
+    "den": 2832
+   },
+   "recall": {
+    "pct": 40.8,
+    "hits": 2868,
+    "pairs": 7035,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2881,
+    "refused": 2832,
+    "unjudged": 49,
+    "falsely": 0
+   },
+   "misses": {
+    "func-value→closure": 2457,
+    "func-value→named": 81,
+    "interface→named": 417,
+    "static→closure": 1212
+   }
+  },
+  {
+   "stem": "hobbes-go",
+   "record": "hobbes-go-2026-08-28.md",
+   "date": "2026-08-28",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "dogfood",
+   "label": "hobbes go/",
+   "note": "dogfood",
+   "edges": 1284,
+   "confirmed": 1283,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 1,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 1283,
+    "den": 1283
+   },
+   "recall": {
+    "pct": 87.5,
+    "hits": 1285,
+    "pairs": 1468,
+    "roots": 20,
+    "basis": "at 20 roots"
+   },
+   "misses": {
+    "func-value→closure": 138,
+    "func-value→named": 6,
+    "interface→named": 2,
+    "static→closure": 37
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1284,
+    "refused": 1283,
+    "unjudged": 1,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "hobbes-py",
+   "record": "hobbes-py-2026-08-28.md",
+   "date": "2026-08-28",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "dogfood",
+   "label": "hobbes pipeline/",
+   "note": "trace-graded under its own suite (dogfood)",
+   "edges": 3633,
+   "confirmed": 3311,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 5,
+   "unobserved": 317,
+   "confirmation_rate": {
+    "pct": 91.1,
+    "num": 3311,
+    "den": 3633
+   },
+   "recall": {
+    "pct": 86.1,
+    "hits": 3311,
+    "pairs": 3846,
+    "roots": null,
+    "runs": null,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→closure": 361,
+    "observed→function": 88,
+    "observed→lambda": 73,
+    "observed→method": 13
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3633,
+    "refused": 2905,
+    "unjudged": 728,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "jsoup-java",
+   "record": "jsoup-java-2026-08-29.md",
+   "date": "2026-08-29",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "contained",
+   "draw": "picked",
+   "label": "jsoup",
+   "note": "interface→method against the CHA override set is the majority miss",
+   "edges": 18627,
+   "confirmed": 18627,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 18627,
+    "den": 18627
+   },
+   "recall": {
+    "pct": 76.2,
+    "hits": 18767,
+    "pairs": 24630,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 407,
+    "interface→method": 5226,
+    "static→anonymous-member": 45,
+    "static→constructor": 180,
+    "static→method": 5
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 18627,
+    "refused": 18627,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "kbet-ts",
+   "record": "kbet-ts-2026-08-25.md",
+   "date": "2026-08-25",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "kbet (private app)",
+   "note": "a private Vite+React app: the cell is published, the repo is not",
+   "edges": 630,
+   "confirmed": 630,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 630,
+    "den": 630
+   },
+   "recall": {
+    "pct": 41.4,
+    "hits": 633,
+    "pairs": 1529,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 625,
+    "func-value→variable": 2,
+    "interface→type-member": 71,
+    "static→anonymous-function": 1,
+    "static→closure": 195,
+    "static→function": 1,
+    "static→type-member": 1
+   },
+   "poison": null
+  },
+  {
+   "stem": "memchr-rust",
+   "record": "memchr-rust-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "picked",
+   "label": "memchr",
+   "note": "misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)",
+   "edges": 2496,
+   "confirmed": 921,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 1575,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 921,
+    "den": 921
+   },
+   "recall": {
+    "pct": 80.7,
+    "hits": 925,
+    "pairs": 1146,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2496,
+    "refused": 921,
+    "unjudged": 1575,
+    "falsely": 0
+   },
+   "misses": {
+    "macro→function": 57,
+    "macro→method": 42,
+    "static→closure": 1,
+    "static→function": 53,
+    "static→generated": 5,
+    "static→method": 63
+   }
+  },
+  {
+   "stem": "mux-go",
+   "record": "mux-go-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "picked",
+   "label": "mux",
+   "note": "3 abstract: calls through a package-level func variable (H-18)",
+   "edges": 1264,
+   "confirmed": 1221,
+   "contradicted": 0,
+   "abstract": 3,
+   "silent": 40,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 1221,
+    "den": 1221
+   },
+   "recall": {
+    "pct": 82.6,
+    "hits": 1233,
+    "pairs": 1492,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 89,
+    "func-value→named": 5,
+    "interface→named": 120,
+    "static→closure": 45
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1264,
+    "refused": 1224,
+    "unjudged": 40,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "petclinic-java",
+   "record": "petclinic-java-2026-08-29.md",
+   "date": "2026-08-29",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "contained",
+   "draw": "picked",
+   "label": "spring-petclinic",
+   "note": "",
+   "edges": 356,
+   "confirmed": 356,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 356,
+    "den": 356
+   },
+   "recall": {
+    "pct": 98.4,
+    "hits": 367,
+    "pairs": 373,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→method": 4,
+    "static→constructor": 2
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 356,
+    "refused": 356,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "quic-go-go",
+   "record": "quic-go-go-2026-09-02.md",
+   "date": "2026-09-02",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "contained",
+   "draw": "random",
+   "label": "quic-go",
+   "note": "random draw; binary roots only (the full test program OOM-killed the box); all 15 contradictions are the test build's shadowing methods, 0 hobbes-wrong",
+   "edges": 17333,
+   "confirmed": 3766,
+   "contradicted": 15,
+   "abstract": 1,
+   "silent": 13551,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 99.6,
+    "num": 3766,
+    "den": 3781
+   },
+   "recall": {
+    "pct": 47.5,
+    "hits": 3796,
+    "pairs": 7985,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "misses": {
+    "func-value→closure": 1405,
+    "func-value→named": 249,
+    "interface→named": 2482,
+    "static→closure": 36,
+    "static→named": 17
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 17333,
+    "refused": 3782,
+    "unjudged": 13551,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-ajv",
+   "record": "repowise-ajv-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 5.3.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "ajv",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 806,
+   "confirmed": 739,
+   "contradicted": 15,
+   "abstract": 0,
+   "silent": 52,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 98.0,
+    "num": 739,
+    "den": 754
+   },
+   "recall": {
+    "pct": 33.4,
+    "hits": 746,
+    "pairs": 2232,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 13,
+    "interface→type-member": 12,
+    "static→class": 18,
+    "static→closure": 174,
+    "static→function": 461,
+    "static→method": 791,
+    "static→type-member": 17
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 806,
+    "refused": 754,
+    "unjudged": 52,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-cheerio",
+   "record": "repowise-cheerio-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "tsc 6.0.3 (the zone's own)",
+   "lang": "TypeScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "cheerio",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 208,
+   "confirmed": 167,
+   "contradicted": 17,
+   "abstract": 8,
+   "silent": 16,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 90.8,
+    "num": 167,
+    "den": 184
+   },
+   "recall": {
+    "pct": 2.8,
+    "hits": 168,
+    "pairs": 5910,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1070,
+    "func-value→variable": 671,
+    "static→anonymous-signature": 12,
+    "static→class": 5,
+    "static→closure": 173,
+    "static→function": 3759,
+    "static→method": 46,
+    "static→type-member": 6
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 208,
+    "refused": 192,
+    "unjudged": 16,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-click",
+   "record": "repowise-click-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "click",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2426,
+   "confirmed": 1703,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 406,
+   "unobserved": 317,
+   "confirmation_rate": {
+    "pct": 70.2,
+    "num": 1703,
+    "den": 2426
+   },
+   "recall": {
+    "pct": 37.1,
+    "hits": 1703,
+    "pairs": 4595,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "misses": {
+    "observed→class": 155,
+    "observed→closure": 1227,
+    "observed→function": 535,
+    "observed→lambda": 81,
+    "observed→method": 894
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2426,
+    "refused": 1964,
+    "unjudged": 462,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-fzf",
+   "record": "repowise-fzf-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "fzf",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 2478,
+   "confirmed": 2125,
+   "contradicted": 172,
+   "abstract": 0,
+   "silent": 181,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.5,
+    "num": 2125,
+    "den": 2297
+   },
+   "recall": {
+    "pct": 30.5,
+    "hits": 2144,
+    "pairs": 7035,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "misses": {
+    "func-value→closure": 2457,
+    "func-value→named": 81,
+    "interface→named": 416,
+    "static→closure": 1212,
+    "static→named": 725
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2478,
+    "refused": 2297,
+    "unjudged": 181,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-jsoup",
+   "record": "repowise-jsoup-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "jsoup",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 22273,
+   "confirmed": 9735,
+   "contradicted": 12483,
+   "abstract": 0,
+   "silent": 55,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 43.8,
+    "num": 9735,
+    "den": 22218
+   },
+   "recall": {
+    "pct": 39.8,
+    "hits": 9791,
+    "pairs": 24630,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 407,
+    "interface→method": 11293,
+    "static→anonymous-member": 27,
+    "static→constructor": 676,
+    "static→method": 2436
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 22273,
+    "refused": 22218,
+    "unjudged": 55,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-memchr",
+   "record": "repowise-memchr-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "memchr",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 3514,
+   "confirmed": 362,
+   "contradicted": 29,
+   "abstract": 0,
+   "silent": 3123,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.6,
+    "num": 362,
+    "den": 391
+   },
+   "recall": {
+    "pct": 31.8,
+    "hits": 365,
+    "pairs": 1146,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 57,
+    "macro→method": 42,
+    "static→closure": 1,
+    "static→function": 151,
+    "static→generated": 5,
+    "static→method": 525
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3514,
+    "refused": 391,
+    "unjudged": 3123,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-mux",
+   "record": "repowise-mux-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "mux",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes mux cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 963,
+   "confirmed": 665,
+   "contradicted": 250,
+   "abstract": 3,
+   "silent": 45,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 72.7,
+    "num": 665,
+    "den": 915
+   },
+   "recall": {
+    "pct": 45.3,
+    "hits": 676,
+    "pairs": 1492,
+    "roots": 1,
+    "basis": "at 1 roots"
+   },
+   "misses": {
+    "func-value→closure": 89,
+    "func-value→named": 5,
+    "interface→named": 120,
+    "static→closure": 45,
+    "static→named": 557
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 963,
+    "refused": 918,
+    "unjudged": 45,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-quic-go",
+   "record": "repowise-quic-go-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta (no test packages)",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "quic-go",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 11845,
+   "confirmed": 2796,
+   "contradicted": 240,
+   "abstract": 1,
+   "silent": 8808,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 92.1,
+    "num": 2796,
+    "den": 3036
+   },
+   "recall": {
+    "pct": 35.4,
+    "hits": 2824,
+    "pairs": 7985,
+    "roots": 5,
+    "basis": "at 5 roots"
+   },
+   "misses": {
+    "func-value→closure": 1405,
+    "func-value→named": 249,
+    "interface→named": 2480,
+    "static→closure": 36,
+    "static→named": 991
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 11845,
+    "refused": 3037,
+    "unjudged": 8808,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-rust_proj",
+   "record": "repowise-rust_proj-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "rust_proj",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 0,
+   "confirmed": 0,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": null,
+   "undefined": true,
+   "recall": {
+    "pct": 0.0,
+    "hits": 0,
+    "pairs": 21,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 4,
+    "static→function": 17
+   },
+   "poison": {
+    "passed": false,
+    "seeded": 0,
+    "refused": 0,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-severed-chains",
+   "record": "repowise-severed-chains-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 25.0.4.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "Severed-Chains",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 33277,
+   "confirmed": 15286,
+   "contradicted": 17323,
+   "abstract": 0,
+   "silent": 668,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 46.9,
+    "num": 15286,
+    "den": 32609
+   },
+   "recall": {
+    "pct": 32.0,
+    "hits": 17462,
+    "pairs": 54520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 78,
+    "interface→method": 28531,
+    "static→constructor": 5061,
+    "static→method": 3388
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 33277,
+    "refused": 32609,
+    "unjudged": 668,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-spring-data-elasticsearch",
+   "record": "repowise-spring-data-elasticsearch-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "spring-data-elasticsearch",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 20227,
+   "confirmed": 8805,
+   "contradicted": 11139,
+   "abstract": 0,
+   "silent": 283,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 44.1,
+    "num": 8805,
+    "den": 19944
+   },
+   "recall": {
+    "pct": 36.3,
+    "hits": 8870,
+    "pairs": 24452,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 513,
+    "interface→method": 12396,
+    "static→anonymous-member": 5,
+    "static→constructor": 1583,
+    "static→method": 1085
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 20227,
+    "refused": 19944,
+    "unjudged": 283,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-spring-petclinic",
+   "record": "repowise-spring-petclinic-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "spring-petclinic",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 365,
+   "confirmed": 271,
+   "contradicted": 94,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 74.2,
+    "num": 271,
+    "den": 365
+   },
+   "recall": {
+    "pct": 75.6,
+    "hits": 282,
+    "pairs": 373,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→method": 53,
+    "static→constructor": 38
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 365,
+    "refused": 365,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-toml",
+   "record": "repowise-toml-2026-09-09.md",
+   "date": "2026-09-09",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw",
+   "label": "toml",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 990,
+   "confirmed": 915,
+   "contradicted": 66,
+   "abstract": 0,
+   "silent": 9,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 93.3,
+    "num": 915,
+    "den": 981
+   },
+   "recall": {
+    "pct": 63.5,
+    "hits": 936,
+    "pairs": 1475,
+    "roots": 4,
+    "basis": "at 4 roots"
+   },
+   "misses": {
+    "func-value→closure": 57,
+    "func-value→named": 74,
+    "interface→named": 226,
+    "static→closure": 58,
+    "static→named": 124
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 990,
+    "refused": 981,
+    "unjudged": 9,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "rust_proj",
+   "record": "rust_proj-2026-08-28.md",
+   "date": "2026-08-28",
+   "kind": "resolution",
+   "oracle": "rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24)",
+   "lang": "Rust",
+   "run": "contained",
+   "draw": "picked",
+   "label": "rust_proj",
+   "note": "tiny crate; misses are criterion_group! bodies",
+   "edges": 17,
+   "confirmed": 17,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 17,
+    "den": 17
+   },
+   "recall": {
+    "pct": 81.0,
+    "hits": 17,
+    "pairs": 21,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 4
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 17,
+    "refused": 17,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "severed-chains-java",
+   "record": "severed-chains-java-2026-08-29.md",
+   "date": "2026-08-29",
+   "kind": "resolution",
+   "oracle": "javac 25.0.4.1+1-LTS",
+   "lang": "Java",
+   "run": "contained",
+   "draw": "random",
+   "label": "Severed-Chains",
+   "floor": true,
+   "note": "random draw; lane B failed on this Gradle build (C-67), so every edge is syntactic — C-8's floor measured",
+   "edges": 10154,
+   "confirmed": 10154,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 10154,
+    "den": 10154
+   },
+   "recall": {
+    "pct": 23.5,
+    "hits": 12803,
+    "pairs": 54520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 78,
+    "interface→method": 35289,
+    "static→constructor": 2560,
+    "static→method": 3790
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 10154,
+    "refused": 10154,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "spring-data-elasticsearch-java",
+   "record": "spring-data-elasticsearch-java-2026-08-29.md",
+   "date": "2026-08-29",
+   "kind": "resolution",
+   "oracle": "javac 21.0.12.1+1-LTS",
+   "lang": "Java",
+   "run": "contained",
+   "draw": "random",
+   "label": "spring-data-elasticsearch",
+   "note": "random draw",
+   "edges": 16050,
+   "confirmed": 16050,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 16050,
+    "den": 16050
+   },
+   "recall": {
+    "pct": 66.4,
+    "hits": 16238,
+    "pairs": 24452,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "interface→anonymous-member": 513,
+    "interface→method": 7469,
+    "static→anonymous-member": 5,
+    "static→constructor": 227
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 16050,
+    "refused": 16050,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "toml-go",
+   "record": "toml-go-2026-08-27.md",
+   "date": "2026-08-27",
+   "kind": "reachability",
+   "oracle": "go-rta",
+   "lang": "Go",
+   "run": "host-run",
+   "draw": "picked",
+   "label": "toml",
+   "note": "",
+   "edges": 1047,
+   "confirmed": 1039,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 8,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 1039,
+    "den": 1039
+   },
+   "recall": {
+    "pct": 71.9,
+    "hits": 1060,
+    "pairs": 1475,
+    "roots": 4,
+    "basis": "at 4 roots"
+   },
+   "misses": {
+    "func-value→closure": 57,
+    "func-value→named": 74,
+    "interface→named": 226,
+    "static→closure": 58
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1047,
+    "refused": 1039,
+    "unjudged": 8,
+    "falsely": 0
+   }
+  }
+ ]
+}

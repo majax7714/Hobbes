@@ -3,7 +3,10 @@
 // edges, `go-rta` runs the Go reachability oracle on one module,
 // `py-trace` runs the Python runtime-trace oracle on one directory's
 // suite, `rust-mir` runs the Rust MIR resolution oracle on one cargo
-// package, and `grade` matches the two and prints the cell's report. A cell is data —
+// package, `java-javac` runs the Java javac oracle on one build, `import`
+// converts a third-party tool's edge file into the same graded shape
+// (ADR-101 — the oracle does not care who produced the edges), and
+// `grade` matches the two and prints the cell's report. A cell is data —
 // a repo, a module directory, a graph — never a script of its own.
 package main
 
@@ -16,6 +19,7 @@ import (
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
+	"github.com/majax7714/Hobbes/bench/oracle/internal/foreign"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/gorta"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/grade"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/javac"
@@ -31,6 +35,8 @@ func main() {
 	switch os.Args[1] {
 	case "export":
 		err = runExport(os.Args[2:])
+	case "import":
+		err = runImport(os.Args[2:])
 	case "go-rta":
 		err = runGoRTA(os.Args[2:])
 	case "py-trace":
@@ -53,6 +59,7 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
   oracle export --graph .hobbes/derived/graph.json --module go [--lang go|ts] [--out hobbes.json]
+  oracle import --edges tool.json --module . [--lang go|ts|py|rust|java] [--exclude a,b] [--out hobbes.json]   (a third-party graph, ADR-101)
   node ts/tsc-oracle.mjs --repo . --zone web --out oracle.json      (the TypeScript oracle)
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
@@ -74,6 +81,29 @@ func runExport(args []string) error {
 	if err != nil {
 		return err
 	}
+	return write(*out, h)
+}
+
+// runImport converts a third-party edge file (the minimal shape in
+// package foreign) into a HobbesExport, so `grade` can take it exactly
+// as it takes a Hobbes export. The header (tool, version, converter,
+// sha) is echoed to stderr so a cell record can quote it.
+func runImport(args []string) error {
+	fs := flag.NewFlagSet("import", flag.ExitOnError)
+	in := fs.String("edges", "", "the tool's converted edge file: {repo, sha, tool, version, converter, edges:[{site, callee, caller?, kind?, label?}]}")
+	module := fs.String("module", "", "repo-relative module directory (cell)")
+	lang := fs.String("lang", "go", "go|ts|py|rust|java — the extension set of the cell")
+	exclude := fs.String("exclude", "", "comma-separated repo-relative directories to drop (nested modules)")
+	out := fs.String("out", "", "output path (default stdout)")
+	fs.Parse(args)
+	if *in == "" {
+		return fmt.Errorf("--edges is required")
+	}
+	h, f, err := foreign.FromFile(*in, *module, *lang, splitComma(*exclude)...)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "import: tool %s %s (converter %s) sha %s: %d graded edges, excluded %v\n", f.Tool, f.Version, f.Converter, f.SHA, len(h.Edges), h.Excluded)
 	return write(*out, h)
 }
 

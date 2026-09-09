@@ -19,7 +19,7 @@ bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|jav
 one cell, runs the language's oracle on it, grades, and leaves
 `hobbes.json`, `oracle.json`, `report.json`, `report.txt` and the cell's
 runtime in the output directory. The steps are the binary's subcommands
-(`oracle export | go-rta | py-trace | rust-mir | java-javac | grade`) if you need
+(`oracle export | import | go-rta | py-trace | rust-mir | java-javac | grade`) if you need
 them apart; the TS oracle is `ts/tsc-oracle.mjs`. Phase 1 (ADR-089) is
 Go and TS; phase 2 is the Python trace oracle and the Rust MIR oracle
 below. **Those two execute the target** (its suite; its build scripts),
@@ -27,6 +27,48 @@ so they run inside the sandbox image (ADR-092, `internal/contain`):
 build `hobbes-session:local` first (`sandbox/README.md`); without it
 they refuse, and `HOBBES_UNCONTAINED=1` runs them on the host with the
 fact recorded in the export and the report.
+
+## Grading a graph Hobbes did not build (ADR-101)
+
+The oracle does not care who produced an edge. `oracle import` reads a
+third-party tool's call graph in one minimal shape and turns it into
+the same `HobbesExport` that `grade` takes — poison check included —
+so a competitor's graph, or your own, is graded against the same
+answer key with the same matcher:
+
+```sh
+bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java] [--exclude a,b]
+```
+
+`<edges.json>` is:
+
+```json
+{ "repo": "<path>", "sha": "<commit>", "tool": "<name>", "version": "<pin>", "converter": "<adapter>@<version>",
+  "edges": [ { "site": "file:line", "callee": "file:line", "caller": "<optional>", "kind": "<optional callee kind>", "label": "<optional: the tool's own confidence>" } ] }
+```
+
+at the lane's grain (D-O4: the site is the line of the call's opening
+parenthesis, the callee the line of the declared identifier; paths
+repo-relative). `<oracle.json>` is an answer key produced by
+`oracle go-rta | rust-mir | java-javac | py-trace` or
+`ts/tsc-oracle.mjs` on the same repo at the same commit — every cell
+record in `docs/oracle-cells/` names the command that regenerates
+its key. The tool's `label` becomes the edge's tier, so the report's
+per-tier split reads the tool's own confidence ladder. A malformed
+position refuses the whole file (a converter defect must never grade
+as a smaller graph, C-94). Two matcher rules read Hobbes-specific
+metadata and fire for a foreign graph only when its converter
+supplies `kind`: a callee that is a variable is `abstract` (D-O4's
+function-valued-binding rule), and `macro` excludes the edge (C-95).
+
+One converter per tool lives under `adapters/<tool>/` (`adapter.py
+dump` reads the tool's own storage as stored; `convert` makes the
+shape above; a Go test converts a committed dump of `minigo` and
+compares it to a hand-read truth, then grades it and requires the
+poison twin refused). Present: `codegraphcontext` (Kuzu backend) and
+`repowise` (`wiki.db`). The cells made with them are
+`docs/oracle-cells/<tool>-<repo>-<date>.md`, in the same format as a
+Hobbes cell, and every one is host-run (C-96).
 
 ## Normative conventions (D-O4)
 

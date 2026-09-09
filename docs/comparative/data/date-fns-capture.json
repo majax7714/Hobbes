@@ -1,0 +1,104 @@
+{
+ "repo": "date-fns/date-fns",
+ "sha": "18cbd436f1428d0f45f89f710df65f62546c42f0",
+ "fix": "C-74 and C-90 (lifted 2026-09-03)",
+ "story": "A pnpm workspace: every package's tsconfig extends one reached through a node_modules symlink. Before the lift the link dangled inside the sandbox, scip-typescript failed on every zone (TS6053), and the whole repo fell to lane A's syntactic floor. The per-directory view is what named the fix.",
+ "caption": "Same repo, same commit, two Hobbes builds. Before: the contained ingest could not follow the workspace link, so lane B answered nowhere and capture read 0.1% — a number the per-directory view exposed as one failure repeated per zone, not fifteen small ones. After C-74 (workspace node_modules links mount their targets, and an indexer's exit is told from the helper's) and C-90 (a zone's stage carries every config its tsconfig names), fifteen of fifteen zones index. Every workspace-aware tool meets this shape; the point of the picture is that the failure was visible per directory before it was fixed.",
+ "min_sites": 30,
+ "before": {
+  "sha": "18cbd436f1428d0f45f89f710df65f62546c42f0",
+  "hobbes": "55622713903f3069e95e50aa6b6557bebb6f1c4c",
+  "containment": true,
+  "total": {
+   "sites": 24827,
+   "resolved": 14
+  },
+  "by_directory": {
+   "codemods": {
+    "sites": 91,
+    "resolved": 0,
+    "files": 1
+   },
+   "pkgs/core": {
+    "sites": 21781,
+    "resolved": 11,
+    "files": 1391
+   },
+   "pkgs/dev": {
+    "sites": 38,
+    "resolved": 0,
+    "files": 1
+   },
+   "pkgs/docs": {
+    "sites": 259,
+    "resolved": 0,
+    "files": 8
+   },
+   "pkgs/tz": {
+    "sites": 2417,
+    "resolved": 3,
+    "files": 33
+   },
+   "pkgs/utc": {
+    "sites": 240,
+    "resolved": 0,
+    "files": 10
+   },
+   ".": {
+    "sites": 1,
+    "resolved": 0,
+    "files": 1
+   }
+  }
+ },
+ "after": {
+  "sha": "18cbd436f1428d0f45f89f710df65f62546c42f0",
+  "hobbes": "3319a193386b7be1e81051250fd07977d94b6ee5",
+  "containment": true,
+  "total": {
+   "sites": 24827,
+   "resolved": 19883
+  },
+  "by_directory": {
+   "codemods": {
+    "sites": 91,
+    "resolved": 0,
+    "files": 1
+   },
+   "pkgs/core": {
+    "sites": 21781,
+    "resolved": 17881,
+    "files": 1391
+   },
+   "pkgs/dev": {
+    "sites": 38,
+    "resolved": 34,
+    "files": 1
+   },
+   "pkgs/docs": {
+    "sites": 259,
+    "resolved": 245,
+    "files": 8
+   },
+   "pkgs/tz": {
+    "sites": 2417,
+    "resolved": 1572,
+    "files": 33
+   },
+   "pkgs/utc": {
+    "sites": 240,
+    "resolved": 150,
+    "files": 10
+   },
+   ".": {
+    "sites": 1,
+    "resolved": 1,
+    "files": 1
+   }
+  }
+ },
+ "artifacts": {
+  "before": "/home/mmarrujo/.hobbes/bench/comparative/date-fns-before/graph.json",
+  "after": "/home/mmarrujo/.hobbes/bench/extract-test-20260902/B/date-fns/.hobbes/derived/graph.json"
+ }
+}

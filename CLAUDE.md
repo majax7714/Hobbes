@@ -46,6 +46,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
+| comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle-cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
 | looking for why something was done        | `docs/BUILDLOG.md` (append-only, one dated entry per session)        |
@@ -122,7 +123,12 @@ box, against a repo on disk (architecture §10); the application mode in
   `rust/` (a `rustc_driver` MIR walker on a pinned nightly), `java/` (a
   javac plugin riding the repo's own build; CHA for dispatch),
   `run-cell.sh`; grades the call graph against answer keys Hobbes does
-  not control. Bench tooling, never product.
+  not control. `oracle import` + `grade-foreign.sh` grade a graph
+  Hobbes did not build by the same rules (ADR-101; `adapters/<tool>/`
+  one converter each with a hand-read fixture — `codegraphcontext`,
+  `repowise`); `report/render.py` regenerates the comparative
+  graphics and tables from the cell records and its Go test fails on
+  drift (ADR-102). Bench tooling, never product.
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
@@ -185,7 +191,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-05): 1,241 pytest (+3 `lane_b`) /
-299 Go + 39 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
+299 Go + 47 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -233,13 +239,25 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-05)
+## Status (2026-09-09)
 
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 93 registered constraints
-  (71 active, 20 lifted, 2 superseded).
+  by one range join; artifacts at schema v4; 96 registered constraints
+  (74 active, 20 lifted, 2 superseded).
+- **The comparative programme (ADR-101/102, 2026-09-09):** the
+  comparison with other code-graph tools is the oracle lane, not a
+  scoreboard — `oracle import` grades any tool's graph against the
+  same keys with the same poison check; CodeGraphContext 0.6.13 and
+  repowise 0.49.0 graded on the thirteen loop and random-draw cells
+  (`docs/comparative/`, the foreign records in `docs/oracle-cells/`);
+  three graphics regenerated from the records by
+  `bench/oracle/report/render.py` with a drift test; `field.md` one
+  row per tool, sourced or unstated. repowise now publishes its own
+  compiler-graded table (five tools, seven cells, Go RTA + tsc) on
+  other repos — recorded, not compared; Hobbes on their draws is the
+  parked next 1-1. C-94–C-96.
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%

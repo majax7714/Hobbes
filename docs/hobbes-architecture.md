@@ -872,7 +872,16 @@ call trace and rustc's MIR — and reports **precision-against-oracle (a lower b
 recall together**, per tier, with the root count or coverage line the
 recall depends on and the oracle-silent size printed. A row this lane
 produces reads "compiler-graded" or "trace-graded", never as
-hand-verified; it licenses exactly the cell it measured. State at
+hand-verified; it licenses exactly the cell it measured. **The lane
+does not care who produced the edges** (ADR-101, 2026-09-09): `oracle
+import` reads a third-party tool's call graph in one minimal shape
+through a per-tool converter with a hand-read fixture, and
+`grade-foreign.sh` grades it against the same key with the same
+matcher and the same poison check; the comparison with other
+code-graph tools is those cells (`docs/comparative/`), never a
+scoreboard of self-reported numbers, and its three graphics are
+regenerated from the cell records (ADR-102). A foreign cell is at
+Hobbes' grain (C-94, C-95) and host-run (C-96). State at
 2026-08-28: both phases built and run (O1–O4, O6, O7), fifteen cell
 records over this repo, kbet, rust_proj, dagger and the seven-repo
 loop, the lane's own defect log reviewed (H-1..H-19,

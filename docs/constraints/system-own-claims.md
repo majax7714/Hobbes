@@ -144,6 +144,83 @@
   hatch announces itself on stderr as `HOST`.
 - **Source:** ADR-094.
 
+### C-94 — A third-party edge our conversion misreads is our defect, not theirs
+- **Cannot tell you:** that a contradicted edge in a competitor cell is
+  the *tool's* error rather than the converter's. The oracle lane grades
+  a foreign graph through a converter Hobbes wrote
+  (`bench/oracle/adapters/<tool>/`, ADR-101): the tool's storage read
+  as rows, each row made a (site, callee) pair at the lane's grain. Where
+  the tool's line convention differs from D-O4's — a decorated TS or
+  Python declaration whose node starts at the decorator, a call site the
+  tool records at a different line of a multi-line expression — the
+  conversion, not the tool, produces the mismatch, and the grader
+  charges it to the tool.
+- **Because:** the converter is the risk in the design and cannot be
+  removed: no two tools share a schema, and the lane's grain is ours.
+  This is P9's shape pointed the other way — a provider's limit owned
+  as Hobbes' own, here a competitor's edge misread as ours to own.
+- **Bites at:** every competitor cell's `contradicted` bucket, and every
+  language where the tool's declaration line is not the identifier's.
+  Sighted on the first cells (2026-09-09): none — both tools' Go
+  declaration lines are the identifier's, and the sampled
+  contradictions are same-name-different-receiver resolutions the
+  oracle's site lines agree with. Python and decorated-TS cells are
+  where it would bite; none is graded yet.
+- **You find out:** **surfaced** (2026-09-09). Every converter ships a
+  hand-read fixture (its own dump of `minigo`, read against the
+  conversion in a Go test), a malformed position refuses the whole
+  file rather than dropping an edge, `convert` prints what it dropped
+  and why, and the cell record quotes the converter version and the
+  grain note the adapter's docstring states.
+- **Source:** ADR-101 §2.
+
+### C-95 — The oracle's tolerances were tuned on Hobbes' output; a foreign graph is read at the grain its converter can state
+- **Cannot tell you:** that a competitor's number is what it would be
+  under a matcher tuned on that tool. The lane's tolerances (D-O4) were
+  written against Hobbes' export — line grain on the site, the overload
+  set, the callee's binding rule, the interface `abstract` bucket — and
+  two of them read Hobbes-specific metadata: a callee whose graph kind
+  is a variable is `abstract` (a call through a function value, H-18),
+  and an edge to a `macro` symbol is excluded before grading. A
+  converter that cannot tell the callee's kind gets neither rule, so a
+  tool's call through a function value reads *contradicted* where
+  Hobbes' reads *abstract*.
+- **Because:** the matcher's rules are the answer to defects found on
+  Hobbes' cells (H-1…H-19); nothing equivalent has been run on a
+  foreign graph, and inventing tolerances for a tool we did not write
+  would be a different kind of unfairness.
+- **Bites at:** a competitor cell on Go (`func` variables, mux's
+  `RegexpCompileFunc`) and TS (`const x = factory(..)`), where the
+  binding rule turned 47 Hobbes rows from contradicted to abstract; on
+  Rust, where a macro invocation drawn as a call is graded rather than
+  excluded. Both first tools carry a kind, so the variable rule
+  applies to them where their kind is a variable and nowhere else.
+- **You find out:** **surfaced** (2026-09-09). `oracle import`'s
+  package doc and the cell record state which rules fired; the
+  report's per-tier split reads the tool's own confidence labels, so
+  the tool's belief in an edge is beside its verdict.
+- **Source:** ADR-101 §3.
+
+### C-96 — A competitor cell is host-run unless the tool runs under the sandbox image
+- **Cannot tell you:** that a competitor's index ran contained. The
+  oracle lane's own executing steps run in the sandbox image
+  (ADR-092); a third-party tool is run as its README documents, on
+  this box, as the user. Whether it executed repo-authored code
+  during indexing is read from its docs and its process, not enforced.
+- **Because:** running a competitor's indexer in Hobbes' image would
+  be a custom setup the brief forbids (the README's happy path,
+  nothing custom), and a failure there would be ours to explain, not
+  theirs.
+- **Bites at:** every competitor cell; the record says `host-run` and
+  what the tool's docs say about execution and network. On 2026-09-09
+  both tools indexed with no network request observed and no
+  repo build invoked (tree-sitter parses), per their docs and their
+  logs.
+- **You find out:** **surfaced** (2026-09-09). The cell record's header
+  line, and the `run` field of `bench/oracle/report/cells.meta.json`
+  every competitor cell carries.
+- **Source:** ADR-101 §5.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

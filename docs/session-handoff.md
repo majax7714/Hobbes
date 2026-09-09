@@ -1,32 +1,87 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-07 (evening).** Nothing is running: no Modal job,
-no local process; the tree is clean on `main`, not pushed (Max pushed
-the CI fixes earlier today and every job is green). Resume at START
-HERE below — the first moves are Max's reading of the B4 addendum's
-record and two calls that gate any further spend.
+**Session ended 2026-09-09.** Nothing is running: no Modal job, no
+local process; the tree is committed on `main`, not pushed. Resume at
+START HERE below — Max's review of the comparative programme, then the
+Atlas-0 decisions held from 2026-09-07 (unchanged, further down).
 
-**Rewritten 2026-09-07: CI's three red jobs fixed and green on the
-runner; then Max's B4 addendum ran end to end at one run per seed —
-the §A.1 checks turned the atlas entries' verbs into circuits, B4 was
-built (K = 1 is B1 to the digit) and swept on seed 1 (the pressure λ
-decides the route: 0 keeps both, 0.01 removes the copy, 0.03–0.1
-remove the lookup, 1.0 learns nothing), and the grid at λ = 0 read B4
-as B1 with a two-head copy circuit, one identity operator, the input
-map's pull, and a copy route weaker in every arm but not separably —
-while no block emits `UNDEFINED` at T_v2 at all, so "does refusal
-travel" is unreadable in the reading regime. $4.71 this item, $22.28
-assumed to date of $25. API spend stays off the table; Modal is open
-for Atlas-0 only.** Read this, then the two 2026-09-07 BUILDLOG
-entries and `docs/atlas-0.md` § Addendum (Max's design with the
-readings marked) and § Step record › 2026-09-07 (the §A.1 table, the
-sweep table, the grid table, the B4 entry), and `docs/workstreams.md`
-for the backlog by owner. History lives in the BUILDLOG; this doc is
-rewritten, never appended into a pile.
+**Rewritten 2026-09-09: Max's brief for a presentable claim — a
+comparison against other code-graph tools and a small set of graphics
+without Hobbes saying something it has not earned — built end to end
+as the oracle lane, not a scoreboard (ADR-101/102). `oracle import` +
+`grade-foreign.sh` grade any tool's graph against the lane's keys with
+the same matcher and poison check; CodeGraphContext 0.6.13 and repowise
+0.49.0 graded on the thirteen loop / random-draw cells (26 foreign
+records, 0 falsely confirmed of 171,350 seeded); `docs/comparative/`
+holds the field (ten tools, sourced or unstated), the claim page, the
+generated tables and three graphics regenerated from the cell records
+with a drift test. No API spend, no Modal.** Read this, then the
+2026-09-09 BUILDLOG entry, `docs/comparative/README.md`, ADR-101 and
+ADR-102, and `docs/workstreams.md` W0 for the parked follow-ups.
+History lives in the BUILDLOG; this doc is rewritten, never appended
+into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max reads the B4 record; then the T that carries the abstention act, and T_v2
+## ⇢ START HERE NEXT SESSION: Max reviews the comparative programme
+
+**Done 2026-09-09, for Max's review (BUILDLOG entry of the day):**
+
+1. **`docs/comparative/`** — `README.md` (the claim in the words the
+   evidence licenses, the non-goals, the objection answered by
+   shipping), `field.md` (ten rows; every cell the tool's own words or
+   *unstated*; §2 what our runs observed; §3 numbers on other bases,
+   compared nowhere), `tables.md` (generated), `graphics/` (the one
+   number, the scatter, date-fns before/after), `data/`.
+2. **The adapter** — `bench/oracle/internal/foreign`, `oracle import`,
+   `grade-foreign.sh`; converters with hand-read `minigo` fixtures under
+   `bench/oracle/adapters/{codegraphcontext,repowise}`; the tolerance
+   decision for a foreign graph in ADR-101 §3; C-94, C-95, C-96.
+3. **The 26 foreign cells** in `docs/oracle-cells/<tool>-<repo>-2026-09-09.md`,
+   written from artifacts by `bench/oracle/report/foreign_record.py`;
+   artifacts under `~/.hobbes/bench/comparative/`. Contradictions
+   are printed **untriaged** (A-8) with a mechanical shape and six
+   sample rows; the mux samples for both tools are
+   same-name-other-receiver resolutions at sites the oracle has.
+4. **Two facts to read before anything is quoted:** repowise now
+   publishes its own compiler-graded table (five tools, seven cells,
+   Go RTA + `tsc`, artifacts public) — the same method on other repos,
+   recorded in `field.md` §3; and four CodeGraphContext indexes of
+   the mux clone stored 767 / 1,193 / 767 / 767 CALLS rows (both
+   grades in its mux record).
+
+**What needs Max:**
+
+1. **Whether the claim page says what he wants said** — the four
+   numbered sentences in `docs/comparative/README.md` § *The claim*
+   are the whole presentable claim; everything else is a pointer.
+2. **Whether to open the parked 1-1 on repowise's draws** (Hobbes
+   ingested on cobra / gitleaks / syft / zod / hono at their commits
+   and graded by our key; their five tools' artifacts re-read by our
+   matcher) — no spend, some CPU and a day. And whether the next two
+   converters (codebase-memory-mcp, colbymchenry/codegraph — the most
+   starred, both SQLite) are worth a fixture each.
+3. **A hand triage of a sample of the foreign contradictions**
+   (the records say `untriaged`; A-8's ratio is owed if any foreign
+   number is quoted as more than a lower bound).
+4. **Whether C-96 should be narrowed** by running the two tools under
+   the sandbox image (a custom setup the brief forbade for the first
+   cells).
+
+**Practical, from today:** the `before` graph for date-fns was
+regenerated by a worktree of `a60777f^` with the node helpers'
+`node_modules` *copied* (a symlink out of the worktree does not
+resolve inside the container — the first attempt failed as "SCIP
+helper unusable", which is not the C-74 shape); the worktree is
+removed, the artifact is at `~/.hobbes/bench/comparative/date-fns-before/`.
+`render.py cells` refuses a record with no `cells.meta.json` row —
+add the row (no numbers) rather than skipping the record. A record's
+*last* verbatim block is its standing grade: quote a secondary grade
+in prose, as the mux determinism note does.
+
+---
+
+## Held from 2026-09-07 — Atlas-0: Max reads the B4 record; then the T that carries the abstention act, and T_v2
 
 **Done 2026-09-07, for Max's review (BUILDLOG; commits `e991082`,
 `d2585ba` — CI; `aeb8ba2` + the record commit after it — the addendum):**

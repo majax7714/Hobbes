@@ -7259,3 +7259,113 @@ then the grade package green).
 **The λ sweep (seed 1, five cells, $0.89): the pressure decides the route.** λ = 0 (the routing alone): dense-real 0.815 (B1 0.83), reads 1.0, follows a conflict 0.795 at its peak → **0.36** at the plateau (B1 0.93 → 0.77), loss +0.017; λ = 0.01: stores 0.61, the copy route never above 0.195; λ = 0.03 and 0.1: copy 0.85–0.995, **stores nothing** (0.03–0.05; loss stuck at 0.99 vs 0.71); λ = 1.0 learns nothing. Collapse: at every λ half the layers route through one type whose operator is the identity (‖R_k − I‖ 0.03–0.11); where the inventory spreads (layers 5–7) NMI against the relation 0.16–0.37, `calls` on one type at 0.96–1.00; the router is hard (confidence 1.0) from step 300, so the temperature and the entropy term never acted; the partition is not at the query (NMI ≤ 0.12 under either phrasing) and arrives before any fact is stored. Sibling pull intact at λ = 0 (0.28 vs 0.30); no relation-conditioned similarity (cosines within 0.02 under every operator). B4's copy route is two heads (L2H5, L3H5) where B1's is eight. **The grid: B4 and B1, three arms, five seeds, one run, λ = 0, read at 2,200 and 3,100** (`runs/v2-b4-grid`, thirty cells, $3.38).
 
 **The grid, read (record § 2026-09-07, the tables at both reads beside the runs).** The reading phase replicates at five seeds in both blocks (2,200: dense 0.04–0.10, conflict followed 0.81–0.94); the plateau at 3,100 is seed-variable (B1/none dense-real 0.26–0.82 — a fact about T_v2 for Max). B4 at λ = 0 matches B1 on storing (within 0.08, loss delta 0.00 at the plateau), on the sibling pull (0.23–0.25 vs 0.22–0.24: the pull is the input map's), shows no relation-conditioned similarity (pair groups within 0.02 under every operator), and weakens the copy route in every arm (0.65 / 0.71 / 0.82 vs 0.74 / 0.75 / 0.86) — not separably at five seeds. The router collapses to one identity operator per layer on the training distribution in every cell (share 1.00); the residual partition is NMI ≤ 0.23 in layers 5–7. **§A.5.3 is unreadable at this T: no block emits `UNDEFINED` in either phrase arm, not even on the trained pairs (0.00)** — the abstention act is not learned from fourteen exposures — so "does refusal travel" waits on the memorising T or a computed target. The B4 entry is written (circuits: two copy heads, B1's FFNs, one identity operator, the input map's pull); §A.7 branch 3 is selected — typing must be given, not learned, at this scale; B4-given is the next block. **Spend: $4.71 this item, $22.28 assumed to date of $25.** Handoff rewritten; CLAUDE.md status; workstreams; README. Not pushed.
+
+## 2026-09-09 — The comparative programme (ADR-101/102): the field, an entry point that grades any tool's graph by the oracle lane, CodeGraphContext and repowise on the thirteen loop cells, three graphics regenerated from the records
+
+**Max's brief:** the docs have grown past first contact; the owner
+wants a presentable claim — a comparison against other code-graph
+tools and a small set of graphics — without Hobbes saying something
+about itself it has not earned. Resolved one way: the comparison uses
+the oracle lane, not a scoreboard. Non-goals held: nothing from
+H1–H3 / SWE-bench / DeepSWE / TTT / Calvin; no "covers language X";
+no pooled recall; the video demo is separate. Session start: the
+top-level docs read (README, CLAUDE.md, how-hobbes-differs, the oracle
+README and cells, the handoff); nothing from the handoff's queue was
+touched.
+
+**Workstream A — the field (`docs/comparative/field.md`).** Draw rule
+recorded with the date: the two August names, then a search of what is
+current (a Sonnet agent ran the queries and read the READMEs; the
+load-bearing cells were re-read raw by hand). Ten rows, every cell the
+tool's own words with a link or *unstated*; the "says what it cannot
+see" column reads *nothing found* for most, as expected. **The field
+moved:** repowise's README now carries a compiler-graded table of its
+own — five tools, seven cells (cobra, gitleaks ×2, syft ×2, zod, hono)
+against Go RTA and `tsc`, 37,853 oracle edges, artifacts public — the
+same method as ours on other repos. Recorded in §3 with its basis and
+compared nowhere; Hobbes on their draws is the parked next 1-1.
+
+**Workstream B — the adapter and the cells.** `oracle import`
+(`internal/foreign`): the minimal shape `{repo, sha, tool, version,
+converter, edges:[{site, callee, caller?, kind?, label?}]}` →
+`HobbesExport`; a malformed position refuses the file; the tool's
+label is the tier (so the report splits by its confidence ladder);
+`kind` drives the two Hobbes-metadata tolerances (function-valued
+binding → abstract; macro → excluded) and nothing else does.
+`grade-foreign.sh` is the one command. The tolerance decision for a
+foreign graph is ADR-101 §3. Fixture: `testdata/foreign/minigo.edges.json`,
+hand-read, five confirmed, poison refused in full, a seeded wrong edge
+contradicted. Two converters under `adapters/`, each `dump` (the
+tool's storage as stored) + `convert` (stdlib) with its own dump of
+`minigo` committed and read by hand in a Go test: **CodeGraphContext
+0.6.13** (Kuzu: `CALLS` rows carry the site line, `confidence_label`,
+the callee Function's path and line; `HEURISTIC_CALLS` is its own
+table, not graded) stores exactly minigo's five true pairs;
+**repowise 0.49.0** (`wiki.db`: `graph_edges` calls with
+`call_lines_json` and `resolution_origin`, `wiki_symbols.start_line`)
+stores four true pairs and draws `Decision(DefaultDecision)` — a
+conversion — as a call to the type, which the converter carries and
+the oracle leaves silent (no call on that line). Then both tools, as
+their READMEs document, on the thirteen repos with keys on disk
+(toml, mux, fzf, quic-go, ajv, cheerio, memchr, rust_proj, jsoup,
+petclinic, spring-data-elasticsearch, Severed-Chains, click), same
+commits, same keys, same matcher, poison on every one — **26 foreign
+cells, 0 falsely confirmed of 171,350 seeded**, records written
+from the artifacts by `report/foreign_record.py` in the existing
+format, contradictions printed **untriaged** (A-8) with a mechanical
+shape and six sample rows each. Per-cell numbers are in
+`docs/comparative/tables.md` (generated); the shape across cells:
+the tools' precision-against-oracle runs 43.8–100.0% where defined (23 of 24 compiler-graded cells)
+(repowise on rust_proj stored no call edge; CodeGraphContext's index
+of spring-data-elasticsearch exited 1 on a Binder exception and was
+graded as stored), their recall 0.0–75.6%; Hobbes' standing cells
+are 99.6–100% / 23.5–98.4% on the same keys. **Observed, not
+claimed:** four fresh CodeGraphContext indexes of the mux clone stored
+767 / 1,193 / 767 / 767 CALLS rows (its own summary printed 2,165 each
+time); both grades are in the mux record. repowise indexed mux twice
+byte-identically. Sampled contradictions on mux for both tools are
+same-name-other-receiver resolutions (`r.Methods` on a `*Route` drawn
+to `(*Router).Methods`) at sites the oracle has, so the converter's
+line grain holds; C-94 stays open by construction.
+
+**Workstream C — the graphics (`docs/comparative/graphics/`,
+`bench/oracle/report/render.py`, ADR-102).** Every number is parsed
+from the cell records' verbatim blocks (the last block is the standing
+grade) and the dagger record's per-module table; `cells.meta.json`
+holds language / run / draw / label and no numbers; `check` fails on
+drift and the lane's Go suite runs it. Two records were amended so
+the standing grade is a verbatim block the parser reads: dagger
+`sdk/rust` (its post-ADR-090 head, from the on-disk report) and hobbes
+`pipeline/` 2026-08-28 (its poison line). The one number: **0 falsely
+confirmed of 78,812 seeded across 14 compiler-graded Hobbes cells in
+four languages**, the exceptions (ajv 1,375/1,378, quic-go
+3,766/3,781) and the cells not in the sum printed, trace cells on
+their own line. The scatter: language as the panel (the reference
+palette validates three hues all-pairs), the y axis from where the
+lowest cell sits, trace cells in their own panel, foreign cells as
+hollow squares (cgc) and diamonds (rw), hover text with the miss
+classes. The before/after: **date-fns, per directory** — the *before*
+artifact regenerated by the pre-lift Hobbes (`a60777f^`) on the same
+clone, contained, reproducing the record (TS6053 on every zone, 0.1%
+of 24,827), the *after* the clone's standing graph (80.1%); computed
+exactly as `hobbes ingest` prints capture. dagger `core/integration`
+stays in the doc as the larger measurement; its pre-join artifact is
+not on the box.
+
+**Register and docs.** C-94 (a competitor's edge our conversion
+misreads is our defect), C-95 (the tolerances were tuned on Hobbes'
+output; a foreign graph is read at the grain its converter can state),
+C-96 (a competitor cell is host-run) — all surfaced. ADR-101, ADR-102.
+Architecture §3.8's oracle paragraph, `oracle-grading.md` §11, the
+oracle README (§ Grading a graph Hobbes did not build),
+`how-hobbes-differs.md` rewritten to point at the cells, the README's
+related-projects paragraph (one sentence and a link) and its docs
+table, CLAUDE.md (a reading row, the project map, the status),
+workstreams W0 (the parked follow-ups), `docs/comparative/README.md`
+(the claim page and the objection answered by shipping). Suites: the
+oracle lane's Go suite green with 10 new tests (47); the product
+suites were not touched by this session's changes (nothing under
+`go/`, `pipeline/`, `web/` changed) and were not re-run here.
+
+**Cost:** no API spend, no Modal; two `uv` venvs and ~30 minutes of
+CPU on this box for the 26 indexes and the before-graph regeneration.

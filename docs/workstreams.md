@@ -76,6 +76,25 @@ build item.*
   install the container mounts hop by hop; the fake venv's `home =
   /usr` had made the image's own python the base, hence `{pip}`.
   `ci-graph.sh` deselects nothing now.
+- **The comparative programme (ADR-101/102) — built 2026-09-09; two
+  follow-ups parked until Max names them.** `oracle import` +
+  `grade-foreign.sh` grade any tool's graph against the lane's keys;
+  CodeGraphContext and repowise graded on the thirteen loop /
+  random-draw cells; `docs/comparative/` holds the field, the claim
+  page and the three regenerated graphics. Parked: (a) **Hobbes on
+  repowise's draws** — its published compiler-graded table (cobra,
+  gitleaks, syft, zod, hono; Go RTA + tsc; artifacts public) is the
+  same method on other repos, so a true 1-1 needs Hobbes ingested on
+  those commits and graded by our key, and their five tools' exports
+  re-read by our matcher; (b) **the next tools** — codebase-memory-mcp
+  and colbymchenry/codegraph both store SQLite and are the two most
+  starred in `field.md`; each needs its converter, fixture and a
+  triage pass (the foreign records print their contradictions
+  untriaged, A-8). Also owed: a hand triage of a sample of the first
+  cells' contradictions (the records say `untriaged`), and the
+  competitor cells re-run under the sandbox image if Max wants C-96
+  narrowed. Contributor profile: Go/Python, reads other people's
+  schemas patiently.
 - **Registry-pulled image.** The graph job builds the image every run
   (~4 min). Pull-by-digest from a registry when that starts to hurt;
   the digest becomes part of what a cell record pins.

@@ -1,0 +1,169 @@
+{
+ "database": "/repo/minigo/.repowise/wiki.db",
+ "repositories": [
+  {
+   "name": "rw",
+   "local_path": "/repo/minigo",
+   "head_commit": "3a899097e2b89a10709521fd744a009572198fbe"
+  }
+ ],
+ "edges": [
+  {
+   "source_node_id": "cmd/mini/main.go::handleCheck",
+   "target_node_id": "internal/policy/policy.go::Resolve",
+   "edge_type": "calls",
+   "confidence": 0.88,
+   "hint_source": null,
+   "resolution_origin": "package_alias",
+   "call_lines_json": "[12]"
+  },
+  {
+   "source_node_id": "cmd/mini/main.go::handleHome",
+   "target_node_id": "internal/policy/policy.go::HomeDir",
+   "edge_type": "calls",
+   "confidence": 0.88,
+   "hint_source": null,
+   "resolution_origin": "package_alias",
+   "call_lines_json": "[16]"
+  },
+  {
+   "source_node_id": "internal/policy/policy.go::Resolve",
+   "target_node_id": "internal/policy/policy.go::Decision",
+   "edge_type": "calls",
+   "confidence": 0.95,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[32]"
+  },
+  {
+   "source_node_id": "internal/policy/policy_test.go::TestDefaultEscalates",
+   "target_node_id": "internal/policy/policy.go::Resolve",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_package",
+   "call_lines_json": "[13]"
+  },
+  {
+   "source_node_id": "internal/policy/policy_test.go::TestResolveAllows",
+   "target_node_id": "internal/policy/policy.go::Resolve",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_package",
+   "call_lines_json": "[7]"
+  }
+ ],
+ "symbols": [
+  {
+   "symbol_id": "cmd/mini/main.go::handleCheck",
+   "file_path": "cmd/mini/main.go",
+   "name": "handleCheck",
+   "qualified_name": "cmd.mini.main.handleCheck",
+   "kind": "function",
+   "start_line": 11,
+   "end_line": 13,
+   "language": "go"
+  },
+  {
+   "symbol_id": "cmd/mini/main.go::handleHome",
+   "file_path": "cmd/mini/main.go",
+   "name": "handleHome",
+   "qualified_name": "cmd.mini.main.handleHome",
+   "kind": "function",
+   "start_line": 15,
+   "end_line": 17,
+   "language": "go"
+  },
+  {
+   "symbol_id": "cmd/mini/main.go::main",
+   "file_path": "cmd/mini/main.go",
+   "name": "main",
+   "qualified_name": "cmd.mini.main.main",
+   "kind": "function",
+   "start_line": 19,
+   "end_line": 25,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::Decision",
+   "file_path": "internal/policy/policy.go",
+   "name": "Decision",
+   "qualified_name": "internal.policy.policy.Decision",
+   "kind": "type_alias",
+   "start_line": 10,
+   "end_line": 10,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::DefaultDecision",
+   "file_path": "internal/policy/policy.go",
+   "name": "DefaultDecision",
+   "qualified_name": "internal.policy.policy.DefaultDecision",
+   "kind": "variable",
+   "start_line": 12,
+   "end_line": 12,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::HomeDir",
+   "file_path": "internal/policy/policy.go",
+   "name": "HomeDir",
+   "qualified_name": "internal.policy.policy.HomeDir",
+   "kind": "function",
+   "start_line": 36,
+   "end_line": 38,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::Resolve",
+   "file_path": "internal/policy/policy.go",
+   "name": "Resolve",
+   "qualified_name": "internal.policy.policy.Resolve",
+   "kind": "function",
+   "start_line": 26,
+   "end_line": 33,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::Rule",
+   "file_path": "internal/policy/policy.go",
+   "name": "Rule",
+   "qualified_name": "internal.policy.policy.Rule",
+   "kind": "struct",
+   "start_line": 15,
+   "end_line": 18,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy.go::Rule::Matches",
+   "file_path": "internal/policy/policy.go",
+   "name": "Matches",
+   "qualified_name": "internal.policy.policy.Rule.Matches",
+   "kind": "method",
+   "start_line": 21,
+   "end_line": 23,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy_test.go::TestDefaultEscalates",
+   "file_path": "internal/policy/policy_test.go",
+   "name": "TestDefaultEscalates",
+   "qualified_name": "internal.policy.policy_test.TestDefaultEscalates",
+   "kind": "function",
+   "start_line": 12,
+   "end_line": 16,
+   "language": "go"
+  },
+  {
+   "symbol_id": "internal/policy/policy_test.go::TestResolveAllows",
+   "file_path": "internal/policy/policy_test.go",
+   "name": "TestResolveAllows",
+   "qualified_name": "internal.policy.policy_test.TestResolveAllows",
+   "kind": "function",
+   "start_line": 5,
+   "end_line": 10,
+   "language": "go"
+  }
+ ]
+}

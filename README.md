@@ -245,8 +245,12 @@ to understand*. Where the structures part — indexers that are mandatory
 and pinned, joined against the syntax lane with the tier recording which
 one spoke; a register of what the graph cannot say; cells graded by
 compilers; context derived per task inside a governed sandbox rather
-than served as a tool menu — is laid out with diagrams and per-cell
-numbers in [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md).
+than served as a tool menu — is laid out with diagrams in
+[`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md). The
+comparison itself is not a scoreboard: other tools' graphs are put
+through the same compiler answer keys as Hobbes' own, one cell per
+tool × repo, and the field, the cells and the graphics are in
+[`docs/comparative/`](docs/comparative/README.md).
 
 ## Status
 
@@ -263,7 +267,7 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds ninety-three entries (seventy-one
+The constraint register holds ninety-six entries (seventy-four
 active, twenty lifted, two superseded), each naming where a user meets
 the limit.
 
@@ -310,10 +314,11 @@ point); the session-by-session record is
 | [`docs/hobbes-build-plan-v2.md`](docs/hobbes-build-plan-v2.md) | The v2 programme, V2.M0–V2.M7, complete — kept with its exit criteria and outcomes |
 | [`docs/hobbes-architecture-v1.md`](docs/hobbes-architecture-v1.md) | The frozen v1 design — history, kept for the reasoning behind the carried subsystems |
 | [`docs/hobbes-build-plan.md`](docs/hobbes-build-plan.md) | v1 milestones M0–M8 and the locked decisions |
-| [`docs/adr/`](docs/adr/) | 100 numbered ADRs — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | 102 numbered ADRs — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle-grading.md`](docs/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
-| [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams and per-cell numbers |
+| [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
+| [`docs/comparative/`](docs/comparative/README.md) | The comparative programme (ADR-101/102): the field one row per tool, other tools' graphs graded by the oracle lane on the same repos and keys, and the three graphics regenerated from the cell records |
 | [`docs/first-run.md`](docs/first-run.md) | Bringing Hobbes up on a new app, in the order the system is meant to be used |
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
 | [`docs/benchmark-hypotheses.md`](docs/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
