@@ -570,11 +570,105 @@ def render_tables(cells: list[dict]) -> str:
     return "\n".join(out) + "\n"
 
 
+def render_comparison(cells: list[dict]) -> str:
+    """docs/comparative/graphics/same-key.svg — one row per cell that has a
+    foreign graph graded on the same key: three markers on the precision
+    axis and three on the recall axis (Hobbes, CodeGraphContext, repowise),
+    grouped by language; repowise-bench's draws as their own band; the
+    trace-graded Python cell last with its confirmation rate. Nothing is
+    pooled: every row is one key, one root count or one resolved-site set."""
+    by_label: dict[str, dict] = {}
+    for c in cells:
+        if c.get("sub"):
+            continue
+        by_label.setdefault(c["label"], {})[c.get("tool", "hobbes")] = c
+    rows = [(lab, d) for lab, d in by_label.items() if any(t != "hobbes" for t in d) and "hobbes" in d]
+    order = ["Go", "TypeScript", "Rust", "Java", "Python"]
+    bands = []
+    for lang in order:
+        loop = [(l, d) for l, d in rows if d["hobbes"]["lang"] == lang and "repowise-bench" not in d["hobbes"].get("draw", "")]
+        if loop:
+            bands.append((f"{lang} — the loop and random-draw cells", loop))
+    draws = [(l, d) for l, d in rows if "repowise-bench" in d["hobbes"].get("draw", "")]
+    if draws:
+        bands.append(("repowise-bench's draws under our key (Go, TypeScript) — the 1-1", draws))
+    ROW, L, PW, GAP, T = 22, 250, 300, 60, 104
+    n = sum(len(b[1]) for b in bands) + len(bands)
+    W = L + 2 * PW + GAP + 40
+    H = T + ROW * n + 190
+    o = svg_open(W, H, "Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise")
+    o.append(text(24, 30, "Three graphs, one key per cell: precision-against-oracle and recall, never pooled", 15, INK, weight="bold"))
+    o.append(text(24, 50, "Filled blue dot = Hobbes; hollow orange square = CodeGraphContext 0.6.13; hollow orange diamond = repowise 0.49.0 — the same repo, commit, answer key,", 11, INK2))
+    o.append(text(24, 64, "matcher and poison check (ADR-101). The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
+    px = {"precision": L, "recall": L + PW + GAP}
+    for key, x0 in px.items():
+        for v in (0, 25, 50, 75, 100):
+            gx = x0 + PW * v / 100
+            o.append(f'<line x1="{gx}" y1="{T-6}" x2="{gx}" y2="{T + ROW*n}" stroke="{GRID}" stroke-dasharray="2 3"/>')
+            o.append(text(gx, T - 10, f"{v}%", 9, INK2, "middle"))
+        o.append(text(x0 + PW / 2, T - 26, "precision-against-oracle (a lower bound)" if key == "precision" else "recall, of in-repo oracle pairs at the cell's roots", 11, INK, "middle", weight="bold"))
+    y = T
+    marks = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", ORANGE)}
+
+    def mark(kind, colour, cx, cy, tip):
+        o.append("<g>")
+        o.append(f"<title>{esc(tip)}</title>")
+        if kind == "circle":
+            o.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+        elif kind == "square":
+            o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
+        else:
+            o.append(f'<polygon points="{cx},{cy-6} {cx+6},{cy} {cx},{cy+6} {cx-6},{cy}" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
+        o.append("</g>")
+
+    for title, items in bands:
+        o.append(text(24, y + 14, title, 11, INK, weight="bold"))
+        y += ROW
+        for lab, d in sorted(items, key=lambda x: x[0].lower()):
+            h = d["hobbes"]
+            trace = h["kind"] == "trace"
+            o.append(text(L - 10, y + 14, lab + (" (trace: confirmation rate)" if trace else ""), 10, INK, "end"))
+            for key, x0 in px.items():
+                pts = []
+                for t, c in d.items():
+                    if key == "precision":
+                        v = (c.get("confirmation_rate") if trace else c.get("precision"))
+                        if not v:
+                            continue
+                        val = v["pct"]; tip = f"{lab} — {t}: {'confirmation rate' if trace else 'precision-against-oracle'} {fmt(v['num'])}/{fmt(v['den'])} = {val}%"
+                    else:
+                        r = c["recall"]; val = r["pct"]; tip = f"{lab} — {t}: recall {fmt(r['hits'])}/{fmt(r['pairs'])} = {val}% {r['basis']}"
+                    pts.append((t, val, tip))
+                if not pts:
+                    continue
+                xs = [x0 + PW * v / 100 for _, v, _ in pts]
+                o.append(f'<line x1="{min(xs)}" y1="{y+10}" x2="{max(xs)}" y2="{y+10}" stroke="{GRID}" stroke-width="2"/>')
+                for (t, val, tip), cx in zip(pts, xs):
+                    kind, colour = marks[t]
+                    mark(kind, colour, cx, y + 10, tip)
+                undefined = [t for t in d if t != "hobbes" and key == "precision" and d[t].get("undefined")]
+                if undefined:
+                    o.append(text(x0 + 4, y + 14, f"{', '.join(undefined)}: undefined (no call edge stored)", 8.5, INK2))
+            y += ROW
+    y += 14
+    o.append(f'<line x1="24" y1="{y}" x2="{W-24}" y2="{y}" stroke="{GRID}"/>')
+    y += 20
+    for line in wrap("Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to the oracle's grain, A-8). "
+                     "Every Hobbes marker on the precision axis sits at 100% except ajv, hono (one scip-typescript union-member shape) and quic-go (a 99.6% lower bound, 0 hobbes-wrong). "
+                     "The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded. "
+                     "On repowise-bench's draws the key is ours, at site grain — not comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.", 175):
+        o.append(text(24, y, line, 10.5, INK2))
+        y += 14
+    o.append(text(24, y + 4, "Rendered from docs/oracle-cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.", 10, INK2))
+    o.append("</svg>")
+    return "\n".join(o) + "\n"
+
+
 def render_all(data_dir: Path, out_dir: Path) -> dict[str, str]:
     cells = json.loads((data_dir / "cells.json").read_text())["cells"]
     for p in sorted(data_dir.glob("foreign-*.json")):
         cells.extend(json.loads(p.read_text())["cells"])
-    out = {"one-number.svg": render_one_number(cells), "precision-recall.svg": render_scatter(cells), "../tables.md": render_tables(cells)}
+    out = {"one-number.svg": render_one_number(cells), "precision-recall.svg": render_scatter(cells), "same-key.svg": render_comparison(cells), "../tables.md": render_tables(cells)}
     for p in sorted(data_dir.glob("*-capture.json")):
         cap = json.loads(p.read_text())
         out[p.name.replace("-capture.json", "-before-after.svg")] = render_before_after(cap)

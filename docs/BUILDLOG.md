@@ -7433,3 +7433,17 @@ the claim page's exceptions are ajv, hono and quic-go; misses register,
 evidence log, architecture §3.8, workstreams, CLAUDE.md, C-94's entry.
 Suites: pipeline 1,243 pytest green, the oracle lane's Go suite green.
 No spend; ~1.5 hours of CPU on this box.
+
+**Addendum (Max: "document the comparisons and present them in the
+comparative section as a graphic; the rest document as next session's
+work"):** `docs/comparative/graphics/same-key.svg` (ADR-102 §7) — one row
+per cell that has a foreign graph on the same key, three markers on
+the precision axis and three on the recall axis, grouped by language,
+repowise-bench's draws as their own band, the trace cell by its
+confirmation rate; regenerated from the records with the rest and
+under the drift test. The claim page's file table and 1-1 section
+point at it. Next session's work is the handoff's numbered list:
+the claim page's wording and which graphic leads; syft's keys on a
+bigger box; the union-member provider shape (n=2) — fix or register;
+the next two converters; the competitor cells under the sandbox
+image if C-96 is to be narrowed.

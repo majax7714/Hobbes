@@ -73,6 +73,19 @@ and the picture a build product.
    larger measurement; its pre-join artifact is not on the box, so it
    is quoted from the evidence log, not drawn.
 
+7. **The comparison itself** (added later on 2026-09-09, after the
+   foreign cells existed): `same-key.svg` — one row per cell that has
+   a foreign graph graded on the same key, three markers on a
+   precision axis and three on a recall axis (filled dot Hobbes, hollow
+   square CodeGraphContext, hollow diamond repowise), a grey line
+   spanning the three, grouped by language with repowise-bench's draws
+   as their own band and the trace-graded Python cell labelled by its
+   confirmation rate. Two axes rather than one scatter so a row can be
+   read on its own; nothing pooled; the caption carries the lower
+   bound, the grain (C-94, C-95), the triage sample's ratio and why
+   syft is absent. A tool whose cell stored no call edge prints
+   *undefined* in the row rather than a marker at 0.
+
 ## Consequences
 
 - Regrading a cell is three commands: edit the record, `render.py

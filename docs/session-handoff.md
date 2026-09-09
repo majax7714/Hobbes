@@ -33,11 +33,17 @@ edge found and fixed on gitleaks (`_repo_package`, a stdlib import path
 never names a repo package). Read `docs/comparative/README.md` (the
 claim; its 1-1 section), `tables.md`, and the two BUILDLOG entries.
 
-**What needs Max:**
+**The comparison as a graphic:** `docs/comparative/graphics/same-key.svg`
+(ADR-102 §7) — one row per cell, three markers per axis, the draws as
+their own band; regenerated with the rest by `render.py render`.
+
+**Next session's work (Max's call on order):**
 
 1. **Whether the claim page says what he wants said** — the four
    sentences under *The claim*, now with three named exceptions (ajv,
-   hono — one scip-typescript union-member shape, n=2 — and quic-go).
+   hono — one scip-typescript union-member shape, n=2 — and quic-go),
+   and whether `same-key.svg` is the graphic that goes in front of
+   someone first.
 2. **syft's keys need a bigger box** (RTA OOM at 18.7 / 19 GB, H-9's
    shape); the row says so. Also dagger's root, still.
 3. **The union-member provider shape (ajv 3, hono 7 rows):** the one

@@ -19,6 +19,7 @@ What is here:
 | [`tables.md`](tables.md) | **Generated** from the cell records: the standing Hobbes cells, and each foreign cell beside the Hobbes cell on the same key. Do not edit; regenerate. |
 | [`graphics/one-number.svg`](graphics/one-number.svg) | The one number: 0 falsely confirmed of N seeded wrong edges across K compiler-graded cells, N and K summed from the poison lines, the exceptions printed. |
 | [`graphics/precision-recall.svg`](graphics/precision-recall.svg) | One dot per cell, precision-against-oracle against recall, language as the panel, trace cells in their own panel, foreign cells as hollow squares; hover for the miss classes. |
+| [`graphics/same-key.svg`](graphics/same-key.svg) | **The comparison.** One row per cell that has a foreign graph on the same key: three markers on the precision axis and three on the recall axis (Hobbes, CodeGraphContext, repowise), grouped by language, repowise-bench's draws as their own band. Read across a row, never down a column. |
 | [`graphics/date-fns-before-after.svg`](graphics/date-fns-before-after.svg) | Before / after on one repo, as the per-directory capture view that named the fix (C-74, C-90). |
 | [`data/`](data/) | What the graphics are rendered from: `cells.json` (parsed from `docs/oracle-cells/`), `date-fns-capture.json` (parsed from two `graph.json` artifacts). |
 | `docs/oracle-cells/<tool>-<repo>-2026-09-09.md` | The foreign cells, one per tool × repo, in the same record format as a Hobbes cell. |
@@ -82,8 +83,8 @@ grain. Those pins were cloned, Hobbes ingested them contained, our keys
 were built on this box (`oracle go-rta` with and without test packages
 where the experiment has both cells; `ts/tsc-oracle.mjs` on zod's root
 and hono's `tsconfig.build.json`), and both tools were run on the same
-clones — so `tables.md` § *The 1-1 on repowise's draws* is three graphs
-on one key per cell: cobra (with tests), gitleaks (with and without
+clones — so `tables.md` § *The 1-1 on repowise's draws* and the last
+band of `graphics/same-key.svg` are three graphs on one key per cell: cobra (with tests), gitleaks (with and without
 tests), zod, hono. **syft has no key on this box**: RTA over its
 no-tests program was killed by the kernel at 18.7 GB and the with-tests
 program at 19 GB (the H-9 shape, as quic-go's full program and dagger's
