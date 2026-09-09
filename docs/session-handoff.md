@@ -211,9 +211,9 @@ the §10 fine-tuning wording in the architecture stays as is until
 then.
 
 1. **The TTT experiment after the review** — unchanged from the evening
-   handoff, tabled by Max for this session (`docs/olmo3-ttt-results.md`
+   handoff, tabled by Max for this session (`docs/ttt/olmo3-ttt-results.md`
    §1 amended, §9, §9b, §10; the second cell record
-   `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`; standing in
+   `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`; standing in
    `benchmark-hypotheses.md` § H-TTT). Held: the **10,000-step point**
    (≈ 6 A100-hours) and **the 3,000-step adapter under the primary cell**
    (~0.7 A100-hour; the adapter is on the volume at

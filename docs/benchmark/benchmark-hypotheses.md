@@ -201,7 +201,7 @@ transcripts.
 ## H-TTT — Test-time training on the derived layer (ADR-099, preregistered 2026-09-03)
 
 The design, the factor grid, the recipe and the order of work are in
-[`olmo3-ttt-validation.md`](../olmo3-ttt-validation.md); the hypotheses
+[`olmo3-ttt-validation.md`](../ttt/olmo3-ttt-validation.md); the hypotheses
 are restated here so results land beside them. Each carries a kill
 criterion; a hypothesis that survives is *not confirmed*, it is *not
 yet killed*. Every arm is *model + prompt* under P12 — one agent, no
@@ -226,7 +226,7 @@ and the held-out navigation set per arm). Constraints C-81–C-84.
 
 ### Results — H-TTT
 
-#### 2026-09-03 — the unseen cell: this repo @ `ebdf7a5` × Olmo-3-7B-Instruct (steps 2–4; cell record `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03.md`)
+#### 2026-09-03 — the unseen cell: this repo @ `ebdf7a5` × Olmo-3-7B-Instruct (steps 2–4; cell record `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03.md`)
 
 **Gate (§4.4):** Olmo 3 scores 0.044 on this repo unaided (files
 0.10, definitions 0.00, navigation 0.03) — the unseen cell, well under
@@ -313,7 +313,7 @@ redirect toward looped cores or graph-as-modality is drawn.
 **Replication on fastapi (unseen for Olmo 3 at 0.129), 68 git-history
 units:** A2−A0 −0.223 nats on 68/68 (CI [−0.242, −0.204]); A1−A0
 +0.001 (p 0.81); A3−A2 −0.002 (p 0.44) — the Hobbes cell's shape on a
-foreign repo at 0.17 epochs (`docs/ttt-cells/fastapi-olmo3-7b-2026-09-03.md`).
+foreign repo at 0.17 epochs (`docs/ttt/cells/fastapi-olmo3-7b-2026-09-03.md`).
 
 **Standing of the five, after this session:** H-TTT-1 not killed (with
 the control's caveat that most of the NLL effect is vocabulary);
@@ -322,7 +322,7 @@ closest proxy and points the same way); H-TTT-3 not measured; H-TTT-4
 unreadable at 7B; H-TTT-5 killed on NLL, not killed on navigation.
 Agent runs (step 5) are not started and are not cleared.
 
-#### 2026-09-03 (later) — the primary cell (review item 9): HSR and RFE over 50 derived units, Olmo-3-7B, this repo @ `ebdf7a5` (`docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md` § Item 9)
+#### 2026-09-03 (later) — the primary cell (review item 9): HSR and RFE over 50 derived units, Olmo-3-7B, this repo @ `ebdf7a5` (`docs/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md` § Item 9)
 
 `hobbes plan` over 28 hand-written proposals → 50 derived units; one
 file-tools-only agent per unit per arm (no exec in any arm; every arm
@@ -350,7 +350,7 @@ NLL under the commit-message conditioning and on the agent metrics,
 not killed on navigation and under a task-statement conditioning by
 0.008 nats.
 
-#### 2026-09-03 (evening) — the step sweep past one epoch (review item 5) and the last controls (items 3, 6); `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`
+#### 2026-09-03 (evening) — the step sweep past one epoch (review item 5) and the last controls (items 3, 6); `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`
 
 Adapters at 100 / 300 / 1,000 / 3,000 steps on the same corpus, seed
 0, and 3,000 on a four-paraphrase corpus. **Callers on trained
@@ -387,7 +387,7 @@ finds its files is the open question, and the next cell.
 
 #### Follow-ups from review — preregistered 2026-09-03, before any of them ran
 
-Max's review of the 2026-09-03 results set ten follow-ups (`docs/olmo3-ttt-results.md`
+Max's review of the 2026-09-03 results set ten follow-ups (`docs/ttt/olmo3-ttt-results.md`
 §10 carries the closing line and the record for each). The readings
 below were written **before** the numbers, under the same rule as the
 grid; a corpus, scorer or recipe change bumps its hash, and no existing

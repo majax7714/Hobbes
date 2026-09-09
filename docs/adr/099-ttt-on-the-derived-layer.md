@@ -1,6 +1,6 @@
 # ADR-099 — Test-time training on the derived layer: the corpus is a derived artifact; the experiment is preregistered in `olmo3-ttt-validation.md`
 
-**Date:** 2026-09-03 · **Status:** accepted — steps 1–4 of the order of work built and run on the unseen cell (this repo, replicated on fastapi), 2026-09-03; H-TTT-1 not killed, H-TTT-5 killed on NLL and not on navigation, H-TTT-4 unreadable at 7B, H-TTT-2/3 unmeasured (step 5 not cleared) — `benchmark-hypotheses.md` § H-TTT · **Owner:** Max · **Source:** Max, 2026-09-03: "the experiment is listed in olmo3-ttt-validation … it should be fully possible with the keys set"; the design document [`docs/olmo3-ttt-validation.md`](../olmo3-ttt-validation.md) is the body of this decision and is not restated here.
+**Date:** 2026-09-03 · **Status:** accepted — steps 1–4 of the order of work built and run on the unseen cell (this repo, replicated on fastapi), 2026-09-03; H-TTT-1 not killed, H-TTT-5 killed on NLL and not on navigation, H-TTT-4 unreadable at 7B, H-TTT-2/3 unmeasured (step 5 not cleared) — `benchmark-hypotheses.md` § H-TTT · **Owner:** Max · **Source:** Max, 2026-09-03: "the experiment is listed in olmo3-ttt-validation … it should be fully possible with the keys set"; the design document [`docs/ttt/olmo3-ttt-validation.md`](../ttt/olmo3-ttt-validation.md) is the body of this decision and is not restated here.
 
 Amends the architecture's **§6.2** (a third instrument beside the
 harness and the oracle lane). Registers **C-81–C-84**
@@ -122,7 +122,7 @@ so one deployment serves the base and every adapter by name.
 
 The review set ten follow-ups (`benchmark-hypotheses.md` § Follow-ups,
 preregistered before any ran; `olmo3-ttt-results.md` §10; the second
-cell record `docs/ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`).
+cell record `docs/ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`).
 The decisions they added to the eight above:
 
 9. **The NLL prompt's conditioning is a named variable**

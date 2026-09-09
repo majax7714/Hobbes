@@ -1,4 +1,4 @@
-"""Test-time training on the derived layer (ADR-099, `docs/olmo3-ttt-validation.md`).
+"""Test-time training on the derived layer (ADR-099, `docs/ttt/olmo3-ttt-validation.md`).
 
 The experiment asks whether the derived layer does more when it is
 loaded into a model's **weights** for a session — a few hundred LoRA

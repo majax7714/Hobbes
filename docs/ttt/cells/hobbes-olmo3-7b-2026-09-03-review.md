@@ -1,6 +1,6 @@
 # TTT cell — Hobbes @ `ebdf7a5` · Olmo-3-7B-Instruct · the review follow-ups (2026-09-03, second record)
 
-**Experiment:** ADR-099, `docs/olmo3-ttt-validation.md`; the ten
+**Experiment:** ADR-099, `docs/ttt/olmo3-ttt-validation.md`; the ten
 follow-ups Max set after reading the first record, preregistered in
 `benchmark-hypotheses.md` § Follow-ups **before** any of them ran.
 **Sits beside** `hobbes-olmo3-7b-2026-09-03.md`, which is not edited:

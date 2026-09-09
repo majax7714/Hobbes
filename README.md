@@ -298,7 +298,7 @@ to DeepSWE 1.1 on a mini-swe-agent substrate. A test-time-training
 experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
 loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count
-([`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md)). Calvin M0
+([`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md)). Calvin M0
 ([`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md), its harness
 ADR-100) then asked whether a deterministic grounder under an
 orchestrator can make a model's edit true against the graph: the 28
@@ -326,7 +326,7 @@ point); the session-by-session record is
 | [`docs/future_additions.md`](docs/future_additions.md) | Deliberately deferred work, with the reasoning kept |
 | [`docs/benchmark/benchmark-hypotheses.md`](docs/benchmark/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
 | [`docs/benchmark/benchmark-deepswe.md`](docs/benchmark/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
-| [`docs/olmo3-ttt-results.md`](docs/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
+| [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin/calvin-charter.md` |
 | [`docs/atlas-0.md`](docs/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |

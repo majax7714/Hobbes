@@ -1,6 +1,6 @@
 # Test-time training on the derived layer — results, Olmo-3-7B-Instruct (2026-09-03)
 
-**Design:** [`olmo3-ttt-validation.md`](olmo3-ttt-validation.md) · **Decision:** ADR-099 · **Per-cell numbers:** [`ttt-cells/hobbes-olmo3-7b-2026-09-03.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03.md), [`ttt-cells/fastapi-olmo3-7b-2026-09-03.md`](ttt-cells/fastapi-olmo3-7b-2026-09-03.md) · **Standing per hypothesis:** [`benchmark-hypotheses.md` § H-TTT](benchmark/benchmark-hypotheses.md) · **Constraints:** C-81–C-85
+**Design:** [`olmo3-ttt-validation.md`](olmo3-ttt-validation.md) · **Decision:** ADR-099 · **Per-cell numbers:** [`ttt/cells/hobbes-olmo3-7b-2026-09-03.md`](cells/hobbes-olmo3-7b-2026-09-03.md), [`ttt/cells/fastapi-olmo3-7b-2026-09-03.md`](cells/fastapi-olmo3-7b-2026-09-03.md) · **Standing per hypothesis:** [`benchmark-hypotheses.md` § H-TTT](../benchmark/benchmark-hypotheses.md) · **Constraints:** C-81–C-85
 
 This is the reading document: what was run, what came out, what it
 means under the preregistered kill criteria, and what it cannot mean.
@@ -92,7 +92,7 @@ exist and costs 0.008 as boilerplate where they do not.
 **H-TTT-5 (combination): killed on this metric.** The combined arm is
 not better than the adapter alone on either repo.
 
-**Amended 2026-09-03 (review items 1–3; the numbers in [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md)).**
+**Amended 2026-09-03 (review items 1–3; the numbers in [`ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`](cells/hobbes-olmo3-7b-2026-09-03-review.md)).**
 Three things the review asked change how the table above reads.
 *(1) Split by C-84 population,* the true adapter's margin over the
 control is larger on the 92 units whose files the base graph never
@@ -180,7 +180,7 @@ base guesses the basename from the id's module segment — a convention,
 not knowledge), A2 and A3 unchanged. The adapter's defines gain over
 the base is +0.70 under v2, not +0.97. Every navigation run was
 re-scored into a new file with the version in it; the v2 tables are in
-[`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+[`ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`](cells/hobbes-olmo3-7b-2026-09-03-review.md).
 
 **Abstention is what an instruction buys (review item 4, 2026-09-03).**
 With the card plus one sentence — "if the symbol is not listed, say it
@@ -192,7 +192,7 @@ for abstention". The adapter under the same instruction neither
 improves (0.22 either way) nor obeys it correctly: it declares symbols
 that *are* on its card undefined (defines 1.00 → 0.33, callers 0.79 →
 0.19) — the §4a shape again, triggered by an instruction the base
-follows. Numbers in [the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+follows. Numbers in [the review record](cells/hobbes-olmo3-7b-2026-09-03-review.md).
 
 ## 4a. Prior overrides text (review item 8)
 
@@ -331,7 +331,7 @@ each fact is rendered through four question and answer phrasings
 ~6 A100-hours alone) is held for Max. The pre-committed readings are in
 `benchmark-hypotheses.md` § Follow-ups, item 5.
 
-**Landed 2026-09-03 (evening).** Every number in [the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md) § Item 5.
+**Landed 2026-09-03 (evening).** Every number in [the review record](cells/hobbes-olmo3-7b-2026-09-03-review.md) § Item 5.
 
 | steps | exposures per fact | **NLL Δ vs base** | trained: callers | callees | tests | impact | held-out: callers | callees | tests | impact | absent FA |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -376,7 +376,7 @@ over the 28 hand-written proposals gave 50 derived units (two
 proposals refused by the planner); one file-tools-only agent per unit
 per arm, no exec anywhere, base and the 300-step adapter on one serve;
 every arm *model + prompt* (P12). Numbers and the defect register in
-[the review record](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+[the review record](cells/hobbes-olmo3-7b-2026-09-03-review.md).
 
 | arm | HSR | RFE Jaccard | precision | recall | non-empty patch |
 |---|---|---|---|---|---|
@@ -409,7 +409,7 @@ One line per item, in the review's order (dependency, not priority),
 each linking the record that closed it. The readings were preregistered
 in `benchmark-hypotheses.md` § Follow-ups before anything ran.
 
-1. A2's NLL gain by C-84 population — **closed**: none of the three preregistered shapes; the true−control margin is larger where the graph holds nothing, so it bounds the graph's share (C-86). §3 amended; [`ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`](ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md).
+1. A2's NLL gain by C-84 population — **closed**: none of the three preregistered shapes; the true−control margin is larger where the graph holds nothing, so it bounds the graph's share (C-86). §3 amended; [`ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`](cells/hobbes-olmo3-7b-2026-09-03-review.md).
 2. The NLL conditioning stated (C-87) and varied — **closed**: the adapter's gain does not shrink as the task tightens (−0.244 path-only → −0.299 task); the prompted block is real only under a task statement (−0.008) and adds the same on top of the adapter — the separable reading; H-TTT-5 on NLL is killed under `message`, not under `task`. §3 amended; the record.
 3. The shuffled control's cards — **closed**: bodies had been permuted whole; a `shuffled-all` control (edge lines deranged within a module) lands at −0.226 on NLL, the true adapter 0.071 over it — inside the first control's interval — and learns **nothing navigable** (defines 0.09, false acceptance 0.97, the base's numbers): the NLL gain is tokens, every navigation gain is the consistent graph (§9).
 4. Abstention under instruction — **closed**: the base with the instruction refuses every distractor (FA 0.00, cost 0.06 on has-truth); the adapter's 0.22 does not move under it and its real answers collapse. "Mid-train for abstention" weakens to "instruct for abstention"; design §3.2(c) amended with a dated note. §4 note; the record.

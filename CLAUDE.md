@@ -72,7 +72,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
-| running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
+| running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
 | evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
@@ -375,14 +375,14 @@ review → `lane_b` pytest) and runs the same way on a box.
   fixed the same night (C-89 TS overload lines, C-90 configs a
   tsconfig names).
 - **The test-time-training experiment ran 2026-09-03 (ADR-099,
-  `docs/olmo3-ttt-validation.md`):** `hobbes derive-corpus` renders the
+  `docs/ttt/olmo3-ttt-validation.md`):** `hobbes derive-corpus` renders the
   derived layer as a training corpus; a 300-step LoRA on it lowered
   Olmo-3-7B's gold-diff NLL on 147/147 units (replicated on fastapi,
   68/68) — but a shuffled-answers control took three quarters of that,
   and the held-out and *trained* navigation questions score the same
   (callers 0.10 / 0.15): at this step count the weights hold module-grain
   regularities and abstention, not edges. No memorised cell at 7B
-  (C-83). Records in `docs/ttt-cells/`; standing per hypothesis in
+  (C-83). Records in `docs/ttt/cells/`; standing per hypothesis in
   `docs/benchmark/benchmark-hypotheses.md`; C-81–C-85.
 - **Max's ten follow-ups ran the same evening** (results §9–§10, the
   second cell record): past one epoch the edges *do* enter the weights

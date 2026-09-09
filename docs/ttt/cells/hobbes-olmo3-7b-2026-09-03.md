@@ -1,6 +1,6 @@
 # TTT cell — Hobbes @ `ebdf7a5` · Olmo-3-7B-Instruct · 2026-09-03
 
-**Experiment:** ADR-099, `docs/olmo3-ttt-validation.md` (steps 1–4 of
+**Experiment:** ADR-099, `docs/ttt/olmo3-ttt-validation.md` (steps 1–4 of
 the order of work). **Cell:** the unseen-candidate repo (this one, at
 its public-release commit) × Olmo 3 7B × four deliveries. **Every arm
 is *model + prompt* under P12.** Numbers are recorded; the reading is
