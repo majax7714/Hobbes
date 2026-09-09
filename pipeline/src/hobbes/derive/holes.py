@@ -1,4 +1,4 @@
-"""The Calvin M0 hole language, v0 (`docs/calvin-potential.md` §2.1, step 1 of §8).
+"""The Calvin M0 hole language, v0 (`docs/calvin/calvin-potential.md` §2.1, step 1 of §8).
 
 A **template** is Hobbes's structural expansion of a task at one parent
 SHA into typed **holes** the orchestrator fills. This module is the

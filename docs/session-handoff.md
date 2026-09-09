@@ -152,10 +152,10 @@ buffered; the grid's B4 cells run 4 at a time at ~14 min each.
 *The Calvin state below is unchanged from 2026-09-04 (later).*
 
 **Calvin M0 (Max, 2026-09-04): evaluating Calvin potential — held
-since the spend rule.** The design is `docs/calvin-potential.md` (M0, v2, *run on four keys*; §10
+since the spend rule.** The design is `docs/calvin/calvin-potential.md` (M0, v2, *run on four keys*; §10
 has the results, §8 the step record, the charter is
-`docs/calvin-charter.md`); the per-task record with attribution is the
-seventh addendum of `docs/ttt-cells/calvin-m0-probe-2026-09-03.md`;
+`docs/calvin/calvin-charter.md`); the per-task record with attribution is the
+seventh addendum of `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`;
 every number is reproduced by `pipeline/scripts/calvin_probe.py` from
 the artifacts under `~/.hobbes/bench/calvin/` (`graphs-laneb/` the 28
 parent ledgers, `templates/`, `ground/`, `t-step6/`, `verify-t-step6/`,
@@ -251,7 +251,7 @@ image's python as the base.
   `~/.hobbes/bench/atlas0/` and on the volume `hobbes-atlas0` (the
   README lists the run directories); $22.28 assumed to date of $25.
 
-- **Calvin M0** (`docs/calvin-potential.md`; ADR-100 for its harness):
+- **Calvin M0** (`docs/calvin/calvin-potential.md`; ADR-100 for its harness):
   steps 0–6b done, 6b exercised with no model (the record's eighth
   addendum; `verify-gold-import/`, `verify-t-step6-import/`,
   `calvin_probe.py replay`); the design's ADR takes 101 when Max moves

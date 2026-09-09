@@ -1,10 +1,10 @@
-"""Grounder v0 — Calvin's slot with the residual set to zero (`docs/calvin-potential.md` §2.3; step 3 of §8).
+"""Grounder v0 — Calvin's slot with the residual set to zero (`docs/calvin/calvin-potential.md` §2.3; step 3 of §8).
 
 Deterministic and model-free. In: a template (`hobbes.derive.holes`
 v0), the orchestrator's fills, the ledger at the parent SHA and the
 repo read only through ``git`` at that SHA. Out: a diff that applies at
 the SHA, a **NULL list**, a **read-trace**, and the counts the charter's
-invariants are measured by (`docs/calvin-charter.md` §4).
+invariants are measured by (`docs/calvin/calvin-charter.md` §4).
 
 **Placement (I3).** Every fill lands in the span its hole names, or in
 the span the fill itself names (a ``FREEFORM`` entry, a ``NEW_SYMBOL``

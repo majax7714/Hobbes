@@ -73,7 +73,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/olmo3-ttt-results.md` |
-| evaluating Calvin potential                | `docs/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/ttt-cells/calvin-m0-probe-2026-09-03.md` |
+| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
@@ -133,7 +133,7 @@ box, against a repo on disk (architecture §10); the application mode in
   ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, ~2.8 GB) and
   the exit-check harness.
 - `bench/calvin/` — the Calvin M0 experiment's artifacts
-  (`docs/calvin-potential.md`): `templates/` holds the hand-written
+  (`docs/calvin/calvin-potential.md`): `templates/` holds the hand-written
   template, its render and its gold fills; the parent ledgers, the
   generated templates and the ground records live under
   `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
@@ -393,7 +393,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   300 steps — the manifest finds the files, the adapter alone
   confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
 - **Calvin M0 ran on four keys (2026-09-04 night, Sonnet 5;
-  `docs/calvin-potential.md` §10):** T pass 1 / fail 1 / empty 1 /
+  `docs/calvin/calvin-potential.md` §10):** T pass 1 / fail 1 / empty 1 /
   no-tests 1 at $6, O pass 1 / no patch 3 at $17; the module anchor is
   the cost door, the template misses importer tests, candidates bind
   but do not find; the 28-key run was cut on cost. The two protocol

@@ -1,4 +1,4 @@
-<!-- Copied verbatim from ~/calvin/calvin-charter.md (its own repo, commit ee5ae5a, 2026-09-03) into this tree on 2026-09-04 so `docs/calvin-potential.md` links to a file that exists. The companion doc it names, `calvin-m0-socket.md`, was the M0 design's v1 title; the v2 is `docs/calvin-potential.md`. -->
+<!-- Copied verbatim from ~/calvin/calvin-charter.md (its own repo, commit ee5ae5a, 2026-09-03) into this tree on 2026-09-04 so `docs/calvin/calvin-potential.md` links to a file that exists. The companion doc it names, `calvin-m0-socket.md`, was the M0 design's v1 title; the v2 is `docs/calvin/calvin-potential.md`. -->
 
 # Calvin — charter
 

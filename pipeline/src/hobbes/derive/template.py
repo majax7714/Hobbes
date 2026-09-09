@@ -1,4 +1,4 @@
-"""`hobbes template` — the Calvin M0 template generator (`docs/calvin-potential.md` §2.1; step 2 of §8).
+"""`hobbes template` — the Calvin M0 template generator (`docs/calvin/calvin-potential.md` §2.1; step 2 of §8).
 
 Deterministic and model-free: the task text, the ledger at the parent
 SHA (graph + testmap), the repo (read only through ``git`` at that SHA)

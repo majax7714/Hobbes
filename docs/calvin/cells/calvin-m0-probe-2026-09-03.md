@@ -1,7 +1,7 @@
 # Calvin M0 — the pre-run probes (2026-09-03, night): coverage ceiling and anchor pass, base graph vs. parent graphs
 
-**Experiment:** `docs/calvin-potential.md` (M0, then at its v1 — see
-*What v1 got wrong* below); the charter is `docs/calvin-charter.md`.
+**Experiment:** `docs/calvin/calvin-potential.md` (M0, then at its v1 — see
+*What v1 got wrong* below); the charter is `docs/calvin/calvin-charter.md`.
 **What this is:** the two instruments that need no orchestrator
 (§4.1 template coverage, §4.2 anchor pass at file grain), run first
 against the one release-SHA graph the TTT cell used and then against a

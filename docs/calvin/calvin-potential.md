@@ -4,7 +4,7 @@
 **Depends on:** the Python derive package (graph @ SHA, tiers, plan derivation, impact, write partitions, testmap, co-change), the owned agent loop (`pipeline/src/hobbes/agent/loop.py`, OpenAI-compatible chat completions), the local policy engine + Podman sandbox, and the 50 derived units and 28 proposals of ADR-099 §9b (`bench/ttt/proposals-hobbes-ebdf7a5.jsonl`; the cell record `ttt-cells/hobbes-olmo3-7b-2026-09-03-review.md`).
 **Supersedes:** v1 of this document. Changes are marked **[v2]** and listed in §11.
 **Charter:** [`calvin-charter.md`](calvin-charter.md) — unchanged; this document is the first experiment under it.
-**Pre-run probes:** [`ttt-cells/calvin-m0-probe-2026-09-03.md`](ttt-cells/calvin-m0-probe-2026-09-03.md) — the two no-orchestrator instruments run at the base graph and at each unit's parent, the v1 assessment (V-1–V-8) that produced this v2, and the 28 parent SHAs; `pipeline/scripts/calvin_probe.py` reproduces every number.
+**Pre-run probes:** [`calvin/cells/calvin-m0-probe-2026-09-03.md`](cells/calvin-m0-probe-2026-09-03.md) — the two no-orchestrator instruments run at the base graph and at each unit's parent, the v1 assessment (V-1–V-8) that produced this v2, and the 28 parent SHAs; `pipeline/scripts/calvin_probe.py` reproduces every number.
 **ADR:** none yet for the design. When Max moves this from *ready* to *accepted* it takes the next number (101 — step 5's harness took ADR-100) in ADR-099's pattern, this doc as its body.
 
 > **Where v1 lives (2026-09-04).** v1 was never a document in this
@@ -246,7 +246,7 @@ Recorded, not scored. Ten units by hand: does the trace show callers read before
 
 ## 5. Per-task record
 
-One row per unit per arm in `ttt-cells/calvin-m0-<repo>-<date>.md`:
+One row per unit per arm in `calvin/cells/calvin-m0-<repo>-<date>.md`:
 
 ```
 unit | parent_sha | arm | anchors (found/gold, matcher) | unresolved (n, class agreement) |
@@ -313,7 +313,7 @@ Preregistered now, because the anchor-stage probe already leans one way:
 
 ## 10. Results
 
-**2026-09-04 (night), four keys, Sonnet 5.** Per-unit rows and attribution first: the probe record's seventh addendum (`ttt-cells/calvin-m0-probe-2026-09-03.md`, "step 6"), reproduced by `calvin_probe.py rows` over `~/.hobbes/bench/calvin/{t-step6,verify-t-step6,verify-t0-step6,o-step6}/`. Then, over the four keys (no bootstrap at n = 4; nothing here moves a standing in `benchmark-hypotheses.md`):
+**2026-09-04 (night), four keys, Sonnet 5.** Per-unit rows and attribution first: the probe record's seventh addendum (`calvin/cells/calvin-m0-probe-2026-09-03.md`, "step 6"), reproduced by `calvin_probe.py rows` over `~/.hobbes/bench/calvin/{t-step6,verify-t-step6,verify-t0-step6,o-step6}/`. Then, over the four keys (no bootstrap at n = 4; nothing here moves a standing in `benchmark-hypotheses.md`):
 
 | arm | verdicts | RFE mean J / P / R | right files exactly | HSR | tokens in / out | cost |
 |---|---|---|---|---|---|---|
