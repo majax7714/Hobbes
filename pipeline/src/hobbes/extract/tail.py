@@ -132,6 +132,8 @@ _LANG_BY_EXT = {
     ".py": "python",
     ".ts": "ts/js",
     ".tsx": "ts/js",
+    ".mts": "ts/js",
+    ".cts": "ts/js",
     ".js": "ts/js",
     ".jsx": "ts/js",
     ".mjs": "ts/js",

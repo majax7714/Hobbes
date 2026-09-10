@@ -258,6 +258,36 @@ new active entry and the two cross-reference. Field key: `README.md`,
   ingest under the new helper reported `runtime-tests/*/tsconfig.json`
   as solution configs with files no project claimed.
 
+### C-100 — `.mts` / `.cts` sources were not discovered by lane A, so the join dropped lane B's index of them — *registered and lifted 2026-09-10, the same session*
+- **Was:** the helper's `EXTENSIONS` and `tssource._EXTENSIONS` listed
+  `.ts .tsx .js .jsx .mjs .cjs`; TypeScript's ESM- and CJS-flavoured
+  sources (`.mts`, `.cts`, since TS 4.7) were on neither list, and
+  `tail._LANG_BY_EXT` had no row for them. Such a file was not a module
+  node, contributed no call sites to lane A's denominator, and
+  scip-typescript's occurrences on it (the file *is* in the tsconfig's
+  program, so lane B indexed it) had nothing to join to — its calls
+  absent, uncounted, with no degradation record. Silent. Found by the
+  callee-shape bucket of cheerio's miss set
+  (`docs/oracle/oracle-misses.md`, 2026-09-10): the six `static→function`
+  misses on `scripts/fetch-sponsors.mts` were the only
+  function-declaration targets on the cell Hobbes had not drawn at
+  symbol grain.
+- **Lifted by:** the two extensions added to the helper's set (discovery,
+  the relative-import candidates, the asset rule), to
+  `tssource._EXTENSIONS` / `_TS_EXTENSIONS` (a `.mts` module is
+  TypeScript), to the tail's language map, the grounder's import
+  candidates, the agent policy's test-command map and the harness's
+  vitest rule. Tests: the helper's discovery case, `module_id`, the
+  join's `languages`, `tail.language_of`. cheerio regraded at
+  0.1.7-beta: 2,682 → 2,688 edges, confirmed 2,622 → 2,628, 0
+  contradicted, the six rows recovered at the semantic tier — function
+  targets 1,911/1,911 at symbol grain (the cell record's 2026-09-10 block).
+- **Residual:** none for discovery; `.d.mts` / `.d.cts` fall under
+  whatever rule `.d.ts` falls under (the helper has none — a declaration
+  file is walked like any other, and declares no bodies).
+- **Source:** the callee-shape bucket, 2026-09-10 — Max's question, why a
+  tsc key beats a tsc-based indexer.
+
 ### C-90 — A tsconfig that `extends` or `references` a config off the zone's walk-up path was indexed without it — *registered and lifted 2026-09-03, the same session*
 - **Was:** staging copied a zone's sources plus the `tsconfig.json` /
   `jsconfig.json` / `package.json` on the zone's walk-up path and,

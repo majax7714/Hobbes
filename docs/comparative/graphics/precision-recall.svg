@@ -456,15 +456,6 @@ repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96
 </g>
 <text x="508.2" y="113.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·rw</text>
 <g>
-<title>cheerio — TypeScript, tsc 6.0.3 (the zone's own) (resolution), contained, 2026-08-27
-precision-against-oracle 2,102/2,102 = 100.0%
-recall 2,132/5,910 = 36.1% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 2,507, func-value→local-binding 1,070, static→closure 173, static→anonymous-signature 12, static→type-member 6, static→class 5, static→method 5
-44 abstract: calls through const x = factory(..) (H-18)</title>
-<circle cx="508.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="516.3" y="146.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio</text>
-<g>
 <title>kbet (private app) — TypeScript, tsc 5.9.3 (the zone's own) (resolution), host-run, 2026-08-25
 precision-against-oracle 630/630 = 100.0%
 recall 633/1,529 = 41.4% over every resolved site (resolution oracle: no roots)
@@ -472,7 +463,7 @@ misses by class: func-value→local-binding 625, static→closure 195, interface
 a private Vite+React app: the cell is published, the repo is not</title>
 <circle cx="524.2" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="532.2" y="196.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >kbet (private app)</text>
+<text x="532.2" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >kbet (private app)</text>
 <g>
 <title>hono (tsconfig.build.json) — codegraphcontext — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
 precision-against-oracle 607/771 = 78.7%
@@ -482,6 +473,15 @@ codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run 
 <rect x="526.1" y="166.875" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="539.1" y="175.875" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·cgc</text>
+<g>
+<title>cheerio — TypeScript, tsc 6.0.3 (the zone's own) (resolution), contained, 2026-08-27
+precision-against-oracle 2,628/2,628 = 100.0%
+recall 2,667/5,910 = 45.1% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 1,972, func-value→local-binding 1,070, static→closure 173, static→anonymous-signature 12, static→type-member 6, static→class 5, static→method 5
+44 abstract: calls through const x = factory(..) (H-18); regraded 2026-09-10 at 0.1.7-beta — the callee-shape bucket (oracle-misses.md), C-100</title>
+<circle cx="535.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="543.3" y="156.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio</text>
 <g>
 <title>zod — TypeScript, tsc 5.9.3 (harness) (resolution), contained, 2026-09-09
 precision-against-oracle 9,731/9,731 = 100.0%
@@ -499,7 +499,7 @@ misses by class: static→method 777, static→function 146, static→class 107,
 codegraphcontext graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="547.7" y="111.75" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="560.7" y="140.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·cgc</text>
+<text x="560.7" y="190.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·cgc</text>
 <g>
 <title>hono (tsconfig.build.json) — repowise — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
 precision-against-oracle 735/787 = 93.4%
@@ -508,7 +508,7 @@ misses by class: static→closure 229, static→method 169, static→property 93
 repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <polygon points="558.4,110.75 564.4,116.75 558.4,122.75 552.4,116.75" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="550.4" y="210.75" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·rw</text>
+<text x="550.4" y="190.75" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json) ·rw</text>
 <g>
 <title>hono (tsconfig.build.json) — TypeScript, tsc 5.9.3 (harness) (resolution), contained, 2026-09-09
 precision-against-oracle 768/768 = 100.0%
@@ -526,7 +526,7 @@ misses by class: static→function 456, static→closure 174, static→class 107
 regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three static→union-member rows are abstentions now, ten sites in the tail; contained on the regrade</title>
 <circle cx="590.5" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="598.5" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv</text>
+<text x="598.5" y="156.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv</text>
 <text x="740" y="82" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rust — rustc-mir (compiler-graded)</text>
 <rect x="740" y="92" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="740.0" y1="92" x2="740.0" y2="392" stroke="#d9d8d2" stroke-dasharray="2 3"/>

@@ -365,6 +365,13 @@ class TestClassesAvailable:
             lang = tail.language_of(row["file"])
             assert set(row.get("tail", {})) <= set(available[lang]), row
 
+    def test_ts_flavoured_extensions_share_the_ts_js_row(self):
+        # .mts/.cts were unmapped until C-100: a tail row for such a file
+        # had no language, so its classes were checked against nothing.
+        for f in ("scripts/fetch.mts", "lib/legacy.cts", "src/a.tsx", "c.cjs"):
+            assert tail.language_of(f) == "ts/js", f
+        assert tail.language_of("c/z.tf") is None
+
     def test_only_present_languages_are_listed_in_decision_order(self):
         rows = [{"file": "a/x.rs"}, {"file": "b/y.py"}, {"file": "c/z.tf"}]
         got = tail.classes_available(rows)

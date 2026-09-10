@@ -43,7 +43,7 @@ export const EXPR_CALLEE_NAME = "<expr>";
 // hono (7 rows) drawn at semantic certainty.
 export const UNION_MEMBER = "union-member";
 
-const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
+const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
 // Mirror of the Python discover.SKIPPED_DIR_NAMES; dot-dirs are skipped
 // wholesale there too.

@@ -350,7 +350,7 @@ JS_BUILTINS = frozenset({
     "setInterval", "setTimeout", "structuredClone", "unescape",
 })
 _TS_IMPORT = re.compile(r"""(?:from|import|require\()\s*['"](\.[^'"]+)['"]""")
-_TS_EXTS = ("", ".ts", ".tsx", ".js", ".mjs", ".cjs", ".jsx", "/index.ts", "/index.js", "/index.mjs")
+_TS_EXTS = ("", ".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".jsx", "/index.ts", "/index.js", "/index.mjs")
 
 
 def _materialize_imports(path: str, text: str, scratch: Path, repo_root: Path, sha: str) -> None:

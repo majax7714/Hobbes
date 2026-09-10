@@ -58,9 +58,9 @@
    "run": "contained",
    "draw": "picked",
    "label": "cheerio",
-   "note": "44 abstract: calls through const x = factory(..) (H-18)",
-   "edges": 2162,
-   "confirmed": 2102,
+   "note": "44 abstract: calls through const x = factory(..) (H-18); regraded 2026-09-10 at 0.1.7-beta — the callee-shape bucket (oracle-misses.md), C-100",
+   "edges": 2688,
+   "confirmed": 2628,
    "contradicted": 0,
    "abstract": 44,
    "silent": 16,
@@ -68,12 +68,12 @@
    "unobserved": 0,
    "precision": {
     "pct": 100.0,
-    "num": 2102,
-    "den": 2102
+    "num": 2628,
+    "den": 2628
    },
    "recall": {
-    "pct": 36.1,
-    "hits": 2132,
+    "pct": 45.1,
+    "hits": 2667,
     "pairs": 5910,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -83,14 +83,14 @@
     "static→anonymous-signature": 12,
     "static→class": 5,
     "static→closure": 173,
-    "static→function": 2507,
+    "static→function": 1972,
     "static→method": 5,
     "static→type-member": 6
    },
    "poison": {
     "passed": true,
-    "seeded": 2162,
-    "refused": 2146,
+    "seeded": 2688,
+    "refused": 2672,
     "unjudged": 16,
     "falsely": 0
    }

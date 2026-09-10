@@ -34,17 +34,19 @@ function byPath(facts, rel) {
   return found;
 }
 
-test("discoverFiles finds TS/JS extensions and prunes junk dirs", () => {
+test("discoverFiles finds TS/JS extensions (the ESM/CJS-flavoured .mts/.cts too, C-100) and prunes junk dirs", () => {
   const root = makeRepo({
     "src/a.ts": "",
     "src/b.jsx": "",
     "c.mjs": "",
+    "d.mts": "",
+    "scripts/e.cts": "",
     "node_modules/x/d.js": "",
     "dist/e.js": "",
     ".hidden/f.ts": "",
     "readme.md": "",
   });
-  assert.deepEqual(discoverFiles(root), ["c.mjs", "src/a.ts", "src/b.jsx"]);
+  assert.deepEqual(discoverFiles(root), ["c.mjs", "d.mts", "scripts/e.cts", "src/a.ts", "src/b.jsx"]);
 });
 
 test("symlinks: an in-repo directory link is one tree, walked at its target; outside and file links are followed (C-73)", () => {

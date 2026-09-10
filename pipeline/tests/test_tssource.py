@@ -78,6 +78,8 @@ class TestModuleId:
     def test_strips_known_extensions_only(self):
         assert module_id("src/flow.js") == "src/flow"
         assert module_id("src/a.test.mjs") == "src/a.test"
+        assert module_id("scripts/fetch.mts") == "scripts/fetch"  # C-100
+        assert module_id("lib/legacy.cts") == "lib/legacy"
         assert module_id("src/data.json") == "src/data.json"
 
 
@@ -216,6 +218,12 @@ class TestJoinFacts:
             facts([file_facts("src/a.ts"), file_facts("src/b.js")])
         )
         assert joined["languages"] == ["javascript", "typescript"]
+
+    def test_mts_and_cts_are_typescript(self):
+        # C-100: the ESM/CJS-flavoured TS sources are TypeScript modules
+        joined = join_facts(facts([file_facts("scripts/fetch.mts"), file_facts("lib/x.cts")]))
+        assert joined["languages"] == ["typescript"]
+        assert {n["id"] for n in joined["nodes"]} == {"scripts/fetch", "lib/x"}
 
     def test_routes_module_qualify_resolved_handlers(self):
         joined = join_facts(

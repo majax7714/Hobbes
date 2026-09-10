@@ -58,6 +58,8 @@ _TEST_COMMANDS = {
     ".go": "go test ./{dir}*",
     ".ts": "npm test*",
     ".tsx": "npm test*",
+    ".mts": "npm test*",
+    ".cts": "npm test*",
     ".js": "npm test*",
     ".mjs": "npm test*",
     ".rs": "cargo test*",

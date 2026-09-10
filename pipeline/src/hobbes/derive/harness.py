@@ -344,7 +344,7 @@ def commands(sel: Selection, worktree: Path, env: Environment, reports: Path) ->
     for f in sel.touched_test_files:
         if any(t["file"] == f for t in sel.tests):
             continue
-        fw = "pytest" if f.endswith(".py") else "go-test" if f.endswith(".go") else "vitest" if re.search(r"\.(test|spec)\.tsx?$", f) else "node:test"
+        fw = "pytest" if f.endswith(".py") else "go-test" if f.endswith(".go") else "vitest" if re.search(r"\.(test|spec)\.[cm]?tsx?$", f) else "node:test"
         root = nearest(worktree, f, ("pyproject.toml",) if fw == "pytest" else ("go.mod",) if fw == "go-test" else ("package.json",))
         groups[(fw, root)].append({"id": f + "::*", "file": f, "framework": fw, "origin": "touched", "grain": "file"})
     out: list[Command] = []

@@ -7,6 +7,30 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
+## 0.1.7-beta — 2026-09-10 (later still)
+
+**Patch: a change in what Hobbes draws (C-100).** TypeScript's ESM- and
+CJS-flavoured sources, `.mts` and `.cts`, are discovered: they were on
+neither lane A's extension list nor the helper's, so such a file was
+not a module, its calls were not counted, and scip-typescript's index of
+it (the file is in the tsconfig's program) had nothing to join to —
+absent without a degradation record. Found by the callee-shape bucket
+of cheerio's miss set (`docs/oracle/oracle-misses.md`), which answered
+Max's question about the recall gap between a `tsc` key and a
+`tsc`-based indexer: at symbol grain the indexer emits 98.8–100% of the
+function declarations the key names; the gap is the key's overload
+grain (one pair per signature) and targets below the symbol floor.
+
+- cheerio (the zone's own `tsc` 6.0.3): 2,682 → 2,688 edges, 2,622 →
+  2,628 confirmed, 0 contradicted; the six `scripts/fetch-sponsors.mts`
+  rows recovered; every function-declaration target on the cell drawn
+  (1,911/1,911 collapsed pairs). zod does not move (no such file).
+- Both lanes: `tsextract/extract.mjs`, `hobbes.extract.tssource`,
+  `hobbes.extract.tail`; the grounder, the agent policy's test-command
+  map and the harness's vitest rule take the same two extensions.
+- Register: C-100 registered and lifted; 100 entries, 75 active, 23
+  lifted, 2 superseded.
+
 ## 0.1.6-beta — 2026-09-10 (later)
 
 **Patch: a change in what Hobbes draws (the C-98 lane asymmetry

@@ -79,3 +79,55 @@ recall 36.1% (2132/5910 in-repo oracle pairs)
 ```
 
 **Triage ratio (A-8):** 44 contradicted → `oracle-wrong 44 : hobbes-wrong 0 : untriaged 0` (grain, RC-3). **Direction of fix:** oracle. The recall misses stand as recorded: `static→function` 2,507 is mostly the specs' `attr`/`prop` overload signatures (one oracle pair per overload declaration — the oracle's grain again, on the recall side, not corrected here) and `func-value→local-binding` 1,070 the specs' `$` bindings (C-32).
+
+## Regrade 2026-09-10 (0.1.6-beta, then 0.1.7-beta; the callee-shape bucket — Max's indexer question; C-100)
+
+Re-ingested contained at 0.1.6-beta (the fixes since 2026-08-28: C-80's expression receivers, ADR-104, C-98/C-99) and regraded against the same key, 8 s (`~/.hobbes/bench/oracle/cheerio-ts-r3/`):
+
+```
+hobbes edges 2682: confirmed 2622  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2622/2622)
+recall 45.0% (2661/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 static→anonymous-signature:12 static→class:5 static→closure:173 static→function:1978 static→method:5 static→type-member:6]
+  recall[static→function   ]  49.5% (1936/3914)  misses 1978 = 60.9% of all misses
+  tier semantic   confirmed 2614  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+poison check: PASS — 2682 seeded wrong edges: 2666 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**The bucket** (`bench/oracle/shape/`: every miss joined to the checker's reading of the callee expression at its site and to lane A's own record there; the full table and the reading in `docs/oracle/oracle-misses.md`), 3,249 misses:
+
+| bucket | rows | share | what it is |
+|---|---|---|---|
+| oracle grain — Hobbes' edge confirmed to a *sibling declaration* of the same name on the same line | 1,972 | 60.7% | one oracle pair per overload signature (`attr` ×5, `prop`, `html`); H-19's recall side |
+| identifier → `let` binding, no initializer (`let $: CheerioAPI`, assigned in `beforeEach`) | 884 | 27.2% | below the floor by C-32; lane A: no callee, origin `local` |
+| identifier → nested `const` holding a call result (`const $ = load(..)`) | 176 | 5.4% | same |
+| identifier → a parameter (`fn(..)`, `cb(..)`, `$` as a param) | 69 | 2.1% | same; 5 of them the `parse` param typed `typeof Cheerio.prototype._parse` (`static→method`) |
+| member on a top-level `const` holding a call result / identifier → such a const (`cheerio.load(..)`, `parse(..)` = `getParse(..)`) | 95 | 2.9% | the closure `getLoad` returns; H-18's shape |
+| identifier → a function declaration **in `scripts/fetch-sponsors.mts`** | 6 | 0.2% | **no lane A record at all — the file was not discovered (C-100)** |
+| the rest (call-result callees → `CheerioAPI.__call`, `new LoadedCheerio` with no lane A site, `myPlugin` on a module augmentation, a `this` callee) | 47 | 1.4% | below the floor / not a site |
+
+Collapsed to one pair per (site line, target file, target name): 3,826 pairs, 2,622 hit, **68.5%** — by target kind: function 1,905/1,911 (99.7%; the six are the `.mts` file), method 41/46, variable 676/676, local-binding 0/997, closure 0/173, anonymous-signature 0/12, type-member 0/6, class 0/5.
+
+**Then at 0.1.7-beta** (C-100 lifted — `.mts`/`.cts` discovered), re-ingested contained and regraded, 10 s (`~/.hobbes/bench/oracle/cheerio-ts-r4/`):
+
+```
+cell .  oracle tsc 6.0.3 (the zone's own) (resolution)  sha 98c7d131
+hobbes edges 2688: confirmed 2628  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2628/2628)
+recall 45.1% (2667/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 static→anonymous-signature:12 static→class:5 static→closure:173 static→function:1972 static→method:5 static→type-member:6]
+  recall[func-value→local-binding]   0.0% (0/1070)  misses 1070 = 33.0% of all misses
+  recall[func-value→variable] 100.0% (684/684)  misses 0 = 0.0% of all misses
+  recall[static→anonymous-signature]   0.0% (0/12)  misses 12 = 0.4% of all misses
+  recall[static→class      ]   0.0% (0/5)  misses 5 = 0.2% of all misses
+  recall[static→closure    ]   0.0% (0/173)  misses 173 = 5.3% of all misses
+  recall[static→function   ]  49.6% (1942/3914)  misses 1972 = 60.8% of all misses
+  recall[static→method     ]  89.1% (41/46)  misses 5 = 0.2% of all misses
+  recall[static→type-member]   0.0% (0/6)  misses 6 = 0.2% of all misses
+  tier semantic   confirmed 2620  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+  line-grain tolerance used on 1887 edge(s) (several oracle sites on one line)
+poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+cell . of /home/mmarrujo/.hobbes/bench/oracle/repos/cheerio: 10s
+```
+
+The six `.mts` rows recovered at the semantic tier; collapsed 2,628/3,826 = **68.7%**, function targets **1,911/1,911**. **Triage ratio (A-8):** 0 contradicted. **Direction of fix:** the 1,972 sibling rows — oracle (grain); the 1,190 below-floor targets — a floor decision, not a resolution failure (Max's call; W1); nothing else on the cell.

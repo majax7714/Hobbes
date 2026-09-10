@@ -181,7 +181,7 @@
 <text x="240" y="272" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio</text>
 <line x1="522.1" y1="268" x2="550.0" y2="268" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>cheerio — hobbes: precision-against-oracle 2,102/2,102 = 100.0%</title>
+<title>cheerio — hobbes: precision-against-oracle 2,628/2,628 = 100.0%</title>
 <circle cx="550.0" cy="268" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -192,10 +192,10 @@
 <title>cheerio — repowise: precision-against-oracle 167/184 = 90.8%</title>
 <polygon points="522.4,261.5 528.9,268 522.4,274.5 515.9,268" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="618.4" y1="268" x2="718.3" y2="268" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="618.4" y1="268" x2="745.3" y2="268" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>cheerio — hobbes: recall 2,132/5,910 = 36.1% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="718.3" cy="268" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cheerio — hobbes: recall 2,667/5,910 = 45.1% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="745.3" cy="268" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>cheerio — codegraphcontext: recall 1,045/5,910 = 17.7% over every resolved site (resolution oracle: no roots)</title>

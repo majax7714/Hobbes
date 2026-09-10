@@ -44,8 +44,12 @@ HELPER_VERSION = 5
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.
-_EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
-_TS_EXTENSIONS = {".ts", ".tsx"}
+#: ``.mts`` / ``.cts`` are TypeScript's ESM- and CJS-flavoured sources
+#: (TS 4.7); they were missing from both this set and the helper's until
+#: C-100 (2026-09-10), so a repo's ``scripts/*.mts`` was neither listed
+#: nor joined — lane B indexed it and the join dropped its occurrences.
+_EXTENSIONS = {".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"}
+_TS_EXTENSIONS = {".ts", ".tsx", ".mts", ".cts"}
 
 
 class TsExtractError(RuntimeError):

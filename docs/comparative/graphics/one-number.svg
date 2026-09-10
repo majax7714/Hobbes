@@ -2,7 +2,7 @@
 <title>Wrong edges seeded into the graph, falsely confirmed by the grader</title>
 <rect width="900" height="528" fill="#fcfcfb"/>
 <text x="32" y="61" font-size="15" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Seeded wrong edges the oracle grader falsely confirmed</text>
-<text x="32" y="143" font-size="56" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0 of 99,853</text>
+<text x="32" y="143" font-size="56" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0 of 100,379</text>
 <text x="32" y="172" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >seeded wrong edges across 19 compiler-graded cells in 4 languages (Go, Java, Rust, TypeScript). Every</text>
 <text x="32" y="191" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cell grades a poisoned twin of its own export — each edge re-targeted to a declaration the oracle never</text>
 <text x="32" y="210" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >resolved that site to — and the grader refused or left unjudged every one; it confirmed none.</text>

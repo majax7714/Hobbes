@@ -12,7 +12,7 @@
   "run": "contained",
   "draw": "picked",
   "label": "cheerio",
-  "note": "44 abstract: calls through const x = factory(..) (H-18)"
+  "note": "44 abstract: calls through const x = factory(..) (H-18); regraded 2026-09-10 at 0.1.7-beta — the callee-shape bucket (oracle-misses.md), C-100"
  },
  "click-py": {
   "lang": "Python",
