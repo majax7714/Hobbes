@@ -42,6 +42,85 @@ commit as the cell.
 
 ## Cells
 
+### The callee-shape bucket — why a `tsc` key beats a `tsc`-based indexer (2026-09-10; cheerio and zod at 0.1.6-beta; [cells](cells/))
+
+**Max's question.** scip-typescript sits on the same compiler as the TS
+key, so a 45–64-point recall gap "is mostly what the indexer declines
+to emit, not what the compiler can't see" — bucket the miss set by
+callee-expression shape and the tail should concentrate in two or three
+classes. Done on cheerio (3,249 misses) and zod (12,038): every miss
+joined to the checker's reading of the callee at its site (an
+identifier → what its declaration is; a member → what the receiver is;
+`bench/oracle/shape/shapes.mjs`) and to lane A's own record there
+(`bucket.py`). **The answer is no — at symbol grain the indexer emits
+nearly everything the key names.** The gap is two things, neither a
+resolution the compiler saw and the indexer withheld:
+
+1. **The oracle's overload grain** — one pair per overload *signature*
+   (H-19's recall side, noted 2026-08-28 and now measured). Hobbes draws
+   one edge, confirmed to one signature; the siblings count as misses.
+   cheerio 1,972 of 3,249 misses (60.7%: `attr` ×5, `prop`, `html`); zod
+   4,442 of 12,038 (36.9%: `string`, `toJSONSchema`, `literal`).
+2. **Targets below the symbol floor** — the key names a declaration the
+   graph has no node for: a `let`/`const` binding, a parameter, a
+   closure, an interface member signature, a class property holding a
+   function, a class reached by `new`. Lane A's record at every one of
+   these sites is *no callee, origin `local`/`nested`*: the checker
+   resolved the declaration and the helper reported it below the floor
+   (C-32, C-58, C-9). Not one miss on either cell is a site lane A
+   resolved to a modelled symbol and the join failed to draw.
+
+Collapsed to one pair per (site line, target file, target name), by
+what the key's target *is*:
+
+| target kind | cheerio (hit / pairs) | zod (hit / pairs) |
+|---|---|---|
+| function declaration | 1,905 / 1,911 (99.7%) → **1,911 / 1,911** at 0.1.7-beta (C-100) | 6,307 / 6,385 (98.8%) |
+| method | 41 / 46 | 2,263 / 2,345 (96.5%) |
+| variable (a modelled `const` holding a function) | 676 / 676 | 1,161 / 1,625 (71.4%) |
+| local binding | 0 / 997 | 0 / 59 |
+| closure | 0 / 173 | 0 / 323 |
+| interface member signature (`type-member`) | 0 / 6 | 0 / 4,742 |
+| class property holding a function (`property`) | — | 0 / 1,029 |
+| class, by `new` | 0 / 5 | 0 / 110 |
+| anonymous signature (`CheerioAPI.__call`) | 0 / 12 | 0 / 13 |
+| **all** | **2,622 / 3,826 = 68.5%** (68.7% at 0.1.7-beta) | **9,731 / 16,631 = 58.5%** |
+
+Where the below-floor rows concentrate — three shapes on each cell:
+cheerio's specs bind `let $: CheerioAPI` and assign it in `beforeEach`
+(884), or `const $ = load(..)` (176), then call `$(..)`; and the closure
+`getLoad` returns / a parameter is called (173 + 69). zod's v4 declares
+`parse` / `safeParse` / `optional` / `refine` / `check` / `init` as
+*interface* signatures (`interface ZodType { parse(..): .. }`) and
+attaches the bodies in `$constructor`'s init closure (`inst.parse =
+..`) — 4,742 collapsed pairs, and no declaration anywhere has the body;
+v3's `static create = (..) => new ZodString(..)` class properties
+(1,029) reached through `const stringType = ZodString.create`; `new
+ZodType(..)` / `new ZodError(..)` (110 + 121 — the helper does not
+visit `NewExpression`); the `util` namespace's exported members (230).
+
+**Recovered in the 100% tier:** `.mts`/`.cts` were not discovered
+(cheerio's six function misses; C-100, lifted 2026-09-10). **Priced for
+Max's decision (W1), each a floor change, symbol-grain, no flow needed:**
+a class property whose initializer is a function literal as a `method`
+symbol (zod 6.2% of pairs); a `namespace` block's exported members as
+symbols qualified by the namespace; `new X(..)` as a lane A site — with
+the grader-grain question first, since the key names the class whose
+constructor answers (`ZodType` for `new ZodString(..)`, the base), not
+the class written.
+
+**The Jelly caveat this settles before the afternoon.** The rest of the
+tail — bindings, parameters, closures, interface signatures — is where a
+flow analysis would answer, and its answer at those sites is a
+*different declaration* from the key's: `$(..)` → `initialize` in
+`load.ts` where the key says the `$` binding; `schema.parse(..)` → the
+closure assigned in `$constructor` where the key says the interface
+signature. Graded against this key those edges are contradictions, not
+recall. A Jelly cell needs either a key at flow grain (a second
+`tsc-oracle` mode that follows a binding to its value) or a grader rule
+that a below-floor target is confirmed by the value bound there — the
+grain is the decision, and it is not made.
+
 ### The 1-1 on repowise's draws (2026-09-09; [cells](cells/), `*-hobbes-2026-09-09.md`)
 
 Five repos repowise-bench pinned, graded by our keys (ADR-101 § the 1-1): cobra (with tests) 2,186/2,186, recall 71.8% at 2 roots; gitleaks with tests 2,266/2,266 at 9 roots (94.9%) and without 2,010/2,010 at 2 roots (98.0%) — after one wrong *syntactic* edge was fixed the same day (`re.MustCompile` inside the repo's own `regexp` package bound to the enclosing function: the fallback matched the stdlib import path to the repo's `regexp/` directory by suffix; `gosource._repo_package` now applies cmd/go's rule that a first path element without a dot is the standard library's); zod 9,731/9,731, recall 45.1% over every resolved site (lane B without dependencies — pnpm is not provisioned, C-23); hono (`tsconfig.build.json`) 767/774, recall 55.2% — the 7 are `static→union-member`. Misses are the standing classes: closures and interface dispatch on Go (cobra `interface→named` 431, gitleaks `func-value→closure` 76 / 17), and on TS the local bindings, closures and the unprovisioned dependencies. syft has no key: RTA over its no-tests program was OOM-killed at 18.7 GB on this box and the with-tests program at 19 GB — H-9's shape; the cell waits on a bigger box.

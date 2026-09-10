@@ -1,79 +1,86 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-10 (later).** Nothing is running: no Modal job,
-no local process; the tree is committed on `main`, not pushed. **Hobbes
-is at 0.1.6-beta (ADR-103; C-98 lifted in both lanes, ADR-105): the tag
-`v0.1.3-beta` is local and unpushed like the commits — publish
-together, and tag `v0.1.6-beta` when Max says so; `CHANGELOG.md` gets an entry with every bump, and
-nothing under `bench/` moves the number.** Resume at START HERE below —
-Max's review of the C-98 lift (both lanes), C-99 and ADR-105, then the
-no-spend W1/W3 items;
-the Atlas-0 decisions held from 2026-09-07 stay held (unchanged,
+**Session ended 2026-09-10 (later still).** Nothing is running: no Modal
+job, no local process; the tree is committed on `main`, not pushed.
+**Hobbes is at 0.1.7-beta (ADR-103; C-100 lifted): the tag `v0.1.3-beta`
+is local and unpushed like the commits — publish together, and tag
+`v0.1.7-beta` when Max says so; `CHANGELOG.md` gets an entry with every
+bump, and nothing under `bench/` moves the number.** Resume at START
+HERE below — Max's reading of the callee-shape bucket's answer and the
+three floor shapes it priced, then his decision on the Jelly cell's key
+grain; the Atlas-0 decisions held from 2026-09-07 stay held (unchanged,
 further down).
 
-**Rewritten 2026-09-10: the comparative programme's review queue moved
-on Max's word — the claim page's wording is approved (item 1 crossed
-off), the bigger box for syft and dagger's root is off the table, the
-experimental holds stay held — and C-98 was lifted: the TS helper types
-a file under a solution-style `tsconfig.json` by the referenced project
-that includes it, the compiler's own reading of the configs; a file no
-project claims runs under the defaults and is reported. hono 767/768 →
-768/768; the claim page's one exception is quic-go. C-99 found on the
-way and fixed in both lanes: a config with `references` and neither
-`files` nor `include` is a project, not a solution. Later the same day,
-on Max's word: the lane asymmetry closed — lane B indexes a solution
-zone by the same map — and ADR-105 states the indexer rule (P13: a
-pinned batch program with a stated version and a tier stamp, never a
-language server; SCIP the IR, not the rule). No API spend, no Modal.** Read this, then the 2026-09-10 BUILDLOG entry, the C-98 and
-C-99 entries in `docs/constraints/extraction-typescript-javascript.md`,
-and `docs/workstreams.md` W1 for what is left there. History lives in
-the BUILDLOG; this doc is rewritten, never appended into a pile.
+**Rewritten 2026-09-10 (later still): Max asked two questions — Jelly
+as a third extractor lane, and why a `tsc` key beats a `tsc`-based
+indexer by 45–64 points — and directed the second first. Answered by
+the callee-shape bucket (`bench/oracle/shape/`, `docs/oracle/oracle-misses.md`):
+the indexer withholds almost nothing — cheerio 99.7% and zod 98.8% of
+the key's *function declarations* are drawn; the gap is the oracle's
+overload grain (61% / 37% of misses) and targets below the symbol floor
+(bindings, closures, interface signatures, class-property functions,
+`new`). C-100 found there and lifted: `.mts`/`.cts` were not discovered
+(cheerio 2,628/2,628 at 0.1.7-beta, every function target drawn). Three
+floor shapes priced for Max's call (W1); the Jelly cell's key grain is
+the decision to make before that afternoon. Earlier the same day: C-98
+lifted in both lanes, C-99, ADR-105 (0.1.5/0.1.6-beta). No API spend,
+no Modal.** Read this, then the three 2026-09-10 BUILDLOG entries, the
+new section at the top of `docs/oracle/oracle-misses.md` § Cells, and
+`docs/workstreams.md` W1 for the priced shapes. History lives in the
+BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max reviews the C-98 lift (both lanes), C-99 and ADR-105; then the no-spend queue
+## ⇢ START HERE NEXT SESSION: Max reads the bucket's answer, decides the three floor shapes and the Jelly key grain; then the no-spend queue
 
-**Done 2026-09-10 (BUILDLOG; commits `9f5ca99` the code, `0bae673` the
-docs, then the 0.1.6-beta pair):** `zoneTsconfig` in `tsextract/extract.mjs` — the
-nearest tsconfig read raw; a solution config's references resolved by
-the compiler in the order written, transitively inside the repo; the
-first referenced project whose inputs include the file is its zone;
-unclaimed files to the default project, reported once per solution
-config (`tsconfig-unclaimed`). Both lanes' solution rule corrected
-(C-99: `references` + no non-empty inputs + one of the two keys
-written). hono regraded **768/768**, 15 `union-member` sites typed on
-`src/`, lane agreement byte-identical to the old helper's (a baseline
-ingest of a clone copy); 0.1.5-beta, image rebuilt, register
-99 / 75 / 22 / 2.
+**Done 2026-09-10 (later still; BUILDLOG):** every cheerio (3,249) and
+zod (12,038) miss joined to the checker's reading of the callee
+expression and to lane A's record at the site. Collapsed to one pair
+per (site, target file, target name): cheerio **68.7%** (0.1.7-beta),
+zod **58.5%**; function declarations 1,911/1,911 and 6,307/6,385;
+methods 41/46 and 2,263/2,345. Not one miss on either cell is a site
+lane A resolved to a modelled symbol that the join failed to draw. The
+two records' 2026-09-10 blocks hold the tables. C-100 lifted; 0.1.7-beta;
+image rebuilt; register 100 / 75 / 23 / 2.
 
-**Later the same day (0.1.6-beta):** the asymmetry is closed — lane B
-asks the helper for the same zone map (`--zones`) and indexes each
-referenced project under its own config, the unclaimed files under a
-generated config *beside* the solution file; hono 768/768 with one edge
-syntactic → semantic, lanes 4,336 / 1; the root zone's lane B
-references 27,682 → 37,216, module pairs 17 lost (the unclaimed files'
-references into `src/`, C-12's shape) / 8 gained. **ADR-105** states
-the indexer rule as P13.
+**Earlier 2026-09-10 (commits `9f5ca99`, `0bae673`, `0d89907`, `b3774d1`):**
+C-98 lifted in both lanes (the TS helper types a file under a
+solution-style tsconfig by the referenced project that includes it;
+lane B indexes by the same zone map, `--zones`), C-99 (a config with
+`references` and neither key is a project), ADR-105 / P13 (a lane B
+provider is a pinned batch program with a stated version and a tier
+stamp, never a language server). hono 768/768, lanes 4,336 / 1.
 
-**For Max's review:**
+**For Max's review and decision:**
 
-1. **ADR-105 / P13** — the five points (batch; pinned with a stated
-   version; tier-stamped through the join; not SCIP-only; never a
-   language server) and whether §3.7's step 1 says enough for the next
-   language.
-2. **The C-98 lifted entry's residuals as they now stand** — a file two
-   referenced projects both include (lane A: the first named; lane B:
-   both, sightings merged); a solution's own `compilerOptions` not
-   applied to unclaimed files; and the cost of the closure — a file no
-   project claims is its own program in both lanes, so its references
-   into a claimed project take C-12's shape (hono: 15 module pairs from
-   the deno benchmark and runtime-test files). If those should resolve,
-   the unclaimed program could be given the claimed files as non-root
-   inputs — a design question, not started.
-3. **The hono record's fourth block and the regenerated graphics** —
-   `docs/oracle/cells/hono-build-hobbes-2026-09-09.md`, `same-key.svg`,
-   `one-number.svg` (38 at 100%, 0 of 99,853 falsely confirmed; the exception quic-go).
-4. **Whether to tag `v0.1.6-beta`** and publish.
+1. **The bucket's answer** (`docs/oracle/oracle-misses.md` § the
+   callee-shape bucket) — the reading that the gap is grain plus floor,
+   not the indexer; and whether the collapsed number (one pair per site
+   and callee) should become a second recall line `oracle grade` prints,
+   beside the per-signature one, so the records carry both grains.
+2. **Three floor shapes, priced (W1), each a symbol-grain change with no
+   flow needed:** a class property whose initializer is a function
+   literal as a `method` symbol (zod: 1,029 collapsed pairs, 6.2% of the
+   cell — v3's `static create = (..) =>`); a `namespace` block's exported
+   members as symbols qualified by the namespace (zod: 230 rows,
+   `util.assertEqual`); `new X(..)` as a lane A call site (cheerio 5, zod
+   ~230 — the helper does not visit `NewExpression`), which needs the
+   grader-grain question answered first: the key names the class whose
+   constructor answers (the *base* class for an inherited constructor),
+   Hobbes would name the class written.
+3. **The Jelly cell's key grain** (question 1). The below-floor tail is
+   where a flow analysis answers, and its answer is a different
+   declaration from the key's (`$(..)` → `initialize`; `schema.parse(..)`
+   → the closure assigned in `$constructor`'s init). Against this key
+   those edges grade as contradictions. Either a flow-grain
+   `tsc-oracle` mode (follow a binding to its value; one afternoon of
+   its own) or a grader rule that a below-floor target is confirmed by
+   the value bound there — Max's call; then the afternoon: Jelly pinned
+   in the image as a batch program (P13), cheerio/zod, `oracle import`
+   + the poison check, its Node-stdlib-as-unknown and deliberate
+   unsoundness recorded before anything is admitted.
+4. **ADR-105 / P13, the C-98 residuals, the hono record's fourth block,
+   tagging** — as listed on 2026-09-10 earlier (BUILDLOG); unchanged.
 
 **The comparative review's queue, as it stands:** item 1 approved; item
 2 (syft's keys, dagger's root — the bigger box) off the table (Max,

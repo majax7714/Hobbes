@@ -62,3 +62,24 @@ poison check: PASS — 9780 seeded wrong edges: 9731 refused, 49 unjudged (oracl
 
 **Direction of fix:** first grade — nothing to sign. **Not a comparison with repowise-bench's table:** a different key grain and matcher; the comparison is with the foreign cells on this key.
 
+
+## Regrade 2026-09-10 (0.1.6-beta; the callee-shape bucket — Max's indexer question)
+
+Re-ingested contained at 0.1.6-beta and regraded against the same key (`~/.hobbes/bench/comparative/hobbes-zod-r2/`): **byte-identical to the 2026-09-09 grade** — 9,780 edges, 9,731 confirmed, 0 contradicted, 49 silent, recall 45.1% (9,893/21,931), poison PASS. (0.1.7-beta does not move it: no `.mts`/`.cts` file in the program.)
+
+**The bucket** (`bench/oracle/shape/`; the reading in `docs/oracle/oracle-misses.md`), 12,038 misses:
+
+| bucket | rows | share | what it is |
+|---|---|---|---|
+| oracle grain — Hobbes' edge confirmed to a sibling declaration of the same name on the same line | 4,442 | 36.9% | one pair per overload signature (`string` ×2, `toJSONSchema`, `literal`; 347 of them methods) |
+| member on a call result (`z.string().optional()`, `schema.parse(..)`) | 2,552 | 21.2% | 1,940 are v4's *interface* method signatures (`parse`, `safeParse`, `optional`, `refine` in `interface ZodType` — the body is attached in `$constructor`'s init closure, no declaration has one; C-9), 528 v3's `static create = (..) =>` class properties |
+| member on a nested / top-level `const` holding a call result (`const s = z.object(..); s.parse(..)`) | 2,344 | 19.5% | the same interface signatures (2,310 `type-member`) |
+| member on a namespace import (`z.string()`, `util.assertEqual(..)`) | 1,185 | 9.8% | v3 `static create` properties reached through `const stringType = ZodString.create` (not a modelled const); the `util` namespace's exported members (230 — `export namespace util { export const assertEqual .. }`, not modelled) |
+| no lane A site on the line | 311 | 2.6% | `new ZodType(..)` / `new ZodError(..)` — the helper does not visit `NewExpression` (97 class targets + 121 `$constructor` variables), and 84 closures |
+| member on a property chain / an interface-typed identifier / a parameter / `this` | 696 | 5.8% | `inst._zod.init(..)`, `def.check(..)`, `ctx.addIssue(..)` — interface signatures and params, below the floor |
+| identifier → a function declaration / a nested `const` function / a param / a binding element | 297 | 2.5% | closures and locals (`processError`, `getter`, `localeError`); 25 locale `export default function`s |
+| the rest | 211 | 1.8% | `NonNullExpression` receivers, `parseUtil.OK` type-alias-named variables, anonymous signatures |
+
+Collapsed to one pair per (site line, target file, target name): 16,631 pairs, 9,731 hit, **58.5%** — by target kind: function 6,307/6,385 (98.8%), method 2,263/2,345 (96.5%), variable 1,161/1,625 (71.4%), type-member 0/4,742, property 0/1,029, closure 0/323, class 0/110, local-binding 0/59, anonymous-signature 0/13.
+
+**Direction of fix:** the 4,442 sibling rows — oracle (grain). The type-member 4,742 — below the floor by C-9 and not a body anywhere (a flow analysis would name the closure assigned in `$constructor`, which is *not* the key's target). Three floor shapes are recoverable at symbol grain and priced in W1 for Max's decision: class-property functions (1,029 collapsed pairs, 6.2% of the cell), namespace members (230 rows), `new X(..)` as a site (~230 rows, with the grader-grain question first). Nothing on the cell is a resolution the compiler saw and the indexer withheld.

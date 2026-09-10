@@ -7949,3 +7949,76 @@ proxy answers 0.1.6-beta), suites green: 1,255 pytest (+4; the new
 `lane_b` case tolerates the containment disclosure a suite run with
 `HOBBES_UNCONTAINED` leaves — two containment tests set it), 36
 tsextract, 32 scip, 52 vitest, Go and oracle-lane Go.
+
+## 2026-09-10 — (later still) the callee-shape bucket answers the indexer question; C-100 (`.mts`/`.cts`) found and lifted — 0.1.7-beta
+
+**Max's two questions, the second taken first as directed.** (1) Jelly
+(Møller's flow-insensitive points-to for JS/TS; CLDK embeds it as an
+experimental backend beside the compiler's resolver with a `both` diff
+mode) as a third extractor lane, graded against our `tsc` key on
+cheerio/zod — an afternoon; grade before admitting. (2) *Why does a
+`tsc`-based key beat a `tsc`-based indexer by 45–64 points?* — bucket
+cheerio's miss set by callee-expression shape from lane A; the tail
+should concentrate; that is the full-tail-check machinery pointed at
+one cell and it stays in the 100% tier.
+
+**Built for (2):** `bench/oracle/shape/shapes.mjs` (every call site of
+a zone with the checker's reading of the callee: identifier → its
+declaration kind, member → the receiver's shape, the resolved
+signature's declaration) and `bucket.py` (join a cell's misses to that
+record and to lane A's facts at the site; bucket; collapsed recall with
+the oracle's overload grain removed). cheerio re-ingested and regraded
+at 0.1.6-beta first (r3: 2,622/2,622, recall 36.1% → 45.0% from the
+fixes since 2026-08-28), zod likewise (r2: byte-identical to
+2026-09-09).
+
+**The answer (`docs/oracle/oracle-misses.md`, the two records'
+2026-09-10 blocks):** no — the indexer withholds almost nothing. With
+one pair per (site, target file, target name) cheerio is 68.5% and zod
+58.5%, and by target kind the *function declarations* are 99.7% / 98.8%
+drawn, methods 89% / 96.5%. 60.7% of cheerio's misses and 36.9% of
+zod's are the oracle's overload grain (one pair per signature — H-19's
+recall side, now measured). The rest is targets below the symbol floor,
+where lane A's record reads *no callee, origin local/nested* every
+time: cheerio's `let $: CheerioAPI` specs (884), `const $ = load(..)`
+(176), closures and params (242); zod's v4 interface signatures
+(`parse`/`safeParse`/…, 4,742 — the bodies live in `$constructor`'s init
+closure, no declaration has one), v3's `static create = (..) =>` class
+properties (1,029), `new` (the helper does not visit `NewExpression`;
+~230), the `util` namespace's members (230). Not one miss on either
+cell is a site lane A resolved to a modelled symbol that the join
+failed to draw.
+
+**C-100, found there and lifted:** cheerio's only six function-target
+misses were in `scripts/fetch-sponsors.mts` — no lane A record at all.
+`.mts`/`.cts` were on neither extension list (helper, `tssource`,
+`tail`); the file was not a module, its calls uncounted, and lane B's
+index of it (it is in the program) had nothing to join to — silent.
+Added to the helper's set, `tssource._EXTENSIONS`/`_TS_EXTENSIONS`, the
+tail's language map, the grounder's import candidates, the agent
+policy's test-command map and the harness's vitest rule; tests on both
+sides. cheerio at 0.1.7-beta (r4): 2,628/2,628, the six recovered at
+the semantic tier, 1,911/1,911 function targets. Patch bump (a change
+in what Hobbes draws), CHANGELOG, image rebuilt (C-65), register
+100 / 75 / 23 / 2.
+
+**Priced, not done (W1; Max's call — each a floor change at symbol
+grain):** class-property functions as `method` symbols (zod 6.2% of
+pairs); namespace members; `new X(..)` as a site, with the grader-grain
+question first (the key names the class whose constructor answers —
+the base class for an inherited one).
+
+**For (1), what the bucket settles first:** the below-floor tail is
+exactly where a flow analysis would answer, and its answer is a
+*different declaration* from the key's (`$(..)` → `initialize`, where
+the key names the `$` binding; `schema.parse(..)` → the closure
+assigned in init, where the key names the interface signature). Graded
+against this key those are contradictions, not recall. A Jelly cell
+needs the key grain decided — a flow-grain `tsc-oracle` mode, or a
+grader rule that a below-floor target is confirmed by the value bound
+there — before the afternoon is spent. Not started; no spend.
+
+**Suites:** 1,257 pytest (+3 `lane_b` in the image), 36 tsextract, 32
+scip, Go and oracle-lane Go green, the comparative drift test
+regenerated. The cheerio record's standing grade is the r4 block;
+`cells.meta.json`'s note names it.

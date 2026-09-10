@@ -127,6 +127,14 @@ build item.*
 *The stable subsystem. Self-contained items with measured targets —
 the best on-ramp for a new contributor who should learn the codebase.*
 
+- **The symbol floor, three shapes the callee-shape bucket priced
+  (2026-09-10, `docs/oracle/oracle-misses.md`; Max's call each, none
+  started):** a class property whose initializer is a function literal
+  as a `method` symbol (zod: 1,029 collapsed pairs, 6.2% of the cell);
+  exported members of a `namespace` block as symbols qualified by the
+  namespace (zod: 230 rows); `new X(..)` as a lane A call site (cheerio
+  5, zod ~230 — with the grader-grain question first: the key names the
+  class whose constructor answers, the base class for an inherited one).
 - **Cross-language module-id namespacing** — the live parked gap
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;
