@@ -1,39 +1,56 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-10; Hobbes 0.1.8-beta is tagged `v0.1.8-beta`
-(confirmed by Max and the local tag).** Work remains on `main`; publishing
-belongs to Max. The baseline, C-101 implementation and callee-shape tools
-have now had an agent review: [review record](reviews/2026-09-10-baseline.md).
-This is not project-lead acceptance of the pending design choices.
+**Reviewed 2026-09-10; Hobbes 0.1.9-beta on `main`** (0.1.8-beta is
+tagged `v0.1.8-beta`, confirmed by Max and the local tag; 0.1.9-beta is
+**not tagged** — Max's call). Work remains on `main`; publishing belongs
+to Max. The baseline review's record: [review](reviews/2026-09-10-baseline.md).
+**Its two code findings are closed (2026-09-10 later still, three
+commits; BUILDLOG)**; the design choices it declined to make are still
+Max's, below.
 
-## ⇢ START HERE NEXT SESSION: address the review findings, then decide the floor shapes and Jelly key grain
+## ⇢ START HERE NEXT SESSION: Max reads the two fixes; then the floor shapes and the Jelly key grain; then W0
 
-1. **Java resolve-stage claim:** `java_build_files` copies `.mvn/`,
-   `gradle/` and `buildSrc/` wholesale, bypassing the source-suffix
-   filter. A local reproduction retained `.mvn/Hidden.java` and
-   `gradle/Hidden.kt`. C-66 and architecture §3.2 now state this limit;
-   the product notice still overstates it. Fix and test the staging
-   boundary before widening build-logic exceptions. C-101's ordinary
-   source filtering and Maven wrapper/cache fixes pass their targeted
-   tests; no new foreign Java build was run.
-2. **Callee-shape metric (H-22):** collapsed recall merges distinct
-   same-named targets in one file and calls on one source line. The
-   sibling bucket and lane-A attribution also use approximate joins.
-   Keep the measured tables as exploratory records; establish canonical
-   declaration identity and call-site attribution before adding a second
-   recall line to `oracle grade` or treating the priced gains as exact.
-3. **Then Max's choices:** class-property function symbols, namespace
-   members, constructor target grain, and the Jelly key. Review
-   recommendations are in the record; none of these capabilities was
-   implemented or experiment runs authorized by this review.
+1. ~~**Java resolve-stage claim**~~ — **done, 0.1.9-beta (C-66):**
+   `java_build_files` is one walk with one rule (lane A's pruning
+   everywhere; `.mvn/` the one dot-directory entered; a JVM source left
+   out wherever it sits except below `buildSrc/`, the one exception,
+   unchanged). The notice reads "holds no application source (build
+   logic under buildSrc/ excepted)". Tested at the file list, the
+   resolve plan's stage, and the contained canary — whose fourth probe
+   could never see the resolve pass (that stage is discarded before the
+   index runs), so it now drops a sentinel in the Maven cache and the
+   fixture plants `.mvn/Hidden.java`; the old walk was shown to trip it
+   (`./.mvn/Hidden.java` in the sentinel), the new one does not. **For
+   Max:** the review, and whether a `build-logic/` included build (not
+   excepted; degrades visibly) deserves the same exception as
+   `buildSrc/` — a decision, not made here.
+2. ~~**Callee-shape metric (H-22)**~~ — **done:** identity is the file
+   and the checker's fully qualified name, a confirmed row hits by exact
+   position (the grader's rule), attribution is by column with explicit
+   `ambiguous` / `no record` rows and `new` visited; both cells
+   re-measured on the 0.1.8-beta grades — cheerio unchanged to the
+   pair, zod +3 pairs of 16,634, no hit moved, 0 unexplained rows. The
+   standing tables hold. **For Max:** whether the collapsed number now
+   becomes a second recall line `oracle grade` prints (item 1 of "For
+   Max's review" below) — the identity is canonical now; the decision
+   was never made in the review.
+3. **Then Max's choices (unchanged):** class-property function symbols,
+   namespace members, constructor target grain, and the Jelly key. The
+   review's recommendations are in the record; the re-measured `new`
+   rows (zod: 114 on a class, 107 on an interface-typed constructor
+   value, 85 on a parameter) sharpen the constructor-grain question.
 4. **W0 remains open:** the graph CI job forgets earlier red reviews;
    `go/internal/version` and the union fixture's ownership treatment
    still need resolution. Then the standing no-spend queue below.
+5. **Practical, now:** the session's knowledge server runs the image it
+   started with — the image was rebuilt at 0.1.9-beta and this repo
+   re-ingested; **restart the server** (C-65) or every answer opens with
+   a version mismatch.
 
-The renderer's drift check passes; its data has 41 Hobbes cells, all
-0.1.8-beta and contained. Foreign records remain separate. The tag is
-complete, and remote publication status was not checked. Atlas-0,
-Calvin, TTT and other spending decisions remain held as recorded below.
+The renderer's drift check passes on the amended records (their last
+versioned block is still the 0.1.8-beta regrade; the identity addendum
+is a paragraph inside it). Foreign records untouched. Atlas-0, Calvin,
+TTT and other spending decisions remain held as recorded below.
 
 **Done 2026-09-10 (the versioned baseline; BUILDLOG):** 41 Hobbes cells
 regraded at 0.1.8-beta (`~/.hobbes/bench/v018/`), every record's last
@@ -356,7 +373,7 @@ image's python as the base.
 
 ## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
 
-**First: Max's review of the C-98 lift** (START HERE above). The
+**First: START HERE above.** The
 Atlas-0 decisions and every other experiment stay held (Max,
 2026-09-10). Then the queue:
 

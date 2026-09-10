@@ -8177,3 +8177,79 @@ shape/report packages passed (15 unittest + 6 Node cases, report drift).
 uv cache and Node subprocess sandbox failures passed on approved
 reruns. Documentation only; no version bump, generated data change,
 API/Modal spend, or push.
+
+## 2026-09-10 — (later still) the baseline review's two findings closed: the Java resolve stage's boundary, and the bucket's identity — 0.1.9-beta
+
+Max: "tackle the first two", the knowledge tools first. `list_blind_spots`
+on the two directories, `who_calls` on `java_build_files` (one product
+caller, two tests), `tests_guarding` on the module and on `shape/`, then
+the lines they pointed at.
+
+**1. The Java resolve stage (C-66; 0.1.9-beta).** `java_build_files`
+copied `.mvn/`, `gradle/` and `buildSrc/` with `rglob`, past both the
+JVM-suffix filter and lane A's pruning — the review's `.mvn/Hidden.java`.
+One walk now, one rule in every directory: the pruning everywhere,
+`.mvn/` the one dot-directory entered, a JVM source left out wherever it
+sits except below `buildSrc/` (the one exception, unchanged — Gradle
+compiles it before it can evaluate a script). `buildSrc/build/` and
+`.gradle/` no longer ride either. The notice reads "a networked pass
+whose stage holds no application source (build logic under buildSrc/
+excepted)"; the containment comments say the same. Three tests, at the
+three levels a user meets it: the file list (sources planted under
+`.mvn/`, `gradle/`, `buildSrc/`, a stray dot-directory); the routing
+test's resolve plan (the stage's JVM files are exactly the `buildSrc/`
+one); and the contained canary. **The canary's fourth probe could
+never have seen the resolve pass:** `Phoned.java` is written on the
+resolve stage, which is discarded before the index runs — so the probe
+now also drops a sentinel in the Maven cache (`maven.repo.local`, the
+one writable mount that outlives the stage) listing the sources it saw
+with the network, and the fixture plants `.mvn/Hidden.java`. Shown to
+fire: the old walk re-admitted through a wrapper, the real contained
+run wrote `./.mvn/Hidden.java` into the sentinel (3.6 s); the fixed
+walk does not. A `build-logic/` included build is not excepted: its
+sources stay off, the resolve pass fails to configure, the unit
+degrades to lane A visibly — widening is a decision (W1), not a
+default. Patch bump (a change in what the layer refuses to stage and
+says): `VERSION` 0.1.9-beta in its seven holders and three lockfiles,
+`CHANGELOG.md`; C-66 surfaced again; architecture §3.2, ADR-097, the
+W1 item, README.
+
+**2. The bucket's identity (H-22).** `bucket.py` collapsed on the bare
+target name and hit by bare name too, so `A.run` and `B.run` in one
+file were one pair a single confirmed row could cover; the sibling
+rule shared that identity; the checker record was the nearest column
+and lane A's the first candidate; `shapes.mjs` skipped `NewExpression`.
+Now: a pair is (site path, site line, target path, the checker's fully
+qualified name) — overload signatures share one, two same-named methods
+do not; a confirmed row hits the oracle target at its exact position on
+its line (the grader's `hasTarget` rule) and a row no target explains is
+reported, never dropped; the sibling rule reads the confirmed targets
+the same way; a miss takes the checker record at the oracle site's
+column (1-based there, 0-based in the record; several at the column
+that read one bucket are one reading), else the one record on the line
+spelling the name, else an explicit `checker-record:ambiguous` /
+`none-at-this-callee` row; lane A's record likewise (`ambiguous`,
+`other-name`, `none`); the kinds a pair collapses are reported when they
+disagree (`mixed:a|b`); `new X(..)` is a record shaped by what the name
+declares. The report prints how every miss was attributed. Seven
+identity tests on a cell of their own; the `new` case in the node
+suite (a synthesised construct signature has no declaration — recorded
+as such). **Re-measured on the 0.1.8-beta grades** (shapes and facts
+regenerated from the clones, no spend): cheerio 3,826 pairs / 2,628 hit
+/ 68.7% — unchanged to the pair; 1,972 sibling, 1,266 at the column, 0
+by name, 5 ambiguous (the `CheerioAPI.__call` sites); zod 16,634 pairs
+(+3 the bare name had merged) / 9,731 hit / 58.5%; 4,442 sibling, 7,570
+at the column, 0 by name, 12 ambiguous, 14 with no record; 0 confirmed
+rows unexplained on either. The `new` sites the old run reported as "no
+lane A site" are attributed: zod 114 on a class, 107 on an
+interface-typed constructor value (v4's `$constructor`), 85 on a
+parameter. H-22 closed in `oracle-defects.md` (open: none), RC-5's
+line, the misses record's prose and two table cells, both cell records.
+Promotion to an `oracle grade` line stays Max's call.
+
+Validation: 1,258 pytest (the new one included; the four `lane_b`
+skipped without the flag, the Java canary run under it: pass), 304 Go,
+the oracle lane's 51 (23 unittest + 7 node in `shape/`, the report
+drift test on the amended records), `test_version.py`. Static proxy and
+image rebuilt for the bump (C-65); this repo re-ingested. No spend, no
+push, three commits on `main`.
