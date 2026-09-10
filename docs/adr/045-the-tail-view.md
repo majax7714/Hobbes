@@ -133,6 +133,22 @@ per language (C-32). Keyword callees are not values and stay outside:
 `import(..)` is an import and `super(..)` a keyword in TS; Python's
 `super` is an identifier and was a site already.
 
+## Amended 2026-09-09: `union-member` (ADR-104, C-97)
+
+A member call on a union-typed receiver whose members do not share one
+declaration of that member (`n: A | B`, both overriding `render`;
+`n.render()`) is a site the TS helper now abstains on: it types the
+receiver, records `ambiguous: "union-member"` with no callee, and the
+join vetoes lane B's occurrence there — scip-typescript's first-member
+pick, one possible dispatch at semantic certainty (the oracle lane's
+`static→union-member`, ajv and hono). The tail classes it
+**`union-member`**, a checker observation carried by the site itself,
+in the *cannot resolve* group beside `attr-call` and `expr-callee`: the
+union's members are the reader's to enumerate. TS/JS only — the one
+provider with a checker on the receiver — and `tail_classes_available`
+says so (C-32). The proxy's glossary carries the class (rebuild the
+image, C-65). ADR-104 has the measurement and the alternatives not taken.
+
 ## The classifier's own boundaries (C-32)
 
 - **Checker-origin classes are TS/JS-only** in this version. The other

@@ -143,7 +143,14 @@ func TestExternalPairsStayOutOfRecall(t *testing.T) {
 // (lane A does not count `obj[key]()` as a site: C-62), so recall is
 // 4/5 with one static→function miss; `xs[Symbol.iterator]()` resolves
 // to lib.es2015's Array member (external); the computed `table[k](s)`
-// is oracle-silent as computed-key. Needs node; skipped without it.
+// is oracle-silent as computed-key. Since 2026-09-09 (ADR-104) the
+// fixture's src/union.ts adds three in-repo pairs: `label -> Base.tag`
+// (one inherited declaration; drawn and confirmed) and two member calls
+// on `Alpha | Beta` where both members override `render` — the oracle
+// names Alpha.render, tsc's first-member pick, and Hobbes abstains by
+// design (C-97), so those two are static→method misses, not edges.
+// Recall is therefore 5/8. The stored graph is a contained lane-B
+// ingest of the fixture (0.1.4-beta). Needs node; skipped without it.
 func TestMinitsTSAllConfirmed(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Skip("node not on PATH")
@@ -166,7 +173,7 @@ func TestMinitsTSAllConfirmed(t *testing.T) {
 		t.Fatal(err)
 	}
 	r := Grade(h, &o)
-	if r.Total != (TierCounts{Confirmed: 4}) || r.RecallHits != 4 || r.OraclePairs != 5 || r.MissBy["static→function"] != 1 {
+	if r.Total != (TierCounts{Confirmed: 5}) || r.RecallHits != 5 || r.OraclePairs != 8 || r.MissBy["static→function"] != 1 || r.MissBy["static→method"] != 2 {
 		t.Fatalf("minits: %+v recall %d/%d misses %v", r.Total, r.RecallHits, r.OraclePairs, r.MissBy)
 	}
 	shapes := map[int]string{}

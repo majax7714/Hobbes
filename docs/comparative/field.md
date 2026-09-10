@@ -59,7 +59,7 @@ most rows read *nothing found* — stated as exactly that.
 | **[Codanna](https://github.com/bartolli/codanna)** · Apache-2.0 · 739★ · pushed 2026-08-29 | tree-sitter ([README](https://github.com/bartolli/codanna#readme)) | unstated (throughput and latency numbers only, "not an accuracy claim") | unstated | unstated | unstated | optional — a bundled local embedding model by default; remote embeddings opt-in | "Windows support experimental" is the only limitation-type statement found | unstated ("no source code leaves your machine" is a network claim) | 15 named; no per-language evidence beyond the list | **yes in the shown example:** symbol file:line, callees "called at" file:line, callers by reverse reference; index format under `.codanna/` not specified. Not graded here |
 | **[codebadger](https://github.com/qcri/codebadger)** · GPL-3.0 · 167★ · pushed 2026-08-31 | Joern code property graphs ([README](https://github.com/qcri/codebadger#readme)) | unstated | unstated | unstated | unstated | unstated for the CPG build | nothing found | unstated (Joern's CPG for compiled languages may need a build; not confirmed) | Java, C/C++, JavaScript, Python, Go, Kotlin, C#, Ghidra, Jimple, PHP, Ruby, Swift (named) | **unstated:** CPGQL queries; the MCP tool catalogue (`docs/available-tools.md`) was not read. Docker-based. Not graded here |
 
-**Hobbes 0.1.3-beta (ADR-103; every cell record names the commit, exact
+**Hobbes 0.1.4-beta (ADR-103; every cell record names the commit, exact
 where a version is a name), for the same columns, so the reader has
 the row it is being compared to** — every entry points at the evidence
 rather than restating it: edge source, tree-sitter (lane A) joined to the

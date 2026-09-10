@@ -30,7 +30,7 @@ func fixtureRepo(t *testing.T) string {
 	graph := map[string]any{
 		"schema_version": derived.Current,
 		"sha":            sha, "dirty": false,
-		"built_by": map[string]any{"version": "0.1.3-beta", "checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
+		"built_by": map[string]any{"version": "0.1.4-beta", "checkout": "/opt/hobbes", "sha": strings.Repeat("b", 40), "dirty": true},
 		"nodes": []map[string]any{
 			{"id": "app.core", "kind": "module", "path": "src/app/core.py"},
 			{"id": "app.api", "kind": "module", "path": "src/app/api.py"},
@@ -607,8 +607,8 @@ func blindSpotRepo(t *testing.T) string {
 				"unresolved": 5, "tail": map[string]int{"builtin-name": 3, "attr-call": 2, "below-floor": 2}},
 			{"file": "src/app/api.py", "sites": 10, "resolved": 10, "external": 0,
 				"unresolved": 0},
-			{"file": "web/main.ts", "sites": 8, "resolved": 2, "external": 0,
-				"unresolved": 6, "tail": map[string]int{"local-binding": 4, "expr-callee": 1, "unclassified": 1}},
+			{"file": "web/main.ts", "sites": 9, "resolved": 2, "external": 0,
+				"unresolved": 7, "tail": map[string]int{"local-binding": 4, "expr-callee": 1, "union-member": 1, "unclassified": 1}},
 		},
 		"dependency_coverage": []map[string]any{
 			{"declared": 6, "resolved": 4, "missing": []string{"boto3", "psycopg"}},
@@ -620,7 +620,7 @@ func blindSpotRepo(t *testing.T) string {
 			"python": {"fallback-resolved", "local-binding", "import-binding",
 				"builtin-name", "attr-call", "expr-callee", "unclassified", "below-floor"},
 			"ts/js": {"fallback-resolved", "local-binding", "nested-decl",
-				"external-origin", "attr-call", "expr-callee", "unclassified", "below-floor"},
+				"external-origin", "attr-call", "expr-callee", "union-member", "unclassified", "below-floor"},
 		},
 		"verification_base": map[string]any{
 			"python": map[string]any{"repos": 3, "note": "verified on 3 repos: this repo (dogfood, continuous), private-repo-A, qwen-pathology"},
@@ -684,7 +684,7 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	}
 	for _, want := range []string{
 		"capture [python]: 83.3% of 30 detected call sites accounted",
-		"capture [ts/js]: 25.0% of 8 detected call sites accounted",
+		"capture [ts/js]: 22.2% of 9 detected call sites accounted",
 		// C-77: `below-floor` (C-58) is in the rollup, the per-file line
 		// and the glossary — the one class the view used to omit.
 		"seen, not modelled by design: 5 (builtin-name 3, below-floor 2)",
@@ -699,11 +699,13 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a
 		// counted site with its own class and gloss.
-		"web/main.ts — 6 of 8 sites unresolved (local-binding 4, expr-callee 1, unclassified 1)",
+		"web/main.ts — 7 of 9 sites unresolved (local-binding 4, expr-callee 1, union-member 1, unclassified 1)",
 		"expr-callee — the callee is itself an expression",
+		// ADR-104 / C-97: a union receiver's member, abstained on, with its gloss.
+		"union-member — a member call on a union-typed receiver",
 		"unclassified — no observation applies",
 		// C-32: what the lane could not have said, beside what it did say:
-		"classes this lane cannot report: nested-decl, external-origin, path-call, overload-set, inherited-member, build-tag-set (C-32)",
+		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set (C-32)",
 		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set (C-32)",
 		// C-31: the verification base, stated before any percentage:
 		"verification base — a sample, not the language (C-31",
@@ -822,7 +824,7 @@ func TestEveryGraphAnswerNamesWhichHobbesBuiltIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	first := strings.SplitN(out, "\n", 2)[0]
-	if !strings.Contains(first, "built by hobbes 0.1.3-beta @ bbbbbbbbbbbb (dirty) from /opt/hobbes") {
+	if !strings.Contains(first, "built by hobbes 0.1.4-beta @ bbbbbbbbbbbb (dirty) from /opt/hobbes") {
 		t.Errorf("header must name the builder:\n%s", first)
 	}
 	guard, err := s.TestsGuarding("app.core")

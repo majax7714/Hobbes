@@ -41,6 +41,16 @@ checkable fact about the site:
   observation — the syntax provider recorded the site under the marker
   name ``<expr>`` — Python and TS/JS only (C-63, surfaced 2026-09-05;
   C-80's residual). Before it the site was not counted at all.
+- ``union-member`` — a member call on a union-typed receiver whose
+  members do not share one declaration of that member (``n: A | B``,
+  both overriding ``render``; ``n.render()``): the checker resolves it
+  to the *first* member's declaration and so does scip-typescript, and
+  neither is the static answer — any one target is a possible dispatch
+  presented as the resolved one. Lane A abstains (the helper's
+  ``ambiguous`` field), the join vetoes lane B's occurrence there, and
+  the site is counted here. TS/JS only (ADR-104, C-97; the oracle lane's
+  ``static→union-member`` on ajv and hono, 2026-09-09). The TypeScript
+  form of C-58's interface dispatch, which likewise draws no edge.
 - ``path-call`` — a ``::``-qualified call (Rust) the index left dark.
   Java has no ``::`` call (a method reference is a use, not a call); its
   bare sites are unqualified methods of the enclosing type chain, static
@@ -94,6 +104,10 @@ EXPR_CALLEE = "expr-callee"
 #: (``pysource.EXPR_RECEIVER`` alone; the TS helper's ``<expr>``) —
 #: pinned here so the tail reads the evidence IR, never a provider.
 EXPR_NAME = "<expr>"
+#: A member of a union receiver with more than one declaration in play;
+#: lane A abstained and the join vetoed lane B (ADR-104, C-97). The
+#: value the syntax provider puts in ``Site.ambiguous``.
+UNION_MEMBER = "union-member"
 PATH_CALL = "path-call"
 OVERLOAD = "overload-set"
 INHERITED = "inherited-member"
@@ -226,7 +240,8 @@ _BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS}
 #: Python and Go; ``import-binding`` is lane A's Python parse; the
 #: ``local-binding`` collectors are Python/Go (ADR-046), Java (anonymous
 #: class members, ADR-096) and TS (checker); ``expr-callee`` is recorded
-#: by the Python and TS providers only (C-63);
+#: by the Python and TS providers only (C-63); ``union-member`` needs a
+#: checker that types the receiver, which only the TS helper has (ADR-104);
 #: ``path-call`` needs ``::``, which only Rust's grammar spells. The
 #: test suite pins this table against :func:`classify`'s decision tree,
 #: so a provider that learns a new class must widen its row here too.
@@ -234,7 +249,7 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     "python": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR,
                          EXPR_CALLEE, UNCLASSIFIED, BELOW_FLOOR}),
     "ts/js": frozenset({FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, ATTR,
-                        EXPR_CALLEE, UNCLASSIFIED, BELOW_FLOOR}),
+                        EXPR_CALLEE, UNION_MEMBER, UNCLASSIFIED, BELOW_FLOOR}),
     "go": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, BUILD_TAG, UNCLASSIFIED,
                      BELOW_FLOOR}),
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
@@ -247,8 +262,8 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
 #: counted from the projection (a resolved site with no symbol to land
 #: on) and added to the tail beside the unresolved classes.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
-               BUILTIN, ATTR, EXPR_CALLEE, PATH_CALL, OVERLOAD, INHERITED,
-               BUILD_TAG, UNCLASSIFIED, BELOW_FLOOR)
+               BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, PATH_CALL, OVERLOAD,
+               INHERITED, BUILD_TAG, UNCLASSIFIED, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
@@ -409,6 +424,11 @@ def classify(
             # The provider's own parse: the callee was not a name or an
             # attribute chain. No line read can add to that (C-63).
             cls = EXPR_CALLEE
+        elif site.ambiguous == UNION_MEMBER:
+            # The provider's own checker: a union receiver whose members
+            # resolve the member differently; abstained, lane B vetoed
+            # (ADR-104, C-97). The site carries the observation itself.
+            cls = UNION_MEMBER
         elif key in origins and origins[key] in _ORIGIN_CLASS:
             cls = _ORIGIN_CLASS[origins[key]]
         else:

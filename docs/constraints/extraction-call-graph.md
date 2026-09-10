@@ -212,6 +212,16 @@
   symbol floor by decision, named `local-binding` in the tail. An
   overload the fallback declined to pick is not this entry — it is
   named `overload-set` and resolved by lane B.
+- **TypeScript face (ADR-104, 2026-09-09):** a member call on a
+  union-typed receiver whose members do not share one declaration of
+  the member (`n: A | B`, both overriding) is this entry's dispatch
+  question in TypeScript's clothes — the static answer is "one of the
+  members". Before ADR-104 the semantic lane drew the *first* member's
+  declaration at semantic certainty (the oracle lane's
+  `static→union-member`, ajv 3 rows and hono 7); since then lane A
+  abstains and the join vetoes lane B there, the site counted in the
+  tail as `union-member` (C-97). No edge to any member, as for every
+  other face of this entry.
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

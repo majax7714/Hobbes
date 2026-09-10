@@ -515,6 +515,21 @@ class TestIntegrationMinits:
             (e["from"], e["to"]) for e in symbol_layer(joined)
         } >= {("src/server.listItems", "src/util.normalize")}
 
+    def test_a_union_member_call_is_an_abstention_not_an_edge(self, joined):
+        # ADR-104 / C-97 on the fixture's src/union.ts: `draw` and
+        # `Holder.render` call `render` on `Alpha | Beta`, both overriding —
+        # no edge from either (the checker's pick would be Alpha.render, the
+        # first member); `label` calls `tag`, one inherited declaration — an edge.
+        edges = {(e["from"], e["to"]) for e in symbol_layer(joined)}
+        assert ("src/union.label", "src/union.Base.tag") in edges
+        assert not {t for f, t in edges if f in ("src/union.draw", "src/union.Holder.render")}
+        union = next(f for f in joined["files"] if f["path"] == "src/union.ts")
+        by_name = {(c["line"], c["name"]): c for c in union["calls"]}
+        draw = next(c for (line, name), c in by_name.items() if name == "render" and c["scope"] == "draw")
+        assert (draw["callee"], draw["origin"], draw["ambiguous"]) == (None, None, "union-member")
+        label = next(c for (line, name), c in by_name.items() if name == "tag")
+        assert (label["callee"], label["ambiguous"]) == ("Base.tag", None)
+
     def test_routes_express_and_nest(self, joined):
         routes = {(r["framework"], r["method"], r["path"]) for r in joined["routes"]}
         assert routes == {

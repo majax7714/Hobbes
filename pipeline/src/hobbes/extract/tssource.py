@@ -40,7 +40,7 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: v4 (ADR-045): calls carry ``origin`` — where an *unresolved* callee's
 #: declarations live (``local`` | ``nested`` | ``external`` | null), the
 #: checker knowledge the tail view classifies instead of discarding.
-HELPER_VERSION = 4
+HELPER_VERSION = 5
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.
@@ -234,6 +234,10 @@ def _call_sites(files: list[dict]) -> list:
                 if call["scope"]
                 else module_id(f["path"])
             ),
+            # v5: the helper's abstention on a union receiver whose
+            # members do not share one declaration of the member
+            # (ADR-104, C-97) — the join vetoes lane B there.
+            ambiguous=call.get("ambiguous") or "",
         )
         for f in files
         for call in f["calls"]

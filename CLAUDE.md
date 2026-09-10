@@ -216,8 +216,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-09): 1,244 pytest (+3 `lane_b`) /
-304 Go + 47 oracle-lane Go / 52 vitest / 32 tsextract + 32 scip node
+Suite sizes at the last check (2026-09-09): 1,251 pytest (+3 `lane_b`) /
+304 Go + 47 oracle-lane Go / 52 vitest / 33 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -231,10 +231,10 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 103).
+  architecture doesn't already make. Number sequentially (last: 104).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
-  pyproject spells it PEP 440, `0.1.3b0`); `hobbes.__version__`,
+  pyproject spells it PEP 440, `0.1.4b0`); `hobbes.__version__`,
   `pyproject`, `go/internal/version`, the three `package.json` are its
   held-together copies (`test_version.py`). A change to what the layer
   draws, refuses or says bumps patch; a capability bumps minor; both in
@@ -274,17 +274,26 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-09) — Hobbes 0.1.3-beta
+## Status (2026-09-09) — Hobbes 0.1.4-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.3-beta, tagged
-  `v0.1.3-beta` locally (beta: graded, not stable — Max); every artifact's `built_by` and every knowledge
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.4-beta (0.1.3-beta
+  tagged `v0.1.3-beta` locally, the first stated version; beta: graded,
+  not stable — Max); every artifact's `built_by` and every knowledge
   answer carry the version beside the commit; the four Go binaries
   answer `version`; `CHANGELOG.md` holds the release-grain view.
+  **0.1.4-beta (ADR-104, later the same day):** a member call on a
+  union-typed receiver whose members resolve the member differently is
+  an abstention — lane A types the receiver and records it, the join
+  vetoes lane B's first-member pick, the tail names it `union-member`
+  (C-97); ajv regraded 1,410/1,410 contained, hono 767/768 with the one
+  row left registered as C-98 (a solution-style root tsconfig leaves
+  lane A's checker with no options). The claim page's exceptions are
+  hono and quic-go.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 96 registered constraints
-  (74 active, 20 lifted, 2 superseded).
+  by one range join; artifacts at schema v4; 98 registered constraints
+  (76 active, 20 lifted, 2 superseded).
 - **The comparative programme (ADR-101/102, 2026-09-09):** the
   comparison with other code-graph tools is the oracle lane, not a
   scoreboard — `oracle import` grades any tool's graph against the
@@ -302,7 +311,8 @@ review → `lane_b` pytest) and runs the same way on a box.
   signed lines), and **the 1-1 on repowise's draws** — Hobbes, contained,
   and both tools on cobra, gitleaks ×2, zod, hono at repowise-bench's
   pins under our keys: Hobbes 100% on four cells, hono 767/774 (the
-  ajv union-member shape, n=2), one wrong syntactic Go edge on gitleaks
+  ajv union-member shape, n=2 — closed by ADR-104's abstention later
+  that day: hono 767/768, ajv 1,410/1,410), one wrong syntactic Go edge on gitleaks
   found and fixed (`_repo_package`: a stdlib import path never names a
   repo package); syft's keys OOM on this box. C-94–C-96.
 - **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six

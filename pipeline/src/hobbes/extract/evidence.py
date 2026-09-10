@@ -58,6 +58,13 @@ class Site:
     #: Semantic provider only: where the resolved definition lives.
     def_file: str = ""
     def_line: int = 0
+    #: Syntax provider only: the name of an ambiguity the provider saw
+    #: at a call site and abstained on — ``union-member`` (ADR-104,
+    #: C-97): a member of a union-typed receiver whose members do not
+    #: share one declaration. Any single target is one possible dispatch
+    #: presented as the resolved one, so the join draws nothing here
+    #: from either lane and the tail names the site.
+    ambiguous: str = ""
 
 
 @dataclass
@@ -128,6 +135,16 @@ def join(
             continue
         kind = "calls" if site.kind == CALL_SITE else "imports"
         hit = match_resolution(site, buckets)
+        if site.ambiguous:
+            # Lane A saw the receiver's type and abstained (ADR-104): a
+            # union whose members resolve the member differently has no
+            # single static target, and lane B's occurrence there is the
+            # first member's — one possible dispatch. Its resolution is
+            # claimed so it does not resurface as a `uses` reference,
+            # and no edge is drawn; the site is counted in the tail.
+            if hit is not None:
+                claimed.add((hit.file, hit.line, hit.name))
+            continue
         if hit is not None:
             claimed.add((hit.file, hit.line, hit.name))
             out.append(
@@ -228,8 +245,8 @@ def agreement(
     compared = 0
     out: list[Disagreement] = []
     for site in syntax:
-        if site.kind != CALL_SITE:
-            continue
+        if site.kind != CALL_SITE or site.ambiguous:
+            continue  # an abstention resolves nothing to compare (ADR-104)
         guess = fallback.get((site.file, site.line, site.name))
         if guess is None:
             continue
@@ -297,7 +314,11 @@ def _dispositions(
     for site in syntax:
         if site.kind != CALL_SITE:
             continue
-        if match_resolution(site, buckets) is not None:
+        if site.ambiguous:
+            # ADR-104: the join vetoed whatever lane B had here; the
+            # site is unresolved and the tail says why (`union-member`).
+            yield site, "unresolved"
+        elif match_resolution(site, buckets) is not None:
             yield site, "resolved"
         elif (site.file, site.line, site.name) in outside:
             yield site, "external"

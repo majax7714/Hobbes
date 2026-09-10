@@ -15,8 +15,7 @@ import {
   externalName,
   extractRepo,
   isTestFile,
-  resolveRelative,
-} from "../extract.mjs";
+  resolveRelative, UNION_MEMBER } from "../extract.mjs";
 
 function makeRepo(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "tsextract-"));
@@ -283,6 +282,41 @@ test("a call whose callee is an expression is a counted site named <expr>, resol
   });
   const k = byPath(extractRepo(kw), "src/k.ts");
   assert.deepEqual(k.calls.map((c) => c.name), []);
+});
+
+test("a member call on a union receiver whose members do not share one declaration is an abstention (ADR-104, C-97)", () => {
+  const root = makeRepo({
+    "src/union.ts": [
+      "export class Base { render(): string { return 'base'; } tag(): string { return 'b'; } }",
+      "export class Alpha extends Base { render(): string { return 'alpha'; } }",
+      "export class Beta extends Base { render(): string { return 'beta'; } }",
+      "export type Either = Alpha | Beta;",
+      "export function draw(n: Either) { return n.render(); }",
+      "export function label(n: Either) { return n.tag(); }",
+      "export function maybe(n: Alpha | undefined) { return n?.render(); }",
+      "export function shout(s: 'a' | 'b') { return s.toUpperCase(); }",
+      "export class Holder extends Base { items: Either[] = []; render() { return this.items.map((i) => i.render()).join(','); } }",
+    ].join("\n"),
+  });
+  const union = byPath(extractRepo(root), "src/union.ts");
+  const by = (line) => union.calls.filter((c) => c.line === line).map((c) => [c.name, c.callee, c.origin, c.ambiguous]);
+  // both members override: the checker (and scip-typescript) would name
+  // Alpha.render, the first member — not the static answer; abstain.
+  assert.deepEqual(by(5), [["render", null, null, UNION_MEMBER]]);
+  // the members inherit one declaration: resolved as before
+  assert.deepEqual(by(6), [["tag", "Base.tag", null, null]]);
+  // `T | undefined` is one member, not the shape
+  assert.deepEqual(by(7), [["render", "Alpha.render", null, null]]);
+  // a literal union of primitives shares the lib's one declaration
+  assert.deepEqual(by(8), [["toUpperCase", null, "external", null]]);
+  // inside a class with its own override the receiver's union still decides
+  assert.deepEqual(
+    by(9).filter((c) => c[0] === "render"),
+    [["render", null, null, UNION_MEMBER]]
+  );
+  assert.equal(UNION_MEMBER, "union-member");
+  // every call record carries the field, null when nothing is ambiguous
+  assert.ok(union.calls.every((c) => "ambiguous" in c));
 });
 
 test("JSX instantiations are call sites; intrinsics are not (C-24)", () => {

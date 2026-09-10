@@ -26,12 +26,22 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 4;
+export const HELPER_VERSION = 5;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
 // origin null: counted, never resolvable. No field changed.
 export const EXPR_CALLEE_NAME = "<expr>";
+// v5, since 2026-09-09 (ADR-104, C-97): every `calls` record carries
+// `ambiguous` — null, or `"union-member"` when the callee is a member of
+// a union-typed receiver whose members do not share one declaration of
+// that member (`n: A | B; n.render()` with both overriding). The checker
+// resolves such a call to the *first* member's declaration, and so does
+// scip-typescript; neither is the static answer, so the helper abstains
+// (callee, callee_path and origin null) and the join vetoes lane B's
+// pick at that site. The oracle lane found the shape on ajv (3 rows) and
+// hono (7 rows) drawn at semantic certainty.
+export const UNION_MEMBER = "union-member";
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -478,6 +488,38 @@ function resolveExpressionTarget(expr, repoRoot, fileSet) {
   return null;
 }
 
+/** The static→union-member shape (ADR-104, C-97): a property access whose
+ * receiver type is a union of two or more non-nullish members that do not
+ * all resolve the accessed member to one declaration. Returns the
+ * ambiguity's name or null. `T | undefined` is not the shape (one
+ * member); a union whose members inherit one base method is not either
+ * (one declaration) — those resolve as before. Declarations are keyed by
+ * file and start position, so two overloads of one method in one class
+ * still count as one declaration set per member... and two members'
+ * distinct overrides count as two. */
+function unionAmbiguity(expr) {
+  if (!Node.isPropertyAccessExpression(expr)) return null;
+  let type;
+  try {
+    type = expr.getExpression().getType();
+  } catch {
+    return null;
+  }
+  if (!type || !type.isUnion()) return null;
+  const parts = type.getUnionTypes().filter((t) => !t.isNull() && !t.isUndefined());
+  if (parts.length < 2) return null;
+  const name = expr.getName();
+  const declarationKeys = new Set();
+  for (const part of parts) {
+    const member = part.getProperty(name);
+    if (!member) continue;
+    for (const decl of member.getDeclarations()) {
+      declarationKeys.add(`${decl.getSourceFile().getFilePath()}:${decl.getStart()}`);
+    }
+  }
+  return declarationKeys.size > 1 ? UNION_MEMBER : null;
+}
+
 /** Where an *unresolved* callee's declarations live — the tail view's
  * checker-grade origin (ADR-045, helper v4). Runs only when
  * resolveExpressionTarget returned null, and states which of its two
@@ -563,7 +605,11 @@ function terminalIdentifier(expr) {
 function extractCalls(sourceFile, repoRoot, fileSet) {
   const calls = [];
   const push = (terminal, resolveFrom, scopeNode) => {
-    const target = resolveExpressionTarget(resolveFrom, repoRoot, fileSet);
+    // v5: a member of a union receiver with more than one declaration in
+    // play is an abstention, not a resolution — the checker's pick would
+    // be the first member's (ADR-104, C-97).
+    const ambiguous = unionAmbiguity(resolveFrom);
+    const target = ambiguous ? null : resolveExpressionTarget(resolveFrom, repoRoot, fileSet);
     const { line, column } = sourceFile.getLineAndColumnAtPos(terminal.getStart());
     calls.push({
       // Lane A's own resolution, kept as the join's fallback rather than
@@ -578,10 +624,11 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       // v4: where an unresolved callee's declarations live (ADR-045) —
       // `local` | `nested` | `external` | null; null too when the
       // checker resolved it, because then callee/callee_path answer.
-      origin: target
+      origin: target || ambiguous
         ? null
         : calleeOrigin(resolveFrom, repoRoot, fileSet, sourceFile),
       scope: enclosingScope(scopeNode),
+      ambiguous,
     });
   };
   // C-63: the callee has no terminal identifier for SCIP to put an
@@ -598,6 +645,7 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
       name: EXPR_CALLEE_NAME,
       origin: null,
       scope: enclosingScope(scopeNode),
+      ambiguous: null,
     });
   };
   sourceFile.forEachDescendant((node) => {

@@ -114,6 +114,30 @@ class TestDisambiguation:
 
 
 class TestProviderSeparation:
+    def test_an_ambiguous_site_draws_nothing_and_vetoes_the_resolution(self):
+        # ADR-104 / C-97: lane A abstained on a union receiver whose
+        # members do not share one declaration; lane B's occurrence there
+        # is the first member's — one possible dispatch, not an edge, and
+        # not a `uses` reference either.
+        ambiguous = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.ts", 10, "render", 4, "a.draw",
+            ambiguous="union-member",
+        )
+        out = ev.join(
+            [ambiguous],
+            [resolution("a.ts", 10, "render", "b.ts", 5)],
+            fallback={("a.ts", 10, "render"): ("b.ts", 5)},
+        )
+        assert out == []
+
+    def test_an_ambiguous_site_does_not_claim_another_name_on_its_line(self):
+        ambiguous = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.ts", 10, "render", 4, "a.draw",
+            ambiguous="union-member",
+        )
+        out = ev.join([ambiguous], [resolution("a.ts", 10, "helper", "c.ts", 2, col=20)])
+        assert [(r.kind, r.def_file) for r in out] == [("uses", "c.ts")]
+
     def test_definitions_are_not_edges(self):
         out = ev.join([ev.Site(ev.TREE_SITTER, ev.DEFINITION, "a.py", 1, "f")], [])
         assert out == []
@@ -165,6 +189,18 @@ class TestCoverage:
         assert [r.file for r in rows] == ["a.py", "b.py"]
         assert rows[0].accounted == 1.0 and rows[1].accounted == 0.0
 
+    def test_an_ambiguous_site_is_unresolved_even_where_scip_answered(self):
+        # ADR-104: the veto and the denominator agree — the site the join
+        # drew nothing for is counted unresolved, so the tail can name it.
+        ambiguous = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.ts", 10, "render", 4, "a.draw",
+            ambiguous="union-member",
+        )
+        semantic = [resolution("a.ts", 10, "render", "b.ts", 5)]
+        [row] = ev.coverage([ambiguous], semantic)
+        assert (row.sites, row.resolved, row.unresolved) == (1, 0, 1)
+        assert ev.unresolved_sites([ambiguous], semantic) == [ambiguous]
+
     def test_definitions_are_not_call_sites(self):
         assert ev.coverage([ev.Site(ev.TREE_SITTER, ev.DEFINITION, "a.py", 1, "f")], []) == []
 
@@ -215,6 +251,20 @@ class TestLaneAgreement:
             [call("a.py", 1, "run")], [], {("a.py", 1, "run"): ("b.py", 10)}
         )
         assert (compared, bad) == (0, [])
+
+    def test_an_ambiguous_site_is_not_compared(self):
+        # An abstention resolves nothing; a stale fallback for it is not
+        # a disagreement (ADR-104).
+        ambiguous = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.ts", 10, "render", 4, "a.draw",
+            ambiguous="union-member",
+        )
+        compared, out = ev.agreement(
+            [ambiguous],
+            [resolution("a.ts", 10, "render", "b.ts", 5)],
+            {("a.ts", 10, "render"): ("c.ts", 9)},
+        )
+        assert (compared, out) == (0, [])
 
     def test_imports_are_not_compared_here(self):
         # Import sites are compared at the module-edge level, where lane

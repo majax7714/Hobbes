@@ -82,6 +82,69 @@
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17);
   surfaced 2026-09-05 with C-80's residual, ADR-045 amended.
 
+### C-97 — A member call on a union-typed receiver draws no edge when the members resolve the member differently — *surfaced 2026-09-09*
+- **Cannot tell you:** what `n.render()` calls when `n: A | B` and both
+  `A` and `B` declare `render`. No `calls` edge is drawn from either
+  lane. Before ADR-104 the semantic lane drew `A.render` — the *first*
+  member's declaration, at semantic certainty — and lane A's resolver
+  made the same pick, so lane agreement could not see it. The static
+  answer is "one of these"; naming one is a possible dispatch presented
+  as the resolved target (the oracle lane's `static→union-member`,
+  ajv 3 rows and hono 7).
+- **Because:** scip-typescript and the checker's symbol for a union
+  property both carry every member's declaration and both take the
+  first; `tsc`'s resolved signature takes a declaration too (the first
+  member's on a two-member union, the shared base's on ajv's eleven).
+  Hobbes abstains rather than pick: the helper (facts v5) records the
+  site `ambiguous: "union-member"`, the join vetoes lane B's occurrence
+  there, and the tail counts the site (ADR-104). A union whose members
+  inherit one declaration, and `T | undefined`, are not the shape and
+  resolve as before.
+- **Bites at:** `who_calls` on an override reached only through a union
+  of its siblings (ajv's `If.render` from `ParentNode.render`), and
+  every derived context built from call reach across a discriminated
+  union — the TypeScript face of C-58's interface dispatch. Measured
+  on the two graded repos: ajv 10 sites (the three contradicted rows and
+  six the grader had confirmed as `tsc`'s own first-member pick), hono
+  6 of 36 union-receiver sites (the seventh is C-98's).
+- **You find out:** **surfaced** — the per-file coverage row counts the
+  site `unresolved`, its `tail` carries `union-member`, the ingest
+  summary's *cannot resolve* line and `list_blind_spots` print the class
+  with its gloss ("read the union's members to see what can run"), and
+  `tail_classes_available` lists it for TS/JS only (C-32).
+- **Provider:** scip-typescript resolves a union member access to one
+  member's declaration (P9). Hobbes owns the veto; the provider's shape
+  is unchanged upstream.
+- **Source:** ADR-104; the ajv record's 2026-08-28 triage and the hono
+  record's 2026-09-09 regrade; the fixture `minits/src/union.ts`.
+
+### C-98 — Lane A's checker runs with no compiler options under a solution-style `tsconfig.json` — *registered 2026-09-09*
+- **Cannot tell you:** the type of anything that needs a lib newer than
+  ES5 in a zone whose nearest `tsconfig.json` is a *solution* config
+  (`files: []` and `references` only — hono's root). The helper builds
+  one ts-morph project per zone from that file, which carries no
+  `compilerOptions`, so the checker runs at its defaults: `Array.flat`
+  does not exist, `Promise` is a type only, and a receiver reached
+  through such a call is `any`. Every lane-A observation that needs the
+  type is then absent there — `callee`, `origin` and C-97's abstention
+  alike — while lane B, which follows the references (C-90), resolves.
+- **Because:** `nearestTsconfig` picks the closest `tsconfig.json` by
+  path and the helper loads it as the zone's options; nothing checks
+  whether it is a solution config whose referenced projects hold the
+  real options. Lane B's `is_solution_tsconfig` / `referenced_ts_configs`
+  (C-90's lift) is the rule the helper does not yet follow.
+- **Bites at:** repos with a solution-style root — hono, and any
+  `tsc -b` monorepo. On hono the one remaining `static→union-member`
+  row (`src/jsx/components.ts:18`, 767/768) is this: the helper had no
+  type to abstain with.
+- **You find out:** **partial** — the helper reports the zone's
+  diagnostics per file in `errors` when the checker crashes, but a
+  degraded type is silent: nothing in the artifact says the zone's
+  options were empty. The hono record names the row.
+- **Source:** the hono regrade, ADR-104 § Consequences. The fix is the
+  lane-A analogue of C-90 (resolve a solution config to the referenced
+  project that includes the file) and is not in ADR-104.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

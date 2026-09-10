@@ -1,12 +1,29 @@
 {
-  "dirty": true,
+  "built_by": {
+    "checkout": "/home/mmarrujo/hobbes_public",
+    "dirty": true,
+    "sha": "2bf702514b7ae0e4df5194832079d5982ecfee61",
+    "version": "0.1.4-beta"
+  },
+  "containment": {
+    "all_contained": true,
+    "escape_hatch": false,
+    "steps": [
+      {
+        "contained": true,
+        "step": "index-typescript"
+      }
+    ]
+  },
+  "dirty": false,
   "lane_agreement": {
     "module_edges_compared": 4,
     "module_edges_excluded_lane_b_only": 0,
     "module_edges_lane_a_only": [],
     "module_edges_lane_b_only": [],
+    "module_edges_lane_b_produced": 4,
     "site_disagreements": [],
-    "sites_compared": 4
+    "sites_compared": 5
   },
   "languages": [
     "javascript",
@@ -236,6 +253,11 @@
       "path": "src/server.js"
     },
     {
+      "id": "src/union",
+      "kind": "module",
+      "path": "src/union.ts"
+    },
+    {
       "id": "src/util",
       "kind": "module",
       "path": "src/util.js"
@@ -262,6 +284,16 @@
     },
     {
       "external": 0,
+      "file": "src/lookup.ts",
+      "resolved": 0,
+      "sites": 3,
+      "tail": {
+        "expr-callee": 3
+      },
+      "unresolved": 3
+    },
+    {
+      "external": 0,
       "file": "src/math.spec.ts",
       "resolved": 0,
       "sites": 4,
@@ -281,6 +313,16 @@
         "unclassified": 1
       },
       "unresolved": 6
+    },
+    {
+      "external": 2,
+      "file": "src/union.ts",
+      "resolved": 1,
+      "sites": 5,
+      "tail": {
+        "union-member": 2
+      },
+      "unresolved": 2
     },
     {
       "external": 0,
@@ -305,7 +347,7 @@
     }
   ],
   "schema_version": 4,
-  "sha": "d369deed88b9e53edd9e8e8c8e44652f95290503",
+  "sha": "6ad9a8dcc1b1bc1d5151e48998f283146e9daa42",
   "symbol_edges": [
     {
       "evidence": [
@@ -417,6 +459,84 @@
       "evidence": [
         {
           "lane": "scip",
+          "line": 18,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union",
+      "tier": "semantic",
+      "to": "src/union.Alpha",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 18,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union",
+      "tier": "semantic",
+      "to": "src/union.Beta",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 12,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union.Alpha",
+      "tier": "semantic",
+      "to": "src/union.Base",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 15,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union.Beta",
+      "tier": "semantic",
+      "to": "src/union.Base",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 26,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union.Holder",
+      "tier": "semantic",
+      "to": "src/union.Base",
+      "type": "uses"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
+          "line": 24,
+          "path": "src/union.ts"
+        }
+      ],
+      "from": "src/union.label",
+      "tier": "semantic",
+      "to": "src/union.Base.tag",
+      "type": "calls"
+    },
+    {
+      "evidence": [
+        {
+          "lane": "scip",
           "line": 7,
           "path": "tests/util.test.mjs"
         },
@@ -510,6 +630,105 @@
       "qualname": "listItems"
     },
     {
+      "end_line": 14,
+      "id": "src/union.Alpha",
+      "kind": "class",
+      "line": 12,
+      "module": "src/union",
+      "name": "Alpha",
+      "qualname": "Alpha"
+    },
+    {
+      "end_line": 13,
+      "id": "src/union.Alpha.render",
+      "kind": "method",
+      "line": 13,
+      "module": "src/union",
+      "name": "render",
+      "qualname": "Alpha.render"
+    },
+    {
+      "end_line": 11,
+      "id": "src/union.Base",
+      "kind": "class",
+      "line": 8,
+      "module": "src/union",
+      "name": "Base",
+      "qualname": "Base"
+    },
+    {
+      "end_line": 9,
+      "id": "src/union.Base.render",
+      "kind": "method",
+      "line": 9,
+      "module": "src/union",
+      "name": "render",
+      "qualname": "Base.render"
+    },
+    {
+      "end_line": 10,
+      "id": "src/union.Base.tag",
+      "kind": "method",
+      "line": 10,
+      "module": "src/union",
+      "name": "tag",
+      "qualname": "Base.tag"
+    },
+    {
+      "end_line": 17,
+      "id": "src/union.Beta",
+      "kind": "class",
+      "line": 15,
+      "module": "src/union",
+      "name": "Beta",
+      "qualname": "Beta"
+    },
+    {
+      "end_line": 16,
+      "id": "src/union.Beta.render",
+      "kind": "method",
+      "line": 16,
+      "module": "src/union",
+      "name": "render",
+      "qualname": "Beta.render"
+    },
+    {
+      "end_line": 31,
+      "id": "src/union.Holder",
+      "kind": "class",
+      "line": 26,
+      "module": "src/union",
+      "name": "Holder",
+      "qualname": "Holder"
+    },
+    {
+      "end_line": 30,
+      "id": "src/union.Holder.render",
+      "kind": "method",
+      "line": 28,
+      "module": "src/union",
+      "name": "render",
+      "qualname": "Holder.render"
+    },
+    {
+      "end_line": 22,
+      "id": "src/union.draw",
+      "kind": "function",
+      "line": 20,
+      "module": "src/union",
+      "name": "draw",
+      "qualname": "draw"
+    },
+    {
+      "end_line": 25,
+      "id": "src/union.label",
+      "kind": "function",
+      "line": 23,
+      "module": "src/union",
+      "name": "label",
+      "qualname": "label"
+    },
+    {
       "end_line": 8,
       "id": "src/util.apiBase",
       "kind": "function",
@@ -535,6 +754,8 @@
       "nested-decl",
       "external-origin",
       "attr-call",
+      "expr-callee",
+      "union-member",
       "unclassified",
       "below-floor"
     ]
@@ -542,15 +763,15 @@
   "verification_base": {
     "javascript": {
       "depth": "multi-repo",
-      "note": "verified on 2 repos: kbet (real Vite+React app), this repo's web/",
-      "on": "kbet (real Vite+React app), this repo's web/",
-      "repos": 2
+      "note": "verified on 4 repos: kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
+      "on": "kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
+      "repos": 4
     },
     "typescript": {
       "depth": "multi-repo",
-      "note": "verified on 2 repos: kbet (real Vite+React app), this repo's web/",
-      "on": "kbet (real Vite+React app), this repo's web/",
-      "repos": 2
+      "note": "verified on 4 repos: kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
+      "on": "kbet (real Vite+React app); ajv-validator/ajv, cheeriojs/cheerio (2026-08-27/28); this repo's web/ (lane agreement only)",
+      "repos": 4
     }
   }
 }

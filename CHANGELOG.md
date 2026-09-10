@@ -7,6 +7,28 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
+## 0.1.4-beta — 2026-09-09
+
+**Patch: a change in what Hobbes draws (ADR-104).** A member call on a
+union-typed receiver whose members do not share one declaration of that
+member — `n: A | B`, both overriding, `n.render()` — no longer draws an
+edge to the first member's method. scip-typescript and lane A's own
+checker both named that member at semantic certainty, and the compiler
+names a member too; none of them is the static answer, which is "one of
+these". The TS helper (facts v5) types the receiver and abstains, the
+evidence join vetoes lane B's occurrence at that site, and the tail
+counts the site under a new class, **`union-member`** (TS/JS only;
+`list_blind_spots` and the ingest summary gloss it). Registered as
+**C-97**; C-58 gains its TypeScript face.
+
+- ajv regraded against its standing key: 1,375/1,378 → **1,410/1,410**,
+  now contained; hono 767/774 → **767/768**. The row left on hono is a
+  site lane A cannot type at all: its root `tsconfig.json` is a
+  solution-style config that leaves the helper's checker with no
+  compiler options — registered as **C-98**, not yet lifted.
+- The fixture `minits/src/union.ts` holds the shape; the proxy's tail
+  glossary carries the class (image rebuilt).
+
 ## 0.1.3-beta — 2026-09-09
 
 The first stated version, so this entry says what 0.1.3-beta *is*

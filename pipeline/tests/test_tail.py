@@ -42,6 +42,18 @@ class TestClasses:
         assert tails[f] == {tail.EXPR_CALLEE: 1}
         assert tail.EXPR_CALLEE not in tail.NOT_MODELLED  # cannot resolve, beside attr-call
 
+    def test_a_union_member_abstention_is_union_member_from_the_provider_alone(self, tmp_path):
+        """ADR-104 / C-97: the TS helper typed the receiver and abstained;
+        the site carries the observation, no line read is needed."""
+        f = write(tmp_path, "a.ts", "n.render();\n")
+        s = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, f, 1, "render", 2, ambiguous=tail.UNION_MEMBER)
+        tails = tail.classify([s], tmp_path)
+        assert tails[f] == {tail.UNION_MEMBER: 1}
+        assert tail.UNION_MEMBER not in tail.NOT_MODELLED  # cannot resolve, beside attr-call
+        # an unknown ambiguity name does not borrow the class
+        odd = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, f, 1, "render", 2, ambiguous="something-else")
+        assert tail.UNION_MEMBER not in tail.classify([odd], tmp_path)[f]
+
     def test_a_bare_builtin_named_call_is_builtin_name(self, tmp_path):
         f = write(tmp_path, "a.py", "x = 1\nn = len(items)\n")
         tails = tail.classify([site(f, 2, "len")], tmp_path)
@@ -333,6 +345,12 @@ class TestClassesAvailable:
         with_marker = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.EXPR_CALLEE in c}
         assert with_marker == {"python", "ts/js"}
 
+    def test_union_member_is_available_exactly_where_a_checker_types_the_receiver(self):
+        # only the TS helper has a checker on the receiver (ADR-104)
+        with_class = {l for l, c in tail.CLASSES_AVAILABLE.items() if tail.UNION_MEMBER in c}
+        assert with_class == {"ts/js"}
+        assert tail.ALL_CLASSES.index(tail.UNION_MEMBER) == tail.ALL_CLASSES.index(tail.EXPR_CALLEE) + 1
+
     def test_checker_origin_classes_are_ts_only(self):
         for lang, classes in tail.CLASSES_AVAILABLE.items():
             has = {tail.NESTED, tail.EXTERNAL_ORIGIN} & classes
@@ -363,7 +381,7 @@ class TestCaptureLineNamesMissingClasses:
         cli._print_tail_view(rows, tail.classes_available(rows))
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
-                "import-binding, expr-callee, path-call, overload-set, inherited-member (C-32)") in out
+                "import-binding, expr-callee, union-member, path-call, overload-set, inherited-member (C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli
