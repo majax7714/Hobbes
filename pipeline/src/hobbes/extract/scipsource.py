@@ -1648,6 +1648,15 @@ def _java_build_root(repo_root: Path, directory: str) -> tuple[str, str] | None:
     return tool, ("" if str(root) == "." else str(root))
 
 
+#: A JVM source the build compiles — what the resolve pass's stage never
+#: holds (ADR-097). ``.java`` alone until C-101 (2026-09-10): a Maven build
+#: with Kotlin sources (spring-data-elasticsearch) compiled them against
+#: Java that was not on the stage and failed its resolve pass, so the unit
+#: degraded to lane A. Under ``buildSrc/`` they are the build itself
+#: (Gradle's convention plugins) and stay.
+_JVM_SOURCE_SUFFIXES = frozenset({".java", ".kt", ".scala", ".groovy"})
+
+
 def java_build_files(repo_root: Path, root: str) -> list[str]:
     """Every file under *root* the build could read that is not a
     source: the poms and Gradle scripts at every level, the wrappers and
@@ -1682,7 +1691,7 @@ def java_build_files(repo_root: Path, root: str) -> list[str]:
                     )
                 elif child.name not in _JAVA_SKIPPED and not child.name.startswith("."):
                     stack.append(child)
-            elif child.suffix != ".java":
+            elif child.suffix not in _JVM_SOURCE_SUFFIXES or "buildSrc" in rel.split("/"):
                 out.append(rel)
     return sorted(set(out))
 
@@ -1767,7 +1776,8 @@ def extract_scip_java(
     (ADR-097): the build's *resolution* runs first with a network on a
     stage that holds no sources, then the build runs again with
     scip-java attached, offline, on the full stage — the pass that can
-    reach the network never sees a ``.java``. What the resolve pass still
+    reach the network never sees a source the build compiles (``.java``,
+    ``.kt``, ``.scala``, ``.groovy`` — C-101). What the resolve pass still
     concedes is C-66; the notice below is its surfacing and prints every
     time.
     """
@@ -1893,7 +1903,8 @@ def _index_java_unit(
 
     **Resolve pass** (``fetch-java``, network on): the build files and
     every other non-source file under the root (:func:`java_build_files`)
-    — never a ``.java`` — staged alone, and the build's own resolution
+    — never a JVM source the build compiles (``.java``, ``.kt``, ``.scala``,
+    ``.groovy``; ``buildSrc/`` excepted — C-101) — staged alone, and the build's own resolution
     run over them: Maven's ``test-compile`` (it resolves the mojo's scope
     before finding nothing to compile), or the Gradle wrapper with a
     Hobbes init script that resolves every configuration. **Index pass**

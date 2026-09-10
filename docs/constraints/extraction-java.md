@@ -10,7 +10,9 @@
   `test-compile` over a stage with nothing to compile, or the Gradle
   wrapper with a Hobbes init script that resolves every configuration —
   **with network access**, on a stage that holds the build files and
-  the other non-source files under the build root and **no `.java`**.
+  the other non-source files under the build root and **no source the
+  build compiles** (`.java`; since C-101, `.kt` / `.scala` / `.groovy`
+  too, `buildSrc/` excepted).
   The **index pass** (`index-java`) runs the build with scip-java
   attached on the full stage, **offline** (`-o` / `--offline`). A Gradle
   script is code; a pom names the plugins and extensions the build runs;
@@ -137,3 +139,31 @@
   form of "not measured".
 - **Provider (P9):** none — this is Hobbes's own reading.
 - **Source:** ADR-096, decision 4.
+
+### C-101 — A Java build with Kotlin (Scala, Groovy) sources failed its resolve pass, and the unit fell to lane A — *registered and lifted 2026-09-10, the same session*
+- **Was:** ADR-097's resolve stage held "every non-source file" under
+  the build root, where *source* meant `.java`. A Maven build with
+  `src/main/kotlin/` ran `kotlin-maven-plugin` over the `.kt` files on
+  that stage, which reference the Java classes that were not there —
+  `Unresolved reference` × 20, `BUILD FAILURE` — so the resolve pass
+  failed, the index pass then ran offline against a Maven wrapper that
+  had to download, and the unit degraded to lane A's syntactic tier
+  (spring-data-elasticsearch: 16,050 semantic edges → 3,871 syntactic,
+  every one confirmed, 12,179 not drawn). **Surfaced** as it happened: the
+  scip-java degradation record named the failed resolve and the offline
+  failure. The cell had been graded 2026-08-29, before ADR-097, and never
+  re-ingested under the two passes; the 0.1.7-beta baseline regrade
+  (Max, 2026-09-10) was its first.
+- **Lifted by:** `_JVM_SOURCE_SUFFIXES` — `.java`, `.kt`, `.scala`,
+  `.groovy` never enter the resolve stage; under `buildSrc/` they are the
+  build (Gradle's convention plugins) and stay. Test in
+  `TestJavaUnits`. Reproduced by hand first: the full archive builds in
+  the image (`BUILD SUCCESS`); the archive minus `.java` fails in the
+  Kotlin compile; the fix's stage resolves. spring-data-elasticsearch
+  regraded at 0.1.8-beta: the cell record's 2026-09-10 block.
+- **Residual:** a build that compiles another language under a directory
+  the rule does not know (a Gradle included build under `build-logic/`
+  with Kotlin plugins) loses those files from the resolve stage and its
+  resolve pass fails visibly, degrading the unit as before — registered
+  here, not silent. ADR-097 amended.
+- **Source:** the 0.1.7-beta baseline regrade, 2026-09-10.

@@ -517,7 +517,8 @@ resolution. So a Java unit runs two contained passes: `fetch-java` runs
 the build's own resolution (Maven's `test-compile` with nothing to
 compile; the Gradle wrapper with a Hobbes init script that resolves every
 configuration) with podman's default network on a stage that holds the
-build files and resources and **no `.java`**; `index-java` runs the build
+build files and resources and **no source the build compiles** (`.java`,
+`.kt`, `.scala`, `.groovy` — C-101; `buildSrc/` stays); `index-java` runs the build
 with scip-java attached on the full stage, `--network none`, with the
 tool's offline flag. The pass that can reach the network never sees a
 source; the pass that sees the sources has no route out. What the resolve

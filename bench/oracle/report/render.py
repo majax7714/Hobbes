@@ -129,19 +129,44 @@ def parse_dagger_after(text: str) -> list[dict]:
         for tok in re.findall(r"([\w→\-]+) (\d+)", misses):
             mm[tok[0]] = int(tok[1])
         roots[mod] = (r, mm)
-    cells = []
+    by_module: dict[str, dict] = {}  # a regrade appends a table in the same shape; the last row per module is the standing grade
     for m in re.finditer(r"^\| `([^`]+)` \| [\d,]+ / [\d,]+ / [\d,]+ · [\d,]+/[\d,]+ \| \*\*([\d,]+) / ([\d,]+) / ([\d,]+) · ([\d,]+)/([\d,]+)\*\* \|$", text, re.M):
         mod = m.group(1)
         c, x, s, h, p = (_int(m.group(i)) for i in range(2, 7))
         r, misses = roots.get(mod, (None, {}))
         misses = {k: v for k, v in misses.items() if k != "static→named"}  # 0 after the fixes, the record says; the C-58 classes unchanged
-        cells.append({
+        by_module[mod] = ({
             "module": mod, "edges": c + x + s, "confirmed": c, "contradicted": x, "abstract": 0, "silent": s,
             "precision": {"pct": round(100 * c / (c + x), 1), "num": c, "den": c + x},
             "recall": {"pct": round(100 * h / p, 1), "hits": h, "pairs": p, "roots": r, "basis": f"at {r} roots"},
             "misses": misses,
         })
-    return cells
+    return list(by_module.values())
+
+
+VERSION_RE = re.compile(r"\b(0\.\d+\.\d+-beta)\b")
+
+
+def hobbes_version(text: str) -> str | None:
+    """The Hobbes version the record's standing grade was made by: the last
+    `## ` heading that names one (ADR-103 — a regrade heading carries the
+    version; a record graded before versioning names none)."""
+    v = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            m = VERSION_RE.search(line)
+            if m:
+                v = m.group(1)
+    return v
+
+
+def versions_line(cells: list[dict]) -> str:
+    vs = sorted({c.get("hobbes_version") or "unversioned" for c in cells if c.get("tool", "hobbes") == "hobbes"})
+    if vs == ["unversioned"]:
+        return "The Hobbes cells were graded before the layer was versioned (ADR-103)."
+    if len(vs) == 1:
+        return f"Every Hobbes number is the standing grade by Hobbes {vs[0]} (ADR-103): the last block of each record, regraded on one build against the same keys."
+    return f"The Hobbes cells' standing grades are by Hobbes {', '.join(vs)} (ADR-103; per cell in tables.md)."
 
 
 def load_cells(cells_dir: Path, meta_path: Path) -> dict:
@@ -163,10 +188,11 @@ def load_cells(cells_dir: Path, meta_path: Path) -> dict:
         m = dict(meta[stem])
         text = p.read_text()
         date = DATE_RE.search(p.name).group(1)
+        version = hobbes_version(text)
         if m.get("table") == "dagger-after":
             for sub in parse_dagger_after(text):
                 out.append({"stem": stem, "record": p.name, "date": date, "kind": "reachability",
-                            "oracle": "go-rta", "sub": sub.pop("module"), **m, **sub})
+                            "oracle": "go-rta", "sub": sub.pop("module"), "hobbes_version": version, **m, **sub})
             continue
         blocks = parse_blocks(text)
         if not blocks:
@@ -183,7 +209,7 @@ def load_cells(cells_dir: Path, meta_path: Path) -> dict:
         oracle = re.search(r"oracle (.*?)\s+\((reachability|resolution|trace)\)", cell_line)
         cell = {"stem": stem, "record": p.name, "date": date,
                 "kind": kind.group(1) if kind else None,
-                "oracle": oracle.group(1).strip() if oracle else None, **m}
+                "oracle": oracle.group(1).strip() if oracle else None, "hobbes_version": version, **m}
         cell.update({k: v for k, v in last.items() if k != "cell_line"})
         cell["misses"] = misses
         cell["poison"] = poison
@@ -314,6 +340,7 @@ def render_one_number(cells: list[dict]) -> str:
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
     para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
          "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java.", 10, INK2, width=140)
+    para(versions_line(cells), 10, INK2, width=140)
     H = 40 + sum(sz + 6 for _, sz, _, _, _ in lines) + 24
     o = svg_open(W, H, "Wrong edges seeded into the graph, falsely confirmed by the grader")
     y = 40
@@ -449,7 +476,7 @@ def render_scatter(cells: list[dict]) -> str:
     y += 16
     o.append(text(24, y, "Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.", 11, INK))
     y += 16
-    o.append(text(24, y, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102).", 10, INK2))
+    o.append(text(24, y, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). " + versions_line(cells), 10, INK2))
     o.append("</svg>")
     return "\n".join(o) + "\n"
 
@@ -522,19 +549,19 @@ def render_tables(cells: list[dict]) -> str:
     frn = [c for c in cells if c.get("tool", "hobbes") != "hobbes" and c not in draws]
     out = ["<!-- generated by bench/oracle/report/render.py tables (ADR-102); do not edit — regenerate -->", "",
            "## The standing Hobbes cells", "",
-           "Precision-against-oracle is a lower bound (A-8). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row.", "",
-           "| cell | lang | oracle | edges | precision-against-oracle | recall | run | poison (seeded / falsely confirmed) | record |", "|---|---|---|---|---|---|---|---|---|"]
+           "Precision-against-oracle is a lower bound (A-8). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row. " + versions_line(cells), "",
+           "| cell | lang | oracle | edges | precision-against-oracle | recall | run | Hobbes | poison (seeded / falsely confirmed) | record |", "|---|---|---|---|---|---|---|---|---|---|"]
     dag = [c for c in hob if c.get("sub")]
     for c in sorted([c for c in hob if not c.get("sub")], key=lambda c: (c["lang"], c["label"])):
         p = c.get("precision") or c.get("confirmation_rate")
         pl = f"**{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%)" if c.get("precision") else f"confirmation rate {p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}) — not precision"
         r = c["recall"]
         po = c.get("poison")
-        out.append(f"| {c['label']} | {c['lang']} | {c['oracle']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {c['run']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else 'not run (graded before the check)'} | [{c['record']}](../oracle/cells/{c['record']}) |")
+        out.append(f"| {c['label']} | {c['lang']} | {c['oracle']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {c['run']} | {c.get('hobbes_version') or 'unversioned'} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else 'not run (graded before the check)'} | [{c['record']}](../oracle/cells/{c['record']}) |")
     if dag:
         lo, hi = min(c["recall"]["pct"] for c in dag), max(c["recall"]["pct"] for c in dag)
         conf = sum(c["confirmed"] for c in dag); den = sum(c["precision"]["den"] for c in dag)
-        out.append(f"| {dag[0]['label']} ({len(dag)} Go modules) | Go | go-rta | {fmt(sum(c['edges'] for c in dag))} | **{fmt(conf)}/{fmt(den)}** (100% in every module) | {lo}–{hi}% per module, one root count each — a range, not a pool | {dag[0]['run']} | per module in the record, not summed | [{dag[0]['record']}](../oracle/cells/{dag[0]['record']}) |")
+        out.append(f"| {dag[0]['label']} ({len(dag)} Go modules) | Go | go-rta | {fmt(sum(c['edges'] for c in dag))} | **{fmt(conf)}/{fmt(den)}** (100% in every module) | {lo}–{hi}% per module, one root count each — a range, not a pool | {dag[0]['run']} | {dag[0].get('hobbes_version') or 'unversioned'} | per module in the record, not summed | [{dag[0]['record']}](../oracle/cells/{dag[0]['record']}) |")
     if frn:
         out += ["", "## Foreign cells beside the Hobbes cell on the same key (ADR-101)", "",
                 "Same repo, same commit, same answer key, same matcher, same poison check. The tool's number is at our grain (C-94, C-95) and host-run (C-96); every foreign record quotes the tool's own confidence labels and its untriaged contradiction count. Hobbes' number is the standing cell's.", "",
@@ -674,7 +701,7 @@ def render_comparison(cells: list[dict]) -> str:
                      "On repowise-bench's draws the key is ours, at site grain — not comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.", 175):
         o.append(text(24, y, line, 10.5, INK2))
         y += 14
-    o.append(text(24, y + 4, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.", 10, INK2))
+    o.append(text(24, y + 4, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. " + versions_line(cells), 10, INK2))
     o.append("</svg>")
     return "\n".join(o) + "\n"
 

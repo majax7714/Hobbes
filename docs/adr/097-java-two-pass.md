@@ -59,7 +59,9 @@ next narrowing, not built here.
 1. **Two contained passes per Java unit.** `fetch-java`
    (`executes_repo_code=True`, `network="default"`): the build files and
    every other non-source file under the build root — `java_build_files`,
-   which by construction never lists a `.java` — staged alone, and the
+   which by construction never lists a JVM source the build compiles
+   (`.java`; since C-101, 2026-09-10, `.kt` / `.scala` / `.groovy` too,
+   `buildSrc/` excepted) — staged alone, and the
    build's own resolution run over them (`containment.java_resolve_command`:
    Maven's `test-compile`; the Gradle wrapper with
    `containment.GRADLE_RESOLVE_SCRIPT` and its `hobbesResolveAll` task,
@@ -117,3 +119,12 @@ next narrowing, not built here.
   offline flag; the re-ingest of jsoup and spring-petclinic is recorded
   in the BUILDLOG entry for this date, tier counts against the 2026-08-29
   artifacts.
+
+**Amended 2026-09-10 (C-101).** The stage rule said *no `.java`*; the
+first Java unit with Kotlin sources under the two-pass scheme
+(spring-data-elasticsearch, regraded for the 0.1.7-beta baseline) had
+its resolve pass compile the `.kt` files against Java that was not on
+the stage and fail, and the unit degraded to lane A — surfaced by the
+degradation record, which is how it was found. The stage now holds no
+JVM source the build compiles (`.java`, `.kt`, `.scala`, `.groovy`);
+`buildSrc/` is the build and stays. Point 1 above reads accordingly.

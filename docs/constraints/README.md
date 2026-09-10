@@ -120,7 +120,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-85, C-79, C-16, C-33 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
-| [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69 |
+| [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91 |
@@ -135,8 +135,10 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred entries: seventy-five active, twenty-three lifted, two superseded**
-(C-100 registered and lifted 2026-09-10, later — `.mts`/`.cts` sources
+**One hundred and one entries: seventy-five active, twenty-four lifted, two superseded**
+(C-101 registered and lifted 2026-09-10, later still — the Java resolve
+stage held Kotlin sources and a Maven build compiled them against Java
+that was not there, found by the 0.1.7-beta baseline regrade; C-100 registered and lifted 2026-09-10, later — `.mts`/`.cts` sources
 were not discovered by lane A, found by the callee-shape bucket of
 cheerio's miss set; C-98 lifted and C-99 registered and lifted 2026-09-10 — the TS helper
 types a file under a solution-style tsconfig by the referenced project

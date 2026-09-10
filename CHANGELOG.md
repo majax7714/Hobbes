@@ -7,6 +7,26 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
+## 0.1.8-beta — 2026-09-10 (the versioned baseline)
+
+**Patch: a change in what Hobbes draws (C-101).** The Java resolve
+pass's stage (ADR-097) held "no source", where source meant `.java`; a
+Maven build with Kotlin sources compiled them against Java that was not
+on the stage, failed, and the unit fell to lane A's syntactic tier —
+surfaced by the degradation record, found when every Hobbes cell was
+regraded on one build for the comparative graphics (Max, 2026-09-10).
+The stage now holds no JVM source the build compiles (`.java`, `.kt`,
+`.scala`, `.groovy`; `buildSrc/` stays).
+
+- spring-data-elasticsearch: the resolve pass succeeds again; the cell
+  is regraded semantic (its record's 2026-09-10 block).
+- **Every Hobbes oracle cell regraded on this build** against its
+  standing key — the comparative graphics and `docs/comparative/tables.md`
+  now state the Hobbes version per cell (`bench/oracle/report/render.py`
+  reads it from the record's last regrade heading).
+- Register: C-101 registered and lifted; 101 entries, 75 active, 24
+  lifted, 2 superseded.
+
 ## 0.1.7-beta — 2026-09-10 (later still)
 
 **Patch: a change in what Hobbes draws (C-100).** TypeScript's ESM- and

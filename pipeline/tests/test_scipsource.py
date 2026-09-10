@@ -849,6 +849,18 @@ class TestJavaUnits:
         assert not any(p.startswith("proj/core/target/") for p in staged)
         assert not any(p.endswith(".java") for p in staged)
         assert not any(p.startswith("tool/") for p in staged)  # another unit
+        # C-101: a Kotlin, Scala or Groovy source is compiled by the same
+        # build and would be compiled against Java that is not there —
+        # never on the resolve stage; under buildSrc/ it is the build.
+        for rel in ("proj/core/src/main/kotlin/a/Ext.kt", "proj/core/src/main/scala/S.scala",
+                    "proj/core/src/test/groovy/G.groovy", "proj/buildSrc/src/main/kotlin/Conv.kt",
+                    "proj/buildSrc/build.gradle.kts"):
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text("// jvm")
+        staged = scipsource.java_build_files(repo, "proj")
+        assert not any(p.endswith((".kt", ".scala", ".groovy")) and "buildSrc" not in p for p in staged)
+        assert "proj/buildSrc/src/main/kotlin/Conv.kt" in staged
+        assert "proj/buildSrc/build.gradle.kts" in staged
         tool = scipsource.java_build_files(repo, "tool")
         assert "tool/gradlew" in tool and "tool/gradle/libs.versions.toml" in tool
 
