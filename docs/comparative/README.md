@@ -29,10 +29,13 @@ Everything numeric renders from the records by
 lane's Go suite) fails when a picture drifts from its cells.
 
 **The versioned baseline (2026-09-10, Max's direction).** Every Hobbes
-cell on this page was re-ingested on one build — **Hobbes 0.1.8-beta**
-(ADR-103) — and regraded against its standing key, contained (the
-dagger modules, kbet and toml for the first time); the foreign cells
-were not regraded, since the tools did not change. The renderer reads
+cell on this page was re-ingested on one build — **Hobbes 0.1.10-beta**
+(ADR-103; first at 0.1.8-beta the same day, then again at 0.1.10-beta
+after the Gradle attach route landed, every cell holding to the digit
+but Severed-Chains, which gained its semantic lane) — and regraded
+against its standing key, contained (the dagger modules, kbet and toml
+for the first time at 0.1.8-beta); the foreign cells were not
+regraded, since the tools did not change. The renderer reads
 the version from each record's last regrade heading and prints it in
 `tables.md` and on the graphics, so the page can say which Hobbes it
 describes. The records distinguish changes from growth or refreshed keys

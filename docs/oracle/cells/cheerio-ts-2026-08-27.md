@@ -158,3 +158,28 @@ poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracl
 **The bucket under canonical identity (2026-09-10, later still; H-22, [the review](../../reviews/2026-09-10-baseline.md)).** `bucket.py` re-done — a pair is the site line and the checker's *fully qualified* target name (overload signatures share one; two same-named methods do not), a confirmed row hits the target at its exact position (the grader's rule), a miss takes the checker record at the oracle's column and is otherwise an explicit `ambiguous` / `no record` row, `new X(..)` is a record — and re-run on this 0.1.8-beta grade with shapes and facts regenerated from the clone (`bench/oracle/shape/`, no spend): **3,826 pairs, 2,628 hit, 68.7% — unchanged to the pair** (the bare name had merged none); function 1,911/1,911, variable 676/676, method 41/46, local-binding 0/997, closure 0/173, anonymous-signature 0/12, type-member 0/6, class 0/5. Attribution of the 3,243 misses: 1,972 sibling (same qualified name confirmed at another line), 1,266 at the column, 0 by name, 5 ambiguous (four `CheerioAPI.__call` sites in `traversing.spec.ts` where two records sit at the column, one closure), 0 with no record; 0 confirmed rows unexplained. The five `new Cheerio(..)` sites in `load.ts` that read "no lane A site" before are `new:class` now (lane A has no record: the helper does not visit `NewExpression`). The table above stands.
 
 **The grader's line (2026-09-10, later still; Max's decision, ADR-089 amended).** `oracle grade` on these same artifacts — the 0.1.8-beta export against the 2026-08-27 key — prints beside the standing recall line `recall-collapsed 68.7% (2628/3826 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)`: the bucket's number above from a second program (`bucket.py` reports the two agree). The standing grade is unchanged.
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-08-27 key, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/cheerio-ts/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell .  oracle tsc 6.0.3 (the zone's own) (resolution)  sha 98c7d131
+hobbes edges 2688: confirmed 2628  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2628/2628)
+recall 45.1% (2667/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 static→anonymous-signature:12 static→class:5 static→closure:173 static→function:1972 static→method:5 static→type-member:6]
+recall-collapsed 68.7% (2628/3826 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/1070)  misses 1070 = 33.0% of all misses
+  recall[func-value→variable] 100.0% (684/684)  misses 0 = 0.0% of all misses
+  recall[static→anonymous-signature]   0.0% (0/12)  misses 12 = 0.4% of all misses
+  recall[static→class      ]   0.0% (0/5)  misses 5 = 0.2% of all misses
+  recall[static→closure    ]   0.0% (0/173)  misses 173 = 5.3% of all misses
+  recall[static→function   ]  49.6% (1942/3914)  misses 1972 = 60.8% of all misses
+  recall[static→method     ]  89.1% (41/46)  misses 5 = 0.2% of all misses
+  recall[static→type-member]   0.0% (0/6)  misses 6 = 0.2% of all misses
+  tier semantic   confirmed 2620  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+  line-grain tolerance used on 1887 edge(s) (several oracle sites on one line)
+poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+```

@@ -67,3 +67,24 @@ recall 71.8% (2200/3062 in-repo oracle pairs) at 2 roots; external oracle pairs 
   line-grain tolerance used on 873 edge(s) (several oracle sites on one line)
 poison check: PASS — 2192 seeded wrong edges: 2187 refused, 5 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-09-09 key, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/cobra-tests/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell .  oracle go-rta (reachability)  sha adbc8813
+hobbes edges 2192: confirmed 2186  contradicted 0  abstract 1  silent 5 map[unreachable:5]
+precision-against-oracle 100.0% (2186/2186)
+recall 71.8% (2200/3062 in-repo oracle pairs) at 2 roots; external oracle pairs 4608; misses map[func-value→closure:733 func-value→named:66 interface→named:43 static→closure:20]
+recall-collapsed 71.7% (2186/3047 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→closure]   0.0% (0/733)  misses 733 = 85.0% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
+  recall[func-value→named  ]   0.0% (0/66)  misses 66 = 7.7% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
+  recall[interface→named   ]   0.0% (0/43)  misses 43 = 5.0% of all misses
+  recall[static→closure    ]   0.0% (0/20)  misses 20 = 2.3% of all misses
+  recall[static→named      ] 100.0% (2200/2200)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 2186  contradicted 0  abstract 1  silent 5
+  line-grain tolerance used on 873 edge(s) (several oracle sites on one line)
+poison check: PASS — 2192 seeded wrong edges: 2187 refused, 5 unjudged (oracle silent there), 0 falsely confirmed
+```

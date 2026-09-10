@@ -6,9 +6,12 @@ The experiments under `bench/` and the records under `docs/` are
 internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`. The number line
-is Max's: after the next version the layer moves to **0.11.0-beta**,
-not 0.2.0 (ADR-103 amendment, 2026-09-10); tags are his call each time
-(0.1.9-beta untagged; the last tag is `v0.1.8-beta`).
+is Max's: **the layer stays on 0.1.x, patch by patch** (0.1.10-beta,
+0.1.11-beta, …; the earlier 0.11.0-beta statement is withdrawn — the
+conservative line, ADR-103's third amendment, 2026-09-10); a minor
+bump lands on 0.2.0-beta when a capability earns it; tags are his call
+each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
+`v0.1.8-beta`).
 
 ## 0.1.10-beta — 2026-09-10 (later still)
 

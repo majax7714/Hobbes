@@ -69,3 +69,23 @@ recall 98.1% (3593/3662 in-repo oracle pairs) over every resolved site in the ce
   line-grain tolerance used on 1215 edge(s) (several oracle sites on one line)
 poison check: PASS — 3598 seeded wrong edges: 3592 refused, 6 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-08-25 MIR key, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/dagger/sdk_rust/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell sdk/rust  oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha f3cc3eb3
+hobbes edges 3598: confirmed 3592  contradicted 0  abstract 0  silent 6 map[not-loaded:6]
+precision-against-oracle 100.0% (3592/3592)
+recall 98.1% (3593/3662 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 6191; misses map[static→function:14 static→generated:25 static→method:30]
+recall-collapsed 98.1% (3592/3661 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[static→function   ]  94.5% (239/253)  misses 14 = 20.3% of all misses
+  recall[static→generated  ]   0.0% (0/25)  misses 25 = 36.2% of all misses
+  recall[static→method     ]  99.1% (3354/3384)  misses 30 = 43.5% of all misses
+  tier semantic   confirmed 3574  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 18  contradicted 0  abstract 0  silent 6
+  line-grain tolerance used on 1215 edge(s) (several oracle sites on one line)
+poison check: PASS — 3598 seeded wrong edges: 3592 refused, 6 unjudged (oracle silent there), 0 falsely confirmed
+```

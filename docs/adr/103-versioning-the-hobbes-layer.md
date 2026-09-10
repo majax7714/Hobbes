@@ -105,3 +105,15 @@ Max, on the 0.1.9-beta bump: **leave the tag off** (the last tag is
 minor line the layer moves to is 0.11, chosen, not derived, like the
 starting point in §5. Patch bumps continue on the 0.1.x line until
 then; a minor bump (§3) lands on 0.11.0-beta.
+
+## Amendment 2026-09-10 (later still, the third) — the 0.1.x line continues; 0.11.0-beta withdrawn
+
+Max, on reading 0.1.10-beta: the conservative line supersedes the
+earlier statement — **the layer stays on 0.1.x**, patch by patch
+(0.1.10-beta, 0.1.11-beta, …), and 0.11.0-beta is withdrawn. A minor
+bump (§3) still lands on 0.2.0-beta when a capability earns it; the
+"0.11" statement of the previous amendment no longer holds. Tags remain
+his call each time (`v0.1.8-beta` is the last; 0.1.9-beta and
+0.1.10-beta untagged). The comparative graphics state the version the
+cells were graded on (ADR-102); every Hobbes cell is regraded on
+0.1.10-beta so they say one number.

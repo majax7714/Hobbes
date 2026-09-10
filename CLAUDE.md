@@ -242,10 +242,11 @@ review → `lane_b` pytest) and runs the same way on a box.
   draws, refuses or says bumps patch; a capability bumps minor; both in
   the same commit as the change, with a `CHANGELOG.md` entry. Nothing
   under `bench/` or an experiment record moves it. Rebuild the image
-  after a bump (C-65). **The number line is Max's (ADR-103 amendment,
-  2026-09-10): after the next version comes 0.11.0-beta, not 0.2.0;**
-  tags are his call each time — 0.1.9-beta is untagged, the last tag
-  is `v0.1.8-beta`.
+  after a bump (C-65). **The number line is Max's (ADR-103, third amendment,
+  2026-09-10): the layer stays on 0.1.x patch by patch — 0.1.10-beta,
+  0.1.11-beta, … — the earlier 0.11.0-beta statement withdrawn;** tags
+  are his call each time — 0.1.9-beta and 0.1.10-beta are untagged, the
+  last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -317,7 +318,9 @@ review → `lane_b` pytest) and runs the same way on a box.
   bindings, closures, interface signatures, class-property functions,
   `new`). C-100 found and lifted there (`.mts`/`.cts` undiscovered);
   three floor shapes priced for Max's call (W1); a Jelly cell needs its
-  key grain settled first. **0.1.8-beta (the versioned baseline):**
+  key grain settled first. **0.1.8-beta (the versioned baseline;
+  redone at 0.1.10-beta the same day — 41 cells, every one to the
+  digit but Severed-Chains, the graphics stating one version):**
   every Hobbes oracle cell regraded on one build against its standing
   key, the graphics and tables stating the version; C-101 found there
   and lifted (the Java resolve stage held Kotlin sources — a Maven

@@ -93,3 +93,27 @@ recall 80.7% (925/1146 in-repo oracle pairs) over every resolved site in the cel
   line-grain tolerance used on 414 edge(s) (several oracle sites on one line)
 poison check: PASS — 2356 seeded wrong edges: 921 refused, 1435 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-08-28 MIR key, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/memchr-rust/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell   oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha bd6068c3
+oracle ran contained (ADR-092)
+hobbes edges 2356: confirmed 921  contradicted 0  abstract 0  silent 1435 map[not-loaded:1381 unreachable:54]
+precision-against-oracle 100.0% (921/921)
+recall 80.7% (925/1146 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1476; misses map[macro→function:57 macro→method:42 static→closure:1 static→function:53 static→generated:5 static→method:63]
+recall-collapsed 80.6% (921/1142 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[macro→function    ]   0.0% (0/57)  misses 57 = 25.8% of all misses
+  recall[macro→method      ]   0.0% (0/42)  misses 42 = 19.0% of all misses
+  recall[static→closure    ]   0.0% (0/1)  misses 1 = 0.5% of all misses
+  recall[static→function   ]  75.8% (166/219)  misses 53 = 24.0% of all misses
+  recall[static→generated  ]   0.0% (0/5)  misses 5 = 2.3% of all misses
+  recall[static→method     ]  92.3% (759/822)  misses 63 = 28.5% of all misses
+  tier semantic   confirmed 914  contradicted 0  abstract 0  silent 43
+  tier syntactic  confirmed 7  contradicted 0  abstract 0  silent 1392
+  line-grain tolerance used on 414 edge(s) (several oracle sites on one line)
+poison check: PASS — 2356 seeded wrong edges: 921 refused, 1435 unjudged (oracle silent there), 0 falsely confirmed
+```

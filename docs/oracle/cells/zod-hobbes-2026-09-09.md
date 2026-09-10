@@ -113,3 +113,31 @@ poison check: PASS — 9780 seeded wrong edges: 9731 refused, 49 unjudged (oracl
 **The bucket under canonical identity (2026-09-10, later still; H-22, [the review](../../reviews/2026-09-10-baseline.md)).** `bucket.py` re-done (the cheerio record says how) and re-run on this 0.1.8-beta grade with shapes and facts regenerated from the clone (no spend): **16,634 pairs (+3 the bare name had merged: 16,631 before), 9,731 hit, 58.5%**; function 6,307/6,385, method 2,263/2,345, variable 1,161/1,625, type-member 0/4,745 (4,742 before), property 0/1,029, closure 0/323, class 0/110, local-binding 0/59, anonymous-signature 0/13. Attribution of the 12,038 misses: 4,442 sibling, 7,570 at the column, 0 by name, 12 ambiguous (v4 `.and` / `.describe` chains in `to-json-schema.test.ts` and eight anonymous signatures, two records at the column each), 14 with no checker record (13 lines with none at all, one `~validate` line whose records name something else); 0 confirmed rows unexplained. The 311 "no lane A site" rows of the first run are attributed now that `new` is a record: 114 `new:class` (`ZodType` 73, `ZodError`, `ParseInputLazyPath`), 107 `new:InterfaceDeclaration` (v4's `$constructor` values — `new ZodObject(..)` where `ZodObject` is an interface-typed `const`; the key names the variable), 85 `new:param` (`Class` parameters in `core/api.ts` and `util.ts`); lane A has no record at any of them. The table above stands; the three floor shapes priced in W1 are unchanged.
 
 **The grader's line (2026-09-10, later still; Max's decision, ADR-089 amended).** `oracle grade` on these same artifacts — the 0.1.8-beta export against the 2026-09-09 key — prints beside the standing recall line `recall-collapsed 58.5% (9731/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)`: the bucket's number above from a second program (`bucket.py` reports the two agree). The standing grade is unchanged.
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-09-09 key, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/zod/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9780: confirmed 9731  contradicted 0  abstract 0  silent 49 map[not-loaded:49]
+precision-against-oracle 100.0% (9731/9731)
+recall 45.1% (9893/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→variable:226 interface→type-member:88 static→anonymous-signature:13 static→class:110 static→closure:324 static→function:4220 static→method:531 static→property:1274 static→type-member:4955 static→variable:238]
+recall-collapsed 58.5% (9731/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/59)  misses 59 = 0.5% of all misses
+  recall[func-value→variable]  80.2% (917/1143)  misses 226 = 1.9% of all misses
+  recall[interface→type-member]   0.0% (0/88)  misses 88 = 0.7% of all misses
+  recall[static→anonymous-signature]   0.0% (0/13)  misses 13 = 0.1% of all misses
+  recall[static→class      ]   0.0% (0/110)  misses 110 = 0.9% of all misses
+  recall[static→closure    ]   0.0% (0/324)  misses 324 = 2.7% of all misses
+  recall[static→function   ]  60.5% (6455/10675)  misses 4220 = 35.1% of all misses
+  recall[static→method     ]  81.1% (2275/2806)  misses 531 = 4.4% of all misses
+  recall[static→property   ]   0.0% (0/1274)  misses 1274 = 10.6% of all misses
+  recall[static→type-member]   0.0% (0/4955)  misses 4955 = 41.2% of all misses
+  recall[static→variable   ]  50.8% (246/484)  misses 238 = 2.0% of all misses
+  tier semantic   confirmed 8674  contradicted 0  abstract 0  silent 38
+  tier syntactic  confirmed 1057  contradicted 0  abstract 0  silent 11
+  line-grain tolerance used on 5642 edge(s) (several oracle sites on one line)
+poison check: PASS — 9780 seeded wrong edges: 9731 refused, 49 unjudged (oracle silent there), 0 falsely confirmed
+```

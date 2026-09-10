@@ -8417,3 +8417,41 @@ shape suites and the drift test, 36 scip node; the four `lane_b` tests
 not re-run (Maven canary; the Gradle route has no fixture — its
 evidence is the two real repos above, P11). No spend, no push; commits
 on `main`.
+
+## 2026-09-10 — (later still) the comparative graphics restated at 0.1.10-beta: every Hobbes cell regraded on the build; the number line stays 0.1.x (Max)
+
+Max, on reading the Gradle route: update the comparative graphs to the
+current standing at 0.1.10-beta — and the number line is the
+conservative one: **0.1.10-beta, 0.1.11-beta, …; the 0.11.0-beta
+statement of earlier today is withdrawn** (ADR-103's third amendment;
+CHANGELOG head, CLAUDE conventions, the handoff, the memory note).
+
+**The regrade.** The graphics are read from the records (ADR-102), so
+one version on every row means every cell graded on that build. The
+0.1.8-beta baseline's procedure again, as one driver: 41 Hobbes cells
+re-ingested contained on 0.1.10-beta (`HOBBES_SCIP=1`) and regraded
+with `oracle export` + `oracle grade --poison` against their standing
+keys — the loop and draw cells against the keys their records name
+(ajv's 2026-09-09, cheerio's 08-27, click's 08-28 trace, fzf/mux/memchr
+08-28, toml 08-27, rust_proj's 08-28 MIR, quic-go's 09-02, the five
+1-1 keys, kbet's key rebuilt 2026-09-10, the four Java keys as
+re-merged under H-23), dagger's 19 modules and `sdk/rust` against their
+stored keys after one contained ingest (720 s), this repo's two keys
+fresh since the tree moved (RTA 517 s; the trace 96 s, one run).
+1,589 s all in; artifacts `~/.hobbes/bench/v0110/`. **Every cell holds
+to the digit** on confirmed, contradicted, abstract, recall and poison;
+two moved elsewhere and are read in their records: quic-go's silent
+count is 20 lower because the 0.1.8-beta export had let
+`integrationtests/fips/fips_test.go` — a nested module the cell
+excludes — through without the flag (that block's "+20 in a
+build-tagged test file" was this slip; the oracle held them silent, no
+graded number moved); this repo's trace cell grew with the tree
+(4,741 → 4,743 confirmed, 10 suspects both times). Severed-Chains keeps
+the block written when the route landed (the same build). Each record
+gained a 0.1.10-beta block with the report head verbatim and the
+grader's new `recall-collapsed` line; dagger's record a third table in
+the renderer's shape. `cells.json`, the three graphics and `tables.md`
+regenerated — every Hobbes row 0.1.10-beta — and the drift test
+passes; the claim page's baseline paragraph says so.
+
+No spend, no push; commits on `main`.

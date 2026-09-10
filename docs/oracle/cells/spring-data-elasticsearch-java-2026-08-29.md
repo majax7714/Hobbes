@@ -90,3 +90,25 @@ poison check: PASS — 16050 seeded wrong edges: 16050 refused, 0 unjudged (orac
 ```
 
 **The key's names, qualified; the grader's line (2026-09-10, later still; ADR-089 amended, H-23).** `oracle grade` prints a second recall line on every cell since today, `recall-collapsed`, at (site line, target file, target name) grain. (H-23, found on jsoup the same hour: the Java oracle's member-bare names folded same-named overrides of one file.) Names are owner-qualified now (`org.jsoup.nodes.Element.attr`, `a.Foo$1.run`, `a.Foo.<init>`) and the standing key was re-merged from its saved shards (`oracle java-javac --merge-only --carry`): every site, target position, kind, mode and interface identical to the 2026-08-29 file, kept beside it as `oracle.json.member-bare-names-2026-09-10`; only the names changed. Regraded on the 0.1.8-beta artifacts: every line above unchanged to the digit, and beside the standing 66.4% the grader prints `recall-collapsed 66.7% (16050/24076 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)` — the fold left is same-line repeats of one callee.
+
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — every cell on one build again: same clone, the 2026-08-29 key, names owner-qualified since H-23, contained)
+
+Every Hobbes cell was re-ingested on 0.1.10-beta and regraded against its standing key so the comparative graphics state one version (Max, 2026-09-10; ADR-103, third amendment). Artifacts `~/.hobbes/bench/v0110/spring-data-elasticsearch-java/`; **unchanged to the digit from the 0.1.8-beta grade**; the one new line is the grader's `recall-collapsed` (ADR-089 amended).
+
+```
+cell   oracle javac 21.0.12.1+1-LTS (resolution)  sha cc7bd2b7
+oracle ran contained (ADR-092)
+hobbes edges 16050: confirmed 16050  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (16050/16050)
+recall 66.4% (16238/24452 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 16251; misses map[interface→anonymous-member:513 interface→method:7469 static→anonymous-member:5 static→constructor:227]
+recall-collapsed 66.7% (16050/24076 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[interface→anonymous-member]   0.0% (0/513)  misses 513 = 6.2% of all misses
+  recall[interface→method  ]  57.4% (10064/17533)  misses 7469 = 90.9% of all misses
+  recall[static→anonymous-member]   0.0% (0/5)  misses 5 = 0.1% of all misses
+  recall[static→constructor]  91.1% (2329/2556)  misses 227 = 2.8% of all misses
+  recall[static→method     ] 100.0% (3845/3845)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 16050  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 8964 edge(s) (several oracle sites on one line)
+poison check: PASS — 16050 seeded wrong edges: 16050 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```

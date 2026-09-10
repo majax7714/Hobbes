@@ -3,21 +3,21 @@
 <rect width="1090" height="960" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled</text>
 <g>
-<title>Hobbes 0.1.10-beta / 0.1.8-beta</title>
+<title>Hobbes 0.1.10-beta</title>
 <circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.1.8-beta</text>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta</text>
 <g>
 <title>CodeGraphContext 0.6.13</title>
-<rect x="244.1" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="164.8" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="259.1" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<text x="179.8" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
 <g>
 <title>repowise 0.49.0</title>
-<polygon points="419.4,39.5 425.9,46 419.4,52.5 412.9,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="340.1,39.5 346.6,46 340.1,52.5 333.6,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="429.4" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
-<text x="534.9" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
+<text x="350.1" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="455.6" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
 <text x="24" y="64" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.</text>
 <text x="60" y="82" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Go — go-rta (compiler-graded)</text>
 <rect x="60" y="92" width="300" height="300" fill="none" stroke="#d9d8d2"/>
@@ -810,17 +810,17 @@ trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypa
 <text x="522.6" y="582.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
 <g>
 <title>hobbes pipeline/ — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-28
-confirmation rate 4,741/5,311 = 89.3%
-recall 4,741/5,604 = 84.6% recall-against-executed (coverage-limited)
-misses by class: observed→closure 640, observed→function 118, observed→lambda 96, observed→method 9
+confirmation rate 4,743/5,316 = 89.2%
+recall 4,743/5,608 = 84.6% recall-against-executed (coverage-limited)
+misses by class: observed→closure 642, observed→function 118, observed→lambda 96, observed→method 9
 trace-graded under its own suite (dogfood)</title>
-<circle cx="653.8" cy="546.25" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="653.8" cy="547.0" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
-<text x="645.8" y="550.25" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
+<text x="645.8" y="551.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
 <line x1="24" y1="848" x2="1066" y2="848" stroke="#d9d8d2"/>
 <text x="24" y="870" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >We draw nothing the compiler contradicts; here is how much we do not draw, and what it is.</text>
 <text x="24" y="888" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 40.8–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
 <text x="24" y="904" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables.</text>
 <text x="24" y="920" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>
-<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.1.8-beta (ADR-103; per cell in tables.md).</text>
+<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). Every Hobbes number is the standing grade by Hobbes 0.1.10-beta (ADR-103): the last block of each record, regraded on one build against the same keys.</text>
 </svg>

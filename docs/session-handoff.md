@@ -2,9 +2,10 @@
 
 **Reviewed 2026-09-10 (later still); Hobbes 0.1.10-beta on `main`**
 (0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta and 0.1.10-beta are
-**untagged — tags are Max's call**). **Numbering (Max; ADR-103
-amended): after the next version the layer goes to 0.11.0-beta, not
-0.2.0.** Work remains on `main`; publishing belongs to Max. The
+**untagged — tags are Max's call**). **Numbering (Max, on reading
+0.1.10-beta; ADR-103's third amendment): the layer stays on 0.1.x,
+patch by patch — 0.11.0-beta is withdrawn.** Work remains on `main`;
+publishing belongs to Max. The
 baseline review's record: [review](reviews/2026-09-10-baseline.md) —
 its two code findings are closed and read by Max; two of its four
 decisions are taken and the other two are off the table for now
@@ -36,7 +37,13 @@ decisions are taken and the other two are off the table for now
    plugin (never indexed before either). Maven untouched. The
    comparative graphics, tables and `cells.json` regenerated (the
    drift test passes); the claim page's recall range now starts at
-   fzf's 40.8%.
+   fzf's 40.8%. **Then, on Max's word, every Hobbes cell was regraded
+   on 0.1.10-beta** (`~/.hobbes/bench/v0110/`, 41 cells, 1,589 s; the
+   driver is the 0.1.8-beta baseline's procedure): every cell holds to
+   the digit; quic-go's 20 silent edges fewer are the excluded `fips`
+   module the 0.1.8-beta export had let through (an export-flag slip,
+   read in its record); this repo's trace cell grew with the tree. The
+   graphics and tables state 0.1.10-beta on every Hobbes row.
 2. **For Max's review — the `recall-collapsed` line (ADR-089 amended)**
    and **H-23, the Java key's member-bare names** (`oracle-defects.md`)
    — as recorded earlier today (BUILDLOG): the grader prints the
