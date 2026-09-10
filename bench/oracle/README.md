@@ -70,6 +70,32 @@ poison twin refused). Present: `codegraphcontext` (Kuzu backend) and
 `docs/oracle/cells/<tool>-<repo>-<date>.md`, in the same format as a
 Hobbes cell, and every one is host-run (C-96).
 
+## The callee-shape bucket (`shape/`)
+
+Why a `tsc` key beats a `tsc`-based indexer (2026-09-10; the reading in
+`docs/oracle/oracle-misses.md`): `shapes.mjs` walks a TS zone with
+ts-morph (from `tsextract/node_modules`) and records, for every call
+site, the checker's reading of the callee — an identifier's declaration
+kind, a member's receiver shape, the resolved signature's declaration;
+`bucket.py` joins a cell's misses to that record and to lane A's own
+facts at the site, buckets them by shape, and prints the collapsed
+recall (one pair per site, target file and target name — the oracle's
+overload grain removed).
+
+```sh
+node bench/oracle/shape/shapes.mjs <clone> > shapes.json
+node tsextract/extract.mjs --repo <clone> > facts.json
+python3 bench/oracle/shape/bucket.py <cell-dir> <cell-dir>/oracle.json shapes.json facts.json
+```
+
+Each tool carries its suite beside it — `bucket_test.py` (stdlib
+unittest, a hand-built cell with one miss per bucket rule) and
+`shapes.test.mjs` (`node:test`, a built repo with one call per shape) —
+and `shape_test.go` runs both under `go test ./...`, so the graph's
+test map reaches the tools through their own tests (a Go test that
+only execs a script reaches nothing the graph can see, and `hobbes
+review` reports the module unguarded — the 2026-09-10 red run).
+
 ## Normative conventions (D-O4)
 
 Both product lanes are measured against these, and the oracle extractors

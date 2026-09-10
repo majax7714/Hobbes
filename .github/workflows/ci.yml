@@ -33,6 +33,9 @@ jobs:
       - name: tsc oracle's pinned typescript (the TS cells run wherever node is, and the runner has node)
         working-directory: bench/oracle/ts
         run: npm ci
+      - name: tsextract's ts-morph (the callee-shape helper under bench/oracle/shape reads it; its node suite skips without it)
+        working-directory: tsextract
+        run: npm ci
       - name: go test (oracle lane; Rust/Python cells skip without their toolchains)
         working-directory: bench/oracle
         run: go test ./...

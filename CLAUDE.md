@@ -157,7 +157,9 @@ box, against a repo on disk (architecture §10); the application mode in
   one converter each with a hand-read fixture — `codegraphcontext`,
   `repowise`); `report/render.py` regenerates the comparative
   graphics and tables from the cell records and its Go test fails on
-  drift (ADR-102). Bench tooling, never product.
+  drift (ADR-102); `shape/` is the callee-shape bucket (`shapes.mjs` +
+  `bucket.py`, each with its own suite run by `go test`). Bench tooling,
+  never product.
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
@@ -216,8 +218,8 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-10): 1,257 pytest (+3 `lane_b`) /
-304 Go + 47 oracle-lane Go / 52 vitest / 36 tsextract + 32 scip node
+Suite sizes at the last check (2026-09-10): 1,257 pytest (+4 `lane_b`) /
+304 Go + 51 oracle-lane Go (two run the `shape/` suites: 15 unittest + 6 node) / 52 vitest / 36 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →

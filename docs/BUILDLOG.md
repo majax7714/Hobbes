@@ -8086,3 +8086,60 @@ oracle-lane Go, 36 tsextract, 32 scip. The scratch drivers
 the session scratchpad; the record blocks quote each artifact
 directory, and the run is reproducible from the records' command
 lines.
+
+## 2026-09-10 — (later still) the baseline's CI was red on two jobs; both fixed, and the graph job's forgetting found
+
+**Max pushed the versioned baseline and tagged `v0.1.8-beta` locally
+(this session's first act); CI came back red on `python` and `graph`.**
+Both read from the run's logs, reproduced, fixed, no model, no spend.
+
+**`python`: one failure.** The solution-zone `lane_b` case
+(`test_lane_b_indexes_a_solution_zone_under_the_referenced_projects_options`,
+0.1.6-beta) had no "containment unavailable → skip" guard, unlike the
+three other `lane_b` cases. On the runner podman exists and the image
+does not, so scip-typescript — a non-executing provider — ran on the
+host, where the python job installs `tsextract/`'s dependencies and
+not `scip/`'s: the helper died with `ERR_MODULE_NOT_FOUND` and the test
+read the degradation as its own failure. The guard is added; the case
+skips without the image (all four skip when `HOBBES_SANDBOX_IMAGE`
+names nothing) and runs in the graph job's `pytest -m lane_b`, where
+the image is built (4/4 here).
+
+**`graph`: `needs attention: 2 unguarded new module(s)` —
+`bench/oracle/shape/shapes` and `bucket`.** The callee-shape tools
+landed with 0.1.7-beta as two scripts and no test; the review is right.
+The adapters' precedent — a Go test that execs the Python — is not a
+reach the graph can see (the adapters' `adapter` modules and
+`report/render.py` are unguarded by the same measure, only older). So
+each tool now carries a suite *beside it in its own language*:
+`bucket.py` is functions (`bucket_misses`, `collapsed_recall`,
+`render`, `main`; the printed report byte-identical) and
+`bucket_test.py` drives them on a hand-built cell with one miss per
+rule (sibling grain, identifier kind, receiver shape, no record on the
+line, nearest column, lane A's record, the external target dropped from
+the pairs — 15 cases); `shapes.mjs` exports `calleeShapes(root)` under
+a main guard and `shapes.test.mjs` builds a repo with one call per
+shape (the import alias followed to three overload declarations and the
+resolved one named, `var:const:top:fn-literal`, `ident:class`,
+`call-result`, `new`, `this`, `param`, `method-signature`, `paren`,
+`computed`, and the command line emitting the same record — 6 cases);
+`shape_test.go` runs both under `go test ./...` (the node suite skips
+without `tsextract/node_modules`, which the go job now installs).
+Ingested and reviewed `0be3bfa..HEAD` locally: both modules guarded,
+nothing needs attention.
+
+**Found on the way: the graph job forgets a red review.** `ci-graph.sh`
+reviews `github.event.before..HEAD`, so a module that failed one push
+is in the next push's base and is never reported again. Three pushes
+in a row were red this way — `go/internal/version` (0.1.3-beta, the
+2026-09-09 21:03 run), the `minits/src/union` fixture (the ADR-104
+regrade, 13:48 today), then `shape` (15:55) — and only the third is
+fixed here; the first two stand unguarded (`tests_guarding` says so).
+The fixture case is also a question for `_own_code`: a fixture source
+is not behaviour a test could guard. Both are one W0 item; an ADR
+either way (ADR-025 is the contract).
+
+**Suites:** 1,257 pytest (+4 `lane_b` in the image), 51 oracle-lane
+Go (`shape/`'s two run 15 unittest + 6 node cases), the rest untouched.
+No version bump: a test guard and bench tooling move nothing the layer
+draws, refuses or says (ADR-103).

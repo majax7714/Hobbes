@@ -76,6 +76,19 @@ build item.*
   install the container mounts hop by hop; the fake venv's `home =
   /usr` had made the image's own python the base, hence `{pip}`.
   `ci-graph.sh` deselects nothing now.
+- **The graph job forgets a red review.** `ci-graph.sh` reviews
+  `github.event.before..HEAD`, so an "unguarded new module" that fails
+  one push is in the *base* of the next and never reported again:
+  three pushes in a row were red on 2026-09-09/10 for
+  `go/internal/version` (0.1.3-beta), the `minits/src/union` fixture
+  (the ADR-104 regrade) and `bench/oracle/shape` (0.1.7-beta), each
+  forgotten by the next; the third was fixed 2026-09-10 (its own
+  suites beside the tools), the first two stand unguarded. Options: the
+  job's base is the last *green* run's commit, or the review's coverage
+  section also lists every own module no test reaches (a standing
+  count, not a delta) — and fixture sources under `tests/fixtures/`
+  are not own code a test could guard, so `_own_code` should say so.
+  An ADR either way (ADR-025 is the review contract).
 - **The comparative programme (ADR-101/102) — built 2026-09-09; two
   follow-ups parked until Max names them.** `oracle import` +
   `grade-foreign.sh` grade any tool's graph against the lane's keys;

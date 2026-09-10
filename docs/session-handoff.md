@@ -1,12 +1,20 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-10 (the versioned baseline).** Nothing is
-running: no Modal job, no local process; the tree is committed on
-`main`, not pushed. **Hobbes is at 0.1.8-beta (ADR-103; C-100 and
-C-101 lifted): the tag `v0.1.3-beta` is local and unpushed like the
-commits — publish together, and tag `v0.1.8-beta` when Max says so;
-`CHANGELOG.md` gets an entry with every bump, and nothing under
-`bench/` moves the number.** Resume at START HERE below — Max's
+**Session ended 2026-09-10 (CI green again after the baseline).**
+Nothing is running: no Modal job, no local process; the tree is
+committed on `main`. **Hobbes is at 0.1.8-beta (ADR-103; C-100 and
+C-101 lifted); Max pushed the baseline and tagged `v0.1.8-beta`
+locally (`v0.1.3-beta` too) — the tags and the CI-fix commit are the
+next push; `CHANGELOG.md` gets an entry with every bump, and nothing
+under `bench/` moves the number.** The push's CI was red on two jobs
+and is fixed (the last BUILDLOG entry): the solution-zone `lane_b`
+test now skips without the image like its siblings, and the
+callee-shape tools carry their own suites so the graph's test map
+reaches them. **Found there: the graph job forgets a red review** —
+it diffs against the push's base, so an unguarded module that failed
+one push is silent on the next (three in a row; W0 has the item and
+the two still unguarded: `go/internal/version`, the `minits` union
+fixture). Resume at START HERE below — Max's
 reading of the baseline (every Hobbes cell at 0.1.8-beta, the graphics
 saying so), C-101, the callee-shape bucket's answer and the three floor
 shapes it priced, then his decision on the Jelly cell's key grain; the

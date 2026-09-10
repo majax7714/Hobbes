@@ -5,15 +5,17 @@
 // by *what the call is written on* (docs/oracle/oracle-misses.md, the
 // callee-shape bucket). Reads ts-morph from tsextract/node_modules.
 //   node bench/oracle/shape/shapes.mjs <repo-root> > shapes.json
+// `calleeShapes(root)` is the walk; `shapes.test.mjs` drives it on a
+// built repo (run by `go test` in this directory).
 import { createRequire } from "node:module";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 const require = createRequire(new URL("../../../tsextract/", import.meta.url));
 const { Project, Node, ts } = require("ts-morph");
-const root = process.argv[2];
-const project = new Project({ tsConfigFilePath: path.join(root, "tsconfig.json"),
-  compilerOptions: { allowJs: true, checkJs: false, noEmit: true, skipLibCheck: true } });
-const out = [];
-function declKind(d) {
+
+// One declaration's kind, as the bucket reads it: a variable spelled
+// `var:<kw>:<top|nested>:<initializer>`, everything else by its node.
+export function declKind(d) {
   if (Node.isFunctionDeclaration(d)) return "function-decl";
   if (Node.isMethodDeclaration(d)) return "method";
   if (Node.isMethodSignature(d)) return "method-signature";
@@ -41,7 +43,8 @@ function declKind(d) {
   if (Node.isFunctionExpression(d) || Node.isArrowFunction(d)) return "fn-literal";
   return d.getKindName();
 }
-function declsOf(node) {
+
+function declsOf(root, node) {
   const sym = node.getSymbol();
   if (!sym) return [];
   const s = sym.getAliasedSymbol?.() ?? sym;
@@ -49,14 +52,15 @@ function declsOf(node) {
   if (!decls.length) decls = sym.getDeclarations();
   return decls.map(d => ({ kind: declKind(d), file: path.relative(root, d.getSourceFile().getFilePath()), line: d.getStartLineNumber(), ext: d.getSourceFile().getFilePath().includes("node_modules") }));
 }
-function receiverShape(r) {
+
+function receiverShape(root, r) {
   if (Node.isThisExpression(r)) return "this";
   if (Node.isSuperExpression(r)) return "super";
   if (Node.isCallExpression(r)) return "call-result";
   if (Node.isElementAccessExpression(r)) return "element";
   if (Node.isPropertyAccessExpression(r)) return "property-chain";
   if (Node.isIdentifier(r)) {
-    const ds = declsOf(r);
+    const ds = declsOf(root, r);
     const k = ds.length ? ds[0].kind : "unresolved";
     return `ident:${k}`;
   }
@@ -64,34 +68,49 @@ function receiverShape(r) {
   if (Node.isParenthesizedExpression(r)) return "paren";
   return r.getKindName();
 }
-for (const sf of project.getSourceFiles()) {
-  const fp = sf.getFilePath();
-  if (fp.includes("node_modules")) continue;
-  const rel = path.relative(root, fp);
-  sf.forEachDescendant(node => {
-    if (!Node.isCallExpression(node)) return;
-    const callee = node.getExpression();
-    let shape, terminal = null, recv = null;
-    if (Node.isIdentifier(callee)) { shape = "identifier"; terminal = callee; }
-    else if (Node.isPropertyAccessExpression(callee)) { shape = "member"; terminal = callee.getNameNode(); recv = receiverShape(callee.getExpression()); }
-    else if (Node.isElementAccessExpression(callee)) { shape = "computed"; }
-    else if (Node.isCallExpression(callee)) { shape = "call-result-callee"; }
-    else if (Node.isParenthesizedExpression(callee)) { shape = "paren"; }
-    else if (Node.isSuperExpression(callee) || callee.getKind() === ts.SyntaxKind.ImportKeyword) { shape = "keyword"; }
-    else if (Node.isArrowFunction(callee) || Node.isFunctionExpression(callee)) { shape = "iife"; }
-    else shape = callee.getKindName();
-    const pos = sf.getLineAndColumnAtPos(callee.getStart());
-    const tpos = terminal ? sf.getLineAndColumnAtPos(terminal.getStart()) : pos;
-    const decls = terminal ? declsOf(terminal) : [];
-    // resolved signature's declaration (what tsc's oracle names)
-    let sigDecl = null;
-    try {
-      const sig = node.getReturnType && project.getTypeChecker().getResolvedSignature(node);
-      const d = sig && sig.getDeclaration();
-      if (d) sigDecl = { kind: declKind(d), file: path.relative(root, d.getSourceFile().getFilePath()), line: d.getStartLineNumber() };
-    } catch (e) {}
-    out.push({ path: rel, js: /\.[cm]?js$/.test(rel), line: tpos.line, col: tpos.column - 1, cline: pos.line, ccol: pos.column - 1,
-      name: terminal ? terminal.getText() : callee.getText().slice(0, 40), shape, recv, decls, sigDecl });
-  });
+
+// Every call site of the zone under <root>/tsconfig.json: one record per
+// CallExpression with the callee's shape, the terminal name's
+// declarations and the resolved signature's declaration. Lines are
+// 1-based, columns 0-based; `line`/`col` name the terminal identifier
+// (the oracle's site), `cline`/`ccol` the callee expression's start.
+export function calleeShapes(root) {
+  const project = new Project({ tsConfigFilePath: path.join(root, "tsconfig.json"),
+    compilerOptions: { allowJs: true, checkJs: false, noEmit: true, skipLibCheck: true } });
+  const out = [];
+  for (const sf of project.getSourceFiles()) {
+    const fp = sf.getFilePath();
+    if (fp.includes("node_modules")) continue;
+    const rel = path.relative(root, fp);
+    sf.forEachDescendant(node => {
+      if (!Node.isCallExpression(node)) return;
+      const callee = node.getExpression();
+      let shape, terminal = null, recv = null;
+      if (Node.isIdentifier(callee)) { shape = "identifier"; terminal = callee; }
+      else if (Node.isPropertyAccessExpression(callee)) { shape = "member"; terminal = callee.getNameNode(); recv = receiverShape(root, callee.getExpression()); }
+      else if (Node.isElementAccessExpression(callee)) { shape = "computed"; }
+      else if (Node.isCallExpression(callee)) { shape = "call-result-callee"; }
+      else if (Node.isParenthesizedExpression(callee)) { shape = "paren"; }
+      else if (Node.isSuperExpression(callee) || callee.getKind() === ts.SyntaxKind.ImportKeyword) { shape = "keyword"; }
+      else if (Node.isArrowFunction(callee) || Node.isFunctionExpression(callee)) { shape = "iife"; }
+      else shape = callee.getKindName();
+      const pos = sf.getLineAndColumnAtPos(callee.getStart());
+      const tpos = terminal ? sf.getLineAndColumnAtPos(terminal.getStart()) : pos;
+      const decls = terminal ? declsOf(root, terminal) : [];
+      // resolved signature's declaration (what tsc's oracle names)
+      let sigDecl = null;
+      try {
+        const sig = project.getTypeChecker().getResolvedSignature(node);
+        const d = sig && sig.getDeclaration();
+        if (d) sigDecl = { kind: declKind(d), file: path.relative(root, d.getSourceFile().getFilePath()), line: d.getStartLineNumber() };
+      } catch (e) {}
+      out.push({ path: rel, js: /\.[cm]?js$/.test(rel), line: tpos.line, col: tpos.column - 1, cline: pos.line, ccol: pos.column - 1,
+        name: terminal ? terminal.getText() : callee.getText().slice(0, 40), shape, recv, decls, sigDecl });
+    });
+  }
+  return out;
 }
-process.stdout.write(JSON.stringify(out));
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.stdout.write(JSON.stringify(calleeShapes(process.argv[2])));
+}

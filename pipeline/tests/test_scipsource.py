@@ -1172,6 +1172,14 @@ class TestReferencedTsConfigs:
         generated config over the solution file (C-90's shape) has no
         `paths` and could not have; and the unclaimed scripts/tool.ts is
         indexed under the generated config beside it."""
+        from hobbes.extract import containment as _c
+        why = _c.unavailable_reason()
+        if why is not None:
+            # The image is the subject: without it a non-executing
+            # provider runs on the host, where the helper's own
+            # dependencies may be missing (CI's python job installs
+            # tsextract's and not scip/'s — the 2026-09-10 red run).
+            pytest.skip(f"containment unavailable here: {why}")
         monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
         monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
         root = tmp_path / "repo"
