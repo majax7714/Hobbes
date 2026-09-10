@@ -7733,3 +7733,39 @@ moved records and the drift test passes uncached. One hand fix: the
 path template for future Calvin records in `calvin-potential.md` §9.
 
 No suite change, no spend.
+
+## 2026-09-09 (comparative review, item 1) — the scatter takes same-key's palette; the claim page's recall range matches the graphics
+
+Max's first review item on the comparative programme: does the claim
+page say what the evidence licenses, and is `same-key.svg` the graphic
+to lead with. Read against `tables.md`, the one-number graphic and the
+rendered SVGs; every number in the four claim sentences matched the
+records and the drift check was green. Three prose/graphic
+inconsistencies, none numeric, fixed in `f54ab77`:
+
+- `precision-recall.svg` still drew both foreign tools as hollow orange
+  shapes after Max's review had moved `same-key.svg` to one filled
+  colour per tool; the scatter now uses the same encoding and legend.
+  Its label placer tries further below a crowded dot before falling
+  back — the Go panel's 100% row had piled eight labels on one spot.
+- The claim page's recall range stopped at 98.4% (spring-petclinic)
+  while the scatter's footer, counting dagger's modules one dot each,
+  printed 100.0%. The page now states 100.0% with dagger named and
+  98.4% as the whole-repo top; one reading in both places.
+- Three lines called the foreign markers "hollow squares" (the README's
+  table row, claim sentence 4, ADR-102 §5); they describe the markers
+  as drawn.
+
+Assessment given to Max: `same-key.svg` is the right first graphic for a
+comparing audience (it reads across a row unaided and shows Hobbes
+behind or tied on recall where it is); the one-number graphic is the
+stronger opener for anyone not comparing tools. The wording question
+itself is his.
+
+Also: `secrets.txt` sat at the repo root, gitignored, untracked and
+never in history (`git log --all -- secrets.txt` is empty). Max moved it
+off the tree this session. Nothing in Hobbes reads it by a fixed path —
+`hobbes bench run --secrets FILE` is the one reader and takes any path;
+the Modal scripts use Modal's own secret store. The handoff's key-file
+note and `benchmark-deepswe.md` §HF token are the prose pointers to
+re-aim when he names the folder.

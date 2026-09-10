@@ -49,7 +49,11 @@ draws as their own band; regenerated with the rest by `render.py render`.
    sentences under *The claim*, now with three named exceptions (ajv,
    hono — one scip-typescript union-member shape, n=2 — and quic-go),
    and whether `same-key.svg` is the graphic that goes in front of
-   someone first.
+   someone first. **Checked 2026-09-09 (later, `f54ab77`):** every
+   number matches the records; the scatter now shares same-key's
+   palette, the recall range reads 100.0% (dagger) in the page and the
+   footer alike, the "hollow squares" lines are gone. The wording
+   itself is still Max's call.
 2. **syft's keys need a bigger box** (RTA OOM at 18.7 / 19 GB, H-9's
    shape); the row says so. Also dagger's root, still.
 3. **The union-member provider shape (ajv 3, hono 7 rows):** the one
@@ -408,7 +412,11 @@ narrate` on this repo.
   cell's `scores-extractor-v1.jsonl` is the precedent.
 - `pkill -f` / `pgrep -f` match the launching shell; kill by PID (use
   `ps | grep "[l]oop.py"`).
-- Keys in `secrets.txt` (gitignored): `modal_key_id`, `modal_key_secret`,
+- **The key file is off the tree (2026-09-09):** `secrets.txt` was at
+  the root, gitignored and never committed; Max moved it to a local
+  folder outside the repo. `hobbes bench run --secrets <path>` is the
+  only reader and takes any path (the Modal scripts use Modal's own
+  secret store). Keys it holds: `modal_key_id`, `modal_key_secret`,
   `llm_key`, `HF_token`, `daytona_key`.
 
 ## Housekeeping
