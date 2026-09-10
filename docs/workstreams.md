@@ -135,11 +135,21 @@ build item.*
 
 *Profile: any contributor; good first-week territory.*
 
+**Review follow-up (2026-09-10):** H-22 blocks promoting collapsed
+recall: canonical declaration/site identity and an ambiguity audit are
+needed first. The current tables are exploratory; see
+[the review](reviews/2026-09-10-baseline.md).
+
 ## W1 — Extraction & graph core
 
 *The stable subsystem. Self-contained items with measured targets —
 the best on-ramp for a new contributor who should learn the codebase.*
 
+- **Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
+  `gradle/` and `buildSrc/` bypass the source-suffix filter. Reproduced
+  with `.mvn/Hidden.java` and `gradle/Hidden.kt`. Fix and test the
+  boundary and correct the product notice before widening exceptions;
+  the architecture now states the actual limit.
 - **The symbol floor, three shapes the callee-shape bucket priced
   (2026-09-10, `docs/oracle/oracle-misses.md`; Max's call each, none
   started):** a class property whose initializer is a function literal

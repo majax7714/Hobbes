@@ -278,7 +278,7 @@ review → `lane_b` pytest) and runs the same way on a box.
 
 ## Status (2026-09-10) — Hobbes 0.1.8-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` 0.1.4-beta (0.1.3-beta
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.8-beta, tagged `v0.1.8-beta` (0.1.3-beta
   tagged `v0.1.3-beta` locally, the first stated version; beta: graded,
   not stable — Max); every artifact's `built_by` and every knowledge
   answer carry the version beside the commit; the four Go binaries

@@ -132,3 +132,13 @@ repo's `mvnw` when it ships one, as the Gradle arm always ran
 `gradlew`: scip-java's index pass runs the wrapper, whose distribution
 only the networked pass can fetch into the cache. Point 1 above reads
 accordingly.
+
+**Review correction 2026-09-10:** the absolute source-free statements
+above describe the intended boundary. The current implementation copies
+`.mvn/`, `gradle/` and `buildSrc/` recursively without the JVM suffix
+filter. The review reproduced `.mvn/Hidden.java` and `gradle/Hidden.kt`
+in the resolve file list; the canary does not test these paths. C-66
+records the open defect and the stale ingest notice. See
+[the review](../reviews/2026-09-10-baseline.md); architecture §3.2 now
+states the actual boundary. No widening of build-logic exceptions was
+accepted in this review.

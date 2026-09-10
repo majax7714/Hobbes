@@ -52,9 +52,11 @@ classes. Done on cheerio (3,249 misses) and zod (12,038): every miss
 joined to the checker's reading of the callee at its site (an
 identifier → what its declaration is; a member → what the receiver is;
 `bench/oracle/shape/shapes.mjs`) and to lane A's own record there
-(`bucket.py`). **The answer is no — at symbol grain the indexer emits
-nearly everything the key names.** The gap is two things, neither a
-resolution the compiler saw and the indexer withheld:
+(`bucket.py`). **The diagnostic suggests overload grain and the symbol floor
+explain much of the gap.** Its line/bare-name joins are approximate
+(H-22, found in the [2026-09-10 review](../reviews/2026-09-10-baseline.md));
+the tables below are exploratory, not exact declaration-level recall.
+Two substantial contributors are:
 
 1. **The oracle's overload grain** — one pair per overload *signature*
    (H-19's recall side, noted 2026-08-28 and now measured). Hobbes draws
@@ -64,14 +66,16 @@ resolution the compiler saw and the indexer withheld:
 2. **Targets below the symbol floor** — the key names a declaration the
    graph has no node for: a `let`/`const` binding, a parameter, a
    closure, an interface member signature, a class property holding a
-   function, a class reached by `new`. Lane A's record at every one of
-   these sites is *no callee, origin `local`/`nested`*: the checker
-   resolved the declaration and the helper reported it below the floor
-   (C-32, C-58, C-9). Not one miss on either cell is a site lane A
-   resolved to a modelled symbol and the join failed to draw.
+   function, a class reached by `new`. The diagnostic associates many
+   of these rows with lane-A records having *no callee, origin
+   `local`/`nested`* (C-32, C-58, C-9). It does not prove that every
+   miss has that cause: `NewExpression` has no shape record, and the
+   lane-A match takes the first candidate on a line (H-22).
 
-Collapsed to one pair per (site line, target file, target name), by
-what the key's target *is*:
+Collapsed to one pair per (site path, site line, target file, bare
+target name), by what the key's target *is*. This can merge different declarations with
+the same bare name, not only overload siblings; the effect on these
+two cells has not yet been measured (H-22):
 
 | target kind | cheerio (hit / pairs) | zod (hit / pairs) |
 |---|---|---|

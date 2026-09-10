@@ -50,6 +50,20 @@
   would confine the residual to the registry hosts.
 - **Source:** ADR-096 decision 3, as amended by ADR-097.
 
+**Review correction, 2026-09-10 (C-66 remains active):** the source-free
+statement above is the intended boundary, not a universal property of
+0.1.8-beta. `java_build_files` copies `.mvn/`, `gradle/` and `buildSrc/`
+recursively without the suffix filter or normal descendant pruning.
+A temporary-tree reproduction retained `.mvn/Hidden.java` and
+`gradle/Hidden.kt`; `buildSrc/src/Logic.java` also stays by the intended
+build-logic exception. These files are available to the networked resolve
+pass. The canary proves its ordinary source path, not arbitrary build-tool
+directories. **Surfacing: partial** — this register and architecture §3.2
+name the limit; the ingest notice still says “holds no sources” and needs
+correction with the staging fix. No network exfiltration was attempted.
+See [the review](../reviews/2026-09-10-baseline.md). This does not invalidate
+the separate guarantee that executing Java steps require containment.
+
 ### C-67 — The Java graph is the build's default configuration
 - **Cannot tell you:** what a source set the default build does not
   compile looks like — a Maven profile that is off, a Gradle source set

@@ -1,58 +1,39 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-10 (CI green again after the baseline).**
-Nothing is running: no Modal job, no local process; the tree is
-committed on `main`. **Hobbes is at 0.1.8-beta (ADR-103; C-100 and
-C-101 lifted); Max pushed the baseline and tagged `v0.1.8-beta`
-locally (`v0.1.3-beta` too) — the tags and the CI-fix commit are the
-next push; `CHANGELOG.md` gets an entry with every bump, and nothing
-under `bench/` moves the number.** The push's CI was red on two jobs
-and is fixed (the last BUILDLOG entry): the solution-zone `lane_b`
-test now skips without the image like its siblings, and the
-callee-shape tools carry their own suites so the graph's test map
-reaches them. **Found there: the graph job forgets a red review** —
-it diffs against the push's base, so an unguarded module that failed
-one push is silent on the next (three in a row; W0 has the item and
-the two still unguarded: `go/internal/version`, the `minits` union
-fixture). Resume at START HERE below — Max's
-reading of the baseline (every Hobbes cell at 0.1.8-beta, the graphics
-saying so), C-101, the callee-shape bucket's answer and the three floor
-shapes it priced, then his decision on the Jelly cell's key grain; the
-Atlas-0 decisions held from 2026-09-07 stay held (unchanged, further
-down).
+**Reviewed 2026-09-10; Hobbes 0.1.8-beta is tagged `v0.1.8-beta`
+(confirmed by Max and the local tag).** Work remains on `main`; publishing
+belongs to Max. The baseline, C-101 implementation and callee-shape tools
+have now had an agent review: [review record](reviews/2026-09-10-baseline.md).
+This is not project-lead acceptance of the pending design choices.
 
-**Rewritten 2026-09-10 (the versioned baseline): on Max's word, every
-Hobbes oracle cell — 41, dagger's 19 modules included — was
-re-ingested contained on one build and regraded against its standing
-key, so the comparative graphics and `tables.md` state the Hobbes
-version per cell (all 0.1.8-beta); the foreign cells stand as graded.
-spring-data-elasticsearch's first run under ADR-097's two passes
-failed and exposed C-101 — the Java resolve stage held Kotlin sources,
-and the Maven wrapper's distribution never reached the cache the
-offline index pass reads — fixed in three commits, the cell regraded
-16,050/16,050. The rest of the day is below. No API spend, no Modal.**
+## ⇢ START HERE NEXT SESSION: address the review findings, then decide the floor shapes and Jelly key grain
 
-**Rewritten 2026-09-10 (later still): Max asked two questions — Jelly
-as a third extractor lane, and why a `tsc` key beats a `tsc`-based
-indexer by 45–64 points — and directed the second first. Answered by
-the callee-shape bucket (`bench/oracle/shape/`, `docs/oracle/oracle-misses.md`):
-the indexer withholds almost nothing — cheerio 99.7% and zod 98.8% of
-the key's *function declarations* are drawn; the gap is the oracle's
-overload grain (61% / 37% of misses) and targets below the symbol floor
-(bindings, closures, interface signatures, class-property functions,
-`new`). C-100 found there and lifted: `.mts`/`.cts` were not discovered
-(cheerio 2,628/2,628 at 0.1.7-beta, every function target drawn). Three
-floor shapes priced for Max's call (W1); the Jelly cell's key grain is
-the decision to make before that afternoon. Earlier the same day: C-98
-lifted in both lanes, C-99, ADR-105 (0.1.5/0.1.6-beta). No API spend,
-no Modal.** Read this, then the three 2026-09-10 BUILDLOG entries, the
-new section at the top of `docs/oracle/oracle-misses.md` § Cells, and
-`docs/workstreams.md` W1 for the priced shapes. History lives in the
-BUILDLOG; this doc is rewritten, never appended into a pile.
+1. **Java resolve-stage claim:** `java_build_files` copies `.mvn/`,
+   `gradle/` and `buildSrc/` wholesale, bypassing the source-suffix
+   filter. A local reproduction retained `.mvn/Hidden.java` and
+   `gradle/Hidden.kt`. C-66 and architecture §3.2 now state this limit;
+   the product notice still overstates it. Fix and test the staging
+   boundary before widening build-logic exceptions. C-101's ordinary
+   source filtering and Maven wrapper/cache fixes pass their targeted
+   tests; no new foreign Java build was run.
+2. **Callee-shape metric (H-22):** collapsed recall merges distinct
+   same-named targets in one file and calls on one source line. The
+   sibling bucket and lane-A attribution also use approximate joins.
+   Keep the measured tables as exploratory records; establish canonical
+   declaration identity and call-site attribution before adding a second
+   recall line to `oracle grade` or treating the priced gains as exact.
+3. **Then Max's choices:** class-property function symbols, namespace
+   members, constructor target grain, and the Jelly key. Review
+   recommendations are in the record; none of these capabilities was
+   implemented or experiment runs authorized by this review.
+4. **W0 remains open:** the graph CI job forgets earlier red reviews;
+   `go/internal/version` and the union fixture's ownership treatment
+   still need resolution. Then the standing no-spend queue below.
 
----
-
-## ⇢ START HERE NEXT SESSION: Max reads the baseline and C-101, the bucket's answer, decides the three floor shapes and the Jelly key grain; then the no-spend queue
+The renderer's drift check passes; its data has 41 Hobbes cells, all
+0.1.8-beta and contained. Foreign records remain separate. The tag is
+complete, and remote publication status was not checked. Atlas-0,
+Calvin, TTT and other spending decisions remain held as recorded below.
 
 **Done 2026-09-10 (the versioned baseline; BUILDLOG):** 41 Hobbes cells
 regraded at 0.1.8-beta (`~/.hobbes/bench/v018/`), every record's last
@@ -61,18 +42,18 @@ it; `docs/comparative/README.md` § the versioned baseline says what
 moved (growth on click and this repo's two cells; silent counts on
 hono, memchr, quic-go) and why. C-101 registered and lifted (ADR-097
 amended): `_JVM_SOURCE_SUFFIXES`, the resolve pass through `./mvnw`,
-`MAVEN_USER_HOME`. **For Max's review, first:** the C-101 entry and the
-three fixes; whether `buildSrc/` is the only build-logic directory
-worth excepting (`build-logic/`, `gradle/plugins` are the residual);
-and whether to tag `v0.1.8-beta`.
+`MAVEN_USER_HOME`. **Reviewed:** the C-101 entry and three fixes; the staging
+boundary finding above takes precedence over widening exceptions.
+`v0.1.8-beta` is tagged.
 
 **Done 2026-09-10 (later still; BUILDLOG):** every cheerio (3,249) and
 zod (12,038) miss joined to the checker's reading of the callee
 expression and to lane A's record at the site. Collapsed to one pair
 per (site, target file, target name): cheerio **68.7%** (0.1.7-beta),
 zod **58.5%**; function declarations 1,911/1,911 and 6,307/6,385;
-methods 41/46 and 2,263/2,345. Not one miss on either cell is a site
-lane A resolved to a modelled symbol that the join failed to draw. The
+methods 41/46 and 2,263/2,345. The diagnostic reported no join miss,
+but its approximate attribution cannot establish that universal claim
+(H-22). The
 two records' 2026-09-10 blocks hold the tables. C-100 lifted; 0.1.7-beta;
 image rebuilt; register 100 / 75 / 23 / 2.
 
@@ -112,8 +93,8 @@ stamp, never a language server). hono 768/768, lanes 4,336 / 1.
    in the image as a batch program (P13), cheerio/zod, `oracle import`
    + the poison check, its Node-stdlib-as-unknown and deliberate
    unsoundness recorded before anything is admitted.
-4. **ADR-105 / P13, the C-98 residuals, the hono record's fourth block,
-   tagging** — as listed on 2026-09-10 earlier (BUILDLOG); unchanged.
+4. **ADR-105 / P13, the C-98 residuals, the hono record's fourth block**
+   — as listed on 2026-09-10 earlier (BUILDLOG); tagging is complete.
 
 **The comparative review's queue, as it stands:** item 1 approved; item
 2 (syft's keys, dagger's root — the bigger box) off the table (Max,
@@ -269,8 +250,8 @@ $0.1–5 (module explosions) and O $2.5–5.2 (the 30-turn cap); the
 template fix removes the explosions (bodies before confirmation 99 →
 45 over the 28) and the budget flag caps O at ~$3 a session, so a
 28-key, three-arm run should now read order $30–60 — state it before
-launching and run four keys first. The design's ADR takes 101 when Max
-moves it to *accepted*.
+launching and run four keys first. The design's ADR takes the next available
+number when Max moves it to *accepted*.
 
 **Also this session:** protocol v0.2 (`2ed0d11`: candidates in the
 `ANCHOR` hole; `loop.py --sampling model-default`, Sonnet 5 rejects

@@ -8143,3 +8143,37 @@ either way (ADR-025 is the contract).
 Go (`shape/`'s two run 15 unittest + 6 node cases), the rest untouched.
 No version bump: a test guard and bench tooling move nothing the layer
 draws, refuses or says (ADR-103).
+
+
+## 2026-09-10 — Baseline review and documentation drift
+
+Max directed the pending reviews and confirmed Hobbes is tagged
+0.1.8-beta. Reviewed at `4b2ec9588ceb` using Hobbes blind spots,
+callers, guarding tests and neighborhoods before targeted source reads.
+The complete findings and recommendations are in
+`docs/reviews/2026-09-10-baseline.md`.
+
+Two temporary reproductions found open issues: Java build-tool
+subdirectories bypass the JVM-source filter (C-66's source-free claim
+narrowed), and the exploratory collapsed-recall helper merges distinct
+same-named methods (H-22, RC-5). Its approximate lane-A join also cannot
+prove the universal no-join-miss claim. Architecture §3.2, ADR-097 and
+the miss record now state the limits; code fixes remain open. No new
+constraint number: this corrects the boundary and surfacing of active
+C-66. C-101's ordinary source and Maven wrapper/cache fixes pass their
+targeted checks; no foreign build was rerun.
+
+The generated data has 41 contained Hobbes cells at 0.1.8-beta, and the
+report drift check passes. Corrected the comparative baseline's “four”
+count, CLAUDE's current version, obsolete tagging decisions, the oracle
+seen tally (22 mapped), and H-11's stale open status. Rewrote the handoff
+opening around the findings and remaining lead decisions; tagged means
+complete, remote publication was not checked. Held experiments remain
+held; this review is not lead acceptance of a new stage or design.
+
+Validation: 12 targeted Java unit/profile tests passed; 5 Java
+containment tests passed (overlapping profile coverage); uncached Go
+shape/report packages passed (15 unittest + 6 Node cases, report drift).
+uv cache and Node subprocess sandbox failures passed on approved
+reruns. Documentation only; no version bump, generated data change,
+API/Modal spend, or push.

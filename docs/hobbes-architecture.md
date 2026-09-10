@@ -517,17 +517,21 @@ resolution. So a Java unit runs two contained passes: `fetch-java` runs
 the build's own resolution (Maven's `test-compile` with nothing to
 compile; the Gradle wrapper with a Hobbes init script that resolves every
 configuration) with podman's default network on a stage that holds the
-build files and resources and **no source the build compiles** (`.java`,
-`.kt`, `.scala`, `.groovy` — C-101; `buildSrc/` stays); `index-java` runs the build
-with scip-java attached on the full stage, `--network none`, with the
-tool's offline flag. The pass that can reach the network never sees a
-source; the pass that sees the sources has no route out. What the resolve
-pass still concedes — repo build logic with a network over its own build
-files and the public artifact caches — is C-66, disclosed on every Java
-ingest and in the `containment` stamp; the canary
-(`tests/fixtures/canary-java`) proves the build reaches neither a planted
-host secret nor the host tree, and that no pass saw sources and network
-together. The image carries JDK 17, 21 and 25 for Gradle's toolchain
+build files and resources. The ordinary walk excludes `.java`, `.kt`,
+`.scala` and `.groovy` (C-101), but **`.mvn/`, `gradle/` and `buildSrc/`
+are copied recursively without that filter**. The first two can therefore
+carry application sources too; `buildSrc/` is the intended build-logic
+exception. This staging-boundary defect was reproduced in the 2026-09-10
+review and is recorded under C-66; the claim that the networked pass
+never sees sources is not currently guaranteed. `index-java` runs the
+build with scip-java attached on the index stage, `--network none`, with
+the tool's offline flag. The resolve pass concedes repo build logic with
+a network over the staged files and public artifact caches. The ingest
+notice still overstates the source exclusion; the containment stamp
+records the passes, not an audit of their contents. The Java canary proves
+its planted ordinary-source and host-access probes; it does not cover
+sources placed in the build-tool directories.
+The image carries JDK 17, 21 and 25 for Gradle's toolchain
 pins, Maven, and the scip-java launcher (+1.1 GB).
 
 **Lane B runs per unit and degrades per unit** (ADR-048). The unit an

@@ -126,14 +126,14 @@ roots. Maintained in the same commit as the log entry that changes it
 | RC-2 | Code nobody wrote attributed to a source line | H-13, H-15, H-16, H-21 | 4 | closed-policy | Provenance rule: drop and count by default; reclassify when the dropped class is semantically real (macro→function). H-21 added the converse: a *declaration* the compiler synthesised at a source line a reader can point at (javac's default constructor, at the class line) is kept — dropping it costs real pairs. |
 | RC-3 | Oracle right at a different grain than the binding | H-3, H-5, H-6, H-18, H-19 | 5 | closed-policy | D-O4, extended 2026-08-27 with the element-access bullet (A-4) and 2026-08-28 with the function-valued-binding (abstract) and `@overload`-anchor bullets. Two sightings against a closed-policy root in one triage: the rule held, its bullet list was short. |
 | RC-4 | Silence that reads as a result | H-1, H-12 | 2 | closed-policy | RR-6: absence prints as its own state. A-1 landed 2026-08-27 (`no-roots`). |
-| RC-5 | Ratio quoted with unlabeled over-approximation or mismatched denominator | H-4, H-14 | 2 | closed-policy | Split by class, label inflation; numerator and denominator from one index. Log rule 2. |
+| RC-5 | Ratio quoted with unlabeled over-approximation or mismatched denominator | H-4, H-14, H-22 | 3 | closed-policy | Split by class, label inflation; numerator and denominator from one index. Log rule 2. H-22 is an open violation: the exploratory bucket merges distinct identities; cell impact unmeasured. |
 | RC-6 | Walk-down loop that does not strictly descend | H-17 | 1 | closed-structural | `descend()` guard landed 2026-08-27 (A-5); site rule landed via RC-3's element-access extension (A-4). |
 | RC-8 | One declaration, two spellings — a cross-compilation identity key that is not canonical | H-20 | 1 | closed-structural | The key a shard emits must be built from the element model, never from a printed type: annotations, type-variable bounds and generic arguments all differ between a source compilation and the class file another compilation resolves against. Any future oracle that joins facts across separate compiler runs inherits this row. |
 | RC-7 | Miss-class taxonomy diverges across languages | H-7 | 1 | provisional | Patched: local-binding split from closure; TS modes derived from binding shape so Go and TS classes read alike. Watch for the Rust/Python analogue. |
 | — | Cosmetic | H-8, H-11 | 2 | — | H-11 → A-3. |
 | — | Environment limit (not a defect root) | H-9 | 1 | parked | A-9. |
 
-Coverage check: 19 of 19 entries mapped.
+Coverage check: 22 of 22 entries mapped (updated 2026-09-10 for H-22).
 
 **Promotion mechanics.** New defect → assign to an existing RC or open
 a new one at *provisional*. Assignment to an RC with n≥2 triggers the

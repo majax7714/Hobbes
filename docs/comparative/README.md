@@ -35,10 +35,10 @@ dagger modules, kbet and toml for the first time); the foreign cells
 were not regraded, since the tools did not change. The renderer reads
 the version from each record's last regrade heading and prints it in
 `tables.md` and on the graphics, so the page can say which Hobbes it
-describes. Every cell held to the digit on its graded set but four
-that moved by growth or a fresh key (this repo's two dogfood cells,
-click, and the silent counts on hono, memchr and quic-go — each
-record's 2026-09-10 block says what moved and why); one cell,
+describes. The records distinguish changes from growth or refreshed keys
+(this repo's two dogfood cells and click) from changed silent-edge
+counts (hono, memchr and quic-go); each record's 2026-09-10 block
+says what moved and why. One cell,
 spring-data-elasticsearch, failed its first run under ADR-097's two
 passes and exposed C-101 (the Java resolve stage held Kotlin sources;
 the Maven wrapper's distribution was not cached for the offline pass),
