@@ -135,21 +135,26 @@ build item.*
 
 *Profile: any contributor; good first-week territory.*
 
-**Review follow-up (2026-09-10):** H-22 blocks promoting collapsed
+**Review follow-up (2026-09-10):** ~~H-22 blocks promoting collapsed
 recall: canonical declaration/site identity and an ambiguity audit are
-needed first. The current tables are exploratory; see
-[the review](reviews/2026-09-10-baseline.md).
+needed first.~~ — **done 2026-09-10 (later):** the bucket collapses by
+the checker's qualified name and hits by exact position, attributes by
+column with explicit ambiguous / no-record rows, and reads `new`; both
+cells re-measured (cheerio unchanged, zod +3 pairs of 16,634;
+`docs/oracle/oracle-misses.md`). Promotion to an `oracle grade` line
+stays Max's call.
 
 ## W1 — Extraction & graph core
 
 *The stable subsystem. Self-contained items with measured targets —
 the best on-ramp for a new contributor who should learn the codebase.*
 
-- **Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
-  `gradle/` and `buildSrc/` bypass the source-suffix filter. Reproduced
-  with `.mvn/Hidden.java` and `gradle/Hidden.kt`. Fix and test the
-  boundary and correct the product notice before widening exceptions;
-  the architecture now states the actual limit.
+- ~~**Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
+  `gradle/` and `buildSrc/` bypass the source-suffix filter.~~ — **done
+  2026-09-10 (later), 0.1.9-beta:** one walk, one rule; the notice
+  corrected; the canary's sentinel probe sees the resolve pass. The
+  exception set is unchanged (`buildSrc/` only); a `build-logic/`
+  included build degrades visibly and is a decision for later.
 - **The symbol floor, three shapes the callee-shape bucket priced
   (2026-09-10, `docs/oracle/oracle-misses.md`; Max's call each, none
   started):** a class property whose initializer is a function literal

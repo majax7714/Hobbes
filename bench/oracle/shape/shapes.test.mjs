@@ -86,6 +86,21 @@ test("a member callee names the terminal and reads the receiver", () => {
   assert.equal(at(12, "toFixed").decls[0].ext, true);
 });
 
+test("a new expression is a site of its own, shaped by the class it names", () => {
+  const box = at(6, "Box");
+  assert.equal(box.shape, "new");
+  assert.equal(box.recv, null);
+  assert.equal(box.decls[0].kind, "class");
+  assert.deepEqual([box.line, box.col, box.cline, box.ccol], [6, 4, 6, 4]);
+  // Box declares no constructor: the construct signature tsc resolves is
+  // synthesised and has no declaration — the record says so (null); the
+  // oracle names the class at that site instead (its `target` rule)
+  assert.equal(box.sigDecl, null);
+  // the `new` inside lib's static make(), and the member call on the result still reads `new`
+  assert.equal(records.filter((r) => r.shape === "new").length, 2);
+  assert.equal(at(6, "go").recv, "new");
+});
+
 test("a call on this, a parameter, and an interface member", () => {
   const lib = records.find((r) => r.path === "src/lib.ts" && r.name === "run");
   assert.equal(lib.recv, "this");

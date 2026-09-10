@@ -70,7 +70,9 @@ function receiverShape(root, r) {
 }
 
 // Every call site of the zone under <root>/tsconfig.json: one record per
-// CallExpression with the callee's shape, the terminal name's
+// CallExpression — and per NewExpression, shape `new` (since 2026-09-10:
+// the oracle sites `new X(..)` at X, and a miss there had no record to
+// join to — H-22) — with the callee's shape, the terminal name's
 // declarations and the resolved signature's declaration. Lines are
 // 1-based, columns 0-based; `line`/`col` name the terminal identifier
 // (the oracle's site), `cline`/`ccol` the callee expression's start.
@@ -83,10 +85,16 @@ export function calleeShapes(root) {
     if (fp.includes("node_modules")) continue;
     const rel = path.relative(root, fp);
     sf.forEachDescendant(node => {
-      if (!Node.isCallExpression(node)) return;
+      const isNew = Node.isNewExpression(node);
+      if (!isNew && !Node.isCallExpression(node)) return;
       const callee = node.getExpression();
       let shape, terminal = null, recv = null;
-      if (Node.isIdentifier(callee)) { shape = "identifier"; terminal = callee; }
+      if (isNew) {
+        shape = "new";
+        if (Node.isIdentifier(callee)) terminal = callee;
+        else if (Node.isPropertyAccessExpression(callee)) { terminal = callee.getNameNode(); recv = receiverShape(root, callee.getExpression()); }
+      }
+      else if (Node.isIdentifier(callee)) { shape = "identifier"; terminal = callee; }
       else if (Node.isPropertyAccessExpression(callee)) { shape = "member"; terminal = callee.getNameNode(); recv = receiverShape(root, callee.getExpression()); }
       else if (Node.isElementAccessExpression(callee)) { shape = "computed"; }
       else if (Node.isCallExpression(callee)) { shape = "call-result-callee"; }

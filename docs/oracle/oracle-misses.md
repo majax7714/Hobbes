@@ -52,11 +52,22 @@ classes. Done on cheerio (3,249 misses) and zod (12,038): every miss
 joined to the checker's reading of the callee at its site (an
 identifier → what its declaration is; a member → what the receiver is;
 `bench/oracle/shape/shapes.mjs`) and to lane A's own record there
-(`bucket.py`). **The diagnostic suggests overload grain and the symbol floor
-explain much of the gap.** Its line/bare-name joins are approximate
-(H-22, found in the [2026-09-10 review](../reviews/2026-09-10-baseline.md));
-the tables below are exploratory, not exact declaration-level recall.
-Two substantial contributors are:
+(`bucket.py`). **The reading: the gap is the key's overload grain and
+the symbol floor, not the indexer.** The joins were first written at
+line and bare-name grain (H-22, found in the [2026-09-10
+review](../reviews/2026-09-10-baseline.md)) and **re-done the same day
+on canonical identity** — a target is its file and the checker's fully
+qualified name (overload signatures share one; `A.run` and `B.run` do
+not), a confirmed row hits the target at its exact position on its line
+(the grader's own rule), a miss takes the checker record at the oracle
+site's column and is otherwise an explicit `ambiguous` / `no record`
+row, and `new X(..)` is a record — then both cells re-measured on the
+0.1.8-beta grades: **cheerio unchanged** (3,826 pairs, 2,628 hit,
+68.7%; 1,266 misses attributed at the column, 0 by name, 5 ambiguous),
+**zod +3 pairs** the bare name had merged (16,631 → 16,634; 9,731 hit,
+58.5%; 7,570 at the column, 0 by name, 12 ambiguous, 14 with no
+record), 0 confirmed rows unexplained on either. The tables below stand
+on that identity. Two substantial contributors are:
 
 1. **The oracle's overload grain** — one pair per overload *signature*
    (H-19's recall side, noted 2026-08-28 and now measured). Hobbes draws
@@ -66,16 +77,21 @@ Two substantial contributors are:
 2. **Targets below the symbol floor** — the key names a declaration the
    graph has no node for: a `let`/`const` binding, a parameter, a
    closure, an interface member signature, a class property holding a
-   function, a class reached by `new`. The diagnostic associates many
-   of these rows with lane-A records having *no callee, origin
-   `local`/`nested`* (C-32, C-58, C-9). It does not prove that every
-   miss has that cause: `NewExpression` has no shape record, and the
-   lane-A match takes the first candidate on a line (H-22).
+   function, a class reached by `new`. Lane A's record at those sites
+   reads *no callee, origin `local`/`nested`* where it has one (C-32,
+   C-58, C-9); the `new` sites (cheerio 5, zod 306: 114 on a class,
+   107 on an interface-typed constructor value — v4's `$constructor`
+   pattern — 85 on a parameter) have no lane A record at all, since the
+   helper does not visit `NewExpression`. What the attribution cannot
+   settle is named: 5 + 12 sites where two checker records sit at the
+   oracle's column and read differently (`__call` sites — the
+   `CheerioAPI` call signature — and v4 `.and` / `.describe` chains),
+   14 zod lines with no checker record (`~validate` and friends).
 
-Collapsed to one pair per (site path, site line, target file, bare
-target name), by what the key's target *is*. This can merge different declarations with
-the same bare name, not only overload siblings; the effect on these
-two cells has not yet been measured (H-22):
+Collapsed to one pair per (site path, site line, target file, the
+checker's fully qualified target name), by what the key's target *is*
+— the overload grain removed and nothing else (H-22 closed; the bare
+name had merged 0 pairs on cheerio and 3 on zod):
 
 | target kind | cheerio (hit / pairs) | zod (hit / pairs) |
 |---|---|---|
@@ -84,11 +100,11 @@ two cells has not yet been measured (H-22):
 | variable (a modelled `const` holding a function) | 676 / 676 | 1,161 / 1,625 (71.4%) |
 | local binding | 0 / 997 | 0 / 59 |
 | closure | 0 / 173 | 0 / 323 |
-| interface member signature (`type-member`) | 0 / 6 | 0 / 4,742 |
+| interface member signature (`type-member`) | 0 / 6 | 0 / 4,745 |
 | class property holding a function (`property`) | — | 0 / 1,029 |
 | class, by `new` | 0 / 5 | 0 / 110 |
 | anonymous signature (`CheerioAPI.__call`) | 0 / 12 | 0 / 13 |
-| **all** | **2,622 / 3,826 = 68.5%** (68.7% at 0.1.7-beta) | **9,731 / 16,631 = 58.5%** |
+| **all** | **2,622 / 3,826 = 68.5%** (68.7% at 0.1.7-beta) | **9,731 / 16,634 = 58.5%** |
 
 Where the below-floor rows concentrate — three shapes on each cell:
 cheerio's specs bind `let $: CheerioAPI` and assign it in `beforeEach`
