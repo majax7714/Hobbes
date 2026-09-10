@@ -96,3 +96,12 @@ numbers that agree with nothing is worse than none.
   tools to state it (C-65 already says so of any proxy rebuild).
 - A wheel installed outside a checkout now states its version where
   it could only say "no git commit" before.
+
+## Amendment 2026-09-10 (later still) — the number line, and 0.1.9-beta untagged
+
+Max, on the 0.1.9-beta bump: **leave the tag off** (the last tag is
+`v0.1.8-beta`; a tag is his call each time, never part of a bump), and
+**the version after the next one is 0.11.0-beta, not 0.2.0** — the
+minor line the layer moves to is 0.11, chosen, not derived, like the
+starting point in §5. Patch bumps continue on the 0.1.x line until
+then; a minor bump (§3) lands on 0.11.0-beta.

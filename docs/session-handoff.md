@@ -2,7 +2,9 @@
 
 **Reviewed 2026-09-10; Hobbes 0.1.9-beta on `main`** (0.1.8-beta is
 tagged `v0.1.8-beta`, confirmed by Max and the local tag; 0.1.9-beta is
-**not tagged** — Max's call). Work remains on `main`; publishing belongs
+**untagged — Max: leave the tag off**). **Numbering (Max, the same
+evening; ADR-103 amended): after the next version the layer goes to
+0.11.0-beta, not 0.2.0.** Work remains on `main`; publishing belongs
 to Max. The baseline review's record: [review](reviews/2026-09-10-baseline.md).
 **Its two code findings are closed (2026-09-10 later still, three
 commits; BUILDLOG)**; the design choices it declined to make are still
@@ -42,10 +44,10 @@ Max's, below.
 4. **W0 remains open:** the graph CI job forgets earlier red reviews;
    `go/internal/version` and the union fixture's ownership treatment
    still need resolution. Then the standing no-spend queue below.
-5. **Practical, now:** the session's knowledge server runs the image it
-   started with — the image was rebuilt at 0.1.9-beta and this repo
-   re-ingested; **restart the server** (C-65) or every answer opens with
-   a version mismatch.
+5. **Practical:** the image was rebuilt at 0.1.9-beta and this repo
+   re-ingested; the stale 0.1.8-beta knowledge container this session
+   had started was stopped at the end of it, so the next session's
+   `knowledge-serve` starts fresh on the rebuilt image (C-65).
 
 The renderer's drift check passes on the amended records (their last
 versioned block is still the 0.1.8-beta regrade; the identity addendum

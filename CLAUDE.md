@@ -242,7 +242,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   draws, refuses or says bumps patch; a capability bumps minor; both in
   the same commit as the change, with a `CHANGELOG.md` entry. Nothing
   under `bench/` or an experiment record moves it. Rebuild the image
-  after a bump (C-65).
+  after a bump (C-65). **The number line is Max's (ADR-103 amendment,
+  2026-09-10): after the next version comes 0.11.0-beta, not 0.2.0;**
+  tags are his call each time — 0.1.9-beta is untagged, the last tag
+  is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`

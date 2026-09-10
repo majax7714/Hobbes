@@ -8253,3 +8253,10 @@ the oracle lane's 51 (23 unittest + 7 node in `shape/`, the report
 drift test on the amended records), `test_version.py`. Static proxy and
 image rebuilt for the bump (C-65); this repo re-ingested. No spend, no
 push, three commits on `main`.
+
+Later, Max's two notes: 0.1.9-beta stays untagged, and the number line
+after the next version is **0.11.0-beta, not 0.2.0** — ADR-103 amended,
+CHANGELOG head and CLAUDE conventions say so. The session's knowledge
+container (started on the 0.1.8-beta image before the rebuild; the
+proxy answered `0.1.8-beta`) was stopped so the next session starts on
+the rebuilt image.

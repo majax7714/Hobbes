@@ -5,7 +5,10 @@ the product, in plain words, with the ADRs and constraints it rests on.
 The experiments under `bench/` and the records under `docs/` are
 internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
-running architecture is `docs/hobbes-architecture.md`.
+running architecture is `docs/hobbes-architecture.md`. The number line
+is Max's: after the next version the layer moves to **0.11.0-beta**,
+not 0.2.0 (ADR-103 amendment, 2026-09-10); tags are his call each time
+(0.1.9-beta untagged; the last tag is `v0.1.8-beta`).
 
 ## 0.1.9-beta — 2026-09-10 (later still)
 
