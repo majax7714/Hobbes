@@ -890,26 +890,134 @@ export function nearestTsconfig(root, file) {
   }
 }
 
+/** Repo-relative posix form of an absolute path under *root*. */
+function relPosix(root, abs) {
+  return path.relative(root, abs).split(path.sep).join("/");
+}
+
+/** The raw JSON of a tsconfig (comments tolerated, `extends` NOT
+ * applied), or `{}` when it cannot be read. Cheap: no disk walk. */
+function tsconfigRaw(root, config, cache) {
+  const key = `raw:${config}`;
+  if (!cache.has(key)) {
+    const read = ts.readConfigFile(path.join(root, config), ts.sys.readFile);
+    cache.set(key, read.config && typeof read.config === "object" ? read.config : {});
+  }
+  return cache.get(key);
+}
+
+/** A *solution-style* tsconfig: project `references` and no inputs of
+ * its own — `files` or `include` written empty, neither non-empty. It
+ * describes no files, so its compiler options are nobody's — loading it
+ * as a zone's options ran the checker at its ES5 defaults (C-98). A
+ * config with `references` and *neither* key is not one: the compiler's
+ * default include is then the whole directory (C-99). The rule is lane
+ * B's `is_solution_tsconfig` (C-90), read from the same two keys. */
+export function isSolutionTsconfig(raw) {
+  const nonEmpty = (v) => Array.isArray(v) && v.length > 0;
+  if (!Array.isArray(raw.references) || nonEmpty(raw.include) || nonEmpty(raw.files)) return false;
+  return "files" in raw || "include" in raw;
+}
+
+/** The compiler's own reading of a tsconfig — its inputs after
+ * `extends` / `include` / `exclude` / `files`, and its project
+ * references resolved to config files — both repo-relative; references
+ * outside the repo are dropped. Parsed once per config per extraction:
+ * the include globs walk the disk, so this is asked only of the
+ * projects a solution config names, never of an ordinary zone. */
+function tsconfigInputs(root, config, cache) {
+  const key = `parsed:${config}`;
+  if (!cache.has(key)) {
+    const host = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => {} };
+    const parsed = ts.getParsedCommandLineOfConfigFile(path.join(root, config), {}, host);
+    const references = [];
+    for (const ref of parsed?.projectReferences ?? []) {
+      const rel = relPosix(root, ts.resolveProjectReferencePath(ref));
+      if (!rel.startsWith("..") && !path.isAbsolute(rel)) references.push(rel);
+    }
+    cache.set(key, {
+      files: new Set((parsed?.fileNames ?? []).map((f) => relPosix(root, f))),
+      references,
+    });
+  }
+  return cache.get(key);
+}
+
+/** The tsconfig whose project *file* belongs to — its zone.
+ *
+ * The nearest `tsconfig.json` at or above the file, as before; but when
+ * that one is a solution config (C-98), the zone is the first project
+ * it references — in the order written, solutions followed
+ * transitively inside the repo — whose inputs, by the compiler's own
+ * reading, include the file. A file no referenced project claims gets
+ * "" and runs under the default options, exactly as a file under no
+ * tsconfig does (and as lane B's generated config treats it, C-90);
+ * `extractRepo` reports those per solution config. A project that
+ * includes a file twice (two references both claiming it) is one
+ * program per reference to `tsc -b`; here the first named wins, and
+ * `tsconfigs` in the facts names the zones actually used. */
+export function zoneTsconfig(root, file, cache = new Map()) {
+  const nearest = nearestTsconfig(root, file);
+  if (!nearest || !isSolutionTsconfig(tsconfigRaw(root, nearest, cache))) return nearest;
+  const seen = new Set();
+  const claimant = (config) => {
+    if (seen.has(config)) return "";
+    seen.add(config);
+    if (!isSolutionTsconfig(tsconfigRaw(root, config, cache))) {
+      return tsconfigInputs(root, config, cache).files.has(file) ? config : "";
+    }
+    for (const ref of tsconfigInputs(root, config, cache).references) {
+      const found = claimant(ref);
+      if (found) return found;
+    }
+    return "";
+  };
+  return claimant(nearest);
+}
+
 export function extractRepo(repoRoot) {
   const root = path.resolve(repoRoot);
   const files = discoverFiles(root);
   const fileSet = new Set(files);
   const packages = discoverWorkspacePackages(root);
 
-  // Files group by their nearest tsconfig.json ("zones"), one ts-morph
-  // Project per zone, so per-package compiler options — path aliases
-  // above all — resolve the way that package's own build does. Files
-  // under no tsconfig share a default allowJs project. Cross-zone
-  // imports don't resolve (separate programs); accepted, rare.
+  // Files group by the tsconfig whose project they belong to ("zones"),
+  // one ts-morph Project per zone, so per-package compiler options —
+  // path aliases above all — resolve the way that package's own build
+  // does. Files under no tsconfig share a default allowJs project, and
+  // so do files under a solution-style root that no referenced project
+  // includes (C-98) — those are reported, per solution config, below.
+  // Cross-zone imports don't resolve (separate programs); accepted, rare.
   const zones = new Map();
+  const unclaimed = new Map();
+  const configCache = new Map();
   for (const file of files) {
-    const zone = nearestTsconfig(root, file);
+    const zone = zoneTsconfig(root, file, configCache);
     if (!zones.has(zone)) zones.set(zone, []);
     zones.get(zone).push(file);
+    if (!zone) {
+      const nearest = nearestTsconfig(root, file);
+      if (nearest) {
+        if (!unclaimed.has(nearest)) unclaimed.set(nearest, []);
+        unclaimed.get(nearest).push(file);
+      }
+    }
   }
 
   const out = [];
   const errors = [];
+  for (const [solution, its] of [...unclaimed.entries()].sort()) {
+    // Visible, not silent (P1): the files a solution config's projects
+    // leave unclaimed ran under the default options, not the repo's.
+    const sample = its.slice(0, 4).join(", ");
+    errors.push({
+      message:
+        `${its.length} file(s) no project referenced from ${solution} includes (${sample}` +
+        `${its.length > 4 ? ", …" : ""}) — extracted under the default compiler options`,
+      path: solution,
+      stage: "tsconfig-unclaimed",
+    });
+  }
   for (const [zone, zoneFiles] of [...zones.entries()].sort()) {
     // Zone configs get safety overrides: extraction must handle files
     // the package's own build ignores (a stray service worker), and

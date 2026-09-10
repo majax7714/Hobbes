@@ -953,20 +953,24 @@ def referenced_ts_configs(repo_root: Path, configs: list[str]) -> list[str]:
 
 
 _TS_ANY_INPUTS = re.compile(r'"(?:include|files)"\s*:\s*\[\s*"')
+_TS_INPUT_KEY = re.compile(r'"(?:include|files)"\s*:')
 
 
 def is_solution_tsconfig(path: Path) -> bool:
-    """A tsconfig that only *references* projects — `references` present,
-    `include`/`files` empty or absent — describes no inputs of its own
-    (TypeScript's solution-style root). Indexed as the zone's config it
-    reports *"no files got indexed"* for the zone's own files (C-90)."""
+    """A tsconfig that only *references* projects — `references` present
+    and `include` or `files` written empty, neither non-empty — describes
+    no inputs of its own (TypeScript's solution-style root). Indexed as
+    the zone's config it reports *"no files got indexed"* for the zone's
+    own files (C-90). A config with `references` and *neither* key is a
+    project, not a solution: the compiler's default include is then the
+    whole directory (C-99, 2026-09-10 — hono's ``runtime-tests/*``)."""
     try:
         text = path.read_text(errors="replace")
     except OSError:
         return False
     if not _TS_REFERENCES_BLOCK.search(text):
         return False
-    return not _TS_ANY_INPUTS.search(text)
+    return not _TS_ANY_INPUTS.search(text) and bool(_TS_INPUT_KEY.search(text))
 
 
 def _ts_config_candidates(base: Path, target: str) -> list[Path]:

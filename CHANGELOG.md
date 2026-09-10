@@ -7,6 +7,36 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
+## 0.1.5-beta — 2026-09-10
+
+**Patch: a change in what Hobbes draws (C-98 lifted).** Under a
+solution-style `tsconfig.json` — `files: []` and project `references`,
+hono's root, any `tsc -b` monorepo — the TS helper built the zone's
+project from the solution file, which carries no compiler options: the
+checker ran at its ES5 defaults, `Array.flat` was unknown, a receiver
+reached through a newer lib was `any`, and every lane-A observation that
+needs the type was absent — callee, origin and ADR-104's abstention
+alike. The helper now resolves a file under a solution config to the
+referenced project whose inputs include it, by the compiler's own
+reading of the configs (references followed transitively inside the
+repo, the first named claimant wins) — the lane-A analogue of C-90's
+rule. A file no referenced project claims runs under the default
+options and the ingest says so (`tsconfig-unclaimed`, one degradation
+line per solution config, the files sampled).
+
+- hono regraded against its standing key: 767/768 → **768/768
+  (100.0%)**, 0 contradicted; 15 sites on `src/` are typed now and
+  abstained as `union-member` (C-97). The claim page's one named
+  exception is quic-go.
+- Found on the way and fixed in both lanes (**C-99**, registered and
+  lifted): a tsconfig with `references` and *neither* `files` nor
+  `include` was taken for a solution config — the compiler's default
+  include is then the whole directory, so hono's six
+  `runtime-tests/*/tsconfig.json` zones had been indexed under the
+  generated config instead of their own options.
+- Facts schema unchanged (v5); `errors` gains a stage. Lane agreement
+  on hono unchanged.
+
 ## 0.1.4-beta — 2026-09-09
 
 **Patch: a change in what Hobbes draws (ADR-104).** A member call on a

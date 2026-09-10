@@ -15,7 +15,7 @@ import {
   externalName,
   extractRepo,
   isTestFile,
-  resolveRelative, UNION_MEMBER } from "../extract.mjs";
+  resolveRelative, UNION_MEMBER, isSolutionTsconfig, zoneTsconfig } from "../extract.mjs";
 
 function makeRepo(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "tsextract-"));
@@ -616,6 +616,131 @@ test("nested tsconfig zone resolves its own path aliases", () => {
   );
   // The zone-less files still resolve through the default project.
   assert.equal(byPath(facts, "elsewhere/plain.js").imports[0].resolved, "elsewhere/other.js");
+});
+
+test("a solution-style tsconfig resolves a file to the referenced project that includes it (C-98)", () => {
+  // hono's shape: a root that only references projects, the real
+  // options one `extends` away in the project whose include claims
+  // the file. Loading the root as the zone's options ran the checker
+  // at ES5 defaults: no path aliases, `Array.flat` unknown, receivers
+  // `any` — nothing to resolve with and nothing to abstain with.
+  const root = makeRepo({
+    "tsconfig.json": JSON.stringify({
+      files: [],
+      references: [{ path: "./tsconfig.build.json" }, { path: "./tsconfig.spec.json" }],
+    }),
+    "tsconfig.base.json": JSON.stringify({
+      compilerOptions: {
+        target: "ES2022",
+        module: "ESNext",
+        moduleResolution: "Bundler",
+        strict: true,
+        skipLibCheck: true,
+        paths: { "@/*": ["./src/*"] },
+      },
+    }),
+    "tsconfig.build.json": JSON.stringify({
+      extends: "./tsconfig.base.json",
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.test.ts"],
+    }),
+    "tsconfig.spec.json": JSON.stringify({
+      extends: "./tsconfig.base.json",
+      include: ["src/**/*.test.ts"],
+    }),
+    "src/shapes.ts": [
+      "export class Base { render(): string { return 'base'; } }",
+      "export class Alpha extends Base { render(): string { return 'alpha'; } }",
+      "export class Beta extends Base { render(): string { return 'beta'; } }",
+      "export function pick(): (Alpha | Beta)[][] { return [[new Alpha()]]; }",
+    ].join("\n"),
+    "src/app.ts": [
+      'import { pick } from "@/shapes";',
+      "export function draw() { return pick().flat().map((c) => c.render()); }",
+    ].join("\n"),
+    "src/app.test.ts": 'import { draw } from "@/app";\ndraw();\n',
+    // no referenced project includes this one: default options, reported
+    "scripts/tool.ts": "export function tool() { return 1; }\ntool();\n",
+    // an ordinary nested tsconfig is still the nearest, untouched
+    "benchmarks/tsconfig.json": JSON.stringify({ compilerOptions: { target: "ES2022" } }),
+    "benchmarks/run.ts": "export function run() { return 1; }\nrun();\n",
+    // hono's runtime-tests: references beside options, no include — the
+    // default include is the directory, so this is its own project (C-99)
+    "runtime/tsconfig.json": JSON.stringify({
+      compilerOptions: { target: "ES2022" },
+      references: [{ path: "../tsconfig.build.json" }],
+    }),
+    "runtime/t.ts": "export const t = 1;\n",
+  });
+  assert.equal(isSolutionTsconfig({ files: [], references: [{ path: "./x" }] }), true);
+  assert.equal(isSolutionTsconfig({ include: [], references: [] }), true);
+  assert.equal(isSolutionTsconfig({ include: ["src"], references: [{ path: "./x" }] }), false);
+  assert.equal(isSolutionTsconfig({ compilerOptions: {} }), false);
+  // references with neither key: the compiler includes the whole
+  // directory by default — a project, not a solution (C-99)
+  assert.equal(isSolutionTsconfig({ references: [{ path: "./x" }], compilerOptions: {} }), false);
+  assert.equal(zoneTsconfig(root, "runtime/t.ts"), "runtime/tsconfig.json");
+  assert.equal(zoneTsconfig(root, "src/app.ts"), "tsconfig.build.json");
+  assert.equal(zoneTsconfig(root, "src/app.test.ts"), "tsconfig.spec.json");
+  assert.equal(zoneTsconfig(root, "scripts/tool.ts"), "");
+  assert.equal(zoneTsconfig(root, "benchmarks/run.ts"), "benchmarks/tsconfig.json");
+
+  const facts = extractRepo(root);
+  // the zones actually used; the solution root is nobody's options
+  assert.deepEqual(facts.tsconfigs, ["benchmarks/tsconfig.json", "runtime/tsconfig.json", "tsconfig.build.json", "tsconfig.spec.json"]);
+  const app = byPath(facts, "src/app.ts");
+  // the referenced project's options: the alias resolves …
+  assert.deepEqual(app.imports.map((i) => [i.specifier, i.resolved]), [["@/shapes", "src/shapes.ts"]]);
+  // … `flat` exists in its lib, and the union receiver it yields is
+  // typed — so C-97's abstention has something to abstain with
+  assert.deepEqual(
+    app.calls.filter((c) => c.line === 2).map((c) => [c.name, c.callee, c.origin, c.ambiguous]),
+    [
+      ["pick", "pick", null, null],
+      ["flat", null, "external", null],
+      ["map", null, "external", null],
+      ["render", null, null, UNION_MEMBER],
+    ]
+  );
+  assert.equal(byPath(facts, "src/app.test.ts").imports[0].resolved, "src/app.ts");
+  // the unclaimed file is extracted under the defaults and said so, once per solution
+  assert.deepEqual(byPath(facts, "scripts/tool.ts").calls.map((c) => [c.callee_path, c.callee]), [["scripts/tool.ts", "tool"]]);
+  assert.deepEqual(
+    facts.errors.filter((e) => e.stage === "tsconfig-unclaimed"),
+    [
+      {
+        message:
+          "1 file(s) no project referenced from tsconfig.json includes (scripts/tool.ts) — " +
+          "extracted under the default compiler options",
+        path: "tsconfig.json",
+        stage: "tsconfig-unclaimed",
+      },
+    ]
+  );
+});
+
+test("a solution reached through another solution is followed inside the repo; cycles and outside references are not (C-98)", () => {
+  const root = makeRepo({
+    "tsconfig.json": JSON.stringify({
+      files: [],
+      references: [{ path: "../elsewhere" }, { path: "./configs/tsconfig.solution.json" }],
+    }),
+    "configs/tsconfig.solution.json": JSON.stringify({
+      files: [],
+      references: [{ path: ".." }, { path: "./tsconfig.lib.json" }], // `..` is the root: a cycle
+    }),
+    "configs/tsconfig.lib.json": JSON.stringify({
+      compilerOptions: { target: "ES2022" },
+      include: ["../lib/**/*.ts"],
+    }),
+    "lib/x.ts": "export const x = 1;\n",
+    "other/y.ts": "export const y = 1;\n",
+  });
+  assert.equal(zoneTsconfig(root, "lib/x.ts"), "configs/tsconfig.lib.json");
+  assert.equal(zoneTsconfig(root, "other/y.ts"), "");
+  const facts = extractRepo(root);
+  assert.deepEqual(facts.tsconfigs, ["configs/tsconfig.lib.json"]);
+  assert.deepEqual(facts.errors.map((e) => [e.stage, e.path]), [["tsconfig-unclaimed", "tsconfig.json"]]);
 });
 
 test("unresolved alias specifiers never become external packages", () => {

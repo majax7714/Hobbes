@@ -1094,3 +1094,13 @@ class TestReferencedTsConfigs:
         assert not scipsource.is_solution_tsconfig(tmp_path / "plain.json")
         (tmp_path / "files.json").write_text('{ "files": ["a.ts"], "references": [] }')
         assert not scipsource.is_solution_tsconfig(tmp_path / "files.json")
+        # references beside options with neither `files` nor `include`:
+        # the compiler's default include is the directory — a project
+        # (hono's runtime-tests/*, C-99), not a solution
+        (tmp_path / "refs-only.json").write_text(
+            '{\n  "extends": "../../tsconfig.base.json",\n  "compilerOptions": { "noEmit": true },\n'
+            '  "references": [ { "path": "../../tsconfig.build.json" } ]\n}\n'
+        )
+        assert not scipsource.is_solution_tsconfig(tmp_path / "refs-only.json")
+        (tmp_path / "files-empty.json").write_text('{ "files": [], "references": [ { "path": "./x" } ] }')
+        assert scipsource.is_solution_tsconfig(tmp_path / "files-empty.json")
