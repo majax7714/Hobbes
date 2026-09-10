@@ -2,7 +2,22 @@
 <title>Precision-against-oracle by recall, one dot per cell, per language</title>
 <rect width="1090" height="960" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled</text>
-<text x="24" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One colour per tool, as in same-key.svg: blue dot = Hobbes, orange square = CodeGraphContext (·cgc), green diamond = repowise (·rw) — third-party graphs graded by the same key (ADR-101).</text>
+<g>
+<title>Hobbes 0.1.8-beta</title>
+<circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.8-beta</text>
+<g>
+<title>CodeGraphContext 0.6.13</title>
+<rect x="158.7" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="173.7" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<g>
+<title>repowise 0.49.0</title>
+<polygon points="334.0,39.5 340.5,46 334.0,52.5 327.5,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="344.0" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="449.5" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
 <text x="24" y="64" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.</text>
 <text x="60" y="82" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Go — go-rta (compiler-graded)</text>
 <rect x="60" y="92" width="300" height="300" fill="none" stroke="#d9d8d2"/>

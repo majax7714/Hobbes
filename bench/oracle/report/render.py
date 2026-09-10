@@ -355,6 +355,42 @@ def render_one_number(cells: list[dict]) -> str:
     return "\n".join(o) + "\n"
 
 
+MARKS = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", AQUA)}
+
+
+def hobbes_label(cells: list[dict]) -> str:
+    """`Hobbes 0.1.8-beta` when every Hobbes cell's standing grade is by one
+    version (ADR-103), else the versions joined — read from the records."""
+    vs = sorted({c.get("hobbes_version") or "unversioned" for c in cells if c.get("tool", "hobbes") == "hobbes"})
+    return "Hobbes " + " / ".join(vs)
+
+
+def mark(o: list[str], kind: str, colour: str, cx: float, cy: float, tip: str) -> None:
+    """One tool marker, filled in its tool's hue with a surface ring, so two
+    tools on one value stay two marks."""
+    o.append("<g>")
+    o.append(f"<title>{esc(tip)}</title>")
+    if kind == "circle":
+        o.append(f'<circle cx="{cx}" cy="{cy}" r="5.5" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+    elif kind == "square":
+        o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+    else:
+        o.append(f'<polygon points="{cx},{cy-6.5} {cx+6.5},{cy} {cx},{cy+6.5} {cx-6.5},{cy}" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
+    o.append("</g>")
+
+
+def tool_legend(o: list[str], cells: list[dict], y: float, tail: str) -> None:
+    """The one legend both graphics share: the marker itself beside each
+    tool's name, one colour per tool, Hobbes named with its version."""
+    lx = 24
+    for tool, name in (("hobbes", hobbes_label(cells)), ("codegraphcontext", "CodeGraphContext 0.6.13"), ("repowise", "repowise 0.49.0")):
+        kind, colour = MARKS[tool]
+        mark(o, kind, colour, lx + 6, y - 4, name)
+        o.append(text(lx + 16, y, name, 11, INK2))
+        lx += 16 + 6.1 * len(name) + 14
+    o.append(text(lx, y, tail, 11, INK2))
+
+
 def render_scatter(cells: list[dict]) -> str:
     comp = [c for c in cells if compiler_graded(c)]
     trace = [c for c in cells if c["kind"] == "trace"]
@@ -367,7 +403,7 @@ def render_scatter(cells: list[dict]) -> str:
     H = T + rows * (PH + 74) + 120
     o = svg_open(W, H, "Precision-against-oracle by recall, one dot per cell, per language")
     o.append(text(24, 30, "One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled", 15, INK, weight="bold"))
-    o.append(text(24, 50, "One colour per tool, as in same-key.svg: blue dot = Hobbes, orange square = CodeGraphContext (·cgc), green diamond = repowise (·rw) — third-party graphs graded by the same key (ADR-101).", 11, INK2))
+    tool_legend(o, cells, 50, "— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).")
     o.append(text(24, 64, "Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.", 11, INK2))
     recalls = [c["recall"]["pct"] for c in comp if c.get("tool", "hobbes") == "hobbes" and c.get("precision")]
 
@@ -632,29 +668,8 @@ def render_comparison(cells: list[dict]) -> str:
     o = svg_open(W, H, "Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise")
     o.append(text(24, 30, "Three graphs, one key per cell: precision-against-oracle and recall, never pooled", 15, INK, weight="bold"))
     px = {"precision": L, "recall": L + PW + GAP}
-    marks = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", AQUA)}
-
-    def mark(kind, colour, cx, cy, tip):
-        o.append("<g>")
-        o.append(f"<title>{esc(tip)}</title>")
-        # every marker filled in its tool's hue with a surface ring, so two
-        # tools on one value stay two marks
-        if kind == "circle":
-            o.append(f'<circle cx="{cx}" cy="{cy}" r="5.5" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
-        elif kind == "square":
-            o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
-        else:
-            o.append(f'<polygon points="{cx},{cy-6.5} {cx+6.5},{cy} {cx},{cy+6.5} {cx-6.5},{cy}" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
-        o.append("</g>")
-
-    # the legend: the marker itself beside each tool's name, one colour per tool
-    lx = 24
-    for t, name in (("hobbes", "Hobbes"), ("codegraphcontext", "CodeGraphContext 0.6.13"), ("repowise", "repowise 0.49.0")):
-        kind, colour = marks[t]
-        mark(kind, colour, lx + 6, 46, name)
-        o.append(text(lx + 16, 50, name, 11, INK2))
-        lx += 16 + 6.1 * len(name) + 14
-    o.append(text(lx, 50, "— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).", 11, INK2))
+    marks = MARKS
+    tool_legend(o, cells, 50, "— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).")
     o.append(text(24, 64, "The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
     for key, x0 in px.items():
         for v in (0, 25, 50, 75, 100):
@@ -687,7 +702,7 @@ def render_comparison(cells: list[dict]) -> str:
                 o.append(f'<line x1="{min(xs)}" y1="{y+10}" x2="{max(xs)}" y2="{y+10}" stroke="{GRID}" stroke-width="2"/>')
                 for (t, val, tip), cx in zip(pts, xs):
                     kind, colour = marks[t]
-                    mark(kind, colour, cx, y + 10, tip)
+                    mark(o, kind, colour, cx, y + 10, tip)
                 undefined = [t for t in d if t != "hobbes" and key == "precision" and d[t].get("undefined")]
                 if undefined:
                     o.append(text(x0 + 4, y + 14, f"{', '.join(undefined)}: undefined (no call edge stored)", 8.5, INK2))
