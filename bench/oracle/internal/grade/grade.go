@@ -50,7 +50,7 @@
 // of one callee on one line, which the standing line counts one pair
 // per site and one Hobbes edge hits together — so the collapsed number
 // can sit below the standing one where such repeats carry the hits
-// (Severed-Chains: 20.9% beside 23.5%). The standing line is the
+// (spring-petclinic: 98.3% beside 98.4%). The standing line is the
 // headline everywhere.
 package grade
 

@@ -531,8 +531,14 @@ excepted: its sources stay off the stage, its resolve pass fails to
 configure, and the unit degrades to lane A with the failure on the
 record — and when a real repo degrades on one, the exception is keyed
 on the settings file's `pluginManagement { includeBuild(..) }`
-declaration, never on a directory name (Max, 2026-09-10; ADR-097). `index-java` runs the build with scip-java attached on the index
-stage, `--network none`, with the tool's offline flag. The resolve pass
+declaration, never on a directory name (Max, 2026-09-10; ADR-097). `index-java` runs the build with scip-java's javac plugin attached on the index
+stage, `--network none`, with the tool's offline flag — attached by
+scip-java's own launcher under Maven, and under Gradle by the helper's
+init script on each JavaCompile task's processor path, the shards then
+aggregated by `scip-java aggregate` (0.1.10-beta, ADR-096 amended;
+C-67: scip-java's Gradle plugin adds the jar to `compileOnly`, which a
+build that has resolved that configuration refuses — the route that
+failed on Severed-Chains). The resolve pass
 concedes repo build logic with a network over the staged files and
 public artifact caches (C-66); the containment stamp records the
 passes, not an audit of their contents. The Java canary

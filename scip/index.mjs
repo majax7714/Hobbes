@@ -24,7 +24,7 @@
  * Output: facts JSON on stdout; diagnostics on stderr.
  */
 import { spawnSync } from 'node:child_process'
-import { readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -119,38 +119,207 @@ export const INDEXERS = {
   },
   java: {
     // scip-java (ADR-096): a javac plugin driven through the repo's *own
-    // build* — the launcher writes a wrapping javac and runs Maven or the
-    // repo's Gradle wrapper with it. So indexing Java executes the
-    // repo's build logic (C-29's Java face) and runs only inside the
-    // sandbox image, where the pinned launcher lives (`sandbox/
-    // Containerfile`); `install` names that, not a host command.
+    // build*, so indexing Java executes the repo's build logic (C-29's
+    // Java face) and runs only inside the sandbox image, where the pinned
+    // launcher lives (`sandbox/Containerfile`); `install` names that, not
+    // a host command. Two routes to one plugin:
+    //   Maven — scip-java's own: the launcher writes a wrapping javac and
+    //   runs the build with it (`scip-java index --build-tool=maven`).
+    //   Gradle — Hobbes's own (C-67): scip-java's Gradle plugin adds the
+    //   javac plugin to the `compileOnly` configuration, which a build
+    //   that resolves `compileOnly` at evaluation time refuses
+    //   (Severed-Chains, one repo in four on the 2026-08-29 draw), so the
+    //   helper attaches the same plugin through its own init script on
+    //   each JavaCompile task's processor path — the oracle lane's
+    //   route, which attached to that build — runs the wrapper, and
+    //   aggregates the shards with `scip-java aggregate` (`gradlePlan`).
+    // The build command is Hobbes's, not scip-java's default: Maven
+    // compiles only — `clean test-compile` — instead of `verify`, which
+    // would run every plugin bound to the lifecycle; Gradle runs
+    // `clean compileTestJava`. The step runs **offline** (ADR-097): the
+    // ingest resolved the build's dependencies first, in a networked
+    // pass over a stage that holds no sources
+    // (`containment.java_resolve_command`), so this pass has no network
+    // and says so to the tool — `-o` / `--offline` — and a build that
+    // still wants one fails visibly (C-66, C-67). No version flag exists
+    // and none is needed: the moniker version is the artifact's own
+    // (`1.24.1-SNAPSHOT` on the spike), never the git revision —
+    // Decision 1 satisfied by default, as for Rust.
     bin: 'scip-java',
     onPath: true,
     install: 'build the sandbox image (sandbox/Containerfile pins scip-java)',
-    // The build tool is derived from the repo (`c.buildTool`: maven when
-    // a pom.xml roots the unit, else gradle) and the build command is
-    // Hobbes's, not scip-java's default: Maven compiles only — `clean
-    // test-compile` — instead of `verify`, which would run every plugin
-    // bound to the lifecycle; Gradle runs the compile tasks its default
-    // names. The step runs **offline** (ADR-097): the ingest resolved the
-    // build's dependencies first, in a networked pass over a stage that
-    // holds no sources (`containment.java_resolve_command`), so this
-    // pass has no network and says so to the tool — `-o` / `--offline` —
-    // and a build that still wants one fails visibly (C-66, C-67). No
-    // version flag exists and none is needed: the moniker version is the
-    // artifact's own (`1.24.1-SNAPSHOT` on the spike), never the git
-    // revision — Decision 1 satisfied by default, as for Rust.
     args: (c) => [
       'index',
       `--build-tool=${c.buildTool}`,
       '--output', c.output,
       '--',
-      ...(c.buildTool === 'maven'
-        ? ['--batch-mode', '-o', '-DskipTests', 'clean', 'test-compile']
-        : ['--offline', 'clean', 'compileTestJava']),
+      '--batch-mode', '-o', '-DskipTests', 'clean', 'test-compile',
     ],
     cwd: (c) => c.stage,
+    plan: (c) => (c.buildTool === 'gradle' ? gradlePlan(c) : null),
   },
+}
+
+/** scip-java's javac plugin and the JVM flags it needs, extracted from
+ * the pinned launcher at image build (`sandbox/Containerfile`): the one
+ * provider, one version, read from one file (P13). */
+export const SCIP_JAVAC_JAR = '/usr/local/lib/scip-java/scip-javac.jar'
+export const SCIP_JAVAC_INTERNALS = '/usr/local/lib/scip-java/javac-internals.properties'
+
+/** The `--add-exports` flags the plugin needs to reach javac's internals
+ * on Java 9+, read from the file scip-java ships beside it
+ * (`javac-internals.properties`: one property, `javac.jvmOptions`, a
+ * comma-separated list continued across lines with `\`) — so a launcher
+ * bump carries its own list and Hobbes spells none. */
+export function javacInternals(text) {
+  const line = text.replace(/\\\r?\n/g, '').split(/\r?\n/).find((l) => l.startsWith('javac.jvmOptions='))
+  if (!line) throw new Error(`${SCIP_JAVAC_INTERNALS}: no javac.jvmOptions property`)
+  return line.slice('javac.jvmOptions='.length).split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+/** The Gradle init script that attaches scip-java's javac plugin to every
+ * JavaCompile task of every project: on the task's own processor path
+ * (a task property, set at configuration — never a dependency added to a
+ * configuration, which is what scip-java's plugin does and what a build
+ * that has already resolved `compileOnly` refuses), forked with the
+ * plugin's `--add-exports`, incremental off (the plugin must see every
+ * unit), `-Xplugin:scip` with the stage as sourceroot so the shards'
+ * paths are stage-relative exactly as scip-java's own route wrote them.
+ * A build that *replaces* `compilerArgs` after this would drop the
+ * plugin; the empty targetroot is then the visible failure (`gradlePlan`). */
+export function gradleAttachScript({ stage, targetroot, jar, jvmArgs }) {
+  const q = (v) => `'${String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+  return [
+    "// Hobbes (C-67): attach scip-java's javac plugin to every JavaCompile",
+    '// task on the task\'s processor path, the way the oracle lane attaches',
+    '// its own — never through a configuration. Written by the ingest for',
+    '// this one build, not by the repo.',
+    'allprojects {',
+    '  tasks.withType(JavaCompile).configureEach {',
+    `    def jar = files(${q(jar)})`,
+    '    options.fork = true',
+    `    options.forkOptions.jvmArgs += [${jvmArgs.map(q).join(', ')}]`,
+    '    options.incremental = false',
+    `    options.compilerArgs += [${q(`-Xplugin:scip -sourceroot:${stage} -targetroot:${targetroot}`)}]`,
+    '    options.annotationProcessorPath = jar + (options.annotationProcessorPath ?: files())',
+    '  }',
+    "  // What the build resolved, in scip-java's own dependencies.txt shape",
+    '  // (group, artifact, version, jar — tab-separated), appended per',
+    '  // project: the dependency-coverage line reads it, since the',
+    '  // aggregator names no third-party package on its own (`gradlePlan`).',
+    `  tasks.register(${q(DEPENDENCIES_TASK)}) {`,
+    '    doLast {',
+    `      def out = new File(${q(targetroot)}, ${q(DEPENDENCIES_FILE)})`,
+    '      out.parentFile.mkdirs()',
+    '      configurations.matching { it.canBeResolved }.each { c ->',
+    '        try {',
+    '          c.resolvedConfiguration.lenientConfiguration.artifacts.each { a ->',
+    '            def id = a.moduleVersion.id',
+    '            out << "${id.group}\\t${id.name}\\t${id.version}\\t${a.file}\\n"',
+    '          }',
+    '        } catch (Exception e) {',
+    '          println("hobbes: could not list ${project.path}:${c.name}: ${e.message?.take(160)}")',
+    '        }',
+    '      }',
+    '    }',
+    '  }',
+    '}',
+    '',
+  ].join('\n')
+}
+
+/** The init script's task that lists what the build resolved, and the
+ * file it writes under the targetroot. */
+export const DEPENDENCIES_TASK = 'hobbesScipDependencies'
+export const DEPENDENCIES_FILE = 'dependencies.txt'
+
+/** The packages a dependencies.txt names, as the helper keys them
+ * (`maven:maven/<group>/<artifact>`), deduplicated; an absent file is no
+ * packages. The SCIP index cannot carry them under this route: the
+ * aggregator maps a class to its jar only through the table scip-java's
+ * own `index` command builds, which `aggregate` does not take — so the
+ * external symbols read package `.` and the coverage line is answered
+ * from the build's own resolution instead, which is what the line asks
+ * (C-23: is the environment there?). */
+export function resolvedPackages(text) {
+  const out = new Set()
+  for (const line of String(text ?? '').split(/\r?\n/)) {
+    const [group, artifact] = line.split('\t')
+    if (group && artifact) out.add(`maven:maven/${group}/${artifact}`)
+  }
+  return [...out].sort()
+}
+
+/** The Gradle index route as steps (`runIndexer`): write the init script
+ * beside the output, run the repo's wrapper offline under it, then
+ * aggregate the per-source shards into the one index. Nothing of it
+ * outlives the run: the script and the targetroot are removed with the
+ * index file (ADR-027 clause 6). */
+export function gradlePlan(c) {
+  const script = `${c.output}.hobbes-scip.gradle`
+  const targetroot = `${c.output}.targetroot`
+  const install = 'build the sandbox image (sandbox/Containerfile pins scip-java and extracts its javac plugin)'
+  return {
+    prepare: () => {
+      if (!existsSync(SCIP_JAVAC_JAR) || !existsSync(SCIP_JAVAC_INTERNALS)) {
+        throw new Error(`${SCIP_JAVAC_JAR} is not in this image — rebuild the sandbox image (C-65): ${install}`)
+      }
+      rmSync(targetroot, { recursive: true, force: true })
+      writeFileSync(
+        script,
+        gradleAttachScript({
+          stage: c.stage, targetroot, jar: SCIP_JAVAC_JAR,
+          jvmArgs: javacInternals(readFileSync(SCIP_JAVAC_INTERNALS, 'utf8')),
+        }),
+      )
+    },
+    steps: [
+      {
+        bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
+        args: ['./gradlew', '--no-daemon', '--offline', '--init-script', script, 'clean', 'compileTestJava', DEPENDENCIES_TASK],
+      },
+      {
+        // The build finished but the plugin wrote nothing: it was not on
+        // any JavaCompile task (a build that replaces compilerArgs after
+        // configuration, or no Java source set at all). Said before the
+        // aggregator's own "no documents" would, with the cause and the
+        // build's own last words.
+        check: (previous) => {
+          if (!shardsUnder(targetroot)) {
+            const said = String(previous?.stdout || '').trim().slice(-600)
+            throw new Error(
+              `the Gradle build succeeded but scip-java's plugin wrote no SCIP shard under ${targetroot}: ` +
+              'the plugin was not attached to any JavaCompile task (the build replaces ' +
+              'JavaCompile.options.compilerArgs after configuration, or compiles no Java); ' +
+              `the build said: ${said}`,
+            )
+          }
+        },
+        bin: 'scip-java', onPath: true, install, cwd: c.stage,
+        args: ['aggregate', '--output', c.output, '--targetroot', targetroot],
+      },
+    ],
+    // Read before cleanup: what the build resolved, for the coverage line.
+    resolved: () => {
+      const f = join(targetroot, DEPENDENCIES_FILE)
+      return existsSync(f) ? resolvedPackages(readFileSync(f, 'utf8')) : []
+    },
+    cleanup: () => {
+      rmSync(script, { force: true })
+      rmSync(targetroot, { recursive: true, force: true })
+    },
+  }
+}
+
+/** Whether any `.scip` file sits under *dir* (the plugin writes one per
+ * compilation unit, in a tree that mirrors the sources). */
+function shardsUnder(dir) {
+  if (!existsSync(dir)) return false
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name)
+    if (statSync(p).isDirectory() ? shardsUnder(p) : name.endsWith('.scip')) return true
+  }
+  return false
 }
 
 /**
@@ -516,14 +685,16 @@ function canonicalName(name, language) {
   return name
 }
 
-export function dependencyCoverage(decoded, config) {
+export function dependencyCoverage(decoded, config, alsoResolved = []) {
   // Excluded from *both* sides. A bundled package resolving is not
   // evidence the environment exists, and a repo declaring it (nearly
   // every TS repo declares `typescript`) must not be marked as missing a
   // dependency it will never be credited for either.
   const declared = (config.declaredDeps ?? []).filter((d) => !SELF_PACKAGES.has(d))
   const seen = new Set()
-  for (const key of decoded.packages.keys()) {
+  // *alsoResolved*: packages the build itself resolved, where the index
+  // cannot name them (the Gradle route, `resolvedPackages`).
+  for (const key of [...decoded.packages.keys(), ...alsoResolved]) {
     const name = key.split(':')[1]
     if (!name || SELF_PACKAGES.has(name)) continue
     seen.add(canonicalName(name, config.language))
@@ -598,30 +769,61 @@ export function degradations(index, decoded, config) {
   return out
 }
 
-function runIndexer(config) {
+/** The steps an indexer runs for *config*: one for every language but
+ * Gradle-built Java, whose plan is Hobbes's own (`gradlePlan`). A step
+ * names its binary the way it is installed and where it runs. */
+export function indexerPlan(config) {
   const spec = INDEXERS[config.language]
   if (!spec) throw new Error(`no indexer configured for ${config.language}`)
+  const plan = spec.plan ? spec.plan(config) : null
+  if (plan) return plan
+  return {
+    steps: [{
+      bin: spec.bin, onPath: spec.onPath, install: spec.install,
+      args: spec.args(config), ...(spec.cwd ? { cwd: spec.cwd(config) } : {}),
+    }],
+  }
+}
+
+function runIndexer(config) {
+  const plan = indexerPlan(config)
+  let proc
+  let resolved = []
+  try {
+    if (plan.prepare) plan.prepare()
+    for (const step of plan.steps) {
+      if (step.check) step.check(proc)
+      proc = runStep(step)
+    }
+    if (plan.resolved) resolved = plan.resolved()
+  } finally {
+    if (plan.cleanup) plan.cleanup()
+  }
+  return { proc, resolved }
+}
+
+function runStep(step) {
   // Two install shapes, because indexers are not all npm packages: the
   // Python and TypeScript ones are pinned devDependencies here, scip-go
   // is a Go binary the user installs (`go install`). Resolving the wrong
   // one fails as a bare ENOENT, so each says how *it* is installed.
-  const bin = spec.onPath ? spec.bin : join(HERE, 'node_modules', '.bin', spec.bin)
-  const proc = spawnSync(bin, spec.args(config), {
+  const bin = step.onPath ? step.bin : join(HERE, 'node_modules', '.bin', step.bin)
+  const proc = spawnSync(bin, step.args, {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     timeout: 600_000,
-    ...(spec.cwd ? { cwd: spec.cwd(config) } : {}),
+    ...(step.cwd ? { cwd: step.cwd } : {}),
   })
   if (proc.error && proc.error.code === 'ENOENT') {
     throw new Error(
-      spec.onPath
-        ? `${spec.bin} is not on PATH — install it with \`${spec.install}\``
-        : `${spec.bin} is not installed — run \`npm install\` in the hobbes repo's scip/`,
+      step.onPath
+        ? `${step.bin} is not on PATH — install it with \`${step.install}\``
+        : `${step.bin} is not installed — run \`npm install\` in the hobbes repo's scip/`,
     )
   }
   if (proc.status !== 0) {
     const detail = String(proc.stderr || proc.stdout || '').trim().slice(-500)
-    const err = new Error(`${spec.bin} exited ${proc.status}: ${detail}`)
+    const err = new Error(`${step.bin} ${step.args[0]} exited ${proc.status}: ${detail}`)
     err.indexerExit = proc.status
     throw err
   }
@@ -629,7 +831,7 @@ function runIndexer(config) {
 }
 
 export function indexStage(config) {
-  const proc = runIndexer(config)
+  const { proc, resolved } = runIndexer(config)
   let index
   try {
     index = scip.Index.deserialize(readFileSync(config.output))
@@ -651,7 +853,7 @@ export function indexStage(config) {
     packages: Object.fromEntries(decoded.packages),
     // Reported every run, not only when something is wrong: the counts
     // are the honest form of the signal and the threshold is secondary.
-    dependency_coverage: dependencyCoverage(decoded, config),
+    dependency_coverage: dependencyCoverage(decoded, config, resolved),
     degraded: degradations(index, decoded, config),
     stderr: String(proc.stderr || '').trim().slice(-2000),
   }

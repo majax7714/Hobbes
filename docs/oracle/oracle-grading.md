@@ -141,7 +141,7 @@ reachability oracles):
   of one callee on one line (the standing line counts one pair per
   site; one Hobbes edge hits them together) — so the number can sit
   below the standing one where such repeats carry the hits
-  (Severed-Chains 20.9% beside 23.5%). It requires the key to spell one
+  (spring-petclinic 98.3% beside 98.4%). It requires the key to spell one
   name per declaration: `tsc`'s checker-qualified name, go-rta's and
   rustc-mir's package-qualified one, javac's owner-qualified one since
   H-23. **The per-signature line is the standing grade everywhere** —

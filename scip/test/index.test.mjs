@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
-import {
-  INDEXER_EXIT,
+import { INDEXER_EXIT,
   exitCodeFor,
   classify,
   commonDirectory,
@@ -14,6 +13,10 @@ import {
   insideRepo,
   packageOf,
   terminalName,
+  indexerPlan,
+  gradleAttachScript,
+  javacInternals,
+  resolvedPackages,
 } from '../index.mjs'
 
 // Real monikers, pasted from scip-python 0.6.6 and scip-typescript 0.4.0
@@ -446,7 +449,7 @@ test('a java constructor is named after its type, as the call site spells it', (
   assert.equal(terminalName(`${JAVA} org/jsoup/helper/Regex#JdkMatcher#\`<init>\`(+1).`), 'JdkMatcher')
 })
 
-test('the java indexer runs scip-java through the derived build tool', () => {
+test('the java indexer runs scip-java through the derived build tool (maven: its own route)', () => {
   const c = { stage: '/s', output: '/o.scip', buildTool: 'maven' }
   const args = INDEXERS.java.args(c)
   assert.equal(INDEXERS.java.bin, 'scip-java')
@@ -454,10 +457,69 @@ test('the java indexer runs scip-java through the derived build tool', () => {
   assert.deepEqual(args.slice(0, 4), ['index', '--build-tool=maven', '--output', '/o.scip'])
   assert.ok(args.includes('test-compile') && !args.includes('verify'))
   assert.ok(args.includes('-o'), 'the maven index pass is offline — resolution ran first (ADR-097)')
-  const gradle = INDEXERS.java.args({ ...c, buildTool: 'gradle' })
-  assert.ok(gradle.includes('compileTestJava'))
-  assert.ok(gradle.includes('--offline'), 'the gradle index pass is offline (ADR-097)')
   assert.equal(INDEXERS.java.cwd(c), '/s')
+  const plan = indexerPlan({ ...c, language: 'java' })
+  assert.equal(plan.steps.length, 1)
+  assert.equal(plan.steps[0].bin, 'scip-java')
+})
+
+// C-67: a Gradle build gets scip-java's plugin from Hobbes's own init
+// script — the wrapper offline under it, then the aggregator — never
+// from scip-java's Gradle plugin, which a build that has resolved
+// compileOnly at evaluation time refuses.
+test('a gradle unit is indexed by the wrapper under the attach script, then aggregated', () => {
+  const plan = indexerPlan({ language: 'java', stage: '/s', output: '/out/u.scip', buildTool: 'gradle' })
+  assert.equal(plan.steps.length, 2)
+  const [build, aggregate] = plan.steps
+  assert.equal(build.bin, 'sh')
+  assert.equal(build.cwd, '/s')
+  assert.deepEqual(build.args.slice(0, 3), ['./gradlew', '--no-daemon', '--offline'])
+  assert.equal(build.args[3], '--init-script')
+  assert.equal(build.args[4], '/out/u.scip.hobbes-scip.gradle', 'the script lives beside the output, never in the stage')
+  assert.deepEqual(build.args.slice(5), ['clean', 'compileTestJava', 'hobbesScipDependencies'])
+  assert.equal(typeof plan.resolved, 'function', 'what the build resolved is read before cleanup')
+  assert.equal(aggregate.bin, 'scip-java')
+  assert.deepEqual(aggregate.args, ['aggregate', '--output', '/out/u.scip', '--targetroot', '/out/u.scip.targetroot'])
+  assert.equal(typeof aggregate.check, 'function', 'an empty targetroot is named before the aggregator runs')
+  assert.equal(typeof plan.prepare, 'function')
+  assert.equal(typeof plan.cleanup, 'function')
+})
+
+test('the attach script puts the plugin on the processor path with its add-exports, never on a configuration', () => {
+  const text = gradleAttachScript({
+    stage: '/s', targetroot: '/out/u.scip.targetroot', jar: '/usr/local/lib/scip-java/scip-javac.jar',
+    jvmArgs: ['--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED', '--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED'],
+  })
+  assert.ok(text.includes("tasks.withType(JavaCompile).configureEach"))
+  assert.ok(text.includes("options.annotationProcessorPath = jar + (options.annotationProcessorPath ?: files())"))
+  assert.ok(text.includes("def jar = files('/usr/local/lib/scip-java/scip-javac.jar')"))
+  assert.ok(text.includes("options.compilerArgs += ['-Xplugin:scip -sourceroot:/s -targetroot:/out/u.scip.targetroot']"))
+  assert.ok(text.includes("options.fork = true"))
+  assert.ok(text.includes("'--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED'"))
+  assert.ok(text.includes('options.incremental = false'))
+  assert.ok(!/compileOnly|dependencies\s*\{/.test(text), 'no configuration is touched')
+  assert.ok(text.includes("tasks.register('hobbesScipDependencies')"))
+  assert.ok(text.includes("new File('/out/u.scip.targetroot', 'dependencies.txt')"))
+  assert.ok(text.includes('lenientConfiguration.artifacts'))
+})
+
+test('the coverage line under the gradle route is answered from what the build resolved', () => {
+  const text = 'org.joml\tjoml\t1.10.8\t/cache/joml-1.10.8.jar\ncom.opencsv\topencsv\t5.9\t/cache/opencsv-5.9.jar\norg.joml\tjoml\t1.10.8\t/cache/joml-1.10.8.jar\n\nbad line\n'
+  assert.deepEqual(resolvedPackages(text), ['maven:maven/com.opencsv/opencsv', 'maven:maven/org.joml/joml'])
+  assert.deepEqual(resolvedPackages(''), [])
+  const decoded = { packages: new Map() }
+  const config = { language: 'java', declaredDeps: ['maven/org.joml', 'maven/com.opencsv', 'maven/org.json'] }
+  assert.deepEqual(dependencyCoverage(decoded, config), { declared: 3, resolved: 0, missing: ['maven/org.joml', 'maven/com.opencsv', 'maven/org.json'] })
+  assert.deepEqual(dependencyCoverage(decoded, config, resolvedPackages(text)), { declared: 3, resolved: 2, missing: ['maven/org.json'] })
+})
+
+test('the add-exports list is read from the file scip-java ships, continuation lines and all', () => {
+  const text = '# JVM flags required by scip-javac\njavac.jvmOptions=\\\n--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,\\\n--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED\n'
+  assert.deepEqual(javacInternals(text), [
+    '--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED',
+    '--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED',
+  ])
+  assert.throws(() => javacInternals('nothing=here\n'), /javac\.jvmOptions/)
 })
 
 test("the jdk and the dot package are not evidence of an environment (java)", () => {

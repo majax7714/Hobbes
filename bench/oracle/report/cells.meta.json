@@ -111,8 +111,7 @@
   "run": "contained",
   "draw": "random",
   "label": "Severed-Chains",
-  "floor": true,
-  "note": "random draw; lane B failed on this Gradle build (C-67), so every edge is syntactic — C-8's floor measured"
+  "note": "random draw; lane B ran from 0.1.10-beta through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; until then it failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured"
  },
  "spring-data-elasticsearch-java": {
   "lang": "Java",

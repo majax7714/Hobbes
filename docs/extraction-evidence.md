@@ -345,7 +345,7 @@ cell records in [`oracle/cells/`](oracle/cells/).
 | **jhy/jsoup** `7860d088` (Maven library) | 197 | 250 nodes, 4,588 symbols, 12,665 call edges (12,663 semantic), 1,716 tests; capture 99.8% of 30,035 sites; lanes 3,417 / **0** | **18,627/18,627 confirmed, 0 contradicted — 100.0%**; recall 76.2% (18,767/24,630); [record](oracle/cells/jsoup-java-2026-08-29.md) |
 | **spring-projects/spring-petclinic** `818c4136` (Spring service) | 50 | 130 nodes, 240 symbols, 296 call edges (all semantic), 76 tests; capture 100.0% of 1,607 sites; lanes 36 / **0** | **356/356 — 100.0%**; recall 98.4% (367/373); [record](oracle/cells/petclinic-java-2026-08-29.md) |
 | **spring-data-elasticsearch** `cc7bd2b7` (**random draw 1**) | 739 | 944 nodes, 9,058 symbols, 12,832 call edges (all semantic), 1,341 tests; capture 100.0% of 33,559 sites (3 unresolved in the repo); lanes 3,908 / **2** | **16,050/16,050 — 100.0%**; recall 66.4% (16,238/24,452); [record](oracle/cells/spring-data-elasticsearch-java-2026-08-29.md) |
-| **Legend-of-Dragoon-Modding/Severed-Chains** `3841686e` (**random draw 2**) | 1,254 | 1,344 nodes, 9,898 symbols, 3,955 call edges — **0 semantic**; lane B failed (C-67) | **10,154/10,154 syntactic edges confirmed, 0 contradicted — 100.0%**; recall **23.5%** (12,803/54,520); [record](oracle/cells/severed-chains-java-2026-08-29.md) |
+| **Legend-of-Dragoon-Modding/Severed-Chains** `3841686e` (**random draw 2**) | 1,254 | 1,344 nodes, 9,898 symbols, 37,998 call edges (all semantic), capture 100.0% of 52,209 sites; lanes 12,803 / **0** — **since 0.1.10-beta** (the Gradle attach route, ADR-096 amended; before it: 3,955 call edges, 0 semantic, lane B failed, C-67) | **29,793/29,793 confirmed, 0 contradicted — 100.0%**; recall **60.8%** (33,143/54,520) — was 23.5% (12,803) on lane A alone; [record](oracle/cells/severed-chains-java-2026-08-29.md) |
 
 **Verified:** **no hand-checked edges on any of the four** — every number
 is compiler-graded against javac's own resolution (the `minijava`
@@ -357,8 +357,9 @@ wrong edges.
 cell, including the one with no semantic lane — the abstention rules
 lane A was given (arity filtering, stopping at a type that declares
 supertypes, declining an overload set outright) hold on 1,254 files of
-code the resolver had never seen. Recall is the honest half: 66–98%
-where lane B runs, **23.5% where it does not**, and `interface→method`
+code the resolver had never seen. Recall is the honest half: 61–98%
+where lane B runs (Severed-Chains joined them 2026-09-10 later still,
+0.1.10-beta: 23.5% on lane A alone → 60.8%), and `interface→method`
 — C-58's Java face, graded against the CHA override set — is 84–91% of
 every cell's misses. Java's dispatch hole is now a number per repo
 rather than a prediction. What no cell covers: Android, Bazel, a

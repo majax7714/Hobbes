@@ -85,3 +85,25 @@ poison check: PASS — 10154 seeded wrong edges: 10154 refused, 0 unjudged (orac
 ```
 
 **The key's names, qualified; the grader's line (2026-09-10, later still; ADR-089 amended, H-23).** `oracle grade` prints a second recall line on every cell since today, `recall-collapsed`, at (site line, target file, target name) grain. (H-23, found on jsoup the same hour: the Java oracle's member-bare names folded same-named overrides of one file.) Names are owner-qualified now (`org.jsoup.nodes.Element.attr`, `a.Foo$1.run`, `a.Foo.<init>`) and the standing key was re-merged from its saved shards (`oracle java-javac --merge-only --carry`): every site, target position, kind, mode and interface identical to the 2026-08-29 file, kept beside it as `oracle.json.member-bare-names-2026-09-10`; only the names changed. Regraded on the 0.1.8-beta artifacts: every line above unchanged to the digit, and beside the standing 23.5% the grader prints `recall-collapsed 20.9% (10154/48588 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)` — below it, because same-line repeats of one callee fold: the standing line's 12,803 hits come from 10,154 confirmed edges, one edge hitting every repeat on its line.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.10-beta — lane B ran: the Gradle attach route, ADR-096 amended; same clone, the 2026-08-29 key, contained)
+
+**The cell where lane B did not run, until now.** scip-java's Gradle plugin adds its javac plugin to the `compileOnly` configuration, which this build has resolved by evaluation time, so the add was refused and the unit fell to lane A whole (C-67). The helper now attaches the same plugin the way the oracle lane attached its own to this very build — through a Hobbes init script on each JavaCompile task's processor path — runs the wrapper offline under it, and aggregates the shards with `scip-java aggregate`. Re-ingested contained (`fetch-java`, `index-java`; 36 s wall): **capture 100.0% of 52,209 detected call sites** (0.0% before), 37,998 symbol edges every one semantic, 10,009 module edges, lanes 12,803 sites compared / 0 disagreements, the 15 declared dependencies all resolved by the build's own listing. Artifacts `~/.hobbes/bench/v0110/Severed-Chains-java/`.
+
+```
+cell   oracle javac 25.0.4.1+1-LTS (resolution)  sha 3841686e
+oracle ran contained (ADR-092)
+hobbes edges 29793: confirmed 29793  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (29793/29793)
+recall 60.8% (33143/54520 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 19050; misses map[interface→anonymous-member:78 interface→method:20092 static→constructor:1207]
+recall-collapsed 61.3% (29782/48588 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[interface→anonymous-member]   0.0% (0/78)  misses 78 = 0.4% of all misses
+  recall[interface→method  ]  43.3% (15345/35437)  misses 20092 = 94.0% of all misses
+  recall[static→constructor]  89.5% (10300/11507)  misses 1207 = 5.6% of all misses
+  recall[static→method     ] 100.0% (7498/7498)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 29793  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 13509 edge(s) (several oracle sites on one line)
+poison check: PASS — 29793 seeded wrong edges: 29793 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Direction of fix (signed: the Gradle attach route, 0.1.10-beta):** hobbes edges 10,154 → **29,793** (+19,639; syntactic 10,154 → 0, semantic 0 → 29,793); precision-against-oracle 100.0% → **100.0%** (0 contradicted, unchanged); recall 23.5% → **60.8%** (+37.3: `static→method` 49.5% → 100.0%, `static→constructor` 77.8% → 89.5%, `interface→method` 0.4% → 43.3% — the CHA override set below the declared method is the hole that remains, 94.0% of the 21,377 misses now); poison 10,154 → 29,793 seeded, 0 falsely confirmed. This is the first Gradle-built repo in the oracle record with a semantic lane; on the same key CodeGraphContext reads 79.4% / 17.8% and repowise 58.8% / 39.2% (their records unchanged). What this cell still does not carry: artifact names on external symbols (the aggregator names none without the table scip-java's own `index` builds; the coverage line reads the build's `dependencies.txt`), and Kotlin — this repo has none.

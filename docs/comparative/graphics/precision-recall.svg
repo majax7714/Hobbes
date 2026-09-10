@@ -3,21 +3,21 @@
 <rect width="1090" height="960" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled</text>
 <g>
-<title>Hobbes 0.1.8-beta</title>
+<title>Hobbes 0.1.10-beta / 0.1.8-beta</title>
 <circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.8-beta</text>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.1.8-beta</text>
 <g>
 <title>CodeGraphContext 0.6.13</title>
-<rect x="158.7" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="244.1" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="173.7" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<text x="259.1" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
 <g>
 <title>repowise 0.49.0</title>
-<polygon points="334.0,39.5 340.5,46 334.0,52.5 327.5,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="419.4,39.5 425.9,46 419.4,52.5 412.9,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="344.0" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
-<text x="449.5" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
+<text x="429.4" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="534.9" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
 <text x="24" y="64" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.</text>
 <text x="60" y="82" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Go — go-rta (compiler-graded)</text>
 <rect x="60" y="92" width="300" height="300" fill="none" stroke="#d9d8d2"/>
@@ -660,16 +660,6 @@ codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-1
 </g>
 <text x="121.4" y="593.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains ·cgc</text>
 <g>
-<title>Severed-Chains — Java, javac 25.0.4.1+1-LTS (resolution), contained, 2026-08-29
-precision-against-oracle 10,154/10,154 = 100.0%
-recall 12,803/54,520 = 23.5% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 35,289, static→method 3,790, static→constructor 2,560, interface→anonymous-member 78
-random draw; lane B failed on this Gradle build (C-67), so every edge is syntactic — C-8's floor measured</title>
-<circle cx="130.5" cy="466.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="138.5" y="490.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains</text>
-<text x="138.5" y="500.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >no semantic lane: the syntactic floor</text>
-<g>
 <title>spring-data-elasticsearch — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
 precision-against-oracle 8,673/10,519 = 82.5%
 recall 8,743/24,452 = 35.8% over every resolved site (resolution oracle: no roots)
@@ -715,6 +705,15 @@ codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host
 </g>
 <text x="221.6" y="572.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup ·cgc</text>
 <g>
+<title>Severed-Chains — Java, javac 25.0.4.1+1-LTS (resolution), contained, 2026-08-29
+precision-against-oracle 29,793/29,793 = 100.0%
+recall 33,143/54,520 = 60.8% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 20,092, static→constructor 1,207, interface→anonymous-member 78
+random draw; lane B ran from 0.1.10-beta through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; until then it failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured</title>
+<circle cx="242.4" cy="466.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="250.4" y="490.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains</text>
+<g>
 <title>spring-petclinic — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
 precision-against-oracle 236/237 = 99.6%
 recall 246/373 = 66.0% over every resolved site (resolution oracle: no roots)
@@ -722,7 +721,7 @@ misses by class: interface→method 82, static→constructor 45
 codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <rect x="253.0" y="463.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="250.0" y="512.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·cgc</text>
+<text x="250.0" y="482.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·cgc</text>
 <g>
 <title>spring-data-elasticsearch — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
 precision-against-oracle 16,050/16,050 = 100.0%
@@ -731,7 +730,7 @@ misses by class: interface→method 7,469, interface→anonymous-member 513, sta
 random draw</title>
 <circle cx="259.2" cy="466.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="251.2" y="530.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch</text>
+<text x="251.2" y="510.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch</text>
 <g>
 <title>jsoup — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
 precision-against-oracle 18,627/18,627 = 100.0%
@@ -740,7 +739,7 @@ misses by class: interface→method 5,226, interface→anonymous-member 407, sta
 interface→method against the CHA override set is the majority miss</title>
 <circle cx="288.6" cy="466.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="296.6" y="520.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup</text>
+<text x="296.6" y="510.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup</text>
 <g>
 <title>spring-petclinic — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
 precision-against-oracle 331/365 = 90.7%
@@ -749,7 +748,7 @@ misses by class: interface→method 31
 repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
 <polygon points="335.1,506.5 341.1,512.5 335.1,518.5 329.1,512.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="327.1" y="546.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·rw</text>
+<text x="327.1" y="526.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·rw</text>
 <g>
 <title>spring-petclinic — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
 precision-against-oracle 356/356 = 100.0%
@@ -757,7 +756,7 @@ recall 367/373 = 98.4% over every resolved site (resolution oracle: no roots)
 misses by class: interface→method 4, static→constructor 2</title>
 <circle cx="355.2" cy="466.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="347.2" y="570.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic</text>
+<text x="347.2" y="540.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic</text>
 <text x="400" y="456" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — the interpreter under the repo's suite (trace-graded)</text>
 <rect x="400" y="466" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="400.0" y1="466" x2="400.0" y2="766" stroke="#d9d8d2" stroke-dasharray="2 3"/>
@@ -820,8 +819,8 @@ trace-graded under its own suite (dogfood)</title>
 <text x="645.8" y="550.25" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
 <line x1="24" y1="848" x2="1066" y2="848" stroke="#d9d8d2"/>
 <text x="24" y="870" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >We draw nothing the compiler contradicts; here is how much we do not draw, and what it is.</text>
-<text x="24" y="888" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 23.5–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
+<text x="24" y="888" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 40.8–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
 <text x="24" y="904" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables.</text>
 <text x="24" y="920" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>
-<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). Every Hobbes number is the standing grade by Hobbes 0.1.8-beta (ADR-103): the last block of each record, regraded on one build against the same keys.</text>
+<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.1.8-beta (ADR-103; per cell in tables.md).</text>
 </svg>

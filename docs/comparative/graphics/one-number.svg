@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560" role="img" aria-label="Wrong edges seeded into the graph, falsely confirmed by the grader">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="544" viewBox="0 0 900 544" role="img" aria-label="Wrong edges seeded into the graph, falsely confirmed by the grader">
 <title>Wrong edges seeded into the graph, falsely confirmed by the grader</title>
-<rect width="900" height="560" fill="#fcfcfb"/>
+<rect width="900" height="544" fill="#fcfcfb"/>
 <text x="32" y="61" font-size="15" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Seeded wrong edges the oracle grader falsely confirmed</text>
-<text x="32" y="143" font-size="56" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0 of 100,929</text>
+<text x="32" y="143" font-size="56" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0 of 120,568</text>
 <text x="32" y="172" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >seeded wrong edges across 20 compiler-graded cells in 4 languages (Go, Java, Rust, TypeScript). Every</text>
 <text x="32" y="191" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cell grades a poisoned twin of its own export — each edge re-targeted to a declaration the oracle never</text>
 <text x="32" y="210" font-size="13" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >resolved that site to — and the grader refused or left unjudged every one; it confirmed none.</text>
@@ -22,6 +22,5 @@
 <text x="32" y="472" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >quoted per cell (A-8).</text>
 <text x="32" y="488" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not</text>
 <text x="32" y="504" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >control (ADR-089): x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java.</text>
-<text x="32" y="520" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Every Hobbes number is the standing grade by Hobbes 0.1.8-beta (ADR-103): the last block of each record, regraded on one build against the</text>
-<text x="32" y="536" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >same keys.</text>
+<text x="32" y="520" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.1.8-beta (ADR-103; per cell in tables.md).</text>
 </svg>

@@ -114,12 +114,27 @@ nothing is built until a repo hits it.
   One repo in four, on an unfiltered sample. The oracle lane's own
   plugin *did* attach to the same build through an init script, which is
   the recorded difference between the two injection strategies.
+  **That shape is lifted 2026-09-10 (later still; 0.1.10-beta, ADR-096
+  amended):** a Gradle unit gets the plugin from Hobbes's own init
+  script on each JavaCompile task's processor path — the oracle's
+  route — then `scip-java aggregate`; Severed-Chains indexes (100.0%
+  capture of 52,209 sites; regraded 100.0% precision, recall 23.5% →
+  60.8% against the standing javac key). What still bites: a build that
+  *replaces* `JavaCompile.options.compilerArgs` after configuration
+  (the plugin's argument is dropped; the empty targetroot is refused
+  with the build's own output quoted), and under Gradle the external
+  symbols carry no artifact name — the aggregator names third-party
+  packages only through the table scip-java's `index` command builds —
+  so the coverage line reads the build's own resolution instead
+  (`dependencies.txt`, C-23 answered by the other witness) and an
+  external node is named by its Java package, as it was under Maven.
 - **You find out:** **surfaced** — the per-unit degradation record
   names the build root and the build tool's own error; lane A's files
   under no build file are reported by directory (the C-26 pattern).
 - **Provider (P9):** inherited from `scip-java` **0.13.1** (JDK 17+
-  only; Gradle 8+ only).
-- **Source:** ADR-096, decisions 1–2, 7.
+  only; Gradle 8+ only); its javac plugin and aggregator under Gradle,
+  its launcher's whole route under Maven.
+- **Source:** ADR-096, decisions 1–2, 7; amended 2026-09-10.
 
 ### C-68 — Generated sources are lane B's alone
 - **Cannot tell you:** the call sites *inside* code an annotation

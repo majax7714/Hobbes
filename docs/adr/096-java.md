@@ -240,3 +240,37 @@ did not. Details in `docs/oracle/oracle-grading.md` §7b.
   precision survived a 1,254-file repo the resolver had never seen.
 - **Kotlin** is out of scope; a repo mixing the two gets Java edges and
   Kotlin references without sites.
+
+**Amended 2026-09-10 (later still; 0.1.10-beta) — decision 1's Gradle
+half is Hobbes's own attachment (C-67).** scip-java's Gradle plugin adds
+its javac plugin to the `compileOnly` configuration, and a build that
+has resolved that configuration at evaluation time refuses the add —
+Severed-Chains, one repo in four on the 2026-08-29 draw, fell to lane A
+whole for that reason, while the oracle lane's plugin attached to the
+same build through an init script on each JavaCompile task's processor
+path. So a Gradle unit is indexed by that route now: the image extracts
+`scip-plugin.jar` and `javac-internals.properties` out of the pinned
+launcher at build (one provider, one version, checksum-pinned twice);
+the helper writes an init script beside the output that puts the jar on
+`options.annotationProcessorPath`, forks the compiler with the plugin's
+`--add-exports`, turns incremental off, appends `-Xplugin:scip
+-sourceroot:<stage> -targetroot:<dir>`, and registers a task that lists
+what the build resolved in scip-java's own `dependencies.txt` shape;
+runs the wrapper offline under it (`clean compileTestJava
+hobbesScipDependencies`); refuses with the build's own last words when
+no shard was written; and aggregates the shards with `scip-java
+aggregate`. The indexer is still scip-java 0.13.1 as shipped — its javac
+plugin and its aggregator, run as batch programs (P13) — and Maven is
+untouched (scip-java's own wrapping javac). What this route does not
+carry: the aggregator names no third-party package without the table
+scip-java's `index` command builds, so under Gradle the external
+symbols read package `.` and the dependency-coverage line is answered
+from the build's own resolution (the `dependencies.txt` the task wrote)
+rather than from referenced packages — the same question, C-23's, by
+the other witness; and Kotlin sources are not compiled under the
+plugin (they were not indexed before either: no Kotlin lane A). Evidence:
+Severed-Chains re-ingested contained, 100.0% capture of 52,209 sites,
+regraded against its standing javac key at 100.0% precision, recall
+23.5% → **60.8%** (29,793 edges, 0 contradicted, poison 0 falsely
+confirmed); spring-petclinic's Gradle build through the same route
+beside its Maven grade.

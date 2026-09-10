@@ -178,8 +178,12 @@ PROFILES: dict[str, Profile] = {
     # build's resolution on a stage that holds **no application source**
     # — the poms and scripts, wrappers, resources, `buildSrc/`; never a
     # `.java` / `.kt` / `.scala` / `.groovy` outside `buildSrc/` — with a
-    # network; `index-java` runs the real build with scip-java attached
-    # on the full stage, offline. The pass that can reach the network
+    # network; `index-java` runs the real build with scip-java's javac
+    # plugin attached on the full stage, offline — by scip-java's own
+    # launcher under Maven, by the helper's init script on each
+    # JavaCompile task's processor path under Gradle (C-67: scip-java's
+    # Gradle plugin adds the jar to `compileOnly`, which a build that has
+    # resolved that configuration refuses; `scip/index.mjs`, `gradlePlan`). The pass that can reach the network
     # never sees the application's sources; the pass that sees them has
     # no route out. What
     # `fetch-java` still concedes is registered as C-66: repo build logic

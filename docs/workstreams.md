@@ -158,6 +158,16 @@ the best on-ramp for a new contributor who should learn the codebase.*
   ADR-097):** keyed on `pluginManagement { includeBuild(..) }` in the
   settings file when a real repo degrades on one, never on the name;
   nothing built until then.
+- ~~**C-67's Gradle shape — the half-built recovery:** scip-java's
+  plugin injection fails where another plugin owns the compiler
+  arguments; the oracle's init script attached to the same build.~~ —
+  **done 2026-09-10 (later still), 0.1.10-beta:** the helper attaches
+  the plugin the oracle's way and aggregates (ADR-096 amended);
+  Severed-Chains 23.5% → 60.8% recall at 100% precision. Open: a
+  build that replaces `compilerArgs` after configuration (refused with
+  the build's words); Kotlin under the plugin; artifact names for
+  external symbols under Gradle (the coverage line reads the build's
+  own `dependencies.txt` instead).
 - **The symbol floor, three shapes the callee-shape bucket priced
   (2026-09-10, `docs/oracle/oracle-misses.md`; off the table for now —
   Max, 2026-09-10 later still — with the Jelly key grain; the

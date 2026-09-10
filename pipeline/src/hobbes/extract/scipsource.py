@@ -1925,10 +1925,18 @@ def _index_java_unit(
     ``.groovy``; ``buildSrc/`` excepted — C-101) — staged alone, and the build's own resolution
     run over them: Maven's ``test-compile`` (it resolves the mojo's scope
     before finding nothing to compile), or the Gradle wrapper with a
-    Hobbes init script that resolves every configuration. **Index pass**
+    Hobbes init script that resolves every configuration (a second
+    Hobbes init script rides the Gradle index pass, the one that attaches
+    the plugin — the helper writes it beside the output). **Index pass**
     (``index-java``, ``--network none``): the full stage, the same build
-    with scip-java attached and the tool's offline flag, so a build that
-    still wants the network fails visibly instead of reaching for it. A
+    with scip-java's javac plugin attached and the tool's offline flag,
+    so a build that still wants the network fails visibly instead of
+    reaching for it. Under Maven scip-java attaches the plugin itself;
+    under Gradle the helper does, through its own init script on each
+    JavaCompile task's processor path, then aggregates the shards
+    (``scip/index.mjs``, ``gradlePlan``; C-67 — scip-java's Gradle
+    plugin adds the jar to ``compileOnly``, which a build that resolves
+    that configuration at evaluation time refuses). A
     failed resolve is recorded and the index pass runs anyway — the
     caches persist across ingests, so a warm one may carry it — and if
     the build then fails, the unit degrades to lane A with both records.

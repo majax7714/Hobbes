@@ -100,6 +100,18 @@ RUN sh /usr/local/bin/hobbes-jdk-install 17 "${JDK17_RELEASE}" "${JDK17_SHA256}"
  && curl -fsSL -o /usr/local/bin/scip-java "https://github.com/scip-code/scip-java/releases/download/v${SCIP_JAVA_VERSION}/scip-java-v${SCIP_JAVA_VERSION}" \
  && echo "${SCIP_JAVA_SHA256}  /usr/local/bin/scip-java" | sha256sum -c - \
  && chmod +x /usr/local/bin/scip-java
+# scip-java's javac plugin, out of the launcher it ships in (C-67): a
+# Gradle build gets the plugin from Hobbes's own init script on each
+# JavaCompile task's processor path (`scip/index.mjs`, `gradlePlan`),
+# because scip-java's Gradle plugin adds it to `compileOnly`, which a
+# build that resolves that configuration at evaluation time refuses.
+# One provider, one version: the jar is the launcher's own, pinned by
+# the launcher's checksum and its own; `javac-internals.properties` is
+# the `--add-exports` list the plugin needs, read at index time.
+ARG SCIP_JAVAC_SHA256=3c549d7723011bfe8490dad0905a499797584373c8e95d212c3bdfee99c6d38b
+RUN mkdir -p /usr/local/lib/scip-java \
+ && python3 -c 'import io, sys, zipfile; z = zipfile.ZipFile("/usr/local/bin/scip-java"); j = zipfile.ZipFile(io.BytesIO(z.read("coursier/bootstrap/launcher/jars/scip-java-" + sys.argv[1] + ".jar"))); open("/usr/local/lib/scip-java/scip-javac.jar", "wb").write(j.read("scip-plugin.jar")); open("/usr/local/lib/scip-java/javac-internals.properties", "wb").write(j.read("javac-internals.properties"))' "${SCIP_JAVA_VERSION}" \
+ && echo "${SCIP_JAVAC_SHA256}  /usr/local/lib/scip-java/scip-javac.jar" | sha256sum -c -
 ENV JAVA_HOME=/usr/local/java \
     PATH="/usr/local/java/bin:/opt/maven/bin:/usr/local/cargo/bin:/usr/local/go/bin:${PATH}"
 

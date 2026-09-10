@@ -206,7 +206,8 @@
   override below it draws nothing. Graded against the CHA override set
   on four repos (O8, 2026-08-29): `interface→method` recall
   **98.7% (spring-petclinic) · 67.5% (jsoup) · 57.4% (spring-data-elasticsearch)
-  · 0.4% (Severed-Chains, lane A alone)**, and 84.6–90.9% of every
+  · 43.3% (Severed-Chains since 0.1.10-beta; 0.4% on its lane-A-only
+  grade of 2026-08-29)**, and 89–94% of every
   cell's misses. Members declared in anonymous-class and enum-constant
   bodies are a second face (452–518 pairs per large cell): below the
   symbol floor by decision, named `local-binding` in the tail. An

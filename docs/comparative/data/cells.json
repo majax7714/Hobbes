@@ -3248,15 +3248,14 @@
    "date": "2026-08-29",
    "kind": "resolution",
    "oracle": "javac 25.0.4.1+1-LTS",
-   "hobbes_version": "0.1.8-beta",
+   "hobbes_version": "0.1.10-beta",
    "lang": "Java",
    "run": "contained",
    "draw": "random",
    "label": "Severed-Chains",
-   "floor": true,
-   "note": "random draw; lane B failed on this Gradle build (C-67), so every edge is syntactic — C-8's floor measured",
-   "edges": 10154,
-   "confirmed": 10154,
+   "note": "random draw; lane B ran from 0.1.10-beta through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; until then it failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured",
+   "edges": 29793,
+   "confirmed": 29793,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -3264,26 +3263,25 @@
    "unobserved": 0,
    "precision": {
     "pct": 100.0,
-    "num": 10154,
-    "den": 10154
+    "num": 29793,
+    "den": 29793
    },
    "recall": {
-    "pct": 23.5,
-    "hits": 12803,
+    "pct": 60.8,
+    "hits": 33143,
     "pairs": 54520,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "interface→anonymous-member": 78,
-    "interface→method": 35289,
-    "static→constructor": 2560,
-    "static→method": 3790
+    "interface→method": 20092,
+    "static→constructor": 1207
    },
    "poison": {
     "passed": true,
-    "seeded": 10154,
-    "refused": 10154,
+    "seeded": 29793,
+    "refused": 29793,
     "unjudged": 0,
     "falsely": 0
    }

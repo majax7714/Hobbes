@@ -129,7 +129,7 @@ the grader-grain question first, since the key names the class whose
 constructor answers (`ZodType` for `new ZodString(..)`, the base), not
 the class written.
 
-**The grader prints the collapsed number now (2026-09-10, later still; Max's decision, ADR-089 amended).** `oracle grade` computes this identity from the key and its own confirmed rows and prints it as `recall-collapsed` beside the standing line on every resolution or reachability cell: cheerio **2,628/3,826 = 68.7%** and zod **9,731/16,634 = 58.5%** to the pair — the numbers above from a second program (`bucket.py` now says whether the two agree on a report). Two things fold under it, stated on the line: a symbol's overload signatures, and repeats of one callee on one line, which the standing line counts one pair per site and one Hobbes edge hits together — so the collapsed number can sit *below* the standing one (Severed-Chains 20.9% beside 23.5%). Its first Java run found the Java key spelling names member-bare, so same-named overrides in one file folded (jsoup read 85.3%; H-23, fixed the same hour — owner-qualified names, the four keys re-merged from their shards with every position unchanged; jsoup 76.3% beside 76.2%). The standing grade is the per-signature line everywhere.
+**The grader prints the collapsed number now (2026-09-10, later still; Max's decision, ADR-089 amended).** `oracle grade` computes this identity from the key and its own confirmed rows and prints it as `recall-collapsed` beside the standing line on every resolution or reachability cell: cheerio **2,628/3,826 = 68.7%** and zod **9,731/16,634 = 58.5%** to the pair — the numbers above from a second program (`bucket.py` now says whether the two agree on a report). Two things fold under it, stated on the line: a symbol's overload signatures, and repeats of one callee on one line, which the standing line counts one pair per site and one Hobbes edge hits together — so the collapsed number can sit *below* the standing one (spring-petclinic 98.3% beside 98.4%; Severed-Chains read 20.9% beside 23.5% on its lane-A-only grade). Its first Java run found the Java key spelling names member-bare, so same-named overrides in one file folded (jsoup read 85.3%; H-23, fixed the same hour — owner-qualified names, the four keys re-merged from their shards with every position unchanged; jsoup 76.3% beside 76.2%). The standing grade is the per-signature line everywhere.
 
 **The Jelly caveat this settles before the afternoon.** The rest of the
 tail — bindings, parameters, closures, interface signatures — is where a
@@ -172,14 +172,16 @@ What hurts most, loop-wide, is unchanged from the first cells: **calls into clos
 
 Java's misses are dominated by one class on every cell, as the build
 plan predicted: **`interface→method`**, graded against the CHA override
-set, is 84.6–90.9% of all misses (jsoup 5,226 of 5,863; spring-data-elasticsearch
-7,469 of 8,214; Severed-Chains 35,289 of 41,717; petclinic 4 of 6).
+set, is 89.1–94.0% of all misses on the three large cells (jsoup 5,226 of 5,863; spring-data-elasticsearch
+7,469 of 8,214; Severed-Chains 20,092 of 21,377 since 0.1.10-beta —
+35,289 of 41,717 on its lane-A-only grade; petclinic 4 of 6).
 Per-cell recall on the class: **petclinic 98.7%, jsoup 67.5%,
-spring-data-elasticsearch 57.4%, Severed-Chains 0.4%** — the spread is
-the codebase's interface layering, and Severed-Chains' 0.4% is the
-lane-A-only floor (no semantic lane, so a call on a value resolves to
-nothing at all). The declared method *is* drawn and confirmed in every
-semantic cell; the overrides below it are the hole.
+spring-data-elasticsearch 57.4%, Severed-Chains 43.3%** (0.4% until
+2026-09-10 later still, when the Gradle attach route gave it a semantic
+lane, ADR-096 amended: on lane A alone a call on a value resolved to
+nothing at all) — the spread is the codebase's interface layering. The
+declared method *is* drawn and confirmed in every semantic cell; the
+overrides below it are the hole.
 
 Second, at 6–8% of misses on the three semantic cells:
 **`interface→anonymous-member` / `static→anonymous-member`** (jsoup

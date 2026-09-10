@@ -70,11 +70,14 @@ fixed the same session and regraded 16,050/16,050.
    0 falsely confirmed, with N and K beside it and the cells not in the
    sum named.
 3. **Here is how much Hobbes does not draw, and what it is.** Recall
-   runs from 23.5% (Severed-Chains — no semantic lane, the syntactic
-   floor measured) to 100.0% (the best of dagger's nineteen Go
-   modules, each its own cell with its own root count; 98.4% at
-   spring-petclinic among the whole-repo cells) across the
+   runs from 40.8% (fzf, at 5 roots) to 100.0% (the best of dagger's
+   nineteen Go modules, each its own cell with its own root count;
+   98.4% at spring-petclinic among the whole-repo cells) across the
    compiler-graded cells, stated as a range and never averaged: each
+   cell's denominator is its own roots or its resolved sites (C-62).
+   The syntactic floor alone was measured once — Severed-Chains at
+   23.5%, no semantic lane — and that cell reads 60.8% since
+   0.1.10-beta, when the Gradle attach route gave it one; each
    cell's denominator is its own roots or its resolved sites (C-62).
    The misses are one register entry, C-58 — closures, interface
    dispatch, function values, code macros and derives wrote — tabled

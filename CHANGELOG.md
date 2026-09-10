@@ -10,6 +10,36 @@ is Max's: after the next version the layer moves to **0.11.0-beta**,
 not 0.2.0 (ADR-103 amendment, 2026-09-10); tags are his call each time
 (0.1.9-beta untagged; the last tag is `v0.1.8-beta`).
 
+## 0.1.10-beta — 2026-09-10 (later still)
+
+**Patch: a change in what Hobbes draws on a Gradle repo (C-67).** A
+Gradle unit gets scip-java's javac plugin from Hobbes's own init script
+— on each JavaCompile task's processor path, the way the oracle lane
+attaches its plugin — and its shards are aggregated by `scip-java
+aggregate`; scip-java's own Gradle plugin, which adds the jar to the
+`compileOnly` configuration, is no longer in the path, because a build
+that has resolved that configuration at evaluation time refuses the
+add (Severed-Chains, one repo in four on the 2026-08-29 random draw,
+had fallen to lane A whole). The image extracts the plugin jar and its
+`--add-exports` list out of the pinned launcher at build. Maven is
+untouched (ADR-096 amended).
+
+- Severed-Chains re-ingested contained: capture 0.0% → **100.0%** of
+  52,209 sites; regraded against its standing javac key at 100.0%
+  precision, recall **23.5% → 60.8%** (29,793 edges, 0 contradicted,
+  poison 0 falsely confirmed), every edge semantic. spring-petclinic's
+  Gradle build through the same route beside its Maven grade.
+- Under Gradle the dependency-coverage line is answered from what the
+  build resolved (a task the init script registers writes scip-java's
+  own `dependencies.txt`), since the aggregator alone names no
+  third-party package; an external node is still named by its Java
+  package. A build that replaces `compilerArgs` after configuration is
+  refused with its own last words quoted. Kotlin sources are not
+  compiled under the plugin (they were not indexed before either).
+- Bench: `oracle grade` prints `recall-collapsed` beside the standing
+  line (ADR-089 amended); the Java key's names are owner-qualified
+  (H-23). Neither moves the version (ADR-103).
+
 ## 0.1.9-beta — 2026-09-10 (later still)
 
 **Patch: a change in what Hobbes refuses to stage and what it says

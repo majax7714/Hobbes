@@ -3,21 +3,21 @@
 <rect width="950" height="822" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Three graphs, one key per cell: precision-against-oracle and recall, never pooled</text>
 <g>
-<title>Hobbes 0.1.8-beta</title>
+<title>Hobbes 0.1.10-beta / 0.1.8-beta</title>
 <circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.8-beta</text>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.1.8-beta</text>
 <g>
 <title>CodeGraphContext 0.6.13</title>
-<rect x="158.7" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="244.1" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="173.7" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<text x="259.1" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
 <g>
 <title>repowise 0.49.0</title>
-<polygon points="334.0,39.5 340.5,46 334.0,52.5 327.5,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="419.4,39.5 425.9,46 419.4,52.5 412.9,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="344.0" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
-<text x="449.5" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).</text>
+<text x="429.4" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="534.9" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).</text>
 <text x="24" y="64" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.</text>
 <line x1="250.0" y1="98" x2="250.0" y2="632" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="250.0" y="94" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0%</text>
@@ -296,10 +296,10 @@
 <polygon points="426.4,393.5 432.9,400 426.4,406.5 419.9,400" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>Severed-Chains — hobbes: precision-against-oracle 10,154/10,154 = 100.0%</title>
+<title>Severed-Chains — hobbes: precision-against-oracle 29,793/29,793 = 100.0%</title>
 <circle cx="550.0" cy="400" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="663.4" y1="400" x2="727.6" y2="400" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="663.4" y1="400" x2="792.4" y2="400" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>Severed-Chains — codegraphcontext: recall 9,726/54,520 = 17.8% over every resolved site (resolution oracle: no roots)</title>
 <rect x="658.4" y="395" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
@@ -309,8 +309,8 @@
 <polygon points="727.6,393.5 734.1,400 727.6,406.5 721.1,400" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>Severed-Chains — hobbes: recall 12,803/54,520 = 23.5% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="680.5" cy="400" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>Severed-Chains — hobbes: recall 33,143/54,520 = 60.8% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="792.4" cy="400" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="426" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch</text>
 <line x1="421.6" y1="422" x2="550.0" y2="422" stroke="#d9d8d2" stroke-width="2"/>
@@ -536,5 +536,5 @@
 <text x="24" y="694" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes-wrong). The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain</text>
 <text x="24" y="708" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded. On repowise-bench's draws the key is ours, at site grain — not comparable</text>
 <text x="24" y="722" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >with their published table; syft is absent because RTA over it is killed by the kernel on this box.</text>
-<text x="24" y="740" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. Every Hobbes number is the standing grade by Hobbes 0.1.8-beta (ADR-103): the last block of each record, regraded on one build against the same keys.</text>
+<text x="24" y="740" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.1.8-beta (ADR-103; per cell in tables.md).</text>
 </svg>
