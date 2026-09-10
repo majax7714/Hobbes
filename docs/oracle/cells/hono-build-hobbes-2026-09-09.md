@@ -130,3 +130,55 @@ receiver); recall 55.2% (774/1,403), unchanged.** The row is hobbes-wrong
 by tier as before; it stays an exception on the claim page until C-98
 is lifted.
 
+## Regrade 2026-09-10 (C-98 lifted, C-99 — a file under a solution-style tsconfig is typed by the referenced project that includes it; 0.1.5-beta)
+
+Same key (`keys/hono-build/oracle.json`, `tsc 5.9.3` the harness's),
+same clone and commit, Hobbes 0.1.5-beta: the TS helper resolves a
+file under a solution-style `tsconfig.json` to the referenced project
+whose inputs include it, by the compiler's own reading of the configs
+(`zoneTsconfig`, `tsextract/extract.mjs`), so `src/` is typed under
+`tsconfig.build.json` and its tests under `tsconfig.spec.json` instead
+of under the root's absent options. **The one row left on 2026-09-09
+is gone:** at `src/jsx/components.ts:18` lane A now types `c` through
+`children.flat()` — an `Alpha | Beta`-shaped union of `Child` — and
+abstains (`union-member`, C-97); the join vetoes lane B's
+`JSXNode.toString`. Fifteen `union-member` sites on `src/` in nine
+files where there were none: the sites the zone types once it has
+options. Recall gains one pair (`static→method` 113 → 114). Lane
+agreement is byte-identical to the previous helper's on this clone
+(4,332 both-resolved sites, the same one line-grain disagreement,
+module edges 42 / 635). Found on the way: hono's six
+`runtime-tests/*/tsconfig.json` (references beside options, neither
+`files` nor `include`) had been taken for solution configs by both
+lanes — registered and fixed as **C-99**; those zones now index under
+their own options, outside this cell's key. Artifacts under
+`~/.hobbes/bench/comparative/hobbes-hono-build-r3/` (`ingest.log`
+beside them; `tsconfig-unclaimed` reports the 22 root files no
+referenced project claims).
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 4471: confirmed 768  contradicted 0  abstract 0  silent 3703 map[not-loaded:3703]
+precision-against-oracle 100.0% (768/768)
+recall 55.2% (775/1403 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2122; misses map[func-value→local-binding:61 func-value→variable:4 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:78 static→closure:229 static→method:90 static→property:93 static→type-member:20 static→variable:7]
+  recall[func-value→local-binding]   0.0% (0/61)  misses 61 = 9.7% of all misses
+  recall[func-value→variable]   0.0% (0/4)  misses 4 = 0.6% of all misses
+  recall[interface→type-member]   0.0% (0/30)  misses 30 = 4.8% of all misses
+  recall[static→anonymous-function]   0.0% (0/1)  misses 1 = 0.2% of all misses
+  recall[static→anonymous-signature]   0.0% (0/15)  misses 15 = 2.4% of all misses
+  recall[static→class      ]   0.0% (0/78)  misses 78 = 12.4% of all misses
+  recall[static→closure    ]   0.0% (0/229)  misses 229 = 36.5% of all misses
+  recall[static→function   ] 100.0% (64/64)  misses 0 = 0.0% of all misses
+  recall[static→method     ]  55.9% (114/204)  misses 90 = 14.3% of all misses
+  recall[static→property   ]   0.0% (0/93)  misses 93 = 14.8% of all misses
+  recall[static→type-member]   0.0% (0/20)  misses 20 = 3.2% of all misses
+  recall[static→variable   ]  98.8% (597/604)  misses 7 = 1.1% of all misses
+  tier semantic   confirmed 726  contradicted 0  abstract 0  silent 3587
+  tier syntactic  confirmed 42  contradicted 0  abstract 0  silent 116
+  line-grain tolerance used on 164 edge(s) (several oracle sites on one line)
+poison check: PASS — 4471 seeded wrong edges: 768 refused, 3703 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Precision-against-oracle 100.0% (768/768), 0 contradicted; recall
+55.2% (775/1,403).** hono leaves the claim page's exceptions; quic-go
+is the one that remains.

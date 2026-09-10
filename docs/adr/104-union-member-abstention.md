@@ -91,7 +91,9 @@ which declaration `tsc` happened to name, so the rule cannot be "match
   report" line for every other language names it. Rebuild the image
   (C-65).
 - The claim page's exceptions go from three to two: hono (one row,
-  C-98) and quic-go.
+  C-98) and quic-go. *C-98 lifted 2026-09-10 (0.1.5-beta): the helper
+  types a file under a solution config by the referenced project that
+  includes it; hono 768/768, the exception quic-go alone.*
 
 ## Tests
 

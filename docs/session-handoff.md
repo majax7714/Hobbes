@@ -1,101 +1,93 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-09 (night).** Nothing is running: no Modal job,
-no local process; the tree is committed on `main`, not pushed. **Hobbes
-is at 0.1.4-beta (ADR-103/104): the tag `v0.1.3-beta` is local and
-unpushed like the commits — publish together, and tag `v0.1.4-beta` when
-Max says so; `CHANGELOG.md` gets an entry with every bump, and nothing
-under `bench/` moves the number.** Resume at START HERE below — the
-comparative review's remaining items, C-98's lift first among the
-no-spend work, then the Atlas-0 decisions held from 2026-09-07
-(unchanged, further down).
+**Session ended 2026-09-10.** Nothing is running: no Modal job, no
+local process; the tree is committed on `main`, not pushed. **Hobbes is
+at 0.1.5-beta (ADR-103; C-98 lifted): the tag `v0.1.3-beta` is local
+and unpushed like the commits — publish together, and tag `v0.1.5-beta`
+when Max says so; `CHANGELOG.md` gets an entry with every bump, and
+nothing under `bench/` moves the number.** Resume at START HERE below —
+Max's review of the C-98 lift and C-99, then the no-spend W1/W3 items;
+the Atlas-0 decisions held from 2026-09-07 stay held (unchanged,
+further down).
 
-**Rewritten 2026-09-09: Max's brief for a presentable claim — a
-comparison against other code-graph tools and a small set of graphics
-without Hobbes saying something it has not earned — built end to end
-as the oracle lane, not a scoreboard (ADR-101/102). `oracle import` +
-`grade-foreign.sh` grade any tool's graph against the lane's keys with
-the same matcher and poison check; CodeGraphContext 0.6.13 and repowise
-0.49.0 graded on the thirteen loop / random-draw cells (26 foreign
-records, 0 falsely confirmed of 171,350 seeded); `docs/comparative/`
-holds the field (ten tools, sourced or unstated), the claim page, the
-generated tables and four graphics regenerated from the cell records
-with a drift test. No API spend, no Modal.** Read this, then the
-2026-09-09 BUILDLOG entry, `docs/comparative/README.md`, ADR-101 and
-ADR-102, and `docs/workstreams.md` W0 for the parked follow-ups.
-History lives in the BUILDLOG; this doc is rewritten, never appended
-into a pile.
+**Rewritten 2026-09-10: the comparative programme's review queue moved
+on Max's word — the claim page's wording is approved (item 1 crossed
+off), the bigger box for syft and dagger's root is off the table, the
+experimental holds stay held — and C-98 was lifted: the TS helper types
+a file under a solution-style `tsconfig.json` by the referenced project
+that includes it, the compiler's own reading of the configs; a file no
+project claims runs under the defaults and is reported. hono 767/768 →
+768/768; the claim page's one exception is quic-go. C-99 found on the
+way and fixed in both lanes: a config with `references` and neither
+`files` nor `include` is a project, not a solution. No API spend, no
+Modal.** Read this, then the 2026-09-10 BUILDLOG entry, the C-98 and
+C-99 entries in `docs/constraints/extraction-typescript-javascript.md`,
+and `docs/workstreams.md` W1 for what is left there. History lives in
+the BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max reviews the comparative programme and the 1-1
+## ⇢ START HERE NEXT SESSION: Max reviews the C-98 lift and C-99; then the no-spend queue
 
-**Done 2026-09-09 (two BUILDLOG entries):** the programme (ADR-101/102),
-the 40-row triage that repaired the converters' Java grain (C-94), and
-the 1-1 on repowise's draws under our key — with one wrong syntactic Go
-edge found and fixed on gitleaks (`_repo_package`, a stdlib import path
-never names a repo package). Read `docs/comparative/README.md` (the
-claim; its 1-1 section), `tables.md`, and the two BUILDLOG entries.
+**Done 2026-09-10 (BUILDLOG; commits `9f5ca99` the code, the docs
+commit after it):** `zoneTsconfig` in `tsextract/extract.mjs` — the
+nearest tsconfig read raw; a solution config's references resolved by
+the compiler in the order written, transitively inside the repo; the
+first referenced project whose inputs include the file is its zone;
+unclaimed files to the default project, reported once per solution
+config (`tsconfig-unclaimed`). Both lanes' solution rule corrected
+(C-99: `references` + no non-empty inputs + one of the two keys
+written). hono regraded **768/768**, 15 `union-member` sites typed on
+`src/`, lane agreement byte-identical to the old helper's (a baseline
+ingest of a clone copy); 0.1.5-beta, image rebuilt, register
+99 / 75 / 22 / 2.
 
-**The comparison as a graphic:** `docs/comparative/graphics/same-key.svg`
-(ADR-102 §7) — one row per cell, three markers per axis in one hue per
-tool (blue Hobbes, orange CodeGraphContext, green repowise; Max's
-review later on 2026-09-09 replaced the hollow same-colour shapes), the
-draws as their own band; regenerated with the rest by `render.py render`.
+**For Max's review:**
 
-**Next session's work (Max's call on order):**
+1. **The C-98 lifted entry's residuals** — two referenced projects
+   both including a file (the first named wins); a solution's own
+   `compilerOptions` not applied to unclaimed files; and the lane
+   asymmetry it leaves: lane B keeps C-90's generated config over a
+   solution file, lane A now uses the referenced project's options, so
+   a `paths` alias in a referenced project could make the lanes
+   disagree where they could not before (hono has none). If that
+   asymmetry should close, lane B would resolve a solution to its
+   referenced projects the same way — a small scipsource change, no
+   spend, not started.
+2. **The hono record's third block and the regenerated graphics** —
+   `docs/oracle/cells/hono-build-hobbes-2026-09-09.md`, `same-key.svg`,
+   `one-number.svg` (38 at 100%, 0 of 99,853 falsely confirmed; the exception quic-go).
+3. **Whether to tag `v0.1.5-beta`** and publish.
 
-1. **Whether the claim page says what he wants said** — the four
-   sentences under *The claim*, now with three named exceptions (ajv,
-   hono — one scip-typescript union-member shape, n=2 — and quic-go),
-   and whether `same-key.svg` is the graphic that goes in front of
-   someone first. **Checked 2026-09-09 (later, `f54ab77`):** every
-   number matches the records; the scatter now shares same-key's
-   palette, the recall range reads 100.0% (dagger) in the page and the
-   footer alike, the "hollow squares" lines are gone. The wording
-   itself is still Max's call.
-2. **syft's keys need a bigger box** (RTA OOM at 18.7 / 19 GB, H-9's
-   shape); the row says so. Also dagger's root, still.
-3. ~~**The union-member provider shape (ajv 3, hono 7 rows)**~~ — **done
-   2026-09-09 (night, ADR-104, 0.1.4-beta):** measured first (every
-   contradiction on both repos was a union-receiver site; the six
-   "confirmed" ones were `tsc` making the same first-member pick), then
-   closed by abstention on Max's word — the helper types the receiver
-   and records `ambiguous`, the join vetoes lane B, the tail says
-   `union-member` (C-97). ajv 1,410/1,410 contained; hono 767/768.
-   **Next, no spend: C-98** — the one row left is a site lane A cannot
-   type because hono's root `tsconfig.json` is solution-style and the
-   helper loads it as the zone's options (ES5 defaults, `any`
-   receivers). The lift is C-90's rule on the lane-A side
-   (`is_solution_tsconfig` / `referenced_ts_configs` exist in
-   `scipsource.py`; the helper's `nearestTsconfig` needs the same);
-   regrade hono after and the claim page's exceptions drop to quic-go.
-4. **The next converters** (codebase-memory-mcp, colbymchenry/codegraph)
-   and whether to run the competitor cells under the sandbox image
-   (C-96 narrowed).
-5. Everything held earlier stays held (Atlas-0 decisions below; TTT;
-   Calvin; ADR-101's earlier meaning for the Calvin design number —
-   note ADR-101/102 are now taken by the comparative programme, so the
-   Calvin/Atlas ADRs take 103+).
+**The comparative review's queue, as it stands:** item 1 approved; item
+2 (syft's keys, dagger's root — the bigger box) off the table (Max,
+2026-09-10); item 3 done (ADR-104, then C-98); **item 4 — the next
+converters (codebase-memory-mcp, colbymchenry/codegraph) and whether
+the competitor cells run under the sandbox image (C-96 narrowed) —
+waits on Max's call**; item 5 held.
 
-**Practical, from today (night):** `tee file | head` truncates the file
-(SIGPIPE kills tee) — write a grade's report with `> file` and read it
-after; the two regrade reports were regenerated for that. A regrade
-appends a signed block to the record — the renderer takes the *last*
-verbatim block — and the exception note lives in
-`bench/oracle/report/cells.meta.json` (indent 1), not the record.
-`hobbes ingest` with lane B on a fixture copy needs a git repo with one
-commit. The measurement script (`union_sites.cjs`) and the fixture copy
-were session scratch; the fixture case itself is in the repo.
+**Then, no spend (`docs/workstreams.md`):** W1's decorated-declaration
+line convention (131 of dagger's 258 lane disagreements), the C-15
+namespacing ADR, the directory rollup in `list_blind_spots`; W3's
+decomposed DeepSWE protocol as design only; collaborator onboarding.
 
-**Practical, from today:** long RTA keys run detached (`setsid nohup`),
-never under a background command with a ten-minute cap, and are killed
-by pid — `pkill -f` matched this session's own shell again. A record's
-last verbatim block is its standing grade; a foreign record is
-regenerated from its artifacts (`foreign_record.py`, via
-`records.sh` / `records5.sh` in the session scratchpad — the commands
-are in the records' headers), so hand edits there are lost on the next
-regeneration: put prose into `--triage-note` / `--fix-note`.
+**Practical, from today:** the session's knowledge server (`.mcp.json`
+→ `sandbox/knowledge-serve`) runs the image it started with — restart
+it after an image rebuild (C-65). A baseline under an older helper is
+cheap: copy the clone (with `.git`), swap `tsextract/extract.mjs` from
+`git show HEAD:…` for the run, restore it, `hobbes lanes` both. The
+oracle lane's drift test answers `(cached)` after a record changes —
+`go test -count=1 ./report/`. A regrade's report goes to a file with
+`>`, never through `tee | head` (SIGPIPE truncates it); a record's last
+verbatim block is its standing grade; the exception note lives in
+`bench/oracle/report/cells.meta.json`, not the record.
+
+**Practical, from 2026-09-09:** long RTA keys run detached (`setsid
+nohup`), never under a background command with a ten-minute cap, and
+are killed by pid — `pkill -f` matches the session's own shell. A
+foreign record is regenerated from its artifacts (`foreign_record.py`),
+so hand edits there are lost on the next regeneration: put prose into
+`--triage-note` / `--fix-note`.
 
 ---
 
@@ -281,13 +273,17 @@ image's python as the base.
   addendum; `verify-gold-import/`, `verify-t-step6-import/`,
   `calvin_probe.py replay`); the design's ADR takes 101 when Max moves
   it to *accepted*; artifacts under `~/.hobbes/bench/calvin/`. Suite
-  1,241 pytest + 3 `lane_b` (1,242 collect on this box, every one
-  passing since the venv test's real venv); 32 tsextract node tests.
+  1,251 pytest + 3 `lane_b` (every one passing on this box, the
+  `lane_b` three on the 0.1.5-beta image); 35 tsextract node tests
+  (2026-09-10).
 - **Extraction:** the ten entries lifted, plus C-89 and C-90 (above);
   their three residuals closed 2026-09-05 and C-63 surfaced (the
   register's unsurfaced count — C-19, C-20 — now reads true; C-63 had
   been a third). Image rebuilt 2026-09-05 (the `expr-callee` gloss,
-  C-65). Register: **93 entries, 71 active, 20 lifted, 2 superseded** (C-91
+  C-65). Register: **99 entries, 75 active, 22 lifted, 2 superseded** on
+  2026-09-10 (C-94–C-96 from the comparative programme, C-97/C-98 from
+  ADR-104, C-98 lifted and C-99 registered and lifted 2026-09-10; at
+  2026-09-07 it read 93 / 71 / 20 / 2 — C-91
   from Calvin step 3, C-92/C-93 from step 5, ADR-100; the count is
   checked against the segment headings, not a summary line; C-86–C-88 from the review still active: the
   control margin is a bound; the first NLL write-up's conditioning was
@@ -323,8 +319,9 @@ image's python as the base.
 
 ## NEXT (in order; API spend and Modal compute are off the table — Max, 2026-09-04)
 
-**First: Atlas-0's review** (START HERE above) — Max's reading of the
-v1 record and his call on the v2 cell. Then the queue:
+**First: Max's review of the C-98 lift** (START HERE above). The
+Atlas-0 decisions and every other experiment stay held (Max,
+2026-09-10). Then the queue:
 
 0. ~~Doc drift from the Calvin sprint~~ — **done 2026-09-04 (later):**
    the register count everywhere (93 / 71 / 20 / 2), README's status,

@@ -31,15 +31,18 @@ lane's Go suite) fails when a picture drifts from its cells.
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
-   compiler-graded cell, with two named exceptions.** Every
+   compiler-graded cell, with one named exception.** Every
    compiler-graded semantic cell is at 100% precision-against-oracle
-   except hono (767/768 — one member call on a union-typed receiver at
-   a site lane A cannot type under hono's solution-style root tsconfig,
-   C-98; the shape itself, `static→union-member`, is closed by
-   abstention since ADR-104 — ajv's three rows went 1,375/1,378 →
-   1,410/1,410 on the 2026-09-09 regrade, and six more of hono's seven)
-   and quic-go (3,766/3,781, a 99.6% lower bound; all
+   except quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong).
+   The two TypeScript cells that were exceptions closed by fixes, not
+   by re-grading: ajv's three rows and six of hono's seven were one
+   member call on a union-typed receiver drawn to the first member's
+   method, closed by abstention (ADR-104, C-97 — ajv 1,375/1,378 →
+   1,410/1,410 on 2026-09-09); hono's seventh was that shape at a site
+   lane A could not type under hono's solution-style root tsconfig,
+   closed when the helper learned to type a file by the referenced
+   project that includes it (C-98 lifted, 768/768 on 2026-09-10).
    gitleaks' one syntactic contradiction (a stdlib import matched to
    the repo's same-named package) was fixed and regraded the same day,
    signed in its records. Precision-against-oracle

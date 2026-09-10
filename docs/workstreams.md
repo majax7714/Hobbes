@@ -131,8 +131,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;
   "before the fourth language lands, or when a real repo hits it."
-- **C-98 — the TS helper under a solution-style `tsconfig.json`**
-  (registered 2026-09-09, ADR-104 § Consequences): the helper loads the
+- ~~**C-98 — the TS helper under a solution-style `tsconfig.json`**~~
+  — **lifted 2026-09-10:** `zoneTsconfig` resolves a file under a
+  solution config to the referenced project whose inputs include it, by
+  the compiler's own reading; hono 767/768 → 768/768, 15 `union-member`
+  sites typed on `src/`, the claim page's exception quic-go alone. As it
+  stood (registered 2026-09-09, ADR-104 § Consequences): the helper loads the
   nearest tsconfig as the zone's compiler options, and a solution config
   (`files: []` + `references`, hono's root) has none, so the checker runs
   at ES5 defaults and receivers reached through a newer lib are `any` —

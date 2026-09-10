@@ -433,7 +433,7 @@
   "run": "contained",
   "draw": "repowise-bench's draw (its corpus.lock pin)",
   "label": "hono (tsconfig.build.json)",
-  "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A cannot type under hono's solution-style root tsconfig (C-98), the one row left"
+  "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)"
  },
  "codegraphcontext-hono-build": {
   "lang": "TypeScript",

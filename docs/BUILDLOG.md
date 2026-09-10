@@ -7835,3 +7835,81 @@ the four binaries and the image rebuilt, this repo re-ingested.
 **Fixture pin moved:** `TestMinitsTSAllConfirmed` in the oracle lane
 pinned minits' recall misses; the two deliberate abstentions in
 `src/union.ts` are misses by design and the pin says so now.
+
+## 2026-09-10 — C-98 lifted (0.1.5-beta): a file under a solution-style tsconfig is typed by the referenced project that includes it; C-99 found and fixed in both lanes; hono 768/768
+
+Max's direction at the start: the claim page's wording is fine — item 1
+of the comparative review crossed off; proceed with C-98; the bigger
+box (syft, dagger's root) and the experimental holds stay off the
+table. The session opened on a doc review (README, CLAUDE.md,
+CHANGELOG, the handoff, workstreams — every count matched the tree) and
+a knowledge server two commits stale, re-ingested.
+
+**The lift (`9f5ca99`, `tsextract/extract.mjs`):** `zoneTsconfig`. The
+nearest `tsconfig.json` is read raw (`ts.readConfigFile`, no disk walk)
+and tested for the solution shape; an ordinary config is the zone as
+before. A solution config's references are resolved by the compiler
+(`ts.getParsedCommandLineOfConfigFile`, `resolveProjectReferencePath`),
+in the order written, inside the repo, solutions followed transitively
+under a `seen` set; the first referenced project whose `fileNames`
+contain the file is its zone, parsed once per config per extraction.
+`tsconfigs` in the facts names the zones actually used. A file no
+project claims joins the zone-less default project and is reported once
+per solution config (`errors` stage `tsconfig-unclaimed`, the files
+sampled) — the ingest prints it as a degradation line. Facts schema
+unchanged (v5). Before/after on the hono shape as a fixture, old helper
+against new: `tsconfigs` `["tsconfig.json"]` → `["tsconfig.build.json"]`;
+the `@/` alias unresolved → resolved; `pick`/`flat`/`map`/`render` all
+null → `pick` resolved, `flat` and `map` external, `render`
+`union-member`. Two node cases (35 tsextract tests, +2).
+
+**C-99, found on the first hono ingest:** the log reported hono's six
+`runtime-tests/*/tsconfig.json` as solution configs with files no
+project claimed. They are `extends` + `compilerOptions` + `references`
+with neither `files` nor `include` — and the compiler's default include
+is then the whole directory (checked against
+`getParsedCommandLineOfConfigFile`: references-only lists every file
+under it; `files: []` or `include: []` lists none). Lane B's
+`is_solution_tsconfig` (C-90) had the same reading since 2026-09-03, so
+those six zones had been indexed under the generated config in every
+hono record. The rule corrected in both lanes — a solution has
+`references`, no non-empty inputs, **and** one of the two keys written
+(`_TS_INPUT_KEY` in lane B; `isSolutionTsconfig` in lane A) — with
+tests on both sides; registered and lifted the same session.
+
+**Measured on hono** (same clone, commit and key; artifacts
+`~/.hobbes/bench/comparative/hobbes-hono-build-r3/`, the record's third
+signed block): **768/768 (100.0%), 0 contradicted**, poison 0 falsely
+confirmed of 4,471, recall 55.2% (775/1,403, `static→method` 113 →
+114); `union-member` 15 sites in nine files where there were 0 (the
+sites `src/` types once it has `tsconfig.build.json`'s options), the
+`components.ts:18` row gone by abstention; attr-call 7,819 → 7,795,
+external-origin 37 → 52; capture 39.7% → 39.6%; unclaimed reports
+seven configs → one (the root, 22 files, `benchmarks/deno/*` among
+them). **Baseline for the lane check:** a copy of the clone ingested
+under the old helper (the file swapped on disk for the run's duration)
+— `hobbes lanes` byte-identical before and after: 4,332 both-resolved
+sites, one disagreement (`src/middleware/body-limit/index.test.ts:139`,
+two `text()` calls on one line joined at line grain — pre-existing,
+not the lift's), module edges 42 lane A only / 635 lane B only. This
+repo has no solution-style config; its graph did not move. The claim
+page's exceptions: quic-go alone; `render.py` regenerated the four
+graphics and `tables.md` under the drift test (`-count=1`, the cached
+run proves nothing).
+
+**Version 0.1.5-beta** (patch: what Hobbes draws), CHANGELOG, the ten
+version copies (`test_version.py`), the four binaries and the image
+rebuilt (the proxy in the image answers 0.1.5-beta); register 99 / 75 /
+22 / 2 — C-98 to the TS segment's lifted section with its technique and
+residuals, C-99 beside it, C-90's residual amended; architecture §3
+(the lane-A rule beside lane B's) and §3.8 (hono's row, the exceptions
+line); ADR-104's consequences annotated; the claim page, the evidence
+log, `oracle-misses.md`, `cells.meta.json`, workstreams W1, README and
+CLAUDE.md's status. Suites: 1,251 pytest + 3 `lane_b` on the new image,
+Go and oracle-lane Go green, 35 tsextract, 32 scip, 52 vitest.
+
+**Practical:** the session's knowledge server still runs the image it
+started with — restart it after this rebuild (C-65). Ingesting a copy
+of a clone (with its `.git`) is the cheap way to get a baseline under a
+swapped helper. `go test` reports `(cached)` for the drift test after
+the records change — run it `-count=1`.

@@ -1981,22 +1981,22 @@
    "run": "contained",
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "hono (tsconfig.build.json)",
-   "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A cannot type under hono's solution-style root tsconfig (C-98), the one row left",
-   "edges": 4468,
-   "confirmed": 767,
-   "contradicted": 1,
+   "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)",
+   "edges": 4471,
+   "confirmed": 768,
+   "contradicted": 0,
    "abstract": 0,
-   "silent": 3700,
+   "silent": 3703,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 99.9,
-    "num": 767,
+    "pct": 100.0,
+    "num": 768,
     "den": 768
    },
    "recall": {
     "pct": 55.2,
-    "hits": 774,
+    "hits": 775,
     "pairs": 1403,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2009,16 +2009,16 @@
     "static→anonymous-signature": 15,
     "static→class": 78,
     "static→closure": 229,
-    "static→method": 91,
+    "static→method": 90,
     "static→property": 93,
     "static→type-member": 20,
     "static→variable": 7
    },
    "poison": {
     "passed": true,
-    "seeded": 4468,
+    "seeded": 4471,
     "refused": 768,
-    "unjudged": 3700,
+    "unjudged": 3703,
     "falsely": 0
    }
   },

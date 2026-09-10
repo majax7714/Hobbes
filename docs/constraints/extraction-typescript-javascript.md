@@ -118,33 +118,6 @@
 - **Source:** ADR-104; the ajv record's 2026-08-28 triage and the hono
   record's 2026-09-09 regrade; the fixture `minits/src/union.ts`.
 
-### C-98 — Lane A's checker runs with no compiler options under a solution-style `tsconfig.json` — *registered 2026-09-09*
-- **Cannot tell you:** the type of anything that needs a lib newer than
-  ES5 in a zone whose nearest `tsconfig.json` is a *solution* config
-  (`files: []` and `references` only — hono's root). The helper builds
-  one ts-morph project per zone from that file, which carries no
-  `compilerOptions`, so the checker runs at its defaults: `Array.flat`
-  does not exist, `Promise` is a type only, and a receiver reached
-  through such a call is `any`. Every lane-A observation that needs the
-  type is then absent there — `callee`, `origin` and C-97's abstention
-  alike — while lane B, which follows the references (C-90), resolves.
-- **Because:** `nearestTsconfig` picks the closest `tsconfig.json` by
-  path and the helper loads it as the zone's options; nothing checks
-  whether it is a solution config whose referenced projects hold the
-  real options. Lane B's `is_solution_tsconfig` / `referenced_ts_configs`
-  (C-90's lift) is the rule the helper does not yet follow.
-- **Bites at:** repos with a solution-style root — hono, and any
-  `tsc -b` monorepo. On hono the one remaining `static→union-member`
-  row (`src/jsx/components.ts:18`, 767/768) is this: the helper had no
-  type to abstain with.
-- **You find out:** **partial** — the helper reports the zone's
-  diagnostics per file in `errors` when the checker crashes, but a
-  degraded type is silent: nothing in the artifact says the zone's
-  options were empty. The hono record names the row.
-- **Source:** the hono regrade, ADR-104 § Consequences. The fix is the
-  lane-A analogue of C-90 (resolve a solution config to the referenced
-  project that includes the file) and is not in ADR-104.
-
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -154,6 +127,110 @@ cases**: inputs the technique does not classify, where the old concession
 quietly survives. When a residual case turns out to bite, it becomes a
 new active entry and the two cross-reference. Field key: `README.md`,
 "How to read a lifted entry".
+
+### C-98 — Lane A's checker ran with no compiler options under a solution-style `tsconfig.json` — *registered 2026-09-09, lifted 2026-09-10*
+- **Was:** the helper built one ts-morph project per zone from the
+  nearest `tsconfig.json` by path, and a solution-style config —
+  `files: []` and project `references`, hono's root, any `tsc -b`
+  monorepo — carries no compiler options, so the checker ran at its ES5
+  defaults: `Array.flat` unknown, a receiver reached through such a call
+  `any`, and every lane-A observation that needs the type absent —
+  `callee`, `origin` and C-97's abstention alike — while lane B, which
+  follows the references (C-90), resolved. On hono the one row left
+  after ADR-104 (`src/jsx/components.ts:18`, `c.toString()` inside
+  `children.flat().map(…)`) was this: lane B drew `JSXNode.toString`
+  with nothing to veto it, 767/768. *Partial* while it stood: the
+  artifact said nothing about the empty options.
+- **Lifted by — the technique:** `zoneTsconfig` in
+  `tsextract/extract.mjs`, the lane-A analogue of C-90's rule. The
+  nearest config is read raw (`ts.readConfigFile`, no disk walk) and
+  tested by `isSolutionTsconfig` — `references` present, no non-empty
+  `include`/`files`, and one of the two keys written (C-99). An ordinary
+  config is the zone as before. A solution config's references are
+  resolved by the compiler (`ts.getParsedCommandLineOfConfigFile`,
+  `resolveProjectReferencePath`), in the order written, inside the repo
+  only; a referenced project that is itself a solution is followed
+  transitively (a `seen` set stops cycles); the first referenced project
+  whose inputs — the compiler's own `fileNames` after
+  `extends`/`include`/`exclude`/`files` — contain the file is its zone,
+  parsed once per config per extraction. `tsconfigs` in the facts names
+  the zones actually used. A file no referenced project claims joins
+  the zone-less default project (ES2022, Bundler, JSX preserve — the
+  options lane B's generated config mirrors, C-90) and the helper says
+  so: one `errors` record per solution config (stage
+  `tsconfig-unclaimed`, the files sampled), printed by the ingest as a
+  degradation line. **Measured on hono** (same clone, commit and key as
+  the 2026-09-09 records; artifacts
+  `~/.hobbes/bench/comparative/hobbes-hono-build-r3/`): `src/` is
+  claimed by `tsconfig.build.json` and its tests by
+  `tsconfig.spec.json`; **768/768 (100.0%), 0 contradicted**, poison
+  check 0 falsely confirmed of 4,471, recall 55.2% (775/1,403, one
+  pair more); **`union-member` 15 sites in nine files where there were
+  0** — the sites the zone types once it has options, abstained by
+  C-97; attr-call 7,819 → 7,795, external-origin 37 → 52,
+  fallback-resolved 154 → 158; capture 39.7% → 39.6% (the abstentions
+  leave the resolved count); lane agreement byte-identical to the old
+  helper's (4,332 both-resolved sites, the same one line-grain
+  disagreement — two `text()` calls on one line of
+  `src/middleware/body-limit/index.test.ts` — module edges 42 lane A
+  only / 635 lane B only); 22 root files no referenced project claims
+  (`benchmarks/deno/*` among them) reported once. This repo has no
+  solution-style config; its graph did not move. Tests: two cases in
+  `tsextract/test/extract.test.mjs` — the hono shape end to end (the
+  alias resolves, `flat` is typed, the union receiver is abstained, the
+  unclaimed file is extracted and reported, a nested ordinary config and
+  a C-99 config are their own zones) and a solution reached through a
+  solution with a cycle and a reference outside the repo.
+- **Residual edge cases:** two referenced projects that both include a
+  file are two programs to `tsc -b`; here the first named wins and the
+  other's options are unread. A solution config's own `compilerOptions`
+  (legal, applied by `tsc` to nothing) are not applied to unclaimed
+  files — those run under the defaults and are reported. Lane B keeps
+  C-90's technique (the generated config over the solution file) rather
+  than the referenced project's options, so on a repo where a referenced
+  project's options change resolution — `paths` above all — the lanes
+  could now disagree where they could not before; hono has no such
+  alias and its lane count did not move.
+- **Source:** the hono regrade of 2026-09-09 (ADR-104 § Consequences);
+  lifted 2026-09-10 on the lead's direction, the first no-spend item of
+  the comparative review's queue.
+
+### C-99 — A tsconfig with `references` and neither `files` nor `include` was taken for a solution config, in both lanes — *registered and lifted 2026-09-10, the same session*
+- **Was:** lane B's `is_solution_tsconfig` (C-90) called a config a
+  solution when it had a `references` block and no *non-empty*
+  `include`/`files` — so a config that names references beside its own
+  `compilerOptions` and leaves both keys out, which the compiler reads
+  as *include the whole directory*, was replaced on the stage by the
+  generated config (ES2022, Bundler, JSX preserve) and its own options
+  — `jsx: react-jsx`, `jsxImportSource`, `types` — never reached
+  scip-typescript. The first draft of C-98's lift mirrored the rule on
+  the lane-A side and sent those files to the default project, reporting
+  them unclaimed — which is how it was found: hono's six
+  `runtime-tests/*/tsconfig.json` are this shape (`extends
+  ../../tsconfig.base.json`, options, `references:
+  [../../tsconfig.build.json]`, no `include`), and the 2026-09-09 hono
+  records indexed those six zones under the generated config. Silent
+  while it stood: a replaced config is not reported.
+- **Lifted by — the technique:** the compiler's rule, checked against
+  `ts.getParsedCommandLineOfConfigFile` (a config with `references` and
+  neither key lists every file under it; `files: []` or `include: []`
+  lists none): a solution config has `references`, no non-empty inputs,
+  **and** at least one of the two keys written. `is_solution_tsconfig`
+  (lane B: `_TS_INPUT_KEY` beside `_TS_ANY_INPUTS`) and
+  `isSolutionTsconfig` (lane A) both apply it; tests in
+  `TestReferencedTsConfigs` (the hono shape is a project, `files: []` a
+  solution) and the C-98 helper case (`runtime/tsconfig.json` is its own
+  zone). On hono the unclaimed reports drop from seven configs to one
+  (the root); the six zones index under their own options; the graded
+  cell (`src/`) does not move.
+- **Residual edge cases:** the two lanes read the keys by different
+  means — a regex over the text in lane B, the parsed JSON in lane A —
+  so a `"files":` inside a comment fools lane B's reading, not lane A's.
+  A key written with a non-empty value beside an empty other key is a
+  project by both rules and by the compiler.
+- **Source:** found 2026-09-10 while lifting C-98 — the first hono
+  ingest under the new helper reported `runtime-tests/*/tsconfig.json`
+  as solution configs with files no project claimed.
 
 ### C-90 — A tsconfig that `extends` or `references` a config off the zone's walk-up path was indexed without it — *registered and lifted 2026-09-03, the same session*
 - **Was:** staging copied a zone's sources plus the `tsconfig.json` /
@@ -190,7 +267,14 @@ new active entry and the two cross-reference. Field key: `README.md`,
   staged — the mount covers it. A referenced project that is not
   itself a zone (no TS file under it) is staged as a config and never
   indexed; harmless. `tsextract` (lane A) reads tsconfigs its own way
-  through ts-morph and was unaffected throughout.
+  through ts-morph and was unaffected throughout — until C-98 named its
+  own face of the gap (a solution config loaded as a zone's options),
+  lifted 2026-09-10 by the same rule on the lane-A side. **One bit of
+  the rule was wrong (C-99, 2026-09-10):** a config with `references`
+  and *neither* `files` nor `include` was called a solution, and the
+  compiler's default include is the whole directory — hono's six
+  `runtime-tests/*` zones had been replaced by the generated config.
+  Fixed in both lanes.
 - **Source:** the date-fns re-ingest of 2026-09-03 after C-74 and
   C-89; fixed the same night on the lead's direction ("fix c-90 too").
 
