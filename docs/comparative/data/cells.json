@@ -8,25 +8,25 @@
    "kind": "resolution",
    "oracle": "tsc 5.3.3 (the zone's own)",
    "lang": "TypeScript",
-   "run": "host-run",
+   "run": "contained",
    "draw": "picked",
    "label": "ajv",
-   "note": "the one open semantic defect: a member call on a union-typed receiver drawn to one member's method (static→union-member, a scip-typescript shape; n=2 repos with hono)",
-   "edges": 1543,
-   "confirmed": 1375,
-   "contradicted": 3,
+   "note": "regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three static→union-member rows are abstentions now, ten sites in the tail; contained on the regrade",
+   "edges": 1575,
+   "confirmed": 1410,
+   "contradicted": 0,
    "abstract": 0,
    "silent": 165,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 99.8,
-    "num": 1375,
-    "den": 1378
+    "pct": 100.0,
+    "num": 1410,
+    "den": 1410
    },
    "recall": {
-    "pct": 62.0,
-    "hits": 1383,
+    "pct": 63.5,
+    "hits": 1417,
     "pairs": 2232,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -36,14 +36,14 @@
     "interface→type-member": 12,
     "static→class": 107,
     "static→closure": 174,
-    "static→function": 491,
-    "static→method": 35,
+    "static→function": 456,
+    "static→method": 36,
     "static→type-member": 17
    },
    "poison": {
     "passed": true,
-    "seeded": 1543,
-    "refused": 1378,
+    "seeded": 1575,
+    "refused": 1410,
     "unjudged": 165,
     "falsely": 0
    }
@@ -1981,18 +1981,18 @@
    "run": "contained",
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "hono (tsconfig.build.json)",
-   "note": "a draw of repowise's G4 experiment on our key; the 7 contradictions are ajv's static→union-member shape (`c.toString()` on a Child union drawn to JSXNode.toString), the open scip-typescript defect, n=2 repos",
-   "edges": 4474,
+   "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A cannot type under hono's solution-style root tsconfig (C-98), the one row left",
+   "edges": 4468,
    "confirmed": 767,
-   "contradicted": 7,
+   "contradicted": 1,
    "abstract": 0,
    "silent": 3700,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 99.1,
+    "pct": 99.9,
     "num": 767,
-    "den": 774
+    "den": 768
    },
    "recall": {
     "pct": 55.2,
@@ -2016,8 +2016,8 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 4474,
-    "refused": 774,
+    "seeded": 4468,
+    "refused": 768,
     "unjudged": 3700,
     "falsely": 0
    }

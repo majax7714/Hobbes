@@ -2,10 +2,10 @@
  "_comment": "Per-cell metadata the records do not print in a parseable line: language, where the cell ran, how the repo was chosen, a short label and a note. Numbers never live here — they are read from docs/oracle/cells/ (ADR-102).",
  "ajv-ts": {
   "lang": "TypeScript",
-  "run": "host-run",
+  "run": "contained",
   "draw": "picked",
   "label": "ajv",
-  "note": "the one open semantic defect: a member call on a union-typed receiver drawn to one member's method (static→union-member, a scip-typescript shape; n=2 repos with hono)"
+  "note": "regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three static→union-member rows are abstentions now, ten sites in the tail; contained on the regrade"
  },
  "cheerio-ts": {
   "lang": "TypeScript",
@@ -433,7 +433,7 @@
   "run": "contained",
   "draw": "repowise-bench's draw (its corpus.lock pin)",
   "label": "hono (tsconfig.build.json)",
-  "note": "a draw of repowise's G4 experiment on our key; the 7 contradictions are ajv's static→union-member shape (`c.toString()` on a Child union drawn to JSXNode.toString), the open scip-typescript defect, n=2 repos"
+  "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A cannot type under hono's solution-style root tsconfig (C-98), the one row left"
  },
  "codegraphcontext-hono-build": {
   "lang": "TypeScript",

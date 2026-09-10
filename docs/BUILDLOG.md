@@ -7769,3 +7769,69 @@ off the tree this session. Nothing in Hobbes reads it by a fixed path —
 the Modal scripts use Modal's own secret store. The handoff's key-file
 note and `benchmark-deepswe.md` §HF token are the prose pointers to
 re-aim when he names the folder.
+
+## 2026-09-09 (later) — the union-member abstention (ADR-104, 0.1.4-beta): ajv 1,410/1,410, hono 767/768, C-97 and C-98
+
+Handoff item 3, on Max's word ("continue with abstaining") after the
+measurement. **Steps 1–2 first, no code changed:** a union-receiver case
+added to a copy of the `minits` fixture reproduced the shape with lane
+B on — `draw → Alpha.render` and `Holder.render → Alpha.render`, the
+*first* member every time (the ajv record's "enclosing class's own
+override" was incidental: `If` is `ChildNode`'s first member), and the
+tsc oracle graded the copy 7/7, so the oracle picks the first member on
+a two-member union exactly as Hobbes did. A ts-morph script over the
+ajv and hono zones listed every member call on a union receiver (null
+and undefined stripped) and joined it against the grading rows: ajv 15
+sites, 9 with a Hobbes edge to the member, 3 contradicted and 6
+confirmed; hono 36 sites, 7 with an edge, 7 contradicted. Every
+contradiction in the set, nothing outside it wrong, and the confirmed
+six separated from the contradicted three only by which declaration
+`tsc`'s resolved signature happened to name (the first member on two,
+the shared base on ajv's eleven). Lane A's own resolver makes the same
+first-member pick as scip-typescript, so lane agreement could never
+see it. Three options put to Max — abstain, match `tsc`'s pick,
+register and leave — with abstain recommended as C-58's TypeScript face.
+
+**Built (`ADR-104`):** the TS helper (facts **v5**) types the receiver at
+every property-access call and, when it is a union of ≥ 2 non-nullish
+members whose declarations of the member are not one, records
+`ambiguous: "union-member"` with callee, path and origin null;
+`evidence.join` draws nothing for such a site from either lane and
+claims lane B's occurrence so it does not resurface as `uses`;
+`agreement` skips it; `coverage` counts it unresolved; the tail names it
+**`union-member`** (TS/JS only in `CLASSES_AVAILABLE`, after
+`expr-callee` in decision order, not `NOT_MODELLED`); the proxy's
+glossary carries it. Tests in the same commit: five helper cases
+(override / inherit / `T | undefined` / literal union / inside an
+overriding class), four evidence cases, two tail cases, the fixture end
+to end in `test_tssource`, the Go rollup and gloss. Suites: 1,251 pytest
+(+7), 33 tsextract, Go and oracle-lane green after the fixture pin
+below. The fixture copy with lane B: `label → Base.tag` drawn, nothing
+for `draw` / `Holder.render`, tail `union-member 2`, disagreements 0,
+graded 5/5 with the two abstentions as misses.
+
+**Regrades against the standing keys** (the report files were
+truncated once by `tee | head` — SIGPIPE — and regenerated in full):
+**ajv 1,375/1,378 → 1,410/1,410 (100.0%), recall 62.0% → 63.5%**,
+re-ingested *contained* on 0.1.4-beta (1,575 edges graded where 1,543
+were: every lift since 2026-08-27 is in it), artifacts
+`~/.hobbes/bench/oracle/ajv-ts-r3/`; **hono 767/774 → 767/768**,
+`~/.hobbes/bench/comparative/hobbes-hono-build-r2/`. The row left on
+hono (`src/jsx/components.ts:18`) is a site lane A could not type at
+all: hono's root `tsconfig.json` is a solution-style config (`files:
+[]`, nine `references`) and the helper loads it as the zone's compiler
+options — none, so ES5 defaults, `Array.flat` unknown, the receiver
+`any`. Lane B follows references (C-90); lane A does not yet. Registered
+**C-98** (*partial*; W1 carries the lift), **C-97** for the abstention
+(surfaced); C-58 gains its TypeScript face. Register 98 / 76 / 20 / 2.
+The oracle's grain at union sites is recorded as a pick, not a truth
+(`oracle-misses.md`). Both records carry signed regrade blocks; meta
+notes rewritten; `render.py` regenerated everything under the drift
+test — the one-number graphic reads 0 of 99,850 across 19 cells, 37 of
+39 at 100%, exceptions hono and quic-go; the claim page says two named
+exceptions. Version 0.1.4-beta (patch: what Hobbes draws), CHANGELOG,
+the four binaries and the image rebuilt, this repo re-ingested.
+
+**Fixture pin moved:** `TestMinitsTSAllConfirmed` in the oracle lane
+pinned minits' recall misses; the two deliberate abstentions in
+`src/union.ts` are misses by design and the pin says so now.

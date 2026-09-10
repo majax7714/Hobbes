@@ -93,8 +93,11 @@ build item.*
   colbymchenry/codegraph, both SQLite, the two most starred in
   `field.md`; each needs its converter, fixture and a triage sample;
   (c) the competitor cells re-run under the sandbox image if Max wants
-  C-96 narrowed; (d) the ajv / hono union-member provider shape, now
-  n=2, if a fix on the join side is wanted. Contributor profile: Go/Python, reads other people's
+  C-96 narrowed; ~~(d) the ajv / hono union-member provider shape~~ —
+  **closed 2026-09-09 (later) by ADR-104:** lane A abstains on a union
+  receiver whose members resolve the member differently and the join
+  vetoes lane B (C-97); ajv 1,410/1,410, hono 767/768 — the row left is
+  C-98 (W1). Contributor profile: Go/Python, reads other people's
   schemas patiently.
 - **Registry-pulled image.** The graph job builds the image every run
   (~4 min). Pull-by-digest from a registry when that starts to hurt;
@@ -128,6 +131,18 @@ the best on-ramp for a new contributor who should learn the codebase.*
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;
   "before the fourth language lands, or when a real repo hits it."
+- **C-98 — the TS helper under a solution-style `tsconfig.json`**
+  (registered 2026-09-09, ADR-104 § Consequences): the helper loads the
+  nearest tsconfig as the zone's compiler options, and a solution config
+  (`files: []` + `references`, hono's root) has none, so the checker runs
+  at ES5 defaults and receivers reached through a newer lib are `any` —
+  no callee, no origin, no C-97 abstention. The lift is the lane-A
+  analogue of C-90's: resolve a solution config to the referenced
+  project that includes the file (`is_solution_tsconfig` /
+  `referenced_ts_configs` already exist on the Python side). Before/after:
+  hono 767/768 → 768/768 if the one row is the only one; the
+  `union-member` count on hono's `src/` says how many sites the zone
+  types once it has options.
 - **Decorated-declaration line convention** — tssource emits the
   decorator line, SCIP the name line; 131 of dagger's 258 lane
   disagreements are this one off-by-one. A small tsextract facts pass.

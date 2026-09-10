@@ -31,12 +31,14 @@ lane's Go suite) fails when a picture drifts from its cells.
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
-   compiler-graded cell, with three named exceptions.** Every
+   compiler-graded cell, with two named exceptions.** Every
    compiler-graded semantic cell is at 100% precision-against-oracle
-   except ajv (1,375/1,378) and hono (767/774) — both one
-   scip-typescript shape, a member call on a union-typed receiver
-   drawn to one member's method (`static→union-member`, n=2 repos,
-   unfixed) — and quic-go (3,766/3,781, a 99.6% lower bound; all
+   except hono (767/768 — one member call on a union-typed receiver at
+   a site lane A cannot type under hono's solution-style root tsconfig,
+   C-98; the shape itself, `static→union-member`, is closed by
+   abstention since ADR-104 — ajv's three rows went 1,375/1,378 →
+   1,410/1,410 on the 2026-09-09 regrade, and six more of hono's seven)
+   and quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong).
    gitleaks' one syntactic contradiction (a stdlib import matched to
    the repo's same-named package) was fixed and regraded the same day,

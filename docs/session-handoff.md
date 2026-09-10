@@ -1,14 +1,14 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-09 (later).** Nothing is running: no Modal job,
+**Session ended 2026-09-09 (night).** Nothing is running: no Modal job,
 no local process; the tree is committed on `main`, not pushed. **Hobbes
-is versioned from this session (ADR-103): `VERSION` 0.1.3-beta, the tag
-`v0.1.3-beta` local and unpushed like the commits — publish both together;
-`CHANGELOG.md` gets an entry with every bump, and nothing under
-`bench/` moves the number.** Resume
-at START HERE below — Max's review of the comparative programme and
-the 1-1, then the Atlas-0 decisions held from 2026-09-07 (unchanged,
-further down).
+is at 0.1.4-beta (ADR-103/104): the tag `v0.1.3-beta` is local and
+unpushed like the commits — publish together, and tag `v0.1.4-beta` when
+Max says so; `CHANGELOG.md` gets an entry with every bump, and nothing
+under `bench/` moves the number.** Resume at START HERE below — the
+comparative review's remaining items, C-98's lift first among the
+no-spend work, then the Atlas-0 decisions held from 2026-09-07
+(unchanged, further down).
 
 **Rewritten 2026-09-09: Max's brief for a presentable claim — a
 comparison against other code-graph tools and a small set of graphics
@@ -56,9 +56,20 @@ draws as their own band; regenerated with the rest by `render.py render`.
    itself is still Max's call.
 2. **syft's keys need a bigger box** (RTA OOM at 18.7 / 19 GB, H-9's
    shape); the row says so. Also dagger's root, still.
-3. **The union-member provider shape (ajv 3, hono 7 rows):** the one
-   open semantic defect, now on two repos — fix on the join side, or
-   register a narrower C entry and leave it (P9: the provider's).
+3. ~~**The union-member provider shape (ajv 3, hono 7 rows)**~~ — **done
+   2026-09-09 (night, ADR-104, 0.1.4-beta):** measured first (every
+   contradiction on both repos was a union-receiver site; the six
+   "confirmed" ones were `tsc` making the same first-member pick), then
+   closed by abstention on Max's word — the helper types the receiver
+   and records `ambiguous`, the join vetoes lane B, the tail says
+   `union-member` (C-97). ajv 1,410/1,410 contained; hono 767/768.
+   **Next, no spend: C-98** — the one row left is a site lane A cannot
+   type because hono's root `tsconfig.json` is solution-style and the
+   helper loads it as the zone's options (ES5 defaults, `any`
+   receivers). The lift is C-90's rule on the lane-A side
+   (`is_solution_tsconfig` / `referenced_ts_configs` exist in
+   `scipsource.py`; the helper's `nearestTsconfig` needs the same);
+   regrade hono after and the claim page's exceptions drop to quic-go.
 4. **The next converters** (codebase-memory-mcp, colbymchenry/codegraph)
    and whether to run the competitor cells under the sandbox image
    (C-96 narrowed).
@@ -66,6 +77,16 @@ draws as their own band; regenerated with the rest by `render.py render`.
    Calvin; ADR-101's earlier meaning for the Calvin design number —
    note ADR-101/102 are now taken by the comparative programme, so the
    Calvin/Atlas ADRs take 103+).
+
+**Practical, from today (night):** `tee file | head` truncates the file
+(SIGPIPE kills tee) — write a grade's report with `> file` and read it
+after; the two regrade reports were regenerated for that. A regrade
+appends a signed block to the record — the renderer takes the *last*
+verbatim block — and the exception note lives in
+`bench/oracle/report/cells.meta.json` (indent 1), not the record.
+`hobbes ingest` with lane B on a fixture copy needs a git repo with one
+commit. The measurement script (`union_sites.cjs`) and the fixture copy
+were session scratch; the fixture case itself is in the repo.
 
 **Practical, from today:** long RTA keys run detached (`setsid nohup`),
 never under a background command with a ten-minute cap, and are killed
