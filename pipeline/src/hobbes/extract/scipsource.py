@@ -26,6 +26,7 @@ import json
 import os
 import re
 import shlex
+import subprocess
 from bisect import bisect_right
 from pathlib import Path, PurePosixPath
 
@@ -955,6 +956,49 @@ def referenced_ts_configs(repo_root: Path, configs: list[str]) -> list[str]:
 _TS_ANY_INPUTS = re.compile(r'"(?:include|files)"\s*:\s*\[\s*"')
 _TS_INPUT_KEY = re.compile(r'"(?:include|files)"\s*:')
 
+#: The generated config for the files of a solution-style zone that no
+#: referenced project includes (C-98). Written *beside* the solution
+#: file, never over it: a referenced project may ``extends`` the
+#: solution file, and overwriting it changed their options too.
+_UNCLAIMED_TSCONFIG = "tsconfig.hobbes-unclaimed.json"
+
+
+def ts_zone_map(repo_root: Path) -> dict[str, str]:
+    """Which tsconfig's project each TS/JS file belongs to — the TS
+    helper's ``zoneTsconfig`` served as ``--zones`` (C-98): the nearest
+    config, or under a solution-style config the referenced project
+    whose inputs include the file by the compiler's own reading, and
+    ``""`` for a file no project claims.
+
+    One rule, one implementation, asked by both lanes: lane B indexes a
+    solution zone by exactly the projects lane A types it by, so the
+    lanes cannot disagree on *which options* a file was read under. The
+    helper reads configs on the host, as lane A does for every zone; it
+    executes nothing of the repo's (ADR-092's rule is about repo code).
+    Unavailable → ``ScipError``; the caller records it and the zone
+    falls back to the generated config over the solution file (C-90).
+    """
+    from hobbes.extract import tssource  # the helper's argv; no cycle
+
+    cmd = [*tssource._helper_cmd(), "--zones", "--repo", str(repo_root)]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ScipError(f"tsextract zone map unavailable: {exc}") from exc
+    if proc.returncode != 0:
+        detail = (proc.stderr or proc.stdout).strip()[-300:]
+        raise ScipError(f"tsextract zone map exited {proc.returncode}: {detail}")
+    try:
+        out = json.loads(proc.stdout)
+    except ValueError as exc:
+        raise ScipError(f"tsextract zone map is not JSON: {exc}") from exc
+    return {str(k): str(v) for k, v in (out.get("zones") or {}).items()}
+
+
+def _zone_is_solution(repo_root: Path, zone: str) -> bool:
+    config = repo_root / (f"{zone}/tsconfig.json" if zone else "tsconfig.json")
+    return config.is_file() and is_solution_tsconfig(config)
+
 
 def is_solution_tsconfig(path: Path) -> bool:
     """A tsconfig that only *references* projects — `references` present
@@ -1029,9 +1073,29 @@ def extract_scip_typescript(
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
     }
-    for zone, zone_files in ts_zones(repo_root, files).items():
+    zones = ts_zones(repo_root, files)
+    zone_map: dict[str, str] | None = None
+    if any(_zone_is_solution(repo_root, zone) for zone in zones):
+        # A solution-style zone is indexed by its referenced projects
+        # (C-98); the map that says which project claims which file is
+        # the helper's, the same one lane A types by.
         try:
-            facts = _index_ts_zone(repo_root, zone, zone_files, sha)
+            zone_map = ts_zone_map(repo_root)
+        except ScipError as exc:
+            merged["degraded"].append(
+                {
+                    "path": ".",
+                    "stage": "scip-typescript",
+                    "message": (
+                        f"the tsconfig zone map is unavailable ({exc}); "
+                        "solution-style zones are indexed under the generated "
+                        "config, not their referenced projects (C-98)"
+                    ),
+                }
+            )
+    for zone, zone_files in zones.items():
+        try:
+            facts = _index_ts_zone(repo_root, zone, zone_files, sha, zone_map=zone_map)
         except containment.ContainmentRefusal:
             raise  # P10: the guarantee outranks the per-unit degrade
         except UNIT_ERRORS as exc:
@@ -1993,7 +2057,11 @@ def _index_go_module(
 
 
 def _index_ts_zone(
-    repo_root: Path, zone: str, zone_files: list[str], sha: str
+    repo_root: Path,
+    zone: str,
+    zone_files: list[str],
+    sha: str,
+    zone_map: dict[str, str] | None = None,
 ) -> dict | None:
     """Stage and index one TypeScript zone.
 
@@ -2001,6 +2069,14 @@ def _index_ts_zone(
     (ADR-032/050): every ``node_modules`` on a zone file's walk-up path
     in the repo, and — when the repo has none — a lockfile-pinned tree
     provisioned into Hobbes's own cache. The repo is never written.
+
+    *zone_map* (``ts_zone_map``) decides how a zone whose config is a
+    solution-style file is indexed (C-98): each referenced project that
+    claims files of the zone is passed to scip-typescript as a project
+    of its own, under its own config, and the files no project claims
+    are indexed under a generated config beside the solution file. With
+    no map, the pre-C-98 shape: the generated config over the solution
+    file (C-90).
     """
     staged = sorted(set(zone_files) | set(_staged_ts_configs(repo_root, zone_files)))
     provision_failure: str | None = None
@@ -2019,15 +2095,40 @@ def _index_ts_zone(
                 )
                 links[rel] = str(tree)
 
-    configs = {}
+    configs: dict[str, dict] = {}
+    projects: list[str] = []
     zone_config = f"{zone}/tsconfig.json" if zone else "tsconfig.json"
-    if not (repo_root / zone_config).is_file() or is_solution_tsconfig(repo_root / zone_config):
-        # No config, or a solution file — `references` and no inputs of
-        # its own (date-fns's root, C-90): the zone's files are the ones
-        # no referenced project claims, and a config that names no
-        # inputs indexes none of them. The generated config lists them;
-        # it is written over the staged copy of the solution file.
+    config_path = repo_root / zone_config
+    if not config_path.is_file():
+        # No config: the generated one, at the conventional name, so the
+        # indexer finds it in its cwd.
         configs[zone_config] = _generated_tsconfig(zone_files, zone)
+    elif is_solution_tsconfig(config_path):
+        if zone_map is None:
+            # The map is unavailable (the caller recorded it): the
+            # generated config over the staged copy of the solution file
+            # — `references` and no inputs of its own (date-fns's root,
+            # C-90), which indexes none of the zone's files by itself.
+            configs[zone_config] = _generated_tsconfig(zone_files, zone)
+        else:
+            # C-98 on lane B's side: the projects the solution references
+            # are indexed each under its own config — the ones that claim
+            # files of this zone, by the map both lanes read — and the
+            # files none of them claims under a generated config written
+            # beside the solution file, which stays intact for any
+            # project that `extends` it.
+            by_config: dict[str, list[str]] = {}
+            for rel in zone_files:
+                by_config.setdefault(zone_map.get(rel, ""), []).append(rel)
+            unclaimed = by_config.pop("", [])
+            projects.extend(sorted(by_config))
+            staged = sorted(set(staged) | set(by_config))
+            if unclaimed:
+                unclaimed_config = (
+                    f"{zone}/{_UNCLAIMED_TSCONFIG}" if zone else _UNCLAIMED_TSCONFIG
+                )
+                configs[unclaimed_config] = _generated_tsconfig(unclaimed, zone)
+                projects.append(unclaimed_config)
 
     package_json = repo_root / (f"{zone}/package.json" if zone else "package.json")
     declared = (
@@ -2044,6 +2145,9 @@ def _index_ts_zone(
                 "projectVersion": "0",
                 "output": str(stage.parent / f"{stage.name}.scip"),
                 "declaredDeps": declared,
+                # Absolute: scip-typescript resolves `-p` against its own
+                # cwd, and the documents stay relative to `--cwd`.
+                **({"projects": [str(stage / p) for p in projects]} if projects else {}),
             },
             # The trees the links point at, mounted ro where the links
             # expect them (ADR-092): the C-22 trust becomes a mount flag —

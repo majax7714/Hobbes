@@ -7,7 +7,35 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
-## 0.1.5-beta — 2026-09-10
+## 0.1.6-beta — 2026-09-10 (later)
+
+**Patch: a change in what Hobbes draws (the C-98 lane asymmetry
+closed).** 0.1.5-beta left the two lanes reading a solution-style
+`tsconfig.json` differently: lane A typed a file by the referenced
+project that includes it, lane B still indexed the zone under a
+generated config written over the solution file (C-90's technique).
+Now lane B asks the TS helper for the same zone map (`--zones`, the
+compiler's own reading) and passes scip-typescript the referenced
+projects that claim the zone's files, each under its own config, plus
+a generated config for the files none claims — written *beside* the
+solution file, which stays intact for any project that `extends` it.
+One rule, one implementation, both lanes; if the helper's map is
+unavailable the zone falls back to the old shape and the ingest says
+so.
+
+- hono: 768/768 unchanged, one edge moved from the syntactic to the
+  semantic tier (727 semantic confirmed), lane agreement 4,332 →
+  4,336 both-resolved sites with the same one line-grain disagreement;
+  lane B produces 9 fewer module edges (1,483 → 1,474): a file no
+  referenced project claims is its own program now, in both lanes, so
+  its references into a claimed project's files take the cross-program
+  shape C-12 registers.
+- **ADR-105:** a lane B provider is a pinned batch program with a
+  stated version and a tier stamp, never a language server — P13,
+  stated in §3.2 and in §3.7's first step for the next language. No
+  code moves.
+
+
 
 **Patch: a change in what Hobbes draws (C-98 lifted).** Under a
 solution-style `tsconfig.json` — `files: []` and project `references`,

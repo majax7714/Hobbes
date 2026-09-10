@@ -73,7 +73,13 @@ export const INDEXERS = {
   },
   typescript: {
     bin: 'scip-typescript',
-    args: (c) => ['index', '--cwd', c.stage, '--output', c.output, '--no-progress-bar'],
+    // `projects`: tsconfig paths to index instead of the cwd's — a
+    // solution-style zone's referenced projects plus the generated
+    // config for the files none of them claims (C-98). Absolute, so
+    // scip-typescript's `-p` resolution never depends on its cwd;
+    // document paths stay relative to `--cwd`, so the Python rebase
+    // (`_rebase`) is unchanged.
+    args: (c) => ['index', '--cwd', c.stage, '--output', c.output, '--no-progress-bar', ...(c.projects ?? [])],
   },
   go: {
     bin: 'scip-go',

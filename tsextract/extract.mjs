@@ -1098,19 +1098,38 @@ export function extractRepo(repoRoot) {
   };
 }
 
+/** The tsconfig project each TS/JS file of the repo belongs to, by the
+ * rule `extractRepo` groups them (`zoneTsconfig`): "" for a file under
+ * no config or one no referenced project of a solution config claims.
+ * Served as `--zones` to lane B (`scipsource.ts_zone_map`), so a
+ * solution-style zone is indexed by exactly the projects lane A types
+ * it by — one rule, one implementation, in both lanes (C-98). Reads
+ * configs only; executes nothing of the repo's. */
+export function zoneMap(repoRoot) {
+  const root = path.resolve(repoRoot);
+  const cache = new Map();
+  const zones = {};
+  for (const file of discoverFiles(root)) zones[file] = zoneTsconfig(root, file, cache);
+  return { zones };
+}
+
 // --- CLI -------------------------------------------------------------------
 
 function main(argv) {
   let repo = process.cwd();
+  let mode = "facts";
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--repo" && argv[i + 1]) {
       repo = argv[++i];
+    } else if (argv[i] === "--zones") {
+      mode = "zones";
     } else {
       process.stderr.write(`tsextract: unknown argument ${argv[i]}\n`);
       return 2;
     }
   }
-  process.stdout.write(JSON.stringify(extractRepo(repo)) + "\n");
+  const out = mode === "zones" ? zoneMap(repo) : extractRepo(repo);
+  process.stdout.write(JSON.stringify(out) + "\n");
   return 0;
 }
 

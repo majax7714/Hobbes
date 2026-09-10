@@ -169,7 +169,7 @@ class TestOneUnitFailsAlone:
             lambda *a: {"docs": ["docs/a.ts"], "web": ["web/b.ts"]},
         )
 
-        def index(repo_root, zone, files, sha):
+        def index(repo_root, zone, files, sha, zone_map=None):
             if zone == "docs":
                 raise scipsource.ScipError("tsconfig not found")
             return dict(self.FACTS)
@@ -1070,6 +1070,111 @@ class TestReferencedTsConfigs:
         assert scipsource.referenced_ts_configs(tmp_path, ["pkgs/dev/tsconfig.json"]) == [
             "base.json", "pkgs/dev/config/tsconfig.json",
         ]
+
+    SOLUTION = {
+        "tsconfig.json": '{ "files": [], "references": [ { "path": "./tsconfig.build.json" }, { "path": "./tsconfig.spec.json" } ] }',
+        "tsconfig.base.json": '{ "compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler", "strict": true, "skipLibCheck": true, "paths": { "@/*": ["./src/*"] } } }',
+        "tsconfig.build.json": '{ "extends": "./tsconfig.base.json", "include": ["src/**/*.ts"], "exclude": ["src/**/*.test.ts"] }',
+        "tsconfig.spec.json": '{ "extends": "./tsconfig.base.json", "include": ["src/**/*.test.ts"] }',
+        "src/shapes.ts": "export function pick(): number[][] { return [[1]]; }\n",
+        "src/app.ts": 'import { pick } from "@/shapes";\nexport function draw() { return pick().flat(); }\n',
+        "src/app.test.ts": 'import { draw } from "@/app";\ndraw();\n',
+        "scripts/tool.ts": "export function tool() { return 1; }\ntool();\n",
+    }
+    FILES = ["scripts/tool.ts", "src/app.test.ts", "src/app.ts", "src/shapes.ts"]
+    ZONE_MAP = {
+        "src/app.ts": "tsconfig.build.json",
+        "src/shapes.ts": "tsconfig.build.json",
+        "src/app.test.ts": "tsconfig.spec.json",
+        "scripts/tool.ts": "",
+    }
+
+    def _write(self, root):
+        for rel, text in self.SOLUTION.items():
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(text)
+
+    def test_a_solution_zone_is_indexed_by_the_projects_that_claim_its_files(self, monkeypatch, tmp_path):
+        """C-98 on lane B's side: the referenced projects that claim the
+        zone's files are scip-typescript's projects, each under its own
+        config; the files none claims go under a generated config beside
+        the solution file, which is staged intact."""
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        self._write(tmp_path)
+        seen: dict = {}
+
+        def fake_run_helper(config, timeout=900, ro=(), env=()):
+            stage = Path(config["stage"])
+            seen["config"] = config
+            seen["root"] = json.loads((stage / "tsconfig.json").read_text())
+            unclaimed = stage / scipsource._UNCLAIMED_TSCONFIG
+            seen["unclaimed"] = json.loads(unclaimed.read_text()) if unclaimed.is_file() else None
+            seen["staged"] = sorted(
+                str(p.relative_to(stage)) for p in stage.rglob("*.json") if p.is_file()
+            )
+            return dict(TestOneUnitFailsAlone.FACTS)
+
+        monkeypatch.setattr(scipsource, "run_helper", fake_run_helper)
+        scipsource._index_ts_zone(tmp_path, "", self.FILES, "", zone_map=self.ZONE_MAP)
+        projects = seen["config"]["projects"]
+        assert all(Path(p).is_absolute() for p in projects)
+        assert [Path(p).name for p in projects] == [
+            "tsconfig.build.json", "tsconfig.spec.json", scipsource._UNCLAIMED_TSCONFIG,
+        ]
+        assert seen["root"]["files"] == []  # the solution file, not overwritten
+        assert seen["unclaimed"]["files"] == ["scripts/tool.ts"]
+        assert {"tsconfig.base.json", "tsconfig.build.json", "tsconfig.spec.json"} <= set(seen["staged"])
+
+        # no map (the helper unavailable, recorded by the caller): the
+        # pre-C-98 shape — the generated config over the solution file
+        seen.clear()
+        scipsource._index_ts_zone(tmp_path, "", self.FILES, "", zone_map=None)
+        assert "projects" not in seen["config"]
+        assert seen["root"]["files"] == self.FILES and seen["unclaimed"] is None
+
+    def test_a_missing_zone_map_degrades_to_the_generated_config_and_says_so(self, monkeypatch, tmp_path):
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        self._write(tmp_path)
+        monkeypatch.setattr(scipsource, "ts_zone_map", lambda root: (_ for _ in ()).throw(scipsource.ScipError("no node")))
+        seen = {}
+
+        def index(repo_root, zone, files, sha, zone_map=None):
+            seen["zone_map"] = zone_map
+            return dict(TestOneUnitFailsAlone.FACTS)
+
+        monkeypatch.setattr(scipsource, "_index_ts_zone", index)
+        merged = scipsource.extract_scip_typescript(tmp_path, self.FILES)
+        assert seen["zone_map"] is None
+        (record,) = merged["degraded"]
+        assert record["stage"] == "scip-typescript" and "zone map" in record["message"] and "C-98" in record["message"]
+
+    def test_the_zone_map_is_the_helpers_answer(self, tmp_path):
+        self._write(tmp_path)
+        assert scipsource.ts_zone_map(tmp_path) == self.ZONE_MAP
+
+    @pytest.mark.lane_b
+    def test_lane_b_indexes_a_solution_zone_under_the_referenced_projects_options(self, monkeypatch, tmp_path):
+        """End to end in the image: the `@/` alias lives only in the
+        referenced projects' base config, so a reference from src/app.ts
+        resolved to src/shapes.ts proves lane B read those options — the
+        generated config over the solution file (C-90's shape) has no
+        `paths` and could not have; and the unclaimed scripts/tool.ts is
+        indexed under the generated config beside it."""
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        root = tmp_path / "repo"
+        root.mkdir()
+        self._write(root)
+        facts = scipsource.extract_scip_typescript(root, self.FILES, "")
+        assert facts is not None, "lane B did not run"
+        # the containment disclosure (a box or a suite run with
+        # HOBBES_UNCONTAINED) is not this test's subject; nothing else
+        # may degrade — no zone-map fallback, no provisioning record
+        assert not [d for d in facts["degraded"] if "contained" not in d["message"]], facts["degraded"]
+        resolved = {(r["file"], r["def_file"]) for r in facts["references"]}
+        assert ("src/app.ts", "src/shapes.ts") in resolved
+        assert ("src/app.test.ts", "src/app.ts") in resolved
+        assert any(d["file"] == "scripts/tool.ts" for d in facts["definitions"])
 
     def test_the_zone_stage_includes_them(self, tmp_path):
         (tmp_path / "pkgs" / "dev" / "config").mkdir(parents=True)

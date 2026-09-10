@@ -4,6 +4,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -717,6 +718,22 @@ test("a solution-style tsconfig resolves a file to the referenced project that i
       },
     ]
   );
+});
+
+test("--zones serves the zone map to lane B by the same rule (C-98)", () => {
+  const root = makeRepo({
+    "tsconfig.json": JSON.stringify({ files: [], references: [{ path: "./tsconfig.build.json" }] }),
+    "tsconfig.build.json": JSON.stringify({ compilerOptions: { target: "ES2022" }, include: ["src/**/*.ts"] }),
+    "src/a.ts": "export const a = 1;\n",
+    "scripts/t.ts": "export const t = 1;\n",
+    "web/tsconfig.json": JSON.stringify({ compilerOptions: {} }),
+    "web/b.ts": "export const b = 1;\n",
+  });
+  const helper = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "extract.mjs");
+  const out = execFileSync(process.execPath, [helper, "--zones", "--repo", root], { encoding: "utf8" });
+  assert.deepEqual(JSON.parse(out), {
+    zones: { "scripts/t.ts": "", "src/a.ts": "tsconfig.build.json", "web/b.ts": "web/tsconfig.json" },
+  });
 });
 
 test("a solution reached through another solution is followed inside the repo; cycles and outside references are not (C-98)", () => {
