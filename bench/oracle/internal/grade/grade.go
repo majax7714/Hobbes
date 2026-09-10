@@ -40,6 +40,18 @@
 // Site matching is at line grain: a Hobbes edge is confirmed if its
 // target is among the targets of any oracle site on the same file and
 // line. A line holding several oracle sites is logged as tolerance.
+//
+// Recall is printed twice for a resolution or reachability oracle: the
+// standing line, one pair per oracle (site, target declaration), and
+// beside it `recall-collapsed`, one pair per (site line, target file,
+// target name as the key spells it) — the callee-shape bucket's identity
+// (Max, 2026-09-10; H-22). Two things fold and nothing else: a symbol's
+// overload signatures, which a tsc key lists one pair each, and repeats
+// of one callee on one line, which the standing line counts one pair
+// per site and one Hobbes edge hits together — so the collapsed number
+// can sit below the standing one where such repeats carry the hits
+// (Severed-Chains: 20.9% beside 23.5%). The standing line is the
+// headline everywhere.
 package grade
 
 import (
@@ -116,9 +128,21 @@ type Report struct {
 	Recall         *float64              `json:"recall"`
 	RecallBy       map[string]Fraction   `json:"recall_by_class"`
 	MissBy         map[string]int        `json:"miss_by"`
-	Tolerance      int                   `json:"tolerance_matches"`
-	Rows           []Row                 `json:"rows"`
-	Misses         []Miss                `json:"misses"`
+	// The collapsed recall (Max's decision of 2026-09-10; ADR-089
+	// amended): one pair per (site path, site line, target file, target
+	// name as the key spells it). A tsc key lists every overload
+	// signature of the resolved symbol as a target at the site (design
+	// §5), so Hobbes' one edge confirms one signature and the siblings
+	// count as misses on the per-signature line; this prices that grain
+	// (and folds same-line repeats of one callee with it — the package
+	// doc). Printed beside the standing recall, never in its place. Not
+	// computed for a trace oracle (no signatures to collapse).
+	CollapsedPairs  int      `json:"collapsed_pairs,omitempty"`
+	CollapsedHits   int      `json:"collapsed_hits,omitempty"`
+	RecallCollapsed *float64 `json:"recall_collapsed,omitempty"`
+	Tolerance       int      `json:"tolerance_matches"`
+	Rows            []Row    `json:"rows"`
+	Misses          []Miss   `json:"misses"`
 	// Trace oracles only (design §3.1): runs unioned, the tracer's
 	// coverage line, the confirmation and suspect rates over Hobbes
 	// edges, and how many of Hobbes' distinct sites the trace spoke about.
@@ -388,8 +412,68 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 		rc := float64(r.RecallHits) / float64(r.OraclePairs)
 		r.Recall = &rc
 	}
+	if !trace {
+		r.CollapsedPairs, r.CollapsedHits = collapse(o, r.Rows)
+		if r.CollapsedPairs > 0 {
+			c := float64(r.CollapsedHits) / float64(r.CollapsedPairs)
+			r.RecallCollapsed = &c
+		}
+	}
 	sort.Slice(r.Misses, func(i, j int) bool { return r.Misses[i].Site.Key() < r.Misses[j].Site.Key() })
 	return r
+}
+
+// collapse counts the in-repo oracle pairs at collapsed identity — one
+// per (site path, site line, target path, target name as the key spells
+// it): the overload signatures of one symbol share a name, `A.run` and
+// `B.run` do not (a tsc name is the checker's fully qualified one, a
+// go-rta or rustc-mir name package-qualified; javac's is member-bare,
+// but that key resolves one declaration per site, so nothing collapses
+// there beyond two sites on one line naming one target) — and how many
+// of them a confirmed row hits, by the oracle target at the row's exact
+// target position on its line, the grader's own rule (hasTarget). The
+// same algorithm as shape/bucket.py's collapsed_recall, so the two
+// programs print one number (H-22).
+func collapse(o *edges.OracleExport, rows []Row) (pairs, hits int) {
+	type pair struct {
+		sitePath string
+		siteLine int
+		path     string
+		name     string
+	}
+	type at struct {
+		sitePath string
+		siteLine int
+		path     string
+		line     int
+	}
+	all := map[pair]bool{}
+	byTarget := map[at]map[pair]bool{}
+	for _, s := range o.Sites {
+		for _, t := range s.Targets {
+			if t.External {
+				continue
+			}
+			k := pair{s.Pos.Path, s.Pos.Line, t.Pos.Path, t.Name}
+			all[k] = true
+			p := at{s.Pos.Path, s.Pos.Line, t.Pos.Path, t.Pos.Line}
+			if byTarget[p] == nil {
+				byTarget[p] = map[pair]bool{}
+			}
+			byTarget[p][k] = true
+		}
+	}
+	hit := map[pair]bool{}
+	for _, r := range rows {
+		if r.Bucket != "confirmed" {
+			continue
+		}
+		e := r.Edge
+		for k := range byTarget[at{e.Site.Path, e.Site.Line, e.Target.Path, e.Target.Line}] {
+			hit[k] = true
+		}
+	}
+	return len(all), len(hit)
 }
 
 // traceRow buckets one Hobbes edge against a trace oracle (§3.1).
@@ -518,6 +602,10 @@ func Print(w io.Writer, r *Report) {
 	if r.Recall != nil {
 		fmt.Fprintf(w, "recall %.1f%% (%d/%d in-repo oracle pairs) %s; external oracle pairs %d; misses %v\n",
 			*r.Recall*100, r.RecallHits, r.OraclePairs, roots, r.OracleExternal, r.MissBy)
+		if r.RecallCollapsed != nil {
+			fmt.Fprintf(w, "recall-collapsed %.1f%% (%d/%d pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)\n",
+				*r.RecallCollapsed*100, r.CollapsedHits, r.CollapsedPairs)
+		}
 	} else {
 		fmt.Fprintf(w, "recall: undefined (no in-repo oracle pairs) at %d roots\n", r.Roots)
 	}

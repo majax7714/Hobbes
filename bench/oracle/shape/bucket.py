@@ -277,6 +277,17 @@ def render(rep, orc, shapes, facts):
         "  identity: (site path, site line, target path, checker-qualified target name); "
         f"confirmed rows no target at their position explains: {len(unmatched)}"
     )
+    # The grader prints the same number since 2026-09-10 (`recall-collapsed`,
+    # the same identity and the same hit rule); this join says whether the
+    # two programs agree on this report — a disagreement is a report/key
+    # mismatch, never a second opinion.
+    gp, gh = rep.get("collapsed_pairs"), rep.get("collapsed_hits")
+    if gp is None:
+        lines.append("  grader: this report.json carries no recall-collapsed (graded before 2026-09-10)")
+    elif (gp, gh) == (len(pairs), len(hit)):
+        lines.append(f"  grader: recall-collapsed {gh}/{gp} — the same number")
+    else:
+        lines.append(f"  grader: recall-collapsed {gh}/{gp} — DISAGREES with this join (a report/key mismatch)")
     bk = Counter(kind[k] for k in pairs)
     hk = Counter(kind[k] for k in hit)
     for k, n in bk.most_common():

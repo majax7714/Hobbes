@@ -132,6 +132,23 @@ reachability oracles):
   `oracle-wrong : hobbes-wrong : untriaged` over its contradicted rows
   as a quoted number.
 - `recall = confirmed oracle pairs / all oracle pairs`.
+- `recall-collapsed` (Max, 2026-09-10; ADR-089 amended) — printed on
+  every resolution or reachability cell beside the line above: the same
+  in-repo pairs at **(site line, target file, target name as the key
+  spells it)** grain, hit by a confirmed edge at the target's exact
+  position on its line. Two things fold and nothing else: a symbol's
+  overload signatures (a `tsc` key lists one pair each, §5) and repeats
+  of one callee on one line (the standing line counts one pair per
+  site; one Hobbes edge hits them together) — so the number can sit
+  below the standing one where such repeats carry the hits
+  (Severed-Chains 20.9% beside 23.5%). It requires the key to spell one
+  name per declaration: `tsc`'s checker-qualified name, go-rta's and
+  rustc-mir's package-qualified one, javac's owner-qualified one since
+  H-23. **The per-signature line is the standing grade everywhere** —
+  the records' headline, the graphics' input, the claim page's number;
+  the collapsed line explains the gap on a `tsc` key and is never quoted
+  in its place. `shape/bucket.py` computes the same identity from the
+  same rows and prints whether the two programs agree.
 
 **Rules, each a constraint candidate (§11):**
 
@@ -235,6 +252,11 @@ signature, or a signature with no declaration (synthetic union apply,
 **Overloads.** Hobbes' target is correct if it is *any* declaration of the
 resolved symbol (overload set membership), not only the exact overload
 `tsc` picked. Stricter is defensible; pick one, state it, keep it.
+On the recall side the same rule lists every signature of the resolved
+symbol as a pair at the site, so Hobbes' one edge confirms one and the
+siblings count as misses (cheerio 1,972 of 3,249 misses; zod 4,442 of
+12,038 — the callee-shape bucket, `oracle-misses.md`); §3's
+`recall-collapsed` line prices that grain beside the standing number.
 
 **Position convention.** Define the oracle's declaration position rule
 explicitly (identifier start, 1-based line). This is the same ambiguity
@@ -350,6 +372,13 @@ test's call into main resolves against a class file with no name line,
 shards carry declarations *keyed* — `owner#name(erased, annotation-free
 parameter types)` — and the Go merge (`internal/javac`) joins keys
 across every shard of the build; a key no shard declares is external.
+A target's *name* is the key's owner-qualified spelling
+(`org.jsoup.nodes.Element.attr`, a nested class with its `$`, a
+constructor `<init>`) — one name per declaration, since 2026-09-10
+(H-23: the member-bare spelling folded same-named overrides of one
+file under §3's collapsed identity). `oracle java-javac --merge-only
+--carry <key>` re-merges a key from the shards a cell directory keeps,
+without the build, for a spelling change like that one.
 
 **Dispatch.** A virtual or interface call (mode `dynamic`) carries the
 declared method as the site's `interface` — so Hobbes' edge to it

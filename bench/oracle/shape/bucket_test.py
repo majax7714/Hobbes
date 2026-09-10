@@ -186,6 +186,16 @@ class TestRender(unittest.TestCase):
         self.assertIn("function", text.split("COLLAPSED")[1])
         self.assertIn("e.g. a.ts:9 -> f.ts:50 ghost [static→function]", text)
 
+    def test_the_graders_collapsed_line_is_cross_checked(self):
+        # an older report.json: no field, said so
+        self.assertIn("grader: this report.json carries no recall-collapsed", bucket.render(REPORT, ORACLE, SHAPES, FACTS))
+        # the grader's number, the same identity: agrees
+        same = bucket.render({**REPORT, "collapsed_pairs": 6, "collapsed_hits": 1}, ORACLE, SHAPES, FACTS)
+        self.assertIn("grader: recall-collapsed 1/6 — the same number", same)
+        # a report graded against another key: the mismatch is named, not averaged
+        other = bucket.render({**REPORT, "collapsed_pairs": 7, "collapsed_hits": 1}, ORACLE, SHAPES, FACTS)
+        self.assertIn("grader: recall-collapsed 1/7 — DISAGREES with this join", other)
+
 
 # H-22 (the 2026-09-10 review): the identity cases, on a cell of their
 # own. `Runner.run` and `Other.run` are two methods of one file; the

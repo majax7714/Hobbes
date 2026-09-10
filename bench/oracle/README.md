@@ -79,8 +79,9 @@ site, the checker's reading of the callee — an identifier's declaration
 kind, a member's receiver shape, the resolved signature's declaration;
 `bucket.py` joins a cell's misses to that record and to lane A's own
 facts at the site, buckets them by shape, and prints the collapsed
-recall (one pair per site, target file and target name — the oracle's
-overload grain removed).
+recall (one pair per site line, target file and target name — the
+identity `oracle grade` prints as `recall-collapsed` since 2026-09-10;
+the script says whether the two programs agree on a report).
 
 ```sh
 node bench/oracle/shape/shapes.mjs <clone> > shapes.json
@@ -210,6 +211,11 @@ in exactly one bucket:
   roots the oracle had and is never pooled or compared across cells.
   External targets (stdlib, module cache) are out of the denominator and
   counted separately (D-O3).
+- `recall-collapsed` — the same pairs at (site line, target file, target
+  name as the key spells it) grain, printed beside recall on every
+  resolution or reachability cell (Max, 2026-09-10): a symbol's overload
+  signatures fold, and so do repeats of one callee on one line. Never
+  the headline; the per-signature line is the standing grade.
 - Every cell reports the pair together, the silent size, the per-tier
   split (semantic / syntactic / dynamic), the miss decomposition
   (`static`, `dynamic`, `*-closure`), and the raw contradicted / abstract

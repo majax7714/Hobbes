@@ -129,6 +129,10 @@ and the record quotes the capture line).
   names its cell (P11).
 - No pooled recall, ever. Per cell, per root count. dagger's nineteen
   modules are nineteen dots.
+- No collapsed recall as the number. Since 2026-09-10 every record
+  carries a second line, `recall-collapsed` (the callee-shape bucket's
+  identity, ADR-089 amended), which explains the gap on a `tsc` key;
+  the graphics and this page read the per-signature line.
 - No comparison with a number a tool publishes on another basis.
   repowise's hand-graded 84.8% and its own compiler-graded table (five
   tools, seven cells, on cobra / gitleaks / syft / zod / hono against

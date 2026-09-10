@@ -15,6 +15,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
@@ -173,9 +174,26 @@ func runJavac(args []string) error {
 	tool := fs.String("tool", "", "maven|gradle (default: pom.xml wins)")
 	outDir := fs.String("out-dir", "", "cell directory for the plugin jar and the shards")
 	out := fs.String("out", "", "output path (default stdout)")
+	mergeOnly := fs.Bool("merge-only", false, "re-merge the shards already under --out-dir/javac-shards without running the build (a spelling change to the key; positions come from the shards as before)")
+	carry := fs.String("carry", "", "with --merge-only: the key whose containment and roots lines ride along (the shards do not record them)")
 	fs.Parse(args)
 	if *outDir == "" {
 		return fmt.Errorf("--out-dir is required")
+	}
+	if *mergeOnly {
+		if *carry == "" {
+			return fmt.Errorf("--merge-only needs --carry <the standing key>")
+		}
+		var prev edges.OracleExport
+		if err := read(*carry, &prev); err != nil {
+			return err
+		}
+		res, err := javac.Merge(filepath.Join(*outDir, "javac-shards"), *module)
+		if err != nil {
+			return err
+		}
+		res.Containment, res.Roots = prev.Containment, prev.Roots
+		return write(*out, res)
 	}
 	res, err := javac.Run(javac.Options{Repo: *repo, Module: *module, Tool: *tool, Out: *outDir, Plugin: *plugin})
 	if err != nil {

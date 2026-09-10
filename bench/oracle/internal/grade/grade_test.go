@@ -222,3 +222,61 @@ func TestNoRootsPrintsAsItsOwnStateAndEmptyIsBrackets(t *testing.T) {
 		t.Fatalf("json: %s", raw)
 	}
 }
+
+// The collapsed recall line (Max, 2026-09-10; H-22's identity): one pair
+// per (site line, target file, target name as the key spells it). A tsc
+// key lists both overload signatures of `attr` as targets at one site —
+// two per-signature pairs, one collapsed; a same-named method of another
+// class (`A.run` / `B.run`, checker-qualified) stays two pairs; a hit is
+// by the target at the confirmed row's exact position, and external
+// targets never enter. Trace oracles print no such line.
+func TestCollapsedRecallRemovesTheOverloadGrainOnly(t *testing.T) {
+	site1 := edges.Pos{Path: "a.ts", Line: 10}
+	site2 := edges.Pos{Path: "a.ts", Line: 11}
+	o := &edges.OracleExport{
+		Oracle: "tsc 5.9.3", Kind: "resolution", Files: []string{"a.ts", "b.ts"},
+		Sites: []edges.Site{
+			{Pos: site1, Mode: "static", Targets: []edges.Target{
+				{Pos: edges.Pos{Path: "b.ts", Line: 20}, Name: `"/r/b".attr`, Kind: "function"},
+				{Pos: edges.Pos{Path: "b.ts", Line: 24}, Name: `"/r/b".attr`, Kind: "function"},
+				{Pos: edges.Pos{Path: "/r/node_modules/x/index.d.ts", Line: 1}, Name: "x", External: true},
+			}},
+			{Pos: site2, Mode: "static", Targets: []edges.Target{
+				{Pos: edges.Pos{Path: "b.ts", Line: 40}, Name: "A.run", Kind: "method"},
+				{Pos: edges.Pos{Path: "b.ts", Line: 50}, Name: "B.run", Kind: "method"},
+			}},
+		},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{
+		{Site: site1, Target: edges.Pos{Path: "b.ts", Line: 20}, Tier: "semantic"}, // one signature of attr
+		{Site: site2, Target: edges.Pos{Path: "b.ts", Line: 40}, Tier: "semantic"}, // A.run
+	}}
+	r := Grade(h, o)
+	if r.OraclePairs != 4 || r.RecallHits != 2 {
+		t.Fatalf("per-signature recall: %d/%d", r.RecallHits, r.OraclePairs)
+	}
+	if r.CollapsedPairs != 3 || r.CollapsedHits != 2 || r.RecallCollapsed == nil || *r.RecallCollapsed < 0.666 || *r.RecallCollapsed > 0.667 {
+		t.Fatalf("collapsed recall: %d/%d %v", r.CollapsedHits, r.CollapsedPairs, r.RecallCollapsed)
+	}
+	var buf bytes.Buffer
+	Print(&buf, r)
+	out := buf.String()
+	for _, want := range []string{"recall 50.0% (2/4 in-repo oracle pairs)", "recall-collapsed 66.7% (2/3 pairs at site-line × target-file × target-name grain"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("report lacks %q:\n%s", want, out)
+		}
+	}
+	raw, _ := json.Marshal(r)
+	for _, k := range []string{`"collapsed_pairs":3`, `"collapsed_hits":2`, `"recall_collapsed":0.66`} {
+		if !strings.Contains(string(raw), k) {
+			t.Errorf("json lacks %s", k)
+		}
+	}
+	// A trace oracle has no signatures to collapse: nothing computed, nothing printed.
+	tr := Grade(h, &edges.OracleExport{Oracle: "py-trace", Kind: "trace", Files: []string{"a.ts"}, Sites: o.Sites})
+	buf.Reset()
+	Print(&buf, tr)
+	if tr.RecallCollapsed != nil || strings.Contains(buf.String(), "recall-collapsed") {
+		t.Fatalf("trace oracle must not print a collapsed line:\n%s", buf.String())
+	}
+}

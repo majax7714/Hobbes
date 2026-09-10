@@ -55,3 +55,28 @@ Status column: *proposed* → *decided (date)*.
   resolver change; the O2 cell becomes a standing post-change check.
 - The O1 fixture `twomod` (two Go modules) does not exist yet and is part
   of O1's scope.
+
+## Amendment 2026-09-10 — the collapsed recall is a second line the grader prints (Max)
+
+The callee-shape bucket (`docs/oracle/oracle-misses.md`) showed that on
+a `tsc` key the gap between the key and a `tsc`-based indexer is mostly
+the key's overload grain: D-O4's overload rule, applied on the recall
+side, lists every signature of the resolved symbol as a pair, so one
+Hobbes edge confirms one and the siblings count as misses. Max's
+decision: the collapsed number — one pair per (site line, target file,
+target name as the key spells it) — is printed by `oracle grade` itself
+on every resolution or reachability cell as `recall-collapsed`, beside
+the per-signature line, computed from the key and the grader's own
+confirmed rows by the bucket's identity (H-22) and hit rule. **The
+per-signature line stays the standing grade** — the records' headline,
+`render.py`'s input, the claim page's number; the collapsed line is
+never quoted in its place, and a foreign graph gets it from the same
+grader. The identity needs one name per declaration in the key, which
+the Java oracle did not give (H-23, found by this line's first Java run
+and fixed the same hour: names are owner-qualified, the four standing
+keys re-merged from their shards with every position unchanged). Two
+things fold under it, stated on the line: overload signatures and
+repeats of one callee on one line — the second can put the collapsed
+number below the standing one. Bench tooling: no version moves
+(ADR-103). Design §3 and §5 amended; the two TS records and the four
+Java records carry the line.

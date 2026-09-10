@@ -3,6 +3,7 @@ package javac
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
@@ -66,11 +67,11 @@ func TestMergeJoinsShardsAndComputesCHA(t *testing.T) {
 		}
 	}
 	ctor := o.Sites[1]
-	if len(ctor.Targets) != 1 || ctor.Targets[0].Name != "Circle" || ctor.Targets[0].Kind != "constructor" || ctor.Targets[0].Pos.Line != 4 {
+	if len(ctor.Targets) != 1 || ctor.Targets[0].Name != "a.Circle.<init>" || ctor.Targets[0].Kind != "constructor" || ctor.Targets[0].Pos.Line != 4 {
 		t.Fatalf("constructor: %+v", ctor.Targets)
 	}
 	ext := o.Sites[2]
-	if len(ext.Targets) != 1 || !ext.Targets[0].External || ext.Targets[0].Name != "valueOf" {
+	if len(ext.Targets) != 1 || !ext.Targets[0].External || !strings.HasSuffix(ext.Targets[0].Name, ".valueOf") || !strings.HasPrefix(ext.Targets[0].Name, "java.") {
 		t.Fatalf("external: %+v", ext.Targets)
 	}
 	dyn := o.Sites[3]
@@ -79,14 +80,17 @@ func TestMergeJoinsShardsAndComputesCHA(t *testing.T) {
 	}
 }
 
-func TestMemberNames(t *testing.T) {
+// A target name is the declaration's owner-qualified spelling: two
+// same-named members of one file never share it (H-22).
+func TestQualifiedNames(t *testing.T) {
 	cases := map[string]string{
-		"a.b.Outer$Inner#<init>(int)":       "Inner",
-		"a.b.Foo#bar(java.lang.String,int)": "bar",
-		"a.Foo#<init>()":                    "Foo",
+		"a.b.Outer$Inner#<init>(int)":       "a.b.Outer$Inner.<init>",
+		"a.b.Foo#bar(java.lang.String,int)": "a.b.Foo.bar",
+		"a.Foo#<init>()":                    "a.Foo.<init>",
+		"a.Foo$1#run()":                     "a.Foo$1.run",
 	}
 	for k, want := range cases {
-		if got := memberName(k); got != want {
+		if got := qualifiedName(k); got != want {
 			t.Errorf("%s: got %q want %q", k, got, want)
 		}
 	}

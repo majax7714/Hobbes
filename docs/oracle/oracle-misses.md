@@ -129,6 +129,8 @@ the grader-grain question first, since the key names the class whose
 constructor answers (`ZodType` for `new ZodString(..)`, the base), not
 the class written.
 
+**The grader prints the collapsed number now (2026-09-10, later still; Max's decision, ADR-089 amended).** `oracle grade` computes this identity from the key and its own confirmed rows and prints it as `recall-collapsed` beside the standing line on every resolution or reachability cell: cheerio **2,628/3,826 = 68.7%** and zod **9,731/16,634 = 58.5%** to the pair — the numbers above from a second program (`bucket.py` now says whether the two agree on a report). Two things fold under it, stated on the line: a symbol's overload signatures, and repeats of one callee on one line, which the standing line counts one pair per site and one Hobbes edge hits together — so the collapsed number can sit *below* the standing one (Severed-Chains 20.9% beside 23.5%). Its first Java run found the Java key spelling names member-bare, so same-named overrides in one file folded (jsoup read 85.3%; H-23, fixed the same hour — owner-qualified names, the four keys re-merged from their shards with every position unchanged; jsoup 76.3% beside 76.2%). The standing grade is the per-signature line everywhere.
+
 **The Jelly caveat this settles before the afternoon.** The rest of the
 tail — bindings, parameters, closures, interface signatures — is where a
 flow analysis would answer, and its answer at those sites is a
@@ -139,7 +141,11 @@ signature. Graded against this key those edges are contradictions, not
 recall. A Jelly cell needs either a key at flow grain (a second
 `tsc-oracle` mode that follows a binding to its value) or a grader rule
 that a below-floor target is confirmed by the value bound there — the
-grain is the decision, and it is not made.
+grain is the decision, and it is not made — **off the table for now
+(Max, 2026-09-10 later still)**, with the three floor shapes; the
+recommendation on record is a first cell at the standing grain with
+below-floor key rows labelled ungradeable, the flow-grain key only if
+that mass warrants it, the matcher never relaxed.
 
 ### The 1-1 on repowise's draws (2026-09-09; [cells](cells/), `*-hobbes-2026-09-09.md`)
 

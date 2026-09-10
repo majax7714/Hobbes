@@ -14,6 +14,16 @@
 // hole (C-58's majority case) is therefore sized as recall against CHA,
 // stated per cell.
 //
+// A target's name is spelled as the shard key spells the declaration,
+// owner-qualified — `org.jsoup.nodes.Element.attr`, a nested class with
+// its `$`, a constructor `<init>` — so that two same-named declarations
+// in one file (an override in a nested or anonymous class, the CHA set's
+// common shape) never share a name: the grader's collapsed recall folds
+// pairs by (site line, target file, target name) and a member-bare name
+// folded 2,622 distinct jsoup declarations (H-22's lesson, applied to
+// this key 2026-09-10; the standing keys were re-merged from their
+// shards, positions unchanged).
+//
 // The build executes repo-authored logic and resolves its own
 // dependencies, so the step keeps a network exactly as the ingest
 // lane's fetch-java does (C-66; the ingest lane's index pass is offline
@@ -356,12 +366,13 @@ func Merge(dir, module string) (*edges.OracleExport, error) {
 
 // target resolves a declaration key to a Target: in-repo when a shard
 // declared it (position = the name identifier's line), external
-// otherwise (the JDK, a dependency, generated code) — named by the key.
+// otherwise (the JDK, a dependency, generated code) — named by the key,
+// owner-qualified.
 func target(k string, decls map[string]decl, kind string) edges.Target {
 	if d, ok := decls[k]; ok {
-		return edges.Target{Pos: d.pos, Name: memberName(k), Kind: d.kind}
+		return edges.Target{Pos: d.pos, Name: qualifiedName(k), Kind: d.kind}
 	}
-	return edges.Target{Name: memberName(k), Kind: kind, External: true}
+	return edges.Target{Name: qualifiedName(k), Kind: kind, External: true}
 }
 
 func splitKey(k string) (owner, member string) {
@@ -372,19 +383,20 @@ func splitKey(k string) (owner, member string) {
 	return k[:at], k[at+1:]
 }
 
-func memberName(k string) string {
-	_, member := splitKey(k)
+// qualifiedName spells a declaration key as a target name: the owner as
+// the key spells it (package-qualified, `$` for a nested class), a dot,
+// and the member without its parameter list — `a.b.Outer$Inner.run`,
+// a constructor `a.Foo.<init>`. One name per declaration, shared by
+// nothing else in the program.
+func qualifiedName(k string) string {
+	owner, member := splitKey(k)
 	if at := strings.Index(member, "("); at >= 0 {
 		member = member[:at]
 	}
-	if member == "<init>" {
-		owner, _ := splitKey(k)
-		if at := strings.LastIndexAny(owner, ".$"); at >= 0 {
-			owner = owner[at+1:]
-		}
+	if member == "" {
 		return owner
 	}
-	return member
+	return owner + "." + member
 }
 
 func hasTarget(ts []edges.Target, t edges.Target) bool {
