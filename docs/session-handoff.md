@@ -1,57 +1,58 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-10; Hobbes 0.1.9-beta on `main`** (0.1.8-beta is
-tagged `v0.1.8-beta`, confirmed by Max and the local tag; 0.1.9-beta is
-**untagged — Max: leave the tag off**). **Numbering (Max, the same
-evening; ADR-103 amended): after the next version the layer goes to
-0.11.0-beta, not 0.2.0.** Work remains on `main`; publishing belongs
-to Max. The baseline review's record: [review](reviews/2026-09-10-baseline.md).
-**Its two code findings are closed (2026-09-10 later still, three
-commits; BUILDLOG)**; the design choices it declined to make are still
-Max's, below.
+**Reviewed 2026-09-10 (later still); Hobbes 0.1.9-beta on `main`**
+(0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta is **untagged — Max:
+leave the tag off**). **Numbering (Max; ADR-103 amended): after the
+next version the layer goes to 0.11.0-beta, not 0.2.0.** Work remains
+on `main`; publishing belongs to Max. The baseline review's record:
+[review](reviews/2026-09-10-baseline.md) — **its two code findings are
+closed and read by Max (good through his review)**, and two of the
+four decisions it left are taken (below); the other two are off the
+table for now.
 
-## ⇢ START HERE NEXT SESSION: Max reads the two fixes; then the floor shapes and the Jelly key grain; then W0
+## ⇢ START HERE NEXT SESSION: Max reads today's two items; then W0; then the no-spend queue
 
-1. ~~**Java resolve-stage claim**~~ — **done, 0.1.9-beta (C-66):**
-   `java_build_files` is one walk with one rule (lane A's pruning
-   everywhere; `.mvn/` the one dot-directory entered; a JVM source left
-   out wherever it sits except below `buildSrc/`, the one exception,
-   unchanged). The notice reads "holds no application source (build
-   logic under buildSrc/ excepted)". Tested at the file list, the
-   resolve plan's stage, and the contained canary — whose fourth probe
-   could never see the resolve pass (that stage is discarded before the
-   index runs), so it now drops a sentinel in the Maven cache and the
-   fixture plants `.mvn/Hidden.java`; the old walk was shown to trip it
-   (`./.mvn/Hidden.java` in the sentinel), the new one does not. **For
-   Max:** the review, and whether a `build-logic/` included build (not
-   excepted; degrades visibly) deserves the same exception as
-   `buildSrc/` — a decision, not made here.
-2. ~~**Callee-shape metric (H-22)**~~ — **done:** identity is the file
-   and the checker's fully qualified name, a confirmed row hits by exact
-   position (the grader's rule), attribution is by column with explicit
-   `ambiguous` / `no record` rows and `new` visited; both cells
-   re-measured on the 0.1.8-beta grades — cheerio unchanged to the
-   pair, zod +3 pairs of 16,634, no hit moved, 0 unexplained rows. The
-   standing tables hold. **For Max:** whether the collapsed number now
-   becomes a second recall line `oracle grade` prints (item 1 of "For
-   Max's review" below) — the identity is canonical now; the decision
-   was never made in the review.
-3. **Then Max's choices (unchanged):** class-property function symbols,
-   namespace members, constructor target grain, and the Jelly key. The
-   review's recommendations are in the record; the re-measured `new`
-   rows (zod: 114 on a class, 107 on an interface-typed constructor
-   value, 85 on a parameter) sharpen the constructor-grain question.
-4. **W0 remains open:** the graph CI job forgets earlier red reviews;
+1. **For Max's review — the `recall-collapsed` line (ADR-089 amended;
+   BUILDLOG):** `oracle grade` prints it on every resolution or
+   reachability cell beside the standing recall, at (site line, target
+   file, target name as the key spells it) grain — the bucket's identity
+   from a second program (cheerio 68.7%, zod 58.5% to the pair;
+   `bucket.py` says whether the two agree). The per-signature line
+   stays the headline everywhere; the renderer and the claim page read
+   it alone. Two things fold, stated on the line: overload signatures
+   and same-line repeats of one callee — so the number can sit *below*
+   the standing one (Severed-Chains 20.9% beside 23.5%). Records: the
+   two TS cells and the four Java cells carry the line as a paragraph;
+   every other cell gets it on its next regrade.
+2. **For Max's review — H-23, the Java key's member-bare names
+   (`oracle-defects.md`):** found by the line's first Java run (jsoup
+   85.3%, false); `internal/javac` now spells names owner-qualified as
+   the shard key does; `oracle java-javac --merge-only --carry <key>`
+   re-merged the four standing Java keys from their shards with every
+   position, kind, mode and interface identical (the old files kept
+   beside as `oracle.json.member-bare-names-2026-09-10`); every
+   headline unchanged to the digit. A future regrade of a Java cell,
+   Hobbes or foreign, prints the qualified spelling in its rows.
+3. **Recorded, not built — `build-logic/` (ADR-097, C-66):** Max's
+   decision: keyed on the settings file's `pluginManagement {
+   includeBuild(..) }` when a real repo degrades on one, never on the
+   name, never on plain `includeBuild`; nothing until then.
+4. **Off the table for now (Max, 2026-09-10 later still):** the three
+   floor shapes (class-property functions, namespace members, `new`
+   with the constructor grain) and the Jelly key grain — the
+   recommendations are on record in `oracle-misses.md` and W1.
+5. **W0 remains open:** the graph CI job forgets earlier red reviews;
    `go/internal/version` and the union fixture's ownership treatment
    still need resolution. Then the standing no-spend queue below.
-5. **Practical:** the image was rebuilt at 0.1.9-beta and this repo
-   re-ingested; the stale 0.1.8-beta knowledge container this session
-   had started was stopped at the end of it, so the next session's
-   `knowledge-serve` starts fresh on the rebuilt image (C-65).
+6. **Practical:** the knowledge server answers from the 0.1.9-beta
+   image and the artifact is at HEAD (re-ingested this session after a
+   docs-only commit left it one behind); the `oracle` binary is built
+   from the tree — `go build ./cmd/oracle` in `bench/oracle` before a
+   regrade, or the line is missing.
 
-The renderer's drift check passes on the amended records (their last
-versioned block is still the 0.1.8-beta regrade; the identity addendum
-is a paragraph inside it). Foreign records untouched. Atlas-0, Calvin,
+The renderer's drift check passes on the amended records (the new
+paragraphs sit outside the verbatim blocks; the parser reads the
+per-signature line as before). Foreign records untouched. Atlas-0, Calvin,
 TTT and other spending decisions remain held as recorded below.
 
 **Done 2026-09-10 (the versioned baseline; BUILDLOG):** 41 Hobbes cells

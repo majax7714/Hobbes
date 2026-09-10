@@ -219,7 +219,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-10, later still): 1,258 pytest (+4 `lane_b`) /
-304 Go + 51 oracle-lane Go (two run the `shape/` suites: 23 unittest + 7 node) / 52 vitest / 36 tsextract + 32 scip node
+304 Go + 52 oracle-lane Go (two run the `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 32 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -331,6 +331,15 @@ review → `lane_b` pytest) and runs the same way on a box.
   and the callee-shape bucket collapses on the checker's qualified name
   and hits by exact position with explicit ambiguous rows and `new`
   visited (H-22 closed; cheerio unchanged, zod +3 pairs of 16,634).
+  **Later still — Max read both (good) and took two decisions:** a
+  `build-logic/` included build is keyed on the settings file's
+  `pluginManagement { includeBuild(..) }` when a real repo degrades on
+  one, never on the name (ADR-097); and `oracle grade` prints
+  `recall-collapsed` on every cell beside the standing line (ADR-089) —
+  whose first Java run found the Java key's member-bare names (H-23,
+  fixed the same hour: owner-qualified, the four standing keys re-merged
+  from their shards, every position unchanged). The three floor shapes
+  and the Jelly key grain are off the table for now.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined

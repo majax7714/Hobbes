@@ -154,10 +154,15 @@ the best on-ramp for a new contributor who should learn the codebase.*
   2026-09-10 (later), 0.1.9-beta:** one walk, one rule; the notice
   corrected; the canary's sentinel probe sees the resolve pass. The
   exception set is unchanged (`buildSrc/` only); a `build-logic/`
-  included build degrades visibly and is a decision for later.
+  included build degrades visibly. **Decided 2026-09-10 (later still;
+  ADR-097):** keyed on `pluginManagement { includeBuild(..) }` in the
+  settings file when a real repo degrades on one, never on the name;
+  nothing built until then.
 - **The symbol floor, three shapes the callee-shape bucket priced
-  (2026-09-10, `docs/oracle/oracle-misses.md`; Max's call each, none
-  started):** a class property whose initializer is a function literal
+  (2026-09-10, `docs/oracle/oracle-misses.md`; off the table for now —
+  Max, 2026-09-10 later still — with the Jelly key grain; the
+  recommendation on record is class-property functions first, then
+  namespace members, the constructor grain settled before `new`):** a class property whose initializer is a function literal
   as a `method` symbol (zod: 1,029 collapsed pairs, 6.2% of the cell);
   exported members of a `namespace` block as symbols qualified by the
   namespace (zod: 230 rows); `new X(..)` as a lane A call site (cheerio

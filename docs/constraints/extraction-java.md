@@ -82,7 +82,12 @@ index runs), so it now also drops a sentinel in the Maven cache, shown
 to fire under the old walk and not under the new. **Surfacing: surfaced**
 again. The residual stands as registered: build logic with a network
 over the build files, `buildSrc/` and public caches; a `build-logic/`
-included build is not excepted and degrades visibly.
+included build is not excepted and degrades visibly. **Decided
+2026-09-10 (later still; Max, ADR-097):** if one ever degrades a real
+unit, the exception is keyed on the settings file's `pluginManagement {
+includeBuild(..) }` declaration — Gradle's own definition of build
+logic — never on a directory name, and never on plain `includeBuild`;
+nothing is built until a repo hits it.
 
 ### C-67 — The Java graph is the build's default configuration
 - **Cannot tell you:** what a source set the default build does not

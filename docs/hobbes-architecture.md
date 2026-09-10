@@ -529,7 +529,9 @@ networked pass — found by the baseline review, fixed the same day
 (0.1.9-beta; C-66's record). A `build-logic/` included build is *not*
 excepted: its sources stay off the stage, its resolve pass fails to
 configure, and the unit degrades to lane A with the failure on the
-record. `index-java` runs the build with scip-java attached on the index
+record — and when a real repo degrades on one, the exception is keyed
+on the settings file's `pluginManagement { includeBuild(..) }`
+declaration, never on a directory name (Max, 2026-09-10; ADR-097). `index-java` runs the build with scip-java attached on the index
 stage, `--network none`, with the tool's offline flag. The resolve pass
 concedes repo build logic with a network over the staged files and
 public artifact caches (C-66); the containment stamp records the

@@ -8260,3 +8260,70 @@ CHANGELOG head and CLAUDE conventions say so. The session's knowledge
 container (started on the 0.1.8-beta image before the rebuild; the
 proxy answered `0.1.8-beta`) was stopped so the next session starts on
 the rebuilt image.
+
+## 2026-09-10 — (later still) two decisions taken: the `build-logic/` rule recorded, the collapsed recall printed by the grader; the Java key's bare names found and qualified (H-23)
+
+Max read the two review fixes (good through his review) and took two of
+the four decisions the handoff carried; the three floor shapes and the
+Jelly key grain are off the table for now. The knowledge server was
+confirmed up on the 0.1.9-beta image first; the artifact was one docs
+commit behind HEAD and was re-ingested.
+
+**1. `build-logic/` (C-66; ADR-097 amended).** Not by name. When a
+Gradle included build under any directory degrades a real unit, the
+exception is keyed on the build's own declaration — the directories a
+`pluginManagement { includeBuild(..) }` block names in the settings
+file, Gradle's definition of build logic — never on a directory name,
+and never on plain top-level `includeBuild(..)`, which composite builds
+use for application libraries. Nothing is built until a repo hits it:
+the unit degrades visibly to lane A and the residual stays registered.
+Recorded in ADR-097, C-66, architecture §3.2 and the W1 item.
+
+**2. `recall-collapsed` (ADR-089 amended).** `oracle grade` prints a
+second recall line on every resolution or reachability cell: one pair
+per (site line, target file, target name as the key spells it) — the
+callee-shape bucket's identity (H-22) — computed by the grader from the
+key and its own confirmed rows, the same algorithm as `bucket.py`,
+which now cross-checks the grader's number on a report and says whether
+they agree. The per-signature line stays the standing grade, the
+records' headline and the graphics' input; the renderer ignores the new
+line; a foreign graph gets it from the same grader. cheerio
+2,628/3,826 = 68.7% and zod 9,731/16,634 = 58.5% to the pair — the
+bucket's published numbers from a second program. Two things fold,
+stated on the line: a symbol's overload signatures and repeats of one
+callee on one line — the second means the line can sit *below* the
+standing one (Severed-Chains 20.9% beside 23.5%: the standing line's
+12,803 hits come from 10,154 confirmed edges, one edge hitting every
+repeat on its line). ajv 65.8% beside 63.5%, hono 58.9% beside 55.2%;
+Go and Rust within 0.1 (hobbes-go 59.3%, memchr 80.6%). Not for trace
+oracles. `TestCollapsedRecallRemovesTheOverloadGrainOnly`. Bench
+tooling: no version moves (ADR-103). Design §3 and §5, the README, the
+claim page's rules, the two TS records.
+
+**3. H-23 — the Java key's member-bare names.** The line's first Java
+run read jsoup at 85.3% beside 76.2%, impossible for a key that
+resolves one declaration per site. `internal/javac` named a target by
+its bare member (`get`, `authenticate`, a constructor by its class), so
+two same-named declarations in one file — the CHA override set's common
+shape, an override in a nested or anonymous class — shared one collapsed
+pair and one confirmed row covered both: 433 groups folded 2,622
+distinct jsoup declarations. H-22's lesson on another key (RC-5, its
+fourth). Names are owner-qualified now as the shard key spells them
+(`org.jsoup.nodes.Element.attr`, `a.Foo$1.run`, `a.Foo.<init>`);
+`oracle java-javac --merge-only --carry <key>` re-merges a key from the
+shards a cell directory keeps, without the build; the four standing
+Java keys were re-merged and checked field by field — every site,
+target position, kind, mode and interface identical to the 2026-08-29
+files, kept beside the new ones as `oracle.json.member-bare-names-2026-09-10`
+— and regraded on the 0.1.8-beta artifacts: every headline unchanged
+to the digit; collapsed jsoup 76.3%, petclinic 98.3%,
+spring-data-elasticsearch 66.7%, Severed-Chains 20.9%;
+CodeGraphContext-on-jsoup unchanged. The foreign Java records quote no
+target names in their standing blocks; a future regrade prints the
+qualified spelling. `TestQualifiedNames`; the four Java records, the
+defect record and the review tally.
+
+Validation: the oracle lane's 52 Go (+1), the shape suites (24 unittest,
++1; 7 node), the report drift test on the amended records, the grade
+package's contained minijava build, the TS fixture test. No product
+code, no version bump, no spend, no push; commits on `main`.

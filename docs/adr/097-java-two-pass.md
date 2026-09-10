@@ -154,3 +154,17 @@ so `Phoned` alone could never have seen that pass) — shown to fire
 under the old walk and not under the new. The ingest notice reads
 "holds no application source (build logic under buildSrc/ excepted)".
 Point 1 above reads accordingly; the exception set is unchanged.
+
+**Decided 2026-09-10 (later still; Max):** a `build-logic/` included
+build does **not** get `buildSrc/`'s exception by name. If a real unit
+ever degrades on one, the exception is keyed on the build's own
+declaration — the directories a `pluginManagement { includeBuild(..) }`
+block names in `settings.gradle[.kts]`, which is Gradle's definition of
+build logic — read from the settings text as a string literal (a
+computed path is missed and degrades visibly, as now). Plain top-level
+`includeBuild(..)` stays excluded: composite builds use it for
+application libraries, which are application source. Nothing is built
+until a repo hits it: the unit degrades to lane A with the failure on
+the record and the residual stays registered under C-66. The rule is a
+decision now, not a default; the same walk, one more clause when it
+opens.
