@@ -8327,3 +8327,93 @@ Validation: the oracle lane's 52 Go (+1), the shape suites (24 unittest,
 +1; 7 node), the report drift test on the amended records, the grade
 package's contained minijava build, the TS fixture test. No product
 code, no version bump, no spend, no push; commits on `main`.
+
+## 2026-09-10 — (later still) the recovery half-built path: a Gradle unit gets scip-java's plugin from Hobbes's own init script — Severed-Chains 23.5% → 60.8% — 0.1.10-beta
+
+Max asked why Severed-Chains' recall was so low and why it is the one
+cell repowise out-recalls Hobbes on; the answer was C-67 (scip-java
+could not attach its plugin to that Gradle build; lane A alone, 23.5%,
+while the oracle's own plugin had attached to the same build through an
+init script) and he said: continue down the half-built path.
+
+**Why scip-java's route failed, read from its source and its jars:**
+`ScipGradlePlugin` adds the javac plugin jar to the `compileOnly` and
+`testCompileOnly` configurations by file, and Severed-Chains resolves
+`compileOnly` at evaluation time, so Gradle refuses the add — the first
+of the two causes scip-java's own message lists. The oracle's script
+never touches a configuration: it puts its jar on the task's
+`annotationProcessorPath` (a task property), forks the compiler with
+the plugin's `--add-exports`, and appends `-Xplugin:…` to
+`compilerArgs`. scip-java 0.13.1's launcher carries `scip-plugin.jar`
+(the javac plugin, `ScipPlugin` on the `com.sun.source.util.Plugin`
+service) and `javac-internals.properties` (the five `--add-exports`)
+inside its embedded `scip-java-0.13.1.jar`; its `aggregate` command
+merges per-source shards from a targetroot.
+
+**Built (`scip/index.mjs`, `sandbox/Containerfile`; ADR-096 amended,
+C-67 narrowed):** the image extracts the plugin jar and the properties
+file out of the pinned launcher at build (`/usr/local/lib/scip-java/`,
+the jar checksum-pinned beside the launcher's); the helper's Java spec
+gains a `plan` — for Gradle, `gradlePlan`: write an init script beside
+the output (`gradleAttachScript`: every `JavaCompile` task of every
+project gets the jar on its processor path, fork with the
+`--add-exports` read from the properties file, incremental off,
+`-Xplugin:scip -sourceroot:<stage> -targetroot:<dir>`, plus a task that
+lists what the build resolved in scip-java's own `dependencies.txt`
+shape), run `sh ./gradlew --no-daemon --offline --init-script … clean
+compileTestJava hobbesScipDependencies` in the stage, refuse with the
+build's own last words when no shard was written, then `scip-java
+aggregate --output … --targetroot …`; the script and the targetroot go
+with the `.scip`. `runIndexer` runs a plan's steps in order; every
+other language is a one-step plan as before; Maven is scip-java's own
+route, untouched. Under Gradle the aggregator names no third-party
+package (only scip-java's `index` command builds that table, from a
+file `aggregate` does not take), so external symbols read package `.`
+and the dependency-coverage line is answered from the build's own
+listing (`resolvedPackages` → `dependencyCoverage`'s third argument)
+— C-23's question by the other witness; external nodes were named by
+Java package under both routes anyway. Kotlin is not compiled under
+the plugin (never indexed before either). Node tests: 36 (+4: the
+plan's two steps and their argv, the script's contents and what it
+never touches, the properties parser with continuation lines, the
+coverage merge).
+
+**Measured.** Severed-Chains re-ingested contained, 36 s wall: capture
+0.0% → **100.0% of 52,209 sites**, 37,998 symbol edges all semantic,
+lanes 12,803 / 0, 15 of 15 declared dependencies resolved (0 of 15 on
+the first run, before the dependencies task — the wrong "environment
+probably not installed" warning was the reason to build it). Regraded
+against the standing 2026-08-29 javac key: **29,793/29,793 confirmed,
+0 contradicted, recall 23.5% → 60.8%** (`static→method` 49.5 → 100.0,
+`static→constructor` 77.8 → 89.5, `interface→method` 0.4 → 43.3 — the
+CHA set below the declared method is 94.0% of what is left), poison
+29,793 seeded / 0 falsely confirmed; on the same key CodeGraphContext
+79.4% / 17.8%, repowise 58.8% / 39.2%. spring-petclinic's Gradle build
+through the new route (a one-off, `_index_java_unit(…, "gradle", …)`):
+363 definitions / 944 references / 4,384 external refs, identical to
+its Maven route; coverage 7/7 by the build's listing where the Maven
+route's referenced-package reading says 4/7 (the three checkstyle /
+format plugins are declared and resolved, never referenced). One
+one-off bug cost an hour: its skip list matched `.hobbes` in the
+clone's own path and staged zero files — the route's "no shard"
+refusal caught it and now quotes the build's output.
+
+**Docs.** ADR-096 amended; architecture §3.2; C-67 (the Severed-Chains
+shape lifted; three residuals named); the call-graph register's
+`interface→method` line; the cell record's new block with a signed
+direction-of-fix line; the evidence file's row and sentence (61–98%
+with lane B; the "without" is gone); `oracle-misses.md` § the four Java
+cells; the claim page (the recall range starts at fzf's 40.8% now; the
+floor was measured once); `cells.meta.json` (the `floor` flag off);
+`cells.json`, the three graphics and `tables.md` regenerated, the drift
+test passing; W1; CHANGELOG 0.1.10-beta; the "collapsed sits below"
+example moved to spring-petclinic in the grader's doc, design §3 and
+the misses record. **Patch bump 0.1.10-beta** (what the layer draws on
+a Gradle repo) in the seven holders and three lockfiles; static proxy
+and image rebuilt (`hobbes-proxy 0.1.10-beta`); this repo re-ingested.
+
+Validation: 1,258 pytest, 304 Go, the oracle lane's 52 Go with the
+shape suites and the drift test, 36 scip node; the four `lane_b` tests
+not re-run (Maven canary; the Gradle route has no fixture — its
+evidence is the two real repos above, P11). No spend, no push; commits
+on `main`.

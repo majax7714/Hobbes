@@ -219,7 +219,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-10, later still): 1,258 pytest (+4 `lane_b`) /
-304 Go + 52 oracle-lane Go (two run the `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 32 scip node
+304 Go + 52 oracle-lane Go (two run the `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
 (image build → ingest → stamp check → lanes → compiled invariants →
@@ -279,9 +279,9 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-10) — Hobbes 0.1.9-beta
+## Status (2026-09-10) — Hobbes 0.1.10-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.9-beta; 0.1.8-beta is tagged `v0.1.8-beta` (0.1.3-beta
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.10-beta; 0.1.8-beta is tagged `v0.1.8-beta` (0.1.3-beta
   tagged `v0.1.3-beta` locally, the first stated version; beta: graded,
   not stable — Max); every artifact's `built_by` and every knowledge
   answer carry the version beside the commit; the four Go binaries
@@ -339,7 +339,11 @@ review → `lane_b` pytest) and runs the same way on a box.
   whose first Java run found the Java key's member-bare names (H-23,
   fixed the same hour: owner-qualified, the four standing keys re-merged
   from their shards, every position unchanged). The three floor shapes
-  and the Jelly key grain are off the table for now.
+  and the Jelly key grain are off the table for now. **0.1.10-beta
+  (later still): Max's "continue down the recovery half-built path" —
+  the Gradle attach route (above, the Java bullet); Severed-Chains is
+  the first Gradle-built repo in the record with a semantic lane, and
+  no cell is graded on lane A alone any more.**
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
@@ -370,7 +374,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   milestones in one session: lane A, scip-java contained, a javac+CHA
   oracle (O8), four cells (two repos drawn at random) at **100%
   precision, 0 contradicted**, recall 66–98% with lane B and 23.5%
-  without. **C-66 settled 2026-09-01 (ADR-097):** a Java unit runs two
+  without — **the without is gone (0.1.10-beta, 2026-09-10 later
+  still): a Gradle unit gets scip-java's plugin from Hobbes's own init
+  script, the oracle's route (ADR-096 amended, C-67 narrowed);
+  Severed-Chains 23.5% → 60.8% at 100% precision.** **C-66 settled 2026-09-01 (ADR-097):** a Java unit runs two
   contained passes — the build's own resolution with a network on a
   stage with **no sources**, then the index **offline**; jsoup and
   petclinic re-ingested byte-identical. The residual (build logic with a

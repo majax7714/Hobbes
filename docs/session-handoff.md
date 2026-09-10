@@ -1,58 +1,70 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-10 (later still); Hobbes 0.1.9-beta on `main`**
-(0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta is **untagged — Max:
-leave the tag off**). **Numbering (Max; ADR-103 amended): after the
-next version the layer goes to 0.11.0-beta, not 0.2.0.** Work remains
-on `main`; publishing belongs to Max. The baseline review's record:
-[review](reviews/2026-09-10-baseline.md) — **its two code findings are
-closed and read by Max (good through his review)**, and two of the
-four decisions it left are taken (below); the other two are off the
-table for now.
+**Reviewed 2026-09-10 (later still); Hobbes 0.1.10-beta on `main`**
+(0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta and 0.1.10-beta are
+**untagged — tags are Max's call**). **Numbering (Max; ADR-103
+amended): after the next version the layer goes to 0.11.0-beta, not
+0.2.0.** Work remains on `main`; publishing belongs to Max. The
+baseline review's record: [review](reviews/2026-09-10-baseline.md) —
+its two code findings are closed and read by Max; two of its four
+decisions are taken and the other two are off the table for now
+(below).
 
-## ⇢ START HERE NEXT SESSION: Max reads today's two items; then W0; then the no-spend queue
+## ⇢ START HERE NEXT SESSION: Max reads the Gradle attach route (0.1.10-beta); then the two bench items; then W0
 
-1. **For Max's review — the `recall-collapsed` line (ADR-089 amended;
-   BUILDLOG):** `oracle grade` prints it on every resolution or
-   reachability cell beside the standing recall, at (site line, target
-   file, target name as the key spells it) grain — the bucket's identity
-   from a second program (cheerio 68.7%, zod 58.5% to the pair;
-   `bucket.py` says whether the two agree). The per-signature line
-   stays the headline everywhere; the renderer and the claim page read
-   it alone. Two things fold, stated on the line: overload signatures
-   and same-line repeats of one callee — so the number can sit *below*
-   the standing one (Severed-Chains 20.9% beside 23.5%). Records: the
-   two TS cells and the four Java cells carry the line as a paragraph;
-   every other cell gets it on its next regrade.
-2. **For Max's review — H-23, the Java key's member-bare names
-   (`oracle-defects.md`):** found by the line's first Java run (jsoup
-   85.3%, false); `internal/javac` now spells names owner-qualified as
-   the shard key does; `oracle java-javac --merge-only --carry <key>`
-   re-merged the four standing Java keys from their shards with every
-   position, kind, mode and interface identical (the old files kept
-   beside as `oracle.json.member-bare-names-2026-09-10`); every
-   headline unchanged to the digit. A future regrade of a Java cell,
-   Hobbes or foreign, prints the qualified spelling in its rows.
-3. **Recorded, not built — `build-logic/` (ADR-097, C-66):** Max's
-   decision: keyed on the settings file's `pluginManagement {
-   includeBuild(..) }` when a real repo degrades on one, never on the
-   name, never on plain `includeBuild`; nothing until then.
-4. **Off the table for now (Max, 2026-09-10 later still):** the three
-   floor shapes (class-property functions, namespace members, `new`
-   with the constructor grain) and the Jelly key grain — the
-   recommendations are on record in `oracle-misses.md` and W1.
+1. **For Max's review — the Gradle attach route (C-67; ADR-096
+   amended; CHANGELOG 0.1.10-beta; BUILDLOG):** "continue down the
+   recovery half-built path" — a Gradle unit gets scip-java's javac
+   plugin from Hobbes's own init script on each JavaCompile task's
+   processor path (the oracle's route), runs the wrapper offline under
+   it, and aggregates with `scip-java aggregate`; the image extracts the
+   plugin jar and its `--add-exports` list from the pinned launcher
+   (`sandbox/Containerfile`, checksum-pinned). **Severed-Chains
+   indexes: capture 0.0% → 100.0%, recall 23.5% → 60.8% at 100.0%
+   precision, 29,793 edges, 0 contradicted, poison clean** — the first
+   Gradle-built repo in the record with a semantic lane; no cell reads
+   lane A alone now. spring-petclinic's Gradle build through the same
+   route: 363 definitions / 944 references / 4,384 external refs,
+   identical to its Maven route. Things to look at: the route's three
+   stated residuals in C-67 — a build that *replaces* `compilerArgs`
+   after configuration (refused with the build's own words; a `doFirst`
+   attachment is the fallback if a repo ever shows it), external
+   symbols under Gradle carrying no artifact name (the aggregator
+   names none without the table scip-java's own `index` builds, so the
+   coverage line reads the build's `dependencies.txt` — the same
+   question by the other witness), and Kotlin not compiled under the
+   plugin (never indexed before either). Maven untouched. The
+   comparative graphics, tables and `cells.json` regenerated (the
+   drift test passes); the claim page's recall range now starts at
+   fzf's 40.8%.
+2. **For Max's review — the `recall-collapsed` line (ADR-089 amended)**
+   and **H-23, the Java key's member-bare names** (`oracle-defects.md`)
+   — as recorded earlier today (BUILDLOG): the grader prints the
+   bucket's identity on every cell beside the standing line, the
+   per-signature line stays the headline; the four Java keys re-merged
+   from their shards with every position unchanged. The "collapsed can
+   sit below the standing line" example is spring-petclinic now (98.3%
+   beside 98.4%); Severed-Chains showed it only on its lane-A-only
+   grade.
+3. **Recorded, not built — `build-logic/` (ADR-097, C-66):** keyed on
+   the settings file's `pluginManagement { includeBuild(..) }` when a
+   real repo degrades on one, never on the name; nothing until then.
+4. **Off the table for now (Max):** the three floor shapes and the
+   Jelly key grain — recommendations on record in `oracle-misses.md`
+   and W1.
 5. **W0 remains open:** the graph CI job forgets earlier red reviews;
    `go/internal/version` and the union fixture's ownership treatment
    still need resolution. Then the standing no-spend queue below.
-6. **Practical:** the knowledge server answers from the 0.1.9-beta
-   image and the artifact is at HEAD (re-ingested this session after a
-   docs-only commit left it one behind); the `oracle` binary is built
-   from the tree — `go build ./cmd/oracle` in `bench/oracle` before a
-   regrade, or the line is missing.
+6. **Practical:** the image is rebuilt at 0.1.10-beta (the proxy answers
+   so) and this repo re-ingested on it; restart the knowledge server
+   after an image rebuild (C-65). The `oracle` binary is built from the
+   tree — `go build ./cmd/oracle` in `bench/oracle` before a regrade.
+   A Gradle unit's index pass writes its init script and targetroot
+   beside the `.scip` under the staging dir and removes both.
 
-The renderer's drift check passes on the amended records (the new
-paragraphs sit outside the verbatim blocks; the parser reads the
-per-signature line as before). Foreign records untouched. Atlas-0, Calvin,
+The renderer's drift check passes on the amended records. Foreign
+records untouched (their Severed-Chains rows now sit beside a Hobbes
+cell at 60.8%). Atlas-0, Calvin,
 TTT and other spending decisions remain held as recorded below.
 
 **Done 2026-09-10 (the versioned baseline; BUILDLOG):** 41 Hobbes cells
