@@ -12,7 +12,9 @@
   **with network access**, on a stage that holds the build files and
   the other non-source files under the build root and **no source the
   build compiles** (`.java`; since C-101, `.kt` / `.scala` / `.groovy`
-  too, `buildSrc/` excepted).
+  too) **outside `buildSrc/`**, whose sources are the build logic and
+  ride with the build files — one walk, one rule in every directory
+  since 2026-09-10 (below).
   The **index pass** (`index-java`) runs the build with scip-java
   attached on the full stage, **offline** (`-o` / `--offline`). A Gradle
   script is code; a pom names the plugins and extensions the build runs;
@@ -40,9 +42,11 @@
   stamp lists `fetch-java` and `index-java`;
   `containment.PROFILES["fetch-java"]` is the one profile with
   `executes_repo_code` *and* `network="default"`, and the suite pins
-  that it is the only one and that its stage carries no sources; the
-  canary (`tests/fixtures/canary-java`) proves no pass saw sources and
-  network together.
+  that it is the only one and that its stage carries no application
+  source (a source planted under `.mvn/` included); the canary
+  (`tests/fixtures/canary-java`) plants one under `.mvn/` and proves no
+  pass saw a source and the network together — the index by `Phoned`,
+  the resolve pass by a sentinel in the Maven cache.
 - **Provider (P9):** inherited from `scip-java` **0.13.1** and the
   build tools it drives (Maven **3.9.16** in the image; the repo's own
   Gradle wrapper). The next narrowing is an allowlisted egress proxy on
@@ -63,6 +67,22 @@ name the limit; the ingest notice still says “holds no sources” and needs
 correction with the staging fix. No network exfiltration was attempted.
 See [the review](../reviews/2026-09-10-baseline.md). This does not invalidate
 the separate guarantee that executing Java steps require containment.
+
+**Fixed 2026-09-10 (later; 0.1.9-beta) — the boundary is what the
+entry says again:** `java_build_files` walks every directory by one
+rule (lane A's pruning; `.mvn/` the one dot-directory entered; a JVM
+source left out wherever it sits, `buildSrc/` the one exception, whose
+sources are the build), so `.mvn/Hidden.java` and `gradle/Hidden.kt`
+no longer reach the resolve stage and `buildSrc/build/` no longer
+rides. The notice reads "holds no application source (build logic under
+buildSrc/ excepted)". Tested at three levels: the file list, the
+resolve plan's stage, and the contained canary — whose fourth probe
+could never see the resolve pass (that stage is discarded before the
+index runs), so it now also drops a sentinel in the Maven cache, shown
+to fire under the old walk and not under the new. **Surfacing: surfaced**
+again. The residual stands as registered: build logic with a network
+over the build files, `buildSrc/` and public caches; a `build-logic/`
+included build is not excepted and degrades visibly.
 
 ### C-67 — The Java graph is the build's default configuration
 - **Cannot tell you:** what a source set the default build does not

@@ -7,6 +7,33 @@ internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`.
 
+## 0.1.9-beta — 2026-09-10 (later still)
+
+**Patch: a change in what Hobbes refuses to stage and what it says
+(C-66).** The Java resolve pass's stage (ADR-097) was meant to hold no
+source the build compiles; the walk that built it copied `.mvn/`,
+`gradle/` and `buildSrc/` whole, past both the JVM-suffix filter and
+the pruning, so a source hidden under `.mvn/` or `gradle/` reached the
+networked pass — found by the 2026-09-10 baseline review
+(`docs/reviews/2026-09-10-baseline.md`). One walk and one rule now:
+lane A's pruning in every directory, `.mvn/` the one dot-directory
+entered, a JVM source left out wherever it sits except below
+`buildSrc/`, whose sources are the build logic itself (the one
+exception, unchanged). The ingest notice says so: "a networked pass
+whose stage holds no application source (build logic under buildSrc/
+excepted)".
+
+- Tested at three levels: the file list, the resolve plan's stage, and
+  the contained canary, which now plants `.mvn/Hidden.java` and reports
+  the resolve pass through a sentinel in the Maven cache — the fourth
+  probe's `Phoned` could never see that pass, whose stage is discarded
+  before the index runs. Shown to fire under the old walk.
+- `buildSrc/build/` and `buildSrc/.gradle/` no longer ride either.
+- Bench tooling beside it (unversioned): the callee-shape bucket's
+  identity fixed (H-22) and the two cells re-measured.
+- Register: C-66 surfaced again; 101 entries, 75 active, 24 lifted, 2
+  superseded.
+
 ## 0.1.8-beta — 2026-09-10 (the versioned baseline)
 
 **Patch: a change in what Hobbes draws (C-101).** The Java resolve

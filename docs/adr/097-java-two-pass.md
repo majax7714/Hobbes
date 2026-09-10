@@ -142,3 +142,15 @@ records the open defect and the stale ingest notice. See
 [the review](../reviews/2026-09-10-baseline.md); architecture §3.2 now
 states the actual boundary. No widening of build-logic exceptions was
 accepted in this review.
+
+**Fixed 2026-09-10 (later; 0.1.9-beta):** `java_build_files` is one
+walk with one rule — lane A's pruning everywhere, `.mvn/` the one
+dot-directory entered, a JVM source left out wherever it sits except
+below `buildSrc/`. The unit test plants sources under `.mvn/`, `gradle/`
+and `buildSrc/`; the routing test reads the resolve plan's stage; the
+canary plants `.mvn/Hidden.java` and its fourth probe now reports
+through a sentinel in the Maven cache (the resolve stage is discarded,
+so `Phoned` alone could never have seen that pass) — shown to fire
+under the old walk and not under the new. The ingest notice reads
+"holds no application source (build logic under buildSrc/ excepted)".
+Point 1 above reads accordingly; the exception set is unchanged.

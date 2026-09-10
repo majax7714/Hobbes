@@ -323,6 +323,13 @@ class TestRouting:
         (repo / "pom.xml").write_text("<project><groupId>g</groupId><artifactId>a</artifactId></project>")
         (repo / "src/main/java/a/A.java").write_text("package a; class A {}")
         (repo / "src/main/resources/app.properties").write_text("k=v\n")
+        # The build-tool directories (the 2026-09-10 review, C-66): the
+        # wrapper's files ride, a source hidden beside them does not;
+        # buildSrc/ is the build and rides whole.
+        for rel in (".mvn/wrapper/maven-wrapper.properties", ".mvn/Hidden.java", "gradle/Hidden.kt",
+                    "buildSrc/src/main/kotlin/Conv.kt"):
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text("x")
         monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
         staged: dict[str, list[str]] = {}
         real_build_stage = staging.build_stage
@@ -337,12 +344,16 @@ class TestRouting:
         assert [p.profile.step for p in plans] == ["fetch-java", "index-java"]
         resolve, index = plans
         # The networked pass executes repo build logic over a stage with
-        # no sources (C-66, ADR-097); the pass with the sources is offline.
+        # no application source (C-66, ADR-097); the pass with the
+        # sources is offline.
         assert resolve.profile.executes_repo_code and resolve.profile.network == "default"
         assert index.profile.executes_repo_code and index.profile.network == "none"
         resolve_files = [f for s, f in staged.items() if resolve.cwd.startswith(s)]
-        assert resolve_files and not any(f.endswith(".java") for f in resolve_files[0]), resolve_files
+        assert resolve_files, staged
+        jvm = [f for f in resolve_files[0] if f.endswith((".java", ".kt", ".scala", ".groovy"))]
+        assert jvm == ["buildSrc/src/main/kotlin/Conv.kt"], resolve_files[0]
         assert "pom.xml" in resolve_files[0] and "src/main/resources/app.properties" in resolve_files[0]
+        assert ".mvn/wrapper/maven-wrapper.properties" in resolve_files[0]
         index_files = [f for s, f in staged.items() if index.cwd.startswith(s) or s in index.command[-1]]
         assert any("src/main/java/a/A.java" in f for f in index_files), staged
         assert resolve.command == ("mvn", "--batch-mode", "-DskipTests", "clean", "test-compile")
@@ -504,10 +515,14 @@ class TestCanary:
 @pytest.mark.lane_b
 class TestJavaCanary:
     """The Java negative (ADR-096, ADR-097): a Maven build step that tries
-    to reach the host, and one that phones home only if it can see both
-    the sources and the network. Real podman, real image, real scip-java.
-    The resolve pass has a network and no sources; the index pass has the
-    sources and no network — so `Phoned` must never be indexed."""
+    to reach the host, and one that phones home only if it can see a
+    JVM source outside `buildSrc/` (the fixture plants one under
+    `.mvn/`, the 2026-09-10 review's path) and the network in the same
+    pass. Real podman, real image, real scip-java. The resolve pass has
+    a network and no application source; the index pass has the sources
+    and no network — so `Phoned` must never be indexed, and the sentinel
+    the probe drops in the Maven cache (the one writable mount, which
+    the resolve pass's stage is not) must never appear."""
 
     SECRET = Path("/tmp/hobbes-canary-secret")
     ESCAPED = Path("/tmp/hobbes-canary-escaped")
@@ -522,6 +537,8 @@ class TestJavaCanary:
         shutil.copytree(FIXTURES / "canary-java", repo)
         self.SECRET.write_text("planted\n")
         self.ESCAPED.unlink(missing_ok=True)
+        phoned = staging.cache_root() / "m2" / "hobbes-canary-phoned"
+        phoned.unlink(missing_ok=True)
         containment.reset_ledger()
         try:
             facts = scipsource.extract_scip_java(repo, ["src/main/java/canary/Canary.java"])
@@ -531,8 +548,12 @@ class TestJavaCanary:
         monikers = [d["moniker"] for d in facts["definitions"]]
         assert any("canary/Canary#" in m for m in monikers), (monikers, facts["degraded"])
         assert not any("Leaked#" in m for m in monikers), monikers
-        # No pass saw sources and network together (ADR-097's property).
+        # No pass saw a source and the network together (ADR-097's
+        # property): not the index (`Phoned` would be a symbol) and not
+        # the resolve pass either — its stage is discarded, so the probe
+        # reports through the cache the build may write to.
         assert not any("Phoned#" in m for m in monikers), monikers
+        assert not phoned.exists(), phoned.read_text() if phoned.exists() else None
         assert not self.ESCAPED.exists()
         assert not any("ran on the host" in d["message"] for d in facts["degraded"])
         assert not any("resolution failed" in d["message"] for d in facts["degraded"]), facts["degraded"]

@@ -517,20 +517,28 @@ resolution. So a Java unit runs two contained passes: `fetch-java` runs
 the build's own resolution (Maven's `test-compile` with nothing to
 compile; the Gradle wrapper with a Hobbes init script that resolves every
 configuration) with podman's default network on a stage that holds the
-build files and resources. The ordinary walk excludes `.java`, `.kt`,
-`.scala` and `.groovy` (C-101), but **`.mvn/`, `gradle/` and `buildSrc/`
-are copied recursively without that filter**. The first two can therefore
-carry application sources too; `buildSrc/` is the intended build-logic
-exception. This staging-boundary defect was reproduced in the 2026-09-10
-review and is recorded under C-66; the claim that the networked pass
-never sees sources is not currently guaranteed. `index-java` runs the
-build with scip-java attached on the index stage, `--network none`, with
-the tool's offline flag. The resolve pass concedes repo build logic with
-a network over the staged files and public artifact caches. The ingest
-notice still overstates the source exclusion; the containment stamp
-records the passes, not an audit of their contents. The Java canary proves
-its planted ordinary-source and host-access probes; it does not cover
-sources placed in the build-tool directories.
+build files and resources and **no application source**: one walk with
+lane A's pruning, and one rule in every directory — a JVM source
+(`.java`, `.kt`, `.scala`, `.groovy`; C-101) is left out wherever it
+sits, `.mvn/` and `gradle/` included, except below `buildSrc/`, whose
+sources are the build logic Gradle compiles before it can evaluate a
+script (the one exception, stated in the ingest notice). Until
+2026-09-10 the three build-tool directories were copied whole, past both
+the filter and the pruning, so a `.mvn/Hidden.java` rode into the
+networked pass — found by the baseline review, fixed the same day
+(0.1.9-beta; C-66's record). A `build-logic/` included build is *not*
+excepted: its sources stay off the stage, its resolve pass fails to
+configure, and the unit degrades to lane A with the failure on the
+record. `index-java` runs the build with scip-java attached on the index
+stage, `--network none`, with the tool's offline flag. The resolve pass
+concedes repo build logic with a network over the staged files and
+public artifact caches (C-66); the containment stamp records the
+passes, not an audit of their contents. The Java canary
+(`tests/fixtures/canary-java`) plants a source under `.mvn/` and probes
+both passes from the host side: `Phoned` in the index (a source and the
+network in one pass), and a sentinel in the Maven cache — the one
+writable mount that outlives the discarded resolve stage — which the
+old walk was shown to trip and the new one does not.
 The image carries JDK 17, 21 and 25 for Gradle's toolchain
 pins, Maven, and the scip-java launcher (+1.1 GB).
 

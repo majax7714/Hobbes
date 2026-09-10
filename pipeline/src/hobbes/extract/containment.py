@@ -47,9 +47,10 @@ separation: the container that can reach the network never runs the
 repo's code, and the container that runs the repo's code has no network.
 Java's build *is* its resolution, so its separation is cut the other way
 (ADR-097): ``fetch-java`` runs the build's own resolution with a network
-on a stage that holds no sources; ``index-java`` runs the build with
-scip-java attached, offline, on the full stage. The pass with a network
-never sees the sources (what it does see is C-66).
+on a stage that holds no application source (build logic under
+``buildSrc/`` excepted); ``index-java`` runs the build with scip-java
+attached, offline, on the full stage. The pass with a network never sees
+the application's sources (what it does see is C-66).
 
 No policy chain here. An ingest container carries a static per-step
 profile — fixed mounts, fixed network, no escalation, nothing to approve
@@ -174,11 +175,13 @@ PROFILES: dict[str, Profile] = {
     # run) — and that build is also where the dependencies get resolved.
     # Neither tool has a fetch that evaluates nothing, so the phase
     # separation takes the other cut (ADR-097): `fetch-java` runs the
-    # build's resolution on a stage that holds **no sources** — the poms
-    # and scripts, wrappers, resources; never a `.java` — with a network;
-    # `index-java` runs the real build with scip-java attached on the full
-    # stage, offline. The pass that can reach the network never sees the
-    # sources; the pass that sees the sources has no route out. What
+    # build's resolution on a stage that holds **no application source**
+    # — the poms and scripts, wrappers, resources, `buildSrc/`; never a
+    # `.java` / `.kt` / `.scala` / `.groovy` outside `buildSrc/` — with a
+    # network; `index-java` runs the real build with scip-java attached
+    # on the full stage, offline. The pass that can reach the network
+    # never sees the application's sources; the pass that sees them has
+    # no route out. What
     # `fetch-java` still concedes is registered as C-66: repo build logic
     # runs with a network over the build files it came from and the
     # public artifact caches.
@@ -192,7 +195,7 @@ PROFILES: dict[str, Profile] = {
     "fetch-rust": Profile("fetch-rust", False, "default"),
     # The one fetch step that executes repo code (the build's own
     # resolution, ADR-097) — so it refuses without containment like an
-    # index step, and its stage carries no sources (C-66).
+    # index step, and its stage carries no application source (C-66).
     "fetch-java": Profile("fetch-java", True, "default"),
     # Not an ingest step: the Calvin M0 harness's test run (design §2.4,
     # `hobbes verify`). A target's tests execute the target's code, so

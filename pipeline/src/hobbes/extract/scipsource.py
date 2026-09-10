@@ -1579,7 +1579,13 @@ _GRADLE_SETTINGS = ("settings.gradle", "settings.gradle.kts")
 #: Files a Java build reads besides the sources, by name or directory.
 _JAVA_BUILD_NAMES = {"pom.xml", *_GRADLE_BUILD, *_GRADLE_SETTINGS, "gradle.properties",
                      "gradlew", "mvnw", "lombok.config"}
-_JAVA_BUILD_DIRS = {"gradle", ".mvn", "buildSrc"}
+#: The one directory whose JVM sources ride into the resolve pass: Gradle
+#: compiles ``buildSrc/`` before it evaluates a build script, so its
+#: sources *are* the build (convention plugins), not the application.
+_JAVA_BUILD_LOGIC_DIR = "buildSrc"
+#: Maven's own dot-directory (the wrapper, ``maven.config``, ``jvm.config``,
+#: ``extensions.xml``) — the one dot-directory the stage walk enters.
+_MAVEN_DOT_DIR = ".mvn"
 
 
 def java_units(repo_root: Path, files: list[str]) -> dict[str, tuple[str, list[str]]]:
@@ -1667,33 +1673,42 @@ def java_build_files(repo_root: Path, root: str) -> list[str]:
     sees the tree it was written for; the stage is a copy, so the cost
     is bytes, not trust. Walked with lane A's pruning so ``target/`` and
     ``build/`` never enter the stage, and dot-directories are kept only
-    for the two build tools' own (``.mvn``)."""
+    for Maven's own (``.mvn``).
+
+    One walk and one rule for every directory: a JVM source
+    (``_JVM_SOURCE_SUFFIXES``) is left out wherever it sits — ``.mvn/``
+    and ``gradle/`` included — except below ``buildSrc/``, whose sources
+    are the build itself. Until 2026-09-10 the three build-tool
+    directories were copied whole, past both the suffix filter and the
+    pruning, so a ``.mvn/Hidden.java`` rode into the networked resolve
+    pass (the baseline review's finding, C-66). A ``build-logic/``
+    included build is *not* excepted: its sources stay off the stage,
+    the resolve pass fails to configure, and the unit degrades to lane A
+    with the failure on the record — widening the exception is a
+    decision, not a default."""
     from hobbes.extract.javasource import _JAVA_SKIPPED
 
     base = repo_root / root if root else repo_root
     out: list[str] = []
-    stack = [base]
+    stack: list[tuple[Path, bool]] = [(base, False)]
     while stack:
-        directory = stack.pop()
+        directory, build_logic = stack.pop()
         try:
             children = sorted(directory.iterdir())
         except OSError:
             continue
         for child in children:
-            rel = child.relative_to(repo_root).as_posix()
             if child.is_symlink():
                 continue
             if child.is_dir():
-                if child.name in _JAVA_BUILD_DIRS:
-                    out.extend(
-                        p.relative_to(repo_root).as_posix()
-                        for p in sorted(child.rglob("*")) if p.is_file() and not p.is_symlink()
-                    )
-                elif child.name not in _JAVA_SKIPPED and not child.name.startswith("."):
-                    stack.append(child)
-            elif child.suffix not in _JVM_SOURCE_SUFFIXES or "buildSrc" in rel.split("/"):
-                out.append(rel)
-    return sorted(set(out))
+                if child.name in _JAVA_SKIPPED:
+                    continue
+                if child.name.startswith(".") and child.name != _MAVEN_DOT_DIR:
+                    continue
+                stack.append((child, build_logic or child.name == _JAVA_BUILD_LOGIC_DIR))
+            elif build_logic or child.suffix not in _JVM_SOURCE_SUFFIXES:
+                out.append(child.relative_to(repo_root).as_posix())
+    return sorted(out)
 
 
 def declared_java_dependencies(repo_root: Path, build_files: list[str]) -> list[str]:
@@ -1774,12 +1789,14 @@ def extract_scip_java(
     classpath is to run the build that resolves one — Maven or the
     repo's own Gradle wrapper, inside the ingest container. Two passes
     (ADR-097): the build's *resolution* runs first with a network on a
-    stage that holds no sources, then the build runs again with
-    scip-java attached, offline, on the full stage — the pass that can
-    reach the network never sees a source the build compiles (``.java``,
-    ``.kt``, ``.scala``, ``.groovy`` — C-101). What the resolve pass still
-    concedes is C-66; the notice below is its surfacing and prints every
-    time.
+    stage that holds no application source, then the build runs again
+    with scip-java attached, offline, on the full stage — the pass that
+    can reach the network never sees a source the build compiles
+    (``.java``, ``.kt``, ``.scala``, ``.groovy`` — C-101) outside
+    ``buildSrc/``, whose sources are the build logic itself and ride
+    with the build files (``java_build_files``). What the resolve pass
+    still concedes is C-66; the notice below is its surfacing and prints
+    every time.
     """
     if not enabled() or not files:
         return None
@@ -1812,8 +1829,9 @@ def extract_scip_java(
         print(
             "NOTE: java semantics: scip-java runs the repo's own build (Maven "
             "or its Gradle wrapper) inside the ingest container — dependency "
-            "resolution in a networked pass that holds no sources, then the "
-            "index offline (C-29, C-66, ADR-097)",
+            "resolution in a networked pass whose stage holds no application "
+            "source (build logic under buildSrc/ excepted), then the index "
+            "offline (C-29, C-66, ADR-097)",
             file=sys.stderr,
         )
     for root, (tool, root_files) in grouped.items():
@@ -1933,7 +1951,8 @@ def _index_java_unit(
     init_script = gradle_home / "hobbes-resolve.gradle"
     init_script.write_text(containment.GRADLE_RESOLVE_SCRIPT)
 
-    # Resolve pass: no sources on this stage, by construction.
+    # Resolve pass: no application source on this stage, by construction
+    # (java_build_files; buildSrc/ is the one exception).
     resolve_stage = _stage_java(repo_root, root, build_files, sha)
     try:
         resolve_failure = _fetch(

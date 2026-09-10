@@ -864,6 +864,50 @@ class TestJavaUnits:
         tool = scipsource.java_build_files(repo, "tool")
         assert "tool/gradlew" in tool and "tool/gradle/libs.versions.toml" in tool
 
+    def test_the_build_tool_directories_hold_no_source_either(self, tmp_path):
+        """The 2026-09-10 review's finding (C-66): `.mvn/`, `gradle/` and
+        `buildSrc/` were copied whole, past the suffix filter and the
+        pruning, so a source hidden there reached the networked resolve
+        pass. One rule everywhere now: the wrappers' files ride, a JVM
+        source does not — except under `buildSrc/`, which is the build."""
+        repo = self._repo(tmp_path)
+        for rel, text in {
+            "proj/.mvn/wrapper/maven-wrapper.properties": "distributionUrl=x\n",
+            "proj/.mvn/jvm.config": "-Xmx1g\n",
+            "proj/.mvn/Hidden.java": "class Hidden {}",
+            "proj/.mvn/deeper/Hidden.kt": "class Hidden",
+            "proj/gradle/wrapper/gradle-wrapper.properties": "distributionUrl=y\n",
+            "proj/gradle/Hidden.kt": "class Hidden",
+            "proj/gradle/Hidden.groovy": "class Hidden {}",
+            "proj/gradle/build/Cached.class": "",
+            "proj/buildSrc/src/main/kotlin/Conv.kt": "// build logic",
+            "proj/buildSrc/build.gradle.kts": "",
+            "proj/buildSrc/build/classes/Conv.class": "",
+            "proj/buildSrc/.gradle/state": "",
+            "proj/.hidden/Not.java": "class Not {}",
+            "proj/.hidden/config.yml": "",
+        }.items():
+            (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+            (repo / rel).write_text(text)
+        staged = scipsource.java_build_files(repo, "proj")
+        # the wrappers' own files ride
+        assert "proj/.mvn/wrapper/maven-wrapper.properties" in staged
+        assert "proj/.mvn/jvm.config" in staged
+        assert "proj/gradle/wrapper/gradle-wrapper.properties" in staged
+        # no JVM source anywhere outside buildSrc/, whatever the directory
+        assert not any(
+            p.endswith((".java", ".kt", ".scala", ".groovy")) and not p.startswith("proj/buildSrc/")
+            for p in staged
+        ), staged
+        assert "proj/.mvn/Hidden.java" not in staged and "proj/gradle/Hidden.kt" not in staged
+        # buildSrc/ is the build: its sources ride, its outputs and caches do not
+        assert "proj/buildSrc/src/main/kotlin/Conv.kt" in staged
+        assert "proj/buildSrc/build.gradle.kts" in staged
+        assert not any(p.startswith(("proj/buildSrc/build/", "proj/buildSrc/.gradle/", "proj/gradle/build/")) for p in staged)
+        # .mvn is the only dot-directory entered
+        assert not any(p.startswith("proj/.hidden/") for p in staged)
+        assert staged == sorted(set(staged))
+
     def test_declared_dependencies_are_groups_read_not_resolved(self, tmp_path):
         repo = self._repo(tmp_path)
         groups = scipsource.declared_java_dependencies(
