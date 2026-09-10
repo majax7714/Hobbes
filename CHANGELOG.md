@@ -16,7 +16,10 @@ on the stage, failed, and the unit fell to lane A's syntactic tier —
 surfaced by the degradation record, found when every Hobbes cell was
 regraded on one build for the comparative graphics (Max, 2026-09-10).
 The stage now holds no JVM source the build compiles (`.java`, `.kt`,
-`.scala`, `.groovy`; `buildSrc/` stays).
+`.scala`, `.groovy`; `buildSrc/` stays), and the Maven resolve pass runs
+the repo's `mvnw` when it ships one — scip-java's index pass runs that
+wrapper, and only the networked pass can fetch its distribution into
+the cache (petclinic had passed on a warm cache alone).
 
 - spring-data-elasticsearch: the resolve pass succeeds again; the cell
   is regraded semantic (its record's 2026-09-10 block).

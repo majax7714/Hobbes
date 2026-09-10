@@ -67,6 +67,10 @@ class TestProfiles:
     def test_java_resolve_commands_and_offline_flags(self):
         maven = containment.java_resolve_command("maven", "/c/gradle/hobbes-resolve.gradle")
         assert maven == ["mvn", "--batch-mode", "-DskipTests", "clean", "test-compile"]
+        # C-101: a repo that ships mvnw resolves through it, so the wrapper's
+        # distribution is in the cache when scip-java runs it offline
+        wrapped = containment.java_resolve_command("maven", "/c/gradle/hobbes-resolve.gradle", wrapper=True)
+        assert wrapped == ["./mvnw", "--batch-mode", "-DskipTests", "clean", "test-compile"]
         gradle = containment.java_resolve_command("gradle", "/c/gradle/hobbes-resolve.gradle")
         assert gradle[:1] == ["./gradlew"] and "--init-script" in gradle and gradle[-1] == "hobbesResolveAll"
         assert "hobbesResolveAll" in containment.GRADLE_RESOLVE_SCRIPT

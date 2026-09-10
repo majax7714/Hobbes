@@ -127,4 +127,8 @@ its resolve pass compile the `.kt` files against Java that was not on
 the stage and fail, and the unit degraded to lane A — surfaced by the
 degradation record, which is how it was found. The stage now holds no
 JVM source the build compiles (`.java`, `.kt`, `.scala`, `.groovy`);
-`buildSrc/` is the build and stays. Point 1 above reads accordingly.
+`buildSrc/` is the build and stays. And the Maven resolve pass runs the
+repo's `mvnw` when it ships one, as the Gradle arm always ran
+`gradlew`: scip-java's index pass runs the wrapper, whose distribution
+only the networked pass can fetch into the cache. Point 1 above reads
+accordingly.

@@ -238,18 +238,22 @@ allprojects {
 """
 
 
-def java_resolve_command(tool: str, init_script: str) -> list[str]:
+def java_resolve_command(tool: str, init_script: str, wrapper: bool = False) -> list[str]:
     """The Java resolve pass (ADR-097), on a stage without sources.
 
     Maven: the same ``test-compile`` the index pass runs — Maven resolves
     a mojo's dependency scope *before* running it, so with nothing to
     compile it still fetches exactly what the real build will need
-    (``dependency:go-offline`` does not: the ADR-096 spike). Gradle: the
-    wrapper (which downloads its own distribution into the cache) with
-    :data:`GRADLE_RESOLVE_SCRIPT` and its task.
+    (``dependency:go-offline`` does not: the ADR-096 spike) — through the
+    repo's own ``mvnw`` when *wrapper* says the stage has one, because
+    scip-java's index pass runs that wrapper and the wrapper downloads
+    its Maven distribution on first use: only this pass has the network
+    to fetch it into the cache (C-101; the image's ``mvn`` otherwise).
+    Gradle: the wrapper (which downloads its own distribution into the
+    cache the same way) with :data:`GRADLE_RESOLVE_SCRIPT` and its task.
     """
     if tool == "maven":
-        return ["mvn", "--batch-mode", "-DskipTests", "clean", "test-compile"]
+        return ["./mvnw" if wrapper else "mvn", "--batch-mode", "-DskipTests", "clean", "test-compile"]
     return ["./gradlew", "--no-daemon", "--init-script", init_script, "hobbesResolveAll"]
 
 

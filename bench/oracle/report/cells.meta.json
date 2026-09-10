@@ -23,18 +23,18 @@
  },
  "dagger-go": {
   "lang": "Go",
-  "run": "host-run",
+  "run": "contained",
   "draw": "picked",
   "label": "dagger",
   "table": "dagger-after",
-  "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)"
+  "note": "19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade"
  },
  "dagger-rust": {
   "lang": "Rust",
-  "run": "host-run",
+  "run": "contained",
   "draw": "picked",
   "label": "dagger sdk/rust",
-  "note": "misses are code macros and derives wrote"
+  "note": "misses are code macros and derives wrote; contained from the 2026-09-10 regrade"
  },
  "fzf-go": {
   "lang": "Go",
@@ -66,10 +66,10 @@
  },
  "kbet-ts": {
   "lang": "TypeScript",
-  "run": "host-run",
+  "run": "contained",
   "draw": "picked",
   "label": "kbet (private app)",
-  "note": "a private Vite+React app: the cell is published, the repo is not"
+  "note": "a private Vite+React app: the cell is published, the repo is not; contained and poison-checked from the 2026-09-10 regrade"
  },
  "memchr-rust": {
   "lang": "Rust",
@@ -123,10 +123,10 @@
  },
  "toml-go": {
   "lang": "Go",
-  "run": "host-run",
+  "run": "contained",
   "draw": "picked",
   "label": "toml",
-  "note": ""
+  "note": "contained from the 2026-09-10 regrade"
  },
  "codegraphcontext-toml": {
   "lang": "Go",

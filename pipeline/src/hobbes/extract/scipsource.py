@@ -1938,7 +1938,9 @@ def _index_java_unit(
     try:
         resolve_failure = _fetch(
             "fetch-java",
-            containment.java_resolve_command(tool, str(init_script)),
+            containment.java_resolve_command(
+                tool, str(init_script), wrapper=(Path(resolve_stage[1]) / "mvnw").is_file()
+            ),
             resolve_stage[1],
             timeout=_JAVA_INDEX_TIMEOUT,
             env=env,

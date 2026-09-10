@@ -154,13 +154,27 @@
   failure. The cell had been graded 2026-08-29, before ADR-097, and never
   re-ingested under the two passes; the 0.1.7-beta baseline regrade
   (Max, 2026-09-10) was its first.
+- **And a second half, found once the first was fixed:** the index
+  pass then failed alone. scip-java runs the repo's own `mvnw` when the
+  build root has one, and the takari wrapper (0.5.6 here) downloads its
+  Maven distribution on first use — offline, so it failed at
+  `DefaultDownloader.download`. The resolve pass ran the image's `mvn`,
+  which never fetched the wrapper's distribution into the cache.
+  spring-petclinic (wrapper 3.3.4, the same 3.9.16 distribution) passed
+  its 2026-09-01 re-ingest only because its distribution was already in
+  the cache from the single-pass days: on a fresh cache every
+  wrapper-shipping Maven repo would have degraded the same way.
 - **Lifted by:** `_JVM_SOURCE_SUFFIXES` — `.java`, `.kt`, `.scala`,
   `.groovy` never enter the resolve stage; under `buildSrc/` they are the
-  build (Gradle's convention plugins) and stay. Test in
-  `TestJavaUnits`. Reproduced by hand first: the full archive builds in
-  the image (`BUILD SUCCESS`); the archive minus `.java` fails in the
-  Kotlin compile; the fix's stage resolves. spring-data-elasticsearch
-  regraded at 0.1.8-beta: the cell record's 2026-09-10 block.
+  build (Gradle's convention plugins) and stay. And the resolve pass
+  runs `./mvnw` when the stage has one (`java_resolve_command(...,
+  wrapper=True)`), so the wrapper's distribution lands in the cache the
+  index pass reads offline — the Gradle arm already did. Tests in
+  `TestJavaUnits` and `test_java_resolve_commands_and_offline_flags`.
+  Reproduced by hand first: the full archive builds in the image (`BUILD
+  SUCCESS`); the archive minus `.java` fails in the Kotlin compile.
+  spring-data-elasticsearch regraded at 0.1.8-beta: the cell record's
+  2026-09-10 block.
 - **Residual:** a build that compiles another language under a directory
   the rule does not know (a Gradle included build under `build-logic/`
   with Kotlin plugins) loses those files from the resolve stage and its
