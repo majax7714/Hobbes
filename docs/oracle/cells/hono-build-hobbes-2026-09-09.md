@@ -182,3 +182,50 @@ poison check: PASS — 4471 seeded wrong edges: 768 refused, 3703 unjudged (orac
 **Precision-against-oracle 100.0% (768/768), 0 contradicted; recall
 55.2% (775/1,403).** hono leaves the claim page's exceptions; quic-go
 is the one that remains.
+
+## Regrade 2026-09-10 (later; the lane asymmetry closed — lane B under the same zone map; 0.1.6-beta)
+
+Same key, clone and commit, Hobbes 0.1.6-beta: lane B now indexes the
+root zone by the projects lane A types it by — `tsconfig.build.json`
+for `src/`, `tsconfig.spec.json` for its tests, each under its own
+config as a scip-typescript project, and the 22 files no project
+claims under a generated config beside the solution file
+(`scipsource.ts_zone_map` → the helper's `--zones`; C-98's lane B
+half). **768/768 unchanged; one edge moves from the syntactic tier to
+the semantic** (727 / 41 where 726 / 42 stood): lane B resolves it
+under the build project's options. Lane agreement 4,332 → 4,336
+both-resolved sites, the same one line-grain disagreement; lane B's
+module edges 1,483 → 1,474. Lane B alone on the root zone, old shape
+against new: references 27,682 → 37,216, external references 25,636 →
+35,441; module pairs 17 lost (fifteen from the unclaimed
+`benchmarks/deno/hono` and `runtime-tests/deno/*` into `src/`, now a
+separate program — C-12's shape; two inside `src/` from test files the
+spec project now owns) and 8 gained (`src/context` to the middleware
+modules that augment it). Artifacts under
+`~/.hobbes/bench/comparative/hobbes-hono-build-r4/`.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 4471: confirmed 768  contradicted 0  abstract 0  silent 3703 map[not-loaded:3703]
+precision-against-oracle 100.0% (768/768)
+recall 55.2% (775/1403 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2122; misses map[func-value→local-binding:61 func-value→variable:4 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:78 static→closure:229 static→method:90 static→property:93 static→type-member:20 static→variable:7]
+  recall[func-value→local-binding]   0.0% (0/61)  misses 61 = 9.7% of all misses
+  recall[func-value→variable]   0.0% (0/4)  misses 4 = 0.6% of all misses
+  recall[interface→type-member]   0.0% (0/30)  misses 30 = 4.8% of all misses
+  recall[static→anonymous-function]   0.0% (0/1)  misses 1 = 0.2% of all misses
+  recall[static→anonymous-signature]   0.0% (0/15)  misses 15 = 2.4% of all misses
+  recall[static→class      ]   0.0% (0/78)  misses 78 = 12.4% of all misses
+  recall[static→closure    ]   0.0% (0/229)  misses 229 = 36.5% of all misses
+  recall[static→function   ] 100.0% (64/64)  misses 0 = 0.0% of all misses
+  recall[static→method     ]  55.9% (114/204)  misses 90 = 14.3% of all misses
+  recall[static→property   ]   0.0% (0/93)  misses 93 = 14.8% of all misses
+  recall[static→type-member]   0.0% (0/20)  misses 20 = 3.2% of all misses
+  recall[static→variable   ]  98.8% (597/604)  misses 7 = 1.1% of all misses
+  tier semantic   confirmed 727  contradicted 0  abstract 0  silent 3590
+  tier syntactic  confirmed 41  contradicted 0  abstract 0  silent 113
+  line-grain tolerance used on 164 edge(s) (several oracle sites on one line)
+poison check: PASS — 4471 seeded wrong edges: 768 refused, 3703 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**Precision-against-oracle 100.0% (768/768), 0 contradicted; recall
+55.2% (775/1,403).** The standing grade.

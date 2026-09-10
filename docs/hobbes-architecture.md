@@ -261,6 +261,22 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
   two locally-justified steps (ADR-077 removed the split, ADR-078 the
   planner) and four 27B pairs were reported as Hobbes tests before anyone
   noticed; the method, not a person, must refuse the label (ADR-082).
+- **P13 — A language indexer is a pinned batch program with a stated
+  version and a tier stamp, never a language server (ADR-105).** A lane
+  B provider runs to completion on a stage, from a fixed input set to an
+  artifact — same commit in, same artifact out; its binary and version
+  are pinned in the registry and the image and recorded on every
+  artifact it builds; every edge it yields enters through the range
+  join stamped `semantic` with the provider named. SCIP is the IR the
+  helper decodes today, not the rule: a compiler's own export, a build
+  plugin, an indexer emitting another format is admissible on the same
+  terms — batch, pinned, stamped, decoded to the same facts, evidenced
+  in §3.8 — and two of the five providers already are not `scip-*`
+  programs. A language server is excluded whatever its accuracy: its
+  answers depend on session state, it cannot be pinned as an artifact
+  or run to completion under a per-step containment profile, and it
+  answers questions where Hobbes derives an artifact (P1, P5). The
+  seventh language is read against these five points before §3.7.
 
 ---
 
@@ -330,14 +346,17 @@ signature, where the semantic lane places it (C-89), so one symbol has
 one line in both lanes. A zone's stage carries every config its
 tsconfig reaches through `extends` or project `references`
 (transitively, inside the repo), and a solution-style root — references
-and no inputs — is replaced on the stage by the generated config that
-lists the zone's own files (C-90). The syntax provider follows the same
-rule on its side: a file under a solution-style config is typed by the
-referenced project whose inputs include it — the compiler's own reading
-of the configs, references followed transitively inside the repo, the
-first named claimant — and a file no project claims runs under the
-default options and is reported per solution config (C-98, lifted
-2026-09-10).
+and no inputs — is indexed by the referenced projects that claim the
+zone's files, each under its own config, with the files none claims
+under a generated config written beside the solution file (C-90, C-98).
+Which project claims which file is one rule with one implementation in
+both lanes: the syntax provider's `zoneTsconfig` — the compiler's own
+reading of the configs, references followed transitively inside the
+repo, the first named claimant — types the file in lane A and, served
+as the helper's `--zones`, tells lane B which projects to index; a file
+no project claims runs under the default options in both lanes and is
+reported per solution config (C-98, lifted 2026-09-10; the asymmetry
+closed later that day).
 
 Discovery, in every language, walks a directory symlink whose target is
 inside the repo **once, at its target** and records the link (C-73): a
@@ -435,7 +454,12 @@ which P6 forbids and P7 would make permanent. The cost is registered as
 constraint **C-8**.
 
 ### 3.2 Lane B — semantics (SCIP indexers)
-Per-language batch indexers emitting SCIP, the universal IR: `scip-python`
+**A lane B provider is a pinned batch program with a stated version and
+a tier stamp — never a language server (P13, ADR-105).** SCIP is the IR
+those programs emit today, not the rule; what is the rule is that each
+runs to completion on a stage, is pinned in the image and recorded on
+the artifact, and reaches the graph only through the range join, which
+stamps the tier. Per-language batch indexers emitting SCIP, the universal IR: `scip-python`
 (built on Pyright), `scip-typescript`, `scip-go`, rust-analyzer's native
 `scip` export (V2.M7, ADR-040), and `scip-java` (ADR-096) — a javac
 plugin the launcher injects into the repo's *own build*. Hobbes writes no provider adapters — it runs
@@ -734,7 +758,10 @@ every-commit fast path. Full re-index is always available and always correct
 
 ### 3.7 Adding a language — the checklist
 1. Register the **indexer** (resolution): command, version pin, and how its
-   per-repo config is derived.
+   per-repo config is derived. **It must be a pinned batch program with
+   a stated version and a tier stamp, never a language server (P13,
+   ADR-105)** — read the candidate against ADR-105's five points first;
+   SCIP is not required, a decode to the helper's facts is.
 2. Register a **syntax provider** (detection): a lane A grammar that finds
    call sites with file, line, column and terminal name.
 3. Optional: enrichment pack(s) for its frameworks.

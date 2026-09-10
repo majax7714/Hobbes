@@ -7913,3 +7913,39 @@ started with — restart it after this rebuild (C-65). Ingesting a copy
 of a clone (with its `.git`) is the cheap way to get a baseline under a
 swapped helper. `go test` reports `(cached)` for the drift test after
 the records change — run it `-count=1`.
+
+**Later the same session — the lane asymmetry closed (0.1.6-beta) and
+ADR-105.** Max: close the asymmetry the C-98 lift left, and state the
+indexer rule high in the architecture for the next language. *Lane B
+under the same map:* the helper gains `--zones` (the per-file zone by
+`zoneTsconfig`, configs only, no repo code), `scipsource.ts_zone_map`
+asks it once per ingest when any zone's config is a solution, and
+`_index_ts_zone` passes scip-typescript the referenced projects that
+claim the zone's files as positional projects (`index [projects...]`,
+absolute stage paths; documents stay relative to `--cwd`, so `_rebase`
+is untouched) plus `tsconfig.hobbes-unclaimed.json` for the rest —
+beside the solution file, which stays intact for a project that
+`extends` it; the map unavailable is a recorded degradation and the
+zone falls back to the generated config over the solution file. Tests:
+the projects and configs a solution zone stages, the fallback, the map
+as the helper's answer, a `lane_b` case in the image (a `paths` alias
+that lives only in the referenced projects' base resolves in lane B —
+the old shape could not), the `--zones` case in the helper's suite;
+the broken-zone mock takes the new keyword. *Measured on hono (r4):*
+768/768 unchanged, one edge syntactic → semantic (727 / 41), lanes
+4,332 → 4,336 both-resolved with the same one disagreement, lane B
+module edges 1,483 → 1,474; lane B alone on the root zone, old against
+new: references 27,682 → 37,216, module pairs 17 lost (fifteen from
+the unclaimed deno benchmark and runtime-test files into `src/` — now
+a separate program in both lanes, C-12's shape — two inside `src/`
+from spec-project test files) and 8 gained (`src/context` to the
+middleware modules augmenting it). The C-98 residual rewritten with
+the numbers; C-90's residual notes the technique is superseded for a
+solution zone. *ADR-105 (P13):* a lane B provider is a pinned batch
+program with a stated version and a tier stamp, never a language
+server; SCIP is the IR, not the rule — §1, §3.2's opening, §3.7 step 1.
+Version 0.1.6-beta (patch: what Hobbes draws), the image rebuilt (the
+proxy answers 0.1.6-beta), suites green: 1,255 pytest (+4; the new
+`lane_b` case tolerates the containment disclosure a suite run with
+`HOBBES_UNCONTAINED` leaves — two containment tests set it), 36
+tsextract, 32 scip, 52 vitest, Go and oracle-lane Go.

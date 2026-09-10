@@ -180,17 +180,43 @@ new active entry and the two cross-reference. Field key: `README.md`,
   alias resolves, `flat` is typed, the union receiver is abstained, the
   unclaimed file is extracted and reported, a nested ordinary config and
   a C-99 config are their own zones) and a solution reached through a
-  solution with a cycle and a reference outside the repo.
+  solution with a cycle and a reference outside the repo. **The lane B
+  half (later the same day, 0.1.6-beta):** `scipsource.ts_zone_map`
+  asks the helper for the same map (`--zones`), and `_index_ts_zone`
+  passes scip-typescript the referenced projects that claim the zone's
+  files as positional projects, each under its own config, plus
+  `tsconfig.hobbes-unclaimed.json` — the generated config for the files
+  none claims, written beside the solution file, which stays intact for
+  any project that `extends` it; the map unavailable is a recorded
+  degradation and the zone falls back to the generated config over the
+  solution file. Tests: the projects and configs a solution zone stages
+  (`run_helper` captured), the fallback, the map as the helper's answer,
+  and a `lane_b` case in the image where a `paths` alias that lives only
+  in the referenced projects' base config resolves in lane B. On hono
+  after both halves: 768/768 unchanged with one edge moved from the
+  syntactic to the semantic tier (727 semantic confirmed), lane
+  agreement 4,332 → 4,336 both-resolved sites, the same one line-grain
+  disagreement.
 - **Residual edge cases:** two referenced projects that both include a
-  file are two programs to `tsc -b`; here the first named wins and the
-  other's options are unread. A solution config's own `compilerOptions`
-  (legal, applied by `tsc` to nothing) are not applied to unclaimed
-  files — those run under the defaults and are reported. Lane B keeps
-  C-90's technique (the generated config over the solution file) rather
-  than the referenced project's options, so on a repo where a referenced
-  project's options change resolution — `paths` above all — the lanes
-  could now disagree where they could not before; hono has no such
-  alias and its lane count did not move.
+  file are two programs to `tsc -b`; lane A gives the file to the first
+  named, lane B indexes it in both (identical sightings merge). A
+  solution config's own `compilerOptions` (legal, applied by `tsc` to
+  nothing) are not applied to unclaimed files — those run under the
+  defaults in both lanes and are reported. A file no project claims is
+  its own program in both lanes now, so its references into a claimed
+  project's files take C-12's cross-program shape. Measured on hono's
+  root zone, lane B alone, old shape against new (`_index_ts_zone` with
+  and without the map): references 27,682 → 37,216 and external
+  references 25,636 → 35,441 — the referenced projects' options resolve
+  far more than the generated defaults did — while the module-pair set
+  loses 17 and gains 8: fifteen of the lost run from unclaimed files
+  (`benchmarks/deno/hono`, `runtime-tests/deno/*`) into `src/`, edges
+  lane A never drew; two are inside `src/`, a test file now in the spec
+  project whose reference lands elsewhere; the eight gained are
+  `src/context` to the middleware modules that augment it. Lane B's
+  module edges on the whole repo 1,483 → 1,474 — the price of reading
+  the configs as `tsc -b` does, paid for the imports of files no project
+  owns.
 - **Source:** the hono regrade of 2026-09-09 (ADR-104 § Consequences);
   lifted 2026-09-10 on the lead's direction, the first no-spend item of
   the comparative review's queue.
@@ -274,7 +300,11 @@ new active entry and the two cross-reference. Field key: `README.md`,
   and *neither* `files` nor `include` was called a solution, and the
   compiler's default include is the whole directory — hono's six
   `runtime-tests/*` zones had been replaced by the generated config.
-  Fixed in both lanes.
+  Fixed in both lanes. **And the technique itself is superseded for a
+  solution zone (0.1.6-beta, C-98's lane B half):** the generated
+  config is no longer written *over* the solution file but beside it,
+  for the unclaimed files only; the referenced projects are indexed
+  under their own configs.
 - **Source:** the date-fns re-ingest of 2026-09-03 after C-74 and
   C-89; fixed the same night on the lead's direction ("fix c-90 too").
 
