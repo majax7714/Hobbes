@@ -146,19 +146,20 @@ a draw of repowise's G4 experiment, graded by our key at our grain; not comparab
 </g>
 <text x="267.4" y="226.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cobra (with tests)</text>
 <g>
-<title>toml — Go, go-rta (reachability), host-run, 2026-08-27
+<title>toml — Go, go-rta (reachability), contained, 2026-08-27
 precision-against-oracle 1,039/1,039 = 100.0%
 recall 1,060/1,475 = 71.9% at 4 roots
-misses by class: interface→named 226, func-value→named 74, static→closure 58, func-value→closure 57</title>
+misses by class: interface→named 226, func-value→named 74, static→closure 58, func-value→closure 57
+contained from the 2026-09-10 regrade</title>
 <circle cx="275.7" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="283.7" y="116.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >toml</text>
 <g>
-<title>dagger · e2e/installers — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · e2e/installers — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 12/12 = 100.0%
 recall 12/16 = 75.0% at 1 roots
 misses by class: func-value→closure 4
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="285.0" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -171,60 +172,60 @@ misses by class: interface→named 120, func-value→closure 89, static→closur
 </g>
 <text x="315.8" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >mux</text>
 <g>
-<title>dagger · sdk/go — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/go — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 489/489 = 100.0%
 recall 489/591 = 82.7% at 3 roots
 misses by class: static→closure 46, interface→named 26, func-value→closure 17, func-value→named 13
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="308.1" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
 <title>hobbes go/ — Go, go-rta (reachability), contained, 2026-08-28
-precision-against-oracle 1,283/1,283 = 100.0%
-recall 1,285/1,468 = 87.5% at 20 roots
+precision-against-oracle 1,305/1,305 = 100.0%
+recall 1,307/1,490 = 87.7% at 21 roots
 misses by class: func-value→closure 138, static→closure 37, func-value→named 6, interface→named 2
 dogfood</title>
-<circle cx="322.5" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="323.1" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="314.5" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes go/</text>
+<text x="315.1" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes go/</text>
 <g>
-<title>dagger · dagql/idtui/viztest/dep/nested-dep — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · dagql/idtui/viztest/dep/nested-dep — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 342/342 = 100.0%
 recall 342/384 = 89.1% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="327.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · dagql/idtui/viztest/dep — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · dagql/idtui/viztest/dep — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 382/382 = 100.0%
 recall 384/426 = 90.1% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="330.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/wolfi — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/wolfi — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 385/385 = 100.0%
 recall 389/431 = 90.3% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="330.9" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/daggerverse — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/daggerverse — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 416/416 = 100.0%
 recall 416/458 = 90.8% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="332.4" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/metrics — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/metrics — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 420/420 = 100.0%
 recall 420/462 = 90.9% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="332.7" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -237,51 +238,51 @@ repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); 
 </g>
 <text x="325.0" y="242.99999999999994" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (with tests) ·rw</text>
 <g>
-<title>dagger · modules/gha/examples/go — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/gha/examples/go — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 451/451 = 100.0%
 recall 451/495 = 91.1% at 1 roots
 misses by class: static→closure 34, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="333.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/alpine — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/alpine — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 447/447 = 100.0%
 recall 453/495 = 91.5% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="334.5" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · sdk/php/runtime — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/php/runtime — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 453/453 = 100.0%
 recall 453/495 = 91.5% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="334.5" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/git-releaser — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/git-releaser — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 463/463 = 100.0%
 recall 463/505 = 91.7% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="335.1" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · sdk/java/runtime — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/java/runtime — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 525/525 = 100.0%
 recall 525/570 = 92.1% at 1 roots
 misses by class: static→closure 35, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="336.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · sdk/elixir/runtime — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/elixir/runtime — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 522/522 = 100.0%
 recall 522/564 = 92.6% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="337.8" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -294,19 +295,19 @@ codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run 
 </g>
 <text x="330.1" y="270.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (with tests) ·cgc</text>
 <g>
-<title>dagger · modules/ruff — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/ruff — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 528/528 = 100.0%
 recall 530/572 = 92.7% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="338.1" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · sdk/typescript/runtime — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/typescript/runtime — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 886/886 = 100.0%
 recall 889/952 = 93.4% at 2 roots
 misses by class: static→closure 32, interface→named 30, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="340.2" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -319,11 +320,11 @@ a draw of repowise's G4 experiment, graded by our key at our grain; not comparab
 </g>
 <text x="336.7" y="186.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (with tests)</text>
 <g>
-<title>dagger · sdk/python/runtime — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · sdk/python/runtime — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 891/891 = 100.0%
 recall 893/940 = 95.0% at 3 roots
 misses by class: static→closure 32, interface→named 10, func-value→named 3, func-value→closure 2
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="345.0" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -336,19 +337,19 @@ repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); 
 </g>
 <text x="338.2" y="202.99999999999994" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (no tests) ·rw</text>
 <g>
-<title>dagger · dagql/idtui/viztest — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · dagql/idtui/viztest — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 1,220/1,220 = 100.0%
 recall 1,221/1,277 = 95.6% at 1 roots
 misses by class: static→closure 46, interface→named 9, func-value→closure 1
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="346.8" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
-<title>dagger · modules/gha — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · modules/gha — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 947/947 = 100.0%
 recall 966/1,010 = 95.6% at 1 roots
 misses by class: static→closure 32, interface→named 9, func-value→closure 3
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="346.8" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <g>
@@ -370,11 +371,11 @@ a draw of repowise's G4 experiment, graded by our key at our grain; not comparab
 </g>
 <text x="346.0" y="170.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (no tests)</text>
 <g>
-<title>dagger · e2e/helm — Go, go-rta (reachability), host-run, 2026-08-25
+<title>dagger · e2e/helm — Go, go-rta (reachability), contained, 2026-08-25
 precision-against-oracle 72/72 = 100.0%
 recall 72/72 = 100.0% at 1 roots
 misses by class: none recorded
-19 Go modules of the monorepo, one dot each; the root module is not graded (H-9)</title>
+19 Go modules of the monorepo, one dot each; the root module is not graded (H-9); contained from the 2026-09-10 regrade</title>
 <circle cx="360.0" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="354" y="384" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger: 19 modules, recall 75.0–100.0%, one dot each</text>
@@ -456,11 +457,11 @@ repowise graded by the same key as the Hobbes ajv cell (ADR-101); host-run (C-96
 </g>
 <text x="508.2" y="113.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·rw</text>
 <g>
-<title>kbet (private app) — TypeScript, tsc 5.9.3 (the zone's own) (resolution), host-run, 2026-08-25
+<title>kbet (private app) — TypeScript, tsc 5.9.3 (the zone's own) (resolution), contained, 2026-08-25
 precision-against-oracle 630/630 = 100.0%
 recall 633/1,529 = 41.4% over every resolved site (resolution oracle: no roots)
 misses by class: func-value→local-binding 625, static→closure 195, interface→type-member 71, func-value→variable 2, static→anonymous-function 1, static→function 1, static→type-member 1
-a private Vite+React app: the cell is published, the repo is not</title>
+a private Vite+React app: the cell is published, the repo is not; contained and poison-checked from the 2026-09-10 regrade</title>
 <circle cx="524.2" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="532.2" y="136.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >kbet (private app)</text>
@@ -598,11 +599,11 @@ tiny crate; misses are criterion_group! bodies</title>
 </g>
 <text x="991.0" y="126.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
 <g>
-<title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-08-25
+<title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-25
 precision-against-oracle 3,592/3,592 = 100.0%
 recall 3,593/3,662 = 98.1% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 30, static→generated 25, static→function 14
-misses are code macros and derives wrote</title>
+misses are code macros and derives wrote; contained from the 2026-09-10 regrade</title>
 <circle cx="1034.3" cy="92.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="1026.3" y="146.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
@@ -776,15 +777,6 @@ codegraphcontext graded by the same key as the Hobbes click cell (ADR-101); host
 </g>
 <text x="492.6" y="722.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·cgc</text>
 <g>
-<title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
-confirmation rate 1,699/2,003 = 84.8%
-recall 1,699/4,595 = 37.0% recall-against-executed (coverage-limited)
-misses by class: observed→closure 1,196, observed→function 804, observed→method 742, observed→class 149, observed→lambda 81
-trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry</title>
-<circle cx="511.0" cy="580.0" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
-</g>
-<text x="519.0" y="584.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
-<g>
 <title>click — repowise — Python, py-trace 3.12.13 sys.monitoring (trace), host-run, 2026-09-09
 confirmation rate 1,703/2,426 = 70.2%
 recall 1,703/4,595 = 37.1% recall-against-executed (coverage-limited)
@@ -794,18 +786,27 @@ repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-
 </g>
 <text x="519.3" y="693.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
 <g>
-<title>hobbes pipeline/ — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-28
-confirmation rate 3,311/3,633 = 91.1%
-recall 3,311/3,846 = 86.1% recall-against-executed (coverage-limited)
-misses by class: observed→closure 361, observed→function 88, observed→lambda 73, observed→method 13
-trace-graded under its own suite (dogfood)</title>
-<circle cx="658.3" cy="532.75" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+<title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
+confirmation rate 1,755/2,065 = 85.0%
+recall 1,755/4,595 = 38.2% recall-against-executed (coverage-limited)
+misses by class: observed→closure 1,195, observed→function 750, observed→method 665, observed→class 149, observed→lambda 81
+trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry</title>
+<circle cx="514.6" cy="578.5" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
-<text x="650.3" y="536.75" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
+<text x="522.6" y="582.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
+<g>
+<title>hobbes pipeline/ — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-28
+confirmation rate 4,741/5,311 = 89.3%
+recall 4,741/5,604 = 84.6% recall-against-executed (coverage-limited)
+misses by class: observed→closure 640, observed→function 118, observed→lambda 96, observed→method 9
+trace-graded under its own suite (dogfood)</title>
+<circle cx="653.8" cy="546.25" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+</g>
+<text x="645.8" y="550.25" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
 <line x1="24" y1="848" x2="1066" y2="848" stroke="#d9d8d2"/>
 <text x="24" y="870" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >We draw nothing the compiler contradicts; here is how much we do not draw, and what it is.</text>
 <text x="24" y="888" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 23.5–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
 <text x="24" y="904" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables.</text>
 <text x="24" y="920" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>
-<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102).</text>
+<text x="24" y="936" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). Every Hobbes number is the standing grade by Hobbes 0.1.8-beta (ADR-103): the last block of each record, regraded on one build against the same keys.</text>
 </svg>

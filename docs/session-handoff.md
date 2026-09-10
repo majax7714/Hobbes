@@ -1,15 +1,28 @@
 # Session handoff — the single resume point
 
-**Session ended 2026-09-10 (later still).** Nothing is running: no Modal
-job, no local process; the tree is committed on `main`, not pushed.
-**Hobbes is at 0.1.7-beta (ADR-103; C-100 lifted): the tag `v0.1.3-beta`
-is local and unpushed like the commits — publish together, and tag
-`v0.1.7-beta` when Max says so; `CHANGELOG.md` gets an entry with every
-bump, and nothing under `bench/` moves the number.** Resume at START
-HERE below — Max's reading of the callee-shape bucket's answer and the
-three floor shapes it priced, then his decision on the Jelly cell's key
-grain; the Atlas-0 decisions held from 2026-09-07 stay held (unchanged,
-further down).
+**Session ended 2026-09-10 (the versioned baseline).** Nothing is
+running: no Modal job, no local process; the tree is committed on
+`main`, not pushed. **Hobbes is at 0.1.8-beta (ADR-103; C-100 and
+C-101 lifted): the tag `v0.1.3-beta` is local and unpushed like the
+commits — publish together, and tag `v0.1.8-beta` when Max says so;
+`CHANGELOG.md` gets an entry with every bump, and nothing under
+`bench/` moves the number.** Resume at START HERE below — Max's
+reading of the baseline (every Hobbes cell at 0.1.8-beta, the graphics
+saying so), C-101, the callee-shape bucket's answer and the three floor
+shapes it priced, then his decision on the Jelly cell's key grain; the
+Atlas-0 decisions held from 2026-09-07 stay held (unchanged, further
+down).
+
+**Rewritten 2026-09-10 (the versioned baseline): on Max's word, every
+Hobbes oracle cell — 41, dagger's 19 modules included — was
+re-ingested contained on one build and regraded against its standing
+key, so the comparative graphics and `tables.md` state the Hobbes
+version per cell (all 0.1.8-beta); the foreign cells stand as graded.
+spring-data-elasticsearch's first run under ADR-097's two passes
+failed and exposed C-101 — the Java resolve stage held Kotlin sources,
+and the Maven wrapper's distribution never reached the cache the
+offline index pass reads — fixed in three commits, the cell regraded
+16,050/16,050. The rest of the day is below. No API spend, no Modal.**
 
 **Rewritten 2026-09-10 (later still): Max asked two questions — Jelly
 as a third extractor lane, and why a `tsc` key beats a `tsc`-based
@@ -31,7 +44,19 @@ BUILDLOG; this doc is rewritten, never appended into a pile.
 
 ---
 
-## ⇢ START HERE NEXT SESSION: Max reads the bucket's answer, decides the three floor shapes and the Jelly key grain; then the no-spend queue
+## ⇢ START HERE NEXT SESSION: Max reads the baseline and C-101, the bucket's answer, decides the three floor shapes and the Jelly key grain; then the no-spend queue
+
+**Done 2026-09-10 (the versioned baseline; BUILDLOG):** 41 Hobbes cells
+regraded at 0.1.8-beta (`~/.hobbes/bench/v018/`), every record's last
+block dated 2026-09-10 and headed with the version; the renderer reads
+it; `docs/comparative/README.md` § the versioned baseline says what
+moved (growth on click and this repo's two cells; silent counts on
+hono, memchr, quic-go) and why. C-101 registered and lifted (ADR-097
+amended): `_JVM_SOURCE_SUFFIXES`, the resolve pass through `./mvnw`,
+`MAVEN_USER_HOME`. **For Max's review, first:** the C-101 entry and the
+three fixes; whether `buildSrc/` is the only build-logic directory
+worth excepting (`build-logic/`, `gradle/plugins` are the residual);
+and whether to tag `v0.1.8-beta`.
 
 **Done 2026-09-10 (later still; BUILDLOG):** every cheerio (3,249) and
 zod (12,038) miss joined to the checker's reading of the callee

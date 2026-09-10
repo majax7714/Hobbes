@@ -131,3 +131,26 @@ cell . of /home/mmarrujo/.hobbes/bench/oracle/repos/cheerio: 10s
 ```
 
 The six `.mts` rows recovered at the semantic tier; collapsed 2,628/3,826 = **68.7%**, function targets **1,911/1,911**. **Triage ratio (A-8):** 0 contradicted. **Direction of fix:** the 1,972 sibling rows — oracle (grain); the 1,190 below-floor targets — a floor decision, not a resolution failure (Max's call; W1); nothing else on the cell.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-27 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/cheerio-ts/`; unchanged to the digit from the standing grade.
+
+```
+cell .  oracle tsc 6.0.3 (the zone's own) (resolution)  sha 98c7d131
+hobbes edges 2688: confirmed 2628  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2628/2628)
+recall 45.1% (2667/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 static→anonymous-signature:12 static→class:5 static→closure:173 static→function:1972 static→method:5 static→type-member:6]
+  recall[func-value→local-binding]   0.0% (0/1070)  misses 1070 = 33.0% of all misses
+  recall[func-value→variable] 100.0% (684/684)  misses 0 = 0.0% of all misses
+  recall[static→anonymous-signature]   0.0% (0/12)  misses 12 = 0.4% of all misses
+  recall[static→class      ]   0.0% (0/5)  misses 5 = 0.2% of all misses
+  recall[static→closure    ]   0.0% (0/173)  misses 173 = 5.3% of all misses
+  recall[static→function   ]  49.6% (1942/3914)  misses 1972 = 60.8% of all misses
+  recall[static→method     ]  89.1% (41/46)  misses 5 = 0.2% of all misses
+  recall[static→type-member]   0.0% (0/6)  misses 6 = 0.2% of all misses
+  tier semantic   confirmed 2620  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+  line-grain tolerance used on 1887 edge(s) (several oracle sites on one line)
+poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+```

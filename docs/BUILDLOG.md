@@ -8022,3 +8022,67 @@ there — before the afternoon is spent. Not started; no spend.
 scip, Go and oracle-lane Go green, the comparative drift test
 regenerated. The cheerio record's standing grade is the r4 block;
 `cells.meta.json`'s note names it.
+
+## 2026-09-10 — (the versioned baseline) every Hobbes oracle cell regraded on one build, 0.1.8-beta; C-101 found and lifted on the way
+
+**Max's direction:** update the comparative graphics with the new
+numbers and state the Hobbes version — option 2 of two offered:
+regrade every Hobbes cell on the current build first so the graphics
+can say one version truthfully; the foreign cells (CodeGraphContext,
+repowise) not regraded, since the tools did not change.
+
+**Run:** 41 Hobbes cells — the thirteen loop and random-draw cells,
+the five 1-1 draws, kbet, rust_proj, dagger's 19 Go modules and
+`sdk/rust`, this repo's two dogfood cells — each re-ingested contained
+(`HOBBES_SCIP=1`) and regraded with `oracle export` + `oracle grade
+--poison` against its standing key (the Go RTA, `tsc`, MIR and javac
+keys reused at their pinned commits; kbet's `tsc` key rebuilt at the
+same commit, the 2026-08-25 artifact being gone; this repo's two keys
+fresh since the tree moved). Artifacts `~/.hobbes/bench/v018/`. dagger
+ingested contained for the first time (824 s); its 19 modules and
+sdk/rust unchanged to the digit, poison 10,507 seeded / 0 falsely
+confirmed. Every other cell held on its graded set; what moved is
+growth (click +62 edges all confirmed; this repo 1,305/1,305 at 21
+roots and 4,741 confirmed / 10 suspects, all C-60's mock asymmetry)
+and silent counts (hono +18 in the `.mts` files C-100 discovers;
+memchr −140 in a haystack file where C-72 now abstains; quic-go +20 in
+a build-tagged test file) — each record's 2026-09-10 block names it.
+
+**C-101, found there.** spring-data-elasticsearch came back 3,871
+syntactic edges instead of 16,050 semantic: its first ingest under
+ADR-097's two passes (the cell was graded 2026-08-29, before the
+scheme). Two halves, both reproduced by hand in the image: the resolve
+stage held the repo's Kotlin sources and `kotlin-maven-plugin` compiled
+them against Java that was not there (BUILD FAILURE); with that fixed,
+the index pass failed alone because scip-java runs `./mvnw` and the
+takari wrapper downloads its Maven distribution on first use — offline
+— while the resolve pass had run the image's `mvn` and never fetched
+it; and with `./mvnw` in the resolve pass the distribution still landed
+in the container's throwaway layer, because the Java wrapper reads
+`MAVEN_USER_HOME` or the JVM's `user.home` (the passwd entry), not
+`$HOME`. Fixes: `_JVM_SOURCE_SUFFIXES` (`.java`, `.kt`, `.scala`,
+`.groovy` off the resolve stage, `buildSrc/` excepted), the resolve
+pass through `./mvnw` when the stage has one, `MAVEN_USER_HOME` at the
+cache root's home. petclinic had passed 2026-09-01 on a warm cache
+alone — on a fresh cache every wrapper-shipping Maven repo would have
+degraded. Registered and lifted (register 101 / 75 / 24 / 2), ADR-097
+amended, a patch bump to **0.1.8-beta** (a change in what Hobbes
+draws), image rebuilt; spring-data-elasticsearch regraded
+16,050/16,050 at 66.4%; the other three Java cells rerun on the final
+code, unchanged (Severed-Chains still lane-A-only by C-67).
+
+**The renderer:** `hobbes_version` per cell from the record's last
+regrade heading; a Hobbes column in `tables.md`, a version sentence on
+the three graphics; the dagger record's per-module table can be
+appended (last row per module wins). `cells.meta.json`: dagger, kbet
+and toml now `contained`. `render.py check` and the Go drift test green
+at 41 × 0.1.8-beta.
+
+**Commits:** `ea72308` (C-101 first half, 0.1.8-beta, the renderer),
+`d3f6596` (the wrapper), `a13539e` (`MAVEN_USER_HOME`), then the
+records. **Suites:** 1,257 pytest (+4 `lane_b` in the image), Go,
+oracle-lane Go, 36 tsextract, 32 scip. The scratch drivers
+(`regrade-v018-*.sh`, `append-blocks.py`, `dagger-table.py`) lived in
+the session scratchpad; the record blocks quote each artifact
+directory, and the run is reproducible from the records' command
+lines.

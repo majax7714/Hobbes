@@ -68,3 +68,23 @@ None.
 **Direction of fix for what remains (no proposals):** `interface→method` and the `anonymous-member` classes — neither side, by decision (C-58, C-9). `static→constructor` — Hobbes, if `new T() {..}` is ever to draw `calls`. The 2 lane disagreements — the join's `(file, line, name)` key, if per-column pairing is ever worth building.
 
 **Not graded:** the 16,251 external oracle pairs (JDK, Spring, Elasticsearch client callees, by design). No repo was abandoned.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-29 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/spring-data-elasticsearch-java/`; unchanged to the digit (16,050/16,050, recall 66.4%) — after C-101: this cell's first ingest under ADR-097's two passes failed its resolve pass (Kotlin sources on the stage) and then its index pass (the wrapper's distribution not in the cache), degrading to 3,871 syntactic edges; both fixed the same session, the numbers above are the fixed run.
+
+```
+cell   oracle javac 21.0.12.1+1-LTS (resolution)  sha cc7bd2b7
+oracle ran contained (ADR-092)
+hobbes edges 16050: confirmed 16050  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (16050/16050)
+recall 66.4% (16238/24452 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 16251; misses map[interface→anonymous-member:513 interface→method:7469 static→anonymous-member:5 static→constructor:227]
+  recall[interface→anonymous-member]   0.0% (0/513)  misses 513 = 6.2% of all misses
+  recall[interface→method  ]  57.4% (10064/17533)  misses 7469 = 90.9% of all misses
+  recall[static→anonymous-member]   0.0% (0/5)  misses 5 = 0.1% of all misses
+  recall[static→constructor]  91.1% (2329/2556)  misses 227 = 2.8% of all misses
+  recall[static→method     ] 100.0% (3845/3845)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 16050  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 8964 edge(s) (several oracle sites on one line)
+poison check: PASS — 16050 seeded wrong edges: 16050 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```

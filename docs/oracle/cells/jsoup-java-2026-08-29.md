@@ -68,3 +68,24 @@ The first ingest left **44 sites `unclassified`** — every one a bare call of a
 **Direction of fix for what remains (no proposals):** `interface→method` and the two `anonymous-member` classes — neither side, by decision (C-58, C-9): the numbers *are* the measurement. `static→constructor` — Hobbes, if `new T() {..}` is ever to draw `calls`. `static→method` (5 `super.clone()` rows) — Hobbes.
 
 **Not graded:** the 11,063 external oracle pairs (JDK, JUnit callees, by design). No repo was abandoned.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-29 javac+CHA key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/jsoup-java/`; unchanged to the digit from the standing grade.
+
+```
+cell   oracle javac 21.0.12.1+1-LTS (resolution)  sha 7860d088
+oracle ran contained (ADR-092)
+hobbes edges 18627: confirmed 18627  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (18627/18627)
+recall 76.2% (18767/24630 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 11063; misses map[interface→anonymous-member:407 interface→method:5226 static→anonymous-member:45 static→constructor:180 static→method:5]
+  recall[interface→anonymous-member]   0.0% (0/407)  misses 407 = 6.9% of all misses
+  recall[interface→method  ]  67.5% (10870/16096)  misses 5226 = 89.1% of all misses
+  recall[static→anonymous-member]   0.0% (0/45)  misses 45 = 0.8% of all misses
+  recall[static→constructor]  84.6% (989/1169)  misses 180 = 3.1% of all misses
+  recall[static→method     ]  99.9% (6908/6913)  misses 5 = 0.1% of all misses
+  tier semantic   confirmed 18621  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 6  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 10193 edge(s) (several oracle sites on one line)
+poison check: PASS — 18627 seeded wrong edges: 18627 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```

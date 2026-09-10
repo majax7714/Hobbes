@@ -49,3 +49,21 @@ None. Every Hobbes call edge in this cell is an edge javac itself resolved to th
 **Direction of fix (which side would need to change; no proposals):** `interface→method` — neither, by decision: the edge to the declared method is what Hobbes draws and the concrete overrides are C-58's registered hole; the number *is* the measurement. `static→constructor` (the 2 anonymous-subclass rows) — Hobbes, if `new T() {..}` is ever to draw a `calls` edge to T's constructor; today it is a recorded miss class, not a defect.
 
 **Not graded:** the 1,239 external oracle pairs (JDK, Spring, JPA, AssertJ callees, by design). No repo was abandoned.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-29 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/spring-petclinic-java/`; unchanged to the digit from the standing grade.
+
+```
+cell   oracle javac 21.0.12.1+1-LTS (resolution)  sha 818c4136
+oracle ran contained (ADR-092)
+hobbes edges 356: confirmed 356  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (356/356)
+recall 98.4% (367/373 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1239; misses map[interface→method:4 static→constructor:2]
+  recall[interface→method  ]  98.7% (293/297)  misses 4 = 66.7% of all misses
+  recall[static→constructor]  95.6% (43/45)  misses 2 = 33.3% of all misses
+  recall[static→method     ] 100.0% (31/31)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 356  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 125 edge(s) (several oracle sites on one line)
+poison check: PASS — 356 seeded wrong edges: 356 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```

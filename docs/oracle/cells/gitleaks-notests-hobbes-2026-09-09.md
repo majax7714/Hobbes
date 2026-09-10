@@ -51,3 +51,21 @@ poison check: PASS — 2283 seeded wrong edges: 2010 refused, 273 unjudged (orac
 
 **Not a comparison with repowise-bench's table:** a different key grain and matcher; the comparison is with the foreign cells on this key.
 
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-09-09 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/gitleaks-notests/`; unchanged to the digit from the standing grade.
+
+```
+cell .  oracle go-rta (no test packages) (reachability)  sha 8ad84700
+hobbes edges 2283: confirmed 2010  contradicted 0  abstract 0  silent 273 map[not-loaded:238 unreachable:35]
+precision-against-oracle 100.0% (2010/2010)
+recall 98.0% (2069/2111 in-repo oracle pairs) at 2 roots; external oracle pairs 3291; misses map[func-value→closure:17 func-value→named:4 interface→named:13 static→closure:8]
+  recall[func-value→closure]   0.0% (0/17)  misses 17 = 40.5% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
+  recall[func-value→named  ]   0.0% (0/4)  misses 4 = 9.5% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
+  recall[interface→named   ]   0.0% (0/13)  misses 13 = 31.0% of all misses
+  recall[static→closure    ]   0.0% (0/8)  misses 8 = 19.0% of all misses
+  recall[static→named      ] 100.0% (2069/2069)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 2010  contradicted 0  abstract 0  silent 273
+  line-grain tolerance used on 1039 edge(s) (several oracle sites on one line)
+poison check: PASS — 2283 seeded wrong edges: 2010 refused, 273 unjudged (oracle silent there), 0 falsely confirmed
+```

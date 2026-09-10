@@ -229,3 +229,30 @@ poison check: PASS — 4471 seeded wrong edges: 768 refused, 3703 unjudged (orac
 
 **Precision-against-oracle 100.0% (768/768), 0 contradicted; recall
 55.2% (775/1,403).** The standing grade.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-09-09 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/hono-build/`; the graded set unchanged to the digit (768/768, recall 55.2%); 18 more *silent* syntactic edges, all in `benchmarks/**/*.mts` — the files C-100 discovers, which the key's `tsconfig.build.json` program does not load.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha 97c6fe1f
+hobbes edges 4489: confirmed 768  contradicted 0  abstract 0  silent 3721 map[not-loaded:3721]
+precision-against-oracle 100.0% (768/768)
+recall 55.2% (775/1403 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 2122; misses map[func-value→local-binding:61 func-value→variable:4 interface→type-member:30 static→anonymous-function:1 static→anonymous-signature:15 static→class:78 static→closure:229 static→method:90 static→property:93 static→type-member:20 static→variable:7]
+  recall[func-value→local-binding]   0.0% (0/61)  misses 61 = 9.7% of all misses
+  recall[func-value→variable]   0.0% (0/4)  misses 4 = 0.6% of all misses
+  recall[interface→type-member]   0.0% (0/30)  misses 30 = 4.8% of all misses
+  recall[static→anonymous-function]   0.0% (0/1)  misses 1 = 0.2% of all misses
+  recall[static→anonymous-signature]   0.0% (0/15)  misses 15 = 2.4% of all misses
+  recall[static→class      ]   0.0% (0/78)  misses 78 = 12.4% of all misses
+  recall[static→closure    ]   0.0% (0/229)  misses 229 = 36.5% of all misses
+  recall[static→function   ] 100.0% (64/64)  misses 0 = 0.0% of all misses
+  recall[static→method     ]  55.9% (114/204)  misses 90 = 14.3% of all misses
+  recall[static→property   ]   0.0% (0/93)  misses 93 = 14.8% of all misses
+  recall[static→type-member]   0.0% (0/20)  misses 20 = 3.2% of all misses
+  recall[static→variable   ]  98.8% (597/604)  misses 7 = 1.1% of all misses
+  tier semantic   confirmed 727  contradicted 0  abstract 0  silent 3601
+  tier syntactic  confirmed 41  contradicted 0  abstract 0  silent 120
+  line-grain tolerance used on 164 edge(s) (several oracle sites on one line)
+poison check: PASS — 4489 seeded wrong edges: 768 refused, 3721 unjudged (oracle silent there), 0 falsely confirmed
+```

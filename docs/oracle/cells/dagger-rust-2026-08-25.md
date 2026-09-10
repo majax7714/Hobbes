@@ -51,3 +51,21 @@ recall 98.1% (3593/3662 in-repo oracle pairs) over every resolved site in the ce
 **Poison check:** PASS — 3,598 seeded wrong edges: 3,592 refused, 6 unjudged (not-loaded), 0 falsely confirmed.
 
 **Direction of fix:** as stated above (hobbes edges 3,610 → 3,598 (−12), contradicted 12 → 0 (−12), confirmed 3,592 → 3,592 (0), recall 98.1% → 98.1% (0)). Appended 2026-09-09 so the record carries the standing grade as a verbatim block the comparative graphics read (ADR-102); nothing regraded.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-25 MIR key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/dagger/sdk_rust/`; unchanged to the digit from the standing grade.
+
+```
+cell sdk/rust  oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha f3cc3eb3
+hobbes edges 3598: confirmed 3592  contradicted 0  abstract 0  silent 6 map[not-loaded:6]
+precision-against-oracle 100.0% (3592/3592)
+recall 98.1% (3593/3662 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 6191; misses map[static→function:14 static→generated:25 static→method:30]
+  recall[static→function   ]  94.5% (239/253)  misses 14 = 20.3% of all misses
+  recall[static→generated  ]   0.0% (0/25)  misses 25 = 36.2% of all misses
+  recall[static→method     ]  99.1% (3354/3384)  misses 30 = 43.5% of all misses
+  tier semantic   confirmed 3574  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 18  contradicted 0  abstract 0  silent 6
+  line-grain tolerance used on 1215 edge(s) (several oracle sites on one line)
+poison check: PASS — 3598 seeded wrong edges: 3592 refused, 6 unjudged (oracle silent there), 0 falsely confirmed
+```

@@ -335,7 +335,7 @@ def render_one_number(cells: list[dict]) -> str:
          f"across {t_k} cell{'s' if t_k != 1 else ''}. A refusal there is 'suspect', never a contradiction: the interpreter confirms and cannot contradict (C-60), "
          f"so those cells are kept out of the headline sum.", 11, INK2)
     if without:
-        para(f"Not in the sum: {', '.join(without)} — graded before the poison check existed (kbet), or the record quotes the check per module and does not sum it (dagger).", 11, INK2)
+        para(f"Not in the sum: {', '.join(without)} — the record quotes the poison check per module and does not sum it (the module table's regrade block states the sum).", 11, INK2)
     lines.append(("—", 14, GRID, "normal", 32))
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
     para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "

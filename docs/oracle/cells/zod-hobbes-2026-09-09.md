@@ -83,3 +83,29 @@ Re-ingested contained at 0.1.6-beta and regraded against the same key (`~/.hobbe
 Collapsed to one pair per (site line, target file, target name): 16,631 pairs, 9,731 hit, **58.5%** — by target kind: function 6,307/6,385 (98.8%), method 2,263/2,345 (96.5%), variable 1,161/1,625 (71.4%), type-member 0/4,742, property 0/1,029, closure 0/323, class 0/110, local-binding 0/59, anonymous-signature 0/13.
 
 **Direction of fix:** the 4,442 sibling rows — oracle (grain). The type-member 4,742 — below the floor by C-9 and not a body anywhere (a flow analysis would name the closure assigned in `$constructor`, which is *not* the key's target). Three floor shapes are recoverable at symbol grain and priced in W1 for Max's decision: class-property functions (1,029 collapsed pairs, 6.2% of the cell), namespace members (230 rows), `new X(..)` as a site (~230 rows, with the grader-grain question first). Nothing on the cell is a resolution the compiler saw and the indexer withheld.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-09-09 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/zod/`; unchanged to the digit from the standing grade.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9780: confirmed 9731  contradicted 0  abstract 0  silent 49 map[not-loaded:49]
+precision-against-oracle 100.0% (9731/9731)
+recall 45.1% (9893/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→variable:226 interface→type-member:88 static→anonymous-signature:13 static→class:110 static→closure:324 static→function:4220 static→method:531 static→property:1274 static→type-member:4955 static→variable:238]
+  recall[func-value→local-binding]   0.0% (0/59)  misses 59 = 0.5% of all misses
+  recall[func-value→variable]  80.2% (917/1143)  misses 226 = 1.9% of all misses
+  recall[interface→type-member]   0.0% (0/88)  misses 88 = 0.7% of all misses
+  recall[static→anonymous-signature]   0.0% (0/13)  misses 13 = 0.1% of all misses
+  recall[static→class      ]   0.0% (0/110)  misses 110 = 0.9% of all misses
+  recall[static→closure    ]   0.0% (0/324)  misses 324 = 2.7% of all misses
+  recall[static→function   ]  60.5% (6455/10675)  misses 4220 = 35.1% of all misses
+  recall[static→method     ]  81.1% (2275/2806)  misses 531 = 4.4% of all misses
+  recall[static→property   ]   0.0% (0/1274)  misses 1274 = 10.6% of all misses
+  recall[static→type-member]   0.0% (0/4955)  misses 4955 = 41.2% of all misses
+  recall[static→variable   ]  50.8% (246/484)  misses 238 = 2.0% of all misses
+  tier semantic   confirmed 8674  contradicted 0  abstract 0  silent 38
+  tier syntactic  confirmed 1057  contradicted 0  abstract 0  silent 11
+  line-grain tolerance used on 5642 edge(s) (several oracle sites on one line)
+poison check: PASS — 9780 seeded wrong edges: 9731 refused, 49 unjudged (oracle silent there), 0 falsely confirmed
+```

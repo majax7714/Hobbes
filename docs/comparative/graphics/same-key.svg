@@ -368,10 +368,10 @@
 </g>
 <text x="24" y="470" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — the loop and random-draw cells</text>
 <text x="240" y="492" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click (trace: confirmation rate)</text>
-<line x1="448.9" y1="488" x2="504.4" y2="488" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="448.9" y1="488" x2="505.0" y2="488" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>click — hobbes: confirmation rate 1,699/2,003 = 84.8%</title>
-<circle cx="504.4" cy="488" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>click — hobbes: confirmation rate 1,755/2,065 = 85.0%</title>
+<circle cx="505.0" cy="488" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — codegraphcontext: confirmation rate 1,298/1,958 = 66.3%</title>
@@ -381,10 +381,10 @@
 <title>click — repowise: confirmation rate 1,703/2,426 = 70.2%</title>
 <polygon points="460.6,481.5 467.1,488 460.6,494.5 454.1,488" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="694.6" y1="488" x2="721.3" y2="488" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="694.6" y1="488" x2="724.6" y2="488" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>click — hobbes: recall 1,699/4,595 = 37.0% recall-against-executed (coverage-limited)</title>
-<circle cx="721.0" cy="488" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>click — hobbes: recall 1,755/4,595 = 38.2% recall-against-executed (coverage-limited)</title>
+<circle cx="724.6" cy="488" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — codegraphcontext: recall 1,298/4,595 = 28.2% recall-against-executed (coverage-limited)</title>
@@ -536,5 +536,5 @@
 <text x="24" y="694" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes-wrong). The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain</text>
 <text x="24" y="708" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded. On repowise-bench's draws the key is ours, at site grain — not comparable</text>
 <text x="24" y="722" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >with their published table; syft is absent because RTA over it is killed by the kernel on this box.</text>
-<text x="24" y="740" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.</text>
+<text x="24" y="740" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. Every Hobbes number is the standing grade by Hobbes 0.1.8-beta (ADR-103): the last block of each record, regraded on one build against the same keys.</text>
 </svg>

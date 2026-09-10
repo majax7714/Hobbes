@@ -64,3 +64,22 @@ cell . of /home/mmarrujo/.hobbes/bench/oracle/repos/Severed-Chains: 15s
 **Direction of fix (which side would need to change; no proposals):** the four miss classes — Hobbes, and all four are the *same* fix: lane B running here. `interface→method` at 0.4% is not a lane A defect, it is C-8's floor. The scip-java Gradle injection failure is upstream (P9, `scip-java` 0.13.1) and registered as **C-67**; a Gradle repo whose build another plugin owns gets lane A only, disclosed. Precision 0 contradicted — nothing to fix on the Hobbes side of the edges that *were* drawn.
 
 **Not graded:** the 19,050 external oracle pairs (JDK, JavaFX, LWJGL callees, by design). No repo was abandoned.
+
+## Regrade 2026-09-10 (later still; Hobbes 0.1.8-beta — the versioned baseline: same clone, the 2026-08-29 key, contained)
+
+Every Hobbes cell was re-ingested on one build and regraded against its standing key so the comparative graphics carry one version (Max, 2026-09-10; ADR-103). Artifacts `~/.hobbes/bench/v018/Severed-Chains-java/`; unchanged to the digit from the standing grade.
+
+```
+cell   oracle javac 25.0.4.1+1-LTS (resolution)  sha 3841686e
+oracle ran contained (ADR-092)
+hobbes edges 10154: confirmed 10154  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (10154/10154)
+recall 23.5% (12803/54520 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 19050; misses map[interface→anonymous-member:78 interface→method:35289 static→constructor:2560 static→method:3790]
+  recall[interface→anonymous-member]   0.0% (0/78)  misses 78 = 0.2% of all misses
+  recall[interface→method  ]   0.4% (148/35437)  misses 35289 = 84.6% of all misses
+  recall[static→constructor]  77.8% (8947/11507)  misses 2560 = 6.1% of all misses
+  recall[static→method     ]  49.5% (3708/7498)  misses 3790 = 9.1% of all misses
+  tier syntactic  confirmed 10154  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 4438 edge(s) (several oracle sites on one line)
+poison check: PASS — 10154 seeded wrong edges: 10154 refused, 0 unjudged (oracle silent there), 0 falsely confirmed
+```
