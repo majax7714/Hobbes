@@ -226,8 +226,8 @@ INK = "#1a1a19"
 INK2 = "#5a5a57"
 GRID = "#d9d8d2"
 BLUE = "#2a78d6"     # Hobbes
-ORANGE = "#eb6834"   # a foreign (competitor) cell in the scatter; CodeGraphContext in same-key.svg
-AQUA = "#1baf7a"     # repowise in same-key.svg — the reference palette's third slot; the three validate all-pairs (CVD ΔE ≥ 9)
+ORANGE = "#eb6834"   # CodeGraphContext, in the scatter and in same-key.svg
+AQUA = "#1baf7a"     # repowise, in the scatter and in same-key.svg — the reference palette's third slot; the three validate all-pairs (CVD ΔE ≥ 9)
 SURFACE = "#fcfcfb"
 
 
@@ -340,7 +340,7 @@ def render_scatter(cells: list[dict]) -> str:
     H = T + rows * (PH + 74) + 120
     o = svg_open(W, H, "Precision-against-oracle by recall, one dot per cell, per language")
     o.append(text(24, 30, "One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled", 15, INK, weight="bold"))
-    o.append(text(24, 50, "Filled blue dot = Hobbes; hollow orange square = CodeGraphContext (·cgc), hollow orange diamond = repowise (·rw) — third-party graphs graded by the same key (ADR-101).", 11, INK2))
+    o.append(text(24, 50, "One colour per tool, as in same-key.svg: blue dot = Hobbes, orange square = CodeGraphContext (·cgc), green diamond = repowise (·rw) — third-party graphs graded by the same key (ADR-101).", 11, INK2))
     o.append(text(24, 64, "Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.", 11, INK2))
     recalls = [c["recall"]["pct"] for c in comp if c.get("tool", "hobbes") == "hobbes" and c.get("precision")]
 
@@ -377,7 +377,7 @@ def render_scatter(cells: list[dict]) -> str:
             cx = px + PW * xv / 100
             cy = py + PH - PH * (max(yv, y_lo) - y_lo) / (100 - y_lo)
             foreign = c.get("tool", "hobbes") != "hobbes"
-            colour = ORANGE if foreign else BLUE
+            colour = {"codegraphcontext": ORANGE, "repowise": AQUA}.get(c.get("tool"), BLUE)
             misses = ", ".join(f"{k} {fmt(v)}" for k, v in sorted(c.get("misses", {}).items(), key=lambda kv: -kv[1])) or "none recorded"
             pr = c[y_key]
             tip = (f"{cell_name(c)}" + (f" — {c['tool']}" if foreign else "") + f" — {c['lang']}, {c['oracle']} ({c['kind']}), {c['run']}, {c['date']}\n"
@@ -386,10 +386,12 @@ def render_scatter(cells: list[dict]) -> str:
                    f"misses by class: {misses}" + (f"\n{c['note']}" if c.get("note") else ""))
             o.append("<g>")
             o.append(f"<title>{esc(tip)}</title>")
+            # every marker filled in its tool's hue with a surface ring, the
+            # same encoding as same-key.svg (Max's review, 2026-09-09)
             if foreign and c["tool"] == "repowise":
-                o.append(f'<polygon points="{cx},{cy-6} {cx+6},{cy} {cx},{cy+6} {cx-6},{cy}" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
+                o.append(f'<polygon points="{cx},{cy-6} {cx+6},{cy} {cx},{cy+6} {cx-6},{cy}" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
             elif foreign:
-                o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
+                o.append(f'<rect x="{cx-5}" y="{cy-5}" width="10" height="10" fill="{colour}" stroke="{SURFACE}" stroke-width="1.5"/>')
             elif hollow:
                 o.append(f'<circle cx="{cx}" cy="{cy}" r="5" fill="{SURFACE}" stroke="{colour}" stroke-width="2"/>')
             else:
@@ -405,7 +407,7 @@ def render_scatter(cells: list[dict]) -> str:
             h = 10 * len(labs)
             chosen = None
             for dx, dy, anchor in ((8, 4, "start"), (-8, 4, "end"), (8, -h + 2, "start"), (-8, -h + 2, "end"), (8, h + 8, "start"), (-8, h + 8, "end")):
-                for extra in range(0, 60, 10):
+                for extra in range(0, 160, 10):
                     ly = cy + dy + (extra if dy >= 0 else -extra)
                     x0 = cx + dx if anchor == "start" else cx + dx - w
                     box = (x0, ly - 8, x0 + w, ly - 8 + h)

@@ -56,8 +56,9 @@ and the picture a build product.
    above 80) and says so, so 99.6% and 100% are told apart. Trace cells
    sit in a **separate panel** on their own axes (confirmation rate,
    recall-against-executed), never on the compiler-graded footing.
-   A foreign cell (ADR-101) is a hollow square in the same panel as
-   its language. dagger's nineteen modules are nineteen dots with one
+   A foreign cell (ADR-101) sits in the same panel as its language in
+   the tool's own hue and shape, filled, the encoding of §7 (the first
+   cut drew every foreign cell as a hollow orange shape). dagger's nineteen modules are nineteen dots with one
    shared label. Severed-Chains is labelled *no semantic lane: the
    syntactic floor*. Recall is stated as a range, never averaged.
 6. **The before/after** is date-fns (TS, pnpm workspace — the shape

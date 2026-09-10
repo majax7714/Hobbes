@@ -18,7 +18,7 @@ What is here:
 | [`field.md`](field.md) | One row per tool with a graph over a repo, agent-facing tools and public source — ten rows, every cell what the tool's own docs say, with the link, or *unstated*. §3 records numbers tools publish on other bases, compared nowhere. |
 | [`tables.md`](tables.md) | **Generated** from the cell records: the standing Hobbes cells, and each foreign cell beside the Hobbes cell on the same key. Do not edit; regenerate. |
 | [`graphics/one-number.svg`](graphics/one-number.svg) | The one number: 0 falsely confirmed of N seeded wrong edges across K compiler-graded cells, N and K summed from the poison lines, the exceptions printed. |
-| [`graphics/precision-recall.svg`](graphics/precision-recall.svg) | One dot per cell, precision-against-oracle against recall, language as the panel, trace cells in their own panel, foreign cells as hollow squares; hover for the miss classes. |
+| [`graphics/precision-recall.svg`](graphics/precision-recall.svg) | One dot per cell, precision-against-oracle against recall, language as the panel, trace cells in their own panel, foreign cells in the same one-colour-per-tool markers as `same-key.svg`; hover for the miss classes. |
 | [`graphics/same-key.svg`](graphics/same-key.svg) | **The comparison.** One row per cell that has a foreign graph on the same key: three markers on the precision axis and three on the recall axis, one colour per tool (blue dot Hobbes, orange square CodeGraphContext, green diamond repowise), grouped by language, repowise-bench's draws as their own band. Read across a row, never down a column. |
 | [`graphics/date-fns-before-after.svg`](graphics/date-fns-before-after.svg) | Before / after on one repo, as the per-directory capture view that named the fix (C-74, C-90). |
 | [`data/`](data/) | What the graphics are rendered from: `cells.json` (parsed from `docs/oracle/cells/`), `date-fns-capture.json` (parsed from two `graph.json` artifacts). |
@@ -50,7 +50,9 @@ lane's Go suite) fails when a picture drifts from its cells.
    sum named.
 3. **Here is how much Hobbes does not draw, and what it is.** Recall
    runs from 23.5% (Severed-Chains — no semantic lane, the syntactic
-   floor measured) to 98.4% (spring-petclinic) across the
+   floor measured) to 100.0% (the best of dagger's nineteen Go
+   modules, each its own cell with its own root count; 98.4% at
+   spring-petclinic among the whole-repo cells) across the
    compiler-graded cells, stated as a range and never averaged: each
    cell's denominator is its own roots or its resolved sites (C-62).
    The misses are one register entry, C-58 — closures, interface
@@ -63,8 +65,8 @@ lane's Go suite) fails when a picture drifts from its cells.
    and the two Rust and Python cells — converted through a per-tool
    adapter with a hand-read fixture, and graded with the same matcher
    and the same poison check. Their numbers are in `tables.md` beside
-   the Hobbes cell on the same key and in the scatter as hollow
-   squares. They are theirs **at our grain**: the converter is Hobbes'
+   the Hobbes cell on the same key and in the scatter in the tool's
+   own colour and shape. They are theirs **at our grain**: the converter is Hobbes'
    and a misread is Hobbes' defect (C-94); the matcher's tolerances were
    tuned on Hobbes' output (C-95); every competitor cell is host-run
    (C-96); and their contradictions are a lower bound on their
