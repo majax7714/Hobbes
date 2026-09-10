@@ -169,7 +169,12 @@
   build (Gradle's convention plugins) and stay. And the resolve pass
   runs `./mvnw` when the stage has one (`java_resolve_command(...,
   wrapper=True)`), so the wrapper's distribution lands in the cache the
-  index pass reads offline — the Gradle arm already did. Tests in
+  index pass reads offline — the Gradle arm already did — and
+  `MAVEN_USER_HOME` points both wrappers at the cache root's home (the
+  Java wrapper otherwise uses the JVM's `user.home`, the passwd entry,
+  not `$HOME`: the first `./mvnw` resolve pass fetched the distribution
+  into the container's throwaway layer and the offline pass fetched
+  again). Tests in
   `TestJavaUnits` and `test_java_resolve_commands_and_offline_flags`.
   Reproduced by hand first: the full archive builds in the image (`BUILD
   SUCCESS`); the archive minus `.java` fails in the Kotlin compile.

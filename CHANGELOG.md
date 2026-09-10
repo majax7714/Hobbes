@@ -19,7 +19,8 @@ The stage now holds no JVM source the build compiles (`.java`, `.kt`,
 `.scala`, `.groovy`; `buildSrc/` stays), and the Maven resolve pass runs
 the repo's `mvnw` when it ships one — scip-java's index pass runs that
 wrapper, and only the networked pass can fetch its distribution into
-the cache (petclinic had passed on a warm cache alone).
+the cache (petclinic had passed on a warm cache alone); `MAVEN_USER_HOME`
+names that cache, since the Java wrapper ignores `$HOME`.
 
 - spring-data-elasticsearch: the resolve pass succeeds again; the cell
   is regraded semantic (its record's 2026-09-10 block).

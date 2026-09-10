@@ -143,6 +143,13 @@ def _cache_env(root: Path) -> tuple[str, ...]:
         # `gradle.properties` naming the image's JDKs) and the coursier
         # cache the scip-java launcher would otherwise put under HOME.
         f"MAVEN_OPTS=-Dmaven.repo.local={root}/m2",
+        # The Maven wrapper's own home (its downloaded distributions):
+        # the Java wrapper reads MAVEN_USER_HOME, else the JVM's
+        # `user.home`, which is the passwd entry, not $HOME — so without
+        # this the distribution the resolve pass fetched landed in the
+        # container's throwaway layer and the offline index pass fetched
+        # again and failed (C-101). The shell wrapper reads it too.
+        f"MAVEN_USER_HOME={root}/home/.m2",
         f"GRADLE_USER_HOME={root}/gradle",
         f"COURSIER_CACHE={root}/coursier",
         "JAVA_HOME=/usr/local/java",

@@ -351,6 +351,7 @@ class TestRouting:
         assert index.podman_args()[index.podman_args().index("--network") + 1] == "none"
         env = " ".join(args)
         assert f"GRADLE_USER_HOME={cache}/gradle" in env and f"maven.repo.local={cache}/m2" in env
+        assert f"MAVEN_USER_HOME={cache}/home/.m2" in env  # C-101: the wrapper's distributions persist
         assert (cache / "gradle" / "gradle.properties").read_text().startswith(
             "org.gradle.java.installations.paths=/usr/local/java-17,/usr/local/java-21,/usr/local/java-25"
         )
