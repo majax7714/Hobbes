@@ -329,4 +329,25 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
   - **O at A0.** The task text is the commit message, and none of round 2's A0 texts named a gold file. The plan manifest `hobbes plan` derives from that text named gold files on 3 of 8 of round 2's keys, and the plan refused on 3 of 8.
     - O keeps the manifest, as rounds 1–2 did. `o-units --withhold-manifest` is built and off by default.
     - **Max chooses at WP-20.**
+- 2026-09-11 — **WP-17 exit checked** (`~/.hobbes/bench/calvin-gate/wp-17/`). **Substrate: fzf** (Go, pin `f7ae439ff5b2`, the cell's SHA), chosen by §0a's rule.
+  - **The 20 keys:** all readable and post-cutoff; multi-file 5, new-symbol 5, new-file 3, single-file 7.
+  - **Parents:** every parent ingested contained at 0.1.17-beta (73 ingests across the package, all exit 0).
+  - **Gold:** gold verify reads pass on all 20, each with guarding tests executed; `gold_tests` reads pass on 7 and n/a on 13.
+  - **Worlds and templates:** W is 1.0 on all 20, with 76 declare-holes. The templates are byte-identical across two builds.
+  - **Maps:** every unit has a blind-spot map.
+  - **The other repos:**
+
+    | repo | eligible | tried | readable |
+    |---|---|---|---|
+    | fzf | 186 | 45 | 42 |
+    | quic-go | 154 | not calibrated | — |
+    | toml | 13 | — | — |
+    | cobra | 0 | — | — |
+    | Hobbes' own repo (Python) | 28 keys | 28 | **26** |
+
+    - The 3 unreadable fzf keys: two release commits with no tests, and one vacuous Windows-only fix.
+    - Hobbes' own repo: W is 1.0 over 213/213. One key has W 0/0. The two unreadable keys are D-r and a docs-only commit.
+    - The Python verifier carries `vacuous` and `gold_tests` with no change needed.
+  - **Environment:** `go:generate` fails on both trees in every fzf verify, because `stringer` is not in the image. No verdict moves.
+  - **For WP-19:** seeded variant (iv) runs on the 9 units with uncaptured symbols. On the other 11 it is skipped, as §2.4 allows: their only site rows are line-less, and those never route.
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
