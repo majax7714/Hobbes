@@ -254,7 +254,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.1.9-beta** (2026-09-10). The Hobbes layer is versioned from here
+**Hobbes 0.1.14-beta** (2026-09-11). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -272,7 +272,7 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and one entries (seventy-five
+The constraint register holds one hundred and fourteen entries (eighty-eight
 active, twenty-four lifted, two superseded), each naming where a user meets
 the limit.
 
