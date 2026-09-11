@@ -254,7 +254,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.1.14-beta** (2026-09-11). The Hobbes layer is versioned from here
+**Hobbes 0.1.17-beta** (2026-09-11). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -311,7 +311,13 @@ gitleaks in Go, tasks anchored at the gold's symbols, Haiku 4.5 in every
 arm — and the floor was not established at A2: the grounded arm trailed
 the file-tools arm on three runs, the last failure declarations in the
 repo's own form that do not compile. The round stopped at $18.93 of its
-$30 ceiling.
+$30 ceiling. A second round
+([`docs/calvin/calvin-m0-go-r2.md`](docs/calvin/calvin-m0-go-r2.md))
+audited the first — 19 of its 31 passes reached no executed test, and
+`hobbes verify` now reads such a change `vacuous` — then ran the floor
+on the eight keys newer than the model's training cutoff: the grounded
+arm returned most body holes unchanged and passed none of the three
+keys where pass can be read, against two for the file-tools arm ($3.10).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -336,6 +342,7 @@ point); the session-by-session record is
 | [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin/calvin-charter.md` |
 | [`docs/calvin/calvin-m0-go.md`](docs/calvin/calvin-m0-go.md) | Calvin M0-Go — the floor round on gitleaks: a dense Go world, tasks anchored at A2, Haiku 4.5, work packages WP-0 to WP-10 under an orchestrator; the floor not established at A2 (§10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-go-2026-09-11.md`) |
+| [`docs/calvin/calvin-m0-go-r2.md`](docs/calvin/calvin-m0-go-r2.md) | Calvin M0-Go, round 2 — the audit of round 1 (the `vacuous` verdict, `gold_tests`), then the floor on eight post-cutoff keys with the build row in T's repair (protocol v0.6, grounder v3); WP-11 to WP-16 under an orchestrator (§10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`) |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |

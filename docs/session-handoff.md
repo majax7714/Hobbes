@@ -1,70 +1,78 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-11; Hobbes 0.1.14-beta on `main`** (0.1.8-beta is
-tagged `v0.1.8-beta`; 0.1.9-beta to 0.1.14-beta are **untagged — tags
+**Reviewed 2026-09-11; Hobbes 0.1.17-beta on `main`** (0.1.8-beta is
+tagged `v0.1.8-beta`; 0.1.9-beta to 0.1.17-beta are **untagged — tags
 are Max's call**). **Numbering (Max; ADR-103's third amendment): the
 layer stays on 0.1.x, patch by patch.** Work remains on `main`;
 publishing belongs to Max. The session's record is the 2026-09-11
 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: Calvin M0-Go is closed — the floor is not established at A2; Max reads the round and its findings; the next protocol step is held
+## ⇢ START HERE NEXT SESSION: Calvin M0-Go round 2 ran through WP-16 — the floor does not hold on fresh keys; the next step is Max's
 
-1. **Calvin M0-Go is closed (Max, 2026-09-11: the round stops and is
-   written up).** The design and its gate record:
-   [`docs/calvin/calvin-m0-go.md`](calvin/calvin-m0-go.md) (§3 the work
-   packages, §10 the results and every decision, dated). The rows with
-   attribution:
-   [`docs/calvin/cells/calvin-m0-go-2026-09-11.md`](calvin/cells/calvin-m0-go-2026-09-11.md)
-   (the WP-6 run, `## Re-test (WP-8)`, `## Re-test 2 (WP-10)`). Each
-   package's report and artifacts are under `~/.hobbes/bench/calvin-go/<wp>/`.
-   The round: gitleaks, 20 history keys, W = 1.0 on every unit, tasks at
-   A2 (a fixing, not a product), Haiku 4.5 in every arm. **The floor is
-   not established at A2 on Haiku 4.5: T < O three times.** T passed
-   0.225 (WP-6), 0.25 (WP-8) and 0.20 (WP-10) against O's 0.80 on five
-   keys. At WP-10, O − T-loop is +0.60 [0.30, 0.90] on those five and
-   +0.33 [0.00, 0.50] on the three recall-free keys, not separable (O's
-   lead is partly recall: two keys reproduced upstream verbatim). X and
-   G were clean every time. The residual moved one stage down per fix:
-   *NULL new* (WP-6) → *declared in the wrong world* (WP-8: 9 of 11
-   NULLs closed, 0 of 9 built, other projects' APIs) → *declared in the
-   right world, not compiled* (WP-10: 7 of 7 in gitleaks' form, 0 of 7
-   build, 6 of 7 carrying no NULL). Track B read *O separates sparse
-   from absent* on every run (about 2,000 sparse-real references
-   resolved, 0 sparse NULL). Spend: **$18.93 of $30** (WP-5 $1.17, WP-6
-   $7.95, WP-8 $5.05, WP-10 $4.76); the remaining $11.07 closes with the
-   round unless Max reopens it.
-2. **The next protocol step — named, not built, held.** Feed the
-   verifier's `go build` errors into the one declaration repair (today
-   the repair sees G's NULLs only, never the build row that caught all
-   7), and show the sibling whole (the 12-line cap cuts it before the
-   lines that use its imports and show `Validate`'s arguments) — WP-10's
-   D-j. It is read on **fresh keys**, not the 20, which were tuned on
-   three times: WP-0's alternates in
-   `~/.hobbes/bench/calvin-go/wp-0/candidates.jsonl`, `draw_rank >= 5`
-   (122: single-file 66, new-symbol 22, new-file 18, multi-file 16),
-   with **O re-run** on the new keys. Its spend is Max's word. **D-i**
-   (`t-units`' per-row `usd_loop` omits the declaration-repair exchange,
-   $0.0083 at WP-10; the totals are right) is fixed with it. The
-   design's ADR takes **ADR-106** when Max moves it to *accepted*.
-3. **Findings for Max from the round:**
-   - `hobbes ingest` edits the target's `.gitignore`, so every graph
-     stamps `dirty: true` (WP-0; WP-10 saw a `.hobbes/` line dated
-     2026-09-09 on the read-only upstream clone, from an earlier
-     ingest). A candidate constraint, not registered.
-   - The harness's `isolation: worktree` cut worktrees from the
-     session's first commit (`9f168d6`), not `main`. WP-7b caught it;
-     from WP-9 on, packages made their own with `git worktree add` from
-     `main` and an ancestor check.
-   - M0's cell record prices Sonnet 5 at $3 / $15 where two on-box
-     sources say $2 / $10 (WP-4): M0's $6.0 (T) and $16.6 (O) would read
-     $4.0 and $11.1. The record is Max's to amend.
-   - The Anthropic key line for Calvin runs is `anthropic_key`: pass
-     `--key-name anthropic_key`. `calvin_probe.py`'s default, `llm_key`,
-     is not an Anthropic key (two unbilled 401s at WP-5).
-   - WP-9 registered C-109–C-114; **C-112 (syntax errors unclassed) is
-     unsurfaced** — debt, beside **C-19** (two compiled CI configs never
-     executed) and **C-20** (decisions do not survive a fresh clone),
-     both still unsurfaced from before (`docs/constraints/narrative-invariants-review.md`).
+1. **Round 2 ran end to end on 2026-09-11.**
+   - **The record:** the design and its gate record are
+     [`docs/calvin/calvin-m0-go-r2.md`](calvin/calvin-m0-go-r2.md) (§0b the
+     orchestrator's pins, §10 the results and every decision, dated). The
+     rows are
+     [`docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`](calvin/cells/calvin-m0-go-r2-2026-09-11.md);
+     each package's report and artifacts are under
+     `~/.hobbes/bench/calvin-go/wp-11a` … `wp-16`. Round 1's §10 carries
+     the audit beside its original.
+   - **The audit (WP-11a/b/c, WP-12; no spend).** 19 of round 1's 31
+     pass rows reached no executed guarding test. T's audited pass is
+     0.075 / 0.10 / 0.05 and O's 0.60. O − T keeps its sign, and the
+     recall-free keys are unchanged. The templates rendered what gold
+     needed, so H-s is not the residual. **Max: round 1's O rows do not
+     stand** (the stricter parse).
+   - **Fresh keys.** Haiku 4.5's training-data cutoff is Jul 2025.
+     gitleaks holds **8** usable post-cutoff keys and no more, and
+     upstream adds none past the pin. **Max: N = 8.** Only **3** of them
+     can read pass for either arm; gold itself is vacuous or no-tests on
+     the other 5.
+   - **Built (no spend):**
+     - **0.1.15-beta:** `vacuous` and `gold_tests` in `hobbes verify`.
+     - **0.1.16-beta:** protocol v0.6 — build errors in the one repair,
+       the sibling whole at 4,400 bytes, one budget N = 7 — and `not-run`
+       no longer fails a diff.
+     - **0.1.17-beta:** grounder v3 (`arity`, `undeclared-type`,
+       `malformed`). Max's number, a patch.
+   - **The spend gate (Max).** O keeps round 1's 30-turn cap: equal calls
+     would have measured orientation, since O's first edit came at turn
+     10–26 in every round-1 session. O's subset is redrawn to the three
+     pass-readable keys, and T run 1 stops above $3.6.
+   - **WP-16.** **T 0 of 3, O 2 of 3** where pass can be read.
+     - **T returned its body holes unchanged on 5 of 8 keys**, in both
+       runs, with budget to spare. The orchestrator checked the fills are
+       byte-identical to the parent, so the empty diffs are the model's.
+     - **v0.6's build row** closed the one build failure it met; grounder
+       v3 raised nothing.
+     - **Caveats:** this is not an equal-budget reading. On
+       `8d1f98c7967e`, O's pass is by the guarding tests, and gold's own
+       new tests fail on its diff.
+     - **Spend:** $3.10 of $12; rounds 1 and 2 together come to $22.03.
+2. **The next step — named, not built, held (Max's).** Why does Haiku 4.5
+   decline a body hole it was shown whole, with budget to spare, on 5 of 8
+   keys? That is a template and prompt question, not another protocol
+   patch; round 2's §8 names the interface candidates (a file-grain hole,
+   the grounder as a tool in O). The design's ADR takes **ADR-106** when
+   Max moves it to *accepted*.
+3. **Findings for Max from round 2:**
+   - **The equal-calls budget is not equal work** (C-116). A T exchange
+     carries a template; an O turn is one tool call.
+   - **`hobbes verify` changed for every user.** A change no test executes
+     reads `vacuous`, never `pass` (C-93 amended). M0 (Python)'s records
+     were not re-scored.
+   - **Debt:** C-120 is unsurfaced for any malformed fill but the gutter
+     shape. **C-112**, **C-19** and **C-20** are still unsurfaced from
+     before.
+   - **Round 1's findings stand:**
+     - `hobbes ingest` edits the target's `.gitignore`, so every graph
+       stamps `dirty: true`.
+     - The harness's `isolation: worktree` cuts from a stale commit.
+     - M0's Sonnet 5 pricing reads $3 / $15, where on-box sources say
+       $2 / $10.
+     - Calvin runs take `--key-name anthropic_key`.
+
 4. **Still waiting on Max from 2026-09-10 (untouched this session):**
    - **The Gradle attach route (0.1.10-beta; C-67 narrowed, ADR-096
      amended):** a Gradle unit gets scip-java's javac plugin from
@@ -96,11 +104,10 @@ BUILDLOG entry.
    still need resolution; the registry-pulled image and the drift audit
    open when named. Then the no-spend queue (NEXT).
 7. **Practical — restart the knowledge server first.** The image is at
-   0.1.14-beta (rebuilt after `0c87ac1`), and this session's server
-   started on the old image; a server keeps the image it started on
+   0.1.17-beta (rebuilt after `aaecc37`), and this session's server
+   started on 0.1.14-beta's image; a server keeps the image it started on
    (C-65). Restart `.mcp.json` → `sandbox/knowledge-serve` before
-   trusting a count, and `uv run hobbes ingest` on a stale-artifact
-   warning.
+   trusting a count. This repo was re-ingested at 0.1.17-beta.
 
 ---
 
@@ -185,26 +192,32 @@ at a time at ~14 min each.
 
 ## WHERE THINGS STAND (2026-09-11)
 
-- **Calvin M0-Go** (`docs/calvin/calvin-m0-go.md`; ADR-100 amended for
-  its Go verifier): closed. Artifacts under `~/.hobbes/bench/calvin-go/`
-  (`wp-0` … `wp-10`: units and parent graphs, templates, the gold
-  groundings, every row). In the tree: grounder v2 (`ground.py`, the
-  world check on Go fills), adapter protocol v0.5 (`adapter.py`),
-  template v2 opt-in (`build_template(version=2)`; the `hobbes template`
-  CLI builds v1), the Go verifier (`hobbes verify`, harness v2),
-  `calvin_probe.py t-units | o-units` with `recall` on every row; the Go
-  module cache `~/.hobbes/cache/go/mod` mounted read-only in the harness
-  (C-92). The package worktrees under `~/.hobbes/bench/calvin-go/<wp>/`
-  were kept; the `calvin-go/wp-*` branches are merged.
+- **Calvin M0-Go** (`docs/calvin/calvin-m0-go.md`, round 2
+  `docs/calvin/calvin-m0-go-r2.md`; ADR-100 amended for its Go verifier):
+  round 1 closed, round 2 run through WP-16.
+  - **Artifacts:** under `~/.hobbes/bench/calvin-go/` (`wp-0` … `wp-16`:
+    units and parent graphs, templates, gold groundings, the audits,
+    every row).
+  - **In the tree:**
+    - grounder v3 (`ground.py`: the world check, `arity`,
+      `undeclared-type`, `malformed`);
+    - adapter protocol v0.6 (`adapter.py`);
+    - template v2, opt-in;
+    - the Go verifier with `vacuous` and `gold_tests` (`hobbes verify`);
+    - `calvin_probe.py t-units | o-units`, with `--budget`,
+      `--verify-build` and `recall` on every row.
+  - **Worktrees and branches:** the package worktrees under
+    `~/.hobbes/bench/calvin-go/<wp>/` were kept; the `calvin-go/wp-*`
+    branches are merged.
 - **Calvin M0** (`docs/calvin/calvin-potential.md`): held; artifacts
   under `~/.hobbes/bench/calvin/`.
 - **Atlas-0** (`docs/atlas0/atlas-0.md`; `bench/atlas0/`, 84 tests):
   held; worlds and runs under `~/.hobbes/bench/atlas0/` and on the
   volume `hobbes-atlas0`.
-- **Register:** **114 entries, 88 active, 24 lifted, 2 superseded** on
-  2026-09-11 (C-102–C-114 from M0-Go, C-91 amended); the count is
-  checked against the segment headings, not a summary line.
-- **Suites:** 1,307 pytest (+4 `lane_b`), 304 Go; the rest as CLAUDE.md
+- **Register:** **120 entries, 94 active, 24 lifted, 2 superseded** on
+  2026-09-11 (C-115–C-120 from round 2; C-93 and C-114 amended). The
+  count is checked against the segment headings, not a summary line.
+- **Suites:** 1,322 pytest (+4 `lane_b`), 304 Go; the rest as CLAUDE.md
   states.
 - **TTT instruments (ADR-099 + amendments):** `hobbes derive-corpus`,
   `hobbes.ttt.{units,score,report,probe,cell}`, the `ttt_*` and
@@ -232,6 +245,14 @@ at a time at ~14 min each.
 3. **The ingest `.gitignore` edit** — registered as a constraint or
    changed, on Max's reading of the finding (START HERE 3).
 
+**Held, with all spend (not cleared, not scheduled):**
+- Calvin M0-Go's next step: why Haiku declines a body hole (START HERE 2).
+- The wider Calvin M0 run.
+- The Atlas-0 T items.
+- The TTT 3,000-step adapter under the cell, and the 10,000-step point.
+- The removal A/B re-run on the 7B.
+- A second unseen repo through the cell.
+- `hobbes narrate` on this repo.
 **Held, with all spend (not cleared, not scheduled):** M0-Go's next
 protocol step on fresh keys with O re-run (START HERE 2); the wider
 Calvin M0 run; the Atlas-0 T items; the TTT 3,000-step adapter under the
@@ -241,9 +262,13 @@ second unseen repo through the cell; `hobbes narrate` on this repo.
 ## STANDING POLICY (Max) — read before doing anything
 
 0. **API spend and Modal compute are off the table** (Max, 2026-09-04)
-   unless Max names a run and its ceiling. Since then he named Atlas-0
-   on Modal ($25) and Calvin M0-Go ($30, cleared 2026-09-11, closed at
-   $18.93 — its remainder does not carry to another run).
+   unless Max names a run and its ceiling. Since then he has named:
+   - Atlas-0 on Modal ($25);
+   - Calvin M0-Go ($30, closed at $18.93);
+   - M0-Go round 2 ($12, cleared at its spend gate on 2026-09-11; WP-16
+     spent $3.10).
+
+   No remainder carries to another run.
 1. **Experiments are PARKED** except what Max clears by name.
 2. **The 7B is the instrument, by speed not capability.** GPU-hours
    stated first; ≥15 min of evaluation before any run over 30 min.
@@ -271,6 +296,12 @@ second unseen repo through the cell; `hobbes narrate` on this repo.
   in `scip/` and `tsextract/` before the Node-helper tests pass.
   Sub-agents cannot write report files; the orchestrator saves each
   reply as the package's `report.md`.
+- **Sub-agents park on runs they launch detached.** Round 2 saw three
+  stalls: twice WP-11a, once WP-16, the second WP-11a stall after an
+  explicit warning. The agent ends its turn to "wait for a notification",
+  and nothing wakes it. Watch the PID from the orchestrator (a background
+  `while ps -p <pid>; do sleep 20; done`), then resume the agent with
+  SendMessage, giving it the run's result.
 - **`pgrep -f` / `pkill -f` match your own waiting shell too**; wait on
   a log line and kill by PID (`ps | grep "[l]oop.py"`). Long RTA keys
   run detached (`setsid nohup`), never under a background command with a

@@ -8623,3 +8623,58 @@ committed by the orchestrator; the version, register and suite counts
 brought to 0.1.14-beta (`d68efd3`); this entry, the handoff rewritten,
 CLAUDE's Status and read-next row, README's status and design-docs
 table. Commits on `main`; no push, no tag.
+
+## 2026-09-11 — (later) Calvin M0-Go round 2: the audit, then the floor on fresh keys — T 0 of 3 against O 2 of 3 where pass can be read, T declining its body holes — 0.1.15-beta to 0.1.17-beta
+
+Max handed the orchestrator a round-2 design. It ran as written, WP-11 to WP-16, with sub-agents on Sonnet and Max's word at each gate. The design and its gate record are in the tree as `docs/calvin/calvin-m0-go-r2.md`: §0b holds the orchestrator's pins, and §10 the results and every decision, dated. The rows are in `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`. Each package's report and artifacts are under `~/.hobbes/bench/calvin-go/wp-11a` … `wp-16`.
+
+- **WP-11a** (the pass metric; no spend). §2.3's rule is built into `hobbes verify`: a build-clean change where no guarding test executed reads `vacuous`, and `gold_tests` applies gold's own test changes on top of the arm's diff.
+  - **Reopened once by the orchestrator:** `gold_tests` had no gold control and read `fail` on every row it touched. The cause was gold's tests losing the `testdata/` fixtures gold adds (WP-11a-1 = D-k). With it fixed, the control reads 7/7.
+  - **Round 1's 31 pass rows:** 19 are vacuous. T's pass drops from 0.225 / 0.25 / 0.20 to 0.075 / 0.10 / 0.05, and O's from 0.80 to 0.60.
+  - **O's five diffs under grounder v2:** 0 NULL; 2 of the 5 wrote outside the partition, at HSR 0.
+- **WP-11b** (templates, flips, replay; no spend).
+  - **Needed-fraction** on 120 T rows: 0.69–0.96 by shape at signature grain. The templates were not starving T.
+  - **The 14 flips:** 7 sampling, 7 path.
+  - **Replay drift:** only D-a, and the NULL classes v0.4–v0.5 added — except one silent zero on gutter text (D-m).
+- **WP-11c** (the dry-run, the cutoff, the ledger; no spend).
+  - **Dry-run:** v0.5's repair carries a build error; WP-10's seven close 7/7 with gold's bodies.
+  - **Cutoff:** Haiku 4.5's training-data cutoff is Jul 2025.
+  - **Ledger:** reconciles to the cent ($18.9349); D-i confirmed.
+  - **Fresh keys:** only **8 usable post-cutoff candidates**. The orchestrator checked upstream: 3 commits past the pin, all Actions bumps, so 8 is gitleaks' ceiling.
+- **WP-12** (the audit gate). *T < O* stands on audited rows: O − T keeps its sign, and the recall-free keys are unchanged. Round 1's §10 is amended beside the original, with defects D-k–D-o.
+  - **Max's rulings:** round 1's O rows **do not stand** (the stricter parse: an outside-partition write counts regardless of HSR); **N = 8** keys.
+- **WP-13** (fresh keys; no spend).
+  - **The keys:** 8 post-cutoff keys, all ingested contained, W 1.0.
+  - **Gold:** grounds 8/8 at 0 NULL, byte-equal.
+  - **Pass is readable on only 3 keys:** gold itself is vacuous on 3 and no-tests on 2. A fourth was blocked by **D-p** (`not-run` in FAILING), routed to WP-14.
+- **WP-14** (protocol v0.6; no spend).
+  - **What v0.6 adds:** the build row in the one repair; the sibling shown whole, capped at 4,400 bytes; one budget, N = 7, T's round-1 95th percentile, also its maximum.
+  - **Defects closed:** D-i, D-n, D-o and D-p. D-l is diagnosed as sampling carried into the path, with no protocol bug.
+  - **Replays:** 7/7, 11/11, gold 20/20, poison 50/50.
+- **WP-14b** (grounder v3; no spend). New `arity` and `undeclared-type` NULL classes, with the callee read from lane A's parse on demand; the graph is unchanged. D-m becomes a `malformed` class.
+  - **On WP-10's seven:** 3 raise one of the new classes; gold still grounds 20/20.
+- **WP-15** (the estimate). Expected $3.9 at N = 7. The fact that moved the gate: **O's first edit came at turn 10–26 in every round-1 session**, so at 7 turns O would likely make no change at all.
+  - **Max at the spend gate:** O keeps round 1's 30-turn cap, O's subset is redrawn to the three pass-readable keys, and T run 1 stops above $3.6.
+- **WP-16** (the run; $3.10 of $12).
+  - **Pass:** T 0 of 3 against O 2 of 3 on the readable keys (+0.667 [0, 1], n = 3). J 0.167 vs 0.729. 0 NULL, 0 recall.
+  - **T declined to act:** its body holes came back unchanged on 5 of 8 keys in both runs, with no budget cut. The orchestrator checked that the fills are byte-identical to the parent, so the empty diffs are the model's.
+  - **v0.6's build row** closed the one build failure it met, `87d96295d65a`'s near-miss name.
+  - **Caveats:** not an equal-budget reading. On `8d1f98c7967e`, O's pass is by the guarding tests, and gold's own new tests fail on its diff.
+  - **D-q:** WP-13's templates were built without co-change; WP-16 rebuilt them before any spend.
+  - **The next step (Max's):** why Haiku declines a body hole it was shown whole.
+
+**Versions and register.** Three patch bumps, each with its CHANGELOG entry and the image rebuilt after (C-65):
+- **0.1.15-beta** (`93c43dc`): `vacuous` and `gold_tests`.
+- **0.1.16-beta** (`4a22e27`): protocol v0.6, and `not-run` no longer fails a diff.
+- **0.1.17-beta** (`aaecc37`): grounder v3. Max chose the number: a patch, where the design had said minor.
+
+All untagged. The register went from 114 to **120 entries (94 active, 24 lifted, 2 superseded)**: C-115 to C-120 registered, C-93 and C-114 amended. **C-120 is unsurfaced beyond the gutter shape** — debt.
+
+**Findings for Max.**
+- **The equal-calls budget is not equal work** (C-116). A T exchange carries a template; an O turn is one tool call.
+- **`hobbes verify` changed for every user.** A change no test executes reads `vacuous`. M0 (Python)'s records were not re-scored.
+- **Sub-agents park themselves** on runs they launch detached, three times this session (twice WP-11a, once WP-16); the second WP-11a stall came after the orchestrator had warned it. The orchestrator watched their PIDs and resumed them each time — see the handoff's practical notes.
+
+**Validation.** pytest 1,307 → 1,322 on `main` (+4 `lane_b` not re-run). Go unchanged but for the version constant (`go test ./internal/version` green). This repo was re-ingested at 0.1.17-beta.
+
+**Spend.** Round 2 cost $3.10 of its $12 ceiling, all of it WP-16; the rest spent nothing. Rounds 1 and 2 together come to $22.03. Commits are on `main`; no push, no tag.
