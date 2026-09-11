@@ -446,6 +446,23 @@ Every row was attributed before any aggregate. The rows are in the `## Re-test 2
 
 The next step is Max's.
 
+**WP-12, 2026-09-11 — the audit (round 2), beside the original above.** Round 2 ([`calvin-m0-go-r2.md`](calvin-m0-go-r2.md)) audited this round's artifacts before spending again, gated on WP-11a/b/c (no spend). The rows above are unchanged; the audited readings sit beside them in `~/.hobbes/bench/calvin-go/wp-11a/rows.audited.json`, and the full record is `~/.hobbes/bench/calvin-go/wp-12/audit.md`.
+
+- **The pass metric, hardened (round 2 §2.3; `hobbes verify` 0.1.15-beta).** A build-clean row where no guarding test executed and the gold's own test changes do not pass is *vacuous*, never *pass*. 19 of this round's 31 pass rows were vacuous. T's audited pass is **0.075 / 0.10 / 0.05** (WP-6 / WP-8 / WP-10; was 0.225 / 0.25 / 0.20); the same three T keys are vacuous in every package (`4e303d028452`, `9708e65c25e5`, `d29ee5517128`), none of them O's. O's is **0.60** (was 0.80): `93acc6e82adb`, a recalled key, is vacuous. J is unchanged.
+- **The audited O − T-loop gap on O's 5 keys shrinks and keeps its sign:** +0.30 [0.00, 0.70], +0.20 [0.00, 0.40], +0.40 [0.10, 0.70] (was +0.50, +0.40, +0.60). **The 3 recall-free keys are untouched:** +0.167 / +0.167 / +0.333, each [0.00, 0.50].
+- **`gold_tests`**, once its gold control read 7/7 (defect WP-11a-1, gold's tests lost their `testdata/` fixtures, closed): n/a on 19 of the 31 rows, fail 6, build-fail 5, conflict 0, and pass 1 — O's `a971a324fab5`, where T's rows read fail.
+- **O's five diffs under grounder v2:** 0 NULLs of any class; 2 of 5 write outside the partition (`2278a2a97e42`, `93acc6e82adb`, the two recalled keys), both at HSR 0.
+- **§5 re-selected on audited rows:** round 2's "O's lead does not survive → void" is **not** selected. The gap keeps its sign; X is clean once the metric is hardened, and G is clean on O's diffs. *T < O, not separable on the recall-free keys* stands; the floor does not hold at A2. §4.12 (round 2) reads row 2: the templates rendered the gold-needed symbols (signature grain 0.69–0.96 by shape), so the residual is protocol / O, not H-s.
+- **Defects, from D-k:**
+  - **D-k (= WP-11a-1):** gold's tests lost their fixtures. Closed.
+  - **D-l:** path-explained flips — `ed205a5f63e3` in 3 of 3 packages, plus `7206d6bc56e8`, `107a41827bb6` and `6411402d434d`. Two of the three recall-free keys are among them. Open.
+  - **D-m:** the grounder returns 0 references silently on gutter-laden text; seen in replay only. Open.
+  - **D-n:** `run_t` mutates the recorded round-2 fills after appending them; a record defect. Open.
+  - **D-o:** the declaration-repair ask is worded for grounder causes only. Open; WP-14's.
+  - **D-i**, confirmed: $0.0083 folded into `usd_T`, not only omitted from `usd_loop`; the totals hold.
+
+The gate's decision (Max) is recorded in round 2's §10.
+
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
 - 2026-09-11 — Max cleared the round to proceed: WP-0 to WP-4 (no spend) now; the spend gate at WP-4 stands as written.
