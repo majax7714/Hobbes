@@ -18,6 +18,21 @@ is classed against its baseline — ``P2P``, ``F2P``, ``P2F`` (a
 regression), ``F2F``, ``new-pass`` / ``new-fail`` (a test the diff
 adds) — the SWE-bench reading, made from the repo's own history.
 
+**Go** (`docs/calvin/calvin-m0-go.md` §2.3): a package's tests run with
+``-run '^(TestA|TestB)$'`` at symbol grain, the whole package where an
+edit falls outside every span of a Go file (package grain) or a test file
+is touched; ``go test -list`` first, so an id the testmap names that the
+package does not have is ``uncollected``. Before any test, every module
+root the diff touches gets its **tree steps** on both trees: the repo's
+own ``//go:generate`` directives regenerate what they write (a generated
+file is produced from the tree the diff leaves, never taken from a diff —
+gitleaks embeds the generated ``config/gitleaks.toml``), and a generation
+whose package's import closure (``go list -deps``) holds an edited
+directory guards the edit as a test row (a rule's own true/false-positive
+validation runs there); then ``go build ./...`` and ``go vet ./...`` as
+**build rows** — a diff that does not compile is ``build-fail``, its own
+verdict, not a test failure. The module cache rides read-only (C-92).
+
 **The environment binding** (ADR-100, ADR-058's precedent): no image
 carries a target's *dependencies*, so the harness links the dependency
 trees a **source checkout** of the same repo holds — a ``.venv`` beside
@@ -65,7 +80,7 @@ from hobbes.derive import ground as G
 from hobbes.derive import template as T
 from hobbes.extract import containment, staging
 
-HARNESS_VERSION = 1  # 1: the `removed` class; the verdict reads only what the diff did (P2F, new-fail, error, not-run); F2F rows are faults
+HARNESS_VERSION = 2  # 1: the `removed` class; the verdict reads only what the diff did (P2F, new-fail, error, not-run); F2F rows are faults. 2: Go (calvin-m0-go §2.3) — `-run` at symbol grain, package grain, `go test -list` → uncollected, the tree steps (generate, build, vet), `build-fail`
 LOOP_PATH = Path(__file__).resolve().parents[1] / "agent" / "loop.py"
 #: Prompt tokens an arm-O session may spend in all before the loop stops it with a reason (step 6: three of four sessions
 #: hit the 30-turn cap at 1.3–1.6M tokens; this endpoint fits no window, so the cap is the cost ceiling, stated per run).
@@ -98,9 +113,12 @@ class Environment:
     python: dict[str, str] = field(default_factory=dict)
     #: What a session's brief says about the binding — the runners' quirks a read-only tree causes (host-authored, ADR-058's "environment notice").
     notes: list[str] = field(default_factory=list)
+    #: Paths under the cache root laid read-only over its rw mount — the Go module cache lane B's fetches filled (C-92).
+    ro_cache: list[str] = field(default_factory=list)
 
     def record(self) -> dict:
-        return {"source": self.source, "links": [list(l) for l in self.links], "ro": list(self.ro), "env": list(self.env), "python": dict(self.python), "notes": list(self.notes)}
+        return {"source": self.source, "links": [list(l) for l in self.links], "ro": list(self.ro), "ro_cache": list(self.ro_cache), "env": list(self.env),
+                "python": dict(self.python), "notes": list(self.notes)}
 
 
 def environment(source: Path, worktree: Path, *, container_root: str | None = None, gocache: str | None = None) -> Environment:
@@ -111,10 +129,12 @@ def environment(source: Path, worktree: Path, *, container_root: str | None = No
     env = Environment(source=str(source))
     targets: list[Path] = []
     pyroots: list[str] = []
+    gomod = False
     for dirpath, dirnames, filenames in os.walk(worktree):
         dirnames[:] = sorted(d for d in dirnames if d not in _SKIP_DIRS)
         rel = os.path.relpath(dirpath, worktree)
         rel = "" if rel == "." else rel
+        gomod = gomod or "go.mod" in filenames
         for manifest, dep in DEP_DIRS.items():
             if manifest not in filenames:
                 continue
@@ -129,10 +149,14 @@ def environment(source: Path, worktree: Path, *, container_root: str | None = No
                 targets += [Path(p) for p in containment.interpreter_mounts(host / "bin" / "python3")]
     env.ro = list(containment.mount_roots(targets))
     cache = staging.cache_root()
+    if gomod and (cache / "go" / "mod").is_dir():
+        env.ro_cache.append(str(cache / "go" / "mod"))
     env.env = [kv for kv in containment._cache_env(cache) if not (gocache and kv.startswith("GOCACHE="))]
     if gocache:
         env.env.append(f"GOCACHE={gocache}")
-    env.env += [kv for kv in ("GOFLAGS=-mod=mod", "GOPROXY=off", "PYTHONDONTWRITEBYTECODE=1", "CI=1",
+    # -buildvcs=false: the worktree is a shared clone whose objects live in an alternate the container cannot see, so
+    # `go build`'s VCS stamp fails with exit status 128 on every tree (calvin-m0-go WP-1: every gold read build-fail)
+    env.env += [kv for kv in ("GOFLAGS=-mod=mod -buildvcs=false", "GOPROXY=off", "PYTHONDONTWRITEBYTECODE=1", "CI=1",
                               # a test that commits needs an identity, and the container has no git config (the 2026-09-04 calibration: seven F2F on `exit status 128`)
                               "GIT_AUTHOR_NAME=hobbes-verify", "GIT_AUTHOR_EMAIL=verify@hobbes.local", "GIT_COMMITTER_NAME=hobbes-verify", "GIT_COMMITTER_EMAIL=verify@hobbes.local")
                 if kv not in env.env]
@@ -149,6 +173,8 @@ def environment(source: Path, worktree: Path, *, container_root: str | None = No
             env.notes.append("vitest writes its cache into node_modules: run it as `npx vitest run --no-cache <files>` or it exits 1 (EROFS) after the tests pass.")
         if any(rel.endswith(".venv") for rel, _ in env.links):
             env.notes.append("There is no `uv` here: run pytest as `python -m pytest` (the venv's python is first on PATH).")
+    if env.ro_cache:
+        env.notes.append("The Go module cache is mounted read-only and there is no network (GOPROXY=off): build with the modules go.sum already names; `go get` fails.")
     return env
 
 
@@ -276,6 +302,10 @@ def select_tests(L: T.Ledger, diff: str) -> Selection:
     test_files = {t["file"] for t in L.tests}
     touched = sorted(p for p in ranges if p in test_files or is_test_path(p))
     edited_modules = {L.path_mod[p] for p in ranges if p in L.path_mod}
+    # Go's package grain (calvin-m0-go §2.3): a non-test Go file edited outside every span, created, deleted or unknown to
+    # the graph shares its package's namespace with every test file beside it — the package's tests guard it
+    go_packages = {os.path.dirname(p) for p, rs in ranges.items() if p.endswith(".go") and not is_test_path(p)
+                   and (not rs or L.path_mod.get(p) is None or L.path_mod[p] in modules)}
     tests: list[dict] = []
     seen: set[str] = set()
     for t in L.tests:
@@ -288,6 +318,8 @@ def select_tests(L: T.Ledger, diff: str) -> Selection:
             grain, origin = "module", "guard"
         elif L.imports_of.get(L.path_mod.get(t["file"], ""), set()) & edited_modules:
             grain, origin = "import", "guard"  # step 6: the test's module imports an edited module (a value read by name, no call the testmap maps)
+        elif t["framework"] == "go-test" and os.path.dirname(t["file"]) in go_packages:
+            grain, origin = "package", "guard"
         if grain and t["id"] not in seen:
             seen.add(t["id"])
             tests.append({"id": t["id"], "file": t["file"], "framework": t["framework"], "origin": origin, "grain": grain})
@@ -306,9 +338,14 @@ class Command:
     files: list[str]
     ids: list[str]
     report: str | None = None
+    #: Go: ``go test -list`` with the same pattern, run first — an id it does not return is ``uncollected``.
+    list_argv: list[str] | None = None
+    #: The grain a result the command returns beyond its ids gets (a whole Go package: ``package``; a whole file: ``file``).
+    grain: str = "file"
 
     def record(self) -> dict:
-        return {"framework": self.framework, "cwd": self.cwd, "argv": list(self.argv), "files": list(self.files), "ids": len(self.ids)}
+        return {"framework": self.framework, "cwd": self.cwd, "argv": list(self.argv), "files": list(self.files), "ids": len(self.ids),
+                **({"list_argv": list(self.list_argv)} if self.list_argv else {})}
 
 
 def nearest(worktree: Path, path: str, names: tuple[str, ...]) -> str:
@@ -326,8 +363,16 @@ def _rel(path: str, root: str) -> str:
     return os.path.relpath(path, root) if root else path
 
 
+def _go_target(pkg: str, root: str) -> str:
+    """The ``go`` package argument for *pkg* (worktree-relative) from the module root *root*."""
+    rel = os.path.relpath(pkg or ".", root or ".")
+    return "." if rel == "." else "./" + rel + "/"
+
+
 def commands(sel: Selection, worktree: Path, env: Environment, reports: Path) -> list[Command]:
-    """The commands that run the selection, grouped by framework and root. Go packages, node files and vitest files run whole (fast, and a test the diff adds is caught); pytest runs the ids and the touched files."""
+    """The commands that run the selection, grouped by framework and root. A Go package runs its selected tests by name
+    (``-run '^(A|B)$'``) and whole where a row is at package or file grain, each after ``go test -list``; node files and
+    vitest files run whole (fast, and a test the diff adds is caught); pytest runs the ids and the touched files."""
     reports = Path(reports)
     groups: dict[tuple[str, str], list[dict]] = collections.defaultdict(list)
     for t in sel.tests:
@@ -366,9 +411,18 @@ def commands(sel: Selection, worktree: Path, env: Environment, reports: Path) ->
             rep = reports / f"pytest-{n}.xml"
             out.append(Command(fw, root, [python, "-m", "pytest", "-p", "no:cacheprovider", "-q", f"--junit-xml={rep}", *targets], files, ids, str(rep)))
         elif fw == "go-test":
-            for pkg in sorted({os.path.dirname(f) for f in files}):
-                pkg_rel = _rel(pkg, root) or "."
-                out.append(Command(fw, root, ["go", "test", "-json", "-count=1", "./" + pkg_rel.rstrip("/") + "/"], [f for f in files if os.path.dirname(f) == pkg], [i for i in ids if os.path.dirname(i.split("::")[0]) == pkg]))
+            by_pkg: dict[str, list[dict]] = collections.defaultdict(list)
+            for r in rows:
+                by_pkg[os.path.dirname(r["file"])].append(r)
+            for pkg, prow in sorted(by_pkg.items()):
+                pids = [r["id"] for r in prow if not r["id"].endswith("::*")]
+                names = sorted({i.split("::", 1)[1] for i in pids})
+                whole = not names or any(r["grain"] in ("package", "file") for r in prow)
+                pattern = "." if whole else "^(" + "|".join(names) + ")$"
+                target = _go_target(pkg, root)
+                out.append(Command(fw, root, ["go", "test", "-json", "-count=1", *([] if whole else ["-run", pattern]), target],
+                                   sorted({r["file"] for r in prow}), pids, list_argv=["go", "test", "-list", pattern, target],
+                                   grain="package" if whole else "symbol"))
         elif fw == "node:test":
             for f in files:
                 out.append(Command(fw, root, ["node", "--test", "--test-reporter=tap", _rel(f, root)], [f], [i for i in ids if i.split("::")[0] == f]))
@@ -502,8 +556,13 @@ def run_commands(worktree: Path, cmds: list[Command], env: Environment, *, timeo
         t0 = time.monotonic()
         argv = list(c.argv)
         dropped: list[str] = []
+        listed: set[str] | None = None
         try:
-            o = containment.run(containment.plan("verify", argv, cwd=cwd, ro=env.ro, env=env.env), timeout=timeout)
+            if c.list_argv:
+                lo = containment.run(containment.plan("verify", c.list_argv, cwd=cwd, ro=env.ro, env=env.env, ro_cache=env.ro_cache), timeout=timeout)
+                if lo.proc.returncode == 0:  # a package that does not compile lists nothing: the test run reports it
+                    listed = set(re.findall(r"(?m)^(\w+)$", lo.proc.stdout or ""))
+            o = containment.run(containment.plan("verify", argv, cwd=cwd, ro=env.ro, env=env.env, ro_cache=env.ro_cache), timeout=timeout)
             missing = _pytest_not_found(o.proc) if c.framework == "pytest" else []
             if missing:
                 # One id pytest cannot collect (a fixture the testmap took for a test) aborts the whole
@@ -512,7 +571,7 @@ def run_commands(worktree: Path, cmds: list[Command], env: Environment, *, timeo
                 gone = [a for a in argv if any(m.endswith("/" + a) or m == a for m in missing)]
                 dropped = [i for i in c.ids if _rel(i.split("::")[0], c.cwd) + "::" + i.split("::", 1)[1] in gone]
                 argv = [a for a in argv if a not in gone]
-                o = containment.run(containment.plan("verify", argv, cwd=cwd, ro=env.ro, env=env.env), timeout=timeout)
+                o = containment.run(containment.plan("verify", argv, cwd=cwd, ro=env.ro, env=env.env, ro_cache=env.ro_cache), timeout=timeout)
         except containment.ContainmentError as exc:
             for i in c.ids:
                 results[i] = {"outcome": "error", "framework": c.framework, "note": str(exc)[:300]}
@@ -533,11 +592,15 @@ def run_commands(worktree: Path, cmds: list[Command], env: Environment, *, timeo
             if i in dropped:
                 results[i] = {"outcome": "uncollected", "framework": c.framework, "note": "pytest could not collect this id at the SHA (the testmap lists a name pytest does not — a fixture?)"}
                 continue
+            if listed is not None and i.split("::", 1)[1] not in listed:
+                results[i] = {"outcome": "uncollected", "framework": c.framework, "note": "`go test -list` does not return this id on the tree (the testmap names a test the package does not have)"}
+                continue
             results[i] = {"outcome": parsed.get(i, "error" if (build_error or (proc.returncode and not parsed)) else "not-run"), "framework": c.framework}
         for i, oc in parsed.items():
             if i not in results:
-                results[i] = {"outcome": oc, "framework": c.framework, "extra": True}
+                results[i] = {"outcome": oc, "framework": c.framework, "extra": True, "grain": c.grain}
         records.append({**c.record(), "rc": proc.returncode, "wall_s": wall, "contained": o.contained, "dropped": dropped,
+                        **({"listed": len(listed)} if listed is not None else {}),
                         "stderr_tail": (proc.stderr or "")[-600:] if proc.returncode else "", "parsed": len(parsed)})
     return results, records, list(containment.LEDGER)
 
@@ -550,6 +613,130 @@ def _pytest_not_found(proc: subprocess.CompletedProcess) -> list[str]:
     if proc.returncode != 4:
         return []
     return [m.group(1) for m in _NOT_FOUND.finditer((proc.stderr or "") + (proc.stdout or ""))]
+
+
+# --------------------------------------------------------------- Go tree steps
+
+_GO_GENERATE = re.compile(r"(?m)^//go:generate\s")
+#: What `./...` never walks: the go tool skips vendor/, testdata/ and names starting with `.` or `_`; a nested go.mod is another module.
+_GO_SKIP = {"vendor", "testdata", "node_modules", ".git"}
+#: The generated diff a record keeps, in characters (gitleaks' largest is a few hundred lines).
+GENERATED_CAP = 200_000
+#: Runs a *failing* generation gets. A generator may validate on random samples — gitleaks' rules draw their true positives
+#: from reggen, seeded by the clock — so one failure can be the draw's, not the tree's (calvin-m0-go WP-1: two of forty
+#: generations failed on rules no diff touched). A failure on every attempt is the tree's; a pass after a failure is `flaky`.
+GENERATE_ATTEMPTS = 3
+
+
+def go_directives(worktree: Path, root: str) -> dict[str, str]:
+    """``{package dir: the first file in it holding a //go:generate directive}`` (worktree-relative) in the module at *root*, walked as ``./...`` walks it."""
+    worktree = Path(worktree)
+    base = worktree / root if root else worktree
+    out: dict[str, str] = {}
+    for dirpath, dirnames, filenames in os.walk(base):
+        dirnames[:] = sorted(d for d in dirnames if d not in _GO_SKIP and not d.startswith((".", "_")) and not (Path(dirpath) / d / "go.mod").exists())
+        rel = os.path.relpath(dirpath, worktree)
+        rel = "" if rel == "." else rel
+        for f in sorted(filenames):
+            if not f.endswith(".go") or rel in out:
+                continue
+            try:
+                text = (Path(dirpath) / f).read_text(errors="replace")
+            except OSError:
+                continue
+            if _GO_GENERATE.search(text):
+                out[rel] = os.path.join(rel, f) if rel else f
+    return out
+
+
+def _go_step(argv: list[str], cwd: Path, env: Environment, timeout: int) -> dict:
+    """One contained Go tree step → ``{argv, outcome: pass|fail|error, rc, wall_s, stdout, stderr_tail}``. A refusal propagates (P10)."""
+    t0 = time.monotonic()
+    try:
+        o = containment.run(containment.plan("verify", argv, cwd=cwd, ro=env.ro, env=env.env, ro_cache=env.ro_cache), timeout=timeout)
+    except containment.ContainmentError as exc:
+        return {"argv": argv, "outcome": "error", "rc": None, "wall_s": round(time.monotonic() - t0, 1), "stdout": "", "stderr_tail": str(exc)[-600:]}
+    p = o.proc
+    return {"argv": argv, "outcome": "pass" if p.returncode == 0 else "fail", "rc": p.returncode, "wall_s": round(time.monotonic() - t0, 1),
+            "stdout": p.stdout or "", "stderr_tail": (p.stderr or "")[-600:] if p.returncode else "", "contained": o.contained}
+
+
+def go_roots(worktree: Path, paths: list[str]) -> list[str]:
+    """The Go module roots (worktree-relative, ``""`` for the top) holding any of *paths* that can move the Go build: a
+    ``.go`` file, a module file, or any file in a directory that holds Go files (an embedded file, a template a generator
+    reads). A Python file under a Go module's root moves nothing the go tool reads."""
+    roots = set()
+    for p in paths:
+        d = Path(worktree) / os.path.dirname(p)
+        if not (p.endswith(".go") or os.path.basename(p) in ("go.mod", "go.sum", "go.work") or (d.is_dir() and any(d.glob("*.go")))):
+            continue
+        r = nearest(Path(worktree), p, ("go.mod",))
+        if (Path(worktree) / r / "go.mod").exists():
+            roots.add(r)
+    return sorted(roots)
+
+
+def go_tree(worktree: Path, sel: Selection, env: Environment, *, timeout: int = 900) -> dict:
+    """The Go tree steps (calvin-m0-go §2.3) on one tree, before any test: for every module root the diff touches, each
+    ``//go:generate`` directive package is regenerated (``go generate``; what it writes read back as a ``git diff`` against
+    the tree as it stood) and its import closure listed (``go list -deps``), then ``go build ./...`` and ``go vet ./...``.
+    Returns the steps by row id, the generation records and the containment ledger of these steps."""
+    worktree = Path(worktree)
+    start = len(containment.LEDGER)
+    steps: dict[str, dict] = {}
+    generated: list[dict] = []
+    roots = go_roots(worktree, sel.edited_files)
+    for root in roots:
+        cwd = worktree / root if root else worktree
+        for pkg, f in sorted(go_directives(worktree, root).items()):
+            target = _go_target(pkg, root)
+            subprocess.run(["git", "add", "-A"], cwd=worktree, capture_output=True)  # the tree as it stands: what generation writes is the diff after it
+            attempts: list[str] = []
+            failures: list[str] = []
+            for _ in range(GENERATE_ATTEMPTS):
+                s = _go_step(["go", "generate", target], cwd, env, timeout)
+                attempts.append(s["outcome"])
+                if s["outcome"] != "fail":
+                    break  # a pass is the tree's answer; a container error is not retried
+                failures.append(s["stderr_tail"][-300:])
+            changed = subprocess.run(["git", "diff", "--name-only"], cwd=worktree, capture_output=True, text=True).stdout.split()
+            text = subprocess.run(["git", "diff", "--no-color"], cwd=worktree, capture_output=True, text=True, errors="surrogateescape").stdout
+            lo = _go_step(["go", "list", "-deps", "-f", "{{.Dir}}", target], cwd, env, timeout)
+            deps = sorted({os.path.relpath(d, worktree) if os.path.relpath(d, worktree) != "." else "" for d in lo["stdout"].split()
+                           if containment._under(Path(d), worktree)})
+            rid = f + "::go:generate"
+            flaky = "fail" in attempts and "pass" in attempts
+            steps[rid] = {"kind": "generate", "root": root, "file": f, **{k: v for k, v in s.items() if k != "stdout"},
+                          "attempts": attempts, "flaky": flaky, **({"failures": failures} if failures else {})}
+            generated.append({"id": rid, "dir": pkg, "outcome": s["outcome"], "attempts": attempts, "flaky": flaky, "changed": changed, "diff": text[:GENERATED_CAP],
+                              "diff_sha256": hashlib.sha256(text.encode("utf-8", "surrogateescape")).hexdigest(), "truncated": len(text) > GENERATED_CAP,
+                              "deps": deps, "deps_listed": lo["outcome"] == "pass"})
+        for kind, argv in (("build", ["go", "build", "./..."]), ("vet", ["go", "vet", "./..."])):
+            s = _go_step(argv, cwd, env, timeout)
+            steps[f"{root or '.'}::{' '.join(argv)}"] = {"kind": kind, "root": root, **{k: v for k, v in s.items() if k != "stdout"}}
+    return {"roots": roots, "steps": steps, "generated": generated, "ledger": list(containment.LEDGER[start:])}
+
+
+def go_rows(sel: Selection, cand: dict, base: dict | None) -> tuple[list[dict], list[dict]]:
+    """``(build rows, generation test rows)`` from the two trees' steps. A generation whose import closure (on either tree)
+    holds an edited path's directory, or that rewrites a file the diff touches, guards the edit — a test row; any other
+    generation is a build row beside ``go build`` and ``go vet``."""
+    edited = set(sel.edited_files)
+    reach: dict[str, bool] = {}
+    for g in cand["generated"] + (base["generated"] if base else []):
+        hit = any(os.path.dirname(p) in set(g["deps"]) for p in edited) or bool(edited & set(g["changed"]))
+        reach[g["id"]] = reach.get(g["id"], False) or hit
+    build, gen = [], []
+    for rid in sorted(set(cand["steps"]) | set(base["steps"] if base else ())):
+        s = cand["steps"].get(rid) or base["steps"][rid]
+        row = {"id": rid, "kind": s["kind"], "root": s["root"], "candidate": cand["steps"].get(rid, {}).get("outcome", "not-run"),
+               "baseline": (base["steps"].get(rid, {}).get("outcome", "not-run") if base else None)}
+        if s["kind"] == "generate" and reach.get(rid):
+            gen.append({"id": rid, "file": s["file"], "framework": "go-generate", "origin": "generate", "grain": "deps",
+                        "candidate": row["candidate"], "baseline": row["baseline"]})
+        else:
+            build.append(row)
+    return build, gen
 
 
 def checkout(clone: Path, sha: str, dest: Path) -> Path:
@@ -567,11 +754,13 @@ CLASSES = ("P2P", "F2P", "P2F", "F2F", "new-pass", "new-fail", "removed", "skip"
 #: The classes that fail a verdict: what the diff itself did. An `F2F` fails on both trees (an environment fault, C-92 — listed
 #: under `faults`); a `removed` test is one the diff renamed or deleted (the 2026-09-04 calibration: seven tests three commits renamed).
 FAILING = ("P2F", "new-fail", "error", "not-run")
+#: The build-row classes that make the verdict `build-fail` (a tree the diff leaves that does not build or vet); `fail` is an unbaselined row's.
+BUILD_FAILING = ("P2F", "new-fail", "fail", "error")
 
 
 def classify(candidate: str, baseline: str | None) -> str:
     """A test's class from its outcome with the diff and without it."""
-    if candidate == "not-run" and baseline not in (None, "not-run"):
+    if candidate in ("not-run", "uncollected") and baseline not in (None, "not-run", "uncollected"):
         return "removed"  # the test existed without the diff and does not with it: renamed or deleted by the diff
     if candidate in ("error", "unsupported", "not-run", "uncollected"):
         return candidate
@@ -612,26 +801,39 @@ def verify(clone: Path, sha: str, diff: str, L: T.Ledger, source: Path, *, out: 
         env = environment(source, wt)
         link_deps(env, wt)
         rec["environment"] = env.record()
+        gt = go_tree(wt, sel, env, timeout=timeout)  # generation first: the tests read what it writes
         cmds = commands(sel, wt, env, scratch / "reports" / "work")
         res, cmd_recs, ledger = run_commands(wt, cmds, env, timeout=timeout)
+        ledger = gt["ledger"] + ledger
         rec["commands"] = cmd_recs
         base_res: dict[str, dict] = {}
-        if baseline and cmds:
+        bgt = None
+        if baseline and (cmds or gt["steps"]):
             bwt = checkout(clone, sha, scratch / "base")
             benv = environment(source, bwt)
             link_deps(benv, bwt)
+            bgt = go_tree(bwt, sel, benv, timeout=timeout)
             bcmds = commands(sel, bwt, benv, scratch / "reports" / "base")
             base_res, base_recs, base_ledger = run_commands(bwt, bcmds, benv, timeout=timeout)
             rec["baseline_commands"] = base_recs
-            ledger += base_ledger
+            ledger += bgt["ledger"] + base_ledger
         meta = {t["id"]: t for t in sel.tests}
         rows = []
         for tid in sorted(set(res) | set(base_res)):
             cand = res.get(tid, {}).get("outcome", "not-run")
             base = base_res.get(tid, {}).get("outcome") if baseline else None
-            m = meta.get(tid, {"file": tid.split("::")[0], "framework": (res.get(tid) or base_res.get(tid) or {}).get("framework"), "origin": "touched", "grain": "file"})
+            got = res.get(tid) or base_res.get(tid) or {}
+            g = got.get("grain", "file")
+            m = meta.get(tid, {"file": tid.split("::")[0], "framework": got.get("framework"), "origin": "touched" if g == "file" else "guard", "grain": g})
+            note = res.get(tid, {}).get("note") or base_res.get(tid, {}).get("note")
             rows.append({"id": tid, "file": m["file"], "framework": m["framework"], "origin": m["origin"], "grain": m["grain"],
-                         "candidate": cand, "baseline": base, **({"note": res[tid]["note"]} if res.get(tid, {}).get("note") else {})})
+                         "candidate": cand, "baseline": base, **({"note": note} if note else {})})
+        if gt["steps"]:
+            build, gen = go_rows(sel, gt, bgt)
+            rows = sorted(rows + gen, key=lambda r: r["id"])
+            rec["build"] = build
+            rec["go"] = {"roots": gt["roots"], "steps": {"candidate": gt["steps"], "baseline": bgt["steps"] if bgt else None},
+                         "generated": {"candidate": gt["generated"], "baseline": bgt["generated"] if bgt else None}}
         rec["tests"] = rows
         rec["baseline"] = baseline
         score(rec)
@@ -649,19 +851,27 @@ def verify(clone: Path, sha: str, diff: str, L: T.Ledger, source: Path, *, out: 
 def score(rec: dict) -> dict:
     """Class every test row of a verify record and read the verdict off the classes — the one place the reading is made, so a record can be rescored into a new file when the classes change (never in place)."""
     rows = rec.get("tests", [])
+    builds = rec.get("build", [])
     baseline = rec.get("baseline", True)
-    for r in rows:
+    for r in rows + builds:
         r["class"] = classify(r["candidate"], r["baseline"]) if baseline else r["candidate"]
     rec["harness_version"] = HARNESS_VERSION
     rec["summary"] = dict(collections.Counter(r["class"] for r in rows))
+    if builds:
+        rec["build_summary"] = dict(collections.Counter(r["class"] for r in builds))
     if rec.get("verdict") in ("not-applied", "empty-diff"):
         return rec
-    if not rows:
+    broken = [b["id"] for b in builds if b["class"] in BUILD_FAILING]
+    if broken:
+        rec["verdict"] = "build-fail"  # a diff that does not compile is its own class, not a test failure (calvin-m0-go §2.3)
+    elif not rows:
         rec["verdict"] = "no-tests"
     else:
         rec["verdict"] = "fail" if any(r["class"] in FAILING for r in rows) else "pass"
+    if builds:
+        rec["build_failures"] = broken
     rec["regressions"] = [r["id"] for r in rows if r["class"] == "P2F"]
-    rec["faults"] = [r["id"] for r in rows if r["class"] == "F2F"]
+    rec["faults"] = [r["id"] for r in rows + builds if r["class"] == "F2F"]
     return rec
 
 

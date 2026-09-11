@@ -856,8 +856,9 @@ def _cmd_verify(args: argparse.Namespace) -> int:
     print(f"verified {rec['diff_hash']} @ {sha[:12]} (harness v{rec['harness_version']}): {rec['verdict']}; applies {rec['applies']}; "
           f"tests {len(rec.get('tests', []))} ({sel.get('by_origin', {})}, {sel.get('by_grain', {})}) → {rec.get('summary', {})}; "
           f"regressions {len(rec.get('regressions', []))}; contained {(rec.get('containment') or {}).get('all_contained')}; {rec.get('wall_s')} s"
+          + (f"; build {rec['build_summary']}" if rec.get("build_summary") else "")
           + (f"; wrote {args.out}" if args.out else ""), file=sys.stderr)
-    for r in rec.get("tests", []):
+    for r in rec.get("build", []) + rec.get("tests", []):
         if r["class"] not in ("P2P", "new-pass", "skip"):
             print(f"  {r['class']:8s} {r['id']} (with {r['candidate']}, without {r['baseline']})", file=sys.stderr)
     return 0 if rec["verdict"] == "pass" else 1

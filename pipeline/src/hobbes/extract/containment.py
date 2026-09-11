@@ -299,10 +299,15 @@ class Plan:
     cache_root: str
     ro: tuple[str, ...] = ()
     env: tuple[str, ...] = ()
+    #: Paths *under* the cache root laid read-only over its rw mount — the
+    #: verify profile's Go module cache (C-92: the tests bind to it, never
+    #: write it). Podman binds the nested path after the outer one.
+    ro_cache: tuple[str, ...] = ()
 
     def mounts(self) -> list[str]:
-        """The ``-v`` specs, stable order: cache rw, then every ro path."""
+        """The ``-v`` specs, stable order: cache rw, the ro paths under it, then every other ro path."""
         specs = [f"{self.cache_root}:{self.cache_root}:rw"]
+        specs.extend(f"{p}:{p}:ro" for p in self.ro_cache)
         specs.extend(f"{p}:{p}:ro" for p in self.ro)
         return specs
 
@@ -447,12 +452,16 @@ def plan(
     cwd: Path | str,
     ro: tuple[str, ...] | list[str] = (),
     env: tuple[str, ...] | list[str] = (),
+    ro_cache: tuple[str, ...] | list[str] = (),
 ) -> Plan:
     """Build the plan for *step*: the profile is looked up, the helper
-    dir is always mounted, the cache root is always rw."""
+    dir is always mounted, the cache root is always rw — except the
+    existing paths under it named in *ro_cache*, which ride read-only."""
     profile = PROFILES[step]
     cache = staging.cache_root()
     ro_paths = mount_roots([helper_dir(), *(Path(p) for p in ro)])
+    nested = tuple(sorted({os.path.normpath(p) for p in ro_cache
+                           if Path(p).is_dir() and _under(Path(os.path.normpath(p)), cache) and Path(os.path.normpath(p)) != cache}))
     return Plan(
         profile=profile,
         command=tuple(command),
@@ -461,6 +470,7 @@ def plan(
         cache_root=str(cache),
         ro=ro_paths,
         env=tuple(env),
+        ro_cache=nested,
     )
 
 
