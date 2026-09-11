@@ -13,6 +13,37 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.19-beta — 2026-09-11 (Calvin M0-Gate, WP-18b)
+
+**Patch: the gate's repair message names what a blocked name nearly
+was, with signatures, not an unrelated body (gate v2).** Calvin
+M0-Gate WP-18b, found by WP-20's pre-flight (D-w); checked with no
+model.
+
+- **The defect.** On a near-miss name nothing declares
+  (`awkTokenizeRune`), the message showed "the form of a declaration":
+  the binding directory's most-called function, an unrelated 110-line
+  body (`extractColor`). That rule was built for a declaration the
+  model is asked to write. At the gate it only picked a big function.
+- **The fix.**
+  - A blocked `invented` or `near-miss` name now lists the declared
+    names nearest to it: the grounder's own nearest names, resolved
+    to their symbols (same file first, then the package; five at
+    most), each with its signature line.
+  - A declaration's form appears only where the diff itself declares
+    the blocked name, but where the reference cannot bind. It stays
+    capped at 4,400 bytes.
+  - The record gains `nearest_declared` and `rules.message` and
+    stamps `gate_version` 2. Nothing else in the record moves: every
+    verdict, class, row and site reads as before.
+- **The Calvin driver** (bench tooling): `o-units` rows now carry
+  - `recall` read at the unit's own repo pin (`--recall-upper`, else
+    the unit's `recall_upper`, else gitleaks' as before; D-u);
+  - §2.5's `gold_tests` and `turns_to_first_edit` (D-v);
+  - `verdict`, which reads `empty` for a session that left no diff —
+    neither pass nor blocked — with `verdict_gate` beside it, and
+    `verdict_after` on repair rows.
+
 ## 0.1.18-beta — 2026-09-11 (Calvin M0-Gate, WP-18)
 
 **Patch: `hobbes gate`, the linker on a finished diff.** Calvin

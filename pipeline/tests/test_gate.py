@@ -5,6 +5,7 @@ blocks; a defective map is refused; the record is byte-identical on rerun — on
 grounder's own tests are."""
 import json
 import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -407,7 +408,50 @@ def test_repair_message_names_the_classes_the_sites_the_files_outside_and_a_decl
     msg = gt.repair_message(rec)
     assert msg.startswith(f"Hobbes checked your change against the repository at its parent commit {repo[1][:12]} and blocked it: invented (1), partition (1).")
     assert "- cmd/main.go:10 `app.Frobnicate`" in msg and "- internal/other/other.go\n" in msg and "one turn to repair it" in msg
-    assert rec["siblings"][0]["symbol"] == "internal/app/app.Run" and "func Run(o Options) error {" in msg and "directory `internal/app/`" in msg
+    assert rec["siblings"] == [] and "The form of a declaration" not in msg and 'fmt.Println("go-rta"' not in msg, \
+        "D-w: an invented reference gets the nearest declared names, never a sibling's body"
+    assert rec["nearest_declared"][0]["for"] == "app.Frobnicate" and "The declared names nearest to it, with their signatures:" in msg
     assert msg == gt.repair_message(json.loads(gt.dumps(rec))), "the message is the record's, deterministic"
     with pytest.raises(ValueError):
         gt.repair_message(run_gate(repo, diff_of(root, {"cmd/main.go": main_with("\tapp.Run(app.Options{})")})))
+
+
+def test_a_near_miss_shows_nearest_signatures_never_an_unrelated_body_and_a_declared_name_gets_its_form(repo):
+    """WP-18b, D-w: the pre-flight's near-miss message showed an unrelated 130-line function as "the form of a declaration" — the
+    sibling rule picked the binding directory's most-called function for a name nobody declares. A blocked invented / near-miss name
+    now shows the declared names nearest to it with their signatures; a sibling's form appears only where the diff declares the name."""
+    root = repo[0]
+    rec = run_gate(repo, diff_of(root, GO_CASES["near-miss"]))
+    msg = gt.repair_message(rec)
+    assert rec["gate_version"] == 2 and rec["siblings"] == [] and "The form of a declaration" not in msg
+    run = next(c for c in rec["nearest_declared"][0]["candidates"] if c["name"] == "Run")
+    assert (run["symbol"], run["kind"], run["path"], run["line"], run["signature"]) == \
+        ("internal/app/app.Run", "function", "internal/app/app.go", 12, "func Run(o Options) error {")
+    assert "  - `Run` (function, internal/app/app.go:12): `func Run(o Options) error {`" in msg
+    assert 'fmt.Println("go-rta"' not in msg and "return nil" not in msg, "a signature, never a body"
+    assert rec["rules"]["message"] == gt.MESSAGE_RULE
+    # the diff declares `helperX` in package main and calls it in package app, where it binds nowhere: the form of a function there
+    rec = run_gate(repo, diff_of(root, {"cmd/main.go": main_with("\tapp.helperX()") + "\nfunc helperX() {}\n"}))
+    msg = gt.repair_message(rec)
+    assert rec["blocking"] == ["near-miss"] and [s["for"] for s in rec["siblings"]] == ["app.helperX"]
+    assert "## The form of a declaration where `app.helperX` would bind (directory `internal/app/`)" in msg and len(rec["siblings"][0]["text"]) <= 4400
+
+
+PREFLIGHT = Path.home() / ".hobbes/bench/calvin-gate/wp-20/preflight/manifest"
+WP17 = Path.home() / ".hobbes/bench/calvin-gate/wp-17"
+
+
+@pytest.mark.skipif(not (PREFLIGHT / "calvin-o-d32458084014-20260911T184838.o.diff").exists() or not (WP17 / "units.jsonl").exists(),
+                    reason="calvin-gate WP-20's pre-flight records are not on this box")
+def test_the_preflights_near_miss_message_no_longer_carries_the_unrelated_body():
+    """WP-18b, D-w on the record that found it: d32458084014's pre-flight O diff, gated as the driver gates it."""
+    u = next(x for x in map(json.loads, open(WP17 / "units.jsonl")) if x["key"] == "d32458084014")
+    diff = (PREFLIGHT / "calvin-o-d32458084014-20260911T184838.o.diff").read_text(errors="surrogateescape")
+    L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+    rec = gt.gate(diff, u["parent_sha"], WP17 / "repos" / u["repo"], L, inputs={}, partition=u["partition"], partition_source="unit",
+                  bmap=u["blind_spot_map"])
+    msg = gt.repair_message(rec)
+    assert rec["blocking"] == ["near-miss"] and rec["siblings"] == []
+    assert "func extractColor(" not in msg and "The form of a declaration" not in msg
+    first = rec["nearest_declared"][0]["candidates"][0]
+    assert first["name"] == "awkTokenizer" and first["signature"].startswith("func awkTokenizer(")

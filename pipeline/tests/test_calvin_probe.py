@@ -279,7 +279,54 @@ def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, 
     assert row["rfe_gold"] == [0.5, 1.0, 0.5] and row["plan_rfe"] == [0.33, 0.5, 0.5] and row["files_changed"] == ["a.go"]
     assert row["verify"]["verdict"] == "fail" and row["verify"]["all_contained"] is True
     assert row["recall"]["rule"] == cp.RECALL_RULE and "error" in row["recall"], "a clone the scan cannot read is said in the row, not raised"
+    assert row["recall"]["upper"] == cp.RECALL_UPPER[:12], "no flag, no unit field: gitleaks' pin, rounds 1-2 unchanged"
     assert "sk-test" not in (tmp_path / "out" / "rows.jsonl").read_text()
+    # §2.5's fields (WP-18b, D-v): gold touches no test here, so gold_tests is n/a; the verdict is the verifier's
+    assert (row["gold_tests"], row["verdict"], row["turns_to_first_edit"]) == ({"verdict": "n/a", "ids": []}, "fail", None)
+
+
+def test_first_edit_turn_reads_the_first_successful_edit_from_a_transcript(tmp_path):
+    """WP-18b, D-v: WP-20's post-hoc reading, reused — a failed edit is not an edit; no transcript is None."""
+    call = lambda i, name: {"id": i, "type": "function", "function": {"name": name, "arguments": "{}"}}
+    msgs = [{"role": "system", "content": "s"}, {"role": "user", "content": "b"},
+            {"role": "assistant", "tool_calls": [call("r1", "read_file")]}, {"role": "tool", "tool_call_id": "r1", "content": "1\tx"},
+            {"role": "assistant", "tool_calls": [call("e1", "edit_file")]}, {"role": "tool", "tool_call_id": "e1", "content": "ERROR: old_text occurs 0 times"},
+            {"role": "assistant", "tool_calls": [call("w1", "write_file")]}, {"role": "tool", "tool_call_id": "w1", "content": "wrote a.go"}]
+    (tmp_path / "t.jsonl").write_text("".join(json.dumps(m) + "\n" for m in msgs))
+    assert cp.first_edit_turn(tmp_path / "t.jsonl") == 3 and cp.first_edit_turn(tmp_path / "none.jsonl") is None
+
+
+def test_o_units_reads_recall_at_the_units_upper_and_an_edit_less_session_is_empty(tmp_path, monkeypatch):
+    """WP-18b, D-u: recall's range ends at the repo's own pin — --recall-upper, else the unit's `recall_upper`, else gitleaks'
+    RECALL_UPPER. D-v: a session that left no diff reads `verdict: empty` (neither pass nor blocked): the gate clears the empty diff, no
+    repair turn is launched, gold_tests reads `empty-diff` and there is no recall."""
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    uppers = []
+    real = cp.recall_scan
+    monkeypatch.setattr(cp, "recall_scan", lambda diff, gold, repo, parent, upper=cp.RECALL_UPPER: uppers.append(upper) or real(diff, gold, repo, parent, upper))
+    one = "diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+z\n"
+    patches = iter([one, one, one, ""])
+
+    def fake_run_o(clone, sha, task, L, source, graphs, *, session_id, sessions_root, out_dir, **kw):
+        (out_dir / f"{session_id}.o.diff").write_text(next(patches))
+        return {"session_rc": 0, "plan": {}, "patch_files": [], "wall_s": 1.0, "verify": None}
+    monkeypatch.setattr(H, "run_o", fake_run_o)
+    monkeypatch.setattr(cp, "gate_session", lambda patch, *a, **k: _gate_rec("clear" if not patch else "blocked"))
+    monkeypatch.setattr(cp, "launch", lambda *a, **k: pytest.fail("a repair turn launched"))
+    args = _o_fixture(tmp_path) + ["--total-cap", "9"]
+    assert cp.main(args) == 0 and cp.main(args + ["--recall-upper", "f7ae439ff5b2"]) == 0
+    u = json.loads((tmp_path / "units.jsonl").read_text())
+    (tmp_path / "units.jsonl").write_text(json.dumps({**u, "recall_upper": "0123abcd"}) + "\n")
+    assert cp.main(args) == 0
+    assert uppers == [cp.RECALL_UPPER, "f7ae439ff5b2", "0123abcd"]
+    assert cp.main(args + ["--gate-repair"]) == 0, "the edit-less session: its gate clears, nothing is launched"
+    empty = [json.loads(l) for l in open(tmp_path / "out" / "rows.jsonl")][-1]
+    assert (empty["verdict"], empty["verdict_gate"], empty["gold_tests"], empty["recall"], empty["gate"]["verdict"]) == \
+        ("empty", "empty", {"verdict": "empty-diff"}, None, "clear")
+    assert not (tmp_path / "out" / "repair-rows.jsonl").exists()
 
 
 def test_gate_inputs_prefer_the_units_partition_then_the_templates_and_carry_the_map(tmp_path):
@@ -383,6 +430,10 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     def fake_launch(cmd, timeout):
         launched.update(cmd=cmd, key=os.environ.get("HOBBES_LLM_API_KEY"))
         (sroot / cp.argv_value(cmd, "--session") / "calls.jsonl").write_text(json.dumps({"prompt_tokens": 50_000, "completion_tokens": 1_000}) + "\n")
+        edit = {"id": "e1", "type": "function", "function": {"name": "edit_file", "arguments": "{}"}}
+        (sroot / cp.argv_value(cmd, "--session") / "transcript.jsonl").write_text(
+            "".join(json.dumps(m) + "\n" for m in ({"role": "system", "content": "s"}, {"role": "user", "content": "b"},
+                                                    {"role": "assistant", "tool_calls": [edit]}, {"role": "tool", "tool_call_id": "e1", "content": "edited a.go"})))
         return subprocess.CompletedProcess(cmd, 0, json.dumps({"type": "result", "is_error": True, "num_turns": 1, "tool_calls": 1, "edited": True,
                                                                 "result": "turn budget (1) exhausted", "resumed": {"messages": 2}}) + "\n", "")
     monkeypatch.setattr(cp, "launch", fake_launch)
@@ -403,6 +454,9 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     assert (r["arm"], r["gate_before"]["verdict"], r["gate_after"]["verdict"], r["verify_after"]["verdict"], r["turns"], r["usd"], r["resumed"]) == \
         ("O+gate+repair", "blocked", "clear", "pass", 1, 0.055, {"messages": 2})
     assert cp.spent_in(tmp_path / "out") == pytest.approx(0.055), "the repair turn is metered under the cap"
+    # §2.5's fields on the repair row too (WP-18b, D-u/D-v)
+    assert (r["verdict_after"], r["turns_to_first_edit"], r["gold_tests"]) == ("pass", 1, {"verdict": "n/a", "ids": []})
+    assert r["recall"]["upper"] == cp.RECALL_UPPER[:12] and "error" in r["recall"]
     # a record without the transcript cannot be resumed faithfully: said in the row, nothing launched
     (sroot / "S1" / "transcript.jsonl").unlink()
     launched.clear()
@@ -412,6 +466,32 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     # the cap stops a repair turn whose worst case would pass it
     (sroot / "S1" / "transcript.jsonl").write_text(json.dumps({"role": "system", "content": "s"}) + "\n")
     assert cp.main(argv + ["--gate-repair"] + keys[:-1] + ["0.2"]) == 4 and not launched
+
+
+PRE = Path.home() / ".hobbes/bench/calvin-gate/wp-20"
+
+
+@pytest.mark.skipif(not (PRE / "preflight/manifest/posthoc.jsonl").exists(), reason="calvin-gate WP-20's pre-flight records are not on this box")
+def test_recall_and_first_edit_read_the_preflight_as_wp21_posthoc_does():
+    """WP-18b, D-u/D-v on WP-20's pre-flight: at the fzf pin (--recall-upper's value) the driver's recall reads on all eight diffs (the
+    manifest and withheld runs, O and repair) and equals wp21_posthoc.py's recorded values, as turns-to-first-edit does."""
+    units = {u["key"]: u for u in map(json.loads, open(Path.home() / ".hobbes/bench/calvin-gate/wp-17/units.jsonl"))}
+    clone = PRE / "repos" / "fzf"
+    want = {(r["key"], r["arm"]): r for r in map(json.loads, open(PRE / "preflight/manifest/posthoc.jsonl"))}
+    seen = 0
+    for run in ("manifest", "withheld"):
+        d = PRE / "preflight" / run
+        reps = {r["session"]: r for r in map(json.loads, open(d / "repair-rows.jsonl"))}
+        for r in map(json.loads, open(d / "rows.jsonl")):
+            u = units[r["key"]]
+            gold = Path(u["gold_diff"]).read_text(errors="surrogateescape")
+            upper = cp.recall_upper_of(u, "f7ae439ff5b2", clone)
+            for arm, sess in (("O", r["session"]), ("O+gate+repair", reps[r["session"]]["repair_session"])):
+                rec = cp.recall_scan((d / f"{sess}.o.diff").read_text(errors="surrogateescape"), gold, clone, u["parent_sha"], upper)
+                assert "error" not in rec and rec == want[(r["key"], arm)]["recall"], (run, r["key"], arm, rec)
+                assert cp.first_edit_turn(PRE / "sessions" / run / sess / "transcript.jsonl") == want[(r["key"], arm)]["turns_to_first_edit"]
+                seen += 1
+    assert seen == 8
 
 
 def test_recall_norm_excludes_short_and_punctuation_only_lines():
