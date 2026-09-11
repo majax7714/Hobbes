@@ -334,6 +334,48 @@ Re-running T twice costs about $4.7. The decision is Max's.
 - **D-d:** contamination (U/O).
 - **D-e:** the O driver for M0-Go units, `o-units`, on branch `calvin-go/wp-6`.
 
+**WP-8, 2026-09-11 — the floor re-tested.** Every number is at A2, a fixing. The run:
+- **T:** 20 keys × 2 runs, with T-loop inside them.
+- **Held constant:** Haiku 4.5 at model-default sampling, template v2.
+- **Changed:** **protocol v0.4**, the declaration hole and the gutter guard (WP-7a), with **recall on every row** (WP-7b).
+- **O:** WP-6's rows stand; O was not re-run.
+
+Every row was attributed before any aggregate. The rows are in the re-test section of [`cells/calvin-m0-go-2026-09-11.md`](cells/calvin-m0-go-2026-09-11.md), and the machine rows in `~/.hobbes/bench/calvin-go/wp-8/rows.json`. Every exchange, record and row is stamped 0.4.
+
+| arm | n | pass [95% CI] | J [95% CI] | NULL | $ |
+|---|---|---|---|---|---|
+| WP-8 T (mean of 2 runs) | 20 | 0.25 [0.075, 0.425] | 0.427 [0.265, 0.592] | 11 | 5.0214 |
+| WP-8 T-loop | 20 | 0.25 [0.075, 0.425] | 0.506 [0.315, 0.693] | 2 (loop closed 9 of 11) | +0.0257 |
+| WP-6 T | 20 | 0.225 [0.05, 0.40] | 0.394 [0.245, 0.55] | 11 (closed 0) | 4.6768 |
+| O (WP-6, standing) | 5 | 0.80 [0.40, 1.00] | 0.45 [0.288, 0.612] | 0 | 3.2775 |
+
+- **Paired differences:**
+  - WP-8 T-loop − WP-6 T: pass +0.025 [0.00, 0.075].
+  - O − WP-8 T-loop on O's 5 keys: pass +0.40 [0.10, 0.70]; J +0.315 [0.134, 0.481].
+  - O − WP-8 T-loop on the 3 recall-free keys: pass +0.17 [0.00, 0.50].
+  - Run 2 − run 1: +0.10 [0.00, 0.25]. The two runs disagree by verdict on 4 keys.
+- **The declaration hole:** 11 offered on 9 loop firings, 11 answered, 9 placed (0924's second whole-file answer was refused as overlapping). **9 of 11 NULLs closed**, and all 9 placed declarations sit outside the partition (C-107). **0 of 9 built.** Every placed body is written against another project's API: trufflehog's `pkg/detectors` on 3 keys, gosec on 1, an unimported `core` on 1. None uses gitleaks' form, `func X() *config.Rule`.
+- **Recall:** T 0 of 40 rows recalled (upstream share 0.24 of 112 novel lines); T-loop 0 of 40 (0.18 of 156); O 2 of 5.
+
+**The reading re-selected (§5): *T < O*, unchanged, and not separable on the recall-free keys. The floor does not hold.**
+- **X:** clean.
+- **G:** clean on what it binds (11 of 11 NULLs at the right site, 0 mis-bound), and not on what the hole now lets through. A declaration's imports are never read against go.mod and its unimported qualifiers abstain, so 9 NULLs close at HSR 0 on bodies no build accepts. By §5, that is not yet a reading about the idea.
+- ***NULL new* no longer dominates; *declared in the wrong world* does.** It implicates O (the form), H-s (the hole gives no sibling's form) and G (the body is not held to §2.5's world).
+
+**Instruments:**
+- **§4.3a (density):** row 1 holds again: absent → invented, sibling-shaped; 2,352 sparse-real references resolved, 0 sparse NULL.
+- **§4.9 (T against W):** W = 1.0, and T varies by shape (single-file 0.6, new-symbol 0).
+- **§4.10 (declare-holes):** T declared something on 11 of 22 declare-unit runs (WP-6: 3). Right file (new) 7, wrong file 2, right file wrong region 1.
+
+**Spend:** run 1 $2.6579 (the $4.72 stop was not reached), run 2 $2.3890. **WP-8 $5.0469 of $20.88; the round $14.17 of $30.**
+
+**Defects:**
+- **D-f** (adapter, instrument): a refused declaration is recorded "placed".
+- **D-g** (G, coverage): a declaration's imports and qualifiers go unchecked.
+- **D-h** (protocol, H-s): the declaration hole shows no sibling's form.
+
+The next step is Max's.
+
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
 - 2026-09-11 — Max cleared the round to proceed: WP-0 to WP-4 (no spend) now; the spend gate at WP-4 stands as written.
