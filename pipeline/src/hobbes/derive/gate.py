@@ -40,7 +40,19 @@ from hobbes.derive import ground as G
 from hobbes.derive.template import Ledger
 from hobbes.extract.tail import language_of
 
-GATE_VERSION = 1
+GATE_VERSION = 2  #: 1: calvin-m0-gate WP-18; 2: the repair message's forms (WP-18b, D-w) — a blocked invented / near-miss name shows the
+#: declared names nearest to it with their signatures (`nearest_declared`); a sibling's form only where the diff itself declares the name
+#: How many declared names a blocked invented / near-miss row shows, and how much of one signature (WP-18b, D-w).
+NEAREST_SHOWN = 5
+SIGNATURE_CHARS = 240
+#: What the repair message shows for a blocked name, stated on every record (WP-18b, D-w).
+MESSAGE_RULE = (
+    "A blocked invented or near-miss name shows the declared names nearest to it — the grounder's `nearest`, in its order, each resolved to "
+    "its symbols (the row's own file first, then the directory the name binds in; two a name, five in all; a module name is not a "
+    "declaration) — each with its signature, the declaration's own lines up to one ending in `{` or `:`. A declaration's form (one existing "
+    "declaration of the same kind where the name would bind, adapter v0.6's rule, capped at 4,400 bytes) appears only where the diff itself "
+    "declares that name (a gensym of the post-image), so it answers a declaration the diff placed where the reference cannot bind, never "
+    "a misspelt or invented reference.")
 #: calvin-m0-gate §6: the classes that block, in the order a record and a repair message list them.
 BLOCKING = ("invented", "near-miss", "arity", "undeclared-type", "import-outside", "unimported", "malformed", "partition")
 #: Reported, never blocking this round (§2.2 step 4; C-121).
@@ -345,16 +357,53 @@ def _row(cls: str, grounder_class: str | None, path: str | None, line: int, term
             "nearest": list(nearest or []), "scope": scope, "site": site}
 
 
-def _siblings(rows: list[dict], L: Ledger, repo_root: Path) -> list[dict]:
-    """A declaration's form for each blocked name the grounder scoped to a directory (Go): one existing declaration of the same kind
-    where the name binds (`adapter.declaration_sibling`, protocol v0.6's rule), for the repair message."""
+def _signature(repo_root: Path, sha: str, sp: dict) -> str:
+    """A declaration's signature as its source states it: its span's lines from the first up to one ending in ``{`` or ``:`` (six at
+    most), whitespace-joined and cut at `SIGNATURE_CHARS` — never its body."""
+    lines = G.file_at(repo_root, sha, sp["path"]) or []
+    out: list[str] = []
+    for line in lines[sp["start"] - 1: min(sp["end"], sp["start"] + 5)]:
+        out.append(line.strip())
+        if line.rstrip().endswith(("{", ":")):
+            break
+    sig = " ".join(x for x in out if x)
+    return sig if len(sig) <= SIGNATURE_CHARS else sig[:SIGNATURE_CHARS - 1] + "…"
+
+
+def _nearest_declared(rows: list[dict], L: Ledger, repo_root: Path) -> list[dict]:
+    """For each blocked invented / near-miss row, the declared names nearest to it with their signatures (WP-18b, D-w; `MESSAGE_RULE`):
+    the grounder's ``nearest`` names in its order, each resolved to its symbols — the row's own file first, then the directory the name
+    binds in, then by id; two a name, `NEAREST_SHOWN` in all. A module name in ``nearest`` is not a declaration and is skipped."""
+    out: list[dict] = []
+    for r in rows:
+        if r["class"] not in ("invented", "near-miss"):
+            continue
+        where = str((r.get("scope") or {}).get("dir") or PurePosixPath(r["path"]).parent)
+        cands: list[dict] = []
+        for name in r["nearest"]:
+            sids = [sid for sid in L.by_name.get(name, []) if sid in L.symbols and L.symbols[sid]["module"] in L.mod_path]
+            sids.sort(key=lambda sid: (L.path_of(sid) != r["path"], str(PurePosixPath(L.path_of(sid)).parent) != where, sid))
+            for sid in sids[:2]:
+                sp = L.span(sid)
+                cands.append({"name": name, "symbol": sid, "kind": L.symbols[sid].get("kind"), "path": sp["path"], "line": sp["start"],
+                              "signature": _signature(repo_root, L.sha, sp)})
+        out.append({"for": r["term"], "path": r["path"], "line": r["line"], "class": r["class"], "candidates": cands[:NEAREST_SHOWN]})
+    return out
+
+
+def _siblings(rows: list[dict], L: Ledger, repo_root: Path, declared: set[str]) -> list[dict]:
+    """A declaration's form (`MESSAGE_RULE`) for each blocked name the grounder scoped to a directory (Go) **and the diff itself declares**
+    (*declared*: the post-image's gensyms) — its declaration sits where the reference cannot bind: one existing declaration of the same
+    kind where the name binds (`adapter.declaration_sibling`, protocol v0.6's rule, byte-capped at its 4,400). A misspelt or invented
+    reference gets `_nearest_declared` instead: offering it the directory's most-called function is how an unrelated 130-line body
+    reached the pre-flight's near-miss message (WP-18b, D-w)."""
     from hobbes.derive.adapter import declaration_sibling
     out: list[dict] = []
     seen: set = set()
     degree = None
     for r in rows:
         sc = r.get("scope") or {}
-        if r["class"] not in ("invented", "near-miss") or sc.get("dir") is None:
+        if r["class"] not in ("invented", "near-miss") or sc.get("dir") is None or r["term"].rsplit(".", 1)[-1] not in declared:
             continue
         key = (sc["dir"], sc.get("type"))
         if key in seen:
@@ -457,7 +506,8 @@ def gate(diff: str, parent_sha: str, repo_root: Path, L: Ledger, *, inputs: dict
                                                 "unknown": sum(1 for r in rows if r["grounder_class"] == c and r["class"] == "unknown")} for c in SPLIT_CLASSES},
         "unknown_reasons": dict(sorted(collections.Counter(r["site"]["reason"] for r in rows if r["class"] == "unknown").items())),
         "rows": rows,
-        "siblings": _siblings(rows, L, repo_root) if blocking else [],
+        "siblings": _siblings(rows, L, repo_root, set(g["gensyms"])) if blocking else [],
+        "nearest_declared": _nearest_declared(rows, L, repo_root) if blocking else [],
         "partition": {"checked": part is not None, "source": partition_source if part is not None else None, "rule": partition_rule,
                       "size": None if part is None else len(part), "files": pfiles,
                       "outside": [f["path"] for f in pfiles if not f["in_partition"] and not f["exempt"] and f["reach"] is None],
@@ -473,7 +523,7 @@ def gate(diff: str, parent_sha: str, repo_root: Path, L: Ledger, *, inputs: dict
         "ground": {"references": g["references"], "null_by_class": g["null_by_class"], "hsr": g["hsr"], "density": g["density"]["counts"],
                    "world": g["world"]["counts"], "fills_attribution": {k: v for k, v in attribution.items() if k != "in_closed_at"},
                    "output_hash": g["output_hash"]},
-        "rules": {"lookup": LOOKUP_RULE, "partition": PARTITION_RULE, "verdict": VERDICT_RULE, "new": NEW_RULE,
+        "rules": {"lookup": LOOKUP_RULE, "partition": PARTITION_RULE, "verdict": VERDICT_RULE, "new": NEW_RULE, "message": MESSAGE_RULE,
                   "world": G.WORLD_RULE, "signature": G.SIGNATURE_RULE},
     }
     rec["record_hash"] = _sha256(_canonical(rec))[:16]
@@ -499,12 +549,12 @@ _REPAIR_HEADS = {
 }
 
 
-def _row_text(r: dict) -> str:
+def _row_text(r: dict, names: bool = True) -> str:
     if r["class"] == "partition":
         return f"- {r['path']}" + (" (you created it)" if "created" in (r["reason"] or "") else " (you deleted it)" if "deleted" in (r["reason"] or "") else "")
     where = f"{r['path']}:{r['line']}" if r["path"] else "the diff"
     s = f"- {where}" + (f" `{r['term']}`" if r["term"] else "")
-    if r["nearest"] and r["class"] in ("invented", "near-miss", "unknown"):
+    if names and r["nearest"] and r["class"] in ("invented", "near-miss", "unknown"):
         s += " — nearest declared: " + ", ".join(f"`{x}`" for x in r["nearest"][:5])
     if r["reason"]:
         s += f" — {r['reason']}"
@@ -514,22 +564,33 @@ def _row_text(r: dict) -> str:
 
 
 def repair_message(rec: dict) -> str:
-    """calvin-m0-gate §2.3's repair turn message for a blocked record: the classes, every blocked site, the files outside the
-    partition, a declaration's form where a blocked name has one, and the advisory sites apart. Deterministic in the record."""
+    """calvin-m0-gate §2.3's repair turn message for a blocked record: the classes, every blocked site — an invented or near-miss name
+    with the declared names nearest to it and their signatures (`MESSAGE_RULE`) — the files outside the partition, a declaration's form
+    only where the diff declares the blocked name itself, and the advisory sites apart. Deterministic in the record."""
     if rec["verdict"] != "blocked":
         raise ValueError("a clear record has no repair message")
     counts = rec["counts"]
+    near = {(n["path"], n["line"], n["for"]): n["candidates"] for n in rec.get("nearest_declared") or []}
     parts = [f"Hobbes checked your change against the repository at its parent commit {rec['parent'][:12]} and blocked it: "
              + ", ".join(f"{c} ({counts[c]})" for c in rec["blocking"]) + ".",
              "You have one turn to repair it; after that turn the change is checked and its tests run again. Fix what is listed "
              "below; change nothing else.", ""]
     for c in BLOCKING:
         rows = [r for r in rec["rows"] if r["class"] == c]
-        if rows:
-            parts += [f"## {_REPAIR_HEADS[c]}", *[_row_text(r) for r in rows], ""]
+        if not rows:
+            continue
+        parts.append(f"## {_REPAIR_HEADS[c]}")
+        for r in rows:
+            cands = near.get((r["path"], r["line"], r["term"])) if c in ("invented", "near-miss") else None
+            parts.append(_row_text(r, names=not cands))
+            if cands:
+                parts.append("  The declared names nearest to it, with their signatures:")
+                parts += [f"  - `{x['name']}` ({x['kind']}, {x['path']}:{x['line']}): `{x['signature']}`" for x in cands]
+        parts.append("")
     for s in rec.get("siblings") or []:
         where = f"directory `{s['dir'] or '.'}/`" + (f", a method of `{s['type']}`" if s.get("type") else "")
-        parts += [f"## The form of a declaration where `{s['for']}` would bind ({where})",
+        parts += [f"## The form of a declaration where `{s['for']}` would bind ({where}): your change declares "
+                  f"`{s['for'].rsplit('.', 1)[-1]}`, but not where this reference binds",
                   f"`{s['symbol']}` at {s['path']}:{s['line']} (package {s['package']}):", "```", s["text"], "```"]
         if s.get("more_lines"):
             parts.append(f"({s['more_lines']} more lines not shown)")

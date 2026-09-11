@@ -1374,8 +1374,61 @@ def recorded_o(d: Path, key: str) -> tuple[dict, str] | None:
     return {**rec, "session": s, "row": row or {}}, diff
 
 
+EDIT_TOOLS = ("edit_file", "write_file")
+
+
+def first_edit_turn(transcript: Path) -> int | None:
+    """calvin-m0-gate §2.5's turns-to-first-edit (WP-18b, D-v; WP-20's `wp21_posthoc.first_edit_turn`, reused as it was tested on the
+    pre-flight): the first assistant turn of a session transcript whose edit_file / write_file call succeeded; None without a transcript
+    or an edit. A resumed repair session's transcript carries O's turns first, so its value repeats O's — the repair turn itself is read
+    from its calls."""
+    if not Path(transcript).exists():
+        return None
+    msgs = [json.loads(l) for l in open(transcript) if l.strip()]
+    ok = {m.get("tool_call_id") for m in msgs if m.get("role") == "tool" and not (m.get("content") or "").startswith("ERROR")}
+    t = 0
+    for m in msgs:
+        if m.get("role") == "assistant":
+            t += 1
+            if any((c.get("function") or {}).get("name") in EDIT_TOOLS and c.get("id") in ok for c in m.get("tool_calls") or []):
+                return t
+    return None
+
+
+def recall_upper_of(u: dict, flag: str | None, repo: Path) -> str:
+    """recall's range upper bound for a unit (WP-18b, D-u): ``--recall-upper``, else the unit's ``recall_upper``, else ``RECALL_UPPER``
+    (gitleaks' pin: rounds 1–2's behaviour, unchanged) — resolved to a full SHA of *repo* when it names a commit there, else returned
+    as given, and the row's recall then says ``range not readable``."""
+    ref = flag or u.get("recall_upper") or RECALL_UPPER
+    r = subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "-q", f"{ref}^{{commit}}"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else ref
+
+
+def gold_tests_of(clone: Path, sha: str, diff: str, gold_diff: str, L, out: Path) -> dict:
+    """§2.5's ``gold_tests`` for one diff (WP-18b, D-v; WP-20's post-hoc call): `harness.gold_tests_verdict`, its verify record at *out*;
+    ``empty-diff`` for no diff; an error is said in the row, never raised — the row of a paid run is still written."""
+    from hobbes.derive import harness as H
+    if not diff:
+        return {"verdict": "empty-diff"}
+    try:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        return H.gold_tests_verdict(clone, sha, diff, gold_diff, L, clone, out=out)
+    except Exception as exc:  # noqa: BLE001 — the row carries it
+        return {"verdict": None, "error": f"{type(exc).__name__}: {exc}"}
+
+
+def row_verdict(patch: str, verify_verdict: str | None, gate: dict | None = None) -> str | None:
+    """§2.5's per-row verdict (WP-18b, D-v): ``empty`` for a session that left no diff — neither pass nor blocked; the gate clears an empty
+    diff and no repair runs on it — ``blocked`` when *gate* blocked the diff (the O+gate reading), else the verifier's verdict."""
+    if not patch:
+        return "empty"
+    if gate is not None and gate.get("verdict") == "blocked":
+        return "blocked"
+    return verify_verdict
+
+
 def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path, out: Path, L, template: Path | None, wp: str,
-                   timeout: float = 3600.0, rule: str = "reach", verify: bool = True) -> dict:
+                   timeout: float = 3600.0, rule: str = "reach", verify: bool = True, recall_upper: str | None = None) -> dict:
     """calvin-m0-gate §2.3's O+gate+repair on one blocked row: the recorded session resumed — never re-run — for one bounded turn with the
     gate's report as the message (`gate.repair_message`), then its diff gated and verified again. Returns the repair row; the turn's calls are
     metered into ``<key>.repair.usage.jsonl`` (charged to the third arm only, and counted by ``--total-cap``). What a faithful resume needs
@@ -1429,6 +1482,10 @@ def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path,
                gate_after=gate_summary(g2), verify_after={x: v.get(x) for x in ("verdict", "applies", "summary", "build_summary")} if v else None,
                tokens={"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
                calls=len(calls), usd=round(sum(x["usd"] for x in ledger), 4))
+    gold = Path(u["gold_diff"]).read_text(errors="surrogateescape") if u.get("gold_diff") else None  # §2.5's fields (WP-18b, D-u/D-v)
+    row.update(recall=recall_scan(patch, gold, clone, u["parent_sha"], recall_upper_of(u, recall_upper, clone)) if gold is not None and patch else None,
+               gold_tests=gold_tests_of(clone, u["parent_sha"], patch, gold, L, out / "gold-tests-runs" / f"{new}.gold.verify.json") if gold is not None else None,
+               turns_to_first_edit=first_edit_turn(Path(sroot) / new / "transcript.jsonl"), verdict_after=row_verdict(patch, v.get("verdict"), g2))
     return row
 
 
@@ -1503,13 +1560,15 @@ def cmd_o_units(a: argparse.Namespace) -> int:
         if spent + repair_worst > a.total_cap:
             print(f"{k}: repair NOT LAUNCHED — spent ${spent:.4f} + a repair turn's worst case ${repair_worst:.4f} would pass the ${a.total_cap:.2f} cap", flush=True)
             return False
-        rrow = repair_session(k, u, rec_o, g, clone=clone, out=out, L=L, template=tpath, wp=a.wp, timeout=a.timeout, rule=a.partition_rule)
+        rrow = repair_session(k, u, rec_o, g, clone=clone, out=out, L=L, template=tpath, wp=a.wp, timeout=a.timeout, rule=a.partition_rule,
+                              recall_upper=a.recall_upper)
         with open(out / "repair-rows.jsonl", "a") as fh:
             fh.write(json.dumps(rrow) + "\n")
         print(f"{k} repair {rrow['repair_session']} rc {rrow.get('session_rc')} turns {rrow.get('turns')} gate {(rrow.get('gate_after') or {}).get('verdict')} "
               f"verify {(rrow.get('verify_after') or {}).get('verdict')} ${rrow.get('usd')}" + (f" ERROR {rrow['error']}" if rrow.get("error") else ""), flush=True)
         return True
 
+    warned_upper = False
     try:
         for k in order:
             u = units[k]
@@ -1555,6 +1614,12 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             gfile = out / f"{session_id}.ground.json"
             g = json.load(open(gfile)) if gfile.exists() else {}
             v = rec.get("verify") or {}
+            gold_diff = Path(u["gold_diff"]).read_text(errors="surrogateescape")
+            upper = recall_upper_of(u, a.recall_upper, clone)
+            if not warned_upper and not re.fullmatch(r"[0-9a-f]{40}", upper):  # D-u: a range the clone cannot read reads nothing on any row
+                print(f"WARNING: recall's upper bound {upper!r} is not a commit of {clone}: every row's recall will read `range not readable`; "
+                      "pass --recall-upper <the repo's pin>", flush=True)
+                warned_upper = True
             row = {"wp": a.wp, "key": k, "arm": "O", "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
                    "model": a.model, "loop_args": loop_args, "max_turns": max_turns, "budget": a.budget, "max_tokens": a.max_tokens, "token_budget": a.token_budget,
                    "session": session_id, "session_rc": rec.get("session_rc"), "error": rec.get("error"),
@@ -1566,7 +1631,10 @@ def cmd_o_units(a: argparse.Namespace) -> int:
                               "regressions": v.get("regressions"), "faults": len(v.get("faults", [])), "all_contained": (v.get("containment") or {}).get("all_contained"),
                               "wall_s": v.get("wall_s")} if v else None,
                    "hsr": g.get("hsr"), "null_by_class": g.get("null_by_class"), "references": g.get("references"),
-                   "recall": recall_scan(patch, Path(u["gold_diff"]).read_text(errors="surrogateescape"), clone, L.sha),
+                   "recall": recall_scan(patch, gold_diff, clone, L.sha, upper) if patch else None,
+                   "gold_tests": gold_tests_of(clone, L.sha, patch, gold_diff, L, out / "gold-tests-runs" / f"{session_id}.gold.verify.json"),
+                   "turns_to_first_edit": first_edit_turn(sessions_root / session_id / "transcript.jsonl"),
+                   "verdict": row_verdict(patch, v.get("verdict")),
                    "null": [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in g.get("null", [])],
                    "density": (g.get("density") or {}).get("counts"), "fills_attribution": g.get("fills_attribution"),
                    "tokens": {"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
@@ -1575,6 +1643,7 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             g = gate_session(patch, u, clone, L, out, session_id, tpath, a.partition_rule) if gating else None
             if g is not None:
                 row["gate"] = gate_summary(g)
+                row["verdict_gate"] = row_verdict(patch, v.get("verdict"), g)
             with open(out / "rows.jsonl", "a") as fh:
                 fh.write(json.dumps(row) + "\n")
             if g is not None and a.gate_repair and g["verdict"] == "blocked" and not repair(k, u, {**rec, "session": session_id, "row": row}, g, L, tpath):
@@ -1791,6 +1860,8 @@ def main(argv: list[str]) -> int:
                         "not blocked), exempt (test support only), strict")
     s.add_argument("--withhold-manifest", action="store_true", help="calvin-m0-gate §0b: no plan is derived; O's brief carries the task text alone "
                                                                    "and its agent dir no manifest")
+    s.add_argument("--recall-upper", help="WP-18b, D-u: the commit recall's upstream range ends at — the repo's pin (fzf: f7ae439ff5b2); default: the "
+                                          "unit's `recall_upper`, else RECALL_UPPER (gitleaks')")
     s.set_defaults(fn=cmd_o_units)
     s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)
     s.add_argument("--verify-t0", help="verify records of arm T's pre-loop diffs (.t0.diff); without it T's verdict column is empty where a loop ran")
