@@ -380,4 +380,42 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
     - This tests the same class, and the 8 renames of gold's own calls read 8/8 on their own.
     - Variants are gated, never compiled, so the fallback lines need not be type-correct Go.
   - **For §4.15:** on fzf, an *unknown* can arise only inside the 64 uncaptured symbols on 9 units, all `laneb-miss` at symbol grain. §4.15 is expected to read weak (its third row), as §0a foresaw for a dense world.
+- 2026-09-11 — **WP-20 exit checked** (`~/.hobbes/bench/calvin-gate/wp-20/estimate.md`; no spend; the pre-flight on a scripted endpoint cost $0).
+  - **The estimate:** **expected $14.0** (band $12.0–15.2, tail $22). **Requested ceiling: $17.** At $15 the driver's worst-case refusal (spent + $1.81 > cap) cuts the run at about 18–19 keys.
+    - **O:** $0.68 a key, from rounds 1–2's ten O sessions. They are re-priced for fzf's larger files, with read results doubled up to the 12k cut, and every session run to 30 turns.
+    - **Repair:** $0.04 a turn, from its real prompt.
+    - **The hard bound:** $1.81 a session.
+  - **§9 is self-inconsistent:** "$0.5–1.0/key" × 20 is not "$7–14". The package's figure puts WP-21 at the top of §9's $8–15.
+  - **The design's stop rules cannot bind at these numbers** (3 × key 1 = $1.74; 2× over 10 keys = $13.7). A working brake is proposed for Max: key 1 over $1.10, or O over $10.3 after 10 keys.
+  - **The pre-flight ran the real path end to end:** A0, `--gate` and `--gate-repair`, the unit's partition and map, and a 0.1.18-beta stamp. `go build` and `go test` ran in every session.
+    - A build-failing edit was blocked `[near-miss]`, and its one repair turn cleared and passed.
+    - A write outside the partition was blocked `[partition]`, and its repair cleared.
+    - A session with no edit read as an empty diff, gate clear, no repair.
+  - **At A0 the plan refuses on 18 of 20 fzf keys.** The manifest differs from withheld on 2 of 20, and on one of them (`6f17d49dbb19`) it hands O gold's `src/tmux.go` as "yours to change".
+  - **Two of the four repair seams are moot:** untracked files are harvested (`git add -A`), and O and its repair run the same `loop.py`. Timeouts are low risk.
+  - **The rebuilt loop state can bias §4.16 downward:** the one repair turn cannot re-read a file, so it can only edit files O already read.
+- **D-u** (instrument; open → WP-18b). Recall's upper bound is gitleaks' SHA (`RECALL_UPPER`), so recall fails on every fzf row.
+- **D-v** (instrument; open → WP-18b). `o-units` rows lack §2.5's `gold_tests` and turns-to-first-edit.
+- **D-w** (message; open → WP-18b). On the pre-flight's `near-miss` row, the repair message showed an unrelated 130-line function as "the form of a declaration". The message is §2.3's repair instrument, so it is fixed before any spend; it changes what the gate says, so the patch goes to 0.1.19-beta.
+- 2026-09-11 — **Orchestrator's pin to §2.5, before the run.** A session that made no edit reads **`empty`**: it is not pass and not blocked, and it counts as a row that is not a pass in every aggregate.
+- 2026-09-11 — **Presented to Max at the spend gate.** The decisions: the ceiling, the manifest, the brake. WP-18b (D-u, D-v, D-w) lands before key 1.
+- 2026-09-11 — **WP-18b exit checked; merged; 0.1.19-beta** (branch head `7334620`).
+  - **The fixes:**
+    - **D-u:** recall's upper bound now comes from `--recall-upper`, else the unit's `recall_upper`, else gitleaks' default.
+    - **D-v:** rows carry `gold_tests`, `turns_to_first_edit`, `verdict: empty`, `verdict_gate`, and `verdict_after` on repair rows.
+    - **D-w:** `_siblings` passed no call references, so the adapter fell back to the package's most-called function. The message now lists the nearest declared names with their signatures. A declaration's form appears only when the diff declares the blocked name itself, capped at 4,400 bytes. The gate is now v2.
+  - **Controls rerun:** gold 20/20; seeded (i)–(iii) 20/20 each; (iv) 9/9. Only the message fields and the hash differ.
+  - **smoke-fzf:** 20/20 clear, byte-identical.
+  - **The pre-flight rerun:** recall reads on every row.
+  - **pytest:** 1,354.
+- 2026-09-11 — **Max at the spend gate: WP-21 cleared on 10 keys "for now".**
+  - **The manifest is withheld** (`--withhold-manifest`), so O gets the commit message alone.
+  - **WP-20's brake is taken.**
+  - **The keys** are the first 10 in `wp-20/estimate.md`'s order, which rotates by shape.
+  - **The brake, scaled from 20 keys to 10:** stop and report if key 1 costs over $1.10, or if O's spend passes $5.1 after 5 keys.
+  - **The hard cap is $11. Max named no dollar figure,** so the orchestrator set it below both ceilings Max was offered ($15 and $17). The derivation:
+    - WP-20's 10-key expected is $7.0; its band's high edge is $10.8, plus about $0.2 of repair turns.
+    - The driver refuses a session whose worst case ($1.81) would pass the cap. So a $11 cap trims key 10 only if keys 1–9 average above $1.02.
+  - **Order:** key 1 alone, compared with its $0.58 estimate → keys 2–5 → the brake check → keys 6–10.
+  - **Widening past 10 keys is Max's call** on the ten-key rows.
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
