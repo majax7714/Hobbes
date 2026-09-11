@@ -123,7 +123,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
@@ -135,8 +135,13 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and eight entries: eighty-two active, twenty-four lifted, two superseded**
-(C-106, C-107 and C-108 registered 2026-09-11 by Calvin M0-Go WP-7a,
+**One hundred and fourteen entries: eighty-eight active, twenty-four lifted, two superseded**
+(C-109–C-114 registered 2026-09-11 by Calvin M0-Go WP-9, grounder v2's
+world check and adapter protocol v0.5 — a required module's package
+unchecked, unaliased import names read by convention, build tags
+unread, syntax errors unclassed (**unsurfaced**, debt), the world
+check Go only, and the declaration repair bounded to one exchange;
+C-106, C-107 and C-108 registered 2026-09-11 by Calvin M0-Go WP-7a,
 adapter protocol v0.4's declaration hole — a near-miss name re-asked
 rather than declared (*surfaced*, `loop.sites[].route`), a declaration
 outside the write partition placed and recorded, never refused, on
@@ -243,8 +248,8 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Six of the active are *partial* (C-4, C-58, C-68, C-83, C-102, C-108); two
-are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
+against the code that concedes it; none had been silently lifted). Six of the active are *partial* (C-4, C-58, C-68, C-83, C-102, C-108); three
+are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and C-112 — the grounder's unclassed syntax error, registered as debt 2026-09-11; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit

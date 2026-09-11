@@ -25,8 +25,11 @@ and nothing declares, and the holes whose fills carried any other NULL,
 each listing the terms that did not bind and the nearest graph names —
 and the grounder runs again on the merged fills with the declaration
 holes placed, so a declared name binds as a gensym at the call site it
-was written at. The loop closes a NULL or it does not; the record says
-which, per site and by §4.3 class.
+was written at. Since v0.5 the grounder holds a declaration's body to
+the repository's world, and a NULL raised inside it goes back once, as
+a repair of that same declaration hole — one exchange, never a loop.
+The loop closes a NULL or it does not; the record says which, per site
+and by §4.3 class.
 
 What the adapter never does: resolve a name, place an edit, or improve
 a fill. It carries text between the orchestrator and Hobbes and writes
@@ -59,7 +62,20 @@ SYSTEM_PROMPT_VERSION = 2
 #: close it; once placed, the name binds as a gensym and the call site is grounded again. A near-miss is re-asked as in v0.3. And a
 #: SIGNATURE or BODY fill carrying the render's line-number gutter is refused, a repairable error naming the hole
 #: (`holes.carries_gutter`). v0.4 supersedes v0.3, no switch; the system prompt is unchanged (v2).
-PROTOCOL_VERSION = "0.4"
+#: **v0.5** (Calvin M0-Go WP-9, Max 2026-09-11; WP-8's D-f, D-g, D-h): the grounding holds every Go fill to the world (grounder v2: an
+#: import outside the standard library, the module and its go.mod's requires is a NULL ``import-outside``; a qualifier nothing binds a
+#: NULL ``unimported``); a NULL raised inside a placed declaration's body goes back **once**, as a repair of that same declaration hole
+#: (`declaration_repair`) — one exchange, no validation repair after it, never a loop; the declaration hole shows one sibling of the same
+#: kind from its directory (`declaration_sibling`, ``SIBLING_RULE``); and the loop's site record reads the grounder's refused list, so a
+#: refused declaration reads ``refused``, never ``placed``. v0.5 supersedes v0.4, no switch; the system prompt is unchanged (v2).
+PROTOCOL_VERSION = "0.5"
+#: How the declaration hole's sibling is chosen and cut (v0.5, D-h).
+SIBLING_LINES = 12
+SIBLING_CHARS = 900
+SIBLING_RULE = ("the same kind in the binding directory — a function, or a method of the same type when the hole declares a method — test files "
+                "excluded: the one the fill that wrote the call also calls, called nearest the call site (ties: the earlier line, then the id); "
+                "else the one with the most callers in the parent graph (ties: the id); else none. Shown: its file's package clause and imports, "
+                f"its signature and the head of its body, at most {SIBLING_LINES} lines and {SIBLING_CHARS} characters")
 #: The NULL classes a v0.4 round-trip answers with a declaration hole rather than a re-ask.
 DECLARE_CLASSES = ("new", "invented")
 SYSTEM_PROMPT = """You are the orchestrator for a code change. You know the task's intent, the language and the world; you do not know this repository, and you must not pretend to.
@@ -125,15 +141,15 @@ class Adapter:
         })
         return text
 
-    def ask(self, template: dict, repo_root: Path, purpose: str) -> tuple[dict | None, dict[str, list[str]]]:
-        """Fills for the template's open holes: one exchange per chunk (a template over the prompt budget is split by file), and one repair exchange per chunk when its document is malformed. Returns ``(document, remaining errors)``."""
+    def ask(self, template: dict, repo_root: Path, purpose: str, *, repair: bool = True) -> tuple[dict | None, dict[str, list[str]]]:
+        """Fills for the template's open holes: one exchange per chunk (a template over the prompt budget is split by file), and one repair exchange per chunk when its document is malformed — none when *repair* is False (v0.5's declaration repair is itself the one repair). Returns ``(document, remaining errors)``."""
         chunks = chunk_by_file(template, repo_root, self.max_prompt_chars)
         if len(chunks) == 1:
-            return self._ask_one(chunks[0], repo_root, purpose)
+            return self._ask_one(chunks[0], repo_root, purpose, repair)
         doc: dict = {"fills": {}, "patterns": {}}
         errs: dict[str, list[str]] = {}
         for i, ch in enumerate(chunks, 1):
-            d, e = self._ask_one(ch, repo_root, f"{purpose} [chunk {i}/{len(chunks)}]")
+            d, e = self._ask_one(ch, repo_root, f"{purpose} [chunk {i}/{len(chunks)}]", repair)
             if d:
                 doc["fills"].update(d.get("fills") or {})
                 if d.get("by_pattern"):
@@ -147,7 +163,7 @@ class Adapter:
             errs.update(e)
         return doc, errs
 
-    def _ask_one(self, template: dict, repo_root: Path, purpose: str) -> tuple[dict | None, dict[str, list[str]]]:
+    def _ask_one(self, template: dict, repo_root: Path, purpose: str, repair: bool = True) -> tuple[dict | None, dict[str, list[str]]]:
         prompt = H.render(template, repo_root)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
         text = self._call(messages, purpose)
@@ -155,8 +171,8 @@ class Adapter:
         doc = parse_document(text)
         errs = H.validate_fills(template, doc) if doc is not None else {"document": ["the reply is not a JSON object"]}
         self.exchanges[-1]["validation"] = errs
-        if not errs:
-            return H.read_patterns(template, doc), {}
+        if not errs or not repair:
+            return H.read_patterns(template, doc), errs
         repair = ("Your answer was cut off at the reply limit before it ended. " if cut else "Your answer did not validate. ") + \
             "Reply with the whole document again: `patterns` for every type left unchanged, and under `fills` only the holes you change or that take no pattern. Fix these:\n" + \
             "\n".join(f"- {k}: {'; '.join(v)}" for k, v in sorted(errs.items())[:40])
@@ -266,11 +282,59 @@ def _scope_key(n: dict) -> tuple:
     return n["term"].rsplit(".", 1)[-1], sc.get("dir"), sc.get("type")
 
 
-def declaration_holes(t2: dict, g: dict, L: T.Ledger) -> list[dict]:
+def _null_text(n: dict) -> str:
+    """One NULL as a narrowed template states it: the term, the site, the class — and the world check's reason, or the nearest graph names."""
+    if n.get("reason"):
+        return f"`{n['term']}` at {n['path']}:{n['line']} ({n['null_class']}; {n['reason']})"
+    return f"`{n['term']}` at {n['path']}:{n['line']} ({n['null_class']}; nearest in the graph: {', '.join(n['nearest'])})"
+
+
+def declaration_sibling(declares: dict, site: dict, g: dict, L: T.Ledger, repo_root: Path | None, degree: dict | None = None) -> dict | None:
+    """v0.5 (D-h): one existing declaration of the kind a declaration hole asks for, from the directory the name binds in, chosen by
+    ``SIBLING_RULE`` — its symbol, file, package clause, imports, and its signature with the head of its body — or None (no directory,
+    no repo, nothing of the kind there). *site* is the NULL the hole answers (its hole, path and line); *g* the grounding that raised it."""
+    where, typ = declares.get("dir"), declares.get("type")
+    if where is None or repo_root is None:
+        return None
+    where = "" if where in ("", ".") else where
+    cands: dict[str, str] = {}
+    for sid, s in L.symbols.items():
+        p = L.mod_path.get(s["module"])
+        if not p or not p.endswith(".go") or p.endswith("_test.go") or H.dir_of(p) != where:
+            continue
+        if (typ is not None and s.get("kind") == "method" and s.get("qualname", "").split(".")[0] == typ) or (typ is None and s.get("kind") == "function"):
+            cands[sid] = p
+    if not cands:
+        return None
+    near = [r for r in g.get("refs", []) if r["hole"] == site["hole"] and r["path"] == site["path"] and r["class"] == "in-graph" and r["target"] in cands]
+    if near:
+        sid = min(near, key=lambda r: (abs(r["line"] - site["line"]), r["line"], r["target"]))["target"]
+        rule = "called nearest the call site by the same fill"
+    else:
+        deg = degree if degree is not None else G.density_table(L.graph)["degree"]
+        sid = min(cands, key=lambda x: (-deg.get(x, 0), x))
+        rule = "the most callers in the directory"
+    sp = L.span(sid)
+    lines = G.file_at(repo_root, L.sha, sp["path"]) or []
+    body = lines[sp["start"] - 1: sp["end"]]
+    head: list[str] = []
+    for line in body[:SIBLING_LINES]:
+        if head and sum(len(x) + 1 for x in head) + len(line) > SIBLING_CHARS:
+            break
+        head.append(line)
+    from hobbes.extract import gosource
+    root = gosource._PARSER.parse("\n".join(lines).encode("utf-8", "surrogateescape")).root_node
+    imports = [(f"{s['alias']} " if s["alias"] else "") + f'"{s["path"]}"' for s in G._go_import_specs(root)]
+    return {"symbol": sid, "path": sp["path"], "line": sp["start"], "rule": rule, "package": gosource._package_name(root),
+            "imports": imports, "text": "\n".join(head), "more_lines": len(body) - len(head)}
+
+
+def declaration_holes(t2: dict, g: dict, L: T.Ledger, repo_root: Path | None = None) -> list[dict]:
     """The NULL list's undeclared names (`null_route`) as ``NEW_SYMBOL`` holes, one per name and scope, in NULL order: what a v0.4
     round-trip asks to declare. Each names its call sites and the line written there, the directory the name binds in (the
     grounder's ``scope``) and the write partition's files in it — never a path the partition lacks: a new file is the answer's
-    to name, and the grounder records it outside the partition."""
+    to name, and the grounder records it outside the partition. Since v0.5, with *repo_root*, each carries a ``sibling``
+    (`declaration_sibling`) when its directory holds one."""
     partition = list((t2.get("constraints") or {}).get("write_partition", []))
     taken = {h["id"] for h in t2["holes"]}
     groups: dict[tuple, list[dict]] = {}
@@ -278,6 +342,7 @@ def declaration_holes(t2: dict, g: dict, L: T.Ledger) -> list[dict]:
         if null_route(n, L, g) == "declare":
             groups.setdefault(_scope_key(n), []).append(n)
     out: list[dict] = []
+    degree: dict | None = None
     i = 0
     for (name, where, typ), ns in groups.items():
         i += 1
@@ -289,19 +354,58 @@ def declaration_holes(t2: dict, g: dict, L: T.Ledger) -> list[dict]:
         there = "" if where is None else f" It binds only in the directory `{where or '.'}/`, the package the call names" + (f", as a method of `{typ}`" if typ else "") + "."
         offer = (f" Files of the write partition there: {', '.join(f'`{p}`' for p in files)}." if files else
                  " No file of the write partition is there: a new file you name is created, and is recorded outside the partition.")
-        out.append({"id": f"d{i}", "type": "NEW_SYMBOL", "span": None,
-                    "constraints": {"write_partition": partition, "declares": {"name": name, "term": ns[0]["term"], "dir": where, "type": typ}},
-                    "provenance": {"anchor": f"NULL round-trip: `{name}` written at a call site, declared nowhere",
-                                   "NULL": "; ".join(f"`{n['term']}` at {n['path']}:{n['line']} ({n['null_class']}; nearest in the graph: {', '.join(n['nearest'])})" for n in ns),
-                                   "call_site": f"{ns[0]['path']}:{ns[0]['line']}: `{call}`"},
-                    "fill_schema": H.FILL_SHAPES["NEW_SYMBOL"],
-                    "ask": (f"declare `{name}` — your answer calls it and nothing declares it, at this commit or in your answers.{there}{offer} "
-                            "Answer with name, file, position (after_symbol, or region: \"eof\") and body: the whole declaration, its signature line "
-                            "first (a new file: the whole file). Or covered_by another declaration hole whose body declares it too.")})
+        declares = {"name": name, "term": ns[0]["term"], "dir": where, "type": typ}
+        sib = None
+        if repo_root is not None and where is not None:
+            if degree is None:
+                degree = G.density_table(L.graph)["degree"]
+            sib = declaration_sibling(declares, ns[0], g, L, repo_root, degree)
+        hole = {"id": f"d{i}", "type": "NEW_SYMBOL", "span": None,
+                "constraints": {"write_partition": partition, "declares": declares},
+                "provenance": {"anchor": f"NULL round-trip: `{name}` written at a call site, declared nowhere",
+                               "NULL": "; ".join(_null_text(n) for n in ns),
+                               "call_site": f"{ns[0]['path']}:{ns[0]['line']}: `{call}`"},
+                "fill_schema": H.FILL_SHAPES["NEW_SYMBOL"],
+                "ask": (f"declare `{name}` — your answer calls it and nothing declares it, at this commit or in your answers.{there}{offer} "
+                        "Answer with name, file, position (after_symbol, or region: \"eof\") and body: the whole declaration, its signature line "
+                        "first (a new file: the whole file). Or covered_by another declaration hole whose body declares it too."
+                        + (" Write it in this repository's world: imports only from the Go standard library, this module's packages, or a module "
+                           "its go.mod requires, as the sibling below does — anything else is reported back." if sib else ""))}
+        if sib:
+            hole["sibling"] = sib
+        out.append(hole)
     return out
 
 
-def narrow(t2: dict, doc: dict, g: dict, L: T.Ledger) -> dict | None:
+def declaration_repair(tg: dict, merged: dict, g2: dict, decl: list[dict]) -> dict | None:
+    """v0.5 (D-g): the placed declarations whose bodies raised a NULL at the grounder, each shown its previous answer and those NULLs —
+    the one repair of that same declaration hole, never a new hole and never a second round. None when every placed declaration grounds clean."""
+    ids = [h["id"] for h in decl]
+    by: dict[str, list[dict]] = {}
+    for n in g2["null"]:
+        if n["hole"] in ids:
+            by.setdefault(n["hole"], []).append(n)
+    if not by:
+        return None
+    v = copy.deepcopy(tg)
+    v["holes"] = []
+    for h in decl:
+        if h["id"] not in by:
+            continue
+        name = h["constraints"]["declares"]["name"]
+        h2 = copy.deepcopy(h)
+        h2["provenance"] = {**h2.get("provenance", {}), "NULL in your declaration": "; ".join(_null_text(n) for n in by[h["id"]])}
+        h2["previous_fill"] = merged["fills"].get(h["id"])
+        h2["ask"] = (f"repair your declaration of `{name}` — the grounder found names in its body that this repository's world lacks (see NULL in your "
+                     "declaration): an import outside the Go standard library, this module's packages and the modules its go.mod requires, or a "
+                     "qualifier the file does not import. Answer again with the whole declaration, in the same shape. This is the one repair: "
+                     "nothing is asked after it.")
+        v["holes"].append(h2)
+    v.pop("neighborhood", None)
+    return v
+
+
+def narrow(t2: dict, doc: dict, g: dict, L: T.Ledger, repo_root: Path | None = None) -> dict | None:
     """The NULL list as a narrower template (v0.4): the holes whose fills carried a NULL `null_route` re-asks, each naming the terms that
     did not bind and the nearest graph names, then a declaration hole per undeclared name (`declaration_holes`). None when there is no NULL."""
     if not g["null"]:
@@ -320,22 +424,24 @@ def narrow(t2: dict, doc: dict, g: dict, L: T.Ledger) -> dict | None:
         h2 = copy.deepcopy(h)
         h2.pop("fill", None)
         h2.pop("fill_source", None)
-        h2["provenance"] = {**h2.get("provenance", {}),
-                            "NULL": "; ".join(f"`{n['term']}` at {n['path']}:{n['line']} ({n['null_class']}; nearest in the graph: {', '.join(n['nearest'])})" for n in by_hole[h["id"]])}
+        h2["provenance"] = {**h2.get("provenance", {}), "NULL": "; ".join(_null_text(n) for n in by_hole[h["id"]])}
         h2["ask"] = (h2.get("ask") or H.HOLE_TYPES[h2["type"]]) + " — your previous answer named symbols that do not exist at this commit (see NULL); answer again using only names that exist or that you declare"
         h2["previous_fill"] = doc["fills"].get(h["id"])
         v["holes"].append(h2)
-    v["holes"] += declaration_holes(t2, g, L)
+    v["holes"] += declaration_holes(t2, g, L, repo_root)
     v.pop("neighborhood", None)
     return v if v["holes"] else None
 
 
 def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path, adapter: Adapter, *, rta: dict | None = None) -> dict | None:
-    """T-loop's one exchange on a grounding with NULLs (v0.4): `narrow` → ask → the answers merged into the round-2 fills and the
-    declaration holes added to the template, so the grounder places them and grounds every call site again. Returns
-    ``{"template_round3", "round", "ground_after_loop", "loop"}``, or None when there is no NULL; `run_t` calls it, a replay drives it
-    from a record. The record's closure is per site, keyed on (hole, term): a NULL still there under another class is not closed."""
-    t3 = narrow(t2, doc2, g, L)
+    """T-loop on a grounding with NULLs (v0.5): `narrow` → ask → the answers merged into the round-2 fills and the declaration holes
+    added to the template, so the grounder places them and grounds every call site again; then, when a placed declaration's body
+    raised a NULL, **one** more exchange — `declaration_repair`, no validation repair after it — and the grounding once more with the
+    repaired declarations that validate. Returns ``{"template_round3", "round", "ground_after_loop", "loop", "template_repair",
+    "repair_round", "ground_before_repair"}`` (the last three None when nothing was repaired), or None when there is no NULL. The
+    record's closure is per site, keyed on (hole, term), against the final grounding: a NULL still there under another class is not
+    closed; a declaration the grounder refused reads ``refused`` (D-f), and each declaration site counts the NULLs left in its body."""
+    t3 = narrow(t2, doc2, g, L, repo_root)
     if t3 is None:
         return None
     doc3, errs3 = adapter.ask(t3, repo_root, "NULL round-trip")
@@ -345,12 +451,26 @@ def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path,
     decl = [h for h in t3["holes"] if (h.get("constraints") or {}).get("declares")]
     tg = copy.deepcopy(t2)
     tg["holes"] += copy.deepcopy(decl)
-    g2 = G.ground(tg, merged, L, repo_root, rta=rta)
-    after = {(n["hole"], n["term"]) for n in g2["null"]}
+    g2 = G.ground(copy.deepcopy(tg), merged, L, repo_root, rta=rta)
+    gf, repair_round, repair = g2, None, None
+    t3r = declaration_repair(tg, merged, g2, decl)
+    if t3r is not None:
+        asked = [h["id"] for h in t3r["holes"]]
+        doc3r, errs3r = adapter.ask(t3r, repo_root, "declaration repair", repair=False)
+        taken = sorted(hid for hid in ((doc3r or {}).get("fills") or {}) if hid in asked and hid not in errs3r)
+        for hid in taken:
+            merged["fills"][hid] = doc3r["fills"][hid]
+        if taken:
+            gf = G.ground(copy.deepcopy(tg), merged, L, repo_root, rta=rta)
+        repair_round = {"round": "3r", "holes_asked": asked, "fills": doc3r, "errors": errs3r, "taken": taken}
+        body = lambda gg: [{x: n.get(x) for x in ("hole", "line", "term", "null_class", "kind")} for n in gg["null"] if n["hole"] in asked]
+        repair = {"asked": asked, "taken": taken, "exchanges": 1, "body_nulls_before": body(g2), "body_nulls_after": body(gf)}
+    after = {(n["hole"], n["term"]) for n in gf["null"]}
     before = {(n["hole"], n["term"]) for n in g["null"]}
     decl_of = {_scope_key({"term": h["constraints"]["declares"]["term"], "scope": {"dir": h["constraints"]["declares"]["dir"],
                                                                                    "type": h["constraints"]["declares"]["type"]}}): h["id"] for h in decl}
-    placed = {e["hole"]: e for e in g2["edits"]}
+    refused = {x["hole"] for x in gf["refused"]}
+    placed = {e["hole"]: e for e in gf["edits"] if e["hole"] not in refused}  # D-f: the edit list keeps a refused overlap; the refused list says so
     sites = []
     for n in g["null"]:
         s = {"hole": n["hole"], "path": n["path"], "line": n["line"], "term": n["term"], "null_class": n["null_class"], "route": null_route(n, L, g),
@@ -360,15 +480,18 @@ def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path,
             f = merged["fills"].get(dh)
             via = f["covered_by"][0] if isinstance(f, dict) and isinstance(f.get("covered_by"), list) and f["covered_by"] else dh
             e = placed.get(via)
-            s.update({"declaration": dh, "answer": None if f is None else ("covered_by " + via if via != dh else "placed" if e else "not placed"),
-                      "file": e["path"] if e else None, "in_partition": e["in_partition"] if e else None})
+            answer = None if f is None else "refused" if via in refused else ("covered_by " + via if via != dh else "placed" if e else "not placed")
+            s.update({"declaration": dh, "answer": answer, "file": e["path"] if e else None, "in_partition": e["in_partition"] if e else None,
+                      "body_nulls": sum(1 for m in gf["null"] if m["hole"] == via) if e else None, "repaired": bool(repair and via in repair["asked"])})
         sites.append(s)
-    loop = {"nulls_before": len(g["null"]), "nulls_after": len(g2["null"]),
+    loop = {"nulls_before": len(g["null"]), "nulls_after": len(gf["null"]),
             "closed_by_class": dict(collections.Counter(n["null_class"] for n in g["null"] if (n["hole"], n["term"]) not in after)),
-            "opened_by_class": dict(collections.Counter(n["null_class"] for n in g2["null"] if (n["hole"], n["term"]) not in before)),
-            "routes": dict(collections.Counter(s["route"] for s in sites)), "declaration_holes": [h["id"] for h in decl], "sites": sites}
+            "opened_by_class": dict(collections.Counter(n["null_class"] for n in gf["null"] if (n["hole"], n["term"]) not in before)),
+            "routes": dict(collections.Counter(s["route"] for s in sites)), "declaration_holes": [h["id"] for h in decl],
+            "refused_declarations": sorted(h["id"] for h in decl if h["id"] in refused), "declaration_repair": repair, "sites": sites}
     return {"template_round3": t3, "round": {"round": 3, "holes_asked": [h["id"] for h in t3["holes"]], "fills": doc3, "errors": errs3},
-            "ground_after_loop": g2, "loop": loop}
+            "ground_after_loop": gf, "loop": loop, "template_repair": t3r, "repair_round": repair_round,
+            "ground_before_repair": g2 if t3r is not None else None}
 
 
 def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoChange | None, adapter: Adapter, *, null_loop: bool = True,
@@ -425,6 +548,10 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
         if lp is not None:
             rec["rounds"].append(lp["round"])
             rec["template_round3"] = lp["template_round3"]
+            if lp["repair_round"] is not None:  # v0.5: the one declaration repair
+                rec["rounds"].append(lp["repair_round"])
+                rec["template_repair"] = lp["template_repair"]
+                rec["ground_before_repair"] = lp["ground_before_repair"]
             rec["ground_after_loop"] = lp["ground_after_loop"]
             rec["loop"] = lp["loop"]
     rec["exchanges"] = adapter.exchanges

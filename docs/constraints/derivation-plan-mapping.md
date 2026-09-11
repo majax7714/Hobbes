@@ -331,3 +331,122 @@
 - **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's third
   constraint draft).
 
+### C-109 — Grounder v2 accepts an import under a required module without checking that the package exists
+
+- **Cannot tell you:** that an import a Go fill writes names a real
+  package, when its path falls under a module the governing `go.mod`
+  requires. Grounder v2's world check accepts any path under a required
+  module path (`// indirect` included) and does not look inside the
+  module, so `github.com/some/dep/nosuchpkg` passes if `some/dep` is
+  required. Paths under the repo's own module are checked: they must
+  name a directory holding Go files at the SHA or in the diff. A file
+  that no `go.mod` governs is `unverifiable`.
+- **Because:** the required module's sources are not in the repo, and
+  the grounder reads no module cache. A check would need the dependency
+  tree the verifier mounts (C-92), which the grounder does not run in.
+- **Bites at:** a fill that invents a subpackage of a real dependency.
+  It passes the world check and fails at `go build` (the verifier's
+  build row).
+- **You find out:** **surfaced** — every ground record carries a
+  `world` block with the rule (`WORLD_RULE`: "the package is not
+  checked to exist inside the module"), the pinned standard library and
+  the counts by class.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11 (`ground.WORLD_RULE`;
+  `docs/calvin/calvin-potential.md` §2.2).
+
+### C-110 — An unaliased import's name is read by convention
+
+- **Cannot tell you:** which name an unaliased Go import binds when its
+  package clause differs from what its path spells. Grounder v2 reads
+  the names a path conventionally spells (`_go_import_names`: `go-re2`
+  → `re2`, `gosec/v2` → `gosec`, `yaml.v3` → `yaml`), plus the package
+  clause for a package of the module itself. A third-party package
+  whose clause says otherwise gives a false `unimported` NULL on a
+  correct qualifier. A spelling set that is too wide abstains instead.
+- **Because:** the package clause of a required module lives in the
+  module's sources, which the grounder does not read (C-109's cause).
+- **Bites at:** fills that use a dependency whose package name is not
+  its path's last element. No gold row was affected on the M0-Go keys.
+  Beside it, and not fixed: a call through such an import reads
+  `unknown-receiver`, not `external` (WP-9's D-2; lane A's alias is the
+  path basename).
+- **You find out:** **surfaced** — the `world` block's `WORLD_RULE`
+  names the convention (`_go_import_names`), and each `unimported` row
+  carries its qualifier and reason.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11.
+
+### C-111 — The world check reads no build tags
+
+- **Cannot tell you:** whether a qualifier is declared in the
+  configuration a file compiles under. A qualifier is not `unimported`
+  when any Go file of the package declares it at top level. That set is
+  the union over the package's files, build tags unread, so a name
+  declared only under another `//go:build` passes.
+- **Because:** evaluating constraints would choose a configuration,
+  which the grounder no more does than lane A (C-71). The union errs
+  toward abstaining, and every doubt abstains.
+- **Bites at:** platform-split packages. A name only a darwin file
+  declares binds a linux call without a NULL.
+- **You find out:** **surfaced** — `WORLD_RULE` in every record's
+  `world` block says "the syntax, build tags not read".
+- **Source:** Calvin M0-Go WP-9, 2026-09-11.
+
+### C-112 — The grounder does not class a syntax error
+
+- **Cannot tell you:** that a fill does not parse. When tree-sitter
+  recovers from a syntax error, the grounder grounds what the recovery
+  left. On WP-8's `93acc` run 1, `1password.DefaultClient` split into
+  `1` and `password.DefaultClient`, and `password` read as an extra
+  `unimported` NULL. No row says "syntax error"; the NULL that appears
+  is a side effect, and a recovery that happens to bind reads clean.
+- **Because:** the grounder reads names from the parse and has no
+  class for an ERROR node. The selector left behind sits outside the
+  ERROR node, so nothing ties the NULL to the parse failure (WP-9's
+  D-1, not fixed).
+- **Bites at:** HSR and the NULL classes on fills that do not compile:
+  they read as hallucinations or read clean. The verifier's build row
+  is the only place a syntax error is classed (`build-fail`).
+- **You find out:** **unsurfaced** — this is debt, not a decision.
+  Nothing at the grounder says a fill failed to parse; a user learns it
+  only from the verifier's build row, which runs later and on the whole
+  diff. Candidate: a `syntax-error` class read from the parse's ERROR
+  nodes inside edited ranges.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11 (defect D-1).
+
+### C-113 — The world check covers Go fills only
+
+- **Cannot tell you:** that a Python or TS/JS fill's imports and
+  qualifiers exist in the repo's world. Grounder v2's `import-outside`
+  and `unimported` classes run on Go post-images only. A Python or
+  TS/JS fill's references are grounded as in grounder v1, where C-91
+  still holds for them.
+- **Because:** the world check reads `go.mod`, a pinned `go list std`
+  and Go's package scoping. Python and TS/JS have no reading of the
+  same kind in the grounder, and the M0-Go units are Go (P11).
+- **Bites at:** a Calvin run on Python or TS/JS units. A declaration
+  written against another project's API passes there, as every Go one
+  did before WP-9.
+- **You find out:** **surfaced** — `WORLD_RULE` opens "Go only, inside
+  edited ranges", and the `world` block's counts are Go's alone.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11.
+
+### C-114 — A declaration's body NULLs get one repair
+
+- **Cannot tell you:** that a placed declaration's body grounds clean
+  after the loop. Under protocol v0.5, a NULL inside a placed
+  declaration's body goes back once as a repair of the same declaration
+  hole: one exchange, and no validation repair after it. An answer that
+  fails validation, or still NULLs, keeps its body NULLs, and there is
+  no second round.
+- **Because:** the loop is bounded so arm T's cost stays predictable
+  (one more exchange per record at most). An unbounded loop would trade
+  a known ceiling for closures the replay has not shown are there.
+- **Bites at:** the declaration route's closure rate. WP-8's 9 placed
+  declarations each raised at least one body NULL, and the repair was
+  asked 9 times at 1 exchange each. How many would close is the
+  re-test's to measure.
+- **You find out:** **surfaced** — each site in `loop.sites[]` carries
+  `body_nulls` and `repaired`, and `loop.declaration_repair` records
+  the holes asked, the exchanges, and the body NULLs before and after.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11 (`adapter.declaration_repair`).
+
