@@ -229,3 +229,31 @@
 - **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
   §10, F1; `docs/calvin/calvin-potential.md` §2.1).
 
+### C-105 — A protocol v0.3 pattern answers many holes with one judgement
+
+- **Cannot tell you:** that the orchestrator weighed each hole a pattern
+  filled. Under adapter protocol v0.3, `patterns: {"BODY": "unchanged"}`
+  (likewise SIGNATURE, or ANCHOR_CONFIRM `"unchanged"`/`"no"`) fills
+  every open hole of that type that the reply does not answer
+  explicitly. One word can leave a hundred bodies alone or refuse two
+  hundred confirmations; no repair then asks those holes one by one.
+- **Because:** Max's decision of 2026-09-11. On WP-5's run, refused
+  patterns cost 7 of 22 calls and 36% of the spend, and the outcome
+  is the one silence already gave: an unanswered BODY or SIGNATURE ends
+  unchanged, and an unanswered confirmation is a refusal. v0.3 accepts
+  the pattern rather than paying a repair to have each hole restated.
+  A pattern never rewrites or confirms, so a change or a "yes" still
+  has to be stated per hole.
+- **Bites at:** reading a record's "answered" count as per-hole
+  attention, and the arm-T readings that ask whether the orchestrator
+  considered a symbol (H-a, H-s). The replay of WP-5's records: 321
+  holes filled by pattern in 4 exchanges; d29ee5's 208 capped-callee
+  confirmations refused in one pattern.
+- **You find out:** **surfaced** — every filled-by-pattern hole is
+  listed under `by_pattern` (hole id → type) in the exchange and the
+  arm-T record, the round record counts `pattern_confirmations`,
+  `t-units` rows count pattern fills by type, and every exchange and
+  record carries `protocol_version`.
+- **Source:** Calvin M0-Go WP-5, 2026-09-11 (Max's decision;
+  `docs/calvin/calvin-potential.md` §2.2).
+

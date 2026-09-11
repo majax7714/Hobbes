@@ -92,6 +92,33 @@ def test_run_t_round1_opens_structure_then_grounds_and_loops(repo):
     assert len(rec["exchanges"]) == 3 and rec["tokens"]["prompt"] > 0 and rec["key"]["model_id"] == "fake-model" and rec["key"]["system_prompt_version"] == A.SYSTEM_PROMPT_VERSION
 
 
+def test_run_t_hands_the_rta_key_to_both_groundings(repo, monkeypatch):
+    """M0-Go WP-5: rule 2's implementers come from an RTA key; arm T passes it to the grounding before the loop and after it."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    u = next(h for h in t["holes"] if h["type"] == "UNRESOLVED")
+    c = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM")
+    r1 = {u["id"]: {"classes": {x["term"]: ("new" if x["term"] == "mergeRanges" else "not-code") for x in u["terms"]}}, c["id"]: {"confirm": True}}
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    body = next(h["id"] for h in t2["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "cmd/main.runGoRTA")
+    fills = {h["id"]: "unchanged" for h in t2["holes"] if h["type"] in ("SIGNATURE", "BODY") and h.get("closed") is None}
+    fills[body] = {"code": "func runGoRTA() {\n\tmergeRanges()\n\thelpr()\n}\n"}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "NEW_SYMBOL")] = {"name": "mergeRanges", "file": "cmd/main.go", "region": "eof", "body": "func mergeRanges() int { return 2 }\n"}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "FREEFORM")] = "none"
+    r2 = {"fills": fills, "patterns": {"MODULE_REGION": "unchanged", "CALLER_UPDATE": "unchanged", "TEST_EXPECTATION": "unchanged", "COCHANGE_TOUCH": "unchanged"}}
+    seen = []
+    real = A.G.ground
+    monkeypatch.setattr(A.G, "ground", lambda *a, **kw: (seen.append(kw.get("rta")), real(*a, **kw))[1])
+    rta = {"source": "a key", "sites": {}}
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), json.dumps({"fills": {body: {"code": "func runGoRTA() {\n\tmergeRanges()\n}\n"}}})])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"), rta=rta)
+    assert seen == [rta, rta], "the grounding before the loop and the one after it"
+    assert rec["ground"]["rta"] == "a key" and rec["ground_after_loop"]["rta"] == "a key" and rec["loop"]["nulls_after"] == 0
+    assert A.run_t.__kwdefaults__["rta"] is None, "without a key, as before"
+
+
 def test_anchor_fill_binds_names_exactly(repo):
     root, sha = repo
     L = ledger(sha)
@@ -137,6 +164,49 @@ def test_refusing_every_confirmation_opens_an_anchor_hole_for_a_second_pass(repo
     assert "Candidates from Hobbes" in prompt_1b and "refused as a site in round 1" in prompt_1b and "app/app.go" in prompt_1b
     a1 = next(h for h in rec["template_round1"]["holes"] if h["type"] == "ANCHOR") if any(h["type"] == "ANCHOR" for h in rec["template_round1"]["holes"]) else None
     assert a1 is None, "the first template had anchors; the ANCHOR hole opened on the rebuild"
+
+
+FOUR = {"MODULE_REGION": "unchanged", "CALLER_UPDATE": "unchanged", "TEST_EXPECTATION": "unchanged", "COCHANGE_TOUCH": "unchanged"}
+
+
+def test_v03_signature_and_body_patterns_are_read_unchanged_with_no_repair(repo):
+    """Protocol v0.3: a SIGNATURE/BODY pattern is accepted on the first pass, read per hole as "unchanged", recorded as by pattern — and grounds exactly as the per-hole answers."""
+    root, sha = repo
+    L = ledger(sha)
+    t = T.build_template("Change `runGoRTA`.", L, root, None)
+    body = next(h for h in t["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "cmd/main.runGoRTA")
+    rest = {**{h["id"]: {"confirm": False} for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM"},
+            **{h["id"]: {"classes": {x["term"]: "not-code" for x in h["terms"]}} for h in t["holes"] if h["type"] == "UNRESOLVED"},
+            next(h["id"] for h in t["holes"] if h["type"] == "FREEFORM"): "none", body["id"]: {"code": "func runGoRTA() {}\n"}}
+    explicit = {"fills": {**{h["id"]: "unchanged" for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY")}, **rest}, "patterns": FOUR}
+    fake = Fake([json.dumps({"fills": rest, "patterns": {**FOUR, "SIGNATURE": "unchanged", "BODY": "unchanged"}})])
+    ad = A.Adapter(fake, "fake-model")
+    doc, errs = ad.ask(t, root, "round 2")
+    assert errs == {} and [e["purpose"] for e in ad.exchanges] == ["round 2"] and ad.exchanges[0]["validation"] == {}
+    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.3"
+    patterned = {h["id"] for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY") and h["id"] != body["id"]}
+    assert patterned and set(doc["by_pattern"]) == patterned and doc["fills"][body["id"]] == {"code": "func runGoRTA() {}\n"}
+    g1 = A.G.ground(json.loads(json.dumps(t)), doc, L, root)
+    g2 = A.G.ground(json.loads(json.dumps(t)), explicit, L, root)
+    assert g1["output_hash"] == g2["output_hash"] and g1["closed_by_prune"] == g2["closed_by_prune"], "read by pattern = answered one by one"
+
+
+def test_v03_a_confirmation_pattern_is_a_refusal_recorded_by_pattern_and_not_carried(repo):
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA please."  # one ANCHOR_CONFIRM, no unresolved term (as in the refusal test above)
+    t = T.build_template(task, L, root, None)
+    c = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM")
+    fake = Fake([json.dumps({"fills": {}, "patterns": {"ANCHOR_CONFIRM": "unchanged"}}),
+                 json.dumps({"fills": {"a1": {"names": ["Run"]}}}),
+                 json.dumps({"fills": {}, "patterns": FOUR})])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"))
+    r1 = rec["rounds"][0]
+    assert r1["errors"] == {} and r1["fills"]["by_pattern"] == {c["id"]: "ANCHOR_CONFIRM"}
+    assert r1["pattern_confirmations"] == 1 and r1["unanswered_confirmations"] == 0
+    assert [e["purpose"] for e in rec["exchanges"]][:2] == ["round 1", "round 1b"], "no repair; refused, so the rebuild opens the ANCHOR hole"
+    assert c["id"] not in {h["id"] for h in rec["template_round2"]["holes"]}, "a refusal by pattern is not carried into round 2, like one by silence"
+    assert rec["key"]["protocol_version"] == "0.3"
 
 
 def test_anchor_answer_may_be_a_candidate_node_id(repo):

@@ -112,3 +112,47 @@ def test_gold_fills_answer_every_open_hole(t):
     assert holes.validate_fills(t, gold) == {}
     assert "NoTests bool" in gold["fills"]["h2"]["code"] and "Tests: !o.NoTests" in gold["fills"]["h4"]["code"]
     assert gold["fills"]["n1"] == {"covered_by": ["h2", "h5"]}, "the new thing is a field and a local, not a top-level symbol"
+
+
+# ------------------------------------------------ protocol v0.3 (Calvin M0-Go WP-5): pattern reading and the validator fix
+
+def _pattern_template():
+    return {"holes": [{"id": "s1", "type": "SIGNATURE"}, {"id": "b1", "type": "BODY"}, {"id": "b2", "type": "BODY"},
+                      {"id": "c1", "type": "ANCHOR_CONFIRM", "provenance": {"anchor": "x"}}, {"id": "f1", "type": "FREEFORM"},
+                      {"id": "n1", "type": "NEW_SYMBOL"}, {"id": "b3", "type": "BODY", "closed": {"reason": "pruned"}}]}
+
+
+ANSWERED = {"s1": "unchanged", "b1": "unchanged", "b2": "unchanged", "c1": {"confirm": False}, "f1": "none",
+            "n1": {"name": "g", "file": "p.go", "region": "eof", "body": "func g() {}\n"}}
+
+
+def test_a_refused_pattern_answers_nothing_so_the_repair_can_name_its_holes():
+    t = _pattern_template()
+    fills = {k: v for k, v in ANSWERED.items() if k != "n1"}
+    errs = holes.validate_fills(t, {"fills": fills, "patterns": {"NEW_SYMBOL": "unchanged", "MODULE_REGION": "unchanged"}})
+    assert set(errs) == {"patterns.NEW_SYMBOL", "n1"} and errs["n1"] == ["missing"], "the refused pattern's hole is named, not counted as answered"
+    body_rewrite = {k: v for k, v in ANSWERED.items() if k not in ("b1", "b2")}
+    errs = holes.validate_fills(t, {"fills": body_rewrite, "patterns": {"BODY": "rewrite"}})
+    assert set(errs) == {"patterns.BODY", "b1", "b2"} and "unchanged" in errs["patterns.BODY"][0], "a pattern never rewrites"
+    assert holes.read_patterns(t, {"fills": body_rewrite, "patterns": {"BODY": "rewrite"}})["fills"] == body_rewrite, "and reads nothing"
+
+
+@pytest.mark.parametrize("typ, ids, reading, explicit", [
+    ("SIGNATURE", ["s1"], "unchanged", {"signature": "func f(x int)"}),
+    ("BODY", ["b1", "b2"], "unchanged", {"code": "func f() {}\n"}),
+    ("ANCHOR_CONFIRM", ["c1"], {"confirm": False}, {"confirm": True})])
+def test_protocol_v03_reads_a_pattern_per_hole_and_records_it(typ, ids, reading, explicit):
+    t = _pattern_template()
+    fills = {k: v for k, v in ANSWERED.items() if k not in ids}
+    doc = {"fills": fills, "patterns": {typ: "unchanged"}}
+    assert holes.validate_fills(t, doc) == {}
+    read = holes.read_patterns(t, doc)
+    assert {i: read["fills"][i] for i in ids} == {i: reading for i in ids} and read["by_pattern"] == {i: typ for i in ids}
+    assert "b3" not in read["fills"] and doc["fills"] == fills, "a closed hole takes nothing; the document handed in is not changed"
+    both = holes.read_patterns(t, {"fills": {**fills, ids[0]: explicit}, "patterns": {typ: "unchanged"}})
+    assert both["fills"][ids[0]] == explicit and ids[0] not in both.get("by_pattern", {}), "an explicit fill wins over the pattern"
+    plain = {"fills": dict(ANSWERED), "patterns": {"CALLER_UPDATE": "unchanged"}}
+    assert holes.read_patterns(t, plain) is plain, "nothing to read: the document comes back as it was"
+    if typ == "ANCHOR_CONFIRM":
+        assert holes.validate_fills(t, {"fills": fills, "patterns": {typ: "no"}}) == {}
+        assert holes.validate_fills(t, {"fills": fills, "patterns": {typ: "yes"}}) == {"patterns.ANCHOR_CONFIRM": ['a ANCHOR_CONFIRM pattern says only "unchanged" or "no"'], "c1": ["missing"]}
