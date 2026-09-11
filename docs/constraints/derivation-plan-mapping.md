@@ -150,6 +150,28 @@
 
 ### C-91 — Grounder v0 grounds call sites only, in three languages, and abstains on members of values
 
+- **Amended 2026-09-11 (Calvin M0-Go WP-3, grounder v1):** a **Go**
+  member is now judged when the syntax states its receiver's type — a
+  receiver or parameter, `var x T`, `:= T{}` / `&T{}` / `new(T)`, or a
+  package-level var of those shapes. Rule 1 binds the graph's method, a
+  method the diff adds (`gensym`), or one promoted through an embedded
+  repo type, else NULL; a struct field reads `field`, a type outside
+  the repo `external`, a predeclared type `builtin`. Rule 2 binds a
+  method a parent-graph interface declares to that interface method
+  (`interface`, inside HSR's denominator, now in-graph + interface +
+  NULL). Go members **still abstaining**: receivers typed only by a
+  call result (`x := f()`), range variables, package vars set from a
+  call (`regexp.MustCompile`), members possibly promoted from an
+  out-of-repo embedded type, types defined over named types, and type
+  parameters, local types and untyped bindings. Rule 2's implementers
+  come from an RTA key at another SHA (the cell's, not each parent's);
+  `hobbes ground` passes no key, so its `interface` rows carry
+  `implementers: null`. Go's universe is a pinned literal, go1.26.5's
+  `go/types.Universe` (44 names), like C-32's builtin lists. Measured
+  on the 20-key Go gold run: 2,578 references, `unknown-receiver` 53 → 5,
+  13 methods judged by rule 1, 0 NULL, `interface` 0 (no gold site is a
+  repo interface call, so rule 2 is settled on tests only). Python and
+  TS/JS members are unchanged: v0's abstention below still holds for them.
 - **Cannot tell you:** that a fill's **type references, decorators,
   composite literals or attribute reads** name real symbols — the
   grounder (`hobbes ground`, Calvin M0 §2.3) binds the **call sites**

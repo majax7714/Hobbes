@@ -66,3 +66,33 @@
   lift it, a second run under another `GOOS` would.
 - **Source:** the four-repo extraction test of 2026-09-02 (agent C,
   quic-go); ADR-098.
+
+### C-102 — Lane A skips a `var ( … )` group inside a Go function, so its names are not local bindings
+- **Cannot tell you:** that a name declared in a parenthesised
+  `var ( … )` group inside a Go function is a local. The tail view does
+  not class a call through it `local-binding` (ADR-046, C-32), and
+  ADR-090's scope veto does not see it.
+- **Because:** `gosource._local_bindings` records a function-level
+  `var` by reading the `var_spec` children of a `var_declaration`;
+  tree-sitter-go wraps a parenthesised group's specs in a
+  `var_spec_list`, which the walk does not descend. Parameters, `:=`,
+  `range` targets and the one-line `var x T` are recorded.
+- **Bites at:** two places, both only where lane B leaves the site
+  unresolved or did not run (C-26, C-71). The tail: a call through
+  such a name reads `unclassified` (*cannot resolve*) where it is
+  *seen, not modelled by design*, so the Go tail reads darker than the
+  truth there. Lane A's fallback: a bare call through such a name that
+  shares a package-level function's name is not vetoed, so the
+  fallback can bind it to that namesake — C-7's wrong-edge shape; not
+  measured. Found by reading during the Calvin M0-Go grounder's gold
+  run (gitleaks, `peekBuf` at 8a8306288e95). The grounder reads Go
+  locals with its own walk, which descends `var_spec_list`, so its
+  classes are unaffected.
+- **You find out:** *partial* — the site is counted in the tail, never
+  dropped, and a fallback edge is `syntactic` (C-7); but the class
+  names the wrong reason and nothing names the var group. Candidate
+  lift: descend `var_spec_list` in `_local_bindings` (a few lines),
+  with a re-ingest, since it moves the tail's counts and the veto's
+  reach.
+- **Source:** Calvin M0-Go WP-3, 2026-09-11
+  (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.

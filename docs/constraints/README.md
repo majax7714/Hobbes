@@ -118,7 +118,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-97, C-98, C-99, C-100, C-90, C-89, C-11, C-24 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-85, C-79, C-16, C-33 |
-| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71 |
+| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
@@ -135,8 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and one entries: seventy-five active, twenty-four lifted, two superseded**
-(C-101 registered and lifted 2026-09-10, later still — the Java resolve
+**One hundred and two entries: seventy-six active, twenty-four lifted, two superseded**
+(C-102 registered 2026-09-11 by Calvin M0-Go WP-3 — lane A's Go local
+bindings skip a `var ( … )` group inside a function, *partial*; C-91
+amended the same day — grounder v1 judges a Go member whose receiver's
+type the syntax states; C-101 registered and lifted 2026-09-10, later still — the Java resolve
 stage held Kotlin sources and a Maven build compiled them against Java
 that was not there, found by the 0.1.7-beta baseline regrade; C-100 registered and lifted 2026-09-10, later — `.mts`/`.cts` sources
 were not discovered by lane A, found by the callee-shape bucket of
@@ -228,7 +231,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Four of the active are *partial* (C-4, C-58, C-68, C-83); two
+against the code that concedes it; none had been silently lifted). Five of the active are *partial* (C-4, C-58, C-68, C-83, C-102); two
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — and C-20; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status

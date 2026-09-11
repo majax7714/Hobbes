@@ -36,7 +36,28 @@ fills are placed but not grounded in v0 (no unit needs them; C-91), and
 a non-code file is ``not-code``. Type references, decorators and
 composite literals are not call sites and are not grounded (C-91).
 
-**HSR (§4.6)** is NULL over (in-graph + NULL), the cell's definition
+**Go (`docs/calvin/calvin-m0-go.md` §2.4).** The builtin list is Go's
+universe scope, pinned (``GO_PREDECLARED``), and a bare name binds a
+local, then the package, then the universe — never a method. **Rule 1:**
+a method call on a receiver whose type the syntax states — a receiver
+or parameter, ``var x T``, ``x := T{…}`` / ``&T{…}`` / ``new(T)``, a
+package-level ``var`` of those shapes — resolves on that type: the
+graph's method (``in-graph``), one the post-image declares (``gensym``),
+one promoted through an embedded repo type, else NULL; a struct field
+is ``field``, a type outside the repo (or a member promoted from one)
+``external``, a predeclared type ``builtin``; a type parameter, a
+function-local type, a binding the syntax does not type and a type the
+graph does not hold abstain. **Rule 2:** a method an interface type of
+the graph declares resolves to the interface method (``interface``,
+judged beside ``in-graph``); the implementers an RTA key names for it
+are recorded on the row, never bound.
+
+**Density (Track B).** Every reference the parent graph judges carries
+``dense | sparse | absent`` beside its class (``density_table``,
+``DENSITY_RULE``): a real symbol by its in-degree against the parent's
+k, a gensym or a NULL ``absent``. Density is never a reason to NULL.
+
+**HSR (§4.6)** is NULL over (in-graph + interface + NULL), the cell's definition
 with the grounder's classes; on the gold diffs it must read 0 and any
 NULL is a grounder defect. ``fills_from_diff`` turns a diff into fills
 against a template — the charter's "handed a raw draft diff" case and
@@ -61,12 +82,29 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.derive import holes as H
 from hobbes.derive.template import Ledger, prune
-from hobbes.extract.tail import GO_BUILTINS, PY_BUILTINS, language_of
+from hobbes.extract.tail import PY_BUILTINS, language_of
 
-GROUNDER_VERSION = 0
+GROUNDER_VERSION = 1  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4)
 EXPR = "<expr>"
 #: The reference classes; ``NULL`` is the only failure (I2). Everything else is what lane A resolves or abstains on by rule.
-CLASSES = ("in-graph", "gensym", "builtin", "local", "expr", "external", "unknown-receiver", "not-code", "unsupported", "NULL")
+CLASSES = ("in-graph", "interface", "gensym", "builtin", "local", "field", "expr", "external", "unknown-receiver", "not-code", "unsupported", "NULL")
+#: The classes a density is read for: a reference the parent graph judges.
+DENSITY_CLASSES = ("in-graph", "interface", "gensym", "NULL")
+#: Track B's rule, stated on every record (M0-Go §2.4, "k so the top third of real symbols are dense").
+DENSITY_RULE = ("in-degree = distinct symbols with a calls or uses edge into the symbol, any tier, self-edges dropped; "
+                "population = every symbol of the parent graph; k = the smallest k >= 1 with at most ceil(N/3) symbols at in-degree >= k, "
+                "so ties at k are never split and the dense share is at most a third; dense iff in-degree >= k, else sparse; "
+                "absent = not a symbol of the parent graph (a gensym, a NULL); an interface method reads its interface type's in-degree")
+#: Go's universe scope, pinned from go1.26.5's ``go/types.Universe`` (the image's toolchain): the builtin functions, the
+#: predeclared types (a conversion is spelled like a call, and ``err.Error()`` is a method of one), the constants and ``nil``.
+#: The tail view's ``GO_BUILTINS`` is its callable subset less ``any`` and ``comparable``.
+GO_PREDECLARED = frozenset({
+    "append", "cap", "clear", "close", "complex", "copy", "delete", "imag", "len", "make", "max", "min", "new", "panic",
+    "print", "println", "real", "recover",
+    "any", "bool", "byte", "comparable", "complex128", "complex64", "error", "float32", "float64", "int", "int16", "int32",
+    "int64", "int8", "rune", "string", "uint", "uint16", "uint32", "uint64", "uint8", "uintptr",
+    "false", "iota", "nil", "true",
+})
 NULL_CLASSES = ("new", "near-miss", "invented")
 PLACED_TYPES = ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION", "COCHANGE_TOUCH", "NEW_SYMBOL", "FREEFORM")
 _NEAR = 3
@@ -293,6 +331,9 @@ class Parsed:
     refs: list[Ref]
     imports: list[dict]  #: {"bound": name, "module": dotted-or-path, "kind": "module"|"name"|"external", "name"?: imported name}
     locals: list[tuple[str, int, int]]
+    go_binds: list[tuple] = field(default_factory=list)  #: Go: (name, typeref | None, declared at, start, end) — rule 1's reading
+    go_tparams: list[tuple[str, int, int]] = field(default_factory=list)  #: Go: type parameters in scope over a function's extent
+    go_ltypes: list[tuple[str, int, int]] = field(default_factory=list)  #: Go: types declared inside a function
 
 
 def _parse_python(text: str) -> Parsed:
@@ -317,10 +358,192 @@ def _parse_python(text: str) -> Parsed:
 
 def _parse_go(path: str, text: str) -> Parsed:
     from hobbes.extract import gosource
-    g = gosource._parse_file(path, text.encode())
+    source = text.encode("utf-8", "surrogateescape")
+    g = gosource._parse_file(path, source)
     imports = [{"bound": i["alias"], "module": i["path"], "kind": "module"} for i in g.imports]
     refs = [Ref(c["name"], c["receiver"], c["line"], c.get("scope")) for c in g.calls]
-    return Parsed("go", g.symbols, refs, imports, [tuple(b[:3]) for b in g.local_bindings])
+    binds, tparams, ltypes = _go_scopes(gosource._PARSER.parse(source).root_node)
+    return Parsed("go", g.symbols, refs, imports, [tuple(b[:3]) for b in g.local_bindings], binds, tparams, ltypes)
+
+
+def _gtext(node) -> str:
+    return (node.text or b"").decode("utf-8", "surrogateescape")
+
+
+def _go_typeref(node) -> tuple[str | None, str] | None:
+    """A Go type expression as ``(package alias or None, type name)`` when it names one named type — through ``*``,
+    parentheses and type arguments — else None (a slice, map, func, channel or literal struct type names none)."""
+    while node is not None and node.type in ("pointer_type", "parenthesized_type"):
+        node = node.named_children[0] if node.named_children else None
+    if node is not None and node.type == "generic_type":
+        node = node.child_by_field_name("type")
+    if node is None:
+        return None
+    if node.type == "type_identifier":
+        return (None, _gtext(node))
+    if node.type == "qualified_type":
+        pkg, name = node.child_by_field_name("package"), node.child_by_field_name("name")
+        if pkg is not None and name is not None:
+            return (_gtext(pkg), _gtext(name))
+    return None
+
+
+def _go_value_typeref(node) -> tuple[str | None, str] | None:
+    """The type a Go value expression states by its syntax — ``T{…}``, ``&T{…}``, ``new(T)`` — else None: a call's result
+    type is not read (that is the checker's, not the grammar's), nor ``new(v)`` on a value (go1.26's ``new(expr)``)."""
+    if node is None:
+        return None
+    if node.type == "unary_expression":
+        op = node.child_by_field_name("operator")
+        if op is None or _gtext(op) != "&":
+            return None
+        node = node.child_by_field_name("operand")
+        if node is None:
+            return None
+    if node.type == "composite_literal":
+        return _go_typeref(node.child_by_field_name("type"))
+    if node.type == "call_expression":
+        fn, args = node.child_by_field_name("function"), node.child_by_field_name("arguments")
+        if fn is not None and fn.type == "identifier" and _gtext(fn) == "new" and args is not None and args.named_child_count == 1 \
+                and args.named_children[0].type != "identifier":
+            return _go_typeref(args.named_children[0])
+    return None
+
+
+def _go_list(node) -> list:
+    if node is None:
+        return []
+    return list(node.named_children) if node.type == "expression_list" else [node]
+
+
+def _go_scopes(root) -> tuple[list, list, list]:
+    """Rule 1's reading of one Go file. Every binding below package level as ``(name, typeref | None, declared at, start,
+    end)`` — the forms `gosource._local_bindings` records (parameters with the receiver and named results, ``:=``, ``var``,
+    ``range``), with the type when the syntax states one and the line that declares it; the type parameters in scope (a
+    function's own and a generic receiver's) and the function-local type names, each ``(name, start, end)`` over the
+    innermost function's extent."""
+    binds: list[tuple] = []
+    tparams: list[tuple] = []
+    ltypes: list[tuple] = []
+
+    def params(plist, own):
+        for decl in plist.named_children:
+            if decl.type in ("parameter_declaration", "variadic_parameter_declaration"):
+                t = _go_typeref(decl.child_by_field_name("type")) if decl.type == "parameter_declaration" else None
+                for nm in decl.children_by_field_name("name"):
+                    binds.append((_gtext(nm), t, own[0], *own))
+
+    def walk(node, extent):
+        kind = node.type
+        if kind in ("function_declaration", "method_declaration", "func_literal"):
+            own = (node.start_point.row + 1, node.end_point.row + 1)
+            recv = node.child_by_field_name("receiver")
+            if recv is not None:
+                params(recv, own)
+                stack = [recv]
+                while stack:
+                    n = stack.pop()
+                    if n.type == "type_arguments":
+                        tparams.extend((_gtext(t), *own) for t in _walk_nodes(n) if t.type == "type_identifier")
+                    else:
+                        stack.extend(n.children)
+            tpl = node.child_by_field_name("type_parameters")
+            if tpl is not None:
+                for decl in tpl.named_children:
+                    tparams.extend((_gtext(nm), *own) for nm in decl.children_by_field_name("name"))
+            for f in ("parameters", "result"):
+                pl = node.child_by_field_name(f)
+                if pl is not None and pl.type == "parameter_list":
+                    params(pl, own)
+            body = node.child_by_field_name("body")
+            if body is not None:
+                for child in body.children:
+                    walk(child, own)
+            return
+        if extent is not None:
+            line = node.start_point.row + 1
+            if kind == "short_var_declaration":
+                ls, rs = _go_list(node.child_by_field_name("left")), _go_list(node.child_by_field_name("right"))
+                for i, ident in enumerate(ls):
+                    if ident.type == "identifier":
+                        binds.append((_gtext(ident), _go_value_typeref(rs[i]) if len(rs) == len(ls) else None, line, *extent))
+            elif kind == "var_spec":
+                names = node.children_by_field_name("name")
+                typ = node.child_by_field_name("type")
+                vs = _go_list(node.child_by_field_name("value"))
+                for i, nm in enumerate(names):
+                    t = _go_typeref(typ) if typ is not None else (_go_value_typeref(vs[i]) if len(vs) == len(names) else None)
+                    binds.append((_gtext(nm), t, line, *extent))
+            elif kind == "range_clause":
+                binds.extend((_gtext(i), None, line, *extent) for i in _go_list(node.child_by_field_name("left")) if i.type == "identifier")
+            elif kind in ("type_spec", "type_alias"):
+                nm = node.child_by_field_name("name")
+                if nm is not None:
+                    ltypes.append((_gtext(nm), *extent))
+        for child in node.children:
+            walk(child, extent)
+
+    walk(root, None)
+    return binds, tparams, ltypes
+
+
+def _walk_nodes(node):
+    yield node
+    for child in node.children:
+        yield from _walk_nodes(child)
+
+
+def _go_read_type(spec, path: str, imports: list[dict]) -> dict:
+    """One top-level Go ``type_spec`` / ``type_alias`` as rule 1 reads it: ``kind`` (struct / interface / alias / other),
+    the field names, the methods an interface declares, the embedded types (typerefs, None for one the reading cannot
+    name) and, for ``other``, whether the underlying type is a named one (whose members a defined type may carry)."""
+    d = str(PurePosixPath(path).parent)
+    out = {"path": path, "dir": d, "imports": imports, "kind": "other", "fields": set(), "methods": set(), "embeds": [], "named_underlying": False}
+    typ = spec.child_by_field_name("type")
+    if spec.type == "type_alias":
+        out["kind"] = "alias"
+        out["embeds"] = [_go_typeref(typ)]
+        return out
+    if typ is None:
+        return out
+    if typ.type == "struct_type":
+        out["kind"] = "struct"
+        for fl in typ.named_children:
+            for fd in fl.named_children:
+                if fd.type != "field_declaration":
+                    continue
+                names = fd.children_by_field_name("name")
+                if names:
+                    out["fields"].update(_gtext(n) for n in names)
+                else:
+                    out["embeds"].append(_go_typeref(fd.child_by_field_name("type")))
+    elif typ.type == "interface_type":
+        out["kind"] = "interface"
+        for el in typ.named_children:
+            if el.type == "method_elem":
+                nm = el.child_by_field_name("name")
+                if nm is not None:
+                    out["methods"].add(_gtext(nm))
+            elif el.type == "type_elem":
+                out["embeds"].extend(_go_typeref(c) for c in el.named_children)
+    else:  # a defined type: its declared methods only, unless the underlying names a type whose members it may carry
+        ref = _go_typeref(typ)
+        out["named_underlying"] = ref is not None and not (ref[0] is None and ref[1] in GO_PREDECLARED and ref[1] != "error")
+    return out
+
+
+def density_table(graph: dict) -> dict:
+    """Track B's density over one parent graph (``DENSITY_RULE``): every symbol's in-degree, the population, ``k`` and how
+    many symbols are dense. Deterministic in the graph."""
+    into: dict[str, set[str]] = collections.defaultdict(set)
+    for e in graph.get("symbol_edges", []):
+        if e.get("type") in ("calls", "uses") and e["from"] != e["to"]:
+            into[e["to"]].add(e["from"])
+    degree = {s["id"]: len(into.get(s["id"], ())) for s in graph.get("symbols", [])}
+    ranked = sorted(degree.values(), reverse=True)
+    cap = -(-len(ranked) // 3)
+    k = max(1, ranked[cap] + 1) if cap < len(ranked) else 1
+    return {"rule": DENSITY_RULE, "k": k, "population": len(ranked), "cap": cap, "dense_in_population": sum(1 for v in ranked if v >= k), "degree": degree}
 
 
 #: The callable globals of the JS runtime the helper runs under, pinned the way the tail view pins Python's and Go's
@@ -431,11 +654,16 @@ class _Resolver:
         self.L, self.repo_root, self.sha, self.trace = L, repo_root, sha, trace
         self.declared = declared
         self.post_text = post_text or {}
-        self.pkg: dict[str, dict[str, str]] = collections.defaultdict(dict)  # Go: package dir → name → symbol id
+        self.pkg: dict[str, dict[str, str]] = collections.defaultdict(dict)  # Go: package dir → name → id of what a bare name binds (never a method)
+        self.go_methods: dict[tuple[str, str], dict[str, str]] = collections.defaultdict(dict)  # Go: (dir, receiver type) → method name → id
         for sid, s in L.symbols.items():
             p = L.mod_path.get(s["module"])
             if p and p.endswith(".go"):
-                self.pkg[str(PurePosixPath(p).parent)][s["name"]] = sid
+                d = str(PurePosixPath(p).parent)
+                if s.get("kind") == "method":
+                    self.go_methods[(d, s.get("qualname", s["name"]).split(".")[0])][s["name"]] = sid
+                else:
+                    self.pkg[d][s["name"]] = sid
         self.mod_syms: dict[str, dict[str, str]] = collections.defaultdict(dict)  # module → qualname → id
         for sid, s in L.symbols.items():
             self.mod_syms[s["module"]][s.get("qualname", s["name"])] = sid
@@ -450,6 +678,22 @@ class _Resolver:
                     self.gensym_quals[path].add(s["qualname"])
         self.go_mods = self._go_modules()
         self.all_gensyms = set().union(*self.gensyms.values()) if self.gensyms else set()
+        self.post_parsed = post_parsed
+        self.go_gensym_bare: dict[str, set[str]] = collections.defaultdict(set)  # Go: dir → package-level names the post-image adds
+        self.go_gensym_methods: dict[tuple[str, str], set[str]] = collections.defaultdict(set)  # Go: (dir, receiver type) → methods it adds
+        for path, P in post_parsed.items():
+            if P.lang != "go":
+                continue
+            d = str(PurePosixPath(path).parent)
+            for s in P.symbols:
+                if s["qualname"] in self.gensym_quals[path]:
+                    if s["kind"] == "method":
+                        self.go_gensym_methods[(d, s["qualname"].split(".")[0])].add(s["name"])
+                    else:
+                        self.go_gensym_bare[d].add(s["name"])
+        self._go_files: dict[tuple[str, bool], tuple | None] = {}
+        self._go_decls: dict[tuple[str, str, bool], dict | None] = {}
+        self.iface: dict[str, tuple[str, str]] = {}  # rule 2: interface-method target → (interface type id, the RTA key's name for it)
 
     def _module_text(self, mod: str) -> str | None:
         """A repo module's source: the post-image when the diff edits it, else the parent's."""
@@ -552,31 +796,199 @@ class _Resolver:
     def _go(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
         T = self.trace
         d = str(PurePosixPath(path).parent)
-        if r.receiver is None:
-            if r.name in GO_BUILTINS:
-                return "builtin", None
+        if r.receiver is None:  # Go's scoping: a local, then the package block, then the universe
             if self.in_scope_local(P, r.name, r.line):
                 return "local", None
             sid = T.look("package", f"{d}:{r.name}", self.pkg.get(d, {}).get(r.name))
             if sid:
                 return "in-graph", sid
-            if any(r.name in self.gensyms[p] for p in self.gensyms if str(PurePosixPath(p).parent) == d):
+            if r.name in self.go_gensym_bare.get(d, ()):
                 return "gensym", r.name
+            if r.name in GO_PREDECLARED:
+                return "builtin", None
             return "NULL", None
+        local = self.go_binding(P, r.receiver, r.line)
         imp = next((i for i in P.imports if i["bound"] == r.receiver), None)
-        if imp is not None:
+        if imp is not None and local is None:  # a binding declared before the call shadows the package name
             pd = T.look("import", imp["module"], self.go_package_dir(imp["module"]))
             if pd is None:
                 return "external", imp["module"]
             sid = T.look("package", f"{pd}:{r.name}", self.pkg.get(pd, {}).get(r.name))
             if sid:
                 return "in-graph", sid
-            if any(r.name in self.gensyms[p] for p in self.gensyms if str(PurePosixPath(p).parent) == pd):
+            if r.name in self.go_gensym_bare.get(pd, ()):
                 return "gensym", r.name
             return "NULL", None
-        if self.in_scope_local(P, r.receiver, r.line):
+        if local is not None and local[0] is not None:  # rule 1: a receiver whose type the syntax states
+            return self.go_call_on(self.go_resolve_type(local[0], d, P.imports, P, r.line), r, "local")
+        if local is not None or self.in_scope_local(P, r.receiver, r.line):
             return "local", r.receiver
+        decl = self.go_var_type(d, r.receiver)
+        if decl is not None:  # rule 1 on a package-level var whose declaration states its type
+            ref, vpath, imports = decl
+            return self.go_call_on(self.go_resolve_type(ref, str(PurePosixPath(vpath).parent), imports), r, "unknown-receiver")
         return "unknown-receiver", r.receiver
+
+    # ---- Go: rules 1 and 2 (M0-Go §2.4)
+
+    def go_binding(self, P: Parsed, name: str, line: int) -> tuple | None:
+        """The innermost binding of *name* declared at or before *line* in a function enclosing it: ``(typeref,)``, the
+        typeref None when the syntax does not state one or that function binds the name with more than one; else None."""
+        cands = [b for b in P.go_binds if b[0] == name and b[3] <= line <= b[4] and b[2] <= line]
+        if not cands:
+            return None
+        inner = min(b[4] - b[3] for b in cands)
+        types = {b[1] for b in cands if b[4] - b[3] == inner}
+        return (types.pop() if len(types) == 1 else None,)
+
+    def go_resolve_type(self, ref, d: str, imports: list[dict], P: Parsed | None = None, line: int = 0) -> tuple | None:
+        """A typeref read in a file of package dir *d*: ``("repo", dir, name)``, ``("external", import path)`` or
+        ``("builtin", name)``; None for a type parameter or a function-local type in scope, or an alias no import binds."""
+        if ref is None:
+            return None
+        alias, name = ref
+        if alias is None:
+            if P is not None and any(n == name and a <= line <= b for n, a, b in P.go_tparams + P.go_ltypes):
+                return None
+            if name in GO_PREDECLARED and name not in self.pkg.get(d, {}) and name not in self.go_gensym_bare.get(d, ()):
+                return ("builtin", name)
+            return ("repo", d, name)
+        imp = next((i for i in imports if i["bound"] == alias), None)
+        if imp is None:
+            return None
+        pd = self.trace.look("import", imp["module"], self.go_package_dir(imp["module"]))
+        return ("external", imp["module"]) if pd is None else ("repo", pd, name)
+
+    def go_call_on(self, t: tuple | None, r: Ref, unread: str) -> tuple[str, str | None]:
+        """Member ``r.name`` called on a receiver of resolved type *t*; *unread* is the abstention when the type cannot be named."""
+        if t is None:
+            return unread, r.receiver
+        if t[0] in ("builtin", "external"):
+            return t[0], t[1]
+        return self.go_member(t[1], t[2], r.name)
+
+    def go_member(self, d: str, T: str, name: str, depth: int = 0) -> tuple[str, str | None]:
+        """Member *name* of repo type *T* in package dir *d*, exactly: the graph's method, a method the post-image adds,
+        an interface's method (rule 2), a field, one promoted through an embedded repo type (depth ≤ 3) — else NULL. A member
+        that may be promoted from a type outside the repo abstains as that type's class; a type neither the graph nor the
+        post-image declares, or a defined type over a named one, abstains ``unknown-receiver``."""
+        sid = self.trace.look("method", f"{d}:{T}.{name}", self.go_methods.get((d, T), {}).get(name))
+        if sid:
+            return "in-graph", sid
+        if name in self.go_gensym_methods.get((d, T), ()):
+            return "gensym", f"{T}.{name}"
+        decl = self.go_type_decl(d, T)
+        if decl is None:
+            return "unknown-receiver", T
+        if decl["kind"] == "interface" and name in decl["methods"]:
+            tsid = self.pkg.get(d, {}).get(T)
+            parent = self.go_type_decl(d, T, parent=True)
+            if tsid is None or self.L.symbols[tsid].get("kind") != "type" or parent is None or name not in parent["methods"]:
+                return "gensym", f"{T}.{name}"  # an interface method the diff declares: new, not a parent symbol
+            target = f"{tsid}.{name}"
+            self.iface[target] = (tsid, f"{self.go_import_path(d)}.{T}.{name}")
+            return "interface", target
+        if name in decl["fields"]:
+            return "field", f"{T}.{name}"
+        outside = None
+        for ref in decl["embeds"]:
+            t = self.go_resolve_type(ref, decl["dir"], decl["imports"])
+            if t is None or t[0] != "repo":
+                outside = outside or (t if t is not None else ("unknown-receiver", T))
+                continue
+            if depth < 3:
+                hit = self.go_member(t[1], t[2], name, depth + 1)
+                if hit[0] != "NULL":
+                    return hit
+        if outside is not None:
+            return outside[0], outside[1]
+        if decl["kind"] == "other" and decl["named_underlying"]:
+            return "unknown-receiver", T
+        return "NULL", None
+
+    def go_file(self, path: str, parent: bool = False) -> tuple | None:
+        """A Go file's tree and imports — the post-image when the diff edits it (unless *parent*), else the parent's."""
+        key = (path, parent)
+        if key not in self._go_files:
+            from hobbes.extract import gosource
+            text = None if parent else self.post_text.get(path)
+            if text is None:
+                text = _show(str(self.repo_root), self.sha, path)
+            if text is None:
+                self._go_files[key] = None
+            else:
+                root = gosource._PARSER.parse(text.encode("utf-8", "surrogateescape")).root_node
+                imports = [{"bound": i["alias"], "module": i["path"]} for n in root.children if n.type == "import_declaration" for i in gosource._imports(n)]
+                self._go_files[key] = (root, imports)
+        return self._go_files[key]
+
+    def _go_decl_paths(self, d: str, name: str, kind: str, parent: bool) -> list[str]:
+        paths = [] if parent else [p for p in sorted(self.post_parsed) if self.post_parsed[p].lang == "go" and str(PurePosixPath(p).parent) == d
+                                   and any(s["name"] == name and s["kind"] == kind for s in self.post_parsed[p].symbols)]
+        sid = self.pkg.get(d, {}).get(name)
+        if not paths and sid and self.L.symbols[sid].get("kind") == kind:
+            paths = [self.L.mod_path[self.L.symbols[sid]["module"]]]
+        return paths
+
+    def go_type_decl(self, d: str, T: str, parent: bool = False) -> dict | None:
+        """Repo type *T* of package dir *d* as `_go_read_type` reads it — from the post-image that declares it, else the
+        file the graph places it in (only the latter when *parent*); None when neither has it. Traced."""
+        key = (d, T, parent)
+        if key not in self._go_decls:
+            decl = None
+            for path in self._go_decl_paths(d, T, "type", parent):
+                f = self.go_file(path, parent)
+                if f is None:
+                    continue
+                root, imports = f
+                for node in root.children:
+                    if node.type != "type_declaration":
+                        continue
+                    for spec in node.named_children:
+                        nm = spec.child_by_field_name("name") if spec.type in ("type_spec", "type_alias") else None
+                        if nm is not None and _gtext(nm) == T:
+                            decl = _go_read_type(spec, path, imports)
+                            break
+                    if decl:
+                        break
+                if decl:
+                    break
+            self.trace.look("type-decl", f"{d}:{T}{'@parent' if parent else ''}", None if decl is None else f"{decl['kind']} in {decl['path']}")
+            self._go_decls[key] = decl
+        return self._go_decls[key]
+
+    def go_var_type(self, d: str, name: str) -> tuple | None:
+        """A package-level ``var`` of package dir *d*: ``(typeref, path, imports)`` when its declaration states a type
+        (``var x T``, ``= T{…}``, ``= &T{…}``, ``= new(T)``), else None. Traced."""
+        for path in self._go_decl_paths(d, name, "var", False):
+            f = self.go_file(path)
+            if f is None:
+                continue
+            root, imports = f
+            for node in root.children:
+                if node.type != "var_declaration":
+                    continue
+                specs = [c for c in node.named_children if c.type == "var_spec"]
+                specs += [s for c in node.named_children if c.type == "var_spec_list" for s in c.named_children if s.type == "var_spec"]
+                for spec in specs:
+                    names = [_gtext(n) for n in spec.children_by_field_name("name")]
+                    if name not in names:
+                        continue
+                    typ, vs = spec.child_by_field_name("type"), _go_list(spec.child_by_field_name("value"))
+                    i = names.index(name)
+                    ref = _go_typeref(typ) if typ is not None else (_go_value_typeref(vs[i]) if len(vs) == len(names) else None)
+                    self.trace.look("var-type", f"{d}:{name}", None if ref is None else ".".join(x for x in ref if x))
+                    return None if ref is None else (ref, path, imports)
+        return None
+
+    def go_import_path(self, d: str) -> str:
+        """The import path of package dir *d* (the inverse of `go_package_dir`) — the name an RTA key gives its members."""
+        d = "" if d == "." else d
+        for mod, mdir in sorted(self.go_mods.items(), key=lambda x: len(x[1]), reverse=True):
+            if mdir == "" or d == mdir or d.startswith(mdir + "/"):
+                rest = d[len(mdir):].lstrip("/") if mdir else d
+                return mod + ("/" + rest if rest else "")
+        return d
 
     def _py(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
         L, T = self.L, self.trace
@@ -748,8 +1160,11 @@ def _edit_distance(a: str, b: str) -> int:
 
 # ------------------------------------------------------------------ ground
 
-def ground(template: dict, doc: dict, L: Ledger, repo_root: Path) -> dict:
-    """The grounder: fills → diff + NULL list + read-trace + the invariant counts. Deterministic in its inputs (I5)."""
+def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict | None = None) -> dict:
+    """The grounder: fills → diff + NULL list + read-trace + the invariant counts. Deterministic in its inputs (I5).
+
+    *rta* — ``{"source": str, "sites": {interface method name: [implementer names]}}``, an RTA key's invoke sites — puts
+    the implementers it names on each rule-2 row; they are recorded, never bound."""
     trace = Trace()
     sha = template["key"]["parent_sha"]
     edits, rep = edits_from_fills(template, doc, L, repo_root, trace)
@@ -774,6 +1189,17 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path) -> dict:
             parsed[path] = P
             trace.look("parse", path, f"{P.lang}: {len(P.symbols)} symbols, {len(P.refs)} call sites")
     R = _Resolver(L, repo_root, sha, trace, parsed, set(rep["declared_new"]), {p: "\n".join(post[p]) + ("\n" if post[p] else "") for p in post})
+    D = density_table(L.graph)
+    dens = collections.Counter()
+
+    def density(cls: str, target: str | None) -> tuple[str | None, int | None]:
+        if cls not in DENSITY_CLASSES:
+            return None, None
+        if cls in ("gensym", "NULL"):
+            return "absent", None
+        deg = D["degree"].get(R.iface[target][0] if cls == "interface" else target)
+        return (None, None) if deg is None else ("dense" if deg >= D["k"] else "sparse", deg)
+
     hole_at: dict[str, list[tuple[int, int, str]]] = collections.defaultdict(list)  # which hole owns each post-image range, in apply_edits' order
     for path in post:
         es = sorted([e for e in edits if e.path == path and not any(x.get("hole") == e.hole for x in overlaps)], key=lambda e: (e.start, e.end, e.hole))
@@ -783,12 +1209,12 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path) -> dict:
         lang = language_of(path)
         if lang is None:
             by_class["not-code"] += 1
-            refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "not-code", "target": None})
+            refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "not-code", "target": None, "density": None, "refs_in": None})
             continue
         P = parsed.get(path)
         if P is None:
             by_class["unsupported"] += 1
-            refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "unsupported", "target": lang})
+            refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "unsupported", "target": lang, "density": None, "refs_in": None})
             continue
         for r in P.refs:
             owner = next((h for a, b, h in hole_at[path] if a <= r.line <= b), None)
@@ -796,13 +1222,19 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path) -> dict:
                 continue
             cls, target = R.resolve(path, P, r)
             row = {"hole": owner, "path": path, "line": r.line, "term": r.name if r.receiver is None else f"{r.receiver}.{r.name}", "class": cls, "target": target}
+            row["density"], row["refs_in"] = density(cls, target)
+            if row["density"]:
+                dens[row["density"]] += 1
+            if cls == "interface":
+                row["rta_key"] = R.iface[target][1]
+                row["implementers"] = None if rta is None else sorted(rta.get("sites", {}).get(row["rta_key"], []))
             by_class[cls] += 1
             if cls == "NULL":
                 _, near, ncls = R.null(r.name, path)
                 row.update({"null_class": ncls, "nearest": near, "declared": r.name in R.declared})
                 nulls.append(row)
             refs.append(row)
-    judged = by_class["in-graph"] + by_class["NULL"]
+    judged = by_class["in-graph"] + by_class["interface"] + by_class["NULL"]
     out = {
         "grounder_version": GROUNDER_VERSION,
         "key": {**template["key"], "grounder_version": GROUNDER_VERSION},
@@ -818,6 +1250,8 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path) -> dict:
         "null_by_class": {c: sum(1 for n in nulls if n["null_class"] == c) for c in NULL_CLASSES},
         "gensyms": sorted(R.all_gensyms | R.declared),
         "hsr": round(by_class["NULL"] / judged, 4) if judged else None,
+        "density": {**{k: D[k] for k in ("rule", "k", "population", "cap", "dense_in_population")}, "counts": {c: dens[c] for c in ("dense", "sparse", "absent")}},
+        "rta": None if rta is None else rta.get("source"),
         **{k: rep[k] for k in ("unfilled", "ignored_closed", "unknown_hole", "refused", "notes", "closed_by_prune", "declared_new")},
         "trace": trace.rows,
     }

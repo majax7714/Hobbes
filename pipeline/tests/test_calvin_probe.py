@@ -1,7 +1,10 @@
 """The Calvin M0 probe's pure pieces (`scripts/calvin_probe.py`): hunk ranges, absent-file classes, span overlap, the `new` term test."""
 import importlib.util
+import json
 import sys
 from pathlib import Path
+
+import pytest
 
 spec = importlib.util.spec_from_file_location("calvin_probe", Path(__file__).resolve().parents[1] / "scripts" / "calvin_probe.py")
 cp = importlib.util.module_from_spec(spec)
@@ -107,3 +110,29 @@ def test_replay_fills_max_mode_confirms_every_symbol_of_a_module_the_run_confirm
     assert fills["c3"] == {"confirm": True} and fills["c4"] == {"confirm": True}  # `cont` was confirmed in v0
     assert fills["c5"] == {"confirm": False}  # `other` was refused
     assert yes == 3
+
+
+def test_split_diff_keys_each_file_by_its_b_path():
+    d = ("diff --git a/x.go b/x.go\n--- a/x.go\n+++ b/x.go\n@@ -1 +1 @@\n-a\n+b\n"
+         "diff --git a/n.go b/n.go\nnew file mode 100644\n--- /dev/null\n+++ b/n.go\n@@ -0,0 +1 @@\n+c\n")
+    parts = cp.split_diff(d)
+    assert [p for p, _ in parts] == ["x.go", "n.go"] and "".join(x for _, x in parts) == d
+
+
+def test_perturb_site_renames_one_site_by_byte_column_and_near_name_avoids_taken():
+    text = "package p\n\nfunc f() {\n\tRun(Run())\n}\n"
+    assert cp.perturb_site(text, 4, 5, "Run", "RunZq") == "package p\n\nfunc f() {\n\tRun(RunZq())\n}\n", "the second site only"
+    with pytest.raises(ValueError):
+        cp.perturb_site(text, 4, 2, "Run", "X")
+    assert cp.near_name("Run", {"RunZq"}) == "RunQz"
+
+
+def test_rta_sites_collects_in_repo_implementers_per_interface_method(tmp_path):
+    key = {"oracle": "go-rta", "sites": [
+        {"mode": "dynamic", "interface": {"name": "m/p.Source.Fragments"}, "targets": [{"name": "(*m/p.Git).Fragments"}, {"name": "(*ext.X).Fragments", "external": True}]},
+        {"mode": "dynamic", "interface": {"name": "m/p.Source.Fragments"}, "targets": [{"name": "(*m/p.File).Fragments"}]},
+        {"mode": "dynamic", "interface": {"name": "io.Writer.Write", "external": True}, "targets": [{"name": "(*m/p.W).Write"}]},
+        {"mode": "static", "targets": [{"name": "m/p.f"}]}]}
+    (tmp_path / "k.json").write_text(json.dumps(key))
+    assert cp.rta_sites(tmp_path / "k.json", "label") == {"source": "label", "sites": {"m/p.Source.Fragments": ["(*m/p.File).Fragments", "(*m/p.Git).Fragments"]}}
+    assert cp.rta_sites(None) is None
