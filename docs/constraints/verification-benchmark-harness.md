@@ -745,7 +745,11 @@
 - **You find out:** **surfaced** — the record's `selection` block gives
   the counts by origin, grain and framework; every test row carries its
   origin and class; `hobbes verify` prints `no-tests`, `unsupported`
-  and `uncollected` beside the verdict.
+  and `uncollected` beside the verdict. Since 0.1.15-beta a diff whose
+  selected guards all fail to execute (every id uncollected, skipped,
+  not run, errored or unsupported) reads `vacuous`, never `pass`, and
+  the record carries `guarding_tests_executed` (Calvin M0-Go round 2
+  §2.3, WP-11a: 19 of round 1's 31 pass rows).
 - **Calibrated (2026-09-04, later):** the import grain over the 28
   gold diffs — every verdict identical to step 5's calibration, `P2F`
   0, 2,408 rows added (the selection 3,190 → 5,598), one new `F2F`
@@ -782,6 +786,37 @@
   second attempt.
 - **Source:** Calvin M0-Go WP-1, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
   §2.3), defect D2; ADR-100 amended.
+
+### C-115 — Gold's tests carry their fixtures only from three directory names
+
+- **Cannot tell you:** that a `gold_tests` failure is the arm's.
+  `gold_tests` (`docs/calvin/calvin-m0-go-r2.md` §2.3) applies the gold
+  diff's own test changes on top of an arm's diff. It carries every
+  test-file hunk, and beside them the test-support hunks: files under
+  `testdata/`, `__fixtures__/` or `__snapshots__/`
+  (`is_test_support_path`). A fixture gold adds or edits anywhere else —
+  a golden file beside the code, a config a test loads by path — stays
+  behind, and gold's test then fails on any diff, gold's own included. A
+  test-support hunk with no test-file hunk beside it reads `n/a`.
+- **Because:** the gold diff does not say which of its non-test files a
+  test reads. The three names are the conventions Go (`testdata/` is
+  ignored by the go tool) and the JS runners use. Carrying every
+  non-code file would hand the arm gold's configs.
+- **Bites at:** a unit whose gold test reads a fixture outside those
+  names. WP-11a met the class on gitleaks before the rule carried
+  `testdata/` (defect WP-11a-1): `a971a324fab5`'s `TestTranslate` reads
+  `testdata/config/extend_rule_allowlist.toml`, and every arm's
+  `gold_tests` read `fail` on it, gold's shape included.
+- **You find out:** **partial** — `gold_tests_verdict` splits a failure
+  into `fail`, `build-fail` (with Go's `undefined:` names) and
+  `conflict`, so a fixture miss shows as a test that ran and failed on
+  every arm. The gold control that catches it outright — gold's own
+  non-test hunks with `gold_tests` on top must read `pass` at the
+  parent (7/7 on round 1's keys) — is a bench script
+  (`~/.hobbes/bench/calvin-go/wp-11a/scripts/control.py`) and a pytest
+  case, not a step `hobbes verify` runs.
+- **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
+  (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
 
 ## Superseded constraints in this segment
 

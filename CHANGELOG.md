@@ -13,6 +13,31 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.15-beta — 2026-09-11 (later still, the third)
+
+**Patch: `hobbes verify` no longer reads `pass` on a change no test
+exercised.** Calvin M0-Go round 2's audit (WP-11a) re-scored round 1's
+31 pass rows: 19 had reached no executed guarding test.
+
+- **`vacuous`, a verdict of its own.** A diff that builds, selects
+  tests and fails none, but where no guarding test actually executed
+  (every selected id uncollected, skipped, not run, errored or
+  unsupported), reads `vacuous`, never `pass`. The record carries
+  `guarding_tests_executed` (count and ids); guards count by origin
+  `guard` or `touched`, not `generate`. The order is `build-fail` →
+  `no-tests` → `fail` → `vacuous` → `pass`, so C-93's `no-tests`
+  (nothing selected) is unchanged.
+- **`gold_tests`, the gold's own test changes on top of the diff.** A
+  caller holding a gold diff (the Calvin driver) can apply its test-file
+  hunks, with the fixtures beside them under `testdata/`,
+  `__fixtures__/` or `__snapshots__/`, on top of an arm's diff and
+  verify that. A `gold_tests` pass makes a row `pass` even where no
+  guard executed. Its failures split into `fail`, `build-fail` (with
+  Go's `undefined:` names) and `conflict`. Checked by a gold control:
+  gold's own non-test hunks with `gold_tests` on top read `pass` on 7
+  of 7 of round 1's keys. C-115 (fixtures only from those three
+  directory names).
+
 ## 0.1.14-beta — 2026-09-11 (later still, the second)
 
 **Patch: the grounder holds a Go fill to the repo's world (grounder
