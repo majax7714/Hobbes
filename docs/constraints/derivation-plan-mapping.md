@@ -450,3 +450,105 @@
   the holes asked, the exchanges, and the body NULLs before and after.
 - **Source:** Calvin M0-Go WP-9, 2026-09-11 (`adapter.declaration_repair`).
 
+### C-118 — Signatures in the world cover exact calls into this module's own declarations, and every doubt abstains
+
+- **Cannot tell you:** that a call whose own shape or callee is anything
+  but the exact case grounder v3 reads is arity-checked, or that a
+  qualified reference into anything but this module's own package is
+  existence-checked. Both classes abstain — the call is judged only as
+  `in-graph`, never `arity` or `undeclared-type` — on: a variadic
+  parameter on either side (the call spreads `...`, or the callee
+  declares one); the callee's own type parameters (a generic function
+  or method); a call whose sole syntactic argument is itself a call
+  expression (Go's multi-value spread, `f(g())`, which the grammar
+  alone cannot rule out from an ordinary one-argument call); a method
+  value or a call through an interface or a function-typed value (rule
+  2's `interface` class, and any receiver rule 1 itself abstains on,
+  never reach the arity check, since only a call already bound
+  `in-graph` is judged); a member promoted from an embedded type
+  (`go_member`'s own abstentions, C-91, are upstream of this and
+  unchanged); and a qualified reference whose qualifier binds to
+  anything but exactly one import of this module's own package — std,
+  a required (external) module, an ambiguous bind across two imports,
+  or an unresolved one all abstain, so `undeclared-type` never fires on
+  a dependency this grounder cannot itself read. A callee whose own
+  file this same diff edits also abstains (below).
+- **Because:** each of these needs either a type checker (a method
+  value, an interface's dynamic target, a generic instantiation's
+  substituted arity) or a symbol table this grounder does not build for
+  code outside the repo (std, a required module's exports) — reading
+  either by convention risks a false NULL worse than the miss, and
+  §2.5 abstains rather than guess.
+- **Bites at:** the declaration route's residual on calls this doesn't
+  reach — a placed body that calls into the standard library or a
+  dependency with the wrong arity, or that spreads a variadic or a
+  multi-return call, still reads clean here and fails only at `go
+  build`, as before WP-14b.
+- **You find out:** **surfaced** — `SIGNATURE_RULE` states the rule and
+  every abstention by name, carried in every ground record's
+  `world.signature_rule`.
+- **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11.
+
+### C-119 — A callee's own file being edited by the same diff turns off its arity check
+
+- **Cannot tell you:** whether a call into a function or method whose
+  own declaration this diff *also* edits states the right arity against
+  the version that will actually exist. `go_arity` reads only the
+  parent's (pre-diff) declaration of an in-graph symbol; when that
+  symbol's file is among the diff's own edited files (`post_text`), the
+  parent's arity may no longer be the arity the diff is converging on
+  — gold's own `DirectoryTargets` and `detectRule` commits change a
+  function's parameter count and every call site together, and reading
+  the parent's arity against the post-image's calls produced two false
+  `arity` NULLs on clean gold diffs before this abstention was added
+  (found by the gold re-ground, WP-14b's own exit check). The grounder
+  now abstains outright rather than read the post-image's own
+  (possibly still-changing, possibly multiply-edited) declaration.
+- **Because:** locating and re-parsing the post-image's own version of
+  a declaration that may have moved lines, or that this diff itself
+  supersedes with a SIGNATURE fill, is exactly the "declared in the
+  wrong world, mid-edit" case §2.5 is not scoped to read; abstaining is
+  the doubt this grounder can state exactly, and a caller-update or
+  signature hole already exists for tracking the callee's own change.
+- **Bites at:** a diff that changes both a function's signature and one
+  of its call sites incorrectly (e.g. the right new arity at one site,
+  the old one at another) — arity is silent there, same as before
+  WP-14b, until the build catches it.
+- **You find out:** **surfaced** — `go_arity`'s doc names the
+  abstention, and `SIGNATURE_RULE` states it in the record.
+- **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11 (found on gold's
+  `ed205a5f63e3` and `2278a2a97e42`).
+
+### C-120 — A malformed post-image reads as its own class only when it carries the render's gutter
+
+- **Cannot tell you:** that any file the grounder cannot meaningfully
+  parse says so. `ground()` now names exactly one shape of unreadable
+  content — a post-image whose text carries the template render's
+  line-number gutter (`holes.carries_gutter`, D-a's own pattern) — as
+  its own reference class, `malformed`, rather than silently reporting
+  0 references as though the file were legitimately empty (round 2
+  D-m). A file garbled some *other* way — truncated mid-declaration, a
+  wrong language's syntax, binary content coerced to text — is not
+  this class; it still reads as whatever lane A's parser happens to
+  make of it, symbols and calls included or emptied out with nothing
+  said.
+- **Because:** the gutter shape is the one defect this round's record
+  actually produced and reproduced (WP-6's `7fc11bb264e9`, protocol
+  v0.3, before WP-7a's validator guard existed); a general "this parse
+  looks too empty for its size" heuristic risks flagging legitimately
+  sparse real files (a one-line stub, a `//go:generate`-only file) as
+  malformed, which is a worse failure than the one being fixed.
+- **Bites at:** a replay of a pre-v0.4 record only — a live run under
+  protocol v0.4 or later never reaches `ground()` with a gutter-carrying
+  body at all (the validator refuses it first), so this class is a
+  defence-in-depth check for exactly the case the general system (the
+  validator) already owns (P10): the specific guarantee here is that
+  *this* one shape never again reads as a silent empty file, even
+  off-path.
+- **You find out:** **surfaced** for the gutter shape —
+  `references.malformed` and a `refs` row with `class: "malformed"` and
+  `reason` (`holes.GUTTER_ERROR`); **unsurfaced** for every other
+  malformation shape, unchanged from before this fix.
+- **Source:** Calvin M0-Go round 2 WP-11b (found, D-m) / WP-14b
+  (fixed), 2026-09-11.
+
