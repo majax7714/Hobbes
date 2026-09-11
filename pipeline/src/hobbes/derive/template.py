@@ -47,6 +47,15 @@ the nearest graph names per unresolved term with their node ids, and
 the ledger's file listing by directory. The orchestrator chooses among
 them or names something else that exists; binding stays exact.
 
+**Template v2 — the out-degree cap** (Calvin M0-Go F1, opt-in with
+``version=2``; v1 stays the default and rebuilds byte for byte): an
+anchored symbol with more than ``CALLEE_CAP`` distinct in-repo callees
+does not expand them into the interior. Each held-back callee is asked
+in round 1 as an ``ANCHOR_CONFIRM`` whose span renders its signature
+line only — M0 v1's module-anchor pattern — and only a confirmed one
+joins the interior on rebuild; an answered one is not asked again. At
+or under the cap, callees expand exactly as in v1.
+
 ``apply_round1`` rebuilds the template from the orchestrator's answers
 to the round-1 holes (``refers`` terms become anchors, ``new`` terms
 open ``NEW_SYMBOL`` holes, a rejected ``ANCHOR_CONFIRM`` drops its
@@ -67,7 +76,7 @@ import subprocess
 from pathlib import Path
 
 from hobbes.derive.cochange import CoChange
-from hobbes.derive.holes import FILL_SHAPES, TEMPLATE_VERSION
+from hobbes.derive.holes import FILL_SHAPES, TEMPLATE_VERSION, TEMPLATE_VERSIONS
 from hobbes.derive.impact import _TOKEN, _code_shaped
 
 _BACKTICK = re.compile(r"`([^`\n]+)`")
@@ -82,6 +91,11 @@ PARTNER_MIN = 2
 #: subcommands across the repo); the note records the count and the term goes to the unresolved block. A declared guess.
 LITERAL_MAX_NODES = 12
 FUNCTION_KINDS = ("function", "method")
+#: Template v2's out-degree cap: a seed with more distinct in-repo callees than this holds them back as confirmations. Read from
+#: gitleaks' 20 M0-Go parent graphs: 99.66% of calling symbols have at most 17 callees and the next value is 177 — only
+#: `cmd/generate/config/main.main`, a registry of rule constructors (177–223 across the parents); every k in 18–176 draws the
+#: same templates there, and 20 sits in that gap, above every non-registry symbol.
+CALLEE_CAP = 20
 
 
 def task_hash(task: str) -> str:
@@ -296,8 +310,8 @@ def _file_length(repo_root: Path, sha: str, path: str) -> int:
     return len(r.stdout.splitlines())
 
 
-def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: CoChange | None, new_terms: list[str] = ()) -> tuple[list[dict], dict]:
-    """Holes from the anchors, in a stable order; returns ``(holes, constraints)``."""
+def _seeds(L: Ledger, anchors: list[dict]) -> tuple[set[str], set[str]]:
+    """``(seeds, literal_tests)``: the anchored symbols that seed the interior, and the tests a literal landed in."""
     test_syms = {t["symbol"] for t in L.tests if t.get("symbol")}
     seeds: set[str] = set()
     literal_tests: set[str] = set()
@@ -311,10 +325,38 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
                 seeds.add(n)
             # a module node seeds nothing (step 6): its symbols are asked as ANCHOR_CONFIRMs in round 1 (`build_template`),
             # and only a confirmed one joins the interior — a whole module as bodies cost 1,068 holes and $5 on one key
-    interior = set(seeds)
+    return seeds, literal_tests
+
+
+def callee_expansion(L: Ledger, seeds: set[str], version: int = TEMPLATE_VERSION) -> tuple[set[str], dict[str, str], list[str]]:
+    """``(expanded, capped, expanding)``: the in-repo callees that join the interior; (v2) each held-back callee → the seed
+    that holds it; and the seeds whose callees expanded, in order. v1 expands every seed. v2 expands a seed only when it has
+    at most ``CALLEE_CAP`` distinct callees; a callee of a seed over the cap is held back unless it is a seed itself or an
+    expanding seed's callee too."""
+    expanded: set[str] = set()
+    expanding: list[str] = []
+    over: list[tuple[str, set[str]]] = []
     for sid in sorted(seeds):
-        for e in L.calls_out.get(sid, []):
-            interior.add(e["to"])
+        callees = {e["to"] for e in L.calls_out.get(sid, [])}
+        if version >= 2 and len(callees) > CALLEE_CAP:
+            over.append((sid, callees))
+        else:
+            expanded |= callees
+            expanding.append(sid)
+    capped: dict[str, str] = {}
+    for sid, callees in over:
+        for c in sorted(callees):
+            if c not in seeds and c not in expanded:
+                capped.setdefault(c, sid)
+    return expanded, capped, expanding
+
+
+def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: CoChange | None, new_terms: list[str] = (),
+                   version: int = TEMPLATE_VERSION) -> tuple[list[dict], dict]:
+    """Holes from the anchors, in a stable order; returns ``(holes, constraints)``. At v2 a seed over ``CALLEE_CAP`` adds no callees."""
+    seeds, literal_tests = _seeds(L, anchors)
+    expanded, _, expanding = callee_expansion(L, seeds, version)
+    interior = seeds | expanded
     files = sorted({L.path_of(i) for i in interior})
     for e in L.graph["symbol_edges"]:  # a type an *anchored* symbol uses, declared in an interior file, is interior too (the struct a flag lands in)
         if e["type"] == "uses" and e["from"] in seeds and e["to"] in L.symbols and L.path_of(e["to"]) in files:
@@ -344,7 +386,7 @@ def structure_pass(L: Ledger, anchors: list[dict], repo_root: Path, cochange: Co
             anchored_by.setdefault(node, a["term"])
     for sid in interior_s:
         s = L.symbols[sid]
-        why = anchored_by.get(sid) or next((f"callee of {e['from']} @ {L.path_of(e['from'])}:{e['evidence'][0]['line']} ({e['tier']})" for c in sorted(seeds) for e in L.calls_out.get(c, []) if e["to"] == sid), None) \
+        why = anchored_by.get(sid) or next((f"callee of {e['from']} @ {L.path_of(e['from'])}:{e['evidence'][0]['line']} ({e['tier']})" for c in expanding for e in L.calls_out.get(c, []) if e["to"] == sid), None) \
             or next((f"used by {e['from']} @ {L.path_of(e['from'])}:{e['evidence'][0]['line']} ({e['tier']})" for e in L.graph["symbol_edges"] if e["type"] == "uses" and e["to"] == sid and e["from"] in interior), "")
         sp = L.span(sid)
         holes.append(_hole(nxt("h"), "SIGNATURE", {"path": sp["path"], "start": sp["start"], "end": sp["start"]}, {"anchor": why, "symbol": sid, "kind": s.get("kind")}, {**cons, "type": s.get("kind")}))
@@ -441,8 +483,11 @@ def anchor_candidates(L: Ledger, task: str, unresolved: list[dict], refused: set
 
 
 def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | None = None, *,
-                   extra_anchors: list[dict] = (), drop_terms: set[str] = frozenset(), new_terms: list[str] = ()) -> dict:
-    """The template for *task* at the ledger's SHA; deterministic in its inputs."""
+                   extra_anchors: list[dict] = (), drop_terms: set[str] = frozenset(), new_terms: list[str] = (),
+                   version: int = TEMPLATE_VERSION) -> dict:
+    """The template for *task* at the ledger's SHA; deterministic in its inputs. *version* is one of ``TEMPLATE_VERSIONS`` (v2: the out-degree cap)."""
+    if version not in TEMPLATE_VERSIONS:
+        raise ValueError(f"template version {version!r} is not one of {TEMPLATE_VERSIONS}")
     anchors, unresolved, dropped = anchor_pass(L, task, repo_root)
     anchors = [a for a in anchors if a["term"] not in drop_terms] + [a for a in extra_anchors if a["term"] not in drop_terms or a.get("note", "").startswith("confirmed")]
     round1: list[dict] = []
@@ -467,8 +512,23 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
                 sp = L.span(sym["id"])
                 round1.append(_hole(f"c{i}", "ANCHOR_CONFIRM", sp, {"anchor": a["term"], "matcher": a["matcher"], "module": mod, "symbol": sym["id"], "kind": sym.get("kind")}, {},
                                     ask=f"is `{sym['id']}` (a {sym.get('kind') or 'symbol'} in `{sp['path']}`, the module the task names as '{a['term']}') a site this task concerns? answer only if yes; unanswered is no"))
+    if version >= 2 and anchors:
+        # v2: a seed over the out-degree cap holds its callees back — one confirmation each, the signature line shown (the span's
+        # first line), keyed by the callee's place in the ledger so a rebuild never reuses an id; once answered, not asked again
+        seeds, _ = _seeds(L, anchors)
+        _, capped, _ = callee_expansion(L, seeds, version)
+        place = {sid: n for n, sid in enumerate(sorted(L.symbols), 1)}
+        for c in sorted(capped, key=lambda c: (capped[c], L.path_of(c), L.symbols[c]["line"], c)):
+            seed, term = capped[c], f"callee cap: `{capped[c]}`"
+            if term in drop_terms:
+                continue
+            sym, sp = L.symbols[c], L.span(c)
+            n = len({e["to"] for e in L.calls_out.get(seed, [])})
+            round1.append(_hole(f"k{place[c]}", "ANCHOR_CONFIRM", sp, {"anchor": term, "matcher": "callee-cap", "callee_of": seed, "symbol": c, "kind": sym.get("kind")}, {},
+                                ask=f"is `{c}` (a {sym.get('kind') or 'symbol'} in `{sp['path']}`, one of the {n} callees of `{seed}` — over the out-degree cap of "
+                                    f"{CALLEE_CAP}, so shown by its signature line only) a site this task concerns? answer only if yes; unanswered is no"))
     if anchors:
-        holes, cons = structure_pass(L, anchors, repo_root, cochange, new_terms)
+        holes, cons = structure_pass(L, anchors, repo_root, cochange, new_terms, version)
     else:
         # No anchor at all — at build time, or after round 1 refused every bare-word match (the step-4 reading: a FREEFORM-only
         # template shows the orchestrator no code, and "none" is its only honest answer): ask which symbols or files the task concerns.
@@ -478,8 +538,8 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
                        candidates=anchor_candidates(L, task, unresolved, drop_terms))]
         holes.append(_hole("f1", "FREEFORM", None, {"anchor": "none"}, cons, ask="anything the template did not anticipate"))
     t = {
-        "template_version": TEMPLATE_VERSION,
-        "key": {"parent_sha": L.sha, "task_hash": task_hash(task), "template_version": TEMPLATE_VERSION},
+        "template_version": version,
+        "key": {"parent_sha": L.sha, "task_hash": task_hash(task), "template_version": version},
         "task": task,
         "ledger": {"sha": L.sha, "built_by": L.graph.get("built_by", {}).get("sha"), "schema_version": L.graph.get("schema_version"),
                    "containment": "all_contained" if L.graph.get("containment", {}).get("all_contained") else "not all contained"},
@@ -493,6 +553,10 @@ def build_template(task: str, L: Ledger, repo_root: Path, cochange: CoChange | N
                           "MODULE_REGION = unchanged is dropped from the diff",
                           "pattern fills accepted for CALLER_UPDATE, MODULE_REGION, TEST_EXPECTATION, COCHANGE_TOUCH"],
     }
+    if version >= 2:  # v2-only keys, so a v1 template's bytes do not move
+        t["callee_cap"] = CALLEE_CAP
+        t["pruning_rules"].append(f"an anchored symbol with more than {CALLEE_CAP} in-repo callees opens them as ANCHOR_CONFIRMs (signature line only); "
+                                  "a confirmed callee joins the interior")
     t["template_hash"] = hashlib.sha256(canonical(t).encode()).hexdigest()[:16]
     return t
 
@@ -520,9 +584,11 @@ def apply_round1(task: str, L: Ledger, repo_root: Path, cochange: CoChange | Non
             term = h["provenance"]["anchor"]
             drop.add(term)
             if f.get("confirm") is True:
-                if h["provenance"].get("symbol"):  # one symbol of a named module: it alone joins, as its own anchor
-                    extra.append({"term": h["provenance"]["symbol"], "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else [h["provenance"]["symbol"]],
-                                  "note": f"confirmed by the orchestrator (a symbol of `{h['provenance']['module']}`, named by '{term}')"})
+                if h["provenance"].get("symbol"):  # one symbol of a named module, or (v2) one held-back callee: it alone joins, as its own anchor
+                    prov = h["provenance"]
+                    note = (f"confirmed by the orchestrator (a symbol of `{prov['module']}`, named by '{term}')" if "module" in prov
+                            else f"confirmed by the orchestrator (a callee of `{prov['callee_of']}` over the out-degree cap)")
+                    extra.append({"term": prov["symbol"], "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else [prov["symbol"]], "note": note})
                 else:
                     a = next(a for a in template["anchors"] if a["term"] == term)
                     extra.append({"term": term, "matcher": "backtick", "nodes": [f["alternative"]] if f.get("alternative") else [n for n in a["nodes"] if n not in L.mod_path], "note": "confirmed by the orchestrator"})
@@ -531,7 +597,8 @@ def apply_round1(task: str, L: Ledger, repo_root: Path, cochange: CoChange | Non
                 nodes = _resolve_name(L, name) or _resolve_path(L, name)
                 if nodes:
                     extra.append({"term": name, "matcher": "backtick", "nodes": nodes, "note": "the orchestrator's ANCHOR answer"})
-    return build_template(task, L, repo_root, cochange, extra_anchors=extra, drop_terms=drop, new_terms=new)
+    return build_template(task, L, repo_root, cochange, extra_anchors=extra, drop_terms=drop, new_terms=new,
+                          version=template.get("template_version", TEMPLATE_VERSION))
 
 
 def prune(template: dict, fills: dict) -> list[str]:
