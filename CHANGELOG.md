@@ -13,6 +13,38 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.16-beta — 2026-09-11 (later still, the fourth)
+
+**Patch: the Calvin adapter's protocol v0.6, and a benchmark no tree
+runs no longer fails a diff.** Calvin M0-Go round 2, WP-14; checked by
+replay with no model.
+
+- **Adapter protocol v0.6**, superseding v0.5.
+  - **The build row in the repair.** After a declaration is placed and
+    grounded, the verifier's build row (`go build`, `go vet`,
+    generation; contained, no tests) runs. A compile error naming the
+    declaration's file goes back in the one repair, beside the
+    grounder's NULLs, trimmed to the lines naming that file. WP-10's
+    seven declarations that did not build now build on a scripted gold
+    replay (7/7).
+  - **The sibling whole.** The declaration hole shows its sibling whole,
+    capped at 4,400 bytes (the gitleaks `rules/*.go` 95th percentile)
+    instead of 12 lines.
+  - **One budget.** A key gets at most `--budget` model calls in either
+    arm: confirmations, fills and repairs in T, turns in O
+    (`t-units --budget --verify-build`, `o-units --budget`). An arm at
+    its budget stops and its row is scored as it stands.
+  - **Record fixes.** A recorded fill is a copy, not a reference the
+    loop later mutates. `usd_loop` counts the repair exchanges.
+- **`not-run` no longer fails a diff.** A guard-selected test that runs
+  on neither tree (a Go benchmark under plain `go test`) reads
+  `not-run` and decides nothing. A test that ran without the diff and
+  not with it still reads `removed`. Round 1's 20 golds are unchanged;
+  one fresh gold moves from fail to pass, matching its own `gold_tests`.
+- C-116 (the budget cuts a row) and C-117 (the sibling cut at 4,400
+  bytes) registered; C-114 amended (the one repair reads build errors
+  too).
+
 ## 0.1.15-beta — 2026-09-11 (later still, the third)
 
 **Patch: `hobbes verify` no longer reads `pass` on a change no test

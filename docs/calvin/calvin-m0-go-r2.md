@@ -251,3 +251,27 @@ Round 1 §8 stands. Added: **a file-grain hole** (a hole that spans a new file, 
 - 2026-09-11 — **WP-11a** reopened by the orchestrator (its `gold_tests` had no gold control and read `fail` on every row it touched); defect **WP-11a-1** found and closed (gold's tests lost the `testdata/` fixtures they read); the control reads 7/7. Exit checked: 31 pass rows re-scored — T 9/10/8 → 3/4/2 survive (WP-6/8/10), O 4 → 3 (`93acc6e82adb` vacuous); `gold_tests` n/a 19, fail 6, build-fail 5, pass 1 (O's `a971a324fab5`), conflict 0; O's five diffs ground at 0 NULL, 2 of 5 write outside the partition at HSR 0. Merged to `main` (`2bc8f9f`); **0.1.15-beta** — `hobbes verify` reads `vacuous`, the `gold_tests` verdict; C-115 registered, C-93 amended. WP-12 launched.
 - 2026-09-11 — **WP-12** exit checked (`~/.hobbes/bench/calvin-go/wp-12/audit.md`; round 1's §10 amended beside the original). O's five rows **stand under the literal parse** of the gate (1 of 5 vacuous, `93acc6e82adb`; no O row at HSR > 0) and **do not under the stricter parse** (outside-partition writes counting regardless of HSR: 2 of 5, the two recalled keys). Round 2's "void" reading is not selected; round 1's *T < O, not separable on the recall-free keys* stands on audited rows (O − T-loop on O's 5 keys +0.30 / +0.20 / +0.40; recall-free unchanged). Defects D-k (= WP-11a-1, closed), D-l–D-o (open), D-i confirmed. Two facts checked by the orchestrator before presenting: (1) `ed205a5f63e3`'s `gold_tests` build-fail is `go vet` type-checking gold's test, which calls `sources.DirectoryTargets` with gold's new fourth argument (a path filter) that neither O's nor T's diff added — gold's API unbuilt by either arm, not an instrument artifact; (2) upstream gitleaks holds 3 commits past the pinned SHA (to `b58d3f1`, 2026-07-22), all GitHub Actions dependency bumps touching no Go file — moving the pin adds no key, so **8 is the ceiling** on fresh keys in gitleaks. Presented to Max.
 - 2026-09-11 — **Max at the gate: round 1's O rows do not stand** (the stricter parse: an outside-partition write counts regardless of HSR, which catches the two recalled keys). Round 1's O rows are not evidence going in; WP-16's fresh-key O run is the round's first comparison. **N = 8:** WP-13 draws all 8 usable post-cutoff candidates. The pins that follow are in §0b. WP-13, WP-14 and WP-14b launched (no spend).
+- 2026-09-11 — **WP-13** exit checked (`~/.hobbes/bench/calvin-go/wp-13/`).
+  - **The keys:** 8 post-cutoff keys — single-file 5, new-symbol 2, multi-file 1; rule-add 0; all alternates, none re-derived. W is 1.0 on all 8.
+  - **Parents:** 8/8 ingested contained on 0.1.15-beta.
+  - **Gold:** grounds 8/8 at 0 NULL and HSR 0, byte-equal, identical on rerun. The gold control reads 2/2.
+  - **Templates:** v2 at A2, 8/8 byte-identical. Holes per key: max 1,048 (`c98e5e0d27b3`), median 153.5.
+  - **O's subset:** `ed65b65095eb`, `50493dbe1f75`, `6eaad039603a`, `d22371873bd8`, `87d96295d65a`.
+  - **Most keys cannot read pass for either arm.** Gold's own verdict:
+    - pass on 2 (`ed65b65095eb`, `8d1f98c7967e`);
+    - vacuous on 3 (`a82bc53d895f`, `87d96295d65a`, `c98e5e0d27b3`: no test touched, no guard executed, gold_tests n/a);
+    - no-tests on 2 (`50493dbe1f75`, `6eaad039603a`);
+    - fail on 1 (`d22371873bd8`) — only by a harness defect, **D-p**: a guard-selected Go benchmark reads not-run on both trees, and `not-run` sits in FAILING ahead of the vacuous and `gold_tests` branches. Its gold_tests reads pass.
+
+    D-p is routed to WP-14, since `harness.py` is its file. Once it is fixed, **3 of the 8 keys can read pass** (2 of them in O's subset). The other 5 can be read on J, NULL, recall and $, never on pass. That fact goes to Max with WP-15's estimate.
+- 2026-09-11 — **WP-14** exit checked (`~/.hobbes/bench/calvin-go/wp-14/`). Protocol v0.6 is built on `calvin-go/wp-14` (`3b7c064`).
+  - **Replays:** WP-10's seven close 7/7 through the real loop with gold answers (off build-fail; they read `vacuous`, as a lone declaration reaches no test). WP-7a's eleven close 11/11. Gold grounds 20/20 at 0 NULL, byte-equal. Template v2 is 20/20 byte-identical: the sibling appears only in the loop's hole. Poison reads 50/50. pytest 1,318.
+  - **N = 7:** the 95th percentile of 120 pooled round-1 T exchange counts (6.05), rounded up; it is also the observed maximum. O's round-1 turns sit beside it: 19, 30, 30, 30, 30.
+  - **The sibling byte cap:** 4,400.
+  - **Defects:**
+    - **D-l:** all six path flips are a sampled earlier reply carried into the path, with 0 protocol bugs.
+    - **D-n:** fixed (a copy at append).
+    - **D-o:** fixed (the ask covers both causes).
+    - **D-i:** fixed (split on `is_loop_exchange`).
+    - **D-p:** fixed (`not-run` out of FAILING; a test that ran without the diff and not with it still reads `removed`). WP-13's 8 golds: only `d22371873bd8` moves, fail → pass. Round 1's 20 golds: none moves.
+  - Merged to `main`; **0.1.16-beta**; C-116 and C-117 registered, C-114 amended.

@@ -449,4 +449,60 @@
   `body_nulls` and `repaired`, and `loop.declaration_repair` records
   the holes asked, the exchanges, and the body NULLs before and after.
 - **Source:** Calvin M0-Go WP-9, 2026-09-11 (`adapter.declaration_repair`).
+- **Amended (protocol v0.6, Calvin M0-Go round 2 WP-14, 2026-09-11):**
+  under `--verify-build`, the same one repair also carries the build
+  row's compile error for the declaration's file (`go build`, `go vet`,
+  generation; trimmed to the lines naming that file), beside the body
+  NULLs. It is still one exchange, and the budget (C-116) covers it: a
+  key at its budget gets no repair. A declaration that still fails to
+  build after it keeps the error; the verifier's `build-fail` reads it.
+
+### C-116 — An arm at its budget stops, and its row is scored as it stands
+
+- **Cannot tell you:** what an arm would have done with more calls.
+  Under protocol v0.6 each key has one budget, N model calls
+  (`--budget`), shared by both arms. In T it counts confirmations,
+  fills and repairs. An ask made after the budget is spent is answered
+  empty, with no call: its hole grounds unfilled, which renders as
+  unchanged. In O the budget replaces the 30-turn cap, and the diff
+  harvested when the turns run out is the one verified. A row cut this
+  way can read `fail`, `vacuous` or unchanged for the budget's reason,
+  not the arm's.
+- **Because:** round 2 compares the arms on equal footing (§2.4 of
+  `docs/calvin/calvin-m0-go-r2.md`), and a cost ceiling per key is what
+  keeps a run's spend predictable. N counts calls, not tokens: a T
+  exchange carries a template, an O turn one tool call, so equal N is
+  equal calls, not equal work.
+- **Bites at:** round 2's WP-16 at N = 7, which is the maximum T used
+  per key in round 1. O used 19–30 turns there, so O is cut harder than
+  T.
+- **You find out:** **surfaced** — a T row carries `budget` and
+  `budget_cuts` (the asks answered empty); an O row carries `budget`
+  and the `max_turns` it ran under beside the turns it took.
+- **Source:** Calvin M0-Go round 2 WP-14, 2026-09-11 (`Adapter.budget`,
+  `calvin_probe.py t-units | o-units --budget`).
+
+### C-117 — The declaration hole's sibling is cut at 4,400 bytes
+
+- **Cannot tell you:** the rest of a sibling longer than 4,400 bytes.
+  The declaration hole shows one existing declaration of the same kind
+  from the binding directory (chosen as since v0.5), whole under
+  protocol v0.6 but capped by bytes (`SIBLING_BYTES`, 4,400): the
+  largest top-level function per file under gitleaks'
+  `cmd/generate/config/rules/*.go` (n = 131) has a 95th percentile of
+  4,380.5 bytes. About one sibling in twenty is cut before its end,
+  where its imports' use or its call shapes may sit. The 12-line cap
+  before it (v0.5) went unregistered; this entry covers the cap in
+  either form.
+- **Because:** the sibling is a form to copy, not a file to read, and
+  the hole's size stays bounded for T's cost. The number is gitleaks'
+  distribution, not a rule for other repos.
+- **Bites at:** a declaration whose sibling is one of the long rules;
+  any repo whose declarations of a kind run longer than gitleaks'.
+- **You find out:** **partial** — the hole's `SIBLING_RULE` states the
+  cap to the model and in the record, but no field says whether this
+  sibling was cut.
+- **Source:** Calvin M0-Go round 2 WP-14, 2026-09-11 (WP-10's D-j;
+  `adapter.SIBLING_BYTES`; the distribution in
+  `~/.hobbes/bench/calvin-go/wp-14/budget.md`).
 
