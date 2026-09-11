@@ -87,7 +87,9 @@ def test_run_t_round1_opens_structure_then_grounds_and_loops(repo):
     narrowed = fake.asked[2][1]["content"]
     assert "NULL = `helpr`" in narrowed and "Your previous answer" in narrowed and "### " + body_id in narrowed
     assert narrowed.count("### ") == 1, "the narrowed template holds only the hole whose fill carried the NULL"
-    assert rec["loop"] == {"nulls_before": 1, "nulls_after": 0, "closed_by_class": {"near-miss": 1}, "opened_by_class": {}}
+    assert {k: rec["loop"][k] for k in ("nulls_before", "nulls_after", "closed_by_class", "opened_by_class")} == {"nulls_before": 1, "nulls_after": 0, "closed_by_class": {"near-miss": 1}, "opened_by_class": {}}
+    assert rec["loop"]["routes"] == {"re-ask": 1} and rec["loop"]["declaration_holes"] == [], "v0.4: a near-miss is re-asked at its hole, as in v0.3"
+    assert [(s["term"], s["route"], s["closed"]) for s in rec["loop"]["sites"]] == [("helpr", "re-ask", True)]
     assert rec["ground_after_loop"]["null"] == [] and "app.Run(app.Options{})" in rec["ground_after_loop"]["post"]["cmd/main.go"] and "func mergeRanges()" in rec["ground_after_loop"]["post"]["cmd/main.go"]
     assert len(rec["exchanges"]) == 3 and rec["tokens"]["prompt"] > 0 and rec["key"]["model_id"] == "fake-model" and rec["key"]["system_prompt_version"] == A.SYSTEM_PROMPT_VERSION
 
@@ -183,7 +185,7 @@ def test_v03_signature_and_body_patterns_are_read_unchanged_with_no_repair(repo)
     ad = A.Adapter(fake, "fake-model")
     doc, errs = ad.ask(t, root, "round 2")
     assert errs == {} and [e["purpose"] for e in ad.exchanges] == ["round 2"] and ad.exchanges[0]["validation"] == {}
-    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.3"
+    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.4", "v0.3's reading stands under v0.4"
     patterned = {h["id"] for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY") and h["id"] != body["id"]}
     assert patterned and set(doc["by_pattern"]) == patterned and doc["fills"][body["id"]] == {"code": "func runGoRTA() {}\n"}
     g1 = A.G.ground(json.loads(json.dumps(t)), doc, L, root)
@@ -206,7 +208,108 @@ def test_v03_a_confirmation_pattern_is_a_refusal_recorded_by_pattern_and_not_car
     assert r1["pattern_confirmations"] == 1 and r1["unanswered_confirmations"] == 0
     assert [e["purpose"] for e in rec["exchanges"]][:2] == ["round 1", "round 1b"], "no repair; refused, so the rebuild opens the ANCHOR hole"
     assert c["id"] not in {h["id"] for h in rec["template_round2"]["holes"]}, "a refusal by pattern is not carried into round 2, like one by silence"
-    assert rec["key"]["protocol_version"] == "0.3"
+    assert rec["key"]["protocol_version"] == "0.4"
+
+
+def _r2_calling(t2, body_code):
+    """Round 2 for "Fix runGoRTA and add mergeRanges.": runGoRTA's body rewritten, mergeRanges placed, the rest unchanged."""
+    body = next(h for h in t2["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "cmd/main.runGoRTA")
+    fills = {h["id"]: "unchanged" for h in t2["holes"] if h["type"] in ("SIGNATURE", "BODY") and h.get("closed") is None}
+    fills[body["id"]] = {"code": body_code}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "NEW_SYMBOL")] = {"name": "mergeRanges", "file": "cmd/main.go", "region": "eof", "body": "func mergeRanges() int { return 2 }\n"}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "FREEFORM")] = "none"
+    return body["id"], {"fills": fills, "patterns": FOUR}
+
+
+def _round1(t):
+    u = next(h for h in t["holes"] if h["type"] == "UNRESOLVED")
+    c = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM")
+    return {u["id"]: {"classes": {x["term"]: ("new" if x["term"] == "mergeRanges" else "not-code") for x in u["terms"]}}, c["id"]: {"confirm": True}}
+
+
+def test_v04_an_undeclared_name_gets_a_declaration_hole_not_a_re_ask(repo):
+    """Protocol v0.4 (M0-Go WP-7a; WP-6's D-b): a name written at a call site and declared nowhere is offered as a NEW_SYMBOL declaration
+    hole — the hole that wrote the call is not asked again — and once placed it binds as a gensym where it was called."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    r1 = _round1(t)
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    body_id, r2 = _r2_calling(t2, "func runGoRTA() {\n\tmergeRanges()\n\tapp.Launch(app.Options{})\n}\n")
+    decl = {"fills": {"d1": {"name": "Launch", "file": "internal/app/launch.go", "region": "eof",
+                             "body": "package app\n\n// Launch starts one run.\nfunc Launch(o Options) error { return Run(o) }\n"}}}
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), json.dumps(decl)])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"))
+    assert [(n["term"], n["null_class"], n["scope"]) for n in rec["ground"]["null"]] == [("app.Launch", "invented", {"dir": "internal/app"})]
+    asked = fake.asked[2][1]["content"]
+    assert "### d1 · NEW_SYMBOL — declare `Launch`" in asked and "### " + body_id not in asked and asked.count("### ") == 1, "declared, not re-asked"
+    assert "binds only in the directory `internal/app/`" in asked and "Files of the write partition there: `internal/app/app.go`" in asked
+    assert "call_site = cmd/main.go:11: `app.Launch(app.Options{})`" in asked, "the line written at the call site, from the post-image"
+    d1 = rec["template_round3"]["holes"][0]
+    assert d1["constraints"]["declares"] == {"name": "Launch", "term": "app.Launch", "dir": "internal/app", "type": None}
+    assert all(p in t2["constraints"]["write_partition"] for p in d1["constraints"]["write_partition"]), "the partition is not widened"
+    g2 = rec["ground_after_loop"]
+    assert g2["null"] == [] and "Launch" in g2["gensyms"] and "func Launch(o Options) error" in g2["post"]["internal/app/launch.go"]
+    assert [r["class"] for r in g2["refs"] if r["term"] == "app.Launch"] == ["gensym"], "the call site grounded again binds the declaration"
+    assert rec["loop"]["closed_by_class"] == {"invented": 1} and rec["loop"]["routes"] == {"declare": 1} and rec["loop"]["declaration_holes"] == ["d1"]
+    assert rec["loop"]["sites"] == [{"hole": body_id, "path": "cmd/main.go", "line": 11, "term": "app.Launch", "null_class": "invented", "route": "declare",
+                                     "closed": True, "declaration": "d1", "answer": "placed", "file": "internal/app/launch.go", "in_partition": False}]
+    assert [r["round"] for r in rec["rounds"]] == [1, 2, 3] and rec["rounds"][2]["holes_asked"] == ["d1"]
+    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.4"} and rec["key"]["protocol_version"] == "0.4"
+
+
+def test_v04_declaration_answers_are_checked_and_two_names_may_share_one_new_file(repo):
+    """A declaration answer names the hole's name, in the directory it binds in, with a body that declares it — else a repairable error
+    naming the hole; a second name declared by the first answer's body is covered_by it (one new file, two declarations)."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    r1 = _round1(t)
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    _, r2 = _r2_calling(t2, "func runGoRTA() {\n\tmergeRanges()\n\tapp.Launch(app.Options{})\n\tapp.Shutdown()\n}\n")
+    wrong = {"fills": {"d1": {"name": "Launch", "file": "cmd/launch.go", "region": "eof", "body": "package main\n\nfunc Launch() {}\n"},
+                       "d2": {"name": "Stop", "file": "internal/app/halt.go", "region": "eof", "body": "package app\n\nfunc Stop() {}\n"}}}
+    right = {"fills": {"d1": {"name": "Launch", "file": "internal/app/life.go", "region": "eof",
+                              "body": "package app\n\nfunc Launch(o Options) error { return Run(o) }\n\nfunc Shutdown() {}\n"},
+                       "d2": {"covered_by": ["d1"]}}}
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), json.dumps(wrong), json.dumps(right)])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"))
+    ex = rec["exchanges"]
+    assert [e["purpose"] for e in ex][-2:] == ["NULL round-trip", "NULL round-trip (repair)"]
+    v = ex[-2]["validation"]
+    assert set(v) == {"d1", "d2"} and "binds only in the directory `internal/app/`" in v["d1"][0]
+    assert v["d2"] == ["this hole declares `Shutdown`: name must be 'Shutdown'", "the body does not declare `Shutdown`"]
+    assert "- d1: " in fake.asked[3][-1]["content"] and "- d2: " in fake.asked[3][-1]["content"]
+    g2 = rec["ground_after_loop"]
+    assert g2["null"] == [] and rec["loop"]["nulls_before"] == 2
+    assert [(s["term"], s["declaration"], s["answer"], s["file"], s["closed"]) for s in rec["loop"]["sites"]] == [
+        ("app.Launch", "d1", "placed", "internal/app/life.go", True), ("app.Shutdown", "d2", "covered_by d1", "internal/app/life.go", True)]
+
+
+def test_v04_a_body_carrying_the_render_gutter_is_refused_and_repaired(repo):
+    """Protocol v0.4 (WP-6's D-a): a BODY fill that copies the render's line-number gutter is a repairable error naming the hole; a
+    grounding handed it anyway refuses the fill and writes nothing for it."""
+    root, sha = repo
+    L = ledger(sha)
+    t = T.build_template("Change `runGoRTA`.", L, root, None)
+    body = next(h for h in t["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "cmd/main.runGoRTA")
+    rest = {**{h["id"]: "unchanged" for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY")},
+            **{h["id"]: {"confirm": False} for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM"},
+            **{h["id"]: {"classes": {x["term"]: "not-code" for x in h["terms"]}} for h in t["holes"] if h["type"] == "UNRESOLVED"},
+            next(h["id"] for h in t["holes"] if h["type"] == "FREEFORM"): "none"}
+    copied = holes.span_text(root, sha, body["span"])  # exactly what the render showed for the span
+    assert copied in holes.render(t, root)
+    gutter = {"fills": {**rest, body["id"]: {"code": copied.replace("app.Run(", "app.Run(app.Options{}) //", 1)}}, "patterns": FOUR}
+    clean = {"fills": {**rest, body["id"]: {"code": "func runGoRTA() {\n\tapp.Run(app.Options{})\n}\n"}}, "patterns": FOUR}
+    fake = Fake([json.dumps(gutter), json.dumps(clean)])
+    ad = A.Adapter(fake, "fake-model")
+    doc, errs = ad.ask(t, root, "round 2")
+    assert ad.exchanges[0]["validation"] == {body["id"]: [holes.GUTTER_ERROR]} and errs == {} and doc == clean
+    assert f"- {body['id']}: {holes.GUTTER_ERROR}" in fake.asked[1][-1]["content"]
+    g = A.G.ground(json.loads(json.dumps(t)), gutter, L, root)
+    assert g["refused"] == [{"hole": body["id"], "errors": [holes.GUTTER_ERROR]}] and g["diff"] == ""
 
 
 def test_anchor_answer_may_be_a_candidate_node_id(repo):

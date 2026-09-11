@@ -212,6 +212,20 @@ func fresh() {}
     assert any(r["op"] == "import" and r["key"] == "example.com/x/internal/app" and r["result"] == "internal/app" for r in g3["trace"]), "the read-trace shows the go.mod lookup"
 
 
+def test_null_rows_name_the_scope_a_declaration_would_bind_in(repo):
+    """M0-Go WP-7a: a NULL row names where a declaration of the name would have to sit for the call to bind — the package directory of
+    a bare or package-qualified Go name, the directory and type of a member on a typed receiver (adapter protocol v0.4 reads it)."""
+    root, sha = repo
+    L = ledger(sha)
+    t = template(L, root)
+    body = hole(t, "BODY", "cmd/main.go")
+    code = "func runGoRTA() {\n\tlaunchAll()\n\tapp.Launch()\n\tvar o app.Options\n\to.Validate()\n}\n"
+    g = G.ground(t, {"fills": {body["id"]: {"code": code}}}, L, root)
+    assert {n["term"]: (n["null_class"], n["scope"]) for n in g["null"]} == {
+        "launchAll": ("invented", {"dir": "cmd"}), "app.Launch": ("invented", {"dir": "internal/app"}),
+        "o.Validate": ("invented", {"dir": "internal/app", "type": "Options"})}
+
+
 def test_python_reexport_module_value_self_and_null(repo):
     root, sha = repo
     L = ledger(sha)

@@ -257,3 +257,77 @@
 - **Source:** Calvin M0-Go WP-5, 2026-09-11 (Max's decision;
   `docs/calvin/calvin-potential.md` §2.2).
 
+### C-106 — A near-miss name is re-asked, never offered a declaration
+
+- **Cannot tell you:** that a name the orchestrator wrote, one near a
+  real one, was meant to be new. Under adapter protocol v0.4 the NULL
+  round-trip offers a declaration hole only for a NULL classed `new` or
+  `invented` whose bare name is in no module of the parent graph. A
+  `near-miss` goes back to the hole that wrote it, as in v0.3, with the
+  nearest graph names shown. A near-miss is an exact name in another
+  module, or a graph name within edit distance 3 (`ground._NEAR`). The
+  same happens to a name declared where the call does not reach. So a
+  genuinely new name that lies close to an existing one cannot be
+  declared through the loop.
+- **Because:** near-miss is the grounder's class for a spelling or
+  placement miss. Offering a declaration there would invite a
+  duplicate beside the real symbol, so the loop asks again so the
+  model can name the existing one.
+- **Bites at:** T-loop's closure on short new names and on names beside
+  a near sibling. The re-ask may bind the near name, an existing symbol
+  the task did not mean, or NULL again. Not measured: WP-7a's replay
+  closed all 11 of WP-6's declare-routed sites, and those were `new`
+  or `invented`.
+- **You find out:** **surfaced** — every NULL site in the arm-T record's
+  `loop.sites[]` carries `route` (`declare` or `re-ask`) beside its
+  `null_class`, and `loop.routes` counts them.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (`adapter.null_route`;
+  `docs/calvin/calvin-potential.md` §2.2).
+
+### C-107 — A declaration outside the write partition is placed and recorded, never refused
+
+- **Cannot tell you:** that a declaration the NULL round-trip placed
+  stays inside the unit's write partition. The declaration hole offers
+  only the partition's files in the binding directory, and for four of
+  WP-6's five keys there were none. An answer that names a new file
+  there is placed and recorded `in_partition: false`, as NEW_SYMBOL and
+  FREEFORM files already are. The partition is not widened and the file
+  is not refused.
+- **Because:** **Max's decision, 2026-09-11.** Gold declares the name
+  outside the partition at 10 of WP-6's 11 NULL sites: new files under
+  `rules/` where the partition is `main.go` alone. Refusing them would
+  leave 10 of the 11 unclosable.
+- **Bites at:** reading arm T's write partition as a write scope (C-38
+  is the enforced cut for `hobbes run`, not for arm T). A T diff can
+  touch files the template did not assign.
+- **You find out:** **surfaced** — each site in `loop.sites[]` carries
+  the placed `file` and `in_partition`; the grounding's `edits` and
+  `files` rows carry `in_partition`, and its `outside_partition` counts
+  the edits outside.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's partition
+  reading; Max's decision the same day).
+
+### C-108 — A declaration's directory is not checked for a non-Go name or an `after_symbol` placement
+
+- **Cannot tell you:** that a declaration landed in the directory its
+  call site binds in, in two cases. The first is a NULL with no `scope`
+  (a Python or TS/JS name; grounder v1 sets `scope` for Go only). The
+  second is an answer placed by `after_symbol`. The validator checks
+  for a file in the binding directory only for a Go name placed by file
+  or region.
+- **Because:** `scope` is Go's package directory, plus the type for a
+  typed receiver, read by rule 1's resolution; Python and TS/JS have no
+  such reading in grounder v1. An `after_symbol` placement is
+  positioned by the symbol, and the validator does not derive that
+  symbol's file (`holes.py`'s declaration check).
+- **Bites at:** a declaration in a directory the call does not reach.
+  For a Go name the re-grounding still decides whether the call binds;
+  what is skipped is the check that would have asked again before
+  placing. None of WP-7a's replayed sites took either path.
+- **You find out:** *partial* — the pieces are on rows but no row says
+  the check was skipped: each site in `loop.sites[]` records the placed
+  `file`, the declaration hole records `constraints.declares.dir` (null
+  for a non-Go name), and each grounding edit carries its `placement`.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's third
+  constraint draft).
+

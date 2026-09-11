@@ -36,6 +36,38 @@ def test_validator_names_defects(t):
     assert any("unknown type" in e for e in errs)
 
 
+def test_v04_the_render_gutter_is_refused_on_signature_and_body_and_code_passes():
+    """Protocol v0.4 (M0-Go WP-7a; WP-6's D-a): a SIGNATURE or BODY fill carrying the render's line-number gutter is an error; code whose
+    lines merely begin with a number is not."""
+    assert holes.carries_gutter(" 9  func runGoRTA() {\n10  \tapp.Run(app.Options{})\n11  }")
+    assert holes.carries_gutter("11  func f() {\n12\n13  }"), "an empty source line, its trailing spaces dropped"
+    assert holes.carries_gutter("12  func Run(o Options) error {"), "one line: a signature copied with its number"
+    assert not holes.carries_gutter("func f() {\n\treturn 1\n}")
+    assert not holes.carries_gutter("x := []int{\n1,  2,\n3,  4}")
+    assert not holes.carries_gutter("t := `\n1  one\n3  three\n`"), "numbered lines that do not count up by one"
+    body, sig = {"type": "BODY", "id": "h2"}, {"type": "SIGNATURE", "id": "h1"}
+    assert holes.validate_fill(body, {"code": "11  func f() {\n12  }"}) == [holes.GUTTER_ERROR]
+    assert holes.validate_fill(sig, {"signature": "11  func f() {"}) == [holes.GUTTER_ERROR]
+    assert holes.validate_fill(body, "unchanged") == [] and holes.validate_fill(body, {"code": "func f() {}\n"}) == []
+
+
+def test_v04_declaration_hole_answer_is_its_name_in_its_directory():
+    """A NEW_SYMBOL whose constraints carry ``declares`` (the NULL round-trip's declaration hole) takes that name, a file in the
+    directory the name binds in, a body that names it — or covered_by; a plain NEW_SYMBOL is checked as before."""
+    h = {"type": "NEW_SYMBOL", "id": "d1", "constraints": {"declares": {"name": "Cohere", "term": "rules.Cohere", "dir": "cmd/generate/config/rules", "type": None}}}
+    ok = {"name": "Cohere", "file": "cmd/generate/config/rules/cohere.go", "region": "eof", "body": "package rules\n\nfunc Cohere() *config.Rule { return nil }\n"}
+    assert holes.validate_fill(h, ok) == [] and holes.validate_fill(h, {"covered_by": ["d2"]}) == []
+    assert holes.validate_fill(h, {**ok, "name": "CohereAPIToken"}) == ["this hole declares `Cohere`: name must be 'Cohere'"]
+    assert holes.validate_fill(h, {**ok, "file": "cmd/generate/config/cohere.go"}) == [
+        "`Cohere` binds only in the directory `cmd/generate/config/rules/` (the package its call site names): the file must be there"]
+    assert holes.validate_fill(h, {**ok, "body": "package rules\n\nfunc CohereAPIToken() {}\n"}) == ["the body does not declare `Cohere`"]
+    root = {**h, "constraints": {"declares": {"name": "helper", "term": "helper", "dir": ".", "type": None}}}
+    assert holes.validate_fill(root, {"name": "helper", "file": "util.go", "region": "eof", "body": "func helper() {}\n"}) == []
+    unscoped = {**h, "constraints": {"declares": {"name": "helper", "term": "helper", "dir": None, "type": None}}}
+    assert holes.validate_fill(unscoped, {"name": "helper", "file": "any/where.py", "region": "eof", "body": "def helper(): pass\n"}) == []
+    assert holes.validate_fill({"type": "NEW_SYMBOL", "id": "n1"}, {"name": "x", "file": "a.go", "region": "eof", "body": "func y() {}"}) == []
+
+
 def test_fill_shapes():
     body = {"type": "BODY", "id": "h"}
     assert holes.validate_fill(body, "unchanged") == []
