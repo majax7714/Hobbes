@@ -50,6 +50,24 @@ Facts resolved by the orchestrator before WP-11, so no package re-derives them. 
   - **D-m to WP-14b.**
 - **The bump at WP-14b's merge is Max's.** The design calls it a minor bump, but the number line is Max's: 0.1.x patch by patch, with a minor landing on 0.2.0-beta. WP-14's merge is a patch bump.
 
+**Pins for WP-16 — Max at the spend gate (2026-09-11; the decision is in §10).**
+
+- **Cleared at the $12 ceiling**, which is the hard cap; expected ≈ $6.8.
+- **The arms, amended: §2.4's one budget binds T only.**
+  - **T:** protocol v0.6 with the loop inside it (`t-units --budget 7 --verify-build`), 8 keys × 2 runs, model-default sampling.
+  - **O:** round 1's condition — the 30-turn cap and the 1M-token budget, as WP-6 ran it (`o-units` with no `--budget`), knowledge tools withheld.
+  - **Why:** equal calls would have measured orientation. In round 1, O's first edit came at turn 10–26 (WP-15). §6's "one budget N for both arms; O's 30-turn cap is gone" is amended to match.
+  - **The reading:** pass beside $/pass (§4.13), with each arm's own $.
+- **O's subset, redrawn** to hold the three keys where pass can be read — `ed65b65095eb`, `d22371873bd8`, `8d1f98c7967e` — plus `50493dbe1f75` and `6eaad039603a`. That is single-file 4, multi-file 1, and no new-symbol key.
+- **Order:** the first key alone (`ed65b65095eb`), compared with its estimate in WP-15's table (stop and report if it is over 3×) → T run 1 → the cost check (stop if run 1 is above **$3.6**, 2× the fitted $1.76 a run) → O on its five → T run 2. This is round 1's WP-6 order.
+- **Scoring:**
+  - `hobbes verify` at 0.1.17-beta: `vacuous`, and `gold_tests` on the two keys where it is not n/a (`d22371873bd8`, `8d1f98c7967e`);
+  - grounder v3;
+  - recall on every row;
+  - $/pass on every row.
+  
+  Where gold's own verdict is `vacuous` or `no-tests` (`a82bc53d895f`, `87d96295d65a`, `c98e5e0d27b3`, `50493dbe1f75`, `6eaad039603a`), the row's pass reads *not readable* in every aggregate, never 0.
+
 ---
 
 ## 1. Why this round, stated from the record
@@ -282,3 +300,19 @@ Round 1 §8 stands. Added: **a file-grain hole** (a hole that spans a new file, 
   - **Unchanged:** gold grounds 20/20 at 0 NULL, byte-equal; poison reads 50/50; the graph size delta is 0, so no re-ingest is needed.
   - **Register:** C-118–C-120 registered.
   - **Merged** to `main` with **0.1.17-beta** — Max's number, a patch; the design had said minor. WP-15 launched.
+- 2026-09-11 — **WP-15** exit checked (`~/.hobbes/bench/calvin-go/wp-15/estimate.md`).
+  - **The estimate:** expected **$3.9** (band $2.5–$7.0) against the $12 ceiling, so no drop order triggers.
+    - **T:** fitted on round 1's actuals ($/run = 0.0070 + 0.000660 × holes, R² 0.81, 120 runs); $1.76 a run, $3.53 for two.
+    - **O:** priced from round 1's real spend through call 7, $0.35 on the five keys.
+    - **The high end:** `c98e5e0d27b3` (1,048 holes; predicted 9.1 exchanges) is likely cut at N = 7, and `a82bc53d895f` and `d22371873bd8` sit near the cap.
+  - **The stop rule, read at 8 keys:** above ≈ $3.6 for T run 1 (the design's $4.8 scaled by the keys' holes), as a reading.
+  - **Two facts beside the money:**
+    - Only 3 of 8 keys can read pass; 2 of them are in O's subset.
+    - **In all five of round 1's O sessions, O's first edit came after turn 7** (turns 10, 13, 16, 18, 26); turns 1–7 were orientation only. At N = 7, O is not shown to make any change, so the equal-calls rule would likely measure which arm commits fastest rather than which solves the task (C-116).
+  - Presented to Max with the options: as designed, with a named change, or hold.
+- 2026-09-11 — **Max at the spend gate: WP-16 cleared**, $12 ceiling.
+  - **O keeps round 1's 30-turn / 1M-token cap.** The one budget (N = 7) binds T only, and the comparison reads pass beside $/pass.
+  - **O's subset is redrawn** to hold the three keys where pass can be read.
+  - **Stop after T run 1 above $3.6.**
+
+  The pins are in §0b. WP-16 launched.
