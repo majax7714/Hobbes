@@ -92,6 +92,33 @@ def test_run_t_round1_opens_structure_then_grounds_and_loops(repo):
     assert len(rec["exchanges"]) == 3 and rec["tokens"]["prompt"] > 0 and rec["key"]["model_id"] == "fake-model" and rec["key"]["system_prompt_version"] == A.SYSTEM_PROMPT_VERSION
 
 
+def test_run_t_hands_the_rta_key_to_both_groundings(repo, monkeypatch):
+    """M0-Go WP-5: rule 2's implementers come from an RTA key; arm T passes it to the grounding before the loop and after it."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    u = next(h for h in t["holes"] if h["type"] == "UNRESOLVED")
+    c = next(h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM")
+    r1 = {u["id"]: {"classes": {x["term"]: ("new" if x["term"] == "mergeRanges" else "not-code") for x in u["terms"]}}, c["id"]: {"confirm": True}}
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    body = next(h["id"] for h in t2["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "cmd/main.runGoRTA")
+    fills = {h["id"]: "unchanged" for h in t2["holes"] if h["type"] in ("SIGNATURE", "BODY") and h.get("closed") is None}
+    fills[body] = {"code": "func runGoRTA() {\n\tmergeRanges()\n\thelpr()\n}\n"}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "NEW_SYMBOL")] = {"name": "mergeRanges", "file": "cmd/main.go", "region": "eof", "body": "func mergeRanges() int { return 2 }\n"}
+    fills[next(h["id"] for h in t2["holes"] if h["type"] == "FREEFORM")] = "none"
+    r2 = {"fills": fills, "patterns": {"MODULE_REGION": "unchanged", "CALLER_UPDATE": "unchanged", "TEST_EXPECTATION": "unchanged", "COCHANGE_TOUCH": "unchanged"}}
+    seen = []
+    real = A.G.ground
+    monkeypatch.setattr(A.G, "ground", lambda *a, **kw: (seen.append(kw.get("rta")), real(*a, **kw))[1])
+    rta = {"source": "a key", "sites": {}}
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), json.dumps({"fills": {body: {"code": "func runGoRTA() {\n\tmergeRanges()\n}\n"}}})])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"), rta=rta)
+    assert seen == [rta, rta], "the grounding before the loop and the one after it"
+    assert rec["ground"]["rta"] == "a key" and rec["ground_after_loop"]["rta"] == "a key" and rec["loop"]["nulls_after"] == 0
+    assert A.run_t.__kwdefaults__["rta"] is None, "without a key, as before"
+
+
 def test_anchor_fill_binds_names_exactly(repo):
     root, sha = repo
     L = ledger(sha)

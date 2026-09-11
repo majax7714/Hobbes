@@ -755,6 +755,215 @@ def cmd_t(a: argparse.Namespace) -> int:
     return 0
 
 
+# ------------------------------------------------ Calvin M0-Go WP-5: arm T on units.jsonl, metered
+
+#: $ per MTok (in, out): claude-haiku-4-5 at list, the price M0-Go WP-4 estimated with.
+PRICE_HAIKU_45 = (1.0, 5.0)
+
+
+class BudgetStop(RuntimeError):
+    """A metered endpoint refused a call: the spend so far plus the call's worst case would pass the cap."""
+
+
+def usd(prompt_tokens: int | None, completion_tokens: int | None, price: tuple[float, float] = PRICE_HAIKU_45) -> float:
+    """Dollars for one exchange from the endpoint's returned token counts at *price* ($ per MTok in, out)."""
+    return (prompt_tokens or 0) / 1e6 * price[0] + (completion_tokens or 0) / 1e6 * price[1]
+
+
+class Metered:
+    """An endpoint under a dollar cap (M0-Go WP-5's spend rule). Before a call, the spend so far plus the call's worst case — its characters
+    at *chars_per_token* and all of ``max_tokens`` written — must fit under *cap_usd*, else the call is not made (`BudgetStop`). After it,
+    the returned counts are priced and one JSON line is appended to *ledger*, so a killed run still says what it spent."""
+
+    def __init__(self, endpoint, cap_usd: float, ledger: Path | None = None, price: tuple[float, float] = PRICE_HAIKU_45, chars_per_token: float = 1.9):
+        self.endpoint, self.cap_usd, self.ledger, self.price, self.cpt = endpoint, cap_usd, ledger, price, chars_per_token
+        self.spent = 0.0
+        self.calls = 0
+
+    def chat(self, messages: list[dict], tools: list[dict], max_tokens: int | None = None) -> dict:
+        out_cap = max_tokens or getattr(self.endpoint, "max_tokens", 0)
+        worst = usd(int(sum(len(m.get("content") or "") for m in messages) / self.cpt), out_cap, self.price)
+        if self.spent + worst > self.cap_usd:
+            raise BudgetStop(f"spent ${self.spent:.4f}; the next call's worst case ${worst:.4f} would pass the ${self.cap_usd:.2f} cap")
+        reply = self.endpoint.chat(messages, tools, max_tokens)
+        u = reply.get("usage") or {}
+        cost = usd(u.get("prompt_tokens"), u.get("completion_tokens"), self.price)
+        self.spent += cost
+        self.calls += 1
+        if self.ledger is not None:
+            with open(self.ledger, "a") as fh:
+                fh.write(json.dumps({"call": self.calls, "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "prompt_tokens": u.get("prompt_tokens"),
+                                     "completion_tokens": u.get("completion_tokens"), "finish_reason": (reply.get("choices") or [{}])[0].get("finish_reason"),
+                                     "usd": round(cost, 6), "spent_usd": round(self.spent, 6)}) + "\n")
+        return reply
+
+
+def spent_in(d: Path) -> float:
+    """Dollars every ``*.usage.jsonl`` ledger under *d* records: what earlier processes of the round spent."""
+    return sum(json.loads(l)["usd"] for f in sorted(Path(d).glob("*.usage.jsonl")) for l in open(f) if l.strip())
+
+
+def estimate_by_key(path: Path) -> dict:
+    """WP-4's expected-band dollars per key and arm (one run), with their sum: the figure a key's actual is read against."""
+    out: dict = {}
+    for r in json.load(open(path))["rows"]:
+        if r.get("band") == "exp" and r.get("arm") in ("T", "T-loop"):
+            out.setdefault(r["key"], {})[r["arm"]] = r["per_run"]["usd"]
+    for v in out.values():
+        v["total"] = round(sum(v.values()), 4)
+    return out
+
+
+def key_from(path: Path, name: str) -> str:
+    """The value of one ``name=value`` line in the owner's key file — read, never printed. The file may hold names `hobbes.bench.secrets`
+    does not know (M0's endpoint key is one), which that reader refuses whole."""
+    for line in Path(path).read_text().splitlines():
+        n, sep, v = line.strip().partition("=")
+        if sep and not n.startswith("#") and n.strip() == name and v.strip().strip('"').strip("'"):
+            return v.strip().strip('"').strip("'")
+    raise KeyError(f"no {name!r} line in the key file")
+
+
+def confirmations(rec: dict) -> dict:
+    """Round 1's ANCHOR_CONFIRMs over every pass — asked, yes, no, unanswered — with template v2's capped callees counted apart (``capped_``)."""
+    idx = {h["id"]: h for t in (rec["template_round1"], rec["template_round2"]) for h in t["holes"]}
+    out: collections.Counter = collections.Counter()
+    for r in rec["rounds"]:
+        if not str(r["round"]).startswith("1"):
+            continue
+        fills = (r.get("fills") or {}).get("fills") or {}
+        for hid in r["holes_asked"]:
+            h = idx.get(hid) or {}
+            if h.get("type") != "ANCHOR_CONFIRM":
+                continue
+            pre = "capped_" if "callee_of" in (h.get("provenance") or {}) else ""
+            f = fills.get(hid)
+            out[pre + "asked"] += 1
+            out[pre + ("unanswered" if f is None else "yes" if isinstance(f, dict) and f.get("confirm") is True else "no")] += 1
+    return dict(out)
+
+
+def _write_exchanges(path: Path, exchanges: list[dict]) -> None:
+    with open(path, "w") as fh:
+        for e in exchanges:
+            fh.write(json.dumps(e) + "\n")
+
+
+def cmd_t_units(a: argparse.Namespace) -> int:
+    """Calvin M0-Go WP-5: arm T by hand on units.jsonl keys — the stored template checked to rebuild at the parent from the tier's task,
+    round 1 → rebuild → round 2 → ground (with the RTA key) → one NULL round-trip, every exchange recorded and metered. Per key: the record,
+    the exchanges, the fills, the grounded diffs, the NULL list with class and density, the meter's ledger and (``--verify``) the verifier's
+    records; one row a key in ``rows.jsonl``. A call the cap refuses stops the run with the exchanges so far written (exit 4)."""
+    from hobbes.agent.loop import Endpoint
+    from hobbes.derive import adapter as A
+    from hobbes.derive import cochange
+    from hobbes.derive import harness as HV
+    from hobbes.derive import template as T
+
+    key = os.environ.get("HOBBES_LLM_API_KEY") or (key_from(Path(a.secrets), a.key_name) if a.secrets else None)
+    if not key:
+        print("no key: set HOBBES_LLM_API_KEY or pass --secrets", file=sys.stderr)
+        return 2
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(a.repo)
+    rta = rta_sites(Path(a.rta_key) if a.rta_key else None, a.rta_label)
+    est = estimate_by_key(Path(a.estimate)) if a.estimate else {}
+    sampling = {"temperature": 0} if a.sampling == "greedy" else {}
+    for u in load_go_units(Path(a.units), a.keys):
+        k = u["key"]
+        L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+        assert L.sha == u["parent_sha"], (k, L.sha)
+        t = json.load(open(Path(a.templates) / f"{k}.template.json"))
+        subprocess.run(["git", "checkout", "-q", "--force", L.sha], cwd=repo, check=True)
+        cc = cochange.observe(repo, 200)
+        task = u[a.tier]
+        if T.canonical(T.build_template(task, L, repo, cc, version=t.get("template_version", 1))) != T.canonical(t):
+            print(f"{k}: the stored template does not rebuild at the parent from {a.tier}; the inputs differ, refusing", file=sys.stderr)
+            return 3
+        spent = spent_in(out)
+        cap = min(a.key_cap, a.total_cap - spent)
+        meter = Metered(Endpoint(a.base_url, a.model, key, timeout=a.timeout, max_tokens=a.max_tokens, sampling=sampling), cap, out / f"{k}.usage.jsonl")
+        adapter = A.Adapter(meter, a.model, max_tokens=a.max_tokens, max_prompt_chars=a.max_prompt_chars)
+        endpoint_rec = {"base_url": a.base_url, "model": a.model, "sampling": sampling, "max_tokens": a.max_tokens, "max_prompt_chars": a.max_prompt_chars,
+                        "cap_usd": round(cap, 4), "spent_before_usd": round(spent, 4)}
+        t0 = time.time()
+        try:
+            rec = A.run_t(task, t, L, repo, cc, adapter, null_loop=not a.no_loop, rta=rta)
+        except Exception as exc:  # the spend so far is written before anything else is said
+            _write_exchanges(out / f"{k}.exchanges.jsonl", adapter.exchanges)
+            row = {"wp": a.wp, "key": k, "shape": u["shape"], "stopped": f"{type(exc).__name__}: {exc}", "exchanges": len(adapter.exchanges),
+                   "usd": round(meter.spent, 4), "estimate_usd": est.get(k), "endpoint": endpoint_rec}
+            (out / f"{k}.stopped.json").write_text(json.dumps(row, indent=1))
+            with open(out / "rows.jsonl", "a") as fh:
+                fh.write(json.dumps(row) + "\n")
+            print(f"{k}: STOPPED after {len(adapter.exchanges)} exchanges, ${meter.spent:.4f}: {type(exc).__name__}: {exc}", flush=True)
+            return 4 if isinstance(exc, BudgetStop) else 5
+        wall = time.time() - t0
+        rec["endpoint"] = endpoint_rec
+        (out / f"{k}.t.json").write_text(json.dumps(rec, indent=1))  # the paid record first; the instruments are added below
+        ex = rec["exchanges"]
+        _write_exchanges(out / f"{k}.exchanges.jsonl", ex)
+        t2, g0 = rec["template_round2"], rec["ground"]
+        g = rec.get("ground_after_loop") or g0
+        null_rows = lambda gr: [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in gr["null"]]
+        (out / f"{k}.fills.json").write_text(json.dumps({"wp": a.wp, "key": k, "rounds": [{x: r.get(x) for x in ("round", "holes_asked", "fills", "errors", "unanswered_confirmations")}
+                                                                                        for r in rec["rounds"]]}, indent=1))
+        (out / f"{k}.null.json").write_text(json.dumps({"wp": a.wp, "key": k, "T": null_rows(g0), "T-loop": null_rows(g) if "ground_after_loop" in rec else None,
+                                                        "loop": rec.get("loop"), "density": g["density"]}, indent=1))
+        diffs = {"t0": g0, "t": g} if "ground_after_loop" in rec else {"t": g}  # M0's names: .t.diff is the final diff, .t0.diff T's own before the loop
+        for name, gr in diffs.items():
+            (out / f"{k}.{name}.diff").write_text(gr["diff"], errors="surrogateescape")
+        applies = {name: (applies_at(repo, L.sha, gr["diff"], [f["path"] for f in gr["files"]])[0] if gr["diff"] else None) for name, gr in diffs.items()}
+        verdicts = {}
+        if a.verify:
+            for name, gr in diffs.items():
+                v = HV.verify(repo, L.sha, gr["diff"], L, repo, out=out / f"{k}.{name}.verify.json", timeout=a.verify_timeout)
+                verdicts[name] = {"verdict": v["verdict"], "applies": v["applies"], "summary": v.get("summary"), "build_summary": v.get("build_summary"),
+                                  "regressions": v.get("regressions"), "faults": len(v.get("faults", [])),
+                                  "all_contained": (v.get("containment") or {}).get("all_contained"), "wall_s": v["wall_s"]}
+        gold = split_diff(Path(u["gold_diff"]).read_text(errors="surrogateescape"))
+        gold_files = {p for p, _ in gold}
+        gg = Path(a.gold_ground) / f"{k}.ground.json" if a.gold_ground else None
+        gold_declared = set(json.load(open(gg))["gensyms"]) if gg and gg.exists() else set()
+        u1 = next((h for h in t2["holes"] if h["type"] == "UNRESOLVED"), None)
+        agree = A.score_unresolved(u1.get("fill"), u1, L, gold_files, gold_declared) if u1 else {"n": 0, "agree": 0, "rows": []}
+        cov = T.score_coverage(t2, gold)
+        an = T.score_anchors(t2, L, gold)
+        r2 = next(r for r in rec["rounds"] if r["round"] == 2)
+        filled = sum(1 for hid in r2["holes_asked"] if hid in ((r2["fills"] or {}).get("fills") or {}))
+        loop_ex = [e for e in ex if e["purpose"].startswith("NULL")]
+        cost = lambda es: round(sum(usd(e.get("prompt_tokens"), e.get("completion_tokens")) for e in es), 4)
+        row = {"wp": a.wp, "key": k, "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
+               "template_version": t.get("template_version"), "template_rebuilds": True, "model": a.model, "sampling": sampling,
+               "system_prompt_version": A.SYSTEM_PROMPT_VERSION, "grounder_version": g["grounder_version"], "rta": g.get("rta"),
+               "anchors": f"{len(t['anchors'])}→{len(t2['anchors'])}", "anchor_files": f"{an['files']['tp']}/{an['files']['anchored']} of {an['files']['gold']}",
+               "unresolved": f"{agree['agree']}/{agree['n']}", "confirmations": confirmations(rec),
+               "coverage": f"{cov['symbol']}/{cov['region']}/{cov['new_file']}/{cov['outside']} of {cov['hunks']}",
+               "holes": f"{len(t2['holes'])}/{len(g0['closed_by_prune'])}/{filled}", "round2_open": len(r2["holes_asked"]),
+               "null_T": null_rows(g0), "null": null_rows(g), "null_by_class": g["null_by_class"], "loop": rec.get("loop"),
+               "density": g["density"]["counts"], "density_k": g["density"]["k"], "references": g["references"],
+               "unfilled": len(g["unfilled"]), "refused": len(g["refused"]), "edits": len(g["edits"]),
+               "files": sorted(f["path"] for f in g["files"]), "created": sorted(f["path"] for f in g["files"] if f["created"]), "outside_partition": g["outside_partition"],
+               "applies": applies, "rfe_gold": _jpr({f["path"] for f in g["files"]}, gold_files), "rfe_gold_T": _jpr({f["path"] for f in g0["files"]}, gold_files),
+               "hsr": g["hsr"], "hsr_T": g0["hsr"], "verify": {"T": verdicts.get("t0", verdicts.get("t")), "T-loop": verdicts.get("t")},
+               "rounds": [r["round"] for r in rec["rounds"]], "exchanges": len(ex), "repairs": sum(1 for e in ex if e["purpose"].endswith("(repair)")),
+               "cut_at_length": sum(1 for e in ex if e.get("finish_reason") == "length"),
+               "invalid_after_repair": [{"round": r["round"], "holes": len(r["errors"]), "first": sorted(r["errors"].items())[0]} for r in rec["rounds"] if r["errors"]],
+               "tokens": rec["tokens"], "usd": cost(ex), "usd_T": cost([e for e in ex if e not in loop_ex]), "usd_loop": cost(loop_ex),
+               "estimate_usd": est.get(k), "wall_s": round(wall, 1), "attribution": None}
+        rec["instruments"] = {**row, "unresolved_rows": agree["rows"], "coverage": cov, "anchors": an}
+        (out / f"{k}.t.json").write_text(json.dumps(rec, indent=1))
+        with open(out / "rows.jsonl", "a") as fh:
+            fh.write(json.dumps(row) + "\n")
+        vt = {n: (x or {}).get("verdict") for n, x in row["verify"].items()}
+        print(f"{k} {u['shape']:11s} anchors {row['anchors']} files {row['anchor_files']} conf {row['confirmations']} holes {row['holes']} "
+              f"NULL {len(g0['null'])}→{len(g['null'])} edits {row['edits']}/{len(row['files'])} RFE {_fmt(row['rfe_gold'])} verify {vt} "
+              f"exch {row['exchanges']} repairs {row['repairs']} cut {row['cut_at_length']} tokens {rec['tokens']['prompt']}/{rec['tokens']['completion']} "
+              f"${row['usd']} (est ${(row['estimate_usd'] or {}).get('total')}) {row['wall_s']}s", flush=True)
+    return 0
+
+
 def cmd_verify(a: argparse.Namespace) -> int:
     """Step 5: the behaviour verifier over a directory of diffs at their parents — the gold diffs as the calibration (every gold should pass), arm T's records as the candidates."""
     from hobbes.derive import harness as H
@@ -1040,6 +1249,24 @@ def main(argv: list[str]) -> int:
     s.add_argument("--no-loop", action="store_true", help="arm T without the NULL round-trip")
     s.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy", help="temperature 0, or no sampling field for a model that rejects it")
     s.set_defaults(fn=cmd_t)
+    s = sub.add_parser("t-units", help="Calvin M0-Go WP-5: arm T by hand on units.jsonl keys, metered, every exchange recorded")
+    s.add_argument("units"); s.add_argument("--templates", required=True, help="<key>.template.json per key (the stored template at the tier)")
+    s.add_argument("--repo", required=True, help="a clone this run owns: checked out at each parent (--force)"); s.add_argument("--out", required=True)
+    s.add_argument("--keys", nargs="+", required=True); s.add_argument("--tier", default="A2")
+    s.add_argument("--base-url", required=True); s.add_argument("--model", required=True)
+    s.add_argument("--secrets", help="the owner's name=value key file (read, never printed); HOBBES_LLM_API_KEY wins when set")
+    s.add_argument("--key-name", default="llm_key", help="the line of --secrets that holds this endpoint's key")
+    s.add_argument("--max-tokens", type=int, default=16384); s.add_argument("--timeout", type=float, default=600.0)
+    s.add_argument("--max-prompt-chars", type=int, default=300_000, help="a rendered template over this is asked in chunks by file")
+    s.add_argument("--no-loop", action="store_true", help="arm T without the NULL round-trip")
+    s.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy", help="temperature 0, or no sampling field for a model that rejects it")
+    s.add_argument("--rta-key", help="an oracle go-rta key: the implementers rule 2 records"); s.add_argument("--rta-label")
+    s.add_argument("--gold-ground", help="a ground-units directory (WP-3's ground-gold/): the gold's declared names, for §4.2's agreement")
+    s.add_argument("--estimate", help="WP-4's estimate.json: each key's expected dollars beside its actual")
+    s.add_argument("--key-cap", type=float, default=2.0, help="dollars one key may spend"); s.add_argument("--total-cap", type=float, default=5.0, help="dollars every key under --out may spend in all")
+    s.add_argument("--verify", action="store_true", help="run the verifier on each grounded diff"); s.add_argument("--verify-timeout", type=int, default=900)
+    s.add_argument("--wp", default="wp-5")
+    s.set_defaults(fn=cmd_t_units)
     s = sub.add_parser("verify"); s.add_argument("graphs"); s.add_argument("--diffs", help="directory of <commit><suffix> diffs (ground/ for the gold calibration, t/ for arm T)")
     s.add_argument("--out", required=True); s.add_argument("--clone"); s.add_argument("--commits", nargs="*", help="commit prefixes (default: every proposal)")
     s.add_argument("--suffix", default=".diff", help=".diff for ground/, .t.diff for t/"); s.add_argument("--no-baseline", action="store_true"); s.add_argument("--timeout", type=int, default=900)

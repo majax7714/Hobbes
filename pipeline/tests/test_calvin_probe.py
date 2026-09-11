@@ -136,3 +136,66 @@ def test_rta_sites_collects_in_repo_implementers_per_interface_method(tmp_path):
     (tmp_path / "k.json").write_text(json.dumps(key))
     assert cp.rta_sites(tmp_path / "k.json", "label") == {"source": "label", "sites": {"m/p.Source.Fragments": ["(*m/p.File).Fragments", "(*m/p.Git).Fragments"]}}
     assert cp.rta_sites(None) is None
+
+
+class _Ep:
+    """An endpoint that returns fixed usage: 200k tokens in, 10k out ($0.25 at Haiku 4.5's list)."""
+    max_tokens = 1000
+
+    def __init__(self):
+        self.n = 0
+
+    def chat(self, messages, tools, max_tokens=None):
+        self.n += 1
+        return {"choices": [{"message": {"content": "{}"}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 200_000, "completion_tokens": 10_000}}
+
+
+def test_usd_prices_the_returned_counts_at_haiku_list():
+    assert cp.usd(1_000_000, 0) == 1.0 and cp.usd(0, 1_000_000) == 5.0 and cp.usd(200_000, 10_000) == pytest.approx(0.25)
+    assert cp.usd(None, None) == 0.0
+
+
+def test_metered_prices_each_call_and_refuses_one_whose_worst_case_passes_the_cap(tmp_path):
+    ep = _Ep()
+    m = cp.Metered(ep, cap_usd=0.6, ledger=tmp_path / "k.usage.jsonl", chars_per_token=2.0)
+    msg = [{"role": "user", "content": "x" * 20_000}]  # 10k tokens in; with 1,000 out the worst case is $0.015
+    m.chat(msg, [], 1000)
+    m.chat(msg, [], 1000)
+    assert m.spent == pytest.approx(0.5) and ep.n == 2
+    with pytest.raises(cp.BudgetStop):
+        m.chat(msg, [], 100_000)  # $0.50 spent + a $0.51 worst case passes $0.60: the call is not made
+    assert ep.n == 2
+    m.chat(msg, [], None)  # max_tokens from the endpoint: $0.515 fits
+    assert ep.n == 3
+    rows = [json.loads(l) for l in open(tmp_path / "k.usage.jsonl")]
+    assert [r["usd"] for r in rows] == [0.25, 0.25, 0.25] and rows[-1]["spent_usd"] == 0.75
+    (tmp_path / "j.usage.jsonl").write_text(json.dumps({"usd": 0.125}) + "\n")
+    assert cp.spent_in(tmp_path) == pytest.approx(0.875), "every ledger in the directory, so a later process sees what an earlier one spent"
+
+
+def test_confirmations_count_round_one_answers_with_the_capped_callees_apart():
+    t1 = {"holes": [{"id": "c1", "type": "ANCHOR_CONFIRM", "provenance": {"anchor": "x"}},
+                    {"id": "c2", "type": "ANCHOR_CONFIRM", "provenance": {"anchor": "y", "symbol": "p.f", "callee_of": "p.main"}},
+                    {"id": "c3", "type": "ANCHOR_CONFIRM", "provenance": {"anchor": "z", "symbol": "p.g", "callee_of": "p.main"}},
+                    {"id": "u1", "type": "UNRESOLVED", "terms": []}]}
+    rec = {"template_round1": t1, "template_round2": {"holes": []},
+           "rounds": [{"round": 1, "holes_asked": ["u1", "c1", "c2", "c3"], "fills": {"fills": {"c1": {"confirm": True}, "c2": {"confirm": False}}}},
+                      {"round": 2, "holes_asked": ["c9"], "fills": {"fills": {}}}]}
+    assert cp.confirmations(rec) == {"asked": 1, "yes": 1, "capped_asked": 2, "capped_no": 1, "capped_unanswered": 1}
+
+
+def test_key_from_reads_one_named_line_and_tolerates_names_the_bench_reader_refuses(tmp_path):
+    f = tmp_path / "keys.txt"
+    f.write_text("# owner's keys\nllm_key=abc\nanthropic_key = \"sk-x\"\nempty_key=\n")
+    assert cp.key_from(f, "anthropic_key") == "sk-x" and cp.key_from(f, "llm_key") == "abc"
+    with pytest.raises(KeyError):
+        cp.key_from(f, "empty_key")
+    with pytest.raises(KeyError):
+        cp.key_from(f, "missing")
+
+
+def test_estimate_by_key_reads_the_expected_band_per_arm(tmp_path):
+    est = {"rows": [{"key": "k1", "arm": "T", "band": "exp", "per_run": {"usd": 0.06}}, {"key": "k1", "arm": "T-loop", "band": "exp", "per_run": {"usd": 0.01}},
+                    {"key": "k1", "arm": "T", "band": "high", "per_run": {"usd": 0.2}}, {"key": "k2", "arm": "O", "band": "exp", "per_run": {"usd": 1.0}}]}
+    (tmp_path / "e.json").write_text(json.dumps(est))
+    assert cp.estimate_by_key(tmp_path / "e.json") == {"k1": {"T": 0.06, "T-loop": 0.01, "total": 0.07}}

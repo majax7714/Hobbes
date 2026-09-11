@@ -251,8 +251,11 @@ def narrow(t2: dict, doc: dict, g: dict) -> dict | None:
     return v
 
 
-def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoChange | None, adapter: Adapter, *, null_loop: bool = True) -> dict:
-    """Arm T for one unit: round 1 → rebuild → round 2 → prune → ground, then (T-loop) one NULL round-trip. Returns the per-unit record."""
+def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoChange | None, adapter: Adapter, *, null_loop: bool = True,
+          rta: dict | None = None) -> dict:
+    """Arm T for one unit: round 1 → rebuild → round 2 → prune → ground, then (T-loop) one NULL round-trip. Returns the per-unit record.
+
+    *rta* is handed to both groundings (`ground.ground`'s rule-2 implementers, recorded, never bound; M0-Go)."""
     t1 = copy.deepcopy(template)
     rec: dict = {"key": {**t1["key"], "model_id": adapter.model_id, "system_prompt_version": SYSTEM_PROMPT_VERSION}, "rounds": []}
     t2 = t1
@@ -291,7 +294,7 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
             if hid in {h["id"] for h in t2b["holes"]}:
                 doc2["fills"][hid] = fill
         rec["rounds"].append({"round": "2b", "holes_asked": [h["id"] for h in t2b["holes"]], "fills": doc2b, "errors": errs2b})
-    g = G.ground(copy.deepcopy(t2), doc2, L, repo_root)
+    g = G.ground(copy.deepcopy(t2), doc2, L, repo_root, rta=rta)
     rec["ground"] = g
     if null_loop:
         t3 = narrow(t2, doc2, g)
@@ -301,7 +304,7 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
             for hid, fill in ((doc3 or {}).get("fills") or {}).items():
                 merged["fills"][hid] = fill
             rec["rounds"].append({"round": 3, "holes_asked": [h["id"] for h in t3["holes"]], "fills": doc3, "errors": errs3})
-            g2 = G.ground(copy.deepcopy(t2), merged, L, repo_root)
+            g2 = G.ground(copy.deepcopy(t2), merged, L, repo_root, rta=rta)
             rec["ground_after_loop"] = g2
             before = {(n["hole"], n["term"], n["null_class"]) for n in g["null"]}
             after = {(n["hole"], n["term"], n["null_class"]) for n in g2["null"]}
