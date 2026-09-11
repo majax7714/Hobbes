@@ -62,7 +62,9 @@ BUILDLOG entry.
      `--key-name anthropic_key`. `calvin_probe.py`'s default, `llm_key`,
      is not an Anthropic key (two unbilled 401s at WP-5).
    - WP-9 registered C-109–C-114; **C-112 (syntax errors unclassed) is
-     unsurfaced** — debt.
+     unsurfaced** — debt, beside **C-19** (two compiled CI configs never
+     executed) and **C-20** (decisions do not survive a fresh clone),
+     both still unsurfaced from before (`docs/constraints/narrative-invariants-review.md`).
 4. **Still waiting on Max from 2026-09-10 (untouched this session):**
    - **The Gradle attach route (0.1.10-beta; C-67 narrowed, ADR-096
      amended):** a Gradle unit gets scip-java's javac plugin from
