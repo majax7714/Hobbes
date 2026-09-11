@@ -559,6 +559,87 @@ def test_gold_test_hunks_splits_test_files_from_a_diff(repo):
     hunks = H.gold_test_hunks(d)
     assert [p for p, _ in H.split_patch(hunks)] == ["tests/test_core.py"] and "src/pkg/core.py" not in hunks and "def test_new" in hunks
     assert H.gold_test_hunks(diff_for(root, {"src/pkg/core.py": CORE.replace("str(x)", 'str(x) + "!"')})) == "", "a gold diff touching no test file yields no hunks"
+    assert H.gold_non_test_hunks(d) + hunks == d or set(p for p, _ in H.split_patch(H.gold_non_test_hunks(d) + hunks)) == set(p for p, _ in H.split_patch(d))
+
+
+def test_is_test_support_path_and_a_fixture_travels_only_beside_a_test_hunk(repo):
+    # WP-11a-1: a testdata/-shaped path is test-support even though it is not itself a test file — but only
+    # when a real test-file hunk is present too; a fixture with no test change beside it is not "gold's own
+    # test changes" (§2.3), so `gold_test_hunks` stays empty for it, as it does for no test file at all.
+    assert H.is_test_support_path("testdata/config/extend_rule_allowlist.toml") and not H.is_test_path("testdata/config/extend_rule_allowlist.toml")
+    assert H.is_test_support_path("calc/testdata/greeting.txt") and H.is_test_support_path("web/__snapshots__/a.snap")
+    assert not H.is_test_support_path("config/config.go"), "a production path is never named testdata/"
+    root, sha, source = repo
+    fixture_alone = diff_for(root, {"testdata/config/x.toml": "id = 1\n"})
+    assert H.gold_test_hunks(fixture_alone) == "", "a fixture with no test hunk beside it is not gold's own test changes"
+    with_test = diff_for(root, {"tests/test_core.py": TEST_CORE + "\ndef test_new():\n    assert True\n", "testdata/config/x.toml": "id = 1\n"})
+    hunks = H.gold_test_hunks(with_test)
+    assert {p for p, _ in H.split_patch(hunks)} == {"tests/test_core.py", "testdata/config/x.toml"}
+
+
+def test_gold_tests_verdict_build_fail_reads_undefined_symbols(gorepo, monkeypatch):
+    # WP-11a §3: a `gold_tests` build-fail names how many of them are gold's test naming a symbol the arm
+    # named differently or never created, read off Go's own "undefined: X" in the failing build's stderr.
+    root, sha, L = gorepo
+
+    def fake(p, *, timeout):
+        argv, cwd = list(p.command), Path(p.cwd)
+        test_src = (cwd / "calc" / "calc_test.go").read_text()
+        out, rc, err = "", 0, ""
+        if argv[:3] == ["go", "list", "-deps"]:
+            out = f"{cwd / 'calc'}\n"
+        elif argv[:2] == ["go", "build"]:
+            if "UsesUndeclaredHelper" in test_src:
+                rc, err = 1, "./calc/calc_test.go:9:9: undefined: UsesUndeclaredHelper\n"
+        elif argv[:3] == ["go", "test", "-list"]:
+            names = re.findall(r"(?m)^func (Test\w+)\(", test_src)
+            out = "".join(n + "\n" for n in names if re.search(argv[3], n))
+        elif argv[:2] == ["go", "test"]:
+            names = re.findall(r"(?m)^func (Test\w+)\(", test_src)
+            pat = argv[argv.index("-run") + 1] if "-run" in argv else "."
+            out = "".join(json.dumps({"Action": "pass", "Test": n}) + "\n" for n in names if re.search(pat, n))
+        containment.LEDGER.append({"step": p.profile.step, "contained": True})
+        return containment.Outcome(subprocess.CompletedProcess(argv, rc, out, err), True)
+    monkeypatch.setattr(containment, "run", fake)
+    arm = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // fixed")})
+    gold_test = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST + "\nfunc TestMul(t *testing.T) { UsesUndeclaredHelper() }\n"})
+    r = H.gold_tests_verdict(root, sha, arm, gold_test, L, root)
+    assert r["verdict"] == "build-fail" and r["undefined_symbols"] == ["UsesUndeclaredHelper"]
+
+
+def test_gold_test_hunks_carries_a_testdata_fixture_a_test_needs(gorepo, monkeypatch):
+    # the fixture-repo control (WP-11a-1): gitleaks' TestTranslate reads `testdata/config/extend_rule_allowlist.toml`,
+    # a file gold's own diff adds beside `config_test.go` and is not itself a `_test.go` file; any arm — even a
+    # perfect one that never touches testdata/ itself, since that is gold's fixture, not production code — must
+    # still see it, or the test reads a stale fixture and fails for a reason that says nothing about the arm.
+    root, sha, L = gorepo
+
+    def fake(p, *, timeout):
+        argv, cwd = list(p.command), Path(p.cwd)
+        test_src = (cwd / "calc" / "calc_test.go").read_text()
+        out, rc = "", 0
+        if argv[:3] == ["go", "list", "-deps"]:
+            out = f"{cwd / 'calc'}\n"
+        elif argv[:3] == ["go", "test", "-list"]:
+            names = re.findall(r"(?m)^func (Test\w+)\(", test_src)
+            out = "".join(n + "\n" for n in names if re.search(argv[3], n))
+        elif argv[:2] == ["go", "test"]:
+            names = re.findall(r"(?m)^func (Test\w+)\(", test_src)
+            pat = argv[argv.index("-run") + 1] if "-run" in argv else "."
+            fixture = cwd / "calc" / "testdata" / "greeting.txt"
+            ok = fixture.exists() and fixture.read_text() == "hi\n"
+            out = "".join(json.dumps({"Action": "pass" if (n != "TestGreeting" or ok) else "fail", "Test": n}) + "\n" for n in names if re.search(pat, n))
+        containment.LEDGER.append({"step": p.profile.step, "contained": True})
+        return containment.Outcome(subprocess.CompletedProcess(argv, rc, out, ""), True)
+    monkeypatch.setattr(containment, "run", fake)
+    gold = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST + "\nfunc TestGreeting(t *testing.T) {}\n", "calc/testdata/greeting.txt": "hi\n"})
+    arm = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // fixed")})  # never touches testdata/ itself
+    r = H.gold_tests_verdict(root, sha, arm, gold, L, root)
+    assert r["verdict"] == "pass" and "calc/calc_test.go::TestGreeting" in r["ids"], "the fixture rode along with the test hunk"
+    # THE CONTROL: gold's own non-test hunks, standing in for a perfect arm, must themselves read pass
+    perfect = H.gold_non_test_hunks(gold)
+    r2 = H.gold_tests_verdict(root, sha, perfect, gold, L, root)
+    assert r2["verdict"] == "pass"
 
 
 def test_gold_tests_verdict_end_to_end(gorepo, monkeypatch):
@@ -578,8 +659,8 @@ def test_gold_tests_verdict_end_to_end(gorepo, monkeypatch):
     arm_same_line = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST.replace("func TestSub(t *testing.T) {}", "func TestSub(t *testing.T) { t.Log(1) }")})
     r2 = H.gold_tests_verdict(root, sha, arm_same_line, gold_test, L, root)
     assert r2["verdict"] == "conflict" and "apply_error" in r2
-    # a diff that does not build at all cannot run the gold's tests either: fail, not conflict
+    # a diff that does not build at all cannot run the gold's tests either: its own verdict, `build-fail`, not `fail` or `conflict`
     broke = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // BROKEN")})
     r3 = H.gold_tests_verdict(root, sha, broke, gold_test, L, root)
-    assert r3["verdict"] == "fail" and r3["note"] == "build-fail"
+    assert r3["verdict"] == "build-fail" and r3["build_failures"] == [".::go build ./..."] and r3["undefined_symbols"] == []
     assert H.classify("uncollected", "pass") == "removed" and H.classify("uncollected", "uncollected") == "uncollected"

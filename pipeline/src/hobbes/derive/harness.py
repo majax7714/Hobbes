@@ -201,6 +201,11 @@ def pre_command(env: Environment, container_root: str = "/work") -> str:
 _DIFF_HEAD = re.compile(r"^diff --git a/(.*?) b/(.*?)$", re.M)
 _HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@", re.M)
 _TEST_FILE = re.compile(r"(^|/)(test_[^/]*\.py|[^/]*_test\.(py|go)|[^/]*\.(test|spec)\.(m?js|tsx?))$")
+#: Directories a test loads its own fixtures from, never a build target: Go's `testdata/` (the tool itself
+#: excludes it — https://pkg.go.dev/cmd/go#hdr-Testing_flags) and its cross-language cousins. A production
+#: hunk never legitimately falls under one of these names (WP-11a-1: gold's own test can need a fixture gold
+#: adds beside it, e.g. `testdata/config/extend_rule_allowlist.toml`, that is not itself a `_test.go` file).
+_TEST_SUPPORT_DIR = re.compile(r"(^|/)(testdata|__fixtures__|__snapshots__)(/|$)")
 
 
 def split_patch(diff: str) -> list[tuple[str, str]]:
@@ -262,11 +267,32 @@ def is_test_path(path: str) -> bool:
     return _TEST_FILE.search(path) is not None
 
 
+def is_test_support_path(path: str) -> bool:
+    """A test file itself, or a path under a directory a test loads its own fixtures from (`_TEST_SUPPORT_DIR`) —
+    never a production hunk (WP-11a-1)."""
+    return is_test_path(path) or _TEST_SUPPORT_DIR.search(path) is not None
+
+
 def gold_test_hunks(gold_diff: str) -> str:
-    """The gold diff's own per-file hunks, test files only, reassembled as a patch — calvin-m0-go-r2 §2.3's
-    "gold's own test changes": the diff Hobbes applies on top of an arm's diff to ask whether the gold's tests,
-    not the harness's guard selection, read the arm's change as done."""
-    return "".join(text for path, text in split_patch(gold_diff) if is_test_path(path))
+    """The gold diff's own test-file hunks, reassembled as a patch, **with the test-support fixtures they need**
+    (`is_test_support_path`) riding along — calvin-m0-go-r2 §2.3's "gold's own test changes": the diff Hobbes
+    applies on top of an arm's diff to ask whether the gold's tests, not the harness's guard selection, read the
+    arm's change as done. A test-support hunk travels only alongside an actual test-file hunk (WP-11a-1: a
+    fixture with no test change beside it is not "gold's own test changes"); a production hunk never qualifies,
+    since no production path is ever named `testdata/`, `__fixtures__/` or `__snapshots__/`."""
+    hunks = [(path, text) for path, text in split_patch(gold_diff) if is_test_support_path(path)]
+    if not any(is_test_path(p) for p, _ in hunks):
+        return ""
+    return "".join(text for _, text in hunks)
+
+
+def gold_non_test_hunks(gold_diff: str) -> str:
+    """The exact complement of `gold_test_hunks`: whatever hunks it did *not* take, so
+    ``gold_non_test_hunks(d) + gold_test_hunks(d)`` reassembles *d* file-for-file. WP-11a-1's control feeds this
+    to `gold_tests_verdict` as the "arm" — a perfect arm's diff stands in for exactly this — to ask whether the
+    instrument itself reads `pass` before any real arm is judged by it."""
+    taken = {path for path, _ in split_patch(gold_test_hunks(gold_diff))}
+    return "".join(text for path, text in split_patch(gold_diff) if path not in taken)
 
 
 @dataclass
@@ -910,20 +936,30 @@ def score(rec: dict, *, gold_tests: dict | None = None) -> dict:
     return rec
 
 
+#: Go's own wording for a name nothing declares (`undefined: X`) — read off a failing build step's `stderr_tail`
+#: to say, of a `gold_tests` `build-fail`, how many are gold's test naming a symbol the arm named differently
+#: or never created at all (WP-11a §3).
+_UNDEFINED = re.compile(r"undefined: (\S+)")
+
+
 def gold_tests_verdict(clone: Path, sha: str, arm_diff: str, gold_diff: str, L: T.Ledger, source: Path, *,
                         out: Path | None = None, timeout: int = 900) -> dict:
-    """calvin-m0-go-r2 §2.3's second door into ``pass``: the gold's own test-file hunks (`gold_test_hunks`)
-    applied on top of *arm_diff*, verified. ``{"verdict", "ids"}``, verdict one of:
+    """calvin-m0-go-r2 §2.3's second door into ``pass``: the gold's own test-file hunks (`gold_test_hunks`, with
+    the test-support fixtures they need) applied on top of *arm_diff*, verified. ``{"verdict", "ids", ...}``,
+    verdict one of five, WP-11a §3's split so WP-12 can tell them apart:
 
     - ``"n/a"`` — the gold diff touches no test file, so this row cannot pass this way (§2.3: "then only
       executed guarding tests can make a pass").
     - ``"conflict"`` — the combined diff does not apply (the arm's diff and the gold's own test hunk collide,
       most often because the arm already rewrote the same test file): its own value, never read as ``fail``,
       because it says nothing about whether the arm's change is right.
-    - ``"pass"`` / ``"fail"`` — the verdict is read off exactly the rows belonging to the gold's own touched
-      test files (not the whole combined `verify`, which also carries whatever the arm's diff alone reaches);
-      a combined tree that does not build is folded into ``"fail"`` here — the gold's tests cannot even run
-      against what the arm shipped, which is a failure of the arm's diff to satisfy them, not a conflict.
+    - ``"build-fail"`` — the combined tree does not compile: the gold's tests cannot even run against what the
+      arm shipped. Carries ``undefined_symbols`` — names Go's compiler read as ``undefined: X`` in the failing
+      build's own stderr — the count of builds failing because gold's test names a symbol the arm named
+      differently or never created at all, as against some other compile error.
+    - ``"pass"`` / ``"fail"`` — read off exactly the rows belonging to the gold's own touched test files (not
+      the whole combined `verify`, which also carries whatever the arm's diff alone reaches): a test that ran
+      and failed, or one the testmap named that nothing collected (``ids: []``, noted).
     """
     hunks = gold_test_hunks(gold_diff)
     if not hunks.strip():
@@ -932,10 +968,14 @@ def gold_tests_verdict(clone: Path, sha: str, arm_diff: str, gold_diff: str, L: 
     rec = verify(clone, sha, combined, L, source, out=out, baseline=True, timeout=timeout)
     if rec.get("verdict") in ("not-applied", "empty-diff"):
         return {"verdict": "conflict", "ids": [], "apply_error": rec.get("apply_error")}
+    if rec.get("verdict") == "build-fail":
+        candidate_steps = (rec.get("go") or {}).get("steps", {}).get("candidate") or {}
+        undefined = sorted({m for step in candidate_steps.values() for m in _UNDEFINED.findall(step.get("stderr_tail", "") or "")})
+        return {"verdict": "build-fail", "ids": [], "build_failures": rec.get("build_failures", []), "undefined_symbols": undefined}
     gold_files = {path for path, _ in split_patch(hunks)}
     rows = [r for r in rec.get("tests", []) if r.get("file") in gold_files]
-    if rec.get("verdict") == "build-fail" or not rows:
-        return {"verdict": "fail", "ids": [r["id"] for r in rows], "note": "build-fail" if rec.get("verdict") == "build-fail" else "gold's test file named no collected id"}
+    if not rows:
+        return {"verdict": "fail", "ids": [], "note": "gold's test file named no collected id"}
     failing = [r["id"] for r in rows if r["class"] in FAILING]
     return {"verdict": "fail" if failing else "pass", "ids": [r["id"] for r in rows], "failing": failing}
 
