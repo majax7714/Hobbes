@@ -852,6 +852,110 @@ def changed_files(diff: str) -> list[str]:
     return sorted(out)
 
 
+#: The recall scan (M0-Go WP-7b): upstream history is read up to this SHA — §0a's pin, the gitleaks HEAD the Hobbes cell was
+#: built at and the upper bound of §2.1's range.
+RECALL_UPPER = "8ad8470035d31a209322c580153b45c18e21b980"
+#: The scan's rule, stated. A line is its text with surrounding whitespace stripped (indentation never decides a match); it is
+#: counted only if it keeps at least ``RECALL_MIN_CHARS`` characters and at least one letter or digit, so ``}``, ``}, {``,
+#: ``// ----`` and ``break`` are never evidence. A counted added line is *novel* if no file of the parent tree holds it. Of the novel lines,
+#: ``gold`` is the fraction found among the gold diff's added lines and ``upstream`` the fraction found among the lines added by
+#: the non-merge commits in ``parent..RECALL_UPPER`` (the gold commit is one of them). A row is ``recalled`` when at least
+#: ``RECALLED_AT[0]`` of its novel lines are upstream's and they are at least ``RECALLED_AT[1]`` of them. A measurement beside
+#: the verdict: it changes none.
+RECALL_RULE = "recall v1"
+RECALL_MIN_CHARS = 6
+RECALLED_AT = (10, 0.5)
+_RECALL_CACHE: dict = {}
+
+
+def recall_norm(line: str) -> str | None:
+    """A diff line's text as the recall scan compares it — stripped — or None when the rule excludes it (short or no letter/digit)."""
+    s = line.strip()
+    return s if len(s) >= RECALL_MIN_CHARS and any(c.isalnum() for c in s) else None
+
+
+def added_lines(diff: str) -> list[str]:
+    """The added lines of a unified diff (one file or many, ``git log -p`` output too), without the ``+``, read by the hunk
+    headers' counts — so an added line that itself starts ``++`` is never taken for a file header."""
+    out, old, new = [], 0, 0
+    for line in diff.split("\n"):
+        if old > 0 or new > 0:
+            if line.startswith("+"):
+                out.append(line[1:])
+                new -= 1
+            elif line.startswith("-"):
+                old -= 1
+            elif not line.startswith("\\"):
+                old, new = old - 1, new - 1
+            continue
+        m = re.match(r"@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@", line)
+        if m:
+            old, new = (int(g) if g is not None else 1 for g in m.groups())
+    return out
+
+
+def _recall_git(repo: Path, args: list[str], stdin: bytes | None = None) -> bytes | None:
+    try:
+        r = subprocess.run(["git", *args], cwd=repo, input=stdin, capture_output=True)
+    except OSError:  # no such directory: the scan says so in its row
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def parent_tree_lines(repo: Path, sha: str) -> frozenset | None:
+    """Every counted line (``recall_norm``) of every text file in *sha*'s tree — what an arm could copy from the parent. Read with
+    ``git ls-tree``/``git cat-file`` only (the repo is never checked out); None when *sha* is not in *repo*. Cached per (repo, sha)."""
+    ck = ("tree", str(repo), sha)
+    if ck not in _RECALL_CACHE:
+        ls = _recall_git(repo, ["ls-tree", "-r", "-z", sha])
+        if ls is None:
+            _RECALL_CACHE[ck] = None
+            return None
+        blobs = [e.split(b"\t", 1)[0].split()[2] for e in ls.split(b"\0") if e and e.split()[1] == b"blob"]
+        raw = _recall_git(repo, ["cat-file", "--batch"], b"\n".join(blobs) + b"\n") or b""
+        out, i = set(), 0
+        while i < len(raw):
+            nl = raw.index(b"\n", i)
+            size = int(raw[i:nl].split()[2])
+            body = raw[nl + 1:nl + 1 + size]
+            i = nl + 1 + size + 1
+            if b"\0" not in body:
+                out |= {x for x in map(recall_norm, body.decode("utf-8", "replace").split("\n")) if x}
+        _RECALL_CACHE[ck] = frozenset(out)
+    return _RECALL_CACHE[ck]
+
+
+def upstream_added_lines(repo: Path, parent: str, upper: str = RECALL_UPPER) -> frozenset | None:
+    """Every counted line added by a non-merge commit in ``parent..upper`` of *repo* — upstream history after the parent, up to the
+    pin. None when either end is not in *repo*. Cached per (repo, parent, upper)."""
+    ck = ("up", str(repo), parent, upper)
+    if ck not in _RECALL_CACHE:
+        log = _recall_git(repo, ["log", "-p", "--no-merges", "--no-color", "--no-ext-diff", "--no-textconv", "--format=", f"{parent}..{upper}"])
+        _RECALL_CACHE[ck] = None if log is None else frozenset(
+            x for x in map(recall_norm, added_lines(log.decode("utf-8", "replace"))) if x)
+    return _RECALL_CACHE[ck]
+
+
+def recall_scan(diff: str, gold_diff: str, repo: Path, parent: str, upper: str = RECALL_UPPER) -> dict:
+    """The recall field of a row (M0-Go WP-7b; the rule at ``RECALL_RULE``): of the arm diff's novel added lines, how many are
+    verbatim in the gold diff and how many in upstream history after *parent* up to *upper*; ``upstream_not_gold`` counts the novel
+    lines only later history holds. Fractions are None when the diff adds no novel line; an unreadable parent or range is an
+    ``error``, never a raise — the row of a paid run is still written."""
+    tree = parent_tree_lines(repo, parent)
+    up = upstream_added_lines(repo, parent, upper)
+    rec = {"rule": RECALL_RULE, "upper": upper[:12]}
+    if tree is None or up is None:
+        return {**rec, "error": f"{'parent' if tree is None else 'range'} not readable in {repo}"}
+    gold = {x for x in map(recall_norm, added_lines(gold_diff)) if x}
+    arm = [x for x in map(recall_norm, added_lines(diff)) if x]
+    novel = [x for x in arm if x not in tree]
+    in_gold, in_up = sum(x in gold for x in novel), sum(x in up for x in novel)
+    frac = (lambda k: round(k / len(novel), 3)) if novel else (lambda k: None)
+    return {**rec, "added": len(arm), "novel": len(novel), "in_gold": in_gold, "gold": frac(in_gold), "in_upstream": in_up,
+            "upstream": frac(in_up), "upstream_not_gold": sum(x in up and x not in gold for x in novel),
+            "recalled": in_up >= RECALLED_AT[0] and in_up / len(novel) >= RECALLED_AT[1] if novel else False}
+
+
 def _write_exchanges(path: Path, exchanges: list[dict]) -> None:
     with open(path, "w") as fh:
         for e in exchanges:
@@ -959,6 +1063,7 @@ def cmd_t_units(a: argparse.Namespace) -> int:
                "rfe_gold": _jpr({f["path"] for f in g["files"]}, gold_files), "rfe_gold_T": _jpr({f["path"] for f in g0["files"]}, gold_files),
                "rfe_changed": _jpr(set(changed_files(g["diff"])), gold_files), "rfe_changed_T": _jpr(set(changed_files(g0["diff"])), gold_files),
                "hsr": g["hsr"], "hsr_T": g0["hsr"], "verify": {"T": verdicts.get("t0", verdicts.get("t")), "T-loop": verdicts.get("t")},
+               "recall": {n: recall_scan(gr["diff"], Path(u["gold_diff"]).read_text(errors="surrogateescape"), repo, L.sha) for n, gr in (("T", g0), ("T-loop", g))},
                "rounds": [r["round"] for r in rec["rounds"]], "exchanges": len(ex), "repairs": sum(1 for e in ex if e["purpose"].endswith("(repair)")),
                "cut_at_length": sum(1 for e in ex if e.get("finish_reason") == "length"),
                "invalid_after_repair": [{"round": r["round"], "holes": len(r["errors"]), "first": sorted(r["errors"].items())[0]} for r in rec["rounds"] if r["errors"]],
@@ -1220,6 +1325,7 @@ def cmd_o_units(a: argparse.Namespace) -> int:
                               "regressions": v.get("regressions"), "faults": len(v.get("faults", [])), "all_contained": (v.get("containment") or {}).get("all_contained"),
                               "wall_s": v.get("wall_s")} if v else None,
                    "hsr": g.get("hsr"), "null_by_class": g.get("null_by_class"), "references": g.get("references"),
+                   "recall": recall_scan(patch, Path(u["gold_diff"]).read_text(errors="surrogateescape"), clone, L.sha),
                    "null": [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in g.get("null", [])],
                    "density": (g.get("density") or {}).get("counts"), "fills_attribution": g.get("fills_attribution"),
                    "tokens": {"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
