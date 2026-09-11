@@ -13,6 +13,38 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.14-beta — 2026-09-11 (later still, the second)
+
+**Patch: the grounder holds a Go fill to the repo's world (grounder
+v2), and the adapter gets one bounded declaration repair (protocol
+v0.5).** WP-8 found that every declaration the loop placed was written
+against another project's API; these changes are its fix. Both were
+checked by replay with no model.
+
+- **Grounder v2, the world check.** A Go fill's imports must be the
+  standard library (go1.26.5's `go list std` less `internal` and vendor
+  paths, 176 packages, pinned as `GO_STDLIB`), a module the governing
+  `go.mod` requires at the parent, or a directory of the module itself
+  holding Go files. Any other import line in an edited range is an
+  `import-outside` NULL. A qualifier on a call, selector or type that
+  no import may bind is an `unimported` NULL, and every doubt abstains.
+  The rule rides in each record's `world` block. WP-8's 9 placed
+  declarations each raise at least one NULL, while gold still grounds at
+  0 NULL, HSR 0, and 20/20 byte-equal.
+- **Adapter protocol v0.5**, superseding v0.4. A NULL inside a placed
+  declaration's body goes back once as a repair of the same declaration
+  hole: one exchange, and no validation repair after it. The
+  declaration hole shows a sibling's form, a function of the same kind
+  from the binding directory with its file's package clause and
+  imports. The loop's site record reads the grounder's refused list, so
+  a refused declaration reads `refused`.
+- Register: C-109 (a required module's package unchecked), C-110
+  (unaliased import names read by convention), C-111 (build tags
+  unread), C-112 (syntax errors unclassed — **unsurfaced**, debt), C-113
+  (the world check is Go only) and C-114 (the declaration repair bounded
+  to one exchange) registered; 114 entries, 88 active, 24 lifted, 2
+  superseded.
+
 ## 0.1.13-beta — 2026-09-11 (later still)
 
 **Patch: what the Calvin adapter offers after a NULL, and what it
