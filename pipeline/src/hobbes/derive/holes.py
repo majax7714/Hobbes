@@ -33,13 +33,19 @@ things for the grounder: a ``FREEFORM`` fill may be a *list* of
 one entry per change block, charter §4.1), and a span with
 ``end == start - 1`` is an insertion point before ``start`` (a file
 absent at the SHA takes ``{start: 1, end: 0}`` and is created).
+Protocol v0.4 (Calvin M0-Go WP-7a) adds two checks and no shape: a
+``SIGNATURE`` or ``BODY`` fill carrying the render's line-number gutter
+is refused (`carries_gutter`), and a ``NEW_SYMBOL`` hole whose
+constraints carry ``declares`` — the NULL round-trip's declaration hole
+for one name — is answered with that name, in the directory it binds
+in, by a body that declares it (`declaration_errors`).
 """
 from __future__ import annotations
 
 import json
 import re
 import subprocess
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 TEMPLATE_VERSION = 1  # the default. 1 (step 6): a module anchor opens confirmations per symbol, importers are guards, the ANCHOR hole carries candidates
 #: Every version the generator builds and the validator accepts. 2 (Calvin M0-Go F1, `docs/calvin/calvin-m0-go.md` §10): an
@@ -83,6 +89,48 @@ PATTERN_TYPES = ("CALLER_UPDATE", "MODULE_REGION", "TEST_EXPECTATION", "COCHANGE
 UNRESOLVED_CLASSES = ("new", "refers", "not-code")
 REGION_KINDS = ("head", "imports", "gap", "tail")
 ANCHOR_MATCHERS = ("backtick", "path", "test-id", "stack-trace", "literal", "bare-identifier")
+
+#: The render's line-number gutter (`span_text`): the line number right-aligned to the span's width, two spaces, the line — an
+#: empty source line renders as the number and two spaces (trailing spaces a reply may drop). Protocol v0.4 (M0-Go WP-7a, WP-6's
+#: D-a): a SIGNATURE or BODY fill carrying it copied the prompt, not the code; WP-6's 7fc11 BODY fills carried it, the validator
+#: accepted them, the grounder wrote them verbatim and the build failed.
+_GUTTER = re.compile(r"^ *(\d+)(?:  |$)")
+GUTTER_ERROR = ("carries the template's line-number gutter (each line begins with its number and two spaces, as rendered): "
+                "the numbers are the prompt's, not code — send the code without them")
+
+
+def carries_gutter(code: str) -> bool:
+    """Whether *code* carries the render's gutter: two adjacent lines numbered in its form, the second one more than the first, or
+    a one-line fill numbered in its form. Code whose lines merely begin with a number passes unless two in a row count up by one."""
+    lines = code.split("\n")
+    nums = [int(m.group(1)) if (m := _GUTTER.match(line)) else None for line in lines]
+    if any(a is not None and b == a + 1 for a, b in zip(nums, nums[1:])):
+        return True
+    text = [line for line in lines if line.strip()]
+    return len(text) == 1 and re.match(r"^ *\d+  \S", text[0]) is not None
+
+
+def dir_of(path: str) -> str:
+    """A path's directory, the repo root as ``""`` (the grounder's Go package directory, whichever way it was spelled)."""
+    d = str(PurePosixPath(path).parent)
+    return "" if d == "." else d
+
+
+def declaration_errors(declares: dict, fill: dict) -> list[str]:
+    """Protocol v0.4: defects of a placed fill for a declaration hole (``constraints.declares`` = ``{name, term, dir, type}``): the
+    name must be the one the hole declares, the ``file`` must sit in the directory the name binds in when the grounder named one
+    (Go: the package the call site names; ``after_symbol`` places by the symbol and is not checked here), and the body must name it."""
+    if not all(isinstance(fill.get(k), str) for k in ("name", "file", "body")):
+        return ["name, file and body must be strings"]
+    name, where = declares["name"], declares.get("dir")
+    e = []
+    if fill["name"] != name:
+        e.append(f"this hole declares `{name}`: name must be {name!r}")
+    if where is not None and dir_of(fill["file"]) != ("" if where in ("", ".") else where):
+        e.append(f"`{name}` binds only in the directory `{where or '.'}/` (the package its call site names): the file must be there")
+    if not re.search(rf"(?<![\w$]){re.escape(name)}(?![\w$])", fill["body"]):
+        e.append(f"the body does not declare `{name}`")
+    return e
 
 
 # ---------------------------------------------------------------- validation
@@ -193,6 +241,8 @@ def validate_fill(hole: dict, fill) -> list[str]:
         key = "signature" if typ == "SIGNATURE" else "code"
         if fill != "unchanged" and not (isinstance(fill, dict) and isinstance(fill.get(key), str) and fill[key].strip()):
             e.append(f'expected "unchanged" or {{"{key}": ...}}')
+        elif typ != "MODULE_REGION" and fill != "unchanged" and carries_gutter(fill[key]):  # v0.4: D-a, repairable
+            e.append(GUTTER_ERROR)
     elif typ in ("CALLER_UPDATE", "COCHANGE_TOUCH"):
         yes_no()
     elif typ == "TEST_EXPECTATION":
@@ -204,6 +254,9 @@ def validate_fill(hole: dict, fill) -> list[str]:
                 e.append("covered_by must be a non-empty list of hole ids")
         elif need(("name", "file", "body")) and not (fill.get("after_symbol") or fill.get("region")):
             e.append("a placed NEW_SYMBOL names after_symbol or region (else it lands at end of file — say so with region: 'eof')")
+        declares = (hole.get("constraints") or {}).get("declares")
+        if declares and not e and "covered_by" not in fill:  # v0.4: the NULL round-trip's declaration hole
+            e += declaration_errors(declares, fill)
     elif typ == "FREEFORM":
         if fill == "none":
             pass

@@ -50,7 +50,12 @@ function-local type, a binding the syntax does not type and a type the
 graph does not hold abstain. **Rule 2:** a method an interface type of
 the graph declares resolves to the interface method (``interface``,
 judged beside ``in-graph``); the implementers an RTA key names for it
-are recorded on the row, never bound.
+are recorded on the row, never bound. A NULL row names its **scope**
+(M0-Go WP-7a): where a declaration of the name would have to sit for
+the call to bind — the package directory of a bare or package-qualified
+Go name, the directory and type of a member on a typed receiver; None
+where the grounder cannot say (every other language, an untyped
+receiver). Adapter protocol v0.4's declaration hole reads it.
 
 **Density (Track B).** Every reference the parent graph judges carries
 ``dense | sparse | absent`` beside its class (``density_table``,
@@ -829,6 +834,27 @@ class _Resolver:
             return self.go_call_on(self.go_resolve_type(ref, str(PurePosixPath(vpath).parent), imports), r, "unknown-receiver")
         return "unknown-receiver", r.receiver
 
+    def null_scope(self, path: str, P: Parsed, r: Ref) -> dict | None:
+        """Where a declaration of a NULL name would have to sit for this call to bind (M0-Go WP-7a): Go only — ``{"dir"}`` for a bare
+        name (its file's package) or a package-qualified one (the imported package's directory), ``{"dir", "type"}`` for a member on
+        a receiver whose type the syntax states (rule 1); None when the grounder cannot say. The same readings `_go` resolves by."""
+        if P.lang != "go":
+            return None
+        d = str(PurePosixPath(path).parent)
+        if r.receiver is None:
+            return {"dir": d}
+        local = self.go_binding(P, r.receiver, r.line)
+        imp = next((i for i in P.imports if i["bound"] == r.receiver), None)
+        if imp is not None and local is None:
+            pd = self.go_package_dir(imp["module"])
+            return None if pd is None else {"dir": pd}
+        t = None
+        if local is not None and local[0] is not None:
+            t = self.go_resolve_type(local[0], d, P.imports, P, r.line)
+        elif local is None and not self.in_scope_local(P, r.receiver, r.line) and (decl := self.go_var_type(d, r.receiver)) is not None:
+            t = self.go_resolve_type(decl[0], str(PurePosixPath(decl[1]).parent), decl[2])
+        return {"dir": t[1], "type": t[2]} if t is not None and t[0] == "repo" else None
+
     # ---- Go: rules 1 and 2 (M0-Go §2.4)
 
     def go_binding(self, P: Parsed, name: str, line: int) -> tuple | None:
@@ -1231,7 +1257,7 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
             by_class[cls] += 1
             if cls == "NULL":
                 _, near, ncls = R.null(r.name, path)
-                row.update({"null_class": ncls, "nearest": near, "declared": r.name in R.declared})
+                row.update({"null_class": ncls, "nearest": near, "declared": r.name in R.declared, "scope": R.null_scope(path, P, r)})
                 nulls.append(row)
             refs.append(row)
     judged = by_class["in-graph"] + by_class["interface"] + by_class["NULL"]

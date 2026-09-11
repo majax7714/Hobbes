@@ -18,11 +18,15 @@ structure from the answers and the answers are carried into the
 rebuilt template as filled holes, so the reader sees what was said;
 round 2 asks the structural holes; the pruning rules and the grounder
 (`ground.ground`) run on the answers. **T-loop** is exactly one more
-exchange: the grounder's NULL list becomes a *narrower* template —
-only the holes whose fills carried a NULL, each listing the terms that
-did not bind and the nearest graph names — and the grounder runs again
-on the merged fills. The loop closes a NULL or it does not; the record
-says which, by §4.3 class.
+exchange (`null_round_trip`): the grounder's NULL list becomes a
+*narrower* template — since protocol v0.4, a **declaration hole** (a
+``NEW_SYMBOL`` for one name) for every name a fill wrote at a call site
+and nothing declares, and the holes whose fills carried any other NULL,
+each listing the terms that did not bind and the nearest graph names —
+and the grounder runs again on the merged fills with the declaration
+holes placed, so a declared name binds as a gensym at the call site it
+was written at. The loop closes a NULL or it does not; the record says
+which, per site and by §4.3 class.
 
 What the adapter never does: resolve a name, place an edit, or improve
 a fill. It carries text between the orchestrator and Hobbes and writes
@@ -31,6 +35,7 @@ intent and about nothing in the repo).
 """
 from __future__ import annotations
 
+import collections
 import copy
 import json
 import re
@@ -48,7 +53,15 @@ SYSTEM_PROMPT_VERSION = 2
 #: SIGNATURE, BODY or ANCHOR_CONFIRM is read per hole ("unchanged", "no") and recorded as arrived by pattern
 #: (`holes.read_patterns`), and a refused pattern's holes are named in the repair (`holes.validate_fills`). The code carries no
 #: switch: v0.3 supersedes v0.2. The system prompt is unchanged (v2) — the three types are accepted, not advertised.
-PROTOCOL_VERSION = "0.3"
+#: **v0.4** (Calvin M0-Go WP-7a, Max 2026-09-11; WP-6's D-b and D-a): the NULL round-trip offers a declaration hole for every name
+#: written at a call site and declared nowhere — the grounder's class ``new`` or ``invented``, the name in no module of the parent
+#: graph nor among the post-image's declarations (`null_route`) — instead of re-asking the hole that wrote the call, which cannot
+#: close it; once placed, the name binds as a gensym and the call site is grounded again. A near-miss is re-asked as in v0.3. And a
+#: SIGNATURE or BODY fill carrying the render's line-number gutter is refused, a repairable error naming the hole
+#: (`holes.carries_gutter`). v0.4 supersedes v0.3, no switch; the system prompt is unchanged (v2).
+PROTOCOL_VERSION = "0.4"
+#: The NULL classes a v0.4 round-trip answers with a declaration hole rather than a re-ask.
+DECLARE_CLASSES = ("new", "invented")
 SYSTEM_PROMPT = """You are the orchestrator for a code change. You know the task's intent, the language and the world; you do not know this repository, and you must not pretend to.
 
 Hobbes knows the repository at one commit exactly: it has expanded the task into a template of typed holes, each with a span (path and lines at that commit), the code currently in the span, why the hole exists, and the answer shape. A separate deterministic grounder will bind every name in your answers against the repository; a name that does not exist there is reported back to you, never silently accepted. So:
@@ -236,12 +249,67 @@ def carry_round1(t2: dict, base: dict, fills1: dict, source: str) -> None:
     t2["holes"][:0] = carried
 
 
-def narrow(t2: dict, doc: dict, g: dict) -> dict | None:
-    """The NULL list as a narrower template: only the holes whose fills carried a NULL, each naming the terms that did not bind and the nearest graph names. None when there is no NULL."""
+def null_route(n: dict, L: T.Ledger, g: dict) -> str:
+    """Protocol v0.4: ``"declare"`` for a NULL whose name nothing declares — the grounder's class ``new`` or ``invented``, the bare
+    name in no module of the parent graph and, for ``invented``, not declared anywhere in the post-image — else ``"re-ask"`` (a
+    near-miss, or a name declared where the call does not reach: the hole that wrote it is asked again, as in v0.3)."""
+    name = n["term"].rsplit(".", 1)[-1]
+    if n["null_class"] not in DECLARE_CLASSES or name in L.by_name:
+        return "re-ask"
+    if n["null_class"] == "invented" and name in g.get("gensyms", ()):
+        return "re-ask"
+    return "declare"
+
+
+def _scope_key(n: dict) -> tuple:
+    sc = n.get("scope") or {}
+    return n["term"].rsplit(".", 1)[-1], sc.get("dir"), sc.get("type")
+
+
+def declaration_holes(t2: dict, g: dict, L: T.Ledger) -> list[dict]:
+    """The NULL list's undeclared names (`null_route`) as ``NEW_SYMBOL`` holes, one per name and scope, in NULL order: what a v0.4
+    round-trip asks to declare. Each names its call sites and the line written there, the directory the name binds in (the
+    grounder's ``scope``) and the write partition's files in it — never a path the partition lacks: a new file is the answer's
+    to name, and the grounder records it outside the partition."""
+    partition = list((t2.get("constraints") or {}).get("write_partition", []))
+    taken = {h["id"] for h in t2["holes"]}
+    groups: dict[tuple, list[dict]] = {}
+    for n in g["null"]:
+        if null_route(n, L, g) == "declare":
+            groups.setdefault(_scope_key(n), []).append(n)
+    out: list[dict] = []
+    i = 0
+    for (name, where, typ), ns in groups.items():
+        i += 1
+        while f"d{i}" in taken:
+            i += 1
+        post = (g.get("post") or {}).get(ns[0]["path"], "").split("\n")
+        call = post[ns[0]["line"] - 1].strip() if 0 < ns[0]["line"] <= len(post) else ""
+        files = [p for p in partition if where is None or H.dir_of(p) == ("" if where in ("", ".") else where)]
+        there = "" if where is None else f" It binds only in the directory `{where or '.'}/`, the package the call names" + (f", as a method of `{typ}`" if typ else "") + "."
+        offer = (f" Files of the write partition there: {', '.join(f'`{p}`' for p in files)}." if files else
+                 " No file of the write partition is there: a new file you name is created, and is recorded outside the partition.")
+        out.append({"id": f"d{i}", "type": "NEW_SYMBOL", "span": None,
+                    "constraints": {"write_partition": partition, "declares": {"name": name, "term": ns[0]["term"], "dir": where, "type": typ}},
+                    "provenance": {"anchor": f"NULL round-trip: `{name}` written at a call site, declared nowhere",
+                                   "NULL": "; ".join(f"`{n['term']}` at {n['path']}:{n['line']} ({n['null_class']}; nearest in the graph: {', '.join(n['nearest'])})" for n in ns),
+                                   "call_site": f"{ns[0]['path']}:{ns[0]['line']}: `{call}`"},
+                    "fill_schema": H.FILL_SHAPES["NEW_SYMBOL"],
+                    "ask": (f"declare `{name}` — your answer calls it and nothing declares it, at this commit or in your answers.{there}{offer} "
+                            "Answer with name, file, position (after_symbol, or region: \"eof\") and body: the whole declaration, its signature line "
+                            "first (a new file: the whole file). Or covered_by another declaration hole whose body declares it too.")})
+    return out
+
+
+def narrow(t2: dict, doc: dict, g: dict, L: T.Ledger) -> dict | None:
+    """The NULL list as a narrower template (v0.4): the holes whose fills carried a NULL `null_route` re-asks, each naming the terms that
+    did not bind and the nearest graph names, then a declaration hole per undeclared name (`declaration_holes`). None when there is no NULL."""
     if not g["null"]:
         return None
     by_hole: dict[str, list[dict]] = {}
     for n in g["null"]:
+        if null_route(n, L, g) == "declare":
+            continue
         hid = n["hole"].split("[")[0]
         by_hole.setdefault(hid, []).append(n)
     v = copy.deepcopy(t2)
@@ -257,8 +325,50 @@ def narrow(t2: dict, doc: dict, g: dict) -> dict | None:
         h2["ask"] = (h2.get("ask") or H.HOLE_TYPES[h2["type"]]) + " — your previous answer named symbols that do not exist at this commit (see NULL); answer again using only names that exist or that you declare"
         h2["previous_fill"] = doc["fills"].get(h["id"])
         v["holes"].append(h2)
+    v["holes"] += declaration_holes(t2, g, L)
     v.pop("neighborhood", None)
-    return v
+    return v if v["holes"] else None
+
+
+def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path, adapter: Adapter, *, rta: dict | None = None) -> dict | None:
+    """T-loop's one exchange on a grounding with NULLs (v0.4): `narrow` → ask → the answers merged into the round-2 fills and the
+    declaration holes added to the template, so the grounder places them and grounds every call site again. Returns
+    ``{"template_round3", "round", "ground_after_loop", "loop"}``, or None when there is no NULL; `run_t` calls it, a replay drives it
+    from a record. The record's closure is per site, keyed on (hole, term): a NULL still there under another class is not closed."""
+    t3 = narrow(t2, doc2, g, L)
+    if t3 is None:
+        return None
+    doc3, errs3 = adapter.ask(t3, repo_root, "NULL round-trip")
+    merged = copy.deepcopy(doc2)
+    for hid, fill in ((doc3 or {}).get("fills") or {}).items():
+        merged["fills"][hid] = fill
+    decl = [h for h in t3["holes"] if (h.get("constraints") or {}).get("declares")]
+    tg = copy.deepcopy(t2)
+    tg["holes"] += copy.deepcopy(decl)
+    g2 = G.ground(tg, merged, L, repo_root, rta=rta)
+    after = {(n["hole"], n["term"]) for n in g2["null"]}
+    before = {(n["hole"], n["term"]) for n in g["null"]}
+    decl_of = {_scope_key({"term": h["constraints"]["declares"]["term"], "scope": {"dir": h["constraints"]["declares"]["dir"],
+                                                                                   "type": h["constraints"]["declares"]["type"]}}): h["id"] for h in decl}
+    placed = {e["hole"]: e for e in g2["edits"]}
+    sites = []
+    for n in g["null"]:
+        s = {"hole": n["hole"], "path": n["path"], "line": n["line"], "term": n["term"], "null_class": n["null_class"], "route": null_route(n, L, g),
+             "closed": (n["hole"], n["term"]) not in after}
+        if s["route"] == "declare":
+            dh = decl_of[_scope_key(n)]
+            f = merged["fills"].get(dh)
+            via = f["covered_by"][0] if isinstance(f, dict) and isinstance(f.get("covered_by"), list) and f["covered_by"] else dh
+            e = placed.get(via)
+            s.update({"declaration": dh, "answer": None if f is None else ("covered_by " + via if via != dh else "placed" if e else "not placed"),
+                      "file": e["path"] if e else None, "in_partition": e["in_partition"] if e else None})
+        sites.append(s)
+    loop = {"nulls_before": len(g["null"]), "nulls_after": len(g2["null"]),
+            "closed_by_class": dict(collections.Counter(n["null_class"] for n in g["null"] if (n["hole"], n["term"]) not in after)),
+            "opened_by_class": dict(collections.Counter(n["null_class"] for n in g2["null"] if (n["hole"], n["term"]) not in before)),
+            "routes": dict(collections.Counter(s["route"] for s in sites)), "declaration_holes": [h["id"] for h in decl], "sites": sites}
+    return {"template_round3": t3, "round": {"round": 3, "holes_asked": [h["id"] for h in t3["holes"]], "fills": doc3, "errors": errs3},
+            "ground_after_loop": g2, "loop": loop}
 
 
 def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoChange | None, adapter: Adapter, *, null_loop: bool = True,
@@ -311,30 +421,16 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
     g = G.ground(copy.deepcopy(t2), doc2, L, repo_root, rta=rta)
     rec["ground"] = g
     if null_loop:
-        t3 = narrow(t2, doc2, g)
-        if t3 is not None:
-            doc3, errs3 = adapter.ask(t3, repo_root, "NULL round-trip")
-            merged = copy.deepcopy(doc2)
-            for hid, fill in ((doc3 or {}).get("fills") or {}).items():
-                merged["fills"][hid] = fill
-            rec["rounds"].append({"round": 3, "holes_asked": [h["id"] for h in t3["holes"]], "fills": doc3, "errors": errs3})
-            g2 = G.ground(copy.deepcopy(t2), merged, L, repo_root, rta=rta)
-            rec["ground_after_loop"] = g2
-            before = {(n["hole"], n["term"], n["null_class"]) for n in g["null"]}
-            after = {(n["hole"], n["term"], n["null_class"]) for n in g2["null"]}
-            rec["loop"] = {"nulls_before": len(before), "nulls_after": len(after),
-                           "closed_by_class": _by_class(before - after), "opened_by_class": _by_class(after - before)}
+        lp = null_round_trip(t2, doc2, g, L, repo_root, adapter, rta=rta)
+        if lp is not None:
+            rec["rounds"].append(lp["round"])
+            rec["template_round3"] = lp["template_round3"]
+            rec["ground_after_loop"] = lp["ground_after_loop"]
+            rec["loop"] = lp["loop"]
     rec["exchanges"] = adapter.exchanges
     rec["tokens"] = {"prompt": sum(e.get("prompt_tokens") or 0 for e in adapter.exchanges), "completion": sum(e.get("completion_tokens") or 0 for e in adapter.exchanges)}
     rec["wall_ms"] = sum(e["wall_ms"] for e in adapter.exchanges)
     return rec
-
-
-def _by_class(rows: set) -> dict:
-    out: dict[str, int] = {}
-    for _, _, cls in rows:
-        out[cls] = out.get(cls, 0) + 1
-    return out
 
 
 # -------------------------------------------------------- §4.2 agreement
