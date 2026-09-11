@@ -396,7 +396,7 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
   - **The rebuilt loop state can bias §4.16 downward:** the one repair turn cannot re-read a file, so it can only edit files O already read.
 - **D-u** (instrument; open → WP-18b). Recall's upper bound is gitleaks' SHA (`RECALL_UPPER`), so recall fails on every fzf row.
 - **D-v** (instrument; open → WP-18b). `o-units` rows lack §2.5's `gold_tests` and turns-to-first-edit.
-- **D-w** (message; open → WP-18b). On the pre-flight's `near-miss` row, the repair message showed an unrelated 130-line function as "the form of a declaration". The message is §2.3's repair instrument, so it is fixed before any spend; it changes what the gate says, so the patch goes to 0.1.19-beta.
+- **D-w** (message; open → WP-18b). On the pre-flight's `near-miss` row, the repair message showed an unrelated function as "the form of a declaration". WP-20 put it at 130 lines; WP-18b identified it as `src/ansi.extractColor` and measured it at 110 lines. The message is §2.3's repair instrument, so it is fixed before any spend; it changes what the gate says, so the patch goes to 0.1.19-beta.
 - 2026-09-11 — **Orchestrator's pin to §2.5, before the run.** A session that made no edit reads **`empty`**: it is not pass and not blocked, and it counts as a row that is not a pass in every aggregate.
 - 2026-09-11 — **Presented to Max at the spend gate.** The decisions: the ceiling, the manifest, the brake. WP-18b (D-u, D-v, D-w) lands before key 1.
 - 2026-09-11 — **WP-18b exit checked; merged; 0.1.19-beta** (branch head `7334620`).
