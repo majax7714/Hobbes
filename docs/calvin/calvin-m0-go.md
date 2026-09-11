@@ -1,6 +1,6 @@
 # Calvin M0-Go — the floor round: the socket on a dense world
 
-**Status:** handoff (2026-09-11), written for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
+**Status:** run and closed 2026-09-11 (Max) — **the floor is not established at A2 on Haiku 4.5**. Across WP-6, WP-8 and WP-10, T < O on O's five keys; on the three recall-free keys the two are not separable (§10). Written as a handoff for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
 **Depends on:** M0 v2 as run (`calvin-m0-socket-v2.md` — in this tree, [`calvin-potential.md`](calvin-potential.md); §0a: template v1, grounder v0, harness ADR-100, adapter protocol v0.2); the Go lane of Hobbes (gitleaks cell: precision 100%, recall 98%; key = compiler-derived, RTA from roots); Atlas-0 through the B4 addendum; ADR-101's field survey.
 **Amends:** M0 §3.1 (unit set), §2.2 (model), §2.3 (grounder: density field, Track B), §4 (two instruments). Everything else in M0 v2 stands.
 **Not in scope:** the executor's security layer (§8 lists it, nothing here builds it), a Calvin model, any new language.
@@ -396,6 +396,56 @@ Every row was attributed before any aggregate. The rows are in the re-test secti
 
 The next step is Max's.
 
+**WP-10, 2026-09-11 — the floor re-tested on protocol v0.5.** Every number is at A2, a fixing. The run:
+- **T:** 20 keys × 2 runs, with T-loop inside them.
+- **Held constant:** Haiku 4.5 at model-default sampling, template v2, and recall on every row.
+- **Changed:** **protocol v0.5 and grounder v2** (WP-9): the world check on Go fills, a sibling's form, one bounded declaration repair, and a refused declaration read `refused`.
+- **O:** WP-6's rows stand.
+
+Every row was attributed before any aggregate. The rows are in the `## Re-test 2 (WP-10)` section of [`cells/calvin-m0-go-2026-09-11.md`](cells/calvin-m0-go-2026-09-11.md), and the machine rows in `~/.hobbes/bench/calvin-go/wp-10/rows.json`. Every exchange, record and row is stamped 0.5 and grounder v2.
+
+| arm | n | pass [95% CI] | J [95% CI] | NULL | $ |
+|---|---|---|---|---|---|
+| WP-10 T (mean of 2 runs) | 20 | 0.20 [0.05, 0.375] | 0.418 [0.271, 0.572] | 10 | 4.7005 |
+| WP-10 T-loop | 20 | 0.20 [0.05, 0.375] | 0.472 [0.299, 0.645] | 4 (7 of 10 closed) | +0.0630 |
+| WP-8 T-loop | 20 | 0.25 [0.075, 0.425] | 0.506 [0.315, 0.693] | 2 | 5.0469 with T |
+| WP-6 T | 20 | 0.225 [0.05, 0.40] | 0.394 [0.245, 0.55] | 11 | 4.6768 with T-loop |
+| O (WP-6, standing) | 5 | 0.80 [0.40, 1.00] | 0.45 [0.288, 0.612] | 0 | 3.2775 |
+
+- **Paired differences:**
+  - WP-10 T-loop − WP-8 T-loop: pass −0.05 [−0.125, 0.00].
+  - WP-10 T-loop − WP-6 T: pass −0.025 [−0.075, 0.00].
+  - O − WP-10 T-loop on O's 5 keys: pass +0.60 [0.30, 0.90]; J +0.234 [0.044, 0.404].
+  - O − WP-10 T-loop on the 3 recall-free keys: pass +0.33 [0.00, 0.50], p 0.076.
+  - Run 2 − run 1: +0.10 [0.00, 0.25]. The two runs disagree by verdict on 5 keys.
+- **Declarations:** 9 offered on 8 loop firings, plus 1 near-miss re-asked (C-106); 9 answered; **7 placed**, 2 refused (0924's overlap, read `refused`).
+  - **NULLed at the grounder:** `import-outside` 0 and `unimported` 0 — all 7 bodies are in gitleaks' world, in the sibling's form `func X() *config.Rule` (WP-8: 0 of 9) — and body NULLs 2 (invented 1, near-miss 1).
+  - **The repair:** 2 sent, one exchange each; 1 clean after it.
+  - **Built 0 of 7:** unused `secrets` import 3, arity 2, type/field positions 1 (C-91), the invented name repeated 1. 6 of the 7 carry 0 body NULL.
+- **Recall:** T 1 of 40 rows recalled (7fc11 r2: 16 of 25 novel lines upstream, gold's own non-capture refactor, which the task names); T's upstream share 0.215; O stays 2 of 5.
+
+**The reading re-selected (§5): *T < O*, unchanged, and not separable on the recall-free keys. The floor does not hold.**
+- **X:** clean.
+- **G:** clean on the grain it claims. D-g and D-h are closed: 0 world NULLs, the sibling's form 7 of 7, 0 mis-bound.
+- **The residual is not *T honest where O ships*:** G's new NULLs do not go unrepaired, because the world classes raised none. T ships: 6 of 7 placed bodies carry 0 NULL, and none builds.
+- ***Declared in the wrong world* is replaced by *declared in the right world, not compiled*.** The rows are 1a2f r1/r2, 8fb3 r2, 93acc r1/r2 and 0924 r1/r2, plus 2278 r1/r2 in T's own created file. It implicates:
+  - **O:** Haiku writes arity errors and unused imports.
+  - **H-s:** the 12-line sibling cuts before the lines that use its imports and before the line that shows `Validate`'s arity.
+  - **The protocol:** the one repair reads G's NULLs, never the build row.
+
+**Instruments:**
+- **§4.3a (density):** row 1 holds: 10 absent references, all NULL; 1,943 sparse-real references resolved, 0 sparse NULL.
+- **§4.9 (T against W):** W = 1.0, and T varies by shape (single-file 0.5, new-symbol and new-file 0).
+- **§4.10 (declare-holes):** T declared something on 10 of 22 declare-unit runs: right file (new) 7, wrong file 2, right region 1.
+
+**Spend:** run 1 $2.4045 (the $5.32 stop was not reached), run 2 $2.3591. **WP-10 $4.7637 of $15.83; the round $18.93 of $30, leaving $11.07.**
+
+**Defects:**
+- **D-i** (driver, instrument): the row's `usd_loop` omits the declaration-repair exchange; the totals are right.
+- **D-j** (protocol, H-s; triggered by O): the one repair never sees the build row, and the sibling's cap hides its imports' use.
+
+The next step is Max's.
+
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
 - 2026-09-11 — Max cleared the round to proceed: WP-0 to WP-4 (no spend) now; the spend gate at WP-4 stands as written.
@@ -414,3 +464,5 @@ The next step is Max's.
 - 2026-09-11 — WP-7a merged (`edd075e`; C-106 near-miss names re-asked, C-107 outside-partition declarations placed and recorded, C-108 the declaration's directory unchecked for non-Go names — partial); **0.1.13-beta** (`5682263`, untagged); image rebuilt, proxy 0.1.13-beta; pytest 1,301. WP-8 launched on protocol v0.4 with the $20.88 cap.
 - 2026-09-11 — WP-8's exit checked (every row attributed; *T < O* re-selected, not separable on the recall-free keys; the declaration hole closed 9 of 11 NULLs, 0 of 9 build — declared in trufflehog's / gosec's APIs; G unclean on declaration bodies, D-g; $5.05, round $14.17 of $30) and its docs committed (`cea00bb`). **Max: fix G and D-h, re-test once** — WP-9 (G on declaration bodies: imports against stdlib / module / go.mod, unimported qualifiers NULL; a sibling's form in the declaration hole; one bounded repair of a declaration's NULL; the D-f record; protocol v0.5), then WP-10 (T twice, cap $15.83); blocks in §3 "After WP-8".
 - 2026-09-11 — WP-9's exit checked (0 model calls; base `cea00bb`, ancestor check passes). WP-8's 9 wrong-world declarations each raise a NULL at the grounder (trufflehog/gosec imports `import-outside`; `detectors`, `core` and others `unimported`); 0924's overlap reads `refused` 2/2. WP-7a's gold declarations still close 11/11. The gold grounding reads 0 NULL, 20/20 byte-equal. Template v2 is byte-identical; poison 50/50; pytest 1,307. Re-grounding all 80 earlier round-2 fills adds 0 NULLs outside the declaration hole. Siblings are all `rules/*.go` constructors (`func X() *config.Rule`). Grounder v2, protocol v0.5; handed to the merge with six constraint drafts and the 0.1.14-beta bump.
+- 2026-09-11 — WP-10's exit checked (every exchange, record and row stamped 0.5 / grounder v2; *T < O* re-selected, not separable on the recall-free keys). The declarations are now in gitleaks' world and form (7/7 take the sibling's form), but **0 of 7 build**: unused imports, wrong argument counts, unbound types (C-91). 6 of 7 carry no NULL. The one repair never sees the build row, and the sibling's 12-line cap cuts it before the lines that use its imports (D-j). Spend: $4.76; **round total $18.93 of $30**.
+- 2026-09-11 — **Max: the round stops here and is written up.** The residual moved twice across three re-tests on the same 20 keys: *NULL new* (WP-6) → *declared in the wrong world* (WP-8) → *declared in the right world, not compiled* (WP-10). The next protocol step is named but not built: the verifier's `go build` errors fed into the one declaration repair, and the sibling shown whole. Because the 20 keys have now been tuned on three times, that step is to be read on **fresh keys** (WP-0's alternates, `draw_rank >= 5` in `candidates.jsonl`) and with O re-run on them. The $11.07 left closes with the round unless Max reopens it. Instrument defect D-i (`usd_loop` omits the repair exchange) is recorded; the fix goes with the next round.
