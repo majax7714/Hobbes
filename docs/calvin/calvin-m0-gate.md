@@ -284,3 +284,23 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
 - 2026-09-11 — the design recorded in the tree (this file) with the orchestrator's pins (§0b); WP-17 and WP-18 launched in parallel (no spend).
+- 2026-09-11 — **WP-17, mid-package — the Go branch stops at fzf.**
+  - **Pools after exclusions:** fzf 186 is larger than quic-go's 154, so fzf was calibrated first, as §0b's pool-size order requires. It reached 20 readable keys of 23 tried in rank order, at W = 1.0. quic-go was not calibrated. toml (13) and cobra (0) cannot reach 20.
+  - **The rank-order draw held no multi-file or new-file key** (14 single-file, 6 new-symbol). All 22 multi-file and new-file alternates calibrated readable.
+  - **Orchestrator's pin — the draw is stratified by shape,** as §2.1 and round 1's WP-0 convention (a seeded shuffle per shape, first five) require:
+    - multi-file 5, new-symbol 5, new-file 3 (every readable new-file key in the pool);
+    - single-file 7 (5, plus the 2 slots new-file cannot fill, given to the largest pool);
+    - each shape taken in WP-17's seeded rank order within that shape.
+  - **Why:** the partition check (§4.14) needs multi-file keys. Max may override the quotas.
+- 2026-09-11 — **WP-17's redraw.**
+  - **Every stratum filled from keys already calibrated**, with no new ingest: 7 single-file, 5 new-symbol, 5 multi-file, 3 new-file.
+  - **Gold** reads pass on all 20, and W is 1.0 on all 20.
+  - **Files:** `units.jsonl` holds the stratified 20; the other 22 readable keys are in `units-alternates.jsonl`; the rank-order draw is kept as `units.rankorder.jsonl`.
+  - **Checked by the orchestrator from `units.jsonl`:**
+    - 11 units have a blind-spot fraction of 0.0; the other 9 range from 0.0028 to 0.0221, and each of those 9 has uncaptured symbols (2–13 per unit). The package's reply said 12 and 8.
+    - No unit has an uncaptured file, so seeded variant (iv) can run on 9 units.
+    - Partition sizes run from 3 to 24 files, since the template's partition includes co-change files. The partition check is therefore wider than gold's own files; this is stated for §4.14's reading.
+  - **The map's grain.** The parent graph keeps unresolved call sites only as per-file counts by class, so each site row carries `line: null` and a count.
+    - **Orchestrator's pin to WP-18:** a site row with no line never routes a NULL to *unknown*. Only an uncaptured file, an uncaptured symbol span, or a site row that has a line can do that.
+    - **Why:** otherwise one unresolved attr-call in a file would turn every invented name in that file into advisory *unknown*.
+- **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
