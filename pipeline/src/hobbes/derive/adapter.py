@@ -46,6 +46,7 @@ import time
 from pathlib import Path
 
 from hobbes.derive import ground as G
+from hobbes.derive import harness as HV
 from hobbes.derive import holes as H
 from hobbes.derive import template as T
 from hobbes.derive.cochange import CoChange
@@ -68,14 +69,26 @@ SYSTEM_PROMPT_VERSION = 2
 #: (`declaration_repair`) — one exchange, no validation repair after it, never a loop; the declaration hole shows one sibling of the same
 #: kind from its directory (`declaration_sibling`, ``SIBLING_RULE``); and the loop's site record reads the grounder's refused list, so a
 #: refused declaration reads ``refused``, never ``placed``. v0.5 supersedes v0.4, no switch; the system prompt is unchanged (v2).
-PROTOCOL_VERSION = "0.5"
-#: How the declaration hole's sibling is chosen and cut (v0.5, D-h).
-SIBLING_LINES = 12
-SIBLING_CHARS = 900
+#: **v0.6** (Calvin M0-Go round 2, WP-14; WP-10's D-i, D-j, WP-12's D-l, D-n, D-o): the one declaration repair now reads *both* causes
+#: at once — the grounder's world NULLs (unchanged) **and** a compile error (`harness.build_row`'s "go build ./..." step, trimmed to
+#: the lines naming the declaration's file, `harness.trim_build_error`) — never a second exchange, the same one repair, its ask worded
+#: for either cause or both (D-o). The sibling is shown **whole** (every line of its span), capped only by bytes (`SIBLING_BYTES`), not
+#: by a line count (D-h's ``SIBLING_LINES`` is gone). Both arms share **one budget**: `Adapter.budget`, a count of exchanges (T) —
+#: `run_t`'s `is_loop_exchange` still separates the loop's spend from T's own (D-i, now also true of the build-row check's own repair
+#: exchange, unchanged in name from v0.5). D-i's other half: `usd_loop` (the driver's, `calvin_probe.py`) now recognizes "declaration
+#: repair" as loop spend by its own purpose string rather than the ``NULL``-prefix test that missed it. D-n: `run_t` no longer hands
+#: a dict it keeps mutating (round 2b's merge into round 2's fills) to its own record — the round-2 row is copied first. D-l: WP-11b/12's
+#: path-explained flips are read (`docs/calvin/calvin-m0-go-r2.md`'s gate record) as a sampled earlier reply changing which path a run
+#: took, not a protocol bug — no code follows from it; recorded in ``budget.md``, not here.
+PROTOCOL_VERSION = "0.6"
+#: How the declaration hole's sibling is chosen (unchanged since v0.5, D-h) and shown (v0.6, §2.4): whole, capped only by bytes.
+#: ``SIBLING_BYTES`` is the gitleaks-rules distribution's 95th percentile (WP-14's ``budget.md``): the largest top-level function span
+#: per file under ``cmd/generate/config/rules/*.go`` (non-test; n = 131), rounded up from 4380.5 to 4400.
+SIBLING_BYTES = 4400
 SIBLING_RULE = ("the same kind in the binding directory — a function, or a method of the same type when the hole declares a method — test files "
                 "excluded: the one the fill that wrote the call also calls, called nearest the call site (ties: the earlier line, then the id); "
-                "else the one with the most callers in the parent graph (ties: the id); else none. Shown: its file's package clause and imports, "
-                f"its signature and the head of its body, at most {SIBLING_LINES} lines and {SIBLING_CHARS} characters")
+                "else the one with the most callers in the parent graph (ties: the id); else none. Shown whole (every line of its span), capped "
+                f"only by bytes, at most {SIBLING_BYTES} characters (v0.6, D-h; the gitleaks rules/*.go 95th percentile)")
 #: The NULL classes a v0.4 round-trip answers with a declaration hole rather than a re-ask.
 DECLARE_CLASSES = ("new", "invented")
 SYSTEM_PROMPT = """You are the orchestrator for a code change. You know the task's intent, the language and the world; you do not know this repository, and you must not pretend to.
@@ -118,14 +131,25 @@ def parse_document(text: str) -> dict | None:
 class Adapter:
     """One endpoint, one model, one system prompt; every exchange recorded in ``self.exchanges``."""
 
-    def __init__(self, endpoint, model_id: str, max_tokens: int = 16384, max_prompt_chars: int = 300_000):
+    def __init__(self, endpoint, model_id: str, max_tokens: int = 16384, max_prompt_chars: int = 300_000, budget: int | None = None):
         self.endpoint = endpoint
         self.model_id = model_id
         self.max_tokens = max_tokens
         #: A rendered template longer than this is asked in chunks, one group of files at a time (step 4's first pass sent a
         #: 1.5 MB prompt and got "unchanged" for everything back). A cost cap, declared.
         self.max_prompt_chars = max_prompt_chars
+        #: v0.6 (§2.4, "one budget"): the number of model calls this adapter may make in all for one key — None is unbounded
+        #: (round 1's condition). Once spent, `_ask_one` makes no further call and answers nothing for the holes it was asked:
+        #: the reader's own reading (calvin-m0-go-r2 WP-14) is that an unanswered hole grounds as if it said nothing, which is
+        #: exactly "unchanged" for a SIGNATURE/BODY/MODULE_REGION hole (the grounder emits no hunk for an unfilled one) — the run
+        #: is not aborted, it is scored as it stands.
+        self.budget = budget
         self.exchanges: list[dict] = []
+        #: Asks answered as empty because the budget was already spent when they were made (counted, never called).
+        self.budget_cuts = 0
+
+    def at_budget(self) -> bool:
+        return self.budget is not None and len(self.exchanges) >= self.budget
 
     def _call(self, messages: list[dict], purpose: str) -> str:
         t0 = time.monotonic()
@@ -164,6 +188,9 @@ class Adapter:
         return doc, errs
 
     def _ask_one(self, template: dict, repo_root: Path, purpose: str, repair: bool = True) -> tuple[dict | None, dict[str, list[str]]]:
+        if self.at_budget():  # v0.6: the budget is spent — this ask (and any repair it would need) makes no call
+            self.budget_cuts += 1
+            return None, {}
         prompt = H.render(template, repo_root)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}]
         text = self._call(messages, purpose)
@@ -171,7 +198,7 @@ class Adapter:
         doc = parse_document(text)
         errs = H.validate_fills(template, doc) if doc is not None else {"document": ["the reply is not a JSON object"]}
         self.exchanges[-1]["validation"] = errs
-        if not errs or not repair:
+        if not errs or not repair or self.at_budget():  # v0.6: the budget covers the repair call too
             return H.read_patterns(template, doc), errs
         repair = ("Your answer was cut off at the reply limit before it ended. " if cut else "Your answer did not validate. ") + \
             "Reply with the whole document again: `patterns` for every type left unchanged, and under `fills` only the holes you change or that take no pattern. Fix these:\n" + \
@@ -291,7 +318,7 @@ def _null_text(n: dict) -> str:
 
 def declaration_sibling(declares: dict, site: dict, g: dict, L: T.Ledger, repo_root: Path | None, degree: dict | None = None) -> dict | None:
     """v0.5 (D-h): one existing declaration of the kind a declaration hole asks for, from the directory the name binds in, chosen by
-    ``SIBLING_RULE`` — its symbol, file, package clause, imports, and its signature with the head of its body — or None (no directory,
+    ``SIBLING_RULE`` — its symbol, file, package clause, imports, and (v0.6) its whole declaration, byte-capped — or None (no directory,
     no repo, nothing of the kind there). *site* is the NULL the hole answers (its hole, path and line); *g* the grounding that raised it."""
     where, typ = declares.get("dir"), declares.get("type")
     if where is None or repo_root is None:
@@ -317,9 +344,9 @@ def declaration_sibling(declares: dict, site: dict, g: dict, L: T.Ledger, repo_r
     sp = L.span(sid)
     lines = G.file_at(repo_root, L.sha, sp["path"]) or []
     body = lines[sp["start"] - 1: sp["end"]]
-    head: list[str] = []
-    for line in body[:SIBLING_LINES]:
-        if head and sum(len(x) + 1 for x in head) + len(line) > SIBLING_CHARS:
+    head: list[str] = []  # v0.6 (D-h): the whole span, capped only by bytes — no separate line count
+    for line in body:
+        if head and sum(len(x) + 1 for x in head) + len(line) > SIBLING_BYTES:
             break
         head.append(line)
     from hobbes.extract import gosource
@@ -377,29 +404,42 @@ def declaration_holes(t2: dict, g: dict, L: T.Ledger, repo_root: Path | None = N
     return out
 
 
-def declaration_repair(tg: dict, merged: dict, g2: dict, decl: list[dict]) -> dict | None:
-    """v0.5 (D-g): the placed declarations whose bodies raised a NULL at the grounder, each shown its previous answer and those NULLs —
-    the one repair of that same declaration hole, never a new hole and never a second round. None when every placed declaration grounds clean."""
+def declaration_repair(tg: dict, merged: dict, g2: dict, decl: list[dict], build_errors: dict[str, str] | None = None) -> dict | None:
+    """v0.5 (D-g), extended v0.6 (§2.4, D-o): the placed declarations whose bodies raised a NULL at the grounder, **or** whose file
+    the build row (`harness.build_row`) reports a compile error for (*build_errors*, hole id → the error's text, already trimmed to
+    the lines naming that file — `harness.trim_build_error`), each shown its previous answer and whichever of the two it carries
+    (both, when it carries both) — the one repair of that same declaration hole, never a new hole and never a second round. None
+    when every placed declaration grounds clean and builds clean."""
     ids = [h["id"] for h in decl]
     by: dict[str, list[dict]] = {}
     for n in g2["null"]:
         if n["hole"] in ids:
             by.setdefault(n["hole"], []).append(n)
-    if not by:
+    build_errors = build_errors or {}
+    needs = {h["id"] for h in decl} & (set(by) | set(build_errors))
+    if not needs:
         return None
     v = copy.deepcopy(tg)
     v["holes"] = []
     for h in decl:
-        if h["id"] not in by:
+        if h["id"] not in needs:
             continue
         name = h["constraints"]["declares"]["name"]
         h2 = copy.deepcopy(h)
-        h2["provenance"] = {**h2.get("provenance", {}), "NULL in your declaration": "; ".join(_null_text(n) for n in by[h["id"]])}
+        extra: dict[str, str] = {}
+        reasons = []
+        if h["id"] in by:
+            extra["NULL in your declaration"] = "; ".join(_null_text(n) for n in by[h["id"]])
+            reasons.append("the grounder found names in its body that this repository's world lacks (see NULL in your declaration): an import "
+                            "outside the Go standard library, this module's packages and the modules its go.mod requires, or a qualifier the "
+                            "file does not import")
+        if h["id"] in build_errors:
+            extra["build error in your declaration"] = build_errors[h["id"]]
+            reasons.append("the repository failed to build with it (see build error in your declaration)")
+        h2["provenance"] = {**h2.get("provenance", {}), **extra}
         h2["previous_fill"] = merged["fills"].get(h["id"])
-        h2["ask"] = (f"repair your declaration of `{name}` — the grounder found names in its body that this repository's world lacks (see NULL in your "
-                     "declaration): an import outside the Go standard library, this module's packages and the modules its go.mod requires, or a "
-                     "qualifier the file does not import. Answer again with the whole declaration, in the same shape. This is the one repair: "
-                     "nothing is asked after it.")
+        h2["ask"] = (f"repair your declaration of `{name}` — " + "; and ".join(reasons) + ". Answer again with the whole declaration, in the "
+                     "same shape. This is the one repair: nothing is asked after it.")
         v["holes"].append(h2)
     v.pop("neighborhood", None)
     return v
@@ -433,11 +473,53 @@ def narrow(t2: dict, doc: dict, g: dict, L: T.Ledger, repo_root: Path | None = N
     return v if v["holes"] else None
 
 
-def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path, adapter: Adapter, *, rta: dict | None = None) -> dict | None:
-    """T-loop on a grounding with NULLs (v0.5): `narrow` → ask → the answers merged into the round-2 fills and the declaration holes
+def _hole_files(decl: list[dict], merged: dict, refused: set[str] | None = None) -> dict[str, str]:
+    """Hole id → the file its own fill named (the placement the build error, if any, names — not gold's). A refused hole (D-f:
+    its edit lingers in the grounder's own edit list though it never landed) is excluded — nothing of it is in the diff the
+    build row read, so no build error is its to carry."""
+    out = {}
+    for h in decl:
+        if refused and h["id"] in refused:
+            continue
+        f = merged["fills"].get(h["id"])
+        if isinstance(f, dict) and isinstance(f.get("file"), str):
+            out[h["id"]] = f["file"]
+    return out
+
+
+def declaration_build_errors(diff: str, decl: list[dict], merged: dict, L: T.Ledger, repo_root: Path, *, refused: set[str] | None = None,
+                              build_source: Path | None = None, timeout: int = 900) -> tuple[dict[str, str], dict]:
+    """v0.6 (§2.4): verify's build row (`harness.build_row`) on *diff* — the template's current, grounded diff, declarations placed
+    — contained, no baseline, no test selection; the "go build ./..." step's stderr, trimmed to the lines naming each declared
+    hole's own file (`harness.trim_build_error`) when that step failed. *refused* names the hole ids the grounder already
+    refused (D-f) — excluded, since nothing of theirs reached the diff the build row read. Returns ``(hole id → trimmed error
+    text, a record for the loop: ran?, wall_s, whether the build failed at all)``. ``{}`` when the row applied clean, when it
+    did not apply, or when no declared hole's file appears in the failure (a compile error elsewhere in the diff, not this
+    repair's to carry)."""
+    br = HV.build_row(build_source or repo_root, L.sha, diff, L, build_source or repo_root, timeout=timeout)
+    rec = {"ran": True, "applies": br.get("applies"), "wall_s": br.get("wall_s")}
+    if not br.get("applies"):
+        return {}, rec
+    step = next((s for s in br.get("steps", {}).values() if s.get("kind") == "build"), None)
+    rec["build_failed"] = bool(step and step.get("outcome") != "pass")
+    if not rec["build_failed"]:
+        return {}, rec
+    files = _hole_files(decl, merged, refused)
+    out: dict[str, str] = {}
+    for hid, path in files.items():
+        err = HV.trim_build_error(step.get("stderr_tail", "") or "", Path(path).name)
+        if err:
+            out[hid] = err
+    return out, rec
+
+
+def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path, adapter: Adapter, *, rta: dict | None = None,
+                     verify_build: bool = False, build_source: Path | None = None) -> dict | None:
+    """T-loop on a grounding with NULLs (v0.6): `narrow` → ask → the answers merged into the round-2 fills and the declaration holes
     added to the template, so the grounder places them and grounds every call site again; then, when a placed declaration's body
-    raised a NULL, **one** more exchange — `declaration_repair`, no validation repair after it — and the grounding once more with the
-    repaired declarations that validate. Returns ``{"template_round3", "round", "ground_after_loop", "loop", "template_repair",
+    raised a NULL **or** (v0.6, §2.4; *verify_build*) the diff's build row names a compile error in its file, **one** more exchange —
+    `declaration_repair`, reading both causes at once, no validation repair after it — and the grounding once more with the repaired
+    declarations that validate. Returns ``{"template_round3", "round", "ground_after_loop", "loop", "template_repair",
     "repair_round", "ground_before_repair"}`` (the last three None when nothing was repaired), or None when there is no NULL. The
     record's closure is per site, keyed on (hole, term), against the final grounding: a NULL still there under another class is not
     closed; a declaration the grounder refused reads ``refused`` (D-f), and each declaration site counts the NULLs left in its body."""
@@ -453,7 +535,11 @@ def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path,
     tg["holes"] += copy.deepcopy(decl)
     g2 = G.ground(copy.deepcopy(tg), merged, L, repo_root, rta=rta)
     gf, repair_round, repair = g2, None, None
-    t3r = declaration_repair(tg, merged, g2, decl)
+    build_errors, build_row_rec = {}, {"ran": False}
+    if verify_build and decl and not adapter.at_budget():  # the build row spends no model call; the repair it may trigger does, so honour the budget first
+        already_refused = {x["hole"] for x in g2["refused"]}
+        build_errors, build_row_rec = declaration_build_errors(g2["diff"], decl, merged, L, repo_root, refused=already_refused, build_source=build_source)
+    t3r = declaration_repair(tg, merged, g2, decl, build_errors)
     if t3r is not None:
         asked = [h["id"] for h in t3r["holes"]]
         doc3r, errs3r = adapter.ask(t3r, repo_root, "declaration repair", repair=False)
@@ -464,7 +550,8 @@ def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path,
             gf = G.ground(copy.deepcopy(tg), merged, L, repo_root, rta=rta)
         repair_round = {"round": "3r", "holes_asked": asked, "fills": doc3r, "errors": errs3r, "taken": taken}
         body = lambda gg: [{x: n.get(x) for x in ("hole", "line", "term", "null_class", "kind")} for n in gg["null"] if n["hole"] in asked]
-        repair = {"asked": asked, "taken": taken, "exchanges": 1, "body_nulls_before": body(g2), "body_nulls_after": body(gf)}
+        repair = {"asked": asked, "taken": taken, "exchanges": 1, "body_nulls_before": body(g2), "body_nulls_after": body(gf),
+                  "build_errors_before": dict(build_errors), "build_row": build_row_rec}
     after = {(n["hole"], n["term"]) for n in gf["null"]}
     before = {(n["hole"], n["term"]) for n in g["null"]}
     decl_of = {_scope_key({"term": h["constraints"]["declares"]["term"], "scope": {"dir": h["constraints"]["declares"]["dir"],
@@ -488,17 +575,37 @@ def null_round_trip(t2: dict, doc2: dict, g: dict, L: T.Ledger, repo_root: Path,
             "closed_by_class": dict(collections.Counter(n["null_class"] for n in g["null"] if (n["hole"], n["term"]) not in after)),
             "opened_by_class": dict(collections.Counter(n["null_class"] for n in gf["null"] if (n["hole"], n["term"]) not in before)),
             "routes": dict(collections.Counter(s["route"] for s in sites)), "declaration_holes": [h["id"] for h in decl],
-            "refused_declarations": sorted(h["id"] for h in decl if h["id"] in refused), "declaration_repair": repair, "sites": sites}
+            "refused_declarations": sorted(h["id"] for h in decl if h["id"] in refused), "declaration_repair": repair, "sites": sites,
+            "build_row": build_row_rec}  # v0.6 (§2.4): whether the build row ran before the repair, its wall-clock, and whether it failed
     return {"template_round3": t3, "round": {"round": 3, "holes_asked": [h["id"] for h in t3["holes"]], "fills": doc3, "errors": errs3},
             "ground_after_loop": gf, "loop": loop, "template_repair": t3r, "repair_round": repair_round,
             "ground_before_repair": g2 if t3r is not None else None}
 
 
+#: v0.6 (D-i): the purposes `is_loop_exchange` reads as T-loop's own spend, base name (chunk and validation-repair suffixes stripped).
+_LOOP_PURPOSES = ("NULL round-trip", "declaration repair")
+
+
+def is_loop_exchange(purpose: str) -> bool:
+    """D-i: whether one exchange's ``purpose`` belongs to T-loop's spend (``usd_loop``) rather than T's own (``usd_T``) — the NULL
+    round-trip's ask and the declaration repair's, a chunk suffix (``" [chunk i/n]"``) and a validation-repair suffix
+    (``" (repair)"``) stripped first. Round 1's driver (`calvin_probe.cmd_t_units`) tested ``purpose.startswith("NULL")`` only,
+    which missed "declaration repair" — its dollars landed in ``usd_T`` though the totals (built from every exchange regardless)
+    were always right."""
+    base = purpose.split(" [chunk", 1)[0]
+    if base.endswith(" (repair)"):
+        base = base[: -len(" (repair)")]
+    return base in _LOOP_PURPOSES
+
+
 def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoChange | None, adapter: Adapter, *, null_loop: bool = True,
-          rta: dict | None = None) -> dict:
+          rta: dict | None = None, verify_build: bool = False, build_source: Path | None = None) -> dict:
     """Arm T for one unit: round 1 → rebuild → round 2 → prune → ground, then (T-loop) one NULL round-trip. Returns the per-unit record.
 
-    *rta* is handed to both groundings (`ground.ground`'s rule-2 implementers, recorded, never bound; M0-Go)."""
+    *rta* is handed to both groundings (`ground.ground`'s rule-2 implementers, recorded, never bound; M0-Go). *verify_build* (v0.6,
+    §2.4) turns on the build row inside the declaration repair (`declaration_build_errors`) — off by default (round 1's condition,
+    and every existing test's): it makes a real contained ``go build`` and needs `hobbes.extract.containment` wired to something
+    that can run one (a fake in tests, the sandbox image live)."""
     t1 = copy.deepcopy(template)
     rec: dict = {"key": {**t1["key"], "model_id": adapter.model_id, "system_prompt_version": SYSTEM_PROMPT_VERSION, "protocol_version": PROTOCOL_VERSION}, "rounds": []}
     t2 = t1
@@ -533,7 +640,10 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
     rec["template_round2"] = copy.deepcopy(t2)
     doc2, errs2 = adapter.ask(t2, repo_root, "round 2")
     doc2 = doc2 or {"fills": {}, "patterns": {}}
-    rec["rounds"].append({"round": 2, "holes_asked": [h["id"] for h in t2["holes"] if h.get("closed") is None and "fill" not in h], "fills": doc2, "errors": errs2})
+    # v0.6 (D-n): the round-2 row keeps a copy of doc2 as it stood here — round 2b (below) still merges its answers into doc2
+    # itself, the copy the grounder and every later reader sees, but the recorded row must not move when that happens.
+    rec["rounds"].append({"round": 2, "holes_asked": [h["id"] for h in t2["holes"] if h.get("closed") is None and "fill" not in h],
+                          "fills": copy.deepcopy(doc2), "errors": errs2})
     t2b = yes_followup(t2, doc2)
     if t2b is not None:  # the "yes" answers see their spans and give the rewrite
         doc2b, errs2b = adapter.ask(t2b, repo_root, "round 2b")
@@ -544,7 +654,7 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
     g = G.ground(copy.deepcopy(t2), doc2, L, repo_root, rta=rta)
     rec["ground"] = g
     if null_loop:
-        lp = null_round_trip(t2, doc2, g, L, repo_root, adapter, rta=rta)
+        lp = null_round_trip(t2, doc2, g, L, repo_root, adapter, rta=rta, verify_build=verify_build, build_source=build_source)
         if lp is not None:
             rec["rounds"].append(lp["round"])
             rec["template_round3"] = lp["template_round3"]

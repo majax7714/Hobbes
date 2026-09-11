@@ -783,10 +783,67 @@ def checkout(clone: Path, sha: str, dest: Path) -> Path:
     return dest
 
 
+#: A build/vet error line's own file:line:col prefix — ``{name}`` is *filename*, escaped, at call time.
+_BUILD_ERROR_LINE = r"^\S*{name}:\d+:\d+:"
+
+
+def trim_build_error(stderr_tail: str, filename: str) -> str:
+    """calvin-m0-go-r2 §2.4: a Go build/vet step's stderr, trimmed to the lines naming *filename* (its basename — a build error
+    names the file it fell in, not the whole module) plus their unindented continuation lines (the ``have``/``want`` blocks an
+    arity error prints, each starting with a tab) — dropping every other file's lines and the tool's own trailer. ``""`` when
+    *filename* names nothing in *stderr_tail* (the failure is elsewhere in the diff, not this declaration's to repair)."""
+    pat = re.compile(_BUILD_ERROR_LINE.format(name=re.escape(filename)))
+    lines = stderr_tail.rstrip("\n").split("\n")
+    kept: list[str] = []
+    keeping = False
+    for ln in lines:
+        if pat.match(ln):
+            kept.append(ln)
+            keeping = True
+        elif keeping and ln.startswith("\t"):
+            kept.append(ln)
+        else:
+            keeping = False
+    return "\n".join(kept)
+
+
+def build_row(clone: Path, sha: str, diff: str, L: T.Ledger, source: Path, *, timeout: int = 900) -> dict:
+    """calvin-m0-go-r2 §2.4: the build row alone on *diff* applied at *sha* — no baseline tree, no test selection, just the tree
+    steps (`go_tree`: ``go generate``, ``go build ./...``, ``go vet ./...``) — what the declaration repair (`adapter.
+    declaration_build_errors`) reads before asking anything back. Contained (ADR-092), the same environment binding `verify`
+    uses. Returns ``{"applies", "apply_error"?, "roots", "steps", "wall_s"}``; a diff with no hunk (T asked nothing, or asked and
+    got nothing back) applies trivially and runs no step — there is nothing yet to build."""
+    t0 = time.monotonic()
+    if not split_patch(diff):
+        return {"applies": True, "roots": [], "steps": {}, "wall_s": 0.0}
+    key = hashlib.sha256(diff.encode("utf-8", "surrogateescape")).hexdigest()[:12]
+    scratch = staging.cache_root() / "verify" / f"{sha[:12]}-build-{key}"
+    try:
+        wt = checkout(clone, sha, scratch / "work")
+        chk = subprocess.run(["git", "apply", "--check", "-"], cwd=wt, input=diff, capture_output=True, text=True)
+        if chk.returncode:
+            return {"applies": False, "apply_error": chk.stderr.strip()[-400:], "roots": [], "steps": {}, "wall_s": round(time.monotonic() - t0, 1)}
+        subprocess.run(["git", "apply", "-"], cwd=wt, input=diff, check=True, capture_output=True, text=True)
+        sel = select_tests(L, diff)
+        env = environment(source, wt)
+        link_deps(env, wt)
+        gt = go_tree(wt, sel, env, timeout=timeout)
+        return {"applies": True, "roots": gt["roots"], "steps": gt["steps"], "wall_s": round(time.monotonic() - t0, 1)}
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
 CLASSES = ("P2P", "F2P", "P2F", "F2F", "new-pass", "new-fail", "removed", "skip", "error", "not-run", "uncollected", "unsupported")
 #: The classes that fail a verdict: what the diff itself did. An `F2F` fails on both trees (an environment fault, C-92 — listed
-#: under `faults`); a `removed` test is one the diff renamed or deleted (the 2026-09-04 calibration: seven tests three commits renamed).
-FAILING = ("P2F", "new-fail", "error", "not-run")
+#: under `faults`); a `removed` test is one the diff renamed or deleted (the 2026-09-04 calibration: seven tests three commits
+#: renamed). D-p (calvin-m0-go-r2, WP-14, found by WP-13 on `d22371873bd8`): `not-run` is **not** here — `classify` returns it
+#: only when neither tree ever executed the id (both `not-run`/`uncollected`, or the row was never baselined at all — a
+#: candidate-only `not-run` against a baseline that *did* run something reads `removed`, and against no baseline at all reads
+#: `new-fail`/`new-pass`, both already covered above). A row nothing ever ran says nothing about this diff — a `Benchmark*`
+#: function the testmap names as a guard but that plain ``go test`` never runs is the case that found it: `not-run`/`not-run`
+#: on both trees, previously enough to fail the whole verdict before `vacuous`/`gold_tests` were ever read. It still never
+#: counts as *executed* (`EXECUTED`, unchanged) — a `not-run`/`not-run` row now decides nothing either way.
+FAILING = ("P2F", "new-fail", "error")
 #: The build-row classes that make the verdict `build-fail` (a tree the diff leaves that does not build or vet); `fail` is an unbaselined row's.
 BUILD_FAILING = ("P2F", "new-fail", "fail", "error")
 

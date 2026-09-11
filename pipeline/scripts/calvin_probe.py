@@ -997,12 +997,12 @@ def cmd_t_units(a: argparse.Namespace) -> int:
         spent = spent_in(out)
         cap = min(a.key_cap, a.total_cap - spent)
         meter = Metered(Endpoint(a.base_url, a.model, key, timeout=a.timeout, max_tokens=a.max_tokens, sampling=sampling), cap, out / f"{k}.usage.jsonl")
-        adapter = A.Adapter(meter, a.model, max_tokens=a.max_tokens, max_prompt_chars=a.max_prompt_chars)
+        adapter = A.Adapter(meter, a.model, max_tokens=a.max_tokens, max_prompt_chars=a.max_prompt_chars, budget=a.budget)
         endpoint_rec = {"base_url": a.base_url, "model": a.model, "sampling": sampling, "max_tokens": a.max_tokens, "max_prompt_chars": a.max_prompt_chars,
-                        "cap_usd": round(cap, 4), "spent_before_usd": round(spent, 4)}
+                        "cap_usd": round(cap, 4), "spent_before_usd": round(spent, 4), "budget": a.budget}
         t0 = time.time()
         try:
-            rec = A.run_t(task, t, L, repo, cc, adapter, null_loop=not a.no_loop, rta=rta)
+            rec = A.run_t(task, t, L, repo, cc, adapter, null_loop=not a.no_loop, rta=rta, verify_build=a.verify_build, build_source=repo)
         except Exception as exc:  # the spend so far is written before anything else is said
             _write_exchanges(out / f"{k}.exchanges.jsonl", adapter.exchanges)
             row = {"wp": a.wp, "key": k, "shape": u["shape"], "stopped": f"{type(exc).__name__}: {exc}", "exchanges": len(adapter.exchanges),
@@ -1045,7 +1045,7 @@ def cmd_t_units(a: argparse.Namespace) -> int:
         an = T.score_anchors(t2, L, gold)
         r2 = next(r for r in rec["rounds"] if r["round"] == 2)
         filled = sum(1 for hid in r2["holes_asked"] if hid in ((r2["fills"] or {}).get("fills") or {}))
-        loop_ex = [e for e in ex if e["purpose"].startswith("NULL")]
+        loop_ex = [e for e in ex if A.is_loop_exchange(e["purpose"])]  # v0.6 (D-i): "declaration repair" counted too, not only "NULL round-trip"
         cost = lambda es: round(sum(usd(e.get("prompt_tokens"), e.get("completion_tokens")) for e in es), 4)
         row = {"wp": a.wp, "key": k, "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
                "template_version": t.get("template_version"), "template_rebuilds": True, "model": a.model, "sampling": sampling,
@@ -1068,6 +1068,7 @@ def cmd_t_units(a: argparse.Namespace) -> int:
                "cut_at_length": sum(1 for e in ex if e.get("finish_reason") == "length"),
                "invalid_after_repair": [{"round": r["round"], "holes": len(r["errors"]), "first": sorted(r["errors"].items())[0]} for r in rec["rounds"] if r["errors"]],
                "tokens": rec["tokens"], "usd": cost(ex), "usd_T": cost([e for e in ex if e not in loop_ex]), "usd_loop": cost(loop_ex),
+               "budget": a.budget, "budget_cuts": adapter.budget_cuts, "verify_build": a.verify_build,
                "estimate_usd": est.get(k), "wall_s": round(wall, 1), "attribution": None}
         rec["instruments"] = {**row, "unresolved_rows": agree["rows"], "coverage": cov, "anchors": an}
         (out / f"{k}.t.json").write_text(json.dumps(rec, indent=1))
@@ -1285,7 +1286,9 @@ def cmd_o_units(a: argparse.Namespace) -> int:
     units = {u["key"]: u for u in load_go_units(Path(a.units), a.keys)}
     order = [next(k for k in units if k.startswith(p)) for p in a.keys]
     loop_args = list(a.loop_arg or [])
-    worst = o_worst_usd(a.token_budget, a.max_turns, a.max_tokens)
+    # calvin-m0-go-r2 §2.4: one budget for both arms — O's own 30-turn cap (round 1's condition) is replaced by --budget when given.
+    max_turns = a.budget if a.budget is not None else a.max_turns
+    worst = o_worst_usd(a.token_budget, max_turns, a.max_tokens)
     before = os.environ.get("HOBBES_LLM_API_KEY")
     os.environ["HOBBES_LLM_API_KEY"] = key  # hobbes-session hands it to the container (and redacts it in what it prints)
     try:
@@ -1301,7 +1304,7 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             session_id = f"calvin-o-{k}-{time.strftime('%Y%m%dT%H%M%S')}"
             rec = H.run_o(clone, L.sha, u[a.tier], L, clone, (Path(u["parent_graph"]), Path(u["parent_tests"])), session_bin=session_bin,
                           base_url=a.base_url, model=a.model, session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t,
-                          timeout=a.timeout, max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget)
+                          timeout=a.timeout, max_turns=max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget)
             calls_file = sessions_root / session_id / "calls.jsonl"
             calls = [json.loads(l) for l in open(calls_file) if l.strip()] if calls_file.exists() else []
             ledger = o_session_usage(calls) if calls_file.exists() else [{"call": 0, "usd": round(worst, 6), "spent_usd": round(worst, 6),
@@ -1315,7 +1318,7 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             g = json.load(open(gfile)) if gfile.exists() else {}
             v = rec.get("verify") or {}
             row = {"wp": a.wp, "key": k, "arm": "O", "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
-                   "model": a.model, "loop_args": loop_args, "max_turns": a.max_turns, "max_tokens": a.max_tokens, "token_budget": a.token_budget,
+                   "model": a.model, "loop_args": loop_args, "max_turns": max_turns, "budget": a.budget, "max_tokens": a.max_tokens, "token_budget": a.token_budget,
                    "session": session_id, "session_rc": rec.get("session_rc"), "error": rec.get("error"),
                    "turns": res.get("num_turns"), "tool_calls": res.get("tool_calls"), "nudges": res.get("nudges"), "edited": res.get("edited"),
                    "stop": res.get("result") if res.get("is_error") else ("done" if res else None),
@@ -1493,6 +1496,8 @@ def main(argv: list[str]) -> int:
     s.add_argument("--estimate", help="WP-4's estimate.json: each key's expected dollars beside its actual")
     s.add_argument("--key-cap", type=float, default=2.0, help="dollars one key may spend"); s.add_argument("--total-cap", type=float, default=5.0, help="dollars every key under --out may spend in all")
     s.add_argument("--verify", action="store_true", help="run the verifier on each grounded diff"); s.add_argument("--verify-timeout", type=int, default=900)
+    s.add_argument("--budget", type=int, default=None, help="calvin-m0-go-r2 §2.4: model calls (confirmations + fills + repairs) this key may spend; None is unbounded (round 1's condition)")
+    s.add_argument("--verify-build", action="store_true", help="calvin-m0-go-r2 §2.4: a compile error routes back once, alongside the grounder's NULLs, in the one declaration repair (contained; needs the sandbox image live)")
     s.add_argument("--wp", default="wp-5")
     s.set_defaults(fn=cmd_t_units)
     s = sub.add_parser("verify"); s.add_argument("graphs"); s.add_argument("--diffs", help="directory of <commit><suffix> diffs (ground/ for the gold calibration, t/ for arm T)")
@@ -1520,6 +1525,7 @@ def main(argv: list[str]) -> int:
     s.add_argument("--timeout", type=float, default=3600.0)
     s.add_argument("--token-budget", type=int, default=1_000_000, help="prompt tokens a session may spend in all (M0's arm-O cap)")
     s.add_argument("--total-cap", type=float, required=True, help="dollars every ledger under --out may reach; a session whose worst case passes it is not launched")
+    s.add_argument("--budget", type=int, default=None, help="calvin-m0-go-r2 §2.4: one budget for both arms — replaces --max-turns's 30-turn cap with this many turns when given")
     s.add_argument("--wp", default="wp-6")
     s.set_defaults(fn=cmd_o_units)
     s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)

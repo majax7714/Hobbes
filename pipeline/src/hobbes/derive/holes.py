@@ -42,8 +42,9 @@ in, by a body that declares it (`declaration_errors`). Protocol v0.5
 (M0-Go WP-9, WP-8's D-h) adds one render and no shape: a declaration
 hole carrying ``sibling`` — one existing declaration of the same kind
 from the binding directory, chosen by the adapter's stated rule — is
-shown with its file's package clause and imports, its signature and the
-head of its body, as a form to follow.
+shown with its file's package clause and imports, as a form to follow.
+Protocol v0.6 (calvin-m0-go-r2 WP-14, D-h) shows it whole (every line
+of its span) rather than a head, capped only by bytes.
 """
 from __future__ import annotations
 
@@ -432,12 +433,12 @@ def render(t: dict, repo_root: Path | None = None) -> str:
                 out.append(f"- `{term['term']}` — nearest: {', '.join(term['nearest'])}")
         if h.get("candidates"):
             out += _render_candidates(h["candidates"])
-        if h.get("sibling"):  # v0.5: a declaration hole's sibling of the same kind — a form to follow, not a task
+        if h.get("sibling"):  # v0.5: a declaration hole's sibling of the same kind — a form to follow, not a task. v0.6: shown whole, byte-capped.
             s = h["sibling"]
             imps = ", ".join(f"`{i}`" for i in s["imports"]) or "nothing"
-            more = f" ({s['more_lines']} more lines not shown)" if s.get("more_lines") else ""
+            more = f" ({s['more_lines']} more lines cut at the byte cap)" if s.get("more_lines") else ""
             out += ["", f"A sibling of the same kind, for its form ({s['rule']}): `{s['symbol']}` in `{s['path']}`, whose file is `package {s['package']}` "
-                    f"and imports {imps}. Its signature and the head of its body{more}:", "", "```go", s["text"], "```"]
+                    f"and imports {imps}. Its whole declaration{more}:", "", "```go", s["text"], "```"]
         if h["type"] == "ANCHOR_CONFIRM" and h.get("span") and repo_root is not None:  # a module's symbol: its first line, so the reader can judge
             out += ["", "```", span_text(repo_root, sha, {**h["span"], "end": h["span"]["start"]}), "```"]
         if h.get("span") and repo_root is not None and h["type"] in ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION"):

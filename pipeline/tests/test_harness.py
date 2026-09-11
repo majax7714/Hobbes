@@ -500,6 +500,50 @@ def test_go_verify_regenerates_guards_and_builds(gorepo, monkeypatch):
     assert rec["verdict"] == "no-tests" and rec["tests"] == [] and [b["kind"] for b in rec["build"]] == ["build", "vet", "generate"]
 
 
+class BenchGoFake(GoFake):
+    """As `GoFake`, but ``go test -list`` also reports a ``Benchmark*`` function (real ``go test -list`` matches
+    Test/Benchmark/Example/Fuzz names alike) while ``go test`` itself (no ``-bench``) never executes it — the pre-existing
+    guard D-p found: listed (not ``uncollected``), never run (``not-run`` on both trees)."""
+
+    def __call__(self, p, *, timeout):
+        argv = list(p.command)
+        if argv[:3] == ["go", "test", "-list"]:
+            self.plans.append(p)
+            cwd = Path(p.cwd)
+            names = re.findall(r"(?m)^func (Test\w+)\(", (cwd / "calc" / "calc_test.go").read_text())
+            bench = re.findall(r"(?m)^func (Benchmark\w+)\(", (cwd / "calc" / "calc_test.go").read_text())
+            out = "".join(n + "\n" for n in names + bench if re.search(argv[3], n)) + "ok  \texample.com/g/calc\t0.01s\n"
+            containment.LEDGER.append({"step": p.profile.step, "contained": True})
+            return containment.Outcome(subprocess.CompletedProcess(argv, 0, out, ""), True)
+        return super().__call__(p, timeout=timeout)
+
+
+def test_a_benchmark_guard_that_plain_go_test_never_runs_decides_nothing(gorepo, monkeypatch):
+    """D-p (calvin-m0-go-r2, WP-14; found by WP-13 on `d22371873bd8`): a pre-existing ``Benchmark*`` the testmap names as a
+    guard (`reaches` an edited symbol) is listed by ``go test -list`` (so not ``uncollected``) but never executed by plain
+    ``go test`` on either tree — it reads ``not-run``/``not-run``. Before the fix, `classify` folded that pair into the
+    `not-run` class and `FAILING` named that class, so `score` read `fail` before the vacuous/`gold_tests` question was ever
+    reached, though nothing about this diff was known to be wrong. After the fix the row decides nothing either way: the
+    other guard (which does run and pass) still carries the verdict to `pass`, and the benchmark row is not `executed`."""
+    root, sha, L = gorepo
+    (root / "calc" / "calc_test.go").write_text(GO_CALC_TEST.rstrip("\n") + "\n\nfunc BenchmarkAdd(b *testing.B) {}\n")
+    _git(root, "commit", "-aqm", "a pre-existing benchmark, unrelated to this diff")
+    sha2 = _git(root, "rev-parse", "HEAD").strip()
+    L2 = T.Ledger({**L.graph, "sha": sha2}, {"tests": L.tests + [{"id": "calc/calc_test.go::BenchmarkAdd", "file": "calc/calc_test.go",
+                  "framework": "go-test", "line": 11, "reaches": ["calc/calc.Add"], "reaches_modules": []}]})
+    fake = BenchGoFake()
+    monkeypatch.setattr(containment, "run", fake)
+    var = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1", "a + b")})
+    rec = H.verify(root, sha2, var, L2, root)
+    rows = {r["id"]: r for r in rec["tests"]}
+    bench = rows["calc/calc_test.go::BenchmarkAdd"]
+    assert (bench["candidate"], bench["baseline"], bench["class"]) == ("not-run", "not-run", "not-run"), "listed, never run: neither tree executed it"
+    assert H.classify("not-run", "not-run") == "not-run" and "not-run" not in H.FAILING
+    assert rec["verdict"] == "pass" and rec["guarding_tests_executed"]["count"] == 1, "TestAdd (P2P) alone carries pass; the benchmark is not executed"
+    assert "calc/calc_test.go::BenchmarkAdd" not in rec["guarding_tests_executed"]["ids"]
+    assert rec["regressions"] == [] and "calc/calc_test.go::BenchmarkAdd" not in rec.get("faults", [])
+
+
 def test_go_generation_retries_a_random_draw_and_fails_a_real_one(gorepo, monkeypatch):
     # gitleaks' generator validates each rule on true positives reggen draws with a clock seed: one failure can be the draw's
     root, sha, L = gorepo

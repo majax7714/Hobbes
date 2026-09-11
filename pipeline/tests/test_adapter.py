@@ -1,10 +1,15 @@
 """The orchestrator adapter (Calvin M0 step 4) against a fake endpoint: document parsing, one repair, round 1 → rebuild → round 2 → ground, the NULL round-trip on a narrowed template, the exchange record, and the §4.2 agreement scorer."""
 import json
+import subprocess
 
 from hobbes.derive import adapter as A
 from hobbes.derive import holes
 from hobbes.derive import template as T
 from tests.test_ground import ledger, repo  # noqa: F401  (the synthetic Go + Python + JS repo and its ledger)
+
+
+def _git2(root, *args):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=root, capture_output=True, text=True, check=True).stdout
 
 
 class Fake:
@@ -185,7 +190,7 @@ def test_v03_signature_and_body_patterns_are_read_unchanged_with_no_repair(repo)
     ad = A.Adapter(fake, "fake-model")
     doc, errs = ad.ask(t, root, "round 2")
     assert errs == {} and [e["purpose"] for e in ad.exchanges] == ["round 2"] and ad.exchanges[0]["validation"] == {}
-    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.5", "v0.3's reading stands under v0.5"
+    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.6", "v0.3's reading stands under v0.6"
     patterned = {h["id"] for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY") and h["id"] != body["id"]}
     assert patterned and set(doc["by_pattern"]) == patterned and doc["fills"][body["id"]] == {"code": "func runGoRTA() {}\n"}
     g1 = A.G.ground(json.loads(json.dumps(t)), doc, L, root)
@@ -208,7 +213,7 @@ def test_v03_a_confirmation_pattern_is_a_refusal_recorded_by_pattern_and_not_car
     assert r1["pattern_confirmations"] == 1 and r1["unanswered_confirmations"] == 0
     assert [e["purpose"] for e in rec["exchanges"]][:2] == ["round 1", "round 1b"], "no repair; refused, so the rebuild opens the ANCHOR hole"
     assert c["id"] not in {h["id"] for h in rec["template_round2"]["holes"]}, "a refusal by pattern is not carried into round 2, like one by silence"
-    assert rec["key"]["protocol_version"] == "0.5"
+    assert rec["key"]["protocol_version"] == "0.6"
 
 
 def _r2_calling(t2, body_code):
@@ -258,7 +263,7 @@ def test_v04_an_undeclared_name_gets_a_declaration_hole_not_a_re_ask(repo):
                                      "body_nulls": 0, "repaired": False}]
     assert [r["round"] for r in rec["rounds"]] == [1, 2, 3] and rec["rounds"][2]["holes_asked"] == ["d1"]
     assert rec["loop"]["declaration_repair"] is None and "template_repair" not in rec, "a body that grounds clean is not repaired"
-    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.5"} and rec["key"]["protocol_version"] == "0.5"
+    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.6"} and rec["key"]["protocol_version"] == "0.6"
 
 
 def test_v04_declaration_answers_are_checked_and_two_names_may_share_one_new_file(repo):
@@ -348,10 +353,11 @@ def test_v05_a_declaration_body_outside_the_world_is_repaired_once(repo):
     assert rec["ground_after_loop"]["null"] == [] and rec["loop"]["nulls_after"] == 0 and "func Launch(o Options) error" in rec["ground_after_loop"]["post"]["internal/app/launch.go"]
     assert rec["loop"]["declaration_repair"] == {"asked": ["d1"], "taken": ["d1"], "exchanges": 1, "body_nulls_before": [
         {"hole": "d1", "line": 7, "term": "core.Start", "null_class": "unimported", "kind": "call"},
-        {"hole": "d1", "line": 3, "term": "github.com/securego/gosec/v2", "null_class": "import-outside", "kind": "import"}], "body_nulls_after": []}
+        {"hole": "d1", "line": 3, "term": "github.com/securego/gosec/v2", "null_class": "import-outside", "kind": "import"}], "body_nulls_after": [],
+        "build_errors_before": {}, "build_row": {"ran": False}}, "v0.6: no build check unless verify_build=True; unaffected here"
     s = rec["loop"]["sites"][0]
     assert (s["closed"], s["answer"], s["body_nulls"], s["repaired"]) == (True, "placed", 0, True)
-    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.5"}
+    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.6"}
     rec2, fake2, _, _ = _loop_on(repo, call, bad, "not json")
     assert [e["purpose"] for e in rec2["exchanges"]][-2:] == ["NULL round-trip", "declaration repair"] and len(fake2.asked) == 4, "bounded: one exchange"
     assert rec2["rounds"][-1]["taken"] == [] and rec2["loop"]["nulls_after"] == 2 and rec2["loop"]["opened_by_class"] == {"unimported": 1, "import-outside": 1}
@@ -390,6 +396,31 @@ def test_v05_the_declaration_hole_shows_a_sibling_of_the_same_kind(repo):
     assert (s["symbol"], s["rule"]) == ("cmd/main.runGoRTA", "the most callers in the directory"), "no co-callee: main calls runGoRTA, nothing calls main"
     assert A.declaration_sibling({"name": "Validate", "dir": "internal/app", "type": "Options"}, {"hole": "x", "path": "cmd/main.go", "line": 6}, none, L, root) is None, "no method of the type"
     assert A.declaration_sibling({"name": "x", "dir": None, "type": None}, {"hole": "x", "path": "a.py", "line": 1}, none, L, root) is None
+
+
+def test_v06_sibling_shown_whole_capped_by_bytes_not_lines(repo):
+    """v0.6 (D-h): the sibling is the whole span (every line), capped only by ``SIBLING_BYTES`` — not by a line count, as v0.5's
+    ``SIBLING_LINES`` (12) did. A function under the cap (`app.Run`, 3 lines) is shown entire regardless of line count; one over
+    the cap is cut at the byte boundary, `more_lines` naming what was cut."""
+    root, sha = repo
+    L = ledger(sha)
+    none = {"refs": []}
+    sib = A.declaration_sibling({"name": "helper", "dir": "internal/app", "type": None}, {"hole": "x", "path": "cmd/main.go", "line": 1}, none, L, root)
+    assert sib["symbol"] == "internal/app/app.Run" and sib["more_lines"] == 0, "under the cap: shown whole, however many lines"
+    big = "package app\n\n" + "\n".join(f"func line{i:04d}() {{ x := {i}; _ = x }}" for i in range(400)) + "\n"
+    (root / "internal" / "app" / "big.go").write_text(big)
+    _git2(root, "add", ".")
+    _git2(root, "commit", "-q", "-m", "a function bigger than the byte cap")
+    sha2 = _git2(root, "rev-parse", "HEAD").strip()
+    L2 = T.Ledger({**L.graph, "sha": sha2, "symbols": L.graph["symbols"] + [
+        {"id": "internal/app/big.Huge", "module": "internal/app/big", "name": "Huge", "qualname": "Huge", "kind": "function", "line": 3, "end_line": 402}],
+        "nodes": L.graph["nodes"] + [{"id": "internal/app/big", "kind": "module", "path": "internal/app/big.go"}]}, {"tests": []})
+    sib2 = A.declaration_sibling({"name": "helper2", "dir": "internal/app", "type": None}, {"hole": "x", "path": "cmd/main.go", "line": 1}, none, L2, root)
+    assert sib2["symbol"] in ("internal/app/big.Huge", "internal/app/app.Run", "internal/app/app.helper")  # whichever the "most callers" tie-break picks
+    huge = A.declaration_sibling({"name": "helper3", "dir": "internal/app", "type": None}, {"hole": "x", "path": "internal/app/big.go", "line": 5},
+                                  {"refs": [{"hole": "x", "path": "internal/app/big.go", "class": "in-graph", "target": "internal/app/big.Huge", "line": 5}]}, L2, root)
+    assert huge["symbol"] == "internal/app/big.Huge" and huge["more_lines"] > 0, "over the byte cap: cut, not shown whole"
+    assert len(huge["text"].encode()) <= A.SIBLING_BYTES
 
 
 def test_anchor_answer_may_be_a_candidate_node_id(repo):
@@ -468,4 +499,61 @@ def test_module_symbols_unanswered_are_refusals_and_not_carried(repo):
     answered = [h for h in t2["holes"] if "fill" in h]
     assert [h["id"] for h in answered] == [run["id"]], "only the confirmed symbol is shown as answered; the refusals are recorded, not rendered"
     assert "unanswered counts as" in fake.asked[0][0]["content"] and "Already answered" in fake.asked[1][-1]["content"]
+
+
+def test_v06_budget_stops_calls_and_the_run_is_scored_as_it_stands(repo):
+    """calvin-m0-go-r2 §2.4: one budget shared by both arms. With ``budget=1``, T's round-1 ask is the only call made — every
+    later ask (round 2 here) is skipped without a call, no exception, no partial exchange — and the run still completes: an
+    unanswered hole grounds as nothing filled (calvin-m0-go-r2 WP-14's reading, stated in the report), never a crash."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    r1 = _round1(t)
+    fake = Fake([json.dumps({"fills": r1})])  # one reply queued: a second call would exhaust it and read "{}" — the assertion below is the real guard
+    ad = A.Adapter(fake, "fake-model", budget=1)
+    assert not ad.at_budget()
+    rec = A.run_t(task, t, L, root, None, ad)
+    assert len(ad.exchanges) == 1 and ad.exchanges[0]["purpose"] == "round 1" and ad.at_budget()
+    assert ad.budget_cuts >= 1, "round 2 (at least) was asked for and cut, not skipped for having nothing to ask"
+    assert rec["rounds"][1]["round"] == 2 and rec["rounds"][1]["fills"] == {"fills": {}, "patterns": {}} and rec["rounds"][1]["errors"] == {}
+    assert rec["ground"]["diff"] == "", "no fill was taken: nothing to write"
+    assert "loop" not in rec, "no NULL to loop on when nothing was filled"
+
+
+def test_v06_is_loop_exchange_covers_declaration_repair_too(repo):
+    """D-i: the driver's ``usd_loop``/``usd_T`` split (`calvin_probe.cmd_t_units`) now reads `is_loop_exchange`, which the
+    round-1 driver's own ``purpose.startswith("NULL")`` test missed for "declaration repair" — its dollars landed in ``usd_T``.
+    Chunk and validation-repair suffixes are stripped first."""
+    assert A.is_loop_exchange("NULL round-trip") and A.is_loop_exchange("declaration repair")
+    assert A.is_loop_exchange("NULL round-trip [chunk 1/2]") and A.is_loop_exchange("declaration repair (repair)")
+    assert not A.is_loop_exchange("round 2") and not A.is_loop_exchange("round 2b") and not A.is_loop_exchange("round 1 (repair)")
+
+
+def test_v06_the_round2_record_is_not_mutated_by_round_2bs_later_merge(repo):
+    """D-n: `run_t` used to hand `rec["rounds"]` a *reference* to round 2's fills document, then mutate that same object in
+    place once round 2b's rewrites arrived — the recorded round-2 row silently came to reflect round 2b's answers too. It now
+    keeps a copy at append time; round 2b still merges into the live document the grounder reads."""
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    r1 = _round1(t)
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    caller = next(h for h in t2["holes"] if h["type"] == "CALLER_UPDATE")  # this task/repo always opens at least one (h5: main calls runGoRTA)
+    body_id, r2 = _r2_calling(t2, "func runGoRTA() {\n\tmergeRanges()\n}\n")
+    r2["fills"][caller["id"]] = {"decision": "yes", "reason": "it changed"}  # a "yes" without a body: round 2b must be asked for the rewrite
+    r2b_body = "func main() {\n\trunGoRTA()\n\t// touched by round 2b\n}\n"
+    r2b = json.dumps({"fills": {caller["id"]: {"decision": "yes", "reason": "it changed", "body": r2b_body}}})
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), r2b])
+    rec = A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model"))
+    assert [r["round"] for r in rec["rounds"]] == [1, 2, "2b"], "round 2b really fired: the mutation this test guards against had something to mutate"
+    r2_row = next(r for r in rec["rounds"] if r["round"] == 2)
+    assert r2_row["fills"]["fills"][caller["id"]] == {"decision": "yes", "reason": "it changed"}, \
+        "the recorded round-2 row keeps round 2's own answer (no body) — D-n: it must not pick up round 2b's later merge"
+    r2b_row = next(r for r in rec["rounds"] if r["round"] == "2b")
+    assert (r2b_row["fills"]["fills"][caller["id"]] or {}).get("body") == r2b_body
+    # the live document the grounder reads (`doc2`, passed to `G.ground` below run_t's own frame) is the one round 2b's merge
+    # updates in place — that merge is intentional (§ "carry_round1"'s counterpart for round 2); only the *recorded* round-2
+    # row must not move with it, which the two assertions above already show.
 
