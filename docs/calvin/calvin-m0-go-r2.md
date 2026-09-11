@@ -1,6 +1,6 @@
 # Calvin M0-Go, round 2 — the audit, then the floor on equal budget
 
-**Status:** handoff (2026-09-12), written for an orchestrator agent that assigns work packages to sub-agents · **Type:** no-spend audit of round 1's artifacts, then a pipeline experiment (preregistered readings, attribution-first) on fresh keys · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
+**Status:** run through WP-16 on 2026-09-11 — **the floor does not hold on fresh keys**: T 0 of 3 and O 2 of 3 on the keys where pass can be read, T returning its body holes unchanged on 5 of 8 keys with budget to spare (§10); the next step is Max's. Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** no-spend audit of round 1's artifacts, then a pipeline experiment (preregistered readings, attribution-first) on fresh keys · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
 **Depends on:** round 1 as run and closed ([`calvin-m0-go.md`](calvin-m0-go.md): WP-0…WP-10, protocol v0.5, grounder v2, template v2; its §0a pins; its §10 results and gate record); the round-1 artifacts under `~/.hobbes/bench/calvin-go/wp-{5,6,8,10}/`; the gitleaks cell; M0 v2 ([`calvin-potential.md`](calvin-potential.md)).
 **Amends:** round 1 §2.1 (unit set: fresh keys), §2.6 (arms: equal budget; the build row in the repair), §4 (three instruments), §5 (readings), §9 (cost). Round 1's pins (§0a) apply unchanged and are not restated except where they move.
 **Not in scope:** the security layer (round 1 §8 stands), a Calvin model, any new language, any change to template v2's rendering beyond the sibling's cap.
@@ -259,7 +259,40 @@ Round 1 §8 stands. Added: **a file-grain hole** (a hole that spans a new file, 
 
 ## 10. Results
 
-(empty until WP-12; WP-16 appends beneath)
+### Results
+
+**WP-12, 2026-09-11 — the audit.** Round 1's 31 pass rows re-scored under §2.3: 19 were vacuous. T's audited pass is 0.075 / 0.10 / 0.05 (WP-6 / WP-8 / WP-10), O's 0.60. O − T keeps its sign, and the recall-free keys are unchanged. Max ruled that round 1's O rows do not stand (the stricter parse). The full reading is round 1's §10 amendment and `~/.hobbes/bench/calvin-go/wp-12/audit.md`.
+
+**WP-16, 2026-09-11 — the floor on fresh keys.** Every number here is at A2, which is a fixing, on 0.1.17-beta.
+- **T:** protocol v0.6 and grounder v3, `--budget 7 --verify-build`, on the 8 post-cutoff keys × 2 runs.
+- **O:** at round 1's 30-turn / 1M-token cap, on 5 keys. Max's amendment: **this is not an equal-budget comparison.**
+- **Held constant:** Haiku 4.5 at model-default sampling.
+
+The rows, each attributed, are in [`cells/calvin-m0-go-r2-2026-09-11.md`](cells/calvin-m0-go-r2-2026-09-11.md); the machine rows are in `~/.hobbes/bench/calvin-go/wp-16/rows.json`. Pass is read only on the 3 keys where gold's own verdict is pass (`ed65b65095eb`, `d22371873bd8`, `8d1f98c7967e`). On the other 5 it reads *not readable*, never 0.
+
+| arm | pass, 3 readable keys | J (files vs gold) | NULL | recall | $ | $/pass |
+|---|---|---|---|---|---|---|
+| T run 1 | 0 of 3 | 0.167 [0, 0.417] | 0 | 0 of 8 | 0.6819 | ∞ |
+| T run 2 | 0 of 3 | 0.167 [0, 0.417] | 0 | 0 of 8 | 0.7014 | ∞ |
+| O | 2 of 3 — 0.667 [0.00, 1.00] | 0.729 [0.386, 1.00] | 0 | 0 of 5 | 1.7133 | 0.6328 |
+
+Paired O − T on pass is +0.667 [0.00, 1.00] (n = 3; 5,000 resamples, seed 0). Four rows read vacuous, all on keys where pass is not readable.
+
+- **T did not act.** 10 of T's 16 rows are empty diffs: 5 keys in both runs, including every row on the 3 readable keys. The orchestrator checked the exchanges:
+  - On `d22371873bd8` (h14, `config/config.go`) and `ed65b65095eb` (h6, `sources/file.go`), in both runs, the validated BODY fills are **byte-identical to the parent's function** — Haiku returned them unchanged.
+  - On `50493dbe1f75` and `6eaad039603a`, Haiku answered "unchanged" to every pattern.
+
+  The empty diffs are the model's, not a dropped fill. The budget never bound (0 cuts). T edited only `87d96295d65a`, `a82bc53d895f` and `c98e5e0d27b3`.
+- **v0.6's build row works as designed.** On `87d96295d65a`, T called an invented `utils.Alphanumeric` (the real name is `AlphaNumeric`). The compile error went back in the one repair, and the build closed in both runs. Run 1 then read `vacuous`; run 2 read `fail`, because a guarding test broke. The repair fixes the build, not the semantics.
+- **Grounder v3:** 0 NULL on every row of both arms, every class. Nothing reached a state that needed `arity` or `undeclared-type`.
+- **O** passes `ed65b65095eb` and `8d1f98c7967e`, and fails `d22371873bd8` (a `TestTranslateExtend` regression). `gold_tests` never promotes a verdict, and on `8d1f98c7967e` it reads **fail** on O's diff too: O's pass there is by the guarding tests, and gold's own new tests are not met by either arm.
+- **The reading (§5):** T < O, and it is **not an equal-budget reading**. X is clean (the copies were checked; the pass metric has its gold control) and G is clean (0 NULL). The residual is not the world, the budget or the caps: T mostly **declines to act** on a body hole it was shown whole. The nearest preregistered reading is the fourth — *the template interface is the residual* — qualified by the unequal budget.
+- **§4.12:** the touched symbols' full bodies were rendered, so H-s (the caps starved T) is not selected.
+- **§7:** the floor does not hold, and the fan-out does not start. The next step, named and not built: why Haiku 4.5 returns body holes unchanged with budget to spare on 5 of 8 keys. That is a template and prompt question, not another protocol patch; §8 names the interface candidates (a file-grain hole, the grounder as a tool in O). Held for Max.
+- **Spend:** step 1 $0.0214; T run 1 $0.6819; O $1.7133; T run 2 $0.7014. **WP-16 cost $3.10 of $12, and that is all of round 2's spend** (WP-11 to WP-15 spent nothing). Rounds 1 and 2 together come to **$22.03**.
+- **Defects:**
+  - **D-q** (instrument; WP-13): its `templates-a2/` was built with `cochange=None`, which is neither round 1's convention nor what `t-units` rebuilds. Its byte-identity check therefore ran on inputs the run does not use, and the first call refused at $0. Closed by WP-16's rebuild with live co-change (holes rose, e.g. `c98e5e0d27b3` 1,048 → 1,092).
+  - Round 2's other defects, D-k to D-p, are closed except D-l (six sampling-carried path flips, no protocol bug) and D-m, which is fixed in v3.
 
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
@@ -316,3 +349,9 @@ Round 1 §8 stands. Added: **a file-grain hole** (a hole that spans a new file, 
   - **Stop after T run 1 above $3.6.**
 
   The pins are in §0b. WP-16 launched.
+- 2026-09-11 — **WP-16** exit checked. 21 rows are attributed. The orchestrator checked three things before accepting:
+  - **Spend:** recomputed from every usage file, $3.0966.
+  - **T's empty diffs:** checked against the exchanges — the body fills are byte-identical to the parent.
+  - **O's verdicts:** recomputed from `rows.json`.
+
+  D-q numbered (WP-13's templates built without co-change; closed by WP-16's rebuild). Round 2 ran through WP-16 at $3.10 of $12; **the next step is Max's.**
