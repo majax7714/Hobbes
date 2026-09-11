@@ -418,4 +418,10 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
     - The driver refuses a session whose worst case ($1.81) would pass the cap. So a $11 cap trims key 10 only if keys 1–9 average above $1.02.
   - **Order:** key 1 alone, compared with its $0.58 estimate → keys 2–5 → the brake check → keys 6–10.
   - **Widening past 10 keys is Max's call** on the ten-key rows.
+- 2026-09-11 — **Orchestrator's pin before any spend: §5's thresholds read as rates on 10 keys.**
+  - "Blocks ≥ 4 of 20" reads as **≥ 2 of 10**, with 0 false blocks.
+  - "Blocks 0–1 of 20" reads as **0 of 10**.
+  - **1 of 10 selects neither reading;** it says widening is needed.
+  - Every reading of this run is stated as provisional on n = 10.
+  - §4's other thresholds are rates already (the §4.15 real-symbol rate ≥ 0.8).
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
