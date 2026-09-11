@@ -105,10 +105,15 @@ from hobbes.derive import holes as H
 from hobbes.derive.template import Ledger, prune
 from hobbes.extract.tail import PY_BUILTINS, language_of
 
-GROUNDER_VERSION = 2  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9)
+GROUNDER_VERSION = 3  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9);
+#: 3: signatures in the world — a call's arity and a qualified reference's declared existence, each its own NULL class (M0-Go round 2 WP-14b, §2.5);
+#: also v3: a post-image carrying the render's gutter is its own class, `malformed`, rather than a silent zero (round 2 D-m)
 EXPR = "<expr>"
 #: The reference classes; ``NULL`` is the only failure (I2). Everything else is what lane A resolves or abstains on by rule.
-CLASSES = ("in-graph", "interface", "gensym", "builtin", "local", "field", "expr", "external", "unknown-receiver", "not-code", "unsupported", "NULL")
+#: ``malformed`` (round 2 D-m) is a file whose post-image carries the render's line-number gutter — a garbled body a live
+#: protocol run's validator guard refuses before it ever reaches here (WP-7a's `carries_gutter`), seen only in a replay of
+#: a pre-guard record; parsing it finds essentially nothing, and this class says why rather than reading as an empty file.
+CLASSES = ("in-graph", "interface", "gensym", "builtin", "local", "field", "expr", "external", "unknown-receiver", "not-code", "unsupported", "malformed", "NULL")
 #: The classes a density is read for: a reference the parent graph judges.
 DENSITY_CLASSES = ("in-graph", "interface", "gensym", "NULL")
 #: Track B's rule, stated on every record (M0-Go §2.4, "k so the top third of real symbols are dense").
@@ -151,7 +156,11 @@ unicode/utf8 unique unsafe weak
 GO_PSEUDO_IMPORTS = frozenset({"C"})
 #: The NULL classes the world check raises (M0-Go WP-9): an import path outside the world, a qualifier nothing binds.
 WORLD_NULL_CLASSES = ("import-outside", "unimported")
-NULL_CLASSES = ("new", "near-miss", "invented") + WORLD_NULL_CLASSES
+#: Signatures in the world (M0-Go round 2 WP-14b, §2.5): a call's own argument count against its callee's declared parameter
+#: count, and a qualified reference against its package's declared top-level names — each judged only where the grounder
+#: fully owns the package (this module's own, never std or a dependency) and never on a doubt (variadics, generics, …).
+SIGNATURE_NULL_CLASSES = ("arity", "undeclared-type")
+NULL_CLASSES = ("new", "near-miss", "invented") + WORLD_NULL_CLASSES + SIGNATURE_NULL_CLASSES
 #: The world check's rule, stated on every record (M0-Go WP-9, D-g; §2.5).
 WORLD_RULE = ("Go only, inside edited ranges. An import path is std (GO_STDLIB, go1.26.5's `go list std` less internal and vendor paths; "
               "cgo's C), module (under the module path of the go.mod governing the file at the SHA, naming a directory with Go files at the "
@@ -162,6 +171,16 @@ WORLD_RULE = ("Go only, inside edited ranges. An import path is std (GO_STDLIB, 
               "`_go_import_names`, plus the package clause of a module package), the file has no dot import, q is not predeclared, no "
               "identifier of the file other than a selector's operand is q, and no Go file of the package declares q at top level (the "
               "syntax, build tags not read); else it abstains. A non-call selector is a reference row only when it is a NULL.")
+#: Signatures in the world's rule, stated on every record (M0-Go round 2 WP-14b, §2.5).
+SIGNATURE_RULE = ("Go only. A qualifier q bound (not `unimported`) to exactly one import of *this module's own* package — never std, a "
+                   "required (external) module, or an ambiguous or unresolved bind, each a doubt the rule abstains on — makes q.name a NULL "
+                   "`undeclared-type` when that package (its files at the SHA, plus the diff) declares no `name` at top level; a package the "
+                   "diff does not touch is read whole, so a promoted or generic member is not this rule's concern. A call bound `in-graph` to "
+                   "a repo Go function or method is a NULL `arity` when its own syntactic argument count differs from the callee's own "
+                   "declaration, read exactly (grouped parameter names each count once); either side abstains on a variadic parameter, the "
+                   "callee's own type parameters, a call whose sole argument is itself a call expression (Go's multi-value spread, "
+                   "`f(g())`, which the grammar alone cannot rule out), or the callee's own file being one this diff edits (its signature "
+                   "may be exactly what is changing — read only against a declaration this diff leaves alone).")
 PLACED_TYPES = ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION", "COCHANGE_TOUCH", "NEW_SYMBOL", "FREEFORM")
 _NEAR = 3
 _CHANGE_PRIORITY = ("BODY", "CALLER_UPDATE", "TEST_EXPECTATION", "MODULE_REGION")
@@ -377,6 +396,8 @@ class Ref:
     line: int
     scope: str | None = None
     parts: list[str] = field(default_factory=list)  #: the full dotted chain for Python
+    argc: int | None = None  #: Go: the call's own argument count, or None on a doubt (round 2 WP-14b, §2.5)
+    variadic_call: bool = False  #: Go: the call spreads its last argument with ``...``
 
 
 @dataclass
@@ -418,7 +439,7 @@ def _parse_go(path: str, text: str) -> Parsed:
     source = text.encode("utf-8", "surrogateescape")
     g = gosource._parse_file(path, source)
     imports = [{"bound": i["alias"], "module": i["path"], "kind": "module"} for i in g.imports]
-    refs = [Ref(c["name"], c["receiver"], c["line"], c.get("scope")) for c in g.calls]
+    refs = [Ref(c["name"], c["receiver"], c["line"], c.get("scope"), argc=c.get("argc"), variadic_call=bool(c.get("variadic_call"))) for c in g.calls]
     root = gosource._PARSER.parse(source).root_node
     binds, tparams, ltypes = _go_scopes(root)
     return Parsed("go", g.symbols, refs, imports, [tuple(b[:3]) for b in g.local_bindings], binds, tparams, ltypes, root)
@@ -623,6 +644,54 @@ def _go_import_names(ipath: str) -> set[str]:
         for x in (b, b.removeprefix("go-"), b.removesuffix("-go"), b.removeprefix("go"), b.removesuffix(".go")):
             out |= {x, x.replace("-", "").replace(".", ""), x.replace("-", "_").replace(".", "_")}
     return {x for x in out if x}
+
+
+def _go_find_decl_at(root, line: int, kind: str):
+    """The top-level ``function_declaration`` (*kind* ``"function"``) or ``method_declaration`` (*kind* ``"method"``) whose
+    own start is *line* — the same line `gosource._symbols` records — else None (WP-14b, §2.5's arity read)."""
+    want = "function_declaration" if kind == "function" else "method_declaration"
+    for node in root.children:
+        if node.type == want and node.start_point.row + 1 == line:
+            return node
+    return None
+
+
+def _go_own_param_list(decl):
+    """A function or method declaration's **own** parameter list — the ``parameter_list`` child immediately after its name
+    (``identifier`` for a function, ``field_identifier`` for a method; a method's receiver is a ``parameter_list`` *before*
+    the name, `gosource._receiver_type` reads the same shape). A parenthesized multi-value result (``(Config, error)``)
+    parses as *another* ``parameter_list`` **after** this one — the naive "last one" reading of it is wrong, and was
+    WP-14b's first bug, caught by the gold re-ground (`vc.Translate() (Config, error)`, a 0-arity method the naive
+    reading counted as 2)."""
+    seen_name = False
+    for child in decl.children:
+        if child.type in ("identifier", "field_identifier"):
+            seen_name = True
+            continue
+        if seen_name and child.type == "parameter_list":
+            return child
+    return None
+
+
+def _go_param_arity(decl) -> int | None:
+    """The declared parameter count of a Go function or method declaration, exactly — a grouped name (``a, b string``) counts
+    once each, an unnamed parameter (an interface method's signature) counts one — else None on a doubt: the declaration binds
+    type parameters (generics), or any parameter is variadic (the call side, not this side, is where the syntax admits it may
+    take zero or more)."""
+    if any(c.type == "type_parameter_list" for c in decl.children):
+        return None
+    params = _go_own_param_list(decl)
+    if params is None:
+        return None
+    total = 0
+    for child in params.named_children:
+        if child.type == "variadic_parameter_declaration":
+            return None
+        if child.type != "parameter_declaration":
+            continue
+        names = sum(1 for gc in child.children if gc.type == "identifier")
+        total += names if names else 1
+    return total
 
 
 def _go_read_type(spec, path: str, imports: list[dict]) -> dict:
@@ -831,6 +900,8 @@ class _Resolver:
         self._go_files: dict[tuple[str, bool], tuple | None] = {}
         self._go_decls: dict[tuple[str, str, bool], dict | None] = {}
         self.iface: dict[str, tuple[str, str]] = {}  # rule 2: interface-method target → (interface type id, the RTA key's name for it)
+        self._go_arities: dict[str, int | None] = {}  # WP-14b: in-graph Go symbol id → its own declared parameter count, or None
+        self._arity_reasons: dict[tuple, str] = {}  # WP-14b: (path, line, name, receiver) → the arity NULL's reason text
 
     def _module_text(self, mod: str) -> str | None:
         """A repo module's source: the post-image when the diff edits it, else the parent's."""
@@ -930,6 +1001,16 @@ class _Resolver:
         return self._ts(path, P, r)
 
     def _go(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
+        """Resolution, then signatures in the world (WP-14b, §2.5): a call bound `in-graph` is re-read as a NULL `arity` when
+        it states an argument count its own callee's declaration does not accept, else unchanged."""
+        cls, target = self._go_resolve(path, P, r)
+        if cls == "in-graph":
+            override = self._go_arity_null(path, r, target)
+            if override is not None:
+                return override
+        return cls, target
+
+    def _go_resolve(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
         T = self.trace
         d = str(PurePosixPath(path).parent)
         if r.receiver is None:  # Go's scoping: a local, then the package block, then the universe
@@ -1149,6 +1230,62 @@ class _Resolver:
                 return mod + ("/" + rest if rest else "")
         return d
 
+    # ---- Go: signatures in the world (M0-Go round 2 WP-14b, §2.5)
+
+    def go_arity(self, sid: str) -> int | None:
+        """The declared parameter count of in-graph Go symbol *sid*'s own function or method declaration — read from its
+        source at the SHA (`go_file`, ``parent=True``: *sid* is in the parent graph by construction), exactly, or None on
+        any doubt (`_go_param_arity`; not a function or method; its declaration cannot be found or read; **its own file is
+        edited by this diff** — the parent's signature is not the world a call in the post-image is bound by when the
+        signature itself may be the thing changing, gold's own `DirectoryTargets`/`detectRule` being exactly this shape,
+        caught by the gold re-ground). Cached — the same callee is asked once per grounding."""
+        if sid not in self._go_arities:
+            self._go_arities[sid] = self._compute_go_arity(sid)
+        return self._go_arities[sid]
+
+    def _compute_go_arity(self, sid: str) -> int | None:
+        sym = self.L.symbols.get(sid)
+        if sym is None or sym.get("kind") not in ("function", "method"):
+            return None
+        path = self.L.mod_path.get(sym["module"])
+        if path is None or not path.endswith(".go"):
+            return None
+        if path in self.post_text:  # this diff may itself be changing the callee's own signature: abstain
+            return None
+        f = self.go_file(path, parent=True)
+        if f is None:
+            return None
+        root, _imports = f
+        line = sym.get("line")
+        if line is None:
+            return None
+        decl = _go_find_decl_at(root, line, sym["kind"])
+        if decl is None:
+            return None
+        arity = _go_param_arity(decl)
+        self.trace.look("arity", sid, arity)
+        return arity
+
+    def _go_arity_null(self, path: str, r: Ref, sid: str) -> tuple[str, str | None] | None:
+        """Call *r*, bound `in-graph` to Go symbol *sid*, as a NULL `arity` when its own syntactic argument count differs
+        from *sid*'s declared parameter count — None (no override) on any doubt: the call's own shape (`r.argc`, a possible
+        multi-value spread; `r.variadic_call`, a slice spread) or the callee's (`go_arity`, variadic or generic) abstains."""
+        if r.argc is None or r.variadic_call:
+            return None
+        want = self.go_arity(sid)
+        if want is None or want == r.argc:
+            return None
+        self._arity_reasons[(path, r.line, r.name, r.receiver)] = (
+            f"`{r.name}` declares {want} parameter{'s' if want != 1 else ''}, called here with {r.argc}"
+        )
+        return "NULL", "arity"
+
+    def arity_reason(self, path: str, r: Ref) -> str:
+        return self._arity_reasons.get(
+            (path, r.line, r.name, r.receiver),
+            f"`{r.name}` is called with {r.argc} argument(s), which its own declaration does not accept",
+        )
+
     # ---- Go: the world (M0-Go WP-9, D-g; §2.5)
 
     def go_module_of(self, d: str) -> tuple[str, str] | None:
@@ -1250,6 +1387,38 @@ class _Resolver:
             self.trace.look("package-names", f"{d or '.'}/", f"{len(names)} names in {len(paths)} files")
         return self._toplevel[d]
 
+    def go_qualifier_package_dir(self, path: str, P: Parsed, q: str) -> str | None:
+        """The in-repo package directory qualifier *q* names in Go post-image *path*, when *q* binds to exactly one import
+        of **this module's own** package (`go_import_world`'s ``"module"``) — else None: std, a required (external) module,
+        an alias no import binds, or two imports binding *q* to different packages. `undeclared-type`'s world is exactly
+        what `go_dir_toplevel` reads whole, so every doubt here abstains rather than guess at a package this grounder does
+        not fully own (SIGNATURE_RULE)."""
+        if P.lang != "go" or P.go_root is None or not q:
+            return None
+        m = self.go_module_of(H.dir_of(path))
+        hit: str | None = None
+        for s in _go_import_specs(P.go_root):
+            if s["alias"] in (".", "_"):
+                continue
+            ipath = s["path"]
+            if s["alias"]:
+                matched = s["alias"] == q
+            else:
+                matched = q in _go_import_names(ipath)
+                if not matched and m is not None and (ipath == m[0] or ipath.startswith(m[0] + "/")):
+                    d = "/".join(x for x in (m[1], ipath[len(m[0]):].lstrip("/")) if x)
+                    matched = self.go_package_clause(d) == q
+            if not matched:
+                continue
+            kind, _why = self.go_import_world(path, ipath)
+            if kind != "module" or m is None:
+                return None  # bound, but not a package this rule fully owns: abstain outright
+            d = "/".join(x for x in (m[1], ipath[len(m[0]):].lstrip("/")) if x)
+            if hit is not None and hit != d:
+                return None  # two imports bind q to different packages: ambiguous, abstain
+            hit = d
+        return hit
+
     def go_unimported(self, path: str, P: Parsed, q: str | None) -> bool:
         """Whether qualifier *q* in Go post-image *path* names nothing the file can see (`WORLD_RULE`): no import may bind it, no dot
         import, not predeclared, never written as a plain identifier, declared at top level by no Go file of the package."""
@@ -1264,8 +1433,10 @@ class _Resolver:
         return self.trace.look("unimported", f"{path}:{q}", True)
 
     def go_world(self, path: str, P: Parsed, owned: list[tuple[int, int, str]]) -> tuple[list[dict], collections.Counter]:
-        """The world check on one Go post-image (`WORLD_RULE`): every import spec and every non-call selector or qualified type inside an
-        edited range. Returns the NULL rows (``kind`` import / selector, with the owning hole and the reason) and the tally of every judgment."""
+        """The world check on one Go post-image (`WORLD_RULE`, `SIGNATURE_RULE`): every import spec and every non-call selector or
+        qualified type inside an edited range — a bound qualifier of this module's own package is also read against
+        `go_dir_toplevel` (WP-14b, §2.5). Returns the NULL rows (``kind`` import / selector / type, with the owning hole and the reason)
+        and the tally of every judgment."""
         rows: list[dict] = []
         tally: collections.Counter = collections.Counter()
         if P.lang != "go" or P.go_root is None:
@@ -1309,6 +1480,13 @@ class _Resolver:
             if self.go_unimported(path, P, q):
                 tally["qualifier:unimported"] += 1
                 rows.append({"hole": h, "line": line, "term": f"{q}.{name}", "kind": "selector", "null_class": "unimported", "reason": self.unimported_reason(path, q)})
+                continue
+            # WP-14b, §2.5: bound to a package this grounder fully owns (its own module) — is *name* really there?
+            pd = self.go_qualifier_package_dir(path, P, q)
+            if pd is not None and name not in self.go_dir_toplevel(pd):
+                tally["qualifier:undeclared-type"] += 1
+                rows.append({"hole": h, "line": line, "term": f"{q}.{name}", "kind": "type" if n.type == "qualified_type" else "selector",
+                             "null_class": "undeclared-type", "reason": self.undeclared_type_reason(q, pd, name)})
             else:
                 tally["qualifier:bound-or-abstained"] += 1
         return rows, tally
@@ -1316,6 +1494,10 @@ class _Resolver:
     @staticmethod
     def unimported_reason(path: str, q: str) -> str:
         return f"`{q}` is imported by no import of `{path}`, and neither the file nor its package declares it"
+
+    @staticmethod
+    def undeclared_type_reason(q: str, pd: str, name: str) -> str:
+        return f"`{q}` is package `{pd or '.'}/` of this module, which declares no `{name}` at top level"
 
     def _py(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
         L, T = self.L, self.trace
@@ -1544,6 +1726,12 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
             by_class["unsupported"] += 1
             refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "unsupported", "target": lang, "density": None, "refs_in": None})
             continue
+        text = "\n".join(post[path]) + ("\n" if post[path] else "")
+        if text and H.carries_gutter(text):  # round 2 D-m: say so, not a silent zero (a pre-guard replay only; the validator refuses this live)
+            by_class["malformed"] += 1
+            refs.append({"hole": ",".join(h for _, _, h in hole_at[path]), "path": path, "line": 0, "term": "", "class": "malformed", "target": None,
+                         "density": None, "refs_in": None, "reason": H.GUTTER_ERROR})
+            continue
         for r in P.refs:
             owner = next((h for a, b, h in hole_at[path] if a <= r.line <= b), None)
             if owner is None:
@@ -1560,6 +1748,10 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
             if cls == "NULL" and target in WORLD_NULL_CLASSES:  # the world check on a call's qualifier (WP-9)
                 row["target"] = None
                 row.update({"null_class": target, "nearest": [], "declared": False, "scope": None, "kind": "call", "reason": R.unimported_reason(path, r.receiver)})
+                nulls.append(row)
+            elif cls == "NULL" and target == "arity":  # signatures in the world (WP-14b, §2.5)
+                row["target"] = None
+                row.update({"null_class": "arity", "nearest": [], "declared": False, "scope": None, "kind": "call", "reason": R.arity_reason(path, r)})
                 nulls.append(row)
             elif cls == "NULL":
                 _, near, ncls = R.null(r.name, path)
@@ -1593,7 +1785,7 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
         "hsr": round(by_class["NULL"] / judged, 4) if judged else None,
         "density": {**{k: D[k] for k in ("rule", "k", "population", "cap", "dense_in_population")}, "counts": {c: dens[c] for c in ("dense", "sparse", "absent")}},
         "rta": None if rta is None else rta.get("source"),
-        "world": {"rule": WORLD_RULE, "stdlib": f"go1.26.5, {len(GO_STDLIB)} packages", "counts": dict(sorted(world.items()))},
+        "world": {"rule": WORLD_RULE, "signature_rule": SIGNATURE_RULE, "stdlib": f"go1.26.5, {len(GO_STDLIB)} packages", "counts": dict(sorted(world.items()))},
         **{k: rep[k] for k in ("unfilled", "ignored_closed", "unknown_hole", "refused", "notes", "closed_by_prune", "declared_new")},
         "trace": trace.rows,
     }

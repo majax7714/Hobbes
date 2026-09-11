@@ -13,6 +13,32 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.17-beta — 2026-09-11 (later still, the fifth)
+
+**Patch: the grounder checks a Go call's argument count and a
+qualified name against the repo's own declarations (grounder v3).**
+Calvin M0-Go round 2, WP-14b; checked by replay with no model.
+
+- **Two new NULL classes.**
+  - **`arity`:** a call bound in the graph whose argument count
+    differs from the callee's own declaration.
+  - **`undeclared-type`:** a qualified reference into one of the
+    module's own packages that the package does not declare.
+
+  The callee's parameters are read from lane A's own parse of its
+  declaration, on demand; nothing is added to the graph, and the
+  artifacts are byte-identical. On WP-10's seven declarations that did
+  not build, 3 now raise one of these NULLs (arity 2, undeclared-type
+  1); the unused imports stay the compiler's. Gold still grounds at
+  0 NULL on 20 of 20.
+- **Every doubt abstains.** The rule skips variadics, generics, method
+  values, interface dispatch, a call whose sole argument is itself a
+  call, callees outside the module (C-118), and a callee whose own file
+  the same diff edits (C-119).
+- **`malformed`.** A post-image carrying the render's line-number gutter
+  reads as its own class with a reason, instead of silently grounding
+  to zero references (C-120).
+
 ## 0.1.16-beta — 2026-09-11 (later still, the fourth)
 
 **Patch: the Calvin adapter's protocol v0.6, and a benchmark no tree

@@ -275,3 +275,10 @@ Round 1 §8 stands. Added: **a file-grain hole** (a hole that spans a new file, 
     - **D-i:** fixed (split on `is_loop_exchange`).
     - **D-p:** fixed (`not-run` out of FAILING; a test that ran without the diff and not with it still reads `removed`). WP-13's 8 golds: only `d22371873bd8` moves, fail → pass. Round 1's 20 golds: none moves.
   - Merged to `main`; **0.1.16-beta**; C-116 and C-117 registered, C-114 amended.
+- 2026-09-11 — **WP-14b** exit checked (`~/.hobbes/bench/calvin-go/wp-14b/`), inside the time-box, **not deferred**. Grounder v3 is on `calvin-go/wp-14b` (`50a11bf`).
+  - **New classes:** `arity` (a call bound in the graph whose argument count differs from the callee's own declaration, read from lane A's parse on demand) and `undeclared-type` (a qualified reference into the module's own package that the package does not declare).
+  - **On WP-10's seven:** 3 raise one of these, as round 1's build errors did — `93acc6e82adb` r1 undeclared-type ×2, `8fb39ba8dc9d` r2 arity, `1a2f65627894` r1 arity. The unused imports stay the compiler's.
+  - **D-m fixed** (a `malformed` class for a gutter-carrying post-image).
+  - **Unchanged:** gold grounds 20/20 at 0 NULL, byte-equal; poison reads 50/50; the graph size delta is 0, so no re-ingest is needed.
+  - **Register:** C-118–C-120 registered.
+  - **Merged** to `main` with **0.1.17-beta** — Max's number, a patch; the design had said minor. WP-15 launched.

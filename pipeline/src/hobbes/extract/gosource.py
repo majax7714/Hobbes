@@ -417,6 +417,22 @@ def _enclosing(symbols: list[dict], line: int) -> str | None:
     return best
 
 
+def _call_arity(node: Node) -> tuple[int | None, bool]:
+    """A call expression's own argument shape: ``(argc, spread)`` — the syntactic argument count, and whether the last one
+    is followed by ``...`` (a slice spread over a variadic parameter). ``argc`` is None when the syntax alone cannot license
+    an arity check against it: a call whose sole argument is itself a call expression (Go's multi-value spread, ``f(g())``,
+    which the grammar cannot distinguish from an ordinary one-argument call) — the Calvin M0-Go grounder's arity NULL class
+    (round 2 WP-14b, §2.5) abstains on both."""
+    arguments = node.child_by_field_name("arguments")
+    if arguments is None:
+        return None, False
+    names = arguments.named_children
+    spread = any(c.type == "..." for c in arguments.children)
+    if len(names) == 1 and names[0].type == "call_expression":
+        return None, spread
+    return len(names), spread
+
+
 def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     """Every call site, with the column and terminal name the join needs.
 
@@ -424,6 +440,10 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     the same correction `pysource` needed at ADR-029, and for the same
     reason: SCIP reports the occurrence of the name, so a join keyed on
     the expression's start would miss on any wrapped or chained call.
+
+    ``argc``/``variadic_call`` (round 2 WP-14b, §2.5) are read here, once,
+    for the Calvin grounder's arity check; nothing else in the pipeline
+    reads them, and they cost nothing where nothing does.
     """
     found = []
     for node in _walk(root):
@@ -446,6 +466,11 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                     "col": terminal.start_point.column,
                     "scope": _enclosing(symbols, node.start_point.row + 1),
                     "args": _literal_args(node),
+                    # A generic instantiation's target is a type or a
+                    # generic function, never an arity check's callee
+                    # (the grounder abstains on type parameters anyway).
+                    "argc": None,
+                    "variadic_call": False,
                     "call_line": node.start_point.row + 1,
                 }
             )
@@ -465,6 +490,7 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                 receiver = _text(operand)
             else:
                 receiver = _EXPR_RECEIVER
+        argc, variadic_call = _call_arity(node)
         found.append(
             {
                 "name": _text(terminal),
@@ -473,6 +499,8 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
                 "col": terminal.start_point.column,
                 "scope": _enclosing(symbols, node.start_point.row + 1),
                 "args": _literal_args(node),
+                "argc": argc,
+                "variadic_call": variadic_call,
                 # The call expression's own start, which is where a
                 # registration reads naturally, as against the callee's
                 # position that the join keys on.

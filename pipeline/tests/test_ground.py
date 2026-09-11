@@ -603,7 +603,99 @@ def test_world_holds_a_fill_to_std_the_module_and_the_go_mod(repo):
     code = "func Run(o Options) error {\n\tfmt.Println(Default.Repo, o.Repo)\n\tstrings.ToUpper(o.Repo)\n\treturn nil\n}\n"
     g2 = G.ground(template(L, root, "Change `Run`."), {"fills": {body["id"]: {"code": code}}}, L, root)
     assert [(n["term"], n["null_class"]) for n in g2["null"]] == [("strings.ToUpper", "unimported")]
-    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 2
+    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 3  # WP-14b bumped it
+
+
+def test_go_signatures_in_the_world_arity_and_undeclared_type(repo):
+    """M0-Go round 2 WP-14b, §2.5: a call bound `in-graph` is a NULL `arity` when its own argument count differs from its
+    callee's declared parameter count, read from the callee's own source; a qualifier bound to this module's own package
+    is a NULL `undeclared-type` when the package declares no such name — both abstain on any doubt (a call whose sole
+    argument is itself a call, a possible multi-value spread)."""
+    root, sha = repo
+    L = ledger(sha)
+    t = template(L, root, "Change `Run`.")
+    code = ("func runGoRTA() {\n"
+            "\tapp.Run(app.Options{}, 1)\n"  # declares 1 parameter, called with 2
+            "\tapp.Run()\n"  # declares 1 parameter, called with 0
+            "\tapp.Run(g())\n"  # sole argument is a call: abstain
+            "\tvar x app.NoSuchType\n"  # `app` has no `NoSuchType` at top level
+            "\t_ = x\n"
+            "}\n"
+            "\n"
+            "func g() app.Options { return app.Options{} }\n")
+    g = G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": code, "span": {"path": "cmd/main.go", "start": 9, "end": 11}}}}, L, root)
+    arity_rows = [n for n in g["null"] if n["term"] == "app.Run"]
+    assert len(arity_rows) == 2 and {r["null_class"] for r in arity_rows} == {"arity"}
+    reasons = {r["reason"] for r in arity_rows}
+    assert reasons == {"`Run` declares 1 parameter, called here with 2", "`Run` declares 1 parameter, called here with 0"}
+    assert all(r["target"] is None and r["density"] == "absent" and r["kind"] == "call" for r in arity_rows)
+    ut = next(n for n in g["null"] if n["term"] == "app.NoSuchType")
+    assert ut["null_class"] == "undeclared-type" and ut["kind"] == "type"
+    assert ut["reason"] == "`app` is package `internal/app/` of this module, which declares no `NoSuchType` at top level"
+    assert g["null_by_class"]["arity"] == 2 and g["null_by_class"]["undeclared-type"] == 1
+    # the spread-shaped call is not flagged: it stays in-graph, exactly as a matching-arity call does
+    run_refs = [r for r in g["refs"] if r["term"] == "app.Run"]
+    assert sum(1 for r in run_refs if r["class"] == "in-graph") == 1 and sum(1 for r in run_refs if r["class"] == "NULL") == 2
+
+
+def test_go_param_arity_reads_groups_variadics_generics_and_multi_value_results():
+    """WP-14b, §2.5: a grouped parameter name counts once each; a variadic parameter or the callee's own type parameters
+    abstain; a method's own parameter list is the one right after its name — a parenthesized multi-value result
+    (``(Config, error)``) parses as *another* ``parameter_list`` and must not be read as the parameters (the false
+    `arity` NULLs the gold re-ground first caught, on real gitleaks methods shaped exactly this way)."""
+    from hobbes.extract import gosource
+    src = ("package p\n\n"
+           "func Grouped(a, b string, c int) {}\n\n"
+           "func Variadic(a string, b ...int) {}\n\n"
+           "func Generic[T any](x T) {}\n\n"
+           "func MultiValue(a string) (int, error) { return 0, nil }\n\n"
+           "type Rule struct{}\n"
+           "func (r *Rule) M(a, b string) bool { return true }\n"
+           "func (r *Rule) Translate() (Rule, error) { return Rule{}, nil }\n")
+    root = gosource._PARSER.parse(src.encode()).root_node
+    fns = {G._gtext(n.child_by_field_name("name")): n for n in root.children if n.type == "function_declaration"}
+    assert G._go_param_arity(fns["Grouped"]) == 3
+    assert G._go_param_arity(fns["Variadic"]) is None
+    assert G._go_param_arity(fns["Generic"]) is None
+    assert G._go_param_arity(fns["MultiValue"]) == 1, "the (int, error) result is not the parameter list"
+    methods = [n for n in root.children if n.type == "method_declaration"]
+    m = next(n for n in methods if G._gtext(n.child_by_field_name("name")) == "M")
+    translate = next(n for n in methods if G._gtext(n.child_by_field_name("name")) == "Translate")
+    assert G._go_param_arity(m) == 2
+    assert G._go_param_arity(translate) == 0, "0 parameters, not 2 from the (Rule, error) result"
+
+
+def test_go_arity_abstains_when_the_callee_s_own_file_is_edited(repo):
+    """WP-14b, §2.5: a call bound `in-graph` whose callee's own file is edited by this same diff abstains from the
+    arity check — the parent's signature is not the world a call in the post-image is bound by when the signature
+    itself may be what is changing (gold's own `DirectoryTargets`/`detectRule` shape, caught by the gold re-ground)."""
+    root, sha = repo
+    L = ledger(sha)
+    t = template(L, root, "Change `Run`.")
+    # Run's own file (internal/app/app.go) is edited in the same diff that adds an extra argument to a Run call:
+    # the callee's declaration is part of the SAME edit, so the mismatch must not be judged.
+    run_body = next(h for h in t["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "internal/app/app.Run")
+    code = "func runGoRTA() {\n\tapp.Run(app.Options{}, 1)\n}\n"
+    g = G.ground(t, {"fills": {
+        run_body["id"]: {"code": "func Run(o Options, extra int) error {\n\tfmt.Println(\"go-rta\", o.Repo, extra)\n\treturn nil\n}\n"},
+        hole(t, "FREEFORM")["id"]: {"code": code, "span": {"path": "cmd/main.go", "start": 9, "end": 11}},
+    }}, L, root)
+    assert not any(n["null_class"] == "arity" for n in g["null"]), g["null"]
+
+
+def test_go_gutter_laden_body_is_malformed_not_a_silent_zero(repo):
+    """Round 2 D-m: a live protocol's validator refuses a gutter-carrying body before it ever reaches the grounder
+    (WP-7a's `carries_gutter`), but a replay of an older record can still hand one to `ground` directly — it must say
+    so as its own class, not read as an empty file with 0 references."""
+    root, sha = repo
+    L = ledger(sha)
+    t = template(L, root, "Change `Run`.")
+    gutter_code = "12  package app\n13  \n14  func Something() {\n15  \tRun(Options{})\n16  }\n"
+    g = G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": gutter_code, "span": {"path": "internal/app/gutter.go", "start": 1, "end": 0}}}}, L, root)
+    assert g["references"]["malformed"] == 1
+    row = next(r for r in g["refs"] if r["class"] == "malformed")
+    assert row["path"] == "internal/app/gutter.go" and row["reason"] == holes.GUTTER_ERROR
+    assert g["references"]["in-graph"] == 0 and g["references"]["NULL"] == 0
 
 
 def test_fill_shapes_widened_for_the_grounder():
