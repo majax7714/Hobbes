@@ -258,10 +258,11 @@ def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, 
     from hobbes.derive import template as T
     monkeypatch.setattr(T, "Ledger", _Ledger)
     monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
-    seen = {}
+    seen, roots = {}, []
 
     def fake_run_o(clone, sha, task, L, source, graphs, *, session_id, sessions_root, out_dir, template, token_budget, loop_args, **kw):
         seen.update(key=os.environ.get("HOBBES_LLM_API_KEY"), task=task, sha=sha, budget=token_budget, loop_args=loop_args)
+        roots.append((sessions_root, session_id))
         (sessions_root / session_id).mkdir(parents=True)
         (sessions_root / session_id / "calls.jsonl").write_text(json.dumps({"prompt_tokens": 400_000, "completion_tokens": 2_000}) + "\n")
         (out_dir / f"{session_id}.session.log").write_text('{"type": "result", "is_error": false, "num_turns": 7, "tool_calls": 9}\n')
@@ -280,6 +281,7 @@ def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, 
     assert row["verify"]["verdict"] == "fail" and row["verify"]["all_contained"] is True
     assert row["recall"]["rule"] == cp.RECALL_RULE and "error" in row["recall"], "a clone the scan cannot read is said in the row, not raised"
     assert row["recall"]["upper"] == cp.RECALL_UPPER[:12], "no flag, no unit field: gitleaks' pin, rounds 1-2 unchanged"
+    assert roots == [(tmp_path / "sessions" / row["session"], row["session"])], "D-x: one sessions root per session"
     assert "sk-test" not in (tmp_path / "out" / "rows.jsonl").read_text()
     # §2.5's fields (WP-18b, D-v): gold touches no test here, so gold_tests is n/a; the verdict is the verifier's
     assert (row["gold_tests"], row["verdict"], row["turns_to_first_edit"]) == ({"verdict": "n/a", "ids": []}, "fail", None)
@@ -380,6 +382,12 @@ def _recorded(tmp_path):
     _git(clone, "checkout", "-q", "-b", "hobbes/S1")
     (clone / "a.go").write_text("z\n")
     _git(clone, "commit", "-q", "-am", "o")
+    head = _git(clone, "rev-parse", "HEAD").strip()
+    _git(clone, "checkout", "-q", "-b", "later", "HEAD~1")  # the key's gold, past the parent: never in a session's repo (D-x)
+    (clone / "b.go").write_text("gold\n")
+    _git(clone, "add", ".")
+    _git(clone, "commit", "-q", "-m", "gold")
+    gold = _git(clone, "rev-parse", "HEAD").strip()
     sroot = tmp_path / "sessions"
     (sroot / "S1").mkdir(parents=True)
     (sroot / "S1" / "transcript.jsonl").write_text(json.dumps({"role": "system", "content": "s"}) + "\n" + json.dumps({"role": "user", "content": "b"}) + "\n")
@@ -393,7 +401,7 @@ def _recorded(tmp_path):
     (rec / "rows.jsonl").write_text(json.dumps({"key": "k1", "arm": "O", "session": "S1", "verify": {"verdict": "fail"}}) + "\n")
     argv = ["o-units", str(tmp_path / "units.jsonl"), "--keys", "k1", "--templates", str(tmp_path / "templates"), "--clone", str(clone),
             "--out", str(tmp_path / "out"), "--wp", "wp-21", "--recorded", str(rec)]
-    return argv, _git(clone, "rev-parse", "HEAD").strip(), sroot
+    return argv, head, sroot, gold
 
 
 def test_o_units_gate_recorded_gates_each_recorded_session_and_launches_nothing(tmp_path, monkeypatch):
@@ -401,7 +409,7 @@ def test_o_units_gate_recorded_gates_each_recorded_session_and_launches_nothing(
     from hobbes.derive import template as T
     monkeypatch.setattr(T, "Ledger", _Ledger)
     monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
-    argv, _, _ = _recorded(tmp_path)
+    argv, *_ = _recorded(tmp_path)
     calls = []
     gs = _fake_gate(calls)
     monkeypatch.setattr(cp, "gate_session", gs)
@@ -423,12 +431,16 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     from hobbes.derive import template as T
     monkeypatch.setattr(T, "Ledger", _Ledger)
     monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
-    argv, head, sroot = _recorded(tmp_path)
+    argv, head, sroot, gold = _recorded(tmp_path)
     calls, launched = [], {}
     monkeypatch.setattr(cp, "gate_session", _fake_gate(calls))
 
     def fake_launch(cmd, timeout):
         launched.update(cmd=cmd, key=os.environ.get("HOBBES_LLM_API_KEY"))
+        repo = cp.argv_value(cmd, "--repo")  # D-x: what the repair turn's container would clone, read while the turn runs
+        g = lambda *a: subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True)
+        launched["cut"] = (g("cat-file", "-e", gold).returncode != 0, set(g("rev-list", "--all").stdout.split()), g("remote").stdout,
+                           (Path(repo) / ".git" / "objects" / "info" / "alternates").exists(), (Path(repo) / ".hobbes" / "derived" / "graph.json").exists())
         (sroot / cp.argv_value(cmd, "--session") / "calls.jsonl").write_text(json.dumps({"prompt_tokens": 50_000, "completion_tokens": 1_000}) + "\n")
         edit = {"id": "e1", "type": "function", "function": {"name": "edit_file", "arguments": "{}"}}
         (sroot / cp.argv_value(cmd, "--session") / "transcript.jsonl").write_text(
@@ -443,7 +455,10 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     assert cp.main(argv + ["--gate-repair"] + keys) == 0
     cmd = launched["cmd"]
     assert [cp.argv_value(cmd, f) for f in ("--session", "--ref", "--max-turns", "--repo", "--runtime", "--model")] == \
-        ["S1-repair1", head, "1", str(tmp_path / "clone"), str(H.LOOP_PATH), "claude-haiku-4-5-20251001"]
+        ["S1-repair1", head, "1", str(tmp_path / "out" / "S1-repair1.repo"), str(H.LOOP_PATH), "claude-haiku-4-5-20251001"]
+    parent = _git(tmp_path / "clone", "rev-parse", f"{head}~1").strip()
+    assert launched["cut"] == (True, {head, parent}, "", False, True), "the repair's repo: O's commit and the parent's ancestry, no gold, no remote"
+    assert not (tmp_path / "out" / "S1-repair1.repo").exists(), "the cut repo is removed after the turn"
     assert "--loop-arg=--sampling=model-default" in cmd and cmd[-1] == "--loop-arg=--resume-transcript=/sessions/S1-repair1/resume.jsonl"
     assert (sroot / "S1-repair1" / "resume.jsonl").read_text() == (sroot / "S1" / "transcript.jsonl").read_text()
     brief = Path(cp.argv_value(cmd, "--task-file")).read_text()

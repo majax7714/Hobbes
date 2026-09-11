@@ -1154,6 +1154,85 @@ def ground_patch(template: dict, patch: str, L: T.Ledger, repo_root: Path) -> di
     return g
 
 
+#: calvin-m0-gate D-x: what the repo an arm-O session (or its repair turn) is launched from may hold. WP-21's key 1 ran
+#: `git show <its own key>` in a session repo cloned from the owned clone's full history; rounds 1–2 carried the same exposure.
+SESSION_REPO_RULE = ("An arm-O session starts from a repo cut from the owned clone at the session's base commit (the key's parent; for the "
+                     "repair turn, O's harvested commit): a branch at the base, then `git clone --no-local --single-branch --no-tags` (only "
+                     "objects reachable from the base cross), `origin` removed, reflogs dropped — checked to hold no commit object that is "
+                     "not the base or its ancestor, no remote, no alternates file, and no text under .git naming the owned clone. The "
+                     "session's branch is fetched back into the owned clone after it and the cut repo removed; the gate, verify, gold_tests "
+                     "and recall read the owned clone, host side, where gold is.")
+
+
+def session_repo_errors(repo: Path, base: str, owned: Path | None = None) -> list[str]:
+    """Every way *repo* breaks `SESSION_REPO_RULE` for *base*, read at the object level (a stash, a reflog's commit, a packed
+    unreachable object and a tag are all commit objects in the store); an empty list is a repo an arm-O session may start from."""
+    repo = Path(repo)
+
+    def git(*a: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True)
+
+    ancestors = set(git("rev-list", base).stdout.split())
+    if not ancestors:
+        return [f"the base {base[:12]} is not in {repo}"]
+    errs: list[str] = []
+    objs = git("cat-file", "--batch-all-objects", "--batch-check=%(objecttype) %(objectname)").stdout.splitlines()
+    extra = sorted({line.split()[1] for line in objs if line.startswith("commit ")} - ancestors)
+    if extra:
+        errs.append(f"{len(extra)} commit object(s) neither the base nor its ancestor, e.g. {extra[0][:12]}")
+    if git("remote").stdout.strip():
+        errs.append("a remote: " + " ".join(git("remote").stdout.split()))
+    if (repo / ".git" / "objects" / "info" / "alternates").exists():
+        errs.append("an alternates file")
+    if owned is not None:
+        needle = str(Path(owned).resolve())
+        for p in sorted((repo / ".git").rglob("*")):
+            if p.is_file() and p.relative_to(repo / ".git").parts[0] != "objects" and needle in p.read_text(errors="replace"):
+                errs.append(f".git/{p.relative_to(repo / '.git')} names the owned clone")
+                break
+    return errs
+
+
+def session_repo(owned: Path, base: str, dest: Path, name: str) -> Path:
+    """calvin-m0-gate D-x: cut the repo an arm-O session (or its repair turn) is launched from, per `SESSION_REPO_RULE` — *base* and its
+    ancestors from the *owned* clone, into *dest* (outside the sessions root: never mounted into the container). Raises RuntimeError when
+    the cut fails its check (`session_repo_errors`)."""
+    owned, dest = Path(owned), Path(dest)
+    branch = f"calvin-base/{name}"
+
+    def run(*a: str) -> None:
+        subprocess.run(list(a), capture_output=True, text=True, check=True)
+
+    run("git", "-C", str(owned), "branch", "-f", branch, base)
+    if dest.exists():
+        shutil.rmtree(dest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    run("git", "clone", "-q", "--no-local", "--single-branch", "--no-tags", "--branch", branch, str(owned), str(dest))
+    run("git", "-C", str(dest), "remote", "remove", "origin")
+    run("git", "-C", str(dest), "reflog", "expire", "--expire=now", "--all")
+    shutil.rmtree(dest / ".git" / "logs", ignore_errors=True)
+    errs = session_repo_errors(dest, base, owned)
+    if errs:
+        raise RuntimeError(f"the session repo at {dest} breaks the rule: " + "; ".join(errs))
+    return dest
+
+
+def session_repo_record(repo: Path, base: str) -> dict:
+    """What the record says of a cut session repo: its base, how many commits it holds, and the rule it was checked against."""
+    n = subprocess.run(["git", "-C", str(repo), "rev-list", "--count", base], capture_output=True, text=True).stdout.strip()
+    return {"base": base, "commits": int(n) if n.isdigit() else None, "errors": session_repo_errors(repo, base), "rule": "harness.SESSION_REPO_RULE"}
+
+
+def harvest_back(repo: Path, owned: Path, session_id: str) -> bool:
+    """The session's branch — harvested by hobbes-session into the cut *repo* — fetched into the *owned* clone, where `session_patch`, the
+    gate and the verifier read it; False when the session left no branch there."""
+    branch = f"refs/heads/hobbes/{session_id}"
+    if subprocess.run(["git", "-C", str(repo), "rev-parse", "--verify", "-q", branch], capture_output=True).returncode:
+        return False
+    subprocess.run(["git", "-C", str(owned), "fetch", "-q", str(repo), f"+{branch}:{branch}"], capture_output=True, text=True, check=True)
+    return True
+
+
 def run_o(clone: Path, sha: str, task: str, L: T.Ledger, source: Path, graphs: tuple[Path, Path], *, session_bin: str, base_url: str, model: str,
           session_id: str, sessions_root: Path, out_dir: Path, template: dict | None = None, timeout: float = 3600.0, verify_after: bool = True,
           dry_run: bool = False, manifest: bool = True, **session_kw) -> dict:
@@ -1173,10 +1252,15 @@ def run_o(clone: Path, sha: str, task: str, L: T.Ledger, source: Path, graphs: t
     brief_path = out_dir / f"{session_id}.brief.md"
     brief_path.write_text(brief)
     agent_dir = o_agent_dir(spec, L, out_dir / f"{session_id}.agent")
-    cmd = session_command(session_bin, clone, sha, brief_path, agent_dir, env, base_url=base_url, model=model, session_id=session_id, sessions_root=sessions_root, **session_kw)
+    # calvin-m0-gate D-x: the session starts from a repo cut at the parent — never the owned clone, whose history holds the key's gold
+    repo = session_repo(clone, sha, out_dir / f"{session_id}.repo", session_id)
+    (repo / ".hobbes" / "derived").mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(graphs[0], repo / ".hobbes" / "derived" / "graph.json")
+    shutil.copyfile(graphs[1], repo / ".hobbes" / "derived" / "tests.json")
+    cmd = session_command(session_bin, repo, sha, brief_path, agent_dir, env, base_url=base_url, model=model, session_id=session_id, sessions_root=sessions_root, **session_kw)
     rec: dict = {"arm": "O", "sha": sha, "session": session_id, "model": model, "plan": {"refusal": refusal, "withheld": not manifest, "units": [u["name"] for u in (spec or {}).get("units", []) if not u.get("deferred")],
                  "paths": sorted({p for c in (spec or {}).get("contexts", []) for p in [m.get("path") for m in c.get("modules", [])] if p})},
-                 "brief_chars": len(brief), "command": cmd, "environment": env.record()}
+                 "brief_chars": len(brief), "command": cmd, "environment": env.record(), "session_repo": session_repo_record(repo, sha)}
     if dry_run:
         return rec
     t0 = time.monotonic()
@@ -1192,6 +1276,8 @@ def run_o(clone: Path, sha: str, task: str, L: T.Ledger, source: Path, graphs: t
     sdir = Path(sessions_root) / session_id
     rec["transcript"] = str(sdir / "transcript.jsonl") if (sdir / "transcript.jsonl").exists() else None
     rec["flight_log"] = str(sdir / "flight.jsonl") if (sdir / "flight.jsonl").exists() else None
+    rec["harvested"] = harvest_back(repo, clone, session_id)  # D-x: the session's branch comes back to the owned clone; the cut goes
+    shutil.rmtree(repo, ignore_errors=True)
     patch = session_patch(clone, sha, session_id, env)
     rec["patch_files"] = [p for p, _ in split_patch(patch)]
     (out_dir / f"{session_id}.o.diff").write_text(patch)

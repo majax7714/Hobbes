@@ -13,6 +13,36 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.20-beta — 2026-09-11 (Calvin M0-Gate, WP-18c)
+
+**Patch: an arm-O session no longer holds the repo's future.** Calvin
+M0-Gate WP-18c, found by WP-21 at key 1 (D-x); checked with no model.
+
+- **The defect.** The local harness launched arm O's session from the
+  owned clone, which holds the repo's full history. The session
+  therefore held every commit past the key's parent, the key's own
+  gold included, and the box policy allows `git log` and `git show`.
+  - WP-21's key 1 ran `git log --all --grep=…`, then `git show` on its
+    own key, and wrote gold's lines.
+  - Four of rounds 1–2's ten Go O sessions had done the same.
+- **The fix (`harness.session_repo`).** A session now starts from a
+  repo cut at the key's parent: `git clone --no-local --single-branch
+  --no-tags` from a branch at the parent, `origin` removed, reflogs
+  dropped.
+  - **Checked at the object level:** no commit that is not the parent
+    or its ancestor, no remote, no alternates file, no path back to
+    the owned clone.
+  - **After the session,** its branch is fetched back into the owned
+    clone and the cut repo removed. The gate, the verifier,
+    `gold_tests` and recall still read the owned clone, host side.
+  - **The repair turn** resumes on a repo cut at O's own commit, seeded
+    with the unit's own parent graph.
+  - **Sessions roots:** each session gets its own, so `/sessions` in
+    the container shows no other session's transcript.
+- **Registered:** C-124 (*partial*) — the container keeps the model
+  endpoint's network, so upstream history is out of the repo but not
+  out of reach.
+
 ## 0.1.19-beta — 2026-09-11 (Calvin M0-Gate, WP-18b)
 
 **Patch: the gate's repair message names what a blocked name nearly

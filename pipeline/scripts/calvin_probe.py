@@ -1232,12 +1232,13 @@ def cmd_o(a: argparse.Namespace) -> int:
             continue
         session_id = f"calvin-o-{c[:7]}-{time.strftime('%Y%m%dT%H%M%S')}"
         loop_args = list(a.loop_arg or [])
+        sroot_s = sessions_root / session_id  # D-x: one sessions root per session — /sessions shows no other session's transcript or tree
         if a.scripted:
-            (sessions_root / session_id).mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(a.scripted, sessions_root / session_id / "script.json")
+            (sroot_s / session_id).mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(a.scripted, sroot_s / session_id / "script.json")
             loop_args.append(f"--script=/sessions/{session_id}/script.json")
         rec = H.run_o(clone, L.sha, props[c]["task"], L, repo, (graphs / f"{c}.json", graphs / f"{c}.tests.json"), session_bin=session_bin, base_url=base_url, model=model,
-                      session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t, timeout=a.timeout, dry_run=a.dry_run, runtime=runtime,
+                      session_id=session_id, sessions_root=sroot_s, out_dir=out, template=t, timeout=a.timeout, dry_run=a.dry_run, runtime=runtime,
                       max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, knowledge=a.knowledge,
                       **({"token_budget": a.token_budget} if a.token_budget is not None else {}))
         if a.dry_run:
@@ -1450,12 +1451,22 @@ def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path,
     if missing:
         row["error"] = "cannot resume: the record lacks " + ", ".join(missing)
         return row
+    try:  # calvin-m0-gate D-x: the repair turn resumes on a repo cut at O's harvested commit — O's work and the parent's ancestry, never gold
+        rrepo = H.session_repo(clone, head, out / f"{new}.repo", new)
+    except (RuntimeError, subprocess.CalledProcessError) as exc:
+        row["error"] = f"cannot cut the repair turn's repo: {exc}"
+        return row
+    if u.get("parent_graph") and u.get("parent_tests"):  # the unit's own parent graph, never whatever graph the owned clone last held
+        (rrepo / ".hobbes" / "derived").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(u["parent_graph"], rrepo / ".hobbes" / "derived" / "graph.json")
+        shutil.copyfile(u["parent_tests"], rrepo / ".hobbes" / "derived" / "tests.json")
+    row["session_repo"] = H.session_repo_record(rrepo, head)
     (Path(sroot) / new).mkdir(parents=True, exist_ok=True)
     shutil.copyfile(transcript, Path(sroot) / new / "resume.jsonl")
     msg = gt.repair_message(gate_rec)
     brief = out / f"{new}.brief.md"
     brief.write_text(msg)
-    cmd = repair_command(cmd0, session_id=new, ref=head, brief=brief, runtime=H.LOOP_PATH, repo=clone)
+    cmd = repair_command(cmd0, session_id=new, ref=head, brief=brief, runtime=H.LOOP_PATH, repo=rrepo)
     row.update(command=cmd, message_chars=len(msg), message_sha=hashlib.sha256(msg.encode()).hexdigest()[:16])
     t0 = time.monotonic()
     try:
@@ -1473,6 +1484,8 @@ def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path,
     (out / f"{k}.repair.usage.jsonl").write_text("".join(json.dumps(x) + "\n" for x in ledger))
     res = session_result(out / f"{new}.session.log")
     env = types.SimpleNamespace(links=[tuple(x) for x in (rec_o.get("environment") or {}).get("links", [])])
+    row["harvested"] = H.harvest_back(rrepo, clone, new)  # D-x: the repaired branch comes back to the owned clone; the cut goes
+    shutil.rmtree(rrepo, ignore_errors=True)
     patch = H.session_patch(clone, u["parent_sha"], new, env)
     (out / f"{new}.o.diff").write_text(patch)
     g2 = gate_session(patch, u, clone, L, out, new, template, rule)
@@ -1598,11 +1611,12 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             assert L.sha == u["parent_sha"], (k, L.sha)
             t = json.load(open(Path(a.templates) / f"{k}.template.json"))
             session_id = f"calvin-o-{k}-{time.strftime('%Y%m%dT%H%M%S')}"
+            sroot_s = sessions_root / session_id  # D-x: one sessions root per session — /sessions shows no other session's transcript or tree
             rec = H.run_o(clone, L.sha, u[a.tier], L, clone, (Path(u["parent_graph"]), Path(u["parent_tests"])), session_bin=session_bin,
-                          base_url=a.base_url, model=a.model, session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t,
+                          base_url=a.base_url, model=a.model, session_id=session_id, sessions_root=sroot_s, out_dir=out, template=t,
                           timeout=a.timeout, max_turns=max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget,
                           manifest=not a.withhold_manifest)
-            calls_file = sessions_root / session_id / "calls.jsonl"
+            calls_file = sroot_s / session_id / "calls.jsonl"
             calls = [json.loads(l) for l in open(calls_file) if l.strip()] if calls_file.exists() else []
             ledger = o_session_usage(calls) if calls_file.exists() else [{"call": 0, "usd": round(worst, 6), "spent_usd": round(worst, 6),
                                                                           "estimated": "no calls.jsonl: the session's worst case is charged"}]
@@ -1633,7 +1647,7 @@ def cmd_o_units(a: argparse.Namespace) -> int:
                    "hsr": g.get("hsr"), "null_by_class": g.get("null_by_class"), "references": g.get("references"),
                    "recall": recall_scan(patch, gold_diff, clone, L.sha, upper) if patch else None,
                    "gold_tests": gold_tests_of(clone, L.sha, patch, gold_diff, L, out / "gold-tests-runs" / f"{session_id}.gold.verify.json"),
-                   "turns_to_first_edit": first_edit_turn(sessions_root / session_id / "transcript.jsonl"),
+                   "turns_to_first_edit": first_edit_turn(sroot_s / session_id / "transcript.jsonl"),
                    "verdict": row_verdict(patch, v.get("verdict")),
                    "null": [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in g.get("null", [])],
                    "density": (g.get("density") or {}).get("counts"), "fills_attribution": g.get("fills_attribution"),

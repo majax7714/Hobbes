@@ -24,6 +24,52 @@ def _git(root, *args):
     return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args], cwd=root, capture_output=True, text=True, check=True).stdout
 
 
+def test_the_session_repo_holds_the_base_and_its_ancestors_and_nothing_else(tmp_path):
+    """calvin-m0-gate D-x: WP-21's key 1 read its own gold with `git show` — the session repo was a clone of the owned clone's full
+    history. The cut repo holds the parent and its ancestors: the gold commit, a later tag, a stash and a later branch are absent at
+    the object level, there is no remote, no alternates file and no path back to the owned clone; the session's branch comes back to
+    the owned clone after it. The repair turn's repo, cut at O's harvested commit, holds O's work and the parent's ancestry — never gold."""
+    owned = tmp_path / "owned"
+    owned.mkdir()
+    _git(owned, "init", "-q")
+    for name, text in (("old", "a\n"), ("parent", "b\n"), ("gold", "c\n")):
+        (owned / "f.txt").write_text(text)
+        _git(owned, "add", ".")
+        _git(owned, "commit", "-q", "-m", name)
+    c0, c1, gold = (_git(owned, "rev-parse", f"HEAD~{i}").strip() for i in (2, 1, 0))
+    _git(owned, "tag", "v9")
+    _git(owned, "checkout", "-q", "-b", "later")
+    (owned / "f.txt").write_text("d\n")
+    _git(owned, "commit", "-q", "-am", "later")
+    later = _git(owned, "rev-parse", "HEAD").strip()
+    (owned / "f.txt").write_text("e\n")
+    _git(owned, "stash", "-q")
+    stash = _git(owned, "rev-parse", "stash@{0}").strip()
+    _git(owned, "checkout", "-q", "--detach", c1)
+    assert H.session_repo_errors(owned, c1), "the owned clone itself breaks the rule: gold, later and the stash are in it"
+    cut = H.session_repo(owned, c1, tmp_path / "S.repo", "S")
+
+    def git(repo, *a):
+        return subprocess.run(["git", "-C", str(repo), *a], capture_output=True, text=True)
+    for sha in (gold, later, stash):
+        assert git(cut, "cat-file", "-e", sha).returncode != 0, sha
+    assert set(git(cut, "rev-list", "--all").stdout.split()) == {c0, c1} and git(cut, "log", "--all", "--format=%s").stdout.split() == ["parent", "old"]
+    assert git(cut, "remote").stdout == "" and git(cut, "tag").stdout == "" and not (cut / ".git" / "objects" / "info" / "alternates").exists()
+    assert H.session_repo_errors(cut, c1, owned) == [] and H.session_repo_record(cut, c1)["commits"] == 2
+    # a session commits on its branch; hobbes-session's harvest lands it in the cut repo, and it comes back to the owned clone
+    _git(cut, "checkout", "-q", "-b", "hobbes/S")
+    (cut / "f.txt").write_text("o\n")
+    _git(cut, "commit", "-q", "-am", "o")
+    o_sha = _git(cut, "rev-parse", "HEAD").strip()
+    assert H.harvest_back(cut, owned, "S") and _git(owned, "rev-parse", "hobbes/S").strip() == o_sha
+    assert not H.harvest_back(cut, owned, "no-such-session")
+    # the repair turn's repo: O's harvested commit and the parent's ancestry, still no gold
+    rr = H.session_repo(owned, o_sha, tmp_path / "S-repair1.repo", "S-repair1")
+    assert git(rr, "cat-file", "-e", gold).returncode != 0 and git(rr, "cat-file", "-e", later).returncode != 0
+    assert set(git(rr, "rev-list", "--all").stdout.split()) == {c0, c1, o_sha} and git(rr, "remote").stdout == ""
+    assert H.session_repo_errors(rr, o_sha, owned) == [] and not (rr / ".git" / "objects" / "info" / "alternates").exists()
+
+
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
@@ -342,6 +388,10 @@ def test_arm_o_brief_policy_command_and_patch_grounding(repo, tmp_path):
                   session_bin="/bin/hobbes-session", base_url="u", model="m", session_id="S-3", sessions_root=tmp_path / "s", out_dir=tmp_path / "o", dry_run=True)
     assert rec["arm"] == "O" and rec["command"][0] == "/bin/hobbes-session" and (tmp_path / "o" / "S-3.brief.md").exists() and (tmp_path / "o" / "S-3.agent" / "policy.yaml").exists()
     assert (root / ".hobbes" / "derived" / "graph.json").exists() and rec["brief_chars"] > 0
+    # D-x: the session is launched from the cut repo, never the owned clone, with the parent's graph beside it
+    cut = rec["command"][rec["command"].index("--repo") + 1]
+    assert cut == str(tmp_path / "o" / "S-3.repo") and rec["session_repo"]["errors"] == [] and rec["session_repo"]["base"] == sha
+    assert (Path(cut) / ".hobbes" / "derived" / "graph.json").exists()
     assert rec["plan"]["refusal"] is None or "Error" in rec["plan"]["refusal"]
 
 
