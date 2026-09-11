@@ -13,6 +13,33 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.12-beta — 2026-09-11 (later)
+
+**Patch: what the Calvin adapter accepts from an orchestrator (protocol
+v0.3), and a metered arm-T driver.** Both came from the first model run
+on M0-Go units (WP-5: five keys, Haiku 4.5, $1.17).
+
+- **Adapter protocol v0.3**, superseding v0.2 (Max's decision). A
+  pattern of `"unchanged"` on SIGNATURE or BODY, or `"unchanged"`/`"no"`
+  on ANCHOR_CONFIRM, is accepted on the first pass. Each hole it covers
+  is filled as unchanged or no and listed under `by_pattern`. A pattern
+  never rewrites or confirms, an explicit fill wins, and a refusal by
+  pattern counts as silence does. The validator reads a refused
+  pattern's holes as `missing`, so the repair names them rather than
+  losing them. `protocol_version` is stamped on every exchange and
+  arm-T record. Refused patterns had cost 7 of 22 calls and 36% of the
+  run's spend; replayed with no spend, 4 of the 5 such exchanges
+  validate on the first pass (C-105).
+- **`calvin_probe.py t-units`**: arm T over a set of units with per-key
+  and total dollar caps, a usage ledger per key, `--key-name`,
+  `--sampling`, `--rta-key` and `--verify`. `run_t(rta=)` hands the RTA
+  key to both groundings. Rows carry `files_changed` and
+  `rfe_changed`, since a body written back byte for byte is not a
+  changed file.
+- Register: C-105 registered (a pattern answers many holes with one
+  judgement, *surfaced* by `by_pattern`); 105 entries, 79 active, 24
+  lifted, 2 superseded.
+
 ## 0.1.11-beta — 2026-09-11
 
 **Patch: Calvin's derive layer reads Go (the M0-Go round).** Three

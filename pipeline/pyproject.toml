@@ -1,6 +1,6 @@
 [project]
 name = "hobbes"
-version = "0.1.11b0"  # PEP 440 for VERSION 0.1.11-beta (test_version.py maps it)
+version = "0.1.12b0"  # PEP 440 for VERSION 0.1.12-beta (test_version.py maps it)
 description = "Hobbes CLI and ingestion pipeline: extractors, invariant compiler, and the front-end to the Go policy engine"
 readme = "README.md"
 requires-python = ">=3.12"
