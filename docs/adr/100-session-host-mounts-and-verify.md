@@ -90,3 +90,47 @@ carry such a mount.
   say for each test where and how it ran.
 - Calvin M0's own ADR, when Max moves the design to *accepted*, takes
   the next number (101), not 100 as the design's header estimated.
+
+## Amended 2026-09-11: the Go verifier (Calvin M0-Go WP-1; harness v2, C-103)
+
+Decision 3's verifier runs Go (`docs/calvin/calvin-m0-go.md` §2.3), on
+five readings where the design is silent:
+
+1. **Regenerate, never apply.** A generated file a diff carries
+   (gitleaks' `config/gitleaks.toml`) is produced by the repo's own
+   `//go:generate` on both trees before any test, never taken from the
+   diff: a T or O candidate carries none, and applying gold's copy
+   would put gold behaviour in the candidate. The regenerated file
+   matches WP-0's on 19 of 20 golds; the one mismatch (48ea14bd47c1) is
+   upstream's committed file lagging its own source.
+2. **Generation is a test row** (`go-generate`) when the directive
+   package's `go list -deps` holds an edited directory or the
+   generation rewrites a touched file; otherwise a build row. It
+   reached the edit on 20 of 20 golds and is the only guard on 11.
+3. **Package grain.** A non-test `.go` file edited outside every span,
+   created, deleted or missing from the graph selects its package's
+   tests, run whole; symbol-, module- and import-grain tests run by
+   name (`-run '^(A|B)$'`).
+4. **Build rows.** `go build ./...` and `go vet ./...` run on both
+   trees for each Go root the diff can move; a `P2F` there makes the
+   verdict `build-fail`, and an `F2F` is a fault.
+5. **Uncollected and removed.** `uncollected` is read on the parent
+   tree (`go test -list`); an id the candidate's list drops while the
+   parent's has it is `removed`.
+
+Two harness mechanisms came with it. **The generation retry (D2):**
+gitleaks' rules draw true positives from a clock-seeded generator,
+so a failing generation gets up to three attempts, and each step
+records `attempts`, `failures` and `flaky` (C-103). **`ro_cache` (D3):**
+`containment.Plan.ro_cache` lays the Go module cache lane B filled
+read-only over the cache root's rw mount, so decision 2's read-only
+binding now holds for the module cache too (C-92), and a write there
+fails in the image. `go build` also runs with `-buildvcs=false`: a
+shared clone's object store is invisible in the container (D1). Exit
+on the 20 golds: every verdict `pass` on two passes, `P2F` 0,
+`all_contained` 20 of 20. **`calvin.box.policy` allows `go generate*`**
+(Max, 2026-09-11) beside `go build*` and `go vet*`, so an arm-O
+session can regenerate the file itself. This widens nothing:
+`make config/gitleaks.toml` already reached the same code through
+`make*`, and the harness regenerates at verify either way. It removes
+a detour that parked the command and expired it to deny.

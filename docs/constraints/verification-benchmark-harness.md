@@ -755,6 +755,34 @@
 - **Source:** ADR-100 (2026-09-04), Calvin M0 step 5; the fixture case
   from the calibration of the same day; the import grain from step 6b.
 
+### C-103 — A Go generation guard's verdict rides on random draws
+
+- **Cannot tell you:** that a rule change passing the generation guard
+  detects every true positive its validation names. Where a repo's
+  `//go:generate` runs its own checks on randomly drawn inputs
+  (gitleaks: each rule's TP/FP validation over strings `reggen` draws),
+  the harness retries a failing generation up to three times
+  (`GENERATE_ATTEMPTS`) and takes the last, so a rule that misses some
+  draws can pass. The guard also reaches the edit by the directive
+  package's import closure (`go list -deps` holding an edited
+  directory, or the generation rewriting a touched file), not by what
+  the command the directive runs exercises.
+- **Because:** `reggen` seeds from the clock inside the repo's own
+  code; no environment fixes the draw, and the harness does not edit
+  the repo. Without the retry, the first gold run read two golds wrong
+  on rules neither touched (09242ce9c8a6 a `P2F`, ed205a5f63e3 an
+  `F2P`); a probe drew 2 failures in 30 at one parent and 0 in 30 at
+  another.
+- **Bites at:** the 11 gitleaks rule units of Calvin M0-Go whose only
+  guard is generation; any Go repo whose generation validates on
+  random input.
+- **You find out:** **surfaced** — every generate step carries
+  `attempts`, `failures` and `flaky` under the record's `go.steps`; on
+  the gold run 3 of 80 generations were flaky, each cleared on the
+  second attempt.
+- **Source:** Calvin M0-Go WP-1, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
+  §2.3), defect D2; ADR-100 amended.
+
 ## Superseded constraints in this segment
 
 A limit that was never lifted but whose path no longer runs. The

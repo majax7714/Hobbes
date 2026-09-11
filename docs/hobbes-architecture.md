@@ -1452,7 +1452,12 @@ a commit identity, which no sandbox had.
   target's tests are a fifth shape on the same planner (ADR-100):**
   the `verify` profile runs a worktree's tests offline, executing the
   target's code where lane B does (`hobbes verify`, Calvin M0's
-  verdict), and **a session may bind host trees read-only**
+  verdict; for Go, the repo's `//go:generate` directives, `go build`
+  and `go vet` run there first, with the module cache laid read-only
+  over the cache root's rw mount — calvin-m0-go §2.3; a generated file
+  is regenerated, never applied, and a failing generation is retried
+  up to three times with each attempt recorded, C-103), and **a
+  session may bind host trees read-only**
   (`hobbes-session --mount`, the dependency trees a target's tests
   need when no image carries them: a venv and its interpreter, a
   `node_modules`, the module cache lane B filled) — mounted at their

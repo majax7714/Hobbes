@@ -104,6 +104,16 @@ class TestPlan:
         assert mounts[0] == f"{cache}:{cache}:rw"
         assert all(m.endswith(":ro") for m in mounts[1:])
 
+    def test_a_path_under_the_cache_can_ride_read_only_over_the_rw_mount(self, cache, tmp_path):
+        # the verify profile's Go module cache (calvin-m0-go §2.3, C-92): nested after the cache's rw mount, before the rest
+        (cache / "go" / "mod").mkdir(parents=True)
+        (tmp_path / "elsewhere").mkdir()
+        plan = containment.plan("verify", ["go"], cwd=cache, ro_cache=[cache / "go" / "mod", tmp_path / "elsewhere", cache / "missing", cache])
+        mounts = plan.mounts()
+        assert mounts[:2] == [f"{cache}:{cache}:rw", f"{cache}/go/mod:{cache}/go/mod:ro"]
+        assert plan.ro_cache == (str(cache / "go" / "mod"),), "only an existing path strictly under the cache root rides nested"
+        assert containment.plan("verify", ["go"], cwd=cache).ro_cache == ()
+
     def test_the_helper_dir_is_always_mounted_ro(self, cache):
         plan = containment.plan("index-go", ["node"], cwd=cache)
         helper = str(containment.helper_dir())

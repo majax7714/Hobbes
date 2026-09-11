@@ -1,6 +1,7 @@
 """The local harness (Calvin M0 step 5): test selection from the testmap, per-framework commands and parsers, the baseline classes, `verify` end to end against a faked container, the environment binding, and arm O's brief, policy, session command and patch grounding — no podman, no model."""
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -131,7 +132,8 @@ def test_commands_per_framework(repo):
     cmds = H.commands(s, root, env, root / "reports")
     by = {c.framework: c for c in cmds}
     assert by["pytest"].cwd == "" and by["pytest"].argv[:3] == [".venv/bin/python3", "-m", "pytest"] and by["pytest"].argv[-1] == "tests/test_core.py::test_derive" and by["pytest"].report.endswith(".xml")
-    assert by["go-test"].argv == ["go", "test", "-json", "-count=1", "./internal/app/"] and by["go-test"].ids == ["internal/app/app_test.go::TestRun"]
+    assert by["go-test"].argv == ["go", "test", "-json", "-count=1", "-run", "^(TestRun)$", "./internal/app/"] and by["go-test"].ids == ["internal/app/app_test.go::TestRun"]
+    assert by["go-test"].list_argv == ["go", "test", "-list", "^(TestRun)$", "./internal/app/"] and by["go-test"].grain == "symbol"
     assert by["node:test"].cwd == "web" and by["node:test"].argv == ["node", "--test", "--test-reporter=tap", "lib.test.mjs"]
     assert by["vitest"].cwd == "web" and by["vitest"].argv[:3] == ["./node_modules/.bin/vitest", "run", "--no-cache"] and by["vitest"].argv[-1] == "lib.spec.ts"
     assert "--no-cache" in by["vitest"].argv, "vitest's cache must not land in the read-only node_modules"
@@ -190,6 +192,8 @@ class FakePodman:
             Path(rep).parent.mkdir(parents=True, exist_ok=True)
             Path(rep).write_text('<testsuites><testsuite><testcase classname="tests.test_core" name="test_derive"%s</testsuite></testsuites>'
                                  % ("/>" if candidate else "><failure/></testcase>"))
+        elif argv[:3] == ["go", "test", "-list"]:
+            stdout = "TestRun\nok  \texample.com/x/internal/app\t0.001s\n"
         elif argv[:2] == ["go", "test"]:
             stdout = json.dumps({"Action": "pass", "Test": "TestRun"}) + "\n"
         containment.LEDGER.append({"step": p.profile.step, "contained": True})
@@ -206,8 +210,11 @@ def test_verify_end_to_end_with_a_faked_container(repo, monkeypatch):
     assert rec["applies"] and rec["verdict"] == "pass" and rec["summary"] == {"F2P": 1, "P2P": 1} and rec["regressions"] == []
     rows = {r["id"]: r for r in rec["tests"]}
     assert rows["tests/test_core.py::test_derive"]["class"] == "F2P" and rows["internal/app/app_test.go::TestRun"]["class"] == "P2P"
-    assert rec["containment"] == {"steps": [{"step": "verify", "contained": True}] * 4, "all_contained": True}
-    assert [p.profile.step for p in fake.plans] == ["verify"] * 4 and all(p.profile.network == "none" for p in fake.plans)
+    # per tree: go build, go vet (the Go tree steps: app.go moves the Go build), go test -list, go test, pytest
+    assert rec["containment"] == {"steps": [{"step": "verify", "contained": True}] * 10, "all_contained": True}
+    assert [p.profile.step for p in fake.plans] == ["verify"] * 10 and all(p.profile.network == "none" for p in fake.plans)
+    assert [list(p.command[:2]) for p in fake.plans[:4]] == [["go", "build"], ["go", "vet"], ["go", "test"], ["go", "test"]]
+    assert rec["build_summary"] == {"P2P": 2} and rec["build_failures"] == [] and [b["kind"] for b in rec["build"]] == ["build", "vet"]
     assert all(str(source / ".venv") in p.ro for p in fake.plans), "the source's venv rides read-only"
     assert rec["environment"]["links"][0] == [".venv", str(source / ".venv")] and any(kv.startswith("PYTHONPATH=") for kv in rec["environment"]["env"])
     assert json.loads((root / "out" / "v.json").read_text())["verdict"] == "pass"
@@ -357,3 +364,169 @@ def test_hobbes_verify_cli(repo, monkeypatch, capsys):
         raise containment.ContainmentRefusal("no image")
     monkeypatch.setattr(containment, "run", refuse)
     assert cli.main(["verify", str(root / "cand.diff"), "--repo", str(root), "--source", str(source)]) == 3
+
+
+# ------------------------------------------------------------------ Go (calvin-m0-go §2.3)
+
+GO_CALC = "package calc\n\nvar Base = 1\n\nfunc Add(a, b int) int { return a + b + Base - 1 }\n\nfunc Sub(a, b int) int { return a - b }\n"
+GO_CALC_TEST = "package calc\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {}\n\nfunc TestSub(t *testing.T) {}\n"
+GO_GEN = "package main\n\nimport \"example.com/g/calc\"\n\n//go:generate go run . ../../data/out.txt\n\nfunc main() { _ = calc.Add }\n"
+
+
+@pytest.fixture
+def gorepo(tmp_path, monkeypatch):
+    """A Go module with a generator whose output the repo commits (gitleaks' shape: `cmd/generate/config` → `config/gitleaks.toml`)."""
+    monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+    root = tmp_path / "gorepo"
+    files = {"go.mod": "module example.com/g\n\ngo 1.22\n", "calc/calc.go": GO_CALC, "calc/calc_test.go": GO_CALC_TEST,
+             "cmd/gen/main.go": GO_GEN, "data/out.txt": "v1\n", "README.md": "g\n", "other/doc.txt": "x\n"}
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    _git(root, "init", "-q")
+    _git(root, "add", ".")
+    _git(root, "commit", "-q", "-m", "one")
+    sha = _git(root, "rev-parse", "HEAD").strip()
+    graph = {"sha": sha, "schema_version": 4, "built_by": {"sha": "abc"}, "containment": {"all_contained": True},
+             "nodes": [{"id": "calc/calc", "kind": "module", "path": "calc/calc.go"}, {"id": "calc/calc_test", "kind": "module", "path": "calc/calc_test.go"},
+                       {"id": "cmd/gen/main", "kind": "module", "path": "cmd/gen/main.go"}],
+             "symbols": [{"id": "calc/calc.Add", "module": "calc/calc", "name": "Add", "qualname": "Add", "kind": "function", "line": 5, "end_line": 5},
+                         {"id": "calc/calc.Sub", "module": "calc/calc", "name": "Sub", "qualname": "Sub", "kind": "function", "line": 7, "end_line": 7},
+                         {"id": "cmd/gen/main.main", "module": "cmd/gen/main", "name": "main", "qualname": "main", "kind": "function", "line": 7, "end_line": 7}],
+             "symbol_edges": [], "module_edges": []}
+    tests = {"sha": sha, "tests": [
+        {"id": "calc/calc_test.go::TestAdd", "file": "calc/calc_test.go", "framework": "go-test", "line": 5, "reaches": ["calc/calc.Add"], "reaches_modules": []},
+        {"id": "calc/calc_test.go::TestGone", "file": "calc/calc_test.go", "framework": "go-test", "line": 9, "reaches": ["calc/calc.Add"], "reaches_modules": []},
+        {"id": "calc/calc_test.go::TestSub", "file": "calc/calc_test.go", "framework": "go-test", "line": 7, "reaches": ["calc/calc.Sub"], "reaches_modules": []}]}
+    return root, sha, T.Ledger(graph, tests)
+
+
+class GoFake:
+    """Answers `containment.run` for the go tool from the tree it is pointed at: generate rewrites data/out.txt from calc.go, `list -deps` names the generator's closure, build fails on a `BROKEN` mark, `test -list` and `test` read calc_test.go."""
+
+    def __init__(self, flakes: int = 0):
+        self.plans = []
+        self.flakes = flakes  # the first *flakes* generations fail as a random draw would
+
+    def __call__(self, p, *, timeout):
+        self.plans.append(p)
+        argv, cwd = list(p.command), Path(p.cwd)
+        calc = (cwd / "calc" / "calc.go").read_text()
+        names = re.findall(r"(?m)^func (Test\w+)\(", (cwd / "calc" / "calc_test.go").read_text())
+        out, rc = "", 0
+        if argv[:2] == ["go", "generate"]:
+            if self.flakes or "NOVALID" in calc:  # a validation that fails: exits before it writes, as gitleaks' log.Fatal does
+                self.flakes = max(self.flakes - 1, 0)
+                containment.LEDGER.append({"step": p.profile.step, "contained": True})
+                return containment.Outcome(subprocess.CompletedProcess(argv, 1, "", "FTL Failed to Validate. True positive was not detected by regex.\n"), True)
+            (cwd / "data" / "out.txt").write_text("base=2\n" if "Base = 2" in calc else "v1\n")
+        elif argv[:3] == ["go", "list", "-deps"]:
+            out = f"/usr/local/go/src/fmt\n{cwd / 'calc'}\n{cwd / 'cmd' / 'gen'}\n"
+        elif argv[:2] == ["go", "build"]:
+            rc = 1 if "BROKEN" in calc else 0
+        elif argv[:3] == ["go", "test", "-list"]:
+            out = "".join(n + "\n" for n in names if re.search(argv[3], n)) + "ok  \texample.com/g/calc\t0.01s\n"
+        elif argv[:2] == ["go", "test"]:
+            pat = argv[argv.index("-run") + 1] if "-run" in argv else "."
+            out = "".join(json.dumps({"Action": "pass", "Test": n}) + "\n" for n in names if re.search(pat, n))
+        containment.LEDGER.append({"step": p.profile.step, "contained": True})
+        return containment.Outcome(subprocess.CompletedProcess(argv, rc, out, ""), True)
+
+
+def test_go_selection_package_grain_and_commands(gorepo):
+    root, sha, L = gorepo
+    env = H.environment(root, root)
+    body = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1", "a + b")})
+    s = H.select_tests(L, body)  # inside Add's span: symbol grain, the testmap's ids by name
+    assert [(t["id"], t["grain"]) for t in s.tests] == [("calc/calc_test.go::TestAdd", "symbol"), ("calc/calc_test.go::TestGone", "symbol")]
+    c, = H.commands(s, root, env, root / "r")
+    assert c.argv == ["go", "test", "-json", "-count=1", "-run", "^(TestAdd|TestGone)$", "./calc/"] and c.grain == "symbol"
+    assert c.list_argv == ["go", "test", "-list", "^(TestAdd|TestGone)$", "./calc/"]
+    var = diff_for(root, {"calc/calc.go": GO_CALC.replace("Base = 1", "Base = 2")})
+    s = H.select_tests(L, var)  # a package-level var, outside every span: the package's tests, whole
+    assert {t["grain"] for t in s.tests} == {"package"} and len(s.tests) == 3
+    c, = H.commands(s, root, env, root / "r")
+    assert c.argv == ["go", "test", "-json", "-count=1", "./calc/"] and c.list_argv[3] == "." and c.grain == "package"
+    new = diff_for(root, {"calc/extra.go": "package calc\n\nfunc Mul(a, b int) int { return a * b }\n"})
+    assert {t["grain"] for t in H.select_tests(L, new).tests} == {"package"}, "a created file shares its package's tests"
+    assert H.select_tests(L, diff_for(root, {"README.md": "h\n"})).tests == []
+    # the tree steps' reach: a path moves the Go build if it is Go, a module file, or sits beside Go files
+    assert H.go_roots(root, ["calc/calc.go"]) == [""] and H.go_roots(root, ["calc/new.go", "go.sum"]) == [""]
+    assert H.go_roots(root, ["README.md", "other/doc.txt", "data/out.txt"]) == [], "no Go file beside them"
+    assert H.go_directives(root, "") == {"cmd/gen": "cmd/gen/main.go"}
+    assert H._go_target("cmd/gen", "") == "./cmd/gen/" and H._go_target("", "") == "." and H._go_target("sub/x", "sub") == "./x/"
+    (Path(os.environ["HOBBES_CACHE_DIR"]) / "go" / "mod").mkdir(parents=True)
+    env = H.environment(root, root)
+    assert env.ro_cache == [str(Path(os.environ["HOBBES_CACHE_DIR"]) / "go" / "mod")] and "GOFLAGS=-mod=mod -buildvcs=false" in env.env
+    assert any("module cache is mounted read-only" in n for n in env.notes) and env.record()["ro_cache"] == env.ro_cache
+
+
+def test_go_verify_regenerates_guards_and_builds(gorepo, monkeypatch):
+    root, sha, L = gorepo
+    (Path(os.environ["HOBBES_CACHE_DIR"]) / "go" / "mod").mkdir(parents=True)
+    fake = GoFake()
+    monkeypatch.setattr(containment, "run", fake)
+    var = diff_for(root, {"calc/calc.go": GO_CALC.replace("Base = 1", "Base = 2")})
+    rec = H.verify(root, sha, var, L, root)
+    rows = {r["id"]: r for r in rec["tests"]}
+    assert rec["verdict"] == "pass" and rec["harness_version"] == 2 and rec["containment"]["all_contained"]
+    assert rows["calc/calc_test.go::TestAdd"]["class"] == "P2P" and rows["calc/calc_test.go::TestSub"]["class"] == "P2P"
+    assert rows["calc/calc_test.go::TestGone"]["class"] == "uncollected" and "go test -list" in rows["calc/calc_test.go::TestGone"]["note"]
+    gen = rows["cmd/gen/main.go::go:generate"]  # the generator's closure holds calc/: its run guards the edit
+    assert (gen["framework"], gen["origin"], gen["grain"], gen["class"]) == ("go-generate", "generate", "deps", "P2P")
+    assert [b["id"] for b in rec["build"]] == [".::go build ./...", ".::go vet ./..."] and rec["build_summary"] == {"P2P": 2}
+    g = rec["go"]["generated"]
+    assert g["candidate"][0]["changed"] == ["data/out.txt"] and "+base=2" in g["candidate"][0]["diff"] and g["baseline"][0]["changed"] == []
+    assert g["candidate"][0]["deps"] == ["calc", "cmd/gen"], "the closure inside the worktree; the stdlib's dirs dropped"
+    cand = [list(p.command[:3]) for p in fake.plans[:6]]
+    assert cand == [["go", "generate", "./cmd/gen/"], ["go", "list", "-deps"], ["go", "build", "./..."], ["go", "vet", "./..."], ["go", "test", "-list"], ["go", "test", "-json"]]
+    cache = os.environ["HOBBES_CACHE_DIR"]
+    assert all(p.ro_cache == (f"{cache}/go/mod",) for p in fake.plans), "the module cache rides read-only on every step (C-92)"
+    # a diff that does not compile is build-fail, not a test failure
+    broke = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // BROKEN")})
+    rec = H.verify(root, sha, broke, L, root)
+    assert rec["verdict"] == "build-fail" and rec["build_failures"] == [".::go build ./..."] and rec["regressions"] == []
+    # a test the diff deletes is removed, not uncollected; a testmap id absent on both trees stays uncollected
+    gone = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST.replace("\nfunc TestSub(t *testing.T) {}\n", "")})
+    rec = H.verify(root, sha, gone, L, root)
+    rows = {r["id"]: r for r in rec["tests"]}
+    assert rec["verdict"] == "pass" and rows["calc/calc_test.go::TestSub"]["class"] == "removed" and rows["calc/calc_test.go::TestGone"]["class"] == "uncollected"
+    assert rows["calc/calc_test.go::TestAdd"]["grain"] == "file" and "cmd/gen/main.go::go:generate" in rows
+    # a generation whose closure the diff does not reach is a build row, and guards nothing
+    other = diff_for(root, {"other/other.go": "package other\n"})
+    rec = H.verify(root, sha, other, L, root)
+    assert rec["verdict"] == "no-tests" and rec["tests"] == [] and [b["kind"] for b in rec["build"]] == ["build", "vet", "generate"]
+
+
+def test_go_generation_retries_a_random_draw_and_fails_a_real_one(gorepo, monkeypatch):
+    # gitleaks' generator validates each rule on true positives reggen draws with a clock seed: one failure can be the draw's
+    root, sha, L = gorepo
+    fake = GoFake(flakes=1)
+    monkeypatch.setattr(containment, "run", fake)
+    var = diff_for(root, {"calc/calc.go": GO_CALC.replace("Base = 1", "Base = 2")})
+    rec = H.verify(root, sha, var, L, root)
+    gen = rec["go"]["steps"]["candidate"]["cmd/gen/main.go::go:generate"]
+    assert gen["attempts"] == ["fail", "pass"] and gen["flaky"] and "not detected" in gen["failures"][0]
+    assert rec["go"]["generated"]["candidate"][0]["changed"] == ["data/out.txt"], "the passing attempt's output is the tree's"
+    assert rec["verdict"] == "pass" and {r["id"]: r for r in rec["tests"]}["cmd/gen/main.go::go:generate"]["class"] == "P2P"
+    assert rec["go"]["steps"]["baseline"]["cmd/gen/main.go::go:generate"]["attempts"] == ["pass"] and not rec["go"]["steps"]["baseline"]["cmd/gen/main.go::go:generate"]["flaky"]
+    # a validation the diff breaks fails every attempt: a regression of the guard, not a flake
+    fake = GoFake()
+    monkeypatch.setattr(containment, "run", fake)
+    bad = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // NOVALID")})
+    rec = H.verify(root, sha, bad, L, root)
+    gen = rec["go"]["steps"]["candidate"]["cmd/gen/main.go::go:generate"]
+    assert gen["attempts"] == ["fail"] * H.GENERATE_ATTEMPTS and not gen["flaky"] and len(gen["failures"]) == H.GENERATE_ATTEMPTS
+    assert rec["verdict"] == "fail" and rec["regressions"] == ["cmd/gen/main.go::go:generate"]
+    assert sum(list(p.command[:2]) == ["go", "generate"] for p in fake.plans) == H.GENERATE_ATTEMPTS + 1, "three on the candidate, one on the baseline"
+
+
+def test_score_reads_build_rows():
+    rec = {"tests": [{"id": "t", "candidate": "pass", "baseline": "pass"}], "build": [{"id": "b", "candidate": "fail", "baseline": "fail"}], "baseline": True}
+    assert H.score(rec)["verdict"] == "pass" and rec["faults"] == ["b"] and rec["build_summary"] == {"F2F": 1}, "a build broken on both trees is the environment's"
+    rec["build"][0]["baseline"] = "pass"
+    assert H.score(rec)["verdict"] == "build-fail" and rec["build_failures"] == ["b"]
+    assert H.score({"tests": [], "build": [{"id": "b", "candidate": "fail", "baseline": None}], "baseline": False})["verdict"] == "build-fail"
+    old = H.score({"tests": [{"id": "t", "candidate": "pass", "baseline": "pass"}], "baseline": True})
+    assert "build_summary" not in old and "build_failures" not in old, "a record from before the Go steps rescores unchanged"
+    assert H.classify("uncollected", "pass") == "removed" and H.classify("uncollected", "uncollected") == "uncollected"

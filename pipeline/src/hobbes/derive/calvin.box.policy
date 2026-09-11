@@ -5,7 +5,7 @@
 # The benchmark floor (ADR-057, `bench.box.policy`) plus the runners this
 # repo's guards need inside the sandbox image, where there is no `uv`:
 # the venv's python (`.venv/bin/python*`), `node --test`, vitest through
-# npm or its binary, `go build`/`go vet`. The specific guarantees stay
+# npm or its binary, `go build`/`go vet`/`go generate`. The specific guarantees stay
 # denied and win by deny-overrides (P10, ADR-036); the OS sandbox is the
 # real boundary (§5.2) — this file only decides which shell commands the
 # proxy will run, and cannot widen what the sandbox already forbids. The
@@ -168,6 +168,13 @@ rules:
   - pattern: "go build*"
     decision: allow
   - pattern: "go vet*"
+    decision: allow
+  # gitleaks regenerates `config/gitleaks.toml` and runs each rule's
+  # true/false-positive validation through `//go:generate`; the harness
+  # regenerates at verify either way (ADR-100's Go amendment), and
+  # `make config/gitleaks.toml` already reached the same code through
+  # `make*` — this widens nothing and removes a parked-then-denied detour
+  - pattern: "go generate*"
     decision: allow
   - pattern: "cd *"
     decision: allow
