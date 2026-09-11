@@ -818,6 +818,36 @@
 - **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
   (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
 
+### C-124 — An arm-O session can reach the network: the repo's future is cut from its clone, not from the internet
+
+- **Cannot tell you:** that an arm-O session never saw the upstream
+  repository's later history.
+  - **What 0.1.20-beta closed** (calvin-m0-gate D-x): the session's
+    repo holds only the key's parent and its ancestors
+    (`harness.session_repo`, `SESSION_REPO_RULE`). Each session sees
+    only its own sessions directory, and a repair turn resumes on a
+    repo cut at O's own commit.
+  - **What stays open:** the container keeps the network the model
+    endpoint needs (pasta), and the box policy allows `python3 -c *`,
+    `python *` and `pip install*`. A session could fetch the upstream
+    repository, a later release or its issue tracker by URL.
+- **Because:** the loop calls the endpoint from inside the container.
+  An egress allowlist naming the endpoint's host alone is not built;
+  the ingest's Java resolve pass has the measured shape of one
+  (ADR-097).
+- **Bites at:** every readable key, since gold is public upstream,
+  wherever a session reaches for it by URL. Rounds 1–2 and WP-21's key
+  1 read gold from the local history instead: four `git show <own
+  key>` sessions, now closed by the cut.
+- **You find out:** **partial**.
+  - Every exec command is in the session's flight log and transcript,
+    so a fetch is visible there.
+  - The recall scan reads O's added lines against gold and later
+    history.
+  - Nothing blocks the fetch.
+- **Source:** calvin-m0-gate WP-18c (D-x, found by WP-21 at key 1),
+  2026-09-11.
+
 ## Superseded constraints in this segment
 
 A limit that was never lifted but whose path no longer runs. The

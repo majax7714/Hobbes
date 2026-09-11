@@ -124,7 +124,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-55, C-56 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-124, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
@@ -135,8 +135,11 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and twenty-three entries: ninety-seven active, twenty-four lifted, two superseded**
-(C-121–C-123 registered 2026-09-11 by Calvin M0-Gate WP-18, `hobbes gate` — the
+**One hundred and twenty-four entries: ninety-eight active, twenty-four lifted, two superseded**
+(C-124 registered 2026-09-11 by Calvin M0-Gate WP-18c — an arm-O session's repo
+is cut at the key's parent (D-x), but the container keeps the endpoint's
+network, so upstream is out of the repo and not out of reach; *partial*;
+C-121–C-123 registered 2026-09-11 by Calvin M0-Gate WP-18, `hobbes gate` — the
 `unknown` advisory, the partition check at file grain (`reach` by default: what
 lies beyond the code world is listed, not blocked),
 and the complement split's grain and classes (the map's file-grain sites never
@@ -268,7 +271,7 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Six of the active are *partial* (C-4, C-58, C-68, C-83, C-102, C-108); three
+against the code that concedes it; none had been silently lifted). Seven of the active are *partial* (C-4, C-58, C-68, C-83, C-102, C-108, C-124); three
 are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and C-112 — the grounder's unclassed syntax error, registered as debt 2026-09-11; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
