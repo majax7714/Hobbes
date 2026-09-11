@@ -201,3 +201,31 @@
 - **Source:** Calvin M0 step 3 (2026-09-04, the probe record's fourth
   addendum).
 
+### C-104 — Template v2 shows a capped callee by its signature line until it is confirmed
+
+- **Cannot tell you:** what a callee's body holds, when the callee
+  belongs to an anchored symbol with more than `CALLEE_CAP` (k = 20)
+  distinct in-repo callees. Under template v2 such a callee is not
+  expanded. It is asked in round 1 as an `ANCHOR_CONFIRM` showing its
+  signature line only, and its body, callers and tests join the
+  template only if the orchestrator confirms it. The confirmation is
+  made from one line. A change the task names only through the fan-out
+  is not in round 2 unless a confirmation lets it in.
+- **Because:** v1 expanded every callee of every seed, and one
+  registry symbol (gitleaks' `cmd/generate/config/main.main`, 177–223
+  callees) turned eight keys into 181–269 body holes and 3.0–7.5M
+  characters each (M0-Go F1). The cap trades that cost for a round-1
+  question per held-back callee.
+- **Bites at:** v2 templates only; v1 is the default, and the
+  `hobbes template` CLI builds v1. On the 20 M0-Go keys at A2, strict
+  Go coverage goes from 86/7/6/4 to 86/6/6/5: the hunk lost is 107a41
+  `gitlab.go:180`, a new rule that v1 reached only through
+  `main.main`'s fan-out, and that at v2 is a declare-hole in a file A2
+  does not name. Gold said yes to none of A2's 1,574 cap confirmations.
+- **You find out:** **surfaced** — each held-back callee is a named
+  round-1 hole (`matcher: callee-cap`, its seed and the seed's callee
+  count in the ask), and a v2 template carries `callee_cap` and a
+  pruning rule stating the cap.
+- **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
+  §10, F1; `docs/calvin/calvin-potential.md` §2.1).
+

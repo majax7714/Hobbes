@@ -1,4 +1,5 @@
 """`hobbes template` (Calvin M0 step 2): the anchor pass's matchers, the structure pass's holes, round 1, pruning, the two scorers, and byte-identity — on a synthetic ledger over a temporary git repo."""
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -267,4 +268,77 @@ def test_a_test_that_imports_an_edited_module_is_a_guard(repo):
     assert exp["internal/app/app_test.go::TestRun"]["tier"] == "testmap"
     assert exp["internal/app/app_test.go::TestDefaults"] == {"test": "internal/app/app_test.go::TestDefaults", "imports": ["internal/app/app"], "tier": "import"}
     assert "internal/app/app_test.go" in t["constraints"]["write_partition"]
+
+
+# ------------------------------------------------ template v2: the out-degree cap (Calvin M0-Go, F1)
+
+#: `_v1_digest` on this fixture, recorded with the code of b1b255a — before template v2 existed.
+V1_DIGEST = "6e45f65fb151d865454aead06f75bbe5ec0665450065109985dd7156d3bafee9"
+V1_TASKS = ("Change `runGoRTA`.", "Tidy up `app.go`.", "Change `main` and `Run`; also helper.")
+
+
+def _v1_digest(root, sha, L, **kw) -> str:
+    """Every template and render over ``V1_TASKS`` — round 1, and round 2 with every confirmation answered yes — the SHA masked (the fixture commit's SHA follows the clock)."""
+    out = []
+    for task in V1_TASKS:
+        t = T.build_template(task, L, root, None, **kw)
+        t2 = T.apply_round1(task, L, root, None, t, {h["id"]: {"confirm": True} for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM"})
+        out += [T.canonical(t), holes.render(t, root), T.canonical(t2), holes.render(t2, root)]
+    return hashlib.sha256("\n".join(out).replace(sha, "<sha>").replace(sha[:12], "<sha12>").encode()).hexdigest()
+
+
+def test_v1_is_unchanged_by_the_cap(repo, monkeypatch):
+    """M0's templates stay reproducible: v1, the default, renders byte for byte as it did before the cap existed, whatever the cap is set to."""
+    root, sha = repo
+    L = ledger(sha)
+    assert _v1_digest(root, sha, L) == V1_DIGEST
+    monkeypatch.setattr(T, "CALLEE_CAP", 0)
+    assert _v1_digest(root, sha, L, version=1) == V1_DIGEST
+    assert _v1_digest(root, sha, L, version=2) != V1_DIGEST, "the cap binds at 0 here, so v2 must differ"
+
+
+def test_v2_below_the_cap_is_v1(repo):
+    """Under the cap, v2 expands callees exactly as v1: the same anchors and holes, only the version, key and hash differ."""
+    root, sha = repo
+    L = ledger(sha)
+    for task in V1_TASKS:
+        a, b = T.build_template(task, L, root, None), T.build_template(task, L, root, None, version=2)
+        assert a["anchors"] == b["anchors"] and a["holes"] == b["holes"]
+        assert (a["template_version"], b["template_version"], b["callee_cap"]) == (1, 2, T.CALLEE_CAP) and "callee_cap" not in a
+        assert a["template_hash"] != b["template_hash"] and not holes.validate_template(b)
+
+
+def test_v2_caps_callee_expansion_above_k(repo, monkeypatch):
+    """Over the cap, an anchored symbol's callees are ANCHOR_CONFIRMs showing the signature line only (M0 v1's module-anchor pattern):
+    no body, no region, no test or caller holes for them; a confirmed callee joins the interior on rebuild, and an answered one is not asked again."""
+    root, sha = repo
+    L = ledger(sha)
+    monkeypatch.setattr(T, "CALLEE_CAP", 0)
+    task = "Change `cmd/main.runGoRTA`."  # the exact id: no name confirmation, so every ANCHOR_CONFIRM here is the cap's
+    t = T.build_template(task, L, root, None, version=2)
+    assert (t["template_version"], t["key"]["template_version"], t["callee_cap"]) == (2, 2, 0) and not holes.validate_template(t)
+    assert {h["provenance"]["symbol"] for h in t["holes"] if h["type"] == "BODY"} == {"cmd/main.runGoRTA"}, "neither the callee nor the type only it would pull in"
+    confirms = [h for h in t["holes"] if h["type"] == "ANCHOR_CONFIRM"]
+    kid = f"k{sorted(L.symbols).index('internal/app/app.Run') + 1}"  # keyed by the callee's place in the ledger: a rebuild never reuses an id
+    assert [(h["id"], h["provenance"]["symbol"], h["provenance"]["callee_of"]) for h in confirms] == [(kid, "internal/app/app.Run", "cmd/main.runGoRTA")]
+    assert confirms[0]["span"] == L.span("internal/app/app.Run") and "unanswered is no" in confirms[0]["ask"] and "out-degree cap" in confirms[0]["ask"]
+    text = holes.render(t, root)
+    assert "func Run(o Options) error {" in text and 'fmt.Println("go-rta", o.Repo)' not in text, "the signature line, not the body"
+    assert t["constraints"]["write_partition"] == ["cmd/main.go"] and not any(h["type"] == "TEST_EXPECTATION" for h in t["holes"])
+    yes = T.apply_round1(task, L, root, None, t, {kid: {"confirm":True}})
+    assert yes["template_version"] == 2 and not holes.validate_template(yes)
+    assert {h["provenance"]["symbol"] for h in yes["holes"] if h["type"] == "BODY"} == {"cmd/main.runGoRTA", "internal/app/app.Run", "internal/app/app.Options"}
+    assert not any(h["type"] == "ANCHOR_CONFIRM" for h in yes["holes"]) and any(h["type"] == "TEST_EXPECTATION" for h in yes["holes"])
+    no = T.apply_round1(task, L, root, None, t, {kid: {"confirm":False}})
+    assert {h["provenance"]["symbol"] for h in no["holes"] if h["type"] == "BODY"} == {"cmd/main.runGoRTA"}
+    assert not any(h["type"] == "ANCHOR_CONFIRM" for h in no["holes"]), "refused: the seed stays, its callees are not asked again"
+    assert [a["term"] for a in no["anchors"]] == ["cmd/main.runGoRTA"]
+
+
+def test_template_versions_are_named(repo):
+    root, sha = repo
+    with pytest.raises(ValueError):
+        T.build_template("Change `Run`.", ledger(sha), root, None, version=3)
+    t = T.build_template("Change `Run`.", ledger(sha), root, None, version=2)
+    assert holes.validate_template({**t, "template_version": 3})[0].startswith("template_version must be one of")
 

@@ -41,7 +41,11 @@ import re
 import subprocess
 from pathlib import Path
 
-TEMPLATE_VERSION = 1  # 1 (step 6): a module anchor opens confirmations per symbol, importers are guards, the ANCHOR hole carries candidates
+TEMPLATE_VERSION = 1  # the default. 1 (step 6): a module anchor opens confirmations per symbol, importers are guards, the ANCHOR hole carries candidates
+#: Every version the generator builds and the validator accepts. 2 (Calvin M0-Go F1, `docs/calvin/calvin-m0-go.md` §10): an
+#: anchored symbol with more than `template.CALLEE_CAP` in-repo callees opens them as ANCHOR_CONFIRMs showing the signature
+#: line only, never as bodies. Opt-in (`build_template(version=2)`), so a v1 template rebuilds byte for byte.
+TEMPLATE_VERSIONS = (1, 2)
 
 #: hole type → what it asks for (rendered) and the fill shape's name.
 HOLE_TYPES: dict[str, str] = {
@@ -96,8 +100,8 @@ def _span_errors(span, where: str) -> list[str]:
 def validate_template(t: dict) -> list[str]:
     """Every defect in a template, in reading order; an empty list is a valid template."""
     errs: list[str] = []
-    if t.get("template_version") != TEMPLATE_VERSION:
-        errs.append(f"template_version must be {TEMPLATE_VERSION}")
+    if t.get("template_version") not in TEMPLATE_VERSIONS:
+        errs.append(f"template_version must be one of {TEMPLATE_VERSIONS}")
     key = t.get("key") or {}
     for k in ("parent_sha", "task_hash"):
         if not key.get(k):
