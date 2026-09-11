@@ -64,6 +64,7 @@ def go():
     return derive(core.TABLE.get("a"))
 '''
 GO_MOD = "module example.com/x\n\ngo 1.22\n"
+OTHER = "package other\n\n// V is a value.\nvar V = 1\n"
 PARTITION = ["cmd/main.go", "internal/app/app.go", "pkg/core.py", "pkg/use.py"]
 MAP = {"partition": ["cmd/main.go", "internal/app/app.go"],
        "files": [{"path": "cmd/main.go", "captured": True, "reason": None, "detail": ""},
@@ -109,7 +110,7 @@ def _graph(sha):
 def repo(tmp_path):
     root = tmp_path / "repo"
     files = {"internal/app/app.go": APP, "cmd/main.go": MAIN, "go.mod": GO_MOD, "pkg/__init__.py": INIT, "pkg/core.py": CORE, "pkg/use.py": USE,
-             "docs/notes.md": "notes\n", "testdata/x.toml": "a = 1\n"}
+             "docs/notes.md": "notes\n", "testdata/x.toml": "a = 1\n", "internal/other/other.go": OTHER}
     for rel, text in files.items():
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_text(text)
@@ -137,10 +138,11 @@ def diff_of(root, changes: dict) -> str:
     return d
 
 
-def run_gate(repo, diff, *, partition=PARTITION, bmap=None, rule="exempt"):
+def run_gate(repo, diff, *, partition=PARTITION, bmap=None, rule=None):
+    """The gate over *diff*; *rule* None leaves the gate's own default partition rule (`reach`)."""
     root, sha, L, gpath = repo
     return gt.gate(diff, sha, root, L, inputs=gt.input_hashes(diff, gpath, None, partition, bmap), partition=partition,
-                   partition_source="list", bmap=bmap, partition_rule=rule)
+                   partition_source="list", bmap=bmap, **({} if rule is None else {"partition_rule": rule}))
 
 
 def main_with(body: str) -> str:
@@ -160,7 +162,7 @@ GO_CASES = {
                                                                         'import (\n\t"example.com/x/internal/app"\n\t"github.com/other/mod"\n)')},
     "unimported": {"cmd/main.go": main_with('\tstrings.ToUpper("x")')},
     "malformed": {"cmd/main.go": MAIN + "12  x := 1\n13  y := 2\n"},
-    "partition": {"docs/notes.md": "notes, changed\n"},
+    "partition": {"internal/other/other.go": OTHER.replace("var V = 1", "var V = 2")},  # seeded (ii)'s shape: an existing code file elsewhere
 }
 
 
@@ -173,7 +175,7 @@ def test_each_blocking_class_fires_on_a_synthetic_go_diff(repo, cls):
     rec = run_gate(repo, diff_of(repo[0], GO_CASES[cls]))
     assert rec["verdict"] == "blocked" and rec["blocking"] == [cls], rec["rows"]
     row = next(r for r in rec["rows"] if r["class"] == cls)
-    assert row["path"] == ("docs/notes.md" if cls == "partition" else "cmd/main.go")
+    assert row["path"] == ("internal/other/other.go" if cls == "partition" else "cmd/main.go")
     if cls not in ("malformed", "partition"):
         assert row["grounder_class"] == cls and row["line"] > 0 and row["site"] is None, "no map given: every class stands, no site read"
     assert rec["integrity"]["applies"] is True and rec["integrity"]["post_agrees"] is True
@@ -198,7 +200,7 @@ def test_on_python_the_name_and_form_classes_fire_and_the_go_world_classes_do_no
     assert run_gate(repo, diff_of(root, {"pkg/use.py": use_with("    return frobnicate(1)")}))["blocking"] == ["invented"]
     assert run_gate(repo, diff_of(root, {"pkg/use.py": use_with("    return derivee(1)")}))["blocking"] == ["near-miss"]
     assert run_gate(repo, diff_of(root, {"pkg/use.py": USE + "12  a = 1\n13  b = 2\n"}))["blocking"] == ["malformed"]
-    assert run_gate(repo, diff_of(root, {"pkg/new.py": "def f():\n    return 1\n"}))["blocking"] == ["partition"]
+    assert run_gate(repo, diff_of(root, {"tools/new.py": "def f():\n    return 1\n"}))["blocking"] == ["partition"]
     # no arity on Python, and an import outside the repo is external, never import-outside or unimported
     assert run_gate(repo, diff_of(root, {"pkg/use.py": use_with("    return derive(1, 2, 3)")}))["verdict"] == "clear"
     rec = run_gate(repo, diff_of(root, {"pkg/use.py": "import nosuchmod\n" + use_with("    return nosuchmod.f(os.sep)")}))
@@ -292,8 +294,8 @@ def test_partition_blocks_an_outside_write_names_created_and_deleted_and_exempts
     fixture = diff_of(root, {"testdata/x.toml": "a = 2\n"})
     rec = run_gate(repo, fixture)
     assert rec["verdict"] == "clear" and rec["partition"]["exempt"] == ["testdata/x.toml"] and rec["partition"]["outside"] == []
-    assert run_gate(repo, fixture, rule="strict")["blocking"] == ["partition"] and rec["partition"]["rule"] == "exempt"
-    rec = run_gate(repo, diff_of(root, {"internal/app/extra.go": "package app\n\nfunc Extra() int { return 1 }\n", "docs/notes.md": None}))
+    assert run_gate(repo, fixture, rule="strict")["blocking"] == ["partition"] and rec["partition"]["rule"] == "reach"
+    rec = run_gate(repo, diff_of(root, {"internal/app/extra.go": "package app\n\nfunc Extra() int { return 1 }\n", "docs/notes.md": None}), rule="exempt")
     assert [(r["path"], r["reason"]) for r in rec["rows"] if r["class"] == "partition"] == [
         ("docs/notes.md", "outside the unit's write partition (deleted)"), ("internal/app/extra.go", "outside the unit's write partition (created)")]
     rec = run_gate(repo, diff_of(root, {"docs/notes.md": "y\n"}), partition=None)
@@ -306,12 +308,37 @@ def test_the_reach_rule_allows_not_code_and_a_code_file_created_beside_the_parti
     file in a directory the partition does not reach."""
     root = repo[0]
     d = diff_of(root, {"docs/notes.md": "x\n", "cmd/extra.go": "package main\n\nfunc extra() {}\n", "tools/gen.go": "package tools\n"})
-    assert run_gate(repo, d)["partition"]["outside"] == ["cmd/extra.go", "docs/notes.md", "tools/gen.go"]
-    rec = run_gate(repo, d, rule="reach")
-    assert rec["blocking"] == ["partition"] and rec["partition"]["outside"] == ["tools/gen.go"] and rec["partition"]["reached"] == ["cmd/extra.go", "docs/notes.md"]
+    assert run_gate(repo, d, rule="exempt")["partition"]["outside"] == ["cmd/extra.go", "docs/notes.md", "tools/gen.go"]
+    rec = run_gate(repo, d)
+    assert rec["partition"]["rule"] == "reach" and rec["blocking"] == ["partition"]
+    assert rec["partition"]["outside"] == ["tools/gen.go"] and rec["partition"]["reached"] == ["cmd/extra.go", "docs/notes.md"]
     assert {f["path"]: f["reach"] for f in rec["partition"]["files"]} == {"cmd/extra.go": "beside-partition", "docs/notes.md": "not-code", "tools/gen.go": None}
     with pytest.raises(ValueError, match="partition rule"):
         run_gate(repo, d, rule="loose")
+    # a code file created beside the partition reads its directory's partition files: an invention there stands where that
+    # directory is captured, and is unknown where it is a blind spot — never `unmapped` by default
+    rec = run_gate(repo, diff_of(root, {"cmd/extra.go": "package main\n\nfunc extra() { frobnicate() }\n"}), partition=MAP["partition"], bmap=MAP)
+    assert rec["blocking"] == ["invented"] and rec["partition"]["reached"] == ["cmd/extra.go"]
+    assert (rec["rows"][0]["site"]["grain"], rec["rows"][0]["site"]["captured"]) == ("file", True)
+    rec = run_gate(repo, diff_of(root, {"internal/app/extra.go": "package app\n\nfunc extra() { frobnicate() }\n"}), partition=MAP["partition"], bmap=MAP)
+    assert rec["verdict"] == "clear" and rec["unknown_reasons"] == {"uncaptured-file": 1}
+
+
+def test_reach_is_the_default_an_existing_code_file_elsewhere_blocks_and_a_not_code_write_is_listed(repo):
+    """D-s: `reach` is the default — the gate judges the world Hobbes has, which is ingested code. A hunk written into an existing Go
+    file of another package outside the partition (seeded variant (ii)'s shape) still blocks; a write no lane-A provider reads is
+    listed in `partition.reached` as `not-code` and blocks nothing."""
+    import inspect
+    assert inspect.signature(gt.gate).parameters["partition_rule"].default == "reach"
+    root = repo[0]
+    rec = run_gate(repo, diff_of(root, GO_CASES["partition"]))
+    assert rec["partition"]["rule"] == "reach" and rec["blocking"] == ["partition"] and rec["partition"]["reached"] == []
+    assert rec["partition"]["files"] == [{"path": "internal/other/other.go", "in_partition": False, "exempt": False, "reach": None,
+                                          "created": False, "deleted": False}]
+    rec = run_gate(repo, diff_of(root, {"docs/notes.md": "changed\n", "Makefile": "all:\n\ttrue\n"}))
+    assert rec["verdict"] == "clear" and rec["rows"] == [] and rec["partition"]["outside"] == []
+    assert rec["partition"]["reached"] == ["Makefile", "docs/notes.md"]
+    assert {f["path"]: f["reach"] for f in rec["partition"]["files"]} == {"Makefile": "not-code", "docs/notes.md": "not-code"}
 
 
 def test_new_is_routed_never_blocking_and_a_name_the_diff_declares_grounds_as_a_gensym(repo, monkeypatch):
@@ -359,7 +386,7 @@ def test_record_is_byte_identical_on_rerun_and_the_cli_writes_it_beside_the_diff
     assert cli.main(base + ["--partition", str(tmp_path / "part.txt")]) == 1
     first = (tmp_path / "cand.diff.gate.json").read_bytes()
     assert cli.main(base + ["--partition", str(tmp_path / "part.txt")]) == 1 and (tmp_path / "cand.diff.gate.json").read_bytes() == first
-    assert json.loads(first)["partition"]["source"] == "lines"
+    assert json.loads(first)["partition"]["source"] == "lines" and json.loads(first)["partition"]["rule"] == "reach", "the CLI's default rule"
     capsys.readouterr()
     assert cli.main(base + ["--partition", str(tmp_path / "part.txt"), "--message", "--out", str(tmp_path / "m.json")]) == 1
     assert "blocked it: invented (1)." in capsys.readouterr().out
@@ -375,11 +402,11 @@ def test_record_is_byte_identical_on_rerun_and_the_cli_writes_it_beside_the_diff
 
 def test_repair_message_names_the_classes_the_sites_the_files_outside_and_a_declaration_form(repo):
     root = repo[0]
-    rec = run_gate(repo, diff_of(root, {**GO_CASES["invented"], "docs/notes.md": "x\n"}))
+    rec = run_gate(repo, diff_of(root, {**GO_CASES["invented"], **GO_CASES["partition"]}))
     assert rec["blocking"] == ["invented", "partition"]
     msg = gt.repair_message(rec)
     assert msg.startswith(f"Hobbes checked your change against the repository at its parent commit {repo[1][:12]} and blocked it: invented (1), partition (1).")
-    assert "- cmd/main.go:10 `app.Frobnicate`" in msg and "- docs/notes.md\n" in msg and "one turn to repair it" in msg
+    assert "- cmd/main.go:10 `app.Frobnicate`" in msg and "- internal/other/other.go\n" in msg and "one turn to repair it" in msg
     assert rec["siblings"][0]["symbol"] == "internal/app/app.Run" and "func Run(o Options) error {" in msg and "directory `internal/app/`" in msg
     assert msg == gt.repair_message(json.loads(gt.dumps(rec))), "the message is the record's, deterministic"
     with pytest.raises(ValueError):

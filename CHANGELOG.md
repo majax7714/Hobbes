@@ -26,10 +26,15 @@ M0-Gate WP-18; built and checked with no model.
     never routes; it is context.
   - **The partition:** every touched file is checked against the
     unit's write partition (`--partition`, else the map's), at file
-    grain, under `--partition-rule`: `strict`; `exempt`, the default,
-    which allows test-support paths; or `reach`, which also allows
-    files that are not code and code files created beside a partition
-    file.
+    grain, under `--partition-rule`:
+    - `reach`, the default — the gate judges ingested code. A file
+      that is not code (docs, man pages, build files, a language
+      Hobbes does not ground) and a code file created beside a
+      partition file are listed in `partition.reached`, not blocked.
+      A write into an existing code file outside the partition
+      blocks.
+    - `exempt` — allows test-support paths only.
+    - `strict` — allows nothing.
   - **The verdict** is *clear*, or *blocked* with the classes that
     fired: invented, near-miss, arity, undeclared-type,
     import-outside, unimported, malformed and partition. `malformed`

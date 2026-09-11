@@ -137,7 +137,8 @@ segment and are marked in the heading.
 
 **One hundred and twenty-three entries: ninety-seven active, twenty-four lifted, two superseded**
 (C-121–C-123 registered 2026-09-11 by Calvin M0-Gate WP-18, `hobbes gate` — the
-`unknown` advisory, the partition check at file grain with test support exempt,
+`unknown` advisory, the partition check at file grain (`reach` by default: what
+lies beyond the code world is listed, not blocked),
 and the complement split's grain and classes (the map's file-grain sites never
 route), all three *surfaced* in the gate's record; C-118–C-120 registered 2026-09-11 by Calvin M0-Go round 2 WP-14b, grounder
 v3's signatures in the world — a call's arity and a qualified reference's

@@ -622,7 +622,11 @@
   guess where the graph has no evidence.
 - **Bites at:** a holey world — Hobbes' own Python, an uncaptured
   file, a symbol lane B missed, an oracle-known miss class. The block
-  count under-reads inventions by at most the `unknown` count.
+  count under-reads inventions by at most the `unknown` count. Under
+  `reach`, the default partition rule, a code file the diff creates
+  beside the partition reads its directory's partition files, so an
+  invention there is `unknown` only when that directory is a blind
+  spot (C-123).
 - **You find out:** **surfaced** — every record carries `advisory`,
   `counts.unknown`, `unknown_reasons`, and on each such row the
   grounder's own class (`grounder_class`) and its `site` (grain, id,
@@ -630,7 +634,7 @@
   message lists these sites apart, as not blocking.
 - **Source:** calvin-m0-gate WP-18, 2026-09-11.
 
-### C-122 — The gate's partition check reads files, not spans; test support is exempt; a rename reads as a created file
+### C-122 — The gate's partition check reads files, not spans; by default it lists, not blocks, what lies beyond the code world; a rename reads as a created file
 
 - **Cannot tell you:** three things.
   - That an edit inside a partition file lands where the task needed
@@ -638,25 +642,33 @@
     a file list (calvin-m0-gate §0b), so §2.2's "every touched file
     and span" is read at file grain: a hunk anywhere in a listed file
     is inside.
-  - That a file outside the partition which the rule allows was
+  - That a file outside the partition which the rule lists was
     needed. The check runs under one of three rules
     (`--partition-rule`):
-    - `strict` — no allowance.
-    - `exempt`, the default — a test-support path
-      (`harness.is_test_support_path`: a test file itself, or a path
-      under `testdata/`, `__fixtures__/` or `__snapshots__/`) does not
-      block. The template lists a test only where the testmap reaches
-      it and never lists a fixture, and round 2's readable key
-      `d22371873bd8` has a gold that adds two.
-    - `reach` — `exempt`, plus a file no lane-A provider reads as code
-      (docs, man pages, build files, a language Hobbes does not ground)
-      and a code file the diff creates in a directory that holds a
-      partition file.
+    - `reach`, the default (D-s, the orchestrator's ruling) — the gate
+      judges the world Hobbes has, which is ingested code. Two writes
+      are **listed in `partition.reached`, never blocked**:
+      - a file no lane-A provider reads as code (`reach:
+        "not-code"`: CHANGELOG, man pages, a Makefile, assembly, a
+        language Hobbes does not ground such as Ruby tests), which is
+        beyond the graph;
+      - a code file the diff creates in a directory that holds a
+        partition file (`reach: "beside-partition"`), the declare
+        class, which a template partition cannot name before the file
+        exists.
 
-    At `exempt`, 11 of WP-17's 20 readable fzf golds block on
-    `partition` (CHANGELOG.md, `man/man1/fzf.1`, Ruby integration tests,
-    a Makefile, new code files); which rule the gold control runs is
-    the orchestrator's pin.
+      `exempt`'s allowance applies too. A write into an existing code
+      file outside the partition still blocks.
+    - `exempt` — a test-support path (`harness.is_test_support_path`:
+      a test file itself, or a path under `testdata/`, `__fixtures__/`
+      or `__snapshots__/`) does not block. The template lists a test
+      only where the testmap reaches it and never lists a fixture;
+      round 2's readable key `d22371873bd8` has a gold that adds two.
+    - `strict` — no allowance.
+
+    At `exempt` or `strict`, 11 of WP-17's 20 readable fzf golds block
+    on `partition`, every block outside the code world; at `reach`,
+    20 of 20 clear.
   - Where a renamed file's references sit. Its hunks are grounded at
     the new path as a created file, and its sites read the map's file
     entry.
@@ -665,15 +677,17 @@
   grain needs a partition the template does not build; that is
   O+world's scope (§7).
 - **Bites at:** an agent that edits the right file in the wrong
-  place; one that writes a fixture the task did not need; a diff that
-  renames and edits one file.
+  place; one that writes a fixture, a doc, a build file or a new file
+  in a partition directory the task did not need (listed, not
+  blocked); a diff that renames and edits one file.
 - **You find out:** **surfaced** — `PARTITION_RULE` and `partition.rule`
   in every record, and `partition.files` per touched file
   (`in_partition`, `exempt`, `reach`, `created`, `deleted`) with
   `partition.exempt` and `partition.reached` beside it; `integrity`
   gives `renamed` and `post_agrees`, the latter false when the gate's
   reading of a rename disagrees with `git apply`.
-- **Source:** calvin-m0-gate WP-18 (§0b's pin), 2026-09-11.
+- **Source:** calvin-m0-gate WP-18 (§0b's pin), 2026-09-11; `reach` as
+  the default is the orchestrator's ruling D-s.
 
 ### C-123 — The complement split reads the map at symbol-or-file grain, splits only name absences, and takes the map's capture as given
 
@@ -704,10 +718,15 @@
     graph and the oracle's miss classes. The gate refuses a map that
     breaks §0b's schema (`validate_map`) and never checks its capture
     claims.
-  - What a file outside the map is. A file the map does not list
-    (outside the partition) is `unmapped`, and its NULLs read
-    `unknown`. The gate claims no invention where the map says
-    nothing, and the file's `partition` row blocks it anyway.
+  - What a file outside the map is.
+    - **A created code file beside the partition**, which no map
+      lists, reads its directory's partition files (a blind spot when
+      any of them is). Under `reach` it is listed, not blocked, so
+      its inventions are judged there.
+    - **Any other file the map does not list** (outside the
+      partition) is `unmapped`, and its NULLs read `unknown`. The gate
+      claims no invention where the map says nothing, and an existing
+      code file's `partition` row blocks it under every rule.
 - **Because:** §0b pins the map at file and symbol grain, and the
   tail keeps no line for an unresolved site. Routing on a file-grain
   count would turn every invention in such a file advisory. Splitting

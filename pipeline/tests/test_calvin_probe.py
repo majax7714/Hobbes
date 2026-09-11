@@ -311,11 +311,13 @@ def _gate_rec(verdict):
 
 
 def _fake_gate(calls):
-    def fake(patch, u, repo, L, out, session_id, template, rule="exempt"):
+    def fake(patch, u, repo, L, out, session_id, template, rule="reach"):
         verdict = "clear" if session_id.endswith("-repair1") else "blocked"
         calls.append((session_id, verdict))
+        fake.rules.append(rule)
         (Path(out) / f"{session_id}.gate.json").write_text(json.dumps(_gate_rec(verdict)))
         return _gate_rec(verdict)
+    fake.rules = []
     return fake
 
 
@@ -354,10 +356,14 @@ def test_o_units_gate_recorded_gates_each_recorded_session_and_launches_nothing(
     monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
     argv, _, _ = _recorded(tmp_path)
     calls = []
-    monkeypatch.setattr(cp, "gate_session", _fake_gate(calls))
+    gs = _fake_gate(calls)
+    monkeypatch.setattr(cp, "gate_session", gs)
     monkeypatch.setattr(cp, "launch", lambda *a, **k: pytest.fail("launched"))
     assert cp.main(argv) == 2, "--recorded alone has nothing to do"
     assert cp.main(argv + ["--gate"]) == 0 and calls == [("S1", "blocked")]
+    assert gs.rules == ["reach"], "D-s: the drivers gate under reach by default"
+    import inspect
+    assert inspect.signature(cp.gate_session).parameters["rule"].default == "reach" == inspect.signature(cp.repair_session).parameters["rule"].default
     row = json.loads((tmp_path / "out" / "gate-rows.jsonl").read_text())
     assert (row["wp"], row["arm"], row["session"], row["gate"]["verdict"], row["gate"]["blocking"], row["verify"]) == ("wp-21", "O+gate", "S1", "blocked", ["invented"], "fail")
     assert "HOBBES_LLM_API_KEY" not in os.environ and not (tmp_path / "out" / "rows.jsonl").exists(), "no O row: O is never re-run"

@@ -1312,7 +1312,7 @@ def gate_summary(rec: dict) -> dict:
             "post_agrees": rec["integrity"]["post_agrees"], "record_hash": rec["record_hash"]}
 
 
-def gate_session(patch: str, u: dict, repo: Path, L, out: Path, session_id: str, template: Path | None, rule: str = "exempt") -> dict:
+def gate_session(patch: str, u: dict, repo: Path, L, out: Path, session_id: str, template: Path | None, rule: str = "reach") -> dict:
     """calvin-m0-gate §2.3's O+gate: a session's diff through `hobbes gate` post hoc, no model, the partition read under *rule*; the record
     beside the diff as ``<session>.gate.json``."""
     from hobbes.derive import gate as gt
@@ -1375,7 +1375,7 @@ def recorded_o(d: Path, key: str) -> tuple[dict, str] | None:
 
 
 def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path, out: Path, L, template: Path | None, wp: str,
-                   timeout: float = 3600.0, rule: str = "exempt", verify: bool = True) -> dict:
+                   timeout: float = 3600.0, rule: str = "reach", verify: bool = True) -> dict:
     """calvin-m0-gate §2.3's O+gate+repair on one blocked row: the recorded session resumed — never re-run — for one bounded turn with the
     gate's report as the message (`gate.repair_message`), then its diff gated and verified again. Returns the repair row; the turn's calls are
     metered into ``<key>.repair.usage.jsonl`` (charged to the third arm only, and counted by ``--total-cap``). What a faithful resume needs
@@ -1762,8 +1762,9 @@ def main(argv: list[str]) -> int:
     s.add_argument("--recorded", help="an earlier --out directory: gate (and repair) the sessions recorded there; O is never re-run")
     s.add_argument("--maps", help="a directory of <commit>.map.json blind-spot maps (calvin-m0-gate §0b); none: the split is not run")
     s.add_argument("--total-cap", type=float, help="dollars every ledger under --out may reach; required with --gate-repair")
-    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="exempt",
-                   help="the gate's partition reading (hobbes gate --partition-rule): strict, exempt (default: test support allowed), reach")
+    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                   help="the gate's partition reading (hobbes gate --partition-rule): reach (default; not-code and created-beside files listed, "
+                        "not blocked), exempt (test support only), strict")
     s.set_defaults(fn=cmd_o)
     s = sub.add_parser("o-units", help="Calvin M0-Go WP-6: arm O on units.jsonl keys under hobbes-session, metered from each session's calls")
     s.add_argument("units"); s.add_argument("--keys", nargs="+", required=True, help="key prefixes, run in this order"); s.add_argument("--tier", default="A2")
@@ -1785,8 +1786,9 @@ def main(argv: list[str]) -> int:
     s.add_argument("--gate-repair", action="store_true", help="O+gate+repair: a blocked row's session resumed for one bounded turn with the gate's report "
                                                               "as the message, then gated and verified again (repair-rows.jsonl; implies --gate)")
     s.add_argument("--recorded", help="an earlier o-units --out directory: gate (and repair) its recorded sessions (gate-rows.jsonl); O is never re-run")
-    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="exempt",
-                   help="the gate's partition reading (hobbes gate --partition-rule): strict, exempt (default: test support allowed), reach")
+    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                   help="the gate's partition reading (hobbes gate --partition-rule): reach (default; not-code and created-beside files listed, "
+                        "not blocked), exempt (test support only), strict")
     s.add_argument("--withhold-manifest", action="store_true", help="calvin-m0-gate §0b: no plan is derived; O's brief carries the task text alone "
                                                                    "and its agent dir no manifest")
     s.set_defaults(fn=cmd_o_units)

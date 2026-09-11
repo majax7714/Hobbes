@@ -56,7 +56,7 @@ MAP_REASONS = ("uncaptured-file", "dynamic-dispatch", "laneb-miss")
 ORACLE_MISS = "oracle-miss:"
 #: The gate's own reason for a site in a file the map does not list (a file outside the partition).
 UNMAPPED = "unmapped"
-#: The partition check's three readings (`PARTITION_RULE`): no allowance; test support exempt (the default); the reach.
+#: The partition check's three readings (`PARTITION_RULE`): no allowance; test support exempt; the reach (the default, D-s).
 PARTITION_RULES = ("strict", "exempt", "reach")
 
 LOOKUP_RULE = (
@@ -65,7 +65,9 @@ LOOKUP_RULE = (
     "pure insertion before parent line p, at the insertion point between p-1 and p. The site is, in order: a map `sites` row whose `line` is "
     "the anchor's parent line (a line-grain row, a replacing run only); the innermost symbol of the map's `symbols` for that file whose span "
     "holds the anchor (an insertion point is held only when both p-1 and p are); else the file's own `files` entry. A file absent at the "
-    "parent, or renamed, is read at its `files` entry; a file the map does not list (outside the partition) is `unmapped`. A site is a blind "
+    "parent, or renamed, is read at its `files` entry, else — a code file created beside the partition, which no map lists — at its "
+    "directory's partition files (a blind spot when any of them is); any other file the map does not list (outside the partition) is "
+    "`unmapped`. A site is a blind "
     "spot when its entry reads captured false (a line-grain `sites` row always does), or it is unmapped. A `sites` row with `line: null` — a "
     "file's count of unresolved call sites by tail class — never routes: it is carried as `map.unresolved_by_file`, context only. In a blind "
     "spot only invented and near-miss become `unknown` (a name absent from the parent graph, which a region lane B did not capture can hide); "
@@ -74,11 +76,14 @@ LOOKUP_RULE = (
 PARTITION_RULE = (
     "File grain (calvin-m0-gate §0b: the partition is template v2's `constraints.write_partition`, a file list). Every file the diff "
     "touches (both sides of a rename, a created file, a deleted file) is judged against the partition; a file not in it is one "
-    "`partition` row whatever the HSR (round 2's stricter parse), under the record's `rule`: `strict`, no allowance; `exempt` (the default), "
-    "a test-support path (`harness.is_test_support_path`: a test file itself, or a path under `testdata/`, `__fixtures__/`, `__snapshots__/`) "
-    "— a test, or a fixture a test beside it reads, which the template's partition lists only where the testmap reaches it; `reach`, `exempt` plus a file no lane-A provider reads as code (`tail.language_of` is None: "
-    "docs, man pages, build files, a language Hobbes does not ground) and a code file the diff creates in a directory that holds a partition "
-    "file. Every allowance is listed on its file (`exempt`, `reach`). With no partition given the check is not run, and the record says so.")
+    "`partition` row whatever the HSR (round 2's stricter parse), under the record's `rule`. `reach` (the default, D-s): the gate judges the "
+    "world Hobbes has, which is ingested code, so two writes are listed, never blocked — a file no lane-A provider reads as code "
+    "(`tail.language_of` is None: docs, man pages, build files, a language Hobbes does not ground), which is beyond the graph, and a code file "
+    "the diff creates in a directory that holds a partition file, the declare class a template partition cannot name before it exists — "
+    "plus `exempt`'s allowance; a write into an existing code file outside the partition blocks. `exempt`: a test-support path "
+    "(`harness.is_test_support_path`: a test file itself, or a path under `testdata/`, `__fixtures__/`, `__snapshots__/`) — a test, or a "
+    "fixture a test beside it reads, which the template's partition lists only where the testmap reaches it. `strict`: no allowance. Every "
+    "allowance is listed on its file (`exempt`, `reach`). With no partition given the check is not run, and the record says so.")
 VERDICT_RULE = (
     "clear iff no blocking class fires: invented, near-miss, arity, undeclared-type, import-outside, unimported, malformed (a post-image "
     "carrying the render's gutter, or a diff that does not apply at the parent), partition. `unknown` is reported and never blocks "
@@ -364,7 +369,7 @@ def _siblings(rows: list[dict], L: Ledger, repo_root: Path) -> list[dict]:
 
 
 def gate(diff: str, parent_sha: str, repo_root: Path, L: Ledger, *, inputs: dict, partition: list[str] | None = None,
-         partition_source: str | None = None, bmap: dict | None = None, partition_rule: str = "exempt") -> dict:
+         partition_source: str | None = None, bmap: dict | None = None, partition_rule: str = "reach") -> dict:
     """The gate over *diff* at *parent_sha* (the module doc's four steps): the record, deterministic in its inputs.
 
     *L* is the ledger of the parent graph (its SHA must be *parent_sha*); *partition* the unit's write partition (None: the check
@@ -390,6 +395,14 @@ def gate(diff: str, parent_sha: str, repo_root: Path, L: Ledger, *, inputs: dict
     anchors = {s["path"]: post_anchors(s["text"]) for s in sections if not s["binary"]}
     whole = {s["path"] for s in sections if s["created"] or s["renamed"]}
     mfiles = {} if bmap is None else {f["path"]: f for f in bmap["files"]}
+    for p in sorted(whole):  # a code file created beside the partition: no map lists it; its directory's partition files speak for it
+        if bmap is not None and p not in mfiles:
+            beside = [f for f in bmap["files"] if str(PurePosixPath(f["path"]).parent) == str(PurePosixPath(p).parent)]
+            if beside:
+                blind = next((f for f in beside if not f["captured"]), None)
+                mfiles[p] = {"path": p, "captured": blind is None, "reason": None if blind is None else blind.get("reason"),
+                             "detail": "a created file, read at its directory's partition files"
+                                       + ("" if blind is None else f" ({blind['path']}: {blind.get('detail') or blind.get('reason')})")}
     msyms: dict[str, list[dict]] = collections.defaultdict(list)
     for s in [] if bmap is None else bmap["symbols"]:
         msyms[s["path"]].append(s)

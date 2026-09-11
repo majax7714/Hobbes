@@ -1594,9 +1594,9 @@ def build_parser() -> argparse.ArgumentParser:
                                                  "per line (default: the map's partition; neither: the check is not run)")
     gate_parser.add_argument("--map", help="the unit's blind-spot map (calvin-m0-gate §0b's schema), or a unit row carrying "
                                            "blind_spot_map (none: the split is not run and every class stands)")
-    gate_parser.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="exempt",
-                             help="strict: every touched file; exempt (default): test-support paths allowed; reach: exempt, plus files "
-                                  "no provider reads as code and code files created beside a partition file")
+    gate_parser.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                             help="reach (default): files no provider reads as code and code files created beside a partition file are "
+                                  "listed, not blocked, and test-support paths allowed; exempt: test-support paths only; strict: every touched file")
     gate_parser.add_argument("--out", help="write the record here (default: <diff>.gate.json beside the diff)")
     gate_parser.add_argument("--json", action="store_true", help="print the record even when it is written")
     gate_parser.add_argument("--message", action="store_true", help="print a blocked record's repair message (calvin-m0-gate §2.3)")
