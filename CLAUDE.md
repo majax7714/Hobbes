@@ -73,7 +73,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
-| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md` |
+| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`; then `docs/calvin/calvin-m0-go.md` (M0-Go, the floor round on gitleaks, closed 2026-09-11 with the floor not established at A2; §10 results and the gate record) + its cell page `docs/calvin/cells/calvin-m0-go-2026-09-11.md` |
 | reading or extending Atlas-0 (the current work) | `docs/atlas0/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
@@ -395,12 +395,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   owning file each, `run/coverage.py` checks that every requirement has
   an owning unit (`--coverage strict`), and the implementer brief carries
   owned requirements and no proposal.
-- **Latest run and its result:** the ADR-085 validation pair (5 Verified
-  instances, 7B, two passes) ran on 2026-08-24. Machinery mostly held;
-  0/5 solved (not the measure); **eight harness defects registered in
-  `docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`**. D1–D4, D7, D8 are fixed
-  (ADR-091, 2026-08-27) and D5/D6 (ADR-093, 2026-08-28) are fixed,
-  all validated with no model.
+- **Latest bench run:** the ADR-085 validation pair (5 Verified
+  instances, 7B, 2026-08-24) — 0/5 solved (not the measure); its eight
+  harness defects fixed (ADR-091, ADR-093) and validated with no model
+  (`docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`).
 - **The benchmark is moving** from SWE-bench Verified (contaminated,
   C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
   (`docs/benchmark/benchmark-deepswe.md`); no H1 claim has been earned.
@@ -464,28 +462,16 @@ review → `lane_b` pytest) and runs the same way on a box.
   300 steps — the manifest finds the files, the adapter alone
   confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
 - **Calvin M0 ran on four keys (2026-09-04 night, Sonnet 5;
-  `docs/calvin/calvin-potential.md` §10):** T pass 1 / fail 1 / empty 1 /
-  no-tests 1 at $6, O pass 1 / no patch 3 at $17; the module anchor is
-  the cost door, the template misses importer tests, candidates bind
-  but do not find; the 28-key run was cut on cost. The two protocol
-  fixes are in and exercised with no model (2026-09-04 later): the
-  import grain adds 2,408 guard rows over the 28 golds at `P2F` 0,
-  template v1 asks the missed tests once a symbol is confirmed, and
-  the import tier's test holes are the next cost door.
-- **Then — API spend and Modal compute are off the table for the
-  next steps (Max, 2026-09-04):** the no-spend queue in
-  `docs/session-handoff.md` — Calvin's model-free follow-through is
-  done (ADR-101 waits on *accepted*); **the extraction residue the
-  lifts named is closed (2026-09-05):** the TS helper follows the
-  C-73 symlink rule, the pyproject reader takes Poetry/PDM/uv/PEP 735
-  tables, and a call whose callee is an expression is a counted site
-  classed `expr-callee` (C-63 surfaced, ADR-045 amended); W0's two
-  build items are done the same day (the venv test's real venv — CI
-  deselects nothing; I-7/I-8/I-11 retired, 8 confirmed of 11); next
-  the no-spend W1/W3 items and project setup for collaborators
-  (`docs/workstreams.md`). Held: the wider Calvin run,
-  the 3,000-step adapter under the cell and the 10,000-step point, the
-  removal A/B re-run on the 7B, `hobbes narrate` on this repo.
+  `docs/calvin/calvin-potential.md` §10):** T pass 1 of 4 at $6, O 1 of
+  4 at $17; the module anchor was the cost door, candidates bind but do
+  not find; the 28-key run cut on cost; both protocol fixes in and
+  exercised with no model.
+- **Spend (Max, 2026-09-04):** off the table unless Max names a run and
+  its ceiling (Atlas-0 on Modal, then M0-Go's $30, were). The extraction
+  residue the lifts named closed 2026-09-05 (`expr-callee` counted and
+  classed, C-63 surfaced; the pyproject tables; the C-73 symlink rule);
+  W0's two build items done. Held: the wider Calvin run, the TTT
+  adapter points, the 7B removal A/B, `hobbes narrate` on this repo.
 - **Atlas-0 (`docs/atlas0/atlas-0.md`, Max's design; current work from
   2026-09-05 later):** does a small block's *act* separate sparse-real
   from absent — a synthetic world, three blocks (stems / dedicated
@@ -539,6 +525,20 @@ review → `lane_b` pytest) and runs the same way on a box.
   relation-absence as a computed state is unreadable there; the
   results select B4-given (typing given, not learned); $22.28 assumed
   to date of $25.
+- **Calvin M0-Go, the floor round (2026-09-11;
+  `docs/calvin/calvin-m0-go.md`, cells `calvin-m0-go-2026-09-11.md`):**
+  the socket on the densest world Hobbes makes — gitleaks, 20 history
+  keys, W = 1.0 on every unit, tasks anchored at A2 (a fixing), Haiku
+  4.5 in every arm, WP-0–WP-10 under an orchestrator. Built on the way
+  (**0.1.11–0.1.14-beta, C-102–C-114**): grounder v1 then v2 on Go (the
+  world check), the Go verifier, template v2 (the out-degree cap),
+  adapter protocol v0.3–v0.5 (the declaration hole, one bounded repair,
+  a sibling's form), the recall scan. **The floor is not established at
+  A2: T < O three times** (T 0.225 / 0.25 / 0.20, O 0.80 on five keys;
+  not separable on the three recall-free), X and G clean; the residual
+  went NULL new → declared in the wrong world → in the right world, not
+  compiled (0 of 7 build). Max stopped the round at $18.93 of $30; the
+  next step (build errors into the repair, the sibling whole) is held.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, update this Status

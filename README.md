@@ -304,7 +304,14 @@ ADR-100) then asked whether a deterministic grounder under an
 orchestrator can make a model's edit true against the graph: the 28
 gold diffs ground and verify in the sandbox with no model, and a
 four-key run on Sonnet 5 (2026-09-04) read the anchor stage as the
-residual — the two protocol fixes are in and not yet re-run.
+residual — the two protocol fixes are in and not yet re-run. Calvin
+M0-Go ([`docs/calvin/calvin-m0-go.md`](docs/calvin/calvin-m0-go.md),
+2026-09-11) then put the socket on the densest world Hobbes makes —
+gitleaks in Go, tasks anchored at the gold's symbols, Haiku 4.5 in every
+arm — and the floor was not established at A2: the grounded arm trailed
+the file-tools arm on three runs, the last failure declarations in the
+repo's own form that do not compile. The round stopped at $18.93 of its
+$30 ceiling.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -328,6 +335,7 @@ point); the session-by-session record is
 | [`docs/benchmark/benchmark-deepswe.md`](docs/benchmark/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
 | [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin/calvin-charter.md` |
+| [`docs/calvin/calvin-m0-go.md`](docs/calvin/calvin-m0-go.md) | Calvin M0-Go — the floor round on gitleaks: a dense Go world, tasks anchored at A2, Haiku 4.5, work packages WP-0 to WP-10 under an orchestrator; the floor not established at A2 (§10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-go-2026-09-11.md`) |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |

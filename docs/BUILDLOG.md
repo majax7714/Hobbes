@@ -8455,3 +8455,171 @@ regenerated — every Hobbes row 0.1.10-beta — and the drift test
 passes; the claim page's baseline paragraph says so.
 
 No spend, no push; commits on `main`.
+
+## 2026-09-11 — Calvin M0-Go, the floor round on gitleaks: WP-0 to WP-10, T < O three times, the floor not established at A2; the round stops (Max) — 0.1.11-beta to 0.1.14-beta
+
+**The plan.** Max's M0-Go handoff (`docs/calvin/calvin-m0-go.md`,
+committed `d83dc5c`): prove the socket on the densest world Hobbes
+makes, with the anchoring confound removed on purpose, before any
+fan-out — Go, on gitleaks (the cell's precision 100%, recall 98%), 20
+history keys stratified by shape, the task text at A2 (commit message
+plus the gold's touched parent symbols), Haiku 4.5 in every arm. The
+session ran it as the document says: an orchestrator assigning one
+package per sub-agent in a fresh context, checking each exit against
+its artifacts, carrying Max's decisions into §10's gate record. Sub-agents
+cannot write report files, so the orchestrator saved each package's
+reply verbatim as `~/.hobbes/bench/calvin-go/<wp>/report.md`. Code went
+on `calvin-go/wp-N` branches, merged to `main` after the exit check.
+
+**The packages, each exit in a line.**
+
+- **WP-0** (units, parents, W; no spend): 20 keys, five per shape, from
+  the range (a0f2f4671cfc, 8ad8470]; 20/20 parents ingested contained,
+  every edge semantic; W min 1.0, median 1.0, none flagged; ingest
+  median 1.75 s (cold 12.2 s). Reopened twice for A2's wording (F2, F3
+  below): `a2_rev` 3 on all 20 rows.
+- **WP-1** (the Go verifier; no spend): 20/20 golds pass on two passes,
+  P2F 0, `all_contained` 20/20. The repo's `//go:generate` is
+  regenerated on both trees, never applied; generation draws from a
+  clock-seeded generator, so a failing generation gets three attempts,
+  each recorded (C-103); the module cache mounted read-only (C-92's
+  design). One environment fault by id (09242ce9c8a6, `go vet` on both
+  trees). Merged `57b3eb3`; ADR-100 amended.
+- **WP-2** (templates at A2 and A1; no spend): 20/20 byte-identical per
+  tier. It found the callee door (`cmd/generate/config/main.main` fans
+  out to 177–223 rule constructors, 35.2M chars at A2) and was reopened
+  for template v2's out-degree cap at k = 20: round-2 open holes
+  6,973 → 1,866, 35.2M → 3.22M chars, strict Go coverage 86/6/6/5.
+  Merged `88c3f53`; C-104.
+- **WP-3** (grounder v1 on Go, the density field; no spend): 0 NULL,
+  HSR 0, 20/20 post-images byte-equal, identical on rerun, poison 50/50.
+  Rules 1 (a member on a receiver whose type the syntax states) and 2
+  (an interface method binds to the interface, implementers recorded)
+  settled; density k = 2 on every parent; four defects fixed. Merged
+  `3b015a6`; C-102, C-91 amended.
+- **WP-4** (estimate; no spend): expected $17.44, band $7.74–$40.39 at
+  Haiku's $1 / $5 per MTok; the ceiling asked at $30.
+- **WP-5** (five keys through T by hand; spend): $1.17 against $1.95
+  (0.60×), G clean on all five, Haiku confirmed 0 of 412 capped
+  callees, temperature honoured. Refused `patterns` replies cost 36% of
+  its spend: reopened for protocol v0.3. Merged `17f0ffd`; C-105.
+- **WP-6** (the run; spend): T 0.225 [0.05, 0.40] on 20 keys × 2 runs, O
+  0.80 [0.40, 1.00] on five; X and G clean, so *T < O* resolves into
+  *NULL new dominates* (all 11 of T's NULLs are names it wrote and
+  never declared; the loop closed none) → M1′ as protocol. O's lead is
+  partly recall (two keys reproduced upstream verbatim). Track B: O
+  separates sparse from absent (1,940 sparse-real references resolved,
+  0 sparse NULL). $7.95. The `o-units` driver merged `5555dad`; the cell
+  page `docs/calvin/cells/calvin-m0-go-2026-09-11.md`.
+- **WP-7a** (the declaration hole, protocol v0.4, the gutter guard; no
+  spend): WP-6's 11 NULL sites close 11/11 on a scripted gold replay,
+  0 opened; 7fc11's three gutter fills refused. Merged `edd075e`;
+  C-106–C-108.
+- **WP-7b** (the recall scan; no spend): every WP-5 and WP-6 row
+  carries `recall`; WP-6's measure reproduces 45/45; 2 of O's 5 rows
+  `recalled`, 0 of T's 40. Merged `8244194` (scripts, no bump).
+- **WP-8** (the floor re-tested on v0.4; spend): T 0.25 [0.075, 0.425];
+  the declaration hole closed 9 of 11 NULLs and **0 of 9 built** — every
+  body written against another project's API (trufflehog, gosec). *T <
+  O* re-selected, not separable on the three recall-free keys; G
+  unclean on declaration bodies (D-g), no sibling's form (D-h), a
+  refused declaration recorded placed (D-f). $5.05.
+- **WP-9** (grounder v2, the world check, protocol v0.5; no spend):
+  WP-8's 9 wrong-world declarations each raise a NULL at the grounder
+  (`import-outside`, `unimported`), 9/9; 0924's overlap reads `refused`
+  2/2; WP-7a's gold declarations still close 11/11; gold 0 NULL, 20/20
+  byte-equal; poison 50/50. Merged `ade1d79`; C-109–C-114 (C-112,
+  syntax errors unclassed, **unsurfaced** — debt).
+- **WP-10** (the floor re-tested on v0.5; spend, cap $15.83): T 0.20
+  [0.05, 0.375], T-loop 0.20; O − T-loop on O's five keys +0.60 [0.30,
+  0.90], on the three recall-free keys +0.33 [0.00, 0.50], not
+  separable. *T < O* a third time, X and G clean. WP-9's fixes held:
+  the 7 placed declarations are all in gitleaks' world and take the
+  sibling's form (WP-8: 0 of 9) — and **0 of 7 build**: an unused
+  `secrets` import 3, a wrong argument count 2, a type the grounder
+  does not bind (C-91) 1, the repeated invented name 1. 6 of 7 carry no
+  NULL, so T ships too; the one repair sees G's NULLs, never the build
+  row, and the sibling's 12-line cap cuts it before the lines that use
+  `secrets` (D-j). D-i: `t-units`' per-row `usd_loop` omits the repair
+  exchange ($0.0083; totals right). $4.76; no code change.
+
+**The residual's path across the re-tests.** WP-6: *NULL new* — 11
+names written at a call site and declared nowhere, the loop closing
+none. WP-8: *declared in the wrong world* — the declaration hole
+closed 9 of 11, every body written against another project's API.
+WP-10: *declared in the right world, not compiled* — gitleaks' form on
+7 of 7, a build on 0 of 7. Each fix moved the failure one stage down;
+T's pass rate did not move (0.225, 0.25, 0.20).
+
+**Max's decisions (§10's gate record, all 2026-09-11).** W's denominator
+is the parent's symbols the gold touches; symbols it creates are
+declare-holes, outside W. **F1:** an out-degree cap on callee expansion
+(above k, callees open as signature confirmations). **F2, then F3:** A2
+names touched parent symbols only (`a2_rev` 2), then drops the new-file
+path lines too (`a2_rev` 3) — naming a new file would hand the arm the
+placement §4.10 measures. `calvin.box.policy` allows `go generate*`.
+**The spend gate:** cleared at a $30 ceiling, WP-5 then WP-6.
+**Protocol v0.3:** a `patterns` reply read as unchanged / no for the
+holes it covers, the validator fixed to name a refused pattern's holes.
+**Sampling:** model default from WP-6 on (WP-5's temperature-0 rows
+their own reading). **The re-tests:** after WP-6, build the three
+changes then re-test T (WP-7a, WP-7b, WP-8; cap $20.88); after WP-8, fix
+G and D-h and re-test once (WP-9, WP-10; cap $15.83). **Place and
+record:** a declaration in a new file outside the write partition is
+placed and recorded `in_partition: false`, never refused (C-107) —
+refusing would leave 10 of 11 sites unclosable. **The stop, after
+WP-10: the round stops and is written up.** The next protocol step is
+named, not built — the verifier's `go build` errors fed into the one
+declaration repair, the sibling shown whole — to be read on fresh keys
+(WP-0's alternates, `draw_rank >= 5` in `candidates.jsonl`, 122 of
+them) with O re-run, since the 20 keys were tuned on three times. It is
+held, its spend Max's word; D-i is fixed with it. The design's ADR
+takes 106 when Max moves it to *accepted*.
+
+**Versions and register.** Four patch bumps, each with its CHANGELOG
+entry and the image rebuilt after (C-65): **0.1.11-beta** (`a94e2bd`) —
+grounder v1 on Go, the Go verifier with the read-only module cache and
+`go generate*`, template v2; **0.1.12-beta** (`92c9f7a`) — protocol v0.3
+and the metered `t-units` driver; **0.1.13-beta** (`5682263`) — protocol
+v0.4 (the declaration hole), the gutter guard, the grounder's `scope`;
+**0.1.14-beta** (`0c87ac1`) — grounder v2 (the world check on Go fills)
+and protocol v0.5 (one bounded declaration repair, a sibling's form,
+`refused` read). All untagged; the last tag stays `v0.1.8-beta`. The
+register went 101 → 114 entries (C-102–C-114; C-91 amended): 88 active,
+24 lifted, 2 superseded.
+
+**Spend:** WP-5 $1.17, WP-6 $7.95, WP-8 $5.05, WP-10 $4.76 — the round
+closes at **$18.93 of the $30 ceiling**; the remaining $11.07 closes
+with it unless Max reopens. WP-0 to WP-4, WP-7a, WP-7b and WP-9 spent
+nothing.
+
+**Disk sweep (Max's request).** `~/.hobbes` 119 GB → 50 GB. The `work/`
+clones of 22 SWE-bench-era runs were deleted after each arm's records
+were archived into `<run>/work-records.tar.zst`; `v017` and dagger-rust's
+`cargo-target` went too. The Atlas-0 checkpoints and the session
+worktrees were kept.
+
+**Findings for Max.**
+- `hobbes ingest` edits the target's `.gitignore`, so every graph stamps
+  `dirty: true` (WP-0; WP-10 saw the trace on the read-only upstream
+  clone, a `.hobbes/` line dated 2026-09-09 from an earlier ingest). A
+  candidate constraint, not registered.
+- The harness's `isolation: worktree` cut worktrees from the session's
+  first commit (`9f168d6`), not `main` (WP-7b caught it; WP-7a confirmed
+  its base). WP-9 and after made their own with `git worktree add` from
+  `main`.
+- WP-4: M0's cell record prices Sonnet 5 at $3 / $15 where two on-box
+  sources say $2 / $10 (M0's $6.0 T and $16.6 O would read $4.0 and
+  $11.1). The record is Max's to amend.
+- The Anthropic key line for Calvin runs is `anthropic_key` (pass
+  `--key-name anthropic_key`); `llm_key` is not an Anthropic key (two
+  401s, unbilled, at WP-5).
+
+Validation: pytest 1,258 → 1,307 over the round (+4 `lane_b` not
+re-run); Go 304, recounted, unchanged (only the version constant moved
+there); the other suites' code unchanged but for version strings.
+**Docs:** the design's §10 and the cell page's `## Re-test 2 (WP-10)`
+committed by the orchestrator; the version, register and suite counts
+brought to 0.1.14-beta (`d68efd3`); this entry, the handoff rewritten,
+CLAUDE's Status and read-next row, README's status and design-docs
+table. Commits on `main`; no push, no tag.
