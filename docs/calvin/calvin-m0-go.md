@@ -173,6 +173,26 @@ WP-6 read *T < O* with X and G clean and selected "NULL new dominates → M1′ 
 - **Exit:** every row attributed; the re-selected reading written; spend stated. **Spend rules:** stop after run 1 if its cost exceeds 2× WP-6's per-run T actual (≈ $2.36, so stop above $4.72); a hard cap of **$20.88**, the ceiling's remainder.
 - **Report:** T against WP-6's T and O's standing rows; the NULL closure count; recall; the reading; spend.
 
+### After WP-8 — G on declarations, then one more re-test (added 2026-09-11 on Max's word; §10)
+
+WP-8 read *T < O* again, with G unclean on what the declaration hole lets through: 9 NULLs closed at HSR 0 on bodies no build accepts, all declared in other projects' APIs (D-g), and the hole showed no sibling's form (D-h). DAG: **WP-9 → merged → WP-10.** WP-9 makes its own worktree from `main` (`git worktree add`), because the harness's isolation cuts worktrees from a stale commit.
+
+#### WP-9 — the grounder on declaration bodies, a sibling's form, the placed record (no spend) — depends on WP-8
+
+- **Reads:** WP-8's report (D-f, D-g, D-h); WP-7a's report; §2.5; `ground.py`, `adapter.py`, `holes.py` and their tests; WP-8's recorded exchanges and rows.
+- **Does:** (1) **D-g.** The grounder judges a declaration's body in the world (§2.5). Every import path must be a stdlib package (go1.26.5's list, pinned), a package of the module, or a package of a module the parent's go.mod requires; anything else is a NULL of its own class. A selector or call through a package name the file does not import is judged, and an undeclared qualifier is a NULL. (2) **D-h.** The declaration hole shows one existing declaration of the same kind from the binding directory — its signature and body head, chosen deterministically and capped. (3) **The loop uses G.** A NULL inside a declaration's body routes back once, as a repair of that declaration hole, bounded to one exchange. (4) **D-f.** A refused declaration reads `refused`, never `placed`. The adapter stamps protocol **v0.5**.
+- **Writes:** `~/.hobbes/bench/calvin-go/wp-9/` (the replay records); code on branch `calvin-go/wp-9`, tests in the same commit.
+- **Exit:** No-spend replay. WP-8's 9 placed wrong-world declarations each raise at least one NULL of the right class (9/9). 0924's overlapping declaration reads `refused` (2/2). WP-7a's scripted gold declarations still close 11/11. The gold grounding reads 0 NULL, 20/20 byte-equal. Template v2 is byte-identical. The poison control reads 50/50. The sibling shown for each key is listed. pytest green.
+- **Report:** the rules as built; the replay counts; defects; any constraint drafts.
+
+#### WP-10 — the floor re-tested on protocol v0.5 (spend; cleared by Max 2026-09-11) — depends on WP-9 merged
+
+- **Reads:** as WP-8, plus WP-8's and WP-9's reports.
+- **Does:** as WP-8. T, with the T-loop inside it, on the same 20 keys × 2 runs. Haiku 4.5 at model-default sampling, protocol v0.5. O's WP-6 rows stand. Rows are attributed before any aggregate; the §4 instruments run with recall on every row; §5's reading is re-selected beside WP-6's and WP-8's.
+- **Writes:** `~/.hobbes/bench/calvin-go/wp-10/rows.json`; a `## Re-test 2 (WP-10)` section in the cell page; §10 Results amended, dated.
+- **Exit:** every row attributed; the reading written; spend stated. **Spend rules:** stop after run 1 if its cost exceeds 2× WP-8's run-1 actual ($2.66, so stop above $5.32); a hard cap of **$15.83**, the ceiling's remainder.
+- **Report:** T against WP-8's T, WP-6's T and O's standing rows; declarations counted as placed, built, and NULLed by class; the repair exchange's closures; recall; the reading; spend.
+
 ---
 
 ## 4. Instruments, with attribution
@@ -392,3 +412,4 @@ The next step is Max's.
 - 2026-09-11 — **WP-7b** exit checked (every WP-5/WP-6 row carries `recall`; WP-6's measure reproduces 45/45; recall v1 marks 2 of O's 5 rows recalled, 0 of T's 40) and merged (`8244194`; scripts only, no bump). The harness cut both WP-7 worktrees from the session's first commit (`9f168d6`), not `main`; WP-7b re-cut from `main` itself and WP-7a was warned and confirmed its base (`e91d50e`).
 - 2026-09-11 — **WP-7a** exit checked (protocol v0.4: WP-6's 11 NULL sites close 11/11 on a scripted gold replay with 0 NULLs opened and 0 call sites re-asked; the gutter guard refuses 7fc11's three gutter fills; template v2 and the gold grounding unchanged; pytest 1,296). Its "WP-3 hashes differ" note is not a defect: the base run grounded without the RTA key and on A2 rev 3, so `task_hash` and the output hash moved with their inputs, reference counts equal. **Max: a declaration in a new file outside the write partition is placed and recorded (`in_partition: false`), never refused** — as NEW_SYMBOL/FREEFORM files already are; refusing would leave 10 of the 11 sites (gold's new `rules/*.go` files) unclosable.
 - 2026-09-11 — WP-7a merged (`edd075e`; C-106 near-miss names re-asked, C-107 outside-partition declarations placed and recorded, C-108 the declaration's directory unchecked for non-Go names — partial); **0.1.13-beta** (`5682263`, untagged); image rebuilt, proxy 0.1.13-beta; pytest 1,301. WP-8 launched on protocol v0.4 with the $20.88 cap.
+- 2026-09-11 — WP-8's exit checked (every row attributed; *T < O* re-selected, not separable on the recall-free keys; the declaration hole closed 9 of 11 NULLs, 0 of 9 build — declared in trufflehog's / gosec's APIs; G unclean on declaration bodies, D-g; $5.05, round $14.17 of $30) and its docs committed (`cea00bb`). **Max: fix G and D-h, re-test once** — WP-9 (G on declaration bodies: imports against stdlib / module / go.mod, unimported qualifiers NULL; a sibling's form in the declaration hole; one bounded repair of a declaration's NULL; the D-f record; protocol v0.5), then WP-10 (T twice, cap $15.83); blocks in §3 "After WP-8".
