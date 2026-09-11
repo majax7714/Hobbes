@@ -525,6 +525,87 @@ def test_density_table_k_rule_ties_never_split():
     assert G.density_table(g)["degree"] == {"a": 1, "b": 0, "c": 0}, "distinct referencing symbols over calls and uses; self-edges and imports dropped"
 
 
+WORLD_MOD = GO_MOD + ("\nrequire (\n\tgithub.com/rs/zerolog v1.33.0 // indirect\n\tgithub.com/wasilibs/go-re2 v1.9.0\n)\n\n"
+                      "require golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa\n")
+VARS_GO = "package app\n\n// Default is a package-level value no graph symbol holds.\nvar Default = Options{}\n"
+WORLD_GO = """package app
+
+import (
+\t"fmt"
+\t"math/rand/v2"
+
+\t"example.com/x/cmd"
+\t"example.com/x/nothere"
+\t"github.com/rs/zerolog/log"
+\t"github.com/securego/gosec/v2"
+\tre2 "github.com/wasilibs/go-re2"
+\t"golang.org/x/exp/maps"
+)
+
+func World(o Options) *detectors.Rule {
+\tfmt.Println(rand.IntN(3), re2.MustCompile("x"), maps.Keys(nil), o.Repo, Default.Repo)
+\tlog.Info()
+\tvar r gosec.Rule
+\t_ = r
+\t_ = regexp.MustCompile("y")
+\t_ = core.Pattern
+\treturn nil
+}
+"""
+
+
+def world_ledger(root):
+    """The synthetic repo with a go.mod that requires three modules (block and single-line, one indirect) and a file declaring a
+    package-level value the graph does not hold, committed at a new SHA."""
+    (root / "go.mod").write_text(WORLD_MOD)
+    (root / "internal/app/vars.go").write_text(VARS_GO)
+    _git(root, "add", ".")
+    _git(root, "commit", "-q", "-m", "world")
+    return ledger(_git(root, "rev-parse", "HEAD").strip())
+
+
+def test_go_stdlib_is_pinned_whole():
+    """M0-Go WP-9: go1.26.5's importable standard library, pinned as the universe is; checked against `go list std` where that toolchain runs."""
+    assert len(G.GO_STDLIB) == 176 and {"fmt", "regexp", "math/rand/v2", "log/slog", "iter", "weak"} <= G.GO_STDLIB
+    assert not any("internal" in p.split("/") or p.startswith("vendor/") for p in G.GO_STDLIB), "neither is importable from a module"
+    go = shutil.which("go")
+    if go and subprocess.run([go, "env", "GOVERSION"], capture_output=True, text=True).stdout.strip() == "go1.26.5":
+        std = subprocess.run([go, "list", "std"], capture_output=True, text=True, check=True).stdout.split()
+        assert {p for p in std if "internal" not in p.split("/") and not p.startswith("vendor/")} == G.GO_STDLIB
+
+
+def test_go_import_names_carry_the_conventional_spellings():
+    assert {"re2", "go-re2"} <= G._go_import_names("github.com/wasilibs/go-re2")
+    assert "gosec" in G._go_import_names("github.com/securego/gosec/v2") and "rand" in G._go_import_names("math/rand/v2")
+    assert "yaml" in G._go_import_names("gopkg.in/yaml.v3") and "ahocorasick" in G._go_import_names("github.com/BobuSumisu/aho-corasick")
+
+
+def test_world_holds_a_fill_to_std_the_module_and_the_go_mod(repo):
+    """M0-Go WP-9 (WP-8's D-g): every import a Go fill writes is std, a package of the module or under a module go.mod requires, else a
+    NULL `import-outside`; a qualifier nothing binds — a call, a selector, a qualified type — is a NULL `unimported`; a package-level value
+    of another file, a local and an unaliased import's conventional name are bound."""
+    root, _ = repo
+    L = world_ledger(root)
+    t = template(L, root, "Change `Run`.")
+    g = G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": WORLD_GO, "span": {"path": "internal/app/world.go", "start": 1, "end": 0}}}}, L, root)
+    assert sorted((n["term"], n["null_class"], n["kind"]) for n in g["null"]) == [
+        ("core.Pattern", "unimported", "selector"), ("detectors.Rule", "unimported", "selector"), ("example.com/x/nothere", "import-outside", "import"),
+        ("github.com/securego/gosec/v2", "import-outside", "import"), ("regexp.MustCompile", "unimported", "call")]
+    why = {n["term"]: n["reason"] for n in g["null"]}
+    assert "naming no Go package" in why["example.com/x/nothere"] and "under no module its go.mod requires" in why["github.com/securego/gosec/v2"]
+    assert all(n["hole"].startswith(hole(t, "FREEFORM")["id"]) and n["density"] == "absent" for n in g["null"])
+    assert g["world"]["counts"] == {"import:std": 2, "import:module": 1, "import:required": 3, "import:import-outside": 2,
+                                    "qualifier:unimported": 2, "qualifier:bound-or-abstained": 3}
+    assert g["references"]["NULL"] == 5 and g["null_by_class"]["import-outside"] == 2 and g["null_by_class"]["unimported"] == 3
+    assert any(r["op"] == "go.mod" and r["result"] == "3 required modules" for r in g["trace"]), "the read-trace shows the go.mod read"
+    # a BODY fill in an existing file: its untouched imports are not judged; a qualifier the file does not import is
+    body = next(h for h in t["holes"] if h["type"] == "BODY" and h["provenance"]["symbol"] == "internal/app/app.Run")
+    code = "func Run(o Options) error {\n\tfmt.Println(Default.Repo, o.Repo)\n\tstrings.ToUpper(o.Repo)\n\treturn nil\n}\n"
+    g2 = G.ground(template(L, root, "Change `Run`."), {"fills": {body["id"]: {"code": code}}}, L, root)
+    assert [(n["term"], n["null_class"]) for n in g2["null"]] == [("strings.ToUpper", "unimported")]
+    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 2
+
+
 def test_fill_shapes_widened_for_the_grounder():
     f = {"id": "f1", "type": "FREEFORM", "fill_schema": holes.FILL_SHAPES["FREEFORM"]}
     assert holes.validate_fill(f, [{"code": "x", "span": {"path": "a", "start": 3, "end": 2}}]) == []

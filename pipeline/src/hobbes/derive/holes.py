@@ -38,7 +38,12 @@ Protocol v0.4 (Calvin M0-Go WP-7a) adds two checks and no shape: a
 is refused (`carries_gutter`), and a ``NEW_SYMBOL`` hole whose
 constraints carry ``declares`` — the NULL round-trip's declaration hole
 for one name — is answered with that name, in the directory it binds
-in, by a body that declares it (`declaration_errors`).
+in, by a body that declares it (`declaration_errors`). Protocol v0.5
+(M0-Go WP-9, WP-8's D-h) adds one render and no shape: a declaration
+hole carrying ``sibling`` — one existing declaration of the same kind
+from the binding directory, chosen by the adapter's stated rule — is
+shown with its file's package clause and imports, its signature and the
+head of its body, as a form to follow.
 """
 from __future__ import annotations
 
@@ -427,6 +432,12 @@ def render(t: dict, repo_root: Path | None = None) -> str:
                 out.append(f"- `{term['term']}` — nearest: {', '.join(term['nearest'])}")
         if h.get("candidates"):
             out += _render_candidates(h["candidates"])
+        if h.get("sibling"):  # v0.5: a declaration hole's sibling of the same kind — a form to follow, not a task
+            s = h["sibling"]
+            imps = ", ".join(f"`{i}`" for i in s["imports"]) or "nothing"
+            more = f" ({s['more_lines']} more lines not shown)" if s.get("more_lines") else ""
+            out += ["", f"A sibling of the same kind, for its form ({s['rule']}): `{s['symbol']}` in `{s['path']}`, whose file is `package {s['package']}` "
+                    f"and imports {imps}. Its signature and the head of its body{more}:", "", "```go", s["text"], "```"]
         if h["type"] == "ANCHOR_CONFIRM" and h.get("span") and repo_root is not None:  # a module's symbol: its first line, so the reader can judge
             out += ["", "```", span_text(repo_root, sha, {**h["span"], "end": h["span"]["start"]}), "```"]
         if h.get("span") and repo_root is not None and h["type"] in ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION"):

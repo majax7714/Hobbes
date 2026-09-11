@@ -185,7 +185,7 @@ def test_v03_signature_and_body_patterns_are_read_unchanged_with_no_repair(repo)
     ad = A.Adapter(fake, "fake-model")
     doc, errs = ad.ask(t, root, "round 2")
     assert errs == {} and [e["purpose"] for e in ad.exchanges] == ["round 2"] and ad.exchanges[0]["validation"] == {}
-    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.4", "v0.3's reading stands under v0.4"
+    assert ad.exchanges[0]["protocol_version"] == A.PROTOCOL_VERSION == "0.5", "v0.3's reading stands under v0.5"
     patterned = {h["id"] for h in t["holes"] if h["type"] in ("SIGNATURE", "BODY") and h["id"] != body["id"]}
     assert patterned and set(doc["by_pattern"]) == patterned and doc["fills"][body["id"]] == {"code": "func runGoRTA() {}\n"}
     g1 = A.G.ground(json.loads(json.dumps(t)), doc, L, root)
@@ -208,7 +208,7 @@ def test_v03_a_confirmation_pattern_is_a_refusal_recorded_by_pattern_and_not_car
     assert r1["pattern_confirmations"] == 1 and r1["unanswered_confirmations"] == 0
     assert [e["purpose"] for e in rec["exchanges"]][:2] == ["round 1", "round 1b"], "no repair; refused, so the rebuild opens the ANCHOR hole"
     assert c["id"] not in {h["id"] for h in rec["template_round2"]["holes"]}, "a refusal by pattern is not carried into round 2, like one by silence"
-    assert rec["key"]["protocol_version"] == "0.4"
+    assert rec["key"]["protocol_version"] == "0.5"
 
 
 def _r2_calling(t2, body_code):
@@ -254,9 +254,11 @@ def test_v04_an_undeclared_name_gets_a_declaration_hole_not_a_re_ask(repo):
     assert [r["class"] for r in g2["refs"] if r["term"] == "app.Launch"] == ["gensym"], "the call site grounded again binds the declaration"
     assert rec["loop"]["closed_by_class"] == {"invented": 1} and rec["loop"]["routes"] == {"declare": 1} and rec["loop"]["declaration_holes"] == ["d1"]
     assert rec["loop"]["sites"] == [{"hole": body_id, "path": "cmd/main.go", "line": 11, "term": "app.Launch", "null_class": "invented", "route": "declare",
-                                     "closed": True, "declaration": "d1", "answer": "placed", "file": "internal/app/launch.go", "in_partition": False}]
+                                     "closed": True, "declaration": "d1", "answer": "placed", "file": "internal/app/launch.go", "in_partition": False,
+                                     "body_nulls": 0, "repaired": False}]
     assert [r["round"] for r in rec["rounds"]] == [1, 2, 3] and rec["rounds"][2]["holes_asked"] == ["d1"]
-    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.4"} and rec["key"]["protocol_version"] == "0.4"
+    assert rec["loop"]["declaration_repair"] is None and "template_repair" not in rec, "a body that grounds clean is not repaired"
+    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.5"} and rec["key"]["protocol_version"] == "0.5"
 
 
 def test_v04_declaration_answers_are_checked_and_two_names_may_share_one_new_file(repo):
@@ -310,6 +312,84 @@ def test_v04_a_body_carrying_the_render_gutter_is_refused_and_repaired(repo):
     assert f"- {body['id']}: {holes.GUTTER_ERROR}" in fake.asked[1][-1]["content"]
     g = A.G.ground(json.loads(json.dumps(t)), gutter, L, root)
     assert g["refused"] == [{"hole": body["id"], "errors": [holes.GUTTER_ERROR]}] and g["diff"] == ""
+
+
+DECL_OUTSIDE = "package app\n\nimport \"github.com/securego/gosec/v2\"\n\n// Launch starts one run.\nfunc Launch(o Options) gosec.Rule {\n\tcore.Start()\n\treturn nil\n}\n"
+DECL_INSIDE = "package app\n\n// Launch starts one run.\nfunc Launch(o Options) error { return Run(o) }\n"
+
+
+def _loop_on(repo, body_code, *replies):
+    root, sha = repo
+    L = ledger(sha)
+    task = "Fix runGoRTA and add mergeRanges."
+    t = T.build_template(task, L, root, None)
+    r1 = _round1(t)
+    t2 = T.apply_round1(task, L, root, None, t, r1)
+    _, r2 = _r2_calling(t2, body_code)
+    fake = Fake([json.dumps({"fills": r1}), json.dumps(r2), *replies])
+    return A.run_t(task, t, L, root, None, A.Adapter(fake, "fake-model")), fake, L, root
+
+
+def test_v05_a_declaration_body_outside_the_world_is_repaired_once(repo):
+    """Protocol v0.5 (M0-Go WP-9; WP-8's D-g): a placed declaration whose body imports outside the world or qualifies with a package it
+    does not import raises NULLs at the grounder, inside the declaration; they go back once, as a repair of that same hole — one
+    exchange, no validation repair after it — and a repair that does not validate leaves the body's NULLs standing in the record."""
+    call = "func runGoRTA() {\n\tmergeRanges()\n\tapp.Launch(app.Options{})\n}\n"
+    bad = json.dumps({"fills": {"d1": {"name": "Launch", "file": "internal/app/launch.go", "region": "eof", "body": DECL_OUTSIDE}}})
+    good = json.dumps({"fills": {"d1": {"name": "Launch", "file": "internal/app/launch.go", "region": "eof", "body": DECL_INSIDE}}})
+    rec, fake, _, _ = _loop_on(repo, call, bad, good)
+    assert [e["purpose"] for e in rec["exchanges"]][-2:] == ["NULL round-trip", "declaration repair"]
+    before = rec["ground_before_repair"]
+    assert sorted((n["term"], n["null_class"], n["hole"]) for n in before["null"]) == [("core.Start", "unimported", "d1"), ("github.com/securego/gosec/v2", "import-outside", "d1")]
+    asked = fake.asked[3][1]["content"]
+    assert asked.count("### ") == 1 and "### d1 · NEW_SYMBOL — repair your declaration of `Launch`" in asked, "the same declaration hole, nothing else"
+    assert "NULL in your declaration = `core.Start`" in asked and "import-outside" in asked and "Your previous answer" in asked
+    assert rec["rounds"][-1]["round"] == "3r" and rec["rounds"][-1]["taken"] == ["d1"] and rec["template_repair"]["holes"][0]["id"] == "d1"
+    assert rec["ground_after_loop"]["null"] == [] and rec["loop"]["nulls_after"] == 0 and "func Launch(o Options) error" in rec["ground_after_loop"]["post"]["internal/app/launch.go"]
+    assert rec["loop"]["declaration_repair"] == {"asked": ["d1"], "taken": ["d1"], "exchanges": 1, "body_nulls_before": [
+        {"hole": "d1", "line": 7, "term": "core.Start", "null_class": "unimported", "kind": "call"},
+        {"hole": "d1", "line": 3, "term": "github.com/securego/gosec/v2", "null_class": "import-outside", "kind": "import"}], "body_nulls_after": []}
+    s = rec["loop"]["sites"][0]
+    assert (s["closed"], s["answer"], s["body_nulls"], s["repaired"]) == (True, "placed", 0, True)
+    assert {e["protocol_version"] for e in rec["exchanges"]} == {"0.5"}
+    rec2, fake2, _, _ = _loop_on(repo, call, bad, "not json")
+    assert [e["purpose"] for e in rec2["exchanges"]][-2:] == ["NULL round-trip", "declaration repair"] and len(fake2.asked) == 4, "bounded: one exchange"
+    assert rec2["rounds"][-1]["taken"] == [] and rec2["loop"]["nulls_after"] == 2 and rec2["loop"]["opened_by_class"] == {"unimported": 1, "import-outside": 1}
+    s2 = rec2["loop"]["sites"][0]
+    assert (s2["closed"], s2["answer"], s2["body_nulls"], s2["repaired"]) == (True, "placed", 2, True), "the call site binds; its declaration's body does not"
+
+
+def test_v05_a_refused_declaration_reads_refused_in_the_site_record(repo):
+    """WP-8's D-f: two declaration answers that each write the same new file — the grounder places the first and refuses the second as
+    overlapping; the site record reads the refused list, so the second reads `refused`, not `placed`."""
+    call = "func runGoRTA() {\n\tmergeRanges()\n\tapp.Launch(app.Options{})\n\tapp.Shutdown()\n}\n"
+    both = json.dumps({"fills": {"d1": {"name": "Launch", "file": "internal/app/life.go", "region": "eof", "body": DECL_INSIDE},
+                                 "d2": {"name": "Shutdown", "file": "internal/app/life.go", "region": "eof", "body": "package app\n\nfunc Shutdown() {}\n"}}})
+    rec, _, _, _ = _loop_on(repo, call, both)
+    g2 = rec["ground_after_loop"]
+    assert [x["hole"] for x in g2["refused"]] == ["d2"] and "overlaps d1" in g2["refused"][0]["reason"]
+    assert [(s["term"], s["answer"], s["closed"], s["file"]) for s in rec["loop"]["sites"]] == [
+        ("app.Launch", "placed", True, "internal/app/life.go"), ("app.Shutdown", "refused", False, None)]
+    assert rec["loop"]["refused_declarations"] == ["d2"] and rec["loop"]["declaration_repair"] is None
+
+
+def test_v05_the_declaration_hole_shows_a_sibling_of_the_same_kind(repo):
+    """WP-8's D-h: the declaration hole shows one existing declaration of its kind from the binding directory — the one the same fill
+    calls nearest the call site, else the one with the most callers there — with its file's package and imports, its signature and
+    the head of its body, capped."""
+    call = "func runGoRTA() {\n\tmergeRanges()\n\tapp.Run(app.Options{})\n\tapp.Launch(app.Options{})\n}\n"
+    rec, fake, L, root = _loop_on(repo, call, json.dumps({"fills": {"d1": {"name": "Launch", "file": "internal/app/launch.go", "region": "eof", "body": DECL_INSIDE}}}))
+    sib = rec["template_round3"]["holes"][0]["sibling"]
+    assert (sib["symbol"], sib["rule"], sib["package"], sib["imports"], sib["more_lines"]) == ("internal/app/app.Run", "called nearest the call site by the same fill", "app", ['"fmt"'], 0)
+    assert sib["text"] == 'func Run(o Options) error {\n\tfmt.Println("go-rta", o.Repo)\n\treturn nil\n}'
+    asked = fake.asked[2][1]["content"]
+    assert "A sibling of the same kind, for its form (called nearest the call site by the same fill): `internal/app/app.Run`" in asked
+    assert "whose file is `package app` and imports `\"fmt\"`" in asked and "```go\nfunc Run(o Options) error {" in asked and "as the sibling below does" in asked
+    none = {"refs": []}
+    s = A.declaration_sibling({"name": "launchAll", "dir": "cmd", "type": None}, {"hole": "x", "path": "cmd/main.go", "line": 6}, none, L, root)
+    assert (s["symbol"], s["rule"]) == ("cmd/main.runGoRTA", "the most callers in the directory"), "no co-callee: main calls runGoRTA, nothing calls main"
+    assert A.declaration_sibling({"name": "Validate", "dir": "internal/app", "type": "Options"}, {"hole": "x", "path": "cmd/main.go", "line": 6}, none, L, root) is None, "no method of the type"
+    assert A.declaration_sibling({"name": "x", "dir": None, "type": None}, {"hole": "x", "path": "a.py", "line": 1}, none, L, root) is None
 
 
 def test_anchor_answer_may_be_a_candidate_node_id(repo):

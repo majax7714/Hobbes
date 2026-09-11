@@ -57,6 +57,22 @@ Go name, the directory and type of a member on a typed receiver; None
 where the grounder cannot say (every other language, an untyped
 receiver). Adapter protocol v0.4's declaration hole reads it.
 
+**The world (`docs/calvin/calvin-m0-go.md` §2.5, M0-Go WP-9, WP-8's D-g).**
+A declaration extends the world; it does not escape it. On a Go
+post-image, every import spec inside an edited range is judged
+(``go_import_world``): a package of the standard library (``GO_STDLIB``,
+pinned from go1.26.5), a package of the file's own module (its go.mod
+at the SHA; the directory must hold Go files at the SHA or in the
+diff), or a package under a module the parent's go.mod requires — else
+a NULL of class ``import-outside``, one per spec, at its line. And a
+qualifier the file does not import is judged, not left to abstain: a
+call ``q.f()`` or a selector ``q.x`` / qualified type ``q.T`` in an
+edited range whose ``q`` no import of the file may bind, no identifier
+of the file writes, and no Go file of its package declares at top level
+is a NULL of class ``unimported`` (`_Resolver.go_unimported`; every
+doubt abstains). A non-call selector becomes a reference row only when
+it is a NULL; every judgment is tallied under ``world``.
+
 **Density (Track B).** Every reference the parent graph judges carries
 ``dense | sparse | absent`` beside its class (``density_table``,
 ``DENSITY_RULE``): a real symbol by its in-degree against the parent's
@@ -89,7 +105,7 @@ from hobbes.derive import holes as H
 from hobbes.derive.template import Ledger, prune
 from hobbes.extract.tail import PY_BUILTINS, language_of
 
-GROUNDER_VERSION = 1  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4)
+GROUNDER_VERSION = 2  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9)
 EXPR = "<expr>"
 #: The reference classes; ``NULL`` is the only failure (I2). Everything else is what lane A resolves or abstains on by rule.
 CLASSES = ("in-graph", "interface", "gensym", "builtin", "local", "field", "expr", "external", "unknown-receiver", "not-code", "unsupported", "NULL")
@@ -110,7 +126,42 @@ GO_PREDECLARED = frozenset({
     "int64", "int8", "rune", "string", "uint", "uint16", "uint32", "uint64", "uint8", "uintptr",
     "false", "iota", "nil", "true",
 })
-NULL_CLASSES = ("new", "near-miss", "invented")
+#: The Go standard library a fill may import, pinned from go1.26.5 (the image's toolchain, as ``GO_PREDECLARED`` is): ``go list std``
+#: less every path with an ``internal`` element and every ``vendor/…`` path — neither is importable from a module — 176 packages.
+GO_STDLIB = frozenset("""
+archive/tar archive/zip bufio bytes cmp compress/bzip2 compress/flate compress/gzip compress/lzw compress/zlib container/heap
+container/list container/ring context crypto crypto/aes crypto/cipher crypto/des crypto/dsa crypto/ecdh crypto/ecdsa crypto/ed25519
+crypto/elliptic crypto/fips140 crypto/hkdf crypto/hmac crypto/hpke crypto/md5 crypto/mlkem crypto/mlkem/mlkemtest crypto/pbkdf2
+crypto/rand crypto/rc4 crypto/rsa crypto/sha1 crypto/sha256 crypto/sha3 crypto/sha512 crypto/subtle crypto/tls crypto/x509
+crypto/x509/pkix database/sql database/sql/driver debug/buildinfo debug/dwarf debug/elf debug/gosym debug/macho debug/pe
+debug/plan9obj embed encoding encoding/ascii85 encoding/asn1 encoding/base32 encoding/base64 encoding/binary encoding/csv
+encoding/gob encoding/hex encoding/json encoding/pem encoding/xml errors expvar flag fmt go/ast go/build go/build/constraint
+go/constant go/doc go/doc/comment go/format go/importer go/parser go/printer go/scanner go/token go/types go/version hash
+hash/adler32 hash/crc32 hash/crc64 hash/fnv hash/maphash html html/template image image/color image/color/palette image/draw
+image/gif image/jpeg image/png index/suffixarray io io/fs io/ioutil iter log log/slog log/syslog maps math math/big math/bits
+math/cmplx math/rand math/rand/v2 mime mime/multipart mime/quotedprintable net net/http net/http/cgi net/http/cookiejar
+net/http/fcgi net/http/httptest net/http/httptrace net/http/httputil net/http/pprof net/mail net/netip net/rpc net/rpc/jsonrpc
+net/smtp net/textproto net/url os os/exec os/signal os/user path path/filepath plugin reflect regexp regexp/syntax runtime
+runtime/cgo runtime/coverage runtime/debug runtime/metrics runtime/pprof runtime/race runtime/trace slices sort strconv strings
+structs sync sync/atomic syscall testing testing/cryptotest testing/fstest testing/iotest testing/quick testing/slogtest
+testing/synctest text/scanner text/tabwriter text/template text/template/parse time time/tzdata unicode unicode/utf16
+unicode/utf8 unique unsafe weak
+""".split())
+#: cgo's pseudo-package: no package ``go list std`` names, importable by a cgo file.
+GO_PSEUDO_IMPORTS = frozenset({"C"})
+#: The NULL classes the world check raises (M0-Go WP-9): an import path outside the world, a qualifier nothing binds.
+WORLD_NULL_CLASSES = ("import-outside", "unimported")
+NULL_CLASSES = ("new", "near-miss", "invented") + WORLD_NULL_CLASSES
+#: The world check's rule, stated on every record (M0-Go WP-9, D-g; §2.5).
+WORLD_RULE = ("Go only, inside edited ranges. An import path is std (GO_STDLIB, go1.26.5's `go list std` less internal and vendor paths; "
+              "cgo's C), module (under the module path of the go.mod governing the file at the SHA, naming a directory with Go files at the "
+              "SHA or in the diff), or required (under a module path a require line of that go.mod names, // indirect included; the "
+              "package is not checked to exist inside the module) — else a NULL `import-outside`, one per spec; unverifiable when no go.mod "
+              "governs the file. A qualifier q of a call q.f(), a selector q.x or a qualified type q.T is a NULL `unimported` when no import "
+              "of the file may bind q (an explicit alias exactly; an unaliased path by the names its path conventionally spells, "
+              "`_go_import_names`, plus the package clause of a module package), the file has no dot import, q is not predeclared, no "
+              "identifier of the file other than a selector's operand is q, and no Go file of the package declares q at top level (the "
+              "syntax, build tags not read); else it abstains. A non-call selector is a reference row only when it is a NULL.")
 PLACED_TYPES = ("SIGNATURE", "BODY", "MODULE_REGION", "CALLER_UPDATE", "TEST_EXPECTATION", "COCHANGE_TOUCH", "NEW_SYMBOL", "FREEFORM")
 _NEAR = 3
 _CHANGE_PRIORITY = ("BODY", "CALLER_UPDATE", "TEST_EXPECTATION", "MODULE_REGION")
@@ -339,6 +390,7 @@ class Parsed:
     go_binds: list[tuple] = field(default_factory=list)  #: Go: (name, typeref | None, declared at, start, end) — rule 1's reading
     go_tparams: list[tuple[str, int, int]] = field(default_factory=list)  #: Go: type parameters in scope over a function's extent
     go_ltypes: list[tuple[str, int, int]] = field(default_factory=list)  #: Go: types declared inside a function
+    go_root: object = None  #: Go: the post-image's tree-sitter root — the world check's reading (imports, selectors, identifiers)
 
 
 def _parse_python(text: str) -> Parsed:
@@ -367,8 +419,9 @@ def _parse_go(path: str, text: str) -> Parsed:
     g = gosource._parse_file(path, source)
     imports = [{"bound": i["alias"], "module": i["path"], "kind": "module"} for i in g.imports]
     refs = [Ref(c["name"], c["receiver"], c["line"], c.get("scope")) for c in g.calls]
-    binds, tparams, ltypes = _go_scopes(gosource._PARSER.parse(source).root_node)
-    return Parsed("go", g.symbols, refs, imports, [tuple(b[:3]) for b in g.local_bindings], binds, tparams, ltypes)
+    root = gosource._PARSER.parse(source).root_node
+    binds, tparams, ltypes = _go_scopes(root)
+    return Parsed("go", g.symbols, refs, imports, [tuple(b[:3]) for b in g.local_bindings], binds, tparams, ltypes, root)
 
 
 def _gtext(node) -> str:
@@ -496,6 +549,80 @@ def _walk_nodes(node):
     yield node
     for child in node.children:
         yield from _walk_nodes(child)
+
+
+def _iter_nodes(node):
+    """Every node under *node*, preorder, without recursion (a whole post-image may be deep)."""
+    stack = [node]
+    while stack:
+        n = stack.pop()
+        yield n
+        stack.extend(reversed(n.children))
+
+
+_GO_IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _go_import_specs(root) -> list[dict]:
+    """Every import spec of a Go file: ``{"alias": the name written before the path (``_`` and ``.`` as written) or None, "path", "line"}``."""
+    out = []
+    for decl in root.children:
+        if decl.type != "import_declaration":
+            continue
+        for n in _iter_nodes(decl):
+            if n.type != "import_spec":
+                continue
+            nm, p = n.child_by_field_name("name"), n.child_by_field_name("path")
+            if p is None:
+                continue
+            out.append({"alias": _gtext(nm) if nm is not None else None, "path": _gtext(p).strip('"`'), "line": n.start_point.row + 1})
+    return out
+
+
+def _go_plain_identifiers(root) -> set[str]:
+    """Every identifier a Go file writes other than as a selector's operand — a binding or a use: a name so written is declared somewhere
+    the syntax does not have to say, so the world check never calls it unimported."""
+    out = set()
+    for n in _iter_nodes(root):
+        if n.type != "identifier":
+            continue
+        p = n.parent
+        if p is not None and p.type == "selector_expression":
+            op = p.child_by_field_name("operand")
+            if op is not None and op.start_byte == n.start_byte and op.end_byte == n.end_byte:
+                continue
+        out.add(_gtext(n))
+    return out
+
+
+def _go_toplevel_names(root) -> set[str]:
+    """The package-level names one Go file declares: functions (not methods), types, vars and consts, grouped or not."""
+    out = set()
+    for node in root.children:
+        if node.type == "function_declaration":
+            nm = node.child_by_field_name("name")
+            if nm is not None:
+                out.add(_gtext(nm))
+        elif node.type in ("type_declaration", "var_declaration", "const_declaration"):
+            for n in _iter_nodes(node):
+                if n.type in ("type_spec", "type_alias", "var_spec", "const_spec"):
+                    out.update(_gtext(x) for x in n.children_by_field_name("name"))
+    return out
+
+
+def _go_import_names(ipath: str) -> set[str]:
+    """The package names an unaliased import of *ipath* may bind when its package clause is not read: the last element (the one before
+    a ``/vN`` major-version suffix), less a gopkg.in ``.vN``, with a ``go-`` / ``-go`` / ``go`` / ``.go`` affix dropped, and ``-`` / ``.``
+    dropped or spelled ``_`` — the spellings a path conventionally carries its package's name in. Deliberately wide: a name kept abstains."""
+    parts = ipath.split("/")
+    last = parts[-1]
+    base = parts[-2] if len(parts) > 1 and re.fullmatch(r"v\d+", last) else last
+    base = re.sub(r"\.v\d+$", "", base)
+    out = {last, base}
+    for b in list(out):
+        for x in (b, b.removeprefix("go-"), b.removesuffix("-go"), b.removeprefix("go"), b.removesuffix(".go")):
+            out |= {x, x.replace("-", "").replace(".", ""), x.replace("-", "_").replace(".", "_")}
+    return {x for x in out if x}
 
 
 def _go_read_type(spec, path: str, imports: list[dict]) -> dict:
@@ -681,7 +808,12 @@ class _Resolver:
                 if s["qualname"] not in known:
                     self.gensyms[path].add(s["name"])
                     self.gensym_quals[path].add(s["qualname"])
+        self.tree_files = subprocess.run(["git", "ls-tree", "-r", "--name-only", self.sha], cwd=self.repo_root, capture_output=True, text=True).stdout.split("\n")
         self.go_mods = self._go_modules()
+        self.go_dirs = {H.dir_of(p) for p in self.tree_files if p.endswith(".go")} | {H.dir_of(p) for p, P in post_parsed.items() if P.lang == "go"}
+        self._requires: dict[str, frozenset] = {}
+        self._toplevel: dict[str, set[str]] = {}
+        self._file_names: dict[str, dict] = {}
         self.all_gensyms = set().union(*self.gensyms.values()) if self.gensyms else set()
         self.post_parsed = post_parsed
         self.go_gensym_bare: dict[str, set[str]] = collections.defaultdict(set)  # Go: dir → package-level names the post-image adds
@@ -740,9 +872,8 @@ class _Resolver:
 
     def _go_modules(self) -> dict[str, str]:
         """module path → directory, from every go.mod at the SHA (the join's own source of package identity)."""
-        r = subprocess.run(["git", "ls-tree", "-r", "--name-only", self.sha], cwd=self.repo_root, capture_output=True, text=True)
         out = {}
-        for p in r.stdout.split("\n"):
+        for p in self.tree_files:
             if p == "go.mod" or p.endswith("/go.mod"):
                 text = _show(str(self.repo_root), self.sha, p) or ""
                 m = re.search(r"^module\s+(\S+)", text, re.M)
@@ -832,6 +963,8 @@ class _Resolver:
         if decl is not None:  # rule 1 on a package-level var whose declaration states its type
             ref, vpath, imports = decl
             return self.go_call_on(self.go_resolve_type(ref, str(PurePosixPath(vpath).parent), imports), r, "unknown-receiver")
+        if self.go_unimported(path, P, r.receiver):  # the world check (WP-9, D-g): a qualifier nothing binds is judged, not abstained on
+            return "NULL", "unimported"
         return "unknown-receiver", r.receiver
 
     def null_scope(self, path: str, P: Parsed, r: Ref) -> dict | None:
@@ -1015,6 +1148,174 @@ class _Resolver:
                 rest = d[len(mdir):].lstrip("/") if mdir else d
                 return mod + ("/" + rest if rest else "")
         return d
+
+    # ---- Go: the world (M0-Go WP-9, D-g; §2.5)
+
+    def go_module_of(self, d: str) -> tuple[str, str] | None:
+        """The module governing package dir *d*: ``(module path, its go.mod's directory)`` — the go.mod nearest above *d* at the SHA."""
+        d = "" if d == "." else d
+        best = None
+        for mod, mdir in self.go_mods.items():
+            if (mdir == "" or d == mdir or d.startswith(mdir + "/")) and (best is None or len(mdir) > len(best[1])):
+                best = (mod, mdir)
+        return best
+
+    def go_requires(self, mdir: str) -> frozenset:
+        """The module paths the go.mod in *mdir* requires at the SHA: every ``require`` line, single or in a block, ``// indirect``
+        included (the build resolves an import from any module its go.mod lists)."""
+        if mdir not in self._requires:
+            text = _show(str(self.repo_root), self.sha, f"{mdir}/go.mod" if mdir else "go.mod") or ""
+            mods, block = set(), False
+            for line in text.split("\n"):
+                s = line.split("//", 1)[0].strip()
+                if block:
+                    if s.startswith(")"):
+                        block = False
+                    elif s:
+                        mods.add(s.split()[0].strip('"'))
+                elif re.match(r"require\b", s):
+                    rest = s[len("require"):].strip()
+                    if rest.startswith("("):
+                        block = True
+                    elif rest:
+                        mods.add(rest.split()[0].strip('"'))
+            self._requires[mdir] = frozenset(mods)
+            self.trace.look("go.mod", f"{mdir or '.'}/go.mod", f"{len(mods)} required modules")
+        return self._requires[mdir]
+
+    def go_import_world(self, file_path: str, ipath: str) -> tuple[str, str | None]:
+        """Where one import path of a Go file sits in the world: ``("std" | "module" | "required", None)``, ``("import-outside", why)``, or
+        ``("unverifiable", why)`` when no go.mod governs the file (`WORLD_RULE`)."""
+        if ipath in GO_STDLIB or ipath in GO_PSEUDO_IMPORTS:
+            return "std", None
+        m = self.go_module_of(H.dir_of(file_path))
+        if m is None:
+            return "unverifiable", "no go.mod governs the file"
+        mod, mdir = m
+        if ipath == mod or ipath.startswith(mod + "/"):
+            d = "/".join(x for x in (mdir, ipath[len(mod):].lstrip("/")) if x)
+            if d in self.go_dirs:
+                return "module", None
+            return "import-outside", f"a path of the module `{mod}` naming no Go package at this commit or in the diff (`{d or '.'}/`)"
+        if any(ipath == r or ipath.startswith(r + "/") for r in self.go_requires(mdir)):
+            return "required", None
+        return "import-outside", f"not the Go standard library (go1.26.5), not a package of the module `{mod}`, and under no module its go.mod requires"
+
+    def go_package_clause(self, d: str) -> str | None:
+        """The package clause of package dir *d*: its first non-test Go file in the post-image, else at the SHA."""
+        cands = sorted(p for p, P in self.post_parsed.items() if P.lang == "go" and H.dir_of(p) == d and not p.endswith("_test.go"))
+        cands += sorted(p for p in self.tree_files if p.endswith(".go") and not p.endswith("_test.go") and H.dir_of(p) == d)
+        for p in cands:
+            f = self.go_file(p)
+            if f is not None:
+                from hobbes.extract import gosource
+                return gosource._package_name(f[0]) or None
+        return None
+
+    def go_file_names(self, path: str, P: Parsed) -> dict:
+        """What names a Go post-image may qualify with: ``bound`` (what its imports may bind — `_go_import_names`, an explicit alias
+        exactly, a module package's clause too), ``dot`` (a dot import: anything may be bound) and ``plain`` (`_go_plain_identifiers`)."""
+        if path not in self._file_names:
+            bound, dot = set(), False
+            for s in _go_import_specs(P.go_root):
+                if s["alias"] == ".":
+                    dot = True
+                elif s["alias"] == "_":
+                    continue
+                elif s["alias"]:
+                    bound.add(s["alias"])
+                else:
+                    bound |= _go_import_names(s["path"])
+                    m = self.go_module_of(H.dir_of(path))
+                    if m is not None and (s["path"] == m[0] or s["path"].startswith(m[0] + "/")):
+                        clause = self.go_package_clause("/".join(x for x in (m[1], s["path"][len(m[0]):].lstrip("/")) if x))
+                        if clause:
+                            bound.add(clause)
+            self._file_names[path] = {"bound": bound, "dot": dot, "plain": _go_plain_identifiers(P.go_root)}
+        return self._file_names[path]
+
+    def go_dir_toplevel(self, d: str) -> set[str]:
+        """Every package-level name a Go file of package dir *d* declares, by the syntax: the parent's files (the post-image where the diff
+        edits one) and the post-image's new files there. Build tags are not read — a union, so a doubt abstains."""
+        d = "" if d == "." else d
+        if d not in self._toplevel:
+            paths = {p for p in self.tree_files if p.endswith(".go") and H.dir_of(p) == d}
+            paths |= {p for p, P in self.post_parsed.items() if P.lang == "go" and H.dir_of(p) == d}
+            names: set[str] = set()
+            for p in sorted(paths):
+                f = self.go_file(p)
+                if f is not None:
+                    names |= _go_toplevel_names(f[0])
+            self._toplevel[d] = names
+            self.trace.look("package-names", f"{d or '.'}/", f"{len(names)} names in {len(paths)} files")
+        return self._toplevel[d]
+
+    def go_unimported(self, path: str, P: Parsed, q: str | None) -> bool:
+        """Whether qualifier *q* in Go post-image *path* names nothing the file can see (`WORLD_RULE`): no import may bind it, no dot
+        import, not predeclared, never written as a plain identifier, declared at top level by no Go file of the package."""
+        if P.lang != "go" or P.go_root is None or not q or not _GO_IDENT.fullmatch(q) or q == "_" or q in GO_PREDECLARED:
+            return False
+        info = self.go_file_names(path, P)
+        if info["dot"] or q in info["bound"] or q in info["plain"]:
+            return False
+        d = str(PurePosixPath(path).parent)
+        if q in self.pkg.get(d, {}) or q in self.go_gensym_bare.get(d, ()) or q in self.go_dir_toplevel(d):
+            return False
+        return self.trace.look("unimported", f"{path}:{q}", True)
+
+    def go_world(self, path: str, P: Parsed, owned: list[tuple[int, int, str]]) -> tuple[list[dict], collections.Counter]:
+        """The world check on one Go post-image (`WORLD_RULE`): every import spec and every non-call selector or qualified type inside an
+        edited range. Returns the NULL rows (``kind`` import / selector, with the owning hole and the reason) and the tally of every judgment."""
+        rows: list[dict] = []
+        tally: collections.Counter = collections.Counter()
+        if P.lang != "go" or P.go_root is None:
+            return rows, tally
+
+        def owner(line):
+            return next((h for a, b, h in owned if a <= line <= b), None)
+
+        for s in _go_import_specs(P.go_root):
+            h = owner(s["line"])
+            if h is None:
+                continue
+            kind, why = self.go_import_world(path, s["path"])
+            tally[f"import:{kind}"] += 1
+            self.trace.look("import-world", s["path"], kind)
+            if kind == "import-outside":
+                rows.append({"hole": h, "line": s["line"], "term": s["path"], "kind": "import", "null_class": "import-outside", "reason": why})
+        seen = set()
+        for n in _iter_nodes(P.go_root):
+            if n.type == "selector_expression":
+                op, fld = n.child_by_field_name("operand"), n.child_by_field_name("field")
+                if op is None or fld is None or op.type != "identifier":
+                    continue
+                par = n.parent
+                fn = par.child_by_field_name("function") if par is not None and par.type == "call_expression" else None
+                if fn is not None and fn.start_byte == n.start_byte and fn.end_byte == n.end_byte:
+                    continue  # a call site: judged with the calls (`_go`)
+                q, name = _gtext(op), _gtext(fld)
+            elif n.type == "qualified_type":
+                pk, nm = n.child_by_field_name("package"), n.child_by_field_name("name")
+                if pk is None or nm is None:
+                    continue
+                q, name = _gtext(pk), _gtext(nm)
+            else:
+                continue
+            line = n.start_point.row + 1
+            h = owner(line)
+            if h is None or (line, q, name) in seen:
+                continue
+            seen.add((line, q, name))
+            if self.go_unimported(path, P, q):
+                tally["qualifier:unimported"] += 1
+                rows.append({"hole": h, "line": line, "term": f"{q}.{name}", "kind": "selector", "null_class": "unimported", "reason": self.unimported_reason(path, q)})
+            else:
+                tally["qualifier:bound-or-abstained"] += 1
+        return rows, tally
+
+    @staticmethod
+    def unimported_reason(path: str, q: str) -> str:
+        return f"`{q}` is imported by no import of `{path}`, and neither the file nor its package declares it"
 
     def _py(self, path: str, P: Parsed, r: Ref) -> tuple[str, str | None]:
         L, T = self.L, self.trace
@@ -1217,6 +1518,7 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
     R = _Resolver(L, repo_root, sha, trace, parsed, set(rep["declared_new"]), {p: "\n".join(post[p]) + ("\n" if post[p] else "") for p in post})
     D = density_table(L.graph)
     dens = collections.Counter()
+    world = collections.Counter()
 
     def density(cls: str, target: str | None) -> tuple[str | None, int | None]:
         if cls not in DENSITY_CLASSES:
@@ -1255,10 +1557,23 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
                 row["rta_key"] = R.iface[target][1]
                 row["implementers"] = None if rta is None else sorted(rta.get("sites", {}).get(row["rta_key"], []))
             by_class[cls] += 1
-            if cls == "NULL":
+            if cls == "NULL" and target in WORLD_NULL_CLASSES:  # the world check on a call's qualifier (WP-9)
+                row["target"] = None
+                row.update({"null_class": target, "nearest": [], "declared": False, "scope": None, "kind": "call", "reason": R.unimported_reason(path, r.receiver)})
+                nulls.append(row)
+            elif cls == "NULL":
                 _, near, ncls = R.null(r.name, path)
                 row.update({"null_class": ncls, "nearest": near, "declared": r.name in R.declared, "scope": R.null_scope(path, P, r)})
                 nulls.append(row)
+            refs.append(row)
+        wrows, tally = R.go_world(path, P, hole_at[path])
+        world.update(tally)
+        for w in wrows:
+            row = {"hole": w["hole"], "path": path, "line": w["line"], "term": w["term"], "class": "NULL", "target": None, "density": "absent", "refs_in": None,
+                   "null_class": w["null_class"], "nearest": [], "declared": False, "scope": None, "kind": w["kind"], "reason": w["reason"]}
+            dens["absent"] += 1
+            by_class["NULL"] += 1
+            nulls.append(row)
             refs.append(row)
     judged = by_class["in-graph"] + by_class["interface"] + by_class["NULL"]
     out = {
@@ -1278,6 +1593,7 @@ def ground(template: dict, doc: dict, L: Ledger, repo_root: Path, *, rta: dict |
         "hsr": round(by_class["NULL"] / judged, 4) if judged else None,
         "density": {**{k: D[k] for k in ("rule", "k", "population", "cap", "dense_in_population")}, "counts": {c: dens[c] for c in ("dense", "sparse", "absent")}},
         "rta": None if rta is None else rta.get("source"),
+        "world": {"rule": WORLD_RULE, "stdlib": f"go1.26.5, {len(GO_STDLIB)} packages", "counts": dict(sorted(world.items()))},
         **{k: rep[k] for k in ("unfilled", "ignored_closed", "unknown_hole", "refused", "notes", "closed_by_prune", "declared_new")},
         "trace": trace.rows,
     }
