@@ -207,3 +207,74 @@ def test_estimate_by_key_reads_the_expected_band_per_arm(tmp_path):
                     {"key": "k1", "arm": "T", "band": "high", "per_run": {"usd": 0.2}}, {"key": "k2", "arm": "O", "band": "exp", "per_run": {"usd": 1.0}}]}
     (tmp_path / "e.json").write_text(json.dumps(est))
     assert cp.estimate_by_key(tmp_path / "e.json") == {"k1": {"T": 0.06, "T-loop": 0.01, "total": 0.07}}
+
+
+def test_o_worst_usd_is_the_budget_plus_one_windows_overshoot_and_every_turns_output():
+    assert cp.o_worst_usd(1_000_000, 30, 4096) == pytest.approx(1.2 + 30 * 4096 * 5 / 1e6)
+    assert cp.o_worst_usd(0, 10, 1000, window=100_000) == pytest.approx(1.0 + 0.05), "no budget: every turn at the window"
+
+
+def test_o_session_usage_prices_each_call_in_the_t_units_ledger_shape():
+    rows = cp.o_session_usage([{"prompt_tokens": 200_000, "completion_tokens": 10_000, "finish_reason": "tool_calls"}, {"prompt_tokens": None}])
+    assert [r["usd"] for r in rows] == [0.25, 0.0] and rows[-1]["spent_usd"] == 0.25 and rows[0]["call"] == 1
+
+
+class _Ledger:
+    def __init__(self, graph, tests):
+        self.sha = graph["sha"]
+
+
+def _o_fixture(tmp_path):
+    (tmp_path / "g.json").write_text(json.dumps({"sha": "p" * 40}))
+    (tmp_path / "t.json").write_text("{}")
+    (tmp_path / "gold.diff").write_text("diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+y\n"
+                                        "diff --git a/b.go b/b.go\n--- a/b.go\n+++ b/b.go\n@@ -1 +1 @@\n-x\n+y\n")
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "k1.template.json").write_text(json.dumps({"holes": []}))
+    (tmp_path / "keys.txt").write_text("anthropic_key=sk-test\n")
+    u = {"key": "k1", "shape": "single-file", "parent_sha": "p" * 40, "W": 1.0, "a2_rev": 3, "A2": "fix the thing", "gold_diff": str(tmp_path / "gold.diff"),
+         "parent_graph": str(tmp_path / "g.json"), "parent_tests": str(tmp_path / "t.json")}
+    (tmp_path / "units.jsonl").write_text(json.dumps(u) + "\n")
+    return ["o-units", str(tmp_path / "units.jsonl"), "--keys", "k1", "--templates", str(tmp_path / "templates"), "--clone", str(tmp_path / "clone"),
+            "--out", str(tmp_path / "out"), "--sessions", str(tmp_path / "sessions"), "--base-url", "https://x/v1", "--model", "m",
+            "--secrets", str(tmp_path / "keys.txt"), "--key-name", "anthropic_key", "--wp", "wp-6"]
+
+
+def test_o_units_does_not_launch_a_session_whose_worst_case_passes_the_cap(tmp_path, monkeypatch):
+    import os
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.setattr(H, "run_o", lambda *a, **k: pytest.fail("launched"))
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    assert cp.main(_o_fixture(tmp_path) + ["--total-cap", "1.5"]) == 4, "a 1M-token session's worst case is $1.81"
+    assert "HOBBES_LLM_API_KEY" not in os.environ
+
+
+def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, monkeypatch):
+    import os
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    seen = {}
+
+    def fake_run_o(clone, sha, task, L, source, graphs, *, session_id, sessions_root, out_dir, template, token_budget, loop_args, **kw):
+        seen.update(key=os.environ.get("HOBBES_LLM_API_KEY"), task=task, sha=sha, budget=token_budget, loop_args=loop_args)
+        (sessions_root / session_id).mkdir(parents=True)
+        (sessions_root / session_id / "calls.jsonl").write_text(json.dumps({"prompt_tokens": 400_000, "completion_tokens": 2_000}) + "\n")
+        (out_dir / f"{session_id}.session.log").write_text('{"type": "result", "is_error": false, "num_turns": 7, "tool_calls": 9}\n')
+        (out_dir / f"{session_id}.o.diff").write_text("diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+z\n")
+        return {"session_rc": 0, "plan": {"units": ["u"], "paths": ["a.go", "c.go"], "refusal": None}, "patch_files": ["a.go"], "wall_s": 3.0,
+                "verify": {"verdict": "fail", "applies": True, "summary": {"P2F": 1}, "containment": {"all_contained": True}, "wall_s": 1.0}}
+    monkeypatch.setattr(H, "run_o", fake_run_o)
+    assert cp.main(_o_fixture(tmp_path) + ["--total-cap", "5", "--loop-arg=--sampling=model-default"]) == 0
+    assert seen == {"key": "sk-test", "task": "fix the thing", "sha": "p" * 40, "budget": 1_000_000, "loop_args": ["--sampling=model-default"]}
+    assert "HOBBES_LLM_API_KEY" not in os.environ, "the key is handed to the session only while it runs"
+    ledger = [json.loads(l) for l in open(tmp_path / "out" / "k1.usage.jsonl")]
+    assert [r["usd"] for r in ledger] == [0.41] and cp.spent_in(tmp_path / "out") == pytest.approx(0.41)
+    row = json.loads((tmp_path / "out" / "rows.jsonl").read_text())
+    assert (row["wp"], row["arm"], row["usd"], row["turns"], row["stop"]) == ("wp-6", "O", 0.41, 7, "done")
+    assert row["rfe_gold"] == [0.5, 1.0, 0.5] and row["plan_rfe"] == [0.33, 0.5, 0.5] and row["files_changed"] == ["a.go"]
+    assert row["verify"]["verdict"] == "fail" and row["verify"]["all_contained"] is True
+    assert "sk-test" not in (tmp_path / "out" / "rows.jsonl").read_text()

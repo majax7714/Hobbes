@@ -1127,6 +1127,116 @@ def cmd_o(a: argparse.Namespace) -> int:
     return 0
 
 
+def o_worst_usd(token_budget: int, max_turns: int, max_tokens: int, window: int = 200_000, price: tuple[float, float] = PRICE_HAIKU_45) -> float:
+    """The most one arm-O session can spend under the loop's caps: its prompt budget plus one call's overshoot past it (the loop checks
+    the budget after a call is priced; a call carries at most *window* tokens) — every turn's prompt at the window when there is no
+    budget — and every turn's ``max_tokens`` written."""
+    prompt = token_budget + window if token_budget else max_turns * window
+    return usd(prompt, max_turns * max_tokens, price)
+
+
+def o_session_usage(calls: list[dict], price: tuple[float, float] = PRICE_HAIKU_45) -> list[dict]:
+    """One ledger line per call of a session's ``calls.jsonl``, priced at *price* with the running spend — t-units' ledger shape, so
+    `spent_in` reads arm O beside arm T."""
+    out, spent = [], 0.0
+    for i, c in enumerate(calls, 1):
+        cost = usd(c.get("prompt_tokens"), c.get("completion_tokens"), price)
+        spent += cost
+        out.append({"call": i, "prompt_tokens": c.get("prompt_tokens"), "completion_tokens": c.get("completion_tokens"),
+                    "finish_reason": c.get("finish_reason"), "usd": round(cost, 6), "spent_usd": round(spent, 6)})
+    return out
+
+
+def session_result(log: Path) -> dict:
+    """The loop's closing ``{"type": "result", …}`` line in a session log — turns, tool calls, the stop reason — or ``{}``."""
+    env: dict = {}
+    if Path(log).exists():
+        for line in open(log, errors="replace"):
+            if line.startswith('{"type": "result"'):
+                try:
+                    env = json.loads(line)
+                except ValueError:
+                    pass
+    return env
+
+
+def cmd_o_units(a: argparse.Namespace) -> int:
+    """Calvin M0-Go WP-6: arm O on units.jsonl keys, in the order given — one `hobbes-session` per key at its parent (`harness.run_o`: the
+    plan and brief from the tier's task, exec and the file tools, the knowledge tools withheld; the patch grounded against the stored
+    template and verified). Metered from each session's ``calls.jsonl`` into ``<key>.usage.jsonl``; a session whose worst case
+    (`o_worst_usd`) would pass ``--total-cap`` over every ledger under ``--out`` is not launched (exit 4). One row a key in ``rows.jsonl``."""
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+
+    key = os.environ.get("HOBBES_LLM_API_KEY") or (key_from(Path(a.secrets), a.key_name) if a.secrets else None)
+    if not key:
+        print("no key: set HOBBES_LLM_API_KEY or pass --secrets", file=sys.stderr)
+        return 2
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    clone = Path(a.clone)
+    session_bin = a.session_bin or os.environ.get("HOBBES_SESSION_BIN") or str(Path(__file__).resolve().parents[2] / "go" / "bin" / "hobbes-session")
+    sessions_root = Path(a.sessions) if a.sessions else Path.home() / ".hobbes" / "sessions"
+    units = {u["key"]: u for u in load_go_units(Path(a.units), a.keys)}
+    order = [next(k for k in units if k.startswith(p)) for p in a.keys]
+    loop_args = list(a.loop_arg or [])
+    worst = o_worst_usd(a.token_budget, a.max_turns, a.max_tokens)
+    before = os.environ.get("HOBBES_LLM_API_KEY")
+    os.environ["HOBBES_LLM_API_KEY"] = key  # hobbes-session hands it to the container (and redacts it in what it prints)
+    try:
+        for k in order:
+            u = units[k]
+            spent = spent_in(out)
+            if spent + worst > a.total_cap:
+                print(f"{k}: NOT LAUNCHED — spent ${spent:.4f} + a session's worst case ${worst:.4f} would pass the ${a.total_cap:.2f} cap", flush=True)
+                return 4
+            L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+            assert L.sha == u["parent_sha"], (k, L.sha)
+            t = json.load(open(Path(a.templates) / f"{k}.template.json"))
+            session_id = f"calvin-o-{k}-{time.strftime('%Y%m%dT%H%M%S')}"
+            rec = H.run_o(clone, L.sha, u[a.tier], L, clone, (Path(u["parent_graph"]), Path(u["parent_tests"])), session_bin=session_bin,
+                          base_url=a.base_url, model=a.model, session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t,
+                          timeout=a.timeout, max_turns=a.max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget)
+            calls_file = sessions_root / session_id / "calls.jsonl"
+            calls = [json.loads(l) for l in open(calls_file) if l.strip()] if calls_file.exists() else []
+            ledger = o_session_usage(calls) if calls_file.exists() else [{"call": 0, "usd": round(worst, 6), "spent_usd": round(worst, 6),
+                                                                          "estimated": "no calls.jsonl: the session's worst case is charged"}]
+            (out / f"{k}.usage.jsonl").write_text("".join(json.dumps(x) + "\n" for x in ledger))
+            res = session_result(out / f"{session_id}.session.log")
+            gold_files = {p for p, _ in split_diff(Path(u["gold_diff"]).read_text(errors="surrogateescape"))}
+            diff_file = out / f"{session_id}.o.diff"
+            patch = diff_file.read_text(errors="surrogateescape") if diff_file.exists() else ""
+            gfile = out / f"{session_id}.ground.json"
+            g = json.load(open(gfile)) if gfile.exists() else {}
+            v = rec.get("verify") or {}
+            row = {"wp": a.wp, "key": k, "arm": "O", "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
+                   "model": a.model, "loop_args": loop_args, "max_turns": a.max_turns, "max_tokens": a.max_tokens, "token_budget": a.token_budget,
+                   "session": session_id, "session_rc": rec.get("session_rc"), "error": rec.get("error"),
+                   "turns": res.get("num_turns"), "tool_calls": res.get("tool_calls"), "nudges": res.get("nudges"), "edited": res.get("edited"),
+                   "stop": res.get("result") if res.get("is_error") else ("done" if res else None),
+                   "plan": rec.get("plan"), "plan_rfe": _jpr(set((rec.get("plan") or {}).get("paths") or []), gold_files), "brief_chars": rec.get("brief_chars"),
+                   "patch_files": rec.get("patch_files"), "files_changed": changed_files(patch), "rfe_gold": _jpr(set(rec.get("patch_files") or []), gold_files),
+                   "verify": {"verdict": v.get("verdict"), "applies": v.get("applies"), "summary": v.get("summary"), "build_summary": v.get("build_summary"),
+                              "regressions": v.get("regressions"), "faults": len(v.get("faults", [])), "all_contained": (v.get("containment") or {}).get("all_contained"),
+                              "wall_s": v.get("wall_s")} if v else None,
+                   "hsr": g.get("hsr"), "null_by_class": g.get("null_by_class"), "references": g.get("references"),
+                   "null": [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in g.get("null", [])],
+                   "density": (g.get("density") or {}).get("counts"), "fills_attribution": g.get("fills_attribution"),
+                   "tokens": {"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
+                   "calls": len(calls), "usd": round(sum(x["usd"] for x in ledger), 4), "worst_usd": round(worst, 4), "wall_s": rec.get("wall_s"), "attribution": None}
+            with open(out / "rows.jsonl", "a") as fh:
+                fh.write(json.dumps(row) + "\n")
+            print(f"{k} {u['shape']:11s} O rc {row['session_rc']} turns {row['turns']} stop {str(row['stop'])[:80]!r} files {row['patch_files']} "
+                  f"RFE {_fmt(row['rfe_gold'])} verify {(row['verify'] or {}).get('verdict')} HSR {row['hsr']} tokens {row['tokens']['prompt']}/{row['tokens']['completion']} "
+                  f"${row['usd']} {row['wall_s']}s", flush=True)
+    finally:
+        if before is None:
+            os.environ.pop("HOBBES_LLM_API_KEY", None)
+        else:
+            os.environ["HOBBES_LLM_API_KEY"] = before
+    return 0
+
+
 def _gold_files(clone: Path, c: str) -> set[str]:
     return {f for f in subprocess.run(["git", "show", "--name-only", "--format=", "--no-renames", c], cwd=clone, capture_output=True, text=True, check=True).stdout.split("\n") if f}
 
@@ -1292,6 +1402,20 @@ def main(argv: list[str]) -> int:
     s.add_argument("--token-budget", type=int, default=None, help="prompt tokens a session may spend in all (default: harness.O_TOKEN_BUDGET, 1M; 0 = none)")
     s.add_argument("--dry-run", action="store_true", help="print the session argv and the plan; launch nothing")
     s.set_defaults(fn=cmd_o)
+    s = sub.add_parser("o-units", help="Calvin M0-Go WP-6: arm O on units.jsonl keys under hobbes-session, metered from each session's calls")
+    s.add_argument("units"); s.add_argument("--keys", nargs="+", required=True, help="key prefixes, run in this order"); s.add_argument("--tier", default="A2")
+    s.add_argument("--templates", required=True, help="<key>.template.json per key: what the session's patch is grounded against")
+    s.add_argument("--clone", required=True, help="a clone this run owns: checked out at each parent (--force)"); s.add_argument("--out", required=True)
+    s.add_argument("--base-url", required=True); s.add_argument("--model", required=True)
+    s.add_argument("--secrets", help="the owner's name=value key file (read, never printed); HOBBES_LLM_API_KEY wins when set")
+    s.add_argument("--key-name", default="llm_key", help="the line of --secrets that holds this endpoint's key")
+    s.add_argument("--session-bin"); s.add_argument("--sessions")
+    s.add_argument("--max-turns", type=int, default=30); s.add_argument("--max-tokens", type=int, default=4096); s.add_argument("--loop-arg", action="append")
+    s.add_argument("--timeout", type=float, default=3600.0)
+    s.add_argument("--token-budget", type=int, default=1_000_000, help="prompt tokens a session may spend in all (M0's arm-O cap)")
+    s.add_argument("--total-cap", type=float, required=True, help="dollars every ledger under --out may reach; a session whose worst case passes it is not launched")
+    s.add_argument("--wp", default="wp-6")
+    s.set_defaults(fn=cmd_o_units)
     s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)
     s.add_argument("--verify-t0", help="verify records of arm T's pre-loop diffs (.t0.diff); without it T's verdict column is empty where a loop ran")
     s.add_argument("--out", required=True, help="the rows as JSON"); s.add_argument("--clone"); s.add_argument("--commits", nargs="*")
