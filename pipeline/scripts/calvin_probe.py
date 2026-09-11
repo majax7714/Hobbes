@@ -843,6 +843,15 @@ def confirmations(rec: dict) -> dict:
     return dict(out)
 
 
+def changed_files(diff: str) -> list[str]:
+    """The paths a unified diff changes, from its ``---``/``+++`` headers (a created file by its ``b/`` side, a deleted one by its ``a/``
+    side). A file the grounder wrote back byte for byte has no hunk and is not among them — the grounder's ``files`` list counts it."""
+    out = set()
+    for m in re.finditer(r"(?m)^--- (?:a/(.+)|/dev/null)\n\+\+\+ (?:b/(.+)|/dev/null)$", diff):
+        out.add(m.group(2) or m.group(1))
+    return sorted(out)
+
+
 def _write_exchanges(path: Path, exchanges: list[dict]) -> None:
     with open(path, "w") as fh:
         for e in exchanges:
@@ -945,7 +954,9 @@ def cmd_t_units(a: argparse.Namespace) -> int:
                "density": g["density"]["counts"], "density_k": g["density"]["k"], "references": g["references"],
                "unfilled": len(g["unfilled"]), "refused": len(g["refused"]), "edits": len(g["edits"]),
                "files": sorted(f["path"] for f in g["files"]), "created": sorted(f["path"] for f in g["files"] if f["created"]), "outside_partition": g["outside_partition"],
-               "applies": applies, "rfe_gold": _jpr({f["path"] for f in g["files"]}, gold_files), "rfe_gold_T": _jpr({f["path"] for f in g0["files"]}, gold_files),
+               "files_changed": changed_files(g["diff"]), "applies": applies,
+               "rfe_gold": _jpr({f["path"] for f in g["files"]}, gold_files), "rfe_gold_T": _jpr({f["path"] for f in g0["files"]}, gold_files),
+               "rfe_changed": _jpr(set(changed_files(g["diff"])), gold_files), "rfe_changed_T": _jpr(set(changed_files(g0["diff"])), gold_files),
                "hsr": g["hsr"], "hsr_T": g0["hsr"], "verify": {"T": verdicts.get("t0", verdicts.get("t")), "T-loop": verdicts.get("t")},
                "rounds": [r["round"] for r in rec["rounds"]], "exchanges": len(ex), "repairs": sum(1 for e in ex if e["purpose"].endswith("(repair)")),
                "cut_at_length": sum(1 for e in ex if e.get("finish_reason") == "length"),

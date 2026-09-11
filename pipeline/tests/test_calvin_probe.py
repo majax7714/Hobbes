@@ -184,6 +184,14 @@ def test_confirmations_count_round_one_answers_with_the_capped_callees_apart():
     assert cp.confirmations(rec) == {"asked": 1, "yes": 1, "capped_asked": 2, "capped_no": 1, "capped_unanswered": 1}
 
 
+def test_changed_files_reads_the_diff_headers_not_the_files_the_grounder_wrote():
+    d = ("diff --git a/x.go b/x.go\n--- a/x.go\n+++ b/x.go\n@@ -1 +1 @@\n-a\n+b\n"
+         "diff --git a/n.go b/n.go\nnew file mode 100644\n--- /dev/null\n+++ b/n.go\n@@ -0,0 +1 @@\n+c\n"
+         "diff --git a/gone.go b/gone.go\ndeleted file mode 100644\n--- a/gone.go\n+++ /dev/null\n@@ -1 +0,0 @@\n-d\n")
+    assert cp.changed_files(d) == ["gone.go", "n.go", "x.go"]
+    assert cp.changed_files("") == []
+
+
 def test_key_from_reads_one_named_line_and_tolerates_names_the_bench_reader_refuses(tmp_path):
     f = tmp_path / "keys.txt"
     f.write_text("# owner's keys\nllm_key=abc\nanthropic_key = \"sk-x\"\nempty_key=\n")
