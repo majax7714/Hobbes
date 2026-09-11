@@ -145,6 +145,34 @@ Dependencies: **WP-0 → {WP-1, WP-2, WP-3} in parallel → WP-4 (spend gate) �
 - **Exit:** every row attributed; §5's reading selected in writing; the §7 decision written; spend total against the ceiling.
 - **Report:** the aggregate table (T, T-loop, O), the selected reading, the §7 next step, spend.
 
+### After WP-6 — the floor re-tested (added 2026-09-11 on Max's word; §10)
+
+WP-6 read *T < O* with X and G clean and selected "NULL new dominates → M1′ as protocol first". Its §7 step: no fan-out; three no-spend changes, then T re-run on the same keys. DAG: **WP-6 merged → {WP-7a, WP-7b} in parallel → merged → WP-8.** The rules of §0 and the pins of §0a apply unchanged.
+
+#### WP-7a — the declaration hole and the gutter guard (no spend) — depends on WP-6
+
+- **Reads:** §2.5; §10 Results; WP-6's report (D-a, D-b); `pipeline/src/hobbes/derive/adapter.py`, `holes.py`, `ground.py` and their tests; `calvin_probe.py t-units`; WP-6's recorded exchanges and NULL rows under `~/.hobbes/bench/calvin-go/wp-6/`.
+- **Does:** (1) **The declaration hole (M1′ as protocol; adapter protocol v0.4).** When grounding raises a NULL for a name that is *new* — written at a call site, declared nowhere in the parent graph or the diff — the loop no longer re-asks the call-site hole (D-b); it offers a NEW_SYMBOL declaration hole for that name (a file within the write partition, a region, a signature and a body). Once placed, the name binds as a gensym (§2.5), and the call site is grounded again. (2) **D-a.** The validator refuses a SIGNATURE or BODY fill that carries the render's line-number gutter, as a repairable error naming the hole.
+- **Writes:** `~/.hobbes/bench/calvin-go/wp-7a/` (the replay records); the code on a branch `calvin-go/wp-7a`, tests in the same commit.
+- **Exit:** No-spend replay. WP-6's 11 NULL sites are driven through the new loop step with scripted fills that give gold's declarations, and all 11 close with no model call. 7fc11's recorded gutter fill is refused. Everything else stays as it was: template v2, the grounder's gold run (0 NULL, byte-equal) and protocol v0.3's recorded replays, except where stated. pytest green.
+- **Report:** the protocol change as built; the replay counts; defects, numbered.
+
+#### WP-7b — the recall scan as a standing instrument (no spend) — depends on WP-6
+
+- **Reads:** WP-6's report (D-d) and its recall working (`~/.hobbes/bench/calvin-go/wp-6/`, e.g. `memo.json`); `pipeline/scripts/calvin_probe.py`'s row pipeline.
+- **Does:** Every row, T and O, gains a `recall` field: of the arm's novel added lines, meaning lines not present in the parent, the fraction that appear verbatim in the gold diff, and separately the fraction that appear in upstream history after the parent, up to the pinned SHA. Lines of a few characters or less and pure punctuation are excluded, and the rule is stated. Then re-score WP-5's and WP-6's rows with it.
+- **Writes:** `~/.hobbes/bench/calvin-go/wp-7b/` (recall for every existing row); code on a branch `calvin-go/wp-7b`, tests in the same commit.
+- **Exit:** every WP-5 and WP-6 row carries `recall`; WP-6's two recall rows reproduce (93acc ≈ 0.97, 2278 ≈ 0.48, or the difference explained); pytest green.
+- **Report:** recall per arm and per shape; the threshold at which a row is marked `recalled`.
+
+#### WP-8 — the floor re-tested (spend; cleared by Max 2026-09-11) — depends on WP-7a and WP-7b merged
+
+- **Reads:** §2.6, §4, §5, §10; WP-6's and WP-7's reports; `units.jsonl`; the v2 A2 templates.
+- **Does:** T, with the T-loop inside it, on the same 20 keys × 2 runs. Haiku 4.5 at model-default sampling, protocol v0.4. O's WP-6 rows stand and are not re-run. Rows are attributed before any aggregate; the §4 instruments run with recall on every row; §5's reading is re-selected beside WP-6's.
+- **Writes:** `~/.hobbes/bench/calvin-go/wp-8/rows.json`; a re-test section in the cell page; §10 Results amended, dated.
+- **Exit:** every row attributed; the re-selected reading written; spend stated. **Spend rules:** stop after run 1 if its cost exceeds 2× WP-6's per-run T actual (≈ $2.36, so stop above $4.72); a hard cap of **$20.88**, the ceiling's remainder.
+- **Report:** T against WP-6's T and O's standing rows; the NULL closure count; recall; the reading; spend.
+
 ---
 
 ## 4. Instruments, with attribution
@@ -318,3 +346,4 @@ Re-running T twice costs about $4.7. The decision is Max's.
 - 2026-09-11 — **the spend gate (Max): cleared, $30 ceiling, WP-5 then WP-6 as designed.** WP-4's estimate (`~/.hobbes/bench/calvin-go/wp-4/estimate.md`; Haiku 4.5 at $1 / $5 per MTok, chars/token 2.08 and 76 output tokens per asked hole measured on M0's run): expected $17.44 (T $9.79, T-loop $0.37, O $5.33, WP-5 $1.95), band $7.74–$40.39; the high band's risk is Haiku confirming the registry keys' callees (gold: 0 of 1,574). WP-5 keys `a971a324fab5` `ed205a5f63e3` `6411402d434d` `2278a2a97e42` `d29ee5517128`; O's five add `93acc6e82adb` (drop to `ed205a5` `6411402` `2278a2a` at three). WP-5 > 2× its estimate re-gates WP-6.
 - 2026-09-11 — WP-5's exit checked: five rows attributed, $1.17 actual against $1.95 estimated (0.60×; WP-6 not re-gated), G clean on all five (0 NULL, HSR 0), Haiku confirmed 0 of 412 capped callees; temperature honoured (identical at 0, different at 1). Two decisions (Max) before WP-6. **Protocol v0.3:** a `patterns` reply on SIGNATURE / BODY / ANCHOR_CONFIRM is read as unchanged / no for the holes it covers (Haiku sent it on 4 of 5 keys; its repairs were 36% of WP-5's spend), with the validator fixed so a refused pattern's holes are no longer counted as answered; WP-5 reopens to implement it. **Sampling:** both of WP-6's T runs at the model default (M0's condition), so §2.6's run-to-run spread is measurable; WP-5's temperature-0 rows stay as their own reading.
 - 2026-09-11 — WP-5's v0.3 amendment checked (replay: 4 of the 5 refused-pattern exchanges validate first pass, 4 repair calls saved; model-default sampling passes no temperature) and merged (`17f0ffd`; C-105 registered — an answered hole no longer means the model considered it one at a time, surfaced as `by_pattern`). **0.1.12-beta** (`92c9f7a`, untagged); image rebuilt, proxy 0.1.12-beta; pytest 1,286. WP-6 launched: T run 1 on 20 keys, a cost check, O on five, T run 2; $28.83 of the ceiling left.
+- 2026-09-11 — WP-6's exit checked (every row attributed; §5 reading *T < O*, resolved into NULL new → M1′ as protocol; §7 no fan-out; $7.95, round $9.12 of $30) and its docs committed (`06dde54`). **Max: build the three changes, then re-test** — WP-7a (the declaration hole, protocol v0.4, and the gutter guard), WP-7b (the recall scan), then WP-8 (T twice on the 20 keys, ~$4.7, under the $30 ceiling's $20.88 remainder); blocks in §3 "After WP-6".
