@@ -43,6 +43,12 @@ from hobbes.derive import template as T
 from hobbes.derive.cochange import CoChange
 
 SYSTEM_PROMPT_VERSION = 2
+#: The exchange protocol, recorded on every exchange and every arm-T record. v0.1 (M0 step 4): round 1 on a view, round 2b, chunks,
+#: a cut reply repaired; v0.2 (step 6): candidates in the ANCHOR hole; **v0.3** (Calvin M0-Go WP-5, Max 2026-09-11): a pattern on
+#: SIGNATURE, BODY or ANCHOR_CONFIRM is read per hole ("unchanged", "no") and recorded as arrived by pattern
+#: (`holes.read_patterns`), and a refused pattern's holes are named in the repair (`holes.validate_fills`). The code carries no
+#: switch: v0.3 supersedes v0.2. The system prompt is unchanged (v2) — the three types are accepted, not advertised.
+PROTOCOL_VERSION = "0.3"
 SYSTEM_PROMPT = """You are the orchestrator for a code change. You know the task's intent, the language and the world; you do not know this repository, and you must not pretend to.
 
 Hobbes knows the repository at one commit exactly: it has expanded the task into a template of typed holes, each with a span (path and lines at that commit), the code currently in the span, why the hole exists, and the answer shape. A separate deterministic grounder will bind every name in your answers against the repository; a name that does not exist there is reported back to you, never silently accepted. So:
@@ -99,7 +105,7 @@ class Adapter:
         usage = reply.get("usage") or {}
         self.exchanges.append({
             "n": len(self.exchanges) + 1, "purpose": purpose, "model": self.model_id, "system_prompt_version": SYSTEM_PROMPT_VERSION,
-            "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "wall_ms": int((time.monotonic() - t0) * 1000),
+            "protocol_version": PROTOCOL_VERSION, "at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "wall_ms": int((time.monotonic() - t0) * 1000),
             "prompt_tokens": usage.get("prompt_tokens"), "completion_tokens": usage.get("completion_tokens"),
             "finish_reason": (reply.get("choices") or [{}])[0].get("finish_reason"),
             "request": messages, "response": text,
@@ -117,7 +123,11 @@ class Adapter:
             d, e = self._ask_one(ch, repo_root, f"{purpose} [chunk {i}/{len(chunks)}]")
             if d:
                 doc["fills"].update(d.get("fills") or {})
+                if d.get("by_pattern"):
+                    doc.setdefault("by_pattern", {}).update(d["by_pattern"])
                 for typ, v in (d.get("patterns") or {}).items():  # a pattern answered in one chunk covers that chunk's holes only
+                    if typ not in H.PATTERN_TYPES:
+                        continue  # a v0.3 pattern is already read per hole (`holes.read_patterns`); a refused one answers nothing
                     for h in ch["holes"]:
                         if h["type"] == typ and h["id"] not in doc["fills"] and h.get("closed") is None and "fill" not in h:
                             doc["fills"][h["id"]] = v if typ in ("MODULE_REGION", "TEST_EXPECTATION") else {"decision": "no", "reason": f"pattern: {v}"}
@@ -133,7 +143,7 @@ class Adapter:
         errs = H.validate_fills(template, doc) if doc is not None else {"document": ["the reply is not a JSON object"]}
         self.exchanges[-1]["validation"] = errs
         if not errs:
-            return doc, {}
+            return H.read_patterns(template, doc), {}
         repair = ("Your answer was cut off at the reply limit before it ended. " if cut else "Your answer did not validate. ") + \
             "Reply with the whole document again: `patterns` for every type left unchanged, and under `fills` only the holes you change or that take no pattern. Fix these:\n" + \
             "\n".join(f"- {k}: {'; '.join(v)}" for k, v in sorted(errs.items())[:40])
@@ -142,7 +152,7 @@ class Adapter:
         doc2 = parse_document(text2)
         errs2 = H.validate_fills(template, doc2) if doc2 is not None else {"document": ["the reply is not a JSON object"]}
         self.exchanges[-1]["validation"] = errs2
-        return (doc2 if doc2 is not None else doc), errs2
+        return H.read_patterns(template, doc2 if doc2 is not None else doc), errs2
 
 
 # ------------------------------------------------------------------ arm T
@@ -216,7 +226,7 @@ def carry_round1(t2: dict, base: dict, fills1: dict, source: str) -> None:
     present = {h["id"]: h for h in t2["holes"]}
     carried = []
     for h in base["holes"]:
-        if h["type"] not in ROUND1_TYPES or h["id"] not in fills1 or (isinstance(fills1[h["id"]], dict) and fills1[h["id"]].get("unanswered")):
+        if h["type"] not in ROUND1_TYPES or h["id"] not in fills1 or (isinstance(fills1[h["id"]], dict) and (fills1[h["id"]].get("unanswered") or fills1[h["id"]].get("by_pattern"))):
             continue
         if h["id"] in present:
             present[h["id"]]["fill"] = fills1[h["id"]]
@@ -257,7 +267,7 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
 
     *rta* is handed to both groundings (`ground.ground`'s rule-2 implementers, recorded, never bound; M0-Go)."""
     t1 = copy.deepcopy(template)
-    rec: dict = {"key": {**t1["key"], "model_id": adapter.model_id, "system_prompt_version": SYSTEM_PROMPT_VERSION}, "rounds": []}
+    rec: dict = {"key": {**t1["key"], "model_id": adapter.model_id, "system_prompt_version": SYSTEM_PROMPT_VERSION, "protocol_version": PROTOCOL_VERSION}, "rounds": []}
     t2 = t1
     base = copy.deepcopy(t1)  # every round-1 hole ever asked, so a refused confirmation stays refused across passes
     fills1: dict = {}
@@ -267,12 +277,16 @@ def run_t(task: str, template: dict, L: T.Ledger, repo_root: Path, cochange: CoC
             break
         doc1, errs1 = adapter.ask(view, repo_root, f"round 1{'' if pass_ == 1 else 'bc'[pass_ - 2]}")
         answers = (doc1 or {}).get("fills") or {}
+        by_pattern = (doc1 or {}).get("by_pattern") or {}
         fills1.update(answers)
         for h in view["holes"]:  # step 6: a confirmation left unanswered is a refusal, recorded as one, never carried as a filled hole
             if h["type"] == "ANCHOR_CONFIRM" and h["id"] not in answers:
                 fills1[h["id"]] = {"confirm": False, "unanswered": True}
+            elif h["type"] == "ANCHOR_CONFIRM" and h["id"] in by_pattern:  # v0.3: a refusal by pattern, recorded as one and not carried, like silence
+                fills1[h["id"]] = {"confirm": False, "by_pattern": True}
         row = {"round": 1 if pass_ == 1 else "1" + "bc"[pass_ - 2], "holes_asked": [h["id"] for h in view["holes"]], "fills": doc1, "errors": errs1,
-               "unanswered_confirmations": sum(1 for h in view["holes"] if h["type"] == "ANCHOR_CONFIRM" and h["id"] not in answers)}
+               "unanswered_confirmations": sum(1 for h in view["holes"] if h["type"] == "ANCHOR_CONFIRM" and h["id"] not in answers),
+               "pattern_confirmations": sum(1 for typ in by_pattern.values() if typ == "ANCHOR_CONFIRM")}
         t2 = T.apply_round1(task, L, repo_root, cochange, base, fills1)
         known = {h["id"] for h in base["holes"]}
         base["holes"] += [copy.deepcopy(h) for h in t2["holes"] if h["type"] in ROUND1_TYPES and h["id"] not in known]

@@ -220,20 +220,63 @@ def validate_fill(hole: dict, fill) -> list[str]:
     return e
 
 
+#: Protocol v0.3 (Calvin M0-Go WP-5; Max, 2026-09-11): a pattern on these types is accepted as well, and read per hole as the
+#: fill given here — a model that leaves a hundred bodies alone may say so once. What such a pattern may say is fixed:
+#: "unchanged" (for ANCHOR_CONFIRM "no" too); it never rewrites and never confirms. Not advertised: the render and the system
+#: prompt still name `PATTERN_TYPES` only, so a template renders as before.
+PATTERN_READ: dict[str, object] = {"SIGNATURE": "unchanged", "BODY": "unchanged", "ANCHOR_CONFIRM": {"confirm": False}}
+
+
+def pattern_accepted(typ: str, value) -> bool:
+    """Whether ``patterns: {typ: value}`` answers *typ*'s holes: any of `PATTERN_TYPES`, or a `PATTERN_READ` type saying "unchanged" (an ANCHOR_CONFIRM "no" too)."""
+    if typ in PATTERN_TYPES:
+        return True
+    return typ in PATTERN_READ and (value == "unchanged" or (typ == "ANCHOR_CONFIRM" and value == "no"))
+
+
+def read_patterns(t: dict, doc: dict | None) -> dict | None:
+    """Protocol v0.3: every open hole an accepted `PATTERN_READ` pattern covers and ``fills`` does not answer, given the pattern's reading
+    as its fill and listed under ``by_pattern`` (hole id → type), so a record counts what arrived by pattern. The four `PATTERN_TYPES`
+    stay patterns (the grounder and the chunk merge read those as before). A new document when anything was read; else *doc* itself."""
+    if doc is None:
+        return None
+    patterns = doc.get("patterns") or {}
+    fills = dict(doc.get("fills") or {})
+    by = dict(doc.get("by_pattern") or {})
+    for h in t["holes"]:
+        typ = h["type"]
+        if typ not in PATTERN_READ or typ not in patterns or not pattern_accepted(typ, patterns[typ]):
+            continue
+        if h.get("closed") is not None or "fill" in h or h["id"] in fills:
+            continue
+        v = PATTERN_READ[typ]
+        fills[h["id"]] = dict(v) if isinstance(v, dict) else v
+        by[h["id"]] = typ
+    if len(by) == len(doc.get("by_pattern") or {}):
+        return doc
+    return {**doc, "fills": fills, "by_pattern": by}
+
+
 def validate_fills(t: dict, doc: dict) -> dict[str, list[str]]:
-    """Errors per open hole id for a fills document ``{"fills": {...}, "patterns"?: {...}}``; a hole absent from both is ``missing``."""
+    """Errors per open hole id for a fills document ``{"fills": {...}, "patterns"?: {...}}``; a hole absent from both is ``missing``.
+    A refused pattern answers nothing: its holes read ``missing`` beside the ``patterns.<TYPE>`` error, so a repair can name them."""
     out: dict[str, list[str]] = {}
     fills = doc.get("fills") or {}
     patterns = doc.get("patterns") or {}
-    for p in patterns:
-        if p not in PATTERN_TYPES:
-            out[f"patterns.{p}"] = [f"only {PATTERN_TYPES} take a pattern fill"]
+    accepted = set()
+    for p, v in patterns.items():
+        if pattern_accepted(p, v):
+            accepted.add(p)
+        elif p in PATTERN_READ:
+            out[f"patterns.{p}"] = [f'a {p} pattern says only "unchanged"' + (' or "no"' if p == "ANCHOR_CONFIRM" else "")]
+        else:
+            out[f"patterns.{p}"] = [f"only {PATTERN_TYPES + tuple(PATTERN_READ)} take a pattern fill"]
     for h in t["holes"]:
         if h.get("closed") is not None or "fill" in h:
             continue
         if h["id"] in fills:
             errs = validate_fill(h, fills[h["id"]])
-        elif h["type"] in patterns:
+        elif h["type"] in accepted:
             errs = []
         elif h["type"] == "ANCHOR_CONFIRM" and (h.get("provenance") or {}).get("symbol"):
             errs = []  # a named module's symbol left unanswered is a refusal (step 6), never a missing fill

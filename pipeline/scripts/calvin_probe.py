@@ -945,7 +945,8 @@ def cmd_t_units(a: argparse.Namespace) -> int:
         cost = lambda es: round(sum(usd(e.get("prompt_tokens"), e.get("completion_tokens")) for e in es), 4)
         row = {"wp": a.wp, "key": k, "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier, "a2_rev": u.get("a2_rev"),
                "template_version": t.get("template_version"), "template_rebuilds": True, "model": a.model, "sampling": sampling,
-               "system_prompt_version": A.SYSTEM_PROMPT_VERSION, "grounder_version": g["grounder_version"], "rta": g.get("rta"),
+               "system_prompt_version": A.SYSTEM_PROMPT_VERSION, "protocol_version": A.PROTOCOL_VERSION, "grounder_version": g["grounder_version"], "rta": g.get("rta"),
+               "by_pattern": dict(collections.Counter(typ for r in rec["rounds"] for typ in ((r.get("fills") or {}).get("by_pattern") or {}).values())),
                "anchors": f"{len(t['anchors'])}→{len(t2['anchors'])}", "anchor_files": f"{an['files']['tp']}/{an['files']['anchored']} of {an['files']['gold']}",
                "unresolved": f"{agree['agree']}/{agree['n']}", "confirmations": confirmations(rec),
                "coverage": f"{cov['symbol']}/{cov['region']}/{cov['new_file']}/{cov['outside']} of {cov['hunks']}",
