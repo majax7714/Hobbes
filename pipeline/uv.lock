@@ -487,7 +487,7 @@ wheels = [
 
 [[package]]
 name = "hobbes"
-version = "0.1.17b0"
+version = "0.1.18b0"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },
