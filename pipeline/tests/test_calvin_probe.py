@@ -1,6 +1,7 @@
 """The Calvin M0 probe's pure pieces (`scripts/calvin_probe.py`): hunk ranges, absent-file classes, span overlap, the `new` term test."""
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -277,4 +278,75 @@ def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, 
     assert (row["wp"], row["arm"], row["usd"], row["turns"], row["stop"]) == ("wp-6", "O", 0.41, 7, "done")
     assert row["rfe_gold"] == [0.5, 1.0, 0.5] and row["plan_rfe"] == [0.33, 0.5, 0.5] and row["files_changed"] == ["a.go"]
     assert row["verify"]["verdict"] == "fail" and row["verify"]["all_contained"] is True
+    assert row["recall"]["rule"] == cp.RECALL_RULE and "error" in row["recall"], "a clone the scan cannot read is said in the row, not raised"
     assert "sk-test" not in (tmp_path / "out" / "rows.jsonl").read_text()
+
+
+def test_recall_norm_excludes_short_and_punctuation_only_lines():
+    for line in ("   }", "\t}, {", "// ----------", "break", ""):
+        assert cp.recall_norm(line) is None, line
+    assert cp.recall_norm('\t\tKeywords: []string{"x"},  ') == 'Keywords: []string{"x"},'
+    assert cp.recall_norm("return") == "return"  # six characters: counted (it is in every Go parent, so never novel)
+
+
+def test_added_lines_reads_hunk_counts_not_header_shapes():
+    diff = ("diff --git a/a b/a\n--- a/a\n+++ b/a\n@@ -1,2 +1,3 @@\n ctx\n-old\n+++plus\n+new\n\\ No newline at end of file\n"
+            "diff --git a/b b/b\nnew file mode 100644\n--- /dev/null\n+++ b/b\n@@ -0,0 +1 @@\n+only\n")
+    assert cp.added_lines(diff) == ["++plus", "new", "only"]
+    assert cp.added_lines("") == []
+
+
+def _git(repo, *args):
+    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false", *args],
+                          cwd=repo, check=True, capture_output=True, text=True).stdout
+
+
+def _history(tmp_path):
+    """parent → gold (adds Gold) → later (adds a line only later history holds); returns (repo, parent, gold diff, upper)."""
+    repo = tmp_path / "r"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    base = "package a\n\nfunc Existing() int {\n\treturn 1\n}\n"
+    (repo / "a.go").write_text(base)
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "parent")
+    parent = _git(repo, "rev-parse", "HEAD").strip()
+    (repo / "a.go").write_text(base + '\nfunc Gold() string {\n\treturn "gold line"\n}\n')
+    _git(repo, "commit", "-qam", "gold")
+    gold = _git(repo, "show", "--format=", "HEAD")
+    (repo / "b.go").write_text('package a\n\nvar later = "only upstream later"\n')
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "later")
+    return repo, parent, gold, _git(repo, "rev-parse", "HEAD").strip()
+
+
+ARM = ("diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1,0 +1,6 @@\n+\treturn 1\n+func Gold() string {\n"
+       '+  return "gold line"\n+var later = "only upstream later"\n+invented := "nowhere at all"\n+}\n')
+
+
+def test_recall_scan_splits_novel_lines_by_gold_and_later_history(tmp_path):
+    repo, parent, gold, upper = _history(tmp_path)
+    rec = cp.recall_scan(ARM, gold, repo, parent, upper)
+    # 5 counted (`}` excluded); `return 1` is in the parent, so 4 novel: 2 gold (indentation ignored), 1 only later, 1 nowhere
+    assert {k: rec[k] for k in ("added", "novel", "in_gold", "gold", "in_upstream", "upstream", "upstream_not_gold", "recalled")} == \
+        {"added": 5, "novel": 4, "in_gold": 2, "gold": 0.5, "in_upstream": 3, "upstream": 0.75, "upstream_not_gold": 1, "recalled": False}
+    assert rec["rule"] == cp.RECALL_RULE and rec["upper"] == upper[:12]
+    # history stops at the pin: read up to the gold commit, the later line is not upstream
+    assert cp.recall_scan(ARM, gold, repo, parent, _git(repo, "rev-parse", "HEAD~1").strip())["in_upstream"] == 2
+
+
+def test_recall_scan_marks_recalled_at_the_stated_threshold(tmp_path, monkeypatch):
+    repo, parent, gold, upper = _history(tmp_path)
+    assert cp.RECALLED_AT == (10, 0.5)
+    monkeypatch.setattr(cp, "RECALLED_AT", (3, 0.75))
+    assert cp.recall_scan(ARM, gold, repo, parent, upper)["recalled"] is True
+    monkeypatch.setattr(cp, "RECALLED_AT", (3, 0.8))
+    assert cp.recall_scan(ARM, gold, repo, parent, upper)["recalled"] is False
+
+
+def test_recall_scan_with_no_novel_line_or_no_repo_never_raises(tmp_path):
+    repo, parent, gold, upper = _history(tmp_path)
+    rec = cp.recall_scan("", gold, repo, parent, upper)
+    assert (rec["novel"], rec["gold"], rec["upstream"], rec["recalled"]) == (0, None, None, False)
+    assert "error" in cp.recall_scan(ARM, gold, tmp_path / "missing", parent, upper)
+    assert cp.recall_scan(ARM, gold, repo, "f" * 40, upper)["error"].startswith("parent")
