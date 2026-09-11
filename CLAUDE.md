@@ -73,7 +73,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
-| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`; then `docs/calvin/calvin-m0-go.md` (M0-Go, the floor round on gitleaks, closed 2026-09-11 with the floor not established at A2; §10 results and the gate record) + its cell page `docs/calvin/cells/calvin-m0-go-2026-09-11.md`; then round 2, `docs/calvin/calvin-m0-go-r2.md` (the audit, then the floor on fresh keys; run through WP-16 2026-09-11; §0b the pins, §10 the results and the gate record) + `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md` |
+| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`; then `docs/calvin/calvin-m0-go.md` (M0-Go, the floor round on gitleaks, closed 2026-09-11 with the floor not established at A2; §10 results and the gate record) + its cell page `docs/calvin/cells/calvin-m0-go-2026-09-11.md`; then round 2, `docs/calvin/calvin-m0-go-r2.md` (the audit, then the floor on fresh keys; run through WP-16 2026-09-11; §0b the pins, §10 the results and the gate record) + `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`; then **M0-Gate**, `docs/calvin/calvin-m0-gate.md` (the linker on the agent's diff: `hobbes gate` over O's finished diff on fzf, 20 keys; §0b the pins, §10 the gate record; WP-21 at Max's spend gate) |
 | reading or extending Atlas-0 (the current work) | `docs/atlas0/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
@@ -104,7 +104,8 @@ box, against a repo on disk (architecture §10); the application mode in
   is the Calvin M0 hole language, v1, `template.py` its generator —
   `hobbes template`, the anchor and structure passes — and `ground.py`
   grounder v0 — `hobbes ground`, placement and exact-or-NULL binding
-  with a read-trace — `adapter.py` the orchestrator adapter, arm T's
+  with a read-trace — `gate.py` `hobbes gate`, the linker on a finished
+  diff (clear or blocked, a stamped record; M0-Gate) — `adapter.py` the orchestrator adapter, arm T's
   driver, the one place a model is called, and `harness.py` the local
   harness, ADR-100: `hobbes verify` runs a diff's guarding tests in the
   sandbox with and without it, arm O's session runs through
@@ -218,7 +219,7 @@ uv run hobbes run <task> --dry-run
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-11): 1,322 pytest (+4 `lane_b`) /
+Suite sizes at the last check (2026-09-11): 1,349 pytest (4 of them `lane_b`) /
 304 Go + 52 oracle-lane Go (two run the `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36 scip node
 tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
 them all on every push; `scripts/ci-graph.sh <base>` is the graph job
@@ -245,7 +246,7 @@ review → `lane_b` pytest) and runs the same way on a box.
   after a bump (C-65). **The number line is Max's (ADR-103, third amendment,
   2026-09-10): the layer stays on 0.1.x patch by patch — 0.1.10-beta,
   0.1.11-beta, … — the earlier 0.11.0-beta statement withdrawn;** tags
-  are his call each time — 0.1.9-beta to 0.1.17-beta are untagged, the
+  are his call each time — 0.1.9-beta to 0.1.18-beta are untagged, the
   last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -280,9 +281,9 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-11) — Hobbes 0.1.17-beta
+## Status (2026-09-11) — Hobbes 0.1.18-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.17-beta; 0.1.8-beta is tagged `v0.1.8-beta` (0.1.3-beta
+- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.18-beta; 0.1.8-beta is tagged `v0.1.8-beta` (0.1.3-beta
   tagged `v0.1.3-beta` locally, the first stated version; beta: graded,
   not stable — Max); every artifact's `built_by` and every knowledge
   answer carry the version beside the commit; the four Go binaries
@@ -350,8 +351,8 @@ review → `lane_b` pytest) and runs the same way on a box.
 - **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
   Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
   (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 120 registered constraints
-  (94 active, 24 lifted, 2 superseded).
+  by one range join; artifacts at schema v4; 123 registered constraints
+  (97 active, 24 lifted, 2 superseded).
 - **The comparative programme (ADR-101/102, 2026-09-09):** the
   comparison with other code-graph tools is the oracle lane, not a
   scoreboard — `oracle import` grades any tool's graph against the
