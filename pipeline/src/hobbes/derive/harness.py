@@ -262,6 +262,13 @@ def is_test_path(path: str) -> bool:
     return _TEST_FILE.search(path) is not None
 
 
+def gold_test_hunks(gold_diff: str) -> str:
+    """The gold diff's own per-file hunks, test files only, reassembled as a patch — calvin-m0-go-r2 §2.3's
+    "gold's own test changes": the diff Hobbes applies on top of an arm's diff to ask whether the gold's tests,
+    not the harness's guard selection, read the arm's change as done."""
+    return "".join(text for path, text in split_patch(gold_diff) if is_test_path(path))
+
+
 @dataclass
 class Selection:
     """The tests a diff's edits reach, by the testmap at the SHA."""
@@ -848,8 +855,28 @@ def verify(clone: Path, sha: str, diff: str, L: T.Ledger, source: Path, *, out: 
             shutil.rmtree(scratch, ignore_errors=True)
 
 
-def score(rec: dict) -> dict:
-    """Class every test row of a verify record and read the verdict off the classes — the one place the reading is made, so a record can be rescored into a new file when the classes change (never in place)."""
+#: A test row's `candidate` outcomes that mean the test actually ran and reported, as against the testmap merely
+#: naming it (`uncollected` — `go test -list`/pytest's collection never returned it) or it never starting
+#: (`not-run`). `skip`, `error` and `unsupported` are seen but are not a guard executing: skip decides nothing,
+#: error and unsupported report no verdict on the change (calvin-m0-go-r2 §2.3's reading, stated in the report).
+EXECUTED = ("pass", "fail")
+
+
+def guarding_tests_executed(rec: dict) -> dict:
+    """From a scored verify record, the tests that guard the diff — `origin` `"guard"` (the testmap's own reach)
+    or `"touched"` (a test file the diff itself touches, whole, per `verify`'s docstring) — that executed on the
+    candidate tree, as against a tree-step row (`origin == "generate"`, a build guard, not a test): `{"count",
+    "ids"}` (calvin-m0-go-r2 §2.3)."""
+    ids = [r["id"] for r in rec.get("tests", []) if r.get("origin") in ("guard", "touched") and r.get("candidate") in EXECUTED]
+    return {"count": len(ids), "ids": ids}
+
+
+def score(rec: dict, *, gold_tests: dict | None = None) -> dict:
+    """Class every test row of a verify record and read the verdict off the classes — the one place the reading is
+    made, so a record can be rescored into a new file when the classes change (never in place). calvin-m0-go-r2
+    §2.3 hardens `pass`: a row whose build is clean but that reaches no executed guarding test is `vacuous`, its
+    own class, unless *gold_tests* — the verdict of the gold's own test-file hunks applied on top of this diff
+    (`gold_tests_verdict`), passed in by the caller because it takes its own `verify` run — itself reads `pass`."""
     rows = rec.get("tests", [])
     builds = rec.get("build", [])
     baseline = rec.get("baseline", True)
@@ -859,20 +886,58 @@ def score(rec: dict) -> dict:
     rec["summary"] = dict(collections.Counter(r["class"] for r in rows))
     if builds:
         rec["build_summary"] = dict(collections.Counter(r["class"] for r in builds))
+    if gold_tests is not None:
+        rec["gold_tests"] = gold_tests
     if rec.get("verdict") in ("not-applied", "empty-diff"):
         return rec
+    executed = guarding_tests_executed(rec)
+    rec["guarding_tests_executed"] = executed
     broken = [b["id"] for b in builds if b["class"] in BUILD_FAILING]
     if broken:
         rec["verdict"] = "build-fail"  # a diff that does not compile is its own class, not a test failure (calvin-m0-go §2.3)
     elif not rows:
         rec["verdict"] = "no-tests"
+    elif any(r["class"] in FAILING for r in rows):
+        rec["verdict"] = "fail"
+    elif executed["count"] == 0 and (rec.get("gold_tests") or {}).get("verdict") != "pass":
+        rec["verdict"] = "vacuous"  # build-clean, but no guarding test executed and gold_tests did not carry it (calvin-m0-go-r2 §2.3)
     else:
-        rec["verdict"] = "fail" if any(r["class"] in FAILING for r in rows) else "pass"
+        rec["verdict"] = "pass"
     if builds:
         rec["build_failures"] = broken
     rec["regressions"] = [r["id"] for r in rows if r["class"] == "P2F"]
     rec["faults"] = [r["id"] for r in rows + builds if r["class"] == "F2F"]
     return rec
+
+
+def gold_tests_verdict(clone: Path, sha: str, arm_diff: str, gold_diff: str, L: T.Ledger, source: Path, *,
+                        out: Path | None = None, timeout: int = 900) -> dict:
+    """calvin-m0-go-r2 §2.3's second door into ``pass``: the gold's own test-file hunks (`gold_test_hunks`)
+    applied on top of *arm_diff*, verified. ``{"verdict", "ids"}``, verdict one of:
+
+    - ``"n/a"`` — the gold diff touches no test file, so this row cannot pass this way (§2.3: "then only
+      executed guarding tests can make a pass").
+    - ``"conflict"`` — the combined diff does not apply (the arm's diff and the gold's own test hunk collide,
+      most often because the arm already rewrote the same test file): its own value, never read as ``fail``,
+      because it says nothing about whether the arm's change is right.
+    - ``"pass"`` / ``"fail"`` — the verdict is read off exactly the rows belonging to the gold's own touched
+      test files (not the whole combined `verify`, which also carries whatever the arm's diff alone reaches);
+      a combined tree that does not build is folded into ``"fail"`` here — the gold's tests cannot even run
+      against what the arm shipped, which is a failure of the arm's diff to satisfy them, not a conflict.
+    """
+    hunks = gold_test_hunks(gold_diff)
+    if not hunks.strip():
+        return {"verdict": "n/a", "ids": []}
+    combined = (arm_diff if arm_diff.endswith("\n") else arm_diff + "\n") + hunks
+    rec = verify(clone, sha, combined, L, source, out=out, baseline=True, timeout=timeout)
+    if rec.get("verdict") in ("not-applied", "empty-diff"):
+        return {"verdict": "conflict", "ids": [], "apply_error": rec.get("apply_error")}
+    gold_files = {path for path, _ in split_patch(hunks)}
+    rows = [r for r in rec.get("tests", []) if r.get("file") in gold_files]
+    if rec.get("verdict") == "build-fail" or not rows:
+        return {"verdict": "fail", "ids": [r["id"] for r in rows], "note": "build-fail" if rec.get("verdict") == "build-fail" else "gold's test file named no collected id"}
+    failing = [r["id"] for r in rows if r["class"] in FAILING]
+    return {"verdict": "fail" if failing else "pass", "ids": [r["id"] for r in rows], "failing": failing}
 
 
 # -------------------------------------------------------------------- arm O

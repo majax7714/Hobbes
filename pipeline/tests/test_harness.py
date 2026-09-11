@@ -168,8 +168,10 @@ def test_classify_table():
     assert H.classify("error", "pass") == "error" and H.classify("not-run", "pass") == "removed" and H.classify("not-run", None) == "not-run"
     assert H.classify("unsupported", None) == "unsupported" and H.classify("uncollected", None) == "uncollected"
     # the verdict reads what the diff did; an F2F is a fault of the environment, a removed test the diff's own renaming
-    rec = {"tests": [{"id": "a", "candidate": "fail", "baseline": "fail"}, {"id": "b", "candidate": "not-run", "baseline": "pass"}, {"id": "c", "candidate": "pass", "baseline": "pass"}], "baseline": True}
+    rec = {"tests": [{"id": "a", "candidate": "fail", "baseline": "fail", "origin": "guard"}, {"id": "b", "candidate": "not-run", "baseline": "pass", "origin": "guard"},
+                      {"id": "c", "candidate": "pass", "baseline": "pass", "origin": "guard"}], "baseline": True}
     assert H.score(rec)["verdict"] == "pass" and rec["faults"] == ["a"] and rec["summary"] == {"F2F": 1, "removed": 1, "P2P": 1}
+    assert rec["guarding_tests_executed"] == {"count": 2, "ids": ["a", "c"]}, "a fails and it is still a guard executing, not skipped or uncollected"
     rec["tests"].append({"id": "d", "candidate": "fail", "baseline": "pass"})
     assert H.score(rec)["verdict"] == "fail" and rec["regressions"] == ["d"]
     assert H.score({"tests": [], "verdict": "empty-diff"})["verdict"] == "empty-diff"
@@ -522,11 +524,62 @@ def test_go_generation_retries_a_random_draw_and_fails_a_real_one(gorepo, monkey
 
 
 def test_score_reads_build_rows():
-    rec = {"tests": [{"id": "t", "candidate": "pass", "baseline": "pass"}], "build": [{"id": "b", "candidate": "fail", "baseline": "fail"}], "baseline": True}
+    rec = {"tests": [{"id": "t", "candidate": "pass", "baseline": "pass", "origin": "guard"}], "build": [{"id": "b", "candidate": "fail", "baseline": "fail"}], "baseline": True}
     assert H.score(rec)["verdict"] == "pass" and rec["faults"] == ["b"] and rec["build_summary"] == {"F2F": 1}, "a build broken on both trees is the environment's"
     rec["build"][0]["baseline"] = "pass"
     assert H.score(rec)["verdict"] == "build-fail" and rec["build_failures"] == ["b"]
     assert H.score({"tests": [], "build": [{"id": "b", "candidate": "fail", "baseline": None}], "baseline": False})["verdict"] == "build-fail"
-    old = H.score({"tests": [{"id": "t", "candidate": "pass", "baseline": "pass"}], "baseline": True})
+    old = H.score({"tests": [{"id": "t", "candidate": "pass", "baseline": "pass", "origin": "guard"}], "baseline": True})
     assert "build_summary" not in old and "build_failures" not in old, "a record from before the Go steps rescores unchanged"
+
+
+def test_guarding_tests_executed_and_vacuous_pass():
+    # calvin-m0-go-r2 §2.3: a build-clean row that reaches no *executed* guarding test is `vacuous`, not `pass` —
+    # unless `gold_tests` (computed separately, since it takes its own `verify` run) itself reads `pass`.
+    rec = {"tests": [{"id": "g", "candidate": "pass", "baseline": "pass", "origin": "guard"},
+                      {"id": "u", "candidate": "uncollected", "baseline": "uncollected", "origin": "guard"},
+                      {"id": "touch", "candidate": "pass", "baseline": None, "origin": "touched"}], "baseline": True}
+    scored = H.score(rec)
+    assert scored["verdict"] == "pass" and scored["guarding_tests_executed"] == {"count": 2, "ids": ["g", "touch"]}, "a touched test file's own tests guard too; uncollected did not execute"
+    novacuous = {"tests": [{"id": "gen", "candidate": "pass", "baseline": "pass", "origin": "generate"}], "baseline": True}
+    assert H.score(novacuous)["verdict"] == "vacuous" and novacuous["guarding_tests_executed"] == {"count": 0, "ids": []}
+    assert H.score(dict(novacuous), gold_tests={"verdict": "n/a", "ids": []})["verdict"] == "vacuous", "gold changed no test file: no second door"
+    assert H.score(dict(novacuous), gold_tests={"verdict": "conflict", "ids": []})["verdict"] == "vacuous"
+    assert H.score(dict(novacuous), gold_tests={"verdict": "fail", "ids": ["x"]})["verdict"] == "vacuous"
+    rescued = H.score(dict(novacuous), gold_tests={"verdict": "pass", "ids": ["x_test.go::TestX"]})
+    assert rescued["verdict"] == "pass" and rescued["gold_tests"]["verdict"] == "pass", "gold's own test changes carry the row"
+    # a row a build breaks never reaches the vacuous question: build-fail outranks it, though the count is still recorded
+    broken = H.score({"tests": [], "build": [{"id": "b", "candidate": "fail", "baseline": "pass"}], "baseline": True})
+    assert broken["verdict"] == "build-fail" and broken["guarding_tests_executed"] == {"count": 0, "ids": []}
+
+
+def test_gold_test_hunks_splits_test_files_from_a_diff(repo):
+    root, sha, source = repo
+    d = diff_for(root, {"src/pkg/core.py": CORE.replace("str(x)", 'str(x) + "!"'), "tests/test_core.py": TEST_CORE + "\ndef test_new():\n    assert True\n"})
+    hunks = H.gold_test_hunks(d)
+    assert [p for p, _ in H.split_patch(hunks)] == ["tests/test_core.py"] and "src/pkg/core.py" not in hunks and "def test_new" in hunks
+    assert H.gold_test_hunks(diff_for(root, {"src/pkg/core.py": CORE.replace("str(x)", 'str(x) + "!"')})) == "", "a gold diff touching no test file yields no hunks"
+
+
+def test_gold_tests_verdict_end_to_end(gorepo, monkeypatch):
+    root, sha, L = gorepo
+    fake = GoFake()
+    monkeypatch.setattr(containment, "run", fake)
+    arm = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // fixed")})
+    # the gold diff touches no test file: n/a, no run at all
+    gold_notest = diff_for(root, {"calc/calc.go": GO_CALC.replace("Base = 1", "Base = 2")})
+    assert H.gold_tests_verdict(root, sha, arm, gold_notest, L, root) == {"verdict": "n/a", "ids": []}
+    assert fake.plans == [], "n/a is read off the diff alone, no verify"
+    # the gold's own new test, applied on top of the arm's diff, runs and passes
+    gold_test = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST + "\nfunc TestMul(t *testing.T) {}\n"})
+    r = H.gold_tests_verdict(root, sha, arm, gold_test, L, root)
+    assert r["verdict"] == "pass" and "calc/calc_test.go::TestMul" in r["ids"] and r.get("failing", []) == []
+    # the arm's own diff already rewrote the exact line the gold's test hunk needs as context: a conflict, not a fail
+    arm_same_line = diff_for(root, {"calc/calc_test.go": GO_CALC_TEST.replace("func TestSub(t *testing.T) {}", "func TestSub(t *testing.T) { t.Log(1) }")})
+    r2 = H.gold_tests_verdict(root, sha, arm_same_line, gold_test, L, root)
+    assert r2["verdict"] == "conflict" and "apply_error" in r2
+    # a diff that does not build at all cannot run the gold's tests either: fail, not conflict
+    broke = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // BROKEN")})
+    r3 = H.gold_tests_verdict(root, sha, broke, gold_test, L, root)
+    assert r3["verdict"] == "fail" and r3["note"] == "build-fail"
     assert H.classify("uncollected", "pass") == "removed" and H.classify("uncollected", "uncollected") == "uncollected"
