@@ -323,6 +323,194 @@ def test_an_expression_callee_is_no_reference():
     assert sorted((r.name, r.receiver) for r in parsed.refs) == [("f", None), ("m", G.EXPR)]
 
 
+KINDS = """package app
+
+import "io"
+
+// Base is embedded.
+type Base struct{}
+
+// Ping pings.
+func (b *Base) Ping() int { return 1 }
+
+// Box embeds Base and a writer, and holds a callback.
+type Box struct {
+\tBase
+\tio.Writer
+\tName   string
+\tOnDone func() int
+}
+
+// Open opens.
+func (x *Box) Open() error { return nil }
+
+// Source yields fragments.
+type Source interface {
+\tFragments() error
+}
+
+// Mode is a defined basic type.
+type Mode int
+
+// Label names the mode.
+func (m Mode) Label() string { return "" }
+
+var defaultBox = &Box{}
+"""
+USE_GO = """package app
+
+import (
+\t"fmt"
+\t"io"
+\tst "strings"
+)
+
+func use[T fmt.Stringer](b *Box, s Source, t T, w io.Writer, err error) {
+\tb.Open()
+\tb.Ping()
+\tb.Write(nil)
+\tb.OnDone()
+\tb.Opne()
+\ts.Fragments()
+\tt.String()
+\tw.Write(nil)
+\terr.Error()
+\tvar m Mode
+\tm.Label()
+\tm.zqxFrobnicate()
+\tx := &Box{}
+\tx.Open()
+\ty := new(Base)
+\ty.Ping()
+\ty.Pnig()
+\tz := makeBox()
+\tz.Open()
+\tdefaultBox.Open()
+\tvar sb st.Builder
+\tsb.Len()
+\tPing()
+\t_ = any(1)
+}
+
+func makeBox() *Box { return &Box{} }
+
+func shadow() {
+\tio := &Box{}
+\tio.Open()
+}
+"""
+
+
+def _at(text, needle):
+    return next(i for i, line in enumerate(text.split("\n"), 1) if needle in line)
+
+
+def go_ledger(root, sha):
+    """The synthetic ledger plus internal/app/kinds.go — types, methods, an interface, a package-level var — committed at a new SHA."""
+    (root / "internal/app/kinds.go").write_text(KINDS)
+    _git(root, "add", ".")
+    _git(root, "commit", "-q", "-m", "kinds")
+    sha2 = _git(root, "rev-parse", "HEAD").strip()
+    L = ledger(sha2)
+    g = L.graph
+    g["nodes"].append({"id": "internal/app/kinds", "kind": "module", "path": "internal/app/kinds.go"})
+    k = "internal/app/kinds"
+    for name, qual, kind, a, b in (("Base", "Base", "type", "type Base", "type Base"), ("Ping", "Base.Ping", "method", ") Ping()", ") Ping()"),
+                                   ("Box", "Box", "type", "type Box", "\tOnDone"), ("Open", "Box.Open", "method", ") Open()", ") Open()"),
+                                   ("Source", "Source", "type", "type Source", "\tFragments"), ("Mode", "Mode", "type", "type Mode", "type Mode"),
+                                   ("Label", "Mode.Label", "method", ") Label()", ") Label()"), ("defaultBox", "defaultBox", "var", "var defaultBox", "var defaultBox")):
+        g["symbols"].append({"id": f"{k}.{qual}", "module": k, "name": name, "qualname": qual, "kind": kind, "line": _at(KINDS, a), "end_line": _at(KINDS, b) + (1 if kind == "type" and a != b else 0)})
+    ev = [{"lane": "scip", "line": 1, "path": "internal/app/app.go"}]
+    for src in ("cmd/main.main", "cmd/main.runGoRTA", "internal/app/app.helper", "internal/app/app.Run"):
+        g["symbol_edges"].append({"from": src, "to": f"{k}.Box.Open", "type": "calls", "tier": "semantic", "evidence": ev})
+    g["symbol_edges"].append({"from": "internal/app/app.Run", "to": f"{k}.Base.Ping", "type": "calls", "tier": "semantic", "evidence": ev})
+    return T.Ledger(g, {"tests": []}), sha2
+
+
+def test_go_universe_is_pinned_whole():
+    from hobbes.extract.tail import GO_BUILTINS
+    assert len(G.GO_PREDECLARED) == 44 and G.GO_PREDECLARED >= GO_BUILTINS
+    assert G.GO_PREDECLARED - GO_BUILTINS == {"any", "comparable", "false", "iota", "nil", "true"}, "go1.26.5's types.Universe, less the tail's callable list"
+
+
+def test_go_rule1_typed_receivers_rule2_interfaces_and_density(repo):
+    root, sha = repo
+    L, sha2 = go_ledger(root, sha)
+    t = template(L, root, "Change `Run`.")
+    rta = {"source": "a test key", "sites": {"example.com/x/internal/app.Source.Fragments": ["(*example.com/x/internal/app.File).Fragments"]}}
+    fills = {"fills": {hole(t, "FREEFORM")["id"]: {"code": USE_GO, "span": {"path": "internal/app/use.go", "start": 1, "end": 0}}}}
+    g = G.ground(t, fills, L, root, rta=rta)
+    by = collections_by(g["refs"])
+    k = "internal/app/kinds"
+    assert by["b.Open"] == ("in-graph", f"{k}.Box.Open") and by["x.Open"] == ("in-graph", f"{k}.Box.Open"), "rule 1: a parameter, &T{…}"
+    assert by["y.Ping"] == ("in-graph", f"{k}.Base.Ping") and by["b.Ping"] == ("in-graph", f"{k}.Base.Ping"), "new(T); promoted through an embedded repo type"
+    assert by["m.Label"] == ("in-graph", f"{k}.Mode.Label") and by["defaultBox.Open"] == ("in-graph", f"{k}.Box.Open"), "var x T; a package-level var = &T{}"
+    assert by["io.Open"] == ("in-graph", f"{k}.Box.Open"), "a local declared before the call shadows the package name"
+    assert by["b.Write"] == ("external", "io") and by["w.Write"] == ("external", "io") and by["sb.Len"] == ("external", "strings"), "promoted from, or typed by, a package outside the repo"
+    assert by["b.OnDone"][0] == "field" and by["err.Error"][0] == "builtin" and by["any"][0] == "builtin"
+    assert by["t.String"][0] == "local" and by["z.Open"][0] == "local", "a type parameter and a binding the syntax does not type abstain"
+    assert by["makeBox"][0] == "gensym"
+    assert by["s.Fragments"] == ("interface", f"{k}.Source.Fragments"), "rule 2: the interface method, not an implementer"
+    row = next(r for r in g["refs"] if r["term"] == "s.Fragments")
+    assert row["implementers"] == ["(*example.com/x/internal/app.File).Fragments"] and row["rta_key"] == "example.com/x/internal/app.Source.Fragments"
+    assert [(n["term"], n["null_class"]) for n in g["null"]] == [("m.zqxFrobnicate", "invented"), ("y.Pnig", "near-miss"), ("Ping", "near-miss")], \
+        "a missing method on a graph type is NULL (a defined basic type carries its declared methods only); a bare name never binds a method"
+    assert by["b.Opne"] == ("external", "io"), "Box embeds io.Writer: a member the repo does not declare may be promoted from outside it — abstain, never NULL"
+    assert g["hsr"] == round(3 / (by_count(g, "in-graph") + 1 + 3), 4)
+    assert any(r["op"] == "type-decl" and r["key"] == "internal/app:Box" for r in g["trace"]) and any(r["op"] == "var-type" for r in g["trace"])
+    # density: every judged reference carries it, from the parent graph's k; nothing outside the graph does
+    D = G.density_table(L.graph)
+    for r in g["refs"]:
+        if r["class"] == "in-graph":
+            deg = D["degree"][r["target"]]
+            assert (r["density"], r["refs_in"]) == ("dense" if deg >= D["k"] else "sparse", deg), r
+        elif r["class"] in ("NULL", "gensym"):
+            assert r["density"] == "absent"
+        elif r["class"] == "interface":
+            assert r["density"] in ("dense", "sparse") and r["refs_in"] == D["degree"][f"{k}.Source"]
+        else:
+            assert r["density"] is None, r
+    assert D["k"] == 1 and g["density"]["k"] == 1, "18 symbols, the third's in-degree 0: k floors at 1"
+    assert by_row(g, "b.Open")["density"] == "dense" and by_row(g, "y.Ping")["density"] == "dense" and by_row(g, "m.Label")["density"] == "sparse"
+    assert sum(g["density"]["counts"].values()) == sum(by_count(g, c) for c in G.DENSITY_CLASSES)
+    # an interface method the diff itself declares is new: a gensym, not rule 2
+    src = hole(t, "FREEFORM")["id"]
+    a, b = _at(KINDS, "type Source"), _at(KINDS, "type Source") + 2
+    g2 = G.ground(template(L, root, "Change `Run`."), {"fills": {src: [
+        {"code": "type Source interface {\n\tFragments() error\n\tClose() error\n}\n", "span": {"path": "internal/app/kinds.go", "start": a, "end": b}},
+        {"code": "package app\n\nfunc use2(s Source) {\n\ts.Close()\n\ts.Fragments()\n}\n", "span": {"path": "internal/app/use2.go", "start": 1, "end": 0}}]}}, L, root)
+    by2 = collections_by(g2["refs"])
+    assert by2["s.Close"] == ("gensym", "Source.Close") and by2["s.Fragments"][0] == "interface" and g2["null"] == []
+    assert next(r for r in g2["refs"] if r["term"] == "s.Fragments")["implementers"] is None, "no key given: nothing recorded, nothing bound"
+
+
+def collections_by(refs):
+    return {r["term"]: (r["class"], r["target"]) for r in refs}
+
+
+def by_row(g, term):
+    return next(r for r in g["refs"] if r["term"] == term)
+
+
+def by_count(g, cls):
+    return sum(1 for r in g["refs"] if r["class"] == cls)
+
+
+def test_density_table_k_rule_ties_never_split():
+    def graph(degs):
+        return {"symbols": [{"id": f"s{i}"} for i in range(len(degs))],
+                "symbol_edges": [{"from": f"c{i}_{j}", "to": f"s{i}", "type": "calls"} for i, n in enumerate(degs) for j in range(n)]}
+    t = G.density_table(graph([3, 3, 2, 1, 0, 0]))
+    assert (t["k"], t["cap"], t["dense_in_population"]) == (3, 2, 2)
+    t = G.density_table(graph([3, 2, 2, 2, 0, 0]))
+    assert (t["k"], t["dense_in_population"]) == (3, 1), "the tie at 2 straddles the third: all of it sparse, never split"
+    t = G.density_table(graph([5, 4, 0, 0, 0, 0]))
+    assert (t["k"], t["dense_in_population"]) == (1, 2), "k >= 1: a symbol nothing references is never dense"
+    g = {"symbols": [{"id": "a"}, {"id": "b"}, {"id": "c"}],
+         "symbol_edges": [{"from": "a", "to": "a", "type": "calls"}, {"from": "b", "to": "a", "type": "uses"}, {"from": "b", "to": "a", "type": "calls"}, {"from": "c", "to": "a", "type": "imports"}]}
+    assert G.density_table(g)["degree"] == {"a": 1, "b": 0, "c": 0}, "distinct referencing symbols over calls and uses; self-edges and imports dropped"
+
+
 def test_fill_shapes_widened_for_the_grounder():
     f = {"id": "f1", "type": "FREEFORM", "fill_schema": holes.FILL_SHAPES["FREEFORM"]}
     assert holes.validate_fill(f, [{"code": "x", "span": {"path": "a", "start": 3, "end": 2}}]) == []

@@ -58,6 +58,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import os
 import re
@@ -484,6 +485,190 @@ def cmd_ground(a: argparse.Namespace) -> int:
     return 0
 
 
+def split_diff(diff: str) -> list[tuple[str, str]]:
+    """A multi-file ``git diff`` as ``(path, one-file diff)`` pairs, keyed by the ``b/`` path, in the diff's order."""
+    out = []
+    for part in re.split(r"(?m)^(?=diff --git )", diff):
+        m = re.match(r"diff --git a/(\S+) b/(\S+)", part)
+        if m:
+            out.append((m.group(2), part))
+    return out
+
+
+def applies_at(repo: Path, sha: str, diff: str, paths: list[str]) -> tuple[bool, str]:
+    """Whether *diff* applies to the parent's pre-images of *paths*, checked by ``git apply --check`` in a scratch tree — the repo is only read (``git show``), never checked out."""
+    import tempfile
+    with tempfile.TemporaryDirectory(prefix="calvin-apply-") as d:
+        for p in paths:
+            r = subprocess.run(["git", "show", f"{sha}:{p}"], cwd=repo, capture_output=True)
+            if r.returncode == 0:
+                (Path(d) / p).parent.mkdir(parents=True, exist_ok=True)
+                (Path(d) / p).write_bytes(r.stdout)
+        r = subprocess.run(["git", "apply", "--check", "-"], cwd=d, input=diff.encode("utf-8", "surrogateescape"), capture_output=True)
+        return r.returncode == 0, r.stderr.decode(errors="replace").strip()[:200]
+
+
+def load_go_units(path: Path, keys: list[str] | None) -> list[dict]:
+    """WP-0's ``units.jsonl`` rows (Calvin M0-Go), optionally narrowed to key prefixes."""
+    units = [json.loads(l) for l in open(path)]
+    return [u for u in units if not keys or any(u["key"].startswith(k) for k in keys)]
+
+
+def rta_sites(key_path: Path | None, label: str | None = None) -> dict | None:
+    """The implementers an RTA key (``oracle go-rta``) names per repo interface method: every dynamic site whose ``interface`` is in-repo, its in-repo targets collected under the interface method's name — what rule 2 records, never binds."""
+    if key_path is None:
+        return None
+    k = json.load(open(key_path))
+    sites: dict[str, set[str]] = collections.defaultdict(set)
+    for s in k["sites"]:
+        i = s.get("interface")
+        if i and not i.get("external"):
+            sites[i["name"]].update(t["name"] for t in s["targets"] if not t.get("external"))
+    return {"source": label or f"{k.get('oracle')} key {key_path}", "sites": {n: sorted(v) for n, v in sorted(sites.items())}}
+
+
+def ground_unit(u: dict, repo: Path, tier: str = "A2", rta: dict | None = None) -> dict:
+    """One M0-Go unit's gold run: the template at *tier* built at the parent, the gold diff (the generated file already split off) as fills, grounded twice, applied at the parent, and each post-image held against the commit."""
+    from hobbes.derive import ground as G
+    from hobbes.derive import template as T
+
+    L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+    assert L.sha == u["parent_sha"], (u["key"], L.sha)
+    frozen = json.dumps(T.build_template(u[tier], L, repo, None))
+    gold = split_diff(Path(u["gold_diff"]).read_text(errors="surrogateescape"))
+    doc, counts = G.fills_from_diff(json.loads(frozen), gold, repo)
+    g = G.ground(json.loads(frozen), doc, L, repo, rta=rta)
+    again = G.ground(json.loads(frozen), doc, L, repo, rta=rta)
+    ok, err = applies_at(repo, L.sha, g["diff"], [p for p, _ in gold])
+    equal = {}
+    for path, _ in gold:
+        want = subprocess.run(["git", "show", f"{u['sha']}:{path}"], cwd=repo, capture_output=True, text=True, errors="surrogateescape").stdout
+        equal[path] = g["post"].get(path) == want
+    return {"template": json.loads(frozen), "fills": doc, "attribution": counts, "ground": g, "identical": g["output_hash"] == again["output_hash"] and g["trace"] == again["trace"],
+            "applies": ok, "apply_error": err, "post_equal": equal}
+
+
+def cmd_ground_units(a: argparse.Namespace) -> int:
+    """Calvin M0-Go WP-3: every unit's gold diff grounded at its parent (step 3's exit on Go) — per key the diff, the references by class, the NULL list, the density counts and the output hash; ``rows.jsonl`` one row a key."""
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    repo = Path(a.repo)
+    rta = rta_sites(Path(a.rta_key) if a.rta_key else None, a.rta_label)
+    rows = []
+    refs = collections.Counter(); dens = collections.Counter(); nulls = 0
+    for u in load_go_units(Path(a.units), a.keys):
+        r = ground_unit(u, repo, a.tier, rta)
+        g = r["ground"]
+        k = u["key"]
+        (out / f"{k}.template.json").write_text(json.dumps(r["template"], indent=1))
+        (out / f"{k}.fills-gold.json").write_text(json.dumps(r["fills"], indent=1))
+        (out / f"{k}.ground.json").write_text(json.dumps({"wp": a.wp, **g}, indent=1))
+        (out / f"{k}.diff").write_text(g["diff"], errors="surrogateescape")
+        row = {"wp": a.wp, "key": k, "shape": u["shape"], "parent_sha": u["parent_sha"], "W": u["W"], "tier": a.tier,
+               "files": sorted(r["post_equal"]), "generated_excluded": bool(u.get("generated_diff")),
+               "references": g["references"], "null": [{x: n[x] for x in ("hole", "path", "line", "term", "null_class", "nearest", "declared")} for n in g["null"]],
+               "hsr": g["hsr"], "density": g.get("density", {}).get("counts"), "density_k": g.get("density", {}).get("k"),
+               "output_hash": g["output_hash"], "identical_on_rerun": r["identical"], "applies": r["applies"], "apply_error": r["apply_error"],
+               "post_equal": all(r["post_equal"].values()), "post_equal_by_file": r["post_equal"], "attribution": {x: v for x, v in r["attribution"].items() if x != "in_closed_at"},
+               "unfilled": len(g["unfilled"]), "refused": len(g["refused"])}
+        rows.append(row)
+        refs.update(g["references"]); nulls += len(g["null"])
+        dens.update(row["density"] or {})
+        print(f"{k} {u['shape']:11s} refs {g['references']['total']:4d} in-graph {g['references']['in-graph']:3d} NULL {len(g['null'])} hsr {g['hsr']} "
+              f"density {row['density']} rerun {'yes' if r['identical'] else 'NO'} apply {'yes' if r['applies'] else 'NO'} equal {'yes' if row['post_equal'] else 'NO'} {g['output_hash']}", flush=True)
+        for n in g["null"]:
+            print(f"      NULL {n['path']}:{n['line']} `{n['term']}` {n['null_class']} nearest {n['nearest']}")
+        for x in g["refs"]:
+            if x["class"] == "interface":
+                print(f"      interface {x['path']}:{x['line']} `{x['term']}` → {x['target']} implementers {x.get('implementers')}")
+    with open(out / "rows.jsonl", "w") as fh:
+        for row in rows:
+            fh.write(json.dumps(row) + "\n")
+    n = len(rows)
+    judged = refs["in-graph"] + refs["interface"] + refs["NULL"]
+    print(f"units {n}: identical on rerun {sum(r['identical_on_rerun'] for r in rows)}/{n}; apply {sum(r['applies'] for r in rows)}/{n}; post-images equal {sum(r['post_equal'] for r in rows)}/{n}; "
+          f"NULL {nulls}; HSR {refs['NULL'] / judged if judged else float('nan'):.4f}")
+    print(f"references {dict(sorted(refs.items()))}")
+    print(f"density {dict(sorted(dens.items()))}")
+    return 0
+
+
+POISON_INVENTED = "zqxFrobnicate"
+
+
+def perturb_site(text: str, line: int, col: int, old: str, new: str) -> str:
+    """*text* with the identifier *old* at ``line:col`` (1-based line, 0-based byte column — tree-sitter's) renamed *new*: that one site, nothing else."""
+    lines = text.split("\n")
+    raw = lines[line - 1].encode("utf-8", "surrogateescape")
+    was = old.encode("utf-8", "surrogateescape")
+    if raw[col: col + len(was)] != was:
+        raise ValueError(f"{old!r} is not at {line}:{col}")
+    lines[line - 1] = (raw[:col] + new.encode("utf-8", "surrogateescape") + raw[col + len(was):]).decode("utf-8", "surrogateescape")
+    return "\n".join(lines)
+
+
+def near_name(name: str, taken: set[str]) -> str:
+    """A name two characters off *name* — two appended — that nothing in *taken* spells."""
+    for tail in ("Zq", "Qz", "Zx", "Xz", "Qq"):
+        if name + tail not in taken:
+            return name + tail
+    raise ValueError(name)
+
+
+def poison_draw(ground_dir: Path, keys: list[str], n: int, seed: str) -> list[tuple[str, dict]]:
+    """*n* in-graph Go call sites of a gold run, drawn round-robin over *keys* in order, each key's sites ordered by a seeded hash of (key, path, line, term)."""
+    pools = {}
+    for k in keys:
+        g = json.load(open(ground_dir / f"{k}.ground.json"))
+        sites = [r for r in g["refs"] if r["class"] == "in-graph" and r["path"].endswith(".go")]
+        pools[k] = sorted(sites, key=lambda r: hashlib.sha256(f"{seed}:{k}:{r['path']}:{r['line']}:{r['term']}".encode()).hexdigest())
+    picks: list[tuple[str, dict]] = []
+    while len(picks) < n and any(pools.values()):
+        for k in keys:
+            if pools[k] and len(picks) < n:
+                picks.append((k, pools[k].pop(0)))
+    return picks
+
+
+def cmd_poison(a: argparse.Namespace) -> int:
+    """Calvin M0-Go WP-3's control (M0 step 3's, on Go): is the gold run's zero honest? Each of *n* drawn in-graph call sites renamed at that one site — to a name two characters off, then to an invented one — and its unit grounded again: exactly one NULL each, at the site, of the right class."""
+    from hobbes.derive import ground as G
+    from hobbes.derive import template as T
+    from hobbes.extract import gosource
+
+    units = {u["key"]: u for u in load_go_units(Path(a.units), None)}
+    gdir, repo = Path(a.ground), Path(a.repo)
+    rows = []
+    for k, site in poison_draw(gdir, sorted(units), a.n, a.seed):
+        u = units[k]
+        L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+        frozen = (gdir / f"{k}.template.json").read_text()
+        g0 = json.load(open(gdir / f"{k}.ground.json"))
+        gold = split_diff(Path(u["gold_diff"]).read_text(errors="surrogateescape"))
+        path, post = site["path"], g0["post"][site["path"]]
+        name = site["term"].rsplit(".", 1)[-1]
+        call = min((c for c in gosource._parse_file(path, post.encode("utf-8", "surrogateescape")).calls if c["line"] == site["line"] and c["name"] == name), key=lambda c: c["col"])
+        shape = "method (rule 1)" if L.symbols[site["target"]]["kind"] == "method" else "package-qualified" if "." in site["term"] else "bare"
+        taken = set(L.by_name) | {s["name"] for p, t in g0["post"].items() if p.endswith(".go") for s in gosource._parse_file(p, t.encode("utf-8", "surrogateescape")).symbols}
+        for want, new in (("near-miss", near_name(name, taken)), ("invented", POISON_INVENTED)):
+            text = perturb_site(post, call["line"], call["col"], name, new)
+            d = G.unified(path, G.file_at(repo, L.sha, path), G._lines(text))
+            doc, _ = G.fills_from_diff(json.loads(frozen), [(p, d if p == path else x) for p, x in gold], repo)
+            g = G.ground(json.loads(frozen), doc, L, repo)
+            hit = g["null"][0] if len(g["null"]) == 1 else None
+            right = hit is not None and hit["path"] == path and hit["line"] == site["line"] and hit["term"].rsplit(".", 1)[-1] == new and hit["null_class"] == want
+            rows.append({"wp": a.wp, "key": k, "path": path, "line": site["line"], "term": site["term"], "target": site["target"], "shape": shape, "perturbed_to": new,
+                         "want": want, "nulls": len(g["null"]), "null_class": hit["null_class"] if hit else [n["null_class"] for n in g["null"]], "right": right,
+                         "nearest": hit["nearest"] if hit else None, "output_hash": g["output_hash"]})
+            print(f"{k} {path}:{site['line']} `{site['term']}` ({shape}) → `{new}`: {len(g['null'])} NULL {rows[-1]['null_class']} {'right' if right else 'WRONG'}", flush=True)
+    summary = {w: f"{sum(1 for r in rows if r['want'] == w and r['right'])}/{sum(1 for r in rows if r['want'] == w)}" for w in ("near-miss", "invented")}
+    shapes = dict(collections.Counter(r["shape"] for r in rows if r["want"] == "near-miss"))
+    per_key = dict(collections.Counter(r["key"] for r in rows if r["want"] == "near-miss"))
+    Path(a.out).write_text(json.dumps({"wp": a.wp, "n": a.n, "seed": a.seed, "summary": summary, "shapes": shapes, "per_key": per_key, "rows": rows}, indent=1))
+    print(f"poison: {summary}; sites by shape {shapes}; per key {per_key}")
+    return 0
+
+
 def cmd_t(a: argparse.Namespace) -> int:
     """Step 4's exit: arm T by hand for named commits against one endpoint — round 1, rebuild, round 2, ground, one NULL round-trip — every exchange recorded; the per-unit instruments printed."""
     from hobbes.agent.loop import Endpoint
@@ -837,6 +1022,16 @@ def main(argv: list[str]) -> int:
     s = sub.add_parser("ground"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
     s.add_argument("--gold", choices=("commit", "rows"), default="commit", help="the whole commit (the design's gold) or the cell's size-bounded rows")
     s.set_defaults(fn=cmd_ground)
+    s = sub.add_parser("ground-units", help="Calvin M0-Go: every unit of a units.jsonl grounded with its gold diff at its parent")
+    s.add_argument("units"); s.add_argument("--repo", required=True, help="a clone holding every parent and commit; only read"); s.add_argument("--out", required=True)
+    s.add_argument("--tier", default="A2"); s.add_argument("--keys", nargs="*"); s.add_argument("--wp", default="wp-3")
+    s.add_argument("--rta-key", help="an oracle go-rta key: the implementers rule 2 records for each interface call"); s.add_argument("--rta-label")
+    s.set_defaults(fn=cmd_ground_units)
+    s = sub.add_parser("poison", help="Calvin M0-Go: the poison control over a ground-units run (near-miss and invented renames, one NULL each)")
+    s.add_argument("units"); s.add_argument("--ground", required=True, help="the ground-units --out directory"); s.add_argument("--repo", required=True)
+    s.add_argument("--out", required=True, help="poison.json"); s.add_argument("--n", type=int, default=25); s.add_argument("--seed", default="calvin-go-wp-3:poison")
+    s.add_argument("--wp", default="wp-3")
+    s.set_defaults(fn=cmd_poison)
     s = sub.add_parser("t"); s.add_argument("graphs"); s.add_argument("--templates", required=True); s.add_argument("--out", required=True); s.add_argument("--clone")
     s.add_argument("--commits", nargs="+", required=True, help="commit prefixes to run arm T on")
     s.add_argument("--base-url", required=True); s.add_argument("--model", required=True)
