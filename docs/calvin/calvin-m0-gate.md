@@ -350,4 +350,12 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
     - The Python verifier carries `vacuous` and `gold_tests` with no change needed.
   - **Environment:** `go:generate` fails on both trees in every fzf verify, because `stringer` is not in the image. No verdict moves.
   - **For WP-19:** seeded variant (iv) runs on the 9 units with uncaptured symbols. On the other 11 it is skipped, as §2.4 allows: their only site rows are line-less, and those never route.
+- 2026-09-11 — **WP-18 exit checked; merged to `main`** (`7dcc518`; branch head `863857a`). **0.1.18-beta** (a patch, ADR-103's third amendment); C-121–C-123 registered. The image was rebuilt after the bump (C-65).
+  - **`reach` is the default** in the gate, in the CLI's record and in both drivers.
+    - **Gold at the default:** smoke-fzf clears 20/20, byte-identical. 26 files land in `partition.reached`: docs, man pages, the Makefile, Ruby tests, `.s` files, and new code files beside the partition.
+    - **Round 2's smoke:** 7/8 golds and 5/5 O diffs clear. The one block is `87d96295d65a`, not a readable key: its gold writes an existing code file outside the partition.
+  - **Accepted, though the orchestrator did not ask for it:** a code file created beside the partition was in no map. A NULL in it would therefore have read *unknown*, and an invented name in a new file would have cleared.
+    - It now takes the map of its directory's partition files: the class stands where they are captured, and becomes *unknown* where they are a blind spot.
+    - Both cases are tested.
+  - **Tests:** pytest 1,349 green, measured in the worktree. On `main`, the version, gate, probe and loop suites pass (105), and so does Go's `internal/version`.
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
