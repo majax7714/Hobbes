@@ -13,6 +13,44 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.11-beta — 2026-09-11
+
+**Patch: Calvin's derive layer reads Go (the M0-Go round).** Three
+changes in what the grounder, the verifier and the template draw. All
+three were run on gitleaks' 20 M0-Go gold diffs with no model.
+
+- **Grounder v1 on Go** (`hobbes ground`). Go's universe scope is pinned
+  from go1.26.5, and a bare name binds a local, then the package, then
+  the universe; it never binds a method. A member is judged when the
+  syntax states its receiver's type (rule 1), and an interface method
+  binds to the interface (rule 2; implementers are recorded, never
+  bound). Every judged reference carries a density, `dense`, `sparse`
+  or `absent`, beside its class. Four defects are fixed: a bare call
+  could bind a method; builtins were checked before the package; an
+  import alias beat a shadowing local; a missing method on a type over
+  a basic type abstained instead of NULL. Gold run: 0 NULL, HSR 0,
+  `unknown-receiver` 53 → 5, poison 50/50. C-91 amended.
+- **The Go verifier** (`hobbes verify`, harness v2; ADR-100 amended).
+  The repo's `//go:generate` regenerates a generated file on both
+  trees rather than applying it, and is a test row where its import
+  closure reaches the edit. A failing generation is retried up to
+  three times, with each attempt recorded (C-103). Tests run by name
+  at symbol grain and whole at package grain; `go build` and `go vet`
+  are build rows (a `P2F` there is `build-fail`); `go test -list`
+  gives `uncollected` and `removed`. The Go module cache is now
+  mounted read-only over the cache root's rw mount
+  (`containment.Plan.ro_cache`, C-92). `calvin.box.policy` allows
+  `go generate*`. Gold run: 20/20 pass on two passes, `P2F` 0,
+  `all_contained`.
+- **Template v2** (`build_template(version=2)`, opt-in). An anchored
+  symbol with more than 20 in-repo callees opens each callee as a
+  signature-line confirmation instead of a body (C-104). v1 stays the
+  default and rebuilds byte for byte, and the `hobbes template` CLI
+  builds v1. At A2, round 2's open holes fall 6,973 → 1,866.
+- Register: C-102 (lane A's Go local bindings skip a function's
+  `var ( … )` group, *partial*), C-103 and C-104 registered, C-91
+  amended; 104 entries, 78 active, 24 lifted, 2 superseded.
+
 ## 0.1.10-beta — 2026-09-10 (later still)
 
 **Patch: a change in what Hobbes draws on a Gradle repo (C-67).** A

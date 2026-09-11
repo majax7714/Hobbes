@@ -1,6 +1,6 @@
 {
   "name": "hobbes-scip",
-  "version": "0.1.10-beta",
+  "version": "0.1.11-beta",
   "private": true,
   "description": "Lane B indexers (architecture v2 \u00a73.2). Hobbes writes no provider adapters \u2014 it runs these and consumes their SCIP output. Pinned, because the index format is a contract.",
   "scripts": {
