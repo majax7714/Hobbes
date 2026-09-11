@@ -13,6 +13,36 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.13-beta — 2026-09-11 (later still)
+
+**Patch: what the Calvin adapter offers after a NULL, and what it
+refuses in a fill (protocol v0.4).** These came from WP-6's run on
+M0-Go units and were checked by replay with no model.
+
+- **Adapter protocol v0.4, the declaration hole**, superseding v0.3
+  (v0.3's pattern reading stands). When T-loop's NULL round-trip meets
+  a name that a call site writes and nothing declares (class `new` or
+  `invented`, in no parent-graph module), it offers one hole per
+  (name, scope). The answer must declare that name in a file of the
+  binding directory with a body naming it. The declaration joins the
+  template and the call site is re-grounded. A near-miss is still
+  re-asked in the hole that wrote it (C-106). A declaration outside
+  the write partition is placed and recorded, never refused, on Max's
+  decision (C-107). Replayed on WP-6's records: 11 of 11 NULL sites
+  closed with scripted gold declarations, and none opened.
+- **The gutter guard.** A SIGNATURE or BODY fill carrying the render's
+  line-number gutter is refused and named in the repair, and the
+  grounder refuses it too; WP-6's three such fills are refused, 3 of 3.
+- **The grounder's `scope` field.** Every NULL row carries the Go
+  package directory it binds in, plus the type for a typed receiver.
+  The declaration hole reads it; for a non-Go name or an
+  `after_symbol` placement the directory is not checked (C-108).
+- **Fix: loop closure keyed on (hole, term).** v0.3 keyed it on (hole,
+  term, class), so a NULL whose class changed counted as closed and
+  opened at once. No WP-6 row was affected.
+- Register: C-106, C-107 (*surfaced*) and C-108 (*partial*) registered;
+  108 entries, 82 active, 24 lifted, 2 superseded.
+
 ## 0.1.12-beta — 2026-09-11 (later)
 
 **Patch: what the Calvin adapter accepts from an orchestrator (protocol
