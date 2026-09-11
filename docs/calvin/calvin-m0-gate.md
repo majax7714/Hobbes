@@ -303,4 +303,30 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
   - **The map's grain.** The parent graph keeps unresolved call sites only as per-file counts by class, so each site row carries `line: null` and a count.
     - **Orchestrator's pin to WP-18:** a site row with no line never routes a NULL to *unknown*. Only an uncaptured file, an uncaptured symbol span, or a site row that has a line can do that.
     - **Why:** otherwise one unresolved attr-call in a file would turn every invented name in that file into advisory *unknown*.
+- 2026-09-11 — **WP-18 reported: `hobbes gate` is built** (`calvin-gate/wp-18` @ `b174401`).
+  - **Tests:** each of the 8 blocking classes fires alone on a synthetic Go diff (8/8). On Python, `invented`, `near-miss`, `malformed` and `partition` fire; the world and signature classes are Go-only.
+  - **The line-less site pin is built and tested.**
+  - **Determinism:** byte-identical reruns, including on the 20 fzf golds.
+  - **pytest:** 1,348, green.
+  - Report: `~/.hobbes/bench/calvin-gate/wp-18/report.md`, saved by the orchestrator.
+- **D-s** (G; found by WP-18, ahead of WP-19). The gold control reads **9 of 20** at the pinned partition, under both `exempt` and `strict`, and every one of the 11 blocks is `partition`. Two kinds of write cause them:
+  - **Non-code files:** gold writes CHANGELOG.md, `man/man1/fzf.1`, a Makefile, fzf's Ruby integration tests, and `.s` files. No lane-A provider reads these.
+  - **New Go files:** on the 3 new-file keys, gold creates Go files in a partition file's own package.
+
+  **Orchestrator's fix: the partition rule `reach`,** which becomes the gate's default before merge.
+  - Under `reach`, a write to a file no lane-A provider reads is listed (`reach: "not-code"`) and never blocks: it is beyond the graph, not outside the partition.
+  - A code file created beside a partition file is listed (`beside-partition`): a template's partition cannot name a file that does not exist yet.
+  - A write into an **existing** code file outside the partition still blocks, which is seeded variant (ii)'s shape.
+  - **Result:** gold 20/20 clear at `reach`. The looser check is stated for §4.14.
+- 2026-09-11 — **Accepted as WP-18 built them** (orchestrator):
+  - **The complement split is narrower than §2.2.** Only `invented` and `near-miss` route to *unknown*. `arity`, `undeclared-type`, `import-outside` and `unimported` are read from source at the SHA, so a blind spot in the graph does not excuse them.
+  - **`new`** cannot arise at the gate. If a `new` row ever appears, it is listed, counted, marked `route: true`, and never blocks.
+  - **The repair turn** resumes the recorded session through `loop.py --resume-transcript` with `--max-turns 1`. Four seams for a faithful resume go to Max at WP-20:
+    - a session killed by timeout has no transcript;
+    - the loop's per-turn state is rebuilt from the transcript, not recorded;
+    - files O left untracked are not in the harvested commit;
+    - the repair runs this checkout's `loop.py`, not the recorded one.
+  - **O at A0.** The task text is the commit message, and none of round 2's A0 texts named a gold file. The plan manifest `hobbes plan` derives from that text named gold files on 3 of 8 of round 2's keys, and the plan refused on 3 of 8.
+    - O keeps the manifest, as rounds 1–2 did. `o-units --withhold-manifest` is built and off by default.
+    - **Max chooses at WP-20.**
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
