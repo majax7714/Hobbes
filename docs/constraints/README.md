@@ -123,7 +123,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123 |
 | [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
@@ -135,8 +135,12 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and twenty entries: ninety-four active, twenty-four lifted, two superseded**
-(C-118–C-120 registered 2026-09-11 by Calvin M0-Go round 2 WP-14b, grounder
+**One hundred and twenty-three entries: ninety-seven active, twenty-four lifted, two superseded**
+(C-121–C-123 registered 2026-09-11 by Calvin M0-Gate WP-18, `hobbes gate` — the
+`unknown` advisory, the partition check at file grain (`reach` by default: what
+lies beyond the code world is listed, not blocked),
+and the complement split's grain and classes (the map's file-grain sites never
+route), all three *surfaced* in the gate's record; C-118–C-120 registered 2026-09-11 by Calvin M0-Go round 2 WP-14b, grounder
 v3's signatures in the world — a call's arity and a qualified reference's
 declared existence, each its own NULL class; every doubt (variadics,
 generics, a call whose sole argument is itself a call, an interface or

@@ -818,6 +818,65 @@ def _cmd_ground(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_gate(args: argparse.Namespace) -> int:
+    """`hobbes gate`: the linker on a finished diff (docs/calvin/calvin-m0-gate.md §2.2) —
+    grounder v3 over the diff at its parent, the complement split against the unit's
+    blind-spot map, the partition check at file grain; the stamped record beside the
+    diff (``<diff>.gate.json``), byte-identical on rerun; no model.
+    Exit 0 clear; 1 blocked; 2 when an input cannot be read, the parent is not a commit
+    of the repo, the graph is at another SHA, or the map is refused.
+    """
+    import subprocess
+
+    from hobbes.derive import gate as gt
+    from hobbes.derive import template as tmpl
+
+    repo_root = _repo_root_from(args)
+    derived = repo_root / ".hobbes" / "derived"
+    graph_path = Path(args.graph) if args.graph else derived / "graph.json"
+    tests_path = Path(args.tests) if args.tests else derived / "tests.json"
+    try:
+        diff = sys.stdin.read() if args.diff == "-" else Path(args.diff).read_text(errors="surrogateescape")
+        graph = json.loads(graph_path.read_text())
+        tests = json.loads(tests_path.read_text()) if tests_path.exists() else {"tests": []}
+        bmap = gt.load_map(Path(args.map)) if args.map else None
+        partition, source = gt.load_partition(Path(args.partition)) if args.partition else (None, None)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"hobbes gate: cannot read an input ({exc}); pass the parent's --graph", file=sys.stderr)
+        return 2
+    if partition is None and isinstance(bmap, dict) and isinstance(bmap.get("partition"), list):
+        partition, source = [str(p) for p in bmap["partition"]], "map"
+    r = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{args.parent}^{{commit}}"], cwd=repo_root, capture_output=True, text=True)
+    parent = r.stdout.strip()
+    if r.returncode or not parent:
+        print(f"hobbes gate: {args.parent!r} names no commit of {repo_root}", file=sys.stderr)
+        return 2
+    try:
+        rec = gt.gate(diff, parent, repo_root, tmpl.Ledger(graph, tests), inputs=gt.input_hashes(diff, graph_path, tests_path, partition, bmap),
+                      partition=partition, partition_source=source, bmap=bmap, partition_rule=args.partition_rule)
+    except ValueError as exc:
+        print(f"hobbes gate: {exc}", file=sys.stderr)
+        return 2
+    out = Path(args.out) if args.out else (None if args.diff == "-" else Path(args.diff + ".gate.json"))
+    if out is not None:
+        out.write_text(gt.dumps(rec))
+    if args.message and rec["verdict"] == "blocked":
+        sys.stdout.write(gt.repair_message(rec))
+    elif args.json or out is None:
+        sys.stdout.write(gt.dumps(rec))
+    c, p = rec["counts"], rec["partition"]
+    print(f"gate {rec['verdict']} @ {parent[:12]} (gate v{rec['gate_version']}, grounder v{rec['grounder_version']}, record {rec['record_hash']}): "
+          + (", ".join(f"{k} {c[k]}" for k in rec["blocking"]) or "no blocking class") + f"; unknown {c['unknown']}, new {c['new']}; "
+          + (f"partition of {p['size']} files ({p['source']}, rule {p['rule']}): outside {len(p['outside'])}, exempt {len(p['exempt'])}, "
+             f"reached {len(p['reached'])}" if p["checked"] else "partition not checked")
+          + ("; map read" if rec["map"] else "; no map, every class stands") + (f"; wrote {out}" if out else ""), file=sys.stderr)
+    for row in rec["rows"]:
+        print(f"  {row['class']:15s} {row['path'] or '-'}:{row['line']} `{row['term']}`" + (f" — {row['reason']}" if row["reason"] else ""), file=sys.stderr)
+    if rec["integrity"]["post_agrees"] is False:
+        print(f"  WARNING: the grounder's reading of the diff differs from `git apply` on {rec['integrity']['post_disagrees']} — a gate defect", file=sys.stderr)
+    return 1 if rec["verdict"] == "blocked" else 0
+
+
 def _cmd_verify(args: argparse.Namespace) -> int:
     """`hobbes verify`: the local harness's behaviour verifier (`docs/calvin/calvin-potential.md` §2.4) —
     a diff at the ledger's SHA → the tests the testmap says reach the edited code, run in the
@@ -1513,6 +1572,35 @@ def build_parser() -> argparse.ArgumentParser:
     ground_parser.add_argument("--trace", action="store_true", help="include the read-trace in the printed record")
     ground_parser.add_argument("--strict", action="store_true", help="exit 1 when anything is NULL, unfilled or refused")
 
+    gate_parser = sub.add_parser(
+        "gate",
+        help="the linker on a finished diff: grounder v3, the complement split, the partition check → clear or blocked (docs/calvin/calvin-m0-gate.md §2.2)",
+        description=(
+            "One deterministic pass over a diff at its parent, no model: grounder v3 on every reference "
+            "in the added and changed lines (invented, near-miss, arity, undeclared-type, import-outside, "
+            "unimported, malformed); each name-absence NULL looked up in the unit's blind-spot map — in a "
+            "blind spot it is `unknown`, advisory; every touched file against the unit's write partition "
+            "(file grain, read under --partition-rule). The verdict is clear, or "
+            "blocked with the class list. The record is stamped with the versions and the sha256 of every "
+            "input and is byte-identical on rerun."
+        ),
+    )
+    gate_parser.add_argument("--diff", required=True, help="the unified diff to gate (a file, or - for stdin)")
+    gate_parser.add_argument("--parent", required=True, help="the commit the diff applies to; the graph must be at it")
+    gate_parser.add_argument("--repo", help="repo root (default: auto-detected via .git); git must hold the parent")
+    gate_parser.add_argument("--graph", help="the parent's graph.json (default: .hobbes/derived/graph.json)")
+    gate_parser.add_argument("--tests", help="the parent's tests.json (default: .hobbes/derived/tests.json; optional)")
+    gate_parser.add_argument("--partition", help="the unit's write partition: a JSON list, {partition: [...]}, a template, or one path "
+                                                 "per line (default: the map's partition; neither: the check is not run)")
+    gate_parser.add_argument("--map", help="the unit's blind-spot map (calvin-m0-gate §0b's schema), or a unit row carrying "
+                                           "blind_spot_map (none: the split is not run and every class stands)")
+    gate_parser.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                             help="reach (default): files no provider reads as code and code files created beside a partition file are "
+                                  "listed, not blocked, and test-support paths allowed; exempt: test-support paths only; strict: every touched file")
+    gate_parser.add_argument("--out", help="write the record here (default: <diff>.gate.json beside the diff)")
+    gate_parser.add_argument("--json", action="store_true", help="print the record even when it is written")
+    gate_parser.add_argument("--message", action="store_true", help="print a blocked record's repair message (calvin-m0-gate §2.3)")
+
     verify_parser = sub.add_parser(
         "verify",
         help="the local harness: run the tests that reach a diff's edits in the sandbox, with and without it (docs/calvin/calvin-potential.md §2.4)",
@@ -1864,6 +1952,7 @@ def main(argv: list[str] | None = None) -> int:
         "derive-corpus": _cmd_derive_corpus,
         "template": _cmd_template,
         "ground": _cmd_ground,
+        "gate": _cmd_gate,
         "verify": _cmd_verify,
         "run": _cmd_run,
         "mail": _cmd_mail,

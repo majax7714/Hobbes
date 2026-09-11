@@ -282,6 +282,138 @@ def test_o_units_meters_the_session_from_its_calls_and_writes_one_row(tmp_path, 
     assert "sk-test" not in (tmp_path / "out" / "rows.jsonl").read_text()
 
 
+def test_gate_inputs_prefer_the_units_partition_then_the_templates_and_carry_the_map(tmp_path):
+    t = tmp_path / "k.template.json"
+    t.write_text(json.dumps({"constraints": {"write_partition": ["b.go", "a.go"]}}))
+    m = {"partition": ["a.go"], "files": [], "symbols": []}
+    assert cp.gate_inputs({"partition": ["a.go"], "blind_spot_map": m}, t) == (["a.go"], "unit", m)
+    assert cp.gate_inputs({}, t) == (["b.go", "a.go"], "template", None)
+    assert cp.gate_inputs({}, tmp_path / "missing.json") == (None, None, None)
+
+
+def test_repair_command_resumes_the_recorded_argv_for_one_turn():
+    rec = ["/bin/hobbes-session", "start", "--repo", "/old", "--ref", "p" * 40, "--session", "S1", "--sessions", "/s", "--runtime", "/old/loop.py",
+           "--model", "haiku", "--task-file", "/old/brief.md", "--max-turns", "30", "--loop-arg=--sampling=model-default",
+           "--loop-arg=--script=/sessions/S1/script.json"]
+    cmd = cp.repair_command(rec, session_id="S1-repair1", ref="h" * 40, brief=Path("/o/b.md"), runtime=Path("/new/loop.py"), repo=Path("/clone"))
+    assert cmd == ["/bin/hobbes-session", "start", "--repo", "/clone", "--ref", "h" * 40, "--session", "S1-repair1", "--sessions", "/s",
+                   "--runtime", "/new/loop.py", "--model", "haiku", "--task-file", "/o/b.md", "--max-turns", "1",
+                   "--loop-arg=--sampling=model-default", "--loop-arg=--resume-transcript=/sessions/S1-repair1/resume.jsonl"]
+
+
+def _gate_rec(verdict):
+    from hobbes.derive import gate as gt
+    rows = [{"class": "invented", "grounder_class": "invented", "path": "a.go", "line": 1, "term": "frob", "kind": "call", "reason": None,
+             "nearest": [], "scope": None, "site": None}] if verdict == "blocked" else []
+    return {"verdict": verdict, "blocking": ["invented"] if rows else [], "counts": {**{c: 0 for c in gt.GATE_CLASSES}, "invented": len(rows)},
+            "route": False, "unknown_reasons": {}, "rows": rows, "siblings": [], "parent": "p" * 40, "map": None, "record_hash": verdict,
+            "partition": {"outside": [], "exempt": [], "source": "template"}, "integrity": {"applies": True, "post_agrees": True}}
+
+
+def _fake_gate(calls):
+    def fake(patch, u, repo, L, out, session_id, template, rule="reach"):
+        verdict = "clear" if session_id.endswith("-repair1") else "blocked"
+        calls.append((session_id, verdict))
+        fake.rules.append(rule)
+        (Path(out) / f"{session_id}.gate.json").write_text(json.dumps(_gate_rec(verdict)))
+        return _gate_rec(verdict)
+    fake.rules = []
+    return fake
+
+
+def _recorded(tmp_path):
+    """A recorded o-units run of key k1 (its row, its session's record, diff and transcript) and a clone holding the harvested branch."""
+    _o_fixture(tmp_path)
+    clone = tmp_path / "clone"
+    clone.mkdir()
+    _git(clone, "init", "-q")
+    (clone / "a.go").write_text("x\n")
+    _git(clone, "add", ".")
+    _git(clone, "commit", "-q", "-m", "p")
+    _git(clone, "checkout", "-q", "-b", "hobbes/S1")
+    (clone / "a.go").write_text("z\n")
+    _git(clone, "commit", "-q", "-am", "o")
+    sroot = tmp_path / "sessions"
+    (sroot / "S1").mkdir(parents=True)
+    (sroot / "S1" / "transcript.jsonl").write_text(json.dumps({"role": "system", "content": "s"}) + "\n" + json.dumps({"role": "user", "content": "b"}) + "\n")
+    rec = tmp_path / "recorded"
+    rec.mkdir()
+    cmd = ["/bin/hobbes-session", "start", "--repo", "/old", "--ref", "p" * 40, "--session", "S1", "--sessions", str(sroot), "--runtime", "/old/loop.py",
+           "--model", "claude-haiku-4-5-20251001", "--task-file", "/old/brief.md", "--max-turns", "30", "--max-tokens", "4096",
+           "--loop-arg=--sampling=model-default"]
+    (rec / "S1.o.json").write_text(json.dumps({"session": "S1", "command": cmd, "environment": {"links": []}}))
+    (rec / "S1.o.diff").write_text("diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+z\n")
+    (rec / "rows.jsonl").write_text(json.dumps({"key": "k1", "arm": "O", "session": "S1", "verify": {"verdict": "fail"}}) + "\n")
+    argv = ["o-units", str(tmp_path / "units.jsonl"), "--keys", "k1", "--templates", str(tmp_path / "templates"), "--clone", str(clone),
+            "--out", str(tmp_path / "out"), "--wp", "wp-21", "--recorded", str(rec)]
+    return argv, _git(clone, "rev-parse", "HEAD").strip(), sroot
+
+
+def test_o_units_gate_recorded_gates_each_recorded_session_and_launches_nothing(tmp_path, monkeypatch):
+    import os
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    argv, _, _ = _recorded(tmp_path)
+    calls = []
+    gs = _fake_gate(calls)
+    monkeypatch.setattr(cp, "gate_session", gs)
+    monkeypatch.setattr(cp, "launch", lambda *a, **k: pytest.fail("launched"))
+    assert cp.main(argv) == 2, "--recorded alone has nothing to do"
+    assert cp.main(argv + ["--gate"]) == 0 and calls == [("S1", "blocked")]
+    assert gs.rules == ["reach"], "D-s: the drivers gate under reach by default"
+    import inspect
+    assert inspect.signature(cp.gate_session).parameters["rule"].default == "reach" == inspect.signature(cp.repair_session).parameters["rule"].default
+    row = json.loads((tmp_path / "out" / "gate-rows.jsonl").read_text())
+    assert (row["wp"], row["arm"], row["session"], row["gate"]["verdict"], row["gate"]["blocking"], row["verify"]) == ("wp-21", "O+gate", "S1", "blocked", ["invented"], "fail")
+    assert "HOBBES_LLM_API_KEY" not in os.environ and not (tmp_path / "out" / "rows.jsonl").exists(), "no O row: O is never re-run"
+    assert cp.main(argv + ["--gate-repair"]) == 2, "a repair turn needs a key and a cap"
+
+
+def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(tmp_path, monkeypatch):
+    import os
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    argv, head, sroot = _recorded(tmp_path)
+    calls, launched = [], {}
+    monkeypatch.setattr(cp, "gate_session", _fake_gate(calls))
+
+    def fake_launch(cmd, timeout):
+        launched.update(cmd=cmd, key=os.environ.get("HOBBES_LLM_API_KEY"))
+        (sroot / cp.argv_value(cmd, "--session") / "calls.jsonl").write_text(json.dumps({"prompt_tokens": 50_000, "completion_tokens": 1_000}) + "\n")
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({"type": "result", "is_error": True, "num_turns": 1, "tool_calls": 1, "edited": True,
+                                                                "result": "turn budget (1) exhausted", "resumed": {"messages": 2}}) + "\n", "")
+    monkeypatch.setattr(cp, "launch", fake_launch)
+    monkeypatch.setattr(H, "session_patch", lambda clone, sha, sid, env=None: "diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+w\n")
+    monkeypatch.setattr(H, "verify", lambda *a, **k: {"verdict": "pass", "applies": True, "summary": {"F2P": 1}})
+    keys = ["--secrets", str(tmp_path / "keys.txt"), "--key-name", "anthropic_key", "--total-cap", "5"]
+    assert cp.main(argv + ["--gate-repair"] + keys) == 0
+    cmd = launched["cmd"]
+    assert [cp.argv_value(cmd, f) for f in ("--session", "--ref", "--max-turns", "--repo", "--runtime", "--model")] == \
+        ["S1-repair1", head, "1", str(tmp_path / "clone"), str(H.LOOP_PATH), "claude-haiku-4-5-20251001"]
+    assert "--loop-arg=--sampling=model-default" in cmd and cmd[-1] == "--loop-arg=--resume-transcript=/sessions/S1-repair1/resume.jsonl"
+    assert (sroot / "S1-repair1" / "resume.jsonl").read_text() == (sroot / "S1" / "transcript.jsonl").read_text()
+    brief = Path(cp.argv_value(cmd, "--task-file")).read_text()
+    assert brief.startswith("Hobbes checked your change") and "- a.go:1 `frob`" in brief
+    assert launched["key"] == "sk-test" and "HOBBES_LLM_API_KEY" not in os.environ, "the key only while the turn runs"
+    assert calls == [("S1", "blocked"), ("S1-repair1", "clear")]
+    r = json.loads((tmp_path / "out" / "repair-rows.jsonl").read_text())
+    assert (r["arm"], r["gate_before"]["verdict"], r["gate_after"]["verdict"], r["verify_after"]["verdict"], r["turns"], r["usd"], r["resumed"]) == \
+        ("O+gate+repair", "blocked", "clear", "pass", 1, 0.055, {"messages": 2})
+    assert cp.spent_in(tmp_path / "out") == pytest.approx(0.055), "the repair turn is metered under the cap"
+    # a record without the transcript cannot be resumed faithfully: said in the row, nothing launched
+    (sroot / "S1" / "transcript.jsonl").unlink()
+    launched.clear()
+    assert cp.main(argv + ["--gate-repair"] + keys) == 0 and not launched
+    last = [json.loads(l) for l in open(tmp_path / "out" / "repair-rows.jsonl")][-1]
+    assert last["error"] == "cannot resume: the record lacks the transcript"
+    # the cap stops a repair turn whose worst case would pass it
+    (sroot / "S1" / "transcript.jsonl").write_text(json.dumps({"role": "system", "content": "s"}) + "\n")
+    assert cp.main(argv + ["--gate-repair"] + keys[:-1] + ["0.2"]) == 4 and not launched
+
+
 def test_recall_norm_excludes_short_and_punctuation_only_lines():
     for line in ("   }", "\t}, {", "// ----------", "break", ""):
         assert cp.recall_norm(line) is None, line

@@ -67,6 +67,7 @@ import statistics
 import subprocess
 import sys
 import time
+import types
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -1200,8 +1201,17 @@ def cmd_o(a: argparse.Namespace) -> int:
     session_bin = a.session_bin or os.environ.get("HOBBES_SESSION_BIN") or str(repo / "go" / "bin" / "hobbes-session")
     props = {p["commit"]: p for p in load_proposals()}
     sessions_root = Path(a.sessions) if a.sessions else Path.home() / ".hobbes" / "sessions"
+    gating = a.gate or a.gate_repair
+    if a.recorded and not gating:
+        print("--recorded gates the sessions recorded there: pass --gate or --gate-repair", file=sys.stderr)
+        return 2
+    if a.gate_repair and a.total_cap is None:
+        print("--gate-repair needs --total-cap: a repair turn calls the model", file=sys.stderr)
+        return 2
     if a.scripted:
         runtime, base_url, model = Path(__file__).resolve().parent / "calvin_scripted_agent.py", "http://scripted.invalid/v1", "scripted"
+    elif a.recorded and not a.gate_repair:
+        runtime = base_url = model = None  # nothing is launched
     else:
         if not os.environ.get("HOBBES_LLM_API_KEY"):
             print("HOBBES_LLM_API_KEY is not set", file=sys.stderr)
@@ -1211,6 +1221,15 @@ def cmd_o(a: argparse.Namespace) -> int:
         c = next(k for k in props if k.startswith(c7))
         L = T.Ledger(json.load(open(graphs / f"{c}.json")), json.load(open(graphs / f"{c}.tests.json")))
         t = json.load(open(templates / f"{c}.template.json")) if (templates / f"{c}.template.json").exists() else None
+        u = {"key": c, "parent_sha": L.sha, "parent_graph": str(graphs / f"{c}.json"), "parent_tests": str(graphs / f"{c}.tests.json"),
+             "blind_spot_map": json.load(open(Path(a.maps) / f"{c}.map.json")) if a.maps and (Path(a.maps) / f"{c}.map.json").exists() else None}
+        if a.recorded:  # calvin-m0-gate §0: O is never re-run
+            got = recorded_o(Path(a.recorded), c)
+            if got is None:
+                print(f"{c[:7]}: no recorded O session in {a.recorded}")
+            elif _gate_m0(a, c, u, got[0], got[1], L, clone, out, templates) == 4:
+                return 4
+            continue
         session_id = f"calvin-o-{c[:7]}-{time.strftime('%Y%m%dT%H%M%S')}"
         loop_args = list(a.loop_arg or [])
         if a.scripted:
@@ -1230,6 +1249,11 @@ def cmd_o(a: argparse.Namespace) -> int:
                           "ground": rec.get("ground"), "verify": {k: v.get(k) for k in ("verdict", "applies", "summary", "regressions")} if v else None}, indent=1))
         if rec.get("session_stderr_tail"):
             print(rec["session_stderr_tail"][-800:])
+        if gating:
+            diff_file = out / f"{session_id}.o.diff"
+            patch = diff_file.read_text(errors="surrogateescape") if diff_file.exists() else ""
+            if _gate_m0(a, c, u, rec, patch, L, clone, out, templates) == 4:
+                return 4
     return 0
 
 
@@ -1266,18 +1290,197 @@ def session_result(log: Path) -> dict:
     return env
 
 
+# ------------------------------------------------ calvin-m0-gate: the gate post hoc and its one repair turn
+
+REPAIR_TURNS = 1  #: calvin-m0-gate §2.3: one bounded turn on a blocked row
+
+
+def gate_inputs(u: dict, template: Path | None) -> tuple[list[str] | None, str | None, dict | None]:
+    """The gate's partition and blind-spot map for a unit (calvin-m0-gate §0b): WP-17's ``partition`` and ``blind_spot_map`` when the row
+    carries them, else the stored template's ``write_partition`` (round 2's units) and no map — the source is said in the record."""
+    if isinstance(u.get("partition"), list):
+        return [str(p) for p in u["partition"]], "unit", u.get("blind_spot_map")
+    wp = (json.load(open(template)).get("constraints") or {}).get("write_partition") if template is not None and Path(template).exists() else None
+    return (list(wp), "template", u.get("blind_spot_map")) if isinstance(wp, list) else (None, None, u.get("blind_spot_map"))
+
+
+def gate_summary(rec: dict) -> dict:
+    """A gate record as a row carries it: the verdict, the classes that fired, the split's reasons, the partition's reading, the integrity flags, the hash."""
+    return {"verdict": rec["verdict"], "blocking": rec["blocking"], "counts": {c: n for c, n in rec["counts"].items() if n}, "route": rec["route"],
+            "unknown_reasons": rec["unknown_reasons"], "outside": rec["partition"]["outside"], "exempt": rec["partition"]["exempt"],
+            "partition_source": rec["partition"]["source"], "map": rec["map"] is not None, "applies": rec["integrity"]["applies"],
+            "post_agrees": rec["integrity"]["post_agrees"], "record_hash": rec["record_hash"]}
+
+
+def gate_session(patch: str, u: dict, repo: Path, L, out: Path, session_id: str, template: Path | None, rule: str = "reach") -> dict:
+    """calvin-m0-gate §2.3's O+gate: a session's diff through `hobbes gate` post hoc, no model, the partition read under *rule*; the record
+    beside the diff as ``<session>.gate.json``."""
+    from hobbes.derive import gate as gt
+    part, src, bmap = gate_inputs(u, template)
+    rec = gt.gate(patch, u["parent_sha"], repo, L, inputs=gt.input_hashes(patch, Path(u["parent_graph"]), Path(u["parent_tests"]), part, bmap),
+                  partition=part, partition_source=src, bmap=bmap, partition_rule=rule)
+    (Path(out) / f"{session_id}.gate.json").write_text(gt.dumps(rec))
+    return rec
+
+
+def argv_value(argv: list[str], flag: str) -> str | None:
+    """The value after *flag* in an argv, or None."""
+    return next((argv[i + 1] for i in range(len(argv) - 1) if argv[i] == flag), None)
+
+
+def repair_command(recorded: list[str], *, session_id: str, ref: str, brief: Path, runtime: Path, repo: Path) -> list[str]:
+    """The recorded session's own ``hobbes-session start`` argv resumed for calvin-m0-gate §2.3's one repair turn: the same box, policies,
+    model, sampling, mounts, environment and loop flags; a new session id, the clone holding the harvested branch as ``--repo`` and that
+    branch's head as ``--ref``, the repair message as the task, ``REPAIR_TURNS`` turns, the loop this checkout ships (it can resume; a
+    scripted stand-in's script is dropped, it has no model to resume), and the transcript copied beside the new session to resume."""
+    subst = {"--session": session_id, "--ref": ref, "--task-file": str(brief), "--max-turns": str(REPAIR_TURNS), "--runtime": str(runtime), "--repo": str(repo)}
+    out: list[str] = []
+    i = 0
+    while i < len(recorded):
+        arg = recorded[i]
+        if arg in subst and i + 1 < len(recorded):
+            out += [arg, subst[arg]]
+            i += 2
+            continue
+        if not arg.startswith(("--loop-arg=--script=", "--loop-arg=--resume-transcript=")):
+            out.append(arg)
+        i += 1
+    for flag in ("--ref", "--max-turns"):
+        if flag not in out:
+            out += [flag, subst[flag]]
+    return out + [f"--loop-arg=--resume-transcript=/sessions/{session_id}/resume.jsonl"]
+
+
+def launch(cmd: list[str], timeout: float) -> subprocess.CompletedProcess:
+    """Run one ``hobbes-session`` argv: the only place a repair turn reaches a model."""
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+
+
+def recorded_o(d: Path, key: str) -> tuple[dict, str] | None:
+    """The last recorded O session of *key* in an earlier ``--out`` directory — by its ``rows.jsonl`` (o-units), else the last
+    ``calvin-o-<key[:7]>…o.json`` (M0's ``o``, which writes no rows) — as ``(its record with the row beside it, its diff)``; None when absent."""
+    d = Path(d)
+    rows = [json.loads(l) for l in open(d / "rows.jsonl") if l.strip()] if (d / "rows.jsonl").exists() else []
+    row = next((r for r in reversed(rows) if key.startswith(str(r.get("key"))[:7]) and str(r.get("key")).startswith(key[:7]) and r.get("arm") == "O"), None)
+    if row is not None:
+        s = row["session"]
+    else:
+        found = sorted(p.name[: -len(".o.json")] for p in d.glob(f"calvin-o-{key[:7]}*.o.json"))
+        if not found:
+            return None
+        s = found[-1]
+    rec = json.load(open(d / f"{s}.o.json")) if (d / f"{s}.o.json").exists() else {"session": s}
+    diff = (d / f"{s}.o.diff").read_text(errors="surrogateescape") if (d / f"{s}.o.diff").exists() else ""
+    return {**rec, "session": s, "row": row or {}}, diff
+
+
+def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path, out: Path, L, template: Path | None, wp: str,
+                   timeout: float = 3600.0, rule: str = "reach", verify: bool = True) -> dict:
+    """calvin-m0-gate §2.3's O+gate+repair on one blocked row: the recorded session resumed — never re-run — for one bounded turn with the
+    gate's report as the message (`gate.repair_message`), then its diff gated and verified again. Returns the repair row; the turn's calls are
+    metered into ``<key>.repair.usage.jsonl`` (charged to the third arm only, and counted by ``--total-cap``). What a faithful resume needs
+    from the record — the recorded argv, the transcript, the harvested branch in *clone* — is checked first; a missing piece is the row's
+    ``error`` and nothing is launched."""
+    from hobbes.derive import gate as gt
+    from hobbes.derive import harness as H
+    out = Path(out)
+    orig = rec_o["session"]
+    new = f"{orig}-repair{REPAIR_TURNS}"
+    cmd0 = list(rec_o.get("command") or [])
+    sroot = argv_value(cmd0, "--sessions")
+    transcript = Path(sroot or ".") / orig / "transcript.jsonl"
+    head = subprocess.run(["git", "-C", str(clone), "rev-parse", "--verify", "-q", f"refs/heads/hobbes/{orig}"], capture_output=True, text=True).stdout.strip()
+    row = {"wp": wp, "key": k, "arm": "O+gate+repair", "session": orig, "repair_session": new, "ref": head or None, "turns_cap": REPAIR_TURNS,
+           "gate_before": gate_summary(gate_rec), "runtime": str(H.LOOP_PATH)}
+    missing = [what for what, ok in (("the recorded session argv", bool(cmd0 and sroot)), ("the transcript", bool(sroot) and transcript.exists()),
+                                     (f"the harvested branch hobbes/{orig} in the clone", bool(head))) if not ok]
+    if missing:
+        row["error"] = "cannot resume: the record lacks " + ", ".join(missing)
+        return row
+    (Path(sroot) / new).mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(transcript, Path(sroot) / new / "resume.jsonl")
+    msg = gt.repair_message(gate_rec)
+    brief = out / f"{new}.brief.md"
+    brief.write_text(msg)
+    cmd = repair_command(cmd0, session_id=new, ref=head, brief=brief, runtime=H.LOOP_PATH, repo=clone)
+    row.update(command=cmd, message_chars=len(msg), message_sha=hashlib.sha256(msg.encode()).hexdigest()[:16])
+    t0 = time.monotonic()
+    try:
+        proc = launch(cmd, timeout)
+        row["session_rc"] = proc.returncode
+        (out / f"{new}.session.log").write_text(proc.stdout + proc.stderr)
+    except subprocess.TimeoutExpired:
+        row["session_rc"], row["error"] = None, f"the repair session timed out after {timeout:.0f}s"
+    row["wall_s"] = round(time.monotonic() - t0, 1)
+    calls_file = Path(sroot) / new / "calls.jsonl"
+    calls = [json.loads(l) for l in open(calls_file) if l.strip()] if calls_file.exists() else []
+    worst = o_worst_usd(0, REPAIR_TURNS, int(argv_value(cmd, "--max-tokens") or 4096))
+    ledger = o_session_usage(calls) if calls_file.exists() else [{"call": 0, "usd": round(worst, 6), "spent_usd": round(worst, 6),
+                                                                  "estimated": "no calls.jsonl: the repair turn's worst case is charged"}]
+    (out / f"{k}.repair.usage.jsonl").write_text("".join(json.dumps(x) + "\n" for x in ledger))
+    res = session_result(out / f"{new}.session.log")
+    env = types.SimpleNamespace(links=[tuple(x) for x in (rec_o.get("environment") or {}).get("links", [])])
+    patch = H.session_patch(clone, u["parent_sha"], new, env)
+    (out / f"{new}.o.diff").write_text(patch)
+    g2 = gate_session(patch, u, clone, L, out, new, template, rule)
+    v = H.verify(clone, u["parent_sha"], patch, L, clone, out=out / f"{new}.verify.json") if verify and patch else {}
+    row.update(turns=res.get("num_turns"), tool_calls=res.get("tool_calls"), edited=res.get("edited"), resumed=res.get("resumed"),
+               stop=res.get("result") if res.get("is_error") else ("done" if res else None), patch_files=[p for p, _ in split_diff(patch)],
+               gate_after=gate_summary(g2), verify_after={x: v.get(x) for x in ("verdict", "applies", "summary", "build_summary")} if v else None,
+               tokens={"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
+               calls=len(calls), usd=round(sum(x["usd"] for x in ledger), 4))
+    return row
+
+
+def _gate_m0(a: argparse.Namespace, c: str, u: dict, rec_o: dict, patch: str, L, clone: Path, out: Path, templates: Path) -> int:
+    """M0's Python O driver (`o`): one session's diff gated post hoc and, when blocked under --gate-repair, repaired once; 4 when the cap stops it."""
+    tpath = Path(templates) / f"{c}.template.json"
+    g = gate_session(patch, u, clone, L, out, rec_o["session"], tpath, a.partition_rule)
+    print(json.dumps({"commit": c[:7], "session": rec_o["session"], "gate": gate_summary(g)}, indent=1))
+    if not (a.gate_repair and g["verdict"] == "blocked"):
+        return 0
+    worst = o_worst_usd(0, REPAIR_TURNS, a.max_tokens)
+    if spent_in(out) + worst > a.total_cap:
+        print(f"{c[:7]}: repair NOT LAUNCHED — spent ${spent_in(out):.4f} + a repair turn's worst case ${worst:.4f} would pass the ${a.total_cap:.2f} cap", flush=True)
+        return 4
+    rrow = repair_session(c, u, rec_o, g, clone=clone, out=out, L=L, template=tpath, wp="m0", timeout=a.timeout, rule=a.partition_rule)
+    with open(Path(out) / "repair-rows.jsonl", "a") as fh:
+        fh.write(json.dumps(rrow) + "\n")
+    print(json.dumps({x: rrow.get(x) for x in ("repair_session", "session_rc", "turns", "gate_after", "verify_after", "usd", "error")}, indent=1))
+    return 0
+
+
 def cmd_o_units(a: argparse.Namespace) -> int:
     """Calvin M0-Go WP-6: arm O on units.jsonl keys, in the order given — one `hobbes-session` per key at its parent (`harness.run_o`: the
     plan and brief from the tier's task, exec and the file tools, the knowledge tools withheld; the patch grounded against the stored
     template and verified). Metered from each session's ``calls.jsonl`` into ``<key>.usage.jsonl``; a session whose worst case
-    (`o_worst_usd`) would pass ``--total-cap`` over every ledger under ``--out`` is not launched (exit 4). One row a key in ``rows.jsonl``."""
+    (`o_worst_usd`) would pass ``--total-cap`` over every ledger under ``--out`` is not launched (exit 4). One row a key in ``rows.jsonl``.
+
+    calvin-m0-gate §2.3: ``--gate`` gates each session's diff post hoc (O+gate: ``<session>.gate.json``, the row's ``gate``);
+    ``--gate-repair`` also resumes a blocked row's session for one bounded turn with the gate's report as the message, then gates and
+    verifies again (O+gate+repair: `repair_session`, one row a repair in ``repair-rows.jsonl``). ``--recorded DIR`` gates (and repairs) the
+    sessions an earlier run recorded there (``gate-rows.jsonl``): O is never re-run, and only a repair turn needs a key and a cap; with
+    --gate-repair, ``--clone`` must be the clone that holds the recorded sessions' harvested branches. ``--withhold-manifest`` sends O the
+    task text alone (calvin-m0-gate §0b)."""
     from hobbes.derive import harness as H
     from hobbes.derive import template as T
 
-    key = os.environ.get("HOBBES_LLM_API_KEY") or (key_from(Path(a.secrets), a.key_name) if a.secrets else None)
-    if not key:
-        print("no key: set HOBBES_LLM_API_KEY or pass --secrets", file=sys.stderr)
+    gating = a.gate or a.gate_repair
+    if a.recorded and not gating:
+        print("--recorded gates the sessions recorded there: pass --gate or --gate-repair", file=sys.stderr)
         return 2
+    if not a.recorded and not (a.base_url and a.model):
+        print("--base-url and --model are required to launch O", file=sys.stderr)
+        return 2
+    key = None
+    if not a.recorded or a.gate_repair:  # a session or a repair turn may be launched: the key and the cap, both
+        key = os.environ.get("HOBBES_LLM_API_KEY") or (key_from(Path(a.secrets), a.key_name) if a.secrets else None)
+        if not key:
+            print("no key: set HOBBES_LLM_API_KEY or pass --secrets", file=sys.stderr)
+            return 2
+        if a.total_cap is None:
+            print("--total-cap is required whenever a session or a repair turn may be launched", file=sys.stderr)
+            return 2
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     clone = Path(a.clone)
@@ -1289,11 +1492,45 @@ def cmd_o_units(a: argparse.Namespace) -> int:
     # calvin-m0-go-r2 §2.4: one budget for both arms — O's own 30-turn cap (round 1's condition) is replaced by --budget when given.
     max_turns = a.budget if a.budget is not None else a.max_turns
     worst = o_worst_usd(a.token_budget, max_turns, a.max_tokens)
+    repair_worst = o_worst_usd(0, REPAIR_TURNS, a.max_tokens)
     before = os.environ.get("HOBBES_LLM_API_KEY")
-    os.environ["HOBBES_LLM_API_KEY"] = key  # hobbes-session hands it to the container (and redacts it in what it prints)
+    if key:
+        os.environ["HOBBES_LLM_API_KEY"] = key  # hobbes-session hands it to the container (and redacts it in what it prints)
+
+    def repair(k: str, u: dict, rec_o: dict, g: dict, L, tpath: Path) -> bool:
+        """One repair turn on a blocked row, under the cap; False when the cap stops it (the caller exits 4)."""
+        spent = spent_in(out)
+        if spent + repair_worst > a.total_cap:
+            print(f"{k}: repair NOT LAUNCHED — spent ${spent:.4f} + a repair turn's worst case ${repair_worst:.4f} would pass the ${a.total_cap:.2f} cap", flush=True)
+            return False
+        rrow = repair_session(k, u, rec_o, g, clone=clone, out=out, L=L, template=tpath, wp=a.wp, timeout=a.timeout, rule=a.partition_rule)
+        with open(out / "repair-rows.jsonl", "a") as fh:
+            fh.write(json.dumps(rrow) + "\n")
+        print(f"{k} repair {rrow['repair_session']} rc {rrow.get('session_rc')} turns {rrow.get('turns')} gate {(rrow.get('gate_after') or {}).get('verdict')} "
+              f"verify {(rrow.get('verify_after') or {}).get('verdict')} ${rrow.get('usd')}" + (f" ERROR {rrow['error']}" if rrow.get("error") else ""), flush=True)
+        return True
+
     try:
         for k in order:
             u = units[k]
+            tpath = Path(a.templates) / f"{k}.template.json"
+            if a.recorded:  # calvin-m0-gate §0: O is never re-run — its recorded session is gated, and repaired once when blocked
+                got = recorded_o(Path(a.recorded), k)
+                if got is None:
+                    print(f"{k}: no recorded O session in {a.recorded}", flush=True)
+                    continue
+                rec_o, patch = got
+                L = T.Ledger(json.load(open(u["parent_graph"])), json.load(open(u["parent_tests"])))
+                assert L.sha == u["parent_sha"], (k, L.sha)
+                g = gate_session(patch, u, clone, L, out, rec_o["session"], tpath, a.partition_rule)
+                grow = {"wp": a.wp, "key": k, "arm": "O+gate", "session": rec_o["session"], "recorded": str(a.recorded), "gate": gate_summary(g),
+                        "verify": ((rec_o.get("row") or {}).get("verify") or {}).get("verdict")}
+                with open(out / "gate-rows.jsonl", "a") as fh:
+                    fh.write(json.dumps(grow) + "\n")
+                print(f"{k} O+gate {rec_o['session']} {g['verdict']} {g['blocking']} unknown {g['counts']['unknown']}", flush=True)
+                if a.gate_repair and g["verdict"] == "blocked" and not repair(k, u, rec_o, g, L, tpath):
+                    return 4
+                continue
             spent = spent_in(out)
             if spent + worst > a.total_cap:
                 print(f"{k}: NOT LAUNCHED — spent ${spent:.4f} + a session's worst case ${worst:.4f} would pass the ${a.total_cap:.2f} cap", flush=True)
@@ -1304,7 +1541,8 @@ def cmd_o_units(a: argparse.Namespace) -> int:
             session_id = f"calvin-o-{k}-{time.strftime('%Y%m%dT%H%M%S')}"
             rec = H.run_o(clone, L.sha, u[a.tier], L, clone, (Path(u["parent_graph"]), Path(u["parent_tests"])), session_bin=session_bin,
                           base_url=a.base_url, model=a.model, session_id=session_id, sessions_root=sessions_root, out_dir=out, template=t,
-                          timeout=a.timeout, max_turns=max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget)
+                          timeout=a.timeout, max_turns=max_turns, max_tokens=a.max_tokens, loop_args=loop_args, token_budget=a.token_budget,
+                          manifest=not a.withhold_manifest)
             calls_file = sessions_root / session_id / "calls.jsonl"
             calls = [json.loads(l) for l in open(calls_file) if l.strip()] if calls_file.exists() else []
             ledger = o_session_usage(calls) if calls_file.exists() else [{"call": 0, "usd": round(worst, 6), "spent_usd": round(worst, 6),
@@ -1332,9 +1570,15 @@ def cmd_o_units(a: argparse.Namespace) -> int:
                    "null": [{x: n.get(x) for x in ("hole", "path", "line", "term", "null_class", "density", "refs_in", "nearest", "declared")} for n in g.get("null", [])],
                    "density": (g.get("density") or {}).get("counts"), "fills_attribution": g.get("fills_attribution"),
                    "tokens": {"prompt": sum(c.get("prompt_tokens") or 0 for c in calls), "completion": sum(c.get("completion_tokens") or 0 for c in calls)},
-                   "calls": len(calls), "usd": round(sum(x["usd"] for x in ledger), 4), "worst_usd": round(worst, 4), "wall_s": rec.get("wall_s"), "attribution": None}
+                   "calls": len(calls), "usd": round(sum(x["usd"] for x in ledger), 4), "worst_usd": round(worst, 4), "wall_s": rec.get("wall_s"), "attribution": None,
+                   "manifest_withheld": a.withhold_manifest}
+            g = gate_session(patch, u, clone, L, out, session_id, tpath, a.partition_rule) if gating else None
+            if g is not None:
+                row["gate"] = gate_summary(g)
             with open(out / "rows.jsonl", "a") as fh:
                 fh.write(json.dumps(row) + "\n")
+            if g is not None and a.gate_repair and g["verdict"] == "blocked" and not repair(k, u, {**rec, "session": session_id, "row": row}, g, L, tpath):
+                return 4
             print(f"{k} {u['shape']:11s} O rc {row['session_rc']} turns {row['turns']} stop {str(row['stop'])[:80]!r} files {row['patch_files']} "
                   f"RFE {_fmt(row['rfe_gold'])} verify {(row['verify'] or {}).get('verdict')} HSR {row['hsr']} tokens {row['tokens']['prompt']}/{row['tokens']['completion']} "
                   f"${row['usd']} {row['wall_s']}s", flush=True)
@@ -1512,21 +1756,41 @@ def main(argv: list[str]) -> int:
     s.add_argument("--knowledge", action="store_true", help="offer the knowledge tools too (default: exec only)"); s.add_argument("--timeout", type=float, default=3600.0)
     s.add_argument("--token-budget", type=int, default=None, help="prompt tokens a session may spend in all (default: harness.O_TOKEN_BUDGET, 1M; 0 = none)")
     s.add_argument("--dry-run", action="store_true", help="print the session argv and the plan; launch nothing")
+    s.add_argument("--gate", action="store_true", help="calvin-m0-gate §2.3 O+gate: each session's diff through `hobbes gate` post hoc (<session>.gate.json)")
+    s.add_argument("--gate-repair", action="store_true", help="O+gate+repair: a blocked session resumed for one bounded turn with the gate's report "
+                                                              "as the message, then gated and verified again (implies --gate)")
+    s.add_argument("--recorded", help="an earlier --out directory: gate (and repair) the sessions recorded there; O is never re-run")
+    s.add_argument("--maps", help="a directory of <commit>.map.json blind-spot maps (calvin-m0-gate §0b); none: the split is not run")
+    s.add_argument("--total-cap", type=float, help="dollars every ledger under --out may reach; required with --gate-repair")
+    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                   help="the gate's partition reading (hobbes gate --partition-rule): reach (default; not-code and created-beside files listed, "
+                        "not blocked), exempt (test support only), strict")
     s.set_defaults(fn=cmd_o)
     s = sub.add_parser("o-units", help="Calvin M0-Go WP-6: arm O on units.jsonl keys under hobbes-session, metered from each session's calls")
     s.add_argument("units"); s.add_argument("--keys", nargs="+", required=True, help="key prefixes, run in this order"); s.add_argument("--tier", default="A2")
     s.add_argument("--templates", required=True, help="<key>.template.json per key: what the session's patch is grounded against")
     s.add_argument("--clone", required=True, help="a clone this run owns: checked out at each parent (--force)"); s.add_argument("--out", required=True)
-    s.add_argument("--base-url", required=True); s.add_argument("--model", required=True)
+    s.add_argument("--base-url", help="the endpoint (required to launch O)"); s.add_argument("--model", help="the model (required to launch O)")
     s.add_argument("--secrets", help="the owner's name=value key file (read, never printed); HOBBES_LLM_API_KEY wins when set")
     s.add_argument("--key-name", default="llm_key", help="the line of --secrets that holds this endpoint's key")
     s.add_argument("--session-bin"); s.add_argument("--sessions")
     s.add_argument("--max-turns", type=int, default=30); s.add_argument("--max-tokens", type=int, default=4096); s.add_argument("--loop-arg", action="append")
     s.add_argument("--timeout", type=float, default=3600.0)
     s.add_argument("--token-budget", type=int, default=1_000_000, help="prompt tokens a session may spend in all (M0's arm-O cap)")
-    s.add_argument("--total-cap", type=float, required=True, help="dollars every ledger under --out may reach; a session whose worst case passes it is not launched")
+    s.add_argument("--total-cap", type=float, help="dollars every ledger under --out may reach; a session or repair turn whose worst case passes it is not "
+                                                   "launched (required whenever one may be)")
     s.add_argument("--budget", type=int, default=None, help="calvin-m0-go-r2 §2.4: one budget for both arms — replaces --max-turns's 30-turn cap with this many turns when given")
     s.add_argument("--wp", default="wp-6")
+    s.add_argument("--gate", action="store_true", help="calvin-m0-gate §2.3 O+gate: each session's diff through `hobbes gate` post hoc (<session>.gate.json, "
+                                                       "the row's `gate`); the partition and map from the unit (WP-17), else the template's partition")
+    s.add_argument("--gate-repair", action="store_true", help="O+gate+repair: a blocked row's session resumed for one bounded turn with the gate's report "
+                                                              "as the message, then gated and verified again (repair-rows.jsonl; implies --gate)")
+    s.add_argument("--recorded", help="an earlier o-units --out directory: gate (and repair) its recorded sessions (gate-rows.jsonl); O is never re-run")
+    s.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
+                   help="the gate's partition reading (hobbes gate --partition-rule): reach (default; not-code and created-beside files listed, "
+                        "not blocked), exempt (test support only), strict")
+    s.add_argument("--withhold-manifest", action="store_true", help="calvin-m0-gate §0b: no plan is derived; O's brief carries the task text alone "
+                                                                   "and its agent dir no manifest")
     s.set_defaults(fn=cmd_o_units)
     s = sub.add_parser("rows"); s.add_argument("graphs"); s.add_argument("--t", required=True); s.add_argument("--o", required=True); s.add_argument("--verify-t", required=True)
     s.add_argument("--verify-t0", help="verify records of arm T's pre-loop diffs (.t0.diff); without it T's verdict column is empty where a loop ran")

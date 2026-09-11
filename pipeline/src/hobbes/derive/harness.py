@@ -1055,12 +1055,16 @@ def o_plan(root: Path, task: str, max_units: int | None = None) -> tuple[dict | 
         return None, f"{type(exc).__name__}: {exc}"
 
 
-def o_brief(task: str, spec: dict | None, refusal: str | None, repo: str, sha: str, cap: int = MANIFEST_CAP, env: Environment | None = None) -> str:
-    """The ADR-077-shaped brief: the task, the environment's notes, then every unit's manifest as an aid, not a boundary; the cut stated."""
+def o_brief(task: str, spec: dict | None, refusal: str | None, repo: str, sha: str, cap: int = MANIFEST_CAP, env: Environment | None = None,
+            withheld: bool = False) -> str:
+    """The ADR-077-shaped brief: the task, the environment's notes, then every unit's manifest as an aid, not a boundary; the cut stated.
+    *withheld* (calvin-m0-gate §0b's A0 check): the task and the notes alone, no derived context at all."""
     from hobbes.run.agents import render_context
     parts = [O_HEAD.format(repo=repo, sha12=sha[:12]), "", "## Task", task.strip(), ""]
     if env and env.notes:
         parts += ["## Environment (the harness's, not the task's)", *[f"- {n}" for n in env.notes], ""]
+    if withheld:
+        return "\n".join(parts).rstrip() + "\n"
     parts.append(f"## Derived context (Hobbes, graph @ {sha[:12]}; an aid, not a boundary — edit whatever the task needs)")
     if spec is None:
         parts.append(f"Hobbes resolved nothing specific from the task text ({refusal}); work from the task and the repo.")
@@ -1152,8 +1156,9 @@ def ground_patch(template: dict, patch: str, L: T.Ledger, repo_root: Path) -> di
 
 def run_o(clone: Path, sha: str, task: str, L: T.Ledger, source: Path, graphs: tuple[Path, Path], *, session_bin: str, base_url: str, model: str,
           session_id: str, sessions_root: Path, out_dir: Path, template: dict | None = None, timeout: float = 3600.0, verify_after: bool = True,
-          dry_run: bool = False, **session_kw) -> dict:
-    """Arm O for one unit: the derived artifacts placed at the SHA, the plan and brief, the agent dir, the session, its patch grounded and verified. Returns the record (the session's argv and nothing run under *dry_run*)."""
+          dry_run: bool = False, manifest: bool = True, **session_kw) -> dict:
+    """Arm O for one unit: the derived artifacts placed at the SHA, the plan and brief, the agent dir, the session, its patch grounded and verified. Returns the record (the session's argv and nothing run under *dry_run*).
+    *manifest* False (calvin-m0-gate §0b): no plan is derived, the brief carries the task alone and the agent dir no manifest."""
     clone = Path(clone)
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1162,14 +1167,14 @@ def run_o(clone: Path, sha: str, task: str, L: T.Ledger, source: Path, graphs: t
     derived.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(graphs[0], derived / "graph.json")
     shutil.copyfile(graphs[1], derived / "tests.json")
-    spec, refusal = o_plan(clone, task)
+    spec, refusal = o_plan(clone, task) if manifest else (None, None)
     env = environment(source, clone, container_root="/work", gocache=f"/sessions/{session_id}/go-build")
-    brief = o_brief(task, spec, refusal, "Hobbes" if (clone / "docs" / "hobbes-architecture.md").exists() else clone.name, sha, env=env)
+    brief = o_brief(task, spec, refusal, "Hobbes" if (clone / "docs" / "hobbes-architecture.md").exists() else clone.name, sha, env=env, withheld=not manifest)
     brief_path = out_dir / f"{session_id}.brief.md"
     brief_path.write_text(brief)
     agent_dir = o_agent_dir(spec, L, out_dir / f"{session_id}.agent")
     cmd = session_command(session_bin, clone, sha, brief_path, agent_dir, env, base_url=base_url, model=model, session_id=session_id, sessions_root=sessions_root, **session_kw)
-    rec: dict = {"arm": "O", "sha": sha, "session": session_id, "model": model, "plan": {"refusal": refusal, "units": [u["name"] for u in (spec or {}).get("units", []) if not u.get("deferred")],
+    rec: dict = {"arm": "O", "sha": sha, "session": session_id, "model": model, "plan": {"refusal": refusal, "withheld": not manifest, "units": [u["name"] for u in (spec or {}).get("units", []) if not u.get("deferred")],
                  "paths": sorted({p for c in (spec or {}).get("contexts", []) for p in [m.get("path") for m in c.get("modules", [])] if p})},
                  "brief_chars": len(brief), "command": cmd, "environment": env.record()}
     if dry_run:

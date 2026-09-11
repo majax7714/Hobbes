@@ -699,6 +699,65 @@ def clip(text: str, limit: int) -> str:
 # --------------------------------------------------------------------------
 # The loop
 
+#: What a resumed session's list says for a tool call its transcript left unanswered (a session stopped mid-call).
+RESUME_UNANSWERED = "(not run: the session ended before this call ran)"
+
+
+def resume_messages(path: str, prompt: str) -> tuple[list[dict], dict]:
+    """A recorded session's message list (its ``--transcript``, ADR-064) resumed with *prompt* as the next user message — the
+    repair turn of calvin-m0-gate §2.3, where the session is resumed, never re-run. A tool call the transcript left unanswered is
+    answered as not run, so the list stays well-formed. Returns the list and the guard state rebuilt from the calls whose results
+    are still in the window: the read tickets (ADR-064/067), the repeat guard's read-only calls, and the applied edits and anchors
+    (ADR-066/067) — so the resumed turn is held to the same rules the session's own next turn would have been."""
+    with open(path, encoding="utf-8") as fh:
+        recorded = [json.loads(line) for line in fh if line.strip()]
+    if not recorded or recorded[0].get("role") != "system":
+        raise ValueError(f"{path}: not a session transcript (its first message is not the system prompt)")
+    results = {m.get("tool_call_id"): m.get("content") or "" for m in recorded if m.get("role") == "tool"}
+    state: dict = {"read_paths": set(), "seen_calls": set(), "applied_edits": set(), "applied_anchors": set(), "unanswered": 0}
+    out: list[dict] = []
+    pending: list[dict] = []
+
+    def close_pending() -> None:
+        for c in pending:
+            out.append({"role": "tool", "tool_call_id": c.get("id", ""), "name": (c.get("function") or {}).get("name", ""),
+                        "content": RESUME_UNANSWERED})
+            state["unanswered"] += 1
+        pending.clear()
+
+    for m in recorded:
+        if m.get("role") != "tool":
+            close_pending()
+        out.append(m)
+        if m.get("role") != "assistant":
+            continue
+        for c in m.get("tool_calls") or []:
+            if c.get("id", "") not in results:
+                pending.append(c)
+                continue
+            content = results[c.get("id", "")]
+            fn = c.get("function") or {}
+            name = fn.get("name", "")
+            try:
+                targs = json.loads(fn.get("arguments") or "{}")
+            except json.JSONDecodeError:
+                continue
+            if content.startswith("ERROR: ") or content == ELIDED or not isinstance(targs, dict):
+                continue
+            sig = (name, json.dumps(targs, sort_keys=True))
+            if name in MUTATING_TOOLS:
+                state["applied_edits"].add(sig)
+                if name == "edit_file":
+                    state["applied_anchors"].add((os.path.normpath(str(targs.get("path"))), str(targs.get("old_text"))))
+            elif not is_exec_tool(name):
+                state["seen_calls"].add(sig)
+            if name == "read_file":
+                state["read_paths"].add(os.path.normpath(str(targs.get("path"))))
+    close_pending()
+    out.append({"role": "user", "content": prompt})
+    return out, state
+
+
 def run(args: argparse.Namespace) -> dict:
     started = time.monotonic()
     workdir = os.path.abspath(args.workdir)
@@ -732,8 +791,16 @@ def run(args: argparse.Namespace) -> dict:
                    "Call one or more of them by writing the calls within <function_calls></function_calls> "
                    "XML tags, one per line, as name(key=<json value>, ...).\n<functions>"
                    + json.dumps(tools) + "</functions>")
-    messages = [{"role": "system", "content": system},
-                {"role": "user", "content": prompt}]
+    resumed: dict | None = None
+    state: dict | None = None
+    if getattr(args, "resume_transcript", None):
+        # calvin-m0-gate §2.3: a recorded session resumed for its repair turn — its own list, the prompt as the next user message.
+        messages, state = resume_messages(args.resume_transcript, prompt)
+        resumed = {"from": os.path.basename(args.resume_transcript), "messages": len(messages) - 1,
+                   "unanswered_calls": state["unanswered"], "read_paths": len(state["read_paths"])}
+    else:
+        messages = [{"role": "system", "content": system},
+                    {"role": "user", "content": prompt}]
     usage = {"input_tokens": 0, "output_tokens": 0, "reasoning_tokens": 0}
     turns, tool_calls_made, text_calls, final, error = 0, 0, 0, "", ""
     edited, nudges_left, nudges = False, args.max_nudges, 0
@@ -743,6 +810,11 @@ def run(args: argparse.Namespace) -> dict:
     applied_edits: set[tuple[str, str]] = set()
     applied_anchors: set[tuple[str, str]] = set()
     read_paths: set[str] = set()
+    if state is not None:  # a resumed session keeps the guards its transcript earned
+        seen_calls |= state["seen_calls"]
+        applied_edits |= state["applied_edits"]
+        applied_anchors |= state["applied_anchors"]
+        read_paths |= state["read_paths"]
     #: Which tool message holds which path's read (by message identity),
     #: the turn each path's ticket was earned on, and the paths whose
     #: ticket the window fit revoked (ADR-091, D3/D4).
@@ -1009,6 +1081,7 @@ def run(args: argparse.Namespace) -> dict:
         # How the completions were asked for (ADR-074): the bench
         # records it per run, so a rung's sampling is on the record.
         "sampling": endpoint.sampling,
+        **({"resumed": resumed} if resumed else {}),
     }
 
 
@@ -1048,6 +1121,9 @@ def parse(argv: list[str]) -> argparse.Namespace:
     p.add_argument("--stall-after", type=int, default=6,
                    help="dry (no-edit) turns before stopping a stalled session with a reason (default 6)")
     p.add_argument("--transcript", help="write the full message list here as JSONL on exit (ADR-064)")
+    p.add_argument("--resume-transcript",
+                   help="resume a recorded session: its transcript's message list, then the prompt as the next user message, "
+                        "with the read tickets and repeat guards it earned (calvin-m0-gate §2.3's repair turn)")
     p.add_argument("--temperature", type=float, default=0.0,
                    help="sampling temperature (default 0 = greedy; a thinking model wants its own, ADR-074)")
     p.add_argument("--sampling", choices=("greedy", "model-default"), default="greedy",
