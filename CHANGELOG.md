@@ -13,6 +13,53 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.18-beta — 2026-09-11 (Calvin M0-Gate, WP-18)
+
+**Patch: `hobbes gate`, the linker on a finished diff.** Calvin
+M0-Gate WP-18; built and checked with no model.
+
+- **The command.** `hobbes gate --diff <patch> --parent <sha>` runs
+  grounder v3 over any finished diff at its parent. It needs no
+  template: the diff is read through a one-hole template.
+  - **The split:** each name-absence NULL is looked up in the unit's
+    blind-spot map (`--map`). A file-grain unresolved-site count
+    never routes; it is context.
+  - **The partition:** every touched file is checked against the
+    unit's write partition (`--partition`, else the map's), at file
+    grain, under `--partition-rule`: `strict`; `exempt`, the default,
+    which allows test-support paths; or `reach`, which also allows
+    files that are not code and code files created beside a partition
+    file.
+  - **The verdict** is *clear*, or *blocked* with the classes that
+    fired: invented, near-miss, arity, undeclared-type,
+    import-outside, unimported, malformed and partition. `malformed`
+    now also covers a diff that does not apply at the parent.
+  - **Not blocking:** `unknown` (a NULL in a region Hobbes cannot
+    see) is reported and never blocks. `new` cannot arise from a
+    finished diff; if it ever does, it is routed.
+  - **The record** (`<diff>.gate.json`) is stamped with the gate,
+    grounder and Hobbes versions and the sha256 of every input, and is
+    byte-identical on rerun. The diff is also applied with `git apply`
+    and the gate's own reading is checked against the result.
+  - **Exit codes:** 0 clear, 1 blocked, 2 bad input.
+- **The repair turn.**
+  - `hobbes gate --message` prints a blocked record as a repair
+    message: the classes, every site, the files outside the
+    partition, and a declaration's form where a blocked name has one.
+  - The agent loop gains `--resume-transcript`: a recorded session
+    resumed with one more user message, its read tickets and repeat
+    guards rebuilt from the transcript.
+- **The Calvin drivers.** `calvin_probe.py o-units` and `o` gain:
+  - `--gate` — post hoc (O+gate);
+  - `--gate-repair` — one bounded resumed turn on each blocked row
+    (O+gate+repair);
+  - `--recorded DIR` — gate a prior run's sessions; O is never re-run.
+
+  `o-units --withhold-manifest` sends O the task text alone.
+- **Registered:** C-121 (`unknown` is advisory), C-122 (the partition
+  at file grain), C-123 (the split's grain and classes); all
+  *surfaced*.
+
 ## 0.1.17-beta — 2026-09-11 (later still, the fifth)
 
 **Patch: the grounder checks a Go call's argument count and a

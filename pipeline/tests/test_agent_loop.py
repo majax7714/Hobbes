@@ -117,6 +117,46 @@ def run_loop(model, tree, *extra, prompt="do it"):
     return loop.run(loop.parse(argv))
 
 
+def test_resume_transcript_continues_a_recorded_session_for_one_turn_with_its_guards(tree, tmp_path, monkeypatch):
+    """calvin-m0-gate §2.3: the repair turn resumes the recorded session — its message list, then the repair as the next user
+    message; a call the transcript left unanswered is answered as not run; the read ticket it earned lets the one turn edit."""
+    monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
+    call = lambda i, name, args: {"id": i, "type": "function", "function": {"name": name, "arguments": json.dumps(args)}}
+    recorded = [{"role": "system", "content": "sys"}, {"role": "user", "content": "the brief"},
+                {"role": "assistant", "content": "", "tool_calls": [call("c1", "read_file", {"path": "src/a.py"})]},
+                {"role": "tool", "tool_call_id": "c1", "name": "read_file", "content": "     1\tdef f():\n     2\t    return 1"},
+                {"role": "assistant", "content": "", "tool_calls": [call("c2", "list_files", {})]}]
+    path = tmp_path / "resume.jsonl"
+    path.write_text("".join(json.dumps(m) + "\n" for m in recorded))
+    model = ScriptedModel([[("edit_file", {"path": "src/a.py", "old_text": "return 1", "new_text": "return 2"})], "done"])
+    try:
+        env = run_loop(model, tree, "--no-bash", "--max-turns", "1", "--resume-transcript", str(path), "--transcript", str(tmp_path / "t.jsonl"), prompt="REPAIR")
+    finally:
+        model.close()
+    sent = model.requests[0]["body"]["messages"]
+    assert sent[:5] == recorded and sent[5] == {"role": "tool", "tool_call_id": "c2", "name": "list_files", "content": loop.RESUME_UNANSWERED}
+    assert sent[6] == {"role": "user", "content": "REPAIR"} and len(sent) == 7 and len(model.requests) == 1, "one bounded turn"
+    assert (tree / "src" / "a.py").read_text() == "def f():\n    return 2\n", "the transcript's read ticket lets the turn edit"
+    assert env["num_turns"] == 1 and env["result"] == "turn budget (1) exhausted"
+    assert env["resumed"] == {"from": "resume.jsonl", "messages": 6, "unanswered_calls": 1, "read_paths": 1}
+    assert sum(1 for _ in open(tmp_path / "t.jsonl")) == 9, "the resumed session's own transcript carries the whole list"
+    # without the read in the transcript the same edit is refused: the guard is the session's, not waived by the resume
+    path.write_text("".join(json.dumps(m) + "\n" for m in recorded[:2]))
+    model = ScriptedModel([[("edit_file", {"path": "src/a.py", "old_text": "return 2", "new_text": "return 3"})]])
+    try:
+        run_loop(model, tree, "--no-bash", "--max-turns", "1", "--resume-transcript", str(path), prompt="REPAIR")
+    finally:
+        model.close()
+    assert (tree / "src" / "a.py").read_text() == "def f():\n    return 2\n"
+    with pytest.raises(ValueError, match="not a session transcript"):
+        loop.resume_messages(_write(tmp_path / "bad.jsonl", '{"role": "user"}\n'), "x")
+
+
+def _write(path, text):
+    path.write_text(text)
+    return str(path)
+
+
 class TestNativeLoop:
     def test_no_bash_withholds_the_tool_and_refuses_a_call(self, tree, monkeypatch):
         monkeypatch.setenv("HOBBES_LLM_API_KEY", "k-1")
