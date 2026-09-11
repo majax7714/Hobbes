@@ -228,7 +228,83 @@ The one rule not to preclude meanwhile: §2.5, and the grounder's tier stamp on 
 
 ## 10. Results
 
-(empty until WP-6)
+### Results
+
+**WP-6, 2026-09-11.** Every number here is at A2, which is a fixing. The run:
+- **T:** 20 keys × 2 runs.
+- **T-loop:** inside T's runs.
+- **O:** once on 5 keys.
+- **Held constant:** Haiku 4.5 at model-default sampling, protocol v0.3, template v2.
+
+The rows, every one attributed before any aggregate, are in [`cells/calvin-m0-go-2026-09-11.md`](cells/calvin-m0-go-2026-09-11.md). The machine rows are in `~/.hobbes/bench/calvin-go/wp-6/rows.json`.
+
+**Aggregate.** Paired bootstrap over units, 5,000 resamples, seed 0. "Pass" means the change compiles, generates and breaks no guarding test; the gold's own test changes are not run.
+
+| arm | n | pass [95% CI] | right-files Jaccard (J) [95% CI] | NULL | $ |
+|---|---|---|---|---|---|
+| T (mean of 2 runs) | 20 | 0.225 [0.05, 0.40] | 0.394 [0.245, 0.55] | 11 | 4.46 |
+| T-loop | 20 | 0.225 [0.05, 0.40] | 0.394 [0.245, 0.55] | 11 (loop closed 0) | +0.22 |
+| O | 5 | 0.80 [0.40, 1.00] | 0.45 [0.288, 0.612] | 0 | 3.28 |
+
+**Paired differences:**
+- **O − T, on O's 5 keys:** pass +0.50 [0.10, 0.90]; J +0.215 [0.034, 0.415].
+- **O − T, the two recall rows removed (n = 3):** pass +0.17 [0.00, 0.50]. Not separable.
+- **T-loop − T:** 0 [0, 0].
+- **Run 2 − run 1:** −0.05 [−0.15, 0.00]. The two runs disagree by verdict on 5 keys.
+
+**By shape, T pass per run:**
+
+| shape | run 1 | run 2 |
+|---|---|---|
+| single-file | 3 of 5 | 3 of 5 |
+| multi-file | 2 of 5 | 1 of 5 |
+| new-symbol | 0 of 5 | 0 of 5 |
+| new-file | 0 of 5 | 0 of 5 |
+
+**The reading selected (§5): *T < O*.** X and G were checked first, and both are clean:
+- **X:** WP-1's golds read P2F 0, and every build-fail is the candidate's own compile error.
+- **G:** 11 of 11 NULLs are raised at the right site, and 0 references are mis-bound.
+
+So the result reads as ***NULL new dominates → M1′ before M1, protocol first (§4.10)***:
+- **The NULLs:** all 11 of T's NULLs are new names the orchestrator wrote at the call site and never declared. The loop closed none of them.
+- **Why the loop could not help:** A2 rev 3 names no new term or path. Round 2 therefore offers no NEW_SYMBOL hole, and the loop re-asks the call-site hole instead.
+
+**O's lead is partly recall.** On `93acc6e82adb` and `2278a2a97e42`, O reproduced the gold's new files verbatim from memory: 0.97 and 0.48 of the novel lines. **"T ≈ O" cannot be excluded** on the three recall-free keys.
+
+**Track B:** *O separates sparse from absent*. T resolved 1,940 sparse-real references with 0 sparse NULLs; its 11 absent references are sibling-shaped names for things it meant to create. So Calvin narrows to placement.
+
+**Instruments:**
+- **§4.3a (density):** absent → invented, sibling-shaped; sparse-real → resolved. Two unit-runs routed the new PKCS12 rule into the existing `PrivateKey` rule.
+- **§4.9 (T against W):** W = 1.0 on every unit, and T varies by shape. The world is not the variable; declaration is.
+- **§4.10 (declare-holes):** T declared something on only 3 of 22 declare-unit runs (af7d ×2 right file, right region, wrong form; 2278 run 1 a stub). O placed 2 new files, both recalled, and routed 1 into an existing rule.
+
+**§7 decision.** The floor did not hold, so the fan-out does not start. The next step is to re-test the floor with T only, on the same 20 keys at A2, with O's rows standing. Three no-spend changes come first:
+1. A declaration hole in the NULL round-trip (§2.5, M1′ as protocol).
+2. A validator guard against a body carrying the render's line-number gutter (D-a).
+3. The recall scan as a standing instrument.
+
+Re-running T twice costs about $4.7. The decision is Max's.
+
+**Spend.**
+
+| | $ |
+|---|---|
+| T | 4.4559 |
+| T-loop | 0.2209 |
+| O | 3.2775 |
+| **WP-6** | **7.9543** |
+
+- **WP-6 against its limit:** $7.95 of $28.83.
+- **The round:** $9.12 of the $30 ceiling.
+- **Checkpoint:** T run 1 cost $2.36 against the $9.79 line, so it was not triggered.
+- **§9 drop order:** not triggered.
+
+**Defects.**
+- **D-a:** a body fill carrying the render's line-number gutter passes the validator. Triggered by O; the guard is missing in the adapter. Seen on `7fc11bb264e9`, 2 of 2 runs.
+- **D-b:** the loop cannot close an unplaced new name (protocol, H-s).
+- **D-c:** M0's "HSR zero by construction" does not hold under advisory NULL (instrument).
+- **D-d:** contamination (U/O).
+- **D-e:** the O driver for M0-Go units, `o-units`, on branch `calvin-go/wp-6`.
 
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
