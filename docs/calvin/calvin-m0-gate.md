@@ -424,4 +424,43 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
   - **1 of 10 selects neither reading;** it says widening is needed.
   - Every reading of this run is stated as provisional on n = 10.
   - §4's other thresholds are rates already (the §4.15 real-symbol rate ≥ 0.8).
+- 2026-09-11 — **WP-21 stage 1 (key 1, `d32458084014`, single-file): the package held the run itself. D-x.**
+  - **Before key 1,** the build checks read 0.1.19-beta, gate v2 and `reach`.
+  - **Spend: $0.3004** (24 calls). That is under WP-20's $0.58 estimate and the $1.10 brake.
+  - **O's row reads pass:** verify is 61 pass-to-pass with 0 regressions; the gate clears, with 0 NULL and 0 *unknown*; the first edit came at turn 10.
+  - **But O read the answer from the repo's history.** At turn 7 O ran `git log --all --grep=…`, and at turn 8 `git show d3245808`, which is the key commit itself.
+    - **Why it could:** O's clone held fzf's history past the parent. Checked by the orchestrator: the clone resolves `d32458084014` as a commit, and the transcript carries both commands. `calvin.box.policy` allows `git log*` and `git show*`.
+    - **The result:** O's 12 changed lines equal gold's 12.
+  - **The row is recorded as `copied`, not a solve.** The recall scan cannot see it: recall reads a model's training data, not the repository's own future.
+  - **Keys 2–10 are not launched.**
+- **D-x** (the O condition; open → WP-18c). O's session repo, and the repair turn's, must hold no commit, ref or object past the key's parent, and no remote or path back to the full clone. Gate, verify, `gold_tests` and recall keep the full clone on the host side.
+- **Rounds 1–2 carry the same exposure.** Checked by the orchestrator in the O records: four sessions ran `git show` naming their own key commit.
+  - **Round 1 (WP-6):** `2278a2a97e42` (`git show 2278a2a:cmd/root.go`, the key's own post-image) and `93acc6e82adb`.
+  - **Round 2 (WP-16):** `6eaad039603a` and `ed65b65095eb`. `ed65b65095eb` is one of round 2's two O passes on the readable keys.
+  - **Still to come:** a broader scan for history read without naming the key, and the amendments to both rounds' records beside their originals.
+- 2026-09-11 — **Put to Max:**
+  - key 1: re-run it clean as a §0 exception, record it `copied` and run N = 9, or put key 11 in its place;
+  - whether keys 2–10 continue once WP-18c lands.
+- 2026-09-11 — **The broader scan** (orchestrator; every git command in every O session's flight log).
+  - **Exactly five sessions read their own key's history:**
+    - round 1: `2278a2a97e42` (13 history commands, among them `git log --oneline --all -20` and `git show 2278a2a:cmd/root.go`) and `93acc6e82adb`;
+    - round 2: `6eaad039603a` and `ed65b65095eb`;
+    - this round's key 1.
+  - **The other seven O sessions** ran no command that reaches past the parent.
+  - **Round 1's two O keys marked "recalled"** are `2278a2a97e42` and `93acc6e82adb`. Round 1 read their verbatim reproduction of gold as recall; it came from the clone's history.
+- 2026-09-11 — **WP-18c exit checked; merged; 0.1.20-beta** (branch head `ead07f8`; pytest 1,355 on the branch). `harness.run_o` is the one place both O drivers pass through.
+  - **The session repo, and the repair turn's, is a cut clone.** It holds only the parent and its ancestors, and has no remote, no alternates, no reflog, and nothing that names the owned clone.
+    - It is checked at the object level before launch, and a failing cut stops the launch.
+    - After the session, the harvested branch is fetched back into the owned clone.
+  - **Two more leaks closed in the same commit:**
+    - **One sessions root per session.** `hobbes-session` mounted the whole `--sessions` root, so a later session could read earlier sessions' transcripts.
+    - **The repair turn's seed.** It was seeded with whatever graph the owned clone last held; it now gets the unit's own parent graph.
+  - **Pre-flight on key 1, stub endpoint, $0.** Inside O's and the repair's containers:
+    - `git show d3245808` → `unknown revision`;
+    - the full gold SHA → `bad object`;
+    - `git log --all` tops out at the parent `f9830c5a3dac`.
+  - **Still open: the network channel (C-124, *partial*).** The container keeps networking for the model endpoint, and the policy allows `python`/`pip`, so O could fetch upstream. The flight log would show it, so WP-21 scans every row's flight log for network fetches. An egress allowlist naming only the endpoint host is the fix, and it is not built.
+- 2026-09-11 — **Max:**
+  - **Re-run key 1 clean** on the cut repo — a stated §0 exception: the session's condition was defective, not the arm. The copied row stays in the record, marked `copied`, out of every aggregate.
+  - **Continue** keys 2–10 after the fix, under the same $11 cap and the same brake. The copied session's $0.3004 counts against the cap.
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
