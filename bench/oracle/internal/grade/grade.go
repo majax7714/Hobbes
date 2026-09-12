@@ -298,6 +298,12 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 				r.SitesObserved++
 			}
 		}
+	} else if len(o.Coverage) > 0 {
+		// A resolution oracle's coverage (ADR-110's C row): units seen
+		// and failed, sites by mode and by no-target reason. Every
+		// other resolution/reachability oracle leaves o.Coverage empty
+		// and this stays nil, so their reports are unchanged.
+		r.Coverage = o.Coverage
 	}
 	for _, e := range h.Edges {
 		row := Row{Edge: e}
@@ -583,6 +589,9 @@ func Print(w io.Writer, r *Report) {
 	defer printPoison(w, r)
 	fmt.Fprintf(w, "hobbes edges %d: confirmed %d  contradicted %d  abstract %d  silent %d %v\n",
 		r.HobbesEdges, r.Total.Confirmed, r.Total.Contradicted, r.Total.Abstract, r.Total.Silent, r.SilentBy)
+	if len(r.Coverage) > 0 {
+		fmt.Fprintf(w, "coverage: %v\n", r.Coverage)
+	}
 	if r.Precision != nil {
 		fmt.Fprintf(w, "precision-against-oracle %.1f%% (%d/%d)\n", *r.Precision*100, r.Total.Confirmed, r.Total.Confirmed+r.Total.Contradicted)
 	} else {

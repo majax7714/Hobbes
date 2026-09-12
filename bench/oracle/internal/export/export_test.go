@@ -100,6 +100,78 @@ func TestMinirustExportExcludesMacros(t *testing.T) {
 	}
 }
 
+// C's cell keeps .c and .h sites and targets, and a macro target (a
+// CALL_SUM-shaped invocation, ADR-110's C-131) is excluded exactly as
+// Rust's is.
+func TestCExtensionsAndMacroExcluded(t *testing.T) {
+	exts := Exts["c"]
+	if len(exts) != 2 || exts[0] != ".c" || exts[1] != ".h" {
+		t.Fatalf("c extensions: %v", exts)
+	}
+	g := &graph{}
+	g.Nodes = append(g.Nodes, struct {
+		ID   string `json:"id"`
+		Kind string `json:"kind"`
+		Path string `json:"path"`
+	}{"lib.c", "module", "lib.c"})
+	g.Symbols = append(g.Symbols,
+		struct {
+			ID     string `json:"id"`
+			Module string `json:"module"`
+			Line   int    `json:"line"`
+			Kind   string `json:"kind"`
+		}{"lib.c#lib_sum", "lib.c", 11, "function"},
+		struct {
+			ID     string `json:"id"`
+			Module string `json:"module"`
+			Line   int    `json:"line"`
+			Kind   string `json:"kind"`
+		}{"api.h#CALL_SUM", "lib.c", 10, "macro"},
+	)
+	g.SymbolEdges = append(g.SymbolEdges,
+		struct {
+			From     string `json:"from"`
+			To       string `json:"to"`
+			Type     string `json:"type"`
+			Tier     string `json:"tier"`
+			Evidence []struct {
+				Lane string `json:"lane"`
+				Path string `json:"path"`
+				Line int    `json:"line"`
+			} `json:"evidence"`
+		}{From: "main.c#main", To: "lib.c#lib_sum", Type: "calls", Tier: "semantic", Evidence: []struct {
+			Lane string `json:"lane"`
+			Path string `json:"path"`
+			Line int    `json:"line"`
+		}{{"lane-a", "main.c", 18}}},
+		struct {
+			From     string `json:"from"`
+			To       string `json:"to"`
+			Type     string `json:"type"`
+			Tier     string `json:"tier"`
+			Evidence []struct {
+				Lane string `json:"lane"`
+				Path string `json:"path"`
+				Line int    `json:"line"`
+			} `json:"evidence"`
+		}{From: "main.c#main", To: "api.h#CALL_SUM", Type: "calls", Tier: "semantic", Evidence: []struct {
+			Lane string `json:"lane"`
+			Path string `json:"path"`
+			Line int    `json:"line"`
+		}{{"lane-a", "main.c", 19}}},
+	)
+	h, err := From(g, ".", "c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Edges) != 1 || h.Edges[0].Target.Key() != "lib.c:11" {
+		t.Fatalf("want one graded edge to lib_sum, got %+v", h.Edges)
+	}
+	if h.Excluded["macro"] != 1 {
+		t.Fatalf("the CALL_SUM target should be excluded as a macro: %v", h.Excluded)
+	}
+}
+
 // A Python package's symbols live in its __init__.py, a "package" node
 // (H-12: dropping them silently lost 113 edges on the first O6 pass).
 func TestPackageNodesAreTargets(t *testing.T) {
