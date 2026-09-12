@@ -596,12 +596,19 @@ export function decode(index, opts = {}) {
   // degradation record is scoped to their common directory, so a unit
   // brief whose interior lies elsewhere never carries it.
   const ambiguousFiles = new Map()
+  // Every symbol with a definition occurrence in an in-repo document,
+  // whatever its kind — collected before the GRAPH_KINDS filter below, so
+  // it also catches a moniker of a kind the graph drops (ADR-111). This is
+  // what tells "outside the repo" from "in the repo but ambiguous, or of a
+  // kind we do not keep" when an external reference is recorded.
+  const inRepoMonikers = new Set()
 
   for (const doc of index.documents) {
     if (!insideRepo(doc.relative_path)) continue
     for (const occ of doc.occurrences) {
       if (!occ.symbol || occ.symbol.startsWith('local ')) continue
       if (!isDefinition(occ)) continue
+      inRepoMonikers.add(occ.symbol)
       const kind = classify(occ.symbol)
       if (!GRAPH_KINDS.has(kind)) continue
       const r = occ.range
@@ -657,6 +664,11 @@ export function decode(index, opts = {}) {
           // it after the per-unit indexes merge. Dropping it here was
           // what made C-33 unfixable in principle.
           moniker: occ.symbol,
+          // ADR-111: this moniker has an in-repo definition after all — it
+          // only missed `definitions` because it is ambiguous or of a kind
+          // the graph drops. The join must not veto lane A's fallback on
+          // a reference like this one.
+          ...(inRepoMonikers.has(occ.symbol) ? { in_repo: true } : {}),
         })
         continue // resolves outside this index: not a repo edge
       }
