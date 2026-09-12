@@ -141,6 +141,8 @@ _LANG_BY_EXT = {
     ".go": "go",
     ".rs": "rust",
     ".java": "java",
+    ".c": "c",
+    ".h": "c",
 }
 
 #: Pinned, not read from the running interpreter (determinism across
@@ -231,7 +233,57 @@ JAVA_BUILTINS = frozenset({
     "Void", "WrongThreadException",
 })
 
-_BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS}
+#: The C11 standard library's public function names, from the <stdio.h>,
+#: <stdlib.h>, <string.h>, <ctype.h>, <math.h> and <assert.h> family —
+#: pinned, not read from a real header (the C-3 lift's reasoning, one
+#: language over). ``__builtin_*`` (any name with that prefix — a GCC/
+#: clang compiler intrinsic) is matched separately in :func:`_is_builtin`,
+#: since no finite list could pin it.
+C_BUILTINS = frozenset({
+    # stdio.h
+    "fopen", "fclose", "fread", "fwrite", "fprintf", "fscanf", "printf",
+    "scanf", "sprintf", "snprintf", "vprintf", "vfprintf", "vsprintf",
+    "vsnprintf", "fgets", "fputs", "fgetc", "fputc", "getc", "putc",
+    "getchar", "putchar", "puts", "perror", "rewind", "fseek", "ftell",
+    "fflush", "remove", "rename", "tmpfile", "tmpnam", "setvbuf", "setbuf",
+    "ungetc", "feof", "ferror", "clearerr",
+    # stdlib.h
+    "malloc", "calloc", "realloc", "free", "exit", "abort", "atexit",
+    "at_quick_exit", "quick_exit", "_Exit", "system", "getenv", "atoi",
+    "atol", "atoll", "atof", "strtol", "strtoul", "strtoll", "strtoull",
+    "strtod", "strtof", "strtold", "rand", "srand", "qsort", "bsearch",
+    "abs", "labs", "llabs", "div", "ldiv", "lldiv", "mblen", "mbtowc",
+    "wctomb", "mbstowcs", "wcstombs",
+    # string.h
+    "strlen", "strcpy", "strncpy", "strcat", "strncat", "strcmp",
+    "strncmp", "strcoll", "strxfrm", "strchr", "strrchr", "strstr",
+    "strtok", "strspn", "strcspn", "strpbrk", "memcpy", "memmove",
+    "memset", "memcmp", "memchr", "strerror",
+    # ctype.h
+    "isalnum", "isalpha", "isblank", "iscntrl", "isdigit", "isgraph",
+    "islower", "isprint", "ispunct", "isspace", "isupper", "isxdigit",
+    "tolower", "toupper",
+    # math.h
+    "sin", "cos", "tan", "asin", "acos", "atan", "atan2", "sinh", "cosh",
+    "tanh", "asinh", "acosh", "atanh", "exp", "frexp", "ldexp", "log",
+    "log10", "modf", "exp2", "expm1", "ilogb", "log1p", "log2", "logb",
+    "scalbn", "scalbln", "pow", "sqrt", "cbrt", "hypot", "ceil", "floor",
+    "fmod", "trunc", "round", "lround", "llround", "rint", "nearbyint",
+    "fdim", "fmax", "fmin", "fabs", "copysign", "nan", "isnan", "isinf",
+    "isfinite", "isnormal",
+    # assert.h
+    "assert", "static_assert",
+})
+
+_BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS, "c": C_BUILTINS}
+
+
+def _is_builtin(lang: str | None, name: str) -> bool:
+    """A pinned-list match, plus C's one prefix rule: any ``__builtin_*``
+    name is a compiler intrinsic no finite list could enumerate."""
+    if name in _BUILTINS.get(lang or "", frozenset()):
+        return True
+    return lang == "c" and name.startswith("__builtin_")
 
 #: Which classes each language's providers can actually produce (C-32's
 #: candidate fix, applied). A class absent from a language's set is one
@@ -257,6 +309,10 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
     "java": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR, OVERLOAD,
                        INHERITED, UNCLASSIFIED, BELOW_FLOOR}),
+    # No semantic lane at all in this unit (no C indexer exists yet), so
+    # no below-floor projection can ever occur, and there is no checker
+    # to see an import binding, an overload set, or an expression callee.
+    "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
@@ -445,7 +501,6 @@ def classify(
                 if text is not None
                 else None
             )
-            builtins_ = _BUILTINS.get(lang or "", frozenset())
             bound = import_bindings.get(site.file, frozenset())
             locals_ = local_bindings.get(site.file, ())
             if shape == "bare" and any(
@@ -455,7 +510,7 @@ def classify(
                 cls = LOCAL
             elif shape == "bare" and site.name in bound:
                 cls = IMPORT_BINDING
-            elif shape == "bare" and site.name in builtins_:
+            elif shape == "bare" and _is_builtin(lang, site.name):
                 cls = BUILTIN
             elif shape == "attr":
                 cls = ATTR

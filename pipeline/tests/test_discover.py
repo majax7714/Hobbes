@@ -106,6 +106,7 @@ class TestLinkedCopies:
 
     def test_every_language_walk_skips_the_copy_and_the_ingest_records_it(self, tmp_path):
         from hobbes.extract import extract_repo
+        from hobbes.extract.csource import iter_c_files
         from hobbes.extract.gosource import iter_go_files
         from hobbes.extract.interfaces import iter_pyprojects
         from hobbes.extract.javasource import iter_java_files
@@ -117,10 +118,14 @@ class TestLinkedCopies:
         (repo / "core" / "x.go").write_text("package core\n")
         (repo / "core" / "X.java").write_text("class X {}\n")
         (repo / "core" / "x.rs").write_text("")
+        (repo / "core" / "x.c").write_text("")
         (repo / "core" / "Cargo.toml").write_text("[package]\nname = \"c\"\n")
         (repo / "core" / "pyproject.toml").write_text("[project]\nname = \"c\"\n")
         (repo / "core" / "main.tf").write_text("")
-        for walk in (iter_go_files, iter_java_files, iter_rust_files, iter_cargo_manifests, iter_pyprojects):
+        for walk in (
+            iter_go_files, iter_java_files, iter_rust_files, iter_c_files,
+            iter_cargo_manifests, iter_pyprojects,
+        ):
             found = [str(p.relative_to(repo)) for p in walk(repo)]
             assert found and all(f.startswith("core/") for f in found), (walk.__name__, found)
         assert discover_tf(repo) == ["core/main.tf"]

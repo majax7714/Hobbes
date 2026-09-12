@@ -29,6 +29,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import containment, scipsource, staging, tail, tssource
+from hobbes.extract.csource import collect_c_tests, extract_c
 from hobbes.extract.discover import discover_modules, linked_copies
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
 from hobbes.extract.gosource import collect_go_tests, extract_go
@@ -144,6 +145,16 @@ def extract_repo(
         degraded += _merge_layer(graph, java["nodes"], java["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], java["symbols"])
 
+    # C has no lane B in this unit (no indexer exists yet): every edge is
+    # this layer's fallback, at `syntactic` tier — the join's normal
+    # degraded path (P6), not a special case.
+    c = extract_c(repo_root)
+    if c:
+        languages += c["languages"]
+        degraded += list(c["errors"])
+        degraded += _merge_layer(graph, c["nodes"], c["module_edges"])
+        graph["symbols"] = _merge_symbols(graph["symbols"], c["symbols"])
+
     # Lane A is complete. Packs read it and add framework knowledge; the
     # graph builder itself knows nothing about FastAPI, Express or HCL.
     enriched = run_packs(
@@ -164,7 +175,7 @@ def extract_repo(
     degraded += _merge_layer(graph, enriched.nodes, enriched.module_edges)
     graph["packs"] = enriched.ran
 
-    degraded += _build_symbol_layer(repo_root, graph, modules, parsed, ts, go, rust, java)
+    degraded += _build_symbol_layer(repo_root, graph, modules, parsed, ts, go, rust, java, c)
 
     tests = collect_tests(modules, parsed, graph["symbol_edges"])
     if ts:
@@ -175,6 +186,8 @@ def extract_repo(
         tests += collect_rust_tests(rust["files"], graph["symbol_edges"])
     if java:
         tests += collect_java_tests(java["files"], graph["symbol_edges"])
+    if c:
+        tests += collect_c_tests(c["files"], graph["symbol_edges"])
     tests = sorted(tests, key=lambda t: t["id"])
     if degraded:
         # Sorted, not append-ordered: which pass reported first is an
@@ -237,6 +250,7 @@ def _build_symbol_layer(
     go: dict | None = None,
     rust: dict | None = None,
     java: dict | None = None,
+    c: dict | None = None,
 ) -> list[dict]:
     """Join every lane's evidence and project it onto the graph's ids.
 
@@ -274,6 +288,9 @@ def _build_symbol_layer(
     if java:
         syntax += java["call_sites"]
         fallback.update(java["call_fallback"])
+    if c:
+        syntax += c["call_sites"]
+        fallback.update(c["call_fallback"])
 
     for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, degraded):
         resolutions += scipsource.resolution_sites(facts)
@@ -357,6 +374,8 @@ def _build_symbol_layer(
         local_bindings.update(go.get("local_bindings", {}))
     if java:
         local_bindings.update(java.get("local_bindings", {}))
+    if c:
+        local_bindings.update(c.get("local_bindings", {}))
     tails = tail.classify(
         ev.unresolved_sites(syntax, resolutions, external),
         repo_root,

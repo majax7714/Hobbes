@@ -68,6 +68,20 @@ class TestClasses:
         assert tails[f][tail.BUILTIN] == 1
         assert tails[f][tail.UNCLASSIFIED] == 1
 
+    def test_a_pinned_c_builtin_name_classifies(self, tmp_path):
+        f = write(tmp_path, "a.c", "int f(void) { return printf(\"x\"); }\n")
+        tails = tail.classify([site(f, 1, "printf", col=22)], tmp_path)
+        assert tails[f] == {tail.BUILTIN: 1}
+
+    def test_a_dunder_builtin_prefix_classifies_for_c_only(self, tmp_path):
+        f = write(tmp_path, "a.c", "int f(void) { return __builtin_trap(); }\n")
+        tails = tail.classify([site(f, 1, "__builtin_trap", col=22)], tmp_path)
+        assert tails[f] == {tail.BUILTIN: 1}
+        # The prefix rule is C's own; the same name in Go is unclassified.
+        g = write(tmp_path, "b.go", "__builtin_trap()\n")
+        tails = tail.classify([site(g, 1, "__builtin_trap", col=0)], tmp_path)
+        assert tails[g] == {tail.UNCLASSIFIED: 1}
+
     def test_a_scope_contained_lane_a_binding_is_local(self, tmp_path):
         # `fake_policy_bin` is a fixture parameter of the enclosing test:
         # bound at line 1, function spans 1-3, call at line 2 — local.
@@ -364,6 +378,17 @@ class TestClassesAvailable:
         for row in rows:
             lang = tail.language_of(row["file"])
             assert set(row.get("tail", {})) <= set(available[lang]), row
+
+    def test_c_and_h_share_the_c_row(self):
+        assert tail.language_of("src/a.c") == "c"
+        assert tail.language_of("src/a.h") == "c"
+
+    def test_c_class_list_is_exactly_the_five_it_can_produce(self):
+        # No semantic lane exists for C in this unit: no below-floor
+        # projection, no checker, no import-binding parse.
+        assert tail.CLASSES_AVAILABLE["c"] == frozenset({
+            tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.UNCLASSIFIED,
+        })
 
     def test_ts_flavoured_extensions_share_the_ts_js_row(self):
         # .mts/.cts were unmapped until C-100: a tail row for such a file
