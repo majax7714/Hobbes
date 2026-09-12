@@ -5,7 +5,8 @@ claim. It is built on one rule: **the comparison uses the oracle
 lane, not a scoreboard.** The lane (`bench/oracle/`, ADR-089) grades
 call edges against answer keys Hobbes does not control — x/tools RTA
 for Go, `tsc` for TypeScript, CPython's `sys.monitoring` for Python,
-rustc's MIR for Rust, javac with CHA for Java — and it does not care
+rustc's MIR for Rust, javac with CHA for Java, clang's front end for C
+(ADR-110) — and it does not care
 who produced the edges. So the benchmark is: same repos, same
 commits, same compiler answer keys, every tool's graph put through
 them. A bar chart of self-reported "accuracy" with Hobbes on top is the
@@ -162,7 +163,7 @@ bench/oracle/grade-foreign.sh <your-edges.json> <oracle.json> <out-dir> --lang g
 `<oracle.json>` is regenerated from the repo at the commit every cell
 record names, with the oracle version it names (`oracle go-rta`,
 `ts/tsc-oracle.mjs`, `oracle rust-mir`, `oracle java-javac`,
-`oracle py-trace`). The edge file's shape and the rules a foreign graph
+`oracle c-clang`, `oracle py-trace`). The edge file's shape and the rules a foreign graph
 is read under are in `bench/oracle/README.md` § *Grading a graph
 Hobbes did not build*. If they can grade themselves, the objection
 dies; if the entry point were not public, it would stand.

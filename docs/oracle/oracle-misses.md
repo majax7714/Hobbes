@@ -33,6 +33,7 @@ commit as the cell.
 | `observed→method` | Python (trace): a callable instance (`runner(...)` → `__call__`), or a receiver the indexer could not type (an unannotated parameter, a chain on a constructor) | no edge | C-58, C-2 |
 | `observed→class` | Python (trace): a constructor call | drawn (an edge to the class symbol) | — |
 | `macro→function` | Rust: a call made by the body of a macro the repo does not define, attributed to its invocation (`criterion_group!(benches, f)` calls `f`) | **no edge** — the author wrote a name, not a call; rust-analyzer emits the reference | C-58 (macro face) |
+| `macro→function` (C) | a call the expansion of a C macro makes: a Unity `TEST_ASSERT_*` into `UnityFail` / `UnityAssert*`, `RUN_TEST` into `UnityDefaultTestRun` | **no edge**: Hobbes draws the invocation to the `macro` symbol (excluded before grading), never the function the expansion calls | C-131 |
 | `static→generated` | Rust: a call of a method a derive wrote (`x.clone()` on `#[derive(Clone)]`) | **no edge** — the target has no source identifier, so no symbol | C-9 |
 | `static→method` (Rust) | a call of an extension-trait method implemented on a foreign type (`impl Ext for Vec<T>`), a `derive_builder` setter, a raw-identifier method (`r#ref`) | no edge for these shapes; ordinary inherent and trait methods are drawn (3,354/3,384 on dagger's SDK) | C-58, C-9 |
 | `static→function` (Rust) | a call written inside a proc-macro's tokens (`quote! { $(f(x)) }`) | **no site** — rust-analyzer's index does not expand proc macros here | C-30 (registry) / unregistered |
@@ -192,6 +193,23 @@ Third, 2.8–6.1%: **`static→constructor`** (recall 84.6–95.6% where lane
 B runs), chiefly `new T() {..}`, which Hobbes draws as `uses` of T by
 decision (ADR-096). **`static→method` is 0–0.1% on every semantic cell**
 (spring-data-elasticsearch: 3,845/3,845, a perfect class on 739 files).
+
+### The C cells (O9, 2026-09-12; [cells](cells/))
+
+Two repos and the fixture, graded against clang's front end (ADR-110).
+- **cJSON: 728 misses, every one `macro→function`.** That is 100% of the
+  cell's misses and 38.0% of its 1,918 in-repo pairs: calls Unity's
+  assertion and runner macros make at `tests/` lines (`UnityFail` 380,
+  `UnityDefaultTestRun` 153, `UnityAssertEqualNumber` 51, …). Every
+  directly spelled call is drawn: `static→function` 1,190/1,190.
+- **sqlite-vector: no miss** (1,091/1,091). Its calls into SQLite go
+  through `sqlite3ext.h`'s object-like macros onto the API's
+  function-pointer table, which the oracle reads as dynamic (360 sites,
+  no targets), so the macro gap has nothing in-repo to price there.
+- **minic: no miss** (7/7).
+
+C's recall hole is the preprocessor, not dispatch: a Unity-tested repo
+pays it on every assertion (C-131).
 
 ### hobbes `pipeline/` — Python, trace-graded (O6, 2026-08-25; [cell](cells/hobbes-py-2026-08-25.md))
 

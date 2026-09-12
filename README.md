@@ -153,10 +153,13 @@ miss" is always answered next to "what did you find".
 Then the graph is graded, per language, against something Hobbes does
 not control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
 against the interpreter running the repo's own test suite, Rust against
-rustc's MIR, Java against javac's own resolution — with wrong edges deliberately seeded on every cell to
+rustc's MIR, Java against javac's own resolution, C against clang's own
+front end — with wrong edges deliberately seeded on every cell to
 prove the grader can say no. Every compiler-graded cell is at 100%
-precision-against-oracle but one: quic-go reads 99.6%, a lower bound whose
+precision-against-oracle but two. quic-go reads 99.6%, a lower bound whose
 15 contradictions all triage to the oracle's own grain, with none Hobbes'.
+C's sqlite-vector reads 99.6% too, from three syntactic edges Hobbes got
+wrong (C-138) beside a semantic tier at 851/851.
 Every miss falls into one known class (closures, function values,
 interface dispatch) and is written down.
 
@@ -257,16 +260,16 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.4-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.5-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-Semantic edges for **Python, TypeScript/JavaScript, Go, Rust and Java**
-(plus Terraform/HCL structure; **C** has both lanes since 0.2.4-beta,
-scip-clang over a compile database the ingest derives (ADR-108/109), and
-stays unverified until an oracle grades it), graph schema v4 with tiers
+Semantic edges for **Python, TypeScript/JavaScript, Go, Rust, Java and C**
+(plus Terraform/HCL structure; C, the newest, is scip-clang over a compile
+database the ingest derives and compiler-graded on two repos since
+0.2.5-beta, ADR-108/109/110), graph schema v4 with tiers
 and evidence
 lanes, framework knowledge in removable enrichment packs, a tier-aware
 invariant checker, and a lane-agreement self-test — 3,085 call sites on
@@ -278,8 +281,8 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and thirty-seven entries (one
-hundred and ten active, twenty-four lifted, three superseded), each naming
+The constraint register holds one hundred and thirty-eight entries (one
+hundred and eleven active, twenty-four lifted, three superseded), each naming
 where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -293,9 +296,10 @@ its own: no model, no credential, no network.
 
 **The oracle lane (ADR-089) has run both phases** — Go and TS
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
-javac-graded — with every compiler-graded cell at 100% after ADR-090
-but quic-go's 99.6% lower bound (every contradiction the oracle's grain),
-and the misses registered by class.
+javac-graded, C clang-graded — with every compiler-graded cell at 100%
+after ADR-090 but two at 99.6% (quic-go, every contradiction the oracle's
+grain; C's sqlite-vector, three syntactic edges Hobbes got wrong), and the
+misses registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
@@ -531,7 +535,9 @@ pinned where a pin is possible:
   the repo's own pytest suite for Python; and **rustc itself** — the
   Rust oracle is a `rustc_driver` program linking rustc's private crates
   on a pinned nightly (`rustc-dev`), walking the MIR the compiler built;
-  and **javac**'s own resolution, with CHA for dispatch, for Java.
+  **javac**'s own resolution, with CHA for dispatch, for Java; and
+  **clang**'s own front end (`-ast-dump=json`, Ubuntu's clang 18 in the
+  image) for C.
   Each cell records the exact oracle version; a different nightly is a
   different oracle and the record says so.
 - **The invariant compile targets** — `hobbes invariants compile` emits

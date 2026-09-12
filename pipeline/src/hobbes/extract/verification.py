@@ -70,6 +70,15 @@ VERIFICATION_BASE: dict[str, dict] = {
         "on": 'jhy/jsoup (Maven library); spring-projects/spring-petclinic (Spring service); spring-data-elasticsearch and Legend-of-Dragoon-Modding/Severed-Chains — both drawn at random (2026-08-29)',
         "depth": "multi-repo",
     },
+    "c": {
+        # Compiler-graded against clang's own front end (ADR-110, O9,
+        # 2026-09-12): a library chosen for shape and one repo drawn at
+        # random. clang is also lane B's engine (scip-clang); the key
+        # grades what Hobbes adds above the front end.
+        "repos": 2,
+        "on": "DaveGamble/cJSON (a library with its vendored Unity tests); sqliteai/sqlite-vector — drawn at random (2026-09-12)",
+        "depth": "multi-repo",
+    },
     "hcl": {
         "repos": 1,
         "on": "this repo only",

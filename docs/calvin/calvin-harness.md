@@ -227,6 +227,26 @@ After that, the developer:
       `dispatch.py` sorts the venv bins. Both were fixed in 0.2.3-beta
       (Max): `gofmt -l`/`-d` allowed and `-w` escalated; the outermost
       tree first, with the brief naming each interpreter.
+  - **C's oracle, O9 (ADR-110), three sessions:**
+    - `S-20260912T191410Z-b126`: the whole oracle in one brief. The doer
+      wrote nothing in 53 minutes, and the developer stopped it as a
+      stall. Its tunnel's close record (5.4 MB up, 1.1 MB down) shows
+      that reading was wrong. Discarded; the task was split in two.
+    - `S-20260912T201059Z-5d5f`: unit A, the dump reader and merge (79 of
+      150 turns). Gate clear and verify pass; merged. Review found three
+      defects in the reader (a fourth it named was the developer's
+      error, corrected in the file).
+    - `S-20260912T204447Z-9396`: unit B, those fixes plus the contained
+      run and CLI (127 of 150 turns). Gate clear and verify pass; merged.
+      Its first real cell found a mount defect, fixed by the developer
+      (`17def60`).
+    - **What these three add:**
+      - The harness has no progress signal between "reading" and
+        "stuck". The developer's watcher, a first-edit check on the
+        worktree, is the stopgap; C-125's hook is the fix.
+      - After `rm` escalations expired, a doer deleted its own scratch
+        file through `python3 -c`, which the box allows. The box's
+        escalations are not a boundary while `python3 *` is.
   - **Findings so far:** no false block and no `missed`. Every egress
     refusal was read: one per suite run, the suite's own `http://llm`
     GET, which the proxy refused as built. The gate's classes do not

@@ -145,7 +145,8 @@ box, against a repo on disk (architecture §10); the application mode in
   `atlas0 gen | check | score | probe-check | report`, `atlas0.train` and
   `scripts/modal_atlas0.py`), `oracle/` (the oracle-grading lane,
   ADR-089: one `oracle` binary — `export | go-rta | py-trace | rust-mir |
-  java-javac | grade | import` — with `ts/`, `py/`, `rust/`, `java/`,
+  java-javac | c-clang | grade | import` — with `ts/`, `py/`, `rust/`,
+  `java/`, `internal/clang` (C, ADR-110),
   `adapters/<tool>/` for foreign graphs (ADR-101), `report/render.py`
   regenerating the comparative graphics with a drift test (ADR-102), and
   `shape/`, the callee-shape bucket).
@@ -209,8 +210,9 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-12): 1,459 pytest (5 of them
-`lane_b`) / 331 Go (subtests counted) + 52 oracle-lane Go (two run the
-`shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 42
+`lane_b`) / 331 Go (subtests counted) + 91 oracle-lane Go (subtests counted:
+87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
+unittest + 7 node) / 52 vitest / 36 tsextract + 42
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
@@ -239,8 +241,10 @@ are present.
   under `bench/` or an experiment record moves it. Rebuild the image
   after a bump (C-65). **The number line is Max's (ADR-103, fourth
   amendment, 2026-09-12): the Calvin harness moved the layer to
-  0.2.0-beta; patch by patch on 0.2.x, and a capability bumps minor;**
-  tags are his call each time — 0.1.9-beta to 0.2.4-beta are untagged,
+  0.2.0-beta; patch by patch on 0.2.x. A language addition is a patch,
+  even when it reaches "supported"; a structural change bumps minor
+  (Max, 2026-09-12);** tags are his call each time — 0.1.9-beta to
+  0.2.5-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -279,23 +283,25 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.2.4-beta
+## Status (2026-09-12) — Hobbes 0.2.5-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
-  - **Languages:** Python, TypeScript/JavaScript, Go, Rust and Java
+  - **Languages:** Python, TypeScript/JavaScript, Go, Rust, Java and C
     (+ Terraform/HCL). Each is a syntax provider plus a pinned batch
     indexer (P13, ADR-105), joined by one range join, with artifacts at
-    schema v4. **C** has both lanes since 0.2.4-beta (ADR-108/109:
-    tree-sitter-c, and scip-clang over a compile database the ingest
-    derives) and stays unverified until an oracle cell grades it.
+    schema v4. **C** (ADR-108/109: tree-sitter-c, and scip-clang over a
+    compile database the ingest derives) is compiler-graded against
+    clang's front end since 0.2.5-beta (ADR-110), on cJSON and a random
+    draw.
   - **Grading:** every compiler-graded oracle cell is at 100% precision
-    but quic-go (a 99.6% lower bound; its 15 contradictions are all the
-    oracle's grain), with the misses registered by class (ADR-089/090;
+    but two: quic-go (a 99.6% lower bound; its 15 contradictions are all
+    the oracle's grain) and C's sqlite-vector (99.6%: three syntactic
+    edges wrong, C-138), with the misses registered by class (ADR-089/090;
     41 cells regraded at 0.1.10-beta).
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 137 entries (110 active, 24 lifted, 3 superseded).
+  - **Register:** 138 entries (111 active, 24 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,

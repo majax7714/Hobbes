@@ -251,9 +251,19 @@ the best on-ramp for a new contributor who should learn the codebase.*
   lanes since 0.2.4-beta: scip-clang over a compile database the ingest
   derives, in Max's order (the repo's own, CMake's export, bear over
   make, else lane A only, said so).
-  - **Next, C's §3.8 row:** an oracle cell graded against clang's own
-    call graph, on cJSON and at least one random draw. Until then C is
-    wired, not supported.
+  - ~~**Next, C's §3.8 row:** an oracle cell graded against clang's own
+    call graph, on cJSON and at least one random draw.~~ **Done
+    2026-09-12 (0.2.5-beta, ADR-110):**
+    - cJSON: 1,188/1,188;
+    - sqliteai/sqlite-vector, drawn at random: 851/854, the 3 syntactic
+      edges wrong (C-138);
+    - the oracle built through the harness.
+  - **Found by the cells, each a candidate once named:**
+    - C-138, the join's veto where lane B resolved a site outside the
+      repo (every language: Max's call);
+    - C-131's macro gap: a C macro invocation drawing the calls its
+      expansion makes (cJSON: 38% of pairs);
+    - C-135's surfacing gap (bpftop).
   - **Then the residue:**
     - C-134, the test registrations (Unity's `RUN_TEST`, CMocka, Check);
     - C-135's autotools, Meson and Bazel roots, which get no database

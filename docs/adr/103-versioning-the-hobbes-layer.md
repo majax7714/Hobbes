@@ -131,3 +131,10 @@ bumps minor — and patch bumps continue on 0.2.x. The third amendment's
 "stays on 0.1.x" held through 0.1.23-beta and no longer does. Tags
 remain his call each time: 0.1.9-beta to 0.2.0-beta are untagged, and
 the last tag is `v0.1.8-beta`.
+
+**Noted 2026-09-12 (C's §3.8 row, 0.2.5-beta).** Max: "only bump to
+0.2.1 its a language addition not a structural change" — read as a
+patch, since 0.2.1-beta was taken (C's lane A). A language addition is
+a patch even when it reaches "supported"; a minor is for a structural
+change, such as the harness that made 0.2.0-beta. This refines the fourth
+amendment's "a capability bumps minor" and does not reopen it.

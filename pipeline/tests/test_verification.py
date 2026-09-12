@@ -23,6 +23,7 @@ ROW_LANGUAGES = {
     "Go": ["go"],
     "Rust": ["rust"],
     "Java": ["java"],
+    "C": ["c"],
     "Terraform/HCL": ["hcl"],
 }
 

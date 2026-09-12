@@ -9288,3 +9288,106 @@ with apt's CMake):
 green at 0.2.4-beta. The image was rebuilt, and the repo re-ingested
 at the commit.
 
+
+## 2026-09-12 — (last, again) C graded against clang's front end — 0.2.5-beta (ADR-110)
+
+**Asked (Max):** "review top level documentation. then proceed with
+grading c against the oracle with a c repo. utilize hobbes and calvin as
+a harness." During the session he called the row a patch: "a language
+addition not a structural change" (0.2.5-beta; ADR-103 noted).
+
+**The doc review, the third today** (`348620d`):
+- **An overclaim:** "every compiler-graded cell at 100%" in README,
+  CLAUDE.md and the architecture's status row. quic-go is a 99.6% lower
+  bound (15 semantic-tier contradictions, all the oracle's grain); §3.8
+  already said so.
+- **Counts:** the register at 137 (110 active), the ADR range to 109,
+  the image size.
+- **The handoff's suite counts were stale** (re-run: Go 331, 42 helper
+  and 36 tsextract node), and its NEXT list numbered 2 twice. Both fixed
+  in the rewrite.
+
+**The design, committed before any cell** (`b7d17b8`):
+- **ADR-110:** clang's front end (`-ast-dump=json`), one unit at a time
+  over the compile database the ingest derives, contained.
+  - Rejected: the analyser's call graph (no site) and LLVM IR (below the
+    front end).
+  - GCC (independent, but post-lowering) is named, not built.
+  - The shared front end with scip-clang is stated.
+- **The pre-registration** P17–P25 and the draw rule (seed 20260912) are
+  in `oracle-grading.md` §10.5.
+- **The `cclang` fixture,** with bear's record and clang's dumps. A
+  separate reference reader checked its truth first, and found one
+  missing rule: a `__builtin_*` is declared implicitly at its own call.
+- **The image gains clang 18.1.3** (3.32 GB).
+
+**Built through the harness, in three dispatches:**
+- **`b126`** (the whole oracle in one brief) wrote nothing in 53 minutes.
+  The developer stopped it as a stall; its tunnel's close record (5.4 MB
+  up, 1.1 MB down) showed it was reading. Discarded, and the task was
+  split.
+- **`5d5f`** (unit A: the reader and merge; 79 of 150 turns): gate clear
+  and verify pass; merged.
+  - Review found three reader defects, each confirmed on a probe dumped
+    by the image's clang: H-24 (pseudo-buffers read as files), H-25 (a
+    callee that is itself a call, dropped) and H-26 (a system header's
+    `static inline` counted ambiguous).
+  - A fourth, the `coverage:` line leaking into trace reports, was the
+    developer's error. Unit B's doer found `Print`'s early return for
+    trace, and the file is corrected.
+- **`9396`** (unit B: the fixes, the contained run and the CLI; 127 of
+  150): gate clear and verify pass; merged. The first real cell hit H-27
+  (a duplicate mount: the binary in the rw cell dir, mounted ro too),
+  fixed by the developer in `contain.New` (`17def60`). The end-to-end
+  test now builds where `run-cell.sh` builds.
+- **Harness notes:**
+  - no progress signal between reading and stuck (the developer's
+    first-edit watcher was the stopgap);
+  - after `rm` escalations expired, a doer deleted its scratch file
+    through `python3 -c`;
+  - read-only `clang --version` probes escalate.
+
+**The cells** (contained; poison check PASS on each):
+- `minic`: 5/5, recall 7/7.
+- **DaveGamble/cJSON:** 1,188/1,188, all semantic.
+  - The 525 syntactic edges sit in files CMake's defaults leave
+    uncompiled, and are silent.
+  - Recall 62.0%. Every miss is `macro→function` (728): Unity's
+    assertions, drawn to the macro.
+- **sqliteai/sqlite-vector,** drawn at random: 851/854.
+  - Draw 1, jfernandez/bpftop, had no C compile to derive.
+  - The 3 contradicted edges are syntactic and hobbes-wrong: a
+    `strcasestr` shim in a dead `#if` arm, drawn over libc's.
+  - Semantic 851/851, recall 100%.
+
+**Found, recorded:**
+- **C-138:** `evidence.join` takes lane A's guess where lane B has no
+  in-repo answer, even where lane B resolved the site to a library. It is
+  cross-language, and the veto is Max's call.
+- **C-131** measured on both repos.
+- **C-135's surfacing** is partial: bpftop's root drew only a generic
+  `scip-index` record.
+- **The evidence log's "27 units"** for cJSON was the spike's number,
+  with `ENABLE_CJSON_UTILS=On`. CMake's defaults give 23, in the product
+  and the oracle alike.
+- **P17–P25:** P19 undecidable, P23 partly missed (3 syntactic
+  hobbes-wrong on the draw), the rest met.
+
+**0.2.5-beta:**
+- §3.8's C row and `verification.py`'s pin;
+- the version copies and the CHANGELOG;
+- the proxy and the image rebuilt;
+- `test_csource`'s unverified assertion restated as the two repos;
+- the comparative graphics regenerated (80 cells).
+
+**Verified at 0.2.5-beta:**
+- pytest 1,459;
+- Go 330 pass and 1 skip;
+- the oracle lane 87 pass and 4 skip, the C end-to-end contained;
+- the report drift test.
+
+**Not done, for Max:**
+- C-138's veto;
+- C's macro-expansion edges;
+- the box policy (`rm`, the probes);
+- a progress signal for dispatches.

@@ -449,5 +449,26 @@
   "label": "hono (tsconfig.build.json)",
   "tool": "repowise",
   "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "cjson-c": {
+  "lang": "C",
+  "run": "contained",
+  "draw": "picked",
+  "label": "cJSON",
+  "note": "every miss is a call a Unity macro's expansion makes, drawn to the macro (C-131); the 525 syntactic edges sit in files CMake's defaults leave uncompiled"
+ },
+ "sqlite-vector-c": {
+  "lang": "C",
+  "run": "contained",
+  "draw": "random",
+  "label": "sqlite-vector",
+  "note": "random draw; the 3 contradicted are syntactic and hobbes-wrong, a strcasestr shim in a dead #if arm drawn over libc's (C-131, C-138); semantic 851/851"
+ },
+ "minic-c": {
+  "lang": "C",
+  "run": "contained",
+  "draw": "dogfood",
+  "label": "minic (fixture)",
+  "note": "the C lane's own fixture in this repo, graded as make's default target builds it"
  }
 }

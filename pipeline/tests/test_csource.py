@@ -381,9 +381,12 @@ class TestExtractRepo:
     def test_languages_report_c(self, extraction):
         assert extraction.graph["languages"] == ["c"]
 
-    def test_c_is_unverified(self, extraction):
-        # P11: C is wired, not claimed supported until evidence exists.
-        assert extraction.graph["verification_base"]["c"]["repos"] == 0
+    def test_c_is_verified_on_the_graded_repos_only(self, extraction):
+        # P11: C was wired, not supported, until ADR-110's oracle cells;
+        # since 0.2.5-beta the base names the two repos graded and no more.
+        base = extraction.graph["verification_base"]["c"]
+        assert base["repos"] == 2
+        assert "DaveGamble/cJSON" in base["on"] and "sqlite-vector" in base["on"]
 
     def test_every_calls_edge_is_syntactic(self, extraction):
         calls = [e for e in extraction.graph["symbol_edges"] if e["type"] == "calls"]

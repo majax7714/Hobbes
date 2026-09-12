@@ -42,7 +42,7 @@ beside compiler-graded cells. Their sections are gone; the rules they
 produced (the tail's `import-binding` class, the C-27 venv check, the
 HCL pack's `packages` edge) keep their citations in code and register.*
 
-## DaveGamble/cJSON (C — ADR-108, ADR-109; not a §3.8 row)
+## DaveGamble/cJSON (C — ADR-108, ADR-109, ADR-110; compiler-graded, §3.8)
 
 cJSON's tree includes its vendored Unity test framework, which is most
 of its C. It was run at `fb16e5c`. The two lane-A rows are host runs,
@@ -52,7 +52,8 @@ ran contained: CMake's configure and scip-clang inside the image
 
 | Date | Numbers |
 |---|---|
-| 2026-09-12 (**lane B**, 0.2.4-beta; CMake's export gave 27 translation units) | 4.1 s end to end. Of **4,292 C call sites**: **2,075 resolved semantically (48.3%)**, 1,650 by lane A's fallback, 179 external, 186 below-floor (calls through a struct's function-pointer field), 159 builtin-name, 227 unclassified. **1,858 call edges: 1,072 semantic, 786 syntactic.** The lanes agree on all 1,717 sites both answer. 2 sites that translation units resolve into different files (`isinf` and `isnan` at `cJSON.c:612`) keep lane A's floor. 6 monikers are defined in two files (C-137). The spike before it (a stand-alone decode) found no C function joined until the helper accepted scip-clang's signature-hash disambiguator (ADR-109) |
+| 2026-09-12 (**oracle, O9**; clang 18.1.3, contained) | **1,188/1,188 confirmed, 0 contradicted — 100.0%**, all semantic. The 525 syntactic edges are silent: 513 sit in files CMake's defaults leave uncompiled, 12 in dead `#if` arms. Recall 62.0% (1,190/1,918): `static→function` 100%, every miss `macro→function` (728). Poison PASS. [record](oracle/cells/cjson-c-2026-09-12.md) |
+| 2026-09-12 (**lane B**, 0.2.4-beta; CMake's export at its defaults gives 23 translation units. *Corrected 2026-09-12:* the 27 first written here was the spike's, with `ENABLE_CJSON_UTILS=On`) | 4.1 s end to end. Of **4,292 C call sites**: **2,075 resolved semantically (48.3%)**, 1,650 by lane A's fallback, 179 external, 186 below-floor (calls through a struct's function-pointer field), 159 builtin-name, 227 unclassified. **1,858 call edges: 1,072 semantic, 786 syntactic.** The lanes agree on all 1,717 sites both answer. 2 sites that translation units resolve into different files (`isinf` and `isnan` at `cJSON.c:612`) keep lane A's floor. 6 monikers are defined in two files (C-137). The spike before it (a stand-alone decode) found no C function joined until the helper accepted scip-clang's signature-hash disambiguator (ADR-109) |
 | 2026-09-12 (after the rework, `48684e3`) | 0.3 s. **99 C modules; 1,654 symbols** (1,026 functions, 597 function-like macros, 31 types). Of **4,292 C call sites**: **3,363 fallback-resolved (78.4%)**, 344 builtin-name, 26 attr-call, 1 local-binding, 558 unclassified. **1,761 call edges, all `syntactic`.** 345 include edges. 39 tests by the `test_*` convention (C-134: cJSON's own `RUN_TEST` tests are not among them). 38 syntax-error `parse` records (export macros and the `extern "C"` idiom) and 9 duplicate-definition records (C-131) |
 | 2026-09-12 (the first walk, `984daab`) | 1,298 symbols (0 of `unity.h`'s 341 function-like macros: `extern "C"` bodies went unwalked); 2,125 fallback-resolved; 1,796 unclassified; 1,189 edges; 73 duplicate symbol ids. The review's findings were reworked in `48684e3` |
 
@@ -65,7 +66,67 @@ definitions, 13 right.
 - **Nine lane-A edges before that,** as follows. Four at `984daab`: two cJSON API calls from the
 tests (unique globals) and two Unity-internal calls. Five at `48684e3`:
 a unique global, a same-file static, two Unity macros through a direct
-`#include "unity.h"`, and `cJSON_Delete`. No oracle; C has no §3.8 row.
+`#include "unity.h"`, and `cJSON_Delete`. The oracle came after (ADR-110, the section below), and grades every compiled edge.
+
+## C — the oracle cells of 2026-09-12 (ADR-110, oracle lane O9)
+
+C's first graded evidence, in the session after its lane B.
+- **The key** is clang 18.1.3's own front end: every call resolved per
+  translation unit over the compile database the ingest derives,
+  contained and offline.
+- **Two repos:** cJSON, the repo C was built on, and **one drawn at
+  random** from a seeded sample of GitHub's `language:c stars:300..3000
+  pushed:>2026-03-01` (seed 20260912). The first draw, jfernandez/bpftop,
+  had no C compile to derive and was passed over (C-135).
+- Cell records are in [`oracle/cells/`](oracle/cells/).
+
+| Repo | Build | Graph (graded edges) | Cell |
+|---|---|---|---|
+| **DaveGamble/cJSON** `fb16e5cf` (chosen) | CMake, 23 units | 1,713 graded (1,188 semantic, 525 syntactic), 1,821 macro edges excluded; lanes 1,717 / **0** | **1,188/1,188 — 100.0%**; recall 62.0% (1,190/1,918); [record](oracle/cells/cjson-c-2026-09-12.md) |
+| **sqliteai/sqlite-vector** `0c2223ad` (**random draw**) | make under bear, 7 units | 19,748 graded (851 semantic, 18,897 syntactic, 18,502 of them in the uncompiled amalgamation), 3,188 macro edges excluded; lanes 1,084 / **0** | **851/854 — 99.6%**; the semantic tier 851/851; **3 syntactic hobbes-wrong** (C-138); recall 100.0% (1,091/1,091); [record](oracle/cells/sqlite-vector-c-2026-09-12.md) |
+| `minic` fixture `1f2baf1` | make under bear, 3 units | 6 graded | **5/5**; recall 7/7; [record](oracle/cells/minic-c-2026-09-12.md) |
+
+**Verified:**
+- No hand-checked edges beyond ADR-108/109's thirteen; every number is
+  compiler-graded.
+- Poison check PASS on every cell, 0 falsely confirmed in 21,467 seeded
+  wrong edges.
+- Contained (ADR-092), every cell.
+
+**What the cells say.**
+- **The semantic tier is right on every compiled edge of both repos**
+  (2,039/2,039).
+- **The one wrong mechanism is the syntactic floor's:** a function
+  defined in a dead `#if` arm, drawn where lane B's answer lay outside the
+  repo (C-131, C-138).
+- **C's recall hole is the preprocessor, not dispatch.** A call a
+  macro's expansion makes is drawn to the macro: on cJSON that is every
+  miss, 38% of its pairs. Direct calls are drawn 2,281/2,281 across both
+  repos.
+
+**Pre-registration graded** (`docs/oracle/oracle-grading.md` §10.5,
+committed `b7d17b8` before any cell):
+- P17 **met**: the `cclang` fixture lands its hand-computed truth exactly
+  (unit tests and the contained end-to-end test), and `minic` grades 0
+  contradicted, with `tests/test_util.c` silent as not-loaded.
+- P18 **met**: cJSON semantic 1,188/1,188, 0 hobbes-wrong.
+- P19 **undecidable** on cJSON: 0 syntactic edges judged, every one
+  silent. The direction it predicted held on the draw: sqlite-vector's
+  only contradictions are syntactic.
+- P20 **met**: `macro→*` is 100% of cJSON's misses.
+- P21 **met**: cJSON `static→*` recall 100%.
+- P22 **met**: `not-loaded` is 513 of cJSON's 525 silent.
+- P23 **partly missed**: sqlite-vector's semantic tier (851/851) and
+  `static→*` recall (100%) meet it; "0 hobbes-wrong" is missed cell-wide
+  (3 syntactic).
+- P24 **met**: poison PASS on all three cells.
+- P25 **met**: four harness defects before any number was quoted
+  (H-24–H-27), three in the dump reader at review and one in the
+  contained step at the first cell.
+
+**What no cell covers:** autotools, Meson and Bazel roots (C-135), C++
+(C-132), a kernel-style or cross-compiled build, and a repo whose build
+fetches at configure time.
 
 ## hobbes (this repo — dogfood, continuous)
 

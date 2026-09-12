@@ -30,8 +30,10 @@
 - **You find out:** **surfaced**:
   - every C edge carries tier `syntactic`;
   - there is no C lane B for `hobbes lanes` to check against;
-  - the verification base states C as unverified (C-31) in the ingest
-    summary, the surface and `list_blind_spots`.
+  - the verification base (C-31) in the ingest summary, the surface and
+    `list_blind_spots` stated C as unverified until 0.2.5-beta. Since
+    ADR-110's cells it names the two repos graded, cJSON and sqlite-vector,
+    and nothing wider.
 
   A *C-scoped* `list_blind_spots` said neither until 0.2.2-beta. The
   knowledge proxy's copies of the tail's language tables lacked C, and
@@ -60,6 +62,15 @@
     kept once, at the first line, where the graph keeps the symbol.
 
   What follows still describes lane A, and every root with no database.
+- **Measured (ADR-110's oracle cells, 2026-09-12):**
+  - **Recall:** a call a macro's expansion makes is never drawn; the
+    edge goes to the macro. On cJSON that is 728 of 1,918 in-repo pairs
+    (38.0%), every miss of the cell: Unity's `TEST_ASSERT_*` and
+    `RUN_TEST` expand to `UnityFail`, `UnityDefaultTestRun` and
+    `UnityAssert*`.
+  - **Precision:** a function defined in a dead arm is a real target to
+    lane A. sqlite-vector's `strcasestr` shim drew three wrong
+    `syntactic` edges (C-138).
 - **Cannot tell you:** what the preprocessor makes of the source.
   - Function-like macros are symbols, and their invocations are calls.
     An edge to a macro is a compile-time expansion, not a runtime call.
@@ -177,13 +188,28 @@
   - a CMake project that fetches its dependencies at configure time;
   - files a build root never compiles (`minic`'s `platform.c`, which its
     Makefile names in no target).
-- **You find out:** **surfaced**. Each root that cannot be indexed draws
-  a `scip-c` degradation record, which names why: no build file, the
-  carried database it skipped and the reason, or the build's own last
-  words. Orphan files are counted per directory. What the build does not
-  compile shows only as the missing semantic tier on those files' edges.
+- **You find out:** **partial** (was *surfaced*; amended 2026-09-12).
+  Each root that cannot be indexed draws a `scip-c` degradation record,
+  which names why: no build file, the carried database it skipped and
+  the reason, or the build's own last words. Orphan files are counted
+  per directory. What the build does not compile shows only as the
+  missing semantic tier on those files' edges.
+  - **The gap, measured on jfernandez/bpftop** (`5a67ec0`, the C draw's
+    first candidate, ADR-110): the root's one Makefile target is
+    `cargo build`, and its one C file is a BPF program cargo's build
+    script compiles.
+    - The root got no C semantic edge.
+    - It drew only the generic `scip-index` record, "the indexer
+      emitted no documents; nothing was analysed", with no C reason and
+      no register id.
+    - Offline and with an empty cargo cache, bear records 0 entries
+      there, which draws the `scip-c` record above. So in the ingest's
+      own run bear recorded entries that scip-clang indexed nothing
+      from. Which entries is not yet read.
+  - So a root whose derived database indexes nothing surfaces without
+    its cause.
 - **Provider (P9):** none; this is Hobbes's own rule.
-- **Source:** ADR-109.
+- **Source:** ADR-109; the gap, ADR-110's draw.
 
 ### C-136 — Indexing C runs the repo's build logic, contained and offline
 - **Cannot tell you:** that ingesting a C repo runs none of its code.
@@ -231,3 +257,22 @@
 - **Provider (P9):** inherited from scip-clang **0.4.0**'s moniker
   scheme.
 - **Source:** ADR-109.
+
+### C-138 — Lane A's fallback guesses where lane B resolved the site to a declaration outside the repo
+- **Cannot tell you:** that a `syntactic` edge's target is the one the build calls, where the configured build calls a library function of the same name.
+  - `evidence.join` (every language) takes lane A's fallback wherever lane B produced no *in-repo* resolution. It does not ask whether lane B resolved the site to a declaration outside the repo.
+  - **C's face, measured (O9, ADR-110):** sqliteai/sqlite-vector defines its own `strcasestr` inside an `#if` for Windows, musl and WebAssembly.
+    - On glibc Linux that arm is dead, and the calls are libc's.
+    - Lane A reads both arms (C-131), so its rank 1 names the shim.
+    - Lane B's answer is libc's declaration, which the join does not consult.
+    - The result is three `syntactic` edges, all wrong.
+- **Because:** the join was written for lane B's silence, not for an answer outside the repo. External references are read by the tail's classification (`evidence.unresolved_sites`), not by `join`.
+- **Bites at:**
+  - portability shims: a repo's own `strcasestr`, `strlcpy`, `asprintf` or `getline` behind an `#if`;
+  - in any language, a repo function that shares a name with a library call lane B resolved.
+- **You find out:** **partial**.
+  - The edge carries tier `syntactic`, so trust it less (C-7).
+  - Nothing says lane B answered the site differently. `hobbes lanes` compares only sites both lanes resolved in the repo: sqlite-vector's lanes read 1,084 / 0 with these three edges in the graph.
+- **Provider (P9):** none; this is Hobbes's own rule.
+- **Direction (not taken; Max's call):** the join vetoes lane A's guess where lane B's reference at the site is external, the way ADR-104 vetoes lane B at an ambiguous site. It is a change to every language, and every cell's syntactic tier would be regraded.
+- **Source:** ADR-110; `docs/oracle/cells/sqlite-vector-c-2026-09-12.md`.

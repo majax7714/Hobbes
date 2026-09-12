@@ -2,10 +2,13 @@
 
 ## The standing Hobbes cells
 
-Precision-against-oracle is a lower bound (A-8). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row. Every Hobbes number is the standing grade by Hobbes 0.1.10-beta (ADR-103): the last block of each record, regraded on one build against the same keys.
+Precision-against-oracle is a lower bound (A-8). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row. The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.2.4-beta (ADR-103; per cell in tables.md).
 
 | cell | lang | oracle | edges | precision-against-oracle | recall | run | Hobbes | poison (seeded / falsely confirmed) | record |
 |---|---|---|---|---|---|---|---|---|---|
+| cJSON | C | Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json | 1,713 | **1,188/1,188** (100.0%) | 62.0% (1,190/1,918) over every resolved site (resolution oracle: no roots) | contained | 0.2.4-beta | 1,713 / 0 | [cjson-c-2026-09-12.md](../oracle/cells/cjson-c-2026-09-12.md) |
+| minic (fixture) | C | Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json | 6 | **5/5** (100.0%) | 100.0% (7/7) over every resolved site (resolution oracle: no roots) | contained | 0.2.4-beta | 6 / 0 | [minic-c-2026-09-12.md](../oracle/cells/minic-c-2026-09-12.md) |
+| sqlite-vector | C | Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json | 19,748 | **851/854** (99.6%) | 100.0% (1,091/1,091) over every resolved site (resolution oracle: no roots) | contained | 0.2.4-beta | 19,748 / 0 | [sqlite-vector-c-2026-09-12.md](../oracle/cells/sqlite-vector-c-2026-09-12.md) |
 | fzf | Go | go-rta | 2,881 | **2,832/2,832** (100.0%) | 40.8% (2,868/7,035) at 5 roots | contained | 0.1.10-beta | 2,881 / 0 | [fzf-go-2026-08-27.md](../oracle/cells/fzf-go-2026-08-27.md) |
 | hobbes go/ | Go | go-rta | 1,306 | **1,305/1,305** (100.0%) | 87.7% (1,307/1,490) at 21 roots | contained | 0.1.10-beta | 1,306 / 0 | [hobbes-go-2026-08-28.md](../oracle/cells/hobbes-go-2026-08-28.md) |
 | mux | Go | go-rta | 1,264 | **1,221/1,221** (100.0%) | 82.6% (1,233/1,492) at 1 roots | contained | 0.1.10-beta | 1,264 / 0 | [mux-go-2026-08-27.md](../oracle/cells/mux-go-2026-08-27.md) |

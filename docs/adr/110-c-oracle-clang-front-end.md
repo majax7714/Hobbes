@@ -1,6 +1,6 @@
 # ADR-110 — C's oracle: clang's own front end, one translation unit at a time, over the compile database the ingest derives
 
-**Date:** 2026-09-12 · **Status:** accepted; the build is dispatched through the harness (ADR-107). · **Owner:** Max · **Source:** Max, 2026-09-12: "proceed with grading c against the oracle with a c repo. utilize hobbes and calvin as a harness"; ADR-109's "an oracle cell (clang's own call graph)".
+**Date:** 2026-09-12 · **Status:** accepted; built through the harness (ADR-107) in two sessions after a discarded first (`5d5f`, `9396`; `b126` discarded), and three cells graded the same day: cJSON 1,188/1,188, sqlite-vector 851/854 (C-138), `minic` 5/5. The row is in §3.8 (0.2.5-beta). · **Owner:** Max · **Source:** Max, 2026-09-12: "proceed with grading c against the oracle with a c repo. utilize hobbes and calvin as a harness"; ADR-109's "an oracle cell (clang's own call graph)".
 
 Follows ADR-089 (the oracle lane) and ADR-109 (C's lane B). It adds
 the lane's seventh oracle, **O9**, and changes nothing in the product.

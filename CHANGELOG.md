@@ -11,8 +11,42 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.4-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.5-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.5-beta — 2026-09-12 (C is supported: compiler-graded against clang's front end; ADR-110)
+
+**Patch: the verification base names C.** A language addition is a
+patch, not a structural change (Max, 2026-09-12), so this patch carries C
+from "wired, not supported" to a §3.8 row.
+
+- **What the layer says now:** §3.8 gains C's row, and
+  `extract/verification.py` its pin. Every ingest's `verification base:`
+  line, the surface's language badge and `list_blind_spots` now say C is
+  verified on 2 repos, where they said unverified.
+- **The evidence** (oracle lane O9, clang 18.1.3's own resolution of
+  every call, contained):
+  - **DaveGamble/cJSON:** 1,188/1,188 confirmed, 0 contradicted, all
+    semantic. Recall is 62.0%: every direct call is drawn (1,190/1,190),
+    and every miss is a call a Unity macro's expansion makes, which
+    Hobbes draws to the macro (C-131).
+  - **sqliteai/sqlite-vector** (drawn at random): 851/854. The semantic
+    tier is 851/851; 3 syntactic edges are wrong (C-138, below). Recall
+    100%.
+  - Poison check PASS on every cell.
+- **Register:**
+  - **C-138:** lane A's fallback guesses where lane B resolved the site to
+    a declaration outside the repo. `evidence.join` asks only for an
+    in-repo resolution. Measured on sqlite-vector: a `strcasestr` shim in
+    a dead `#if` arm drawn over libc's.
+  - **C-131** measured on both repos.
+  - **C-135's surfacing** is partial: a root whose derived database
+    indexes nothing draws a generic `scip-index` record (jfernandez/bpftop,
+    the draw's first candidate).
+  - **C-130's surfacing** is restated for the new row.
+- **Not in the layer:** the oracle itself (`bench/oracle/internal/clang`)
+  is bench tooling and carries no version (ADR-103). The image gains
+  Ubuntu's clang 18 for it (~0.3 GB).
 
 ## 0.2.4-beta — 2026-09-12 (C's lane B: scip-clang over a derived compile database; ADR-109)
 

@@ -121,7 +121,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
-| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109) | C-130, C-131, C-132, C-133, C-134, C-135, C-136, C-137 |
+| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-130, C-131, C-132, C-133, C-134, C-135, C-136, C-137, C-138 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
@@ -136,8 +136,18 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and thirty-seven entries: one hundred and ten active, twenty-four lifted, three superseded**
-(ADR-109 on 2026-09-12, C's lane B, scip-clang:
+**One hundred and thirty-eight entries: one hundred and eleven active, twenty-four lifted, three superseded**
+(ADR-110 on 2026-09-12, C's oracle cells:
+- C-138 registered: lane A's fallback guesses where lane B resolved the
+  site to a declaration outside the repo (*partial*).
+- C-131 measured: cJSON's 728 macro-expansion pairs, and
+  sqlite-vector's dead-arm `strcasestr`.
+- C-135 moved from *surfaced* to *partial*: a root whose derived
+  database indexes nothing draws a generic record (jfernandez/bpftop).
+- C-130's surfacing restated: the verification base names C since
+  0.2.5-beta.
+
+ADR-109 on 2026-09-12, C's lane B, scip-clang:
 - C-130 narrowed (lane B where a compile database can be derived).
 - C-131 narrowed (the configured `#if` arm; a site that translation
   units resolve in different files keeps lane A's floor).

@@ -1,203 +1,88 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.2.4-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.5-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.4-beta are untagged. Tags are Max's call ("no need to tag yet").
-- **Numbering** (Max; ADR-103's fourth amendment): the Calvin harness
-  moved the layer to 0.2.0-beta. Patch by patch on 0.2.x; a capability
-  bumps minor.
+  0.2.5-beta are untagged. Tags are Max's call ("no need to tag yet").
+- **Numbering** (Max; ADR-103's fourth amendment and its 2026-09-12
+  note): patch by patch on 0.2.x. A language addition is a patch, even
+  when it reaches "supported"; a structural change bumps minor (ask).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the 2026-09-12 BUILDLOG entry.
+The session's record is the last 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C has both lanes (0.2.4-beta); its §3.8 oracle cell is next
+## ⇢ START HERE NEXT SESSION: C is graded (0.2.5-beta); four asks wait on Max
 
-0. **Latest (2026-09-12, last).** Max: "run the new harness with
-   adding c as a language to hobbes".
-   - **Done:** C's lane A in two dispatched sessions.
-     - `eef8` built `csource.py`.
-     - `e6db` fixed four defects review found on DaveGamble/cJSON:
-       `extern "C"` bodies unwalked (0 of 341 macros), a rank-1 tie that
-       picked, duplicate ids, and a `..` include that resolved.
-     - Both were fast-forwarded with their authorship kept.
-     - The bookkeeping carries ADR-108, C-130–C-134 (a new segment,
-       `extraction-c.md`), architecture §3.1/§3.7/§8, and 0.2.1-beta.
-     - C is **wired, not supported**: every C edge is `syntactic`, and
-       there is no §3.8 row.
-   - **Max's calls:** 0.2.1-beta, a patch; the minor waits for
-     "supported". For lane B: **derive the compile database and degrade
-     visibly** (`compile_commands.json`, else CMake's export, else
-     `bear`, else lane A only and said so).
-   - **Next (NEXT 1):** C's lane B.
-     - Its ADR first: scip-clang v0.4.0 against ADR-105's five points,
-       the containment profile, and how CMake and bear run in the image.
-     - Then the image change, which can't be dispatched: no fetch route.
-     - Then the provider wiring, which a dispatch can do.
-     - Then C's §3.8 row on an oracle (clang's call graph).
-   - **Harness findings:** four sessions today, with no false block and
-     no `missed`.
-     - Recall and tie-rule defects sit outside the gate's classes;
-       review on real input is what found them.
-     - The one egress refusal per suite run is `test_bench.py`'s
-       `http://llm` GET.
-     - Inside the sandbox, `test_ttt_units.py` fails 3 tests, but passes
-       24/24 on the host. Worth a look: it may be D-r's shared-clone git
-       issue.
+0. **Latest (2026-09-12, last).** Max: "review top level documentation.
+   then proceed with grading c against the oracle with a c repo. utilize
+   hobbes and calvin as a harness."
+   - **The doc review** (`348620d`). "Every compiler-graded cell at 100%"
+     overclaimed quic-go (99.6%, all the oracle's grain) in README,
+     CLAUDE.md and the architecture's status row. The counts caught up.
+   - **ADR-110** (`b7d17b8`, before any cell): C's oracle is clang's
+     front end over the ingest's compile database, contained. The
+     pre-registration is P17–P25, with the draw rule (seed 20260912).
+   - **Built through the harness,** in three dispatches:
+     - `b126` discarded: stopped as a stall; its byte counts showed it
+       was reading;
+     - `5d5f`, unit A (the reader and merge), merged;
+     - `9396`, unit B (the fixes, the contained run, the CLI), merged.
 
-   - **Then 0.2.2-beta.** The first ingest after 0.2.1-beta showed
-     that a C-scoped `list_blind_spots` said nothing about C. The Go
-     proxy's `langByExt` and `artifactLangBucket` lacked it (and C-100's
-     `.mts`/`.cts`).
-     - A third dispatch (`404f`) added them, with a drift test holding
-       them to `tail._LANG_BY_EXT`. It was merged.
-     - C-130's surfacing text was corrected, including that C's capture
-       line reads 0% because fallback edges count in the remainder.
-     - §3.7's list of places a language touches gained the proxy's
-       tables.
-   - **Max's answers:** make the two harness fixes (done, 0.2.3-beta:
-     `gofmt -l`/`-d` in the box, and the outermost Python tree first
-     on `PATH` with each interpreter named). Leave the capture display
-     as it is. Continue with C's lane B.
-   - **C's lane B is built (0.2.4-beta, ADR-109).** scip-clang 0.4.0,
-     CMake and bear are in the image. The compile database is derived
-     per build root, and the helper decodes C's shapes.
-     - **The spike's find:** the helper's moniker parser rejected
-       scip-clang's signature-hash disambiguator, so no C function
-       joined.
-     - **The helper's C rules:** macros named by location are read from
-       the stage; a file-static several files define resolves in its
-       own file; a site whose translation units disagree across files
-       keeps lane A.
-     - **cJSON:** 2,075 of 4,292 C sites semantic, and the lanes agree
-       on all 1,717 compared. The first version of the translation-unit
-       rule keyed on position alone and dropped 1,001 sites (a macro's
-       expansion shares its position); keyed on position and name, it
-       drops 2.
-     - **Next (NEXT 1):** C's §3.8 row, an oracle cell against clang's
-       own call graph. Until then C is unverified.
-
-   **Earlier the same day:** a second top-level doc review. Its
-   findings are fixed in one `docs:` commit (the BUILDLOG lists them),
-   and Max moved the layer to **0.2.0-beta**: the harness is the
-   capability (ADR-103's fourth amendment). The proxy and the image
-   are rebuilt, and the repo is re-ingested at 0.2.0-beta; restart the
-   knowledge server to see it.
-
-   **Earlier the same day:**
-   - **The first real dispatch** (`S-20260912T151945Z-417f`): the
-     `path` alias for `list_blind_spots` and `list_invariants` (W4,
-     ADR-087 follow-up (a)).
-     - **The run:** the doer used 38 of 40 turns and made one commit, by
-       `hobbes-dispatch`. Egress: 3 tunnels, 0 refused. Policy: 12
-       allows.
-     - **The verdicts:** gate clear; verify pass (45 tests, 2 new, 0
-       regressions). Checked again outside the sandbox: gofmt, vet and
-       tests all pass.
-     - **Merged.** A fast-forward onto `main` at 11:31, made by the
-       other session on this checkout ("Dispatch background
-       conversation", Remote Control), which also wrote both review
-       blocks. The doer's commit kept its `hobbes-dispatch` author.
-       0.1.23-beta carries the CHANGELOG entry and W4 (a) done; the
-       proxy and the image are rebuilt, and both session files are
-       committed.
-     - **Turns:** the dispatch default is 80 (Max). The other session's
-       review had recorded "60, hard cap 100" and a "dynamic turn
-       budget" that did not exist; a dated correction sits under it.
-   - **Retention** (0.1.22-beta; ADR-107 amended) — Max: *store no
-     reasoning; recorded sessions are evaluation rows, never model
-     training.*
-     - **Built:** the doer runs with `--no-session-persistence`.
-       `hobbes-session` purges `.claude/`, `.claude.json*` and
-       `.cache/claude-cli-nodejs/` from its HOME at exit, and dispatch
-       re-checks and records the result. `units_from_git` skips the
-       doer's commits and `docs/calvin/sessions/`.
-     - **Purged:** the three harness sessions that held doer state.
-       The real dispatch had stored 21 thinking-block lines; none are
-       left.
-     - **Register:** C-125 amended; C-129 added.
-   - **Settled with Max:**
-     - The five Qwen transcripts (2026-08-22) that carry
-       `reasoning_content` stay. The concern is Claude's reasoning, not
-       Qwen's.
-     - The error Max caught was on reasoning extraction, which the
-       retention amendment covers.
-   - **Open:** C-129's reach (a merged doer's code is in the tree).
-1. **What changed (2026-09-12).**
-   - **The review first.** Max had the top-level docs reviewed. The
-     findings are in item 4; most are fixed.
-   - **Then the reframe.** *"O+gate is essentially a harness to stack on
-     top of this environment, lacking hobbes session and egress
-     allowlist. After the harness is set up, how we will verify is by
-     using it through Hobbes development and appending to a log file per
-     session."*
-   - **Max's four decisions:**
-     - the doer is **dispatched** from the developer's session;
-     - the doer is **Claude Code on the subscription**;
-     - **one file per session**;
-     - the keyed rounds' held steps are **closed as superseded**.
-   - **The record:** [`docs/calvin/calvin-harness.md`](calvin/calvin-harness.md)
-     and [ADR-107](adr/107-calvin-as-a-harness.md).
-   - **Built, 0.1.21-beta:**
-     - `hobbes-session --egress`: the session on its own `--internal`
-       network; `hobbes-proxy egress` on it and on the `hobbes-egress`
-       bridge tunnels CONNECT to the named hosts alone and logs to
-       `<session>/egress.jsonl`.
-     - Claude Code as the doer: `--claude-bin`, and
-       `$CLAUDE_CODE_OAUTH_TOKEN` passed by name.
-     - `--claude-cred` withdrawn.
-     - `hobbes gate --map derive`.
-     - `hobbes dispatch`.
-     - The reviewer path (`review.py`) on `--egress`.
-   - **Checked, no spend:**
-     - the full suites (1,371 pytest, 325 Go);
-     - the **live** route test: a real session behind the real proxy
-       got 200 from the listed host, 403 for another port, and no route
-       without the proxy;
-     - a Claude Code smoke: an invalid token made three tunnels to
-       `api.anthropic.com:443` and got 401, no other host was reached
-       for, and teardown was clean.
-2. **Running a session** (done once; the steps stand).
-   1. **Max makes the token:** `! claude setup-token`. It is
-      interactive. Keep the token as `claude_oauth_token` in the key
-      file (`--secrets "$HOBBES_SECRETS"`), or export
-      `CLAUDE_CODE_OAUTH_TOKEN`.
-   2. **Restart the knowledge server.** The image was rebuilt at
-      0.1.21-beta, and a server keeps the image it started on (C-65).
-   3. **Ingest at HEAD:** `uv run hobbes ingest`. Dispatch refuses an
-      ingest at another SHA.
-   4. **Pick a small, testable, real task, and name it.** The first
-      was W4's ADR-087 follow-up (a), done in 0.1.23-beta. NEXT items
-      2–3 hold the no-spend candidates, each parked until Max names it.
-   5. **Dispatch:** `uv run hobbes dispatch --task-file task.md --secrets
-      "$HOBBES_SECRETS"`. Add `--partition` if the files are known;
-      `--dry-run` first shows the whole stack.
-   6. **Review:**
-      - read `docs/calvin/sessions/<session>.md` and `git diff
-        <parent>..hobbes/<session>`;
-      - fill the review block (`right-clear | right-block |
-        false-block | missed`; outcome);
-      - merge or discard;
-      - commit the session file with the work.
-3. **For Max:**
-   - **The validation criterion.** `calvin-harness.md` §4 proposes
-     N = 20 sessions across at least three areas of the tree, no false
-     block unresolved, every `missed` fixed or registered, and no
-     refusal unread. The claim reaches those sessions only (C-127).
-   - **ADR-106.** It stays held for M0-Go's design, which the closed
-     rounds will not accept. Release the number, or keep it held.
-   - **The reviewer path** (`hobbes review`'s soft verdicts) had never
-     worked live: there was no `claude` in the image and no network. It
-     can run now, given the token and `--egress`.
-4. **The doc reviews (2026-09-12).** Both are in the BUILDLOG: the
-   first (CLAUDE.md's Status cut, the read-next rows, the Calvin
-   narrative) and the second (CI's shape, the TS/JS syntax lane, the
-   image base, first-run, the policy chain, the versioning rule).
-   - **Still left:** `calvin-m0-gate.md` dates its handoff and §0a
-     2026-09-12 beside 09-11 rulings. It is a record, left as is.
-   - **Unchecked by any machine:** the suite counts in CLAUDE.md. CI
-     runs every suite but does not compare the counts (W0's drift
-     audit).
-5. **Carried, untouched this session:**
+     Both merges kept the doer's authorship. Review found three reader
+     defects (H-24–H-26). The first real cell found a mount defect
+     (H-27), fixed by the developer (`17def60`).
+   - **The cells** (contained, poison PASS on each):
+     - `minic` 5/5, recall 7/7;
+     - DaveGamble/cJSON 1,188/1,188, recall 62.0%. Every miss is a call a
+       Unity macro's expansion makes (C-131).
+     - sqliteai/sqlite-vector, drawn at random (draw 1, bpftop, had no
+       compile database): 851/854. The 3 are syntactic edges Hobbes got
+       wrong, a `strcasestr` shim in a dead `#if` arm drawn over libc's
+       (C-138). Semantic 851/851; recall 100%.
+   - **0.2.5-beta:** §3.8's C row and `verification.py`'s pin; the image
+     and the proxy rebuilt; the repo re-ingested at the commit. **Restart
+     the knowledge server** the next session opens with (C-65).
+1. **For Max, the asks from this session:**
+   - **C-138's veto.** `evidence.join` takes lane A's guess wherever lane
+     B has no in-repo answer, even where lane B resolved the site to a
+     library. A veto there changes every language, and every cell's
+     syntactic tier would be regraded. Yes or no.
+   - **C's macro gap** (C-131's recall hole): cJSON's 728 pairs, 38% of
+     its recall denominator.
+     - Drawing the calls a macro's expansion makes, at the invocation,
+       would close most of it; lane B's index already holds those
+       references.
+     - It needs a design, if wanted.
+   - **The box policy:**
+     - (a) allow `rm` inside `/work`, or state that the box's escalations
+       are not a boundary while `python3 *` is allowed. A doer deleted
+       its scratch file through `python3 -c` after `rm` expired.
+     - (b) name `clang --version`, `cmake --version` and
+       `bear --version` among the read-only probes.
+   - **A progress signal for dispatches.** A doer that reads looks like
+     one that is stuck (`b126`). C-125's named fix, a hook that reports
+     Edit and Write to the flight log, would give one.
+   - **Carried:** the harness's validation criterion (N sessions), and
+     ADR-106.
+2. **Running a session** (the steps stand; `calvin-harness.md` §5):
+   - Keep the token in the key file.
+   - Restart the knowledge server after an image rebuild (C-65).
+   - Ingest at HEAD.
+   - Name a small, testable task, then `hobbes dispatch --task-file …
+     --secrets "$HOBBES_SECRETS"`: add `--partition`, and run
+     `--dry-run` first.
+   - Review the session file and the diff. Merge, never squash.
+   - **From `b126`:** keep one brief to one unit a doer can finish in
+     about 150 turns. Watch the worktree for its first edit (`git -C
+     <session>/worktree status --porcelain`), not its egress; a doer may
+     read for 20 minutes first (`5d5f`).
+3. **The C oracle, for a regrade or a new cell:**
+   - `bench/oracle/run-cell.sh <repo> <build root> <out> --lang c`
+     (`--compdb` names a database). It needs the image with clang (built
+     2026-09-12).
+   - The cells and clones are under `~/.hobbes/bench/oracle/`
+     (`{minic,cjson,sqlite-vector}-c/`, `repos/`). The draw's ordered
+     pool is recorded in the sqlite-vector cell record.
+4. **Carried, untouched this session:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading (round 1's finding).
    - **D-r.** `hobbes verify`'s `--shared` clone makes `git` fail in the
@@ -281,36 +166,33 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 137 entries, 110 active, 24 lifted, 3 superseded.
-  C-124 was superseded 2026-09-12; C-125–C-137 were added.
-- **Suites:**
-  - 1,459 pytest (5 `lane_b`); 42 helper node tests;
-  - 328 Go, subtests counted as before (HEAD `e130b34` read 304 by
-    that count, 240 top-level);
-  - 52 oracle-lane Go; 52 vitest; 36 + 36 node; 84 atlas0.
+- **Register:** 138 entries, 111 active, 24 lifted, 3 superseded.
+  C-124 was superseded 2026-09-12; C-125–C-138 were added.
+- **Suites** (2026-09-12, at 0.2.5-beta; `--- PASS` lines, subtests
+  counted):
+  - 1,459 pytest (5 `lane_b`);
+  - 331 Go (330 pass, 1 skip);
+  - 91 oracle-lane Go (87 pass, 4 skip without a toolchain), the C
+    end-to-end contained;
+  - 52 vitest; 42 helper and 36 tsextract node; 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).
 
 ## NEXT (in order; no API spend)
 
-1. **C's §3.8 row** (workstreams W1): an oracle cell graded against
-   clang's own call graph, on cJSON and at least one random draw.
+1. **Max's four asks** (START HERE item 1). C-138's veto comes first: it
+   is the one wrong-edge mechanism the C cells found.
 2. **Keep dispatching named no-spend work through the harness**
-   (START HERE item 2's steps; the candidates are items 3–4 below).
-   Setting the validation criterion (§4's N sessions) is Max's call.
-2. **W0's remainder:**
+   (START HERE item 2). The candidates:
+   - C's residue (workstreams W1): C-134's test registrations; C-135's
+     autotools, Meson and Bazel roots, and its surfacing gap; C-133's
+     include path, read from the database;
+   - W1/W3's no-spend items: the decorated-declaration line convention,
+     the C-15 namespacing ADR, the directory rollup in
+     `list_blind_spots`, `fetch-java` on the egress proxy.
+3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
-   - `go/internal/version` and the union fixture's ownership still
-     need resolution;
+   - `go/internal/version` and the union fixture's ownership;
    - the registry-pulled image and the drift audit, when named.
-3. **W1 and W3 items that spend nothing:**
-   - the decorated-declaration line convention (131 of dagger's 258
-     lane disagreements);
-   - the C-15 namespacing ADR;
-   - the directory rollup in `list_blind_spots`;
-   - `fetch-java` on the egress proxy (C-66's next narrowing; the proxy
-     exists now).
-
-   Each is a good candidate for a dispatch once named.
 
 **Held, with all spend (not cleared, not scheduled):**
 - the Atlas-0 T items;
