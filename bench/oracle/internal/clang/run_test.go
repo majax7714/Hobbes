@@ -199,7 +199,12 @@ func TestOracleCClangEndToEnd(t *testing.T) {
 	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
 		t.Skip("containment unavailable: " + why)
 	}
-	bin := filepath.Join(t.TempDir(), "oracle")
+	// The binary is built inside the cell dir, as run-cell.sh builds it:
+	// the dir is then both the rw cell mount and the binary's own ro
+	// mount, the layout the first real cell refused as a duplicate mount
+	// destination (ADR-110) and a test binary built elsewhere never hit.
+	outDir := t.TempDir()
+	bin := filepath.Join(outDir, "oracle")
 	build := exec.Command("go", "build", "-o", bin, "../../cmd/oracle")
 	build.Env = append(os.Environ(), "CGO_ENABLED=0")
 	build.Dir = "."
@@ -210,7 +215,6 @@ func TestOracleCClangEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	outDir := t.TempDir()
 	oracleJSON := filepath.Join(outDir, "oracle.json")
 	run := exec.Command(bin, "c-clang", "--repo", repo, "--module", "", "--out-dir", outDir, "--out", oracleJSON)
 	if out, err := run.CombinedOutput(); err != nil {

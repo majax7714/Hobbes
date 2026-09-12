@@ -153,13 +153,23 @@ func New(step string, command []string, dir, tree string, rw, ro []string, env [
 		return Plan{}, fmt.Errorf("contain: no profile for step %q", step)
 	}
 	cache := CacheRoot()
+	rwMounts := dedupe(append([]string{cache}, rw...), "")
+	// A ro path the rw mounts already expose adds nothing, and podman
+	// refuses two mounts at one destination: the C oracle's binary sits
+	// in its own cell dir, which is rw (ADR-110's first cell).
+	var roMounts []string
+	for _, p := range MountRoots(ro, tree, cache) {
+		if !underAny(p, rwMounts) {
+			roMounts = append(roMounts, p)
+		}
+	}
 	return Plan{
 		Profile: prof,
 		Command: command,
 		Dir:     dir,
 		Tree:    tree,
-		RW:      dedupe(append([]string{cache}, rw...), ""),
-		RO:      MountRoots(ro, tree, cache),
+		RW:      rwMounts,
+		RO:      roMounts,
 		Env:     env,
 		Image:   Image(),
 		Cache:   cache,

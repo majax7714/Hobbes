@@ -21,6 +21,32 @@ func TestProfilesStateWhatExecutes(t *testing.T) {
 	}
 }
 
+// TestNewDropsReadOnlyUnderReadWrite covers ADR-110's first cell: the C
+// oracle's binary sits in its rw cell dir, and mounting that dir ro as
+// well made podman refuse "duplicate mount destination". A ro path a rw
+// mount already exposes is dropped; one outside every rw mount stays.
+func TestNewDropsReadOnlyUnderReadWrite(t *testing.T) {
+	out, tool := t.TempDir(), t.TempDir()
+	p, err := New("c-clang", []string{filepath.Join(out, "oracle")}, out, "", []string{out}, []string{out, tool}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if contains(p.RO, out) {
+		t.Fatalf("ro %s duplicates a rw mount: %v", out, p.Mounts())
+	}
+	if !contains(p.RO, tool) {
+		t.Errorf("ro %s lies under no rw mount and was dropped: %v", tool, p.RO)
+	}
+	seen := map[string]bool{}
+	for _, m := range p.Mounts() {
+		dst := strings.Split(m, ":")[1]
+		if seen[dst] {
+			t.Errorf("duplicate mount destination %s in %v", dst, p.Mounts())
+		}
+		seen[dst] = true
+	}
+}
+
 // TestCClangProfileExecutesOffline covers O9 (ADR-110): deriving a C
 // build's compile database and running clang both run repo-authored
 // build logic, so the profile executes with no network, like O6/O7.
