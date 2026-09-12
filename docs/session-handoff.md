@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.2.5-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.8-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.5-beta are untagged. Tags are Max's call ("no need to tag yet").
+  0.2.8-beta are untagged. Tags are Max's call ("no need to tag yet").
 - **Numbering** (Max; ADR-103's fourth amendment and its 2026-09-12
   note): patch by patch on 0.2.x. A language addition is a patch, even
   when it reaches "supported"; a structural change bumps minor (ask).
@@ -10,111 +10,50 @@
 
 The session's record is the last 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: Max's three approved patches, in order — the progress hook, C-138's veto, the box policy
+## ⇢ START HERE NEXT SESSION: Max's three patches are landed — pick the next named item
 
-0. **Latest (2026-09-12, last).** Max: "review top level documentation.
-   then proceed with grading c against the oracle with a c repo. utilize
-   hobbes and calvin as a harness."
-   - **The doc review** (`348620d`). "Every compiler-graded cell at 100%"
-     overclaimed quic-go (99.6%, all the oracle's grain) in README,
-     CLAUDE.md and the architecture's status row. The counts caught up.
-   - **ADR-110** (`b7d17b8`, before any cell): C's oracle is clang's
-     front end over the ingest's compile database, contained. The
-     pre-registration is P17–P25, with the draw rule (seed 20260912).
-   - **Built through the harness,** in three dispatches:
-     - `b126` discarded: stopped as a stall; its byte counts showed it
-       was reading;
-     - `5d5f`, unit A (the reader and merge), merged;
-     - `9396`, unit B (the fixes, the contained run, the CLI), merged.
-
-     Both merges kept the doer's authorship. Review found three reader
-     defects (H-24–H-26). The first real cell found a mount defect
-     (H-27), fixed by the developer (`17def60`).
-   - **The cells** (contained, poison PASS on each):
-     - `minic` 5/5, recall 7/7;
-     - DaveGamble/cJSON 1,188/1,188, recall 62.0%. Every miss is a call a
-       macro's expansion makes: 723 into Unity, and 5 through cJSON's own
-       `cJSON_SetNumberValue` (C-131).
-     - sqliteai/sqlite-vector, drawn at random (draw 1, bpftop, had no
-       compile database): 851/854. The 3 are syntactic edges Hobbes got
-       wrong, a `strcasestr` shim in a dead `#if` arm drawn over libc's
-       (C-138). Semantic 851/851; recall 100%.
-   - **0.2.5-beta:** §3.8's C row and `verification.py`'s pin; the image
-     and the proxy rebuilt; the repo re-ingested at the commit. **Restart
-     the knowledge server** the next session opens with (C-65).
-1. **Max's decisions (2026-09-12, closing the session): the four
-   proposals are approved, in this order.** Each is its own patch.
-   1. **The progress hook** (narrows C-125; ADR-107 amended; one dispatch).
-      - `hobbes-session` writes a settings file whose PostToolUse hook on
-        Edit, Write, MultiEdit and NotebookEdit runs the mounted static
-        proxy as `hobbes-proxy record-edit`. It appends the time, tool
-        and path to the session's flight log, never content.
-      - The session file gains an edits line: count, files, first-edit
-        time.
-      - No kill on silence (`b126`); a note if no edit by N minutes.
-      - Checked: Claude Code takes `--settings`, and hooks run under `-p`
-        unless `--bare` is passed. Dispatch passes none.
-   2. **C-138's veto** (ADR-111; one dispatch).
-      - `evidence.join` takes the external references the tail already
-        computes, and skips lane A's fallback where one sits at the
-        site's (file, line, name). The site goes to the tail as
-        `external-origin`.
-      - A fixture shape per language: a repo function named like a
-        library call.
-      - **Acceptance before the merge:** regrade every contained cell.
-        sqlite-vector must go from 851/854 to 851/851, with exactly 3
-        fewer syntactic edges. Every other cell keeps its confirmed
-        count, and a lost confirmed edge stops the merge.
-   3. **The box policy** (directly, beside the veto).
-      - Allow `rm *`; escalate `rm *-r*` and `rm *-R*`. Allow
-        `clang --version`, `cmake --version` and `bear --version`.
-      - The policy's header states an escalation is not a boundary where
-        an allowed interpreter can do the same.
-      - A Go test against the real box file. Check that the gate blocks a
-        deletion outside the partition.
-   - **Parked, done this session (docs only): C's macro gap.**
-     - Lane B's expansion references already land as `uses` at the
-       invocation (381 into `UnityFail` on cJSON), so dependency
-       questions see them.
-     - Promoting them to `calls` would be unsound: SCIP has no call
-       role, and a value passed on the same line would draw as a call.
-     - `future_additions.md` holds the sizes and the sound design.
-   - **Carried:** the harness's validation criterion (N sessions), and
-     ADR-106.
-2. **Running a session** (the steps stand; `calvin-harness.md` §5):
-   - Keep the token in the key file.
-   - Restart the knowledge server after an image rebuild (C-65).
-   - Ingest at HEAD.
-   - Name a small, testable task, then `hobbes dispatch --task-file …
-     --secrets "$HOBBES_SECRETS"`: add `--partition`, and run
-     `--dry-run` first.
+0. **Latest (2026-09-12, next session).** Max: "review top level documentation and continue from the resume point utilizing hobbes and calvin." His three approved patches, in his order, are all landed. The record is the last BUILDLOG entry.
+   1. **The progress hook, 0.2.6-beta** (ADR-107's second amendment).
+      - Built by dispatch `efc8` and merged as `7ec3fe9`.
+      - Every doer edit is a flight line by time, tool and path, never content.
+      - Dispatch prints the first edit and one quiet note (`--quiet-minutes`, default 20). It kills nothing.
+      - Live since `42d1`: "first edit at 0.8 min".
+   2. **The dispatch box, 0.2.7-beta.** `rm *` runs; a recursive `rm` escalates (`-r`, `--recursive`, `-R`, `-fr`, `-fR`); `clang`/`cmake`/`bear --version` run. The header says an escalation is a question, not a boundary.
+   3. **C-138's veto, 0.2.8-beta** (ADR-111).
+      - Built by dispatch `42d1` and merged as `0886367`.
+      - **The acceptance regrade:** 44 cells with a stored key, pre and post, with no confirmed edge lost. sqlite-vector reads 851/851.
+      - The gate's "exactly 3 fewer" read 4. The fourth was a prototype lane A reads as a call; Max accepted it.
+      - Dagger's 56 vetoes found **C-139**, Go's local shadow of a package name.
+   - **Restart the knowledge server** the next session opens with. The image was rebuilt at 0.2.8-beta (C-65).
+1. **Open for Max (no spend):**
+   - **The box's `find*`/`xargs*`.** Both can delete recursively without escalating (`find . -delete`, `xargs rm -rf` as a segment). Only the header names this.
+   - **C-139's lift:** a lane A rule that treats a local binding of a selector's qualifier as a shadow, with a Go fixture and a re-ingest. One dispatch.
+   - **The harness's validation criterion** (N sessions, proposed 20 across three areas). So far: 2 sessions this time and 9 before, with no false block and no `missed`.
+   - **ADR-106.**
+2. **Running a session** (`calvin-harness.md` §5):
+   - Keep the token in the key file, and ingest at HEAD.
+   - Name one small unit: `hobbes dispatch --task-file … --partition … --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the argv carries `--settings` (the hook).
+   - Watch dispatch's own stderr for "first edit at"; no worktree watcher is needed now.
    - Review the session file and the diff. Merge, never squash.
-   - **From `b126`:** keep one brief to one unit a doer can finish in
-     about 150 turns. Watch the worktree for its first edit (`git -C
-     <session>/worktree status --porcelain`), not its egress; a doer may
-     read for 20 minutes first (`5d5f`).
-3. **The C oracle, for a regrade or a new cell:**
-   - `bench/oracle/run-cell.sh <repo> <build root> <out> --lang c`
-     (`--compdb` names a database). It needs the image with clang (built
-     2026-09-12).
-   - The cells and clones are under `~/.hobbes/bench/oracle/`
-     (`{minic,cjson,sqlite-vector}-c/`, `repos/`). The draw's ordered
-     pool is recorded in the sqlite-vector cell record.
+   - **Testing a dispatch branch on the host before merging:**
+     - make a worktree with its own `uv sync`; main's venv would import main's code;
+     - copy `scip/node_modules` and `tsextract/node_modules` as real trees, because lane B's container cannot follow a symlink out of the worktree;
+     - run node tests as `node --test test/index.test.mjs`; node 22 does not take a directory.
+3. **A regrade against stored keys** (the ADR-111 pattern):
+   - `~/.hobbes/bench/adr111-drivers/`: `regrade2.sh <out> cells.tsv` on main; `ROOT=<worktree> regrade3.sh` for a branch.
+   - `cells.tsv` names every cell's clone, module, lang, excludes, key and before-report.
+   - The 0.1.10-beta dirs keep only reports; the keys are in each cell's first dir and in `comparative/keys/`. kbet's key is at `~/.hobbes/bench/adr111-keys/`.
+   - Run the pre pass first, and never run two passes over the same clone at once.
+   - `render.py` takes absolute paths.
 4. **Carried, untouched this session:**
-   - **The ingest's `.gitignore` edit.** Register it as a constraint or
-     change it, on Max's reading (round 1's finding).
-   - **D-r.** `hobbes verify`'s `--shared` clone makes `git` fail in the
-     container for one Python key.
+   - **The ingest's `.gitignore` edit.** Register it as a constraint or change it, on Max's reading (round 1's finding).
+   - **D-r.** `hobbes verify`'s `--shared` clone makes `git` fail in the container. This session saw it again as a verify `F2F` (`test_the_artifact_says_which_hobbes_built_it`) and as `test_ttt_units` failures in a doer's session. Both pass on the host.
    - **`stringer` is not in the image.**
-   - **The Gradle attach route's residuals** (C-67: `compilerArgs`
-     replaced after configuration; external symbols without artifact
-     names; Kotlin under the plugin).
+   - **The Gradle attach route's residuals** (C-67).
    - **`recall-collapsed` and H-23**; ADR-105/P13; the C-98 residuals.
-   - **The comparative queue's item 4:** codebase-memory-mcp and
-     colbymchenry/codegraph; the competitor cells under the image.
+   - **The comparative queue's item 4.**
+   - **C's residue:** C-134, C-135, C-133. The macro gap stays parked (C-131, `future_additions.md`).
    - **`build-logic/`** is recorded, not built (ADR-097).
-   - **Off the table for now:** the three floor shapes and the Jelly key
-     grain.
 
 ## Atlas-0 — held from 2026-09-07: Max reads the B4 record; then the T that carries the abstention act, and T_v2
 
@@ -184,29 +123,24 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 138 entries, 111 active, 24 lifted, 3 superseded.
-  C-124 was superseded 2026-09-12; C-125–C-138 were added.
-- **Suites** (2026-09-12, at 0.2.5-beta; `--- PASS` lines, subtests
+- **Register:** 139 entries, 112 active, 24 lifted, 3 superseded.
+  C-139 added and C-138 narrowed (2026-09-12, ADR-111).
+- **Suites** (2026-09-12, at 0.2.8-beta; `--- PASS` lines, subtests
   counted):
-  - 1,459 pytest (5 `lane_b`);
-  - 331 Go (330 pass, 1 skip);
+  - 1,474 pytest (5 `lane_b`);
+  - 344 Go (343 pass, 1 skip);
   - 91 oracle-lane Go (87 pass, 4 skip without a toolchain), the C
     end-to-end contained;
-  - 52 vitest; 42 helper and 36 tsextract node; 84 atlas0.
+  - 52 vitest; 43 helper and 36 tsextract node; 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).
 
 ## NEXT (in order; no API spend)
 
-1. **Max's three approved patches, in his order** (START HERE item 1):
-   the progress hook; C-138's veto, with its regrade gate; the box policy.
-2. **Keep dispatching named no-spend work through the harness**
-   (START HERE item 2). The candidates:
-   - C's residue (workstreams W1): C-134's test registrations; C-135's
-     autotools, Meson and Bazel roots, and its surfacing gap; C-133's
-     include path, read from the database;
-   - W1/W3's no-spend items: the decorated-declaration line convention,
-     the C-15 namespacing ADR, the directory rollup in
-     `list_blind_spots`, `fetch-java` on the egress proxy.
+1. **Max's calls** (START HERE item 1): the box's `find`/`xargs`, C-139's lift, the validation criterion.
+2. **Keep dispatching named no-spend work through the harness,** one unit per brief:
+   - C-139's lift, once named;
+   - C's residue (W1): C-134's test registrations; C-135's autotools, Meson and Bazel roots and its surfacing gap; C-133's include path read from the database;
+   - W1/W3's no-spend items: the decorated-declaration line convention, the C-15 namespacing ADR, the directory rollup in `list_blind_spots`, `fetch-java` on the egress proxy.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
    - `go/internal/version` and the union fixture's ownership;

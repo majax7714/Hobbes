@@ -9411,3 +9411,130 @@ Two facts were checked before recommending:
 
 The first check also corrected the cJSON record: the misses are 723 into
 Unity and 5 into cJSON's own API (`cdf92fe`).
+
+## 2026-09-12 — (next session) Max's three approved patches: the progress hook (0.2.6-beta), the dispatch box (0.2.7-beta), C-138's veto (0.2.8-beta, ADR-111)
+
+**Asked (Max):** "review top level documentation and continue from the
+resume point utilizing hobbes and calvin."
+
+**The doc review:**
+- README, CLAUDE.md, the handoff, the harness doc and ADR-107 stood at
+  0.2.5-beta, with nothing overclaimed.
+- The resume point was Max's three approved patches, in his order.
+
+**1. The progress hook — 0.2.6-beta.** ADR-107 was amended before the
+dispatch (`f6cab1b`).
+- **Built by dispatch `S-20260912T215521Z-efc8`** (87 of 150 turns,
+  853 s): gate clear, verify pass. Merged as `7ec3fe9`, fast-forward,
+  keeping the doer's authorship.
+- **What it does:**
+  - A PostToolUse hook on Edit/Write/MultiEdit/NotebookEdit runs
+    `hobbes-proxy record-edit`: one flight line per edit (time, tool,
+    path; never content). It always exits 0.
+  - The flight line gains `path`.
+  - Dispatch gains an Edits line, prints the first edit, and prints one
+    quiet note (`--quiet-minutes`, default 20). It kills nothing.
+  - `read_flight` skips edit lines.
+- **Found by use:** `reasoning_left` read the session's Go build cache,
+  where compiled test packages hold the retention tests' own marker, a
+  false positive. `SCAN_SKIP` fixes it, with a test.
+- **Live from the next dispatch:** "first edit at 0.8 min —
+  scip/index.mjs", then 21 edit lines by path, with every other field
+  empty.
+- C-125 narrowed. The image and proxy rebuilt.
+
+**2. The dispatch box — 0.2.7-beta** (`a72c5a6`, directly).
+- `rm *` is allowed. A recursive `rm` escalates: `-r`/`--recursive`,
+  `-R`, and `-fr`/`-fR`.
+  - The two clusters were missing from the approved patterns: the
+    glob's `*` crosses spaces, and neither cluster contains `-r` or
+    `-R`.
+- `clang`/`cmake`/`bear --version` are allowed.
+- **The header** states an escalation is a question, not a boundary,
+  where `python3 *`, `find*` (`find . -delete`) and `xargs*` can do the
+  same. `find`/`xargs` are unchanged, for Max.
+- **Checks:**
+  - `TestCalvinBoxRemovesAndProbes` against the real box;
+  - a gate run on a real diff that deletes `run/mail.py` outside a
+    one-file partition blocks it (`partition`, "deleted").
+
+**3. C-138's veto — 0.2.8-beta** (ADR-111 committed before the dispatch,
+`e2ab96d`).
+- **Refinement over the sketch:** the helper's "external" includes
+  in-repo monikers (ambiguous across files, C-28; kinds the graph drops).
+  - An external reference is marked `in_repo` when its moniker has any
+    in-repo definition; `join_cross_unit` marks sibling-ambiguous ones.
+    Only unmarked references veto.
+  - Coverage is unchanged: the site was already `external`.
+  - `lane_agreement.external_vetoes` is printed by `hobbes lanes`
+    without changing its exit status.
+- **Built by dispatch `S-20260912T221854Z-42d1`** (99 of 200 turns,
+  817 s), the first under the live hook: gate clear, verify pass.
+- **On the host,** in a worktree of the branch with its own venv:
+  - node 43/43;
+  - the `lane_b` minic shape (a dead-arm `strcasestr` shim in
+    `util.c`): no edge to the shim, fate `external`, vetoes 1;
+  - pytest green.
+  - A first run failed 4 lane B tests. The cause was symlinked
+    `node_modules` in the worktree, which the lane B container cannot
+    follow; real copies fixed it.
+- **The acceptance regrade** covered all 44 oracle cells with a stored
+  key. Each was re-ingested contained and graded against its key; no
+  oracle was re-run. The drivers are kept at
+  `~/.hobbes/bench/adr111-drivers/`.
+  - **The keys:** the 0.1.10-beta dirs keep only reports, and the keys
+    stayed in each cell's first dir or in `comparative/keys/`. kbet's
+    tsc key had never been kept, so it was rebuilt at `f6e48cf8` and kept
+    at `~/.hobbes/bench/adr111-keys/`.
+  - **Pre-veto pass** (`adr111-pre/`, 1,222 s): all 44 cells reproduced
+    their stored confirmed and contradicted counts to the digit.
+  - **Post-veto pass** (`adr111-post/`, from the branch's worktree): **no
+    confirmed count moved in any cell.**
+    - sqlite-vector: 851/854 → **851/851**; contradicted 3 → 0;
+      syntactic edges 18,897 → 18,893 (−4); vetoes 4.
+    - Every other graded cell: 0 vetoes, syntactic edges unchanged. That
+      covers zod's 1,068, hono's 161, memchr's 1,399 and the C cells'.
+    - Dagger's graph: 56 vetoes, all in its root module, which has no key
+      (every root subtree oracle had run out of memory).
+- **The gate's "exactly 3 fewer syntactic edges" read 4.**
+  - The fourth is `libs/sqlite3.h:6943`: a prototype that tree-sitter-c
+    reads as a call, because `SQLITE_API` is never expanded (C-131).
+    Lane A drew it to the uncompiled amalgamation, and it graded silent.
+  - Put to Max, who merged (0.2.8-beta).
+- **Dagger's 56, checked before the question:**
+  - The ten examples are method calls on a local
+    `slog := slog.SpanLogger(ctx, …)`. Lane A drew them to the package
+    function `engine/slog.Info`/`Warn`/…; lane B resolved them to the
+    logger type's method outside the repo.
+  - So wrong edges were removed. A scan finds 61 such shadowed calls.
+  - The package-level calls keep 153 semantic edges.
+  - Registered as **C-139** (Go's local shadow of a package name, where
+    lane B does not answer).
+- **Merged** with a merge commit (`0886367`), keeping the five doer
+  commits; `main` had moved on with the box.
+- **Records:**
+  - C-138 narrowed; C-139 registered (register 139, 112 active);
+  - architecture §3.4 (the veto) and §3.8 (sqlite-vector 851/851);
+  - README, CLAUDE.md, the evidence log and workstreams;
+  - sqlite-vector's cell record (a 0.2.8-beta block with the signed
+    direction of fix);
+  - the comparative graphics regenerated (80 cells), with the drift test
+    passing.
+
+**Verified at 0.2.8-beta:**
+- pytest 1,474 passed (5 `lane_b`);
+- Go 343 pass, 1 skip;
+- scip node 43/43;
+- the report drift test;
+- `hobbes-proxy 0.2.8-beta` in the rebuilt image.
+
+**Harness sessions this time:** two dispatches, both right-clear and
+merged. No false block and no `missed`. Every egress refusal was read:
+the suite's own `http://llm` GET, refused as built.
+
+**Not done, for Max:**
+- whether the box's `find*`/`xargs*` should change;
+- C-139's lift (a lane A rule: a local binding of a selector's
+  qualifier);
+- the harness's validation criterion (N sessions), and ADR-106;
+- the carried items in the handoff.
