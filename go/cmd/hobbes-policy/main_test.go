@@ -155,6 +155,47 @@ func TestCalvinBoxFormatsReadOnly(t *testing.T) {
 	}
 }
 
+// TestCalvinBoxRemovesAndProbes resolves the box policy Max approved on
+// 2026-09-12 against the real dispatch box. A plain `rm` runs; a recursive
+// one stays a question, in each spelling the glob can see (`-r`, `-R`, the
+// `-fr`/`-fR` clusters, `--recursive`), alone or after a `cd`. `clang`,
+// `cmake` and `bear` answer `--version`, the probes whose escalations
+// expired in S-20260912T204447Z-9396; anything else they do takes the
+// default. The box's header says why an escalation here is not a boundary.
+func TestCalvinBoxRemovesAndProbes(t *testing.T) {
+	repo := t.TempDir()
+	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		command string
+		want    int
+	}{
+		{"rm scratch.py", 0},
+		{"rm -f a.txt b.txt", 0},
+		{"cd /work && rm -f notes.tmp", 0},
+		{"rm -r build", 20},
+		{"rm -R build", 20},
+		{"rm -rf build", 20},
+		{"rm -Rf build", 20},
+		{"rm -fr build", 20},
+		{"rm -fR build", 20},
+		{"rm --recursive build", 20},
+		{"cd /work && rm -rf build", 20},
+		{"clang --version", 0},
+		{"cmake --version", 0},
+		{"bear --version", 0},
+		{"which clang cmake bear make gcc 2>&1; clang --version 2>&1 | head -3", 0},
+		{"clang -c x.c", 20},
+	} {
+		code, stdout, stderr := resolve(t, repo, "--repo", repo, "--dir", repo, "--box", box, tt.command)
+		if code != tt.want {
+			t.Errorf("%q: exit = %d, want %d\n%s%s", tt.command, code, tt.want, stdout, stderr)
+		}
+	}
+}
+
 func TestResolveUsageErrors(t *testing.T) {
 	repo := fixtureRepo(t)
 	var stdout, stderr bytes.Buffer

@@ -13,6 +13,15 @@
 # proxy will run, and cannot widen what the sandbox already forbids. The
 # session's `--mount`s are read-only, so an allowed command cannot write
 # outside the worktree either way.
+#
+# An escalation here is not a boundary where an allowed command can do the
+# same thing. `python3 *` and `python -c *` are allowed, and so are `find*`
+# and `xargs*`, so a doer whose recursive `rm` escalates can still delete
+# through `python3 -c "import shutil; …"` or `find … -delete`. One did,
+# after its `rm` escalations expired (S-20260912T201059Z-5d5f). An
+# escalation puts a question in front of the common spelling. The mounts are
+# what bound a deletion: only the worktree is writable, and the gate reads
+# every deleted file against the partition.
 version: 1
 scope: box
 default: escalate
@@ -105,6 +114,27 @@ rules:
     decision: allow
   - pattern: "git stash*"
     decision: allow
+
+  # --- removing a file (Max, 2026-09-12). A doer deletes its own scratch
+  # file; the expired escalations cost turns and taught it the python
+  # detour. A recursive removal stays a question, in each spelling the glob
+  # can see: `-r`/`--recursive` and `-R` anywhere, and the `-fr`/`-fR`
+  # clusters, which contain neither. Escalate beats allow within a scope
+  # (ADR-002). The header says why this is a question, not a boundary. ---
+  - pattern: "rm *"
+    decision: allow
+  - pattern: "rm *-r*"
+    decision: escalate
+    reason: "a recursive removal is a question; delete files one by one, or ask"
+  - pattern: "rm *-R*"
+    decision: escalate
+    reason: "a recursive removal is a question; delete files one by one, or ask"
+  - pattern: "rm *-fr*"
+    decision: escalate
+    reason: "a recursive removal is a question; delete files one by one, or ask"
+  - pattern: "rm *-fR*"
+    decision: escalate
+    reason: "a recursive removal is a question; delete files one by one, or ask"
 
   # --- read-only orientation on the tree ---
   - pattern: "ls*"
@@ -216,6 +246,15 @@ rules:
   - pattern: "npm --version*"
     decision: allow
   - pattern: "npx --version*"
+    decision: allow
+  # C's toolchain (ADR-109/110): four escalations expired on these probes in
+  # S-20260912T204447Z-9396. Only `--version` is named; anything else they
+  # do takes the default.
+  - pattern: "clang --version*"
+    decision: allow
+  - pattern: "cmake --version*"
+    decision: allow
+  - pattern: "bear --version*"
     decision: allow
   - pattern: "command -v *"
     decision: allow

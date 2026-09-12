@@ -252,6 +252,10 @@ After that, the developer:
       - After `rm` escalations expired, a doer deleted its own scratch
         file through `python3 -c`, which the box allows. The box's
         escalations are not a boundary while `python3 *` is.
+        - Since 0.2.7-beta (Max): a plain `rm` runs, and a recursive
+          one escalates.
+        - The box's header says why that is a question, not a boundary.
+        - `clang`, `cmake` and `bear --version` are allowed.
   - **The progress hook (ADR-107's second amendment), one session:**
     - `S-20260912T215521Z-efc8` (87 of 150 turns, 853 s). Gate clear and
       verify pass; merged (0.2.6-beta). The first edit came at 2 minutes,

@@ -14,6 +14,26 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.5-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.2.7-beta — 2026-09-12 (the dispatch box: `rm` and C's toolchain probes; Max's policy)
+
+**Patch: what a dispatched doer's shell may run** (`calvin.box.policy`).
+
+- **Removing a file runs.** `rm *` is allowed. A recursive removal
+  still escalates, in each spelling the glob can see: `-r` and
+  `--recursive`, `-R`, and the `-fr` and `-fR` clusters, which contain
+  neither.
+- **C's toolchain probes run:** `clang --version`, `cmake --version` and
+  `bear --version`. Anything else those tools do takes the default.
+- **The header says what an escalation here is.** It is a question in
+  front of the common spelling, not a boundary. `python3 *`, `find*` and
+  `xargs*` are allowed, and a doer did delete through `python3 -c` after
+  its `rm` escalations expired (`5d5f`). The mounts and the gate's
+  partition check are what bound a deletion.
+- **A Go test resolves every case against the real box**
+  (`TestCalvinBoxRemovesAndProbes`), including `9396`'s compound probe.
+  It checks that a deletion outside the partition blocks
+  (`test_gate.py`'s partition test, and a gate run on a real diff).
+
 ## 0.2.6-beta — 2026-09-12 (the progress hook: a dispatched doer's edits join the flight log; ADR-107 amended)
 
 **Patch: what the harness records.** A dispatch had no signal between
