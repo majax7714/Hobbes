@@ -33,7 +33,8 @@ from hobbes import __version__
 
 #: The one host a Claude Code doer needs.
 DEFAULT_EGRESS = ("api.anthropic.com",)
-DEFAULT_MAX_TURNS = 40
+#: The doer's turn budget. 40 at 0.1.21-beta; the first real dispatch used 38 of 40 on a small task, so 80 (Max, 2026-09-12).
+DEFAULT_MAX_TURNS = 80
 #: Where the per-session logs go, under the repo.
 LOG_DIR = Path("docs") / "calvin" / "sessions"
 #: The variable Claude Code reads its token from (`claude setup-token`); the Go side's `sandbox.ClaudeTokenEnv`.

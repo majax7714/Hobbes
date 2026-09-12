@@ -126,7 +126,7 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     a = argv["argv"]
     assert argv["token"] == "sekrit-token"  # the token reaches the session through the environment …
     assert "sekrit" not in json.dumps(a) and "sekrit" not in json.dumps(rec)  # … and never an argv or the record
-    for flag, value in (("--egress", "api.anthropic.com"), ("--role", "implementer"), ("--ref", sha), ("--max-turns", "40"),
+    for flag, value in (("--egress", "api.anthropic.com"), ("--role", "implementer"), ("--ref", sha), ("--max-turns", "80"),
                         ("--claude-bin", "/opt/claude")):
         assert a[a.index(flag) + 1] == value, flag
     assert "--commit-on-exit" in a and a[a.index("--box") + 1].endswith("calvin.box.policy")

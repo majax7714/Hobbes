@@ -13,6 +13,25 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.23-beta — 2026-09-12 (the first dispatched change; dispatch's turn default 80)
+
+**Patch: the scope-taking knowledge tools take `path` for `scope`, and a
+dispatch gets 80 turns by default.**
+
+- **`list_blind_spots` and `list_invariants` accept `path` as an alias
+  for `scope`** (ADR-087 follow-up (a); W4).
+  - Neither argument is required, and giving neither covers the whole
+    repo, as before.
+  - Differing values are refused, naming both.
+  - Both descriptions name the argument in their first sentence.
+  - This is the first change made by a dispatched doer
+    (`S-20260912T151945Z-417f`, commit `104c164`, authored by
+    `hobbes-dispatch`). It was merged as a fast-forward. The brief kept
+    the doer off the version and the CHANGELOG, so this entry carries
+    them.
+- **`hobbes dispatch --max-turns` defaults to 80** (was 40; Max). The
+  first dispatch used 38 of its 40 turns on a two-file task.
+
 ## 0.1.22-beta — 2026-09-12 (retention: evaluation rows, never training; ADR-107 amended)
 
 **Patch: a dispatched doer's reasoning is never stored, and recorded

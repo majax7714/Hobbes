@@ -234,7 +234,7 @@ are present.
   under `bench/` or an experiment record moves it. Rebuild the image
   after a bump (C-65). **The number line is Max's (ADR-103, third
   amendment, 2026-09-10): the layer stays on 0.1.x patch by patch;**
-  tags are his call each time — 0.1.9-beta to 0.1.22-beta are untagged,
+  tags are his call each time — 0.1.9-beta to 0.1.23-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -273,7 +273,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.1.22-beta
+## Status (2026-09-12) — Hobbes 0.1.23-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -305,7 +305,8 @@ are present.
   Checked with no spend, by a live route test and by Claude Code through
   the proxy on a bad token (401, no other host).
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
-    `path` alias: gate clear, verify pass. Its merge is held for Max.
+    `path` alias: gate clear, verify pass; merged as `104c164`
+    (0.1.23-beta). A dispatch's turn default is 80.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
     (enforced in `units_from_git`).

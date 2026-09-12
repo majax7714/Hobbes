@@ -1,15 +1,15 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.1.22-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.1.23-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.1.22-beta are untagged. Tags are Max's call.
+  0.1.23-beta are untagged. Tags are Max's call.
 - **Numbering** (Max; ADR-103's third amendment): the layer stays on
   0.1.x, patch by patch.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
 The session's record is the 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: the first dispatch ran (gate clear, verify pass) — its merge waits on Max; retention is in place (0.1.22-beta)
+## ⇢ START HERE NEXT SESSION: the harness is running — the first dispatch merged (0.1.23-beta); keep dispatching named no-spend work
 
 0. **Latest (2026-09-12, later).**
    - **The first real dispatch** (`S-20260912T151945Z-417f`): the
@@ -21,17 +21,16 @@ The session's record is the 2026-09-12 BUILDLOG entry.
      - **The verdicts:** gate clear; verify pass (45 tests, 2 new, 0
        regressions). Checked again outside the sandbox: gofmt, vet and
        tests all pass.
-     - **The merge is held for Max.** On his word:
-       - fill the review block: `gate: right-clear`, `outcome: merged`,
-         and the JSON note (the schema test's `required` check would
-         pass vacuously if the field ever arrived as another type);
-       - `git merge hobbes/S-20260912T151945Z-417f` (never squash);
-       - bump to 0.1.23-beta with a CHANGELOG entry, and mark W4 (a)
-         done;
-       - rebuild the proxy and the image;
-       - commit both session files. The first,
-         `S-20260912T151728Z-96df`, was rejected at auth: the token was
-         cut at 100 characters. Its outcome is `discarded`.
+     - **Merged.** A fast-forward onto `main` at 11:31, made by the
+       other session on this checkout ("Dispatch background
+       conversation", Remote Control), which also wrote both review
+       blocks. The doer's commit kept its `hobbes-dispatch` author.
+       0.1.23-beta carries the CHANGELOG entry and W4 (a) done; the
+       proxy and the image are rebuilt, and both session files are
+       committed.
+     - **Turns:** the dispatch default is 80 (Max). The other session's
+       review had recorded "60, hard cap 100" and a "dynamic turn
+       budget" that did not exist; a dated correction sits under it.
    - **Retention** (0.1.22-beta; ADR-107 amended) — Max: *store no
      reasoning; recorded sessions are evaluation rows, never model
      training.*
@@ -44,13 +43,13 @@ The session's record is the 2026-09-12 BUILDLOG entry.
        The real dispatch had stored 21 thinking-block lines; none are
        left.
      - **Register:** C-125 amended; C-129 added.
-   - **For Max:**
-     - The five owned-loop transcripts that carry `reasoning_content`.
-       They are from 2026-08-22, the Qwen benchmark runs: `3d888dbe00ac-u6`
-       and `f0c8a912cffb-u4`, `-u5`, `-u9`, `-verifier-1`, under
-       `~/.hobbes/sessions/`. They are not Claude's. Delete them, or
-       keep them.
-     - C-129's reach: a merged doer's code is in the tree.
+   - **Settled with Max:**
+     - The five Qwen transcripts (2026-08-22) that carry
+       `reasoning_content` stay. The concern is Claude's reasoning, not
+       Qwen's.
+     - The error Max caught was on reasoning extraction, which the
+       retention amendment covers.
+   - **Open:** C-129's reach (a merged doer's code is in the tree).
 1. **What changed (2026-09-12).**
    - **The review first.** Max had the top-level docs reviewed. The
      findings are in item 4; most are fixed.
@@ -278,6 +277,12 @@ The keyed Calvin runs are closed, not held.
    the 7B, and only on a decontaminated set.
 
 ## PRACTICAL NOTES
+
+- **Two sessions share this checkout.** A Remote Control session
+  ("Dispatch background conversation") merged the first dispatch and
+  wrote its reviews while this session was working. Before assuming
+  `main`'s state or a file's content, read `git reflog` and the file
+  itself.
 
 - **The egress route.**
   - `hobbes-egress` is a shared podman bridge; it stays between

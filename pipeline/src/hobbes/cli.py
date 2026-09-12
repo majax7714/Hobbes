@@ -1678,7 +1678,7 @@ def build_parser() -> argparse.ArgumentParser:
     dispatch_parser.add_argument("--repo", help="repo root (default: auto-detected via .git)")
     dispatch_parser.add_argument("--ref", default="HEAD", help="the parent the session starts from; the ingest must be at it (default HEAD)")
     dispatch_parser.add_argument("--model", help="the doer's model (default: Claude Code's own)")
-    dispatch_parser.add_argument("--max-turns", type=int, default=40, help="the doer's turn budget (default 40)")
+    dispatch_parser.add_argument("--max-turns", type=int, default=80, help="the doer's turn budget (default 80)")
     dispatch_parser.add_argument("--egress", action="append", help="a host the session may reach, host or host:port (repeatable; "
                                                                    "default api.anthropic.com)")
     dispatch_parser.add_argument("--partition", help="the files the doer may write (a JSON list or one path per line); the gate checks "

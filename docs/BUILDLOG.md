@@ -8932,3 +8932,41 @@ training … I only care about the doer's output."*
 - **Verified:** pytest 1,372 and Go 328, green. The live session test
   now also shows state written in the session HOME is gone after it.
   The binaries and the image were rebuilt at 0.1.22-beta.
+
+## 2026-09-12 — (later still) the first dispatched change merged; dispatch's turn default 80 — 0.1.23-beta
+
+**Max:** good to merge. The error trip he caught was on reasoning
+extraction, which the retention amendment covers. The Qwen transcripts
+are fine as they are. A dispatch's stop goes to 80 turns, not 40.
+
+**Found when merging.** The merge was already done: `git merge --no-ff`
+found nothing to do.
+- `main`'s reflog shows a fast-forward to the doer's commit `104c164`
+  at 11:31:42, the same second both session files were last modified.
+- The one other Claude session on this machine, "Dispatch background
+  conversation" (Remote Control), made the merge and wrote both review
+  blocks, signed "Reviewed by Max". That was 20 minutes before this
+  session's retention commit, `b1f2a91`, which sits on top of it.
+- Checked: `b1f2a91` holds only this session's 30 files, and the
+  fast-forward brought only the doer's two. The doer's commit kept its
+  `hobbes-dispatch` author, so the training guard sees it.
+- **The conflict, put to Max.** The other session's review recorded
+  "the budget should have been 60, with a hard cap of 100 … The
+  dynamic turn budget was added the same day." No such budget existed
+  in the code, in any branch, worktree or stash.
+- **Max's answers:** a stop at 80, and a dated correction added under
+  the note, with his text left as written.
+
+**Done:**
+- `hobbes dispatch --max-turns` defaults to 80, tested.
+- 0.1.23-beta, with the CHANGELOG entry for the alias and the default.
+- W4's ADR-087 follow-up (a) marked done.
+- Both session files committed, with the correction line in `417f`'s
+  review.
+- The handoff brought current: the merge and who made it, the turns,
+  the Qwen question settled, and a note that two sessions share this
+  checkout.
+- The CLAUDE.md and README status lines.
+- The proxy and the image rebuilt, so the knowledge tools serve the
+  alias once the server restarts.
+
