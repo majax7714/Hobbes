@@ -208,6 +208,113 @@ class TestCoverage:
         assert ev.coverage([], []) == []
 
 
+class TestExternalVeto:
+    """ADR-111: a site lane B resolved outside the repo vetoes lane A's
+    fallback there — one case per language, each in that language's own
+    external-reference shape (a moniker, a package, a column)."""
+
+    def _check(self, name, moniker, package, col=4):
+        site = call("a.src", 10, name)
+        fallback = {("a.src", 10, name): ("guess.src", 1)}
+        outside = [
+            {"file": "a.src", "line": 10, "col": col, "name": name,
+             "package": package, "moniker": moniker}
+        ]
+
+        # the fallback edge is vetoed
+        assert ev.join([site], [], fallback=fallback, external=outside) == []
+
+        # an in_repo reference at the same key does not veto
+        in_repo = [{**outside[0], "in_repo": True}]
+        out = ev.join([site], [], fallback=fallback, external=in_repo)
+        assert len(out) == 1 and out[0].tier == SYNTACTIC
+        assert (out[0].def_file, out[0].def_line) == ("guess.src", 1)
+
+        # a site with an in-repo resolution at the same key is untouched
+        semantic = [resolution("a.src", 10, name, "real.src", 2)]
+        out2 = ev.join([site], semantic, fallback=fallback, external=outside)
+        assert len(out2) == 1 and out2[0].tier == SEMANTIC
+        assert (out2[0].def_file, out2[0].def_line) == ("real.src", 2)
+
+        # the site's coverage fate is external
+        [row] = ev.coverage([site], [], external=outside)
+        assert (row.resolved, row.external, row.unresolved) == (0, 1, 0)
+
+        # agreement's count is unchanged: nothing here is a disagreement
+        compared, bad = ev.agreement([site], [], fallback)
+        assert (compared, bad) == (0, [])
+
+    def test_python(self):
+        self._check(
+            "dumps", "scip-python python python-stdlib 3.11 json/dumps().",
+            "python:python-stdlib",
+        )
+
+    def test_typescript(self):
+        self._check(
+            "readFileSync",
+            "scip-typescript npm @types/node 20.0.0 `fs.d.ts`/readFileSync().",
+            "npm:@types/node",
+        )
+
+    def test_go(self):
+        self._check(
+            "Sprintf", "scip-go gomod github.com/golang/go/src go1.26 fmt/Sprintf().",
+            "gomod:github.com/golang/go/src",
+        )
+
+    def test_rust(self):
+        self._check(
+            "println",
+            "rust-analyzer cargo std https://github.com/rust-lang/rust/library/std "
+            "macros/println!",
+            "cargo:std",
+        )
+
+    def test_java(self):
+        self._check(
+            "assertEquals",
+            "scip-java maven maven/org.junit.jupiter/junit-jupiter-api 5.10.0 "
+            "org/junit/jupiter/api/Assertions#assertEquals().",
+            "maven:org.junit.jupiter:junit-jupiter-api",
+        )
+
+    def test_c(self):
+        self._check(
+            "strcasestr", "cxx . . $ strcasestr(6efceb6909523ce2).", "",
+        )
+
+
+class TestExternalVetoes:
+    """:func:`ev.external_vetoes` (ADR-111): the sites the join dropped,
+    with lane A's guess — the same rule as the join's, so the count and
+    the join's dropped edges cannot drift apart."""
+
+    def test_it_returns_the_vetoed_site_and_lane_as_guess(self):
+        site = call("a.py", 10, "dumps")
+        fallback = {("a.py", 10, "dumps"): ("b.py", 5)}
+        external = [{"file": "a.py", "line": 10, "name": "dumps",
+                      "package": "python:python-stdlib"}]
+        out = ev.external_vetoes([site], [], fallback, external)
+        assert len(out) == 1
+        got_site, guess = out[0]
+        assert got_site is site
+        assert guess == ("b.py", 5)
+
+    def test_an_in_repo_reference_is_not_returned(self):
+        site = call("a.py", 10, "dumps")
+        fallback = {("a.py", 10, "dumps"): ("b.py", 5)}
+        external = [{"file": "a.py", "line": 10, "name": "dumps", "in_repo": True}]
+        assert ev.external_vetoes([site], [], fallback, external) == []
+
+    def test_it_agrees_with_the_join_on_the_same_inputs(self):
+        site = call("a.py", 10, "dumps")
+        fallback = {("a.py", 10, "dumps"): ("b.py", 5)}
+        external = [{"file": "a.py", "line": 10, "name": "dumps"}]
+        assert ev.join([site], [], fallback=fallback, external=external) == []
+        assert len(ev.external_vetoes([site], [], fallback, external)) == 1
+
+
 class TestLaneAgreement:
     """§3.4's self-test, in ADR-029's sharper form.
 

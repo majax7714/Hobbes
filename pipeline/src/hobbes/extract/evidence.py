@@ -111,10 +111,23 @@ def match_resolution(
     return min(named, key=lambda c: abs(c.col - site.col) if c.col >= 0 else 1 << 30)
 
 
+def _veto_set(external: list[dict] | None) -> set[tuple[str, int, str]]:
+    """Sites whose ``(file, line, name)`` lane B resolved outside the repo
+    (ADR-111). A reference the helper or :func:`~hobbes.extract.scipsource.
+    join_cross_unit` marked ``in_repo`` is not outside it — an ambiguous or
+    otherwise ungraphed in-repo moniker — and never enters this set."""
+    return {
+        (e["file"], e["line"], e.get("name", ""))
+        for e in (external or [])
+        if not e.get("in_repo")
+    }
+
+
 def join(
     syntax: list[Site],
     semantic: list[Site],
     fallback: dict[tuple[str, int, str], tuple[str, int]] | None = None,
+    external: list[dict] | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -122,11 +135,20 @@ def join(
     ``(file, line, name)`` — used only where SCIP resolved nothing, and
     marked ``syntactic`` when it is. Sites nothing resolves are dropped:
     an unresolved call is not an edge, which is ADR-007's rule unchanged.
+
+    *external* is lane B's external references (ADR-111): a site whose
+    key lane B resolved to a declaration outside the repo vetoes the
+    fallback there — lane A's guess is dropped rather than drawn, because
+    lane B already answered "not in this repo" and the fallback's guess is
+    exactly where lane A is most likely to be wrong (C-138). The site's
+    fate is unchanged elsewhere: it is still counted ``external``
+    (:func:`_dispositions`), only the edge is not drawn.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
     buckets = index_resolutions(semantic)
     fallback = fallback or {}
+    vetoed = _veto_set(external)
     out: list[Resolved] = []
     claimed: set[tuple[str, int, str]] = set()
 
@@ -161,6 +183,8 @@ def join(
                 )
             )
             continue
+        if (site.file, site.line, site.name) in vetoed:
+            continue  # ADR-111: lane B placed this outside the repo
         guess = fallback.get((site.file, site.line, site.name))
         if guess is None:
             continue  # unresolved: not an edge, ADR-007 unchanged
@@ -203,6 +227,38 @@ def join(
                     evidence=[{"path": file, "line": line}],
                 )
             )
+    return out
+
+
+def external_vetoes(
+    syntax: list[Site],
+    semantic: list[Site],
+    fallback: dict[tuple[str, int, str], tuple[str, int]],
+    external: list[dict] | None,
+) -> list[tuple[Site, tuple[str, int]]]:
+    """The sites :func:`join` vetoed (ADR-111), each with lane A's guess.
+
+    Same rule as the join's veto — a call or import site with no in-repo
+    semantic resolution, whose key lane B placed outside the repo, and for
+    which lane A's fallback had an answer — so this count and the edges
+    the join actually drops cannot drift apart. This is where
+    ``hobbes lanes`` and the report meet the sites lane A would have drawn
+    wrong.
+    """
+    buckets = index_resolutions(semantic)
+    vetoed = _veto_set(external)
+    out = []
+    for site in syntax:
+        if site.kind not in (CALL_SITE, IMPORT_SITE) or site.ambiguous:
+            continue
+        if match_resolution(site, buckets) is not None:
+            continue
+        if (site.file, site.line, site.name) not in vetoed:
+            continue
+        guess = fallback.get((site.file, site.line, site.name))
+        if guess is None:
+            continue
+        out.append((site, guess))
     return out
 
 

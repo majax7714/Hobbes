@@ -307,7 +307,7 @@ def _build_symbol_layer(
         if coverage.get("declared"):
             graph.setdefault("dependency_coverage", []).append(coverage)
 
-    resolved = ev.join(syntax, resolutions, fallback=fallback)
+    resolved = ev.join(syntax, resolutions, fallback=fallback, external=external)
     projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
     graph["lane_agreement"] = _lane_agreement(
         syntax,
