@@ -159,3 +159,12 @@ def test_minic_gets_semantic_c_edges_through_bear_over_its_makefile():
     assert steps.get("index-c") is True
     c_disagreements = [d for d in graph["lane_agreement"]["site_disagreements"] if d["file"].endswith((".c", ".h"))]
     assert c_disagreements == [], "where both lanes answer for C, they agree"
+
+    # ADR-111 (C-138's own shape): `mentions_add`'s call to `strcasestr`
+    # has a same-file rank-1 fallback naming the dead `#if defined(_WIN32)`
+    # shim; lane B resolves the call to glibc's declaration, outside the
+    # repo, and the join must veto the guess rather than draw it.
+    assert ("src/util.mentions_add", "src/util.strcasestr") not in calls
+    [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/util.c"]
+    assert row["external"] >= 1, "the site's fate is external, as C-138 already counted it"
+    assert graph["lane_agreement"]["external_vetoes"]["sites"] == 1

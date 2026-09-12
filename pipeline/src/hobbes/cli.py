@@ -441,6 +441,22 @@ def _cmd_lanes(args: argparse.Namespace) -> int:
         print(f"    lane A only: {row['from']} -> {row['to']}")
     for row in only_b[:10]:
         print(f"    lane B only: {row['from']} -> {row['to']}")
+
+    # ADR-111: not a disagreement — the graph already took lane B's answer
+    # at these sites — so it does not touch _has_disagreement, only says
+    # where lane A's fallback would have drawn wrong.
+    vetoes = report.get("external_vetoes", {"sites": 0, "examples": []})
+    if vetoes["sites"] > 0:
+        print(
+            "  lane A guessed in the repo where lane B resolved outside "
+            f"it: {vetoes['sites']} site(s), vetoed (ADR-111)"
+        )
+        for row in vetoes["examples"]:
+            print(
+                f"    {row['file']}:{row['line']} {row['name']}() -> "
+                f"lane A guessed {row['lane_a']}"
+            )
+
     if not _has_disagreement(report):
         print("  the lanes agree wherever both can answer")
     return 1 if _has_disagreement(report) else 0

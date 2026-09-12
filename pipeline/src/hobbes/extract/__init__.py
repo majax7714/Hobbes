@@ -307,7 +307,7 @@ def _build_symbol_layer(
         if coverage.get("declared"):
             graph.setdefault("dependency_coverage", []).append(coverage)
 
-    resolved = ev.join(syntax, resolutions, fallback=fallback)
+    resolved = ev.join(syntax, resolutions, fallback=fallback, external=external)
     projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
     graph["lane_agreement"] = _lane_agreement(
         syntax,
@@ -330,6 +330,7 @@ def _build_symbol_layer(
             for n in layer["nodes"]
             if "path" in n
         },
+        external=external,
     )
     graph["symbol_edges"] = projected["symbol_edges"]
     graph["module_edges"] = _merge_module_edges(
@@ -485,6 +486,7 @@ def _lane_agreement(
     lane_a_edges,
     lane_b_edges,
     lane_b_only_modules: set[str] | None = None,
+    external: list[dict] | None = None,
 ) -> dict:
     """The §3.4 self-test: where both lanes can answer, they must agree.
 
@@ -510,8 +512,20 @@ def _lane_agreement(
     the comparison was reporting lane A's agreement with lane A. The
     count lane B actually produced is returned beside the comparison so
     a thin lane B reads as thin.
+
+    *external* is lane B's external references, passed through to
+    :func:`~hobbes.extract.evidence.external_vetoes` (ADR-111): the sites
+    where the join dropped lane A's fallback because lane B placed the
+    site outside the repo. Not a disagreement — the graph already took
+    lane B's answer there — so it does not affect ``sites_compared`` or
+    change ``hobbes lanes``' exit status; it is where a user meets the
+    sites lane A would have drawn wrong.
     """
     compared, disagreements = ev.agreement(syntax, resolutions, fallback)
+    vetoes = sorted(
+        ev.external_vetoes(syntax, resolutions, fallback, external),
+        key=lambda pair: (pair[0].file, pair[0].line, pair[0].name),
+    )
     lane_b_only_modules = lane_b_only_modules or set()
     lane_b_edges = [
         e
@@ -567,6 +581,18 @@ def _lane_agreement(
         "module_edges_lane_b_only": [
             {"from": f, "to": t} for f, t in sorted(b - a)
         ],
+        "external_vetoes": {
+            "sites": len(vetoes),
+            "examples": [
+                {
+                    "file": site.file,
+                    "line": site.line,
+                    "name": site.name,
+                    "lane_a": f"{guess[0]}:{guess[1]}",
+                }
+                for site, guess in vetoes[:10]
+            ],
+        },
     }
 
 

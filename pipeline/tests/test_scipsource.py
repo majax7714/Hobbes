@@ -264,6 +264,7 @@ class TestCrossUnitJoin:
         merged = self.merged([], list(rows))
         scipsource.join_cross_unit(merged)
         assert merged["references"] == [] and merged["external_refs"] == rows
+        assert "in_repo" not in merged["external_refs"][0]
 
     def test_a_ref_without_a_moniker_stays_external(self):
         # A v2 helper's rows carry no moniker; the join must not invent one.
@@ -288,7 +289,11 @@ class TestCrossUnitJoin:
         )
         scipsource.join_cross_unit(merged)
         assert merged["references"] == []
-        assert len(merged["external_refs"]) == 1
+        (ref,) = merged["external_refs"]
+        # ADR-111: a sibling unit does define this moniker, just not at one
+        # place the join could pick — in the repo, not outside it, so the
+        # join must not veto lane A's fallback here.
+        assert ref["in_repo"] is True
         (record,) = merged["degraded"]
         assert record["stage"] == "scip-merge"
         assert "more than one indexing unit" in record["message"]

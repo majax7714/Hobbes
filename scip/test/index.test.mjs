@@ -542,6 +542,40 @@ test('an external ref keeps its moniker for the cross-unit join (v3, ADR-049)', 
   assert.equal(out.external[0].moniker, OTHER)
 })
 
+test('an external reference is marked in_repo when the repo defines its moniker anyway (ADR-111)', () => {
+  // Two shapes miss `definitions` for a reason other than "outside the
+  // repo": a moniker two in-repo files define (ambiguous, C-28) and a
+  // moniker of a kind the graph does not keep (here, a parameter). Both
+  // must be marked so the join never vetoes lane A's fallback there —
+  // only a reference genuinely outside the repo (stdlib) may.
+  const idx = fakeIndex([
+    {
+      relative_path: 'src/main.rs',
+      occurrences: [
+        { symbol: `${RS} crate/`, symbol_roles: DEF, range: [0, 0, 38, 0] },
+        { symbol: `${RS} run().(x)`, symbol_roles: DEF, range: [1, 4, 1, 5] },
+      ],
+    },
+    {
+      relative_path: 'src/lib.rs',
+      occurrences: [{ symbol: `${RS} crate/`, symbol_roles: DEF, range: [0, 0, 4, 1] }],
+    },
+    {
+      relative_path: 'tests/it.rs',
+      occurrences: [
+        { symbol: `${RS} crate/`, symbol_roles: 0, range: [0, 4, 0, 9] },
+        { symbol: `${RS} run().(x)`, symbol_roles: 0, range: [2, 0, 2, 1] },
+        { symbol: `${RS_STD} macros/println!`, symbol_roles: 0, range: [3, 0, 3, 7] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  const byLine = (n) => out.external.find((e) => e.file === 'tests/it.rs' && e.line === n)
+  assert.equal(byLine(1).in_repo, true, 'ambiguous in two in-repo files: marked')
+  assert.equal(byLine(3).in_repo, true, 'a parameter: the graph drops the kind, not the repo')
+  assert.equal(byLine(4).in_repo, undefined, 'stdlib: genuinely outside the repo')
+})
+
 test("rust's toolchain stdlib is not evidence of an environment", () => {
   // std/core/alloc resolve from the rustup sysroot whatever the repo's
   // dependencies look like — the scip-go lesson, a language later.
