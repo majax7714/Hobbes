@@ -8678,3 +8678,57 @@ All untagged. The register went from 114 to **120 entries (94 active, 24 lifted,
 **Validation.** pytest 1,307 → 1,322 on `main` (+4 `lane_b` not re-run). Go unchanged but for the version constant (`go test ./internal/version` green). This repo was re-ingested at 0.1.17-beta.
 
 **Spend.** Round 2 cost $3.10 of its $12 ceiling, all of it WP-16; the rest spent nothing. Rounds 1 and 2 together come to $22.03. Commits are on `main`; no push, no tag.
+
+## 2026-09-11 — (later still) Calvin M0-Gate: the linker on the agent's diff — fzf, `hobbes gate` built, the controls hold, D-x found and fixed, ten keys run: the floor as a safety property, not a helper — 0.1.18-beta to 0.1.20-beta
+
+Max handed the orchestrator the M0-Gate design: keep the world, move the agent — the frontier agent loop (O) does the work, and Hobbes' linker gates its finished diff. It ran through WP-21 on ten keys, sub-agents on the default model, Max's word at the spend gate and at D-x. The design, the orchestrator's pins (§0b) and the dated gate record (§10) are in the tree as `docs/calvin/calvin-m0-gate.md`; each package's artifacts and report are under `~/.hobbes/bench/calvin-gate/wp-17` … `wp-21` (and `wp-18b`/`c`/`d`).
+
+- **WP-17** (the substrate draw; no spend). The Go repos in the cell set, counted under round 1's exclusions and the cutoff (committer date ≥ 2025-08-01, each bounded by its cell's SHA):
+  - **Pools:** fzf 186, quic-go 154, toml 13, cobra 0; mux has no history past its 2024 pin. fzf and toml were fetched full from upstream (the oracle clones are shallow).
+  - **fzf is the substrate** by §0a's rule: calibrated largest pool first, 42 of 45 tried read pass. **The draw is 20 keys, stratified by shape on the orchestrator's pin** (round 1's convention; the rank-order draw held no multi-file or new-file key): single-file 7, new-symbol 5, multi-file 5, new-file 3. W 1.0 on all 20; every parent ingested contained; gold passes with guarding tests executed on all 20.
+  - **Hobbes' own repo (the Python fallback):** 26 of M0's 28 keys readable, W 1.0. One of the two unreadable is **D-r**, a verifier artifact: gold's test reads `built_by()`'s checkout, which falls back when `git` fails on the verify container's `--shared` clone.
+  - **The blind-spot map** per unit: the graph keeps unresolved call sites as per-file counts, so site rows carry no line; 9 of the 20 units have uncaptured symbols (64 in all, `laneb-miss`), none an uncaptured file.
+- **WP-18** (`hobbes gate`; no spend). Grounder v3, the complement split and the partition check over a finished diff at its parent → *clear* or *blocked* with a class list, a stamped record byte-identical on rerun; `o-units` and the Python driver gain `--gate` and `--gate-repair` (one bounded turn resuming the recorded O session, never a re-run; tested on a scripted endpoint).
+  - **D-s** (G): the gold control read 9 of 20 at the template partition — every block `partition`, on writes beyond the graph (CHANGELOG, man page, Makefile, Ruby tests, `.s`) or new Go files in a partition file's package. **Fixed by the `reach` rule, now the default:** a file no lane-A provider reads is listed, never blocked; a code file created beside the partition is listed; an existing code file outside the partition still blocks. Gold 20/20 clear.
+  - **Orchestrator's pins built in:** a line-less site never routes a NULL to *unknown*; a new file beside the partition reads its directory's map (else an invented name there would have cleared as *unknown*).
+  - **Accepted as built:** only `invented`/`near-miss` route to *unknown* (the source-read classes stand); `new` cannot arise at the gate and never blocks; the world and signature classes fire on Go only. `o-units --withhold-manifest` built, off by default.
+- **WP-19** (controls; no spend). Recounted by the orchestrator from the 89 records: gold 20/20 clear; seeded (i) invented, (ii) partition, (iii) arity each 20/20 blocked with the seeded class alone; (iv) 9/9 clear with one *unknown* (11 skipped: no blind spot); 89/89 byte-identical. **No G defect.** (i)'s inserted-call fallback on 12 keys accepted.
+- **WP-20** (estimate and the spend gate; no spend).
+  - **The estimate for 20 keys:** expected $14.0 (band $12.0–15.2), from rounds 1–2's ten O sessions re-priced for fzf's larger files, with every session run to 30 turns. A repair turn costs about $0.04, priced from its real prompt.
+  - **The design's stop rules cannot bind at these costs.**
+  - **The pre-flight** ran the real `o-units --tier A0 --gate --gate-repair` path on fzf against a scripted endpoint, for $0: block → repair → clear, on a near-miss and on a partition write.
+  - **At A0 the plan refuses on 18 of 20 fzf keys.** On one of the other two, its manifest hands O a gold file.
+  - **Three instrument defects,** fixed in **WP-18b** before any spend (**0.1.19-beta**, `ee0caae`, bump `a811695`):
+    - **D-u:** recall's upper bound was gitleaks' SHA; it now comes from the unit or a flag.
+    - **D-v:** rows now carry `gold_tests`, turns-to-first-edit and an `empty` verdict.
+    - **D-w:** the repair message showed an unrelated 110-line function as a declaration's form. It now shows the nearest declared names with their signatures (gate v2).
+  - **Controls after the fix:** they rerun unchanged, and only the message fields differ.
+  - **Max at the spend gate:** 10 keys "for now", the manifest withheld, and WP-20's brake scaled to 10 keys (key 1 > $1.10; O > $5.1 after 5 keys).
+    - **The hard cap is $11,** set by the orchestrator, below both ceilings offered, because Max named no dollar figure.
+    - **§5's thresholds** were pinned as rates on 10 keys before any spend.
+- **WP-21, stage 1 — D-x, the finding of the round.** The package held the run after key 1 by itself.
+  - **Key 1's O read the answer from the repo:** `git log --all --grep=…`, then `git show d3245808`, the key commit, at turn 8. It then wrote gold's 12 lines. $0.30.
+    - **Why it could:** O's clone held fzf's history past the parent, and the session policy allows `git log`/`git show`.
+    - **The row is recorded `copied`, not a solve.** The recall scan cannot see it: it reads training data, not the repo's own future.
+  - **The orchestrator's scan of every O session** found five that read their own key: two in round 1, two in round 2, and this one. No session fetched from the network or read another session's transcript.
+    - **Round 1:** its two "recalled" O keys (`2278a2a97e42`, `93acc6e82adb`) were reading their key commits.
+    - **Round 2:** `ed65b65095eb`'s pass was a copy, so O's pass that is not a copy is **1 of 3**, not 2 of 3.
+    - Both rounds are amended beside their originals, in both design docs and both cell pages.
+  - **WP-18c (0.1.20-beta, `7231325`, bump `05246b6`):** `harness.run_o` launches O's session, and the repair turn's, from a clone cut at the parent, checked at the object level before launch.
+    - **Also closed:** one sessions root per session (a later session could have read earlier transcripts), and the repair seeded with the unit's own parent graph.
+    - **Still open:** C-124, the network channel (partial). An egress allowlist is the fix.
+  - **Max:** re-run key 1 clean, a stated §0 exception, with the copied row kept and marked; then continue.
+- **WP-21, stage 2 — key 1 clean, then keys 2–5** (0.1.20-beta; the cut clean on every row; the leak scan found nothing).
+  - **Four keys:** O passed and the gate cleared.
+  - **`a650900edac4` (new-file):** O's own verdict was pass. The gate blocked it `[partition]`: O added an unused function to an existing file outside the partition, and gold's tests fail to build over O's diff.
+    - Its one repair turn ($0.04) re-read the file and the repeat guard refused it, so no edit was made. That is the arm as designed.
+  - **D-y:** the driver scored that repair as an empty diff reading clear. It is scored `blocked-unchanged`, and the fix, WP-18d, merges after the run.
+  - **Every session hit the 30-turn cap.**
+  - **Spend:** O $2.57 on the five clean keys, under the $5.1 brake; $2.91 in total with the copied session.
+- **WP-21, stage 3 and the reading** (keys 6–10; the cut and the leak scan clean on every row). Over the 10 clean keys: O pass 7, fail 1, empty 2; O+gate pass 6, blocked 2, empty 2; O+gate+repair the same (neither repair edited). Blocks: `a650900edac4` `[partition]` — dead code in an existing file outside the partition, and O's pass there is not a solve (gold's tests do not build over it); `12e24d368c90` `[unimported]` — `fmt.Fprintf` with no `fmt` import, a real compile error the build also caught (a second error, an unused variable, is in no gate class). Invented 0, *unknown* 0 (§4.15 unmeasured on a dense world). Every O session hit the 30-turn cap. Recounted by the orchestrator from the rows and the 13 usage files. **§5's second reading, provisional on n = 10: the floor exists as a safety property, not a helper** — `hobbes gate` ships as a detector; the repair turn is the next thing to design (both spent their one call on a read). D-y fixed after the run (WP-18d, driver only, `9630dc2`).
+
+**Versions and register.** Three patches, each with its CHANGELOG entry and the image rebuilt after (C-65): 0.1.18-beta (`hobbes gate`, WP-18), 0.1.19-beta (gate v2's message, D-u/D-v in the driver, WP-18b), 0.1.20-beta (O's repo cut at the parent, D-x, WP-18c). C-121–C-124 registered; register 124 (98 active, 24 lifted, 2 superseded), counted on the segment headings. pytest 1,358 (4 of them `lane_b`), Go green. Rounds 1–2 amended beside their originals (D-x). The README's register count, stale at 114, corrected.
+
+**Spend:** $5.03 of the $11 cap (O $4.65, repair $0.08, the copied session $0.30).
+
+**Held for Max:** widening to keys 11–20; the repair turn's design; §7 step 1 (O+world); an egress allowlist for C-124; the design's ADR number on *accepted*. D-r open (not on this round's substrate).

@@ -1,6 +1,6 @@
 # Calvin M0-Gate — the linker on the agent's diff
 
-**Status:** handoff (2026-09-12), written for an orchestrator agent that assigns work packages to sub-agents; recorded in the tree 2026-09-11 with the orchestrator's pins (§0b); WP-17 and WP-18 launched · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model. No template arm.
+**Status:** run through WP-21 on 10 keys, 2026-09-11 — **the floor holds as a safety property, not a helper** (§5's second reading, provisional on n = 10): the gate blocked 2 of 10 with 0 false blocks, and the one repair turn raised no pass; widening and the repair turn's design are Max's (§10). Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model. No template arm.
 **Depends on:** rounds 1 and 2 as run and closed ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md)): the O drivers (`o-units` for Go; M0's Python O driver), grounder v3, `hobbes verify` at 0.1.17-beta (`vacuous`, `gold_tests`, D-p fixed), the cutoff pin (Haiku 4.5 training data Jul 2025; post-cutoff ≥ 2025-08-01), the recall scan, the ledger; the comparative and oracle cells; M0 v2's 28 Python keys.
 **Amends:** the arm design of rounds 1–2. T-as-form is retired from measurement (round 2 §10: the filler declined to act on a body shown whole, budget to spare). The world stays; the agent moves.
 **Not in scope:** the manifest-restricted arm (O+world: reads and writes bounded by the template's scope, the grounder as a tool during the session) — §7; the security layer beyond what the gate is — §8; a Calvin model; any new language.
@@ -279,7 +279,65 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
 
 ## 10. Results
 
-(empty until WP-19's controls; WP-21 appends beneath)
+### Results
+
+- 2026-09-11 — **WP-21 run: 10 fzf keys, A0, manifest withheld, 0.1.20-beta (gate v2, grounder v3, rule `reach`), Haiku 4.5.** The reading is provisional on n = 10.
+  - **The keys** are the first 10 in `wp-20/estimate.md`'s order: 3 single-file, 3 multi-file, 2 new-symbol, 2 new-file.
+    - Key 1 (`d32458084014`) was re-run clean after D-x, as Max's stated §0 exception.
+    - The copied row stays in `rows.json`, marked `copied`, and is out of every aggregate.
+  - **The cut and the leak scan.**
+    - Every O session and both repair turns launched from a repo cut at the base; every record shows `session_repo.errors: []`.
+    - The scan reads each session's flight log and transcript for history commands, commits past the parent, network fetches, and reads outside `/work`.
+      - History commands on 4 keys, all inside the parent's ancestry. 0 later SHAs appear in any tool result.
+      - 0 network fetches. 0 reads outside `/work`.
+      - One regex match, on `01cb38a5fb11`, read by hand: O's own scratch Go program in `/tmp` used a local Unix socket. It is a false positive, and the row carries the adjudication.
+  - **Rows are attributed first:** 31 rows, 10 keys × 3 arms plus the copied row, every one with its hand-read (`rows.json`, `cell-page.md`).
+
+    | arm | pass | fail | blocked | empty | $ | $/pass |
+    |---|---|---|---|---|---|---|
+    | O | 7 | 1 | — | 2 | 4.6491 | 0.664 |
+    | O+gate | 6 | 0 | 2 | 2 | 4.6491 | 0.775 |
+    | O+gate+repair | 6 | 0 | 2 | 2 | 4.7279 | 0.788 |
+
+    - Paired bootstrap over the 10 units (5,000 resamples, seed 0):
+      - pass: O 0.7 [0.4, 1.0]; O+gate 0.6 [0.3, 0.9];
+      - gate − O: −0.1 [−0.3, 0.0]; repair − gate: 0.0 [0.0, 0.0];
+      - block rate: 0.2 [0.0, 0.5].
+    - Per shape, n is 2–3, so the split is descriptive only. Both blocks fall on multi-file and new-file keys; single-file and new-symbol keys had none.
+  - **§4.14 — what the gate blocks: 2 of 10.** One is `partition`, one `unimported`: 2 sites, 1 row each. Invented 0, *unknown* 0. Both blocked diffs were read by hand.
+    - **`12e24d368c90` `[unimported]`, `src/core.go:315 fmt.Fprintf`.** A real compile error: `go build` and `go vet` go pass to fail at the parent. The build also carries `core.go:288 declared and not used: result`, which no gate class covers.
+    - **`a650900edac4` `[partition]`, `src/algo/normalize.go`.** Correct under `reach`: a write to an existing code file outside the partition. The write itself ships no error (an unused exported `IsNormalizable`). The row's O "pass" was not a solve: gold's tests do not build over it (`util.MayFoldToAscii`).
+    - **False blocks: 0 on gold** (the controls). Neither O block is false under its class's rule.
+    - `partition` matches seeded variant (ii). `unimported` is not a seeded class; it is covered by WP-18's unit tests.
+    - "Blocks mostly partition" does not select: it is 1 of 2.
+  - **§4.15 — the complement channel: no *unknown* at all**, so there were no sites to check. This is §4.15's third row, expected on a dense world, as WP-19 foresaw. The channel is not measured on fzf.
+  - **§4.16 — repair: pass on the blocked rows is 1 of 2 at O, 0 of 2 at O+gate, and 0 of 2 at O+gate+repair**, scored as `verdict_after_scored`.
+    - **Both repair turns made no edit,** so both score `blocked-unchanged` (D-y, the ruling). The driver's raw `clear`/`empty` fields are kept.
+      - `a650900edac4` re-read the flagged file; the rebuilt repeat guard refused it (WP-20 seam 2).
+      - `12e24d368c90` read the import block, and its one turn ended there.
+    - **Neither row could have read pass after a perfect repair:** the second compile error on one, and gold's tests on the other.
+  - **§4.17 — turns.** Every O session hit the 30-turn cap (10 of 10), and 2 made no edit (`empty`). Turns-to-first-edit on the 8 that edited: 13–21, median 16.5. The repair adds 1 turn per blocked row and raised no pass.
+  - **§5's reading, selected in writing and provisional on n = 10: the second reading — the floor exists as a safety property, not a helper.**
+    - Blocked 2 of 10, which meets "≥ 2 of 10" (the pinned rate of ≥ 4 of 20). 0 false blocks on gold, and the seeded controls clean (WP-19 and the WP-18b rerun). Repair does not raise pass.
+    - `hobbes gate` ships as a detector. Its one error-stopping block caught a compile error without a build; verify's build also caught it.
+    - **The repair turn is the next thing to design, not the gate:** both repair turns spent their single call on a read.
+    - The block rate's interval, [0.0, 0.5], covers the 0-of-10 and 1-of-10 readings, so widening is what firms it.
+    - **Every O session hit the 30-turn cap.**
+  - **Spend, recomputed from the ledgers:**
+
+    | | $ |
+    |---|---|
+    | O, 10 clean keys | 4.65 |
+    | Repair turns | 0.08 |
+    | Copied session (D-x) | 0.30 |
+    | **Total, of the $11 cap** | **5.03** |
+
+    The brake did not fire: key 1 cost $0.39 (brake $1.10), and O stood at $2.57 after 5 keys (brake $5.1).
+  - **Defects.** D-x was fixed in 0.1.20-beta. D-y is a driver scoring defect, ruled; its fix went on a branch during the run and was merged after it (WP-18d, `9630dc2`). Scanner note: the leak scan's `socket.` pattern produced one false positive. The session proxy stamps `05246b61f25d+dirty`.
+
+**Checked by the orchestrator before accepting** (2026-09-11): the arm counts recomputed from `rows.json` (O 7 / 1 / 2; O+gate 6 / 2 / 2; O+gate+repair 6 / 2 / 2; the copied row apart) and the spend from the 13 usage files ($5.0282); both blocked diffs' hand-reads are in the cell page. **Read beside the table:** the gate's −0.1 on pass is `a650900edac4`, whose O pass was not a solve (gold's tests do not build over it); its other block, `12e24d368c90`, duplicates what verify's build caught. On this run the gate's effect on outcome is to remove one false pass; its value as a detector is that it named the compile error without a build and named the one write outside the partition.
+
+The rows, each attributed, are in [`cells/calvin-m0-gate-2026-09-11.md`](cells/calvin-m0-gate-2026-09-11.md); the machine rows in `~/.hobbes/bench/calvin-gate/wp-21/rows.json`.
 
 **Decisions and gate record** (Max, through the orchestrator; dated):
 
@@ -463,4 +521,8 @@ Round 1 §8 stands (effect manifest, sink reachability, ledger, isolation, NULL 
 - 2026-09-11 — **Max:**
   - **Re-run key 1 clean** on the cut repo — a stated §0 exception: the session's condition was defective, not the arm. The copied row stays in the record, marked `copied`, out of every aggregate.
   - **Continue** keys 2–10 after the fix, under the same $11 cap and the same brake. The copied session's $0.3004 counts against the cap.
+- 2026-09-11 — **WP-21 stage 2** (key 1 clean, keys 2–5): O $2.5690 on the five clean keys, under the $5.1 brake; the cut clean and the leak scan clean on every row. `a650900edac4` blocked `[partition]`; its repair made no edit (a refused re-read — the arm as designed, ruled) and the driver scored the empty diff clear (**D-y**, a driver scoring defect: scored `blocked-unchanged`; the fix on a branch, merged after the run). Stage 3 cleared by the orchestrator.
+- 2026-09-11 — **WP-21 exit checked** (the results above; the report `~/.hobbes/bench/calvin-gate/wp-21/report.md`, saved by the orchestrator). $5.03 of the $11 cap; neither brake fired; the cap never refused a session.
+- 2026-09-11 — **WP-18d merged** (`9630dc2`): a repair turn that leaves no commit reads as O's own branch, gated and verified again; `repair_did` on the repair row. Driver only — no layer change, no bump. pytest 1,358.
+- 2026-09-11 — **The round stops at WP-21's ten keys; the next step is Max's:** widening to keys 11–20 (≈ 8 more fit under the $11 cap at this run's $0.46 a key), the repair turn's design (both repairs spent their one call on a read), §7 step 1 (O+world), and an egress allowlist for C-124.
 - **D-r** (instrument; open; found by WP-17 on Hobbes' own repo; not on this round's substrate). One Hobbes key, `29e926a27140`, reads gold `fail`. Gold's own test asserts that `built_by()["checkout"]` names the checkout. Inside the verify container that value is the fallback `built_by()` uses when `git` fails, and the verify worktree is a `git clone --shared` (the arrangement the harness already works around for Go's `-buildvcs`). The key is excluded, with this caveat, from the Python count. Which `git` call fails is not yet confirmed.
