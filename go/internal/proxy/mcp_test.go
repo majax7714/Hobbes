@@ -118,6 +118,100 @@ func TestKnowledgeOnlySurface(t *testing.T) {
 	}
 }
 
+// TestScopeArgsAcceptPathAlias: list_invariants and list_blind_spots take
+// `path` as an alias for `scope` (ADR-087 follow-up (a)) — an agent that
+// guesses the argument name must still reach the tool, not lose it to a
+// schema rejection.
+func TestScopeArgsAcceptPathAlias(t *testing.T) {
+	repo := testRepo(t)
+	writeGraph(t, repo) // list_blind_spots needs graph.json to answer at all
+	s, _ := newServer(t, repo, 0)
+	session := connect(t, s)
+	ctx := context.Background()
+
+	for _, tool := range []string{"list_invariants", "list_blind_spots"} {
+		viaScope, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: tool, Arguments: map[string]any{"scope": "."},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		viaPath, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: tool, Arguments: map[string]any{"path": "."},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		viaNeither, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: tool, Arguments: map[string]any{},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if viaScope.IsError || viaPath.IsError || viaNeither.IsError {
+			t.Fatalf("%s: unexpected error scope=%+v path=%+v neither=%+v",
+				tool, viaScope, viaPath, viaNeither)
+		}
+		if text(viaPath) != text(viaScope) {
+			t.Errorf("%s: path alias answered differently from scope:\npath:  %s\nscope: %s",
+				tool, text(viaPath), text(viaScope))
+		}
+		if text(viaNeither) != text(viaScope) {
+			t.Errorf("%s: no argument did not cover the whole repo like scope=\".\":\nneither: %s\nscope:   %s",
+				tool, text(viaNeither), text(viaScope))
+		}
+
+		conflict, err := session.CallTool(ctx, &mcp.CallToolParams{
+			Name: tool, Arguments: map[string]any{"scope": "a", "path": "b"},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !conflict.IsError || !strings.Contains(text(conflict), `"a"`) || !strings.Contains(text(conflict), `"b"`) {
+			t.Errorf("%s: differing scope/path should be refused naming both, got isError=%v text=%q",
+				tool, conflict.IsError, text(conflict))
+		}
+	}
+}
+
+// TestScopeToolSchemaListsBothAndRequiresNeither: the MCP input schema is
+// what an agent sees before it ever calls the tool — it must advertise
+// both spellings and require neither, or a strict client refuses to try
+// `path` at all.
+func TestScopeToolSchemaListsBothAndRequiresNeither(t *testing.T) {
+	s, _ := newServer(t, testRepo(t), 0)
+	session := connect(t, s)
+	tools, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checked := 0
+	for _, tool := range tools.Tools {
+		if tool.Name != "list_invariants" && tool.Name != "list_blind_spots" {
+			continue
+		}
+		checked++
+		schema, ok := tool.InputSchema.(map[string]any)
+		if !ok {
+			t.Fatalf("%s: input schema is %T, want a JSON object", tool.Name, tool.InputSchema)
+		}
+		props, _ := schema["properties"].(map[string]any)
+		for _, want := range []string{"scope", "path"} {
+			if _, ok := props[want]; !ok {
+				t.Errorf("%s: schema properties missing %q: %v", tool.Name, want, props)
+			}
+		}
+		if required, ok := schema["required"]; ok {
+			if arr, _ := required.([]any); len(arr) != 0 {
+				t.Errorf("%s: schema requires %v, want neither scope nor path required", tool.Name, arr)
+			}
+		}
+	}
+	if checked != 2 {
+		t.Fatalf("expected to check 2 scope-taking tools, checked %d", checked)
+	}
+}
+
 func TestRoundTripAllowAndDenyAreLogged(t *testing.T) {
 	s, logPath := newServer(t, testRepo(t), 0)
 	session := connect(t, s)

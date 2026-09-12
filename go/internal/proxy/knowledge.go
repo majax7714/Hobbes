@@ -4,6 +4,7 @@ package proxy
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
@@ -31,14 +32,37 @@ type ModuleDocArgs struct {
 	Node string `json:"node" jsonschema:"a module node id, e.g. hobbes.cli"`
 }
 
-// ListInvariantsArgs is list_invariants's input schema.
+// ListInvariantsArgs is list_invariants's input schema. `path` is an alias
+// for `scope` (ADR-087 follow-up (a)): an agent that guesses the argument
+// name still reaches the tool instead of losing it to a schema rejection.
+// Neither field is required; giving neither means ".".
 type ListInvariantsArgs struct {
-	Scope string `json:"scope" jsonschema:"a repo-relative path to ask about, e.g. pipeline/src/hobbes; \".\" or empty lists every confirmed invariant"`
+	Scope string `json:"scope,omitempty" jsonschema:"a repo-relative path to ask about, e.g. pipeline/src/hobbes; \".\" or empty lists every confirmed invariant"`
+	Path  string `json:"path,omitempty" jsonschema:"alias for scope"`
 }
 
-// ListBlindSpotsArgs is list_blind_spots's input schema.
+// ListBlindSpotsArgs is list_blind_spots's input schema. `path` is an
+// alias for `scope`, on the same terms as ListInvariantsArgs above.
 type ListBlindSpotsArgs struct {
-	Scope string `json:"scope" jsonschema:"a repo-relative path prefix to ask about, e.g. src/app; \".\" or empty covers the whole repo"`
+	Scope string `json:"scope,omitempty" jsonschema:"a repo-relative path prefix to ask about, e.g. src/app; \".\" or empty covers the whole repo"`
+	Path  string `json:"path,omitempty" jsonschema:"alias for scope"`
+}
+
+// resolveScope reconciles a scope-taking tool's two spellings of its one
+// argument: `scope` and its alias `path` (ADR-087 follow-up (a)). Neither
+// given means ".", the whole repo. Both given and disagreeing is refused
+// by name rather than silently picking one.
+func resolveScope(tool, scope, path string) (string, error) {
+	switch {
+	case scope != "" && path != "" && scope != path:
+		return "", fmt.Errorf("%s: scope (%q) and path (%q) disagree — pass one", tool, scope, path)
+	case scope != "":
+		return scope, nil
+	case path != "":
+		return path, nil
+	default:
+		return ".", nil
+	}
 }
 
 // addKnowledgeTools registers the v1 knowledge subset on the MCP server.
@@ -82,35 +106,37 @@ func (s *Server) addKnowledgeTools(srv *mcp.Server) {
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "list_invariants",
-		Description: "The confirmed structural rules binding a path — what " +
-			"this code is required to keep true, and how each is checked. " +
-			"Read before writing code in an unfamiliar area: breaking one " +
-			"is a review failure, not a style note.",
+		Description: "The confirmed structural rules binding a repo-relative " +
+			"path (`scope`, or its alias `path`) — what this code is " +
+			"required to keep true, and how each is checked. Read before " +
+			"writing code in an unfamiliar area: breaking one is a review " +
+			"failure, not a style note.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, args ListInvariantsArgs) (*mcp.CallToolResult, any, error) {
 		// Unlike the other four, an empty query is meaningful here: it
 		// asks for every invariant in the repo.
-		scope := args.Scope
-		if scope == "" {
-			scope = "."
+		scope, err := resolveScope("list_invariants", args.Scope, args.Path)
+		if err != nil {
+			return errResult("%v", err), nil, nil
 		}
 		return s.answer("list_invariants", scope, store.ListInvariants), nil, nil
 	})
 
 	mcp.AddTool(srv, &mcp.Tool{
 		Name: "list_blind_spots",
-		Description: "What Hobbes cannot see under a path: the classified " +
-			"unresolved remainder, environment gaps, and degraded " +
-			"extractions, each naming the register entry behind it. This is " +
-			"the complement of every other tool here — they serve what the " +
-			"graph proved; this serves the boundary. Read it to know which " +
-			"context you must gather and verify yourself: a silent graph " +
-			"region is not an empty one.",
+		Description: "What Hobbes cannot see under a repo-relative path " +
+			"(`scope`, or its alias `path`): the classified unresolved " +
+			"remainder, environment gaps, and degraded extractions, each " +
+			"naming the register entry behind it. This is the complement " +
+			"of every other tool here — they serve what the graph proved; " +
+			"this serves the boundary. Read it to know which context you " +
+			"must gather and verify yourself: a silent graph region is not " +
+			"an empty one.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, args ListBlindSpotsArgs) (*mcp.CallToolResult, any, error) {
 		// Like list_invariants, an empty query is meaningful: the whole
 		// repo's blind spots.
-		scope := args.Scope
-		if scope == "" {
-			scope = "."
+		scope, err := resolveScope("list_blind_spots", args.Scope, args.Path)
+		if err != nil {
+			return errResult("%v", err), nil, nil
 		}
 		return s.answer("list_blind_spots", scope, store.ListBlindSpots), nil, nil
 	})
