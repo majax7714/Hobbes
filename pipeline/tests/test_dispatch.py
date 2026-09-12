@@ -312,3 +312,12 @@ def test_watch_progress_prints_first_edit_once_and_a_quiet_note_once_and_kills_n
     assert text.count("first edit at") == 1 and "x.py" in text
     assert text.count("no edit in") == 1
     assert out["quiet_note_min"] == pytest.approx(0.05 / 60.0, rel=0.25)
+
+
+def test_reasoning_left_skips_the_go_build_cache_and_the_clone(tmp_path):
+    # S-20260912T215521Z-efc8: compiled test packages in the session's GOCACHE hold the retention tests' own literal
+    marker = dp.THINKING_MARKER
+    for rel in ("go-build/a8/x-d", "worktree/pkg/t.jsonl", ".claude/projects/-work/t.jsonl"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("{" + marker + "}")
+    assert dp.reasoning_left(tmp_path) == [".claude/projects/-work/t.jsonl"]

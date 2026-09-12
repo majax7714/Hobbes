@@ -836,11 +836,18 @@
 - **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
   (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
 
-### C-125 — A dispatched doer's file reads and edits are not in the flight log
+### C-125 — A dispatched doer's file reads are not in the flight log (its edits are, by path alone)
 
 - **Cannot tell you:** from the flight log alone, what a Claude Code
-  doer read or wrote. Only `exec` passes the policy proxy. Claude
-  Code's native Read, Edit and Write act on `/work` directly.
+  doer read, or what an edit changed. Only `exec` passes the policy
+  proxy. Claude Code's native Read, Edit and Write act on `/work`
+  directly.
+  - **Narrowed 2026-09-12 (0.2.6-beta, ADR-107's progress hook):** every
+    Edit, Write, MultiEdit and NotebookEdit is a flight line with its
+    time, tool and path, never its content. A PostToolUse hook runs
+    `hobbes-proxy record-edit`. So "what did the doer touch, and when"
+    is answered. What it read, and the content of an edit outside the
+    harvested diff, are not.
 - **Because:** they are the doer's own tools, granted by the session's
   `--allowedTools`. Bash is withheld, so the shell goes through `exec`,
   but the file tools are Claude Code's. The mounts still bound them:

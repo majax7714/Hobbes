@@ -64,7 +64,7 @@ flowchart TB
 | Layer | What it is | What it guarantees | What it does not (register) |
 |---|---|---|---|
 | Knowledge layer | the repo's ingest, which must be at the parent | the gate and the doer's knowledge tools read one graph, the parent's | the graph's own limits (`list_blind_spots`) |
-| `hobbes-session` | a fresh clone on `hobbes/<session>`, the policy proxy, the flight log, commit-on-exit, harvest | the shell only through `exec`; every command logged; the canonical repo unreachable; the policy files and derived layer read-only | the doer's own file tools are outside the proxy (**C-125**) |
+| `hobbes-session` | a fresh clone on `hobbes/<session>`, the policy proxy, the flight log, commit-on-exit, harvest | the shell only through `exec`; every command logged; the canonical repo unreachable; the policy files and derived layer read-only | the doer's own file tools are outside the proxy: its edits reach the flight log by path through the progress hook, its reads do not (**C-125**) |
 | Egress allowlist | `--egress api.anthropic.com`: an internal network, and a proxy container on it and on the `hobbes-egress` bridge | no route off the box but to a named host; every tunnel and refusal logged | the endpoint itself is a channel; the proxy sees host and bytes, not content (**C-41**, narrowed) |
 | The doer | Claude Code, the host's binary, the owner's subscription token | no Bash; no repo `.mcp.json`; no self-update or telemetry; refused up front without a binary, a token or a route | not reproducible (**C-128**) |
 | `hobbes gate` | grounder v3, the complement split against a map derived from the parent's graph, the partition check when one is given | clear or blocked with the class, deterministic, the record hashed | a created file in a new directory reads `unmapped` (**C-126**); `unknown` stays advisory (C-121) |
@@ -167,7 +167,12 @@ uv run hobbes dispatch --task-file task.md --secrets "$HOBBES_SECRETS"
 #   --partition files.json   the files the doer may write, checked by the gate
 #   --no-verify              gate only
 #   --dry-run                the brief, the argv and hobbes-session's plan; nothing runs
+#   --quiet-minutes N        one note if no edit has landed by then (default 20; 0 off); nothing is killed
 ```
+
+While it runs, the command prints the doer's first edit as it lands
+(the progress hook, 0.2.6-beta). A doer may read for 20 minutes first,
+so a quiet session is not a stuck one.
 
 The command prints the gate verdict and the log's path, then exits:
 - 0: clear;
@@ -189,9 +194,9 @@ After that, the developer:
 - **A repair turn.** A blocked dispatch goes back to the developer. The
   gate's own message (`hobbes gate --message`) is the input for a
   re-dispatch.
-- **The doer's file tools through the proxy** (C-125). A Claude Code
-  hook that reports Edit and Write to the flight log would join the
-  two records.
+- **The doer's reads** (C-125). Its edits reach the flight log through
+  the progress hook (0.2.6-beta), but its reads are recorded nowhere.
+  By the retention rule they stay so unless Max says otherwise.
 - **`fetch-java` behind the same proxy** (C-66's measured next
   narrowing). The proxy exists now.
 - **A decomposed, multi-unit dispatch** (P12). One task per dispatch.
@@ -247,6 +252,15 @@ After that, the developer:
       - After `rm` escalations expired, a doer deleted its own scratch
         file through `python3 -c`, which the box allows. The box's
         escalations are not a boundary while `python3 *` is.
+  - **The progress hook (ADR-107's second amendment), one session:**
+    - `S-20260912T215521Z-efc8` (87 of 150 turns, 853 s). Gate clear and
+      verify pass; merged (0.2.6-beta). The first edit came at 2 minutes,
+      on the developer's watcher: the hook was not yet live for its own
+      session.
+    - Its retention line warned of reasoning in two files. Both were
+      compiled Go test packages in the session's build cache, holding the
+      retention tests' own marker. The scan now skips the cache, a harness
+      defect found by use.
   - **Findings so far:** no false block and no `missed`. Every egress
     refusal was read: one per suite run, the suite's own `http://llm`
     GET, which the proxy refused as built. The gate's classes do not

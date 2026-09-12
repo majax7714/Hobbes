@@ -137,7 +137,12 @@ segment and are marked in the heading.
 ## Debt summary
 
 **One hundred and thirty-eight entries: one hundred and eleven active, twenty-four lifted, three superseded**
-(ADR-110 on 2026-09-12, C's oracle cells:
+(ADR-107's progress hook, 2026-09-12 (0.2.6-beta):
+- C-125 narrowed: a dispatched doer's edits are in the flight log by
+  time, tool and path; its reads are still recorded nowhere
+  (*partial*).
+
+ADR-110 on 2026-09-12, C's oracle cells:
 - C-138 registered: lane A's fallback guesses where lane B resolved the
   site to a declaration outside the repo (*partial*).
 - C-131 measured: cJSON's 728 macro-expansion pairs, and

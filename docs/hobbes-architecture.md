@@ -1507,6 +1507,18 @@ evaluation rows, never model training data: `ttt.units.units_from_git`
 skips the doer's commits and the session files, and C-129 states the
 guard's reach.
 
+**Progress (ADR-107's second amendment).** A Claude Code session runs
+with `--settings`. The settings file's PostToolUse hook runs the mounted
+static proxy as `hobbes-proxy record-edit` on every Edit, Write,
+MultiEdit and NotebookEdit.
+- **What it writes:** one flight line per edit, with the time, the
+  tool and the path, never the edit's content. The flight line's one
+  new field is `path`, and the hook always exits 0.
+- **What `hobbes dispatch` does with it:** it counts edits apart from
+  exec decisions and prints the first edit as it lands. It prints one
+  note if none has landed by `--quiet-minutes`, and kills nothing.
+- **What stays unrecorded:** the doer's reads (C-125).
+
 ---
 
 ## 7. Carried subsystems (v1, condensed)

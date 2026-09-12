@@ -393,11 +393,17 @@ def purge_doer_state(session_dir: Path) -> list[str]:
     return sorted(removed)
 
 
+#: What `reasoning_left` does not scan: the clone, and the Go build cache dispatch itself puts in the session dir (`_environment`'s
+#: GOCACHE). The cache holds compiled test packages whose string literals include the marker — the retention tests' own fixture —
+#: which read as stored reasoning in S-20260912T215521Z-efc8 when the doer ran the Go suite.
+SCAN_SKIP = ("worktree", "go-build")
+
+
 def reasoning_left(session_dir: Path) -> list[str]:
     """Files under *session_dir* that still carry a stored reasoning block — expected none; the record says which if any."""
     out = []
     for p in sorted(Path(session_dir).rglob("*")) if Path(session_dir).is_dir() else []:
-        if p.is_file() and not p.is_symlink() and "worktree" not in p.relative_to(session_dir).parts:
+        if p.is_file() and not p.is_symlink() and not set(SCAN_SKIP) & set(p.relative_to(session_dir).parts):
             try:
                 if THINKING_MARKER in p.read_text(errors="replace"):
                     out.append(str(p.relative_to(session_dir)))

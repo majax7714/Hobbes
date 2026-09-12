@@ -14,6 +14,41 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.5-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.2.6-beta — 2026-09-12 (the progress hook: a dispatched doer's edits join the flight log; ADR-107 amended)
+
+**Patch: what the harness records.** A dispatch had no signal between
+"reading" and "stuck" (`b126`, stopped at 53 minutes while it was
+reading).
+
+- **The hook.** For a Claude Code session, `hobbes-session` writes
+  `claude-settings.json` beside `mcp.json`, and the doer runs with
+  `--settings`. Its PostToolUse hook matches `Edit`, `Write`,
+  `MultiEdit` and `NotebookEdit`, and runs the mounted static proxy as
+  `hobbes-proxy record-edit`.
+- **The line.** `record-edit` appends one flight line per edit: the
+  time, the session, the role, the tool and the path (relative to
+  `/work`).
+  - It reads only the tool's name and the path from the hook's input,
+    and never writes the edit's text.
+  - It always exits 0, so a fault in it never stops the doer.
+  - The flight line gains `path`, omitted when empty.
+- **`hobbes dispatch`:**
+  - The session file gains an **Edits** line: the count, the files, and
+    the first edit's time after launch.
+  - The Policy line counts exec decisions alone.
+  - While the session runs, dispatch prints the first edit, and one note
+    if none has landed by `--quiet-minutes` (default 20, 0 for off). It
+    kills nothing.
+- **Readers.** `hobbes run`'s `read_flight` no longer counts an edit
+  line as a knowledge call.
+- **Retention scan.** The scan no longer reads the session's Go build
+  cache. There, compiled test packages holding the retention tests' own
+  marker read as stored reasoning.
+- **Register:** C-125 is narrowed. Edits are in the flight log by path;
+  reads are still recorded nowhere.
+- **Built through the harness:** `S-20260912T215521Z-efc8` (87 of 150
+  turns). Gate clear and verify pass; merged without squashing.
+
 ## 0.2.5-beta — 2026-09-12 (C is supported: compiler-graded against clang's front end; ADR-110)
 
 **Patch: the verification base names C.** A language addition is a

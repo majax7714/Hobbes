@@ -248,5 +248,11 @@ dispatches can be watched.
   path, and the line keeps no content.
 - **Register.** C-125 is narrowed: every edit's time, tool and path is
   in the flight log.
-- **Version:** a patch.
+- **Version:** 0.2.6-beta.
+- **Built** through the harness, in `S-20260912T215521Z-efc8` (87 of 150
+  turns). Gate clear and verify pass; merged as `7ec3fe9`, keeping the
+  doer's authorship.
+- **Found by use in that session:** `dispatch.reasoning_left` read the
+  session's Go build cache, where compiled test packages carry the
+  retention tests' own marker. It now skips `go-build` (`SCAN_SKIP`).
 
