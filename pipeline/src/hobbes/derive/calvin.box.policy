@@ -1,6 +1,8 @@
-# Calvin M0 arm-O session policy (`docs/calvin-potential.md` §2.4, §3.2) —
-# the floor an orchestrator-alone session runs under on this repo's own
-# harness, passed to `hobbes-session --box`.
+# Calvin M0 arm-O session policy (`docs/calvin/calvin-potential.md` §2.4,
+# §3.2) — the floor an orchestrator-alone session runs under on this repo's
+# own harness, passed to `hobbes-session --box`; since ADR-107 also the box a
+# `hobbes dispatch` doer runs under, where `--egress` leaves the model
+# endpoint as the only host a `pip install` could reach, and it cannot.
 #
 # The benchmark floor (ADR-057, `bench.box.policy`) plus the runners this
 # repo's guards need inside the sandbox image, where there is no `uv`:

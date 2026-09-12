@@ -1,5 +1,10 @@
 # Calvin M0-Gate — the linker on the agent's diff
 
+> **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
+> approached as a harness validated by use:
+> [`calvin-harness.md`](calvin-harness.md). This record stands as
+> history, and its held next steps are superseded.
+
 **Status:** run through WP-21 on 10 keys, 2026-09-11 — **the floor holds as a safety property, not a helper** (§5's second reading, provisional on n = 10): the gate blocked 2 of 10 with 0 false blocks, and the one repair turn raised no pass; widening and the repair turn's design are Max's (§10). Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model. No template arm.
 **Depends on:** rounds 1 and 2 as run and closed ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md)): the O drivers (`o-units` for Go; M0's Python O driver), grounder v3, `hobbes verify` at 0.1.17-beta (`vacuous`, `gold_tests`, D-p fixed), the cutoff pin (Haiku 4.5 training data Jul 2025; post-cutoff ≥ 2025-08-01), the recall scan, the ledger; the comparative and oracle cells; M0 v2's 28 Python keys.
 **Amends:** the arm design of rounds 1–2. T-as-form is retired from measurement (round 2 §10: the filler declined to act on a body shown whole, budget to spare). The world stays; the agent moves.

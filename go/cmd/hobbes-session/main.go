@@ -7,7 +7,8 @@
 // Usage:
 //
 //	hobbes-session start --repo DIR --role ROLE [--task "..."] [flags]
-//	  [--dry-run] [--image IMG] [--network NET] [--claude-cred]
+//	  [--dry-run] [--image IMG] [--network NET | --egress HOST...]
+//	  [--claude-bin FILE]
 //	  [-- CMD ARGS...]   # override the in-container command (exit check)
 //
 // Exit codes: the session command's code · 1 setup error · 2 usage.
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/majax7714/Hobbes/go/internal/egress"
 	"github.com/majax7714/Hobbes/go/internal/sandbox"
 	"github.com/majax7714/Hobbes/go/internal/version"
 )
@@ -73,11 +75,22 @@ flags:
   --max-tokens N   completion cap per turn for --runtime (default: the loop's own)
   --loop-arg A     a flag forwarded verbatim to --runtime's loop (repeatable, e.g.
                    --loop-arg=--temperature=1.0; ADR-074)
-  --network NET    podman --network (default none)
+  --network NET    podman --network (default none); exclusive with --egress
+  --egress HOST    a host the session may reach, host or host:port (443 by
+                   default; repeatable; ADR-107): the session runs on its own
+                   --internal network, with no route off the box, behind an
+                   egress proxy that tunnels to these hosts alone and logs
+                   every decision to <sessions>/<id>/egress.jsonl
   --box FILE       box policy (default ~/.hobbes/box.policy if present)
   --proxy-bin FILE static hobbes-proxy binary to mount (default: next to me)
   --sessions DIR   session-state root (default ~/.hobbes/sessions)
-  --claude-cred    mount ~/.claude ro (needed for a live Claude Code run)
+  --claude-bin F   the Claude Code binary the default command runs, mounted
+                   ro (default: claude on this PATH, links resolved); its
+                   token comes from $CLAUDE_CODE_OAUTH_TOKEN (claude
+                   setup-token), passed by name, never in an argv
+  --claude-cred    withdrawn (ADR-107): it mounted ~/.claude where the
+                   session never looked, and would have handed the doer
+                   every host transcript; use $CLAUDE_CODE_OAUTH_TOKEN
   --agent-dir DIR  derived agent dir (ADR-054), mounted ro at /agent: its
                    policy.yaml is the chain's agent level, its context.json
                    the manifest knowledge queries are judged against
@@ -124,6 +137,8 @@ type options struct {
 	runtime, llmBaseURL            string
 	escalation                     time.Duration
 	image, network, box            string
+	egress                         multiFlag
+	claudeBin                      string
 	path, pre, runtimePython       string
 	maxTurns, maxTokens            int
 	loopArgs                       multiFlag
@@ -145,6 +160,10 @@ func runStart(args []string, stdout, stderr io.Writer) int {
 	opt, code := parseStart(args, stderr)
 	if code != 0 {
 		return code
+	}
+	if msg := claudeRefusal(opt); msg != "" {
+		fmt.Fprintln(stderr, "hobbes-session start: "+msg)
+		return exitError
 	}
 
 	plan, worktree, startRef, cleanup, err := setupWithStart(opt)
@@ -168,7 +187,19 @@ func runStart(args []string, stdout, stderr io.Writer) int {
 		plan.SessionID(), opt.role, worktree,
 		filepath.Join(opt.sessions, plan.SessionID(), "flight.jsonl"))
 
+	if plan.EgressEnabled() {
+		teardown, err := startEgress(plan, stderr)
+		if err != nil {
+			fmt.Fprintf(stderr, "hobbes-session: egress: %v\n", err)
+			return exitError
+		}
+		defer teardown()
+	}
+
 	cmd := exec.Command("podman", plan.PodmanArgs()...)
+	// The variables PodmanArgs passes by name (the doer's token) come from
+	// podman's own environment, so no secret sits in an argv.
+	cmd.Env = append(os.Environ(), plan.PodmanEnv()...)
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, stderr
 	err = cmd.Run()
 	if opt.commitOnExit {
@@ -290,7 +321,9 @@ func setupWithStart(opt options) (*sandbox.Plan, string, string, func(), error) 
 		HostSessions:  opt.sessions,
 		HostProxyBin:  opt.proxyBin,
 		HostBoxPath:   opt.box,
-		HostClaude:    claudeMount(opt.claudeCred),
+		Egress:        []string(opt.egress),
+		ClaudeBin:     opt.claudeBin,
+		ClaudeToken:   os.Getenv(sandbox.ClaudeTokenEnv),
 		HostDerived:   derivedMount(opt.repo),
 		HostAgentDir:  opt.agentDir,
 		HostMounts:    []string(opt.mounts),
@@ -447,15 +480,51 @@ func derivedMount(repo string) string {
 	return abs
 }
 
-func claudeMount(want bool) string {
-	if !want {
-		return ""
+// startEgress stands the session's route up (ADR-107): the shared egress
+// bridge when it is missing, the session's internal network, the proxy
+// container; then it waits for the proxy's listen record in the session
+// dir's egress log, so the session never starts ahead of its route. The
+// returned teardown removes the proxy and the network and prints what the
+// log says.
+func startEgress(plan *sandbox.Plan, stderr io.Writer) (func(), error) {
+	if exec.Command("podman", "network", "exists", sandbox.EgressBridge).Run() != nil {
+		if out, err := exec.Command("podman", sandbox.EgressBridgeArgs()...).CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("podman %s: %v: %s", strings.Join(sandbox.EgressBridgeArgs(), " "), err, out)
+		}
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
+	logPath := plan.EgressLogHostPath()
+	teardown := func() {
+		for _, a := range plan.EgressTeardown() {
+			_ = exec.Command("podman", a...).Run()
+		}
+		f, err := os.Open(logPath)
+		if err != nil {
+			fmt.Fprintf(stderr, "hobbes-session: egress: no log at %s: %v\n", logPath, err)
+			return
+		}
+		defer f.Close()
+		fmt.Fprintf(stderr, "hobbes-session: %s (%s)\n", egress.Summarize(f), logPath)
 	}
-	return filepath.Join(home, ".claude")
+	for _, a := range plan.EgressSetup() {
+		if out, err := exec.Command("podman", a...).CombinedOutput(); err != nil {
+			teardown()
+			return nil, fmt.Errorf("podman %s: %v: %s", strings.Join(a[:2], " "), err, strings.TrimSpace(string(out)))
+		}
+	}
+	deadline := time.Now().Add(20 * time.Second)
+	for {
+		if data, err := os.ReadFile(logPath); err == nil && strings.Contains(string(data), `"event":"listen"`) {
+			break
+		}
+		if time.Now().After(deadline) {
+			teardown()
+			return nil, fmt.Errorf("the egress proxy %s did not listen within 20s (log %s)", plan.EgressProxyName(), logPath)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	fmt.Fprintf(stderr, "hobbes-session: egress proxy %s up on %s; allow %s\n", plan.EgressProxyName(),
+		sandbox.EgressBridge, strings.Join(plan.EgressAllow(), ", "))
+	return teardown, nil
 }
 
 // parseStart handles flags and the "--" command override. Returns a
@@ -499,6 +568,8 @@ func parseStart(args []string, stderr io.Writer) (options, int) {
 	fs.StringVar(&opt.proxyBin, "proxy-bin", "", "")
 	fs.StringVar(&opt.sessions, "sessions", "", "")
 	fs.BoolVar(&opt.claudeCred, "claude-cred", false, "")
+	fs.Var(&opt.egress, "egress", "")
+	fs.StringVar(&opt.claudeBin, "claude-bin", "", "")
 	fs.BoolVar(&opt.dryRun, "dry-run", false, "")
 	fs.BoolVar(&opt.commitOnExit, "commit-on-exit", false, "")
 	if err := fs.Parse(flags); err != nil {
@@ -506,6 +577,12 @@ func parseStart(args []string, stderr io.Writer) (options, int) {
 	}
 	if opt.repo == "" || opt.role == "" {
 		fmt.Fprintf(stderr, "hobbes-session start: --repo and --role are required\n\n%s", usage)
+		return opt, exitUsage
+	}
+	if opt.claudeCred {
+		fmt.Fprintln(stderr, "hobbes-session start: --claude-cred is withdrawn (ADR-107): it mounted ~/.claude at a path the "+
+			"session's HOME never read, and would have handed the doer every host transcript and memory file; set "+
+			"$"+sandbox.ClaudeTokenEnv+" (claude setup-token) and pass --egress api.anthropic.com instead")
 		return opt, exitUsage
 	}
 	if opt.taskFile != "" {
@@ -555,6 +632,9 @@ func parseStart(args []string, stderr io.Writer) (options, int) {
 		}
 		opt.agentDir = abs
 	}
+	if code := resolveClaude(&opt, stderr); code != 0 {
+		return opt, code
+	}
 	if opt.proxyBin == "" {
 		opt.proxyBin = defaultProxyBin()
 	}
@@ -563,6 +643,52 @@ func parseStart(args []string, stderr io.Writer) (options, int) {
 		return opt, exitError
 	}
 	return opt, 0
+}
+
+// resolveClaude settles the doer's binary when the session runs Claude Code
+// (no override, no owned runtime): --claude-bin as given, else claude on
+// PATH with its links resolved — a versioned install's launcher is a link,
+// and a mounted link would dangle in the container. A live run refuses up
+// front (claudeRefusal) what would otherwise fail inside the container.
+func resolveClaude(opt *options, stderr io.Writer) int {
+	if len(opt.command) > 0 || opt.runtime != "" {
+		return 0
+	}
+	if opt.claudeBin == "" {
+		if found, err := exec.LookPath("claude"); err == nil {
+			opt.claudeBin = found
+		}
+	}
+	if opt.claudeBin != "" {
+		real, err := filepath.EvalSymlinks(opt.claudeBin)
+		if err == nil {
+			real, err = filepath.Abs(real)
+		}
+		if err != nil || !fileExists(real) {
+			fmt.Fprintf(stderr, "hobbes-session start: --claude-bin %q is not a file\n", opt.claudeBin)
+			return exitError
+		}
+		opt.claudeBin = real
+	}
+	return 0
+}
+
+// claudeRefusal is why a live Claude Code session would fail inside the
+// container — no binary, no token, or no route to its endpoint — or "".
+// A dry run, an override command and the owned runtime are never refused.
+func claudeRefusal(opt options) string {
+	if opt.dryRun || len(opt.command) > 0 || opt.runtime != "" {
+		return ""
+	}
+	switch {
+	case opt.claudeBin == "":
+		return "Claude Code is the session's command and no claude binary was found; pass --claude-bin"
+	case os.Getenv(sandbox.ClaudeTokenEnv) == "":
+		return "Claude Code needs $" + sandbox.ClaudeTokenEnv + " (claude setup-token); it is not set"
+	case len(opt.egress) == 0 && (opt.network == "" || opt.network == "none"):
+		return "Claude Code needs its endpoint and the session has no network; pass --egress api.anthropic.com"
+	}
+	return ""
 }
 
 // defaultProxyBin looks for hobbes-proxy next to this binary.

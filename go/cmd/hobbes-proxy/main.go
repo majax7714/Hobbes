@@ -13,6 +13,7 @@
 //	hobbes-proxy escalations list [--all] [--log-dir DIR]
 //	hobbes-proxy escalations approve <id> [--log-dir DIR]
 //	hobbes-proxy escalations deny <id> [--log-dir DIR]
+//	hobbes-proxy egress --allow HOST[:PORT]... [--listen ADDR] [--log FILE]
 //
 // For serve, stdout carries the MCP protocol; all diagnostics go to
 // stderr. Exit codes: 0 ok · 1 runtime error · 2 usage.
@@ -46,7 +47,7 @@ const (
 	exitUsage = 2
 )
 
-const usage = `usage: hobbes-proxy <serve | escalations> [flags]
+const usage = `usage: hobbes-proxy <serve | escalations | egress> [flags]
        hobbes-proxy version            print the Hobbes version (ADR-103)
 
 serve --repo DIR --role ROLE   run the tool proxy for one agent session
@@ -64,6 +65,13 @@ serve --repo DIR --role ROLE   run the tool proxy for one agent session
                               chain as its agent level; context.json, if present,
                               tags out-of-manifest knowledge queries as context
                               faults; adds the reflect tool's inbox channel
+
+egress --allow HOST[:PORT]     a session's allowlisted route out (ADR-107):
+  a CONNECT proxy that tunnels to the listed hosts (443 by default) and
+  answers 403 to everything else, one JSONL line per decision;
+  hobbes-session --egress runs it in its own container beside the session.
+    --listen ADDR   address to listen on (default 0.0.0.0:3128)
+    --log FILE      the decision log (default stdout)
 
 escalations [list | approve <id> | deny <id>]   the human side of the
   queue: parked commands across all sessions, oldest first.
@@ -86,6 +94,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runServe(args[1:], stderr)
 	case "escalations":
 		return runEscalations(args[1:], stdout, stderr)
+	case "egress":
+		return runEgress(args[1:], stderr)
 	case "version", "--version":
 		fmt.Fprintf(stdout, "hobbes-proxy %s\n", version.Version)
 		return 0

@@ -744,3 +744,21 @@
 - **Source:** calvin-m0-gate WP-18, 2026-09-11; the file-grain sites
   rule is the orchestrator's pin on WP-17's maps.
 
+### C-126 — A code file created in a directory the parent does not have reads `unmapped` at the gate: an invented name in it is advisory
+
+- **Cannot tell you:** that a name in a new file under a new directory
+  is invented.
+  - A derived map (`gate.derive_map`, `map_files`, ADR-107) reads a
+    created file by the parent's files in its directory.
+  - A directory the parent lacks has none, so the site is `unmapped`,
+    a blind spot.
+  - There `invented` and `near-miss` read `unknown`, which is advisory
+    (C-121).
+- **Because:** the complement split routes a NULL by where its
+  reference is written, and the graph has no reading of a place that
+  did not exist at the parent.
+- **Bites at:** a dispatch that adds a new package or directory.
+- **You find out:** **surfaced**. The gate record's row carries the
+  reason `unmapped` and its site, and the session file prints the
+  `unknown` count and every row.
+- **Source:** ADR-107, 2026-09-12.

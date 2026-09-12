@@ -1,5 +1,10 @@
 # Calvin M0-Go, round 2 — the audit, then the floor on equal budget
 
+> **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
+> approached as a harness validated by use:
+> [`calvin-harness.md`](calvin-harness.md). This record stands as
+> history, and its held next steps are superseded.
+
 **Status:** run through WP-16 on 2026-09-11 — **the floor does not hold on fresh keys**: T 0 of 3 and O 2 of 3 on the keys where pass can be read, T returning its body holes unchanged on 5 of 8 keys with budget to spare (§10); the next step is Max's. Written as a handoff (2026-09-12) for an orchestrator agent that assigns work packages to sub-agents · **Type:** no-spend audit of round 1's artifacts, then a pipeline experiment (preregistered readings, attribution-first) on fresh keys · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
 **Depends on:** round 1 as run and closed ([`calvin-m0-go.md`](calvin-m0-go.md): WP-0…WP-10, protocol v0.5, grounder v2, template v2; its §0a pins; its §10 results and gate record); the round-1 artifacts under `~/.hobbes/bench/calvin-go/wp-{5,6,8,10}/`; the gitleaks cell; M0 v2 ([`calvin-potential.md`](calvin-potential.md)).
 **Amends:** round 1 §2.1 (unit set: fresh keys), §2.6 (arms: equal budget; the build row in the repair), §4 (three instruments), §5 (readings), §9 (cost). Round 1's pins (§0a) apply unchanged and are not restated except where they move.

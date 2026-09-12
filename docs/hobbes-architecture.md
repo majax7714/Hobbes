@@ -1429,6 +1429,35 @@ one unit; re-planned under selection, `astropy-13579`'s ten units
 include one that is exactly the gold file and its test. Every session clone now carries
 a commit identity, which no sandbox had.
 
+### 6.3 The harness — `hobbes dispatch` (ADR-107)
+
+Calvin, run as a harness rather than as keyed rounds
+(`docs/calvin/calvin-harness.md`). The developer's own session keeps
+the intent and hands one task to a **doer**. The doer is Claude Code:
+the host's binary mounted read-only, the owner's token passed by name,
+no Bash, `--strict-mcp-config`. It runs in `hobbes-session` behind the
+egress allowlist:
+- **the session's network:** its own `--internal` network;
+- **the route out:** a `hobbes-proxy egress` container on that network
+  and on the `hobbes-egress` bridge, which tunnels CONNECT to the named
+  hosts alone and logs each decision.
+
+The ingest must be at the parent. `hobbes dispatch` refuses otherwise,
+because the gate reads that graph.
+
+When the session ends, the harvested branch goes through three steps:
+1. **`hobbes gate`**, with the blind-spot map derived from the parent's
+   graph (`gate.derive_map` over the partition or else the diff's files;
+   a created file is read at its directory's files);
+2. **`hobbes verify`**, when asked;
+3. **one log file per session** under `docs/calvin/sessions/`.
+
+The log is the harness's record plus a review block the developer
+fills: whether the gate's verdict was right, and the outcome. Those
+files are the harness's validation; there is no keyed metric. Nothing
+is merged by the harness. C-125–C-128 are its concessions, and C-41 is
+narrowed by the allowlist.
+
 ---
 
 ## 7. Carried subsystems (v1, condensed)
@@ -1473,9 +1502,14 @@ a commit identity, which no sandbox had.
   than falling back. Per-command secret brokering at the proxy
   was the v1 design and is unbuilt; what exists is narrower — no secret
   enters a session except the benchmark model credential, which rides
-  the session env and is registered (C-41), and — opt-in, for a live
-  Claude Code session only — the host's `~/.claude` mounted read-only
-  by `hobbes-session --claude-cred`. `.tfstate` denied at box level;
+  the session env and is registered (C-41), and, for a live Claude
+  Code session, its long-lived token, passed by name so it is never in
+  an argv. The earlier `--claude-cred` mount of `~/.claude` is
+  withdrawn: the session's HOME never read it (ADR-107). A live session
+  reaches the network only through `--egress`: its own `--internal`
+  network, and beside it an egress proxy that tunnels to the named hosts
+  alone, every decision in the session's `egress.jsonl` (ADR-107; C-41
+  narrowed). `.tfstate` denied at box level;
   `derived/` never committed.
 - **Escalation** — parked sessions, Sessions-tab cards, expire-to-deny
   (default 30 min), logged approvals.
@@ -1544,6 +1578,7 @@ The v2 extraction programme — **complete and fully reviewed as of
 | **Java** (ADR-096, J.M0–J.M5) | done, contained, **compiler-graded 2026-08-29**; C-66 settled 2026-09-01 (ADR-097) | the sixth language: `javasource` + `scip-java` in the image, a javac+CHA oracle (O8), four cells at 100% precision (§3.8); the build resolves networked on a stage with no sources, then indexes offline; the residual (build logic over public caches) stays registered |
 | **Test-time training** (ADR-099) | run 2026-09-03, **held for the owner's call** | `hobbes derive-corpus` renders the derived layer as a training corpus; at 300 steps a 7B's gold-diff NLL falls on every unit but navigation does not follow, past one epoch the edges enter the weights while the NLL gain leaves; H-TTT-2/3 killed at that step count (`olmo3-ttt-results.md`, § H-TTT); C-81–C-88 |
 | **Calvin M0** (`calvin-potential.md`; ADR-100 for its harness) | steps 0–6b built, **run on four keys 2026-09-04**; the design's own ADR (101) waits on the owner's *accepted*; a wider run is held with all spend | the hole language (`derive/holes.py`), `hobbes template`, `hobbes ground`, `hobbes verify`, `hobbes gate` and the orchestrator adapter; **`hobbes gate`** (Calvin M0-Gate WP-18, 2026-09-11, `derive/gate.py`): grounder v3 over any finished diff at its parent through a one-hole template, the complement split against the unit's blind-spot map (a name-absence NULL in a blind spot reads `unknown`, advisory; a file-grain site count never routes) and the partition check at file grain (by default `reach`: a file that is not code and a code file created beside the partition are listed, not blocked), clear or blocked by class, the record stamped and byte-identical on rerun; the O drivers gate post hoc and resume a blocked session for one repair turn (`agent/loop.py --resume-transcript`); C-121–C-123; since 0.1.20-beta (WP-18c, D-x) an arm-O session and its repair turn start from a repo cut at their base commit (`harness.session_repo`: no commit past the parent, no remote, no alternates, checked at the object level; the branch fetched back into the owned clone after), one sessions root per session, C-124 the network left open; the 28 golds ground at HSR 0 and verify contained with no model; on Sonnet 5 arm T pass 1 / fail 1 / empty-diff 1 / no-tests 1 against arm O pass 1 / no patch 3 — the module anchor is the cost door and the template missed importer tests, both fixed the same night (template v1, the `import` guard grain) and exercised with no model the next day — the 28 golds re-verified under the import grain at `P2F` 0, the run's answers replayed into v1; **template v2** (Calvin M0-Go, 2026-09-11): an out-degree cap on callee expansion — an anchored symbol with more than k = 20 in-repo callees opens each as a round-1 `ANCHOR_CONFIRM` showing its signature line, and only a confirmed one becomes a body; opt-in (`build_template(version=2)`), v1 the default and rebuilt byte for byte, and the `hobbes template` CLI builds v1 only; the orchestrator adapter's **protocol v0.5** (2026-09-11, superseding v0.4): **grounder v2** holds a Go fill to the world — an import must be the standard library (go1.26.5's `go list std`, pinned), a module the governing `go.mod` requires, or a directory of the module itself (`import-outside` otherwise), and a qualifier no import binds is `unimported` — so a declaration body in another project's API reads NULL; a NULL inside a placed declaration's body goes back once as a repair of the same hole, the declaration hole shows a sibling's form (a same-kind function of the binding directory, 12 lines at most), and a refused declaration reads `refused` (C-109–C-114). Protocol v0.4 (superseding v0.3, which superseded v0.2 the same day): v0.3's reading stands — an `"unchanged"` pattern on SIGNATURE or BODY, and `"unchanged"`/`"no"` on ANCHOR_CONFIRM, is read per hole and listed under `by_pattern`, never rewriting or confirming, and a refused pattern's holes are named in the repair; v0.4 adds the **declaration hole** — the NULL round-trip offers one per new name a call site writes and nothing declares, the answer must declare that name in a file of the binding directory, and the call site is re-grounded — and the **gutter guard**, which refuses a SIGNATURE or BODY fill carrying the render's line-number gutter and names it in the repair (the grounder refuses it too); C-91–C-93, C-103–C-114 |
+| **Calvin harness** (ADR-107; `calvin/calvin-harness.md`) | built 2026-09-12, 0.1.21-beta; validation by use opens with the first dispatched session | `hobbes dispatch`: Claude Code in `hobbes-session` behind the egress allowlist (`hobbes-session --egress`, `hobbes-proxy egress`), `hobbes gate` with a derived map and `hobbes verify` on its diff, one log file per session under `docs/calvin/sessions/`; the keyed rounds (M0, M0-Go, M0-Gate) closed as an approach, their records history; C-41 narrowed, C-124 superseded, C-125–C-128 |
 
 Sequencing rules carry from v1 unchanged: deterministic before generative,
 each milestone exits on a real repo, **one milestone active at a time**, and

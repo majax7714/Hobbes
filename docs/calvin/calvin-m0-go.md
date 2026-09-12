@@ -1,5 +1,10 @@
 # Calvin M0-Go — the floor round: the socket on a dense world
 
+> **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
+> approached as a harness validated by use:
+> [`calvin-harness.md`](calvin-harness.md). This record stands as
+> history, and its held next steps are superseded.
+
 **Status:** run and closed 2026-09-11 (Max) — **the floor is not established at A2 on Haiku 4.5**. Across WP-6, WP-8 and WP-10, T < O on O's five keys; on the three recall-free keys the two are not separable (§10). Written as a handoff for an orchestrator agent that assigns work packages to sub-agents · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator model `claude-haiku-4-5-20251001` via the OpenAI-compatible endpoint; exec local under Podman. No GPU. No Calvin model.
 **Depends on:** M0 v2 as run (`calvin-m0-socket-v2.md` — in this tree, [`calvin-potential.md`](calvin-potential.md); §0a: template v1, grounder v0, harness ADR-100, adapter protocol v0.2); the Go lane of Hobbes (gitleaks cell: precision 100%, recall 98%; key = compiler-derived, RTA from roots); Atlas-0 through the B4 addendum; ADR-101's field survey.
 **Amends:** M0 §3.1 (unit set), §2.2 (model), §2.3 (grounder: density field, Track B), §4 (two instruments). Everything else in M0 v2 stands.

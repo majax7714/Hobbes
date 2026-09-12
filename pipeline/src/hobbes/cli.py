@@ -839,7 +839,8 @@ def _cmd_gate(args: argparse.Namespace) -> int:
         diff = sys.stdin.read() if args.diff == "-" else Path(args.diff).read_text(errors="surrogateescape")
         graph = json.loads(graph_path.read_text())
         tests = json.loads(tests_path.read_text()) if tests_path.exists() else {"tests": []}
-        bmap = gt.load_map(Path(args.map)) if args.map else None
+        derive = args.map == "derive"
+        bmap = gt.load_map(Path(args.map)) if args.map and not derive else None
         partition, source = gt.load_partition(Path(args.partition)) if args.partition else (None, None)
     except (OSError, ValueError, KeyError) as exc:
         print(f"hobbes gate: cannot read an input ({exc}); pass the parent's --graph", file=sys.stderr)
@@ -851,6 +852,10 @@ def _cmd_gate(args: argparse.Namespace) -> int:
     if r.returncode or not parent:
         print(f"hobbes gate: {args.parent!r} names no commit of {repo_root}", file=sys.stderr)
         return 2
+    if derive:
+        # ADR-107: the map read from the parent's own graph, over the partition or else the files the diff touches; a derived
+        # map's file list is never taken as a partition (it is the diff's own files, not a unit's)
+        bmap = gt.derive_map(graph, gt.map_files(diff, repo_root, parent, partition), repo_root, parent)
     try:
         rec = gt.gate(diff, parent, repo_root, tmpl.Ledger(graph, tests), inputs=gt.input_hashes(diff, graph_path, tests_path, partition, bmap),
                       partition=partition, partition_source=source, bmap=bmap, partition_rule=args.partition_rule)
@@ -875,6 +880,34 @@ def _cmd_gate(args: argparse.Namespace) -> int:
     if rec["integrity"]["post_agrees"] is False:
         print(f"  WARNING: the grounder's reading of the diff differs from `git apply` on {rec['integrity']['post_disagrees']} — a gate defect", file=sys.stderr)
     return 1 if rec["verdict"] == "blocked" else 0
+
+
+def _cmd_dispatch(args: argparse.Namespace) -> int:
+    """`hobbes dispatch` (ADR-107): one task to a doer under the whole environment, then the gate, verify and the per-session log.
+    Exit 0 when the gate clears and verify does not fail; 1 when the gate blocks or verify fails; 2 when refused before any session
+    (the ingest not at the parent, no session binary, no token); 3 when the session did not finish."""
+    from hobbes.derive import gate as gt
+    from hobbes.run import dispatch as dp
+
+    repo_root = _repo_root_from(args)
+    try:
+        task = args.task if args.task is not None else Path(args.task_file).read_text()
+        partition = gt.load_partition(Path(args.partition))[0] if args.partition else None
+        d = dp.prepare(repo_root, task, ref=args.ref, model=args.model, max_turns=args.max_turns, egress=args.egress, partition=partition,
+                       claude_bin=args.claude_bin, session_bin=args.session_bin, sessions_root=Path(args.sessions) if args.sessions else None,
+                       verify=not args.no_verify, timeout=args.timeout, log_dir=Path(args.log_dir) if args.log_dir else None)
+        if args.dry_run:
+            print(dp.dry_run(d))
+            return 0
+        token = dp.token(Path(args.secrets) if args.secrets else None, args.key_name)
+    except (OSError, ValueError, dp.DispatchError) as exc:
+        print(f"hobbes dispatch: {exc}", file=sys.stderr)
+        return 2
+    rec = dp.dispatch(d, token)
+    if args.json:
+        print(json.dumps(rec, indent=1))
+    print(dp.summary_line(rec), file=sys.stderr)
+    return dp.exit_code(rec)
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
@@ -1593,7 +1626,8 @@ def build_parser() -> argparse.ArgumentParser:
     gate_parser.add_argument("--partition", help="the unit's write partition: a JSON list, {partition: [...]}, a template, or one path "
                                                  "per line (default: the map's partition; neither: the check is not run)")
     gate_parser.add_argument("--map", help="the unit's blind-spot map (calvin-m0-gate §0b's schema), or a unit row carrying "
-                                           "blind_spot_map (none: the split is not run and every class stands)")
+                                           "blind_spot_map, or `derive` to read one from the parent's graph over the partition "
+                                           "or else the diff's files (ADR-107) (none: the split is not run and every class stands)")
     gate_parser.add_argument("--partition-rule", choices=("strict", "exempt", "reach"), default="reach",
                              help="reach (default): files no provider reads as code and code files created beside a partition file are "
                                   "listed, not blocked, and test-support paths allowed; exempt: test-support paths only; strict: every touched file")
@@ -1625,6 +1659,42 @@ def build_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("--no-baseline", action="store_true", help="skip the run without the diff (outcomes unclassed)")
     verify_parser.add_argument("--timeout", type=int, default=900, help="seconds per contained test command")
     verify_parser.add_argument("--keep", action="store_true", help="keep the scratch worktrees under the cache root")
+
+    dispatch_parser = sub.add_parser(
+        "dispatch",
+        help="hand one task to a doer under the whole environment — hobbes-session, the egress allowlist, Claude Code — then gate, "
+             "verify and log it, one file per session (ADR-107)",
+        description=(
+            "Calvin as a harness (ADR-107, docs/calvin/calvin-harness.md). The task runs as Claude Code (the host's binary, the "
+            "owner's token) inside `hobbes-session`: a fresh clone at the parent, exec only through the policy proxy, the network "
+            "the model endpoint alone (--egress). The harvested branch is gated at its parent with the blind-spot map read from "
+            "the parent's graph, verified in the sandbox, and written down as one file under docs/calvin/sessions/, whose review "
+            "block is the developer's. Nothing is merged. The ingest must be at the parent (`hobbes ingest` first)."
+        ),
+    )
+    dispatch_task = dispatch_parser.add_mutually_exclusive_group(required=True)
+    dispatch_task.add_argument("--task", help="the task, as the doer should read it")
+    dispatch_task.add_argument("--task-file", help="the task from a file")
+    dispatch_parser.add_argument("--repo", help="repo root (default: auto-detected via .git)")
+    dispatch_parser.add_argument("--ref", default="HEAD", help="the parent the session starts from; the ingest must be at it (default HEAD)")
+    dispatch_parser.add_argument("--model", help="the doer's model (default: Claude Code's own)")
+    dispatch_parser.add_argument("--max-turns", type=int, default=40, help="the doer's turn budget (default 40)")
+    dispatch_parser.add_argument("--egress", action="append", help="a host the session may reach, host or host:port (repeatable; "
+                                                                   "default api.anthropic.com)")
+    dispatch_parser.add_argument("--partition", help="the files the doer may write (a JSON list or one path per line); the gate checks "
+                                                     "the diff against it (default: not checked)")
+    dispatch_parser.add_argument("--claude-bin", help="the Claude Code binary (default: claude on PATH)")
+    dispatch_parser.add_argument("--session-bin", help="hobbes-session (default: $HOBBES_SESSION_BIN, this checkout's go/bin, then PATH)")
+    dispatch_parser.add_argument("--sessions", help="session-state root (default ~/.hobbes/sessions)")
+    dispatch_parser.add_argument("--secrets", help="the owner's name=value key file, read for --key-name when $CLAUDE_CODE_OAUTH_TOKEN "
+                                                   "is unset; never printed")
+    dispatch_parser.add_argument("--key-name", default="claude_oauth_token", help="the key file's line holding the Claude Code token")
+    dispatch_parser.add_argument("--log-dir", help="where the per-session log is written (default docs/calvin/sessions under the repo)")
+    dispatch_parser.add_argument("--no-verify", action="store_true", help="gate only; do not run the diff's guarding tests")
+    dispatch_parser.add_argument("--timeout", type=int, default=3600, help="seconds before the session is stopped (default 3600)")
+    dispatch_parser.add_argument("--dry-run", action="store_true", help="write the brief, show the session's argv and hobbes-session's "
+                                                                        "plan; run nothing and log nothing")
+    dispatch_parser.add_argument("--json", action="store_true", help="print the dispatch record")
 
     run_parser = sub.add_parser(
         "run",
@@ -1667,7 +1737,7 @@ def build_parser() -> argparse.ArgumentParser:
                             "sections cut with a stated cut, C-45); default: no limit")
     run_parser.add_argument("--session-arg", action="append",
                             help="extra flag passed through to hobbes-session start (repeatable), "
-                            "e.g. --session-arg=--claude-cred")
+                            "e.g. --session-arg=--egress=api.anthropic.com")
     run_parser.add_argument("--coverage", choices=("strict", "assign"), default="strict",
                             help="staged run (ADR-085): when a planner requirement has no owning unit after "
                                  "the one re-plan, 'strict' (default) stops at plan cost (exit 2, record "
@@ -1832,7 +1902,7 @@ def build_parser() -> argparse.ArgumentParser:
     brun_parser.add_argument("--session-bin", help="hobbes-session binary for the harness arm")
     brun_parser.add_argument("--sessions", help="session-state root for the harness arm")
     brun_parser.add_argument("--session-arg", action="append",
-                             help="extra flag for hobbes-session (repeatable), e.g. --session-arg=--claude-cred")
+                             help="extra flag for hobbes-session (repeatable), e.g. --session-arg=--egress=api.anthropic.com")
     brun_parser.add_argument("--clean", action="store_true", help="remove each workspace after its record is written")
 
     report_parser = bench_sub.add_parser("report", help="lay a run's records against H1–H3")
@@ -1953,6 +2023,7 @@ def main(argv: list[str] | None = None) -> int:
         "template": _cmd_template,
         "ground": _cmd_ground,
         "gate": _cmd_gate,
+        "dispatch": _cmd_dispatch,
         "verify": _cmd_verify,
         "run": _cmd_run,
         "mail": _cmd_mail,

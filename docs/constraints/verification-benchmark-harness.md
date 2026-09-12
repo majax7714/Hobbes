@@ -56,7 +56,8 @@
   A session driven by a model served off-box must reach that endpoint,
   so a live session runs with a network, and the endpoint's bearer
   token rides into it as `HOBBES_LLM_API_KEY` — the one secret a
-  session carries. Nothing narrows the egress to the endpoint host yet.
+  session carries. Nothing narrowed the egress to the endpoint host
+  until ADR-107 (below).
 - **Because:** the small-model ladder is served from the owner's
   compute (ADR-056), not from a binary in the image; the model is a
   network service by construction. The shell is still only reachable
@@ -72,6 +73,23 @@
   <endpoint>`; `run.json` records the endpoint. Narrowing egress to the
   endpoint host is in `future_additions.md`.
 - **Source:** ADR-056 (2026-08-21).
+- **Narrowed 2026-09-12 (ADR-107, 0.1.21-beta).**
+  - **What changed:** `hobbes-session --egress HOST` puts a live
+    session on its own `--internal` network, which has no route off
+    the box. An egress proxy beside it tunnels to the named hosts
+    alone, answers 403 to everything else, and logs every decision to
+    `<session>/egress.jsonl`. `hobbes dispatch` and the reviewer
+    session use it with `api.anthropic.com`. The Claude Code doer's
+    token rides the environment by name, never an argv.
+  - **What stays:**
+    - A session launched with `--network` instead reaches everything:
+      the benchmark and the Calvin rounds' drivers do this.
+    - The allowlisted endpoint is itself a channel. The proxy sees the
+      host and the byte counts, never the content (TLS), so a session
+      can still send what it reads to the endpoint.
+  - **You find out:** **surfaced**. The dry run prints the route, the
+    launcher's last line summarizes the log, and a dispatch's session
+    file lists every tunnel and refusal.
 
 ### C-42 — A benchmark session runs under the solo floor, not the repo's intent
 - **Cannot tell you:** that a benchmark session's permissions match what
@@ -818,7 +836,76 @@
 - **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
   (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
 
+### C-125 — A dispatched doer's file reads and edits are not in the flight log
+
+- **Cannot tell you:** from the flight log alone, what a Claude Code
+  doer read or wrote. Only `exec` passes the policy proxy. Claude
+  Code's native Read, Edit and Write act on `/work` directly.
+- **Because:** they are the doer's own tools, granted by the session's
+  `--allowedTools`. Bash is withheld, so the shell goes through `exec`,
+  but the file tools are Claude Code's. The mounts still bound them:
+  the worktree is the one writable tree, and the policy files, the
+  derived layer and the dependency trees are read-only.
+- **Bites at:**
+  - an audit that asks, from `flight.jsonl` alone, whether the doer
+    read X before changing Y;
+  - a write the repo policy would have refused had it come through
+    `exec`.
+- **You find out:** **partial**.
+  - Every write is in the harvested diff, which the gate reads.
+  - Claude Code's own transcript of every tool call lands in the
+    session's directory, under the session HOME's `.claude/`, and the
+    session file points at that directory.
+  - Nothing joins the transcript to the flight log.
+- **Source:** ADR-107, 2026-09-12.
+
+### C-127 — The harness is validated by the developer's reading of each session, not by an answer key
+
+- **Cannot tell you:** that a gate verdict recorded under
+  `docs/calvin/sessions/` is right.
+  - A `right-clear` is the developer's reading of the diff.
+  - A `missed` exists only once someone finds the error.
+- **Because:** real work has no gold. The keyed rounds had keys only
+  for past commits, and the keys leaked (D-x).
+- **Bites at:** any claim drawn from the logs. A count of
+  `right-clear` rows counts reviews that found nothing, not diffs with
+  nothing wrong.
+- **You find out:** **surfaced**. Every session file's review block
+  names its grader and vocabulary, and `calvin-harness.md` §4 scopes
+  the claim to the sessions run (P11).
+- **Source:** ADR-107; Max, 2026-09-12.
+
+### C-128 — A dispatch is not reproducible from its inputs
+
+- **Cannot tell you:** what the same task would produce if dispatched
+  again.
+  - The doer is a sampled model.
+  - Its binary is whatever Claude Code the host has installed.
+    Auto-update is off inside the session, not on the host.
+- **Because:** the doer is the one generative part of the stack
+  (charter §8). The layer under it stays deterministic: the gate's
+  record over the same diff is byte-identical on rerun.
+- **Bites at:** comparing two sessions; re-running a session to check a
+  finding.
+- **You find out:** **surfaced**. The session file records the doer's
+  version, model and turns, and the gate record hashes every input.
+- **Source:** ADR-107, 2026-09-12.
+
+## Superseded constraints in this segment
+
+A limit that was never lifted but whose path no longer runs. The
+concession is intact — it would return with the path — so the entry keeps
+its number and its full text, plus a **Was / Superseded by / Would return
+if** line, and the debt summary does not count it among the active.
+
 ### C-124 — An arm-O session can reach the network: the repo's future is cut from its clone, not from the internet
+*(Superseded 2026-09-12. Was: an arm-O session kept the endpoint's
+whole network (pasta), so the upstream history was out of its repo but
+not out of its reach. Superseded by: the keyed Calvin rounds closed
+(ADR-107); a dispatched session runs behind the egress allowlist, and
+`hobbes-session --egress` is the fix this entry named. Would return if:
+`calvin_probe.py o-units` is run again — its sessions still pass
+`--network pasta`; pass `--egress` with the endpoint's host first.)*
 
 - **Cannot tell you:** that an arm-O session never saw the upstream
   repository's later history.
@@ -847,13 +934,6 @@
   - Nothing blocks the fetch.
 - **Source:** calvin-m0-gate WP-18c (D-x, found by WP-21 at key 1),
   2026-09-11.
-
-## Superseded constraints in this segment
-
-A limit that was never lifted but whose path no longer runs. The
-concession is intact — it would return with the path — so the entry keeps
-its number and its full text, plus a **Was / Superseded by / Would return
-if** line, and the debt summary does not count it among the active.
 
 ### C-55 — The DeepSWE aid is derived without the planner stage
 *(Superseded 2026-08-23. Was: the Pier aided arm's aid came from the

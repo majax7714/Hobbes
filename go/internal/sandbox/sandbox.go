@@ -2,7 +2,8 @@
 // agent session (M4, ADR-018): a fresh git worktree mounted rw, the
 // session-state dir mounted rw for the flight recorder and escalation
 // queue, the box policy mounted ro, a clean environment, and Claude Code
-// wired to the hobbes-proxy MCP server. The Plan is pure data — it builds
+// wired to the hobbes-proxy MCP server — reaching off the box, when it must,
+// only through the egress proxy (ADR-107). The Plan is pure data — it builds
 // the podman argv and MCP config without running anything, so the whole
 // design is inspectable via `hobbes-session --dry-run` and unit-testable.
 package sandbox
@@ -16,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/majax7714/Hobbes/go/internal/egress"
 )
 
 // In-container mount points. Fixed so the MCP config and podman args agree.
@@ -25,9 +28,25 @@ const (
 	ProxyPath    = "/usr/local/bin/hobbes-proxy"
 	BoxPath      = "/policy/box.policy"         // ro, only when a host box policy exists
 	DerivedDir   = WorkDir + "/.hobbes/derived" // ro, the knowledge layer
-	ClaudeHome   = "/root/.claude"              // session's own credential, ro, opt-in
 	AgentDir     = "/agent"                     // ro, the derived agent dir (ADR-054)
+	// ClaudeBinPath is where the host's Claude Code binary is mounted, ro,
+	// when the default command runs it (ADR-107): the image carries none.
+	ClaudeBinPath = "/usr/local/bin/claude"
 )
+
+// The egress plan (ADR-107): one shared custom bridge that reaches off the
+// box, one --internal network per session, and one proxy container on both.
+const (
+	EgressBridge  = "hobbes-egress"
+	EgressPort    = "3128"
+	EgressLogName = "egress.jsonl"
+	egressLogDir  = "/log"
+)
+
+// ClaudeTokenEnv is the variable Claude Code reads a long-lived token from
+// (`claude setup-token`); it is the doer's one secret, like the owned
+// runtime's HOBBES_LLM_API_KEY (C-41).
+const ClaudeTokenEnv = "CLAUDE_CODE_OAUTH_TOKEN"
 
 // Config is the wrapper's validated input.
 type Config struct {
@@ -76,15 +95,31 @@ type Config struct {
 	// so the worktree shadows the image's installed copy). Pre is a
 	// host-authored shell command run before the session command in
 	// the same container; it is not the agent's and is not policed.
-	Path         string
-	Env          []string
-	Pre          string
-	Network      string // podman --network (default "none")
+	Path    string
+	Env     []string
+	Pre     string
+	Network string // podman --network (default "none"); exclusive with Egress
+	// Egress names the only hosts the session may reach ("host" or
+	// "host:port", 443 by default; ADR-107). Non-empty puts the session on
+	// its own --internal network — no route off the box — beside an egress
+	// proxy container that tunnels to exactly these hosts and logs every
+	// decision to the session dir. It replaces a whole-network --network
+	// for a live session (C-41, C-124).
+	Egress []string
+	// ClaudeBin is the host path of the Claude Code binary the default
+	// command runs, mounted read-only at ClaudeBinPath — the image carries
+	// no claude (ADR-107). It is the user's own file, so it is never
+	// relabeled and the container runs with labeling off, as HostMounts do.
+	ClaudeBin string
+	// ClaudeToken is the long-lived Claude Code token passed as
+	// CLAUDE_CODE_OAUTH_TOKEN. It replaces mounting the host's ~/.claude,
+	// which the session's HOME never read and which would have handed the
+	// doer every host transcript and memory file.
+	ClaudeToken  string
 	HostWorktree string // absolute host path of the session worktree
 	HostSessions string // absolute host ~/.hobbes/sessions
 	HostProxyBin string // absolute host path of the static proxy binary
 	HostBoxPath  string // host box policy, "" when none
-	HostClaude   string // host ~/.claude to mount ro, "" to omit
 	// HostDerived is the host repo's .hobbes/derived, mounted ro into the
 	// worktree so the knowledge tools have artifacts to answer from — a
 	// fresh worktree has none, because derived/ is gitignored. "" omits it.
@@ -147,8 +182,22 @@ func NewPlan(cfg Config) (*Plan, error) {
 	if cfg.Image == "" {
 		cfg.Image = "hobbes-session:local"
 	}
+	if len(cfg.Egress) > 0 {
+		if cfg.Network != "" && cfg.Network != "none" {
+			return nil, fmt.Errorf("sandbox: --egress and --network %q are exclusive: the egress plan owns the session's network", cfg.Network)
+		}
+		allow, err := egress.ParseAllowlist(cfg.Egress)
+		if err != nil {
+			return nil, fmt.Errorf("sandbox: %v", err)
+		}
+		cfg.Egress = allow.Entries()
+		cfg.Network = egressNetwork(cfg.SessionID)
+	}
 	if cfg.Network == "" {
 		cfg.Network = "none"
+	}
+	if cfg.ClaudeBin != "" && !filepath.IsAbs(cfg.ClaudeBin) {
+		return nil, fmt.Errorf("sandbox: the Claude Code binary must be an absolute host path, got %q", cfg.ClaudeBin)
 	}
 	if cfg.Runtime != "" && (cfg.LLMBaseURL == "" || cfg.Model == "") {
 		return nil, fmt.Errorf("sandbox: the agent runtime needs --llm-base-url and --model")
@@ -278,8 +327,9 @@ func (p *Plan) mounts() []string {
 	if p.cfg.HostBoxPath != "" {
 		m = append(m, p.cfg.HostBoxPath+":"+BoxPath+":ro,z")
 	}
-	if p.cfg.HostClaude != "" {
-		m = append(m, p.cfg.HostClaude+":"+ClaudeHome+":ro,z")
+	if p.cfg.ClaudeBin != "" && p.usesClaude() {
+		// The user's own binary, read-only and never relabeled (ClaudeBin).
+		m = append(m, p.cfg.ClaudeBin+":"+ClaudeBinPath+":ro")
 	}
 	if p.cfg.HostDerived != "" {
 		// Read-only for every role, including the implementer: derived
@@ -347,6 +397,9 @@ func (p *Plan) DefaultCommand() []string {
 		// text result would leave tokens unobserved forever.
 		"--output-format", "json",
 		"--mcp-config", p.mcpConfigContainerPath(),
+		// Only the hobbes server: a repo's own .mcp.json (this one starts
+		// a podman container) is not the session's to load (ADR-107).
+		"--strict-mcp-config",
 		"--permission-mode", mode,
 		"--disallowedTools", "Bash",
 		"--allowedTools", strings.Join(p.allowedTools(), ","),
@@ -354,7 +407,16 @@ func (p *Plan) DefaultCommand() []string {
 	if p.cfg.Model != "" {
 		cmd = append(cmd, "--model", p.cfg.Model)
 	}
+	if p.cfg.MaxTurns > 0 {
+		cmd = append(cmd, "--max-turns", strconv.Itoa(p.cfg.MaxTurns))
+	}
 	return cmd
+}
+
+// usesClaude reports whether the session runs the default Claude Code
+// command (no override, no owned runtime).
+func (p *Plan) usesClaude() bool {
+	return len(p.cfg.Command) == 0 && p.cfg.Runtime == ""
 }
 
 // RuntimeCommand is the owned agent loop's invocation (ADR-056): the
@@ -437,11 +499,28 @@ func (p *Plan) PodmanArgs() []string {
 	for _, kv := range p.cfg.Env {
 		args = append(args, "--env", kv)
 	}
-	if len(p.cfg.HostMounts) > 0 {
-		// The bound trees are not Hobbes's to relabel (see HostMounts);
-		// the session's own mounts keep their z, which is harmless with
-		// labeling off.
+	if len(p.cfg.HostMounts) > 0 || (p.cfg.ClaudeBin != "" && p.usesClaude()) {
+		// The bound trees and the Claude binary are not Hobbes's to
+		// relabel (see HostMounts, ClaudeBin); the session's own mounts
+		// keep their z, which is harmless with labeling off.
 		args = append(args, "--security-opt", "label=disable")
+	}
+	if p.EgressEnabled() {
+		for _, kv := range p.egressEnv() {
+			args = append(args, "--env", kv)
+		}
+	}
+	if p.usesClaude() && p.cfg.ClaudeBin != "" {
+		// No self-update and no telemetry: the allowlist names the model
+		// endpoint alone, and a session's binary is the host's, pinned.
+		// Only when the doer is configured, so a plain session keeps the
+		// clean HOME-and-PATH environment.
+		args = append(args, "--env", "DISABLE_AUTOUPDATER=1", "--env", "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1")
+		if p.cfg.ClaudeToken != "" {
+			// By name: podman copies the value from its own environment
+			// (PodmanEnv), so the token is never in an argv or a dry run.
+			args = append(args, "--env", ClaudeTokenEnv)
+		}
 	}
 	if ReadOnlyRoles[p.cfg.Role] {
 		// A read-only worktree still has to run the repo's tests
@@ -487,6 +566,26 @@ func (p *Plan) DryRun() string {
 	if p.cfg.Runtime != "" {
 		fmt.Fprintf(&b, "runtime:  %s → %s (%s)\n", p.cfg.Runtime, p.cfg.LLMBaseURL, p.cfg.Model)
 	}
+	if p.usesClaude() {
+		bin, tok := p.cfg.ClaudeBin, "absent"
+		if bin == "" {
+			bin = "(none: pass --claude-bin)"
+		}
+		if p.cfg.ClaudeToken != "" {
+			tok = "set, passed by name"
+		}
+		fmt.Fprintf(&b, "doer:     Claude Code %s → %s; %s %s\n", bin, ClaudeBinPath, ClaudeTokenEnv, tok)
+	}
+	if p.EgressEnabled() {
+		fmt.Fprintf(&b, "egress:   %s → %s:%s (allow %s); log %s\n", p.cfg.Network, p.EgressProxyName(), EgressPort,
+			strings.Join(p.cfg.Egress, ", "), p.EgressLogHostPath())
+		for _, a := range p.EgressSetup() {
+			b.WriteString("  setup:    podman " + strings.Join(a, " ") + "\n")
+		}
+		for _, a := range p.EgressTeardown() {
+			b.WriteString("  teardown: podman " + strings.Join(a, " ") + "\n")
+		}
+	}
 	// The dry run never prints the credential.
 	b.WriteString("\npodman " + strings.Join(p.redactedArgs(), " ") + "\n")
 	b.WriteString("\nMCP config (" + p.MCPConfigHostPath() + "):\n")
@@ -496,3 +595,77 @@ func (p *Plan) DryRun() string {
 
 // SessionID exposes the id for the caller (worktree/dir naming).
 func (p *Plan) SessionID() string { return p.cfg.SessionID }
+
+// PodmanEnv is what the launcher adds to podman's own environment for the
+// variables PodmanArgs passes by name: today the Claude Code token, when
+// the doer is configured (a binary to run).
+func (p *Plan) PodmanEnv() []string {
+	if p.usesClaude() && p.cfg.ClaudeBin != "" && p.cfg.ClaudeToken != "" {
+		return []string{ClaudeTokenEnv + "=" + p.cfg.ClaudeToken}
+	}
+	return nil
+}
+
+// EgressEnabled reports whether the session runs behind the egress proxy.
+func (p *Plan) EgressEnabled() bool { return len(p.cfg.Egress) > 0 }
+
+// EgressAllow is the normalized allowlist (host:port, sorted).
+func (p *Plan) EgressAllow() []string { return append([]string{}, p.cfg.Egress...) }
+
+// egressNetwork is a session's own --internal network. Podman names are
+// lowercased so a generated id is always a valid one.
+func egressNetwork(id string) string { return "hobbes-int-" + strings.ToLower(id) }
+
+// EgressProxyName is the proxy container's name — also the host name the
+// session's proxy variables point at, resolved on the internal network.
+func (p *Plan) EgressProxyName() string { return "hobbes-egress-" + strings.ToLower(p.cfg.SessionID) }
+
+// EgressLogHostPath is the proxy's JSONL log on the host: the session dir,
+// beside the flight log, where it outlives both containers.
+func (p *Plan) EgressLogHostPath() string {
+	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, EgressLogName)
+}
+
+// egressEnv points every HTTP client in the session at the proxy; both
+// spellings, since tools disagree on which they read.
+func (p *Plan) egressEnv() []string {
+	u := "http://" + p.EgressProxyName() + ":" + EgressPort
+	return []string{"HTTPS_PROXY=" + u, "https_proxy=" + u, "HTTP_PROXY=" + u, "http_proxy=" + u,
+		"NO_PROXY=localhost,127.0.0.1", "no_proxy=localhost,127.0.0.1"}
+}
+
+// EgressBridgeArgs creates the shared egress bridge. The launcher runs it
+// only when `podman network exists` says the bridge is missing. A custom
+// bridge, not podman's default: attaching to the default one broke DNS in
+// ADR-097's measurement.
+func EgressBridgeArgs() []string { return []string{"network", "create", EgressBridge} }
+
+// EgressSetup is the podman argv list, in order, that stands the route up
+// before the session starts: the session's internal network, then the
+// proxy container on that network and on the bridge. The proxy is the
+// same static hobbes-proxy the session mounts, and it writes its log into
+// the session dir.
+func (p *Plan) EgressSetup() [][]string {
+	if !p.EgressEnabled() {
+		return nil
+	}
+	run := []string{"run", "-d", "--rm", "--name", p.EgressProxyName(),
+		"--network", p.cfg.Network, "--network", EgressBridge,
+		"--env", "HOME=/tmp", "--env", "PATH=" + "/usr/local/bin:/usr/bin:/bin",
+		"-v", p.cfg.HostProxyBin + ":" + ProxyPath + ":ro,z",
+		"-v", filepath.Join(p.cfg.HostSessions, p.cfg.SessionID) + ":" + egressLogDir + ":rw,z",
+		p.cfg.Image, ProxyPath, "egress", "--listen", "0.0.0.0:" + EgressPort, "--log", egressLogDir + "/" + EgressLogName}
+	for _, h := range p.cfg.Egress {
+		run = append(run, "--allow", h)
+	}
+	return [][]string{{"network", "create", "--internal", p.cfg.Network}, run}
+}
+
+// EgressTeardown removes the route after the session: the proxy container,
+// then the session's network. The bridge is shared and stays.
+func (p *Plan) EgressTeardown() [][]string {
+	if !p.EgressEnabled() {
+		return nil
+	}
+	return [][]string{{"rm", "-f", "-t", "0", p.EgressProxyName()}, {"network", "rm", "-f", p.cfg.Network}}
+}

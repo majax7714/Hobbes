@@ -279,7 +279,9 @@ class ReviewerSessionRunner:
                 "--role", "reviewer",
                 "--ref", self.head_ref,
                 "--task", prompt,
-                "--claude-cred",
+                # the reviewer is Claude Code: its endpoint is its one route out,
+                # and its token rides the environment by name (ADR-107)
+                "--egress", "api.anthropic.com",
             ],
             capture_output=True,
             text=True,

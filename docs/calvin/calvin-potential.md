@@ -1,5 +1,10 @@
 # Calvin potential — M0, the shape of the residual before Calvin exists
 
+> **Closed as an approach, 2026-09-12 (Max; ADR-107).** Calvin is now
+> approached as a harness validated by use:
+> [`calvin-harness.md`](calvin-harness.md). This record stands as
+> history, and its held next steps are superseded.
+
 **Status:** ready → **run on four keys** (2026-09-04, night: step 6 cleared by Max on Sonnet 5, cut from 28 keys to four on cost mid-run; §10) — steps 0–3 and 5 of §8 spend no orchestrator calls · **Type:** pipeline experiment (preregistered readings, attribution-first) · **Compute:** orchestrator via a remote OpenAI-compatible endpoint; exec local under Podman. No Modal in M0.
 **Depends on:** the Python derive package (graph @ SHA, tiers, plan derivation, impact, write partitions, testmap, co-change), the owned agent loop (`pipeline/src/hobbes/agent/loop.py`, OpenAI-compatible chat completions), the local policy engine + Podman sandbox, and the 50 derived units and 28 proposals of ADR-099 §9b (`bench/ttt/proposals-hobbes-ebdf7a5.jsonl`; the cell record `ttt/cells/hobbes-olmo3-7b-2026-09-03-review.md`).
 **Supersedes:** v1 of this document. Changes are marked **[v2]** and listed in §11.

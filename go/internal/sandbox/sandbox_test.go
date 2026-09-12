@@ -94,25 +94,152 @@ func TestPodmanArgsCleanEnvAndMounts(t *testing.T) {
 	}
 }
 
-func TestBoxAndClaudeMountsAreOptional(t *testing.T) {
+func TestBoxMountIsOptionalAndTheHostClaudeHomeIsNeverMounted(t *testing.T) {
 	cfg := baseConfig()
 	p, _ := NewPlan(cfg)
 	if strings.Contains(strings.Join(p.PodmanArgs(), " "), "/policy/box.policy") {
 		t.Error("box mount present without a host box policy")
 	}
-	if strings.Contains(strings.Join(p.PodmanArgs(), " "), ".claude") {
-		t.Error("claude credential mounted by default — must be opt-in")
-	}
 
 	cfg.HostBoxPath = "/home/u/.hobbes/box.policy"
-	cfg.HostClaude = "/home/u/.claude"
+	cfg.ClaudeBin = "/home/u/.local/share/claude/versions/2.1.269"
+	cfg.ClaudeToken = "tok"
 	p, _ = NewPlan(cfg)
 	joined := strings.Join(p.PodmanArgs(), " ")
 	if !strings.Contains(joined, "/home/u/.hobbes/box.policy:/policy/box.policy:ro") {
 		t.Error("box policy not mounted ro when present")
 	}
-	if !strings.Contains(joined, "/home/u/.claude:/root/.claude:ro") {
-		t.Error("claude credential not mounted ro when requested")
+	// ADR-107: the host's ~/.claude holds every transcript and memory file;
+	// the doer gets a token, never that directory.
+	if strings.Contains(joined, ".claude:") {
+		t.Errorf("a host .claude directory is mounted:\n%s", joined)
+	}
+}
+
+func TestClaudeBinIsMountedReadOnlyWithoutRelabelForTheDefaultCommandOnly(t *testing.T) {
+	cfg := baseConfig()
+	cfg.ClaudeBin = "/home/u/.local/share/claude/versions/2.1.269"
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := strings.Join(p.PodmanArgs(), " ")
+	if !strings.Contains(joined, "-v /home/u/.local/share/claude/versions/2.1.269:/usr/local/bin/claude:ro ") {
+		t.Errorf("claude binary not mounted ro (and unrelabeled) at %s:\n%s", ClaudeBinPath, joined)
+	}
+	if !strings.Contains(joined, "label=disable") {
+		t.Error("an unrelabeled user file needs the container's labeling off")
+	}
+	if !strings.Contains(joined, "DISABLE_AUTOUPDATER=1") || !strings.Contains(joined, "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1") {
+		t.Error("the doer must neither self-update nor send telemetry: the allowlist names the model endpoint alone")
+	}
+
+	cfg.Command = []string{"python3", "/sessions/x/scripted.py"}
+	p, _ = NewPlan(cfg)
+	if joined := strings.Join(p.PodmanArgs(), " "); strings.Contains(joined, ClaudeBinPath) || strings.Contains(joined, "label=disable") {
+		t.Errorf("an override command gets no claude mount:\n%s", joined)
+	}
+
+	cfg = baseConfig()
+	cfg.ClaudeBin = "relative/claude"
+	if _, err := NewPlan(cfg); err == nil {
+		t.Error("a relative claude binary path must be rejected")
+	}
+}
+
+func TestClaudeTokenTravelsByNameAndNeverInAnArgv(t *testing.T) {
+	cfg := baseConfig()
+	cfg.ClaudeToken = "sekrit-token"
+	cfg.ClaudeBin = "/opt/claude"
+	p, _ := NewPlan(cfg)
+	args := p.PodmanArgs()
+	joined := strings.Join(args, " ")
+	if strings.Contains(joined, "sekrit") || strings.Contains(p.DryRun(), "sekrit") {
+		t.Fatalf("the token reached an argv or the dry run:\n%s", joined)
+	}
+	if !strings.Contains(joined, "--env "+ClaudeTokenEnv+" ") {
+		t.Errorf("the token variable is not passed by name:\n%s", joined)
+	}
+	if env := p.PodmanEnv(); len(env) != 1 || env[0] != ClaudeTokenEnv+"=sekrit-token" {
+		t.Errorf("PodmanEnv = %v", env)
+	}
+
+	cfg.Runtime, cfg.LLMBaseURL, cfg.Model = "/sessions/x/agent.py", "http://e/v1", "m"
+	p, _ = NewPlan(cfg)
+	if len(p.PodmanEnv()) != 0 || strings.Contains(strings.Join(p.PodmanArgs(), " "), ClaudeTokenEnv) {
+		t.Error("the owned runtime is not Claude Code and gets no Claude token")
+	}
+}
+
+func TestDefaultCommandLoadsOnlyTheHobbesServerAndCarriesTheTurnBudget(t *testing.T) {
+	cfg := baseConfig()
+	cfg.MaxTurns = 12
+	p, _ := NewPlan(cfg)
+	cmd := strings.Join(p.DefaultCommand(), " ")
+	for _, want := range []string{"--strict-mcp-config", "--max-turns 12", "--disallowedTools Bash"} {
+		if !strings.Contains(cmd, want) {
+			t.Errorf("default command lacks %q: %s", want, cmd)
+		}
+	}
+}
+
+func TestEgressPutsTheSessionOnItsOwnInternalNetworkBehindTheProxy(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Egress = []string{"API.anthropic.com"}
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	net, proxy := "hobbes-int-s-20260811t120000z-abcd", "hobbes-egress-s-20260811t120000z-abcd"
+	joined := strings.Join(p.PodmanArgs(), " ")
+	for _, want := range []string{"--network " + net, "HTTPS_PROXY=http://" + proxy + ":3128", "https_proxy=http://" + proxy + ":3128",
+		"NO_PROXY=localhost,127.0.0.1"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("session args lack %q:\n%s", want, joined)
+		}
+	}
+	setup := p.EgressSetup()
+	if len(setup) != 2 || strings.Join(setup[0], " ") != "network create --internal "+net {
+		t.Fatalf("setup = %v", setup)
+	}
+	run := strings.Join(setup[1], " ")
+	for _, want := range []string{"--name " + proxy, "--network " + net + " --network " + EgressBridge,
+		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/log:rw,z", "/usr/local/bin/hobbes-proxy egress --listen 0.0.0.0:3128",
+		"--log /log/egress.jsonl", "--allow api.anthropic.com:443"} {
+		if !strings.Contains(run, want) {
+			t.Errorf("proxy run lacks %q:\n%s", want, run)
+		}
+	}
+	if td := p.EgressTeardown(); len(td) != 2 || strings.Join(td[1], " ") != "network rm -f "+net {
+		t.Errorf("teardown = %v", td)
+	}
+	if got := p.EgressLogHostPath(); got != "/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/egress.jsonl" {
+		t.Errorf("egress log = %q", got)
+	}
+	out := p.DryRun()
+	if !strings.Contains(out, "egress:") || !strings.Contains(out, "setup:    podman network create --internal") {
+		t.Errorf("the dry run should show the route:\n%s", out)
+	}
+}
+
+func TestNoEgressMeansNoProxyVariablesAndNoRoute(t *testing.T) {
+	p, _ := NewPlan(baseConfig())
+	joined := strings.Join(p.PodmanArgs(), " ")
+	if strings.Contains(joined, "PROXY=") || p.EgressEnabled() || p.EgressSetup() != nil || p.EgressTeardown() != nil {
+		t.Errorf("a session without --egress must have no route and no proxy:\n%s", joined)
+	}
+}
+
+func TestEgressRefusesANetworkBesideItAndAWideningList(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Egress, cfg.Network = []string{"api.anthropic.com"}, "pasta"
+	if _, err := NewPlan(cfg); err == nil || !strings.Contains(err.Error(), "exclusive") {
+		t.Errorf("--egress beside --network pasta: err = %v", err)
+	}
+	cfg = baseConfig()
+	cfg.Egress = []string{"*.anthropic.com"}
+	if _, err := NewPlan(cfg); err == nil {
+		t.Error("a wildcard allowlist must be refused")
 	}
 }
 

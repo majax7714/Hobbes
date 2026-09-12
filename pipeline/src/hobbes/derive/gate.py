@@ -202,6 +202,115 @@ def validate_map(bmap) -> list[str]:
     return errs
 
 
+# -------------------------------------------------------------- deriving a map
+
+#: The lane B step that must have run contained for a file's symbols to count as captured (calvin-m0-gate WP-17's rule, moved into
+#: the layer by ADR-107 so any caller of the gate derives a unit's map instead of hand-building one).
+_STEP_BY_EXT = {".py": "index-python", ".go": "index-go", ".ts": "index-typescript", ".tsx": "index-typescript", ".js": "index-typescript",
+                ".mjs": "index-typescript", ".cjs": "index-typescript", ".mts": "index-typescript", ".cts": "index-typescript",
+                ".jsx": "index-typescript", ".rs": "index-rust", ".java": "index-java"}
+#: tail class → (map reason, detail); the C-n entries are the knowledge proxy's tail meanings. `builtin-name` is left out: language
+#: machinery the grounder's builtin list binds, not a blind spot.
+_TAIL_REASON = {
+    "attr-call": ("dynamic-dispatch", "tail attr-call: receiver no static provider could type (C-2)"),
+    "expr-callee": ("dynamic-dispatch", "tail expr-callee: callee is an expression (C-63)"),
+    "union-member": ("dynamic-dispatch", "tail union-member: union receiver, lane B vetoed (C-97)"),
+    "fallback-resolved": ("laneb-miss", "tail fallback-resolved: syntactic-tier edge only (C-7)"),
+    "unclassified": ("laneb-miss", "tail unclassified: no observation applies (ADR-045)"),
+    "build-tag-set": ("laneb-miss", "tail build-tag-set: build-constraint split name (C-71)"),
+    "import-binding": ("laneb-miss", "tail import-binding: same-file import, landing unresolved (C-23/C-27/C-30)"),
+    "external-origin": ("laneb-miss", "tail external-origin: declarations outside the repo (C-23/C-27/C-30)"),
+    "path-call": ("laneb-miss", "tail path-call: ::-qualified call the index left dark"),
+    "overload-set": ("laneb-miss", "tail overload-set (ADR-096)"),
+    "inherited-member": ("laneb-miss", "tail inherited-member (ADR-096)"),
+    "local-binding": ("oracle-miss:closure", "tail local-binding: parameter/local/nested def (C-9)"),
+    "nested-decl": ("oracle-miss:closure", "tail nested-decl: below the modelled vocabulary (C-9)"),
+    "below-floor": ("oracle-miss:interface", "tail below-floor: resolved below the symbol floor — interface method, closure or nested function (C-58)"),
+}
+_TAIL_OMIT = frozenset({"builtin-name"})
+
+
+def _parent_lines(repo_root: Path, parent: str, path: str) -> int | None:
+    """The line count of *path* at *parent*, or None when the parent has no such file."""
+    r = subprocess.run(["git", "-C", str(repo_root), "show", f"{parent}:{path}"], capture_output=True, text=True, errors="surrogateescape")
+    return len(r.stdout.splitlines()) if r.returncode == 0 else None
+
+
+def derive_map(graph: dict, files: list[str], repo_root: Path, parent: str) -> dict:
+    """A blind-spot map (calvin-m0-gate §0b's schema) over *files* at *parent*, read from the parent's graph by WP-17's rule: a file
+    is captured when the graph has it as a module and its language's lane B step ran contained, else `uncaptured-file`; a symbol in a
+    captured file is captured unless an in-edge carries a tier other than semantic (`laneb-miss`, C-7); each file's tail classes
+    become line-less site rows, which never route a NULL (§0b's pin, C-123). A file the parent does not have is left out of the map
+    and listed under ``created``, so the gate reads it by its directory's partition files, as it reads any created code file.
+    Deterministic in its inputs, and names the graph by its SHA, never by a path of this machine (the record's rule)."""
+    mod_by_path = {n["path"]: n["id"] for n in graph.get("nodes", []) if n.get("path")}
+    steps = {s["step"] for s in (graph.get("containment") or {}).get("steps", []) if s.get("contained")}
+    into: dict = collections.defaultdict(collections.Counter)
+    for e in graph.get("symbol_edges", []):
+        into[e["to"]][e.get("tier")] += 1
+    tails = {r["file"]: (r.get("tail") or {}) for r in graph.get("resolution_coverage", [])}
+    by_mod: dict = collections.defaultdict(list)
+    for s in graph.get("symbols", []):
+        by_mod[s["module"]].append(s)
+    partition, created, out_files, symbols, sites = [], [], [], [], []
+    part_lines = unc_lines = 0
+    for p in sorted(dict.fromkeys(files)):
+        n = _parent_lines(repo_root, parent, p)
+        if n is None:
+            created.append(p)
+            continue
+        partition.append(p)
+        part_lines += n
+        step = _STEP_BY_EXT.get(os.path.splitext(p)[1])
+        mod = mod_by_path.get(p)
+        cap = bool(mod and step in steps)
+        why = "" if cap else ("not a module of the parent graph" if not mod else f"lane B step {step or 'none for this language'} did not run contained")
+        out_files.append({"path": p, "captured": cap, "reason": None if cap else "uncaptured-file", "detail": why})
+        uncovered: set[int] = set() if cap else set(range(1, n + 1))
+        for s in sorted(by_mod.get(mod, []), key=lambda s: (s["line"], s["id"])):
+            other = {t: v for t, v in into.get(s["id"], collections.Counter()).items() if t != "semantic"}
+            if not cap:
+                row = {"captured": False, "reason": "uncaptured-file", "detail": why}
+            elif other:
+                row = {"captured": False, "reason": "laneb-miss",
+                       "detail": f"in-edges not semantic: {dict(sorted(other.items()))}, semantic {into[s['id']].get('semantic', 0)} (C-7)"}
+                uncovered |= set(range(s["line"], s["end_line"] + 1))
+            else:
+                row = {"captured": True, "reason": None, "detail": ""}
+            symbols.append({"id": s["id"], "path": p, "start": s["line"], "end": s["end_line"], **row})
+        unc_lines += len(uncovered)
+        for cls, cnt in sorted(tails.get(p, {}).items()):
+            if cls in _TAIL_OMIT or not cnt:
+                continue
+            reason, detail = _TAIL_REASON.get(cls, ("laneb-miss", f"tail {cls}"))
+            sites.append({"path": p, "line": None, "count": cnt, "class": cls, "reason": reason, "detail": detail})
+    bb = graph.get("built_by") or {}
+    return {"partition": partition, "files": out_files, "symbols": symbols, "sites": sites, "created": created,
+            "partition_lines": part_lines, "uncaptured_lines": unc_lines,
+            "fraction_uncaptured": round(unc_lines / part_lines, 4) if part_lines else 0.0,
+            "source": {"graph": f"the parent's graph @ {str(graph.get('sha'))[:12]}", "built_by": f"hobbes {bb.get('version')} @ {str(bb.get('sha'))[:12]}",
+                       "rule": "gate.derive_map"},
+            "grain": {"partition": "file", "sites": "file (path, tail class, count; line null)"}}
+
+
+def map_files(diff: str, repo_root: Path, parent: str, partition: list[str] | None = None) -> list[str]:
+    """The files a derived map covers (ADR-107): the partition when there is one, else every file the diff touches that the parent
+    has; plus, for each file the diff creates, the parent's files in its directory, so a created file reads by its neighbours (the
+    gate's rule for a created file) instead of reading `unmapped` — which would make an invented name in it advisory."""
+    secs = file_sections(diff)
+    out = set(partition) if partition else {s["path"] for s in secs if s["path"] and not s["created"]}
+    for s in secs:
+        if not (s["created"] and s["path"]):
+            continue
+        d = str(PurePosixPath(s["path"]).parent)
+        argv = ["git", "-C", str(repo_root), "ls-tree", parent] + ([] if d == "." else ["--", d + "/"])
+        for line in subprocess.run(argv, capture_output=True, text=True).stdout.splitlines():
+            meta, _, path = line.partition("\t")
+            if meta.split()[1:2] == ["blob"]:
+                out.add(path)
+    return sorted(out)
+
+
 # -------------------------------------------------------------- the diff
 
 def file_sections(diff: str) -> list[dict]:

@@ -445,3 +445,147 @@ func TestVersionPrintsTheHobbesVersion(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// fakeProxyBin is a stand-in proxy binary for dry runs.
+func fakeProxyBin(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "hobbes-proxy")
+	os.WriteFile(p, []byte("#!/bin/true\n"), 0o755)
+	return p
+}
+
+func TestEgressDryRunShowsTheRouteAndPutsTheSessionOnTheInternalNetwork(t *testing.T) {
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+		"--sessions", t.TempDir(), "--session", "S-dry-egress", "--egress", "api.anthropic.com", "--dry-run", "--", "true")
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%s", code, stderr)
+	}
+	for _, want := range []string{"--network hobbes-int-s-dry-egress", "HTTPS_PROXY=http://hobbes-egress-s-dry-egress:3128",
+		"setup:    podman network create --internal hobbes-int-s-dry-egress", "egress --listen 0.0.0.0:3128",
+		"--allow api.anthropic.com:443", "teardown: podman network rm -f hobbes-int-s-dry-egress"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("dry run lacks %q:\n%s", want, stdout)
+		}
+	}
+	if strings.Contains(stdout, "--network none") {
+		t.Error("a session behind the proxy is not on --network none; it is on its own internal network")
+	}
+}
+
+func TestEgressBesideANetworkIsRefused(t *testing.T) {
+	code, _, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+		"--sessions", t.TempDir(), "--egress", "api.anthropic.com", "--network", "pasta", "--dry-run", "--", "true")
+	if code != exitError || !strings.Contains(stderr, "exclusive") {
+		t.Errorf("code=%d stderr=%q", code, stderr)
+	}
+}
+
+func TestClaudeCredIsWithdrawn(t *testing.T) {
+	code, _, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+		"--sessions", t.TempDir(), "--claude-cred", "--dry-run")
+	if code != exitUsage || !strings.Contains(stderr, "withdrawn") || !strings.Contains(stderr, "CLAUDE_CODE_OAUTH_TOKEN") {
+		t.Errorf("code=%d stderr=%q", code, stderr)
+	}
+}
+
+func TestClaudeTokenNeverReachesTheDryRun(t *testing.T) {
+	t.Setenv("CLAUDE_CODE_OAUTH_TOKEN", "sekrit-token")
+	bin := filepath.Join(t.TempDir(), "claude")
+	os.WriteFile(bin, []byte("#!/bin/true\n"), 0o755)
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+		"--sessions", t.TempDir(), "--claude-bin", bin, "--egress", "api.anthropic.com", "--dry-run")
+	if code != 0 {
+		t.Fatalf("code=%d stderr=%s", code, stderr)
+	}
+	if strings.Contains(stdout, "sekrit") {
+		t.Fatalf("the token reached the dry run:\n%s", stdout)
+	}
+	for _, want := range []string{"--env CLAUDE_CODE_OAUTH_TOKEN ", "set, passed by name", bin + ":/usr/local/bin/claude:ro", "--strict-mcp-config"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("dry run lacks %q:\n%s", want, stdout)
+		}
+	}
+}
+
+func TestALiveClaudeSessionRefusesWhatWouldFailInsideTheContainer(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "claude")
+	os.WriteFile(bin, []byte("#!/bin/true\n"), 0o755)
+	base := []string{"start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t), "--sessions", t.TempDir(), "--claude-bin", bin}
+
+	t.Setenv("CLAUDE_CODE_OAUTH_TOKEN", "")
+	if code, _, stderr := cli(append(base, "--egress", "api.anthropic.com")...); code != exitError || !strings.Contains(stderr, "CLAUDE_CODE_OAUTH_TOKEN") {
+		t.Errorf("no token: code=%d stderr=%q", code, stderr)
+	}
+	t.Setenv("CLAUDE_CODE_OAUTH_TOKEN", "tok")
+	if code, _, stderr := cli(base...); code != exitError || !strings.Contains(stderr, "--egress") {
+		t.Errorf("no route: code=%d stderr=%q", code, stderr)
+	}
+}
+
+// TestEgressRouteLiveAllowsTheListAndNothingElse is ADR-107's guarantee at
+// the level a user meets it (P10): a real session behind the real proxy,
+// on a real internal network. A host on the list answers through the
+// tunnel; another port of it, and any address without the proxy, do not.
+// The upstream sits on the egress bridge only, so the session can reach it
+// through the proxy and no other way. Skips without podman or the image.
+func TestEgressRouteLiveAllowsTheListAndNothingElse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("live podman test")
+	}
+	if _, err := exec.LookPath("podman"); err != nil {
+		t.Skip("podman not installed")
+	}
+	image := "hobbes-session:local"
+	if exec.Command("podman", "image", "exists", image).Run() != nil {
+		t.Skip("the sandbox image is not built")
+	}
+	proxyBin := filepath.Join(t.TempDir(), "hobbes-proxy")
+	build := exec.Command("go", "build", "-o", proxyBin, "github.com/majax7714/Hobbes/go/cmd/hobbes-proxy")
+	build.Env = append(os.Environ(), "CGO_ENABLED=0")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("static proxy build: %v: %s", err, out)
+	}
+	if exec.Command("podman", "network", "exists", "hobbes-egress").Run() != nil {
+		if out, err := exec.Command("podman", "network", "create", "hobbes-egress").CombinedOutput(); err != nil {
+			t.Fatalf("bridge: %v: %s", err, out)
+		}
+	}
+	up := "hobbes-test-up-" + strings.ToLower(filepath.Base(t.TempDir()))
+	if out, err := exec.Command("podman", "run", "-d", "--rm", "--name", up, "--network", "hobbes-egress", "--pull=never", image,
+		"python3", "-m", "http.server", "8080").CombinedOutput(); err != nil {
+		t.Fatalf("upstream: %v: %s", err, out)
+	}
+	t.Cleanup(func() { exec.Command("podman", "rm", "-f", "-t", "0", up).Run() })
+
+	script := `a=$(curl -s -o /dev/null -w '%{http_code}' -p -x "$HTTPS_PROXY" --max-time 10 http://` + up + `:8080/)
+b=$(curl -s -o /dev/null -w '%{http_connect}' -p -x "$HTTPS_PROXY" --max-time 10 http://` + up + `:8081/)
+c=$(curl -s -o /dev/null -w '%{http_code}' --noproxy '*' --max-time 5 http://` + up + `:8080/)
+d=$(curl -s -o /dev/null -w '%{http_code}' --noproxy '*' --max-time 5 http://1.1.1.1/)
+echo "ALLOWED=$a REFUSED=$b DIRECT=$c PUBLIC=$d"`
+	sessions := t.TempDir()
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", proxyBin,
+		"--sessions", sessions, "--session", "S-live-egress", "--egress", up+":8080", "--", "sh", "-c", script)
+	if code != 0 {
+		t.Fatalf("session: code=%d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	for _, want := range []string{"ALLOWED=200", "REFUSED=403", "DIRECT=000", "PUBLIC=000"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("route: want %s in %q\nstderr=%s", want, stdout, stderr)
+		}
+	}
+	logData, err := os.ReadFile(filepath.Join(sessions, "S-live-egress", "egress.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	log := string(logData)
+	if !strings.Contains(log, `"event":"connect","method":"CONNECT","target":"`+up+`:8080"`) ||
+		!strings.Contains(log, `"event":"refuse","method":"CONNECT","target":"`+up+`:8081"`) {
+		t.Errorf("egress log should record the tunnel and the refusal:\n%s", log)
+	}
+	if out, _ := exec.Command("podman", "network", "exists", "hobbes-int-s-live-egress").CombinedOutput(); exec.Command("podman", "network", "exists", "hobbes-int-s-live-egress").Run() == nil {
+		t.Errorf("the session's internal network outlived it: %s", out)
+	}
+	if !strings.Contains(stderr, "egress: allow") {
+		t.Errorf("the launcher should print the log's summary:\n%s", stderr)
+	}
+}

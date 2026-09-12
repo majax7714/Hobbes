@@ -455,3 +455,77 @@ def test_the_preflights_near_miss_message_no_longer_carries_the_unrelated_body()
     assert "func extractColor(" not in msg and "The form of a declaration" not in msg
     first = rec["nearest_declared"][0]["candidates"][0]
     assert first["name"] == "awkTokenizer" and first["signature"].startswith("func awkTokenizer(")
+
+
+# ------------------------------------------------------------------ derived maps (ADR-107)
+
+def _captured_graph(sha):
+    """`_graph` with lane B contained for Go and Python, one syntactic in-edge (pkg.core.derive becomes a laneb-miss) and a tail."""
+    g = _graph(sha)
+    g["containment"] = {"all_contained": True, "steps": [{"step": "index-go", "contained": True}, {"step": "index-python", "contained": True}]}
+    g["symbol_edges"].append({"from": "pkg.use.go", "to": "pkg.core.derive", "type": "calls", "tier": "syntactic", "evidence": []})
+    g["resolution_coverage"] = [{"file": "pkg/use.py", "sites": 4, "resolved": 2, "unresolved": 2, "tail": {"attr-call": 1, "builtin-name": 1}}]
+    g["built_by"] = {"sha": "abc", "version": "test"}
+    return g
+
+
+def test_derive_map_reads_capture_from_the_parent_graph_by_wp17s_rule(repo):
+    root, sha, _, _ = repo
+    g = _captured_graph(sha)
+    files = ["cmd/main.go", "pkg/core.py", "pkg/use.py", "docs/notes.md", "cmd/new.go"]
+    m = gt.derive_map(g, files, root, sha)
+    assert gt.validate_map(m) == []
+    by = {f["path"]: f for f in m["files"]}
+    assert by["cmd/main.go"]["captured"] and by["pkg/core.py"]["captured"] and by["pkg/use.py"]["captured"]
+    assert by["docs/notes.md"] == {"path": "docs/notes.md", "captured": False, "reason": "uncaptured-file", "detail": "not a module of the parent graph"}
+    assert m["created"] == ["cmd/new.go"] and "cmd/new.go" not in by and "cmd/new.go" not in m["partition"]
+    syms = {s["id"]: s for s in m["symbols"]}
+    assert syms["cmd/main.main"]["captured"]
+    assert not syms["pkg.core.derive"]["captured"] and syms["pkg.core.derive"]["reason"] == "laneb-miss"
+    assert m["sites"] == [{"path": "pkg/use.py", "line": None, "count": 1, "class": "attr-call", "reason": "dynamic-dispatch",
+                           "detail": gt._TAIL_REASON["attr-call"][1]}]  # builtin-name is language machinery, not a blind spot
+    assert str(root) not in json.dumps(m)  # the graph is named by its SHA, never a path of this machine
+    assert gt.derive_map(g, list(reversed(files)), root, sha) == m
+
+
+def test_derive_map_without_a_contained_lane_b_reads_every_file_uncaptured(repo):
+    root, sha, _, _ = repo
+    m = gt.derive_map(_graph(sha), ["cmd/main.go"], root, sha)
+    assert m["files"][0]["reason"] == "uncaptured-file" and "did not run contained" in m["files"][0]["detail"]
+    assert m["fraction_uncaptured"] == 1.0
+
+
+def test_map_files_are_the_diffs_files_plus_a_created_files_neighbours(repo):
+    root, sha, _, _ = repo
+    d = diff_of(root, {"pkg/use.py": USE + "\n# x\n", "internal/app/extra.go": "package app\n"})
+    assert gt.map_files(d, root, sha) == ["internal/app/app.go", "pkg/use.py"]
+    assert gt.map_files(d, root, sha, ["cmd/main.go"]) == ["cmd/main.go", "internal/app/app.go"]
+
+
+def _gate_derive(root, sha, graph, diff, tmp_path, name):
+    (tmp_path / f"{name}.graph.json").write_text(json.dumps(graph))
+    (tmp_path / f"{name}.diff").write_text(diff)
+    rc = cli.main(["gate", "--diff", str(tmp_path / f"{name}.diff"), "--parent", sha, "--repo", str(root),
+                   "--graph", str(tmp_path / f"{name}.graph.json"), "--map", "derive"])
+    return rc, (tmp_path / f"{name}.diff.gate.json").read_bytes()
+
+
+def test_gate_map_derive_blocks_invented_code_reads_a_blind_spot_unknown_and_a_created_file_by_its_neighbours(repo, tmp_path):
+    root, sha, _, _ = repo
+    g = _captured_graph(sha)
+    rc, raw = _gate_derive(root, sha, g, diff_of(root, {"pkg/use.py": USE.replace('return derive(core.TABLE.get("a"))', "return quantum_flux(1)")}),
+                           tmp_path, "captured")
+    rec = json.loads(raw)
+    assert rc == 1 and rec["verdict"] == "blocked" and rec["blocking"] == ["invented"]
+    assert rec["partition"]["checked"] is False  # a derived map's files are the diff's own, never a partition
+
+    blind = diff_of(root, {"pkg/core.py": CORE.replace("    return x\n", "    return quantum_flux(x)\n")})
+    rc, raw = _gate_derive(root, sha, g, blind, tmp_path, "blind")
+    rec = json.loads(raw)
+    assert rc == 0 and rec["verdict"] == "clear" and rec["counts"]["unknown"] == 1
+    assert _gate_derive(root, sha, g, blind, tmp_path, "blind")[1] == raw  # byte-identical on rerun
+
+    created = diff_of(root, {"pkg/extra.py": "from pkg.core import derive\n\n\ndef more():\n    return quantum_flux(2)\n"})
+    rc, raw = _gate_derive(root, sha, g, created, tmp_path, "created")
+    rec = json.loads(raw)
+    assert rc == 1 and rec["blocking"] == ["invented"]  # read at pkg/'s captured files, not `unmapped`

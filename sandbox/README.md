@@ -54,6 +54,11 @@ python3 sandbox/exitcheck.py
 ## Live Claude Code
 
 `hobbes-session start` without a trailing `-- CMD` launches Claude Code as
-the implementer (`--claude-cred` mounts `~/.claude` for its own auth). The
-exit check substitutes `driver.py` so it stays quota-free; a live run is the
-same command with `--claude-cred` and no override.
+the implementer (ADR-107). The host's `claude` is mounted read-only; the
+image carries none. Its token comes from `$CLAUDE_CODE_OAUTH_TOKEN` (make
+one with `claude setup-token`) and is passed by name. `--egress
+api.anthropic.com` is its only route out, and the launcher refuses a live
+run without it. The exit check substitutes `driver.py`, so it stays
+quota-free. A live run is the same command with the token set, `--egress`,
+and no override. `hobbes dispatch` wraps it with the gate and a
+per-session log.

@@ -328,13 +328,20 @@ configs; CI runs them. The manifest tells you the command for each.
 ## 6. `hobbes-session start` — let an agent work, under policy
 
 ```sh
+export CLAUDE_CODE_OAUTH_TOKEN=…     # once: `claude setup-token` makes one
 hobbes-session start --repo . --role implementer \
-  --task "Add a rate limiter to the login route" --claude-cred
+  --task "Add a rate limiter to the login route" --egress api.anthropic.com
 ```
 
-The session gets a fresh git worktree, a rootless Podman container with
-**no network**, an empty environment (no host secrets reach it), and no
-raw shell — it reaches commands only through the policy-checked `exec`
+The session gets:
+- a fresh git worktree;
+- a rootless Podman container whose **only route off the box is the
+  hosts `--egress` names**. Here that is the model endpoint, through a
+  proxy that logs every tunnel and refusal to
+  `~/.hobbes/sessions/<id>/egress.jsonl`;
+- an empty environment: no host secret reaches it but the token, which
+  is passed by name;
+- no raw shell — it reaches commands only through the policy-checked `exec`
 tool. It starts oriented: `graph_neighborhood`, `who_calls`,
 `tests_guarding`, `get_module_doc`, and `list_invariants` are all
 available, so it reads the constraints instead of grepping for them.
@@ -357,12 +364,17 @@ runs**, so read the command before approving it.
 For review instead of implementation:
 
 ```sh
-hobbes-session start --repo . --role reviewer --claude-cred
+hobbes-session start --repo . --role reviewer --egress api.anthropic.com
 ```
 
 The reviewer's worktree is mounted **read-only** at the kernel level and
 its tool list has no Edit, Write, or exec. That is a mount flag, not a
 promise.
+
+To run one task end to end, use `hobbes dispatch`
+([`calvin/calvin-harness.md`](calvin/calvin-harness.md)). It runs the
+session, gates and verifies its diff, and writes a log file for you to
+review.
 
 ---
 

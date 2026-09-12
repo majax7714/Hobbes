@@ -13,6 +13,67 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.21-beta — 2026-09-12 (the Calvin harness, ADR-107)
+
+**Patch: a live session reaches only the hosts it names, and Claude Code
+runs inside it.** `hobbes dispatch` then stacks the doer, the gate and
+a per-session log on the environment. Checked with no spend.
+
+- **`hobbes-session --egress HOST`.** The session runs on its own
+  podman `--internal` network, which has no route off the box.
+  - An egress proxy container sits beside it, on that network and on a
+    custom `hobbes-egress` bridge. It tunnels CONNECT to the named
+    hosts alone, answers 403 to everything else, and logs every
+    decision to `<session>/egress.jsonl`.
+  - The launcher waits for the proxy before the session starts, and
+    removes both after it.
+  - `--egress` is exclusive with `--network`.
+  - The proxy is `hobbes-proxy egress` (`go/internal/egress`). C-41 is
+    narrowed.
+- **Claude Code as the session's doer.**
+  - `--claude-bin` mounts the host's binary read-only, without a
+    relabel.
+  - The token (`CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token`) is
+    passed by name, so it is never in an argv or a dry run.
+  - `--strict-mcp-config` keeps the repo's own `.mcp.json` out.
+  - Auto-update and nonessential traffic are off.
+  - A live run without a binary, a token or a route is refused before
+    the container starts.
+  - The implementer's default command carries `--max-turns`.
+- **`--claude-cred` is withdrawn, with a refusal that says why.** It
+  mounted `~/.claude` at `/root/.claude`, but the session's `HOME` is
+  its own directory, so the mount was never read. Had it been read, it
+  would have handed the doer every host transcript. The reviewer
+  session (`hobbes review`'s soft verdicts) now passes
+  `--egress api.anthropic.com`.
+- **`hobbes gate --map derive`** (`gate.derive_map`, `map_files`). The
+  blind-spot map is read from the parent's graph by calvin-m0-gate
+  WP-17's rule, over the partition or else the diff's files.
+  - A created file is read at its directory's files at the parent.
+  - The graph is named by its SHA, so the record stays byte-identical
+    and holds no path of this machine.
+- **`hobbes dispatch`** (`hobbes.run.dispatch`). One task goes to Claude
+  Code under the whole stack:
+  - the ingest must be at the parent;
+  - the brief states how the session works;
+  - the harvested branch is gated, and verified unless `--no-verify`;
+  - one log file per session goes to `docs/calvin/sessions/`, with a
+    review block the developer fills;
+  - the full record goes to `<session>/dispatch.json`;
+  - exit 0 clear, 1 blocked or verify failing, 2 refused, 3 nothing
+    harvested.
+- **Register.** C-41 narrowed; C-124 superseded (the keyed rounds are
+  closed); C-125–C-128 added. ADR-107.
+- **Tests.**
+  - The egress package: parse, tunnel, refuse, log.
+  - The sandbox plan and the session launcher: dry run, withdrawal,
+    refusals.
+  - A **live** route test: a real session behind the real proxy gets
+    200 from the allowed host, 403 for another port, and no route
+    without the proxy.
+  - The derived map, and dispatch end to end against a stand-in
+    session.
+
 ## 0.1.20-beta — 2026-09-11 (Calvin M0-Gate, WP-18c)
 
 **Patch: an arm-O session no longer holds the repo's future.** Calvin
