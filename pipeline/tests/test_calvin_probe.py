@@ -483,6 +483,43 @@ def test_o_units_gate_repair_resumes_the_recorded_session_for_one_bounded_turn(t
     assert cp.main(argv + ["--gate-repair"] + keys[:-1] + ["0.2"]) == 4 and not launched
 
 
+@pytest.mark.parametrize("case, want", [("no-edit", ("no-edit", "blocked", ["invented"], "blocked", ["S1"])),
+                                        ("edit-clears", ("edited", "clear", [], "pass", ["S1-repair1"])),
+                                        ("edit-keeps", ("edited", "blocked", ["invented"], "blocked", ["S1-repair1"]))])
+def test_the_post_repair_diff_is_os_diff_plus_the_turns_change_never_empty(tmp_path, monkeypatch, case, want):
+    """WP-18d, D-y: on WP-21's a650900edac4 a repair turn that made no edit was scored as an empty diff — gate clear, verdict_after
+    empty. The tree after the turn is O's tree plus what it changed: a turn that leaves no commit leaves O's blocked diff, gated as that
+    diff and reading blocked with O's classes; a turn that commits is read from its own branch (O's diff plus its change) — clear when
+    it cleared the block, blocked when it did not."""
+    from hobbes.derive import harness as H
+    from hobbes.derive import template as T
+    monkeypatch.setattr(T, "Ledger", _Ledger)
+    monkeypatch.delenv("HOBBES_LLM_API_KEY", raising=False)
+    argv, head, sroot, gold = _recorded(tmp_path)
+    o_diff = "diff --git a/a.go b/a.go\n--- a/a.go\n+++ b/a.go\n@@ -1 +1 @@\n-x\n+frob()\n"
+    (tmp_path / "recorded" / "S1.o.diff").write_text(o_diff)
+    diffs = {"S1": o_diff, "S1-repair1": o_diff.replace("+frob()", "+z()" if case == "edit-clears" else "+frob() // kept")}
+    asked = []
+    monkeypatch.setattr(H, "session_patch", lambda clone, sha, sid, env=None: asked.append(sid) or diffs[sid])
+    monkeypatch.setattr(cp, "gate_session", lambda patch, *a, **k: _gate_rec("blocked" if "frob" in patch else "clear"))
+    monkeypatch.setattr(H, "verify", lambda *a, **k: {"verdict": "pass", "applies": True})
+
+    def fake_launch(cmd, timeout):
+        if case != "no-edit":  # the turn commits on its branch in the cut repo, as hobbes-session's commit-on-exit leaves it
+            repo = cp.argv_value(cmd, "--repo")
+            _git(repo, "checkout", "-q", "-b", f"hobbes/{cp.argv_value(cmd, '--session')}")
+            (Path(repo) / "a.go").write_text("w\n")
+            _git(repo, "commit", "-q", "-am", "repair")
+        return subprocess.CompletedProcess(cmd, 0, json.dumps({"type": "result", "is_error": True, "num_turns": 1, "edited": case != "no-edit",
+                                                                "result": "turn budget (1) exhausted"}) + "\n", "")
+    monkeypatch.setattr(cp, "launch", fake_launch)
+    assert cp.main(argv + ["--gate-repair", "--secrets", str(tmp_path / "keys.txt"), "--key-name", "anthropic_key", "--total-cap", "5"]) == 0
+    r = json.loads((tmp_path / "out" / "repair-rows.jsonl").read_text())
+    assert (r["repair_did"], r["gate_after"]["verdict"], r["gate_after"]["blocking"], r["verdict_after"], asked) == want
+    assert r["gate_before"]["blocking"] == ["invented"] and r["patch_files"] == ["a.go"], "never an empty diff"
+    assert (tmp_path / "out" / "S1-repair1.o.diff").read_text() == diffs[asked[0]]
+
+
 PRE = Path.home() / ".hobbes/bench/calvin-gate/wp-20"
 
 

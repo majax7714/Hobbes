@@ -68,6 +68,14 @@ def test_the_session_repo_holds_the_base_and_its_ancestors_and_nothing_else(tmp_
     assert git(rr, "cat-file", "-e", gold).returncode != 0 and git(rr, "cat-file", "-e", later).returncode != 0
     assert set(git(rr, "rev-list", "--all").stdout.split()) == {c0, c1, o_sha} and git(rr, "remote").stdout == ""
     assert H.session_repo_errors(rr, o_sha, owned) == [] and not (rr / ".git" / "objects" / "info" / "alternates").exists()
+    # D-y: the repair turn's branch starts at O's commit, so its diff from the parent is O's diff plus the turn's change, never the delta
+    _git(rr, "checkout", "-q", "-b", "hobbes/S-repair1")
+    (rr / "f.txt").write_text("r\n")
+    _git(rr, "commit", "-q", "-am", "repair")
+    assert H.harvest_back(rr, owned, "S-repair1")
+    after, o_only = H.session_patch(owned, c1, "S-repair1"), H.session_patch(owned, c1, "S")
+    assert "-b\n+r\n" in after and "-o\n" not in after, "from the parent, b becomes r with O's o folded in — not a delta off O's commit"
+    assert "-b\n+o\n" in o_only
 
 
 @pytest.fixture
