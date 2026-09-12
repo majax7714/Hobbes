@@ -1484,9 +1484,13 @@ def repair_session(k: str, u: dict, rec_o: dict, gate_rec: dict, *, clone: Path,
     (out / f"{k}.repair.usage.jsonl").write_text("".join(json.dumps(x) + "\n" for x in ledger))
     res = session_result(out / f"{new}.session.log")
     env = types.SimpleNamespace(links=[tuple(x) for x in (rec_o.get("environment") or {}).get("links", [])])
-    row["harvested"] = H.harvest_back(rrepo, clone, new)  # D-x: the repaired branch comes back to the owned clone; the cut goes
+    repaired = H.harvest_back(rrepo, clone, new)  # D-x: the repaired branch comes back to the owned clone; the cut goes
     shutil.rmtree(rrepo, ignore_errors=True)
-    patch = H.session_patch(clone, u["parent_sha"], new, env)
+    # D-y (WP-18d): the tree after the turn is O's tree plus what the turn changed. A turn that commits leaves its branch on O's commit, so
+    # its diff from the parent is O's diff plus the change — never the delta alone. A turn that leaves no commit leaves O's tree as it was:
+    # O's own branch, gated and verified again as that diff — never the empty diff WP-21's a650900edac4 was scored as.
+    row.update(harvested=repaired, repair_did="edited" if repaired else "no-edit")
+    patch = H.session_patch(clone, u["parent_sha"], new if repaired else orig, env)
     (out / f"{new}.o.diff").write_text(patch)
     g2 = gate_session(patch, u, clone, L, out, new, template, rule)
     v = H.verify(clone, u["parent_sha"], patch, L, clone, out=out / f"{new}.verify.json") if verify and patch else {}
