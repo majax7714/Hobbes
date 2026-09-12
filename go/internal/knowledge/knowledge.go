@@ -779,16 +779,21 @@ var notModelled = map[string]bool{
 
 // artifactLangBucket maps graph.json's language names onto the tail
 // view's buckets, so a verification row can be matched to the call
-// sites under a scope. hcl has no call sites and maps to nothing.
+// sites under a scope. hcl has no call sites and maps to nothing. This
+// table and langByExt below both mirror the pipeline's
+// tail._LANG_BY_EXT and are held to it by a drift test
+// (pipeline/tests/test_tail.py) — a new language must widen both here
+// too, or it goes missing from this tool rather than failing loudly.
 var artifactLangBucket = map[string]string{
 	"python": "python", "typescript": "ts/js", "javascript": "ts/js",
-	"go": "go", "rust": "rust", "java": "java",
+	"go": "go", "rust": "rust", "java": "java", "c": "c",
 }
 
 var langByExt = map[string]string{
-	".py": "python", ".ts": "ts/js", ".tsx": "ts/js", ".js": "ts/js",
-	".jsx": "ts/js", ".mjs": "ts/js", ".cjs": "ts/js", ".go": "go",
-	".rs": "rust", ".java": "java",
+	".py": "python", ".ts": "ts/js", ".tsx": "ts/js", ".mts": "ts/js",
+	".cts": "ts/js", ".js": "ts/js", ".jsx": "ts/js", ".mjs": "ts/js",
+	".cjs": "ts/js", ".go": "go", ".rs": "rust", ".java": "java",
+	".c": "c", ".h": "c",
 }
 
 // containmentDoc mirrors the pipeline's containment.summary().

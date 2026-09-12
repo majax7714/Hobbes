@@ -10,12 +10,14 @@ which is the suite's default and the degraded path P6 cares about: the
 tail view must exist there too, not only when an indexer ran.
 """
 
+import re
 from pathlib import Path
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import extract_repo, tail
 
 FIXTURE = Path(__file__).parent / "fixtures" / "miniapp"
+GO_KNOWLEDGE = Path(__file__).parent.parent.parent / "go" / "internal" / "knowledge" / "knowledge.go"
 
 
 def site(file, line, name, col=4):
@@ -422,4 +424,40 @@ class TestCaptureLineNamesMissingClasses:
                  "tail": {"attr-call": 1}}]
         cli._print_tail_view(rows)
         assert "cannot report" not in capsys.readouterr().out
+
+
+def _parse_go_string_map(source: str, var_name: str) -> dict[str, str]:
+    """Pull a ``var name = map[string]string{...}`` literal's
+    ``"key": "value"`` pairs out of *source* — a drift check has no Go
+    toolchain to hand, so it reads the literal itself rather than
+    importing it."""
+    pattern = r"var " + re.escape(var_name) + r" = map\[string\]string\{(.*?)\n\}"
+    body = re.search(pattern, source, re.DOTALL)
+    assert body, f"{var_name} not found in {GO_KNOWLEDGE}"
+    return dict(re.findall(r'"([^"]+)":\s*"([^"]+)"', body.group(1)))
+
+
+class TestKnowledgeToolsMirrorTail:
+    """go/internal/knowledge/knowledge.go keeps its own copies of the
+    tail's language tables (``langByExt``, ``artifactLangBucket``) so the
+    knowledge-proxy tools can bucket a scoped path without a Python
+    subprocess. They drifted from tail.py before: C (ADR-108) was in
+    neither, and ``.mts``/``.cts`` had mapped to ts/js here since C-100
+    but not there — so ``list_blind_spots`` silently dropped a language
+    from the answer rather than reporting the gap. This test holds both
+    tables to tail.py's own, so the next language added to one and not
+    the other fails here instead of going missing from the agent-facing
+    tool.
+    """
+
+    def test_lang_by_ext_matches_the_tail(self):
+        source = GO_KNOWLEDGE.read_text()
+        got = _parse_go_string_map(source, "langByExt")
+        assert got == tail._LANG_BY_EXT
+
+    def test_artifact_lang_bucket_covers_every_tail_class_language(self):
+        source = GO_KNOWLEDGE.read_text()
+        got = _parse_go_string_map(source, "artifactLangBucket")
+        for lang in tail.CLASSES_AVAILABLE:
+            assert lang in got.values(), lang
 

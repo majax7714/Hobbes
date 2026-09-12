@@ -758,6 +758,90 @@ func TestBlindSpotsCleanScopeSaysAccounted(t *testing.T) {
 	}
 }
 
+// TestBlindSpotsNameCAsUnverified: C is wired at lane A only and
+// unverified on any repo (ADR-108, 0.2.1-beta). langByExt and
+// artifactLangBucket used to carry neither ".c"/".h" nor "c" — so a
+// C-scoped answer showed only the per-file remainder row and never said
+// the language was unverified or gave it a capture line.
+func TestBlindSpotsNameCAsUnverified(t *testing.T) {
+	repo := blindSpotRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var g map[string]any
+	if err := json.Unmarshal(raw, &g); err != nil {
+		t.Fatal(err)
+	}
+	rows := g["resolution_coverage"].([]any)
+	rows = append(rows, map[string]any{
+		"file": "src/lib/parse.c", "sites": 4, "resolved": 3, "external": 0,
+		"unresolved": 1, "tail": map[string]int{"builtin-name": 1},
+	})
+	g["resolution_coverage"] = rows
+	tca := g["tail_classes_available"].(map[string]any)
+	tca["c"] = []string{"fallback-resolved", "local-binding", "builtin-name", "attr-call", "unclassified"}
+	g["tail_classes_available"] = tca
+	vb := g["verification_base"].(map[string]any)
+	vb["c"] = map[string]any{"repos": 0, "note": "not verified on any repo"}
+	g["verification_base"] = vb
+	data, err := json.Marshal(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := Open(repo).ListBlindSpots("src/lib/parse.c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "c: not verified on any repo") {
+		t.Fatalf("verification base is missing the c row:\n%s", out)
+	}
+	if !strings.Contains(out, "capture [c]") {
+		t.Fatalf("a C-scoped answer needs a capture line:\n%s", out)
+	}
+}
+
+// TestBlindSpotsMtsBucketsAsTsJs: .mts/.cts have mapped to ts/js in the
+// pipeline's tail since C-100, but langByExt did not carry them.
+func TestBlindSpotsMtsBucketsAsTsJs(t *testing.T) {
+	repo := blindSpotRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var g map[string]any
+	if err := json.Unmarshal(raw, &g); err != nil {
+		t.Fatal(err)
+	}
+	rows := g["resolution_coverage"].([]any)
+	rows = append(rows, map[string]any{
+		"file": "scripts/fetch.mts", "sites": 4, "resolved": 4, "external": 0,
+		"unresolved": 0,
+	})
+	g["resolution_coverage"] = rows
+	data, err := json.Marshal(g)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := Open(repo).ListBlindSpots("scripts/fetch.mts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "capture [ts/js]: 100.0% of 4 detected call sites accounted") {
+		t.Fatalf(".mts file did not bucket as ts/js:\n%s", out)
+	}
+}
+
 func TestBlindSpotsOnAnOlderArtifactOmitsTheNotes(t *testing.T) {
 	repo := blindSpotRepo(t)
 	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
