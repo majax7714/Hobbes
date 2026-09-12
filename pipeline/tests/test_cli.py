@@ -293,6 +293,39 @@ class TestLanes:
         assert "module edges compared: 0 (lane B produced 0)" in out
         assert "lane B produced no module edges; the module comparison did not run" in out
 
+    def test_external_vetoes_are_printed_and_do_not_fail(self, git_fixture, capsys):
+        """ADR-111: a veto is not a disagreement — the graph already took
+        lane B's answer at these sites — so it must not change the exit
+        status, only say where lane A's fallback would have drawn wrong."""
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        graph_path = git_fixture / ".hobbes" / "derived" / "graph.json"
+        graph = json.loads(graph_path.read_text())
+        assert graph["lane_agreement"]["external_vetoes"] == {
+            "sites": 0, "examples": [],
+        }
+        graph["lane_agreement"]["external_vetoes"] = {
+            "sites": 1,
+            "examples": [
+                {
+                    "file": "src/miniapp/core.py", "line": 16, "name": "dumps",
+                    "lane_a": "src/miniapp/util.py:6",
+                }
+            ],
+        }
+        graph_path.write_text(json.dumps(graph))
+        capsys.readouterr()
+
+        assert cli.main(["lanes", "--repo", str(git_fixture)]) == 0
+        out = capsys.readouterr().out
+        assert (
+            "lane A guessed in the repo where lane B resolved outside it: "
+            "1 site(s), vetoed (ADR-111)"
+        ) in out
+        assert (
+            "src/miniapp/core.py:16 dumps() -> lane A guessed "
+            "src/miniapp/util.py:6"
+        ) in out
+
     def test_a_graph_without_the_report_says_so(self, git_fixture, capsys):
         assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
         graph_path = git_fixture / ".hobbes" / "derived" / "graph.json"
