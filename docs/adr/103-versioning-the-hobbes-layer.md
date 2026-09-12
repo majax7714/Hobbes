@@ -117,3 +117,17 @@ his call each time (`v0.1.8-beta` is the last; 0.1.9-beta and
 0.1.10-beta untagged). The comparative graphics state the version the
 cells were graded on (ADR-102); every Hobbes cell is regraded on
 0.1.10-beta so they say one number.
+
+## Amendment 2026-09-12 (the fourth) — 0.2.0-beta: the Calvin harness is the minor
+
+The top-level doc review found the rule and the practice apart: §3
+says a capability bumps minor, but the Calvin harness (ADR-107) — the
+egress allowlist, Claude Code as the session's doer, `hobbes gate
+--map derive`, `hobbes dispatch` and the retention guard — shipped as
+patches 0.1.21-beta to 0.1.23-beta. Max: **the harness is enough of a
+jump; the layer moves to 0.2.0-beta.** §3 stands as written — a change
+to what the layer draws, refuses or says bumps patch, a capability
+bumps minor — and patch bumps continue on 0.2.x. The third amendment's
+"stays on 0.1.x" held through 0.1.23-beta and no longer does. Tags
+remain his call each time: 0.1.9-beta to 0.2.0-beta are untagged, and
+the last tag is `v0.1.8-beta`.

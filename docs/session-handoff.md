@@ -1,17 +1,25 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.1.23-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.0-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.1.23-beta are untagged. Tags are Max's call.
-- **Numbering** (Max; ADR-103's third amendment): the layer stays on
-  0.1.x, patch by patch.
+  0.2.0-beta are untagged. Tags are Max's call.
+- **Numbering** (Max; ADR-103's fourth amendment): the Calvin harness
+  moved the layer to 0.2.0-beta. Patch by patch on 0.2.x; a capability
+  bumps minor.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
 The session's record is the 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: the harness is running — the first dispatch merged (0.1.23-beta); keep dispatching named no-spend work
+## ⇢ START HERE NEXT SESSION: the harness is running and is the 0.2.0-beta minor; keep dispatching named no-spend work
 
-0. **Latest (2026-09-12, later).**
+0. **Latest (2026-09-12, last).** A second top-level doc review. Its
+   findings are fixed in one `docs:` commit (the BUILDLOG lists them),
+   and Max moved the layer to **0.2.0-beta**: the harness is the
+   capability (ADR-103's fourth amendment). The proxy and the image
+   are rebuilt, and the repo is re-ingested at 0.2.0-beta; restart the
+   knowledge server to see it.
+
+   **Earlier the same day:**
    - **The first real dispatch** (`S-20260912T151945Z-417f`): the
      `path` alias for `list_blind_spots` and `list_invariants` (W4,
      ADR-087 follow-up (a)).
@@ -93,10 +101,9 @@ The session's record is the 2026-09-12 BUILDLOG entry.
       0.1.21-beta, and a server keeps the image it started on (C-65).
    3. **Ingest at HEAD:** `uv run hobbes ingest`. Dispatch refuses an
       ingest at another SHA.
-   4. **Pick a small, testable, real task, and name it.** A suggestion,
-      for Max to name: W4's ADR-087 follow-up (a), `list_blind_spots`
-      accepting `path` as an alias for `scope`. It is a Go change in
-      `go/internal/knowledge` with tests, and it is parked until named.
+   4. **Pick a small, testable, real task, and name it.** The first
+      was W4's ADR-087 follow-up (a), done in 0.1.23-beta. NEXT items
+      2–3 hold the no-spend candidates, each parked until Max names it.
    5. **Dispatch:** `uv run hobbes dispatch --task-file task.md --secrets
       "$HOBBES_SECRETS"`. Add `--partition` if the files are known;
       `--dry-run` first shows the whole stack.
@@ -117,25 +124,15 @@ The session's record is the 2026-09-12 BUILDLOG entry.
    - **The reviewer path** (`hobbes review`'s soft verdicts) had never
      worked live: there was no `claude` in the image and no network. It
      can run now, given the token and `--egress`.
-4. **The doc review's findings (2026-09-12).**
-   - **Fixed:**
-     - CLAUDE.md's Status was 272 of its 555 lines, a version history
-       the CHANGELOG holds; it is now a short current-state block.
-     - CLAUDE.md's read-next pointers: "resuming" had pointed at
-       ADR-092, and Atlas-0 was labelled "the current work".
-     - The handoff's "Held" list was written twice.
-     - `workstreams.md` had no Calvin M0-Go or M0-Gate, and listed the
-       one egress mechanism three times (W1 fetch-java, W3 C-41, C-124).
-     - README's `hobbes-session start` could not run: there was no
-       `claude` in the image, and `--claude-cred` mounted where HOME
-       never looked.
-     - `calvin.box.policy`'s stale doc path.
-     - README's thirty-line Calvin narrative.
-   - **Left:** `calvin-m0-gate.md` dates its handoff and §0a
+4. **The doc reviews (2026-09-12).** Both are in the BUILDLOG: the
+   first (CLAUDE.md's Status cut, the read-next rows, the Calvin
+   narrative) and the second (CI's shape, the TS/JS syntax lane, the
+   image base, first-run, the policy chain, the versioning rule).
+   - **Still left:** `calvin-m0-gate.md` dates its handoff and §0a
      2026-09-12 beside 09-11 rulings. It is a record, left as is.
-   - **Withdrawn:** the review first reported AGENTS.md as a byte copy
-     of CLAUDE.md. It is a symlink to it; `cmp` had compared a file
-     with itself.
+   - **Unchecked by any machine:** the suite counts in CLAUDE.md. CI
+     runs every suite but does not compare the counts (W0's drift
+     audit).
 5. **Carried, untouched this session:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading (round 1's finding).
@@ -208,9 +205,9 @@ assumed of $25:
     `gate.derive_map`, `gate.map_files`.
   - **Records:** each session's state is under
     `~/.hobbes/sessions/<id>/` (`flight.jsonl`, `egress.jsonl`,
-    `dispatch.json`, `gate.json`, `verify.json`, the brief, Claude
-    Code's transcript under `.claude/`). The log file is under
-    `docs/calvin/sessions/`.
+    `dispatch.json`, `gate.json`, `verify.json`, the brief). The
+    doer's own state is purged at exit and never kept (retention,
+    0.1.22-beta). The log file is under `docs/calvin/sessions/`.
 - **The keyed Calvin rounds** (closed 2026-09-12): the records are in
   `docs/calvin/`, and the artifacts under `~/.hobbes/bench/calvin/`,
   `calvin-go/` and `calvin-gate/`. The package worktrees there were
@@ -231,8 +228,9 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **START HERE item 2:** the first dispatched session, then keep
-   dispatching real no-spend work through the harness.
+1. **Keep dispatching named no-spend work through the harness**
+   (START HERE item 2's steps; the candidates are items 2–3 below).
+   Setting the validation criterion (§4's N sessions) is Max's call.
 2. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
    - `go/internal/version` and the union fixture's ownership still

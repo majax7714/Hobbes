@@ -233,9 +233,10 @@ are present.
   draws, refuses or says bumps patch; a capability bumps minor; both in
   the same commit as the change, with a `CHANGELOG.md` entry. Nothing
   under `bench/` or an experiment record moves it. Rebuild the image
-  after a bump (C-65). **The number line is Max's (ADR-103, third
-  amendment, 2026-09-10): the layer stays on 0.1.x patch by patch;**
-  tags are his call each time — 0.1.9-beta to 0.1.23-beta are untagged,
+  after a bump (C-65). **The number line is Max's (ADR-103, fourth
+  amendment, 2026-09-12): the Calvin harness moved the layer to
+  0.2.0-beta; patch by patch on 0.2.x, and a capability bumps minor;**
+  tags are his call each time — 0.1.9-beta to 0.2.0-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -274,7 +275,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.1.23-beta
+## Status (2026-09-12) — Hobbes 0.2.0-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -291,7 +292,7 @@ are present.
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
-  2026-09-12). Max: O+gate is a harness to stack on this environment;
+  2026-09-12; the 0.2.0-beta minor). Max: O+gate is a harness to stack on this environment;
   verify it by using it through Hobbes development, one log file per
   session. Built:
   - `hobbes-session --egress`: an internal network, and a logging

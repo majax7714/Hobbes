@@ -6,12 +6,36 @@ The experiments under `bench/` and the records under `docs/` are
 internal testing and do not appear here except where a finding became
 a fix. The session-by-session history is `docs/BUILDLOG.md`; the
 running architecture is `docs/hobbes-architecture.md`. The number line
-is Max's: **the layer stays on 0.1.x, patch by patch** (0.1.10-beta,
-0.1.11-beta, …; the earlier 0.11.0-beta statement is withdrawn — the
-conservative line, ADR-103's third amendment, 2026-09-10); a minor
-bump lands on 0.2.0-beta when a capability earns it; tags are his call
-each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
+is Max's (ADR-103): a change to what the layer draws, refuses or says
+bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
+by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
+earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
+it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
+each time (0.1.9-beta to 0.2.0-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.0-beta — 2026-09-12 (the Calvin harness is the minor; ADR-103 amended)
+
+**Minor: the harness built across 0.1.21–0.1.23-beta is a capability,
+and the number now says so** (Max: "the harness is enough of a jump").
+
+- **What 0.2.0-beta names:** `hobbes dispatch` stacked on the
+  environment (ADR-107). Claude Code is the doer inside `hobbes-session
+  --egress`, the gate reads a derived map, verify runs on the diff, the
+  retention guard applies, and one log file is written per session. No
+  product code changes in this version beyond the version string.
+- **The number line** (ADR-103, fourth amendment): patch by patch on
+  0.2.x; the next minor lands when a capability earns it. 0.2.0-beta is
+  untagged; tags stay Max's call.
+- **The layer's top-level docs corrected against the tree:**
+  - README: CI's shape, and no claim that CI checks the suite counts.
+  - TS/JS's syntax lane is ts-morph, not tree-sitter.
+  - The image base is Ubuntu 24.04.
+  - The acknowledgements: `tree-sitter-java`, javac, Claude Code and
+    Olmo 3.
+  - first-run: which steps spend quota, the network the fetches use,
+    and the six knowledge tools.
+  - how-hobbes-differs: the policy chain's order.
 
 ## 0.1.23-beta — 2026-09-12 (the first dispatched change; dispatch's turn default 80)
 

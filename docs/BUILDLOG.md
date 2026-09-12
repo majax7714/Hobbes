@@ -8970,3 +8970,73 @@ found nothing to do.
 - The proxy and the image rebuilt, so the knowledge tools serve the
   alias once the server restarts.
 
+## 2026-09-12 — (last) the second top-level doc review; 0.2.0-beta, the harness as the minor
+
+**Max:** "review top level documentation and report back". Then: the
+versioning should jump to 0.2.0-beta, since the harness is enough of a
+jump, and the rest of the fixes are good to be handled.
+
+**The review.** It read README, CLAUDE.md, CHANGELOG, the handoff,
+workstreams, first-run, how-hobbes-differs, future_additions and
+Potential-application-mode against the tree, using the knowledge tools
+first; the new `path` alias answered live at `f44b772`.
+- **Checked true:** the version copies; the tags; ADR-107 as the last,
+  with 106 held; pytest 1,372; Go 328 (subtests counted, 264
+  top-level); the register at 129 (102 / 24 / 3); the commands the docs
+  show; `--claude-bin`'s PATH fallback; architecture §6.3's retention
+  section.
+- **Wrong, fixed (`5540b7f`):**
+  - README said the suite sizes were "checked by CI", and workstreams
+    said CI "catches the suite counts". Nothing compares them.
+  - README's "five suites as separate jobs" and workstreams' "four
+    jobs": CI runs seven suites in three jobs, plus the graph job.
+    README's test list gained atlas0.
+  - README said tree-sitter is "every syntax lane". TS/JS's lane A is
+    ts-morph (`tssource.py` calls `tsextract`). Corrected in the prose,
+    both lane diagrams and the acknowledgements.
+  - README said "an Alpine base image". The Containerfile is
+    `ubuntu:24.04`.
+  - README's acknowledgements lacked `tree-sitter-java`, the javac
+    oracle, Claude Code (the dispatch doer, and `narrate`'s) and Olmo 3
+    (ADR-099).
+  - how-hobbes-differs ordered the policy chain `box → repo → folder →
+    role → agent`. `policy/load.go` is `builtin floor → box → repo →
+    role → folder → agent`.
+  - first-run said steps 1–4 spend no quota, but step 4 is `narrate`;
+    now steps 1–3. Its "no network" ingest now names the Go, Rust and
+    Java fetches. Its extension list gained Go, Rust and Java. The
+    tools a session starts with gained `list_blind_spots`.
+  - Potential-application-mode cited architecture §9 for "stays local".
+    It is §10.
+- **Stale, fixed:**
+  - how-hobbes-differs' register count (96). The page now points at the
+    index instead of copying the number.
+  - future_additions still had egress narrowing as parked. It is built;
+    the Java resolve-pass wiring is what is left.
+  - workstreams' item 8 current-work line. C-15's first trigger ("the
+    fourth language") passed unused, now said. W4's ADR-087 item moved
+    back above its profile line.
+  - CLAUDE.md's "(below)" pointed at nothing. README's Layout gained
+    `bench/` and `scripts/`; its docs table gained `docs/reviews/`.
+  - C-101 is lifted and already sat last in `extraction-java.md`; the
+    segment gained the "Lifted constraints" heading the others use.
+- **The handoff's stale lines:**
+  - a session's records listed "Claude Code's transcript under
+    `.claude/`", which is purged since 0.1.22-beta;
+  - step 2.4 and NEXT 1 still pointed at the first dispatch;
+  - the first review's list, which lives in this log, is now a pointer.
+
+**The versioning rule.** ADR-103 §3 said a capability bumps minor, but
+the harness shipped as 0.1.21–0.1.23-beta patches. Put to Max, who
+chose 0.2.0-beta.
+- **Done:** ADR-103's fourth amendment; the CHANGELOG head and its
+  0.2.0-beta entry (no product code change beyond the version string);
+  every copy (`test_version.py` green); the CLAUDE.md convention and
+  Status; the README Status; the handoff.
+- **Untagged:** tags stay his call.
+
+**Verified:** pytest 1,372 and Go 328, green at 0.2.0-beta. The Go
+binaries, the static proxy and the image were rebuilt (C-65), and the
+repo was re-ingested at the release commit. The knowledge server
+serves the new stamp once it restarts.
+

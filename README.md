@@ -255,7 +255,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.1.23-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.0-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -312,7 +312,7 @@ diff: it blocks real errors, with no false block on gold.
 
 **From 0.1.21-beta, Calvin is a harness**
 ([`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md),
-ADR-107):
+ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 - `hobbes dispatch` hands one task to Claude Code inside
   `hobbes-session`.
 - The session's only route off the box is an egress allowlist naming
