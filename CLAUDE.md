@@ -3,8 +3,9 @@
 This file is the **entry point**, not the record. It is kept short on
 purpose: Hobbes' own thesis is that an agent should work under a small,
 derived context, and a 600-line agent file argues against it. History
-lives in `docs/BUILDLOG.md`; the resume point is `docs/session-handoff.md`.
-Read those when you need them, not by default.
+lives in `CHANGELOG.md` (per version) and `docs/BUILDLOG.md` (per
+session); the resume point is `docs/session-handoff.md`. Read those when
+you need them, not by default.
 
 ## ⚠ FIRST: use the Hobbes knowledge tools, not `cat` / `grep` / `find`
 
@@ -33,7 +34,8 @@ Fall back to `grep`/`cat` for exactly two things — what `list_blind_spots`
 says the graph does not cover there, and non-code text (docs, configs,
 string literals). A stale-artifact warning means `uv run hobbes ingest`,
 not a grep. Mechanics (the image, staleness, C-65) are under
-*Hobbes for Hobbes* below.
+*Hobbes for Hobbes* below. Inside a dispatched session (below) the same
+six tools are served as `mcp__hobbes__*`.
 
 ## What this project is
 
@@ -67,14 +69,15 @@ box, against a repo on disk (architecture §10); the application mode in
 
 | You are…                                  | Read                                                                 |
 |-------------------------------------------|----------------------------------------------------------------------|
-| resuming the active programme             | `docs/session-handoff.md` → `docs/adr/092-ingest-containment.md`     |
+| resuming the active programme             | `docs/session-handoff.md` → `docs/calvin/calvin-harness.md` (ADR-107) |
+| working on or through the Calvin harness  | `docs/calvin/calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `docs/calvin/sessions/`; the role is `docs/calvin/calvin-charter.md`. The closed keyed rounds are history: `calvin-potential.md` (M0), `calvin-m0-go.md` + `calvin-m0-go-r2.md` (M0-Go), `calvin-m0-gate.md` (M0-Gate), their cells in `docs/calvin/cells/` |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
+| touching sessions, policy or the sandbox  | architecture §6.3 and §7 + ADR-018, ADR-092, ADR-100, ADR-107        |
 | grading the graph against an oracle       | `docs/oracle/oracle-grading.md` + ADR-089; misses by class in `docs/oracle/oracle-misses.md`; the oracle's own defects in `docs/oracle/oracle-defects.md` + their review/tally in `docs/oracle/oracle-defect-review.md` |
 | touching derivation / agents / the bench  | architecture §6 + `docs/benchmark/agent-mapping.md` + `docs/benchmark/benchmark-hypotheses.md` |
 | running the test-time-training experiment | `docs/ttt/olmo3-ttt-validation.md` + ADR-099 (its order of work is step-gated); results in `docs/ttt/olmo3-ttt-results.md` |
-| evaluating Calvin potential                | `docs/calvin/calvin-potential.md` (M0, run on four keys 2026-09-04; §10 results, §8 step-gated) + the probe record `docs/calvin/cells/calvin-m0-probe-2026-09-03.md`; then `docs/calvin/calvin-m0-go.md` (M0-Go, the floor round on gitleaks, closed 2026-09-11 with the floor not established at A2; §10 results and the gate record) + its cell page `docs/calvin/cells/calvin-m0-go-2026-09-11.md`; then round 2, `docs/calvin/calvin-m0-go-r2.md` (the audit, then the floor on fresh keys; run through WP-16 2026-09-11; §0b the pins, §10 the results and the gate record) + `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`; then **M0-Gate**, `docs/calvin/calvin-m0-gate.md` (the linker on the agent's diff: `hobbes gate` over O's finished diff on fzf; run on 10 keys 2026-09-11, the floor holds as a safety property, not a helper; §0b the pins, §10 the results and the gate record) + `docs/calvin/cells/calvin-m0-gate-2026-09-11.md` |
-| reading or extending Atlas-0 (the current work) | `docs/atlas0/atlas-0.md` (sparse is not absent; run end to end 2026-09-05 — the step record at its end has the tables, the atlas entries and the v1 items) + `bench/atlas0/README.md` |
+| reading or extending Atlas-0 (held)       | `docs/atlas0/atlas-0.md` (the step record at its end has the tables, the atlas entries and the v1 items; the B4 addendum) + `bench/atlas0/README.md` |
 | comparing Hobbes with other code-graph tools | `docs/comparative/README.md` (the claim page; ADR-101/102) → `field.md` (one row per tool, sourced or unstated) → the foreign cells in `docs/oracle/cells/`; never a self-reported scoreboard |
 | deciding anything                         | `docs/adr/` — one short ADR per decision the architecture doesn't make |
 | bringing Hobbes up on a new repo          | `docs/first-run.md`                                                  |
@@ -88,9 +91,14 @@ box, against a repo on disk (architecture §10); the application mode in
   is the per-session MCP daemon: `internal/proxy/` (policy-checked `exec`
   + read-only knowledge tools), `internal/recorder/` (JSONL flight log),
   `internal/escalation/` (park/approve/expire queue), `internal/knowledge/`
-  (graph tools over `.hobbes/derived/`, incl. `list_blind_spots`).
+  (graph tools over `.hobbes/derived/`, incl. `list_blind_spots`);
+  `hobbes-proxy egress` + `internal/egress/` is a session's allowlisted
+  route out (a logging CONNECT proxy, ADR-107).
   `cmd/hobbes-session` + `internal/sandbox/` launch a session in rootless
-  Podman (`--mount` binds a host tree read-only, ADR-100). `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
+  Podman (`--mount` binds a host tree read-only, ADR-100; `--egress`
+  puts it on its own internal network behind the egress proxy;
+  `--claude-bin` + `$CLAUDE_CODE_OAUTH_TOKEN` run Claude Code as its
+  doer, ADR-107). `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
   and the embedded SPA. Only external deps: `yaml.v3`,
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
@@ -100,28 +108,21 @@ box, against a repo on disk (architecture §10); the application mode in
   step in the sandbox image — the executing steps refuse without it,
   C-64; Java resolves in a networked pass that holds no sources, then
   indexes offline, C-66/ADR-097); `derive/` (`hobbes plan`: impact →
-  cochange → partition → contracts → manifests → changespec; `holes.py`
-  is the Calvin M0 hole language, v1, `template.py` its generator —
-  `hobbes template`, the anchor and structure passes — and `ground.py`
-  grounder v0 — `hobbes ground`, placement and exact-or-NULL binding
-  with a read-trace — `gate.py` `hobbes gate`, the linker on a finished
-  diff (clear or blocked, a stamped record; M0-Gate) — `adapter.py` the orchestrator adapter, arm T's
-  driver, the one place a model is called, and `harness.py` the local
-  harness, ADR-100: `hobbes verify` runs a diff's guarding tests in the
-  sandbox with and without it, arm O's session runs through
-  `hobbes-session` under `calvin.box.policy`, `scripts/calvin_scripted_agent.py`
-  stands in for the model); `run/`
-  (`hobbes run`: agents, orchestrate, roles, mail, coverage); `agent/loop.py`
+  cochange → partition → contracts → manifests → changespec; the Calvin
+  pieces: `holes.py` + `template.py` (`hobbes template`), `ground.py`
+  (`hobbes ground`, grounder v3), `gate.py` (`hobbes gate`, the linker on
+  a finished diff; `--map derive` reads the blind-spot map from the
+  parent's graph), `adapter.py`, and `harness.py` (`hobbes verify`, the
+  local harness, ADR-100)); `run/` (`hobbes run`: agents, orchestrate,
+  roles, mail, coverage; **`dispatch.py` — `hobbes dispatch`, the Calvin
+  harness, ADR-107**); `agent/loop.py`
   (the owned stdlib tool loop over an OpenAI-compatible endpoint);
   `bench/` (`hobbes bench`: instances → workspace → two arms → one meter →
-  evaluator → report); `ttt/` (`hobbes derive-corpus`: the derived layer
-  rendered as a training corpus for the test-time-training experiment,
-  ADR-099, plus `units`, `score`, `report`, `probe`, `cell`; scripts
-  `modal_ttt.py`, `ttt_units.py`, `ttt_probe.py`, `ttt_cell.py`);
-  `narrate/`, `invariants/`, `review.py`, `render.py`, `graphdiff.py`. Fixture repos under `tests/fixtures/` (miniapp / minits /
-  minigo / minirust / minijava / canary-rust / canary-java / goshapes /
-  twomod), excluded from
-  collection.
+  evaluator → report); `ttt/` (`hobbes derive-corpus` and the TTT
+  instruments, ADR-099); `narrate/`, `invariants/`, `review.py`,
+  `render.py`, `graphdiff.py`. Fixture repos under `tests/fixtures/`
+  (miniapp / minits / minigo / minirust / minijava / canary-rust /
+  canary-java / goshapes / twomod), excluded from collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B: pinned SCIP indexers (`scip-python`, `scip-typescript`,
   `scip-go` 0.2.7, rust-analyzer's `scip`, `scip-java` 0.13.1 in the
@@ -131,40 +132,22 @@ box, against a repo on disk (architecture §10); the application mode in
   pure layer with the vitest cases; `npm run build` bundles into the Go
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the one image (`Containerfile`: sessions *and* lane B ingest,
-  ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, ~2.8 GB) and
-  the exit-check harness.
-- `bench/calvin/` — the Calvin M0 experiment's artifacts
-  (`docs/calvin/calvin-potential.md`): `templates/` holds the hand-written
-  template, its render and its gold fills; the parent ledgers, the
-  generated templates and the ground records live under
-  `~/.hobbes/bench/calvin/` (regenerable, `scripts/calvin_probe.py`).
-- `bench/atlas0/` — Atlas-0 (`docs/atlas0/atlas-0.md`), its own uv project
-  (numpy only): `atlas0 gen | check | score | probe-check` — the
-  synthetic world per seed, step 1's checks read from the files, the
-  act scorer and the §6.1 matrix, the entity tokenizer (B1 stems /
-  B2–B3 one token), a random-init numpy reference model and the class
-  probe with the §6.3 authority tables; `atlas0.train` (torch) and
-  `scripts/modal_atlas0.py` train and re-read cells on Modal; `atlas0
-  report` renders §6.1–6.6 and the checkpoint curve; `--variant`
-  builds the v1 worlds. Bench tooling, never product.
-- `bench/oracle/` — the oracle-grading lane (ADR-089): its own Go module
-  (`x/tools` RTA), one `oracle` binary (`export | go-rta | py-trace |
-  rust-mir | java-javac | grade`), `ts/` (tsc), `py/` (the `sys.monitoring` tracer),
-  `rust/` (a `rustc_driver` MIR walker on a pinned nightly), `java/` (a
-  javac plugin riding the repo's own build; CHA for dispatch),
-  `run-cell.sh`; grades the call graph against answer keys Hobbes does
-  not control. `oracle import` + `grade-foreign.sh` grade a graph
-  Hobbes did not build by the same rules (ADR-101; `adapters/<tool>/`
-  one converter each with a hand-read fixture — `codegraphcontext`,
-  `repowise`); `report/render.py` regenerates the comparative
-  graphics and tables from the cell records and its Go test fails on
-  drift (ADR-102); `shape/` is the callee-shape bucket (`shapes.mjs` +
-  `bucket.py`, each with its own suite run by `go test`). Bench tooling,
-  never product.
+  ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, ~2.8 GB; no
+  `claude` — a session mounts the host's) and the exit-check harness.
+- `bench/` — experiment tooling, never product: `calvin/` (the M0
+  templates and gold fills; the rounds' artifacts under
+  `~/.hobbes/bench/calvin*/`), `atlas0/` (its own uv project;
+  `atlas0 gen | check | score | probe-check | report`, `atlas0.train` and
+  `scripts/modal_atlas0.py`), `oracle/` (the oracle-grading lane,
+  ADR-089: one `oracle` binary — `export | go-rta | py-trace | rust-mir |
+  java-javac | grade | import` — with `ts/`, `py/`, `rust/`, `java/`,
+  `adapters/<tool>/` for foreign graphs (ADR-101), `report/render.py`
+  regenerating the comparative graphics with a drift test (ADR-102), and
+  `shape/`, the callee-shape bucket).
 - `docs/` — architecture, ADRs, `constraints/` (the register of what
   Hobbes cannot tell you, one file per segment; `README.md` is the index), `extraction-evidence.md`, `BUILDLOG.md`,
   `session-handoff.md`, `workstreams.md`, `future_additions.md` (parked
-  backlog).
+  backlog), `calvin/sessions/` (one log per dispatched session).
 - `.hobbes/` — dogfooding: `policies/` + `invariants/` versioned;
   `derived/` and `plans/` gitignored.
 
@@ -216,15 +199,20 @@ uv run hobbes invariants check|compile
 uv run hobbes review main..my-branch  # exit 1 if it needs attention
 uv run hobbes plan "proposal" --seed some.module
 uv run hobbes run <task> --dry-run
+uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvin harness; the ingest at HEAD first
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-11): 1,358 pytest (4 of them `lane_b`) /
-304 Go + 52 oracle-lane Go (two run the `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36 scip node
-tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep them green. CI (`.github/workflows/ci.yml`, ADR-095) runs
-them all on every push; `scripts/ci-graph.sh <base>` is the graph job
-(image build → ingest → stamp check → lanes → compiled invariants →
-review → `lane_b` pytest) and runs the same way on a box.
+Suite sizes at the last check (2026-09-12): 1,371 pytest (4 of them
+`lane_b`) / 325 Go (subtests counted) + 52 oracle-lane Go (two run the
+`shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36
+scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
+them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
+every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
+ingest → stamp check → lanes → compiled invariants → review → `lane_b`
+pytest) and runs the same way on a box. The Go suite's live egress test
+runs a real session behind the real proxy wherever podman and the image
+are present.
 
 ## Conventions
 
@@ -234,7 +222,8 @@ review → `lane_b` pytest) and runs the same way on a box.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 105).
+  architecture doesn't already make. Number sequentially (last: 107;
+  106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
   pyproject spells it PEP 440, `0.1.4b0`); `hobbes.__version__`,
@@ -243,11 +232,10 @@ review → `lane_b` pytest) and runs the same way on a box.
   draws, refuses or says bumps patch; a capability bumps minor; both in
   the same commit as the change, with a `CHANGELOG.md` entry. Nothing
   under `bench/` or an experiment record moves it. Rebuild the image
-  after a bump (C-65). **The number line is Max's (ADR-103, third amendment,
-  2026-09-10): the layer stays on 0.1.x patch by patch — 0.1.10-beta,
-  0.1.11-beta, … — the earlier 0.11.0-beta statement withdrawn;** tags
-  are his call each time — 0.1.9-beta to 0.1.20-beta are untagged, the
-  last tag is `v0.1.8-beta`.
+  after a bump (C-65). **The number line is Max's (ADR-103, third
+  amendment, 2026-09-10): the layer stays on 0.1.x patch by patch;**
+  tags are his call each time — 0.1.9-beta to 0.1.21-beta are untagged,
+  the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
@@ -281,275 +269,55 @@ review → `lane_b` pytest) and runs the same way on a box.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-11) — Hobbes 0.1.20-beta
+## Status (2026-09-12) — Hobbes 0.1.21-beta
 
-- **Versioned from 2026-09-09 (ADR-103):** `VERSION` is now 0.1.20-beta; 0.1.8-beta is tagged `v0.1.8-beta` (0.1.3-beta
-  tagged `v0.1.3-beta` locally, the first stated version; beta: graded,
-  not stable — Max); every artifact's `built_by` and every knowledge
-  answer carry the version beside the commit; the four Go binaries
-  answer `version`; `CHANGELOG.md` holds the release-grain view.
-  **0.1.4-beta (ADR-104, later the same day):** a member call on a
-  union-typed receiver whose members resolve the member differently is
-  an abstention — lane A types the receiver and records it, the join
-  vetoes lane B's first-member pick, the tail names it `union-member`
-  (C-97); ajv regraded 1,410/1,410 contained, hono 767/768 with the one
-  row left registered as C-98 (a solution-style root tsconfig leaves
-  lane A's checker with no options). **0.1.5-beta (2026-09-10): C-98
-  lifted** — the TS helper types a file under a solution-style tsconfig
-  by the referenced project that includes it, the compiler's own
-  reading of the configs, and reports the files no project claims;
-  hono 768/768, 15 `union-member` sites typed on `src/`; C-99 found and
-  fixed in both lanes (a config with `references` and neither `files`
-  nor `include` is a project, not a solution — hono's `runtime-tests/*`).
-  The claim page's one exception is quic-go. **0.1.6-beta (later the
-  same day):** the lane asymmetry closed — lane B indexes a solution
-  zone by the same zone map (the helper's `--zones`), each referenced
-  project under its own config, the unclaimed files under a generated
-  config beside the solution file; hono 768/768, lanes 4,336 / 1. **ADR-105
-  (P13):** a lane B provider is a pinned batch program with a stated
-  version and a tier stamp, never a language server; SCIP is the IR,
-  not the rule — the next language is read against it first (§3.7).
-  **0.1.7-beta (later still): the callee-shape bucket** — Max's
-  question, why a `tsc` key beats a `tsc`-based indexer by 45–64
-  points: every cheerio and zod miss joined to the checker's reading of
-  the callee (`docs/oracle/oracle-misses.md`). Not what the indexer
-  withholds: at symbol grain lane B draws 98.8–100% of the function
-  declarations the key names; the gap is the key's overload grain
-  (61% / 37% of misses) and targets below the symbol floor (local
-  bindings, closures, interface signatures, class-property functions,
-  `new`). C-100 found and lifted there (`.mts`/`.cts` undiscovered);
-  three floor shapes priced for Max's call (W1); a Jelly cell needs its
-  key grain settled first. **0.1.8-beta (the versioned baseline;
-  redone at 0.1.10-beta the same day — 41 cells, every one to the
-  digit but Severed-Chains, the graphics stating one version):**
-  every Hobbes oracle cell regraded on one build against its standing
-  key, the graphics and tables stating the version; C-101 found there
-  and lifted (the Java resolve stage held Kotlin sources — a Maven
-  build compiled them against Java that was not there and the unit fell
-  to lane A). **0.1.9-beta (later still): the baseline review's two
-  findings closed** — the Java resolve stage's walk is one rule in
-  every directory (a source under `.mvn/` or `gradle/` no longer
-  reaches the networked pass; `buildSrc/` stays the one exception; the
-  canary plants one under `.mvn/` and its new cache sentinel sees the
-  resolve pass, shown to fire under the old walk; C-66 surfaced again),
-  and the callee-shape bucket collapses on the checker's qualified name
-  and hits by exact position with explicit ambiguous rows and `new`
-  visited (H-22 closed; cheerio unchanged, zod +3 pairs of 16,634).
-  **Later still — Max read both (good) and took two decisions:** a
-  `build-logic/` included build is keyed on the settings file's
-  `pluginManagement { includeBuild(..) }` when a real repo degrades on
-  one, never on the name (ADR-097); and `oracle grade` prints
-  `recall-collapsed` on every cell beside the standing line (ADR-089) —
-  whose first Java run found the Java key's member-bare names (H-23,
-  fixed the same hour: owner-qualified, the four standing keys re-merged
-  from their shards, every position unchanged). The three floor shapes
-  and the Jelly key grain are off the table for now. **0.1.10-beta
-  (later still): Max's "continue down the recovery half-built path" —
-  the Gradle attach route (above, the Java bullet); Severed-Chains is
-  the first Gradle-built repo in the record with a semantic lane, and
-  no cell is graded on lane A alone any more.**
-- **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-  Languages: Python, TypeScript/JavaScript, Go, Rust, **Java**
-  (+ Terraform/HCL), each a syntax provider + pinned SCIP indexer joined
-  by one range join; artifacts at schema v4; 124 registered constraints
-  (98 active, 24 lifted, 2 superseded).
-- **The comparative programme (ADR-101/102, 2026-09-09):** the
-  comparison with other code-graph tools is the oracle lane, not a
-  scoreboard — `oracle import` grades any tool's graph against the
-  same keys with the same poison check; CodeGraphContext 0.6.13 and
-  repowise 0.49.0 graded on the thirteen loop and random-draw cells
-  (`docs/comparative/`, the foreign records in `docs/oracle/cells/`);
-  four graphics regenerated from the records by
-  `bench/oracle/report/render.py` with a drift test; `field.md` one
-  row per tool, sourced or unstated. repowise now publishes its own
-  compiler-graded table (five tools, seven cells, Go RTA + tsc) on
-  other repos — recorded, not compared. **Later the same day:** a 40-row
-  hand triage of the foreign contradictions (tool-wrong 39,
-  oracle-grain 1) that first found the converters' Java
-  annotation-line grain (C-94, repaired, eight Java cells regraded with
-  signed lines), and **the 1-1 on repowise's draws** — Hobbes, contained,
-  and both tools on cobra, gitleaks ×2, zod, hono at repowise-bench's
-  pins under our keys: Hobbes 100% on four cells, hono 767/774 (the
-  ajv union-member shape, n=2 — closed by ADR-104's abstention later
-  that day: hono 767/768, ajv 1,410/1,410), one wrong syntactic Go edge on gitleaks
-  found and fixed (`_repo_package`: a stdlib import path never names a
-  repo package); syft's keys OOM on this box. C-94–C-96.
-- **Java landed 2026-08-29 (ADR-096)** — the sixth language, all six
-  milestones in one session: lane A, scip-java contained, a javac+CHA
-  oracle (O8), four cells (two repos drawn at random) at **100%
-  precision, 0 contradicted**, recall 66–98% with lane B and 23.5%
-  without — **the without is gone (0.1.10-beta, 2026-09-10 later
-  still): a Gradle unit gets scip-java's plugin from Hobbes's own init
-  script, the oracle's route (ADR-096 amended, C-67 narrowed);
-  Severed-Chains 23.5% → 60.8% at 100% precision.** **C-66 settled 2026-09-01 (ADR-097):** a Java unit runs two
-  contained passes — the build's own resolution with a network on a
-  stage with **no sources**, then the index **offline**; jsoup and
-  petclinic re-ingested byte-identical. The residual (build logic with a
-  network over its own build files and public caches) stays registered;
-  an allowlisted egress proxy is the measured next narrowing (W1).
-- **The derivation programme is built and under test.** `hobbes plan`
-  (ADR-051), `hobbes run` (ADR-054), the staged harness run (ADR-059) and
-  `hobbes bench` (ADR-055) exist and have been run live on the
-  Qwen2.5-Coder-7B / Qwen3.8-27B ladder from Modal.
-- **Current frame (ADR-084/085):** the planner is the
-  requirement-decomposer — its handoff carries `requirements:` with an
-  owning file each, `run/coverage.py` checks that every requirement has
-  an owning unit (`--coverage strict`), and the implementer brief carries
-  owned requirements and no proposal.
-- **Latest bench run:** the ADR-085 validation pair (5 Verified
-  instances, 7B, 2026-08-24) — 0/5 solved (not the measure); its eight
-  harness defects fixed (ADR-091, ADR-093) and validated with no model
-  (`docs/benchmark/cells/adr085-validation-7b-2026-08-24.md`).
-- **The benchmark is moving** from SWE-bench Verified (contaminated,
-  C-39) to DeepSWE 1.1 on a mini-swe-agent substrate
-  (`docs/benchmark/benchmark-deepswe.md`); no H1 claim has been earned.
-- **The oracle lane (ADR-089) is built and both phases have run:** Go
-  and TS call edges compiler-graded against RTA / `tsc` (this repo,
-  kbet, 19 dagger modules), Python trace-graded by the interpreter under
-  this repo's suite (C-60), Rust compiler-graded against rustc's MIR
-  (rust_proj, dagger `sdk/rust`) — every compiler-graded cell at 100%
-  after ADR-090 vetoed the syntactic fallback's two wrong shapes (C-7
-  priced first), the misses C-58 on every language plus Rust's generated
-  code — C-58 now surfaced *partial* as the `below-floor` tail class. `docs/oracle/oracle-misses.md` and
-  `docs/oracle/oracle-defects.md` are the honesty records (reviewed in full,
-  `docs/oracle/oracle-defect-review.md`: seen tally + reviewer rules); the
-  seven-repo loop of 2026-08-27 triaged 2026-08-28 (every compiler-graded
-  cell at 100%); dagger's Go root waits on a bigger box.
-- **The containment programme (ADR-092) is the active track:** *sandbox
-  whatever executes repo-authored code*. Phase 1 built 2026-08-27 —
-  every lane B step runs in the sandbox image, repo code never executes
-  on the host (C-64; canary-tested; byte-identical graph on this repo).
-  Phase 2 (O6/O7 oracles contained, regrades a no-op), phase 3
-  (`--uncontained`, the `containment` stamp, `list_blind_spots`) and
-  phase 4 (the two-layer statement: the knowledge layer is a complete
-  deployment) landed 2026-08-28; reviewed by Max, the claim scoped to
-  the runs made under it (P11). **The seven-cell triage is done**
-  (2026-08-28): four fixes, every compiler-graded cell at 100%.
-- **The four-repo extraction test (2026-09-02):** four random public
-  repos, one per language, run through the knowledge piece by agents —
-  no semantic edge wrong anywhere; **ADR-098** fixed lane A's Go
-  fallback on build-constraint-split names (C-71, surfaced). quic-go
-  oracle-graded at binary roots: 99.6% lower bound, 0 hobbes-wrong.
-  **Its nine registered findings (C-72–C-80) and C-85 were all lifted
-  2026-09-03** (four commits, easiest first, on Max's direction): the
-  lanes/summary/blind-spot counts read true (C-75–C-77), the `http-go`
-  pack reads receivers (C-78), dependency manifests widen (C-79), an
-  expression receiver is a Python call site (C-80: 1,433 new sites on
-  this repo), the Rust fallback abstains on ambiguous heads (C-72), a
-  repo-internal directory link is walked once (C-73), workspace
-  `node_modules` links mount their targets (C-74) and a venv-less
-  Python repo indexes (C-85: 0.0% → 68.4% on a fixture). The four
-  clones were re-ingested to confirm (`docs/extraction-evidence.md`):
-  date-fns 0.1% → 80.1% capture with all 15 zones indexed, serde's
-  copy gone and lanes at 0, and two findings the re-ingest exposed
-  fixed the same night (C-89 TS overload lines, C-90 configs a
-  tsconfig names).
-- **The test-time-training experiment ran 2026-09-03 (ADR-099,
-  `docs/ttt/olmo3-ttt-validation.md`):** `hobbes derive-corpus` renders the
-  derived layer as a training corpus; a 300-step LoRA on it lowered
-  Olmo-3-7B's gold-diff NLL on 147/147 units (replicated on fastapi,
-  68/68) — but a shuffled-answers control took three quarters of that,
-  and the held-out and *trained* navigation questions score the same
-  (callers 0.10 / 0.15): at this step count the weights hold module-grain
-  regularities and abstention, not edges. No memorised cell at 7B
-  (C-83). Records in `docs/ttt/cells/`; standing per hypothesis in
-  `docs/benchmark/benchmark-hypotheses.md`; C-81–C-85.
-- **Max's ten follow-ups ran the same evening** (results §9–§10, the
-  second cell record): past one epoch the edges *do* enter the weights
-  (callers on trained symbols 0.95 at 3,000 steps) while the NLL gain
-  leaves, and a control without the graph reproduces the NLL gain and
-  learns nothing navigable; the primary cell (50 derived units, four
-  file-tools-only *model + prompt* arms) killed H-TTT-2 and H-TTT-3 at
-  300 steps — the manifest finds the files, the adapter alone
-  confabulates repo-shaped paths. C-86–C-88; ADR-099 amended.
-- **Calvin M0 ran on four keys (2026-09-04 night, Sonnet 5;
-  `docs/calvin/calvin-potential.md` §10):** T pass 1 of 4 at $6, O 1 of
-  4 at $17; the module anchor was the cost door, candidates bind but do
-  not find; the 28-key run cut on cost; both protocol fixes in and
-  exercised with no model.
-- **Spend (Max, 2026-09-04):** off the table unless Max names a run and
-  its ceiling (Atlas-0 on Modal, then M0-Go's $30, were). The extraction
-  residue the lifts named closed 2026-09-05 (`expr-callee` counted and
-  classed, C-63 surfaced; the pyproject tables; the C-73 symlink rule);
-  W0's two build items done. Held: the wider Calvin run, the TTT
-  adapter points, the 7B removal A/B, `hobbes narrate` on this repo.
-- **Atlas-0 (`docs/atlas0/atlas-0.md`, Max's design; current work from
-  2026-09-05 later):** does a small block's *act* separate sparse-real
-  from absent — a synthetic world, three blocks (stems / dedicated
-  learned / dedicated frozen), four arms of absence. **Steps 1–2 built
-  the same day, no model, no spend (`bench/atlas0/`);** six readings
-  of the design made the world constructible. **Max opened Modal for
-  it: v0 at five seeds ($7.04), then three v1 worlds ($16.54 to
-  date).** The v0 atlas: B1 invents for every absent name and, taught
-  `UNDEFINED`, refuses sparse-real by density; B2's learned dedicated
-  tokens make the class linearly readable (probe 1.00) and refuse 85%
-  of sparse-real; B3's frozen vectors do not store the world at T;
-  written absences teach no act. v1: **B2 reads a written
-  relation-absence and acts on it** for the token it was written
-  about, the first act treating sparse and absent differently on one
-  question, but the state does not travel; B1 reads nothing; no block
-  follows a conflicting context at this T. Two harness defects found
-  and fixed there (a seed-5 check; an untrained `<nl>` separator).
-  **2026-09-06 (Max's three items):** the prompt-vocabulary check —
-  every eval prompt against the training vocabulary before a cell is
-  read, in `atlas0 check` and as the trainer's refusal — found a
-  **third** untrained-token defect: the hold-out world's fourth
-  phrasing (`live`, `exercises`); re-read on a phrasing of trained
-  words, held-out dense-real is **0.97 / 0.89**, not 0.42 / 0.08, so the
-  "memorised strings" reading is withdrawn and *memorisation regime*
-  means stored-without-reading. **B3 on the context world reads a
-  fact only in context 0.44 (B2's rate) and follows a conflicting
-  context 0.40 / 0.73** — the first block that does — with the §6.4
-  inversion measured. **The v2 reading-regime world is built** (eight
-  templates, an eighth phrasing held out, context-only facts, the
-  absence split) and **calibrated on one seed: 2–4 epochs learn
-  nothing; B1 reads before it stores (7–10 epochs: 0.9–1.0 read,
-  conflict followed 0.7–0.9, no fact held) and meets the 0.8 criterion
-  only at 14 epochs, memorising again.** The v2 grid (90 cells, ≈ $5–6
-  a T) waits on Max's choice of T_v2. **2026-09-07 — the B4 addendum
-  (Max's design; `docs/atlas0/atlas-0.md` § Addendum):** entries name circuits,
-  not verbs — the §A.1 checks ran on saved weights (B1 reads through
-  eight heads in layers 2/4/5 and stores in the FFNs of layers 2–7;
-  B2's refusal is a linear direction in the embedding row, not a norm —
-  the tied head pushes every never-seen row the same way; B3's copy
-  circuit is seven heads of layer 0 plus one); **B4 = B1 + typed
-  attention** built (K = 1 is B1 to the digit) and swept on seed 1: the
-  pressure λ decides the route — 0 keeps both (dense 0.815 vs 0.83,
-  following 0.36 vs 0.77), 0.01 removes the copy, 0.03–0.1 remove the
-  lookup — and the inventory collapses to identity operators in half
-  the layers (NMI vs relation 0.16–0.37 where it spreads); the grid
-  ran at λ = 0, one run per seed (the second is Max's call on cost:
-  a B4 cell is $0.18, 3× the estimate); at five seeds B4 matches B1 on
-  storing and the sibling pull, weakens the copy route in every arm
-  without separating, and **no block emits `UNDEFINED` at this T** —
-  the abstention act is not learned in the reading regime, so
-  relation-absence as a computed state is unreadable there; the
-  results select B4-given (typing given, not learned); $22.28 assumed
-  to date of $25.
-- **Calvin M0-Go (2026-09-11; `docs/calvin/calvin-m0-go.md`, round 2
-  `docs/calvin/calvin-m0-go-r2.md`; cells `calvin-m0-go-2026-09-11.md`,
-  `calvin-m0-go-r2-2026-09-11.md`):** the socket on gitleaks (W = 1.0,
-  A2, Haiku 4.5). Round 1 (WP-0–WP-10, 0.1.11–0.1.14-beta, C-102–C-114):
-  T < O three times on 20 keys; residual NULL new → wrong world → right
-  world, not compiled; $18.93. **Round 2 (WP-11–WP-16, 0.1.15–0.1.17-beta,
-  C-115–C-120):** the audit found 19 of round 1's 31 passes vacuous
-  (`vacuous` and `gold_tests` now in `hobbes verify`); Max ruled round 1's
-  O rows out; protocol v0.6 (build errors in the repair, the sibling
-  whole, one budget) and grounder v3 (arity, undeclared-type) built; on
-  the 8 post-cutoff keys (gitleaks holds no more) **T 0 of 3, O 2 of 3
-  where pass can be read — T returned body holes unchanged on 5 of 8
-  keys with budget to spare**; not an equal-budget reading (O kept 30
-  turns); $3.10 of $12 (amended by D-x: O's non-copied pass is 1 of 3).
-- **Calvin M0-Gate (2026-09-11; `docs/calvin/calvin-m0-gate.md`, cell
-  `calvin-m0-gate-2026-09-11.md`):** keep the world, move the agent —
-  `hobbes gate` (0.1.18–0.1.20-beta, C-121–C-124) judges O's finished diff
-  at its parent; fzf, 20 readable post-cutoff keys; the controls hold.
-  **D-x:** O's clone held the future and O `git show`-ed its key — fixed
-  (the cut repo), rounds 1–2 amended. On 10 keys ($5.03 of $11): the gate
-  blocks 2 of 10, 0 false, and one repair turn raises no pass — **the floor
-  as a safety property, not a helper** (provisional); widening and the
-  repair turn's design are Max's.
+- **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
+  and reviewed.
+  - **Languages:** Python, TypeScript/JavaScript, Go, Rust and Java
+    (+ Terraform/HCL). Each is a syntax provider plus a pinned batch
+    indexer (P13, ADR-105), joined by one range join, with artifacts at
+    schema v4.
+  - **Grading:** every compiler-graded oracle cell is at 100% precision,
+    with the misses registered by class (ADR-089/090; 41 cells regraded
+    at 0.1.10-beta).
+  - **Containment:** whatever executes repo code runs in the one image
+    (ADR-092).
+  - **Register:** 128 entries (101 active, 24 lifted, 3 superseded).
+  - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
+    is `CHANGELOG.md`.
+- **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
+  2026-09-12). Max: O+gate is a harness to stack on this environment;
+  verify it by using it through Hobbes development, one log file per
+  session. Built:
+  - `hobbes-session --egress`: an internal network, and a logging
+    CONNECT proxy to the named hosts alone (C-41 narrowed).
+  - Claude Code as the session's doer: the host's binary, the owner's
+    token passed by name. `--claude-cred` is withdrawn: it never worked
+    and would have leaked every host transcript.
+  - `hobbes gate --map derive`.
+  - `hobbes dispatch`: session → gate → verify → one file in
+    `docs/calvin/sessions/`.
+
+  Checked with no spend, by a live route test and by Claude Code through
+  the proxy on a bad token (401, no other host). **No session has been
+  dispatched yet; the first needs `claude setup-token`.** The keyed
+  rounds (M0, M0-Go, M0-Gate; about $27) are closed as an approach, and
+  their records are history.
+- **Held for Max, or for spend** (`docs/session-handoff.md`):
+  - the harness's validation criterion (N sessions);
+  - whether ADR-106 stays held;
+  - the Atlas-0 T items;
+  - the TTT adapter points;
+  - the 7B removal A/B;
+  - DeepSWE's decomposed protocol;
+  - `hobbes narrate` on this repo;
+  - the comparative queue's next converters;
+  - W0's remainder.
+- **Spend:** API and Modal spend are off the table unless Max names a
+  run and its ceiling. A dispatch spends the owner's Claude Code
+  subscription, not API dollars.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
-`docs/session-handoff.md` if the resume point moved, update this Status
-block only if the headline changed, and keep it this length.
+`docs/session-handoff.md` if the resume point moved, and update this
+Status block when the headline changes — keep it short; the history
+belongs in the CHANGELOG and the BUILDLOG.

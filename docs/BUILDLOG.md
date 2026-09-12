@@ -8732,3 +8732,142 @@ Max handed the orchestrator the M0-Gate design: keep the world, move the agent �
 **Spend:** $5.03 of the $11 cap (O $4.65, repair $0.08, the copied session $0.30).
 
 **Held for Max:** widening to keys 11–20; the repair turn's design; §7 step 1 (O+world); an egress allowlist for C-124; the design's ADR number on *accepted*. D-r open (not on this round's substrate).
+
+## 2026-09-12 — the top-level docs reviewed; Calvin re-approached as a harness: `hobbes dispatch`, the egress allowlist, Claude Code in the session — 0.1.21-beta
+
+**Asked (Max):** review the top-level documentation, then change how
+Calvin is approached. *"The way it's set up now, it did not validate
+itself. O+gate is essentially a harness to stack on top of this
+environment, lacking hobbes session and egress allowlist. After the
+harness is set up, how we will verify is by using it through Hobbes
+development and appending to a log file per session."*
+
+**Decisions (Max, asked in session):**
+- the doer is dispatched from the developer's session (not the whole
+  session in the sandbox);
+- the doer is Claude Code on the subscription (not the owned loop on
+  the API);
+- one log file per session;
+- the keyed rounds' held steps are closed as superseded.
+
+**The review (plan: read, report).** Read: README, CLAUDE.md (AGENTS.md
+is a symlink to it), the handoff, `workstreams.md`, the Calvin charter
+and the M0-Gate record, with the architecture's session, egress and
+status sections checked against the tree.
+
+Findings, most fixed this session:
+- **CLAUDE.md's Status was 272 of its 555 lines,** a per-version
+  history the CHANGELOG holds, in a file that says it is kept short.
+  Its read-next rows were stale: "resuming" pointed at ADR-092, and
+  Atlas-0 was labelled "the current work".
+- **The handoff wrote its "Held" list twice.**
+- **`workstreams.md` was last refreshed 09-07.** It had no M0-Go or
+  M0-Gate, and it listed one egress mechanism three times (W1
+  fetch-java, W3 C-41, the handoff's C-124).
+- **README's `hobbes-session start --repo . --role implementer` could
+  not run.** Its default command is `claude -p`, and the image has no
+  `claude` (checked in the image). `--claude-cred` mounted `~/.claude`
+  at `/root/.claude`, but the session's HOME is `/sessions/<id>`, so the
+  credential was never read. Had it been read, it would have handed the
+  doer every host transcript and memory file. The same broken path sat
+  under `hobbes review`'s soft-verdict reviewer.
+- **Minor:** `calvin.box.policy` cited a moved doc path;
+  `calvin-m0-gate.md` dates its handoff 09-12 beside 09-11 rulings
+  (history, left). The review first reported AGENTS.md as a byte copy;
+  it is a symlink, and `cmp` had compared a file with itself
+  (withdrawn).
+
+**Measured before building.** This is ADR-097's shape re-read on this
+podman (5.8.4, netavark + pasta):
+- containers on an `--internal` network reach each other by name (200);
+- they reach nothing outside;
+- a container on both the internal network and a custom bridge reaches
+  out;
+- the host's `claude` 2.1.269 (glibc) runs in the Ubuntu image;
+- Go 1.26.5 is in the image.
+
+**Built (0.1.21-beta, ADR-107).**
+- **The egress proxy** (`go/internal/egress`, `hobbes-proxy egress`):
+  - exact host:port allowlist matching;
+  - CONNECT only, so plain HTTP is refused;
+  - 403 without dialling;
+  - one JSONL line per listen, connect, close or refuse;
+  - `Summarize`.
+- **`hobbes-session --egress HOST`:**
+  - the session on `hobbes-int-<id>` (internal), the proxy container on
+    that network and on the shared `hobbes-egress` bridge;
+  - the launcher waits for the proxy's listen record, tears both down
+    and prints the log's summary;
+  - exclusive with `--network`.
+- **Claude Code as the doer:**
+  - `--claude-bin` (the host's binary, read-only, not relabeled);
+  - the token `$CLAUDE_CODE_OAUTH_TOKEN` passed by name, so it is in no
+    argv and no dry run;
+  - `--strict-mcp-config`, `--max-turns`, no auto-update, no
+    nonessential traffic;
+  - a live run without a binary, a token or a route is refused up
+    front.
+- **`--claude-cred` is withdrawn**, with a refusal. `review.py` moves to
+  `--egress`.
+- **`hobbes gate --map derive`:** WP-17's map rule becomes
+  `gate.derive_map` in the layer. `map_files` reads a created file at
+  its directory's files, and the graph is named by its SHA, so the
+  record holds no machine path.
+- **`hobbes dispatch`** (`hobbes.run.dispatch`):
+  - refuses an ingest at another SHA before any session runs;
+  - writes a brief that states how the session works;
+  - launches `hobbes-session` with the environment binding and a
+    `hobbes-dispatch` commit identity;
+  - reads the harvested branch, then gates and verifies it;
+  - writes one log file per session to `docs/calvin/sessions/`, with a
+    review block, and `dispatch.json` beside the flight log;
+  - exits 0, 1, 2 or 3;
+  - on its own timeout, cleans up the proxy and the network.
+- **The register:**
+  - C-41 narrowed;
+  - C-124 superseded (the keyed rounds closed; `--egress` is the fix it
+    named);
+  - C-125 (the doer's file tools are outside the flight log; *partial*);
+  - C-126 (a created file in a new directory reads `unmapped`);
+  - C-127 (the validation is the developer's review, not an answer
+    key);
+  - C-128 (a dispatch is not reproducible).
+- **Docs:**
+  - ADR-107 (106 stays held for M0-Go's design);
+  - `docs/calvin/calvin-harness.md`, with the validation rule written
+    before the first session, as the rounds wrote their readings before
+    spend;
+  - `docs/calvin/sessions/README.md`;
+  - the architecture: §6.3 new, the §7 secret and network sentence, a
+    §8 row;
+  - `first-run.md`, `sandbox/README.md` and the CHANGELOG;
+  - a closed-as-an-approach note on each keyed-round record;
+  - CLAUDE.md rewritten short (AGENTS.md follows it as a symlink);
+  - README, workstreams, and this handoff.
+
+**Verified (no spend).**
+- **pytest:** 1,371 pass (1,358 + 13).
+- **Go:** 325 with subtests (the count CLAUDE.md's 304 used; 240
+  top-level at HEAD); 52 oracle-lane.
+- **The live route test** (P10, where a user meets it): a real session
+  behind the real proxy got `ALLOWED=200 REFUSED=403 DIRECT=000
+  PUBLIC=000`, and the session's internal network was gone after.
+- **A smoke run of Claude Code** in the container behind
+  `--egress api.anthropic.com`, with an invalid token:
+  - three tunnels to `api.anthropic.com:443`;
+  - `401 Invalid bearer token`;
+  - no other host reached for, so one allowlist entry is enough;
+  - no container or network left.
+
+  It also showed the envelope reads `subtype: success` beside
+  `is_error: true`, so the dispatch record keeps `api_error_status` and
+  `terminal_reason` (tested).
+- **Binaries and image rebuilt** at 0.1.21-beta, and the proxy checked
+  static.
+- **A test bug found and fixed on the way:** two dispatches in one
+  second sort by their random suffix, so the test now picks the record
+  the call created.
+
+**Not done.** No session has been dispatched: it needs Max's `claude
+setup-token`. The validation criterion (N sessions) is proposed, not
+set. The next builds are named in `calvin-harness.md` §6.

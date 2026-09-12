@@ -254,7 +254,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.1.20-beta** (2026-09-11). The Hobbes layer is versioned from here
+**Hobbes 0.1.21-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -272,9 +272,9 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and twenty-four entries (ninety-eight
-active, twenty-four lifted, two superseded), each naming where a user meets
-the limit.
+The constraint register holds one hundred and twenty-eight entries (one
+hundred and one active, twenty-four lifted, three superseded), each naming
+where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
 (ADR-092).** Every lane B indexer, Java's build, and the executing
@@ -298,38 +298,30 @@ to DeepSWE 1.1 on a mini-swe-agent substrate. A test-time-training
 experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
 loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count
-([`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md)). Calvin M0
-([`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md), its harness
-ADR-100) then asked whether a deterministic grounder under an
-orchestrator can make a model's edit true against the graph: the 28
-gold diffs ground and verify in the sandbox with no model, and a
-four-key run on Sonnet 5 (2026-09-04) read the anchor stage as the
-residual — the two protocol fixes are in and not yet re-run. Calvin
-M0-Go ([`docs/calvin/calvin-m0-go.md`](docs/calvin/calvin-m0-go.md),
-2026-09-11) then put the socket on the densest world Hobbes makes —
-gitleaks in Go, tasks anchored at the gold's symbols, Haiku 4.5 in every
-arm — and the floor was not established at A2: the grounded arm trailed
-the file-tools arm on three runs, the last failure declarations in the
-repo's own form that do not compile. The round stopped at $18.93 of its
-$30 ceiling. A second round
-([`docs/calvin/calvin-m0-go-r2.md`](docs/calvin/calvin-m0-go-r2.md))
-audited the first — 19 of its 31 passes reached no executed test, and
-`hobbes verify` now reads such a change `vacuous` — then ran the floor
-on the eight keys newer than the model's training cutoff: the grounded
-arm returned most body holes unchanged and passed none of the three
-keys where pass can be read, against two for the file-tools arm ($3.10).
-A third round, Calvin M0-Gate
-([`docs/calvin/calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)), keeps
-the world and moves the agent: the file-tools agent does the work, and
-`hobbes gate` (0.1.18-beta) judges its finished diff at the parent —
-clear, or blocked with the class of what it got wrong. On fzf's twenty
-post-cutoff keys the gate clears every gold diff and blocks every seeded
-error with the right class. On ten of them (Haiku 4.5, $5.03) it blocked
-two agent diffs — a compile error and a write outside the partition — with
-no false block, and one repair turn against its report raised no pass: a
-detector, not yet a helper. The run also found that the agent could read
-the answer from the clone's own history — fixed, and the two earlier
-rounds amended.
+([`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md)).
+
+**Calvin** is the layer that makes an agent's edit true against the
+graph ([`docs/calvin/calvin-charter.md`](docs/calvin/calvin-charter.md)).
+It was first measured in three keyed rounds: M0, M0-Go and M0-Gate,
+about $27 in all. That approach did not validate itself: each round
+found a defect in its own instrument, and the floor it sought showed up
+only as a safety property, never as a helper. One shape held. A
+frontier agent does the work, and `hobbes gate` judges its finished
+diff: it blocks real errors, with no false block on gold.
+
+**From 0.1.21-beta, Calvin is a harness**
+([`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md),
+ADR-107):
+- `hobbes dispatch` hands one task to Claude Code inside
+  `hobbes-session`.
+- The session's only route off the box is an egress allowlist naming
+  the model endpoint.
+- The finished diff is gated and verified.
+- Each session writes one log file under `docs/calvin/sessions/`, and
+  the developer reviews it.
+
+It is validated by use on Hobbes' own development, not by a benchmark.
+No session has been dispatched yet.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -342,7 +334,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | 105 numbered ADRs — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-107 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
@@ -352,10 +344,8 @@ point); the session-by-session record is
 | [`docs/benchmark/benchmark-hypotheses.md`](docs/benchmark/benchmark-hypotheses.md) | The preregistered benchmark claims and every run's results, including the contamination finding |
 | [`docs/benchmark/benchmark-deepswe.md`](docs/benchmark/benchmark-deepswe.md) | The redirect to DeepSWE 1.1 (Pier + mini-swe-agent) and why |
 | [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
-| [`docs/calvin/calvin-potential.md`](docs/calvin/calvin-potential.md) | Calvin M0 — the hole language, the grounder and the local harness (ADR-100), and the four-key run; the charter is `docs/calvin/calvin-charter.md` |
-| [`docs/calvin/calvin-m0-go.md`](docs/calvin/calvin-m0-go.md) | Calvin M0-Go — the floor round on gitleaks: a dense Go world, tasks anchored at A2, Haiku 4.5, work packages WP-0 to WP-10 under an orchestrator; the floor not established at A2 (§10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-go-2026-09-11.md`) |
-| [`docs/calvin/calvin-m0-go-r2.md`](docs/calvin/calvin-m0-go-r2.md) | Calvin M0-Go, round 2 — the audit of round 1 (the `vacuous` verdict, `gold_tests`), then the floor on eight post-cutoff keys with the build row in T's repair (protocol v0.6, grounder v3); WP-11 to WP-16 under an orchestrator (§10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-go-r2-2026-09-11.md`) |
-| [`docs/calvin/calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md) | Calvin M0-Gate — the linker on the agent's diff: one O session per key, `hobbes gate` post hoc, one bounded repair turn on blocked rows; fzf, 20 post-cutoff keys; WP-17 to WP-21 under an orchestrator, run on 10 keys: the floor as a safety property, not a helper (§0b the pins, §10 the results and the gate record; the rows in `docs/calvin/cells/calvin-m0-gate-2026-09-11.md`) |
+| [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
+| [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/calvin/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/calvin/calvin-m0-go.md), [round 2](docs/calvin/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/calvin/cells/`. History since 2026-09-12 |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
@@ -436,9 +426,11 @@ hobbes policy resolve "cmd"    # ask the Go engine what a command may do
 hobbes plan "proposal"         # derive a change-spec (units, contracts, per-unit context)
 hobbes run <task>              # spawn a sandboxed derived-context agent per unit
 hobbes bench run insts.jsonl   # Hobbes-as-harness vs the same model unaided (ADR-055)
+hobbes dispatch --task "..."   # one task to Claude Code in the sandbox: gated, verified, logged (ADR-107)
 
 hobbes-web serve --repo .      # the surface, loopback only, port 7777
-hobbes-session start --repo . --role implementer   # sandboxed agent session
+hobbes-session start --repo . --role implementer --egress api.anthropic.com
+                               # Claude Code in the sandbox; $CLAUDE_CODE_OAUTH_TOKEN passed by name
 ```
 
 `hobbes ingest && hobbes lanes && hobbes review $BASE..HEAD` is the CI

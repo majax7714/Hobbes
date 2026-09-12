@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107).** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -47,6 +47,13 @@ item opens when Max names it. Sequencing context is
    no-spend queue in `session-handoff.md` NEXT — Calvin's model-free
    follow-through, the extraction residue, then W0's discipline items
    and collaborator onboarding. Every run in W2/W3 stays held.
+9. **Calvin's keyed rounds closed 2026-09-12** (M0, M0-Go, M0-Gate; Max).
+   Calvin is now the harness `hobbes dispatch` (ADR-107,
+   `calvin/calvin-harness.md`). A task goes to Claude Code in
+   `hobbes-session` behind the egress allowlist, and the diff is gated
+   and verified. The harness is validated by use: one log file per
+   session under `calvin/sessions/`. A dispatch spends subscription
+   usage, not API dollars.
 
 ---
 
@@ -209,7 +216,10 @@ the best on-ramp for a new contributor who should learn the codebase.*
   allowlisted egress proxy for `fetch-java` (C-66's residual after
   ADR-097 — an `--internal` podman network plus a Hobbes-owned CONNECT
   proxy on a custom egress bridge, measured feasible 2026-09-01; its
-  request log doubles as a replay lockfile); the same two-pass shape
+  request log doubles as a replay lockfile — **the proxy exists since
+  2026-09-12**, `hobbes-proxy egress` behind `hobbes-session --egress`
+  (ADR-107), so what is left is wiring it into the `fetch-java`
+  stage); the same two-pass shape
   for the oracle lane's `java-build`; a bytecode
   RTA oracle if the CHA recall number is not sharp enough for C-58's
   Java entry; Kotlin lane A if a mixed repo is ever named.
@@ -256,6 +266,13 @@ architecture §6–6.1); several items wait on Max's call or on run data.*
   escalate-tier record whose approval re-pins both manifests.
 - **Per-unit metering + loss fitting** (C-35) — tokens per unit are
   still unobserved; fitting the declared weights needs run data.
+- **The Calvin harness (ADR-107): validation by use, then its named
+  next builds** (`calvin/calvin-harness.md` §6):
+  - a partition from `hobbes plan` for a dispatch;
+  - the doer's Edit and Write into the flight log (C-125);
+  - a re-dispatch carrying the gate's message.
+
+  Each opens on what the session logs show.
 
 *Profile: the strongest contributor(s); pairs naturally with W3 since
 its evidence comes from runs.*
@@ -324,8 +341,11 @@ run; GPU-hours stated first).*
   adjustments named by the first probe (C-36 candidates: trailing
   punctuation, generic-word weights), image pre-pulls for evaluation at
   scale.
-- **Egress narrowing** (C-41) — restrict a live session's network to
-  the model endpoint host.
+- ~~**Egress narrowing** (C-41)~~ — **built 2026-09-12 (ADR-107):**
+  `hobbes-session --egress HOST` gives a session its own internal
+  network, with a logging CONNECT proxy to the named hosts alone. The
+  benchmark's `--network` path keeps the whole network, so C-41 is
+  narrowed, not lifted.
 
 *Profile: one owner for the harness/protocol, one for instrumentation;
 instrumentation items are safe for anyone since they spend no GPU.*
