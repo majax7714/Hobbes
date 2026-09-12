@@ -69,6 +69,15 @@
     `RUN_TEST` expand to `UnityFail`, `UnityDefaultTestRun` and
     `UnityAssert*` (723). Five are cJSON's own API: its
     `cJSON_SetNumberValue` macro calls `cJSON_SetNumberHelper`.
+  - **Where those calls are.** Lane B records an expansion's callees at
+    the invocation line, and the join lands them as `uses` edges (381
+    into `UnityFail` on cJSON).
+    - Dependency questions see them; call questions (`who_calls`, test
+      reach) do not.
+    - Promoting them to `calls` is parked (Max, 2026-09-12;
+      `future_additions.md`). SCIP carries no call role, and a function
+      passed as a value on the same line (`RUN_TEST(test_fn)`) would draw
+      as a call.
   - **Precision:** a function defined in a dead arm is a real target to
     lane A. sqlite-vector's `strcasestr` shim drew three wrong
     `syntactic` edges (C-138).

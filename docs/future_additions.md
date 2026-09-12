@@ -618,3 +618,39 @@ resolve stage is what is left (workstreams W1). Also worth keeping, because the 
 ingest is per language, gated on discovery — a language with no files
 in the repo costs one extension walk and nothing else; only the image
 build carries every toolchain.
+
+## C macro-expansion calls drawn as `calls` (C-131, parked 2026-09-12)
+
+**What is parked:** drawing, at a C macro's invocation line, a `calls`
+edge to each function the macro's expansion calls.
+- On cJSON that is every miss of the oracle cell (ADR-110): 728 of
+  1,918 in-repo pairs, 723 into Unity's assertion and runner functions
+  and 5 into cJSON's own API (`cJSON_SetNumberValue` expands to a call of
+  `cJSON_SetNumberHelper`).
+- Rust's same class, a call a macro's body makes, is memchr's 99
+  `macro→*` misses (C-58's macro face).
+
+**Why parked (Max, 2026-09-12):**
+- **The references already exist,** as `uses` edges at the invocation
+  line: lane B records an expansion's callees there (381 into `UnityFail`
+  on cJSON). So dependency questions see them, and only call questions
+  (`who_calls`, test reach over `calls`) do not.
+- **Nearly all of the gap is framework-bound.**
+- **Promoting those `uses` to `calls` is unsound.** SCIP records no call
+  role, and a function passed as a value on the same line is the same
+  kind of reference: `RUN_TEST(test_fn)` hands `test_fn` to
+  `UnityDefaultTestRun` without calling it there, and so does the
+  fixture's `apply(lib_sum)`.
+
+**The sound design, if it opens:**
+- Lane A reads a function-like macro's body (the `#define`'s tokens)
+  into a table of the calls it makes, transitively through nested macros
+  (Unity's are several levels deep).
+- It then draws invocation → callee at a new, labelled tier, or as
+  `calls` with a `macro` evidence lane, kept apart from the tokens passed
+  as arguments.
+- The oracle's `macro→function` class is the answer key for it.
+
+**Revisit when** a graded repo shows product APIs wrapped in macros at a
+size that matters (sqlite-style API tables are dynamic sites and would
+not count).

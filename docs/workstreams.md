@@ -258,12 +258,12 @@ the best on-ramp for a new contributor who should learn the codebase.*
     - sqliteai/sqlite-vector, drawn at random: 851/854, the 3 syntactic
       edges wrong (C-138);
     - the oracle built through the harness.
-  - **Found by the cells, each a candidate once named:**
-    - C-138, the join's veto where lane B resolved a site outside the
-      repo (every language: Max's call);
-    - C-131's macro gap: a C macro invocation drawing the calls its
-      expansion makes (cJSON: 38% of pairs);
-    - C-135's surfacing gap (bpftop).
+  - **Found by the cells (Max's calls, 2026-09-12):**
+    - C-138's veto: approved, the next session's second patch, after
+      the progress hook (ADR-111, with a full contained regrade as its
+      acceptance gate);
+    - C-131's macro gap: parked (`future_additions.md`);
+    - C-135's surfacing gap (bpftop): a candidate once named.
   - **Then the residue:**
     - C-134, the test registrations (Unity's `RUN_TEST`, CMocka, Check);
     - C-135's autotools, Meson and Bazel roots, which get no database

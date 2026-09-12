@@ -10,7 +10,7 @@
 
 The session's record is the last 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C is graded (0.2.5-beta); four asks wait on Max
+## ⇢ START HERE NEXT SESSION: Max's three approved patches, in order — the progress hook, C-138's veto, the box policy
 
 0. **Latest (2026-09-12, last).** Max: "review top level documentation.
    then proceed with grading c against the oracle with a c repo. utilize
@@ -42,26 +42,43 @@ The session's record is the last 2026-09-12 BUILDLOG entry.
    - **0.2.5-beta:** §3.8's C row and `verification.py`'s pin; the image
      and the proxy rebuilt; the repo re-ingested at the commit. **Restart
      the knowledge server** the next session opens with (C-65).
-1. **For Max, the asks from this session:**
-   - **C-138's veto.** `evidence.join` takes lane A's guess wherever lane
-     B has no in-repo answer, even where lane B resolved the site to a
-     library. A veto there changes every language, and every cell's
-     syntactic tier would be regraded. Yes or no.
-   - **C's macro gap** (C-131's recall hole): cJSON's 728 pairs, 38% of
-     its recall denominator.
-     - Drawing the calls a macro's expansion makes, at the invocation,
-       would close most of it; lane B's index already holds those
-       references.
-     - It needs a design, if wanted.
-   - **The box policy:**
-     - (a) allow `rm` inside `/work`, or state that the box's escalations
-       are not a boundary while `python3 *` is allowed. A doer deleted
-       its scratch file through `python3 -c` after `rm` expired.
-     - (b) name `clang --version`, `cmake --version` and
-       `bear --version` among the read-only probes.
-   - **A progress signal for dispatches.** A doer that reads looks like
-     one that is stuck (`b126`). C-125's named fix, a hook that reports
-     Edit and Write to the flight log, would give one.
+1. **Max's decisions (2026-09-12, closing the session): the four
+   proposals are approved, in this order.** Each is its own patch.
+   1. **The progress hook** (narrows C-125; ADR-107 amended; one dispatch).
+      - `hobbes-session` writes a settings file whose PostToolUse hook on
+        Edit, Write, MultiEdit and NotebookEdit runs the mounted static
+        proxy as `hobbes-proxy record-edit`. It appends the time, tool
+        and path to the session's flight log, never content.
+      - The session file gains an edits line: count, files, first-edit
+        time.
+      - No kill on silence (`b126`); a note if no edit by N minutes.
+      - Checked: Claude Code takes `--settings`, and hooks run under `-p`
+        unless `--bare` is passed. Dispatch passes none.
+   2. **C-138's veto** (ADR-111; one dispatch).
+      - `evidence.join` takes the external references the tail already
+        computes, and skips lane A's fallback where one sits at the
+        site's (file, line, name). The site goes to the tail as
+        `external-origin`.
+      - A fixture shape per language: a repo function named like a
+        library call.
+      - **Acceptance before the merge:** regrade every contained cell.
+        sqlite-vector must go from 851/854 to 851/851, with exactly 3
+        fewer syntactic edges. Every other cell keeps its confirmed
+        count, and a lost confirmed edge stops the merge.
+   3. **The box policy** (directly, beside the veto).
+      - Allow `rm *`; escalate `rm *-r*` and `rm *-R*`. Allow
+        `clang --version`, `cmake --version` and `bear --version`.
+      - The policy's header states an escalation is not a boundary where
+        an allowed interpreter can do the same.
+      - A Go test against the real box file. Check that the gate blocks a
+        deletion outside the partition.
+   - **Parked, done this session (docs only): C's macro gap.**
+     - Lane B's expansion references already land as `uses` at the
+       invocation (381 into `UnityFail` on cJSON), so dependency
+       questions see them.
+     - Promoting them to `calls` would be unsound: SCIP has no call
+       role, and a value passed on the same line would draw as a call.
+     - `future_additions.md` holds the sizes and the sound design.
    - **Carried:** the harness's validation criterion (N sessions), and
      ADR-106.
 2. **Running a session** (the steps stand; `calvin-harness.md` §5):
@@ -180,8 +197,8 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **Max's four asks** (START HERE item 1). C-138's veto comes first: it
-   is the one wrong-edge mechanism the C cells found.
+1. **Max's three approved patches, in his order** (START HERE item 1):
+   the progress hook; C-138's veto, with its regrade gate; the box policy.
 2. **Keep dispatching named no-spend work through the harness**
    (START HERE item 2). The candidates:
    - C's residue (workstreams W1): C-134's test registrations; C-135's

@@ -9393,3 +9393,21 @@ addition not a structural change" (0.2.5-beta; ADR-103 noted).
 - C's macro-expansion edges;
 - the box policy (`rm`, the probes);
 - a progress signal for dispatches.
+
+**Closing (Max, 2026-09-12).** Asked for a proposal on each open
+decision, Max approved all four in the suggested order. Each is a
+patch, for the next session.
+- **First, the progress hook,** so later dispatches can be watched.
+- **Then C-138's veto,** as a dispatch, with a regrade of every
+  contained cell as its acceptance gate.
+- **Then the box policy,** directly.
+- **C's macro gap is parked.** This session wrote its docs: C-131's
+  `uses` sentence and a `future_additions.md` entry.
+
+Two facts were checked before recommending:
+- lane B's expansion references already exist as `uses` edges (381 into
+  `UnityFail` on cJSON);
+- Claude Code takes `--settings` and runs hooks under `-p`.
+
+The first check also corrected the cJSON record: the misses are 723 into
+Unity and 5 into cJSON's own API (`cdf92fe`).
