@@ -126,6 +126,35 @@ rules:
 	}
 }
 
+// TestCalvinBoxFormatsReadOnly resolves against the real dispatch box
+// (pipeline/src/hobbes/derive/calvin.box.policy). `gofmt -l` and `-d` run,
+// alone or after a `cd`, the way a doer issues them. Anything that writes
+// stays a question: `-w` under the allow rule, and `go fmt`, which no rule
+// names. Four `gofmt -l` escalations expired in S-20260912T174351Z-404f.
+func TestCalvinBoxFormatsReadOnly(t *testing.T) {
+	repo := t.TempDir()
+	box, err := filepath.Abs(filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct {
+		command string
+		want    int
+	}{
+		{"gofmt -l internal/knowledge", 0},
+		{"gofmt -d internal/knowledge/knowledge.go", 0},
+		{"cd /work/go && gofmt -l internal/knowledge", 0},
+		{"gofmt -l -w internal/knowledge", 20},
+		{"gofmt -w internal/knowledge/knowledge.go", 20},
+		{"go fmt ./...", 20},
+	} {
+		code, stdout, stderr := resolve(t, repo, "--repo", repo, "--dir", repo, "--box", box, tt.command)
+		if code != tt.want {
+			t.Errorf("%q: exit = %d, want %d\n%s%s", tt.command, code, tt.want, stdout, stderr)
+		}
+	}
+}
+
 func TestResolveUsageErrors(t *testing.T) {
 	repo := fixtureRepo(t)
 	var stdout, stderr bytes.Buffer

@@ -224,8 +224,9 @@ After that, the developer:
     - **Four `gofmt` escalations expired:** the box policy has no
       `gofmt` rule, though the brief asked for it.
     - **The session's `PATH` puts `bench/atlas0/.venv` first:**
-      `dispatch.py` sorts the venv bins. Both findings are named, not
-      fixed.
+      `dispatch.py` sorts the venv bins. Both were fixed in 0.2.3-beta
+      (Max): `gofmt -l`/`-d` allowed and `-w` escalated; the outermost
+      tree first, with the brief naming each interpreter.
   - **Findings so far:** no false block and no `missed`. Every egress
     refusal was read: one per suite run, the suite's own `http://llm`
     GET, which the proxy refused as built. The gate's classes do not

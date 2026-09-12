@@ -194,7 +194,9 @@ def session_argv(d: Dispatch, brief_path: Path, env) -> list[str]:
     from hobbes.derive import harness
     from hobbes.extract import containment
 
-    bins = sorted({"/work/" + os.path.dirname(os.path.join(rel, interp)).lstrip("/") for rel, interp in env.python.items()})
+    # outermost tree first (harness.python_trees), so a bare `python` is the tree the brief names first
+    bins = list(dict.fromkeys("/work/" + os.path.dirname(os.path.join(rel, env.python[rel])).lstrip("/")
+                              for rel in harness.python_trees(env)))
     argv = [d.session_bin, "start", "--repo", str(d.repo_root), "--ref", d.parent, "--role", "implementer",
             "--session", d.session_id, "--sessions", str(d.sessions_root), "--task-file", str(brief_path),
             "--box", str(harness.CALVIN_BOX), "--escalation-timeout", "5s", "--commit-on-exit", "--max-turns", str(d.max_turns),

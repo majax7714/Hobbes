@@ -9158,3 +9158,36 @@ and a Python drift test reads both Go map literals and holds them to
 and the image were rebuilt (C-65), and the repo was re-ingested at the
 commit.
 
+## 2026-09-12 — (after, still) two harness fixes — 0.2.3-beta; C's lane B begun
+
+**Max:** make the two harness fixes, do not change the display, then
+continue with C's lane B.
+
+**The fixes:**
+- **`calvin.box.policy`** allows `gofmt -l*` and `gofmt -d*`, and
+  escalates `gofmt *-w*`. Escalate beats allow within a scope (read in
+  `resolve.go`), so `gofmt -l -w` still escalates, and `go fmt` keeps
+  the default. Tested: `TestCalvinBoxFormatsReadOnly` resolves six
+  commands against the real box file (plain, after `cd`, `-w`,
+  `go fmt`).
+- **`harness.python_trees`** orders the Python trees outermost first,
+  then by name. `dispatch.session_argv` builds `--path` from it, and
+  `environment()`'s note now names each tree's interpreter and which
+  one a bare `python` is, where it used to say "the venv's python is
+  first on PATH". Tested in `test_harness.py` (two trees, the note's
+  text) and `test_dispatch.py` (the `--path` order).
+- **Display:** the capture line is unchanged, per Max.
+
+**C's lane B, the spike.** scip-clang v0.4.0 (`scip-clang-x86_64-linux`,
+sha256 `06fd18c5…`, dynamically linked against glibc) was downloaded and
+verified on the host. The image has gcc 13, make and the libc headers,
+but no CMake, bear or clang.
+- A throwaway container from the image (with a network for apt, spike
+  only) configured cJSON with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, which
+  gave 27 compile-database entries.
+- The first run died before scip-clang: `time` is not a command under
+  dash. It was re-run under bash. Results are in the next entry.
+
+**Verified:** pytest 1,447 and Go 331, green at 0.2.3-beta; the image
+was rebuilt.
+

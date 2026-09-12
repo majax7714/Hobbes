@@ -11,8 +11,31 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.2-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.3-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.3-beta — 2026-09-12 (two harness fixes found by a dispatched session)
+
+**Patch: a dispatched doer can check formatting, and a bare `python`
+is the right one.** Both were found by `S-20260912T174351Z-404f`; Max
+said to make them.
+
+- **`calvin.box.policy` allows `gofmt -l` and `gofmt -d`.**
+  - `-w` escalates (escalate beats allow within a scope, ADR-002), and
+    `go fmt` keeps the box's default.
+  - Four `gofmt -l` escalations had expired in one session, though its
+    brief asked for the check.
+  - A Go test resolves commands against the real box file.
+- **The session's `PATH` puts the outermost Python tree first**
+  (`harness.python_trees`: by depth, then by name).
+  - `dispatch.py` had sorted the venv bins as strings, so
+    `bench/atlas0/.venv` shadowed `pipeline/.venv`, and a bare `python`
+    lacked `tree_sitter_c`.
+  - The brief's note now names each tree's interpreter
+    (`/work/<tree>/.venv/bin/python3 -m pytest`) and says which one a
+    bare `python` is.
+- **Unchanged, per Max:** the capture line for a fallback-only
+  language, which reads 0% for C.
 
 ## 0.2.2-beta — 2026-09-12 (the knowledge tools see C; `.mts`/`.cts` too)
 

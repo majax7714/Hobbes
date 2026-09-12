@@ -171,11 +171,28 @@ def environment(source: Path, worktree: Path, *, container_root: str | None = No
         env.notes.append("The dependency trees (" + ", ".join(rel for rel, _ in env.links) + ") are mounted read-only; nothing installs, and a tool that writes into them fails with EROFS.")
         if any(rel.endswith("node_modules") for rel, _ in env.links):
             env.notes.append("vitest writes its cache into node_modules: run it as `npx vitest run --no-cache <files>` or it exits 1 (EROFS) after the tests pass.")
-        if any(rel.endswith(".venv") for rel, _ in env.links):
-            env.notes.append("There is no `uv` here: run pytest as `python -m pytest` (the venv's python is first on PATH).")
+        if env.python:
+            trees = python_trees(env)
+            interp = {rel: os.path.join(root, rel, env.python[rel]) for rel in trees}
+            if len(trees) == 1:
+                env.notes.append(f"There is no `uv` here: run pytest as `python -m pytest` (the venv's python, `{interp[trees[0]]}`, "
+                                 "is first on PATH).")
+            else:
+                where = lambda rel: f"in `{rel}/`" if rel else "at the repo root"
+                env.notes.append("There is no `uv` here, and each Python tree has its own venv: run a tree's tests with its own "
+                                 "interpreter — " + "; ".join(f"`{interp[rel]} -m pytest` {where(rel)}" for rel in trees)
+                                 + f". A bare `python` is {where(trees[0]).replace('in ', '', 1)}'s, the first on PATH.")
     if env.ro_cache:
         env.notes.append("The Go module cache is mounted read-only and there is no network (GOPROXY=off): build with the modules go.sum already names; `go get` fails.")
     return env
+
+
+def python_trees(env: Environment) -> list[str]:
+    """The Python trees *env* binds, outermost first (by depth, then by name). This is the order their venvs take on a
+    session's PATH, so a bare ``python`` is the outermost tree's, not whichever path sorts first as a string. Sorted as
+    strings, ``bench/atlas0`` came before ``pipeline``, and a dispatched doer's ``python`` was Atlas-0's
+    (S-20260912T174351Z-404f)."""
+    return sorted(env.python, key=lambda rel: (rel.count("/") + 1 if rel else 0, rel))
 
 
 def link_deps(env: Environment, worktree: Path) -> None:

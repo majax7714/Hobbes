@@ -205,8 +205,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-12): 1,445 pytest (4 of them
-`lane_b`) / 330 Go (subtests counted) + 52 oracle-lane Go (two run the
+Suite sizes at the last check (2026-09-12): 1,447 pytest (4 of them
+`lane_b`) / 331 Go (subtests counted) + 52 oracle-lane Go (two run the
 `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
@@ -237,7 +237,7 @@ are present.
   after a bump (C-65). **The number line is Max's (ADR-103, fourth
   amendment, 2026-09-12): the Calvin harness moved the layer to
   0.2.0-beta; patch by patch on 0.2.x, and a capability bumps minor;**
-  tags are his call each time — 0.1.9-beta to 0.2.2-beta are untagged,
+  tags are his call each time — 0.1.9-beta to 0.2.3-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -276,7 +276,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.2.2-beta
+## Status (2026-09-12) — Hobbes 0.2.3-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.

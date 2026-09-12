@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.2.2-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.3-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.2-beta are untagged. Tags are Max's call ("no need to tag yet").
+  0.2.3-beta are untagged. Tags are Max's call ("no need to tag yet").
 - **Numbering** (Max; ADR-103's fourth amendment): the Calvin harness
   moved the layer to 0.2.0-beta. Patch by patch on 0.2.x; a capability
   bumps minor.
@@ -54,17 +54,16 @@ The session's record is the 2026-09-12 BUILDLOG entry.
        line reads 0% because fallback edges count in the remainder.
      - §3.7's list of places a language touches gained the proxy's
        tables.
-   - **Open for Max:**
-     - **The lane-B spike** (asked, not yet answered): scip-clang
-       v0.4.0 on cJSON inside the image, from CMake's exported compile
-       database, before ADR-109.
-     - **Two harness fixes** found by `404f`:
-       - `gofmt -l*` for `calvin.box.policy`, which has no `gofmt`
-         rule, though the brief asked for it;
-       - the session's `PATH`: `dispatch.py` sorts the venv bins, so
-         `bench/atlas0/.venv` shadows `pipeline/.venv`.
-     - **The capture line for a fallback-only language**, which
-       changes the display for every language.
+   - **Max's answers:** make the two harness fixes (done, 0.2.3-beta:
+     `gofmt -l`/`-d` in the box, and the outermost Python tree first
+     on `PATH` with each interpreter named). Leave the capture display
+     as it is. Continue with C's lane B.
+   - **In progress: C's lane B spike.** scip-clang v0.4.0 (sha256
+     `06fd18c5…`) runs inside the image, over a compile database
+     from CMake's export (installed in a throwaway container: the image
+     has gcc 13, make and libc headers, but no CMake, bear or clang).
+     Next: join its index against the C walk's call sites, then write
+     ADR-109.
 
    **Earlier the same day:** a second top-level doc review. Its
    findings are fixed in one `docs:` commit (the BUILDLOG lists them),

@@ -218,6 +218,18 @@ def test_an_api_error_under_a_success_subtype_is_logged_as_an_error(world, monke
     assert "**with an error** (API status 401, `api_error`)" in Path(rec["log"]).read_text()
 
 
+def test_the_sessions_path_puts_the_outermost_python_tree_first(tmp_path):
+    # S-20260912T174351Z-404f: sorted as strings, /work/bench/atlas0/.venv/bin came before /work/pipeline/.venv/bin.
+    from hobbes.derive import harness as H
+
+    env = H.Environment(source="s", python={"bench/atlas0": ".venv/bin/python3", "pipeline": ".venv/bin/python3"})
+    d = dp.Dispatch(repo_root=tmp_path, task="t", parent="abc", session_id="S-1", sessions_root=tmp_path / "s",
+                    session_bin="/bin/hobbes-session")
+    argv = dp.session_argv(d, tmp_path / "brief.md", env)
+    path = argv[argv.index("--path") + 1].split(":")
+    assert path[:2] == ["/work/pipeline/.venv/bin", "/work/bench/atlas0/.venv/bin"]
+
+
 def test_parse_envelope_takes_the_last_json_object_and_caps_the_result():
     out = "noise\n" + json.dumps({"type": "result", "num_turns": 3, "result": "x" * 5000, "usage": {"a": 1}}) + "\n"
     env = dp.parse_envelope(out)

@@ -8,4 +8,4 @@ package version
 
 // Version is the Hobbes layer's version, bumped by hand in the same
 // commit as every other copy (see ADR-103 for what bumps which part).
-const Version = "0.2.2-beta"
+const Version = "0.2.3-beta"

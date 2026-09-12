@@ -171,6 +171,20 @@ rules:
     decision: allow
   - pattern: "go vet*"
     decision: allow
+  # Read-only formatting checks. `gofmt -l` lists unformatted files and
+  # `gofmt -d` prints the diff; neither writes. A dispatch brief asks for
+  # `gofmt -l` before a commit, and all four escalations expired on it in
+  # S-20260912T174351Z-404f.
+  # Writing stays a question: `-w` escalates, since escalate beats allow
+  # within a scope (ADR-002). `go fmt`, which is `gofmt -l -w`, matches
+  # no rule and takes the box's default.
+  - pattern: "gofmt -l*"
+    decision: allow
+  - pattern: "gofmt -d*"
+    decision: allow
+  - pattern: "gofmt *-w*"
+    decision: escalate
+    reason: "gofmt -w rewrites files; the doer's edits go through its own file tools"
   # gitleaks regenerates `config/gitleaks.toml` and runs each rule's
   # true/false-positive validation through `//go:generate`; the harness
   # regenerates at verify either way (ADR-100's Go amendment), and

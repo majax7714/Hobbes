@@ -364,6 +364,24 @@ def test_environment_links_mounts_and_pre_command(repo):
     assert H.environment(source, root).links == env.links, "a linked tree is not walked as a manifest dir"
 
 
+def test_two_python_trees_are_ordered_outermost_first_and_the_note_names_each_interpreter(tmp_path):
+    # S-20260912T174351Z-404f: the venv bins were sorted as strings, so `bench/atlas0` came before `pipeline`, a bare
+    # `python` was Atlas-0's (no tree_sitter_c), and the note said "the venv's python is first on PATH" of either.
+    source, worktree = tmp_path / "src", tmp_path / "wt"
+    for rel in ("pipeline", "bench/atlas0"):
+        (worktree / rel).mkdir(parents=True)
+        (worktree / rel / "pyproject.toml").write_text("[project]\nname = 'x'\n")
+        (source / rel / ".venv" / "bin").mkdir(parents=True)
+        (source / rel / ".venv" / "bin" / "python3").write_text("")
+    env = H.environment(source, worktree, container_root="/work")
+    assert H.python_trees(env) == ["pipeline", "bench/atlas0"]
+    note = next(n for n in env.notes if "uv" in n)
+    assert "`/work/pipeline/.venv/bin/python3 -m pytest` in `pipeline/`" in note
+    assert "`/work/bench/atlas0/.venv/bin/python3 -m pytest` in `bench/atlas0/`" in note
+    assert "A bare `python` is `pipeline/`'s, the first on PATH." in note
+    assert H.python_trees(H.Environment(source="s", python={"": ".venv/bin/python3", "a/b": "x", "a": "x"})) == ["", "a", "a/b"]
+
+
 def test_arm_o_brief_policy_command_and_patch_grounding(repo, tmp_path):
     root, sha, source = repo
     L = ledger(sha)
