@@ -3,9 +3,11 @@
 // edges, `go-rta` runs the Go reachability oracle on one module,
 // `py-trace` runs the Python runtime-trace oracle on one directory's
 // suite, `rust-mir` runs the Rust MIR resolution oracle on one cargo
-// package, `java-javac` runs the Java javac oracle on one build, `import`
-// converts a third-party tool's edge file into the same graded shape
-// (ADR-101 — the oracle does not care who produced the edges), and
+// package, `java-javac` runs the Java javac oracle on one build, `c-clang`
+// runs the C clang oracle on one build root (ADR-110) — `c-clang-units`
+// is its internal half, run inside the sandbox image, never by a user —
+// `import` converts a third-party tool's edge file into the same graded
+// shape (ADR-101 — the oracle does not care who produced the edges), and
 // `grade` matches the two and prints the cell's report. A cell is data —
 // a repo, a module directory, a graph — never a script of its own.
 package main
@@ -18,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/majax7714/Hobbes/bench/oracle/internal/clang"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/export"
 	"github.com/majax7714/Hobbes/bench/oracle/internal/foreign"
@@ -46,6 +49,10 @@ func main() {
 		err = runRustMIR(os.Args[2:])
 	case "java-javac":
 		err = runJavac(os.Args[2:])
+	case "c-clang":
+		err = runCClang(os.Args[2:])
+	case "c-clang-units":
+		err = runCClangUnits(os.Args[2:])
 	case "grade":
 		err = runGrade(os.Args[2:])
 	default:
@@ -66,6 +73,8 @@ func usage() {
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
   oracle rust-mir --repo . --module . --driver rust/target/release/mir-oracle --out-dir <cell-dir> [--out oracle.json]
   oracle java-javac --repo . --module . --plugin java --out-dir <cell-dir> [--tool maven|gradle] [--out oracle.json]
+  oracle c-clang --repo . --module . --out-dir <cell-dir> [--compdb path] [--clang clang] [--out oracle.json]
+  oracle c-clang-units --repo . --module . --out-dir <cell-dir> [--compdb path] [--clang clang]   (internal: runs inside the sandbox image)
   oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json] [--poison]`)
 	os.Exit(2)
 }
@@ -200,6 +209,45 @@ func runJavac(args []string) error {
 		return err
 	}
 	return write(*out, res)
+}
+
+// runCClang is the host-facing command: it runs the contained step
+// (deriving the compile database and every clang run, ADR-110 decision
+// 3), then merges the shards it wrote.
+func runCClang(args []string) error {
+	fs := flag.NewFlagSet("c-clang", flag.ExitOnError)
+	repo := fs.String("repo", ".", "repo root")
+	module := fs.String("module", "", "repo-relative C build root (cell)")
+	compdb := fs.String("compdb", "", "a compile database to use directly; skips ADR-109's search")
+	clangBin := fs.String("clang", "", "clang command name/path inside the image (default clang)")
+	outDir := fs.String("out-dir", "", "cell directory for the shards")
+	out := fs.String("out", "", "output path (default stdout)")
+	fs.Parse(args)
+	if *outDir == "" {
+		return fmt.Errorf("--out-dir is required")
+	}
+	res, err := clang.Run(clang.Options{Repo: *repo, Module: *module, Compdb: *compdb, Clang: *clangBin, Out: *outDir})
+	if err != nil {
+		return err
+	}
+	return write(*out, res)
+}
+
+// runCClangUnits is the internal subcommand ADR-110 runs inside the
+// sandbox image: derive the compile database and run clang per
+// translation unit, writing shards. Never called directly by a user.
+func runCClangUnits(args []string) error {
+	fs := flag.NewFlagSet("c-clang-units", flag.ExitOnError)
+	repo := fs.String("repo", ".", "repo root")
+	module := fs.String("module", "", "repo-relative C build root (cell)")
+	compdb := fs.String("compdb", "", "a compile database to use directly; skips ADR-109's search")
+	clangBin := fs.String("clang", "", "clang command name/path (default clang)")
+	outDir := fs.String("out-dir", "", "cell directory for the shards")
+	fs.Parse(args)
+	if *outDir == "" {
+		return fmt.Errorf("--out-dir is required")
+	}
+	return clang.RunUnits(clang.Options{Repo: *repo, Module: *module, Compdb: *compdb, Clang: *clangBin, Out: *outDir})
 }
 
 func runGrade(args []string) error {

@@ -8,25 +8,27 @@ source that is independent of Hobbes, authoritative for the language,
 and regenerable by anyone with the toolchain.
 
 ```sh
-cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust), minijava (Java)
+cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust), minijava (Java), cclang + the probe (C)
 cd bench/oracle/ts && npm install            # once: the fallback typescript for fixtures
 cd bench/oracle/rust && cargo +nightly build --release   # once per nightly: the MIR driver (rustc-dev)
-bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java] [--no-ingest] \
-    [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [--tool maven|gradle] [-- <pytest args>]
+bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java|c] [--no-ingest] \
+    [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [--tool maven|gradle] [--compdb path] [--clang-bin clang] [-- <pytest args>]
 ```
 
 `run-cell.sh` ingests the repo with lane B, exports the Hobbes edges of
 one cell, runs the language's oracle on it, grades, and leaves
 `hobbes.json`, `oracle.json`, `report.json`, `report.txt` and the cell's
 runtime in the output directory. The steps are the binary's subcommands
-(`oracle export | import | go-rta | py-trace | rust-mir | java-javac | grade`) if you need
-them apart; the TS oracle is `ts/tsc-oracle.mjs`. Phase 1 (ADR-089) is
-Go and TS; phase 2 is the Python trace oracle and the Rust MIR oracle
-below. **Those two execute the target** (its suite; its build scripts),
-so they run inside the sandbox image (ADR-092, `internal/contain`):
-build `hobbes-session:local` first (`sandbox/README.md`); without it
-they refuse, and `HOBBES_UNCONTAINED=1` runs them on the host with the
-fact recorded in the export and the report.
+(`oracle export | import | go-rta | py-trace | rust-mir | java-javac | c-clang | grade`) if you need
+them apart (`c-clang-units` is `c-clang`'s internal half, run inside the
+image, never by hand); the TS oracle is `ts/tsc-oracle.mjs`. Phase 1
+(ADR-089) is Go and TS; phase 2 is the Python trace oracle, the Rust MIR
+oracle and the C clang oracle below. **Those three execute the target**
+(its suite; its build scripts; deriving and compiling a C build), so
+they run inside the sandbox image (ADR-092, `internal/contain`): build
+`hobbes-session:local` first (`sandbox/README.md`); without it they
+refuse, and `HOBBES_UNCONTAINED=1` runs them on the host with the fact
+recorded in the export and the report.
 
 ## Grading a graph Hobbes did not build (ADR-101)
 
@@ -187,6 +189,32 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
   Code the compiler wrote — the test harness, attribute and derive
   output — makes calls no source line makes; those sites are dropped
   and counted (`excluded.generated`, H-13).
+- **C macros** (ADR-110, O9's face of the Rust convention). A callee
+  token written in a macro argument sits where it was written (its
+  spelling location); one written in a macro's body sits at the
+  invocation, mode `macro`. A chosen position that lies in one of
+  clang's pseudo-buffers (`<scratch space>`, `<built-in>`, `<command
+  line>` — token pasting's synthetic result, never a real file, never
+  in `Files`) is never usable and falls back to the expansion, mode
+  `macro` regardless of which the plain rule would have picked. Hobbes
+  draws a macro invocation to the `macro` symbol, excluded before
+  grading, so every call a macro's expansion makes is a `macro→…` miss
+  (C-131).
+- **C targets are definitions**, joined across translation units by
+  name (javac's keyed merge, C's face of it). A `static` function
+  resolves to its own unit's definition, or — with none, and no
+  in-repo declaration or definition anywhere (a system header's
+  `static inline`, e.g. `__bswap_16`) — external; declared in the repo
+  but never defined there is `undefined`. An external-linkage name
+  joined across units resolves to one distinct definition, or, with
+  several and none the caller's own, no targets and `link-ambiguous`;
+  none at all, declared only outside the repo or only implicitly (a
+  builtin, whose location is the call's own), is `external`; none,
+  declared in the repo, is `undefined`. A site different units resolve
+  to different definitions keeps every target and counts `tu-split`
+  (cJSON.c:612's shape). A callee that is itself a call (`get_fn()(2)`)
+  is two sites sharing one (site, spelling) position — identity adds
+  mode and callee name to tell them apart.
 
 ## Buckets and metrics
 
@@ -379,6 +407,72 @@ bench tooling keeps it until someone needs the narrower form.
 The `minijava` fixture is the self-test (`internal/grade/java_test.go`,
 skipped without the image).
 
+## The C oracle (`internal/clang`, O9, ADR-110)
+
+`oracle c-clang --repo <repo> --module <build-root> --out-dir <cell>
+[--compdb path] [--clang clang] --out oracle.json` runs clang's own
+front end, one translation unit at a time, over the compile database
+ADR-109's ingest derives — the same key `tsc` and javac already are: the
+compiler is the authority on what a call *names*, and what the cell
+grades is everything Hobbes adds above it.
+
+**The dump reader** (`ReadDump`) decodes one unit's `clang -fsyntax-only
+-Xclang -ast-dump=json` output as a token stream, in document order,
+never a whole-document unmarshal — a real dump is 25-35 MB, almost all
+system headers. The dumper omits a location's `file` and `line` when
+they repeat the previous location's, so the reader carries them
+forward; an object whose first key is `offset` is a location, an
+`includedFrom` object is not, and neither ever moves that carried
+state. A `CallExpr` whose callee — peeled through `ImplicitCastExpr`,
+`ParenExpr` and a unary `*`/`&` — is a `DeclRefExpr` naming a
+`FunctionDecl` is a direct call, mode `static`; anything else is
+`dynamic`. A callee that is itself a call (`get_fn()(2)`) is recorded in
+its own right, never dropped mid-peel, and the outer call through its
+result is the dynamic site. clang's pseudo-buffers (`<scratch space>`,
+`<built-in>`, `<command line>`) are never files and never enter `Files`;
+a chosen macro position that lies in one takes the expansion instead,
+mode `macro` (the macro rule is stated fully under Normative
+conventions above).
+
+**The definition join** (`Merge`) joins every shard's declarations by
+name to resolve linkage (internal/external, static-with-no-in-repo-trace,
+link-ambiguous, undefined, tu-split — Normative conventions above), and
+unions each site's targets across the shards that share it. Site
+identity is (site path, line, column, spelling path, line, column, mode,
+callee name); the counts by mode and no-target reason ride in the
+export's `coverage` map, and `grade`'s report prints them as their own
+line (resolution oracles only — a trace report already has one).
+
+**The database and containment** (ADR-109's order, mirrored from the
+ingest so the oracle grades what the product indexed): a carried
+`compile_commands.json` at the build root or in `build/`, usable when
+every entry's directory is relative or lies under the repo; else CMake's
+own export (`cmake -S <root> -B <cell>/cmake-build
+-DCMAKE_EXPORT_COMPILE_COMMANDS=ON`); else bear over `make -k` in the
+root (`bear --output <cell>/compile_commands.json -- make -k`; its exit
+status is ignored, a database with no entries is the error); else
+`--compdb <path>` names one directly and skips the search. Deriving a
+database this way runs the repo's own build logic, and a build's
+generated headers live only in its container's overlay — so deriving
+and every unit's clang run happen in **one** contained, offline step
+(profile `c-clang`, `internal/contain`): the oracle binary itself, built
+static (`CGO_ENABLED=0`) and mounted read-only at its own host path,
+invoked inside the sandbox image as the internal subcommand
+`c-clang-units --repo --module --out-dir [--compdb] [--clang]`. It
+writes one shard per unit under `<cell>/clang-shards/` — a unit clang
+rejects is kept, `Failed` with the last 400 bytes of stderr, so it
+grades not-loaded — plus `roots.txt` (the database's source and unit
+count, then clang's own `--version` line). `oracle c-clang` then
+`LoadShards` and `Merge`s them on the host.
+
+The `cclang` fixture (`testdata/cclang`, hand-computed truth, its clang
+dumps committed at `testdata/cclang-ast/` so the reader is tested
+without the image) is the self-test (`internal/clang`, plus the
+end-to-end `oracle c-clang` run, skipped without the image); the probe
+fixture (`testdata/cclang-probe`) is a real clang 18.1.3 dump pinning
+the pseudo-buffer rule, the two-site callee-that-is-a-call, and the
+static-with-no-in-repo-trace rule exactly (`probe_test.go`).
+
 ## Guards in the extractors (RR-1, A-5, A-6)
 
 Every walk-down step in `ts/tsc-oracle.mjs` goes through `descend(from,
@@ -414,9 +508,16 @@ invocation excluded) and `pipeline/tests/fixtures/minijava` (one Maven
 module: an overload pair, a constructor chain and an implicit
 constructor, an interface call with one CHA override, an anonymous
 member, a lambda, a static import, three JUnit tests — eighteen in-repo
-pairs). Their hand-computed truth is the Go test suite
+pairs) and `testdata/cclang` (a Makefile project: `main.c` + `lib.c`
+build `app`, `tool.c` + `lib.c` build `tool` — 17 in-repo pairs, one
+`tu-split` (`lib.c` compiled into both binaries), one external, one
+`link-ambiguous`, one `undefined`, three dynamic, `orphan.c` not
+loaded), with `testdata/cclang-probe` pinning the pseudo-buffer,
+callee-that-is-a-call and static-external rules on a real clang dump.
+Their hand-computed truth is the Go test suite
 (the TS, Python and Rust tests shell out to node / `uv` / `cargo
-+nightly` and skip without them).
++nightly` and skip without them; the C oracle's end-to-end test shells
+out to `cmake`/`bear`/`make`/`clang` and skips without the image).
 `testdata/*.graph.json` are the fixtures' Hobbes graphs as ingested
 with lane B (`scip-go`, `scip-typescript`); regenerate with
 `run-cell.sh` on a git-initialised copy of the fixture when the

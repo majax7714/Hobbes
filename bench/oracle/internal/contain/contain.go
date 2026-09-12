@@ -74,13 +74,18 @@ type Profile struct {
 // dependency resolution (C-66). The ingest lane splits this into a
 // source-less networked resolve pass and an offline index pass
 // (ADR-097); the oracle keeps one networked pass — bench tooling. java-build compiles the plugin itself —
-// Hobbes's code, no network.
+// Hobbes's code, no network. O9 (the C oracle, ADR-110) derives the
+// build root's compile database (CMake's configure step, or bear over
+// `make -k`) and runs clang per translation unit in the same step: a
+// build's generated headers exist only in its container's overlay, so
+// deriving and every clang run share one contained, offline step.
 var Profiles = map[string]Profile{
 	"py-trace":   {Step: "py-trace", Executes: true, Network: "none"},
 	"rust-mir":   {Step: "rust-mir", Executes: true, Network: "none"},
 	"fetch-rust": {Step: "fetch-rust", Executes: false, Network: ""},
 	"java-javac": {Step: "java-javac", Executes: true, Network: ""},
 	"java-build": {Step: "java-build", Executes: false, Network: "none"},
+	"c-clang":    {Step: "c-clang", Executes: true, Network: "none"},
 }
 
 // Plan is one ready-to-run oracle container. Pure data.

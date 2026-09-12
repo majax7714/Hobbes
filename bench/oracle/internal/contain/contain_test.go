@@ -21,6 +21,22 @@ func TestProfilesStateWhatExecutes(t *testing.T) {
 	}
 }
 
+// TestCClangProfileExecutesOffline covers O9 (ADR-110): deriving a C
+// build's compile database and running clang both run repo-authored
+// build logic, so the profile executes with no network, like O6/O7.
+func TestCClangProfileExecutesOffline(t *testing.T) {
+	p := Profiles["c-clang"]
+	if !p.Executes {
+		t.Fatal("O9 derives and compiles the repo's own build: it must execute")
+	}
+	if p.Network != "none" {
+		t.Errorf("c-clang must run without a network, got %q", p.Network)
+	}
+	if _, err := New("c-clang", []string{"oracle", "c-clang-units"}, t.TempDir(), t.TempDir(), nil, nil, nil); err != nil {
+		t.Fatalf("New(c-clang, ...): %v", err)
+	}
+}
+
 func TestPlanIsTheVerifierShape(t *testing.T) {
 	tmp := t.TempDir()
 	tree := filepath.Join(tmp, "repo")
