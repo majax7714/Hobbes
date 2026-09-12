@@ -85,6 +85,69 @@ func TestMergeUndefinedVersusExternal(t *testing.T) {
 	}
 }
 
+// TestMergeStaticWithNoInRepoTraceIsExternal covers defect 3: a static
+// function with no in-repo definition and no in-repo declaration (a
+// system header's `static inline`, ADR-110's __bswap_16 example) is
+// external, not link-ambiguous — distinct from a static function the
+// repo does declare but never define, which is undefined.
+func TestMergeStaticWithNoInRepoTraceIsExternal(t *testing.T) {
+	s := &Shard{File: "a.c", Files: []string{"a.c"},
+		Decls: []Decl{
+			// __bswap_16: static, its only decl/def is the header, out of repo.
+			{Name: "__bswap_16", Static: true, Body: true, InRepo: false, Pos: edges.Pos{Path: "byteswap.h", Line: 32}},
+			// helper: static, declared in the repo (a prototype) but never defined.
+			{Name: "helper", Static: true, Body: false, InRepo: true, Pos: edges.Pos{Path: "a.h", Line: 2}},
+		},
+		Calls: []Call{
+			{Site: edges.Pos{Path: "a.c", Line: 10}, Col: 1, Spell: edges.Pos{Path: "a.c", Line: 10}, SpellCol: 1, Mode: "macro", Callee: "__bswap_16"},
+			{Site: edges.Pos{Path: "a.c", Line: 11}, Col: 1, Spell: edges.Pos{Path: "a.c", Line: 11}, SpellCol: 1, Mode: "static", Callee: "helper"},
+		},
+	}
+	out := Merge([]*Shard{s}, "")
+
+	ext := siteAt(t, out, "a.c", 10)
+	if len(ext.Targets) != 1 || !ext.Targets[0].External || ext.Targets[0].Name != "__bswap_16" {
+		t.Errorf("static, no in-repo trace: want one external target, got %+v", ext.Targets)
+	}
+	undef := siteAt(t, out, "a.c", 11)
+	if len(undef.Targets) != 0 {
+		t.Errorf("static, declared in repo but never defined: want undefined (no targets), got %+v", undef.Targets)
+	}
+	if out.Coverage["sites_external"] != 1 || out.Coverage["sites_undefined"] != 1 || out.Coverage["sites_link_ambiguous"] != 0 {
+		t.Errorf("coverage: %v", out.Coverage)
+	}
+}
+
+// TestSiteIdentityAddsModeAndCallee covers defect 2's identity rule: two
+// calls sharing one (site, spelling) position — a callee that is itself
+// a call, and the call through its result — stay distinct sites because
+// identity also keys on mode and callee name.
+func TestSiteIdentityAddsModeAndCallee(t *testing.T) {
+	pos := edges.Pos{Path: "a.c", Line: 12}
+	s := &Shard{File: "a.c", Files: []string{"a.c"},
+		Decls: []Decl{{Name: "get_fn", Body: true, InRepo: true, Pos: edges.Pos{Path: "a.c", Line: 8}}},
+		Calls: []Call{
+			{Site: pos, Col: 13, Spell: pos, SpellCol: 13, Caller: "use", Mode: "static", Callee: "get_fn"},
+			{Site: pos, Col: 13, Spell: pos, SpellCol: 13, Caller: "use", Mode: "dynamic"},
+		},
+	}
+	out := Merge([]*Shard{s}, "")
+
+	var got []edges.Site
+	for _, site := range out.Sites {
+		if site.Pos == pos && site.Col == 13 {
+			got = append(got, site)
+		}
+	}
+	if len(got) != 2 {
+		t.Fatalf("want 2 distinct sites at the shared position, got %d: %+v", len(got), got)
+	}
+	modes := map[string]bool{got[0].Mode: true, got[1].Mode: true}
+	if !modes["static"] || !modes["dynamic"] {
+		t.Errorf("want one static and one dynamic site, got %+v", got)
+	}
+}
+
 // TestMergeTUSplit covers a site two units resolve differently: a
 // header's internal-linkage function, included by two units that each
 // define their own — the same call site keeps every target and counts

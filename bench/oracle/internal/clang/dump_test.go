@@ -145,6 +145,89 @@ func TestNormalizePaths(t *testing.T) {
 	}
 }
 
+// TestPseudoBufferRedirectsToExpansion covers defect 1: a chosen
+// position (here, a macro-argument expansion's spelling) that lies in a
+// clang pseudo-buffer — the synthetic result of token pasting, never a
+// real file — is never usable, so the rule falls back to the expansion,
+// mode "macro"; the pseudo path never enters Files.
+func TestPseudoBufferRedirectsToExpansion(t *testing.T) {
+	const doc = `{
+	  "kind": "FunctionDecl", "name": "f",
+	  "loc": {"offset": 1, "file": "main.c", "line": 1, "col": 1},
+	  "inner": [
+	    {"kind": "CompoundStmt", "inner": [
+	      {"kind": "CallExpr", "inner": [
+	        {"kind": "DeclRefExpr", "range": {"begin": {
+	            "spellingLoc": {"offset": 5, "file": "<scratch space>", "line": 9, "col": 1},
+	            "expansionLoc": {"offset": 6, "file": "main.c", "line": 4, "col": 10, "isMacroArgExpansion": true}
+	          }},
+	         "referencedDecl": {"kind": "FunctionDecl", "name": "pasted"}}
+	      ]}
+	    ]}
+	  ]
+	}`
+	s, err := ReadDump(strings.NewReader(doc), "/fx", "/fx")
+	if err != nil {
+		t.Fatalf("ReadDump: %v", err)
+	}
+	c := callByName(t, s.Calls, "pasted")
+	if c.Mode != "macro" || c.Site.Path != "main.c" || c.Site.Line != 4 || c.Col != 10 {
+		t.Errorf("pseudo-buffer spelling should redirect to the expansion: %+v", c)
+	}
+	for _, f := range s.Files {
+		if strings.HasPrefix(f, "<") {
+			t.Errorf("a pseudo-buffer must never enter Files: %v", s.Files)
+		}
+	}
+}
+
+// TestCalleeThatIsItselfACallIsRecorded covers defect 2: a callee that
+// is itself a call (`get_fn()(2)`) is two sites — the inner call,
+// recorded in its own right rather than dropped mid-peel, and the outer
+// call through its result, dynamic — both attributed to the enclosing
+// function.
+func TestCalleeThatIsItselfACallIsRecorded(t *testing.T) {
+	const doc = `{
+	  "kind": "FunctionDecl", "name": "use",
+	  "loc": {"offset": 1, "file": "main.c", "line": 1, "col": 1},
+	  "inner": [
+	    {"kind": "CompoundStmt", "inner": [
+	      {"kind": "CallExpr", "range": {"begin": {"offset": 10, "line": 5, "col": 3}}, "inner": [
+	        {"kind": "CallExpr", "range": {"begin": {"offset": 10, "col": 3}}, "inner": [
+	          {"kind": "DeclRefExpr", "range": {"begin": {"offset": 10, "col": 3}},
+	           "referencedDecl": {"kind": "FunctionDecl", "name": "get_fn"}}
+	        ]},
+	        {"kind": "IntegerLiteral", "range": {"begin": {"offset": 20, "col": 12}}}
+	      ]}
+	    ]}
+	  ]
+	}`
+	s, err := ReadDump(strings.NewReader(doc), "/fx", "/fx")
+	if err != nil {
+		t.Fatalf("ReadDump: %v", err)
+	}
+	if len(s.Calls) != 2 {
+		t.Fatalf("want 2 calls (inner static, outer dynamic), got %+v", s.Calls)
+	}
+	inner := callByName(t, s.Calls, "get_fn")
+	if inner.Mode != "static" || inner.Caller != "use" || inner.Site.Line != 5 || inner.Col != 3 {
+		t.Errorf("inner call: %+v", inner)
+	}
+	var outer Call
+	found := false
+	for _, c := range s.Calls {
+		if c.Mode == "dynamic" {
+			outer, found = c, true
+		}
+	}
+	if !found {
+		t.Fatalf("outer call (through get_fn's result) not recorded: %+v", s.Calls)
+	}
+	if outer.Caller != "use" || outer.Site != inner.Site || outer.Col != inner.Col {
+		t.Errorf("outer call should share the inner's (site, spelling) position: %+v vs %+v", outer, inner)
+	}
+}
+
 // TestReadDumpMalformedReturnsError: a dump that does not parse returns
 // an error, never a partial shard.
 func TestReadDumpMalformedReturnsError(t *testing.T) {

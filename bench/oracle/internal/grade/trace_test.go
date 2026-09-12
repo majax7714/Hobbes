@@ -142,4 +142,18 @@ func TestTraceBuckets(t *testing.T) {
 	if r.ByTier["syntactic"].Unobserved != 1 {
 		t.Errorf("tier split lost: %+v", r.ByTier)
 	}
+
+	// The resolution oracle's `coverage: <map>` line (ADR-110's C row) is
+	// for resolution oracles only: a trace report prints its own
+	// coverage line (§3.1's "hobbes sites observed ..."), and the former
+	// must never leak into it.
+	var buf bytes.Buffer
+	Print(&buf, r)
+	txt := buf.String()
+	if strings.Contains(txt, "coverage: map[") {
+		t.Errorf("a resolution oracle's coverage line must not leak into a trace report:\n%s", txt)
+	}
+	if !strings.Contains(txt, "coverage: hobbes sites observed") {
+		t.Errorf("a trace report must print its own coverage line:\n%s", txt)
+	}
 }

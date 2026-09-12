@@ -57,6 +57,13 @@ func resolveCall(c Call, info shardInfo, globalDefs map[string]map[edges.Pos]boo
 	case info.static[name]:
 		if p, ok := info.ownDef[name]; ok {
 			r.targets = []edges.Target{{Pos: p, Name: name, Kind: "function"}}
+		} else if info.declaredInRepo[name] {
+			r.reason = "undefined"
+		} else {
+			// A static function with no in-repo trace at all: defined
+			// (or only declared) outside the repo, a system header's
+			// `static inline` (ADR-110's example, `__bswap_16`).
+			r.targets = []edges.Target{{Name: name, Kind: "function", External: true}}
 		}
 	case len(globalDefs[name]) == 0:
 		if info.declaredInRepo[name] {
@@ -79,16 +86,22 @@ func resolveCall(c Call, info shardInfo, globalDefs map[string]map[edges.Pos]boo
 }
 
 // siteKey is ADR-110's site identity: (site path, line, column,
-// spelling path, line, column).
+// spelling path, line, column, mode, callee name). Mode and callee join
+// the position pair because a callee that is itself a call
+// (`get_fn()(2)`) is two sites sharing one (site, spelling) position:
+// the inner call, static, and the outer call through its result,
+// dynamic.
 type siteKey struct {
 	sitePath            string
 	siteLine, siteCol   int
 	spellPath           string
 	spellLine, spellCol int
+	mode                string
+	callee              string
 }
 
 func keyOf(c Call) siteKey {
-	return siteKey{c.Site.Path, c.Site.Line, c.Col, c.Spell.Path, c.Spell.Line, c.SpellCol}
+	return siteKey{c.Site.Path, c.Site.Line, c.Col, c.Spell.Path, c.Spell.Line, c.SpellCol, c.Mode, c.Callee}
 }
 
 // Merge joins every shard's declarations by name (javac's keyed merge,

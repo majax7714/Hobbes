@@ -11,10 +11,14 @@ import (
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
 
-// rawPos is one resolved clang location.
+// rawPos is one resolved clang location. Pseudo marks a clang
+// pseudo-buffer (a "file" spelled "<scratch space>", "<built-in>" or
+// "<command line>"): never in the repo, and never a location a chosen
+// position may keep (resolve redirects away from one).
 type rawPos struct {
 	Path   string
 	InRepo bool
+	Pseudo bool
 	Line   int
 	Col    int
 }
@@ -31,15 +35,22 @@ type pos struct {
 
 // resolve returns the position ADR-110's rule assigns a plain or macro
 // position, and whether it was written in a macro's body (mode
-// "macro") rather than at a plain call or a macro argument.
+// "macro") rather than at a plain call or a macro argument. A chosen
+// position that lies in a pseudo-buffer (token pasting's synthetic
+// result, e.g. a macro argument that names a pasted-together callee)
+// is never usable: the rule falls back to the expansion, mode "macro".
 func (p pos) resolve() (rawPos, bool) {
 	if !p.macro {
 		return p.plain, false
 	}
+	chosen, macroMode := p.expansion, true
 	if p.argExpansion {
-		return p.spelling, false
+		chosen, macroMode = p.spelling, false
 	}
-	return p.expansion, true
+	if chosen.Pseudo {
+		chosen, macroMode = p.expansion, true
+	}
+	return chosen, macroMode
 }
 
 // spellingPos is the position ADR-110's site identity keys on: always
@@ -62,6 +73,7 @@ type reader struct {
 
 	curPath   string
 	curInRepo bool
+	curPseudo bool
 	curLine   int
 
 	mainFile string
@@ -120,6 +132,13 @@ func normalize(raw, dir, repo string) (string, bool) {
 		return "", false
 	}
 	return rel, true
+}
+
+// isPseudoFile reports whether a clang-spelled file is one of its
+// pseudo-buffers ("<scratch space>", "<built-in>", "<command line>"):
+// synthetic locations that are never in the repo and never a real file.
+func isPseudoFile(raw string) bool {
+	return strings.HasPrefix(raw, "<")
 }
 
 // walkNode decodes one AST node value (its opening '{' not yet
@@ -239,7 +258,7 @@ func (rd *reader) walkCallExprInner(fn string) (*Call, error) {
 	first := true
 	for rd.dec.More() {
 		if first {
-			cr, err := rd.peelCallee()
+			cr, err := rd.peelCallee(fn)
 			if err != nil {
 				return nil, err
 			}
@@ -295,8 +314,13 @@ type calleeResult struct {
 // peelCallee decodes a callee expression node (its opening '{' not yet
 // consumed), peeling through ImplicitCastExpr, ParenExpr and a unary
 // `*`/`&` to the expression that remains, and returns its position and,
-// if it is a DeclRefExpr naming a FunctionDecl, that name.
-func (rd *reader) peelCallee() (calleeResult, error) {
+// if it is a DeclRefExpr naming a FunctionDecl, that name. fn is the
+// enclosing function (Caller) for any call recorded along the way — a
+// callee that is itself a call (`get_fn()(2)`) is two sites, so a
+// CallExpr found here is peeled for ITS OWN callee and recorded as a
+// call in its own right (never dropped), and this callee then resolves
+// dynamic: a call through the value the inner call returns.
+func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
 		return calleeResult{}, err
 	}
@@ -332,14 +356,25 @@ func (rd *reader) peelCallee() (calleeResult, error) {
 			}
 			first := true
 			for rd.dec.More() {
-				if first && isPeelable(kind, opcode) {
-					cr, err := rd.peelCallee()
+				switch {
+				case first && kind == "CallExpr":
+					innerCallee, err := rd.peelCallee(fn)
+					if err != nil {
+						return calleeResult{}, err
+					}
+					if c := rd.buildCall(innerCallee, fn); c != nil {
+						rd.calls = append(rd.calls, *c)
+					}
+				case first && isPeelable(kind, opcode):
+					cr, err := rd.peelCallee(fn)
 					if err != nil {
 						return calleeResult{}, err
 					}
 					child = &cr
-				} else if _, err := rd.walkNode(""); err != nil {
-					return calleeResult{}, err
+				default:
+					if _, err := rd.walkNode(fn); err != nil {
+						return calleeResult{}, err
+					}
 				}
 				first = false
 			}
@@ -522,7 +557,7 @@ func (rd *reader) locationTail() (rawPos, bool, error) {
 	if err := rd.skipAny(); err != nil { // offset's value
 		return rawPos{}, false, err
 	}
-	path, inRepo, line := rd.curPath, rd.curInRepo, rd.curLine
+	path, inRepo, pseudo, line := rd.curPath, rd.curInRepo, rd.curPseudo, rd.curLine
 	col := 0
 	hasIncludedFrom := false
 	argExp := false
@@ -537,7 +572,12 @@ func (rd *reader) locationTail() (rawPos, bool, error) {
 			if err != nil {
 				return rawPos{}, false, err
 			}
-			path, inRepo = normalize(raw, rd.dir, rd.repo)
+			if isPseudoFile(raw) {
+				path, inRepo, pseudo = raw, false, true
+			} else {
+				path, inRepo = normalize(raw, rd.dir, rd.repo)
+				pseudo = false
+			}
 		case "line":
 			n, err := nextInt(rd.dec)
 			if err != nil {
@@ -568,14 +608,14 @@ func (rd *reader) locationTail() (rawPos, bool, error) {
 	if err := expectDelim(rd.dec, '}'); err != nil {
 		return rawPos{}, false, err
 	}
-	rd.curPath, rd.curInRepo, rd.curLine = path, inRepo, line
+	rd.curPath, rd.curInRepo, rd.curPseudo, rd.curLine = path, inRepo, pseudo, line
 	if inRepo {
 		rd.files[path] = true
 	}
-	if !hasIncludedFrom && path != "" && rd.mainFile == "" {
+	if !hasIncludedFrom && path != "" && !pseudo && rd.mainFile == "" {
 		rd.mainFile = path
 	}
-	return rawPos{Path: path, InRepo: inRepo, Line: line, Col: col}, argExp, nil
+	return rawPos{Path: path, InRepo: inRepo, Pseudo: pseudo, Line: line, Col: col}, argExp, nil
 }
 
 // skipKeyValue discards one key's value generically, except
