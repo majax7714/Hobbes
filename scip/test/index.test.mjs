@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
+import * as cfs from 'node:fs'
+import * as cos from 'node:os'
+import * as cpath from 'node:path'
+
 import { INDEXER_EXIT,
+  cCompdb,
+  cPlan,
+  decodeOptions,
   exitCodeFor,
   classify,
   commonDirectory,
@@ -23,6 +30,10 @@ import { INDEXER_EXIT,
 // output during the V2.M0 spike (ADR-027).
 const PY = 'scip-python python hobbes 0 `src.hobbes.cli`'
 const TS = 'scip-typescript npm betchat-frontend 1.0.0 src/api/`axios.ts`'
+// scip-java's and scip-clang's shapes, from the Java cells (ADR-096) and
+// the C lane B spike (scip-clang 0.4.0 on DaveGamble/cJSON).
+const JAVA_OVERLOAD = 'scip-java maven maven/org.jsoup/jsoup 1.24.1-SNAPSHOT org/jsoup/Jsoup'
+const CLANG = 'cxx . . $ '
 
 test('descriptor kinds are read off real monikers', () => {
   assert.equal(classify(`${PY}/__init__:`), 'meta')
@@ -32,6 +43,12 @@ test('descriptor kinds are read off real monikers', () => {
   assert.equal(classify(`${PY}/CONSTANT.`), 'term')
   assert.equal(classify(`${TS}/`), 'namespace')
   assert.equal(classify('local 12'), 'local')
+  // A method descriptor's disambiguator is any identifier (the SCIP spec).
+  // scip-java writes an overload counter; scip-clang (0.4.0, the C lane B
+  // spike on cJSON) writes a signature hash for every C function.
+  assert.equal(classify(`${JAVA_OVERLOAD}#run(+1).`), 'method')
+  assert.equal(classify(`${CLANG}cJSON_Delete(6efceb6909523ce2).`), 'method')
+  assert.equal(classify(`${CLANG}cJSON_Delete(6efceb6909523ce2).(item)`), 'parameter')
 })
 
 test('only the four graph kinds survive the filter', () => {
@@ -218,6 +235,131 @@ test('terminalName reads the bare name a syntax provider would have seen', () =>
   assert.equal(terminalName(`${PY}/Thing#`), 'Thing')
   assert.equal(terminalName(`${TS}/api.`), 'api')
   assert.equal(terminalName('nonsense'), '')
+  // The disambiguator goes with the suffix. Kept, the name was
+  // `cJSON_Delete(6efceb6909523ce2)`, and no C call site ever matched it.
+  assert.equal(terminalName(`${JAVA_OVERLOAD}#run(+1).`), 'run')
+  assert.equal(terminalName(`${CLANG}cJSON_Delete(6efceb6909523ce2).`), 'cJSON_Delete')
+})
+
+test('a C build root plans CMake or bear over make, then scip-clang (ADR-109)', () => {
+  const base = { language: 'c', stage: '/s/cjson', output: '/s/o.scip', buildDir: '/s/b' }
+  const cmake = cPlan({ ...base, compdbSource: 'cmake' })
+  assert.deepEqual(cmake.steps.map((s) => s.bin), ['cmake', 'scip-clang'])
+  assert.deepEqual(cmake.steps[0].args, ['-S', '/s/cjson', '-B', '/s/b', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'])
+  assert.deepEqual(cmake.steps[1].args, ['--compdb-path=/s/b/compile_commands.json', '--index-output-path=/s/o.scip'])
+  assert.equal(cmake.steps[1].cwd, '/s/cjson', 'scip-clang reports documents relative to its cwd, the root')
+  const make = cPlan({ ...base, compdbSource: 'make' })
+  assert.deepEqual(make.steps.map((s) => s.bin), ['sh', 'scip-clang'])
+  assert.equal(make.steps[0].args[1], 'bear --output "$1" -- make -k; exit 0', "make's own exit decides nothing")
+  assert.equal(make.steps[0].args[3], '/s/b/compile_commands.json')
+  const repo = cPlan({ ...base, compdbSource: 'repo', compdb: '/s/b/rebased.json' })
+  assert.deepEqual(repo.steps.map((s) => s.bin), ['scip-clang'])
+  assert.equal(cCompdb({ ...base, compdbSource: 'repo', compdb: '/s/b/rebased.json' }), '/s/b/rebased.json')
+  assert.equal(indexerPlan({ ...base, compdbSource: 'cmake' }).steps.length, 2)
+  assert.throws(() => cPlan({ ...base }), /no compile database source/)
+})
+
+test("an empty compile database stops the plan before scip-clang, in the build's words", () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), '[]')
+  assert.throws(() => plan.steps[1].check({ stderr: 'make: *** No rule to make target' }),
+    /bear over make produced no compile database entries.*No rule to make target/)
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([{ directory: dir, file: 'a.c', arguments: ['cc', 'a.c'] }]))
+  plan.steps[1].check({})
+})
+
+test('C decodes a macro by the name at its defining location, and a file-static in its own file (ADR-109)', () => {
+  const stage = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  cfs.writeFileSync(cpath.join(stage, 'util.h'), '#ifndef U\n#define U\n#define TWICE(x) ((x) * 2)\n#endif\n')
+  const opts = decodeOptions({ language: 'c', stage })
+  assert.equal(opts.nameOf(`${CLANG}\`util.h:3:9\`!`), 'TWICE', 'scip-clang names a macro by where it is defined')
+  assert.equal(opts.nameOf(`${CLANG}cJSON_Delete(6efceb6909523ce2).`), 'cJSON_Delete')
+  assert.deepEqual(decodeOptions({ language: 'go', stage }), {}, 'no other language changes')
+  const helper = `${CLANG}helper(1a35796978658aa4).`
+  const idx = fakeIndex([
+    { relative_path: 'a.c', occurrences: [
+      { symbol: helper, symbol_roles: DEF, range: [2, 11, 2, 17] },
+      { symbol: helper, symbol_roles: 0, range: [9, 4, 9, 10] },
+    ] },
+    { relative_path: 'b.c', occurrences: [
+      { symbol: helper, symbol_roles: DEF, range: [5, 11, 5, 17] },
+      { symbol: helper, symbol_roles: 0, range: [7, 4, 7, 10] },
+    ] },
+    { relative_path: 'c.c', occurrences: [{ symbol: helper, symbol_roles: 0, range: [1, 4, 1, 10] }] },
+  ])
+  assert.equal(decode(idx).references.length, 0, 'without the C rule, a moniker two files define is never attributed')
+  const c = decode(idx, { ownFile: true })
+  assert.deepEqual(c.references.map((r) => [r.file, r.line, r.def_file, r.def_line]),
+    [['a.c', 10, 'a.c', 3], ['b.c', 8, 'b.c', 6]], "each file's reference resolves to its own static")
+  assert.equal(c.external.filter((e) => e.file === 'c.c').length, 1, 'a file that does not define it stays unattributed')
+  assert.deepEqual(c.ambiguous, [helper], 'the ambiguity is still reported (C-28)')
+})
+
+test('a C site that two translation units resolve differently keeps no lane B answer (ADR-109)', () => {
+  // cJSON.c:612's `isinf`: cJSON's own macro in the library build, Unity's in
+  // a test program that #includes cJSON.c. The merged index holds both.
+  const own = `${CLANG}\`cJSON.c:74:9\`!`
+  const unity = `${CLANG}\`unity.h:191:9\`!`
+  const idx = fakeIndex([
+    { relative_path: 'cJSON.c', occurrences: [
+      { symbol: own, symbol_roles: DEF, range: [73, 8, 73, 13] },
+      { symbol: own, symbol_roles: 0, range: [611, 20, 611, 25] },
+      { symbol: unity, symbol_roles: 0, range: [611, 20, 611, 25] },
+      { symbol: own, symbol_roles: 0, range: [700, 4, 700, 9] },
+    ] },
+    { relative_path: 'unity.h', occurrences: [{ symbol: unity, symbol_roles: DEF, range: [190, 8, 190, 13] }] },
+  ])
+  assert.equal(decode(idx).references.filter((r) => r.line === 612).length, 2, 'without the rule both answers stay')
+  // The run reads both macros' names from the stage; here the name is given.
+  const c = decode(idx, { nameOf: () => 'isinf', oneTargetPerSite: true })
+  assert.deepEqual(c.references.map((r) => r.line), [701], 'the split site is dropped; a one-answer site stays')
+  assert.equal(c.tu_split, 1)
+  const [record] = degradations(idx, c, { language: 'c' }).filter((r) => /translation units/.test(r.message))
+  assert.match(record.message, /^1 call site\(s\) resolve to different definitions in different translation units/)
+})
+
+test("one definition's own #if alternatives are one C target, kept once at the first line (ADR-109)", () => {
+  // `CJSON_PUBLIC` is defined in several arms of cJSON.h, and the library
+  // and the tests configure it differently. It is the same macro either way.
+  const first = `${CLANG}\`cJSON.h:81:9\`!`
+  const other = `${CLANG}\`cJSON.h:85:9\`!`
+  const idx = fakeIndex([
+    { relative_path: 'cJSON.h', occurrences: [
+      { symbol: first, symbol_roles: DEF, range: [80, 8, 80, 20] },
+      { symbol: other, symbol_roles: DEF, range: [84, 8, 84, 20] },
+    ] },
+    { relative_path: 'cJSON.c', occurrences: [
+      { symbol: other, symbol_roles: 0, range: [99, 0, 99, 12] },
+      { symbol: first, symbol_roles: 0, range: [99, 0, 99, 12] },
+      { symbol: first, symbol_roles: 0, range: [99, 0, 99, 12] },
+    ] },
+  ])
+  const c = decode(idx, { nameOf: () => 'CJSON_PUBLIC', oneTargetPerSite: true })
+  assert.equal(c.tu_split, 0, 'one file is not a disagreement')
+  assert.deepEqual(c.references.map((r) => [r.line, r.def_file, r.def_line]), [[100, 'cJSON.h', 81]])
+})
+
+test("a macro and its expansion's symbols at one position are different names, not a split (ADR-109)", () => {
+  // scip-clang records `TEST_ASSERT_TRUE` and `UnityFail`, from its
+  // expansion, at the call's own position. The first version of the rule
+  // keyed on position alone and dropped 1,001 cJSON sites this way.
+  const macro = `${CLANG}\`unity.h:121:9\`!`
+  const fn = `${CLANG}UnityFail(0a1b2c3d4e5f6071).`
+  const stage = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  cfs.writeFileSync(cpath.join(stage, 'unity.h'), '\n'.repeat(120) + '#define TEST_ASSERT_TRUE(c) UnityFail()\n')
+  const { nameOf } = decodeOptions({ language: 'c', stage })
+  const idx = fakeIndex([
+    { relative_path: 'unity.h', occurrences: [{ symbol: macro, symbol_roles: DEF, range: [120, 8, 120, 24] }] },
+    { relative_path: 'unity.c', occurrences: [{ symbol: fn, symbol_roles: DEF, range: [9, 5, 9, 14] }] },
+    { relative_path: 't.c', occurrences: [
+      { symbol: macro, symbol_roles: 0, range: [4, 4, 4, 20] },
+      { symbol: fn, symbol_roles: 0, range: [4, 4, 4, 20] },
+    ] },
+  ])
+  const c = decode(idx, { nameOf, oneTargetPerSite: true })
+  assert.equal(c.tu_split, 0)
+  assert.deepEqual(c.references.map((r) => [r.name, r.def_file]).sort(), [['TEST_ASSERT_TRUE', 'unity.h'], ['UnityFail', 'unity.c']])
 })
 
 test('references carry the column and name the join needs', () => {

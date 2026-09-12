@@ -42,19 +42,27 @@ beside compiler-graded cells. Their sections are gone; the rules they
 produced (the tail's `import-binding` class, the C-27 venv check, the
 HCL pack's `packages` edge) keep their citations in code and register.*
 
-## DaveGamble/cJSON (C — lane A only, ADR-108; not a §3.8 row)
+## DaveGamble/cJSON (C — ADR-108, ADR-109; not a §3.8 row)
 
-C has no lane B, so every number here is lane A's name fallback at
-`syntactic` tier (C-130). cJSON's tree includes its vendored Unity test
-framework, which is most of its C. Host run, at `fb16e5c`.
+cJSON's tree includes its vendored Unity test framework, which is most
+of its C. It was run at `fb16e5c`. The two lane-A rows are host runs,
+with C's name fallback alone at `syntactic` tier (C-130). The lane-B row
+ran contained: CMake's configure and scip-clang inside the image
+(`index-c`).
 
 | Date | Numbers |
 |---|---|
+| 2026-09-12 (**lane B**, 0.2.4-beta; CMake's export gave 27 translation units) | 4.1 s end to end. Of **4,292 C call sites**: **2,075 resolved semantically (48.3%)**, 1,650 by lane A's fallback, 179 external, 186 below-floor (calls through a struct's function-pointer field), 159 builtin-name, 227 unclassified. **1,858 call edges: 1,072 semantic, 786 syntactic.** The lanes agree on all 1,717 sites both answer. 2 sites that translation units resolve into different files (`isinf` and `isnan` at `cJSON.c:612`) keep lane A's floor. 6 monikers are defined in two files (C-137). The spike before it (a stand-alone decode) found no C function joined until the helper accepted scip-clang's signature-hash disambiguator (ADR-109) |
 | 2026-09-12 (after the rework, `48684e3`) | 0.3 s. **99 C modules; 1,654 symbols** (1,026 functions, 597 function-like macros, 31 types). Of **4,292 C call sites**: **3,363 fallback-resolved (78.4%)**, 344 builtin-name, 26 attr-call, 1 local-binding, 558 unclassified. **1,761 call edges, all `syntactic`.** 345 include edges. 39 tests by the `test_*` convention (C-134: cJSON's own `RUN_TEST` tests are not among them). 38 syntax-error `parse` records (export macros and the `extern "C"` idiom) and 9 duplicate-definition records (C-131) |
 | 2026-09-12 (the first walk, `984daab`) | 1,298 symbols (0 of `unity.h`'s 341 function-like macros: `extern "C"` bodies went unwalked); 2,125 fallback-resolved; 1,796 unclassified; 1,189 edges; 73 duplicate symbol ids. The review's findings were reworked in `48684e3` |
 
-**Verified:** 9 edges hand-checked against their cited lines and
-definitions, 9 right. Four at `984daab`: two cJSON API calls from the
+**Verified:** 13 edges hand-checked against their cited lines and
+definitions, 13 right.
+- **Four lane-B edges at 0.2.4-beta:** a cross-file API call from a test
+  (`cJSON_DetachItemFromArray`); two Unity macros through a direct
+  include (`TEST_ASSERT_NOT_NULL`, `TEST_ASSERT_FALSE`); a same-file
+  macro in `unity.c`.
+- **Nine lane-A edges before that,** as follows. Four at `984daab`: two cJSON API calls from the
 tests (unique globals) and two Unity-internal calls. Five at `48684e3`:
 a unique global, a same-file static, two Unity macros through a direct
 `#include "unity.h"`, and `cJSON_Delete`. No oracle; C has no §3.8 row.

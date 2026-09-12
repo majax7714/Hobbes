@@ -309,10 +309,12 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     "rust": frozenset({FALLBACK, ATTR, PATH_CALL, UNCLASSIFIED, BELOW_FLOOR}),
     "java": frozenset({FALLBACK, LOCAL, IMPORT_BINDING, BUILTIN, ATTR, OVERLOAD,
                        INHERITED, UNCLASSIFIED, BELOW_FLOOR}),
-    # No semantic lane at all in this unit (no C indexer exists yet), so
-    # no below-floor projection can ever occur, and there is no checker
-    # to see an import binding, an overload set, or an expression callee.
-    "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED}),
+    # Lane A's five, plus below-floor since C's lane B (ADR-109): scip-clang
+    # resolves a call through a struct's function-pointer field to the
+    # field, a declaration the graph keeps no symbol for. There is still
+    # no checker to see an import binding, an overload set, or an
+    # expression callee.
+    "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.

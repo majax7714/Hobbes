@@ -190,6 +190,12 @@ PROFILES: dict[str, Profile] = {
     # runs with a network over the build files it came from and the
     # public artifact caches.
     "index-java": Profile("index-java", True, "none"),
+    # C (ADR-109): scip-clang reads a compile database, and deriving one
+    # runs the repo's build logic: CMake's configure step, or `make` under
+    # bear. So indexing C executes repo code (C-29's C face). It is one
+    # offline step; a build that fetches fails, and its unit degrades to
+    # lane A with the build's own words.
+    "index-c": Profile("index-c", True, "none"),
     "python-env": Profile("python-env", True, "none"),
     "fetch-npm": Profile("fetch-npm", False, "default"),
     "fetch-go": Profile("fetch-go", False, "default"),
@@ -285,6 +291,7 @@ INDEX_STEP = {
     "go": "index-go",
     "rust": "index-rust",
     "java": "index-java",
+    "c": "index-c",
 }
 
 

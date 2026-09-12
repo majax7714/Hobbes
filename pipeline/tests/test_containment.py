@@ -41,7 +41,7 @@ class TestProfiles:
     """Stated once, so nobody re-derives what executes (ADR-092 §1)."""
 
     def test_every_helper_language_has_an_index_step(self):
-        assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust", "java"}
+        assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust", "java", "c"}
         assert set(containment.INDEX_STEP.values()) <= set(containment.PROFILES)
 
     def test_every_index_step_has_no_network(self):
@@ -50,9 +50,11 @@ class TestProfiles:
         for step in containment.INDEX_STEP.values():
             assert containment.PROFILES[step].network == "none", step
 
-    def test_the_executing_set_is_rust_java_the_venv_listing_and_the_harness(self):
+    def test_the_executing_set_is_rust_java_c_the_venv_listing_and_the_harness(self):
+        # C (ADR-109): deriving a compile database runs CMake's configure
+        # step or `make` under bear, so C's index step executes repo code.
         executing = {s for s, p in containment.PROFILES.items() if p.executes_repo_code}
-        assert executing == {"index-rust", "index-java", "fetch-java", "python-env", "verify"}
+        assert executing == {"index-rust", "index-java", "index-c", "fetch-java", "python-env", "verify"}
         assert containment.PROFILES["verify"].network == "none"  # a target's tests run offline (Calvin M0 §2.4)
 
     def test_java_resolve_is_the_only_executing_networked_step(self):
@@ -474,7 +476,7 @@ class TestRefusalIsNeverAbsorbed:
         monkeypatch.setattr(scipsource, "extract_scip_rust", refuse)
         degraded: list[dict] = []
         facts = list(
-            _lane_b_facts(tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]}, None, degraded)
+            _lane_b_facts(tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]}, None, None, degraded)
         )
         assert facts == []
         (record,) = degraded

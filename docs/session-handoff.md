@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.2.3-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.4-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.3-beta are untagged. Tags are Max's call ("no need to tag yet").
+  0.2.4-beta are untagged. Tags are Max's call ("no need to tag yet").
 - **Numbering** (Max; ADR-103's fourth amendment): the Calvin harness
   moved the layer to 0.2.0-beta. Patch by patch on 0.2.x; a capability
   bumps minor.
@@ -10,7 +10,7 @@
 
 The session's record is the 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C is wired at lane A (0.2.1-beta, through the harness); C's lane B is next, its ADR and the image first
+## ⇢ START HERE NEXT SESSION: C has both lanes (0.2.4-beta); its §3.8 oracle cell is next
 
 0. **Latest (2026-09-12, last).** Max: "run the new harness with
    adding c as a language to hobbes".
@@ -58,12 +58,23 @@ The session's record is the 2026-09-12 BUILDLOG entry.
      `gofmt -l`/`-d` in the box, and the outermost Python tree first
      on `PATH` with each interpreter named). Leave the capture display
      as it is. Continue with C's lane B.
-   - **In progress: C's lane B spike.** scip-clang v0.4.0 (sha256
-     `06fd18c5…`) runs inside the image, over a compile database
-     from CMake's export (installed in a throwaway container: the image
-     has gcc 13, make and libc headers, but no CMake, bear or clang).
-     Next: join its index against the C walk's call sites, then write
-     ADR-109.
+   - **C's lane B is built (0.2.4-beta, ADR-109).** scip-clang 0.4.0,
+     CMake and bear are in the image. The compile database is derived
+     per build root, and the helper decodes C's shapes.
+     - **The spike's find:** the helper's moniker parser rejected
+       scip-clang's signature-hash disambiguator, so no C function
+       joined.
+     - **The helper's C rules:** macros named by location are read from
+       the stage; a file-static several files define resolves in its
+       own file; a site whose translation units disagree across files
+       keeps lane A.
+     - **cJSON:** 2,075 of 4,292 C sites semantic, and the lanes agree
+       on all 1,717 compared. The first version of the translation-unit
+       rule keyed on position alone and dropped 1,001 sites (a macro's
+       expansion shares its position); keyed on position and name, it
+       drops 2.
+     - **Next (NEXT 1):** C's §3.8 row, an oracle cell against clang's
+       own call graph. Until then C is unverified.
 
    **Earlier the same day:** a second top-level doc review. Its
    findings are fixed in one `docs:` commit (the BUILDLOG lists them),
@@ -270,10 +281,10 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 134 entries, 107 active, 24 lifted, 3 superseded.
-  C-124 was superseded 2026-09-12; C-125–C-134 were added.
+- **Register:** 137 entries, 110 active, 24 lifted, 3 superseded.
+  C-124 was superseded 2026-09-12; C-125–C-137 were added.
 - **Suites:**
-  - 1,443 pytest (4 `lane_b`);
+  - 1,459 pytest (5 `lane_b`); 42 helper node tests;
   - 328 Go, subtests counted as before (HEAD `e130b34` read 304 by
     that count, 240 top-level);
   - 52 oracle-lane Go; 52 vitest; 36 + 36 node; 84 atlas0.
@@ -281,8 +292,8 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **C's lane B** (START HERE item 0; workstreams W1): the ADR, then
-   the image, then a dispatch for the wiring.
+1. **C's §3.8 row** (workstreams W1): an oracle cell graded against
+   clang's own call graph, on cJSON and at least one random draw.
 2. **Keep dispatching named no-spend work through the harness**
    (START HERE item 2's steps; the candidates are items 3–4 below).
    Setting the validation criterion (§4's N sessions) is Max's call.

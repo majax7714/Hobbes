@@ -31,6 +31,7 @@ from bisect import bisect_right
 from pathlib import Path, PurePosixPath
 
 from hobbes.extract import containment, staging
+from hobbes.extract.discover import SKIPPED_DIR_NAMES
 from hobbes.extract.evidence import SCIP as SCIP_LANE
 from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, tiered_edge
 
@@ -1859,6 +1860,266 @@ def extract_scip_java(
     )
     join_cross_unit(merged)
     return merged
+
+
+#: The Makefile names GNU make reads, in its own order.
+C_MAKEFILES = ("GNUmakefile", "makefile", "Makefile")
+
+#: Directories a C build root's stage leaves out. They are build output,
+#: and the build writes them again (csource prunes the same ones).
+_C_STAGE_SKIPPED = SKIPPED_DIR_NAMES | {"build"}
+
+
+def c_units(repo_root: Path, files: list[str]) -> dict[str, list[str]]:
+    """Group C *files* by their build root (ADR-109).
+
+    A file's build root is the outermost directory at or above it that
+    holds a ``CMakeLists.txt``, or, with none on the path, the outermost
+    that holds a Makefile. Outermost, because a subproject's
+    ``CMakeLists.txt`` or a recursive make's sub-Makefile is driven by its
+    parent, and indexing it alone would lose the flags the parent sets.
+    Files under no build file are left out, and :func:`go_orphans`
+    reports them.
+    """
+    units: dict[str, list[str]] = {}
+    cache: dict[str, str | None] = {}
+    for rel in files:
+        directory = str(PurePosixPath(rel).parent)
+        if directory not in cache:
+            cache[directory] = _c_build_root(repo_root, directory)
+        root = cache[directory]
+        if root is not None:
+            units.setdefault(root, []).append(rel)
+    return {root: sorted(paths) for root, paths in sorted(units.items())}
+
+
+def _c_build_root(repo_root: Path, directory: str) -> str | None:
+    """The outermost CMake root above *directory*, else the outermost make root."""
+    cmake = make = None
+    current = PurePosixPath(directory)
+    while True:
+        here = repo_root / current
+        name = "" if str(current) == "." else str(current)
+        if (here / "CMakeLists.txt").is_file():
+            cmake = name
+        if any((here / m).is_file() for m in C_MAKEFILES):
+            make = name
+        if str(current) == ".":
+            return cmake if cmake is not None else make
+        current = current.parent
+
+
+def c_compdb_source(repo_root: Path, root: str) -> tuple[str | None, str]:
+    """Where one C build root's compile database comes from (ADR-109, in Max's order), and the detail.
+
+    - ``("repo", rel)``: a ``compile_commands.json`` the repo carries at the
+      root or in ``build/``, whose paths rebase into the repo (it names
+      only relative paths, or absolute ones under this checkout);
+    - ``("cmake", note)``: the root holds a ``CMakeLists.txt``;
+    - ``("make", note)``: the root holds a Makefile;
+    - ``(None, why)``: nothing to derive one from.
+
+    A carried database that does not rebase (another machine's absolute
+    paths) is skipped, and *note* says why. Reads files; runs nothing.
+    """
+    base = repo_root / root if root else repo_root
+    notes: list[str] = []
+    for rel in ("compile_commands.json", "build/compile_commands.json"):
+        if (base / rel).is_file():
+            why = _carried_compdb_problem(repo_root, base / rel)
+            if why is None:
+                return "repo", rel
+            notes.append(f"{rel} is not usable here: {why}")
+    if (base / "CMakeLists.txt").is_file():
+        return "cmake", "; ".join(notes)
+    if any((base / m).is_file() for m in C_MAKEFILES):
+        return "make", "; ".join(notes)
+    return None, "; ".join(notes) or "it holds no compile_commands.json, CMakeLists.txt or Makefile"
+
+
+def _carried_compdb_problem(repo_root: Path, path: Path) -> str | None:
+    """Why a repo-carried compile database cannot be used, or None."""
+    try:
+        entries = json.loads(path.read_text())
+    except (OSError, ValueError) as exc:
+        return f"it does not parse ({exc})"
+    if not isinstance(entries, list) or not entries:
+        return "it holds no entries"
+    root = str(repo_root)
+    for entry in entries:
+        directory = str(entry.get("directory", "")) if isinstance(entry, dict) else ""
+        if not directory:
+            return "an entry names no directory"
+        if os.path.isabs(directory) and not (directory == root or directory.startswith(root + os.sep)):
+            return f"an entry's directory {directory!r} is outside this checkout"
+    return None
+
+
+def rebased_compdb(repo_root: Path, db_dir: str, entries: list[dict], stage_root: Path) -> list[dict]:
+    """A carried compile database re-rooted at *stage_root*.
+
+    An absolute path under this checkout is moved to the stage, wherever it
+    appears (``directory``, ``file``, ``arguments``, ``command``). A
+    relative ``directory`` is taken from the database's own directory
+    *db_dir* (repo-relative).
+    """
+    root = str(repo_root)
+
+    def move(text: str) -> str:
+        return text.replace(root + os.sep, str(stage_root) + os.sep) if root + os.sep in text else (
+            str(stage_root) if text == root else text)
+
+    out = []
+    for entry in entries:
+        e = dict(entry)
+        directory = str(e.get("directory", ""))
+        e["directory"] = move(directory) if os.path.isabs(directory) else str(stage_root / db_dir / directory)
+        if "file" in e:
+            e["file"] = move(str(e["file"]))
+        if isinstance(e.get("arguments"), list):
+            e["arguments"] = [move(str(a)) for a in e["arguments"]]
+        if isinstance(e.get("command"), str):
+            e["command"] = move(e["command"])
+        out.append(e)
+    return out
+
+
+def c_build_tree(repo_root: Path, root: str) -> list[str]:
+    """Every file under one C build root, repo-relative. A build needs its
+    scripts, templates and generated-source inputs as well as its sources.
+    Build output, dot-directories and linked copies are left out, as every
+    discovery does."""
+    from hobbes.extract.discover import is_linked_copy
+
+    base = repo_root / root if root else repo_root
+    out: list[str] = []
+    stack = [base]
+    while stack:
+        directory = stack.pop()
+        try:
+            children = sorted(directory.iterdir())
+        except OSError:
+            continue
+        for child in children:
+            if child.is_dir():
+                if (child.name not in _C_STAGE_SKIPPED and not child.name.startswith(".")
+                        and not child.name.startswith("cmake-build-") and not is_linked_copy(child, repo_root)):
+                    stack.append(child)
+            elif child.is_file():
+                out.append(child.relative_to(repo_root).as_posix())
+    return sorted(out)
+
+
+def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | None:
+    """Index every C build root and return one merged facts document (ADR-109).
+
+    **Indexing C executes the repo's build logic** (C-29's C face).
+    scip-clang needs each translation unit's flags, and unless the repo
+    carries a compile database, getting one means running CMake's
+    configure step or ``make`` under bear, inside the ingest container and
+    offline. The notice below prints every time. A root with nothing to
+    derive a database from, or whose build fails, degrades alone to lane A.
+    """
+    if not enabled() or not files:
+        return None
+    repo_root = Path(repo_root).resolve()
+    merged: dict = {
+        "definitions": [],
+        "references": [],
+        "external_refs": [],
+        "packages": {},
+        "degraded": [],
+        "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
+    }
+    grouped = c_units(repo_root, files)
+    for directory, orphans in go_orphans(files, grouped).items():
+        merged["degraded"].append(
+            {
+                "path": directory,
+                "stage": "scip-c",
+                "message": (
+                    f"{len(orphans)} C file(s) under {directory!r} sit below no "
+                    "CMakeLists.txt or Makefile, so no compile database can be "
+                    "derived for them; their call edges fall to lane A's "
+                    "fallback (syntactic tier, C-130)."
+                ),
+            }
+        )
+    if grouped:
+        import sys
+
+        print(
+            "NOTE: c semantics: scip-clang indexes from a compile database; "
+            "unless the repo carries one, CMake's configure step or make under "
+            "bear runs the repo's build logic inside the ingest container, "
+            "offline (C-29, ADR-109)",
+            file=sys.stderr,
+        )
+    for root in grouped:
+        try:
+            facts = _index_c_unit(repo_root, root, sha)
+        except containment.ContainmentRefusal:
+            raise  # P10: the guarantee outranks the per-unit degrade
+        except UNIT_ERRORS as exc:
+            merged["degraded"].append(_unit_failure(root, "scip-c", "C build", exc))
+            continue
+        for key in ("definitions", "references", "external_refs", "degraded"):
+            merged[key].extend(facts.get(key, []))
+        for name, count in (facts.get("packages") or {}).items():
+            merged["packages"][name] = merged["packages"].get(name, 0) + count
+    join_cross_unit(merged)
+    return merged
+
+
+def _index_c_unit(repo_root: Path, root: str, sha: str) -> dict:
+    """Stage one C build root's whole tree, derive or rebase its compile database, and index it."""
+    import shutil
+
+    source, detail = c_compdb_source(repo_root, root)
+    if source is None:
+        return {
+            "degraded": [
+                {
+                    "path": root or ".",
+                    "stage": "scip-c",
+                    "message": (
+                        f"no compile database can be derived for this C build root "
+                        f"({detail}); its call edges fall to lane A's fallback "
+                        "(syntactic tier, C-130)"
+                    ),
+                }
+            ]
+        }
+    stage = staging.build_stage(repo_root, c_build_tree(repo_root, root), sha=sha)
+    unit_stage = stage / root if root else stage
+    build_dir = stage.parent / f"{stage.name}.c-build"
+    build_dir.mkdir(parents=True, exist_ok=True)
+    config = {
+        "stage": str(unit_stage),
+        "language": "c",
+        "projectName": repo_root.name,
+        "projectVersion": "0",
+        "output": str(stage.parent / f"{stage.name}.scip"),
+        "declaredDeps": [],
+        "compdbSource": source,
+        "buildDir": str(build_dir),
+    }
+    try:
+        if source == "repo":
+            carried = json.loads((unit_stage / detail).read_text())
+            db_dir = str(PurePosixPath(root, detail).parent) if root else str(PurePosixPath(detail).parent)
+            compdb = build_dir / "compile_commands.json"
+            compdb.write_text(json.dumps(rebased_compdb(repo_root, db_dir, carried, stage)))
+            config["compdb"] = str(compdb)
+        facts = run_helper(config)
+    finally:
+        staging.remove_stage(stage)
+        shutil.rmtree(build_dir, ignore_errors=True)
+    if source != "repo" and detail:
+        facts.setdefault("degraded", []).append(
+            {"path": root or ".", "stage": "scip-c", "message": f"{detail}; derived with {source} instead"}
+        )
+    return _rebase(facts, root)
 
 
 #: The image's JDK homes by major (sandbox/Containerfile).

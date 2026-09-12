@@ -398,10 +398,11 @@ class TestExtractRepo:
         for row in extraction.graph["resolution_coverage"]:
             assert sum(row["tail"].values()) == row["unresolved"], row
 
-    def test_the_tail_stays_inside_its_five_available_classes(self, extraction):
+    def test_the_tail_stays_inside_its_six_available_classes(self, extraction):
+        # Lane A's five, plus below-floor, which C's lane B can produce (ADR-109).
         available = set(extraction.graph["tail_classes_available"]["c"])
         assert available == {
-            "fallback-resolved", "local-binding", "builtin-name", "attr-call", "unclassified",
+            "fallback-resolved", "local-binding", "builtin-name", "attr-call", "unclassified", "below-floor",
         }
         for row in extraction.graph["resolution_coverage"]:
             assert set(row.get("tail", {})) <= available, row

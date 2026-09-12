@@ -247,20 +247,19 @@ the best on-ramp for a new contributor who should learn the codebase.*
   not a bug.
 - **Directory rollup in `list_blind_spots`** — port `rollup_directories`
   to the Go proxy (same rows, agent-facing altitude).
-- **C's lane B and its evidence (ADR-108).** C is wired at lane A only
-  (0.2.1-beta).
-  - **Next, the indexer:** scip-clang v0.4.0 pinned in the image, read
-    against ADR-105's five points first, with its own ADR and
-    containment profile.
-  - **The compile database is derived,** in this order (Max,
-    2026-09-12, "derive it, degrade visibly"):
-    1. the repo's `compile_commands.json`;
-    2. CMake's export in the container;
-    3. `bear` over make;
-    4. otherwise lane A only, and the ingest says so.
-  - **Then C's §3.8 row** on an oracle, clang's own call graph.
-  - **Lifts:** C-130, and parts of C-131 and C-133. C-134, the test
-    registrations, is a separate, smaller item.
+- **C's evidence, then its remainder (ADR-108, ADR-109).** C has both
+  lanes since 0.2.4-beta: scip-clang over a compile database the ingest
+  derives, in Max's order (the repo's own, CMake's export, bear over
+  make, else lane A only, said so).
+  - **Next, C's §3.8 row:** an oracle cell graded against clang's own
+    call graph, on cJSON and at least one random draw. Until then C is
+    wired, not supported.
+  - **Then the residue:**
+    - C-134, the test registrations (Unity's `RUN_TEST`, CMocka, Check);
+    - C-135's autotools, Meson and Bazel roots, which get no database
+      today;
+    - C-133's include path, now read from the database where lane B
+      runs.
   - C++ has not been named.
 
 *Profile: one owner for the Python/tree-sitter side, optionally one for

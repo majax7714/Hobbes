@@ -46,13 +46,26 @@ ARG JDK25_SHA256=dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41
 ARG MAVEN_VERSION=3.9.16
 ARG SCIP_JAVA_VERSION=0.13.1
 ARG SCIP_JAVA_SHA256=a694cae143c32c5b6226362fb4bd268a8d13d3cd9b482819b3b0029a9a97b8fe
+# C (ADR-109): scip-clang indexes per translation unit, from a compile
+# database the ingest derives. That is the repo's own, else CMake's
+# export, else bear over make. CMake and bear are Ubuntu 24.04's
+# packages (3.28, 3.1); scip-clang is pinned by version and checksum.
+ARG SCIP_CLANG_VERSION=0.4.0
+ARG SCIP_CLANG_SHA256=06fd18c576f979a726c651594644ec4a35db4f471f2160b3f72eb89fa6001784
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl xz-utils git python3 \
-      build-essential pkg-config \
+      build-essential pkg-config cmake bear \
  && rm -rf /var/lib/apt/lists/*
+
+# scip-clang for C (ADR-109). Configuring or building a C repo to get
+# its compile database runs the repo's own build logic (C-29's C face),
+# which is why it happens only here, offline.
+RUN curl -fsSL -o /usr/local/bin/scip-clang "https://github.com/sourcegraph/scip-clang/releases/download/v${SCIP_CLANG_VERSION}/scip-clang-x86_64-linux" \
+ && echo "${SCIP_CLANG_SHA256}  /usr/local/bin/scip-clang" | sha256sum -c - \
+ && chmod +x /usr/local/bin/scip-clang
 
 # Node, for the helper and its two npm indexers. Installed under
 # /usr/local so `node` is on the image-neutral PATH.

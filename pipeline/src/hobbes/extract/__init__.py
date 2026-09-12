@@ -292,7 +292,7 @@ def _build_symbol_layer(
         syntax += c["call_sites"]
         fallback.update(c["call_fallback"])
 
-    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, degraded):
+    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, degraded):
         resolutions += scipsource.resolution_sites(facts)
         external += facts.get("external_refs") or []
         for record in facts.get("degraded", []):
@@ -320,10 +320,12 @@ def _build_symbol_layer(
         # their lane-B-only module edges are exclusions, not findings.
         # Java joins them for the mirror reason: same-package references
         # need no import statement, so lane B raises module edges lane A
-        # never spelled (ADR-096).
+        # never spelled (ADR-096). C joins them too (ADR-109): lane A spells
+        # a file's includes, while lane B raises the module edges calls make
+        # between `.c` files, which no include names.
         lane_b_only_modules={
             n["id"]
-            for layer in (go, rust, java)
+            for layer in (go, rust, java, c)
             if layer
             for n in layer["nodes"]
             if "path" in n
@@ -575,6 +577,7 @@ def _lane_b_facts(
     go: dict | None,
     rust: dict | None,
     java: dict | None,
+    c: dict | None,
     degraded: list[dict],
 ):
     """Every semantic provider's facts, skipping the ones that cannot run."""
@@ -611,6 +614,9 @@ def _lane_b_facts(
     if java:
         java_files = sorted({f.path for f in java["files"]})
         runs.append(("java", lambda: scipsource.extract_scip_java(repo_root, java_files)))
+    if c:
+        c_files = sorted({f.path for f in c["files"]})
+        runs.append(("c", lambda: scipsource.extract_scip_c(repo_root, c_files)))
 
     for language, run in runs:
         try:

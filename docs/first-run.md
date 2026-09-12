@@ -72,7 +72,8 @@ cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 > (C-64): the code a Rust ingest runs is contained or it does not run.
 > The image carries pinned node, Go, scip-go, a rustup toolchain
 > with rust-analyzer, and — since ADR-096 — Temurin JDK 17/21/25, Maven
-> and the scip-java launcher (~2.8 GB; a Gradle repo runs its own
+> and the scip-java launcher, and — since ADR-109 — scip-clang with CMake
+> and bear for C's compile database (~2.8 GB; a Gradle repo runs its own
 > wrapper into the Hobbes cache). **Indexing a Java repo runs its build
 > twice, in the container: dependency resolution with a network on a
 > stage without sources, then the index offline** (C-66, ADR-097). The `scip/` helper is mounted from this
@@ -164,8 +165,9 @@ repo SHA. No LLM, and no network beyond step 0's dependency fetches
 (Go, Rust, and Java's resolve pass).
 
 Each language is dispatched to its own parser by file extension — `.py`,
-`.go`, `.rs`, `.java`, `.c` and `.h` to their tree-sitter providers (C
-at lane A only, ADR-108), `.tf` to the
+`.go`, `.rs`, `.java`, `.c` and `.h` to their tree-sitter providers (C's
+lane B, scip-clang, needs a compile database the ingest derives, ADR-109),
+`.tf` to the
 Terraform one, `.ts/.tsx/.js/.jsx/.mjs/.cjs` to the ts-morph helper —
 and the layers merge facts rather than re-deriving each other's (I-4). If the repo has Terraform and you
 have a plan handy, `--tf-plan plan.json` enriches the infra layer;

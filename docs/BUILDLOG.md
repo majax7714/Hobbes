@@ -9191,3 +9191,100 @@ but no CMake, bear or clang.
 **Verified:** pytest 1,447 and Go 331, green at 0.2.3-beta; the image
 was rebuilt.
 
+## 2026-09-12 — (last) C's lane B, scip-clang — 0.2.4-beta (ADR-109)
+
+**The spike** (cJSON `fb16e5c`, in a throwaway container from the image,
+with apt's CMake):
+- CMake's export gave 27 compile-database entries, and scip-clang 0.4.0
+  indexed them in 0.2 s with 0 errors.
+- Through the helper's own `decode()`, lane B joined **29 of 4,292** C
+  sites. scip-clang's C function moniker carries a signature-hash
+  disambiguator (`cJSON_Delete(6efceb6909523ce2).`). `classify()`
+  accepted only `()`/`(+N)`, so each function read as a `term`, and
+  `terminalName()` kept the hash.
+- With the disambiguator accepted (the SCIP spec allows any identifier
+  there): 1,490 resolved, and 1,416 sites where both lanes answered
+  agreed, 0 disagreeing.
+- **The remaining gap:** macros named by location (1,694 sites), and
+  same-signature file-statics in `cJSON.c` and `cJSON_Utils.c`, which
+  scip-clang gives one moniker (253 sites).
+
+**Built:**
+- **ADR-109**, with **C-130/C-131 narrowed** and **C-135–C-137**
+  registered.
+- **The Containerfile:** CMake and bear from apt, and scip-clang
+  sha256-pinned. The image is about 3.07 GB.
+- **The helper:**
+  - `INDEXERS.c` and `cPlan`: CMake configure, or
+    `bear --output … -- make -k; exit 0`, then scip-clang. A check
+    before scip-clang throws, in the build's words, when the database
+    holds no entries.
+  - `decode(index, opts)`, with `decodeOptions` for C: macro names read
+    from the defining location in the stage, the own-file rule for a
+    moniker two files define, and one target per site.
+  - C's duplicate-moniker wording.
+- **`scipsource`:**
+  - `c_units`: the outermost CMake root, else the outermost Makefile
+    root.
+  - `c_compdb_source`: a carried database only if it rebases, then
+    CMake, then make, then none, with the reason.
+  - `rebased_compdb`, `c_build_tree`, and `extract_scip_c` /
+    `_index_c_unit`, which stage the whole build tree with a scratch
+    build dir removed after.
+- **Elsewhere:** `containment` gains `index-c` (executes repo code, no
+  network); `_lane_b_facts` gains C; C joins the lane-agreement
+  exclusions; C's tail row gains below-floor.
+
+**Found on the way:**
+- **The edits typed ` ` as two real NUL bytes** in `index.mjs`,
+  which grep then read as binary. They were replaced with the escape,
+  and later edits keyed on JSON tuples instead.
+- **The product-path run raised one lane disagreement,** `isinf` at
+  `cJSON.c:612`: cJSON's own macro in the C89 library build, Unity's in
+  the test programs that `#include` cJSON.c.
+- **The one-target-per-site rule that followed was wrong twice.**
+  - First, any two target lines split a site: 1,124 dropped. One
+    definition's own `#if` alternatives are one target, so those were
+    kept once, at the first line.
+  - Then, keyed on position alone, a macro and its expansion's symbols
+    at one call split every Unity assertion: 1,001 dropped.
+  - Keyed on position and name, as the join keys, it drops 2
+    (`isinf`, `isnan`), and the lanes agree.
+- **A containment leak in the test suite, found by the new `lane_b`
+  test.**
+  - In a full run, `minic`'s `index-c` ran on the host
+    (`bear: command not found`) instead of in the image.
+  - The cause: `test_cli`'s `--uncontained` ingest sets
+    `HOBBES_UNCONTAINED=1` in-process, and its `delenv` of the unset
+    variable recorded nothing to undo. The escape hatch stayed on for
+    every later test, including the existing `lane_b` venv test, which
+    also executes repo code.
+  - CI's `lane_b` run (`-m lane_b`) never ran `test_cli` first, which
+    hid it.
+  - The fix: the test registers the variable (`setenv "0"`), and the
+    conftest's autouse fixture removes the hatch before every test.
+  - Nothing ran on the host: bear is absent there, so `make` never
+    started.
+
+**Measured:**
+- **cJSON:** 2,075 of 4,292 C sites semantic (48.3%); 1,072 semantic
+  and 786 syntactic edges; the lanes agree on 1,717 compared; 4.1 s.
+  Four lane-B edges hand-checked, all right (13 of 13 across C's
+  evidence).
+- **This repo's own ingest** runs bear over `minic`'s Makefile. C
+  capture is 70.6% of 17, and the lanes agree.
+
+**Tests:**
+- 42 helper node tests (6 new): the moniker shapes, `cPlan`'s routes
+  and check, the three decode rules, and the expansion case;
+- `test_scipsource_c.py`: build roots, the compile-database choice and
+  rebase, `extract_scip_c` per root, and a `lane_b` case on `minic`;
+- `test_containment.py`, `test_tail.py` and `test_csource.py` updated
+  for C's step and row.
+
+**Not done:** C's §3.8 row, an oracle cell, is next. C stays unverified.
+
+**Verified:** pytest 1,459 (5 `lane_b`), Go and the helper's node tests
+green at 0.2.4-beta. The image was rebuilt, and the repo re-ingested
+at the commit.
+

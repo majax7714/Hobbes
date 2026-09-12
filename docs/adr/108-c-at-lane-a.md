@@ -64,7 +64,7 @@ lane B next.
 That is the join's normal degraded path; nothing in the builder, the
 join or the schema changed.
 
-**Lane B, decided in direction and not built.** scip-clang, pinned in
+**Lane B, decided in direction here and built by ADR-109 (0.2.4-beta).** scip-clang, pinned in
 the image. The compile database is derived:
 1. the repo's `compile_commands.json`;
 2. else CMake's export, run in the container;

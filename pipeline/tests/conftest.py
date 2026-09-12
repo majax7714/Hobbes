@@ -26,6 +26,11 @@ def _lane_a_only(monkeypatch, request):
     """
     if "lane_b" not in request.keywords:
         monkeypatch.setenv("HOBBES_SCIP", "0")
+    # Every test starts contained: the escape hatch (ADR-092) is on only in
+    # a test that sets it itself. A test that ran `hobbes ingest
+    # --uncontained` in-process once leaked it into the rest of a full
+    # run, and a lane-B test after it executed repo code on the host.
+    monkeypatch.delenv("HOBBES_UNCONTAINED", raising=False)
 
 #: Contents of the `git_repo` fixture's single module (6 lines).
 GIT_REPO_APP = '''"""A tiny app module."""

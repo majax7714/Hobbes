@@ -385,11 +385,12 @@ class TestClassesAvailable:
         assert tail.language_of("src/a.c") == "c"
         assert tail.language_of("src/a.h") == "c"
 
-    def test_c_class_list_is_exactly_the_five_it_can_produce(self):
-        # No semantic lane exists for C in this unit: no below-floor
-        # projection, no checker, no import-binding parse.
+    def test_c_class_list_is_exactly_the_six_it_can_produce(self):
+        # Lane A's five, plus below-floor since C's lane B (ADR-109): a call
+        # through a struct's function-pointer field resolves to the field.
+        # Still no checker and no import-binding parse.
         assert tail.CLASSES_AVAILABLE["c"] == frozenset({
-            tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.UNCLASSIFIED,
+            tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.UNCLASSIFIED, tail.BELOW_FLOOR,
         })
 
     def test_ts_flavoured_extensions_share_the_ts_js_row(self):

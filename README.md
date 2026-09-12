@@ -100,7 +100,7 @@ This is the part most worth understanding, because it is where the
 accuracy comes from. **tree-sitter** knows that a call site *is* a call
 and where it sits; the language's own **SCIP indexer** (`scip-python`,
 `scip-typescript`, `scip-go`, `rust-analyzer`'s native export,
-`scip-java`) knows what
+`scip-java`, `scip-clang` for C) knows what
 an occurrence *resolves to*. Neither is asked a question it would have
 to guess at. The two meet on file:line ranges before any graph exists,
 so an edge is a call *because* tree-sitter saw one and points where it
@@ -117,7 +117,7 @@ flowchart TB
   end
   subgraph B["Lane B — the language's own indexer, pinned"]
     direction TB
-    SCIP["scip-python · scip-typescript<br/>scip-go · rust-analyzer · scip-java"] --> S2["declaration resolved<br/>per occurrence"]
+    SCIP["scip-python · scip-typescript<br/>scip-go · rust-analyzer · scip-java · scip-clang"] --> S2["declaration resolved<br/>per occurrence"]
   end
   S1 --> J
   S2 --> J
@@ -255,16 +255,17 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.3-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.4-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
 Semantic edges for **Python, TypeScript/JavaScript, Go, Rust and Java**
-(plus Terraform/HCL structure; **C** is wired at lane A only, every C
-edge `syntactic` and unverified until its indexer and evidence land,
-ADR-108), graph schema v4 with tiers and evidence
+(plus Terraform/HCL structure; **C** has both lanes since 0.2.4-beta,
+scip-clang over a compile database the ingest derives (ADR-108/109), and
+stays unverified until an oracle grades it), graph schema v4 with tiers
+and evidence
 lanes, framework knowledge in removable enrichment packs, a tier-aware
 invariant checker, and a lane-agreement self-test — 3,085 call sites on
 this repo with zero disagreements at the v2 exit; 36,703 dual-resolved
@@ -399,7 +400,8 @@ cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 ```
 
 Lane B needs no per-language install on the host: `scip-go`,
-`rust-analyzer`, `scip-java` and the JDKs are in the image, and an
+`rust-analyzer`, `scip-java` and the JDKs, and `scip-clang` with CMake
+and bear, are in the image, and an
 ingest without the image runs lane A only and says so.
 
 > `hobbes-proxy` **must be statically linked** — `hobbes-session` mounts it
@@ -487,8 +489,11 @@ pinned where a pin is possible:
 - **[SCIP](https://github.com/scip-code/scip)** and the indexers Hobbes
   runs unchanged — `scip-python`, `scip-typescript`,
   [`scip-go`](https://github.com/scip-code/scip-go) (0.2.7),
-  `rust-analyzer`'s native `scip` export, and
-  [`scip-java`](https://github.com/scip-code/scip-java) (0.13.1) —
+  `rust-analyzer`'s native `scip` export,
+  [`scip-java`](https://github.com/scip-code/scip-java) (0.13.1), and
+  [`scip-clang`](https://github.com/sourcegraph/scip-clang) (0.4.0), which
+  reads the compile database **[CMake](https://cmake.org/)** or
+  **[bear](https://github.com/rizsotto/Bear)** derives —
   **lane B.** Every `semantic`
   edge is theirs; their limits are registered as Hobbes's own (P9,
   C-6, C-23). Architecture §3.2.

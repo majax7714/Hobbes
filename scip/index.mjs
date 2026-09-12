@@ -158,6 +158,78 @@ export const INDEXERS = {
     cwd: (c) => c.stage,
     plan: (c) => (c.buildTool === 'gradle' ? gradlePlan(c) : null),
   },
+  c: {
+    // scip-clang (ADR-109): clang's frontend over each translation unit,
+    // from a compile database. Where the database comes from is the
+    // ingest's call (`compdbSource`): the repo's own, rebased into the
+    // scratch build dir by the Python side; CMake's export; or bear over
+    // make. The last two run the repo's build logic (C-29's C face), so
+    // this runs only in the image, offline, like Java's index pass.
+    bin: 'scip-clang',
+    onPath: true,
+    install: 'build the sandbox image (sandbox/Containerfile pins scip-clang)',
+    args: (c) => [`--compdb-path=${cCompdb(c)}`, `--index-output-path=${c.output}`],
+    cwd: (c) => c.stage,
+    plan: (c) => cPlan(c),
+  },
+}
+
+/** Where scip-clang reads the compile database: the rebased copy of the
+ * repo's own, or what CMake or bear wrote into the scratch build dir. */
+export function cCompdb(c) {
+  return c.compdbSource === 'repo' ? c.compdb : join(c.buildDir, 'compile_commands.json')
+}
+
+/** The steps for one C build root (ADR-109): derive the compile database,
+ * unless the repo carries one, then index. `make -k` keeps going past a
+ * target that fails (a link error, a tool the image lacks), and bear
+ * records every compile it saw. So the build's own exit decides nothing;
+ * the database having entries does, checked before scip-clang runs. */
+export function cPlan(c) {
+  const compdb = cCompdb(c)
+  const index = {
+    bin: 'scip-clang', onPath: true, install: INDEXERS.c.install, cwd: c.stage,
+    args: [`--compdb-path=${compdb}`, `--index-output-path=${c.output}`],
+  }
+  if (c.compdbSource === 'repo') return { steps: [index] }
+  if (c.compdbSource === 'cmake') {
+    return {
+      steps: [
+        {
+          bin: 'cmake', onPath: true, install: INDEXERS.c.install, cwd: c.stage,
+          args: ['-S', c.stage, '-B', c.buildDir, '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'],
+        },
+        { ...index, check: compdbCheck(compdb, 'CMake') },
+      ],
+    }
+  }
+  if (c.compdbSource === 'make') {
+    return {
+      steps: [
+        {
+          bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
+          args: ['-c', 'bear --output "$1" -- make -k; exit 0', 'sh', compdb],
+        },
+        { ...index, check: compdbCheck(compdb, 'bear over make') },
+      ],
+    }
+  }
+  throw new Error(`no compile database source for this C build root: ${c.compdbSource}`)
+}
+
+function compdbCheck(compdb, what) {
+  return (previous) => {
+    let entries = []
+    try {
+      entries = JSON.parse(readFileSync(compdb, 'utf8'))
+    } catch {
+      entries = []
+    }
+    if (!Array.isArray(entries) || entries.length === 0) {
+      const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-600)
+      throw new Error(`${what} produced no compile database entries, so scip-clang has nothing to index: ${said}`)
+    }
+  }
 }
 
 /** scip-java's javac plugin and the JVM flags it needs, extracted from
@@ -430,9 +502,12 @@ export function classify(symbol) {
   if (parts.length < 5) return 'malformed'
   const desc = parts.slice(4).join(' ')
   if (/\(\w[^)]*\)$/.test(desc)) return 'parameter'
-  // `foo().` — and scip-java's overload disambiguator `foo(+1).` (ADR-096):
-  // the same method descriptor with a counter, still a method.
-  if (/\((\+\d+)?\)\.$/.test(desc)) return 'method'
+  // `foo().`, with the SCIP spec's optional disambiguator inside the parens.
+  // That is scip-java's overload counter `foo(+1).` (ADR-096), or
+  // scip-clang's signature hash `cJSON_Delete(6efceb6909523ce2).` for a C
+  // function. Without the hash here every C function read as a `term`, and
+  // its name never matched a call site (the C lane B spike).
+  if (/\([\w+]*\)\.$/.test(desc)) return 'method'
   if (desc.endsWith('#')) return 'type'
   if (desc.endsWith('.')) return 'term'
   if (desc.endsWith('/')) return 'namespace'
@@ -458,9 +533,10 @@ export function terminalName(symbol) {
   const parts = String(symbol).split(' ')
   if (parts.length < 5) return ''
   const desc = parts.slice(4).join(' ')
-  // Strip the descriptor suffix — the overload counter with it — then
-  // take the last path/member segment.
-  const bare = desc.replace(/(\((\+\d+)?\)\.|#|\.|\/|:|!)$/, '')
+  // Strip the descriptor suffix — a method's disambiguator with it
+  // (scip-java's `(+1)`, scip-clang's signature hash) — then take the last
+  // path/member segment.
+  const bare = desc.replace(/(\([\w+]*\)\.|#|\.|\/|:|!)$/, '')
   const segments = bare.split(/[/#.]/).filter(Boolean)
   const seg = segments.pop() ?? ''
   // rust-analyzer scopes impl methods as `impl#[Counter]new().` — the
@@ -492,7 +568,13 @@ const isDefinition = (occ) =>
  * 3-element form when the range is single-line), zero-based; graph lines
  * are one-based, so every line is +1 here and nowhere else.
  */
-export function decode(index) {
+export function decode(index, opts = {}) {
+  // `opts` carries C's two rules (ADR-109, `decodeOptions`): `nameOf`
+  // reads a name the moniker does not spell, and `ownFile` resolves a
+  // file-static that several files define. Every other language passes
+  // nothing and decodes as before.
+  const nameOf = opts.nameOf ?? terminalName
+  const byFile = new Map() // `${moniker}\0${file}` -> that file's own definition
   const definitions = new Map() // moniker -> {file, line, endLine, kind}
   const packages = new Map() // manager:package -> reference count
   const references = []
@@ -522,6 +604,16 @@ export function decode(index) {
       if (!isDefinition(occ)) continue
       const kind = classify(occ.symbol)
       if (!GRAPH_KINDS.has(kind)) continue
+      const r = occ.range
+      const here = {
+        moniker: occ.symbol,
+        file: doc.relative_path,
+        line: r[0] + 1,
+        end_line: (r.length >= 4 ? r[2] : r[0]) + 1,
+        kind,
+      }
+      const own = `${occ.symbol}\u0000${doc.relative_path}`
+      if (opts.ownFile && !byFile.has(own)) byFile.set(own, here)
       const prior = definitions.get(occ.symbol)
       if (prior) {
         if (prior.file !== doc.relative_path) {
@@ -531,17 +623,11 @@ export function decode(index) {
         }
         continue
       }
-      const r = occ.range
-      definitions.set(occ.symbol, {
-        moniker: occ.symbol,
-        file: doc.relative_path,
-        line: r[0] + 1,
-        end_line: (r.length >= 4 ? r[2] : r[0]) + 1,
-        kind,
-      })
+      definitions.set(occ.symbol, here)
     }
   }
   for (const symbol of ambiguous) definitions.delete(symbol)
+  let tuSplit = 0
 
   for (const doc of index.documents) {
     if (!insideRepo(doc.relative_path)) continue
@@ -550,13 +636,20 @@ export function decode(index) {
       const pkgKey = packageOf(occ.symbol)
       if (pkgKey) packages.set(pkgKey, (packages.get(pkgKey) ?? 0) + 1)
       if (isDefinition(occ)) continue
-      const target = definitions.get(occ.symbol)
+      let target = definitions.get(occ.symbol)
+      // C (ADR-109): file-statics of one signature in several files share
+      // one scip-clang moniker. A reference from a file that defines it
+      // means that file's own definition (C's static linkage); everywhere
+      // else the moniker stays unattributed.
+      if (!target && opts.ownFile && ambiguous.has(occ.symbol)) {
+        target = byFile.get(`${occ.symbol}\u0000${doc.relative_path}`)
+      }
       if (!target) {
         external.push({
           file: doc.relative_path,
           line: occ.range[0] + 1,
           col: occ.range[1],
-          name: terminalName(occ.symbol),
+          name: nameOf(occ.symbol),
           package: pkgKey,
           // Kept since v3 (ADR-049): "external" means external to *this
           // index*, and a sibling indexing unit of the same repo may
@@ -573,14 +666,51 @@ export function decode(index) {
         // Column and name are what let the join tell two same-named
         // occurrences on one line apart (ADR-029).
         col: occ.range[1],
-        name: terminalName(occ.symbol),
+        name: nameOf(occ.symbol),
         def_file: target.file,
         def_line: target.line,
       })
     }
   }
 
+  // C (ADR-109): scip-clang merges translation units, so one site can
+  // arrive once per unit, and not always with the same answer.
+  // - Targets in one file, at several lines, are one definition's own
+  //   `#if` alternatives (`CJSON_PUBLIC`, which the library and the tests
+  //   configure differently). The edge is right in every configuration,
+  //   so it is kept once, at the first line, which is where the graph
+  //   keeps the symbol.
+  // - Targets in different files are a real disagreement. At cJSON.c:612,
+  //   `isinf` is cJSON's own macro in the C89 library build and Unity's
+  //   in the test programs that #include cJSON.c. Lane B answering two
+  //   ways is no answer: the site keeps lane A's floor, and the count is
+  //   reported.
+  // A site is a position *and a name*, as the join keys it. At a macro
+  // call, scip-clang records the macro and every symbol of its expansion
+  // at the call's own position (`TEST_ASSERT_TRUE` beside
+  // `UNITY_TEST_ASSERT` and `UnityFail`). Those are different names, not
+  // one name answered several ways.
+  if (opts.oneTargetPerSite) {
+    const bySite = new Map()
+    for (const r of references) {
+      const key = JSON.stringify([r.file, r.line, r.col, r.name])
+      if (!bySite.has(key)) bySite.set(key, [])
+      bySite.get(key).push(r)
+    }
+    const kept = []
+    for (const rs of bySite.values()) {
+      if (new Set(rs.map((r) => r.def_file)).size > 1) {
+        tuSplit += 1
+        continue
+      }
+      kept.push(rs.reduce((a, b) => (b.def_line < a.def_line ? b : a)))
+    }
+    references.length = 0
+    references.push(...kept)
+  }
+
   return {
+    tu_split: tuSplit,
     definitions: [...definitions.values()],
     references,
     external,
@@ -620,6 +750,7 @@ const DUPLICATE_SHAPES = {
   go: "a package's namespace is declared in every one of its files",
   python: 'the same module name lives under more than one directory (a tutorial\'s skeletons/ and solutions/, a vendored copy)',
   typescript: 'the same module or namespace is declared from more than one file',
+  c: 'file-`static`s of one signature in several files share one scip-clang moniker (a reference from a file that defines it resolves to that file\'s own, ADR-109), and so does `main` across programs',
 }
 
 /**
@@ -750,6 +881,15 @@ export function degradations(index, decoded, config) {
       message: 'documents were indexed but no graph-worthy definitions came out',
     })
   }
+  if (decoded.tu_split) {
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `${decoded.tu_split} call site(s) resolve to different definitions in different ` +
+        'translation units (a macro or a static that a unit\'s includes decide); lane B\'s ' +
+        "answer is dropped there and lane A's syntactic floor stands (ADR-109, C-131)",
+    })
+  }
   if ((decoded.ambiguous ?? []).length > 0) {
     const sample = decoded.ambiguous
       .slice(0, 3)
@@ -830,6 +970,34 @@ function runStep(step) {
   return proc
 }
 
+/** C's decode rules (ADR-109); every other language gets none.
+ *
+ * scip-clang names a macro by where it is defined, not by what it is
+ * called (`` cxx . . $ `cJSON.h:281:9`! ``), so no call site could ever
+ * match it by name. The name is read at that location in the stage. A
+ * location outside the repo (a libc macro) keeps the moniker's own form,
+ * which matches nothing, and stays external. */
+export function decodeOptions(config) {
+  if (config.language !== 'c') return {}
+  const lines = new Map()
+  const nameOf = (symbol) => {
+    const at = /`([^`]+):(\d+):(\d+)`!$/.exec(String(symbol))
+    if (!at || !insideRepo(at[1])) return terminalName(symbol)
+    const [, file, line, col] = at
+    if (!lines.has(file)) {
+      try {
+        lines.set(file, readFileSync(join(config.stage, file), 'utf8').split('\n'))
+      } catch {
+        lines.set(file, null)
+      }
+    }
+    const text = lines.get(file)?.[Number(line) - 1]
+    const id = text == null ? null : /^[A-Za-z_]\w*/.exec(text.slice(Number(col) - 1))
+    return id ? id[0] : terminalName(symbol)
+  }
+  return { nameOf, ownFile: true, oneTargetPerSite: true }
+}
+
 export function indexStage(config) {
   const { proc, resolved } = runIndexer(config)
   let index
@@ -838,7 +1006,7 @@ export function indexStage(config) {
   } catch (err) {
     throw new Error(`could not read the SCIP index the indexer wrote: ${err.message}`)
   }
-  const decoded = decode(index)
+  const decoded = decode(index, decodeOptions(config))
   // The .scip file is an intermediate, never an artifact (ADR-027 clause
   // 6): its metadata.project_root holds the absolute staging path, so
   // identical content staged elsewhere differs in bytes. Nothing about it

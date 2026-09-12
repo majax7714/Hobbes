@@ -65,7 +65,11 @@ class TestIngest:
         # ADR-092 phase 3: the escape hatch is said before it happens and
         # recorded in the artifact after; a default ingest stamps that
         # every step was contained and prints nothing about it.
-        monkeypatch.delenv("HOBBES_UNCONTAINED", raising=False)
+        # Registered, not deleted: `--uncontained` sets the variable in this
+        # process, and a `delenv` of an unset variable records nothing to
+        # undo. The escape hatch then leaked into every later test; the C
+        # lane-B test ran `index-c` on the host in a full run. "0" is off.
+        monkeypatch.setenv("HOBBES_UNCONTAINED", "0")
         assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
         assert "containment" not in capsys.readouterr().err
         graph = json.loads((git_fixture / ".hobbes" / "derived" / "graph.json").read_text())

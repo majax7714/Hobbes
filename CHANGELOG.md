@@ -11,8 +11,48 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.3-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.4-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.4-beta — 2026-09-12 (C's lane B: scip-clang over a derived compile database; ADR-109)
+
+**Patch: C gets semantic edges.** C is still unverified, with no §3.8
+row, so this is a patch (Max: the minor waits for "supported").
+
+- **scip-clang 0.4.0 is in the image,** with CMake 3.28 and bear 3.1.3
+  (Ubuntu 24.04's packages), sha256-pinned.
+  - The compile database is derived per build root, in Max's order:
+    1. the repo's own, used only if its paths rebase into this checkout;
+    2. CMake's export;
+    3. bear over `make -k`;
+    4. otherwise lane A only, and the ingest says so.
+  - It runs as `index-c`, offline, and executes repo code (C-136).
+- **The helper decodes C:**
+  - **A method's disambiguator** is any identifier (the SCIP spec).
+    scip-clang hashes the signature there, and without this rule no C
+    function joined.
+  - **A macro** is named by its defining location, so its name is read
+    from that line.
+  - **A file-static that several files define** resolves in the
+    reference's own file.
+  - **A site (position and name) that translation units resolve into
+    different files** keeps lane A's floor. One definition's `#if`
+    alternatives collapse to its first line.
+- **Measured on cJSON** (the product path, in the image):
+  - 2,075 of 4,292 C call sites resolve semantically (48%, from 0);
+  - 1,072 semantic edges;
+  - the lanes agree on all 1,717 sites where both answer;
+  - 2 sites that translation units split keep lane A.
+
+  This repo's `minic` fixture goes through bear over its Makefile on
+  every ingest.
+- **Register:** C-130 and C-131 narrowed; C-135–C-137 registered.
+- **Tests:**
+  - node: the moniker shapes, `cPlan`'s three routes and its
+    empty-database check, and the decode rules;
+  - pytest: build roots, the compile-database choice and its rebase,
+    `extract_scip_c` per root, and the containment profile;
+  - a `lane_b` case on `minic` in the image.
 
 ## 0.2.3-beta — 2026-09-12 (two harness fixes found by a dispatched session)
 
