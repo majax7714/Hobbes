@@ -9110,3 +9110,51 @@ were. They were then read, and all five were right.
 the static proxy and the image were rebuilt (C-65), and the repo was
 re-ingested at the commit (languages now include `c`).
 
+## 2026-09-12 — (after, again) the knowledge tools see C — 0.2.2-beta
+
+**Found at the 0.2.1-beta ingest.** The ingest summary read `capture
+[c]: 0.0% of 17 detected call sites accounted`. A C-scoped
+`list_blind_spots` on the fixture printed no verification-base line and
+no capture line, only rows such as `main.c — 8 of 8 sites unresolved
+(fallback-resolved 4, …)`.
+
+Two separate causes:
+- **The Go proxy's own language tables lacked C.** `langByExt` and
+  `artifactLangBucket` in `go/internal/knowledge` lacked `.c`/`.h`/`c`,
+  and C-100's `.mts`/`.cts`. The C unit's brief named `tail.py` but not
+  these copies, and §3.7's list did not name them either. C-130 had
+  claimed a surfacing in `list_blind_spots` that held only for
+  whole-repo queries.
+- **The tail's existing design** counts a fallback-resolved site in the
+  unresolved remainder. For a language whose only resolver is the
+  fallback, the headline reads 0%. This is not changed: it would change
+  the display for every language, so it is put to Max.
+
+**Session `404f`** (25 of 60 turns): the tables now mirror the tail's,
+and a Python drift test reads both Go map literals and holds them to
+`tail._LANG_BY_EXT`. Gate clear, verify pass. Merged by fast-forward
+(`7123217`).
+- **Expired escalations read:** four `gofmt`/`go fmt`. `calvin.box.policy`
+  has no `gofmt` rule, though the brief asked for it. Checked `gofmt`-clean
+  on the host.
+- **The doer's `PATH` report was confirmed.** `dispatch.py:197` sorts
+  the venv bins, so `bench/atlas0/.venv` comes before `pipeline/.venv`,
+  and the brief's "the venv's python is first on PATH" is wrong with
+  two venvs.
+- Both are named for Max, not fixed.
+
+**Bookkeeping:**
+- C-130's "You find out" corrected (the C-scoped gap until now; the
+  capture line's 0%);
+- §3.7: the proxy's tables are among the places a language touches,
+  and the C paragraph says the first unit missed them;
+- CHANGELOG 0.2.2-beta and every copy (`test_version` green);
+- CLAUDE.md's suite sizes (pytest 1,445; Go 330);
+- the README and handoff versions;
+- `calvin-harness.md` §7;
+- the session's review block.
+
+**Verified:** pytest 1,445 and Go 330, green at 0.2.2-beta. The proxy
+and the image were rebuilt (C-65), and the repo was re-ingested at the
+commit.
+

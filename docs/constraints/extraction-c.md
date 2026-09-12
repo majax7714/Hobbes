@@ -26,6 +26,16 @@
   - there is no C lane B for `hobbes lanes` to check against;
   - the verification base states C as unverified (C-31) in the ingest
     summary, the surface and `list_blind_spots`.
+
+  A *C-scoped* `list_blind_spots` said neither until 0.2.2-beta. The
+  knowledge proxy's copies of the tail's language tables lacked C, and
+  a drift test now holds them to `tail.py`.
+
+  The capture line reads **0% accounted** for C. A fallback-resolved
+  site counts in the unresolved remainder (the tail's design for every
+  language, where lane B normally speaks first), so for a language whose
+  only resolver is the fallback, the headline understates the graph. The
+  per-file rows name the `fallback-resolved` count beside it.
 - **Provider (P9):** none; this is Hobbes's own rule.
 - **Source:** ADR-108; sessions `S-20260912T164904Z-eef8` and
   `S-20260912T171754Z-e6db`.

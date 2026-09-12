@@ -11,8 +11,27 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.1-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.2-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.2-beta — 2026-09-12 (the knowledge tools see C; `.mts`/`.cts` too)
+
+**Patch: `list_blind_spots` names C's limits under a C path.** The
+first ingest after 0.2.1-beta showed it did not.
+
+- **The knowledge proxy's language tables now mirror the tail's.** In
+  `go/internal/knowledge`, `langByExt` and `artifactLangBucket` gained C
+  (`.c`, `.h`) and C-100's `.mts`/`.cts`. A C-scoped answer now prints
+  C's verification row (`not verified on any repo`) and a `capture [c]`
+  line.
+- **A drift test** (`test_tail.py`) reads both Go map literals and
+  holds them to `tail._LANG_BY_EXT`, so the next language fails a test
+  instead of going missing from the agent-facing tool. Architecture
+  §3.7 now lists these tables among the places a language touches.
+- **Built through the harness:** `7123217`, authored by
+  `hobbes-dispatch` and fast-forwarded.
+- **Register:** C-130's surfacing text corrected: the C-scoped gap
+  until now, and the capture line's 0% for a fallback-only language.
 
 ## 0.2.1-beta — 2026-09-12 (C at lane A: wired, not supported; ADR-108)
 

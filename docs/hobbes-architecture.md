@@ -800,8 +800,11 @@ the join's shape or the schema. What a language does touch, stated so
 nobody rediscovers it: the shared helper's descriptor filter when the
 language needs a kind (`macro` joined `GRAPH_KINDS` for Rust, C-9), the
 projection's language-specific guards (the type-conversion rule), the
-tail view's extension and class tables (`tail.py`), and
-`VERIFICATION_BASE`, which a test holds to this section. Rust was the
+tail view's extension and class tables (`tail.py`), the knowledge
+proxy's copies of them (`langByExt` and `artifactLangBucket` in
+`go/internal/knowledge`, held to `tail.py` by a drift test since C was
+found missing from them), and `VERIFICATION_BASE`, which a test holds
+to this section. Rust was the
 proof, and it touched exactly those.
 
 **Step 2 was "optional" until V2.M5, and it was wrong (ADR-037).** The
@@ -841,7 +844,11 @@ landed the same day on four compiler-graded cells (O8).
 at all.** It touched only the list above:
 - the provider's wiring in `extract/__init__.py`;
 - the tail's extension, class and builtin tables (C's row holds five
-  classes, and its builtin-name adds a `__builtin_*` prefix rule).
+  classes, and its builtin-name adds a `__builtin_*` prefix rule);
+- the proxy's copies of those tables. The first unit missed these, and
+  the first ingest showed it: a C-scoped `list_blind_spots` said nothing
+  about C. They were added in 0.2.2-beta, with the drift test that now
+  holds them.
 
 There are zero lines in the builder, the join or the schema. Every C
 edge is the fallback's, at `syntactic` tier, which is the join with an

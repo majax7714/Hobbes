@@ -218,6 +218,14 @@ After that, the developer:
     outside the gate's classes.
   - `S-20260912T171754Z-e6db`: the rework of those four (68 of 150
     turns). Gate clear and verify pass; merged (0.2.1-beta, ADR-108).
+  - `S-20260912T174351Z-404f`: the knowledge proxy's language tables
+    held to the tail's, so C shows in `list_blind_spots` (25 of 60
+    turns). Gate clear and verify pass; merged (0.2.2-beta).
+    - **Four `gofmt` escalations expired:** the box policy has no
+      `gofmt` rule, though the brief asked for it.
+    - **The session's `PATH` puts `bench/atlas0/.venv` first:**
+      `dispatch.py` sorts the venv bins. Both findings are named, not
+      fixed.
   - **Findings so far:** no false block and no `missed`. Every egress
     refusal was read: one per suite run, the suite's own `http://llm`
     GET, which the proxy refused as built. The gate's classes do not
