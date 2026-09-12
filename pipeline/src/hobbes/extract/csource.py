@@ -30,9 +30,24 @@ a body, and a ``typedef``, are kind ``type``; a function-like macro
 (``#define F(x) ...``) is kind ``macro``. An object-like macro
 (``#define X 1``) is never a symbol — nothing calls it.
 
+**The universal header guard is transparent to the walk.** A
+``linkage_specification`` (``extern "C" { ... }``) nests everything it
+wraps one level deeper, same as a ``preproc_*`` conditional; the walk
+recurses through it and its ``declaration_list`` body exactly as it
+recurses through a header guard, so the ``#ifdef __cplusplus`` /
+``extern "C" {`` idiom hides nothing from it (symbols, includes,
+function-pointer bindings inside are all recorded). Tree-sitter cannot
+balance that idiom's brace against the preprocessor conditional that
+opens it, so a file using it parses with ``has_error`` set and draws
+this layer's ordinary syntax-error record — a cosmetic flag, not a
+missed declaration.
+
 **Includes.** For ``#include "p"``, resolution tries, in order: relative
 to the including file's directory; relative to the repo root; the
-*unique* repo ``.h`` whose path ends with ``/p``. An ambiguous or
+*unique* repo ``.h`` whose path ends with ``/p``. A step whose ``..``
+would climb above the repo root is not a candidate for that step — it
+returns no path rather than resolving into whatever the climb happens to
+reach outside the tree, and the other steps still apply. An ambiguous or
 unmatched include draws no edge. ``#include <p>`` tries the same three
 rules first — a project routinely spells its own headers with ``<>``
 under an ``-I`` — and only when none resolves does it become an
@@ -57,10 +72,23 @@ includes (one level); (3) the unique non-``static`` function named
 ``f`` defined anywhere in the repo — external linkage is one namespace.
 Two candidates at the same rank means abstaining, never picking, and
 the walk does not fall through to the next rank when a rank is
-ambiguous. A name bound as a parameter or local variable in the
+ambiguous — rank 1 included: two or more same-file definitions of ``f``
+(a function and a function-like macro count together, the common shape
+being a ``#ifdef``/``#else`` preprocessor alternative) is a same-file
+tie, and abstains rather than picking whichever definition happened to
+parse last. A name bound as a parameter or local variable in the
 enclosing function (the shape a function pointer takes) is never
 resolved, even when it shadows a real global of the same name. Field
 and dereference calls are never resolved by any rank.
+
+**One symbol per id.** When a file defines the same name twice at the
+same kind-of-thing (again, typically ``#ifdef``/``#else`` arms), the
+layer keeps only the first definition in file order as that id's one
+symbol and records the rest in one ``errors`` entry per file (stage
+``"parse"``) naming the duplicated names — never two rows sharing one
+id, and never a fallback target naming a definition the layer already
+dropped (the rank-1 tie above abstains on exactly this case, so no
+fallback ever points at it in the first place).
 
 **Tests.** A test is a function named ``test_*``, defined in a file
 under a directory named ``test``/``tests``, or in a file named
@@ -110,6 +138,10 @@ class CFile:
     #: as this language's ``local_bindings`` so a call through one
     #: classifies `local-binding` rather than `unclassified`.
     local_bindings: list[tuple[str, int, int]] = field(default_factory=list)
+    #: Qualnames defined more than once in this file (decision 3) — the
+    #: kept symbol is the first in file order; the fallback's rank 1
+    #: (decision 6) abstains on any of these rather than picking it.
+    duplicate_names: set[str] = field(default_factory=set)
 
 
 def has_c_files(repo_root: Path) -> bool:
@@ -169,7 +201,7 @@ def extract_c(repo_root: Path) -> dict | None:
                 {"path": rel, "stage": "discover", "message": f"could not read {rel}: {exc}"}
             )
             continue
-        parsed, had_error = _parse_file(rel, source)
+        parsed, had_error, duplicated = _parse_file(rel, source)
         files.append(parsed)
         if had_error:
             errors.append(
@@ -179,6 +211,18 @@ def extract_c(repo_root: Path) -> dict | None:
                     "message": (
                         f"{rel} parsed with syntax errors (tree-sitter ERROR nodes); "
                         "the sites it could still see are kept"
+                    ),
+                }
+            )
+        if duplicated:
+            errors.append(
+                {
+                    "path": rel,
+                    "stage": "parse",
+                    "message": (
+                        f"{', '.join(duplicated)} defined more than once in {rel} "
+                        "(preprocessor alternatives); calls to them are left "
+                        "unresolved rather than guessed"
                     ),
                 }
             )
@@ -196,11 +240,12 @@ def _text(node: Node) -> str:
     return (node.text or b"").decode("utf-8", "replace")
 
 
-def _parse_file(rel: str, source: bytes) -> tuple[CFile, bool]:
+def _parse_file(rel: str, source: bytes) -> tuple[CFile, bool, list[str]]:
     tree = _PARSER.parse(source)
     root = tree.root_node
     parsed = CFile(path=rel)
     _walk_top_level(root, parsed)
+    duplicated = _dedupe_symbols(parsed)
 
     for symbol in parsed.symbols:
         if symbol["kind"] == "function" and symbol["name"].startswith("test_") and _is_test_file(rel):
@@ -215,7 +260,34 @@ def _parse_file(rel: str, source: bytes) -> tuple[CFile, bool]:
             )
 
     parsed.calls = _calls(root, parsed.symbols)
-    return parsed, root.has_error
+    return parsed, root.has_error, duplicated
+
+
+def _dedupe_symbols(parsed: CFile) -> list[str]:
+    """Decision 3: one symbol per id, the first definition in file order.
+
+    A same-file preprocessor alternative (``#ifdef``/``#else`` arms
+    defining the same name twice) would otherwise leave two rows sharing
+    one id; this keeps the first and returns the names that had more
+    than one definition, so the caller can register one ``errors``
+    record per file.
+    """
+    counts: dict[str, int] = defaultdict(int)
+    for symbol in parsed.symbols:
+        counts[symbol["qualname"]] += 1
+    kept: list[dict] = []
+    first_seen: set[str] = set()
+    for symbol in parsed.symbols:
+        name = symbol["qualname"]
+        if counts[name] > 1:
+            if name in first_seen:
+                continue
+            first_seen.add(name)
+        kept.append(symbol)
+    parsed.symbols = kept
+    duplicated = sorted(name for name, count in counts.items() if count > 1)
+    parsed.duplicate_names = set(duplicated)
+    return duplicated
 
 
 def _is_test_file(path: str) -> bool:
@@ -230,12 +302,23 @@ def _is_test_file(path: str) -> bool:
 
 def _walk_top_level(node: Node, parsed: CFile) -> None:
     """Top-level declarations, recursing transparently through header
-    guards (``#ifndef``/``#if`` and their ``#elif``/``#else`` arms) —
-    the only nesting a well-formed ``.h`` file introduces above what
-    :func:`_top_level` handles."""
+    guards (``#ifndef``/``#if`` and their ``#elif``/``#else`` arms) and
+    through a ``linkage_specification`` (``extern "C" { ... }``) — the
+    universal ``#ifdef __cplusplus`` idiom nests a whole header's worth
+    of declarations one level deeper still, in that node's
+    ``declaration_list`` body, and would otherwise hide all of it from a
+    walk that only looked at ``translation_unit``'s direct children."""
     for child in node.children:
         if child.type in _PREPROC_CONTAINERS:
             _walk_top_level(child, parsed)
+        elif child.type == "linkage_specification":
+            body = child.child_by_field_name("body")
+            if body is None:
+                continue
+            if body.type == "declaration_list":
+                _walk_top_level(body, parsed)
+            else:
+                _top_level(body, parsed)  # a brace-less `extern "C" decl;`
         else:
             _top_level(child, parsed)
 
@@ -467,16 +550,20 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
 # ---------------------------------------------------------------- joining
 
 
-def _normalize(base: PurePosixPath, spec: str) -> str:
+def _normalize(base: PurePosixPath, spec: str) -> str | None:
     """``base / spec``, collapsing ``.``/``..`` without touching the
-    filesystem — a repo-relative POSIX path, never an absolute one."""
+    filesystem — a repo-relative POSIX path, never an absolute one.
+    ``None`` when *spec* climbs above the repo root: that step is not a
+    candidate, rather than a hit on whatever the climb happens to reach
+    outside the tree (decision 4's fourth rule)."""
     parts: list[str] = []
     for part in (base / spec).parts:
         if part == ".":
             continue
         if part == "..":
-            if parts:
-                parts.pop()
+            if not parts:
+                return None
+            parts.pop()
             continue
         parts.append(part)
     return str(PurePosixPath(*parts)) if parts else "."
@@ -489,10 +576,10 @@ def _resolve_include(
     ``<p>``: relative to the including file's directory; relative to the
     repo root; the unique repo header whose path ends with ``/p``."""
     candidate = _normalize(PurePosixPath(including_path).parent, spec)
-    if candidate in known_files:
+    if candidate is not None and candidate in known_files:
         return candidate
     candidate = _normalize(PurePosixPath("."), spec)
-    if candidate in known_files:
+    if candidate is not None and candidate in known_files:
         return candidate
     suffix = "/" + spec
     matches = [f for f in headers if f.endswith(suffix)]
@@ -582,6 +669,7 @@ def _resolve_fallback(
     parsed: CFile,
     call: dict,
     local_defs: dict[tuple[str, str], tuple[str, int]],
+    ambiguous_locals: set[tuple[str, str]],
     macros_by_file: dict[str, dict[str, tuple[str, int]]],
     includes_by_file: dict[str, list[str]],
     globals_by_name: dict[str, list[tuple[str, int]]],
@@ -589,7 +677,10 @@ def _resolve_fallback(
     """Decision 6's three ranks. A rank with more than one candidate is an
     abstention, not a fall-through to the next rank."""
     name = call["name"]
-    same_file = local_defs.get((parsed.path, name))
+    key = (parsed.path, name)
+    if key in ambiguous_locals:
+        return None  # rank 1 tie: abstain, never fall through to rank 2
+    same_file = local_defs.get(key)
     if same_file is not None:
         return same_file
     header_matches = [
@@ -612,12 +703,21 @@ def _call_fallback(
     this unit's whole graph rests on, since there is no semantic lane to
     hand off to (module docstring)."""
     local_defs: dict[tuple[str, str], tuple[str, int]] = {}
+    ambiguous_locals: set[tuple[str, str]] = set()
     macros_by_file: dict[str, dict[str, tuple[str, int]]] = defaultdict(dict)
     globals_by_name: dict[str, list[tuple[str, int]]] = defaultdict(list)
     for parsed in files:
         for symbol in parsed.symbols:
             if symbol["kind"] in ("function", "macro"):
-                local_defs[(parsed.path, symbol["name"])] = (parsed.path, symbol["line"])
+                key = (parsed.path, symbol["name"])
+                # `parsed.symbols` already holds one row per id (the
+                # first definition, decision 3); a name that had more
+                # than one same-file definition is rank 1's tie, and
+                # abstains rather than resolving to the survivor.
+                if symbol["name"] in parsed.duplicate_names:
+                    ambiguous_locals.add(key)
+                else:
+                    local_defs[key] = (parsed.path, symbol["line"])
             if symbol["kind"] == "macro":
                 macros_by_file[parsed.path][symbol["name"]] = (parsed.path, symbol["line"])
             if symbol["kind"] == "function" and not symbol.get("static", False):
@@ -643,7 +743,13 @@ def _call_fallback(
             ):
                 continue  # a function-pointer parameter or local: never resolved
             target = _resolve_fallback(
-                parsed, call, local_defs, macros_by_file, includes_by_file, globals_by_name
+                parsed,
+                call,
+                local_defs,
+                ambiguous_locals,
+                macros_by_file,
+                includes_by_file,
+                globals_by_name,
             )
             if target is None or target == (parsed.path, call["line"]):
                 continue

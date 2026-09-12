@@ -116,6 +116,20 @@ class TestSymbols:
         layer = extract_c(tmp_path)
         assert len([s for s in layer["symbols"] if s["name"] == "Point"]) == 1
 
+    def test_a_macro_inside_extern_c_is_a_macro_symbol(self, layer):
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        assert by_id["include/minic/api.h.MINIC_CLAMP"]["kind"] == "macro"
+
+    def test_a_typedef_inside_extern_c_is_a_type_symbol(self, layer):
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        assert by_id["include/minic/api.h.MinicRange"]["kind"] == "type"
+
+    def test_an_inline_function_inside_extern_c_is_a_static_function_symbol(self, layer):
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        symbol = by_id["include/minic/api.h.minic_twice"]
+        assert symbol["kind"] == "function"
+        assert symbol["static"] is True
+
 
 class TestIncludes:
     def test_a_quoted_include_resolves_relative_to_the_including_file(self, layer):
@@ -137,6 +151,23 @@ class TestIncludes:
     def test_an_angle_include_that_resolves_nowhere_is_external(self, layer):
         edges = {(e["from"], e["to"], e["type"]) for e in layer["module_edges"]}
         assert ("src/main", "ext:stdio.h", "imports") in edges
+
+    def test_an_include_inside_an_extern_c_block_is_recorded(self, layer):
+        # api.h's `#include <stddef.h>` sits inside its `extern "C" { }`;
+        # the walk must not skip over it (fix 1).
+        edges = {(e["from"], e["to"], e["type"]) for e in layer["module_edges"]}
+        assert ("include/minic/api.h", "ext:stddef.h", "imports") in edges
+
+    def test_a_root_level_climb_above_the_repo_root_resolves_to_nothing(self, tmp_path):
+        (tmp_path / "x.h").write_text("int x_marker(void);\n")
+        (tmp_path / "main.c").write_text(
+            '#include "../x.h"\nint main(void){return 0;}\n'
+        )
+        layer = extract_c(tmp_path)
+        # Both the relative-to-file and relative-to-root steps climb above
+        # the repo root here; neither is a candidate (fix 4) — the include
+        # must not resolve to the root's own x.h.
+        assert layer["module_edges"] == []
 
     def test_an_ambiguous_quoted_include_draws_no_edge(self, tmp_path):
         (tmp_path / "a").mkdir()
@@ -257,6 +288,49 @@ class TestFallback:
         )
         layer = extract_c(tmp_path)
         assert not any(k[2] == "TWICE" for k in layer["call_fallback"])
+
+    def test_a_macro_inside_extern_c_resolves_by_rank_2(self, layer):
+        # main.c's `MINIC_CLAMP(-5)`: a function-like macro defined in
+        # api.h, a header main.c directly includes.
+        fb = layer["call_fallback"]
+        assert fb[("src/main.c", 20, "MINIC_CLAMP")] == ("include/minic/api.h", 10)
+
+    def test_a_static_inline_function_inside_extern_c_stays_unresolved(self, layer):
+        # `minic_twice` is `static`, so rank 3 (the unique non-static
+        # global) excludes it; main.c's call to it never resolves.
+        assert ("src/main.c", 21, "minic_twice") not in layer["call_fallback"]
+
+    def test_a_same_file_tie_between_ifdef_arms_abstains(self, layer):
+        # platform.c's `sep()` is defined twice (an `#ifdef _WIN32` and
+        # an `#else` arm): rank 1's tie, so the call inside
+        # path_separator() never resolves.
+        assert ("src/platform.c", 12, "sep") not in layer["call_fallback"]
+
+    def test_a_same_file_macro_and_function_tie_abstains(self, tmp_path):
+        (tmp_path / "a.c").write_text(
+            "#define FOO(x) ((x) + 1)\n"
+            "int FOO(int x) { return x; }\n"
+            "int caller(void) { return FOO(1); }\n"
+        )
+        layer = extract_c(tmp_path)
+        assert not any(k[2] == "FOO" for k in layer["call_fallback"])
+
+
+class TestDuplicateSymbols:
+    def test_only_the_first_definition_survives_as_the_symbol(self, layer):
+        by_id = {s["id"]: s for s in layer["symbols"]}
+        assert by_id["src/platform.sep"]["line"] == 2
+        assert len([s for s in layer["symbols"] if s["id"] == "src/platform.sep"]) == 1
+
+    def test_one_errors_record_names_the_duplicate(self, layer):
+        records = [
+            e
+            for e in layer["errors"]
+            if e["stage"] == "parse" and e["path"] == "src/platform.c"
+        ]
+        assert len(records) == 1
+        assert "sep" in records[0]["message"]
+        assert "src/platform.c" in records[0]["message"]
 
 
 class TestTests:
@@ -379,5 +453,13 @@ class TestDegradation:
         assert records[0]["path"] == "broken.c"
         assert any(s.name == "helper" for s in layer["call_sites"])
 
-    def test_a_clean_file_gets_no_parse_error_record(self, layer):
-        assert layer["errors"] == []
+    def test_only_the_extern_c_idiom_and_the_duplicate_sep_draw_error_records(self, layer):
+        # api.h's `#ifdef __cplusplus` / `extern "C" {` idiom is real,
+        # legal C that tree-sitter cannot fully balance (module
+        # docstring) — a cosmetic `has_error`, not a missed declaration.
+        # platform.c's duplicate `sep()` draws fix 3's record. No other
+        # fixture file gets one.
+        by_path = {e["path"]: e for e in layer["errors"]}
+        assert set(by_path) == {"include/minic/api.h", "src/platform.c"}
+        assert "syntax errors" in by_path["include/minic/api.h"]["message"]
+        assert "sep" in by_path["src/platform.c"]["message"]

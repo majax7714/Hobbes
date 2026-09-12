@@ -13,3 +13,12 @@ int main(void) {
     run(add);
     return 0;
 }
+
+#include <minic/api.h>
+
+static void extra(void) {
+    int clamped = MINIC_CLAMP(-5);
+    int doubled = minic_twice(clamped);
+    (void)clamped;
+    (void)doubled;
+}
