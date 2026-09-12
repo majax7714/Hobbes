@@ -1139,7 +1139,10 @@ def join_cross_unit(merged: dict) -> None:
 
     A moniker defined by more than one unit (in different files) is
     dropped from the joinable set and the drop reported — C-28's rule
-    applied across units: unattributed rather than guessed. Mutates
+    applied across units: unattributed rather than guessed. Such a
+    reference is marked ``in_repo: True`` (ADR-111): a sibling unit does
+    define it, so the join's veto of lane A's fallback must not fire
+    there — only a reference genuinely outside the repo may. Mutates
     *merged* in place, after every unit has been merged.
     """
     by_moniker: dict[str, dict] = {}
@@ -1155,8 +1158,14 @@ def join_cross_unit(merged: dict) -> None:
     for ref in merged["external_refs"]:
         moniker = ref.get("moniker") or ""
         target = by_moniker.get(moniker)
-        if target is None or moniker in ambiguous:
+        if target is None:
             still_external.append(ref)
+            continue
+        if moniker in ambiguous:
+            # ADR-111: a sibling unit does define this moniker — just not
+            # at one place the join could pick — so it is in the repo,
+            # not outside it, and must not veto lane A's fallback.
+            still_external.append({**ref, "in_repo": True})
             continue
         merged["references"].append(
             {
