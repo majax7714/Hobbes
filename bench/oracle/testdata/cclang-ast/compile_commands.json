@@ -1,0 +1,54 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "app",
+      "main.c"
+    ],
+    "directory": "/fx",
+    "file": "/fx/main.c",
+    "output": "/fx/app"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "app",
+      "lib.c"
+    ],
+    "directory": "/fx",
+    "file": "/fx/lib.c",
+    "output": "/fx/app"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "tool",
+      "tool.c"
+    ],
+    "directory": "/fx",
+    "file": "/fx/tool.c",
+    "output": "/fx/tool"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-c",
+      "-Wall",
+      "-o",
+      "tool",
+      "lib.c"
+    ],
+    "directory": "/fx",
+    "file": "/fx/lib.c",
+    "output": "/fx/tool"
+  }
+]

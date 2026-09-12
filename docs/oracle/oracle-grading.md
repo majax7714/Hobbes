@@ -415,6 +415,45 @@ implicit constructor, the interface call and its CHA override, the
 anonymous member). Then jsoup (Maven library) and spring-petclinic
 (Spring service), and two repos drawn at random (§9).
 
+## 7c. The C oracle (O9, ADR-110)
+
+**Primary: clang's front end, one translation unit at a time.**
+`oracle c-clang` derives the build root's compile database the way the
+ingest does (a carried database that rebases, CMake's export, bear over
+`make -k`; ADR-109) and runs `clang -fsyntax-only -Xclang
+-ast-dump=json` on every entry, contained and offline, in one container
+(the derivation runs the repo's build logic).
+- **Sites:** every `CallExpr` whose callee token is in the repo. A direct
+  call (a `DeclRefExpr` to a `FunctionDecl`, under parentheses, casts
+  and unary `*`/`&`) is `static`; any other callee is `dynamic`, with no
+  targets.
+- **Targets are definitions.** A `static` function resolves to its own
+  unit's definition, an external one to the definition joined across
+  units by name (javac's keyed merge).
+  - Several definitions, and none in the caller's unit: `link-ambiguous`,
+    no targets.
+  - None, declared outside the repo or only implicitly (a builtin):
+    external.
+  - None, declared in the repo: `undefined`, no targets.
+- **Macros.** A callee written in a macro argument sits where it was
+  written. One written in a macro's body sits at the invocation line,
+  mode `macro`: the Rust convention's C face. Hobbes draws a macro
+  invocation to the `macro` symbol, which the export excludes before
+  grading, so every call a macro's expansion makes is a `macro→…` pair
+  Hobbes cannot confirm (C-131).
+- **The reader.** The dump omits a location's `file` and `line` when they
+  repeat the previous location's, so it is read as a stream in document
+  order, never guessed. An object whose first key is `offset` is a
+  location; `includedFrom` is not.
+- **Independence.** Lane B's scip-clang is clang-based, so the key shares
+  a front end with the lane it grades, as `tsc` and javac do. What it
+  grades is Hobbes' own work above the front end: ADR-109's decode rules,
+  the join and lane A's fallback.
+
+**Pilot cells:** the `cclang` fixture (every pair hand-computed, its
+dumps committed), then `minic`, then cJSON and one repo drawn at random
+(§10.5).
+
 ## 8. The matcher
 
 **Inputs:** (a) a Hobbes graph export per cell — every call edge with site
@@ -462,6 +501,7 @@ cells as data, not per-cell scripts.
 | **O5** (optional) | dagger `sdk/typescript` | The 70.3% zone under the provisioned cache. |
 | **O6** (phase 2) | Python trace cells: hobbes' own Python zone under its suite (dogfood), then one SWE-bench workspace with strong coverage and clean ingest (xarray) | First trace-oracle cells; minipy-style fixture self-test first if one exists, else add one. Exit: coverage line + recall-against-executed on the record. |
 | **O7** (phase 2) | Rust: `rust_proj` MIR oracle (must confirm ADR-040's 33/33), then dagger rust | Compiler-authority grading for the language with the thinnest evidence base. Rupta/trace lanes only if time-boxed setup succeeds. |
+| **O9** | C: the `cclang` fixture and `minic`, then DaveGamble/cJSON and one repo drawn at random (ADR-110) | clang's front end as the resolution oracle; C's first §3.8 row, per cell. Exit: §10.5 graded |
 
 Each cell's runtime and machine cost gets logged — the harness is only
 useful if rerunning a cell is cheap enough to do after every resolver
@@ -560,6 +600,49 @@ If O7's driver cannot be pinned to a nightly that builds `rustc_private`
 on this box inside the time box, the Rust lane is recorded *not built*
 with the toolchain reason, and ADR-040's hand-check stays the only Rust
 evidence — said so, in the row.
+
+### 10.5 C — committed 2026-09-12, before O9 ran
+
+**Priors.** C has no graded edge.
+- Thirteen lane-A and lane-B edges were hand-checked at review
+  (ADR-108/109), all right.
+- Lane agreement on cJSON is 1,717 sites and 0 disagreements. That is
+  two of Hobbes' own methods, one of them the name fallback.
+- cJSON's ingest at 0.2.4-beta draws 1,713 gradeable call-evidence lines
+  to functions (1,188 semantic, 525 syntactic), and 1,821 to macros,
+  which the export excludes.
+
+The phase-1/2 lesson stands: the first pass of a new oracle is usually
+the oracle at another grain, so every prediction is graded after
+match-defect triage.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P17 | O9 (`cclang`, `minic`) | the oracle lands the fixture's hand-computed truth exactly: 17 in-repo pairs, 1 external, 3 dynamic sites, one site each `link-ambiguous`, `undefined` and `tu-split`, and `orphan.c` not loaded. On `minic`, 0 contradicted, with `tests/test_util.c` silent as not-loaded (make's default target does not build it) | met if the fixture test passes as written and minic's report says both |
+| P18 | O9 (cJSON) | precision-against-oracle on the **semantic** tier is **100%**, 0 hobbes-wrong | met after match-defect triage |
+| P19 | O9 (cJSON) | syntactic precision ≥ 95%, and any contradiction is syntactic (the rank-3 name rule, C-130) | met if both hold; undecidable if fewer than 10 syntactic edges are judged |
+| P20 | O9 (cJSON) | the recall gap is dominated by macro expansions: `macro→*` pairs are ≥ 50% of in-repo misses (Unity's `TEST_ASSERT_*` expand to `UnityAssert*` calls) | met if the miss decomposition says so |
+| P21 | O9 (cJSON) | recall over `static→*` pairs ≥ 90% | met if in band |
+| P22 | O9 (cJSON) | the silent bucket is dominated by `not-loaded`: files cJSON's CMake build does not compile (Unity's own tests and examples, `fuzzing/`) | met if `not-loaded` is the largest silent reason |
+| P23 | O9 (random draw) | semantic precision ≥ 99% with 0 hobbes-wrong after triage; recall over `static→*` pairs ≥ 80% | graded at the draw |
+| P24 | O9 (every cell) | poison check PASS, 0 falsely confirmed | met per cell |
+| P25 | O9 | at least one harness defect in the oracle-at-another-grain class is found by the fixture, `minic` or the first triage before any number is quoted (P14's habit) | recorded as a finding regardless |
+
+**The random draw, stated before it is made.**
+- The pool: GitHub's `language:c stars:300..3000 pushed:>2026-03-01`,
+  every result the search API returns (at most 1,000), sorted by full
+  name, shuffled with `random.Random(20260912)`.
+- The first repo taken that is not a fork or archived, has a
+  `CMakeLists.txt` or a Makefile at its root, and whose ingest and oracle
+  both derive a compile database offline in the image.
+- Every repo passed over is recorded with its reason. One that cannot
+  finish on this box is recorded, and the next is taken.
+
+**What would falsify O9's usefulness.** A contradiction rate above ~5%
+that triage attributes mostly to match-defect means the conventions
+(the macro rule, the definition join) are wrong; they are fixed before
+any number is quoted. A draw whose compile database cannot be derived
+is C-135 measured, not a cell.
 
 ## 11. Evidence, claims, and register updates
 

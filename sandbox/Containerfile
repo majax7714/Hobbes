@@ -58,6 +58,7 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl xz-utils git python3 \
       build-essential pkg-config cmake bear \
+      clang \
  && rm -rf /var/lib/apt/lists/*
 
 # scip-clang for C (ADR-109). Configuring or building a C repo to get

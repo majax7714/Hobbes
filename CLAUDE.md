@@ -136,7 +136,8 @@ box, against a repo on disk (architecture §10); the application mode in
   embed dir — **rebuild `hobbes-web` after**.
 - `sandbox/` — the one image (`Containerfile`: sessions *and* lane B ingest,
   ADR-092; JDK 17/21/25 + Maven + scip-java since ADR-096, scip-clang +
-  CMake + bear since ADR-109, ~3 GB; no
+  CMake + bear since ADR-109, clang since ADR-110 (the C oracle),
+  ~3.3 GB; no
   `claude` — a session mounts the host's) and the exit-check harness.
 - `bench/` — experiment tooling, never product: `calvin/` (the M0
   templates and gold fills; the rounds' artifacts under
@@ -226,7 +227,7 @@ are present.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 109;
+  architecture doesn't already make. Number sequentially (last: 110;
   106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
