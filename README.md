@@ -154,9 +154,11 @@ Then the graph is graded, per language, against something Hobbes does
 not control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
 against the interpreter running the repo's own test suite, Rust against
 rustc's MIR, Java against javac's own resolution — with wrong edges deliberately seeded on every cell to
-prove the grader can say no. Every compiler-graded semantic tier is at
-100% on the cells graded so far; every miss falls into one known class
-(closures, function values, interface dispatch) and is written down.
+prove the grader can say no. Every compiler-graded cell is at 100%
+precision-against-oracle but one: quic-go reads 99.6%, a lower bound whose
+15 contradictions all triage to the oracle's own grain, with none Hobbes'.
+Every miss falls into one known class (closures, function values,
+interface dispatch) and is written down.
 
 Deeper: architecture §3;
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) (every repo
@@ -276,8 +278,8 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and thirty-four entries (one
-hundred and seven active, twenty-four lifted, three superseded), each naming
+The constraint register holds one hundred and thirty-seven entries (one
+hundred and ten active, twenty-four lifted, three superseded), each naming
 where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -292,6 +294,7 @@ its own: no model, no credential, no network.
 **The oracle lane (ADR-089) has run both phases** — Go and TS
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded — with every compiler-graded cell at 100% after ADR-090
+but quic-go's 99.6% lower bound (every contradiction the oracle's grain),
 and the misses registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
@@ -340,7 +343,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-108 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-109 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
@@ -394,7 +397,7 @@ cd ../bench/oracle/ts && npm install        # the oracle lane's tsc (its Go test
 cd ../../../pipeline  && uv sync
 
 # the one sandbox image: lane B for every language, the executing oracles,
-# sessions, and the knowledge tools all run from it (ADR-092/094, ~2.8 GB)
+# sessions, and the knowledge tools all run from it (ADR-092/094, ~3.1 GB)
 CGO_ENABLED=0 go build -C ../go -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
 cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 ```

@@ -226,7 +226,7 @@ are present.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 108;
+  architecture doesn't already make. Number sequentially (last: 109;
   106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -288,12 +288,13 @@ are present.
     schema v4. **C** has both lanes since 0.2.4-beta (ADR-108/109:
     tree-sitter-c, and scip-clang over a compile database the ingest
     derives) and stays unverified until an oracle cell grades it.
-  - **Grading:** every compiler-graded oracle cell is at 100% precision,
-    with the misses registered by class (ADR-089/090; 41 cells regraded
-    at 0.1.10-beta).
+  - **Grading:** every compiler-graded oracle cell is at 100% precision
+    but quic-go (a 99.6% lower bound; its 15 contradictions are all the
+    oracle's grain), with the misses registered by class (ADR-089/090;
+    41 cells regraded at 0.1.10-beta).
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 134 entries (107 active, 24 lifted, 3 superseded).
+  - **Register:** 137 entries (110 active, 24 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
