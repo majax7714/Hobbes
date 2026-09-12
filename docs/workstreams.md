@@ -44,9 +44,10 @@ item opens when Max names it. Sequencing context is
    for its harness) ran on four keys 2026-09-04 and its four no-spend
    fixes are in, not re-run. **API spend and Modal compute are off the
    table for the next steps (Max, 2026-09-04):** current work is the
-   no-spend queue in `session-handoff.md` NEXT — Calvin's model-free
-   follow-through, the extraction residue, then W0's discipline items
-   and collaborator onboarding. Every run in W2/W3 stays held.
+   no-spend queue in `session-handoff.md` NEXT — named work dispatched
+   through the Calvin harness (item 9), the extraction residue, then
+   W0's discipline items and collaborator onboarding. Every run in
+   W2/W3 stays held.
 9. **Calvin's keyed rounds closed 2026-09-12** (M0, M0-Go, M0-Gate; Max).
    Calvin is now the harness `hobbes dispatch` (ADR-107,
    `calvin/calvin-harness.md`). A task goes to Claude Code in
@@ -63,7 +64,7 @@ item opens when Max names it. Sequencing context is
 build item.*
 
 - ~~**CI, for real.**~~ — **built 2026-08-28 (ADR-095)**:
-  `.github/workflows/ci.yml` runs the five suites as four jobs plus the
+  `.github/workflows/ci.yml` runs every suite in three jobs plus the
   graph shape (`scripts/ci-graph.sh <base>`: image build → ingest →
   containment stamp → lanes → every compiled invariant checker → review
   → `lane_b` pytest). **The first GitHub runs (2026-09-04 → 09-06) were
@@ -125,8 +126,8 @@ build item.*
 - **Recurring drift audit.** Re-run 2026-08-28 (41 fixes, one regrade,
   a red pin caught — BUILDLOG). The rule (ADR-033, §9) only works if
   someone re-runs the check; cheap, periodic, assignable to anyone.
-  CI now catches the suite counts and the lane agreement; prose claims
-  are still a person's job.
+  CI runs every suite and checks the lane agreement; the suite counts
+  in CLAUDE.md and the prose claims are still a person's job.
 - **Extraction evidence upkeep.** `extraction-evidence.md` gets a dated
   entry per test session, `Verified:` line mandatory (P11). Since
   ADR-092 every entry states `containment` or is a host-run record.
@@ -188,7 +189,9 @@ the best on-ramp for a new contributor who should learn the codebase.*
 - **Cross-language module-id namespacing** — the live parked gap
   (`future_additions.md`, C-15): a colliding `widget.py`/`widget.ts`
   drops a file by pipeline-order accident. Deserves its own ADR;
-  "before the fourth language lands, or when a real repo hits it."
+  "before the fourth language lands, or when a real repo hits it." The
+  first trigger passed unused (Java was the sixth language), so the
+  item waits on the second, or on Max naming it.
 - ~~**C-98 — the TS helper under a solution-style `tsconfig.json`**~~
   — **lifted 2026-09-10:** `zoneTsconfig` resolves a file under a
   solution config to the referenced project whose inputs include it, by
@@ -368,10 +371,6 @@ contributor.*
   Max named as the spec (`future_additions.md`, 2026-08-14).
 - **Push transport for the Sessions tab** — only if polling starts to
   hurt.
-
-*Profile: TS/React + some Go (the surface server); the review-prose item
-needs Python and taste.*
-
 - **ADR-087 follow-ups (host knowledge tools).** ~~(a) `list_blind_spots`
   (and the other scope-taking tools) should accept `path` as an alias
   for `scope`, or the descriptions should name the argument in the
@@ -383,6 +382,9 @@ needs Python and taste.*
   recorder, so an *attempted* tool call is indistinguishable in the log
   from no call; record rejections at the server (ADR-015's "never
   unaudited" applies to refusals too). (b) stays parked until named.
+
+*Profile: TS/React + some Go (the surface server); the review-prose item
+needs Python and taste.*
 
 ## W5 — Safety & policy
 

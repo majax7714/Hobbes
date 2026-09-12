@@ -194,6 +194,8 @@ nothing is built until a repo hits it.
 - **Provider (P9):** none — this is Hobbes's own reading.
 - **Source:** ADR-096, decision 4.
 
+## Lifted constraints in this segment
+
 ### C-101 — A Java build with Kotlin (Scala, Groovy) sources failed its resolve pass, and the unit fell to lane A — *registered and lifted 2026-09-10, the same session*
 - **Was:** ADR-097's resolve stage held "every non-source file" under
   the build root, where *source* meant `.java`. A Maven build with

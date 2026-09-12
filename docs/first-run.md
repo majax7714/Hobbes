@@ -6,8 +6,9 @@ because the order is the design: **deterministic before generative,
 enforcement before agents, content before chrome** (build plan,
 sequencing rules).
 
-You can stop after any step and still have something useful. Steps 1–4
-spend no quota and involve no agents at all.
+You can stop after any step and still have something useful. Steps 1–3
+spend no quota and involve no agents at all; step 4 is the first that
+does.
 
 > **The short version.** After step 0, `cd` to the repo and run
 > **`hobbes up`**. It does steps 1–3 for you — initialize if needed,
@@ -159,12 +160,13 @@ hobbes ingest
 
 Runs the deterministic extractors and writes
 `.hobbes/derived/{graph,tests,interfaces}.json`, each stamped with the
-repo SHA. No LLM, no network, seconds.
+repo SHA. No LLM, and no network beyond step 0's dependency fetches
+(Go, Rust, and Java's resolve pass).
 
-Each language is dispatched to its own parser by file extension — `.py`
-to the Python extractor, `.tf` to the Terraform one, `.ts/.tsx/.js/.jsx/
-.mjs/.cjs` to the ts-morph helper — and the layers merge facts rather
-than re-deriving each other's (I-4). If the repo has Terraform and you
+Each language is dispatched to its own parser by file extension — `.py`,
+`.go`, `.rs` and `.java` to their tree-sitter providers, `.tf` to the
+Terraform one, `.ts/.tsx/.js/.jsx/.mjs/.cjs` to the ts-morph helper —
+and the layers merge facts rather than re-deriving each other's (I-4). If the repo has Terraform and you
 have a plan handy, `--tf-plan plan.json` enriches the infra layer;
 `.tfstate` is refused outright and always will be.
 
@@ -247,7 +249,7 @@ in a markdown file instead.
 
 ---
 
-## 4. `hobbes narrate` — the only step that costs quota
+## 4. `hobbes narrate` — the first step that costs quota
 
 ```sh
 hobbes narrate --dry-run    # what it would do, and how many calls
@@ -341,8 +343,11 @@ The session gets:
   `~/.hobbes/sessions/<id>/egress.jsonl`;
 - an empty environment: no host secret reaches it but the token, which
   is passed by name;
-- no raw shell — it reaches commands only through the policy-checked `exec`
-tool. It starts oriented: `graph_neighborhood`, `who_calls`,
+- no raw shell — it reaches commands only through the policy-checked
+  `exec` tool.
+
+It starts oriented: `list_blind_spots` (what the graph cannot see
+there, read first), `graph_neighborhood`, `who_calls`,
 `tests_guarding`, `get_module_doc`, and `list_invariants` are all
 available, so it reads the constraints instead of grepping for them.
 

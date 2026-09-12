@@ -475,8 +475,12 @@ surfaced per file rather than silent.)*
   post-cutoff set (DeepSWE via Pier exists but is retracted as Hobbes
   evidence, P12), seed adjustments (dotted suffix done; punctuation and
   generic weights not), evaluation at scale (workers + ADR-065; pulls
-  still manual); **still parked** — bench in the web surface, egress
-  narrowing (C-41), Daytona. Original text follows. In the order a live
+  still manual); **still parked** — bench in the web surface, Daytona;
+  ~~egress narrowing (C-41)~~ — **built 2026-09-12 (ADR-107):**
+  `hobbes-session --egress HOST`, an internal network behind a logging
+  CONNECT proxy to the named hosts alone; C-41 narrowed, not lifted
+  (the bench's `--network` path keeps the whole network). Original
+  text follows. In the order a live
   run needs them: **a session image that runs Claude Code** — glibc
   base, host `claude` mounted ro, credential, a network mode other
   than `none`; the network is an owner decision that contradicts
@@ -608,7 +612,9 @@ as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
 but there is no Kotlin lane A, so it would be references without call
 sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
 number proves too coarse, and an allowlisted egress proxy for the
-networked resolve pass (C-66 as narrowed by ADR-097). Also worth keeping, because the question came up:
+networked resolve pass (C-66 as narrowed by ADR-097) — the proxy exists
+since 2026-09-12 (`hobbes-proxy egress`, ADR-107); wiring it into the
+resolve stage is what is left (workstreams W1). Also worth keeping, because the question came up:
 ingest is per language, gated on discovery — a language with no files
 in the repo costs one extension walk and nothing else; only the image
 build carries every toolchain.

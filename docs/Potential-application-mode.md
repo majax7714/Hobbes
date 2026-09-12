@@ -5,7 +5,7 @@ none to be written.**
 
 Max's call, in his words: *"the application was a thought i had wanting it
 less and less but maybe one day."* **Hobbes stays local** — on the box,
-against a repo on disk (architecture §9). This document is kept as the
+against a repo on disk (architecture §10). This document is kept as the
 record of the thought and the assessment it got, not as a plan. Do not
 begin implementing it, and do not design other work toward it.
 

@@ -30,7 +30,8 @@ for the agent to work from, and a system that is easier for a person to
 understand.
 
 Hobbes is built on other people's work and says so: **tree-sitter** is
-every syntax lane, the **SCIP** protocol and its indexers
+the syntax lane of every language but TS/JS (whose syntax provider is
+**ts-morph**), the **SCIP** protocol and its indexers
 ([scip-code/scip](https://github.com/scip-code/scip)) are every semantic
 edge, and the graph is graded against compilers and interpreters Hobbes
 does not control. The full list is under
@@ -112,7 +113,7 @@ flowchart TB
   F --> SCIP
   subgraph A["Lane A — syntax provider"]
     direction TB
-    TS[tree-sitter walk] --> S1["symbols · call sites · imports<br/>local bindings · test shapes"]
+    TS["tree-sitter walk<br/>(ts-morph for TS/JS)"] --> S1["symbols · call sites · imports<br/>local bindings · test shapes"]
   end
   subgraph B["Lane B — the language's own indexer, pinned"]
     direction TB
@@ -349,6 +350,7 @@ point); the session-by-session record is
 | [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
 | [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/calvin/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/calvin/calvin-m0-go.md), [round 2](docs/calvin/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/calvin/cells/`. History since 2026-09-12 |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
+| [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
 | [`docs/workstreams.md`](docs/workstreams.md) | The backlog grouped into assignable workstreams, with gating and contributor profiles |
 
@@ -366,6 +368,8 @@ interactive graph.
 | `tsextract/` | TS/JS syntax provider (ts-morph), invoked as a subprocess | Node |
 | `scip/` | Lane B — the pinned SCIP indexers and the facts helper | Node |
 | `sandbox/` | Session container image and the exit-check harness | Containerfile + Python |
+| `bench/` | Experiment tooling, never product and never versioned (ADR-103): the oracle lane, Atlas-0, Calvin's round templates | Go + Python + Node |
+| `scripts/` | `ci-graph.sh`, the CI graph job, which runs the same way on a box | shell |
 | `docs/` | Source docs, ADRs, the constraint register, and the append-only BUILDLOG | — |
 | `.hobbes/` | Hobbes dogfooding itself: `policies/` and `invariants/` versioned, `derived/` gitignored | — |
 
@@ -438,7 +442,7 @@ hobbes-session start --repo . --role implementer --egress api.anthropic.com
 `hobbes ingest && hobbes lanes && hobbes review $BASE..HEAD` is the CI
 shape: extract, let the lanes check each other, then gate on the concepts.
 It runs on every push and pull request (`.github/workflows/ci.yml`,
-ADR-095): the five suites below as separate jobs, and the graph shape
+ADR-095): every suite below, in three jobs, and the graph shape
 as `scripts/ci-graph.sh <base>` — which builds the sandbox image, checks
 the ingest's `containment` stamp, executes every compiled invariant
 checker, and runs the image-dependent (`lane_b`) pytest cases. The same
@@ -453,10 +457,11 @@ cd pipeline    && uv run pytest    # lane A only by default; `lane_b` cases need
 cd web         && npm test         # vitest, the pure layer
 cd tsextract   && npm test         # node --test
 cd scip        && npm test         # node --test
+cd bench/atlas0 && uv run pytest   # the Atlas-0 instruments (bench tooling)
 ```
 
-Suite sizes are kept in [`CLAUDE.md`](CLAUDE.md) (one place, checked by
-CI) rather than repeated here.
+Suite sizes are kept in one place, [`CLAUDE.md`](CLAUDE.md), rather
+than repeated here. CI runs every suite but does not check those counts.
 
 Tests accompany the code they test in the same commit; the pytest suite
 runs lane-A-only by default (`HOBBES_SCIP=0`) so it stays hermetic and
@@ -471,11 +476,12 @@ harness. The things it joins are other projects', used as they are and
 pinned where a pin is possible:
 
 - **[tree-sitter](https://tree-sitter.github.io/)** and its grammars
-  (`tree-sitter-python`, `-go`, `-rust`, `-hcl`; pinned `<0.26` in
-  `pipeline/pyproject.toml`) — **lane A, every language.** tree-sitter
-  is how Hobbes knows a call site *is* a call and where it sits; every
-  `syntactic` edge and every call-site count in this repo's evidence
-  tables is a tree-sitter walk. Architecture §3.1.
+  (`tree-sitter-python`, `-go`, `-rust`, `-java`, `-hcl`; the core pinned
+  `<0.26` in `pipeline/pyproject.toml`) — **lane A, every language but
+  TS/JS.** tree-sitter is how Hobbes knows a call site *is* a call and
+  where it sits; outside TS/JS, every `syntactic` edge and every
+  call-site count in this repo's evidence tables is a tree-sitter walk.
+  Architecture §3.1.
 - **[SCIP](https://github.com/scip-code/scip)** and the indexers Hobbes
   runs unchanged — `scip-python`, `scip-typescript`,
   [`scip-go`](https://github.com/scip-code/scip-go) (0.2.7),
@@ -485,7 +491,11 @@ pinned where a pin is possible:
   edge is theirs; their limits are registered as Hobbes's own (P9,
   C-6, C-23). Architecture §3.2.
 - **[ts-morph](https://ts-morph.com/)** (over the TypeScript compiler)
-  — the TS/JS syntax provider in `tsextract/` (ADR-021).
+  — **lane A for TS/JS**, the syntax provider in `tsextract/` (ADR-021).
+- **[Claude Code](https://www.anthropic.com/claude-code)** — the doer a
+  `hobbes dispatch` session runs (ADR-107), mounted from the host and
+  used as it is; `hobbes narrate` and the reviewer session run it
+  headless too.
 - **[mini-swe-agent](https://github.com/SWE-agent/mini-swe-agent)** and
   **[datacurve-pier](https://github.com/datacurve/pier)** — the
   **referenced open harness** both benchmark arms run in on the DeepSWE
@@ -499,7 +509,10 @@ pinned where a pin is possible:
   **DeepSWE 1.1** (the uncontaminated set with a behaviour verifier the
   programme moved to, C-39).
 - **Qwen** (Qwen2.5-Coder, Qwen3.8) served with **vLLM** on **Modal** —
-  the small-model ladder (ADR-056/057/074).
+  the small-model ladder (ADR-056/057/074) — and **Ai2's
+  [Olmo 3](https://huggingface.co/allenai/Olmo-3-7B-Instruct)**
+  (`Olmo-3-7B-Instruct`), the test-time-training experiment's model
+  (ADR-099).
 - **The oracle lane's answer keys** (`bench/oracle/`, ADR-089) — the
   graph is graded against tools Hobbes does not control, and the grade
   is only as good as they are: **[`golang.org/x/tools`](https://pkg.go.dev/golang.org/x/tools)**'s
@@ -507,7 +520,8 @@ pinned where a pin is possible:
   resolution) for TS; **CPython's `sys.monitoring`** (PEP 669) driving
   the repo's own pytest suite for Python; and **rustc itself** — the
   Rust oracle is a `rustc_driver` program linking rustc's private crates
-  on a pinned nightly (`rustc-dev`), walking the MIR the compiler built.
+  on a pinned nightly (`rustc-dev`), walking the MIR the compiler built;
+  and **javac**'s own resolution, with CHA for dispatch, for Java.
   Each cell records the exact oracle version; a different nightly is a
   different oracle and the record says so.
 - **The invariant compile targets** — `hobbes invariants compile` emits
@@ -518,7 +532,7 @@ pinned where a pin is possible:
   rules down in their language.
 - **[Cytoscape.js](https://js.cytoscape.org/)** (D3) for the
   interactive graph, with **React** and **Vite** around it; **Podman**
-  rootless (D2) for session isolation on an **Alpine** base image; the
+  rootless (D2) for session isolation on an **Ubuntu 24.04** base image; the
   **Model Context Protocol** Go SDK and `yaml.v3` — the only external
   Go dependencies of the product binaries.
 - And **Bill Watterson**, for the tiger. Hobbes takes its name — and

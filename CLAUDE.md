@@ -34,8 +34,9 @@ Fall back to `grep`/`cat` for exactly two things — what `list_blind_spots`
 says the graph does not cover there, and non-code text (docs, configs,
 string literals). A stale-artifact warning means `uv run hobbes ingest`,
 not a grep. Mechanics (the image, staleness, C-65) are under
-*Hobbes for Hobbes* below. Inside a dispatched session (below) the same
-six tools are served as `mcp__hobbes__*`.
+*Hobbes for Hobbes* below. Inside a dispatched session (`hobbes
+dispatch`, ADR-107) the same six tools are served as `mcp__hobbes__*`;
+the session's brief names them.
 
 ## What this project is
 

@@ -36,7 +36,7 @@ flowchart LR
     F[files]
   end
   subgraph A["Lane A — syntax provider, per language"]
-    TS[tree-sitter walk] --> S1[symbols · call sites · imports<br/>local bindings · test shapes]
+    TS["tree-sitter walk<br/>(ts-morph for TS/JS)"] --> S1[symbols · call sites · imports<br/>local bindings · test shapes]
   end
   subgraph B["Lane B — the language's own indexer (pinned)"]
     SCIP[scip-python · scip-typescript · scip-go<br/>rust-analyzer scip · scip-java] --> S2[declarations resolved<br/>per occurrence]
@@ -51,7 +51,7 @@ flowchart LR
   SEM --> G[(graph.json · schema v4<br/>every edge carries its lane + evidence line)]
   SYN --> G
   TAIL --> G
-  G --> REG["constraint register C-1…C-96<br/>what the graph cannot tell you,<br/>each with a surfacing status"]
+  G --> REG["constraint register<br/>what the graph cannot tell you,<br/>each with a surfacing status"]
   G --> ORA["oracle lane (bench/oracle)<br/>answer keys Hobbes does not control"]
   ORA --> O1[Go: x/tools RTA]
   ORA --> O2[TS: tsc resolution]
@@ -86,10 +86,11 @@ What the picture says that a headline cannot:
   known hole is named per file. That per-directory view is what named
   the date-fns fix; the before/after is
   [`comparative/graphics/date-fns-before-after.svg`](comparative/graphics/date-fns-before-after.svg).
-- **The register is a first-class artifact.** Ninety-six entries of
-  what the graph cannot tell you, each with where a user meets the
+- **The register is a first-class artifact.** Every entry records
+  something the graph cannot tell you, with where a user meets the
   limit (surfaced / partial / unsurfaced), amended in the same commit
-  as the code. Inherited indexer limits are owned as Hobbes' own (P9);
+  as the code; the count is kept in one place,
+  [`constraints/README.md`](constraints/README.md). Inherited indexer limits are owned as Hobbes' own (P9);
   a competitor's edge our conversion misreads is owned the same way,
   pointed the other way (C-94).
 - **The oracle lane grades against something Hobbes does not control**,
@@ -131,7 +132,7 @@ flowchart TB
   end
   subgraph session["one session = one rootless Podman sandbox"]
     U1 --> PROXY["hobbes-proxy (per-session MCP daemon)"]
-    PROXY --> POL["policy engine: box → repo → folder → role → agent<br/>deny overrides allow · allow | deny | escalate"]
+    PROXY --> POL["policy engine: builtin floor → box → repo → role → folder → agent<br/>deny overrides allow · allow | deny | escalate"]
     POL -->|allow| EXEC[exec]
     POL -->|escalate| Q[park → human approves/expires]
     POL -->|deny| ABSENT["the command is absent,<br/>not refused by a prompt"]
@@ -165,7 +166,7 @@ What the picture says:
   there.
 - **Policy is enforced below the model.** A session runs in a rootless
   Podman sandbox behind a per-session MCP proxy with a Go policy engine
-  (box → repo → folder → role → agent; deny overrides allow; allow /
+  (builtin floor → box → repo → role → folder → agent; deny overrides allow; allow /
   deny / escalate to a human queue). A forbidden command is *absent*,
   and every call is in a flight log. repowise governs by hooks that
   push context and intercept tool calls; CodeGraphContext's README does
