@@ -121,6 +121,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
+| [`extraction-c.md`](extraction-c.md) | Extraction — C (lane A only, ADR-108) | C-130, C-131, C-132, C-133, C-134 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
@@ -135,8 +136,16 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and twenty-nine entries: one hundred and two active, twenty-four lifted, three superseded**
-(ADR-107's retention amendment, 2026-09-12:
+**One hundred and thirty-four entries: one hundred and seven active, twenty-four lifted, three superseded**
+(ADR-108 on 2026-09-12, C at lane A:
+- C-130–C-134 registered:
+  - C has no semantic lane, and edges match by name (*surfaced*);
+  - the preprocessor never runs (*partial*);
+  - `.h` is C and C++ is not read (*partial*);
+  - includes resolve by path, not `-I` (*unsurfaced*);
+  - tests follow one naming convention (*unsurfaced*).
+
+ADR-107's retention amendment, 2026-09-12:
 - C-129 registered: the training guard keeps the session rows and the
   doer's commits out as units, not the merged tree (*surfaced*).
 - C-125 amended: the doer's transcript is no longer kept.

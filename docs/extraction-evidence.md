@@ -42,10 +42,27 @@ beside compiler-graded cells. Their sections are gone; the rules they
 produced (the tail's `import-binding` class, the C-27 venv check, the
 HCL pack's `packages` edge) keep their citations in code and register.*
 
+## DaveGamble/cJSON (C — lane A only, ADR-108; not a §3.8 row)
+
+C has no lane B, so every number here is lane A's name fallback at
+`syntactic` tier (C-130). cJSON's tree includes its vendored Unity test
+framework, which is most of its C. Host run, at `fb16e5c`.
+
+| Date | Numbers |
+|---|---|
+| 2026-09-12 (after the rework, `48684e3`) | 0.3 s. **99 C modules; 1,654 symbols** (1,026 functions, 597 function-like macros, 31 types). Of **4,292 C call sites**: **3,363 fallback-resolved (78.4%)**, 344 builtin-name, 26 attr-call, 1 local-binding, 558 unclassified. **1,761 call edges, all `syntactic`.** 345 include edges. 39 tests by the `test_*` convention (C-134: cJSON's own `RUN_TEST` tests are not among them). 38 syntax-error `parse` records (export macros and the `extern "C"` idiom) and 9 duplicate-definition records (C-131) |
+| 2026-09-12 (the first walk, `984daab`) | 1,298 symbols (0 of `unity.h`'s 341 function-like macros: `extern "C"` bodies went unwalked); 2,125 fallback-resolved; 1,796 unclassified; 1,189 edges; 73 duplicate symbol ids. The review's findings were reworked in `48684e3` |
+
+**Verified:** 9 edges hand-checked against their cited lines and
+definitions, 9 right. Four at `984daab`: two cJSON API calls from the
+tests (unique globals) and two Unity-internal calls. Five at `48684e3`:
+a unique global, a same-file static, two Unity macros through a direct
+`#include "unity.h"`, and `cJSON_Delete`. No oracle; C has no §3.8 row.
+
 ## hobbes (this repo — dogfood, continuous)
 
-Six languages in its own graph (`go, hcl, javascript, python, rust,
-typescript`). Re-ingested every session; the suite's degraded path
+Seven languages in its own graph (`c, go, hcl, javascript, python,
+rust, typescript`; C from the `minic` fixture since 0.2.1-beta). Re-ingested every session; the suite's degraded path
 (lane B off) runs on every test invocation.
 
 | Date | Numbers |

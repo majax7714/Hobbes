@@ -11,8 +11,38 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.0-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.1-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.1-beta — 2026-09-12 (C at lane A: wired, not supported; ADR-108)
+
+**Patch: Hobbes reads C, syntax lane only.** C is wired, not supported:
+every C edge is `syntactic`, and C has no §3.8 row until its indexer
+and evidence land (Max: a patch; the minor waits for "supported").
+
+- **`csource.py`, a tree-sitter-c walk** on the provider contract:
+  - `.c` and `.h` files, and `.h` keeps its extension in the module id;
+  - symbols from definitions only (functions, types, function-like
+    macros), and one symbol per id;
+  - the walk is transparent through `#if` arms and `extern "C"`;
+  - include edges resolved by path, and `ext:<header>` otherwise;
+  - three call shapes;
+  - a three-rank name fallback, where any tie abstains;
+  - tests by the `test_*` convention.
+- **Wired** into `extract_repo` and the join, with the tail's `.c`/`.h`
+  row, a pinned C11 builtin list and `__builtin_*`. No lane B: nothing
+  in the builder, the join or the schema changed.
+- **Built through the harness** (ADR-107) in two dispatched sessions:
+  - `984daab` built the walk;
+  - `48684e3` reworked the four defects review found on cJSON.
+
+  Both are authored by `hobbes-dispatch` and fast-forwarded.
+  `tree-sitter-c` 0.24.2 was added first (`fb24216`).
+- **Register:** C-130–C-134 registered (the new segment
+  `extraction-c.md`).
+- **Decided, not built:** C's lane B is scip-clang over a derived
+  compile database (`compile_commands.json`, else CMake's export, else
+  `bear`, else lane A only and said so).
 
 ## 0.2.0-beta — 2026-09-12 (the Calvin harness is the minor; ADR-103 amended)
 

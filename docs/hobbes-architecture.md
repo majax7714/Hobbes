@@ -336,9 +336,10 @@ framework-declared interfaces readable syntactically (FastAPI/Flask decorators,
 Express/Nest registrations), test inventory and structure, and *approximate*
 module-level dependency edges.
 
-Six providers: `pysource` (Python), `tssource` (TS/JS, via the ts-morph
+Seven providers: `pysource` (Python), `tssource` (TS/JS, via the ts-morph
 helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
-`javasource` (Java, ADR-096), and the HCL walk inside the Terraform pack. Each answers the same question — where are
+`javasource` (Java, ADR-096), `csource` (C, ADR-108, the only one with
+no indexer behind it yet), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
 The TS provider places an overloaded function or method at its first
@@ -822,8 +823,8 @@ to answer.
 still holds for the *builder* — Go added zero lines to it, and Rust
 (V2.M7, the language the checklist was corrected *for*) added zero again.
 What P7 cannot promise is that a language is free: it costs one grammar
-walk, a bounded mechanical job with six worked examples now (`pysource`,
-`tssource`, `gosource`, `rustsource`, `javasource`, and HCL's). The claim that was wrong
+walk, a bounded mechanical job with seven worked examples now (`pysource`,
+`tssource`, `gosource`, `rustsource`, `javasource`, `csource`, and HCL's). The claim that was wrong
 is "an indexer entry plus an optional pack"; the claim that survives is
 "nothing in the core changes".
 
@@ -835,6 +836,20 @@ helper now owns that decode) and one containment profile with a
 network (§3.2). Zero lines in the builder, the join or the schema —
 and a language absent from §3.8 is wired, not supported: Java's row
 landed the same day on four compiler-graded cells (O8).
+
+**C (ADR-108) was the seventh walk, and the first wired with no indexer
+at all.** It touched only the list above:
+- the provider's wiring in `extract/__init__.py`;
+- the tail's extension, class and builtin tables (C's row holds five
+  classes, and its builtin-name adds a `__builtin_*` prefix rule).
+
+There are zero lines in the builder, the join or the schema. Every C
+edge is the fallback's, at `syntactic` tier, which is the join with an
+empty lane B. C has no row in §3.8, so it is wired, not supported.
+Its lane B is the next unit: scip-clang over a derived compile
+database, degrading visibly where none can be derived (C-130–C-134).
+It is also the first language built through the harness (ADR-107):
+two dispatched sessions, reviewed against a real C repo.
 
 **Where steps 1 and 2 actually live.** `hobbes.yaml` does not exist and is
 not going to — the architecture named it before anything needed it, and
@@ -1586,7 +1601,8 @@ The v2 extraction programme — **complete and fully reviewed as of
 | **Java** (ADR-096, J.M0–J.M5) | done, contained, **compiler-graded 2026-08-29**; C-66 settled 2026-09-01 (ADR-097) | the sixth language: `javasource` + `scip-java` in the image, a javac+CHA oracle (O8), four cells at 100% precision (§3.8); the build resolves networked on a stage with no sources, then indexes offline; the residual (build logic over public caches) stays registered |
 | **Test-time training** (ADR-099) | run 2026-09-03, **held for the owner's call** | `hobbes derive-corpus` renders the derived layer as a training corpus; at 300 steps a 7B's gold-diff NLL falls on every unit but navigation does not follow, past one epoch the edges enter the weights while the NLL gain leaves; H-TTT-2/3 killed at that step count (`olmo3-ttt-results.md`, § H-TTT); C-81–C-88 |
 | **Calvin M0** (`calvin-potential.md`; ADR-100 for its harness) | steps 0–6b built, **run on four keys 2026-09-04**; the design's own ADR (101) waits on the owner's *accepted*; a wider run is held with all spend | the hole language (`derive/holes.py`), `hobbes template`, `hobbes ground`, `hobbes verify`, `hobbes gate` and the orchestrator adapter; **`hobbes gate`** (Calvin M0-Gate WP-18, 2026-09-11, `derive/gate.py`): grounder v3 over any finished diff at its parent through a one-hole template, the complement split against the unit's blind-spot map (a name-absence NULL in a blind spot reads `unknown`, advisory; a file-grain site count never routes) and the partition check at file grain (by default `reach`: a file that is not code and a code file created beside the partition are listed, not blocked), clear or blocked by class, the record stamped and byte-identical on rerun; the O drivers gate post hoc and resume a blocked session for one repair turn (`agent/loop.py --resume-transcript`); C-121–C-123; since 0.1.20-beta (WP-18c, D-x) an arm-O session and its repair turn start from a repo cut at their base commit (`harness.session_repo`: no commit past the parent, no remote, no alternates, checked at the object level; the branch fetched back into the owned clone after), one sessions root per session, C-124 the network left open; the 28 golds ground at HSR 0 and verify contained with no model; on Sonnet 5 arm T pass 1 / fail 1 / empty-diff 1 / no-tests 1 against arm O pass 1 / no patch 3 — the module anchor is the cost door and the template missed importer tests, both fixed the same night (template v1, the `import` guard grain) and exercised with no model the next day — the 28 golds re-verified under the import grain at `P2F` 0, the run's answers replayed into v1; **template v2** (Calvin M0-Go, 2026-09-11): an out-degree cap on callee expansion — an anchored symbol with more than k = 20 in-repo callees opens each as a round-1 `ANCHOR_CONFIRM` showing its signature line, and only a confirmed one becomes a body; opt-in (`build_template(version=2)`), v1 the default and rebuilt byte for byte, and the `hobbes template` CLI builds v1 only; the orchestrator adapter's **protocol v0.5** (2026-09-11, superseding v0.4): **grounder v2** holds a Go fill to the world — an import must be the standard library (go1.26.5's `go list std`, pinned), a module the governing `go.mod` requires, or a directory of the module itself (`import-outside` otherwise), and a qualifier no import binds is `unimported` — so a declaration body in another project's API reads NULL; a NULL inside a placed declaration's body goes back once as a repair of the same hole, the declaration hole shows a sibling's form (a same-kind function of the binding directory, 12 lines at most), and a refused declaration reads `refused` (C-109–C-114). Protocol v0.4 (superseding v0.3, which superseded v0.2 the same day): v0.3's reading stands — an `"unchanged"` pattern on SIGNATURE or BODY, and `"unchanged"`/`"no"` on ANCHOR_CONFIRM, is read per hole and listed under `by_pattern`, never rewriting or confirming, and a refused pattern's holes are named in the repair; v0.4 adds the **declaration hole** — the NULL round-trip offers one per new name a call site writes and nothing declares, the answer must declare that name in a file of the binding directory, and the call site is re-grounded — and the **gutter guard**, which refuses a SIGNATURE or BODY fill carrying the render's line-number gutter and names it in the repair (the grounder refuses it too); C-91–C-93, C-103–C-114 |
-| **Calvin harness** (ADR-107; `calvin/calvin-harness.md`) | built 2026-09-12, 0.1.21-beta; validation by use opens with the first dispatched session | `hobbes dispatch`: Claude Code in `hobbes-session` behind the egress allowlist (`hobbes-session --egress`, `hobbes-proxy egress`), `hobbes gate` with a derived map and `hobbes verify` on its diff, one log file per session under `docs/calvin/sessions/`; the keyed rounds (M0, M0-Go, M0-Gate) closed as an approach, their records history; C-41 narrowed, C-124 superseded, C-125–C-128 |
+| **C, lane A** (ADR-108) | wired 2026-09-12, 0.2.1-beta; **unverified** (no §3.8 row) | `csource` (tree-sitter-c 0.24.2): every C edge `syntactic`, from a three-rank name fallback, with no indexer. Built through the harness in two dispatched sessions and reviewed on DaveGamble/cJSON. Lane B next: scip-clang over a derived compile database. C-130–C-134 |
+| **Calvin harness** (ADR-107; `calvin/calvin-harness.md`) | built 2026-09-12, 0.1.21-beta (the 0.2.0-beta minor); validation by use under way: four sessions on 2026-09-12 (a rejected token, the `path` alias, C lane A and its rework) | `hobbes dispatch`: Claude Code in `hobbes-session` behind the egress allowlist (`hobbes-session --egress`, `hobbes-proxy egress`), `hobbes gate` with a derived map and `hobbes verify` on its diff, one log file per session under `docs/calvin/sessions/`; the keyed rounds (M0, M0-Go, M0-Gate) closed as an approach, their records history; C-41 narrowed, C-124 superseded, C-125–C-128 |
 
 Sequencing rules carry from v1 unchanged: deterministic before generative,
 each milestone exits on a real repo, **one milestone active at a time**, and

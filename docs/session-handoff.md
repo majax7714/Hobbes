@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.2.0-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.2.1-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.0-beta are untagged. Tags are Max's call.
+  0.2.1-beta are untagged. Tags are Max's call ("no need to tag yet").
 - **Numbering** (Max; ADR-103's fourth amendment): the Calvin harness
   moved the layer to 0.2.0-beta. Patch by patch on 0.2.x; a capability
   bumps minor.
@@ -10,9 +10,41 @@
 
 The session's record is the 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: the harness is running and is the 0.2.0-beta minor; keep dispatching named no-spend work
+## ⇢ START HERE NEXT SESSION: C is wired at lane A (0.2.1-beta, through the harness); C's lane B is next, its ADR and the image first
 
-0. **Latest (2026-09-12, last).** A second top-level doc review. Its
+0. **Latest (2026-09-12, last).** Max: "run the new harness with
+   adding c as a language to hobbes".
+   - **Done:** C's lane A in two dispatched sessions.
+     - `eef8` built `csource.py`.
+     - `e6db` fixed four defects review found on DaveGamble/cJSON:
+       `extern "C"` bodies unwalked (0 of 341 macros), a rank-1 tie that
+       picked, duplicate ids, and a `..` include that resolved.
+     - Both were fast-forwarded with their authorship kept.
+     - The bookkeeping carries ADR-108, C-130–C-134 (a new segment,
+       `extraction-c.md`), architecture §3.1/§3.7/§8, and 0.2.1-beta.
+     - C is **wired, not supported**: every C edge is `syntactic`, and
+       there is no §3.8 row.
+   - **Max's calls:** 0.2.1-beta, a patch; the minor waits for
+     "supported". For lane B: **derive the compile database and degrade
+     visibly** (`compile_commands.json`, else CMake's export, else
+     `bear`, else lane A only and said so).
+   - **Next (NEXT 1):** C's lane B.
+     - Its ADR first: scip-clang v0.4.0 against ADR-105's five points,
+       the containment profile, and how CMake and bear run in the image.
+     - Then the image change, which can't be dispatched: no fetch route.
+     - Then the provider wiring, which a dispatch can do.
+     - Then C's §3.8 row on an oracle (clang's call graph).
+   - **Harness findings:** four sessions today, with no false block and
+     no `missed`.
+     - Recall and tie-rule defects sit outside the gate's classes;
+       review on real input is what found them.
+     - The one egress refusal per suite run is `test_bench.py`'s
+       `http://llm` GET.
+     - Inside the sandbox, `test_ttt_units.py` fails 3 tests, but passes
+       24/24 on the host. Worth a look: it may be D-r's shared-clone git
+       issue.
+
+   **Earlier the same day:** a second top-level doc review. Its
    findings are fixed in one `docs:` commit (the BUILDLOG lists them),
    and Max moved the layer to **0.2.0-beta**: the harness is the
    capability (ADR-103's fourth amendment). The proxy and the image
@@ -217,10 +249,10 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 129 entries, 102 active, 24 lifted, 3 superseded.
-  C-124 was superseded 2026-09-12; C-125–C-129 were added.
+- **Register:** 134 entries, 107 active, 24 lifted, 3 superseded.
+  C-124 was superseded 2026-09-12; C-125–C-134 were added.
 - **Suites:**
-  - 1,372 pytest (4 `lane_b`);
+  - 1,443 pytest (4 `lane_b`);
   - 328 Go, subtests counted as before (HEAD `e130b34` read 304 by
     that count, 240 top-level);
   - 52 oracle-lane Go; 52 vitest; 36 + 36 node; 84 atlas0.
@@ -228,8 +260,10 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **Keep dispatching named no-spend work through the harness**
-   (START HERE item 2's steps; the candidates are items 2–3 below).
+1. **C's lane B** (START HERE item 0; workstreams W1): the ADR, then
+   the image, then a dispatch for the wiring.
+2. **Keep dispatching named no-spend work through the harness**
+   (START HERE item 2's steps; the candidates are items 3–4 below).
    Setting the validation criterion (§4's N sessions) is Max's call.
 2. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;

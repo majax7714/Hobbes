@@ -255,14 +255,16 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.0-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.1-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
 Semantic edges for **Python, TypeScript/JavaScript, Go, Rust and Java**
-(plus Terraform/HCL structure), graph schema v4 with tiers and evidence
+(plus Terraform/HCL structure; **C** is wired at lane A only, every C
+edge `syntactic` and unverified until its indexer and evidence land,
+ADR-108), graph schema v4 with tiers and evidence
 lanes, framework knowledge in removable enrichment packs, a tier-aware
 invariant checker, and a lane-agreement self-test — 3,085 call sites on
 this repo with zero disagreements at the v2 exit; 36,703 dual-resolved
@@ -273,8 +275,8 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and twenty-nine entries (one
-hundred and two active, twenty-four lifted, three superseded), each naming
+The constraint register holds one hundred and thirty-four entries (one
+hundred and seven active, twenty-four lifted, three superseded), each naming
 where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -337,7 +339,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-107 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-108 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
@@ -476,7 +478,7 @@ harness. The things it joins are other projects', used as they are and
 pinned where a pin is possible:
 
 - **[tree-sitter](https://tree-sitter.github.io/)** and its grammars
-  (`tree-sitter-python`, `-go`, `-rust`, `-java`, `-hcl`; the core pinned
+  (`tree-sitter-python`, `-go`, `-rust`, `-java`, `-c`, `-hcl`; the core pinned
   `<0.26` in `pipeline/pyproject.toml`) — **lane A, every language but
   TS/JS.** tree-sitter is how Hobbes knows a call site *is* a call and
   where it sits; outside TS/JS, every `syntactic` edge and every

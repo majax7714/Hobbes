@@ -9040,3 +9040,73 @@ binaries, the static proxy and the image were rebuilt (C-65), and the
 repo was re-ingested at the release commit. The knowledge server
 serves the new stamp once it restarts.
 
+## 2026-09-12 — (after) C at lane A through the harness — 0.2.1-beta (ADR-108)
+
+**Max:** no need to tag yet. Run the new harness with adding C as a
+language to Hobbes. Then, asked: 0.2.1-beta (a patch; the minor waits
+for "supported"). For C's lane B: derive the compile database and
+degrade visibly.
+
+**Scoping.** A dispatched session has a read-only venv and no route to
+PyPI, and it can't build the image. C's indexer (scip-clang v0.4.0)
+needs compile flags, whose source is a design decision. So the dispatch
+was lane A only, with the design decisions fixed in the brief:
+- `.h` keeps its extension in the module id, and `.h` is always C;
+- C++ is out of scope;
+- the include rules;
+- the three-rank fallback, with ties abstaining;
+- the `test_*` convention.
+
+`tree-sitter-c` 0.24.2 went into the lock first (`fb24216`): it was
+checked under the pinned core (ABI 15), and dispatch requires an ingest
+at the parent.
+
+**Session `eef8`** (74 of 200 turns): `csource.py`, the wiring, the tail
+row, the `minic` fixture and 60 tests. Gate clear, verify pass (662
+tests, 0 regressions).
+- **Read:** the one egress refusal (`GET llm`) is `test_bench.py`'s
+  `http://llm/v1` under the session's proxy. The doer's three
+  `test_ttt_units` failures are sandbox-only; on the host that file
+  passes 24/24.
+- **Review on DaveGamble/cJSON** (`fb16e5c`, host) found four defects
+  outside the gate's classes:
+  1. `extern "C"` bodies unwalked (`unity.h` 0 of 341 macros; `cJSON.h`
+     0 of 9);
+  2. a rank-1 tie that picked the last definition;
+  3. 73 duplicate symbol ids;
+  4. a `..` include clamped at the root.
+
+  Four sampled edges were right.
+- Merged by fast-forward (`984daab`, authorship kept), full suite 1,432.
+
+**Session `e6db`** (68 of 150 turns): the four fixes and their tests.
+Gate clear, verify pass. The one replaced test is stricter.
+- **Re-measured on cJSON:** 341 of 341 macros; 0 duplicate ids;
+  3,363 of 4,292 sites fallback-resolved (was 2,125); 1,761 edges.
+  Five more sampled edges were right, nine in all.
+- **Residual, registered:** a struct tag and a function sharing a name
+  tie (C-131).
+- Merged by fast-forward (`48684e3`), full suite 1,443.
+
+**Bookkeeping:**
+- ADR-108;
+- C-130–C-134 in a new segment (`extraction-c.md`), with the index
+  and debt count (134 / 107 active);
+- architecture §3.1 (seven providers), §3.7 (C, the seventh walk and
+  the first with no indexer) and §8 (a C row, and the harness row's
+  four sessions);
+- `calvin-harness.md` §7's record;
+- CHANGELOG 0.2.1-beta and every version copy;
+- CLAUDE.md, README, first-run, workstreams (W1: C's lane B, in Max's
+  order);
+- `extraction-evidence.md` (a cJSON section);
+- both session files' review blocks.
+
+A correction made before commit: the rework's review note had claimed
+the five post-rework edges were read against their lines before they
+were. They were then read, and all five were right.
+
+**Verified:** pytest 1,443 and Go green at 0.2.1-beta. The binaries,
+the static proxy and the image were rebuilt (C-65), and the repo was
+re-ingested at the commit (languages now include `c`).
+

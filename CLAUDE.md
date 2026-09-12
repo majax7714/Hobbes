@@ -104,7 +104,8 @@ box, against a repo on disk (architecture §10); the application mode in
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
   `extract/` (discover → per-language syntax providers (`pysource`,
-  `tssource`, `gosource`, `rustsource`, `javasource`) → lane B SCIP join
+  `tssource`, `gosource`, `rustsource`, `javasource`, `csource` — C is
+  lane A only, ADR-108) → lane B SCIP join
   → graph/testmap → `packs/` → emit; `containment.py` runs every lane B
   step in the sandbox image — the executing steps refuse without it,
   C-64; Java resolves in a networked pass that holds no sources, then
@@ -123,7 +124,7 @@ box, against a repo on disk (architecture §10); the application mode in
   instruments, ADR-099); `narrate/`, `invariants/`, `review.py`,
   `render.py`, `graphdiff.py`. Fixture repos under `tests/fixtures/`
   (miniapp / minits / minigo / minirust / minijava / canary-rust /
-  canary-java / goshapes / twomod), excluded from collection.
+  canary-java / goshapes / twomod / minic), excluded from collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B: pinned SCIP indexers (`scip-python`, `scip-typescript`,
   `scip-go` 0.2.7, rust-analyzer's `scip`, `scip-java` 0.13.1 in the
@@ -204,7 +205,7 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-12): 1,372 pytest (4 of them
+Suite sizes at the last check (2026-09-12): 1,443 pytest (4 of them
 `lane_b`) / 328 Go (subtests counted) + 52 oracle-lane Go (two run the
 `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
@@ -223,7 +224,7 @@ are present.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 107;
+  architecture doesn't already make. Number sequentially (last: 108;
   106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -236,7 +237,7 @@ are present.
   after a bump (C-65). **The number line is Max's (ADR-103, fourth
   amendment, 2026-09-12): the Calvin harness moved the layer to
   0.2.0-beta; patch by patch on 0.2.x, and a capability bumps minor;**
-  tags are his call each time — 0.1.9-beta to 0.2.0-beta are untagged,
+  tags are his call each time — 0.1.9-beta to 0.2.1-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -275,20 +276,22 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.2.0-beta
+## Status (2026-09-12) — Hobbes 0.2.1-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
   - **Languages:** Python, TypeScript/JavaScript, Go, Rust and Java
     (+ Terraform/HCL). Each is a syntax provider plus a pinned batch
     indexer (P13, ADR-105), joined by one range join, with artifacts at
-    schema v4.
+    schema v4. **C** is wired at lane A only (0.2.1-beta, ADR-108):
+    every C edge is `syntactic` and C is unverified. Its lane B,
+    scip-clang over a derived compile database, is the next unit.
   - **Grading:** every compiler-graded oracle cell is at 100% precision,
     with the misses registered by class (ADR-089/090; 41 cells regraded
     at 0.1.10-beta).
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 129 entries (102 active, 24 lifted, 3 superseded).
+  - **Register:** 134 entries (107 active, 24 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,

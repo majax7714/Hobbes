@@ -247,6 +247,21 @@ the best on-ramp for a new contributor who should learn the codebase.*
   not a bug.
 - **Directory rollup in `list_blind_spots`** — port `rollup_directories`
   to the Go proxy (same rows, agent-facing altitude).
+- **C's lane B and its evidence (ADR-108).** C is wired at lane A only
+  (0.2.1-beta).
+  - **Next, the indexer:** scip-clang v0.4.0 pinned in the image, read
+    against ADR-105's five points first, with its own ADR and
+    containment profile.
+  - **The compile database is derived,** in this order (Max,
+    2026-09-12, "derive it, degrade visibly"):
+    1. the repo's `compile_commands.json`;
+    2. CMake's export in the container;
+    3. `bear` over make;
+    4. otherwise lane A only, and the ingest says so.
+  - **Then C's §3.8 row** on an oracle, clang's own call graph.
+  - **Lifts:** C-130, and parts of C-131 and C-133. C-134, the test
+    registrations, is a separate, smaller item.
+  - C++ has not been named.
 
 *Profile: one owner for the Python/tree-sitter side, optionally one for
 tsextract/Go ports. Every item has a numeric before/after.*

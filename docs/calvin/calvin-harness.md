@@ -207,4 +207,19 @@ After that, the developer:
     `401`, reached for no other host, and left no container or network
     behind.
 
-  No session has been dispatched yet.
+- **2026-09-12 — the first sessions,** each in its own file under
+  [`sessions/`](sessions/README.md):
+  - `S-20260912T151728Z-96df`: the token had been copied short and was
+    rejected with a 401. Discarded.
+  - `S-20260912T151945Z-417f`: the `path` alias (38 of 40 turns). Gate
+    clear, verify pass, merged (0.1.23-beta).
+  - `S-20260912T164904Z-eef8`: C's lane A (74 of 200 turns). Gate clear
+    and verify pass; merged. Review on a real C repo found four defects
+    outside the gate's classes.
+  - `S-20260912T171754Z-e6db`: the rework of those four (68 of 150
+    turns). Gate clear and verify pass; merged (0.2.1-beta, ADR-108).
+  - **Findings so far:** no false block and no `missed`. Every egress
+    refusal was read: one per suite run, the suite's own `http://llm`
+    GET, which the proxy refused as built. The gate's classes do not
+    cover recall or tie-rule defects; review on real input found those
+    (§4's "an error outside every class").

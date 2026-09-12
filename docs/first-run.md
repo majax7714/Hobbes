@@ -164,7 +164,8 @@ repo SHA. No LLM, and no network beyond step 0's dependency fetches
 (Go, Rust, and Java's resolve pass).
 
 Each language is dispatched to its own parser by file extension — `.py`,
-`.go`, `.rs` and `.java` to their tree-sitter providers, `.tf` to the
+`.go`, `.rs`, `.java`, `.c` and `.h` to their tree-sitter providers (C
+at lane A only, ADR-108), `.tf` to the
 Terraform one, `.ts/.tsx/.js/.jsx/.mjs/.cjs` to the ts-morph helper —
 and the layers merge facts rather than re-deriving each other's (I-4). If the repo has Terraform and you
 have a plan handy, `--tf-plan plan.json` enriches the infra layer;
