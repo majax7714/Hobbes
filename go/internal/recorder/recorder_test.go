@@ -116,6 +116,34 @@ func TestNilExitSerializesAsNull(t *testing.T) {
 	}
 }
 
+func TestPathFieldOmittedUnlessSetAndRoundTrips(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "flight.jsonl")
+	r, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	if err := r.Record(Event{Session: "S-1", Tool: "exec", Decision: "allow"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.Record(Event{Session: "S-1", Tool: "Edit", Path: "pkg/use.py"}); err != nil {
+		t.Fatal(err)
+	}
+
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if strings.Contains(lines[0], "path") {
+		t.Errorf("an event with no path must omit the field: %s", lines[0])
+	}
+	got := readLines(t, path)[1]
+	if got.Path != "pkg/use.py" {
+		t.Errorf("path mangled: %+v", got)
+	}
+}
+
 func TestEscalationFieldOmittedUnlessSet(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "flight.jsonl")
 	r, err := Open(path)

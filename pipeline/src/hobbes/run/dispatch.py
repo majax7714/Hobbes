@@ -25,6 +25,8 @@ import os
 import secrets as _secrets
 import shutil
 import subprocess
+import sys
+import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,6 +37,11 @@ from hobbes import __version__
 DEFAULT_EGRESS = ("api.anthropic.com",)
 #: The doer's turn budget. 40 at 0.1.21-beta; the first real dispatch used 38 of 40 on a small task, so 80 (Max, 2026-09-12).
 DEFAULT_MAX_TURNS = 80
+#: The doer's native file tools (Edit, Write, MultiEdit, NotebookEdit) — the progress hook's flight lines (ADR-107, the progress
+#: hook), read apart from exec decisions: they carry a path and no argv, rule, decision or exit.
+EDIT_TOOLS = ("Edit", "Write", "MultiEdit", "NotebookEdit")
+#: How long to wait, by default, before noting that no edit has landed yet (0 turns the note off).
+DEFAULT_QUIET_MINUTES = 20.0
 #: Where the per-session logs go, under the repo.
 LOG_DIR = Path("docs") / "calvin" / "sessions"
 #: The variable Claude Code reads its token from (`claude setup-token`); the Go side's `sandbox.ClaudeTokenEnv`.
@@ -82,6 +89,8 @@ class Dispatch:
     verify: bool = True
     timeout: float = 3600.0
     log_dir: Path | None = None
+    #: Minutes after launch with no edit before `dispatch` notes it once (b126: no kill on silence). 0 turns the note off.
+    quiet_minutes: float = DEFAULT_QUIET_MINUTES
 
     @property
     def session_dir(self) -> Path:
@@ -148,7 +157,7 @@ def load_graph(repo_root: Path) -> tuple[dict, dict, Path, Path | None]:
 def prepare(repo_root: Path, task: str, *, ref: str = "HEAD", model: str | None = None, max_turns: int = DEFAULT_MAX_TURNS,
             egress: list[str] | None = None, partition: list[str] | None = None, claude_bin: str | None = None,
             session_bin: str | None = None, sessions_root: Path | None = None, verify: bool = True, timeout: float = 3600.0,
-            log_dir: Path | None = None, session_id: str | None = None) -> Dispatch:
+            log_dir: Path | None = None, session_id: str | None = None, quiet_minutes: float = DEFAULT_QUIET_MINUTES) -> Dispatch:
     """Settle a dispatch and refuse what would fail later: an empty task, a ref that names no commit, an ingest at another SHA
     (the gate would refuse the graph after the session had run), no session binary."""
     repo_root = Path(repo_root).resolve()
@@ -165,7 +174,8 @@ def prepare(repo_root: Path, task: str, *, ref: str = "HEAD", model: str | None 
     return Dispatch(repo_root=repo_root, task=task, parent=parent, session_id=session_id or new_session_id(),
                     sessions_root=Path(sessions_root) if sessions_root else Path.home() / ".hobbes" / "sessions",
                     session_bin=_session_bin(session_bin), egress=list(egress or DEFAULT_EGRESS), model=model, max_turns=max_turns,
-                    partition=partition, claude_bin=claude_bin, verify=verify, timeout=timeout, log_dir=log_dir)
+                    partition=partition, claude_bin=claude_bin, verify=verify, timeout=timeout, log_dir=log_dir,
+                    quiet_minutes=quiet_minutes)
 
 
 def brief(d: Dispatch, notes: list[str]) -> str:
@@ -256,15 +266,28 @@ def parse_envelope(stdout: str) -> dict:
 
 
 def summarize_flight(path: Path) -> dict:
-    """The flight log's exec decisions: counts by decision, and the commands denied or escalated (first ten each)."""
-    out: dict = {"events": 0, "by_decision": {}, "denied": [], "escalated": [], "context_faults": 0}
+    """The flight log split in two: the doer's exec decisions (counts by decision, and the commands denied or escalated, first
+    ten each) and its edits (ADR-107, the progress hook) — the native Edit/Write/MultiEdit/NotebookEdit calls the flight line
+    names by path alone, kept out of ``events`` and ``by_decision``."""
+    out: dict = {"events": 0, "by_decision": {}, "denied": [], "escalated": [], "context_faults": 0,
+                "edits": {"count": 0, "files": [], "first": None, "last": None}}
     if not Path(path).is_file():
         out["missing"] = True
         return out
+    files: set[str] = set()
     for line in Path(path).read_text().splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
+            continue
+        if ev.get("tool") in EDIT_TOOLS and ev.get("path"):
+            e = out["edits"]
+            e["count"] += 1
+            files.add(ev["path"])
+            ts = ev.get("ts")
+            if ts:
+                e["first"] = e["first"] or ts
+                e["last"] = ts
             continue
         out["events"] += 1
         dec = str(ev.get("decision") or "none")
@@ -276,7 +299,51 @@ def summarize_flight(path: Path) -> dict:
             res = (ev.get("escalation") or {}).get("resolution")
             out["escalated"].append(cmd + (f" → {res}" if res else ""))
         out["context_faults"] += bool(ev.get("context_fault"))
+    out["edits"]["files"] = sorted(files)
     return out
+
+
+def _first_edit_path(path: Path) -> str | None:
+    """The path of the first Edit/Write/MultiEdit/NotebookEdit line in *path*, or ``None`` — the cheap check `watch_progress`
+    polls with, apart from the fuller `summarize_flight` the finished record uses."""
+    if not Path(path).is_file():
+        return None
+    for line in Path(path).read_text().splitlines():
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if ev.get("tool") in EDIT_TOOLS and ev.get("path"):
+            return ev["path"]
+    return None
+
+
+def watch_progress(path: Path, started_monotonic: float, quiet_s: float, stop: threading.Event, out: dict,
+                    interval: float = 15.0, stream=sys.stderr) -> None:
+    """Poll the flight log at *path* every *interval* seconds until *stop* is set, so a dispatch has a signal between "reading"
+    and "stuck" (b126: a 53-minute silent doer that was, in fact, reading). The first time an edit lands it prints one line
+    naming when and which file; if *quiet_s* is positive and none has landed within it, it prints one quiet note and records
+    ``out["quiet_note_min"]`` — but it kills nothing: the session keeps running either way (ADR-107, the progress hook)."""
+    session = Path(path).parent.name
+    reported_first = reported_quiet = False
+
+    def check() -> None:
+        nonlocal reported_first, reported_quiet
+        elapsed = time.monotonic() - started_monotonic
+        first = _first_edit_path(path)
+        if first and not reported_first:
+            reported_first = True
+            print(f"hobbes dispatch: {session}: first edit at {elapsed / 60.0:.1f} min — {first}", file=stream)
+        if not first and not reported_quiet and quiet_s > 0 and elapsed >= quiet_s:
+            reported_quiet = True
+            out["quiet_note_min"] = quiet_s / 60.0
+            print(f"hobbes dispatch: {session}: no edit in {out['quiet_note_min']:g} min — the doer may still be reading; "
+                  "the session keeps running (ADR-107: no kill on silence)", file=stream)
+
+    while not stop.is_set():
+        check()
+        stop.wait(interval)
+    check()
 
 
 def summarize_egress(path: Path) -> dict:
@@ -404,7 +471,13 @@ def dispatch(d: Dispatch, tok: str) -> dict:
                           "max_turns": d.max_turns},
                  "egress_allow": list(d.egress), "partition": d.partition, "argv": argv,
                  "repo_dirty": bool(_git(d.repo_root, "status", "--porcelain", "--untracked-files=no").stdout.strip())}
+    rec["started"] = _dt.datetime.now(_dt.timezone.utc).isoformat()
     t0 = time.monotonic()
+    stop = threading.Event()
+    progress: dict = {}
+    watcher = threading.Thread(target=watch_progress, args=(d.session_dir / "flight.jsonl", t0, d.quiet_minutes * 60.0, stop, progress),
+                               daemon=True)
+    watcher.start()
     try:
         proc = subprocess.run(argv, capture_output=True, text=True, timeout=d.timeout, env={**os.environ, TOKEN_ENV: tok})
         rec["session_rc"] = proc.returncode
@@ -416,6 +489,10 @@ def dispatch(d: Dispatch, tok: str) -> dict:
         rec["envelope"] = {}
         rec["error"] = f"the session was stopped after {d.timeout:.0f}s"
         _cleanup_route(d.session_id)
+    finally:
+        stop.set()
+        watcher.join(timeout=5)
+    rec["progress"] = progress
     rec["wall_s"] = round(time.monotonic() - t0, 1)
     removed = purge_doer_state(d.session_dir)
     rec["retention"] = {"doer_state_removed_by_dispatch": removed, "reasoning_left": reasoning_left(d.session_dir),
@@ -445,6 +522,30 @@ def _counts(m: dict) -> str:
     return ", ".join(f"`{k}`×{v}" for k, v in sorted(m.items())) or "none"
 
 
+def _minutes_between(start_iso: str, end_iso: str) -> float:
+    start = _dt.datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
+    end = _dt.datetime.fromisoformat(end_iso.replace("Z", "+00:00"))
+    return (end - start).total_seconds() / 60.0
+
+
+def _edits_line(rec: dict) -> str:
+    """The log's edits line: the count, the files (ten named, then a tally of the rest), when the first landed after launch,
+    and the quiet note if one fired — apart from the Policy line's exec count (ADR-107, the progress hook)."""
+    f = rec["flight"]
+    e = f.get("edits") or {"count": 0, "files": [], "first": None, "last": None}
+    if not e["count"]:
+        return "- **Edits:** none recorded" + (" (no flight log)" if f.get("missing") else "")
+    names = e["files"][:10]
+    rest = len(e["files"]) - len(names)
+    files = ", ".join(f"`{p}`" for p in names) + (f", … and {rest} more" if rest > 0 else "")
+    first_min = _minutes_between(rec["started"], e["first"]) if rec.get("started") and e.get("first") else 0.0
+    line = f"- **Edits:** {e['count']} edit(s) to {len(e['files'])} file(s); first at {first_min:.1f} min after launch; files: {files}"
+    note = (rec.get("progress") or {}).get("quiet_note_min")
+    if note is not None:
+        line += f"; a quiet note at {note:g} min"
+    return line
+
+
 def render_log(rec: dict) -> str:
     """The per-session log: what ran, under what, what the gate and verify said — and the review block the developer fills."""
     g, v, e, f, env = rec["gate"], rec["verify"], rec["egress"], rec["flight"], rec.get("envelope") or {}
@@ -468,6 +569,7 @@ def render_log(rec: dict) -> str:
              + (f"; denied: " + "; ".join(f"`{c}`" for c in f["denied"]) if f["denied"] else "")
              + (f"; escalated: " + "; ".join(f"`{c}`" for c in f["escalated"]) if f["escalated"] else "")
              + ("; no flight log" if f.get("missing") else ""),
+             _edits_line(rec),
              f"- **Branch:** " + (f"`{rec['branch']}`, {rec['commits']} commit(s); files: " + (", ".join(f"`{p}`" for p in rec["files"]) or "none")
                                   if rec.get("branch") else "none harvested — the session left no commit"),
              f"- **Gate:** **{g['verdict']}** at `{rec['parent'][:12]}` (gate v{g['gate_version']}, grounder v{g['grounder_version']}, "

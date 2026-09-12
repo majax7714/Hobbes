@@ -347,6 +347,15 @@ func setupWithStart(opt options) (*sandbox.Plan, string, string, func(), error) 
 		cleanup()
 		return nil, "", "", noop, err
 	}
+	if plan.UsesClaude() {
+		// The progress hook (ADR-107): a PostToolUse settings file beside
+		// the MCP config, so DefaultCommand's --settings flag has
+		// something to read.
+		if err := os.WriteFile(plan.ClaudeSettingsHostPath(), []byte(plan.ClaudeSettings()), 0o600); err != nil {
+			cleanup()
+			return nil, "", "", noop, err
+		}
+	}
 	if opt.runtime != "" {
 		// The runtime and the brief travel through the session dir
 		// (ADR-056): the loop file the host tested is the one the

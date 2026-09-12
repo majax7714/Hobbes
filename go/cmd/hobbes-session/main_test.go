@@ -103,6 +103,36 @@ func TestDryRunCreatesWorktreeShowsPlanAndCleansUp(t *testing.T) {
 	}
 }
 
+func TestSettingsFileWrittenForClaudeRunNotForCommandOverride(t *testing.T) {
+	repo := gitRepo(t)
+	sessions := t.TempDir()
+	fakeProxy := filepath.Join(t.TempDir(), "hobbes-proxy")
+	os.WriteFile(fakeProxy, []byte("static\n"), 0o755)
+
+	opt := options{repo: repo, role: "implementer", session: "S-settings",
+		sessions: sessions, proxyBin: fakeProxy}
+	_, _, cleanup, err := setup(opt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup()
+	settings := filepath.Join(sessions, "S-settings", "claude-settings.json")
+	if _, err := os.Stat(settings); err != nil {
+		t.Errorf("settings file not written for a Claude run: %v", err)
+	}
+
+	opt2 := options{repo: repo, role: "implementer", session: "S-cmd",
+		sessions: sessions, proxyBin: fakeProxy, command: []string{"python3", "/sessions/driver.py"}}
+	_, _, cleanup2, err := setup(opt2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup2()
+	if _, err := os.Stat(filepath.Join(sessions, "S-cmd", "claude-settings.json")); !os.IsNotExist(err) {
+		t.Errorf("a command override should get no settings file: %v", err)
+	}
+}
+
 func TestSelinuxRelabelOnMounts(t *testing.T) {
 	repo := gitRepo(t)
 	fakeProxy := filepath.Join(t.TempDir(), "hobbes-proxy")

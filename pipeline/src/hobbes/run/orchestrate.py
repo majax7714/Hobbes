@@ -44,6 +44,7 @@ from pathlib import Path
 
 from hobbes import artifacts
 from hobbes.run import agents, mail
+from hobbes.run.dispatch import EDIT_TOOLS
 from hobbes.run.roles import ensure_role_policies
 from hobbes.run.spec import load_spec, plan_dir
 
@@ -144,7 +145,9 @@ def _branch_exists(repo: Path, branch: str) -> bool:
 
 
 def read_flight(session_dir: Path, record: UnitRecord) -> None:
-    """Fold a session's flight log into its record."""
+    """Fold a session's flight log into its record. The doer's own edits (ADR-107, the progress hook: Edit, Write, MultiEdit,
+    NotebookEdit, each carrying a path) are the doer's file tools, not a knowledge query, and are skipped here — the session's
+    log has an edits count of its own (`dispatch.summarize_flight`)."""
     path = Path(session_dir) / "flight.jsonl"
     if not path.is_file():
         return
@@ -162,6 +165,8 @@ def read_flight(session_dir: Path, record: UnitRecord) -> None:
             if decision in record.exec:
                 record.exec[decision] += 1
         elif tool == "reflect":
+            continue
+        elif tool in EDIT_TOOLS and event.get("path"):
             continue
         elif tool:
             record.knowledge_calls += 1

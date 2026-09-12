@@ -4,7 +4,11 @@
 // session wrapper lists it in the sandboxed Claude Code's MCP config; one
 // proxy process serves one session and dies with it. The escalations
 // subcommand is the human side of the queue (ADR-016): list parked
-// commands, approve or deny them by id.
+// commands, approve or deny them by id. The record-edit subcommand is a
+// Claude Code PostToolUse hook (ADR-107, the progress hook): it appends
+// one flight line per edit, naming the tool and path alone — never the
+// edit's content — and always exits 0, so a fault in it never stops the
+// doer.
 //
 // Usage:
 //
@@ -14,9 +18,11 @@
 //	hobbes-proxy escalations approve <id> [--log-dir DIR]
 //	hobbes-proxy escalations deny <id> [--log-dir DIR]
 //	hobbes-proxy egress --allow HOST[:PORT]... [--listen ADDR] [--log FILE]
+//	hobbes-proxy record-edit --log FILE --session ID --role ROLE [--work DIR]
 //
 // For serve, stdout carries the MCP protocol; all diagnostics go to
-// stderr. Exit codes: 0 ok · 1 runtime error · 2 usage.
+// stderr. Exit codes: 0 ok · 1 runtime error · 2 usage (record-edit is
+// the one exception: it always exits 0).
 package main
 
 import (
@@ -73,6 +79,12 @@ egress --allow HOST[:PORT]     a session's allowlisted route out (ADR-107):
     --listen ADDR   address to listen on (default 0.0.0.0:3128)
     --log FILE      the decision log (default stdout)
 
+record-edit --log FILE --session ID --role ROLE   a Claude Code PostToolUse
+  hook (ADR-107, the progress hook): reads the hook's JSON on stdin and
+  appends one flight line naming the edited tool and path alone — never
+  the edit's content. Always exits 0, so a fault here never stops the doer.
+    --work DIR      the worktree root a path is made relative to (default /work)
+
 escalations [list | approve <id> | deny <id>]   the human side of the
   queue: parked commands across all sessions, oldest first.
     --all           list resolved records too
@@ -96,6 +108,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runEscalations(args[1:], stdout, stderr)
 	case "egress":
 		return runEgress(args[1:], stderr)
+	case "record-edit":
+		return runRecordEdit(args[1:], os.Stdin, stderr)
 	case "version", "--version":
 		fmt.Fprintf(stdout, "hobbes-proxy %s\n", version.Version)
 		return 0

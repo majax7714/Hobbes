@@ -185,6 +185,79 @@ func TestDefaultCommandLoadsOnlyTheHobbesServerAndCarriesTheTurnBudget(t *testin
 	}
 }
 
+func TestDefaultCommandCarriesTheSettingsFlag(t *testing.T) {
+	p, _ := NewPlan(baseConfig())
+	cmd := strings.Join(p.DefaultCommand(), " ")
+	want := "--settings /sessions/S-20260811T120000Z-abcd/claude-settings.json"
+	if !strings.Contains(cmd, want) {
+		t.Errorf("default command lacks %q: %s", want, cmd)
+	}
+}
+
+func TestClaudeSettingsWiresThePostToolUseHookToThisSessionsLog(t *testing.T) {
+	p, _ := NewPlan(baseConfig())
+	var parsed struct {
+		Hooks struct {
+			PostToolUse []struct {
+				Matcher string `json:"matcher"`
+				Hooks   []struct {
+					Type    string `json:"type"`
+					Command string `json:"command"`
+					Timeout int    `json:"timeout"`
+				} `json:"hooks"`
+			} `json:"PostToolUse"`
+		} `json:"hooks"`
+	}
+	if err := json.Unmarshal([]byte(p.ClaudeSettings()), &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Hooks.PostToolUse) != 1 {
+		t.Fatalf("PostToolUse = %+v", parsed.Hooks.PostToolUse)
+	}
+	hook := parsed.Hooks.PostToolUse[0]
+	if hook.Matcher != "Edit|Write|MultiEdit|NotebookEdit" {
+		t.Errorf("matcher = %q", hook.Matcher)
+	}
+	if len(hook.Hooks) != 1 {
+		t.Fatalf("hooks = %+v", hook.Hooks)
+	}
+	cmd := hook.Hooks[0]
+	if cmd.Type != "command" || cmd.Timeout != 10 {
+		t.Errorf("hook = %+v", cmd)
+	}
+	for _, want := range []string{ProxyPath + " record-edit", "--log /sessions/S-20260811T120000Z-abcd/flight.jsonl",
+		"--session S-20260811T120000Z-abcd", "--role implementer", "--work /work"} {
+		if !strings.Contains(cmd.Command, want) {
+			t.Errorf("hook command lacks %q: %s", want, cmd.Command)
+		}
+	}
+	if got := p.ClaudeSettingsHostPath(); got != "/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/claude-settings.json" {
+		t.Errorf("ClaudeSettingsHostPath = %q", got)
+	}
+}
+
+func TestCommandOverrideAndRuntimeCarryNoSettingsFlag(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Command = []string{"python3", "/sessions/x/scripted.py"}
+	p, _ := NewPlan(cfg)
+	if strings.Contains(strings.Join(p.PodmanArgs(), " "), "--settings") {
+		t.Error("an override command must carry no --settings flag")
+	}
+	if p.UsesClaude() {
+		t.Error("an override command does not use Claude Code")
+	}
+
+	cfg = baseConfig()
+	cfg.Runtime, cfg.LLMBaseURL, cfg.Model = "/sessions/x/agent.py", "http://e/v1", "m"
+	p, _ = NewPlan(cfg)
+	if strings.Contains(strings.Join(p.RuntimeCommand(), " "), "--settings") {
+		t.Error("the owned runtime must carry no --settings flag")
+	}
+	if p.UsesClaude() {
+		t.Error("the owned runtime does not use Claude Code")
+	}
+}
+
 func TestEgressPutsTheSessionOnItsOwnInternalNetworkBehindTheProxy(t *testing.T) {
 	cfg := baseConfig()
 	cfg.Egress = []string{"API.anthropic.com"}

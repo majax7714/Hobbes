@@ -237,6 +237,44 @@ func (p *Plan) MCPConfigHostPath() string {
 	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, "mcp.json")
 }
 
+// claudeSettingsContainerPath is where the generated settings file lands
+// (written host-side into the session dir, visible here through the
+// mount) — the MCP config's pair.
+func (p *Plan) claudeSettingsContainerPath() string {
+	return p.sessionHome() + "/claude-settings.json"
+}
+
+// ClaudeSettingsHostPath is where the wrapper must write the settings
+// file on the host, beside the MCP config, for the container to read it.
+func (p *Plan) ClaudeSettingsHostPath() string {
+	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, "claude-settings.json")
+}
+
+// ClaudeSettings is the Claude Code settings JSON that wires the progress
+// hook (ADR-107): a PostToolUse hook matching Edit, Write, MultiEdit and
+// NotebookEdit that runs the mounted static proxy as `record-edit`,
+// appending one flight line per edit to this session's own flight log —
+// the one `hobbes-proxy serve --log-dir /sessions --session <session>`
+// already writes.
+func (p *Plan) ClaudeSettings() string {
+	cmd := fmt.Sprintf("%s record-edit --log %s/%s/flight.jsonl --session %s --role %s --work %s",
+		ProxyPath, SessionsRoot, p.cfg.SessionID, p.cfg.SessionID, p.cfg.Role, WorkDir)
+	cfg := map[string]any{
+		"hooks": map[string]any{
+			"PostToolUse": []map[string]any{
+				{
+					"matcher": "Edit|Write|MultiEdit|NotebookEdit",
+					"hooks": []map[string]any{
+						{"type": "command", "command": cmd, "timeout": 10},
+					},
+				},
+			},
+		},
+	}
+	out, _ := json.MarshalIndent(cfg, "", "  ")
+	return string(out)
+}
+
 // MCPConfig is the Claude Code MCP config JSON: one server, hobbes, run as
 // the policy proxy over stdio against the mounted worktree.
 func (p *Plan) MCPConfig() string {
@@ -329,7 +367,7 @@ func (p *Plan) mounts() []string {
 	if p.cfg.HostBoxPath != "" {
 		m = append(m, p.cfg.HostBoxPath+":"+BoxPath+":ro,z")
 	}
-	if p.cfg.ClaudeBin != "" && p.usesClaude() {
+	if p.cfg.ClaudeBin != "" && p.UsesClaude() {
 		// The user's own binary, read-only and never relabeled (ClaudeBin).
 		m = append(m, p.cfg.ClaudeBin+":"+ClaudeBinPath+":ro")
 	}
@@ -406,6 +444,9 @@ func (p *Plan) DefaultCommand() []string {
 		// Only the hobbes server: a repo's own .mcp.json (this one starts
 		// a podman container) is not the session's to load (ADR-107).
 		"--strict-mcp-config",
+		// The progress hook (ADR-107): PostToolUse reports every Edit,
+		// Write, MultiEdit and NotebookEdit to the flight log.
+		"--settings", p.claudeSettingsContainerPath(),
 		"--permission-mode", mode,
 		"--disallowedTools", "Bash",
 		"--allowedTools", strings.Join(p.allowedTools(), ","),
@@ -419,9 +460,11 @@ func (p *Plan) DefaultCommand() []string {
 	return cmd
 }
 
-// usesClaude reports whether the session runs the default Claude Code
-// command (no override, no owned runtime).
-func (p *Plan) usesClaude() bool {
+// UsesClaude reports whether the session runs the default Claude Code
+// command (no override, no owned runtime) — the case the doer's own file
+// tools, the claude binary mount and the progress hook's settings file
+// are all scoped to.
+func (p *Plan) UsesClaude() bool {
 	return len(p.cfg.Command) == 0 && p.cfg.Runtime == ""
 }
 
@@ -505,7 +548,7 @@ func (p *Plan) PodmanArgs() []string {
 	for _, kv := range p.cfg.Env {
 		args = append(args, "--env", kv)
 	}
-	if len(p.cfg.HostMounts) > 0 || (p.cfg.ClaudeBin != "" && p.usesClaude()) {
+	if len(p.cfg.HostMounts) > 0 || (p.cfg.ClaudeBin != "" && p.UsesClaude()) {
 		// The bound trees and the Claude binary are not Hobbes's to
 		// relabel (see HostMounts, ClaudeBin); the session's own mounts
 		// keep their z, which is harmless with labeling off.
@@ -516,7 +559,7 @@ func (p *Plan) PodmanArgs() []string {
 			args = append(args, "--env", kv)
 		}
 	}
-	if p.usesClaude() && p.cfg.ClaudeBin != "" {
+	if p.UsesClaude() && p.cfg.ClaudeBin != "" {
 		// No self-update and no telemetry: the allowlist names the model
 		// endpoint alone, and a session's binary is the host's, pinned.
 		// Only when the doer is configured, so a plain session keeps the
@@ -572,7 +615,7 @@ func (p *Plan) DryRun() string {
 	if p.cfg.Runtime != "" {
 		fmt.Fprintf(&b, "runtime:  %s → %s (%s)\n", p.cfg.Runtime, p.cfg.LLMBaseURL, p.cfg.Model)
 	}
-	if p.usesClaude() {
+	if p.UsesClaude() {
 		bin, tok := p.cfg.ClaudeBin, "absent"
 		if bin == "" {
 			bin = "(none: pass --claude-bin)"
@@ -606,7 +649,7 @@ func (p *Plan) SessionID() string { return p.cfg.SessionID }
 // variables PodmanArgs passes by name: today the Claude Code token, when
 // the doer is configured (a binary to run).
 func (p *Plan) PodmanEnv() []string {
-	if p.usesClaude() && p.cfg.ClaudeBin != "" && p.cfg.ClaudeToken != "" {
+	if p.UsesClaude() && p.cfg.ClaudeBin != "" && p.cfg.ClaudeToken != "" {
 		return []string{ClaudeTokenEnv + "=" + p.cfg.ClaudeToken}
 	}
 	return nil

@@ -69,6 +69,7 @@ cat > "$sessions/$session/flight.jsonl" <<EOT
 {"tool":"exec","argv":["/bin/sh","-c","git status"],"decision":"allow"}
 {"tool":"exec","argv":["/bin/sh","-c","git push"],"decision":"deny"}
 {"tool":"reflect","argv":["done: handle retried"],"decision":"allow"}
+{"tool":"Edit","path":"src/app/core.py","ts":"2026-01-01T00:00:00Z"}
 EOT
 cat > "$sessions/$session/mail.jsonl" <<EOT
 {"seq":1,"session":"$session","role":"implementer","text":"done: handle retried"}
@@ -281,6 +282,7 @@ class TestRun:
         units = {u["unit"]: u for u in record["units"]}
         for unit, u in units.items():
             assert u["spawned"] and u["exit"] == 0
+            # the flight log's edit line (ADR-107, the progress hook) is the doer's own file tool, not a knowledge query
             assert u["knowledge_calls"] == 2 and u["context_faults"] == 1
             assert u["exec"] == {"allow": 1, "deny": 1, "escalate": 0}
             assert u["reflections"] == ["done: handle retried"]

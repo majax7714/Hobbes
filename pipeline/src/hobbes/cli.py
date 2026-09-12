@@ -895,7 +895,8 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
         partition = gt.load_partition(Path(args.partition))[0] if args.partition else None
         d = dp.prepare(repo_root, task, ref=args.ref, model=args.model, max_turns=args.max_turns, egress=args.egress, partition=partition,
                        claude_bin=args.claude_bin, session_bin=args.session_bin, sessions_root=Path(args.sessions) if args.sessions else None,
-                       verify=not args.no_verify, timeout=args.timeout, log_dir=Path(args.log_dir) if args.log_dir else None)
+                       verify=not args.no_verify, timeout=args.timeout, log_dir=Path(args.log_dir) if args.log_dir else None,
+                       quiet_minutes=args.quiet_minutes)
         if args.dry_run:
             print(dp.dry_run(d))
             return 0
@@ -1692,6 +1693,9 @@ def build_parser() -> argparse.ArgumentParser:
     dispatch_parser.add_argument("--log-dir", help="where the per-session log is written (default docs/calvin/sessions under the repo)")
     dispatch_parser.add_argument("--no-verify", action="store_true", help="gate only; do not run the diff's guarding tests")
     dispatch_parser.add_argument("--timeout", type=int, default=3600, help="seconds before the session is stopped (default 3600)")
+    dispatch_parser.add_argument("--quiet-minutes", type=float, default=20.0,
+                                 help="minutes after launch with no edit before a quiet note is printed once (default 20; "
+                                      "the session keeps running either way, ADR-107: no kill on silence); 0 turns it off")
     dispatch_parser.add_argument("--dry-run", action="store_true", help="write the brief, show the session's argv and hobbes-session's "
                                                                         "plan; run nothing and log nothing")
     dispatch_parser.add_argument("--json", action="store_true", help="print the dispatch record")

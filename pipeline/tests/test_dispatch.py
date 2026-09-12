@@ -2,10 +2,13 @@
 parent, commits the change a test names on ``hobbes/<session>``, fetches it back, and writes the flight and egress logs a real
 session writes — so the brief, the argv, the harvest, the gate with a derived map, the per-session log and the refusals are all
 exercised with no podman and no model. The route itself is tested live on the Go side (hobbes-session's egress test)."""
+import io
 import json
 import os
 import stat
 import subprocess
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -27,7 +30,7 @@ def go():
 '''
 
 FAKE_SESSION = r'''#!/usr/bin/env python3
-import json, os, pathlib, subprocess, sys
+import datetime, json, os, pathlib, subprocess, sys
 a = sys.argv[1:]
 val = lambda f: a[a.index(f) + 1] if f in a else None
 repo, ref, sid, sessions = val("--repo"), val("--ref"), val("--session"), val("--sessions")
@@ -57,7 +60,8 @@ if change:
     git("-C", str(wt), "commit", "-qm", "doer")
     git("-C", repo, "fetch", "-q", str(wt), "hobbes/%s:hobbes/%s" % (sid, sid))
 flight = [{"session": sid, "tool": "exec", "argv": ["python", "-m", "pytest"], "decision": "allow"},
-          {"session": sid, "tool": "exec", "argv": ["pip", "download", "x"], "decision": "deny"}]
+          {"session": sid, "tool": "exec", "argv": ["pip", "download", "x"], "decision": "deny"},
+          {"session": sid, "tool": "Edit", "path": "pkg/use.py", "ts": datetime.datetime.now(datetime.timezone.utc).isoformat()}]
 (sdir / "flight.jsonl").write_text("".join(json.dumps(e) + "\n" for e in flight))
 eg = [{"event": "listen", "addr": "0.0.0.0:3128", "allow": ["api.anthropic.com:443"]},
       {"event": "connect", "method": "CONNECT", "target": "api.anthropic.com:443"},
@@ -136,7 +140,9 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     assert brief.startswith("Make go() double its input.") and "mcp__hobbes__exec" in brief and "no Bash tool" in brief
 
     assert rec["egress"]["opened"] == {"api.anthropic.com:443": 1} and rec["egress"]["refused"] == {"pypi.org:443": 1}
+    # the doer's edits (ADR-107, the progress hook) are kept apart from the exec/Policy count
     assert rec["flight"]["by_decision"] == {"allow": 1, "deny": 1} and rec["flight"]["denied"] == ["pip download x"]
+    assert rec["flight"]["events"] == 2 and rec["flight"]["edits"]["count"] == 1 and rec["flight"]["edits"]["files"] == ["pkg/use.py"]
     assert rec["envelope"]["num_turns"] == 7
     # retention (ADR-107's amendment): the doer's state and reasoning are gone; its output stays
     assert rec["retention"]["doer_state_removed_by_dispatch"] == [".cache/claude-cli-nodejs", ".claude", ".claude.json"]
@@ -148,6 +154,7 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     assert rec["log"] == str(log)
     text = log.read_text()
     for want in ("# Harness session", "**Gate:** **clear**", "refused `pypi.org:443`×1", "denied: `pip download x`",
+                 "**Edits:** 1 edit(s) to 1 file(s)", "`pkg/use.py`",
                  "## Review", "- gate: pending", "Changed pkg/use.py; ran pytest.",
                  "Recorded sessions are evaluation rows, never model training data."):
         assert want in text, want
@@ -235,3 +242,73 @@ def test_parse_envelope_takes_the_last_json_object_and_caps_the_result():
     env = dp.parse_envelope(out)
     assert env["num_turns"] == 3 and len(env["result"]) < 4100 and "usage" not in env
     assert dp.parse_envelope("not json") == {}
+
+
+def test_summarize_flight_separates_edit_lines_from_exec_decisions(tmp_path):
+    path = tmp_path / "flight.jsonl"
+    lines = [
+        {"tool": "exec", "argv": ["git", "status"], "decision": "allow"},
+        {"tool": "exec", "argv": ["git", "push"], "decision": "deny"},
+        {"tool": "Edit", "path": "a.py", "ts": "2026-01-01T00:00:00Z"},
+        {"tool": "Write", "path": "b.py", "ts": "2026-01-01T00:01:00Z"},
+        {"tool": "Edit", "path": "a.py", "ts": "2026-01-01T00:02:00Z"},
+    ]
+    path.write_text("".join(json.dumps(l) + "\n" for l in lines))
+    out = dp.summarize_flight(path)
+    assert out["events"] == 2 and out["by_decision"] == {"allow": 1, "deny": 1}
+    assert out["edits"] == {"count": 3, "files": ["a.py", "b.py"], "first": "2026-01-01T00:00:00Z", "last": "2026-01-01T00:02:00Z"}
+
+
+def _bare_render_rec(**over):
+    rec = {
+        "session": "S-1", "date": "2026-09-12", "dispatch_version": dp.DISPATCH_VERSION, "hobbes_version": "0.0",
+        "task": {"first_line": "t", "sha256": "x" * 64, "brief": "b.md"}, "parent": "a" * 40, "repo": "r",
+        "doer": {"version": None, "model": None, "max_turns": 80},
+        "egress_allow": ["api.anthropic.com"], "started": "2026-09-12T00:00:00Z",
+        "egress": {"listened": False}, "envelope": {},
+        "flight": {"events": 0, "by_decision": {}, "denied": [], "escalated": [],
+                   "edits": {"count": 0, "files": [], "first": None, "last": None}},
+        "branch": None, "commits": 0, "files": [],
+        "gate": {"verdict": "clear", "blocking": [], "counts": {}, "gate_version": 1, "grounder_version": 1,
+                 "record_hash": "h" * 40, "partition": {}, "map": {"files": 0, "fraction_uncaptured": 0.0}, "rows": [],
+                 "integrity_ok": True, "record": "gate.json"},
+        "retention": {}, "verify": {"verdict": "skipped"}, "progress": {},
+    }
+    rec.update(over)
+    return rec
+
+
+def test_render_log_edits_line_with_no_edits():
+    text = dp.render_log(_bare_render_rec())
+    assert "- **Edits:** none recorded" in text
+
+
+def test_render_log_edits_line_with_edits_and_a_quiet_note():
+    flight = {"events": 0, "by_decision": {}, "denied": [], "escalated": [],
+              "edits": {"count": 2, "files": ["a.py", "b.py"], "first": "2026-09-12T00:01:00Z", "last": "2026-09-12T00:02:00Z"}}
+    text = dp.render_log(_bare_render_rec(flight=flight, progress={"quiet_note_min": 20}))
+    assert "**Edits:** 2 edit(s) to 2 file(s); first at 1.0 min after launch" in text
+    assert "`a.py`" in text and "`b.py`" in text
+    assert "a quiet note at 20 min" in text
+
+
+def test_watch_progress_prints_first_edit_once_and_a_quiet_note_once_and_kills_nothing(tmp_path):
+    flight = tmp_path / "S-watch" / "flight.jsonl"
+    flight.parent.mkdir()
+    stop = threading.Event()
+    out: dict = {}
+    stream = io.StringIO()
+    started = time.monotonic()
+    t = threading.Thread(target=dp.watch_progress, args=(flight, started, 0.05, stop, out),
+                         kwargs={"interval": 0.02, "stream": stream})
+    t.start()
+    time.sleep(0.09)  # past the quiet threshold; still nothing written
+    flight.write_text(json.dumps({"tool": "Edit", "path": "x.py", "ts": "2026-01-01T00:00:00Z"}) + "\n")
+    time.sleep(0.06)
+    stop.set()
+    t.join(timeout=2)
+    assert not t.is_alive()  # the watcher stopped on its own; nothing else was touched
+    text = stream.getvalue()
+    assert text.count("first edit at") == 1 and "x.py" in text
+    assert text.count("no edit in") == 1
+    assert out["quiet_note_min"] == pytest.approx(0.05 / 60.0, rel=0.25)

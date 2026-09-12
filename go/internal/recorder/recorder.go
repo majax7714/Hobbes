@@ -24,9 +24,10 @@ type EscalationRef struct {
 }
 
 // Event is one flight-recorder line. The field set is fixed by
-// architecture §9 and ADR-015; widening it is a doc change first
-// (the escalation field was added by ADR-016 for §9's "approvals log
-// the approver").
+// architecture §9 and ADR-015; widening it is a doc change first (the
+// escalation field was added by ADR-016 for §9's "approvals log the
+// approver"; ContextFault by ADR-054; Path by ADR-107, the progress
+// hook).
 type Event struct {
 	// TS is the event time, RFC3339Nano UTC. Record fills it when empty.
 	TS string `json:"ts"`
@@ -54,6 +55,12 @@ type Event struct {
 	// allocator predicted this agent would not need it, and it did. The
 	// query is served anyway; the flag is the partition's error signal.
 	ContextFault bool `json:"context_fault,omitempty"`
+	// Path is the file a doer's Edit, Write, MultiEdit or NotebookEdit
+	// tool acted on, set by `hobbes-proxy record-edit` (ADR-107, the
+	// progress hook) — a Claude Code PostToolUse hook the sandbox wires
+	// in. It is the only field an edit line carries beyond TS, Session,
+	// Role and Tool: no argv, no policy rule, no decision, no exit.
+	Path string `json:"path,omitempty"`
 }
 
 // Recorder appends events to one session's flight log. Safe for
