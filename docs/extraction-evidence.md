@@ -83,7 +83,7 @@ C's first graded evidence, in the session after its lane B.
 | Repo | Build | Graph (graded edges) | Cell |
 |---|---|---|---|
 | **DaveGamble/cJSON** `fb16e5cf` (chosen) | CMake, 23 units | 1,713 graded (1,188 semantic, 525 syntactic), 1,821 macro edges excluded; lanes 1,717 / **0** | **1,188/1,188 — 100.0%**; recall 62.0% (1,190/1,918); [record](oracle/cells/cjson-c-2026-09-12.md) |
-| **sqliteai/sqlite-vector** `0c2223ad` (**random draw**) | make under bear, 7 units | 19,748 graded (851 semantic, 18,897 syntactic, 18,502 of them in the uncompiled amalgamation), 3,188 macro edges excluded; lanes 1,084 / **0** | **851/854 — 99.6%**; the semantic tier 851/851; **3 syntactic hobbes-wrong** (C-138); recall 100.0% (1,091/1,091); [record](oracle/cells/sqlite-vector-c-2026-09-12.md) |
+| **sqliteai/sqlite-vector** `0c2223ad` (**random draw**) | make under bear, 7 units | 19,748 graded (851 semantic, 18,897 syntactic, 18,502 of them in the uncompiled amalgamation), 3,188 macro edges excluded; lanes 1,084 / **0** | **851/854 — 99.6%**; the semantic tier 851/851; **3 syntactic hobbes-wrong** (C-138). **Regraded at 0.2.8-beta: 851/851 — 100.0%.** The external veto (ADR-111) dropped the 3, and a spurious prototype edge from `libs/sqlite3.h:6943` (silent); recall 100.0% (1,091/1,091); [record](oracle/cells/sqlite-vector-c-2026-09-12.md) |
 | `minic` fixture `1f2baf1` | make under bear, 3 units | 6 graded | **5/5**; recall 7/7; [record](oracle/cells/minic-c-2026-09-12.md) |
 
 **Verified:**

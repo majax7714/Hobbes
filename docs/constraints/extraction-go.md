@@ -96,3 +96,33 @@
   reach.
 - **Source:** Calvin M0-Go WP-3, 2026-09-11
   (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.
+
+### C-139 — A local named like an imported package shadows it, and lane A's fallback still draws the call to the package's function
+
+- **Cannot tell you:** where lane B leaves the site unanswered, that a
+  syntactic edge from `slog.Info(...)` to a package function is right.
+  - The shape: `slog := slog.SpanLogger(ctx, …)` rebinds `slog` to a
+    logger value inside the function. After it, `slog.Info(...)` is a
+    method call on that value, not the package's `Info`.
+- **Because:** lane A resolves a qualified call through the import it
+  names, and does not see that a local binding shadows the qualifier.
+  ADR-046/090's scope veto covers a bare name bound locally, not the
+  qualifier of a selector call.
+- **Bites at:** a repo with a wrapper package named like the library it
+  wraps, used through a shadowing local. Measured on dagger at the 0.2.8
+  regrade: 56 sites in its ungraded root module, drawn to
+  `engine/slog.Info`/`Warn`/`Error`/`Debug`. There lane B resolved each
+  call to the logger's method outside the repo, so ADR-111's veto drops
+  the edge.
+- **You find out:** *partial*.
+  - Where lane B resolved the call outside the repo, there is no edge,
+    and `hobbes lanes` counts it in `external_vetoes`.
+  - Where lane B did not run or left the site unresolved, the edge is
+    drawn at tier `syntactic` (C-7), and nothing names the shadow.
+  - Candidate lift: lane A treats a local binding of the qualifier's
+    name as a shadow, the way it treats a bare name. It needs a
+    re-ingest and a Go fixture.
+- **Source:** ADR-111's acceptance regrade, 2026-09-12. The dagger
+  examples were read by hand (`core/git_remote.go:69`/`78`, and eight
+  more), and the count was checked against a scan of dagger's Go files
+  (61 such calls after a local shadow).

@@ -87,3 +87,35 @@ None. Every call `src/` spells directly to a definition the build compiles is dr
 - "0 hobbes-wrong after triage" is **met on the semantic tier and missed cell-wide**: 3 syntactic edges are hobbes-wrong. The clause was written beside the semantic number and is graded both ways here, the stricter reading first.
 
 P24 is met here.
+
+## Regrade 2026-09-12 (later; Hobbes 0.2.8-beta: ADR-111's external veto; same clone, the stored key, contained)
+
+This was the veto's acceptance gate (Max's). Every oracle cell with a stored key was re-ingested on the veto's code and graded against its key. A pre-veto pass on the same build came first and reproduced every stored number to the digit. Artifacts: `~/.hobbes/bench/adr111-pre/sqlite-vector-c/` and `~/.hobbes/bench/adr111-post/sqlite-vector-c/`. The drivers are in `~/.hobbes/bench/adr111-drivers/`.
+
+```
+cell   oracle Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution)  sha 0c2223ad
+oracle ran contained (ADR-092)
+hobbes edges 19744: confirmed 851  contradicted 0  abstract 0  silent 18893 map[not-loaded:18775 unreachable:118]
+precision-against-oracle 100.0% (851/851)
+recall 100.0% (1091/1091 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1721; misses map[]
+  tier semantic   confirmed 851  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 0  contradicted 0  abstract 0  silent 18893
+poison check: PASS — 19744 seeded wrong edges: 851 refused, 18893 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+**The vetoes:** 4 (`lane_agreement.external_vetoes`):
+- the three `strcasestr` calls in `src/sqlite-vector.c` (lines 380, 398 and 420), which lane A had drawn to the dead-arm shim at line 31;
+- `libs/sqlite3.h:6943`, `sqlite3_next_stmt`. This is a prototype (`SQLITE_API sqlite3_stmt *sqlite3_next_stmt(...);`) that tree-sitter-c reads as a call because the preprocessor never runs (C-131). Lane A drew it to the definition in `libs/sqlite3.c`, which the build does not compile, and lane B's reference sits outside the repo. It was one of the 3 `unreachable` silent edges from `libs/sqlite3.h`, so that count reads 118.
+
+**Direction of fix (signed):**
+- precision-against-oracle 99.6% → 100.0% (+0.4 pt);
+- contradicted 3 → 0 (−3, all hobbes-wrong, syntactic);
+- confirmed 851 → 851 (0);
+- syntactic edges 18,897 → 18,893 (−4: the 3 wrong, and the spurious prototype edge, silent);
+- silent 18,894 → 18,893 (−1);
+- recall 100% → 100% (0);
+- poison PASS both times.
+
+The gate said "exactly 3 fewer syntactic edges". The fourth was put to Max, and he accepted it (2026-09-12).
+
+**P23's cell-wide clause** ("0 hobbes-wrong after triage") is now met on this build.

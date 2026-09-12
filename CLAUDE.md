@@ -209,10 +209,10 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-12): 1,459 pytest (5 of them
-`lane_b`) / 331 Go (subtests counted) + 91 oracle-lane Go (subtests counted:
+Suite sizes at the last check (2026-09-12, 0.2.8-beta): 1,474 pytest (5 of them
+`lane_b`) / 344 Go (subtests counted: 343 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
 87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
-unittest + 7 node) / 52 vitest / 36 tsextract + 42
+unittest + 7 node) / 52 vitest / 36 tsextract + 43
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
@@ -229,7 +229,7 @@ are present.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 110;
+  architecture doesn't already make. Number sequentially (last: 111;
   106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -244,7 +244,7 @@ are present.
   0.2.0-beta; patch by patch on 0.2.x. A language addition is a patch,
   even when it reaches "supported"; a structural change bumps minor
   (Max, 2026-09-12);** tags are his call each time — 0.1.9-beta to
-  0.2.5-beta are untagged,
+  0.2.8-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -283,7 +283,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.2.5-beta
+## Status (2026-09-12) — Hobbes 0.2.8-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -295,13 +295,14 @@ are present.
     clang's front end since 0.2.5-beta (ADR-110), on cJSON and a random
     draw.
   - **Grading:** every compiler-graded oracle cell is at 100% precision
-    but two: quic-go (a 99.6% lower bound; its 15 contradictions are all
-    the oracle's grain) and C's sqlite-vector (99.6%: three syntactic
-    edges wrong, C-138), with the misses registered by class (ADR-089/090;
-    41 cells regraded at 0.1.10-beta).
+    but one: quic-go (a 99.6% lower bound; its 15 contradictions are all
+    the oracle's grain). The misses are registered by class (ADR-089/090).
+    C's sqlite-vector reached 851/851 at 0.2.8-beta through ADR-111's
+    external veto, whose gate regraded all 44 cells with a stored key and
+    lost no confirmed edge.
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 138 entries (111 active, 24 lifted, 3 superseded).
+  - **Register:** 139 entries (112 active, 24 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
@@ -319,6 +320,8 @@ are present.
 
   Checked with no spend, by a live route test and by Claude Code through
   the proxy on a bad token (401, no other host).
+  - **Since 0.2.6-beta the doer's edits reach the flight log** (the
+    progress hook), and dispatch prints the first edit as it lands.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.

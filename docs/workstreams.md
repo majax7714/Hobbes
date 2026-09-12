@@ -259,9 +259,11 @@ the best on-ramp for a new contributor who should learn the codebase.*
       edges wrong (C-138);
     - the oracle built through the harness.
   - **Found by the cells (Max's calls, 2026-09-12):**
-    - C-138's veto: approved, the next session's second patch, after
-      the progress hook (ADR-111, with a full contained regrade as its
-      acceptance gate);
+    - ~~C-138's veto~~ **done 2026-09-12 (0.2.8-beta, ADR-111).** 44
+      cells were regraded against their stored keys, with no confirmed
+      edge lost, and sqlite-vector reads 851/851. Dagger's 56 vetoes
+      found C-139 (Go's local shadow), whose candidate lift is a lane A
+      rule.
     - C-131's macro gap: parked (`future_additions.md`);
     - C-135's surfacing gap (bpftop): a candidate once named.
   - **Then the residue:**

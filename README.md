@@ -156,10 +156,11 @@ against the interpreter running the repo's own test suite, Rust against
 rustc's MIR, Java against javac's own resolution, C against clang's own
 front end — with wrong edges deliberately seeded on every cell to
 prove the grader can say no. Every compiler-graded cell is at 100%
-precision-against-oracle but two. quic-go reads 99.6%, a lower bound whose
+precision-against-oracle but one. quic-go reads 99.6%, a lower bound whose
 15 contradictions all triage to the oracle's own grain, with none Hobbes'.
-C's sqlite-vector reads 99.6% too, from three syntactic edges Hobbes got
-wrong (C-138) beside a semantic tier at 851/851.
+C's sqlite-vector read 99.6% until 0.2.8-beta, from three syntactic edges
+Hobbes got wrong (C-138). The external veto (ADR-111) removed them, and it
+reads 851/851.
 Every miss falls into one known class (closures, function values,
 interface dispatch) and is written down.
 
@@ -260,7 +261,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.5-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.8-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -281,8 +282,8 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and thirty-eight entries (one
-hundred and eleven active, twenty-four lifted, three superseded), each naming
+The constraint register holds one hundred and thirty-nine entries (one
+hundred and twelve active, twenty-four lifted, three superseded), each naming
 where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -297,9 +298,8 @@ its own: no model, no credential, no network.
 **The oracle lane (ADR-089) has run both phases** — Go and TS
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C clang-graded — with every compiler-graded cell at 100%
-after ADR-090 but two at 99.6% (quic-go, every contradiction the oracle's
-grain; C's sqlite-vector, three syntactic edges Hobbes got wrong), and the
-misses registered by class.
+after ADR-090 and ADR-111 but one, quic-go at 99.6% (every contradiction
+the oracle's grain), and the misses registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
@@ -347,7 +347,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-110 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-111 (106 held for M0-Go's design) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

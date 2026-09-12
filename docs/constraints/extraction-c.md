@@ -284,5 +284,11 @@
   - The edge carries tier `syntactic`, so trust it less (C-7).
   - Nothing says lane B answered the site differently. `hobbes lanes` compares only sites both lanes resolved in the repo: sqlite-vector's lanes read 1,084 / 0 with these three edges in the graph.
 - **Provider (P9):** none; this is Hobbes's own rule.
-- **Direction (not taken; Max's call):** the join vetoes lane A's guess where lane B's reference at the site is external, the way ADR-104 vetoes lane B at an ambiguous site. It is a change to every language, and every cell's syntactic tier would be regraded.
+- **Narrowed 2026-09-12 (0.2.8-beta, ADR-111): the direction is taken.**
+  - **What the join does now.** It drops lane A's fallback at a site whose `(file, line, name)` carries a lane B reference outside the repo. A reference whose moniker has an in-repo definition is marked `in_repo` and never vetoes.
+  - **How the regrade reads.** Every oracle cell with a stored key was regraded against it. sqlite-vector reads 851/851, and no confirmed edge was lost anywhere.
+  - **Where a user meets a veto:** `lane_agreement.external_vetoes`, which `hobbes lanes` prints.
+  - **What remains:**
+    - two same-named occurrences on one line, one outside the repo and one the call lane B missed, because the key has no column;
+    - a sibling unit's in-repo definition of a kind the graph does not keep, which `join_cross_unit` cannot mark.
 - **Source:** ADR-110; `docs/oracle/cells/sqlite-vector-c-2026-09-12.md`.

@@ -118,7 +118,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-97, C-98, C-99, C-100, C-90, C-89, C-11, C-24 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-85, C-79, C-16, C-33 |
-| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102 |
+| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-130, C-131, C-132, C-133, C-134, C-135, C-136, C-137, C-138 |
@@ -136,8 +136,16 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and thirty-eight entries: one hundred and eleven active, twenty-four lifted, three superseded**
-(ADR-107's progress hook, 2026-09-12 (0.2.6-beta):
+**One hundred and thirty-nine entries: one hundred and twelve active, twenty-four lifted, three superseded**
+(ADR-111 on 2026-09-12 (0.2.8-beta), the external veto:
+- C-138 narrowed: lane A's fallback is dropped where lane B resolved the
+  site outside the repo; the residuals are two same-named occurrences on
+  one line, and a sibling unit's ungraphed kind (*partial*).
+- C-139 registered: a Go local named like an imported package shadows
+  it, and lane A draws the call to the package's function where lane B
+  does not answer (*partial*; 56 sites on dagger, vetoed there).
+
+ADR-107's progress hook, 2026-09-12 (0.2.6-beta):
 - C-125 narrowed: a dispatched doer's edits are in the flight log by
   time, tool and path; its reads are still recorded nowhere
   (*partial*).

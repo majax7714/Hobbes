@@ -1,6 +1,6 @@
 # ADR-111 — Lane A's fallback is vetoed where lane B resolved the site outside the repo
 
-**Date:** 2026-09-12 · **Status:** accepted: Max approved the proposal when he closed the C-oracle session, and this is its design, written before the dispatch that builds it. The acceptance is a regrade (below). · **Owner:** Max · **Source:** C-138, found by O9's random draw (`docs/oracle/cells/sqlite-vector-c-2026-09-12.md`)
+**Date:** 2026-09-12 · **Status:** accepted and built (0.2.8-beta). Max approved the proposal when he closed the C-oracle session, and this is its design, written before the dispatch that builds it. The dispatch was `S-20260912T221854Z-42d1`. The acceptance regrade passed, with one term Max accepted: sqlite-vector lost 4 syntactic edges, not 3 (the Record below). · **Owner:** Max · **Source:** C-138, found by O9's random draw (`docs/oracle/cells/sqlite-vector-c-2026-09-12.md`)
 
 This amends the architecture's **§3.4** (the join's table). It narrows
 **C-138** (`docs/constraints/extraction-c.md`), and follows ADR-104's

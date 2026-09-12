@@ -14,6 +14,42 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.5-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.2.8-beta — 2026-09-12 (the external veto: lane A's guess is dropped where lane B resolved the site outside the repo; ADR-111)
+
+**Patch: what the layer draws.**
+
+- **The veto.** `evidence.join` drops lane A's fallback at a call or
+  import site whose `(file, line, name)` carries a lane B reference
+  outside the repo.
+  - The helper marks an external reference `in_repo` when its moniker has
+    any in-repo definition (ambiguous across files, C-28, or of a kind
+    the graph drops). `join_cross_unit` marks sibling-ambiguous monikers
+    the same way. A marked reference never vetoes.
+  - Coverage is unchanged: such a site was already counted `external`.
+- **Where a user meets it.** `lane_agreement.external_vetoes` counts the
+  sites, with up to ten examples, and `hobbes lanes` prints them. A veto
+  is not a disagreement, so the exit status does not move.
+- **The acceptance regrade** (Max's gate): all 44 oracle cells with a
+  stored key, re-ingested contained and graded against their keys.
+  - A pre-veto pass on the same build reproduced every stored number
+    first.
+  - **No confirmed count moved anywhere.**
+  - **sqlite-vector: 851/854 → 851/851.** Its syntactic edges fell by 4:
+    the 3 wrong `strcasestr` edges, and one spurious edge. Lane A reads
+    the prototype at `libs/sqlite3.h:6943` as a call, drawn to the
+    uncompiled amalgamation; it graded silent. Max accepted the fourth.
+  - Every other cell shows 0 vetoes. Dagger's graph shows 56, in its
+    ungraded root module.
+- **Found in dagger: C-139, Go's local shadow.** The ten dagger examples
+  were calls on a local `slog := slog.SpanLogger(...)` logger, which lane
+  A had drawn to the package function `engine/slog.Info`. Lane B resolved
+  them to the logger's method outside the repo, so the veto removed wrong
+  edges. Where lane B does not answer, the shape remains, registered as
+  C-139.
+- **Register:** C-138 narrowed; C-139 registered.
+- **Built through the harness:** `S-20260912T221854Z-42d1` (99 of 200
+  turns). Gate clear and verify pass; merged without squashing.
+
 ## 0.2.7-beta — 2026-09-12 (the dispatch box: `rm` and C's toolchain probes; Max's policy)
 
 **Patch: what a dispatched doer's shell may run** (`calvin.box.policy`).
