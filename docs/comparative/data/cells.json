@@ -108,7 +108,7 @@
    "run": "contained",
    "draw": "picked",
    "label": "cJSON",
-   "note": "every miss is a call a Unity macro's expansion makes, drawn to the macro (C-131); the 525 syntactic edges sit in files CMake's defaults leave uncompiled",
+   "note": "every miss is a call a macro's expansion makes, drawn to the macro: 723 into Unity, 5 through cJSON's own cJSON_SetNumberValue (C-131); the 525 syntactic edges sit in files CMake's defaults leave uncompiled",
    "edges": 1713,
    "confirmed": 1188,
    "contradicted": 0,

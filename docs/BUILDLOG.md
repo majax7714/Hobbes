@@ -9352,8 +9352,10 @@ addition not a structural change" (0.2.5-beta; ADR-103 noted).
 - **DaveGamble/cJSON:** 1,188/1,188, all semantic.
   - The 525 syntactic edges sit in files CMake's defaults leave
     uncompiled, and are silent.
-  - Recall 62.0%. Every miss is `macro→function` (728): Unity's
-    assertions, drawn to the macro.
+  - Recall 62.0%. Every miss is `macro→function` (728), drawn to the
+    macro: 723 into Unity's assertions and runners, and 5 through cJSON's
+    own `cJSON_SetNumberValue` (the record first said all Unity;
+    corrected the same session).
 - **sqliteai/sqlite-vector,** drawn at random: 851/854.
   - Draw 1, jfernandez/bpftop, had no C compile to derive.
   - The 3 contradicted edges are syntactic and hobbes-wrong: a

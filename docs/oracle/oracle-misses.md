@@ -200,7 +200,9 @@ Two repos and the fixture, graded against clang's front end (ADR-110).
 - **cJSON: 728 misses, every one `macro→function`.** That is 100% of the
   cell's misses and 38.0% of its 1,918 in-repo pairs: calls Unity's
   assertion and runner macros make at `tests/` lines (`UnityFail` 380,
-  `UnityDefaultTestRun` 153, `UnityAssertEqualNumber` 51, …). Every
+  `UnityDefaultTestRun` 153, `UnityAssertEqualNumber` 51, …), and 5
+  into cJSON's own `cJSON_SetNumberHelper` through its
+  `cJSON_SetNumberValue` macro. Every
   directly spelled call is drawn: `static→function` 1,190/1,190.
 - **sqlite-vector: no miss** (1,091/1,091). Its calls into SQLite go
   through `sqlite3ext.h`'s object-like macros onto the API's

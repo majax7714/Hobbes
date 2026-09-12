@@ -28,8 +28,9 @@ from "wired, not supported" to a §3.8 row.
   every call, contained):
   - **DaveGamble/cJSON:** 1,188/1,188 confirmed, 0 contradicted, all
     semantic. Recall is 62.0%: every direct call is drawn (1,190/1,190),
-    and every miss is a call a Unity macro's expansion makes, which
-    Hobbes draws to the macro (C-131).
+    and every miss is a call a macro's expansion makes (723 into Unity,
+    5 through cJSON's own `cJSON_SetNumberValue`), which Hobbes draws to
+    the macro (C-131).
   - **sqliteai/sqlite-vector** (drawn at random): 851/854. The semantic
     tier is 851/851; 3 syntactic edges are wrong (C-138, below). Recall
     100%.

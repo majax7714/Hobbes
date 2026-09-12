@@ -33,7 +33,8 @@ The session's record is the last 2026-09-12 BUILDLOG entry.
    - **The cells** (contained, poison PASS on each):
      - `minic` 5/5, recall 7/7;
      - DaveGamble/cJSON 1,188/1,188, recall 62.0%. Every miss is a call a
-       Unity macro's expansion makes (C-131).
+       macro's expansion makes: 723 into Unity, and 5 through cJSON's own
+       `cJSON_SetNumberValue` (C-131).
      - sqliteai/sqlite-vector, drawn at random (draw 1, bpftop, had no
        compile database): 851/854. The 3 are syntactic edges Hobbes got
        wrong, a `strcasestr` shim in a dead `#if` arm drawn over libc's

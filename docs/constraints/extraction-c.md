@@ -67,7 +67,8 @@
     edge goes to the macro. On cJSON that is 728 of 1,918 in-repo pairs
     (38.0%), every miss of the cell: Unity's `TEST_ASSERT_*` and
     `RUN_TEST` expand to `UnityFail`, `UnityDefaultTestRun` and
-    `UnityAssert*`.
+    `UnityAssert*` (723). Five are cJSON's own API: its
+    `cJSON_SetNumberValue` macro calls `cJSON_SetNumberHelper`.
   - **Precision:** a function defined in a dead arm is a real target to
     lane A. sqlite-vector's `strcasestr` shim drew three wrong
     `syntactic` edges (C-138).
