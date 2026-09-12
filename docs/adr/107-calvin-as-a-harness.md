@@ -200,3 +200,53 @@ about the doer's output."*
     commit and a session file yield units from the developer's files
     alone.
 
+## Amendment — 2026-09-12 (next session): the progress hook; the doer's edits join the flight log
+
+**Max** (closing the 2026-09-12 C-oracle session, approving the
+proposal): the progress hook first, as one dispatch, so later
+dispatches can be watched.
+
+- **Found first.** The harness had no signal between "reading" and
+  "stuck". `b126` wrote nothing in 53 minutes and was stopped as a
+  stall, while its tunnel's close record (5.4 MB up) showed it was
+  reading. `5d5f`'s doer read for about 20 minutes before its first
+  edit. The developer's stopgap was a watcher on the worktree
+  (`git status --porcelain`). The flight log could not help, because
+  Claude Code's own Edit and Write never pass the proxy (C-125).
+- **Decision.**
+  1. **A PostToolUse hook reports every edit.** For a Claude Code
+     session, `hobbes-session` writes a settings file into the session
+     dir (`claude-settings.json`, beside `mcp.json`), and the default
+     command passes it with `--settings`. Its one hook matches `Edit`,
+     `Write`, `MultiEdit` and `NotebookEdit`, and runs the mounted
+     static proxy as `hobbes-proxy record-edit`.
+  2. **`record-edit` appends one flight line per edit:** the time, the
+     session, the role, the tool's name and the path. The path is
+     relative to the worktree when it lies under it. It never writes
+     content: the hook's input carries the edit's text, and only the
+     tool's name and the path are read from it. It always exits 0, so a
+     fault in the recorder never stops the doer.
+  3. **The flight line gains one field, `path`** (omitted when empty).
+     ADR-015 fixed the line's fields, and ADR-016 and ADR-054 widened it
+     once each; this is the third widening. An edit line has no argv, no
+     rule, no decision and no exit.
+  4. **The readers keep their counts.** `hobbes dispatch` counts edit
+     lines apart from exec decisions, and `orchestrate.read_flight` no
+     longer counts them as knowledge calls. The web Sessions card counts
+     them as events, and they keep a session's card live.
+  5. **The session file gains an edits line:** the count, the files, and
+     the first edit's time after launch.
+  6. **No kill on silence** (`b126`). While the session runs, `hobbes
+     dispatch` prints one line when the first edit lands, and one note if
+     none has landed by `--quiet-minutes` (default 20, 0 for off). The
+     session keeps running either way, and the record keeps the note.
+  7. **Checked before the decision:** Claude Code takes `--settings`, and
+     hooks run under `-p` unless `--bare` is passed. The session passes
+     no `--bare`.
+- **Not changed:** the doer's reads are still recorded nowhere (C-125
+  stays partial). The retention rule is untouched: the hook reads a
+  path, and the line keeps no content.
+- **Register.** C-125 is narrowed: every edit's time, tool and path is
+  in the flight log.
+- **Version:** a patch.
+
