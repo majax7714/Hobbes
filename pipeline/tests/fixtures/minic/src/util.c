@@ -14,3 +14,18 @@ int scale(int a) {
     int (*fp)(int, int) = adder.add;
     return adder.add(a, a) + (*fp)(a, a);
 }
+
+#if defined(_WIN32)
+static char *strcasestr(const char *haystack, const char *needle) {
+    (void)haystack;
+    (void)needle;
+    return NULL;
+}
+#endif
+
+#define _GNU_SOURCE
+#include <string.h>
+
+int mentions_add(const char *name) {
+    return strcasestr(name, "add") != NULL;
+}

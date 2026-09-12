@@ -7,5 +7,6 @@ typedef struct {
 
 int add(int a, int b);
 int scale(int a);
+int mentions_add(const char *name);
 
 #endif
