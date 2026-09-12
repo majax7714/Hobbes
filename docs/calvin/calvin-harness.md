@@ -1,6 +1,6 @@
 # Calvin as a harness — the environment stacked under the doer, validated by use
 
-**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation opens with the first dispatched session, whose log lands in [`sessions/`](sessions/README.md).
+**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation opens with the first dispatched session, whose log lands in [`sessions/`](sessions/README.md). **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
 **Supersedes, as an approach:** the keyed rounds. Their records stand as history:
 - M0 ([`calvin-potential.md`](calvin-potential.md));
 - M0-Go ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md));
@@ -69,7 +69,7 @@ flowchart TB
 | The doer | Claude Code, the host's binary, the owner's subscription token | no Bash; no repo `.mcp.json`; no self-update or telemetry; refused up front without a binary, a token or a route | not reproducible (**C-128**) |
 | `hobbes gate` | grounder v3, the complement split against a map derived from the parent's graph, the partition check when one is given | clear or blocked with the class, deterministic, the record hashed | a created file in a new directory reads `unmapped` (**C-126**); `unknown` stays advisory (C-121) |
 | `hobbes verify` | the diff's guarding tests in the sandbox, with and without it | pass, fail, vacuous, and the build row, contained | a behaviour no test reaches (C-93) |
-| The log | one file per session under `docs/calvin/sessions/` | what ran, under what, and what the gate and verify said | graded by the developer, not by an answer key (**C-127**) |
+| The log | one file per session under `docs/calvin/sessions/` | what ran, under what, and what the gate and verify said; the doer's output only; an evaluation row, never training data | graded by the developer, not by an answer key (**C-127**); the training guard's reach (**C-129**) |
 
 ## 3. Decisions (Max, 2026-09-12)
 
@@ -121,6 +121,36 @@ The claim reaches exactly those sessions (P11). There is no keyed
 metric and no arm comparison. The harness is judged as the environment
 the work runs in.
 
+## Retention and use (ADR-107's amendment, 2026-09-12)
+
+**Recorded sessions are evaluation rows, never model training data.**
+What matters, and what is kept, is the doer's output.
+
+- **Never stored:** the doer's reasoning and its transcript.
+  - Claude Code runs with `--no-session-persistence`.
+  - `hobbes-session` removes whatever state it left in its HOME when
+    the container exits: `.claude/`, `.claude.json*`,
+    `.cache/claude-cli-nodejs/`.
+  - `hobbes dispatch` repeats the pass and records any reasoning block
+    it still finds, expected none.
+- **Kept, the output:**
+  - the diff and its commits;
+  - the envelope's closing result;
+  - the flight log (every exec) and the egress log (every tunnel and
+    refusal);
+  - the gate and verify records;
+  - the brief;
+  - the session file.
+- **Never training — enforced, not only stated.** `ttt.units.units_from_git`,
+  the git source of `hobbes derive-corpus`'s units, skips every commit
+  the dispatch identity authored and every path under
+  `docs/calvin/sessions/`. So a doer's commit is **merged, never
+  squashed**: squashing erases the authorship the guard reads.
+- **The guard's reach (C-129).** Once merged, a doer's code is part of
+  the tree, and a corpus rendered from the tree at a later SHA contains
+  it. The guard keeps the session rows and the doer's commits out as
+  units; it does not unmake the merge.
+
 ## 5. Running one
 
 Once:
@@ -148,7 +178,8 @@ The command prints the gate verdict and the log's path, then exits:
 After that, the developer:
 - reads the diff (`git diff <parent>..hobbes/<session>`);
 - fills the review block;
-- merges, reworks or discards;
+- merges (never squashes: the doer's authorship is what keeps its
+  commits out of any training unit), reworks or discards;
 - commits the session file with the work.
 
 ## 6. Not built, named

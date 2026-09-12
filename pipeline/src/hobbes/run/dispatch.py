@@ -39,9 +39,22 @@ LOG_DIR = Path("docs") / "calvin" / "sessions"
 #: The variable Claude Code reads its token from (`claude setup-token`); the Go side's `sandbox.ClaudeTokenEnv`.
 TOKEN_ENV = "CLAUDE_CODE_OAUTH_TOKEN"
 DISPATCH_VERSION = 1
-#: The doer's commits say who made them: the verify environment's `hobbes-verify` identity is replaced.
-IDENTITY = ("GIT_AUTHOR_NAME=hobbes-dispatch", "GIT_AUTHOR_EMAIL=dispatch@hobbes.local",
-            "GIT_COMMITTER_NAME=hobbes-dispatch", "GIT_COMMITTER_EMAIL=dispatch@hobbes.local")
+#: The doer's commits say who made them: the verify environment's `hobbes-verify` identity is replaced. The author email is also
+#: what `ttt.units` reads to keep a doer's commits out of any training unit (ADR-107's retention amendment).
+DISPATCH_EMAIL = "dispatch@hobbes.local"
+IDENTITY = ("GIT_AUTHOR_NAME=hobbes-dispatch", f"GIT_AUTHOR_EMAIL={DISPATCH_EMAIL}",
+            "GIT_COMMITTER_NAME=hobbes-dispatch", f"GIT_COMMITTER_EMAIL={DISPATCH_EMAIL}")
+#: ADR-107's retention amendment, stated on every record and every session file.
+RETENTION_RULE = ("The doer's transcript, its reasoning included, is never kept: Claude Code runs with --no-session-persistence, and "
+                  "hobbes-session and then dispatch remove any state it left in its HOME (the session dir). A session keeps its output: "
+                  "the diff, the envelope's result, the flight and egress logs, the gate and verify records. Recorded sessions are "
+                  "evaluation rows, never model training data.")
+#: What Claude Code leaves in its HOME beside the doer's output (`sandbox.DoerStateNames`; `.claude.json.*` backups by prefix).
+DOER_STATE = (".claude", ".claude.json")
+#: The doer's state below a shared directory of its HOME (`sandbox.DoerStatePaths`): Claude Code's MCP logs.
+DOER_STATE_PATHS = (".cache/claude-cli-nodejs",)
+#: The marker a stored reasoning block carries in a Claude Code transcript.
+THINKING_MARKER = '"type":"thinking"'
 #: What the log's review block asks, and the verdicts it takes.
 REVIEW_VERDICTS = ("right-clear", "right-block", "false-block", "missed")
 
@@ -289,6 +302,40 @@ def summarize_egress(path: Path) -> dict:
     return out
 
 
+def purge_doer_state(session_dir: Path) -> list[str]:
+    """Remove the doer's own state from *session_dir* (`DOER_STATE` and ``.claude.json.*``), as hobbes-session already does at
+    exit; returns the names removed. The second pass is deliberate: a record must not depend on the launcher's build."""
+    session_dir = Path(session_dir)
+    removed = []
+    for p in sorted(session_dir.iterdir()) if session_dir.is_dir() else []:
+        if p.name in DOER_STATE or p.name.startswith(".claude.json."):
+            shutil.rmtree(p) if p.is_dir() and not p.is_symlink() else p.unlink()
+            removed.append(p.name)
+    for rel in DOER_STATE_PATHS:
+        p = session_dir / rel
+        if p.is_symlink() or p.exists():
+            shutil.rmtree(p) if p.is_dir() and not p.is_symlink() else p.unlink()
+            removed.append(rel)
+            try:
+                p.parent.rmdir()  # only when nothing else is left in it
+            except OSError:
+                pass
+    return sorted(removed)
+
+
+def reasoning_left(session_dir: Path) -> list[str]:
+    """Files under *session_dir* that still carry a stored reasoning block — expected none; the record says which if any."""
+    out = []
+    for p in sorted(Path(session_dir).rglob("*")) if Path(session_dir).is_dir() else []:
+        if p.is_file() and not p.is_symlink() and "worktree" not in p.relative_to(session_dir).parts:
+            try:
+                if THINKING_MARKER in p.read_text(errors="replace"):
+                    out.append(str(p.relative_to(session_dir)))
+            except OSError:
+                continue
+    return out
+
+
 def _doer_version(claude_bin: str | None) -> str | None:
     try:
         r = subprocess.run([claude_bin or "claude", "--version"], capture_output=True, text=True, timeout=30)
@@ -367,6 +414,10 @@ def dispatch(d: Dispatch, tok: str) -> dict:
         rec["error"] = f"the session was stopped after {d.timeout:.0f}s"
         _cleanup_route(d.session_id)
     rec["wall_s"] = round(time.monotonic() - t0, 1)
+    removed = purge_doer_state(d.session_dir)
+    rec["retention"] = {"doer_state_removed_by_dispatch": removed, "reasoning_left": reasoning_left(d.session_dir),
+                        "launcher_removed": "retention: removed the doer's own state" in rec.get("session_stderr_tail", ""),
+                        "rule": RETENTION_RULE}
     rec["flight"] = summarize_flight(d.session_dir / "flight.jsonl")
     rec["egress"] = summarize_egress(d.session_dir / "egress.jsonl")
 
@@ -427,6 +478,10 @@ def render_log(rec: dict) -> str:
         lines.append(f"  - `{r['class']}` {r['path']}:{r['line']} `{r['term']}`" + (f" — {r['reason']}" if r.get("reason") else ""))
     if len(g["rows"]) > 20:
         lines.append(f"  - … {len(g['rows']) - 20} more in `{g['record']}`")
+    ret = rec.get("retention") or {}
+    lines.append("- **Retention:** the doer's transcript and reasoning are not stored; this file and the session dir keep its output "
+                 "only. Recorded sessions are evaluation rows, never model training data."
+                 + ("" if not ret.get("reasoning_left") else f" WARNING: reasoning found in {', '.join(ret['reasoning_left'])}"))
     lines.append(f"- **Verify:** {v.get('verdict')}"
                  + (f"; tests {v['tests']}, regressions {v['regressions']}; {v.get('summary')}" if "tests" in v else "")
                  + (f"; build {v['build_summary']}" if v.get("build_summary") else "") + (f" — {v['error']}" if v.get("error") else ""))

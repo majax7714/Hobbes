@@ -124,7 +124,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-125, C-127, C-128, C-55, C-56, C-124 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-125, C-127, C-128, C-129, C-55, C-56, C-124 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
@@ -135,8 +135,13 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and twenty-eight entries: one hundred and one active, twenty-four lifted, three superseded**
-(ADR-107 on 2026-09-12, the Calvin harness:
+**One hundred and twenty-nine entries: one hundred and two active, twenty-four lifted, three superseded**
+(ADR-107's retention amendment, 2026-09-12:
+- C-129 registered: the training guard keeps the session rows and the
+  doer's commits out as units, not the merged tree (*surfaced*).
+- C-125 amended: the doer's transcript is no longer kept.
+
+ADR-107 on 2026-09-12, the Calvin harness:
 - C-125–C-128 registered: a dispatched doer's native file tools are
   outside the flight log (*partial*); a created file in a new directory
   reads `unmapped` at the gate (*surfaced*); the harness is validated by

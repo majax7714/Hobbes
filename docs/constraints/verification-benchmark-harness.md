@@ -853,10 +853,11 @@
     `exec`.
 - **You find out:** **partial**.
   - Every write is in the harvested diff, which the gate reads.
-  - Claude Code's own transcript of every tool call lands in the
-    session's directory, under the session HOME's `.claude/`, and the
-    session file points at that directory.
-  - Nothing joins the transcript to the flight log.
+  - **Amended 2026-09-12 (ADR-107's retention amendment):** the
+    doer's transcript is not kept. Claude Code runs with
+    `--no-session-persistence`, and its state is removed at exit, so
+    its reads are recorded nowhere. This is chosen: the doer's
+    reasoning is never stored.
 - **Source:** ADR-107, 2026-09-12.
 
 ### C-127 — The harness is validated by the developer's reading of each session, not by an answer key
@@ -890,6 +891,27 @@
 - **You find out:** **surfaced**. The session file records the doer's
   version, model and turns, and the gate record hashes every input.
 - **Source:** ADR-107, 2026-09-12.
+
+### C-129 — The training guard keeps the session rows and the doer's commits out, not the merged tree
+
+- **Cannot tell you:** that no model is ever trained on a doer's output.
+  - The guard makes the recorded sessions and the doer's own commits
+    unreachable as training units. `ttt.units.units_from_git` skips
+    every commit the dispatch identity authored and every path under
+    `docs/calvin/sessions/`.
+  - Once a doer's commit is merged, its code is part of the repo. Any
+    corpus rendered from the tree at a later SHA (`hobbes
+    derive-corpus`'s graph and module pages) contains it.
+- **Because:** the tree is the repo. Hobbes renders what is there, and a
+  line carries no author once it is in the tree.
+- **Bites at:**
+  - a TTT corpus built at a SHA after a merge;
+  - a squashed doer commit, whose authorship the guard can no longer
+    see.
+- **You find out:** **surfaced**. `calvin-harness.md`'s retention
+  section and `units_from_git`'s docstring state the reach, and "merge,
+  never squash" is in the procedure.
+- **Source:** ADR-107's retention amendment; Max, 2026-09-12.
 
 ## Superseded constraints in this segment
 

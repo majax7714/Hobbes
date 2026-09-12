@@ -146,3 +146,57 @@ were missing before that shape could run on real work:
   invalid token reached `api.anthropic.com:443` through the proxy
   (three tunnels), got `401`, reached for no other host, and left no
   container or network behind.
+
+## Amendment — 2026-09-12 (later): retention; recorded sessions are evaluation rows, never model training data
+
+**Max:** *"make sure not to store reasoning context, also pin in docs that
+recorded sessions are evaluation rows never model training … I only care
+about the doer's output."*
+
+- **Found first.** The first real dispatch stored Claude Code's own
+  state in the session dir, which is the session's HOME:
+  - its transcript under `.claude/`: 5 files, 564 KB, 21 lines carrying
+    thinking blocks;
+  - `.claude.json`;
+  - its MCP logs under `.cache/claude-cli-nodejs/`.
+
+  All of it was purged from the three harness sessions that had any.
+  None of the closed rounds' Claude transcripts carries reasoning. Five
+  owned-loop transcripts from 2026-08-22, the Qwen benchmark runs, do
+  (`reasoning_content`); they are left for Max's call.
+- **Decision.**
+  1. **No transcript is written.** The doer runs with
+     `--no-session-persistence`, so its transcript, reasoning included,
+     never reaches disk.
+  2. **Whatever state is left is removed.** When the container exits,
+     `hobbes-session` removes the doer's state from its HOME
+     (`sandbox.PurgeDoerState`: `.claude/`, `.claude.json*`,
+     `.cache/claude-cli-nodejs/`) and prints what it removed.
+     `hobbes dispatch` repeats the pass, scans the session dir for any
+     stored reasoning block, and records both.
+  3. **A session keeps the doer's output:** its diff and commits, the
+     envelope's closing result, the flight and egress logs, the gate
+     and verify records, and the brief.
+  4. **Recorded sessions are evaluation rows, never model training
+     data.** This is stated in every session file and every record. It
+     is enforced where Hobbes itself could turn them into training data:
+     `ttt.units.units_from_git` skips every commit the dispatch
+     identity authored (`dispatch@hobbes.local`) and every path under
+     `docs/calvin/sessions/`. A doer's commit is merged, never squashed,
+     so the authorship the guard reads survives.
+- **Register.**
+  - C-125 amended: the transcript is no longer kept, so the doer's reads
+    are recorded nowhere.
+  - C-129 added: the guard's reach. Once merged, a doer's code is part
+    of the tree, and a corpus rendered from the tree contains it.
+- **Version:** 0.1.22-beta.
+- **Tests:**
+  - `PurgeDoerState` (Go);
+  - the live session test, where state the session wrote in its HOME
+    is gone after it and the launcher says so;
+  - the default command carries `--no-session-persistence`;
+  - dispatch's purge and retention record;
+  - `units_from_git` over a real repo: a developer commit, a doer
+    commit and a session file yield units from the developer's files
+    alone.
+

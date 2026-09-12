@@ -254,7 +254,7 @@ tool × repo, and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.1.21-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.1.22-beta** (2026-09-12). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -272,8 +272,8 @@ session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings, all lifted the
 next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and twenty-eight entries (one
-hundred and one active, twenty-four lifted, three superseded), each naming
+The constraint register holds one hundred and twenty-nine entries (one
+hundred and two active, twenty-four lifted, three superseded), each naming
 where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -321,7 +321,9 @@ ADR-107):
   the developer reviews it.
 
 It is validated by use on Hobbes' own development, not by a benchmark.
-No session has been dispatched yet.
+The doer's reasoning is never stored, and the session records are
+evaluation rows, never model training data. The first sessions were
+dispatched on 2026-09-12.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry

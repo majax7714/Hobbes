@@ -1455,8 +1455,16 @@ When the session ends, the harvested branch goes through three steps:
 The log is the harness's record plus a review block the developer
 fills: whether the gate's verdict was right, and the outcome. Those
 files are the harness's validation; there is no keyed metric. Nothing
-is merged by the harness. C-125–C-128 are its concessions, and C-41 is
+is merged by the harness. C-125–C-129 are its concessions, and C-41 is
 narrowed by the allowlist.
+
+**Retention (ADR-107's amendment).** The doer runs with
+`--no-session-persistence`, and its state is removed from the session
+dir at exit (`sandbox.PurgeDoerState`). A session keeps the doer's
+output alone, never its reasoning or transcript. Recorded sessions are
+evaluation rows, never model training data: `ttt.units.units_from_git`
+skips the doer's commits and the session files, and C-129 states the
+guard's reach.
 
 ---
 

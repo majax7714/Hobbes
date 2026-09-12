@@ -39,8 +39,13 @@ import tomllib
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from hobbes.run.dispatch import DISPATCH_EMAIL, LOG_DIR
 from hobbes.run.stages import aided_brief
 
+#: ADR-107's retention amendment: recorded harness sessions are evaluation rows, never model training data. No unit comes from a
+#: commit the dispatch identity authored, or from a path under the session records. The guard's reach is C-129: once a doer's
+#: commit is merged, its code is part of the tree, and a corpus rendered from the tree contains it.
+EVAL_ROW_PREFIX = LOG_DIR.as_posix() + "/"
 #: Files a git unit may come from when no prefixes are given: everything.
 ANY_PREFIX: tuple[str, ...] = ()
 #: Body text a proposal keeps from a commit message.
@@ -120,18 +125,21 @@ def _git(repo: Path, *args: str) -> str:
 def units_from_git(repo_root: Path, base: str, head: str = "HEAD", *, name: str | None = None,
                    prefixes: tuple[str, ...] = ANY_PREFIX, max_lines: int = DEFAULT_MAX_LINES,
                    min_lines: int = DEFAULT_MIN_LINES) -> list[Unit]:
-    """One unit per (commit after *base*, file), for hunks within the line bounds."""
+    """One unit per (commit after *base*, file), for hunks within the line bounds — never from a commit a dispatched doer authored
+    or from a recorded session file (`EVAL_ROW_PREFIX`; ADR-107's retention amendment, C-129)."""
     repo_root = Path(repo_root)
     repo = name or repo_root.resolve().name
     base_sha = _git(repo_root, "rev-parse", base).strip()
     commits = _git(repo_root, "rev-list", "--reverse", f"{base}..{head}").split()
     units: list[Unit] = []
     for commit in commits:
+        if _git(repo_root, "log", "-1", "--format=%ae", commit).strip() == DISPATCH_EMAIL:
+            continue  # a doer's output is an evaluation row, never a training unit
         subject = _git(repo_root, "log", "-1", "--format=%s", commit).strip()
         body = strip_trailers(_git(repo_root, "log", "-1", "--format=%b", commit))
         files = [f for f in _git(repo_root, "show", "--name-only", "--format=", commit).split("\n") if f]
         for path in files:
-            if (prefixes and not any(path.startswith(p) for p in prefixes)) or SKIP_BASENAMES.search(path):
+            if (prefixes and not any(path.startswith(p) for p in prefixes)) or SKIP_BASENAMES.search(path) or path.startswith(EVAL_ROW_PREFIX):
                 continue
             diff = _git(repo_root, "show", "--format=", "--no-color", commit, "--", path)
             if not diff or "Binary files" in diff.splitlines()[-1:] or "GIT binary patch" in diff:

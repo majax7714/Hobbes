@@ -8871,3 +8871,64 @@ podman (5.8.4, netavark + pasta):
 **Not done.** No session has been dispatched: it needs Max's `claude
 setup-token`. The validation criterion (N sessions) is proposed, not
 set. The next builds are named in `calvin-harness.md` §6.
+
+## 2026-09-12 — (later) the first dispatched session; retention: the doer's reasoning never stored, recorded sessions evaluation rows, never training — 0.1.22-beta
+
+**The first dispatches.** The task was the `path` alias for the two
+scope-taking knowledge tools (W4, ADR-087 follow-up (a)), with the six
+`go/internal/proxy/` files as the partition.
+- **Try 1** (`S-20260912T151728Z-96df`) ended in `401 OAuth access token
+  is invalid` after 3.3 s. The harness did what it should: the proxy
+  tunnelled, the session logged, and dispatch exited 3 with nothing
+  harvested.
+  - **The cause:** the token was cut at 100 characters. The same token
+    gave the same 401 on the host.
+  - **The fix:** a fresh 108-character token answered `ok` on the host.
+    No token value was printed at any point.
+- **Try 2** (`S-20260912T151945Z-417f`) worked end to end.
+  - **The run:** 38 of 40 turns and one commit by `hobbes-dispatch`,
+    changing `knowledge.go` and `mcp_test.go`. Egress: 3 tunnels, 0
+    refused. Policy: 12 exec calls, all allowed.
+  - **The verdicts:** gate clear; verify pass (45 tests, 2 new-pass, 0
+    regressions).
+  - **Checked outside the sandbox:** gofmt, `go vet ./...`, and the
+    proxy tests.
+  - **The merge is held for Max.**
+
+**Max, before proceeding:** *"make sure not to store reasoning context,
+also pin in docs that recorded sessions are evaluation rows never model
+training … I only care about the doer's output."*
+
+**Found:**
+- Try 2 had stored Claude Code's transcript in its session dir, the
+  session HOME's `.claude/`: 564 KB, 21 thinking-block lines. Beside it
+  were `.claude.json` and Claude Code's MCP logs
+  (`.cache/claude-cli-nodejs/`).
+- The auth-failure session and the no-spend smoke held the same files,
+  without thinking.
+- None of the closed rounds' 196 loop transcripts carries reasoning.
+- Five owned-loop transcripts from 2026-08-22, the Qwen benchmark runs,
+  carry `reasoning_content`. They are left for Max.
+- `ttt.units.units_from_git` took every commit and every path, so a
+  future corpus over this repo would have turned the doer's commits and
+  the session files into training units.
+
+**Done (0.1.22-beta, ADR-107 amended):**
+- The doer runs with `--no-session-persistence`.
+- `sandbox.PurgeDoerState` runs when the container exits (`.claude/`,
+  `.claude.json*`, `.cache/claude-cli-nodejs/`), and the launcher
+  prints what it removed.
+- Dispatch repeats the pass, scans for any stored reasoning block, and
+  records the result in `retention`. Every session file states that
+  recorded sessions are evaluation rows, never model training data.
+- `units_from_git` skips the dispatch identity's commits and
+  `docs/calvin/sessions/`, so a doer's commit is merged, never squashed.
+- The three harness sessions were purged; no thinking marker is left.
+- **Register:** C-125 amended; C-129 added (the guard's reach: not the
+  merged tree).
+- **Docs:** ADR-107's amendment; a retention section in
+  `calvin-harness.md`; the sessions README; a CLAUDE.md convention;
+  architecture §6.3; the CHANGELOG; the README.
+- **Verified:** pytest 1,372 and Go 328, green. The live session test
+  now also shows state written in the session HOME is gone after it.
+  The binaries and the image were rebuilt at 0.1.22-beta.

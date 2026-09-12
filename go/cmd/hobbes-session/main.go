@@ -209,6 +209,15 @@ func runStart(args []string, stdout, stderr io.Writer) int {
 		// .hobbes/ (P1: derived is not committed).
 		commitLeftovers(worktree, stderr)
 	}
+	// ADR-107's retention amendment: whatever the doer left in its HOME —
+	// a transcript, its reasoning — does not outlive the container. The
+	// session keeps its output: the harvested branch, the flight and
+	// egress logs, and the envelope on stdout.
+	if removed, perr := sandbox.PurgeDoerState(filepath.Join(opt.sessions, plan.SessionID())); perr != nil {
+		fmt.Fprintf(stderr, "hobbes-session: retention: %v\n", perr)
+	} else if len(removed) > 0 {
+		fmt.Fprintf(stderr, "hobbes-session: retention: removed the doer's own state (%s)\n", strings.Join(removed, ", "))
+	}
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
 			return ee.ExitCode()

@@ -13,6 +13,31 @@ bump lands on 0.2.0-beta when a capability earns it; tags are his call
 each time (0.1.9-beta and 0.1.10-beta untagged; the last tag is
 `v0.1.8-beta`).
 
+## 0.1.22-beta — 2026-09-12 (retention: evaluation rows, never training; ADR-107 amended)
+
+**Patch: a dispatched doer's reasoning is never stored, and recorded
+sessions can never become training units.**
+
+- **The doer runs with `--no-session-persistence`.**
+- **`hobbes-session` removes the doer's state from its HOME at exit**
+  (`.claude/`, `.claude.json*`, `.cache/claude-cli-nodejs/`), and prints
+  what it removed.
+- **`hobbes dispatch` repeats the pass and records the result.** The
+  record's `retention` field lists what dispatch removed and any
+  reasoning block still found (expected none). Every session file says
+  that recorded sessions are evaluation rows, never model training data.
+- **`ttt.units.units_from_git` skips** every commit the dispatch
+  identity authored and every path under `docs/calvin/sessions/`.
+- **Register:** C-125 amended; C-129 added (the guard's reach: not the
+  merged tree).
+- **Tests:**
+  - `PurgeDoerState`;
+  - the live session test (the state is gone after, and the launcher
+    says so);
+  - the default command's flag;
+  - dispatch's retention record;
+  - `units_from_git` over a real repo.
+
 ## 0.1.21-beta — 2026-09-12 (the Calvin harness, ADR-107)
 
 **Patch: a live session reaches only the hosts it names, and Claude Code

@@ -1,16 +1,56 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-12; Hobbes 0.1.21-beta on `main`.**
+**Reviewed 2026-09-12; Hobbes 0.1.22-beta on `main`.**
 - **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.1.21-beta are untagged. Tags are Max's call.
+  0.1.22-beta are untagged. Tags are Max's call.
 - **Numbering** (Max; ADR-103's third amendment): the layer stays on
   0.1.x, patch by patch.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
 The session's record is the 2026-09-12 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: the Calvin harness is built — dispatch the first session
+## ⇢ START HERE NEXT SESSION: the first dispatch ran (gate clear, verify pass) — its merge waits on Max; retention is in place (0.1.22-beta)
 
+0. **Latest (2026-09-12, later).**
+   - **The first real dispatch** (`S-20260912T151945Z-417f`): the
+     `path` alias for `list_blind_spots` and `list_invariants` (W4,
+     ADR-087 follow-up (a)).
+     - **The run:** the doer used 38 of 40 turns and made one commit, by
+       `hobbes-dispatch`. Egress: 3 tunnels, 0 refused. Policy: 12
+       allows.
+     - **The verdicts:** gate clear; verify pass (45 tests, 2 new, 0
+       regressions). Checked again outside the sandbox: gofmt, vet and
+       tests all pass.
+     - **The merge is held for Max.** On his word:
+       - fill the review block: `gate: right-clear`, `outcome: merged`,
+         and the JSON note (the schema test's `required` check would
+         pass vacuously if the field ever arrived as another type);
+       - `git merge hobbes/S-20260912T151945Z-417f` (never squash);
+       - bump to 0.1.23-beta with a CHANGELOG entry, and mark W4 (a)
+         done;
+       - rebuild the proxy and the image;
+       - commit both session files. The first,
+         `S-20260912T151728Z-96df`, was rejected at auth: the token was
+         cut at 100 characters. Its outcome is `discarded`.
+   - **Retention** (0.1.22-beta; ADR-107 amended) — Max: *store no
+     reasoning; recorded sessions are evaluation rows, never model
+     training.*
+     - **Built:** the doer runs with `--no-session-persistence`.
+       `hobbes-session` purges `.claude/`, `.claude.json*` and
+       `.cache/claude-cli-nodejs/` from its HOME at exit, and dispatch
+       re-checks and records the result. `units_from_git` skips the
+       doer's commits and `docs/calvin/sessions/`.
+     - **Purged:** the three harness sessions that held doer state.
+       The real dispatch had stored 21 thinking-block lines; none are
+       left.
+     - **Register:** C-125 amended; C-129 added.
+   - **For Max:**
+     - The five owned-loop transcripts that carry `reasoning_content`.
+       They are from 2026-08-22, the Qwen benchmark runs: `3d888dbe00ac-u6`
+       and `f0c8a912cffb-u4`, `-u5`, `-u9`, `-verifier-1`, under
+       `~/.hobbes/sessions/`. They are not Claude's. Delete them, or
+       keep them.
+     - C-129's reach: a merged doer's code is in the tree.
 1. **What changed (2026-09-12).**
    - **The review first.** Max had the top-level docs reviewed. The
      findings are in item 4; most are fixed.
@@ -45,7 +85,7 @@ The session's record is the 2026-09-12 BUILDLOG entry.
      - a Claude Code smoke: an invalid token made three tunnels to
        `api.anthropic.com:443` and got 401, no other host was reached
        for, and teardown was clean.
-2. **The first real session — the next thing to do.**
+2. **Running a session** (done once; the steps stand).
    1. **Max makes the token:** `! claude setup-token`. It is
       interactive. Keep the token as `claude_oauth_token` in the key
       file (`--secrets "$HOBBES_SECRETS"`), or export
@@ -181,11 +221,11 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 128 entries, 101 active, 24 lifted, 3 superseded.
-  C-124 was superseded 2026-09-12, and C-125–C-128 were added.
+- **Register:** 129 entries, 102 active, 24 lifted, 3 superseded.
+  C-124 was superseded 2026-09-12; C-125–C-129 were added.
 - **Suites:**
-  - 1,371 pytest (4 `lane_b`);
-  - 325 Go, subtests counted as before (HEAD `e130b34` read 304 by
+  - 1,372 pytest (4 `lane_b`);
+  - 328 Go, subtests counted as before (HEAD `e130b34` read 304 by
     that count, 240 top-level);
   - 52 oracle-lane Go; 52 vitest; 36 + 36 node; 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).

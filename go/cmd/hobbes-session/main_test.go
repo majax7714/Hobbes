@@ -557,7 +557,8 @@ func TestEgressRouteLiveAllowsTheListAndNothingElse(t *testing.T) {
 	}
 	t.Cleanup(func() { exec.Command("podman", "rm", "-f", "-t", "0", up).Run() })
 
-	script := `a=$(curl -s -o /dev/null -w '%{http_code}' -p -x "$HTTPS_PROXY" --max-time 10 http://` + up + `:8080/)
+	script := `mkdir -p "$HOME/.claude/projects/-work" && echo '{"type":"thinking"}' > "$HOME/.claude/projects/-work/t.jsonl" && echo '{}' > "$HOME/.claude.json"
+a=$(curl -s -o /dev/null -w '%{http_code}' -p -x "$HTTPS_PROXY" --max-time 10 http://` + up + `:8080/)
 b=$(curl -s -o /dev/null -w '%{http_connect}' -p -x "$HTTPS_PROXY" --max-time 10 http://` + up + `:8081/)
 c=$(curl -s -o /dev/null -w '%{http_code}' --noproxy '*' --max-time 5 http://` + up + `:8080/)
 d=$(curl -s -o /dev/null -w '%{http_code}' --noproxy '*' --max-time 5 http://1.1.1.1/)
@@ -587,5 +588,15 @@ echo "ALLOWED=$a REFUSED=$b DIRECT=$c PUBLIC=$d"`
 	}
 	if !strings.Contains(stderr, "egress: allow") {
 		t.Errorf("the launcher should print the log's summary:\n%s", stderr)
+	}
+	// ADR-107's retention amendment, where a user meets it: state the doer
+	// wrote in its HOME (the session dir) does not outlive the session.
+	for _, gone := range []string{".claude", ".claude.json"} {
+		if _, err := os.Stat(filepath.Join(sessions, "S-live-egress", gone)); err == nil {
+			t.Errorf("%s outlived the session", gone)
+		}
+	}
+	if !strings.Contains(stderr, "retention: removed the doer's own state (.claude, .claude.json)") {
+		t.Errorf("the launcher should say what it removed:\n%s", stderr)
 	}
 }

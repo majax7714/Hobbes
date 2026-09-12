@@ -261,3 +261,35 @@ class TestScore:
         s = score.summarise(rows)
         assert s["n"] == 5 and s["families"]["defines"]["mean"] == 0.5
         assert s["absent_false_acceptance"] == pytest.approx(2 / 3, abs=1e-3) and s["navigation_mean"] == 0.5
+
+
+def test_units_from_git_never_take_a_doers_commit_or_a_session_record(tmp_path):
+    """ADR-107's retention amendment: recorded sessions are evaluation rows, never model training data — no unit comes from a
+    commit the dispatch identity authored, or from a file under docs/calvin/sessions/."""
+    import subprocess as sp
+
+    from hobbes.ttt.units import units_from_git
+
+    root = tmp_path / "r"
+    root.mkdir()
+
+    def git(*a, who=("dev", "dev@example.test")):
+        sp.run(["git", "-C", str(root), "-c", f"user.name={who[0]}", "-c", f"user.email={who[1]}", *a], check=True, capture_output=True)
+
+    body = "".join(f"def f{i}(x):\n    return x + {i}\n" for i in range(4))
+    (root / "a.py").write_text("x = 1\n")
+    git("init", "-q")
+    git("add", ".")
+    git("commit", "-qm", "base")
+    (root / "a.py").write_text(body)
+    git("add", ".")
+    git("commit", "-qm", "the developer's work")
+    (root / "b.py").write_text(body)
+    git("add", ".")
+    git("commit", "-qm", "the doer's work", who=("hobbes-dispatch", "dispatch@hobbes.local"))
+    (root / "docs" / "calvin" / "sessions").mkdir(parents=True)
+    (root / "docs" / "calvin" / "sessions" / "S-1.md").write_text(body.replace("def ", "- def "))
+    (root / "c.py").write_text(body)
+    git("add", ".")
+    git("commit", "-qm", "a session record beside the developer's work")
+    assert [u.id.split(":", 1)[1] for u in units_from_git(root, "HEAD~3")] == ["a.py", "c.py"]

@@ -1,5 +1,11 @@
 # Harness sessions — one file per dispatched session
 
+> **These files are evaluation rows, never model training data**
+> (ADR-107's retention amendment). They record the doer's output, never
+> its reasoning or transcript, which are not stored. The git unit source
+> of `hobbes derive-corpus` (`ttt.units.units_from_git`) skips this
+> folder and every commit a doer authored.
+
 Each file here is written by `hobbes dispatch` (ADR-107) when a session
 ends. It is named by the session id (`S-<utc>-<4 hex>.md`), so the
 files sort by time. The rule these files are read by is
@@ -35,4 +41,5 @@ A file has two parts:
   was found.
 
 Commit a session's file with the work it produced, or on its own if
-the work was discarded.
+the work was discarded. Merge a doer's commit; never squash it, since
+its authorship is what keeps it out of any training unit.

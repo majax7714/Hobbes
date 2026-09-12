@@ -203,8 +203,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-12): 1,371 pytest (4 of them
-`lane_b`) / 325 Go (subtests counted) + 52 oracle-lane Go (two run the
+Suite sizes at the last check (2026-09-12): 1,372 pytest (4 of them
+`lane_b`) / 328 Go (subtests counted) + 52 oracle-lane Go (two run the
 `shape/` suites: 24 unittest + 7 node) / 52 vitest / 36 tsextract + 36
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
@@ -234,7 +234,7 @@ are present.
   under `bench/` or an experiment record moves it. Rebuild the image
   after a bump (C-65). **The number line is Max's (ADR-103, third
   amendment, 2026-09-10): the layer stays on 0.1.x patch by patch;**
-  tags are his call each time — 0.1.9-beta to 0.1.21-beta are untagged,
+  tags are his call each time — 0.1.9-beta to 0.1.22-beta are untagged,
   the last tag is `v0.1.8-beta`.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
@@ -255,6 +255,10 @@ are present.
   edit old entries. `docs/session-handoff.md` is rewritten, never piled.
 - Every package/module gets doc comments; public functions documented.
   No orphan code; no speculative abstraction.
+- **Recorded sessions are evaluation rows, never model training data**
+  (ADR-107's retention amendment). A dispatched doer's reasoning and
+  transcript are never stored; only its output is. Merge a doer's commit,
+  never squash it: its authorship keeps it out of `units_from_git`.
 - **Never read or write `.tfstate` files. Never commit anything under
   `.hobbes/derived/`.** In target repos, `.hobbes/` is gitignored
   entirely (ADR-012); only this repo versions its own.
@@ -269,7 +273,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-12) — Hobbes 0.1.21-beta
+## Status (2026-09-12) — Hobbes 0.1.22-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -282,7 +286,7 @@ are present.
     at 0.1.10-beta).
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 128 entries (101 active, 24 lifted, 3 superseded).
+  - **Register:** 129 entries (102 active, 24 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
@@ -299,10 +303,15 @@ are present.
     `docs/calvin/sessions/`.
 
   Checked with no spend, by a live route test and by Claude Code through
-  the proxy on a bad token (401, no other host). **No session has been
-  dispatched yet; the first needs `claude setup-token`.** The keyed
-  rounds (M0, M0-Go, M0-Gate; about $27) are closed as an approach, and
-  their records are history.
+  the proxy on a bad token (401, no other host).
+  - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
+    `path` alias: gate clear, verify pass. Its merge is held for Max.
+  - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
+    and recorded sessions are evaluation rows, never training data
+    (enforced in `units_from_git`).
+
+  The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
+  approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
   - the harness's validation criterion (N sessions);
   - whether ADR-106 stays held;

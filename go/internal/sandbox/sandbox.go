@@ -13,7 +13,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -396,6 +398,10 @@ func (p *Plan) DefaultCommand() []string {
 		// this is what meters the harness arm (ADR-055) — the plain
 		// text result would leave tokens unobserved forever.
 		"--output-format", "json",
+		// ADR-107's retention amendment: the doer's transcript, its
+		// reasoning included, is never written; what a session keeps is its
+		// output (the envelope, the diff) and the flight and egress logs.
+		"--no-session-persistence",
 		"--mcp-config", p.mcpConfigContainerPath(),
 		// Only the hobbes server: a repo's own .mcp.json (this one starts
 		// a podman container) is not the session's to load (ADR-107).
@@ -668,4 +674,59 @@ func (p *Plan) EgressTeardown() [][]string {
 		return nil
 	}
 	return [][]string{{"rm", "-f", "-t", "0", p.EgressProxyName()}, {"network", "rm", "-f", p.cfg.Network}}
+}
+
+// DoerStateNames are what Claude Code leaves in its HOME — the session dir —
+// beside the doer's output: transcripts, todos and settings under .claude/,
+// and .claude.json (its backups are matched by prefix). ADR-107's retention
+// amendment: a recorded session keeps the doer's output, never its
+// reasoning or transcript.
+var DoerStateNames = []string{".claude", ".claude.json"}
+
+// DoerStatePaths are the doer's state below a shared directory of its HOME:
+// Claude Code's MCP logs. The parent (.cache) stays when anything else of
+// its remains.
+var DoerStatePaths = []string{".cache/claude-cli-nodejs"}
+
+// PurgeDoerState removes the doer's own state from a session dir: every
+// entry named in DoerStateNames, any `.claude.json.*` backup, and every
+// path in DoerStatePaths. It
+// returns the names it removed, sorted. A session dir with none is not an
+// error.
+func PurgeDoerState(sessionDir string) ([]string, error) {
+	entries, err := os.ReadDir(sessionDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var removed []string
+	for _, e := range entries {
+		name := e.Name()
+		match := strings.HasPrefix(name, ".claude.json.")
+		for _, n := range DoerStateNames {
+			match = match || name == n
+		}
+		if !match {
+			continue
+		}
+		if err := os.RemoveAll(filepath.Join(sessionDir, name)); err != nil {
+			return removed, err
+		}
+		removed = append(removed, name)
+	}
+	for _, rel := range DoerStatePaths {
+		full := filepath.Join(sessionDir, filepath.FromSlash(rel))
+		if _, err := os.Lstat(full); err != nil {
+			continue
+		}
+		if err := os.RemoveAll(full); err != nil {
+			return removed, err
+		}
+		removed = append(removed, rel)
+		_ = os.Remove(filepath.Dir(full)) // only succeeds when nothing else is left in it
+	}
+	sort.Strings(removed)
+	return removed, nil
 }

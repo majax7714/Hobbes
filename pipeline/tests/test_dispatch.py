@@ -34,6 +34,12 @@ repo, ref, sid, sessions = val("--repo"), val("--ref"), val("--session"), val("-
 sdir = pathlib.Path(sessions) / sid
 sdir.mkdir(parents=True, exist_ok=True)
 (sdir / "argv.json").write_text(json.dumps({"argv": a, "token": os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")}))
+# what Claude Code would leave in its HOME (the session dir) if the launcher did not remove it
+(sdir / ".claude" / "projects" / "-work").mkdir(parents=True, exist_ok=True)
+(sdir / ".claude" / "projects" / "-work" / "t.jsonl").write_text('{"type":"thinking","thinking":"..."}\n')
+(sdir / ".claude.json").write_text("{}")
+(sdir / ".cache" / "claude-cli-nodejs" / "-work").mkdir(parents=True, exist_ok=True)
+(sdir / ".cache" / "claude-cli-nodejs" / "-work" / "mcp.log").write_text("mcp")
 if "--dry-run" in a:
     print("PLAN: podman run --network hobbes-int-" + sid.lower())
     sys.exit(0)
@@ -132,12 +138,18 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     assert rec["egress"]["opened"] == {"api.anthropic.com:443": 1} and rec["egress"]["refused"] == {"pypi.org:443": 1}
     assert rec["flight"]["by_decision"] == {"allow": 1, "deny": 1} and rec["flight"]["denied"] == ["pip download x"]
     assert rec["envelope"]["num_turns"] == 7
+    # retention (ADR-107's amendment): the doer's state and reasoning are gone; its output stays
+    assert rec["retention"]["doer_state_removed_by_dispatch"] == [".cache/claude-cli-nodejs", ".claude", ".claude.json"]
+    assert rec["retention"]["reasoning_left"] == []
+    assert not (sessions / sid / ".claude").exists() and not (sessions / sid / ".claude.json").exists()
+    assert (sessions / sid / "flight.jsonl").exists() and (sessions / sid / "dispatch.diff").exists()
 
     log = logs / f"{sid}.md"
     assert rec["log"] == str(log)
     text = log.read_text()
     for want in ("# Harness session", "**Gate:** **clear**", "refused `pypi.org:443`×1", "denied: `pip download x`",
-                 "## Review", "- gate: pending", "Changed pkg/use.py; ran pytest."):
+                 "## Review", "- gate: pending", "Changed pkg/use.py; ran pytest.",
+                 "Recorded sessions are evaluation rows, never model training data."):
         assert want in text, want
     assert "sekrit" not in text
 

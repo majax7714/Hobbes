@@ -2,6 +2,8 @@ package sandbox
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -176,7 +178,7 @@ func TestDefaultCommandLoadsOnlyTheHobbesServerAndCarriesTheTurnBudget(t *testin
 	cfg.MaxTurns = 12
 	p, _ := NewPlan(cfg)
 	cmd := strings.Join(p.DefaultCommand(), " ")
-	for _, want := range []string{"--strict-mcp-config", "--max-turns 12", "--disallowedTools Bash"} {
+	for _, want := range []string{"--strict-mcp-config", "--max-turns 12", "--disallowedTools Bash", "--no-session-persistence"} {
 		if !strings.Contains(cmd, want) {
 			t.Errorf("default command lacks %q: %s", want, cmd)
 		}
@@ -688,5 +690,40 @@ func TestHostMountsMustBeAbsoluteAndMayNotShadowTheSession(t *testing.T) {
 		if _, err := NewPlan(cfg); err == nil {
 			t.Errorf("host mount %q should be rejected", bad)
 		}
+	}
+}
+
+func TestPurgeDoerStateRemovesTheDoersStateAndKeepsTheOutput(t *testing.T) {
+	dir := t.TempDir()
+	mk := func(rel, body string) {
+		p := filepath.Join(dir, rel)
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(body), 0o600)
+	}
+	mk(".claude/projects/-work/t.jsonl", `{"type":"thinking"}`)
+	mk(".claude.json", "{}")
+	mk(".claude.json.backup", "{}")
+	mk(".cache/claude-cli-nodejs/-work/mcp-logs-hobbes/log.txt", "mcp")
+	mk(".cache/other/keep.txt", "not the doer's")
+	for _, keep := range []string{"flight.jsonl", "egress.jsonl", "mcp.json", "brief.md"} {
+		mk(keep, "x")
+	}
+	removed, err := PurgeDoerState(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(removed, " "); got != ".cache/claude-cli-nodejs .claude .claude.json .claude.json.backup" {
+		t.Errorf("removed %q", got)
+	}
+	left, _ := os.ReadDir(dir)
+	var names []string
+	for _, e := range left {
+		names = append(names, e.Name())
+	}
+	if got := strings.Join(names, " "); got != ".cache brief.md egress.jsonl flight.jsonl mcp.json" {
+		t.Errorf("left %q; the output must stay and the doer's state must go", got)
+	}
+	if removed, err := PurgeDoerState(filepath.Join(dir, "missing")); err != nil || removed != nil {
+		t.Errorf("a missing session dir: %v, %v", removed, err)
 	}
 }
