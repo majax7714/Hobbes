@@ -655,7 +655,10 @@ func TestALiveSessionMountsOnlyItsOwnSessionDir(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(sibling, "secret.txt"), []byte("do not read me\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	script := `ls /sessions
+	// The listing is tagged and read line by line: the `cat` error below
+	// echoes the sibling's path, so a search of the whole output would
+	// find that path even when nothing of the sibling is mounted.
+	script := `ls -1 /sessions | sed 's/^/LS /'
 cat /sessions/S-sibling/secret.txt 2>&1
 true`
 	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
@@ -663,11 +666,14 @@ true`
 	if code != 0 {
 		t.Fatalf("session: code=%d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "S-live-mount") {
-		t.Errorf("the session should see its own dir:\n%s", stdout)
+	var listed []string
+	for _, line := range strings.Split(stdout, "\n") {
+		if name, ok := strings.CutPrefix(line, "LS "); ok {
+			listed = append(listed, strings.TrimSpace(name))
+		}
 	}
-	if strings.Contains(stdout, "S-sibling") {
-		t.Errorf("the session should not see a sibling session's dir:\n%s", stdout)
+	if len(listed) != 1 || listed[0] != "S-live-mount" {
+		t.Errorf("/sessions should hold the session's own dir and nothing else, got %q:\n%s", listed, stdout)
 	}
 	if strings.Contains(stdout, "do not read me") {
 		t.Errorf("the session read a sibling session's file:\n%s", stdout)
