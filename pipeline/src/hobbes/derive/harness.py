@@ -790,12 +790,14 @@ def go_rows(sel: Selection, cand: dict, base: dict | None) -> tuple[list[dict], 
 
 
 def checkout(clone: Path, sha: str, dest: Path) -> Path:
-    """A fresh worktree of *clone* at *sha* (a shared clone: no copy of the objects)."""
+    """A self-contained worktree of *clone* at *sha*, with no alternates file: the container that runs verify's tests mounts
+    *dest* alone and cannot follow a path back to *clone* (D-r). A plain clone of a local path hardlinks the objects when
+    *clone* and *dest* share a filesystem, and copies them when they do not — either way, no ``.git/objects/info/alternates``."""
     dest = Path(dest)
     if dest.exists():
         shutil.rmtree(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", str(clone), str(dest)], check=True, capture_output=True, text=True)
+    subprocess.run(["git", "clone", "-q", "--no-checkout", str(clone), str(dest)], check=True, capture_output=True, text=True)
     subprocess.run(["git", "-C", str(dest), "checkout", "-q", sha], check=True, capture_output=True, text=True)
     return dest
 
