@@ -138,3 +138,8 @@ patch, since 0.2.1-beta was taken (C's lane A). A language addition is
 a patch even when it reaches "supported"; a minor is for a structural
 change, such as the harness that made 0.2.0-beta. This refines the fourth
 amendment's "a capability bumps minor" and does not reopen it.
+
+**Noted 2026-09-13 (at 0.2.9-beta).** Max: "next version goes 0.2.10
+not 0.3.0." Patch numbers count on past nine (0.2.9-beta, 0.2.10-beta,
+0.2.11-beta); a patch never rolls the minor over. PEP 440 spells it
+`0.2.10b0`, and `test_version.py` already reads a multi-digit patch.

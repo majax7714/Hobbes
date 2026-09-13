@@ -78,3 +78,39 @@ declaring per-language `classes_available`.
   lesson applies to: a grammar change in either language can drift them
   silently, and the binding tests (`TestLocalBindings` in both provider
   suites) are what would catch it.
+
+## Amendment 2026-09-13 — the qualifier of a selector call (C-139)
+
+The priority above, that a scope-contained local outranks an import
+binding, reached the Go fallback for a **bare** name only (ADR-090's
+scope veto, `gosource._shadowed`). A qualified call resolved through
+the import its qualifier names, whatever the scope held. So after
+`slog := slog.SpanLogger(ctx, …)`, the call `slog.Info(...)`, a method
+on the local logger, was drawn to the package function
+`engine/slog.Info` (dagger, found by ADR-111's regrade; C-139).
+
+**Decision.** `gosource._call_fallback` reads a qualifier as an import
+alias only when no local binding of that name spans the call's line.
+This is the same `_shadowed` test, applied to the call's receiver. A
+shadowed qualified call is a method on a value, which the fallback
+already leaves to lane B.
+
+- **The extent stays function-wide**, as it is for bare names. It
+  over-approximates Go's block scope and the binding's own position,
+  so the declaring statement's own call (`slog.SpanLogger` above) and
+  any earlier call in the function are skipped too.
+  - That costs a true syntactic edge only where lane B is silent. Lane
+    B's semantic edge is unaffected, and a skipped site is counted,
+    never guessed.
+  - Precision comes first. A finer extent (the binding's own line, the
+    enclosing block) is a later refinement, taken only if a graded cell
+    shows the cost.
+- **The tail is unchanged.** Such a site is an attribute call on a
+  value lane A cannot type, and it lands in `attr-call` (C-2).
+- **Acceptance.** Every Go cell with a stored key is re-ingested
+  contained on the branch and graded against its key. No confirmed
+  count may fall in any cell, and no contradiction count may rise.
+  Dagger's root module (no key) is read by `hobbes lanes` and by the
+  shadow scan of 2026-09-12.
+- **C-139** is lifted at the merge. The extent's cost is recorded in
+  the same entry (P8).
