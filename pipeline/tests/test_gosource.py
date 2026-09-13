@@ -223,6 +223,88 @@ class TestFallbackScopeVeto:
         assert layer["call_fallback"][("b.go", 10, "atoi")] == ("a.go", 5)
 
 
+class TestQualifierShadow:
+    """ADR-046's 2026-09-13 amendment (C-139): a local binding of a
+    selector call's qualifier shadows the import it would otherwise
+    resolve through — the dagger shape (``slog := slog.SpanLogger(…)``
+    then ``slog.Info(...)``, drawn to ``engine/slog.Info`` before the fix)."""
+
+    def _repo(self, tmp_path):
+        (tmp_path / "go.mod").write_text("module example.com/p\n\ngo 1.22\n")
+        pkg = tmp_path / "internal" / "slog"
+        pkg.mkdir(parents=True)
+        (pkg / "slog.go").write_text(
+            "package slog\n\n"
+            "func Info(msg string) {}\n\n"
+            "func SpanLogger() *Logger { return nil }\n\n"
+            "type Logger struct{}\n\n"
+            "func (l *Logger) Info(msg string) {}\n"
+        )
+        (tmp_path / "caller.go").write_text(
+            "package caller\n\n"
+            "import \"example.com/p/internal/slog\"\n\n"
+            "func daggerShape() {\n"
+            "\tslog := slog.SpanLogger()\n"
+            "\tslog.Info(\"x\")\n"
+            "}\n\n"
+            "func paramShadow(slog *slog.Logger) {\n"
+            "\tslog.Info(\"x\")\n"
+            "}\n\n"
+            "func unshadowed() {\n"
+            "\tslog.Info(\"y\")\n"
+            "}\n\n"
+            "func sibling() {\n"
+            "\tslog.Info(\"z\")\n"
+            "}\n"
+        )
+        return extract_go(tmp_path)
+
+    def test_the_dagger_shape_is_shadowed(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert ("caller.go", 7, "Info") not in layer["call_fallback"]
+        # The site is still a site — lane B or the tail view gets it.
+        assert _sites(layer, "Info")
+
+    def test_a_parameter_shadows_the_qualifier(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert ("caller.go", 11, "Info") not in layer["call_fallback"]
+
+    def test_unshadowed_still_resolves_to_the_package(self, tmp_path):
+        layer = self._repo(tmp_path)
+        assert layer["call_fallback"][("caller.go", 15, "Info")] == (
+            "internal/slog/slog.go", 3
+        )
+
+    def test_a_sibling_function_s_local_does_not_reach_across(self, tmp_path):
+        # The extent is per-function: daggerShape's local `slog` does not
+        # shadow the qualified call in this unrelated function.
+        layer = self._repo(tmp_path)
+        assert layer["call_fallback"][("caller.go", 19, "Info")] == (
+            "internal/slog/slog.go", 3
+        )
+
+    def test_the_declaring_statement_s_own_call_is_also_shadowed(self, tmp_path):
+        # The extent is function-wide (ADR-046's amendment), so it covers
+        # the `:=` line itself: `slog.SpanLogger(...)` there is skipped
+        # too, the amendment's stated over-approximation. A later
+        # refinement (the binding's own line) has to change this on
+        # purpose, not by accident.
+        layer = self._repo(tmp_path)
+        assert ("caller.go", 6, "SpanLogger") not in layer["call_fallback"]
+
+    def test_the_shadowed_site_classes_attr_call(self, tmp_path):
+        from hobbes.extract import tail
+
+        layer = self._repo(tmp_path)
+        sites = [
+            s for s in layer["call_sites"]
+            if (s.file, s.line, s.name) == ("caller.go", 7, "Info")
+        ]
+        assert sites
+        out = tail.classify(sites, tmp_path, fallback=layer["call_fallback"])
+        assert out["caller.go"] == {tail.ATTR: 1}
+
+
 class TestBuildConstraints:
     """ADR-098: one package, one name, several files under build
     constraints — the fallback resolves by the caller's own

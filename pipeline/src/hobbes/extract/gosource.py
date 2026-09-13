@@ -833,7 +833,10 @@ def _call_fallback(
 
     Deliberately under-approximated, as every fallback is: method calls on
     a value (``m.Merge()``) are skipped, because knowing what ``m`` is
-    needs a type checker and that is lane B's job.
+    needs a type checker and that is lane B's job — including a qualified
+    call whose qualifier is locally shadowed (``slog := slog.SpanLogger(…)``
+    then ``slog.Info(...)``, ADR-046's 2026-09-13 amendment, C-139), which
+    is a value's method wearing a package's name.
     """
     where: dict[tuple[str, str], list[tuple[str, int, str, str]]] = defaultdict(list)
     for parsed in files:
@@ -865,7 +868,9 @@ def _call_fallback(
                     d for d in where.get((own_dir, call["name"]), ())
                     if d[2] == parsed.package
                 ]
-            elif call["receiver"] in by_alias:
+            elif call["receiver"] in by_alias and not _shadowed(
+                parsed, call["receiver"], call["line"]
+            ):
                 # A qualified name is the imported package's — never its
                 # `_test` package, which nothing can import.
                 candidates = [
@@ -891,14 +896,22 @@ def _call_fallback(
 
 
 def _shadowed(parsed: GoFile, name: str, line: int) -> bool:
-    """A bare name bound in the enclosing function (``assert := func(...)``,
-    a parameter, a ``range`` target — ADR-046's bindings) is *that*
-    binding, never the package-level namesake: ADR-090's scope rule, the
-    Go shape. The oracle lane's fzf cell (2026-08-27): all 87 syntactic
+    """A name bound in the enclosing function (``assert := func(...)``, a
+    parameter, a ``range`` target — ADR-046's bindings) is *that* binding,
+    never the package-level namesake: ADR-090's scope rule, the Go shape.
+    The oracle lane's fzf cell (2026-08-27): all 87 syntactic
     contradictions were a test's local ``assert`` closure bound to
     ``merger_test.assert`` in another file of the package, and a local
     ``atoi`` to ``options.atoi``. A local ``func`` literal is never a
-    symbol, so there is no nested-declaration exemption to keep here."""
+    symbol, so there is no nested-declaration exemption to keep here.
+
+    Also answers for a selector call's qualifier (ADR-046's 2026-09-13
+    amendment, C-139): after ``slog := slog.SpanLogger(ctx, …)``,
+    ``slog.Info(...)`` is a method on the local logger, not the package
+    function ``engine/slog.Info``. The extent stays function-wide, as for
+    a bare name, so it over-approximates: the declaring statement's own
+    call and any earlier call in the function are shadowed too — a known,
+    accepted cost (ADR-046)."""
     return any(
         b[0] == name and b[1] <= line <= b[2] for b in parsed.local_bindings
     )
