@@ -2,6 +2,7 @@ package knowledge
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -896,6 +897,221 @@ func TestNeighborhoodAcceptsTheNodePath(t *testing.T) {
 	}
 	if out, _ := s.Neighborhood("no/such/path.py"); !strings.Contains(out, "no node") {
 		t.Fatalf("unknown path should still say no node: %s", out)
+	}
+}
+
+// --- the directory rollup (a port of tail.rollup_directories / cli.py's
+// _print_directory_view, per docs/future_additions.md's ADR-048 entry) ---
+
+// dirRollupRepo writes a graph carrying only the resolution_coverage
+// rows a directory-rollup test needs — the whole-repo/per-language
+// sections above are exercised by blindSpotRepo already.
+func dirRollupRepo(t *testing.T, rows []map[string]any) string {
+	t.Helper()
+	repo := t.TempDir()
+	git := func(args ...string) string {
+		full := append([]string{"-C", repo, "-c", "user.name=t", "-c", "user.email=t@t"}, args...)
+		out, err := exec.Command("git", full...).Output()
+		if err != nil {
+			t.Fatalf("git %v: %v", args, err)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	git("init", "-q")
+	git("commit", "-qm", "base", "--allow-empty")
+	sha := git("rev-parse", "HEAD")
+	graph := map[string]any{
+		"schema_version": derived.Current,
+		"sha":            sha, "dirty": false,
+		"nodes": []map[string]any{}, "module_edges": []map[string]any{},
+		"symbols": []map[string]any{}, "symbol_edges": []map[string]any{},
+		"resolution_coverage": rows,
+	}
+	derivedDir := filepath.Join(repo, ".hobbes", "derived")
+	if err := os.MkdirAll(derivedDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(graph)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(derivedDir, "graph.json"), data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return repo
+}
+
+// TestBlindSpotsDirectoryRollupWholeRepo checks the header and a
+// hand-computed row against blindSpotRepo's fixture: src/app/core.py
+// and src/app/api.py share the "src/app" [python] bucket (30 sites, 2
+// cannot-resolve, 3 by design), web/main.ts is its own [ts/js] bucket
+// (9 sites, 3 cannot-resolve, 4 by design) — worse, so it ranks first.
+func TestBlindSpotsDirectoryRollupWholeRepo(t *testing.T) {
+	s := Open(blindSpotRepo(t))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "by directory (depth 2, worst 2 of 2 with unresolvable sites; 0 without):") {
+		t.Fatalf("missing directory-rollup header:\n%s", out)
+	}
+	wantWeb := "  web [ts/js]: 22.2% of 9 sites, 4 by design — cannot resolve 3 (expr-callee 1, unclassified 1, union-member 1)"
+	wantApp := "  src/app [python]: 83.3% of 30 sites, 3 by design — cannot resolve 2 (attr-call 2)"
+	if !strings.Contains(out, wantWeb) {
+		t.Fatalf("missing %q in:\n%s", wantWeb, out)
+	}
+	if !strings.Contains(out, wantApp) {
+		t.Fatalf("missing %q in:\n%s", wantApp, out)
+	}
+	if strings.Index(out, wantWeb) > strings.Index(out, wantApp) {
+		t.Fatalf("worse directory (web, sum 3) must rank before src/app (sum 2):\n%s", out)
+	}
+}
+
+// TestBlindSpotsDirectoryRollupRanksWorstFirstThenName: four single-file
+// directories with cannot-resolve sums 5, 2, 1, 1 — the descending sum
+// ranks high before low, and the tied pair breaks on directory name.
+func TestBlindSpotsDirectoryRollupRanksWorstFirstThenName(t *testing.T) {
+	rows := []map[string]any{
+		{"file": "high/a.py", "sites": 10, "unresolved": 5, "tail": map[string]int{"attr-call": 5}},
+		{"file": "low/a.py", "sites": 10, "unresolved": 2, "tail": map[string]int{"attr-call": 2}},
+		{"file": "tie2/a.py", "sites": 10, "unresolved": 1, "tail": map[string]int{"attr-call": 1}},
+		{"file": "tie1/a.py", "sites": 10, "unresolved": 1, "tail": map[string]int{"attr-call": 1}},
+	}
+	s := Open(dirRollupRepo(t, rows))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "by directory (depth 2, worst 4 of 4 with unresolvable sites; 0 without):") {
+		t.Fatalf("missing directory-rollup header:\n%s", out)
+	}
+	high := "  high [python]: 50.0% of 10 sites — cannot resolve 5 (attr-call 5)"
+	low := "  low [python]: 80.0% of 10 sites — cannot resolve 2 (attr-call 2)"
+	tie1 := "  tie1 [python]: 90.0% of 10 sites — cannot resolve 1 (attr-call 1)"
+	tie2 := "  tie2 [python]: 90.0% of 10 sites — cannot resolve 1 (attr-call 1)"
+	for _, want := range []string{high, low, tie1, tie2} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+	if !(strings.Index(out, high) < strings.Index(out, low) &&
+		strings.Index(out, low) < strings.Index(out, tie1) &&
+		strings.Index(out, tie1) < strings.Index(out, tie2)) {
+		t.Fatalf("wrong rank order (want high, low, tie1, tie2):\n%s", out)
+	}
+}
+
+// TestBlindSpotsDirectoryRollupByDesignOnlyIsNotListed: a directory
+// whose tail is entirely by-design (builtin-name here) has nothing to
+// verify, so it drops out of the ranked rows and is counted only in the
+// "without" remainder — not printed as its own line.
+func TestBlindSpotsDirectoryRollupByDesignOnlyIsNotListed(t *testing.T) {
+	rows := []map[string]any{
+		{"file": "onlydesign/a.py", "sites": 10, "unresolved": 3, "tail": map[string]int{"builtin-name": 3}},
+		{"file": "real/a.py", "sites": 10, "unresolved": 2, "tail": map[string]int{"attr-call": 2}},
+	}
+	s := Open(dirRollupRepo(t, rows))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "by directory (depth 2, worst 1 of 1 with unresolvable sites; 1 without):") {
+		t.Fatalf("missing directory-rollup header:\n%s", out)
+	}
+	if strings.Contains(out, "onlydesign [") {
+		t.Fatalf("a by-design-only directory must not be listed:\n%s", out)
+	}
+	if !strings.Contains(out, "  real [python]: 80.0% of 10 sites — cannot resolve 2 (attr-call 2)") {
+		t.Fatalf("the real miss must still be listed:\n%s", out)
+	}
+}
+
+// TestBlindSpotsDirectoryRollupAllByDesignPrintsNoSection: when every
+// directory in scope resolves everything it fails to resolve by design,
+// the section prints nothing at all — not even a header with zero rows.
+func TestBlindSpotsDirectoryRollupAllByDesignPrintsNoSection(t *testing.T) {
+	rows := []map[string]any{
+		{"file": "a/x.py", "sites": 10, "unresolved": 3, "tail": map[string]int{"builtin-name": 3}},
+		{"file": "b/y.py", "sites": 10, "unresolved": 2, "tail": map[string]int{"local-binding": 2}},
+	}
+	s := Open(dirRollupRepo(t, rows))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(out, "by directory") {
+		t.Fatalf("no directory should list an unresolvable class:\n%s", out)
+	}
+}
+
+// TestBlindSpotsDirectoryRollupRootAndDeepFiles: a root-level file
+// buckets as ".", and a.py.py three levels deep buckets to its first
+// two segments — directory_of's own contract (tail.py).
+func TestBlindSpotsDirectoryRollupRootAndDeepFiles(t *testing.T) {
+	rows := []map[string]any{
+		{"file": "d.py", "sites": 5, "unresolved": 1, "tail": map[string]int{"attr-call": 1}},
+		{"file": "a/b/c/x.py", "sites": 5, "unresolved": 1, "tail": map[string]int{"attr-call": 1}},
+	}
+	s := Open(dirRollupRepo(t, rows))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"  . [python]: 80.0% of 5 sites — cannot resolve 1 (attr-call 1)",
+		"  a/b [python]: 80.0% of 5 sites — cannot resolve 1 (attr-call 1)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
+// TestBlindSpotsDirectoryRollupCapsAtTenRows: eleven miss-bearing
+// directories give ten rows and a remainder line naming both how many
+// more directories there are and how many unresolvable sites they hold.
+func TestBlindSpotsDirectoryRollupCapsAtTenRows(t *testing.T) {
+	var rows []map[string]any
+	for i := 0; i < 11; i++ {
+		sum := 11 - i
+		rows = append(rows, map[string]any{
+			"file": fmt.Sprintf("d%02d/a.py", i), "sites": 100, "unresolved": sum,
+			"tail": map[string]int{"attr-call": sum},
+		})
+	}
+	s := Open(dirRollupRepo(t, rows))
+	out, err := s.ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "by directory (depth 2, worst 10 of 11 with unresolvable sites; 0 without):") {
+		t.Fatalf("missing directory-rollup header:\n%s", out)
+	}
+	if !strings.Contains(out, "  … and 1 more directories (1 unresolvable) — per-file rows in graph.json resolution_coverage") {
+		t.Fatalf("missing the capped remainder line:\n%s", out)
+	}
+	if strings.Contains(out, "d10 [") {
+		t.Fatalf("the eleventh (worst-ranked-last) directory must not get its own row:\n%s", out)
+	}
+}
+
+// TestBlindSpotsDirectoryRollupScoped: a scoped answer rolls up only the
+// rows under the scope, same as the per-language section above it.
+func TestBlindSpotsDirectoryRollupScoped(t *testing.T) {
+	s := Open(blindSpotRepo(t))
+	out, err := s.ListBlindSpots("web/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "by directory (depth 2, worst 1 of 1 with unresolvable sites; 0 without):") {
+		t.Fatalf("missing scoped directory-rollup header:\n%s", out)
+	}
+	if strings.Contains(out, "src/app") {
+		t.Fatalf("python rows leaked into the web/ scoped rollup:\n%s", out)
+	}
+	if !strings.Contains(out, "  web [ts/js]: 22.2% of 9 sites, 4 by design — cannot resolve 3 (expr-callee 1, unclassified 1, union-member 1)") {
+		t.Fatalf("missing the scoped web row:\n%s", out)
 	}
 }
 
