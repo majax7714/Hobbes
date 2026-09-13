@@ -86,12 +86,25 @@ func TestPodmanArgsCleanEnvAndMounts(t *testing.T) {
 		"--network none",
 		"--workdir /work",
 		"/home/u/.hobbes/sessions/S-x/worktree:/work:rw",
-		"/home/u/.hobbes/sessions:/sessions:rw",
+		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/sessions/S-20260811T120000Z-abcd:rw",
 		"/home/u/hobbes/go/bin/hobbes-proxy:/usr/local/bin/hobbes-proxy:ro",
 		"hobbes-session:local",
 	} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("podman args missing %q in:\n%s", want, joined)
+		}
+	}
+}
+
+// TestSessionsMountIsOnlyTheSessionsOwnDir is ADR-107's 2026-09-13
+// amendment: the sessions root is never mounted, only this session's own
+// dir under it, so no other session's clone or records are reachable.
+func TestSessionsMountIsOnlyTheSessionsOwnDir(t *testing.T) {
+	p, _ := NewPlan(baseConfig())
+	for _, m := range p.mounts() {
+		host := strings.SplitN(m, ":", 2)[0]
+		if host == p.cfg.HostSessions {
+			t.Errorf("a mount's host side is the sessions root itself: %q", m)
 		}
 	}
 }
@@ -412,7 +425,7 @@ func TestReviewerWorktreeIsReadOnly(t *testing.T) {
 	}
 	// The flight recorder and escalation queue still have to be
 	// writable, or a read-only session could not be audited.
-	if !strings.Contains(args, SessionsRoot+":rw,z") {
+	if !strings.Contains(args, plan.sessionHome()+":rw,z") {
 		t.Errorf("session state must stay writable:\n%s", args)
 	}
 }

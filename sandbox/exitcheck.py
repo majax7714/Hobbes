@@ -30,10 +30,12 @@ sh("git", "-C", HOBBES, "worktree", "remove", "--force",
 sh("git", "-C", HOBBES, "branch", "-D", f"hobbes/{SESSION}")
 shutil.rmtree(f"{SESSIONS}/{SESSION}", ignore_errors=True)
 
-# The scripted implementer must be visible inside the sandbox: drop it in the
-# sessions root, which the wrapper mounts at /sessions.
-os.makedirs(SESSIONS, exist_ok=True)
-shutil.copy(f"{HOBBES}/sandbox/driver.py", f"{SESSIONS}/driver.py")
+# The scripted implementer must be visible inside the sandbox: drop it in
+# this session's own dir. The wrapper mounts only that dir at /sessions/<id>
+# now, never the sessions root, so a copy at the root would not be seen
+# (ADR-107's 2026-09-13 amendment).
+os.makedirs(f"{SESSIONS}/{SESSION}", exist_ok=True)
+shutil.copy(f"{HOBBES}/sandbox/driver.py", f"{SESSIONS}/{SESSION}/driver.py")
 
 # Fake secrets in the LAUNCHING environment. If the sandbox were leaky, these
 # would show up in the implementer's os.environ.
@@ -47,7 +49,7 @@ launch = [
     "--role", "implementer",
     "--session", SESSION,
     "--proxy-bin", f"{HOBBES}/sandbox/hobbes-proxy",
-    "--", "python3", "/sessions/driver.py", SESSION,
+    "--", "python3", f"/sessions/{SESSION}/driver.py", SESSION,
 ]
 
 print(f"launching sandboxed session {SESSION} (with fake secrets in env)...\n")

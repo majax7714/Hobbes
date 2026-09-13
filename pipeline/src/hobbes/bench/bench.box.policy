@@ -13,7 +13,8 @@
 # denied and win by deny-overrides (P10, ADR-036).
 #
 # The OS sandbox is the real boundary (§5.2): no network beyond the
-# model endpoint, worktree-only mounts, no secrets in env. This file
+# model endpoint, mounts limited to the worktree and the session's own
+# dir (ADR-107's 2026-09-13 amendment), no secrets in env. This file
 # only decides which shell commands the proxy will run; it cannot widen
 # what the sandbox already forbids.
 version: 1
@@ -124,6 +125,21 @@ rules:
     decision: allow
   - pattern: "find*"
     decision: allow
+  # find's deleting and executing forms act on what they match, and
+  # -exec/-execdir/-ok/-okdir run a command the policy cannot see; each
+  # stays a question. Escalate beats allow within a scope (ADR-002).
+  # These patterns also match a name that contains -delete, -exec or -ok
+  # (e.g. a file called "-exec-notes"); that over-match asks a question
+  # and never loosens anything.
+  - pattern: "find *-delete*"
+    decision: escalate
+    reason: "find's -delete, -exec and -ok act on what they match; a recursive delete, or a command the policy cannot see, is a question"
+  - pattern: "find *-exec*"
+    decision: escalate
+    reason: "find's -delete, -exec and -ok act on what they match; a recursive delete, or a command the policy cannot see, is a question"
+  - pattern: "find *-ok*"
+    decision: escalate
+    reason: "find's -delete, -exec and -ok act on what they match; a recursive delete, or a command the policy cannot see, is a question"
   - pattern: "sed -n *"
     decision: allow
   - pattern: "make*"
@@ -145,7 +161,8 @@ rules:
   - pattern: "cut *"
     decision: allow
   - pattern: "xargs*"
-    decision: allow
+    decision: escalate
+    reason: "xargs runs a command the policy does not see; run that command itself"
   - pattern: "tee *"
     decision: allow
   - pattern: "echo*"

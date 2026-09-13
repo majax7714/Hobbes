@@ -196,6 +196,46 @@ func TestCalvinBoxRemovesAndProbes(t *testing.T) {
 	}
 }
 
+// TestFindsExecutingFormsAndXargsEscalateInBothBoxes resolves ADR-107's
+// 2026-09-13 amendment against both real boxes: a plain, read-only `find`
+// still runs, but its deleting and executing forms (-delete, -exec,
+// -execdir via -exec, -ok, -okdir via -ok) and xargs escalate, alone, after
+// a `cd`, and as a pipe segment.
+func TestFindsExecutingFormsAndXargsEscalateInBothBoxes(t *testing.T) {
+	repo := t.TempDir()
+	for _, boxRel := range []string{
+		filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "derive", "calvin.box.policy"),
+		filepath.Join("..", "..", "..", "pipeline", "src", "hobbes", "bench", "bench.box.policy"),
+	} {
+		box, err := filepath.Abs(boxRel)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, tt := range []struct {
+			command string
+			want    int
+		}{
+			{"find . -name '*.go'", 0},
+			{"find pipeline -type f | head", 0},
+			{"cd /work && find . -maxdepth 2 -type d", 0},
+			{"find . -delete", 20},
+			{"find . -name '*.tmp' -delete", 20},
+			{"find . -exec rm -rf {} +", 20},
+			{`find . -execdir rm {} \;`, 20},
+			{`find . -ok rm {} \;`, 20},
+			{"ls | xargs rm -rf", 20},
+			{"find . -name x -print0 | xargs -0 rm", 20},
+			{"xargs rm -rf < list.txt", 20},
+			{"cd /work && find . -delete", 20},
+		} {
+			code, stdout, stderr := resolve(t, repo, "--repo", repo, "--dir", repo, "--box", box, tt.command)
+			if code != tt.want {
+				t.Errorf("%s: %q: exit = %d, want %d\n%s%s", box, tt.command, code, tt.want, stdout, stderr)
+			}
+		}
+	}
+}
+
 func TestResolveUsageErrors(t *testing.T) {
 	repo := fixtureRepo(t)
 	var stdout, stderr bytes.Buffer

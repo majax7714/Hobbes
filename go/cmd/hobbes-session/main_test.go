@@ -630,3 +630,46 @@ echo "ALLOWED=$a REFUSED=$b DIRECT=$c PUBLIC=$d"`
 		t.Errorf("the launcher should say what it removed:\n%s", stderr)
 	}
 }
+
+// TestALiveSessionMountsOnlyItsOwnSessionDir is ADR-107's 2026-09-13
+// amendment, the guarantee where a user meets it (P10): the sessions root
+// is never mounted, only this session's own dir under it, so a sibling
+// session's clone and records are not reachable, however a command inside
+// spells it. Skips without podman or the image, like the live egress test.
+func TestALiveSessionMountsOnlyItsOwnSessionDir(t *testing.T) {
+	if testing.Short() {
+		t.Skip("live podman test")
+	}
+	if _, err := exec.LookPath("podman"); err != nil {
+		t.Skip("podman not installed")
+	}
+	image := "hobbes-session:local"
+	if exec.Command("podman", "image", "exists", image).Run() != nil {
+		t.Skip("the sandbox image is not built")
+	}
+	sessions := t.TempDir()
+	sibling := filepath.Join(sessions, "S-sibling")
+	if err := os.MkdirAll(sibling, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sibling, "secret.txt"), []byte("do not read me\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	script := `ls /sessions
+cat /sessions/S-sibling/secret.txt 2>&1
+true`
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+		"--sessions", sessions, "--session", "S-live-mount", "--", "sh", "-c", script)
+	if code != 0 {
+		t.Fatalf("session: code=%d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "S-live-mount") {
+		t.Errorf("the session should see its own dir:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "S-sibling") {
+		t.Errorf("the session should not see a sibling session's dir:\n%s", stdout)
+	}
+	if strings.Contains(stdout, "do not read me") {
+		t.Errorf("the session read a sibling session's file:\n%s", stdout)
+	}
+}
