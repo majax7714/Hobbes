@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.10-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.11-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -330,8 +330,11 @@ run; GPU-hours stated first).*
   2026-08-25, phases 1 and 2 done (O1–O4, O6, O7; the dagger Go root not
   gradeable on this box).** Precision-against-oracle and recall for the
   call graph against Go RTA / `tsc` / the Python interpreter / rustc's
-  MIR. Every semantic tier graded so far is 100%; the syntactic
-  fallback is priced (C-7: 0/3 Go, 6/6 Python executed, 12/30 Rust);
+  MIR, and since then javac for Java (ADR-096) and clang's front end
+  for C (ADR-110). At phases 1 and 2 every semantic tier graded was
+  100%; today every compiler-graded cell is at 100% but quic-go (a
+  99.6% lower bound, the oracle's grain). At phase 2 the syntactic
+  fallback was priced (C-7: 0/3 Go, 6/6 Python executed, 12/30 Rust);
   the misses are C-58 on every language (closures 70–80%) plus Rust's
   generated-code class. **W1 from phase 2 — done the same day (ADR-090):** the
   fallback's fixture-parameter and `format!`→`fn format` name matches
@@ -431,6 +434,13 @@ of by luck.*
 - **The P10 checker** — "does a broad handler enclose a path that must
   refuse?" as a graph question, once refusals are types (the V2.M6
   parked ask).
+- **C-140 — a dispatched doer can alter its own session's records.**
+  Since 0.2.11-beta (ADR-107's 2026-09-13 amendment) a session mounts
+  only its own dir, but the policy proxy that writes the flight log and
+  the escalation queue runs in the doer's container, so those records
+  stay writable by the doer. The fix is the proxy and its logs in a
+  container of their own, as the egress proxy has. It is a structural
+  change, so it waits on Max (`session-handoff.md`, item 1).
 - **Decisions surviving a fresh clone** (C-20) — opt `.hobbes/policies/`
   + `invariants/` into git per repo, the ADR-012-sanctioned path.
 - ~~**Aided-mode guardrail**~~ — **built 2026-08-24 (ADR-086)**: an

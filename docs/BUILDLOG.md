@@ -9885,3 +9885,36 @@ the duplicate pairs rule. leave the other two for now".
 - **The register reads 141 entries: 100 active, 25 lifted, 11
   superseded, 5 folded.** The README, CLAUDE.md and the handoff carry
   it.
+
+## 2026-09-13 — (last) the top-level review again; workstreams brought to 0.2.11-beta; the ingest at HEAD
+
+**Asked (Max):** "review top level documentation and report back with
+current standing", then "yes proceed with those".
+
+- **Checked against the tree:**
+  - `VERSION` 0.2.11-beta; the latest tag `v0.2.10-beta`;
+  - 141 register headings; 1,480 pytest collected; thirteen session
+    logs; ADRs through 111, with 106 held;
+  - no broken relative link in the README, CLAUDE.md, the handoff or
+    workstreams;
+  - `main` even with `origin/main`; CI green on the last three pushes
+    (the two red runs of 2026-09-12 were fixed by later pushes).
+  - The Go, vitest, node and atlas0 suites were not re-run.
+- **Found:**
+  - the knowledge artifacts at `e882c04` against HEAD `2615abb`. The
+    two commits since touch only prose, so the answers held and only
+    the stamp warned;
+  - workstreams' header stopped at 0.2.10-beta, and C-140's structural
+    fix sat in no workstream;
+  - W3's oracle-lane item named four of the six oracles and read phase
+    2's 100% as current.
+  - The CHANGELOG's 0.2.11-beta register line (112 active, 3
+    superseded) was right when written, and it stays.
+- **Fixed (docs only; no version bump):** workstreams' header through
+  0.2.11-beta; C-140 under W5; W3 names javac and clang, and dates
+  phase 2's reading beside today's. Re-ingested at HEAD after the
+  commit.
+- **A reading for Max's open call:** `future_additions.md`'s "re-evaluate
+  the harness if its weight stays this high" (2026-08-21) is about the
+  benchmark's per-unit fan-out, not the Calvin harness. On that reading
+  it is parked with the benchmark, not obsolete.
