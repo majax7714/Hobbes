@@ -946,6 +946,8 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		fmt.Fprintf(&b, "\ndegraded: %s: %s: %s\n", e.Path, e.Stage, e.Message)
 	}
 
+	writeDirectoryRollup(&b, rows)
+
 	worst := slices.Clone(rows)
 	sort.Slice(worst, func(i, j int) bool { return worst[i].Unresolved > worst[j].Unresolved })
 	shown := 0
@@ -976,6 +978,151 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		fmt.Fprintf(&b, "  %s — %s\n", m.class, m.meaning)
 	}
 	return b.String(), nil
+}
+
+// dirLangKey is a rollupDirectories key: a depth-2 directory bucket
+// paired with the language whose detected call sites it aggregates.
+type dirLangKey struct {
+	dir, lang string
+}
+
+// dirLangAgg is one rollupDirectories aggregate — the same shape as
+// ListBlindSpots' own per-language agg, kept apart by directory too.
+type dirLangAgg struct {
+	sites, unresolved int
+	tail              map[string]int
+}
+
+// directoryOf is the pipeline's tail.directory_of(file, depth=2): the
+// first two segments of file's containing directory, slash-joined, or
+// "." for a root-level file.
+func directoryOf(file string) string {
+	dir := path.Dir(file)
+	if dir == "." {
+		return "."
+	}
+	parts := strings.Split(dir, "/")
+	if len(parts) > 2 {
+		parts = parts[:2]
+	}
+	return strings.Join(parts, "/")
+}
+
+// rollupDirectories ports the pipeline's tail.rollup_directories: the
+// per-(directory, language) tail totals over resolution_coverage rows,
+// keyed apart by language for the same reason ListBlindSpots' own
+// per-language rollup is — a capture statement's denominator is one
+// language's detected call sites. The two functions must stay in step;
+// a change to one without the other lets the ingest summary and this
+// tool disagree over the same rows.
+func rollupDirectories(rows []coverageRow) map[dirLangKey]*dirLangAgg {
+	dirs := map[dirLangKey]*dirLangAgg{}
+	for _, row := range rows {
+		lang, ok := langByExt[path.Ext(row.File)]
+		if !ok {
+			continue
+		}
+		key := dirLangKey{dir: directoryOf(row.File), lang: lang}
+		a := dirs[key]
+		if a == nil {
+			a = &dirLangAgg{tail: map[string]int{}}
+			dirs[key] = a
+		}
+		a.sites += row.Sites
+		a.unresolved += row.Unresolved
+		for class, n := range row.Tail {
+			a.tail[class] += n
+		}
+	}
+	return dirs
+}
+
+// cannotResolve is a tail's classes minus notModelled's — the group
+// rollupDirectories and the per-language rollup both rank on, since a
+// directory full of by-design absences is accounted for, not missing.
+func cannotResolve(tail map[string]int) map[string]int {
+	out := map[string]int{}
+	for class, n := range tail {
+		if !notModelled[class] {
+			out[class] = n
+		}
+	}
+	return out
+}
+
+// dirRow is one ranked rollupDirectories entry, carrying the cannot-
+// resolve group and its sum so writeDirectoryRollup sorts and prints
+// without recomputing either.
+type dirRow struct {
+	key    dirLangKey
+	agg    *dirLangAgg
+	cannot map[string]int
+	sum    int
+}
+
+// writeDirectoryRollup ports cli.py's _print_directory_view onto the
+// same rollupDirectories rows: the per-language capture statement, one
+// directory at a time, worst first. A directory whose tail is entirely
+// by design is summarised, not listed — the view exists to point at
+// what is missing, not to restate what already resolved.
+func writeDirectoryRollup(b *strings.Builder, rows []coverageRow) {
+	dirs := rollupDirectories(rows)
+	var ranked []dirRow
+	for key, a := range dirs {
+		cannot := cannotResolve(a.tail)
+		if len(cannot) == 0 {
+			continue
+		}
+		sum := 0
+		for _, n := range cannot {
+			sum += n
+		}
+		ranked = append(ranked, dirRow{key: key, agg: a, cannot: cannot, sum: sum})
+	}
+	if len(ranked) == 0 {
+		return
+	}
+	sort.Slice(ranked, func(i, j int) bool {
+		if ranked[i].sum != ranked[j].sum {
+			return ranked[i].sum > ranked[j].sum
+		}
+		if ranked[i].key.dir != ranked[j].key.dir {
+			return ranked[i].key.dir < ranked[j].key.dir
+		}
+		return ranked[i].key.lang < ranked[j].key.lang
+	})
+	shown := len(ranked)
+	if shown > 10 {
+		shown = 10
+	}
+	fmt.Fprintf(b, "\nby directory (depth 2, worst %d of %d with unresolvable sites; %d without):\n",
+		shown, len(ranked), len(dirs)-len(ranked))
+	for _, r := range ranked[:shown] {
+		accounted := float64(r.agg.sites-r.agg.unresolved) / float64(r.agg.sites) * 100
+		classes := make([]string, 0, len(r.cannot))
+		for c := range r.cannot {
+			classes = append(classes, c)
+		}
+		sort.Strings(classes)
+		named := make([]string, len(classes))
+		for i, c := range classes {
+			named[i] = fmt.Sprintf("%s %d", c, r.cannot[c])
+		}
+		byDesign := r.agg.unresolved - r.sum
+		fmt.Fprintf(b, "  %s [%s]: %.1f%% of %d sites", r.key.dir, r.key.lang, accounted, r.agg.sites)
+		if byDesign != 0 {
+			fmt.Fprintf(b, ", %d by design", byDesign)
+		}
+		fmt.Fprintf(b, " — cannot resolve %d (%s)\n", r.sum, strings.Join(named, ", "))
+	}
+	if rest := ranked[shown:]; len(rest) > 0 {
+		held := 0
+		for _, r := range rest {
+			held += r.sum
+		}
+		fmt.Fprintf(b, "  … and %d more directories (%d unresolvable) — per-file rows in graph.json resolution_coverage\n",
+			len(rest), held)
+	}
 }
 
 func sortedKeys[V any](m map[string]V) []string {
