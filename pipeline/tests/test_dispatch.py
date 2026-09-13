@@ -7,6 +7,7 @@ import json
 import os
 import stat
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -312,6 +313,18 @@ def test_watch_progress_prints_first_edit_once_and_a_quiet_note_once_and_kills_n
     assert text.count("first edit at") == 1 and "x.py" in text
     assert text.count("no edit in") == 1
     assert out["quiet_note_min"] == pytest.approx(0.05 / 60.0, rel=0.25)
+
+
+def test_the_doers_identity_never_reaches_a_test_fixtures_commits():
+    """D-s: dispatch puts its commit identity (`IDENTITY`) in a doer's environment so its commits are marked and kept out of
+    any training unit (ADR-107's retention amendment). That identity must not leak into the pipeline's own test fixtures — a
+    git fixture's `-c user.name=t -c user.email=t@t` would otherwise be overridden, and `units_from_git` would then skip the
+    fixture's commits as a doer's. Run `test_ttt_units.py` as a child process with dispatch's real identity in its
+    environment, standing in for a dispatched session, and require it to still pass."""
+    env = {**os.environ, **dict(kv.split("=", 1) for kv in dp.IDENTITY)}
+    proc = subprocess.run([sys.executable, "-m", "pytest", "tests/test_ttt_units.py", "-q", "-p", "no:cacheprovider"],
+                          cwd=Path(__file__).resolve().parent.parent, env=env, capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout[-4000:] + proc.stderr[-4000:]
 
 
 def test_reasoning_left_skips_the_go_build_cache_and_the_clone(tmp_path):

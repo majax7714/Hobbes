@@ -32,6 +32,22 @@ def _lane_a_only(monkeypatch, request):
     # run, and a lane-B test after it executed repo code on the host.
     monkeypatch.delenv("HOBBES_UNCONTAINED", raising=False)
 
+
+@pytest.fixture(autouse=True)
+def _no_ambient_commit_identity(monkeypatch):
+    """Strip any commit identity from the environment before each test.
+
+    An ambient identity — such as the one a dispatched session carries
+    (`hobbes.run.dispatch.IDENTITY`) — overrides a fixture's own `-c
+    user.name=t -c user.email=t@t`, so a git fixture's commits would be
+    authored as `hobbes-dispatch` instead. `units_from_git` then skips
+    those commits as a doer's, which is the retention guard working as
+    designed but wrong for a test (D-s). A test that wants an identity
+    in the environment sets it itself.
+    """
+    for var in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL"):
+        monkeypatch.delenv(var, raising=False)
+
 #: Contents of the `git_repo` fixture's single module (6 lines).
 GIT_REPO_APP = '''"""A tiny app module."""
 
