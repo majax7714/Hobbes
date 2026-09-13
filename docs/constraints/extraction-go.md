@@ -97,6 +97,34 @@
 - **Source:** Calvin M0-Go WP-3, 2026-09-11
   (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.
 
+### C-141 — A Go package call on the statement that declares a same-named local, or earlier in its function, draws no fallback edge
+- **Cannot tell you:** where `slog.Info(...)` goes when its function
+  also binds a local named `slog` (`slog := slog.SpanLogger(ctx, …)`),
+  the call sits on the declaring statement or before it, and lane B
+  left the site unanswered. The call is the package's, but lane A's
+  fallback draws no edge for it.
+- **Because:** C-139's lift (ADR-046's 2026-09-13 amendment) reads a
+  qualifier as an import alias only when no local binding of that name
+  spans the call's line. A binding's extent is its enclosing function,
+  as it is for a bare name, so the whole function reads as shadowed,
+  including the lines where the local is not yet bound.
+- **Bites at:** Go code that rebinds a package's name to a value, where
+  lane B is silent: a file under no module (C-26), a file a build
+  constraint excludes (C-71), an ingest with lane A only. On dagger with
+  lane A alone, 30 of the 95 fallback resolutions the lift dropped were
+  true package calls given up: 25 on the declaring statement and 5
+  before the binding. Where lane B answers, the declaring statement's
+  call is a semantic edge (24 into `telemetry.SpanLogger` on dagger).
+- **You find out:** *partial* — the site is counted in the tail's
+  `attr-call` class (C-2), so it stays in the denominator; nothing names
+  it as a package call the fallback skipped.
+- **Candidate lift:** a finer extent — the binding's own line onward,
+  or its enclosing block — taken only if a graded cell shows the cost.
+- **Provider (P9):** none; this is Hobbes's own rule.
+- **Source:** C-139's residual, measured at its lift
+  (`S-20260913T145700Z-a323`); registered as its own entry on Max's
+  decision, 2026-09-13, under the residue rule (ADR-043; C-11 → C-24).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what
@@ -134,7 +162,7 @@ new active entry and the two cross-reference. Field key: `README.md`,
     confirmed poison.
   - Dagger's 56 external vetoes read 0, because lane A no longer
     proposes those sites.
-- **Residual — a recall cost, recorded here (P8):** the binding's extent
+- **Residual edge cases — a recall cost, now C-141:** the binding's extent
   is the enclosing function, as it is for a bare name. So a qualified
   call on the declaring statement, or earlier in the function, is
   skipped too, although it is the package's.
@@ -148,10 +176,8 @@ new active entry and the two cross-reference. Field key: `README.md`,
   - The cost falls only where lane B is silent. With lane B, the
     declaring statement's call is a semantic edge (dagger has 24 into
     `telemetry.SpanLogger`).
-  - **You find out:** *partial*. The site is counted in `attr-call`, and
-    nothing names it as a skipped package call. A finer extent (the
-    binding's own line, the enclosing block) is the refinement, taken
-    only if a graded cell shows the cost.
+  - **Registered as C-141** (2026-09-13, Max): the active entry for this
+    residual, with its surfacing (*partial*) and its candidate lift.
 - **Source:** ADR-111's acceptance regrade, 2026-09-12. The dagger
   examples were read by hand (`core/git_remote.go:69`/`78`, and eight
   more), and a scan of dagger's Go files found 61 such calls after a

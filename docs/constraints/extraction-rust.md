@@ -38,6 +38,8 @@
 - **Provider (P9):** inherited from `rust-analyzer` **1.97.1** and
   `scip-go` **0.2.7** alike. An upstream release that scoped these
   monikers per target/file would make the drop a no-op.
+- **Folds in:** C-137 (2026-09-13) — scip-clang's file-`static`s of one
+  signature, with C's own-file recovery (ADR-109).
 - **Source:** ADR-040, V2.M7 spike; generalised by the V2.M7
   verification (2026-08-15).
 

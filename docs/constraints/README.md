@@ -43,7 +43,7 @@ question that exposed the hole.
 
 ## How the register is organised
 
-Three parts, and the split is load-bearing (ADR-043):
+Four parts, and the split is load-bearing (ADR-043):
 
 - **Active constraints** — limits that hold today. Grouped by the subsystem
   where a user meets them.
@@ -66,6 +66,19 @@ Three parts, and the split is load-bearing (ADR-043):
   return the day the path does — so each keeps the Was / Superseded-by /
   Would-return-if format, and the debt summary does not count them as
   active. Like lifted entries, they sit at the bottom of their segment.
+- **Folded entries** (added 2026-09-13, ADR-043 amended) — two entries
+  that concede the same information under two numbers, one a face or a
+  restatement of the other. The narrower is **folded into** the broader.
+  It keeps its number and its full text, so every pointer to it — in
+  code, in a record, in another entry — still resolves, and it moves to
+  the bottom of its own segment, where a user still meets that face. Its
+  heading is marked `— *folded into C-n (date)*`, and an italic line
+  under it names the parent and what the folded entry adds; the parent
+  gains a **Folds in** line. The concession stands through the parent,
+  so the debt summary counts it once, there, and the parent carries the
+  weaker of the two surfacing statuses. Folding is not a lift, and
+  it is reversible: if the two turn out to differ, the entry returns to
+  the active part with a dated note.
 
 Entries are numbered `C-n`, sequential and stable, and are **never
 renumbered or deleted**. When a constraint is lifted, its entry moves to
@@ -115,42 +128,52 @@ information appears in both, and the entries cross-reference.
 | File | Segment | Entries |
 |---|---|---|
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-80, C-3 |
-| [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-97, C-98, C-99, C-100, C-90, C-89, C-11, C-24 |
+| [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-85, C-79, C-16, C-33 |
-| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-139 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-74, C-85, C-79, C-16, C-33, C-34 |
+| [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
-| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-130, C-131, C-132, C-133, C-134, C-135, C-136, C-137, C-138 |
+| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-130, C-137 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099), the Calvin M0 local harness (ADR-100) and the dispatch harness (ADR-107) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-125, C-127, C-128, C-129, C-140, C-124, C-55, C-56 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-120, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099), the Calvin M0 local harness (ADR-100) and the dispatch harness (ADR-107) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-125, C-127, C-128, C-129, C-140, C-124, C-55, C-56, C-115 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
-the limit. Lifted and superseded entries appear at the bottom of their
-segment and are marked in the heading.
+the limit. Lifted, superseded and folded entries appear at the bottom of
+their segment, in that order, and are marked in the heading.
 
 ---
 
 ## Debt summary
 
-**One hundred and forty entries: one hundred and twelve active, twenty-five lifted, three superseded**
+**One hundred and forty-one entries: one hundred active, twenty-five lifted, eleven superseded, five folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 88 | every active entry not listed below |
-| active — *partial* | 18 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-108, C-115, C-117, C-125, C-131, C-132, C-135, C-138, C-140 |
+| active — surfaced | 77 | every active entry not listed below |
+| active — *partial* | 17 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-135, C-138, C-140, C-141 |
 | active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-133, C-134 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 25 | at the bottom of each segment |
-| superseded | 3 | C-55, C-56, C-124 |
+| superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
+| folded | 5 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28 |
 
 The table is the register's current state (2026-09-13), read from each
-entry's **You find out** field. C-139's residual, recorded *partial* in
-its lifted entry, is not counted here. The dated notes below are the
+active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+Max's register decisions, 2026-09-13 (ADR-043 amended):
+- **Eight superseded:** C-104–C-108 and C-114–C-116, the keyed rounds'
+  T loop, template v2, arm budgets and `gold_tests`. Only
+  `pipeline/scripts/calvin_probe.py` still reaches them. C-120 was named
+  with them and stays active: `hobbes gate` grounds every dispatched
+  diff through the code it concedes (`gate.py:552`).
+- **C-141 registered** from C-139's residual (*partial*).
+- **Five folded** under the new rule, each into the entry whose
+  concession it restates.
 
 ADR-107 amended on 2026-09-13 (0.2.11-beta), a session's reach:
 - C-140 registered: a dispatched doer can alter or delete its own

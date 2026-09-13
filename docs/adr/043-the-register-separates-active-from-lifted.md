@@ -77,3 +77,44 @@ shape the lift fixed for subdirectory manifests.
   entries drift the same way, and now they have a field to check.
 - Cost: the register is longer and the debt summary counts two parts.
   Accepted — flow for the active part was the point.
+
+## Amendment — 2026-09-13: superseded and folded entries
+
+**Decided by Max, 2026-09-13**, on the review of the register against
+the tree: supersede the entries whose path no longer runs, register
+C-139's residual as its own entry, and add a rule for duplicate pairs.
+
+The register has four parts, not two:
+
+- **Superseded** (in use since 2026-08-23, recorded here): a limit
+  never lifted whose path no longer runs. It keeps its number and full
+  text, with a **Was / Superseded by / Would return if** line, and is
+  not counted as active.
+- **Folded** (new): two entries that concede the same information, one
+  a face or a restatement of the other. The narrower is folded into the
+  broader. It keeps its number and its full text, so every pointer to
+  it — in code, in a record, in another entry — still resolves. It
+  moves to the bottom of its own segment, marked `— *folded into C-n
+  (date)*`, with an italic line naming the parent and what it adds.
+  The parent gains a **Folds in** line and carries the weaker of the
+  two surfacing statuses, and the debt summary counts the concession
+  once, there. Folding is not a lift, and it is reversible with a dated
+  note.
+
+At the bottom of a segment the order is lifted, superseded, folded, and
+each is marked in its heading. Numbers stay stable; nothing is
+renumbered or deleted.
+
+Applied in the same commit:
+- **Superseded:** C-104–C-108 and C-114–C-116 — the keyed rounds' T
+  loop, template v2, arm budgets and `gold_tests`, reached only through
+  `pipeline/scripts/calvin_probe.py` since the rounds closed (ADR-107).
+  C-120 was named with them and stays active: `hobbes gate` grounds
+  every dispatched diff through the code it concedes.
+- **Registered:** C-141, C-139's residual (*partial*), by the residue
+  rule above.
+- **Folded:** C-34 into C-23, C-97 into C-58, C-119 into C-118, C-130
+  into C-135, C-137 into C-28.
+
+The register reads 141 entries: 100 active, 25 lifted, 11 superseded,
+5 folded.

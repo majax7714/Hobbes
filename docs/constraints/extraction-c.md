@@ -2,55 +2,6 @@
 
 *Part of the constraint register — see [`README.md`](README.md) for how to read an entry, the surfacing statuses, and the debt summary.*
 
-### C-130 — C has no semantic lane: every C edge is a name match, at `syntactic` tier — *narrowed 2026-09-12 (ADR-109)*
-- **Narrowed (0.2.4-beta).** scip-clang is C's lane B wherever a
-  compile database can be derived (C-135 is where it cannot). What
-  follows now holds only for:
-  - roots with no database;
-  - the files a root's build does not compile;
-  - sites lane B leaves silent, or answers two ways (C-131).
-- **Cannot tell you:** that a C call lands where its edge says, beyond
-  the name rule. Every C edge is lane A's fallback, which resolves a
-  plain call by name in three ranks: same file, then a directly
-  included header's macro, then the unique non-`static` function
-  repo-wide (ADR-108).
-  - A rank-3 edge names the one repo definition of `f`, even where the
-    target that makes the call links a library's `f` instead.
-  - Calls through function pointers, struct fields and dereferences
-    draw no edge.
-  - Nothing type-directed is known.
-- **Because:** scip-clang needs each translation unit's compile flags,
-  and where this entry still holds there are none to use: no compile
-  database could be derived (C-135), the build does not compile the
-  file, or lane B left the site silent. ADR-109 derives a database
-  wherever it can (Max, 2026-09-12: derive it, degrade visibly).
-- **Bites at:** every C repo, and most where one repo holds many
-  programs. Examples and tools that each define the same helper make
-  rank 3 abstain, so those calls stay unresolved. A repo function that
-  shares a name with a system library function draws rank-3 edges from
-  every caller.
-- **You find out:** **surfaced**:
-  - every C edge carries tier `syntactic`;
-  - where lane B did not answer, `hobbes lanes` has nothing to check the
-    edge against;
-  - the verification base (C-31) in the ingest summary, the surface and
-    `list_blind_spots` stated C as unverified until 0.2.5-beta. Since
-    ADR-110's cells it names the two repos graded, cJSON and sqlite-vector,
-    and nothing wider.
-
-  A *C-scoped* `list_blind_spots` said neither until 0.2.2-beta. The
-  knowledge proxy's copies of the tail's language tables lacked C, and
-  a drift test now holds them to `tail.py`.
-
-  The capture line reads **0% accounted** for C. A fallback-resolved
-  site counts in the unresolved remainder (the tail's design for every
-  language, where lane B normally speaks first), so for a language whose
-  only resolver is the fallback, the headline understates the graph. The
-  per-file rows name the `fallback-resolved` count beside it.
-- **Provider (P9):** none; this is Hobbes's own rule.
-- **Source:** ADR-108; sessions `S-20260912T164904Z-eef8` and
-  `S-20260912T171754Z-e6db`.
-
 ### C-131 — The preprocessor never runs — *narrowed 2026-09-12 (ADR-109)*
 - **Narrowed (0.2.4-beta).** Where a compile database is derived,
   scip-clang runs the preprocessor as the build configures it, so lane B
@@ -222,6 +173,9 @@
   - So a root whose derived database indexes nothing surfaces without
     its cause.
 - **Provider (P9):** none; this is Hobbes's own rule.
+- **Folds in:** C-130 (2026-09-13) — what lane A's floor draws for C
+  where lane B does not answer (the three name ranks, ADR-108), and its
+  reading as 0% capture.
 - **Source:** ADR-109; the gap, ADR-110's draw.
 
 ### C-136 — Indexing C runs the repo's build logic, contained and offline
@@ -248,29 +202,6 @@
   packages in the image), and the repo's own build files.
 - **Source:** ADR-109.
 
-### C-137 — scip-clang gives file-`static`s of one signature in several files one moniker
-- **Cannot tell you:** which file's definition a call reaches when two
-  `.c` files each define a `static` function or variable of the same
-  name and signature, unless the call is in a file that defines it. The
-  same goes for `main` across a repo's programs.
-- **Because:** scip-clang 0.4.0 names a C function by its name plus a
-  hash of its signature, not by its file. The decode drops a moniker
-  that two files define (C-28).
-  - ADR-109's own-file rule recovers a reference from a file that
-    defines the moniker, which is C's `static` linkage.
-  - A reference from any other file stays unattributed: a `.c` file
-    `#include`d into another, or a test program calling another
-    program's `main`.
-- **Bites at:** cJSON's `compare_double`, `get_array_item` and
-  `get_object_item`, defined in both `cJSON.c` and `cJSON_Utils.c`, and
-  every test program's `main`. In `minic`: `helper`, and the duplicate
-  non-static `scale` (which lane A's rank 3 also abstains on).
-- **You find out:** **surfaced**. The `scip-decode` record counts the
-  monikers and names a sample (C-28's surfacing), in C's own wording.
-- **Provider (P9):** inherited from scip-clang **0.4.0**'s moniker
-  scheme.
-- **Source:** ADR-109.
-
 ### C-138 — Lane A's fallback guesses where lane B resolved the site to a declaration outside the repo
 - **Cannot tell you:** that a `syntactic` edge's target is the one the build calls, where the configured build calls a library function of the same name.
   - `evidence.join` (every language) takes lane A's fallback wherever lane B produced no *in-repo* resolution. It does not ask whether lane B resolved the site to a declaration outside the repo.
@@ -295,3 +226,92 @@
     - two same-named occurrences on one line, one outside the repo and one the call lane B missed, because the key has no column;
     - a sibling unit's in-repo definition of a kind the graph does not keep, which `join_cross_unit` cannot mark.
 - **Source:** ADR-110; `docs/oracle/cells/sqlite-vector-c-2026-09-12.md`.
+
+## Folded entries in this segment
+
+An entry that concedes the same information as another, folded into it
+(`README.md`, "How the register is organised"). It keeps its number and
+its full text, so every pointer to it still resolves; its italic line
+names the parent and what it adds, and the debt summary counts the
+concession once, under the parent.
+
+### C-130 — C has no semantic lane: every C edge is a name match, at `syntactic` tier — *narrowed 2026-09-12 (ADR-109)* — *folded into C-135 (2026-09-13)*
+*(Folded 2026-09-13 into C-135 (ADR-043 amended). Since ADR-109 this
+entry holds only where lane B does not answer for C: a root with no
+compile database and the files a build does not compile, which are
+C-135's, and a site lane B leaves silent, which is C-7's. This entry adds
+what lane A's floor then draws: the three name ranks (ADR-108) and the
+0% capture line.)*
+- **Narrowed (0.2.4-beta).** scip-clang is C's lane B wherever a
+  compile database can be derived (C-135 is where it cannot). What
+  follows now holds only for:
+  - roots with no database;
+  - the files a root's build does not compile;
+  - sites lane B leaves silent, or answers two ways (C-131).
+- **Cannot tell you:** that a C call lands where its edge says, beyond
+  the name rule. Every C edge is lane A's fallback, which resolves a
+  plain call by name in three ranks: same file, then a directly
+  included header's macro, then the unique non-`static` function
+  repo-wide (ADR-108).
+  - A rank-3 edge names the one repo definition of `f`, even where the
+    target that makes the call links a library's `f` instead.
+  - Calls through function pointers, struct fields and dereferences
+    draw no edge.
+  - Nothing type-directed is known.
+- **Because:** scip-clang needs each translation unit's compile flags,
+  and where this entry still holds there are none to use: no compile
+  database could be derived (C-135), the build does not compile the
+  file, or lane B left the site silent. ADR-109 derives a database
+  wherever it can (Max, 2026-09-12: derive it, degrade visibly).
+- **Bites at:** every C repo, and most where one repo holds many
+  programs. Examples and tools that each define the same helper make
+  rank 3 abstain, so those calls stay unresolved. A repo function that
+  shares a name with a system library function draws rank-3 edges from
+  every caller.
+- **You find out:** **surfaced**:
+  - every C edge carries tier `syntactic`;
+  - where lane B did not answer, `hobbes lanes` has nothing to check the
+    edge against;
+  - the verification base (C-31) in the ingest summary, the surface and
+    `list_blind_spots` stated C as unverified until 0.2.5-beta. Since
+    ADR-110's cells it names the two repos graded, cJSON and sqlite-vector,
+    and nothing wider.
+
+  A *C-scoped* `list_blind_spots` said neither until 0.2.2-beta. The
+  knowledge proxy's copies of the tail's language tables lacked C, and
+  a drift test now holds them to `tail.py`.
+
+  The capture line reads **0% accounted** for C. A fallback-resolved
+  site counts in the unresolved remainder (the tail's design for every
+  language, where lane B normally speaks first), so for a language whose
+  only resolver is the fallback, the headline understates the graph. The
+  per-file rows name the `fallback-resolved` count beside it.
+- **Provider (P9):** none; this is Hobbes's own rule.
+- **Source:** ADR-108; sessions `S-20260912T164904Z-eef8` and
+  `S-20260912T171754Z-e6db`.
+
+### C-137 — scip-clang gives file-`static`s of one signature in several files one moniker — *folded into C-28 (2026-09-13)*
+*(Folded 2026-09-13 into C-28 (ADR-043 amended): it is C-28's decode
+drop applied to scip-clang's monikers. This entry adds C's own-file
+recovery (ADR-109) and the provider's moniker scheme.)*
+- **Cannot tell you:** which file's definition a call reaches when two
+  `.c` files each define a `static` function or variable of the same
+  name and signature, unless the call is in a file that defines it. The
+  same goes for `main` across a repo's programs.
+- **Because:** scip-clang 0.4.0 names a C function by its name plus a
+  hash of its signature, not by its file. The decode drops a moniker
+  that two files define (C-28).
+  - ADR-109's own-file rule recovers a reference from a file that
+    defines the moniker, which is C's `static` linkage.
+  - A reference from any other file stays unattributed: a `.c` file
+    `#include`d into another, or a test program calling another
+    program's `main`.
+- **Bites at:** cJSON's `compare_double`, `get_array_item` and
+  `get_object_item`, defined in both `cJSON.c` and `cJSON_Utils.c`, and
+  every test program's `main`. In `minic`: `helper`, and the duplicate
+  non-static `scale` (which lane A's rank 3 also abstains on).
+- **You find out:** **surfaced**. The `scip-decode` record counts the
+  monikers and names a sample (C-28's surfacing), in C's own wording.
+- **Provider (P9):** inherited from scip-clang **0.4.0**'s moniker
+  scheme.
+- **Source:** ADR-109.

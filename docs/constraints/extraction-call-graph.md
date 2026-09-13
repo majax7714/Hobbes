@@ -262,6 +262,8 @@
 - **Provider (P9):** ours. `scip-go` **0.2.7** resolves the occurrence
   correctly (to the interface method); Hobbes' descriptor filter and the
   absence of a dispatch analysis are Hobbes' choices.
+- **Folds in:** C-97 (2026-09-13) — the TypeScript face above, with its
+  provider shape and the `union-member` class.
 - **Source:** oracle lane O1/O2 (ADR-089, `docs/oracle/oracle-grading.md`;
   `bench/oracle/`), 2026-08-25 — the lane's first graded miss, on the
   `twomod` fixture, then 45 of 45 non-inflated misses on this repo.

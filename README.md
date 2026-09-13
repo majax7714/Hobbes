@@ -336,9 +336,9 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and forty entries (one
-hundred and twelve active, twenty-five lifted, three superseded), each naming
-where a user meets the limit.
+The constraint register holds one hundred and forty-one entries (one
+hundred active, twenty-five lifted, eleven superseded, five folded), each
+naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
 (ADR-092).** Every lane B indexer, Java's build, and the executing

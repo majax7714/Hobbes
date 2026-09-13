@@ -807,37 +807,6 @@
 - **Source:** Calvin M0-Go WP-1, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
   §2.3), defect D2; ADR-100 amended.
 
-### C-115 — Gold's tests carry their fixtures only from three directory names
-
-- **Cannot tell you:** that a `gold_tests` failure is the arm's.
-  `gold_tests` (`docs/calvin/calvin-m0-go-r2.md` §2.3) applies the gold
-  diff's own test changes on top of an arm's diff. It carries every
-  test-file hunk, and beside them the test-support hunks: files under
-  `testdata/`, `__fixtures__/` or `__snapshots__/`
-  (`is_test_support_path`). A fixture gold adds or edits anywhere else —
-  a golden file beside the code, a config a test loads by path — stays
-  behind, and gold's test then fails on any diff, gold's own included. A
-  test-support hunk with no test-file hunk beside it reads `n/a`.
-- **Because:** the gold diff does not say which of its non-test files a
-  test reads. The three names are the conventions Go (`testdata/` is
-  ignored by the go tool) and the JS runners use. Carrying every
-  non-code file would hand the arm gold's configs.
-- **Bites at:** a unit whose gold test reads a fixture outside those
-  names. WP-11a met the class on gitleaks before the rule carried
-  `testdata/` (defect WP-11a-1): `a971a324fab5`'s `TestTranslate` reads
-  `testdata/config/extend_rule_allowlist.toml`, and every arm's
-  `gold_tests` read `fail` on it, gold's shape included.
-- **You find out:** **partial** — `gold_tests_verdict` splits a failure
-  into `fail`, `build-fail` (with Go's `undefined:` names) and
-  `conflict`, so a fixture miss shows as a test that ran and failed on
-  every arm. The gold control that catches it outright — gold's own
-  non-test hunks with `gold_tests` on top must read `pass` at the
-  parent (7/7 on round 1's keys) — is a bench script
-  (`~/.hobbes/bench/calvin-go/wp-11a/scripts/control.py`) and a pytest
-  case, not a step `hobbes verify` runs.
-- **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
-  (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.
-
 ### C-125 — A dispatched doer's file reads are not in the flight log (its edits are, by path alone)
 
 - **Cannot tell you:** from the flight log alone, what a Claude Code
@@ -960,7 +929,7 @@ concession is intact — it would return with the path — so the entry keeps
 its number and its full text, plus a **Was / Superseded by / Would return
 if** line, and the debt summary does not count it among the active.
 
-### C-124 — An arm-O session can reach the network: the repo's future is cut from its clone, not from the internet
+### C-124 — An arm-O session can reach the network: the repo's future is cut from its clone, not from the internet — *superseded 2026-09-12*
 *(Superseded 2026-09-12. Was: an arm-O session kept the endpoint's
 whole network (pasta), so the upstream history was out of its repo but
 not out of its reach. Superseded by: the keyed Calvin rounds closed
@@ -997,7 +966,7 @@ not out of its reach. Superseded by: the keyed Calvin rounds closed
 - **Source:** calvin-m0-gate WP-18c (D-x, found by WP-21 at key 1),
   2026-09-11.
 
-### C-55 — The DeepSWE aid is derived without the planner stage
+### C-55 — The DeepSWE aid is derived without the planner stage — *superseded 2026-08-23*
 *(Superseded 2026-08-23. Was: the Pier aided arm's aid came from the
 lexical map only. Superseded by: P12/ADR-082 retracted the aided arm as a
 Hobbes test; the decomposed run's planner is now the
@@ -1026,7 +995,7 @@ refuses that arm name.)*
   what the context is made of.
 - **Source:** ADR-078 (2026-08-22).
 
-### C-56 — The two arms do not measure the same thing: repo recall in the pure arm, an off-distribution prompt in the aided arm
+### C-56 — The two arms do not measure the same thing: repo recall in the pure arm, an off-distribution prompt in the aided arm — *superseded 2026-08-23*
 *(Superseded 2026-08-23. Was: the reading rule for the Pier
 pure-vs-aided pairs. Superseded by: P12 (ADR-082), which retracted every
 single-agent pair as Hobbes evidence, and by the instruments it asked
@@ -1061,4 +1030,38 @@ comparison again.)*
   implementations. None built yet.
 - **Source:** Max's rethink, 2026-08-22, after the first 27B pair (ADR-080).
 
----
+### C-115 — Gold's tests carry their fixtures only from three directory names — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: `gold_tests` carried gold's
+fixtures only from three directory names. Superseded by: the keyed
+rounds closed (ADR-107); a dispatch has no gold, and
+`harness.gold_tests_verdict` is called only from `calvin_probe.py`.
+Would return if: an arm is scored against a gold diff's tests again.)*
+
+- **Cannot tell you:** that a `gold_tests` failure is the arm's.
+  `gold_tests` (`docs/calvin/calvin-m0-go-r2.md` §2.3) applies the gold
+  diff's own test changes on top of an arm's diff. It carries every
+  test-file hunk, and beside them the test-support hunks: files under
+  `testdata/`, `__fixtures__/` or `__snapshots__/`
+  (`is_test_support_path`). A fixture gold adds or edits anywhere else —
+  a golden file beside the code, a config a test loads by path — stays
+  behind, and gold's test then fails on any diff, gold's own included. A
+  test-support hunk with no test-file hunk beside it reads `n/a`.
+- **Because:** the gold diff does not say which of its non-test files a
+  test reads. The three names are the conventions Go (`testdata/` is
+  ignored by the go tool) and the JS runners use. Carrying every
+  non-code file would hand the arm gold's configs.
+- **Bites at:** a unit whose gold test reads a fixture outside those
+  names. WP-11a met the class on gitleaks before the rule carried
+  `testdata/` (defect WP-11a-1): `a971a324fab5`'s `TestTranslate` reads
+  `testdata/config/extend_rule_allowlist.toml`, and every arm's
+  `gold_tests` read `fail` on it, gold's shape included.
+- **You find out:** **partial** — `gold_tests_verdict` splits a failure
+  into `fail`, `build-fail` (with Go's `undefined:` names) and
+  `conflict`, so a fixture miss shows as a test that ran and failed on
+  every arm. The gold control that catches it outright — gold's own
+  non-test hunks with `gold_tests` on top must read `pass` at the
+  parent (7/7 on round 1's keys) — is a bench script
+  (`~/.hobbes/bench/calvin-go/wp-11a/scripts/control.py`) and a pytest
+  case, not a step `hobbes verify` runs.
+- **Source:** Calvin M0-Go round 2 WP-11a, 2026-09-11
+  (`docs/calvin/calvin-m0-go-r2.md` §2.3), defect WP-11a-1.

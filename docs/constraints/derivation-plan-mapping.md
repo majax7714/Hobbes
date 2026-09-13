@@ -202,136 +202,6 @@
 - **Source:** Calvin M0 step 3 (2026-09-04, the probe record's fourth
   addendum).
 
-### C-104 — Template v2 shows a capped callee by its signature line until it is confirmed
-
-- **Cannot tell you:** what a callee's body holds, when the callee
-  belongs to an anchored symbol with more than `CALLEE_CAP` (k = 20)
-  distinct in-repo callees. Under template v2 such a callee is not
-  expanded. It is asked in round 1 as an `ANCHOR_CONFIRM` showing its
-  signature line only, and its body, callers and tests join the
-  template only if the orchestrator confirms it. The confirmation is
-  made from one line. A change the task names only through the fan-out
-  is not in round 2 unless a confirmation lets it in.
-- **Because:** v1 expanded every callee of every seed, and one
-  registry symbol (gitleaks' `cmd/generate/config/main.main`, 177–223
-  callees) turned eight keys into 181–269 body holes and 3.0–7.5M
-  characters each (M0-Go F1). The cap trades that cost for a round-1
-  question per held-back callee.
-- **Bites at:** v2 templates only; v1 is the default, and the
-  `hobbes template` CLI builds v1. On the 20 M0-Go keys at A2, strict
-  Go coverage goes from 86/7/6/4 to 86/6/6/5: the hunk lost is 107a41
-  `gitlab.go:180`, a new rule that v1 reached only through
-  `main.main`'s fan-out, and that at v2 is a declare-hole in a file A2
-  does not name. Gold said yes to none of A2's 1,574 cap confirmations.
-- **You find out:** **surfaced** — each held-back callee is a named
-  round-1 hole (`matcher: callee-cap`, its seed and the seed's callee
-  count in the ask), and a v2 template carries `callee_cap` and a
-  pruning rule stating the cap.
-- **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
-  §10, F1; `docs/calvin/calvin-potential.md` §2.1).
-
-### C-105 — A protocol v0.3 pattern answers many holes with one judgement
-
-- **Cannot tell you:** that the orchestrator weighed each hole a pattern
-  filled. Under adapter protocol v0.3, `patterns: {"BODY": "unchanged"}`
-  (likewise SIGNATURE, or ANCHOR_CONFIRM `"unchanged"`/`"no"`) fills
-  every open hole of that type that the reply does not answer
-  explicitly. One word can leave a hundred bodies alone or refuse two
-  hundred confirmations; no repair then asks those holes one by one.
-- **Because:** Max's decision of 2026-09-11. On WP-5's run, refused
-  patterns cost 7 of 22 calls and 36% of the spend, and the outcome
-  is the one silence already gave: an unanswered BODY or SIGNATURE ends
-  unchanged, and an unanswered confirmation is a refusal. v0.3 accepts
-  the pattern rather than paying a repair to have each hole restated.
-  A pattern never rewrites or confirms, so a change or a "yes" still
-  has to be stated per hole.
-- **Bites at:** reading a record's "answered" count as per-hole
-  attention, and the arm-T readings that ask whether the orchestrator
-  considered a symbol (H-a, H-s). The replay of WP-5's records: 321
-  holes filled by pattern in 4 exchanges; d29ee5's 208 capped-callee
-  confirmations refused in one pattern.
-- **You find out:** **surfaced** — every filled-by-pattern hole is
-  listed under `by_pattern` (hole id → type) in the exchange and the
-  arm-T record, the round record counts `pattern_confirmations`,
-  `t-units` rows count pattern fills by type, and every exchange and
-  record carries `protocol_version`.
-- **Source:** Calvin M0-Go WP-5, 2026-09-11 (Max's decision;
-  `docs/calvin/calvin-potential.md` §2.2).
-
-### C-106 — A near-miss name is re-asked, never offered a declaration
-
-- **Cannot tell you:** that a name the orchestrator wrote, one near a
-  real one, was meant to be new. Under adapter protocol v0.4 the NULL
-  round-trip offers a declaration hole only for a NULL classed `new` or
-  `invented` whose bare name is in no module of the parent graph. A
-  `near-miss` goes back to the hole that wrote it, as in v0.3, with the
-  nearest graph names shown. A near-miss is an exact name in another
-  module, or a graph name within edit distance 3 (`ground._NEAR`). The
-  same happens to a name declared where the call does not reach. So a
-  genuinely new name that lies close to an existing one cannot be
-  declared through the loop.
-- **Because:** near-miss is the grounder's class for a spelling or
-  placement miss. Offering a declaration there would invite a
-  duplicate beside the real symbol, so the loop asks again so the
-  model can name the existing one.
-- **Bites at:** T-loop's closure on short new names and on names beside
-  a near sibling. The re-ask may bind the near name, an existing symbol
-  the task did not mean, or NULL again. Not measured: WP-7a's replay
-  closed all 11 of WP-6's declare-routed sites, and those were `new`
-  or `invented`.
-- **You find out:** **surfaced** — every NULL site in the arm-T record's
-  `loop.sites[]` carries `route` (`declare` or `re-ask`) beside its
-  `null_class`, and `loop.routes` counts them.
-- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (`adapter.null_route`;
-  `docs/calvin/calvin-potential.md` §2.2).
-
-### C-107 — A declaration outside the write partition is placed and recorded, never refused
-
-- **Cannot tell you:** that a declaration the NULL round-trip placed
-  stays inside the unit's write partition. The declaration hole offers
-  only the partition's files in the binding directory, and for four of
-  WP-6's five keys there were none. An answer that names a new file
-  there is placed and recorded `in_partition: false`, as NEW_SYMBOL and
-  FREEFORM files already are. The partition is not widened and the file
-  is not refused.
-- **Because:** **Max's decision, 2026-09-11.** Gold declares the name
-  outside the partition at 10 of WP-6's 11 NULL sites: new files under
-  `rules/` where the partition is `main.go` alone. Refusing them would
-  leave 10 of the 11 unclosable.
-- **Bites at:** reading arm T's write partition as a write scope (C-38
-  is the enforced cut for `hobbes run`, not for arm T). A T diff can
-  touch files the template did not assign.
-- **You find out:** **surfaced** — each site in `loop.sites[]` carries
-  the placed `file` and `in_partition`; the grounding's `edits` and
-  `files` rows carry `in_partition`, and its `outside_partition` counts
-  the edits outside.
-- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's partition
-  reading; Max's decision the same day).
-
-### C-108 — A declaration's directory is not checked for a non-Go name or an `after_symbol` placement
-
-- **Cannot tell you:** that a declaration landed in the directory its
-  call site binds in, in two cases. The first is a NULL with no `scope`
-  (a Python or TS/JS name; grounder v1 sets `scope` for Go only). The
-  second is an answer placed by `after_symbol`. The validator checks
-  for a file in the binding directory only for a Go name placed by file
-  or region.
-- **Because:** `scope` is Go's package directory, plus the type for a
-  typed receiver, read by rule 1's resolution; Python and TS/JS have no
-  such reading in grounder v1. An `after_symbol` placement is
-  positioned by the symbol, and the validator does not derive that
-  symbol's file (`holes.py`'s declaration check).
-- **Bites at:** a declaration in a directory the call does not reach.
-  For a Go name the re-grounding still decides whether the call binds;
-  what is skipped is the check that would have asked again before
-  placing. None of WP-7a's replayed sites took either path.
-- **You find out:** *partial* — the pieces are on rows but no row says
-  the check was skipped: each site in `loop.sites[]` records the placed
-  `file`, the declaration hole records `constraints.declares.dir` (null
-  for a non-Go name), and each grounding edit carries its `placement`.
-- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's third
-  constraint draft).
-
 ### C-109 — Grounder v2 accepts an import under a required module without checking that the package exists
 
 - **Cannot tell you:** that an import a Go fill writes names a real
@@ -431,58 +301,6 @@
   edited ranges", and the `world` block's counts are Go's alone.
 - **Source:** Calvin M0-Go WP-9, 2026-09-11.
 
-### C-114 — A declaration's body NULLs get one repair
-
-- **Cannot tell you:** that a placed declaration's body grounds clean
-  after the loop. Under protocol v0.5, a NULL inside a placed
-  declaration's body goes back once as a repair of the same declaration
-  hole: one exchange, and no validation repair after it. An answer that
-  fails validation, or still NULLs, keeps its body NULLs, and there is
-  no second round.
-- **Because:** the loop is bounded so arm T's cost stays predictable
-  (one more exchange per record at most). An unbounded loop would trade
-  a known ceiling for closures the replay has not shown are there.
-- **Bites at:** the declaration route's closure rate. WP-8's 9 placed
-  declarations each raised at least one body NULL, and the repair was
-  asked 9 times at 1 exchange each. How many would close is the
-  re-test's to measure.
-- **You find out:** **surfaced** — each site in `loop.sites[]` carries
-  `body_nulls` and `repaired`, and `loop.declaration_repair` records
-  the holes asked, the exchanges, and the body NULLs before and after.
-- **Source:** Calvin M0-Go WP-9, 2026-09-11 (`adapter.declaration_repair`).
-- **Amended (protocol v0.6, Calvin M0-Go round 2 WP-14, 2026-09-11):**
-  under `--verify-build`, the same one repair also carries the build
-  row's compile error for the declaration's file (`go build`, `go vet`,
-  generation; trimmed to the lines naming that file), beside the body
-  NULLs. It is still one exchange, and the budget (C-116) covers it: a
-  key at its budget gets no repair. A declaration that still fails to
-  build after it keeps the error; the verifier's `build-fail` reads it.
-
-### C-116 — An arm at its budget stops, and its row is scored as it stands
-
-- **Cannot tell you:** what an arm would have done with more calls.
-  Under protocol v0.6 each key has one budget, N model calls
-  (`--budget`), shared by both arms. In T it counts confirmations,
-  fills and repairs. An ask made after the budget is spent is answered
-  empty, with no call: its hole grounds unfilled, which renders as
-  unchanged. In O the budget replaces the 30-turn cap, and the diff
-  harvested when the turns run out is the one verified. A row cut this
-  way can read `fail`, `vacuous` or unchanged for the budget's reason,
-  not the arm's.
-- **Because:** round 2 compares the arms on equal footing (§2.4 of
-  `docs/calvin/calvin-m0-go-r2.md`), and a cost ceiling per key is what
-  keeps a run's spend predictable. N counts calls, not tokens: a T
-  exchange carries a template, an O turn one tool call, so equal N is
-  equal calls, not equal work.
-- **Bites at:** round 2's WP-16 at N = 7, which is the maximum T used
-  per key in round 1. O used 19–30 turns there, so O is cut harder than
-  T.
-- **You find out:** **surfaced** — a T row carries `budget` and
-  `budget_cuts` (the asks answered empty); an O row carries `budget`
-  and the `max_turns` it ran under beside the turns it took.
-- **Source:** Calvin M0-Go round 2 WP-14, 2026-09-11 (`Adapter.budget`,
-  `calvin_probe.py t-units | o-units --budget`).
-
 ### C-117 — The declaration hole's sibling is cut at 4,400 bytes
 
 - **Cannot tell you:** the rest of a sibling longer than 4,400 bytes.
@@ -547,37 +365,9 @@
 - **You find out:** **surfaced** — `SIGNATURE_RULE` states the rule and
   every abstention by name, carried in every ground record's
   `world.signature_rule`.
+- **Folds in:** C-119 (2026-09-13) — the edited-callee abstention, and
+  the gold NULLs that found it.
 - **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11.
-
-### C-119 — A callee's own file being edited by the same diff turns off its arity check
-
-- **Cannot tell you:** whether a call into a function or method whose
-  own declaration this diff *also* edits states the right arity against
-  the version that will actually exist. `go_arity` reads only the
-  parent's (pre-diff) declaration of an in-graph symbol; when that
-  symbol's file is among the diff's own edited files (`post_text`), the
-  parent's arity may no longer be the arity the diff is converging on
-  — gold's own `DirectoryTargets` and `detectRule` commits change a
-  function's parameter count and every call site together, and reading
-  the parent's arity against the post-image's calls produced two false
-  `arity` NULLs on clean gold diffs before this abstention was added
-  (found by the gold re-ground, WP-14b's own exit check). The grounder
-  now abstains outright rather than read the post-image's own
-  (possibly still-changing, possibly multiply-edited) declaration.
-- **Because:** locating and re-parsing the post-image's own version of
-  a declaration that may have moved lines, or that this diff itself
-  supersedes with a SIGNATURE fill, is exactly the "declared in the
-  wrong world, mid-edit" case §2.5 is not scoped to read; abstaining is
-  the doubt this grounder can state exactly, and a caller-update or
-  signature hole already exists for tracking the callee's own change.
-- **Bites at:** a diff that changes both a function's signature and one
-  of its call sites incorrectly (e.g. the right new arity at one site,
-  the old one at another) — arity is silent there, same as before
-  WP-14b, until the build catches it.
-- **You find out:** **surfaced** — `go_arity`'s doc names the
-  abstention, and `SIGNATURE_RULE` states it in the record.
-- **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11 (found on gold's
-  `ed205a5f63e3` and `2278a2a97e42`).
 
 ### C-120 — A malformed post-image reads as its own class only when it carries the render's gutter
 
@@ -604,7 +394,10 @@
   defence-in-depth check for exactly the case the general system (the
   validator) already owns (P10): the specific guarantee here is that
   *this* one shape never again reads as a silent empty file, even
-  off-path.
+  off-path. The other half is live: `hobbes gate` grounds every
+  dispatched diff through `ground()` (`gate.py:552`), so a post-image
+  garbled another way reads there as whatever the parse makes of it —
+  C-112's subject.
 - **You find out:** **surfaced** for the gutter shape —
   `references.malformed` and a `refs` row with `class: "malformed"` and
   `reason` (`holes.GUTTER_ERROR`); **unsurfaced** for every other
@@ -766,3 +559,273 @@
   reason `unmapped` and its site, and the session file prints the
   `unknown` count and every row.
 - **Source:** ADR-107, 2026-09-12.
+
+## Superseded constraints in this segment
+
+A limit that was never lifted but whose path no longer runs. The
+concession is intact — it would return with the path — so the entry keeps
+its number and its full text, plus a **Was / Superseded by / Would return
+if** line, and the debt summary does not count it among the active.
+
+### C-104 — Template v2 shows a capped callee by its signature line until it is confirmed — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: under template v2 a callee past the
+out-degree cap showed only its signature line until confirmed. Superseded
+by: the keyed Calvin rounds closed (ADR-107); `hobbes template` builds v1
+and has no v2 switch, and `hobbes dispatch` builds no template. Would
+return if: a v2 template is built again — `pipeline/scripts/calvin_probe.py`
+still builds one.)*
+
+- **Cannot tell you:** what a callee's body holds, when the callee
+  belongs to an anchored symbol with more than `CALLEE_CAP` (k = 20)
+  distinct in-repo callees. Under template v2 such a callee is not
+  expanded. It is asked in round 1 as an `ANCHOR_CONFIRM` showing its
+  signature line only, and its body, callers and tests join the
+  template only if the orchestrator confirms it. The confirmation is
+  made from one line. A change the task names only through the fan-out
+  is not in round 2 unless a confirmation lets it in.
+- **Because:** v1 expanded every callee of every seed, and one
+  registry symbol (gitleaks' `cmd/generate/config/main.main`, 177–223
+  callees) turned eight keys into 181–269 body holes and 3.0–7.5M
+  characters each (M0-Go F1). The cap trades that cost for a round-1
+  question per held-back callee.
+- **Bites at:** v2 templates only; v1 is the default, and the
+  `hobbes template` CLI builds v1. On the 20 M0-Go keys at A2, strict
+  Go coverage goes from 86/7/6/4 to 86/6/6/5: the hunk lost is 107a41
+  `gitlab.go:180`, a new rule that v1 reached only through
+  `main.main`'s fan-out, and that at v2 is a declare-hole in a file A2
+  does not name. Gold said yes to none of A2's 1,574 cap confirmations.
+- **You find out:** **surfaced** — each held-back callee is a named
+  round-1 hole (`matcher: callee-cap`, its seed and the seed's callee
+  count in the ask), and a v2 template carries `callee_cap` and a
+  pruning rule stating the cap.
+- **Source:** Calvin M0-Go WP-2, 2026-09-11 (`docs/calvin/calvin-m0-go.md`
+  §10, F1; `docs/calvin/calvin-potential.md` §2.1).
+
+### C-105 — A protocol v0.3 pattern answers many holes with one judgement — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: an adapter protocol v0.3 pattern
+filled every unanswered hole of its type with one judgement. Superseded
+by: the keyed rounds closed (ADR-107); patterns are expanded only by the
+adapter's T loop (`holes.read_patterns`, called from `adapter.py`
+alone), and neither `hobbes ground` nor `hobbes gate` expands one. Would
+return if: arm T runs again (`calvin_probe.py t-units`).)*
+
+- **Cannot tell you:** that the orchestrator weighed each hole a pattern
+  filled. Under adapter protocol v0.3, `patterns: {"BODY": "unchanged"}`
+  (likewise SIGNATURE, or ANCHOR_CONFIRM `"unchanged"`/`"no"`) fills
+  every open hole of that type that the reply does not answer
+  explicitly. One word can leave a hundred bodies alone or refuse two
+  hundred confirmations; no repair then asks those holes one by one.
+- **Because:** Max's decision of 2026-09-11. On WP-5's run, refused
+  patterns cost 7 of 22 calls and 36% of the spend, and the outcome
+  is the one silence already gave: an unanswered BODY or SIGNATURE ends
+  unchanged, and an unanswered confirmation is a refusal. v0.3 accepts
+  the pattern rather than paying a repair to have each hole restated.
+  A pattern never rewrites or confirms, so a change or a "yes" still
+  has to be stated per hole.
+- **Bites at:** reading a record's "answered" count as per-hole
+  attention, and the arm-T readings that ask whether the orchestrator
+  considered a symbol (H-a, H-s). The replay of WP-5's records: 321
+  holes filled by pattern in 4 exchanges; d29ee5's 208 capped-callee
+  confirmations refused in one pattern.
+- **You find out:** **surfaced** — every filled-by-pattern hole is
+  listed under `by_pattern` (hole id → type) in the exchange and the
+  arm-T record, the round record counts `pattern_confirmations`,
+  `t-units` rows count pattern fills by type, and every exchange and
+  record carries `protocol_version`.
+- **Source:** Calvin M0-Go WP-5, 2026-09-11 (Max's decision;
+  `docs/calvin/calvin-potential.md` §2.2).
+
+### C-106 — A near-miss name is re-asked, never offered a declaration — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: the T loop's NULL round-trip
+re-asked a near-miss name rather than offering a declaration.
+Superseded by: the keyed rounds closed (ADR-107); the round-trip
+(`adapter.null_route`) runs only under `calvin_probe.py t-units`. Would
+return if: arm T runs again.)*
+
+- **Cannot tell you:** that a name the orchestrator wrote, one near a
+  real one, was meant to be new. Under adapter protocol v0.4 the NULL
+  round-trip offers a declaration hole only for a NULL classed `new` or
+  `invented` whose bare name is in no module of the parent graph. A
+  `near-miss` goes back to the hole that wrote it, as in v0.3, with the
+  nearest graph names shown. A near-miss is an exact name in another
+  module, or a graph name within edit distance 3 (`ground._NEAR`). The
+  same happens to a name declared where the call does not reach. So a
+  genuinely new name that lies close to an existing one cannot be
+  declared through the loop.
+- **Because:** near-miss is the grounder's class for a spelling or
+  placement miss. Offering a declaration there would invite a
+  duplicate beside the real symbol, so the loop asks again so the
+  model can name the existing one.
+- **Bites at:** T-loop's closure on short new names and on names beside
+  a near sibling. The re-ask may bind the near name, an existing symbol
+  the task did not mean, or NULL again. Not measured: WP-7a's replay
+  closed all 11 of WP-6's declare-routed sites, and those were `new`
+  or `invented`.
+- **You find out:** **surfaced** — every NULL site in the arm-T record's
+  `loop.sites[]` carries `route` (`declare` or `re-ask`) beside its
+  `null_class`, and `loop.routes` counts them.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (`adapter.null_route`;
+  `docs/calvin/calvin-potential.md` §2.2).
+
+### C-107 — A declaration outside the write partition is placed and recorded, never refused — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: a declaration the T loop's NULL
+round-trip placed outside the write partition was placed and recorded,
+never refused. Superseded by: the keyed rounds closed (ADR-107); only the
+adapter's round-trip places declarations, and a dispatched diff's writes
+outside a partition are the gate's partition check (C-122). Would return
+if: arm T runs again.)*
+
+- **Cannot tell you:** that a declaration the NULL round-trip placed
+  stays inside the unit's write partition. The declaration hole offers
+  only the partition's files in the binding directory, and for four of
+  WP-6's five keys there were none. An answer that names a new file
+  there is placed and recorded `in_partition: false`, as NEW_SYMBOL and
+  FREEFORM files already are. The partition is not widened and the file
+  is not refused.
+- **Because:** **Max's decision, 2026-09-11.** Gold declares the name
+  outside the partition at 10 of WP-6's 11 NULL sites: new files under
+  `rules/` where the partition is `main.go` alone. Refusing them would
+  leave 10 of the 11 unclosable.
+- **Bites at:** reading arm T's write partition as a write scope (C-38
+  is the enforced cut for `hobbes run`, not for arm T). A T diff can
+  touch files the template did not assign.
+- **You find out:** **surfaced** — each site in `loop.sites[]` carries
+  the placed `file` and `in_partition`; the grounding's `edits` and
+  `files` rows carry `in_partition`, and its `outside_partition` counts
+  the edits outside.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's partition
+  reading; Max's decision the same day).
+
+### C-108 — A declaration's directory is not checked for a non-Go name or an `after_symbol` placement — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: a declaration hole's answer went
+unchecked for its directory for a non-Go name or an `after_symbol`
+placement. Superseded by: the keyed rounds closed (ADR-107); declaration
+holes are built only by the adapter's NULL round-trip, so
+`holes.declaration_errors` has nothing to check on a `hobbes template`
+template or in a gate. Would return if: a template carrying declaration
+holes is grounded again (arm T, `calvin_probe.py t-units`).)*
+
+- **Cannot tell you:** that a declaration landed in the directory its
+  call site binds in, in two cases. The first is a NULL with no `scope`
+  (a Python or TS/JS name; grounder v1 sets `scope` for Go only). The
+  second is an answer placed by `after_symbol`. The validator checks
+  for a file in the binding directory only for a Go name placed by file
+  or region.
+- **Because:** `scope` is Go's package directory, plus the type for a
+  typed receiver, read by rule 1's resolution; Python and TS/JS have no
+  such reading in grounder v1. An `after_symbol` placement is
+  positioned by the symbol, and the validator does not derive that
+  symbol's file (`holes.py`'s declaration check).
+- **Bites at:** a declaration in a directory the call does not reach.
+  For a Go name the re-grounding still decides whether the call binds;
+  what is skipped is the check that would have asked again before
+  placing. None of WP-7a's replayed sites took either path.
+- **You find out:** *partial* — the pieces are on rows but no row says
+  the check was skipped: each site in `loop.sites[]` records the placed
+  `file`, the declaration hole records `constraints.declares.dir` (null
+  for a non-Go name), and each grounding edit carries its `placement`.
+- **Source:** Calvin M0-Go WP-7a, 2026-09-11 (the report's third
+  constraint draft).
+
+### C-114 — A declaration's body NULLs get one repair — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: a placed declaration's body NULLs
+got one repair exchange. Superseded by: the keyed rounds closed
+(ADR-107); the repair (`adapter.declaration_repair`) runs only in arm T.
+Would return if: arm T runs again.)*
+
+- **Cannot tell you:** that a placed declaration's body grounds clean
+  after the loop. Under protocol v0.5, a NULL inside a placed
+  declaration's body goes back once as a repair of the same declaration
+  hole: one exchange, and no validation repair after it. An answer that
+  fails validation, or still NULLs, keeps its body NULLs, and there is
+  no second round.
+- **Because:** the loop is bounded so arm T's cost stays predictable
+  (one more exchange per record at most). An unbounded loop would trade
+  a known ceiling for closures the replay has not shown are there.
+- **Bites at:** the declaration route's closure rate. WP-8's 9 placed
+  declarations each raised at least one body NULL, and the repair was
+  asked 9 times at 1 exchange each. How many would close is the
+  re-test's to measure.
+- **You find out:** **surfaced** — each site in `loop.sites[]` carries
+  `body_nulls` and `repaired`, and `loop.declaration_repair` records
+  the holes asked, the exchanges, and the body NULLs before and after.
+- **Source:** Calvin M0-Go WP-9, 2026-09-11 (`adapter.declaration_repair`).
+- **Amended (protocol v0.6, Calvin M0-Go round 2 WP-14, 2026-09-11):**
+  under `--verify-build`, the same one repair also carries the build
+  row's compile error for the declaration's file (`go build`, `go vet`,
+  generation; trimmed to the lines naming that file), beside the body
+  NULLs. It is still one exchange, and the budget (C-116) covers it: a
+  key at its budget gets no repair. A declaration that still fails to
+  build after it keeps the error; the verifier's `build-fail` reads it.
+
+### C-116 — An arm at its budget stops, and its row is scored as it stands — *superseded 2026-09-13*
+*(Superseded 2026-09-13 (Max). Was: each keyed arm stopped at a shared
+call budget and was scored as it stood. Superseded by: the keyed rounds
+closed (ADR-107); the budget (`Adapter.budget`, `calvin_probe.py
+t-units | o-units --budget`) was the rounds' alone, and a dispatch runs
+under its turn cap and is reviewed, not scored. Would return if: the arms
+run again under `--budget`.)*
+
+- **Cannot tell you:** what an arm would have done with more calls.
+  Under protocol v0.6 each key has one budget, N model calls
+  (`--budget`), shared by both arms. In T it counts confirmations,
+  fills and repairs. An ask made after the budget is spent is answered
+  empty, with no call: its hole grounds unfilled, which renders as
+  unchanged. In O the budget replaces the 30-turn cap, and the diff
+  harvested when the turns run out is the one verified. A row cut this
+  way can read `fail`, `vacuous` or unchanged for the budget's reason,
+  not the arm's.
+- **Because:** round 2 compares the arms on equal footing (§2.4 of
+  `docs/calvin/calvin-m0-go-r2.md`), and a cost ceiling per key is what
+  keeps a run's spend predictable. N counts calls, not tokens: a T
+  exchange carries a template, an O turn one tool call, so equal N is
+  equal calls, not equal work.
+- **Bites at:** round 2's WP-16 at N = 7, which is the maximum T used
+  per key in round 1. O used 19–30 turns there, so O is cut harder than
+  T.
+- **You find out:** **surfaced** — a T row carries `budget` and
+  `budget_cuts` (the asks answered empty); an O row carries `budget`
+  and the `max_turns` it ran under beside the turns it took.
+- **Source:** Calvin M0-Go round 2 WP-14, 2026-09-11 (`Adapter.budget`,
+  `calvin_probe.py t-units | o-units --budget`).
+
+## Folded entries in this segment
+
+An entry that concedes the same information as another, folded into it
+(`README.md`, "How the register is organised"). It keeps its number and
+its full text, so every pointer to it still resolves; its italic line
+names the parent and what it adds, and the debt summary counts the
+concession once, under the parent.
+
+### C-119 — A callee's own file being edited by the same diff turns off its arity check — *folded into C-118 (2026-09-13)*
+*(Folded 2026-09-13 into C-118 (ADR-043 amended): C-118 lists this
+abstention among its own. This entry adds why it exists — the two false
+`arity` NULLs on gold that found it.)*
+
+- **Cannot tell you:** whether a call into a function or method whose
+  own declaration this diff *also* edits states the right arity against
+  the version that will actually exist. `go_arity` reads only the
+  parent's (pre-diff) declaration of an in-graph symbol; when that
+  symbol's file is among the diff's own edited files (`post_text`), the
+  parent's arity may no longer be the arity the diff is converging on
+  — gold's own `DirectoryTargets` and `detectRule` commits change a
+  function's parameter count and every call site together, and reading
+  the parent's arity against the post-image's calls produced two false
+  `arity` NULLs on clean gold diffs before this abstention was added
+  (found by the gold re-ground, WP-14b's own exit check). The grounder
+  now abstains outright rather than read the post-image's own
+  (possibly still-changing, possibly multiply-edited) declaration.
+- **Because:** locating and re-parsing the post-image's own version of
+  a declaration that may have moved lines, or that this diff itself
+  supersedes with a SIGNATURE fill, is exactly the "declared in the
+  wrong world, mid-edit" case §2.5 is not scoped to read; abstaining is
+  the doubt this grounder can state exactly, and a caller-update or
+  signature hole already exists for tracking the callee's own change.
+- **Bites at:** a diff that changes both a function's signature and one
+  of its call sites incorrectly (e.g. the right new arity at one site,
+  the old one at another) — arity is silent there, same as before
+  WP-14b, until the build catches it.
+- **You find out:** **surfaced** — `go_arity`'s doc names the
+  abstention, and `SIGNATURE_RULE` states it in the record.
+- **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11 (found on gold's
+  `ed205a5f63e3` and `2278a2a97e42`).

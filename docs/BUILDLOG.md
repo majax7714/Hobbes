@@ -9856,3 +9856,32 @@ with the mechanical fixes and leave the decisions for after".
   - a "folded into C-n" rule for five duplicate pairs;
   - a segment for the dispatch harness's entries;
   - whether the harness re-evaluation item is obsolete.
+
+**Then (Max):** "superseed the nine make the residual change and add
+the duplicate pairs rule. leave the other two for now".
+- **Eight superseded, not nine.** C-104–C-108 and C-114–C-116 are
+  reached only through `calvin_probe.py`, checked by the graph and by
+  their callers:
+  - `read_patterns` and `validate_fills` are the adapter's;
+  - declaration holes are built only by its NULL round-trip;
+  - `gold_tests_verdict` is called only by the probe;
+  - `hobbes template` has no v2 switch.
+
+  **C-120 stays active.** `gate.py:552` runs `ground()`, so its
+  unsurfaced half (a post-image malformed some other way) is live in
+  every gate. Its Bites at now says so; a fold into C-112 is left open.
+- **C-141** registered from C-139's residual (*partial*); C-139's entry
+  points at it.
+- **The folding rule** (ADR-043 amended; the register README), applied
+  to the five pairs: C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 →
+  C-135, C-137 → C-28.
+  - C-130 folds into C-135, not the reverse, because the parent carries
+    the weaker surfacing status and C-135 is the *partial* one.
+  - A folded entry keeps its number and text, so the code's pointers
+    still resolve: C-34, C-97 and C-130 appear in degradation records
+    and glosses.
+- Superseded headings are marked like lifted ones now, C-55, C-56 and
+  C-124 included.
+- **The register reads 141 entries: 100 active, 25 lifted, 11
+  superseded, 5 folded.** The README, CLAUDE.md and the handoff carry
+  it.
