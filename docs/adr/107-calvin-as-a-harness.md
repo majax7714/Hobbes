@@ -256,3 +256,72 @@ dispatches can be watched.
   session's Go build cache, where compiled test packages carry the
   retention tests' own marker. It now skips `go-build` (`SCAN_SKIP`).
 
+## Amendment — 2026-09-13: a session mounts only its own dir; `find`'s executing forms and `xargs` are questions
+
+**Max** (reviewing the top-level docs): "the recursive delete seems
+like an error more than a flag. either look to contain or prevent."
+
+- **Found first.**
+  - The box allows `find*` and `xargs*`. So `find . -delete`,
+    `find . -exec rm -rf {} +` and `… | xargs rm -rf` delete
+    recursively with no question, where `rm -r` escalates (0.2.7-beta).
+    `-exec`, `-execdir`, `-ok` and `xargs` also run a command the
+    policy never sees, because a segment is matched by its first word.
+  - Tracing where a deletion can reach found a larger gap.
+    `hobbes-session` mounts the whole host sessions root,
+    `~/.hobbes/sessions`, read-write at `/sessions`. Every session's
+    clone (`<id>/worktree`), flight log, egress log, escalation queue,
+    gate and verify records and brief sit under it. So one session's
+    allowed command could reach every other session's records and live
+    clone: a plain `rm`, `python3 -c`, or `find /sessions -delete`. The
+    box header's "only the worktree is writable" was not true.
+  - The glob cannot close this. `python3 *`, `make*`, `go generate*`
+    and `awk *` are allowed, and each can delete. The header already
+    says an escalation is a question, not a boundary.
+- **Decision.**
+  1. **Contain: the boundary.** The session container mounts only its
+     own session dir: host `<sessions>/<id>` at `/sessions/<id>`,
+     read-write. Every in-container path stays the same: `HOME`,
+     `mcp.json`, `claude-settings.json`, the flight log, the escalation
+     queue, the proxy's `--log-dir /sessions`. Nothing of another
+     session is mounted, so no command reaches it, however it is spelled.
+     The plan is shared, so this holds for every role and for the
+     benchmark's sessions. The exit check (`sandbox/exitcheck.py`) drops
+     its scripted driver into the session's own dir, not the root.
+  2. **Prevent: the common spellings become questions.** Both boxes
+     change (`calvin.box.policy`, `bench.box.policy`):
+     - `find` keeps its read-only allow. Its deleting and executing
+       forms escalate: `-delete`, `-exec`, `-execdir`, `-ok` and
+       `-okdir`. Escalate beats allow within a scope (ADR-002).
+     - `xargs` is no longer allowed. It runs a command the policy does
+       not see, so it takes the box's default, escalate.
+     - The cost is small. Across the 21 sessions on record, doers ran
+       `find` or `xargs` once. A dispatch's escalations expire to deny in
+       5 s, so a doer reads them as refusals.
+  3. **The header says what is left.** An escalation is still a
+     question, and `python3 *` can still delete. What bounds a deletion
+     is the mounts:
+     - the session's clone, which the gate reads against the partition;
+     - the session's own dir.
+- **Not changed; registered as C-140.** The session's own dir stays
+  writable by its doer:
+  - The proxy that writes the flight log and the escalation queue runs
+    in the doer's container, as the doer's user.
+  - Claude Code's own Write tool reaches the dir too.
+
+  So a doer can alter or delete its own flight log, its egress log and
+  its escalation records. C-140 is surfaced in the box header and the
+  harness doc. The structural fix is to give the proxy and the logs a
+  container of their own, as the egress proxy has. It is named for Max,
+  because a structural change is his call.
+- **Tests.**
+  - `internal/sandbox`: the mounts name the session's own dir at
+    `/sessions/<id>` and never the root.
+  - **The guarantee where a user meets it (P10):** a real session lists
+    `/sessions` and sees only its own dir. The test skips without
+    podman or the image, like the live egress test.
+  - `hobbes-policy`: against each real box, every deleting or executing
+    `find` form and `xargs` escalate. That holds alone, after a `cd`,
+    and as a pipe segment. `find . -name '*.go'` still runs.
+- **Version:** 0.2.11-beta.
+
