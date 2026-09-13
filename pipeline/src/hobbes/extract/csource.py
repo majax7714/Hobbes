@@ -90,10 +90,28 @@ id, and never a fallback target naming a definition the layer already
 dropped (the rank-1 tie above abstains on exactly this case, so no
 fallback ever points at it in the first place).
 
-**Tests.** A test is a function named ``test_*``, defined in a file
-under a directory named ``test``/``tests``, or in a file named
-``test_*.c``/``*_test.c``. The framework string is ``"c-convention"``;
-reach is the closure over ``calls`` edges, as for every language.
+**Tests.** A registration comes first: a call to one of Unity's
+(``RUN_TEST``), CMocka's (``cmocka_unit_test`` and its ``_setup``/
+``_teardown``/``_prestate*`` forms) or Check's (``tcase_add_test`` and
+its ``_raise_signal``/``_exit_test``/``_loop_*`` forms) registration
+macros, naming a bare identifier, registers the function it names —
+resolved like a call, by the same-file function first, then the unique
+non-``static`` function repo-wide (ranks 1 and 3 of the fallback); a tie
+at either rank abstains, and a registration that resolves to nothing
+makes no test. A file that defines any registered function, registered
+from any file, contributes exactly its registered functions; the naming
+convention (a function named ``test_*``, in a file under a ``test``/
+``tests`` directory or named ``test_*.c``/``*_test.c``, framework
+``"c-convention"``) holds only in a file that registers none. A
+function both registered and convention-named is one test, with the
+registration's framework. Two degradation records (``"stage":
+"c-tests"``) name what this misses: a ``.c`` file under a ``test``/
+``tests`` directory that defines ``main`` and neither defines nor
+registers a test, and — per directory — the count of criterion's
+``Test(suite, name)``/the Unity fixture's ``TEST(group, name)`` bodies
+and ``RUN_TEST_CASE`` calls, forms lane A recognizes but cannot read
+(C-134). Reach is the closure over ``calls`` edges, as for every
+language.
 """
 
 from __future__ import annotations
@@ -142,6 +160,23 @@ class CFile:
     #: kept symbol is the first in file order; the fallback's rank 1
     #: (decision 6) abstains on any of these rather than picking it.
     duplicate_names: set[str] = field(default_factory=set)
+    #: Registration calls found anywhere in this file (the amendment's
+    #: decision 1) — each a ``{"function", "framework", "line"}`` naming
+    #: the identifier a ``RUN_TEST``/``cmocka_unit_test*``/
+    #: ``tcase_add_test*`` call registers. Resolved repo-wide by
+    #: :func:`_resolve_registrations`, not here.
+    registrations: list[dict] = field(default_factory=list)
+    #: Whether this file defines ``main`` — the file degradation record's
+    #: (decision 5) other half.
+    defines_main: bool = False
+    #: Count of criterion's ``Test(suite, name) { … }``/the Unity
+    #: fixture's ``TEST(group, name) { … }`` bodies this file has — a
+    #: form the amendment's decision 4 puts out of scope, tallied for the
+    #: directory degradation record.
+    unread_test_bodies: int = 0
+    #: Count of ``RUN_TEST_CASE`` calls this file has — the amendment's
+    #: other unread form, tallied the same way.
+    unread_run_test_case: int = 0
 
 
 def has_c_files(repo_root: Path) -> bool:
@@ -228,6 +263,8 @@ def extract_c(repo_root: Path) -> dict | None:
             )
     if not files:
         return None
+    _resolve_registrations(files)
+    errors.extend(_test_degradations(files))
     bundle = _join(files)
     bundle["errors"] = errors
     return bundle
@@ -247,17 +284,11 @@ def _parse_file(rel: str, source: bytes) -> tuple[CFile, bool, list[str]]:
     _walk_top_level(root, parsed)
     duplicated = _dedupe_symbols(parsed)
 
-    for symbol in parsed.symbols:
-        if symbol["kind"] == "function" and symbol["name"].startswith("test_") and _is_test_file(rel):
-            parsed.tests.append(
-                {
-                    "id": f"{rel}::{symbol['name']}",
-                    "name": symbol["name"],
-                    "file": rel,
-                    "line": symbol["line"],
-                    "framework": "c-convention",
-                }
-            )
+    parsed.registrations, parsed.unread_run_test_case = _scan_call_registrations(root)
+    parsed.unread_test_bodies = _count_unread_test_bodies(root)
+    # `parsed.tests` is filled in later, by `_resolve_registrations` over
+    # the whole repo (the amendment's decision 3 needs every file's
+    # registrations resolved before any one file's tests are decided).
 
     parsed.calls = _calls(root, parsed.symbols)
     return parsed, root.has_error, duplicated
@@ -291,13 +322,38 @@ def _dedupe_symbols(parsed: CFile) -> list[str]:
 
 
 def _is_test_file(path: str) -> bool:
-    """Rule 7: a directory named ``test``/``tests``, or a ``test_*.c``/
-    ``*_test.c`` file name."""
+    """The naming convention's own rule: a directory named ``test``/
+    ``tests``, or a ``test_*.c``/``*_test.c`` file name. Applied only to
+    a file that registers no function (the amendment's decision 3) —
+    :func:`_resolve_registrations` decides that first."""
     pure = PurePosixPath(path)
     if any(part in ("test", "tests") for part in pure.parent.parts):
         return True
     name = pure.name
     return name.endswith(".c") and (name.startswith("test_") or name.endswith("_test.c"))
+
+
+def _flatten_top_level(node: Node) -> list[Node]:
+    """The declarations :func:`_walk_top_level` recurses through, as a
+    flat sequence in file order — transparent through header guards and
+    ``extern "C"`` exactly as that recursion is, so adjacent top-level
+    siblings (the amendment's unread ``Test``/``TEST`` bodies) can be
+    inspected without re-deriving the recursion."""
+    out: list[Node] = []
+    for child in node.children:
+        if child.type in _PREPROC_CONTAINERS:
+            out.extend(_flatten_top_level(child))
+        elif child.type == "linkage_specification":
+            body = child.child_by_field_name("body")
+            if body is None:
+                continue
+            if body.type == "declaration_list":
+                out.extend(_flatten_top_level(body))
+            else:
+                out.append(body)  # a brace-less `extern "C" decl;`
+        else:
+            out.append(child)
+    return out
 
 
 def _walk_top_level(node: Node, parsed: CFile) -> None:
@@ -308,19 +364,8 @@ def _walk_top_level(node: Node, parsed: CFile) -> None:
     of declarations one level deeper still, in that node's
     ``declaration_list`` body, and would otherwise hide all of it from a
     walk that only looked at ``translation_unit``'s direct children."""
-    for child in node.children:
-        if child.type in _PREPROC_CONTAINERS:
-            _walk_top_level(child, parsed)
-        elif child.type == "linkage_specification":
-            body = child.child_by_field_name("body")
-            if body is None:
-                continue
-            if body.type == "declaration_list":
-                _walk_top_level(body, parsed)
-            else:
-                _top_level(body, parsed)  # a brace-less `extern "C" decl;`
-        else:
-            _top_level(child, parsed)
+    for child in _flatten_top_level(node):
+        _top_level(child, parsed)
 
 
 def _top_level(node: Node, parsed: CFile) -> None:
@@ -338,10 +383,13 @@ def _top_level(node: Node, parsed: CFile) -> None:
         ident = _declarator_identifier(declarator)
         if body is None or ident is None:
             return
+        name = _text(ident)
+        if name == "main":
+            parsed.defines_main = True
         is_static = any(
             c.type == "storage_class_specifier" and _text(c) == "static" for c in node.children
         )
-        parsed.symbols.append(_symbol(_text(ident), "function", ident, node) | {"static": is_static})
+        parsed.symbols.append(_symbol(name, "function", ident, node) | {"static": is_static})
         _collect_bindings(node, declarator, parsed)
     elif node.type == "type_definition":
         declarator = node.child_by_field_name("declarator")
@@ -545,6 +593,95 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
             }
         )
     return found
+
+
+def _registration_form(name: str) -> tuple[str, int] | None:
+    """``(framework, argument index)`` for a recognized registration call
+    *name* (the amendment's decision 1), else ``None``. The test's
+    identifier is always a fixed argument position: Unity's and CMocka's
+    forms take it first, Check's forms take it second (the case handle
+    comes first there)."""
+    if name == "RUN_TEST":
+        return "unity", 0
+    if name.startswith("cmocka_unit_test"):
+        return "cmocka", 0
+    if (
+        name.startswith("tcase_add_test")
+        or name.startswith("tcase_add_exit_test")
+        or name.startswith("tcase_add_loop_")
+    ):
+        return "check", 1
+    return None
+
+
+def _call_arguments(call: Node) -> list[Node]:
+    """A ``call_expression``'s named arguments, in order."""
+    arguments = call.child_by_field_name("arguments")
+    return [c for c in arguments.children if c.is_named] if arguments is not None else []
+
+
+def _scan_call_registrations(root: Node) -> tuple[list[dict], int]:
+    """One walk over every ``call_expression`` for the amendment's two
+    call-shaped forms: a registration (decision 1), and ``RUN_TEST_CASE``
+    (decision 4's other unread form, also a call). A registration counts
+    only when its test argument is a bare identifier; a bound function
+    pointer or an expression is never a test name."""
+    registrations: list[dict] = []
+    run_test_case = 0
+    for node in _walk(root):
+        if node.type != "call_expression":
+            continue
+        function = node.child_by_field_name("function")
+        if function is None or function.type != "identifier":
+            continue
+        name = _text(function)
+        if name == "RUN_TEST_CASE":
+            run_test_case += 1
+            continue
+        form = _registration_form(name)
+        if form is None:
+            continue
+        framework, arg_index = form
+        args = _call_arguments(node)
+        if arg_index >= len(args) or args[arg_index].type != "identifier":
+            continue
+        registrations.append(
+            {
+                "function": _text(args[arg_index]),
+                "framework": framework,
+                "line": node.start_point.row + 1,
+            }
+        )
+    return registrations, run_test_case
+
+
+def _count_unread_test_bodies(root: Node) -> int:
+    """Decision 4's other out-of-scope form: criterion's ``Test(suite,
+    name) { … }`` and the Unity fixture's ``TEST(group, name) { … }`` —
+    a call to a bare two-identifier-argument ``Test``/``TEST``,
+    immediately followed by the ``compound_statement`` it defines, with
+    no symbol lane A can name for it."""
+    flat = _flatten_top_level(root)
+    count = 0
+    i = 0
+    while i < len(flat) - 1:
+        node, following = flat[i], flat[i + 1]
+        if node.type == "expression_statement" and following.type == "compound_statement":
+            call = _sole_named_child(node)
+            if (
+                call is not None
+                and call.type == "call_expression"
+                and (function := call.child_by_field_name("function")) is not None
+                and function.type == "identifier"
+                and _text(function) in ("Test", "TEST")
+            ):
+                args = _call_arguments(call)
+                if len(args) == 2 and all(a.type == "identifier" for a in args):
+                    count += 1
+                    i += 2
+                    continue
+        i += 1
+    return count
 
 
 # ---------------------------------------------------------------- joining
@@ -755,6 +892,166 @@ def _call_fallback(
                 continue
             fallback[(parsed.path, call["line"], name)] = target
     return fallback
+
+
+def _build_function_tables(
+    files: list[CFile],
+) -> tuple[dict[tuple[str, str], tuple[str, int]], set[tuple[str, str]], dict[str, list[tuple[str, int]]]]:
+    """Same-file and repo-wide function lookups for resolving a
+    registration (the amendment's decision 2) — functions only, since a
+    registration never names a macro, unlike the call fallback's rank 1.
+    Built fresh here rather than shared with :func:`_call_fallback`,
+    whose own same-file table also holds macros."""
+    local_functions: dict[tuple[str, str], tuple[str, int]] = {}
+    ambiguous_functions: set[tuple[str, str]] = set()
+    globals_by_name: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    for parsed in files:
+        for symbol in parsed.symbols:
+            if symbol["kind"] != "function":
+                continue
+            key = (parsed.path, symbol["name"])
+            if symbol["name"] in parsed.duplicate_names:
+                ambiguous_functions.add(key)
+            else:
+                local_functions[key] = (parsed.path, symbol["line"])
+            if not symbol.get("static", False):
+                globals_by_name[symbol["name"]].append((parsed.path, symbol["line"]))
+    return local_functions, ambiguous_functions, globals_by_name
+
+
+def _resolve_registration_target(
+    path: str,
+    name: str,
+    local_functions: dict[tuple[str, str], tuple[str, int]],
+    ambiguous_functions: set[tuple[str, str]],
+    globals_by_name: dict[str, list[tuple[str, int]]],
+) -> tuple[str, int] | None:
+    """Ranks 1 and 3 of the call fallback, for a registration's named
+    function (the amendment's decision 2) — no rank 2, a registration
+    never names a header macro. A tie at either rank abstains, and does
+    not fall through."""
+    key = (path, name)
+    if key in ambiguous_functions:
+        return None
+    same_file = local_functions.get(key)
+    if same_file is not None:
+        return same_file
+    candidates = globals_by_name.get(name, [])
+    return candidates[0] if len(candidates) == 1 else None
+
+
+def _convention_tests(parsed: CFile) -> list[dict]:
+    """The naming convention (module docstring, rule 7), applied only to
+    a file that registers no function of its own — the amendment's
+    decision 3, where a registration always yields to it first."""
+    if not _is_test_file(parsed.path):
+        return []
+    return [
+        {
+            "id": f"{parsed.path}::{symbol['name']}",
+            "name": symbol["name"],
+            "file": parsed.path,
+            "line": symbol["line"],
+            "framework": "c-convention",
+        }
+        for symbol in parsed.symbols
+        if symbol["kind"] == "function" and symbol["name"].startswith("test_")
+    ]
+
+
+def _resolve_registrations(files: list[CFile]) -> None:
+    """The amendment's decisions 2 and 3, run once the whole repo is
+    parsed: every registration resolves like a call, is grouped by the
+    function it lands on (one test per function, decision 3's third
+    bullet, with the framework of its first registration in path order),
+    and each file's ``tests`` becomes exactly its registered functions
+    when it defines any, or its naming-convention tests otherwise.
+    Mutates every file's ``tests`` in place."""
+    local_functions, ambiguous_functions, globals_by_name = _build_function_tables(files)
+
+    resolved_targets: dict[tuple[str, int], list[dict]] = defaultdict(list)
+    for parsed in files:
+        for registration in parsed.registrations:
+            target = _resolve_registration_target(
+                parsed.path, registration["function"], local_functions, ambiguous_functions, globals_by_name
+            )
+            if target is None:
+                continue
+            resolved_targets[target].append({"path": parsed.path, **registration})
+
+    tests_by_file: dict[str, list[dict]] = defaultdict(list)
+    for (defining_path, defining_line), registrations in resolved_targets.items():
+        first = min(registrations, key=lambda r: (r["path"], r["line"]))
+        name = first["function"]
+        tests_by_file[defining_path].append(
+            {
+                "id": f"{defining_path}::{name}",
+                "name": name,
+                "file": defining_path,
+                "line": defining_line,
+                "framework": first["framework"],
+            }
+        )
+
+    for parsed in files:
+        parsed.tests = tests_by_file.get(parsed.path) or _convention_tests(parsed)
+
+
+def _under_test_dir(path: str) -> bool:
+    """The file degradation record's directory half (decision 5) — the
+    directory rule of :func:`_is_test_file`, without its filename half: a
+    plainly-named test program still counts."""
+    return any(part in ("test", "tests") for part in PurePosixPath(path).parent.parts)
+
+
+def _test_degradations(files: list[CFile]) -> list[dict]:
+    """The amendment's decision 5: a ``"c-tests"`` record for a test
+    program with no nameable test, and one per directory for the forms
+    lane A recognizes but does not read. Run after
+    :func:`_resolve_registrations`, since the first record depends on a
+    file's final ``tests``."""
+    records: list[dict] = []
+    dir_counts: dict[str, dict[str, int]] = defaultdict(lambda: {"bodies": 0, "run_test_case": 0})
+    for parsed in files:
+        if (
+            _under_test_dir(parsed.path)
+            and parsed.defines_main
+            and not parsed.tests
+            and not parsed.registrations
+        ):
+            records.append(
+                {
+                    "path": parsed.path,
+                    "stage": "c-tests",
+                    "message": (
+                        "a test program with no test Hobbes can name; it "
+                        "registers its tests in a form Hobbes does not read "
+                        "(C-134)"
+                    ),
+                }
+            )
+        if parsed.unread_test_bodies or parsed.unread_run_test_case:
+            directory = str(PurePosixPath(parsed.path).parent)
+            dir_counts[directory]["bodies"] += parsed.unread_test_bodies
+            dir_counts[directory]["run_test_case"] += parsed.unread_run_test_case
+
+    for directory in sorted(dir_counts):
+        counts = dir_counts[directory]
+        parts = []
+        if counts["bodies"]:
+            noun = "body" if counts["bodies"] == 1 else "bodies"
+            parts.append(f"{counts['bodies']} `Test(suite, name)`/`TEST(group, name)` {noun}")
+        if counts["run_test_case"]:
+            noun = "call" if counts["run_test_case"] == 1 else "calls"
+            parts.append(f"{counts['run_test_case']} `RUN_TEST_CASE` {noun}")
+        records.append(
+            {
+                "path": directory,
+                "stage": "c-tests",
+                "message": " and ".join(parts) + " in a form Hobbes does not read (C-134)",
+            }
+        )
+    return records
 
 
 def collect_c_tests(files: list[CFile], symbol_edges: list[dict]) -> list[dict]:
