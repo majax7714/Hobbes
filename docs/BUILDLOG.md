@@ -9918,3 +9918,33 @@ current standing", then "yes proceed with those".
   the harness if its weight stays this high" (2026-08-21) is about the
   benchmark's per-unit fan-out, not the Calvin harness. On that reading
   it is parked with the benchmark, not obsolete.
+
+**Then (Max):** "yep dispatch d-r and draft the ammendment".
+- **D-r's cause, reproduced before the dispatch.** Inside the image, a
+  `--shared` clone's worktree fails every `git` (`unable to normalize
+  alternate object path`, then `fatal: bad object HEAD`). A plain local
+  clone reads.
+- **Dispatched** as `S-20260913T200618Z-9cad`: gate clear, verify pass;
+  15 of 80 turns, 60 s, and the envelope reports $0.29 on the
+  subscription. Merged as `0e9f5b3`, not squashed.
+- **The after-check.** The session's own verify ran the parent's code,
+  so it was run on the host: in the image, `efc8`'s F2F test passes
+  through the merged `checkout()` and fails through a `--shared` clone.
+  Host pytest 1,482.
+- **0.2.12-beta:**
+  - the version in every copy;
+  - the CHANGELOG, README, CLAUDE.md, architecture §8 and the handoff;
+  - the binaries and the image rebuilt;
+  - the ingest re-run at the release commit.
+- **ADR-108's C-134 amendment drafted, not committed**
+  (`~/.hobbes/bench/c134/adr108-amendment-draft.md`):
+  - a test is a function a Unity, CMocka or Check registration names;
+  - a file that registers drops the naming convention;
+  - a test program with `main` and no nameable test draws a `c-tests`
+    record.
+  - On cJSON today there are 39 tests: 37 in the vendored Unity tree and
+    2 helpers. None of its 162 `RUN_TEST` registrations count.
+  - Tree-sitter-c reads Check's `START_TEST(name)` as a function
+    `name`. criterion's `Test()` gives no symbol, which is why it is
+    deferred.
+  - Three calls wait on Max.

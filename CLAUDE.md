@@ -209,8 +209,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-13, 0.2.11-beta; the last three
-carried from 0.2.8-beta): 1,480 pytest (5 of them
+Suite sizes at the last check (2026-09-13, 0.2.12-beta; the Go count
+from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,482 pytest (5 of them
 `lane_b`) / 354 Go (subtests counted: 353 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
 87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
 unittest + 7 node) / 52 vitest / 36 tsextract + 43
@@ -286,7 +286,7 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-13) — Hobbes 0.2.11-beta
+## Status (2026-09-13) — Hobbes 0.2.12-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -328,12 +328,13 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-13) were C-139's lift (`a323`, merged as
-    `a5d1e14`, 0.2.10-beta) and the session's containment (`2aa9`,
-    merged as `5fb34f7`, 0.2.11-beta, ADR-107 amended). A session now
-    mounts only its own dir, and `find`'s executing forms and `xargs`
-    escalate. C-140 is the residual. Both gates were right-clear. There
-    are thirteen session logs, and the harness counts as validated after
+  - **The latest** (2026-09-13) were the session's containment (`2aa9`,
+    merged as `5fb34f7`, 0.2.11-beta, ADR-107 amended) and D-r's fix
+    (`9cad`, merged as `0e9f5b3`, 0.2.12-beta). A session now mounts
+    only its own dir, and `find`'s executing forms and `xargs` escalate;
+    C-140 is the residual. Verify's worktrees are self-contained, so
+    `git` works in its container. Both gates were right-clear. There
+    are fourteen session logs, and the harness counts as validated after
     40 (Max, 2026-09-13).
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
@@ -342,6 +343,8 @@ inside a dispatch they skip, so their first run is the developer's.
   The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
   approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
+  - ADR-108's C-134 amendment (C tests by their registrations; drafted,
+    three calls);
   - the proxy and its logs in a container of their own (C-140's fix,
     a structural change);
   - whether ADR-106 stays held;

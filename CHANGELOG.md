@@ -14,6 +14,36 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.9-beta untagged; 0.2.10-beta is tagged
 `v0.2.10-beta`, on Max's word at the close of 2026-09-13).
 
+## 0.2.12-beta — 2026-09-13 (verify's worktrees are self-contained: `git` works in its container; D-r)
+
+**Patch: what the layer says.** `hobbes verify` reported tests failing
+that pass on the host.
+
+- **The defect (D-r).** `checkout()` cloned each verify worktree with
+  `git clone --shared`.
+  - A shared clone borrows the source repo's objects through
+    `.git/objects/info/alternates`, which names the host repo's path.
+  - The container that runs the tests mounts the worktree alone, so any
+    `git` a test ran there failed (`fatal: bad object HEAD`).
+  - It read as a failure on both trees: the `F2F` for
+    `test_cli.py::TestIngest::test_the_artifact_says_which_hobbes_built_it`
+    in session `efc8`, and three `test_ttt_units.py` failures the doer saw
+    in `a323`. Each was ruled out by hand on the host.
+- **The fix.** A plain clone of the local path. It hardlinks the objects
+  on one filesystem, copies them across two, and writes no alternates
+  file. Its callers (`verify`, `build_row`) are unchanged.
+- **The guarantee's own tests (P10):**
+  - `test_checkout_writes_no_alternates_and_survives_the_source_moving`
+    moves the source away, then reads `git` in the worktree;
+  - `test_checkout_replaces_an_existing_dest`.
+- **Checked where a user meets it:** on the host, in the image, the test
+  `efc8`'s verify failed passes through the new `checkout()`, and fails
+  through a `--shared` clone of the same commit.
+- **Built through the harness:** `S-20260913T200618Z-9cad` (15 of 80
+  turns, 60 s; the envelope reports $0.29 on the subscription). Gate
+  clear and verify pass (88 tests, 0 regressions); host pytest 1,482.
+  Merged without squashing.
+
 ## 0.2.11-beta — 2026-09-13 (a session mounts only its own dir; `find`'s executing forms and `xargs` are questions; ADR-107 amended)
 
 **Patch: what the layer refuses.** Max: "the recursive delete seems like
