@@ -313,7 +313,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.8-beta** (2026-09-12). The Hobbes layer is versioned from here
+**Hobbes 0.2.9-beta** (2026-09-13). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -386,8 +386,8 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and nine session logs stand through
-0.2.8-beta. The work built through it includes C's lane A, C's oracle,
+dispatched on 2026-09-12, and eleven session logs stand through
+0.2.9-beta. The work built through it includes C's lane A, C's oracle,
 the progress hook (0.2.6-beta) and the external veto (0.2.8-beta).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)

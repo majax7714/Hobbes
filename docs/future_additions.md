@@ -365,12 +365,14 @@ surfaced per file rather than silent.)*
   stronger (explicit unit graph, exact moniker equality), and that
   argument needs its own review before any code.
 
-- **The directory rollup in `list_blind_spots`** (from ADR-048). The
+- ~~**The directory rollup in `list_blind_spots`** (from ADR-048). The
   proxy's blind-spots tool serves worst *files*; the ingest summary now
   rolls the same rows up per directory, which is the altitude an agent
   scoping a task actually works at. The Go side reads the same
   `resolution_coverage` rows — a port of `rollup_directories`, not a
-  second computation.
+  second computation.~~ **Built 2026-09-13 (0.2.9-beta)** through the
+  harness (`S-20260913T132457Z-3c45`): the tool prints the ingest
+  summary's directory rows over the scope's rows.
 
 - **Sweep `~/.hobbes/cache/npm`** (from ADR-050). Provisioned dependency
   trees are keyed by lockfile hash and live forever; a repo that churns

@@ -11,8 +11,37 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.8-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.9-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.9-beta — 2026-09-13 (the directory rollup in `list_blind_spots`)
+
+**Patch: what the layer says.** `list_blind_spots` now carries the
+per-directory capture view that the ingest summary prints, read from the
+same `resolution_coverage` rows. It ports `rollup_directories` and the
+ingest's directory view, parked since ADR-048, and is not a second
+computation.
+
+- **The section**, placed before the worst files, is headed
+  `by directory (depth 2, worst N of M with unresolvable sites; K
+  without)`.
+  - It has one line per (directory, language), ranked worst first by
+    the count it cannot resolve. Each line gives the capture share, the
+    site count, the by-design count and the unresolvable classes.
+  - It shows ten rows at most, and a remainder line says what it holds
+    back.
+  - A directory whose unresolved sites are all by design is counted, not
+    listed. A scope where every directory is like that prints no
+    section.
+- **It is scoped like the rest of the answer.** A scoped question rolls
+  up only the rows under the scope, which is the altitude an agent
+  scoping a task works at.
+- **The two views read the same.** The rows' text is the ingest
+  summary's, and the Go function names the Python one it ports and says
+  the two stay in step.
+- **Built through the harness:** `S-20260913T132457Z-3c45` (25 of 150
+  turns, 270 s). Gate clear and verify pass (64 tests, 0 regressions);
+  merged without squashing.
 
 ## 0.2.8-beta — 2026-09-12 (the external veto: lane A's guess is dropped where lane B resolved the site outside the repo; ADR-111)
 

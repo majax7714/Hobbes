@@ -47,7 +47,9 @@
   ADR-047 the same decomposition reaches **agents** where they work:
   `list_blind_spots` on the session proxy serves the scoped rollup with
   each class naming its register entry, so an in-sandbox agent can
-  point at the verification work that is its own.
+  point at the verification work that is its own. Since 0.2.9-beta it
+  also serves the ingest summary's per-directory rows, so a miss has a
+  directory as well as a file.
 - **Note:** deliberately counts, never a confidence score. An edge with no
   named target cannot be drawn, checked, or cited — it is C-1's false edge
   wearing a probability. The tail classes keep that rule: each is an

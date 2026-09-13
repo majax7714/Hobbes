@@ -245,8 +245,10 @@ the best on-ramp for a new contributor who should learn the codebase.*
   lifted: self-calls are edges. Still open from O4: the C-58 classes
   (closures, interface dispatch, function values) — a design question,
   not a bug.
-- **Directory rollup in `list_blind_spots`** — port `rollup_directories`
-  to the Go proxy (same rows, agent-facing altitude).
+- ~~**Directory rollup in `list_blind_spots`** — port `rollup_directories`
+  to the Go proxy (same rows, agent-facing altitude).~~ — **done
+  2026-09-13 (0.2.9-beta)**, dispatched through the harness
+  (`S-20260913T132457Z-3c45`, gate right-clear, merged).
 - **C's evidence, then its remainder (ADR-108, ADR-109).** C has both
   lanes since 0.2.4-beta: scip-clang over a compile database the ingest
   derives, in Max's order (the repo's own, CMake's export, bear over

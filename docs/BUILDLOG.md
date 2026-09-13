@@ -9538,3 +9538,108 @@ the suite's own `http://llm` GET, refused as built.
   qualifier);
 - the harness's validation criterion (N sessions), and ADR-106;
 - the carried items in the handoff.
+
+## 2026-09-13 — the doc sweep and the facing update (the same-key graphic in the README); the directory rollup through the harness — 0.2.9-beta
+
+**Asked (Max):** "review top level documentation. then do a doc sweep and
+facing update. have a section in the readme which shows the same key
+graph to reflect where hobbbes stands with its competitors … after
+completing the above, if there is a resume point. start it with hobbes
+and calvin."
+
+**The review.** README, CLAUDE.md, the handoff and CHANGELOG stood at
+0.2.8-beta. The staleness was in the second rank of docs, and in the
+comparative graphics:
+- same-key.svg's footer still named ajv and hono as exceptions, four
+  days after ADR-104 and C-98 closed them. The list was typed into
+  `render.py`, which the drift test cannot catch.
+- field.md's Hobbes row stood at 0.1.4-beta (96 entries, five
+  languages).
+- The architecture called `csource` "the only one with no indexer
+  behind it" and §8 "at 100% but two", counted four harness sessions,
+  and left C out of §10.
+- A background agent's scan found 16 stale lines across architecture,
+  first-run, oracle-grading and the harness doc. The constraints index,
+  future_additions and bench/oracle/README were current.
+
+**1. The sweep and the facing update** (`7602eb2`).
+- **README: *Where Hobbes stands beside other code-graph tools*.**
+  - It embeds same-key.svg and gives its reading rules: read across a
+    row; precision is a lower bound for every tool; the tools' numbers
+    are at our grain and host-run (C-94/95/96).
+  - It says what is missing: C has no foreign cell (the C cells
+    postdate the runs), and syft has no key. It gives the
+    `grade-foreign.sh` line.
+  - It states what the rows show, read from tables.md: on all 18 rows
+    Hobbes' marker is the rightmost on both axes. It ties on precision
+    only at rust_proj, where CodeGraphContext stored one correct edge.
+    Its recall lead within a row runs from about one point (click,
+    gitleaks) to 35 (zod). This is the first ranking sentence on a
+    facing page, and it is put to Max in the handoff.
+- **render.py:**
+  - same-key's exceptions are computed from the cells;
+  - the scatter's empty sixth slot is C's panel, titled `clang` (the
+    first word of the recorded oracle was "Ubuntu");
+  - legend tails and the footer's versions line move to their own lines,
+    since they ran off the page;
+  - the Python panel title is shortened, and the one-number caption
+    names clang.
+  - All five outputs were regenerated and rasterised to check, and
+    `render.py check` and the report's Go test are green.
+- **Also fixed:** field.md's Hobbes row (0.2.8-beta, 139/112, six
+  languages; the scatter "hollow squares" line); comparative/README (the
+  C cells and ADR-111's 44-cell regrade since the baseline, the recall
+  range's top, no foreign C cell); architecture §1/§2/§3.1/§3.8/§7/§8/§10;
+  oracle-grading's status and §14 (O8/O9); first-run (~3.3 GB,
+  scip-clang); the harness doc's status; how-hobbes-differs' mermaid
+  (scip-clang, the C oracle); workstreams' W2 (the hook built); the
+  CHANGELOG header's untagged range.
+- **Corrected after the commit:** the sweep wrote "nine" session logs.
+  There were ten; with `3c45` there are eleven, and README, architecture
+  §8, the harness doc and CLAUDE.md now say so.
+
+**2. The resume point: `list_blind_spots`' directory rollup** (W1;
+`future_additions.md`, from ADR-048). It was chosen from the handoff's
+named no-spend queue because it needs no decision of Max's: it is a port
+with a Python reference.
+- **The brief** named the Python spec (`rollup_directories`,
+  `_print_directory_view`), the section's place (before the worst
+  files), the exact row text, and seven tests. The partition was
+  `knowledge.go` and its test.
+- **Dispatched as `S-20260913T132457Z-3c45`:** 25 of 150 turns, 270 s,
+  first edit at 1.8 min. Gate clear, verify pass (64 tests, 0
+  regressions, 7 new-pass). Egress api.anthropic.com only; 7 exec
+  decisions, all allow.
+- **Reviewed right-clear.** Go's `notModelled` equals `NOT_MODELLED`,
+  `directoryOf` matches `directory_of` at depth 2, and the ranking and
+  row format match. The fixture row was checked by hand: src/app
+  resolves 25 of 30 sites (83.3%), and of its 5 unresolved, 3 are by
+  design and 2 are attr-call.
+- **Merged** with a merge commit as `9fc2036`, keeping the doer's
+  authorship.
+  - The first attempt passed the message as `-F -` from a heredoc, which
+    `git merge` does not read. The `;` chain went on and bumped the
+    version on the unmerged tree. The bump was kept (disjoint files)
+    and the merge redone from a file; this is noted in the handoff.
+- **0.2.9-beta** (a patch: what the layer says). Also: the CHANGELOG
+  entry; the call-graph register entry's surfacing line; future_additions
+  and workstreams struck; README, architecture §8, CLAUDE.md. The image
+  and proxies were rebuilt (`hobbes-proxy 0.2.9-beta` in the image).
+
+**Verified at 0.2.9-beta:**
+- pytest 1,474 passed;
+- Go 350 pass, 1 skip (351 lines; 344 before);
+- `test_version.py`;
+- the oracle report test after the renderer change;
+- the image's proxy version.
+
+Not re-run, since nothing they cover changed: vitest, the node suites,
+atlas0, and the oracle lane beyond `./report/`.
+
+**Harness sessions:** one this session, right-clear and merged. There
+are eleven logs; no false block and no `missed` among the last three.
+
+**Not done, for Max:** the README comparison wording; the box's
+`find*`/`xargs*`; C-139's lift; the validation criterion and ADR-106;
+the carried items in the handoff. A foreign C cell needs `oracle import`
+to take `--lang c` first.
