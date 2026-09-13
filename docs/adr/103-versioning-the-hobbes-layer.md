@@ -143,3 +143,8 @@ amendment's "a capability bumps minor" and does not reopen it.
 not 0.3.0." Patch numbers count on past nine (0.2.9-beta, 0.2.10-beta,
 0.2.11-beta); a patch never rolls the minor over. PEP 440 spells it
 `0.2.10b0`, and `test_version.py` already reads a multi-digit patch.
+
+**Noted 2026-09-13 (later).** Max: "tag a commit with the new version
+to end off current session." The session's closing commit is tagged
+`v0.2.10-beta`, annotated like `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta
+stay untagged, and a tag remains his call each time.

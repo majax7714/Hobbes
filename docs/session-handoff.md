@@ -1,8 +1,10 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-09-13; Hobbes 0.2.10-beta on `main`.**
-- **Tags:** 0.1.8-beta is tagged `v0.1.8-beta`; 0.1.9-beta to
-  0.2.10-beta are untagged. Tags are Max's call ("no need to tag yet").
+- **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13: "tag a
+  commit with the new version to end off current session"). The one
+  before it is `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta are untagged.
+  Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it

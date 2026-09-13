@@ -244,9 +244,10 @@ are present.
   amendment, 2026-09-12): the Calvin harness moved the layer to
   0.2.0-beta; patch by patch on 0.2.x. A language addition is a patch,
   even when it reaches "supported"; a structural change bumps minor
-  (Max, 2026-09-12);** tags are his call each time — 0.1.9-beta to
-  0.2.8-beta are untagged,
-  the last tag is `v0.1.8-beta`.
+  (Max, 2026-09-12); after 0.2.9 the patch counts on to 0.2.10, never
+  0.3.0 (Max, 2026-09-13);** tags are his call each time — the latest
+  is `v0.2.10-beta` (annotated, 2026-09-13), the one before it
+  `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta are untagged.
 - **Every concession of information gets a `C-n` entry in its segment
   file under `docs/constraints/` (index: `README.md`), in the same commit** (P8, ADR-030), with a
   *surfacing status* naming where a user meets the limit. `unsurfaced`
