@@ -67,6 +67,10 @@ The session's record is the 2026-09-13 BUILDLOG entries.
    - **C-139's finer extent** (the binding's own line, or the enclosing
      block). Take it only if a graded cell ever shows the recall cost.
      Nothing is owed now.
+   - **The tracker's area for a test-only session** (Max, 2026-09-13:
+     "leave rest of the table for now"). Row 17 (`81df`, D-s) reads `—`,
+     because a session that changed only test files maps to no area by
+     `calvin_tracker.py`'s rule. It does not move the area count.
 2. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - Decide the design in an ADR or an amendment **before** the
@@ -75,9 +79,16 @@ The session's record is the 2026-09-13 BUILDLOG entries.
    - Name one small unit: `hobbes dispatch --task-file … --partition …
      --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
      argv carries `--settings` (the hook).
-   - Watch dispatch's own stderr for "first edit at".
+   - Watch dispatch's own stderr for "first edit at". The real session
+     id differs from the dry-run's; read it from the output's last line.
    - Review the session file and the diff. Merge with `git merge --no-ff
      -m … -m …` or `-F <file>`, never squash.
+   - **After filling the review block, re-render the tracker**
+     (`pipeline/scripts/calvin_tracker.py render`). Its drift test fails
+     the suite until the table matches the logs.
+   - Two dispatches can run at once from one parent (`e537` and `78b7`
+     did). Do not re-ingest while one is still gating: the gate reads the
+     parent's derived graph.
      - `git merge` does not read `-F -` from stdin. A heredoc there fails
        the merge silently in a `;` chain.
      - A heredoc followed by `&& \` in one Bash call is a syntax error;
@@ -130,8 +141,9 @@ The session's record is the 2026-09-13 BUILDLOG entries.
    - **The comparative queue:** item 4; a foreign cell for C (both tools
      on cJSON and sqlite-vector). `oracle import` takes no `--lang c` yet
      (`bench/oracle/cmd/oracle/main.go`), so it is code first.
-   - **C's residue:** C-134, C-135, C-133. The macro gap stays parked
-     (C-131, `future_additions.md`).
+   - **C's residue:** C-134's remainder (criterion and the Unity
+     fixture, whose bodies a macro defines), C-135, C-133. The macro gap
+     stays parked (C-131, `future_additions.md`).
    - **`build-logic/`** is recorded, not built (ADR-097).
 
 ## Atlas-0 — held from 2026-09-07: Max reads the B4 record; then the T that carries the abstention act, and T_v2

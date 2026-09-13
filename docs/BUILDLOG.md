@@ -10009,3 +10009,14 @@ route each time.
 - **The tracker:** 17 of 40, $35.29 reported over 16 sessions. Row 17's
   area reads `—`: the session changed only test files, which map to no
   area by the tracker's rule.
+
+**Close (Max):** "leave rest of the table for now and update
+documentation to end sessions off".
+- The test-only area rule is held in the handoff (item 1).
+- The handoff's session steps now say to re-render the tracker after a
+  review, that the real session id differs from the dry-run's, and that
+  two dispatches may share a parent but not a re-ingest.
+- C's residue names C-134's remainder.
+- The day's standing: 0.2.13-beta on `main`, unpushed. Four sessions
+  this stretch (`9cad`, `e537`, `78b7`, `81df`), every gate right-clear.
+  The harness is at 17 of 40, and the ingest is at the closing commit.

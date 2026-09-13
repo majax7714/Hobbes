@@ -354,6 +354,7 @@ inside a dispatch they skip, so their first run is the developer's.
   - the proxy and its logs in a container of their own (C-140's fix,
     a structural change);
   - whether ADR-106 stays held;
+  - the tracker's area for a test-only session (left for now);
   - the Atlas-0 T items;
   - the TTT adapter points;
   - the 7B removal A/B;
