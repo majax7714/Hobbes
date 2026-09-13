@@ -211,8 +211,8 @@ the best on-ramp for a new contributor who should learn the codebase.*
 - **Decorated-declaration line convention** — tssource emits the
   decorator line, SCIP the name line; 131 of dagger's 258 lane
   disagreements are this one off-by-one. A small tsextract facts pass.
-- **jest-globals detection + `package.json bin` entry points** (C-13,
-  C-14 residue).
+- **jest-globals detection** (C-13). ~~`package.json bin` entry
+  points~~ — built 2026-08-16 by C-14's lift (the `cli-ts` pack).
 - **Java follow-ups (ADR-096, 2026-08-29):** a Spring route pack; the
   `maven-toolchains-plugin` case (a pom that *requires* a JDK major —
   derive `~/.m2/toolchains.xml` from the image's three, C-67); an

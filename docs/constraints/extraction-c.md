@@ -19,9 +19,11 @@
   - Calls through function pointers, struct fields and dereferences
     draw no edge.
   - Nothing type-directed is known.
-- **Because:** no C indexer is wired yet. scip-clang needs each
-  translation unit's compile flags. Deriving a compile database is the
-  next unit (Max, 2026-09-12: derive it, degrade visibly).
+- **Because:** scip-clang needs each translation unit's compile flags,
+  and where this entry still holds there are none to use: no compile
+  database could be derived (C-135), the build does not compile the
+  file, or lane B left the site silent. ADR-109 derives a database
+  wherever it can (Max, 2026-09-12: derive it, degrade visibly).
 - **Bites at:** every C repo, and most where one repo holds many
   programs. Examples and tools that each define the same helper make
   rank 3 abstain, so those calls stay unresolved. A repo function that
@@ -29,7 +31,8 @@
   every caller.
 - **You find out:** **surfaced**:
   - every C edge carries tier `syntactic`;
-  - there is no C lane B for `hobbes lanes` to check against;
+  - where lane B did not answer, `hobbes lanes` has nothing to check the
+    edge against;
   - the verification base (C-31) in the ingest summary, the surface and
     `list_blind_spots` stated C as unverified until 0.2.5-beta. Since
     ADR-110's cells it names the two repos graded, cJSON and sqlite-vector,

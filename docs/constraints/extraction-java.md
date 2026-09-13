@@ -53,43 +53,41 @@
   an internal podman network (measured feasible, ADR-097; W1), which
   would confine the residual to the registry hosts.
 - **Source:** ADR-096 decision 3, as amended by ADR-097.
+- **Review correction, 2026-09-10 (C-66 remains active):** the source-free
+  statement above is the intended boundary, not a universal property of
+  0.1.8-beta. `java_build_files` copies `.mvn/`, `gradle/` and `buildSrc/`
+  recursively without the suffix filter or normal descendant pruning.
+  A temporary-tree reproduction retained `.mvn/Hidden.java` and
+  `gradle/Hidden.kt`; `buildSrc/src/Logic.java` also stays by the intended
+  build-logic exception. These files are available to the networked resolve
+  pass. The canary proves its ordinary source path, not arbitrary build-tool
+  directories. **Surfacing: partial** — this register and architecture §3.2
+  name the limit; the ingest notice still says “holds no sources” and needs
+  correction with the staging fix. No network exfiltration was attempted.
+  See [the review](../reviews/2026-09-10-baseline.md). This does not invalidate
+  the separate guarantee that executing Java steps require containment.
+- **Fixed 2026-09-10 (later; 0.1.9-beta) — the boundary is what the
+  entry says again:** `java_build_files` walks every directory by one
+  rule (lane A's pruning; `.mvn/` the one dot-directory entered; a JVM
+  source left out wherever it sits, `buildSrc/` the one exception, whose
+  sources are the build), so `.mvn/Hidden.java` and `gradle/Hidden.kt`
+  no longer reach the resolve stage and `buildSrc/build/` no longer
+  rides. The notice reads "holds no application source (build logic under
+  buildSrc/ excepted)". Tested at three levels: the file list, the
+  resolve plan's stage, and the contained canary — whose fourth probe
+  could never see the resolve pass (that stage is discarded before the
+  index runs), so it now also drops a sentinel in the Maven cache, shown
+  to fire under the old walk and not under the new. **Surfacing: surfaced**
+  again. The residual stands as registered: build logic with a network
+  over the build files, `buildSrc/` and public caches; a `build-logic/`
+  included build is not excepted and degrades visibly. **Decided
+  2026-09-10 (later still; Max, ADR-097):** if one ever degrades a real
+  unit, the exception is keyed on the settings file's `pluginManagement {
+  includeBuild(..) }` declaration — Gradle's own definition of build
+  logic — never on a directory name, and never on plain `includeBuild`;
+  nothing is built until a repo hits it.
 
-**Review correction, 2026-09-10 (C-66 remains active):** the source-free
-statement above is the intended boundary, not a universal property of
-0.1.8-beta. `java_build_files` copies `.mvn/`, `gradle/` and `buildSrc/`
-recursively without the suffix filter or normal descendant pruning.
-A temporary-tree reproduction retained `.mvn/Hidden.java` and
-`gradle/Hidden.kt`; `buildSrc/src/Logic.java` also stays by the intended
-build-logic exception. These files are available to the networked resolve
-pass. The canary proves its ordinary source path, not arbitrary build-tool
-directories. **Surfacing: partial** — this register and architecture §3.2
-name the limit; the ingest notice still says “holds no sources” and needs
-correction with the staging fix. No network exfiltration was attempted.
-See [the review](../reviews/2026-09-10-baseline.md). This does not invalidate
-the separate guarantee that executing Java steps require containment.
-
-**Fixed 2026-09-10 (later; 0.1.9-beta) — the boundary is what the
-entry says again:** `java_build_files` walks every directory by one
-rule (lane A's pruning; `.mvn/` the one dot-directory entered; a JVM
-source left out wherever it sits, `buildSrc/` the one exception, whose
-sources are the build), so `.mvn/Hidden.java` and `gradle/Hidden.kt`
-no longer reach the resolve stage and `buildSrc/build/` no longer
-rides. The notice reads "holds no application source (build logic under
-buildSrc/ excepted)". Tested at three levels: the file list, the
-resolve plan's stage, and the contained canary — whose fourth probe
-could never see the resolve pass (that stage is discarded before the
-index runs), so it now also drops a sentinel in the Maven cache, shown
-to fire under the old walk and not under the new. **Surfacing: surfaced**
-again. The residual stands as registered: build logic with a network
-over the build files, `buildSrc/` and public caches; a `build-logic/`
-included build is not excepted and degrades visibly. **Decided
-2026-09-10 (later still; Max, ADR-097):** if one ever degrades a real
-unit, the exception is keyed on the settings file's `pluginManagement {
-includeBuild(..) }` declaration — Gradle's own definition of build
-logic — never on a directory name, and never on plain `includeBuild`;
-nothing is built until a repo hits it.
-
-### C-67 — The Java graph is the build's default configuration
+### C-67 — The Java graph is the build's default configuration — *narrowed 2026-09-10 (0.1.10-beta, ADR-096 amended)*
 - **Cannot tell you:** what a source set the default build does not
   compile looks like — a Maven profile that is off, a Gradle source set
   or flavor the `compileTestJava` chain does not reach, a module the
@@ -196,6 +194,14 @@ nothing is built until a repo hits it.
 
 ## Lifted constraints in this segment
 
+A lift is a technique, and the technique — not the celebration — is what
+these entries document. Each keeps its number, states the limit as it
+stood, the exact mechanism that lifted it, and the **residual edge
+cases**: inputs the technique does not classify, where the old concession
+quietly survives. When a residual case turns out to bite, it becomes a
+new active entry and the two cross-reference. Field key: `README.md`,
+"How to read a lifted entry".
+
 ### C-101 — A Java build with Kotlin (Scala, Groovy) sources failed its resolve pass, and the unit fell to lane A — *registered and lifted 2026-09-10, the same session*
 - **Was:** ADR-097's resolve stage held "every non-source file" under
   the build root, where *source* meant `.java`. A Maven build with
@@ -220,7 +226,7 @@ nothing is built until a repo hits it.
   its 2026-09-01 re-ingest only because its distribution was already in
   the cache from the single-pass days: on a fresh cache every
   wrapper-shipping Maven repo would have degraded the same way.
-- **Lifted by:** `_JVM_SOURCE_SUFFIXES` — `.java`, `.kt`, `.scala`,
+- **Lifted by — the technique:** `_JVM_SOURCE_SUFFIXES` — `.java`, `.kt`, `.scala`,
   `.groovy` never enter the resolve stage; under `buildSrc/` they are the
   build (Gradle's convention plugins) and stay. And the resolve pass
   runs `./mvnw` when the stage has one (`java_resolve_command(...,
@@ -236,7 +242,7 @@ nothing is built until a repo hits it.
   SUCCESS`); the archive minus `.java` fails in the Kotlin compile.
   spring-data-elasticsearch regraded at 0.1.8-beta: the cell record's
   2026-09-10 block.
-- **Residual:** a build that compiles another language under a directory
+- **Residual edge cases:** a build that compiles another language under a directory
   the rule does not know (a Gradle included build under `build-logic/`
   with Kotlin plugins) loses those files from the resolve stage and its
   resolve pass fails visibly, degrading the unit as before — registered

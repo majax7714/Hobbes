@@ -9799,3 +9799,60 @@ no `missed`.
 
 **Not done, for Max:** C-140's structural fix; ADR-106; whether C-139's
 residual earns a finer extent (only if a graded cell shows the cost).
+
+## 2026-09-13 — (later still) the register and `future_additions.md` scoped against the tree; the mechanical fixes
+
+**Asked (Max):** "review top level documentation. then scope constraints
+register and future_additions for things that have already been
+implemented, or in the constraints case duplicate constraints … or
+constraints which are lifted but arent organized right". Then: "go ahead
+with the mechanical fixes and leave the decisions for after".
+
+- **Checked against the tree.**
+  - The register by heading: 140 entries, 112 active, 25 lifted, 3
+    superseded, with no id missing.
+  - Every active entry with a named cheap fix was still open, so there
+    were no silent lifts: C-102 (`var_spec_list` not descended), C-112,
+    C-19, C-93's fixture case, C-133, C-134, C-71's stamp, and the
+    decorated-declaration line (`declarationStart`).
+  - Reachability by the knowledge tools. `dispatch` uses only
+    `template.Ledger` and `gate` only `adapter.declaration_sibling`. The
+    T-loop protocol, template v2's cap, arm budgets and `gold_tests` are
+    reached only through `pipeline/scripts/calvin_probe.py`.
+- **Fixed (docs only; no version bump):**
+  - README: C-71 was not among the "all lifted" findings; DeepSWE is
+    parked, not "moving".
+  - workstreams: the `package.json bin` half is built (C-14).
+  - `future_additions.md`:
+    - the `bin` half, the compiled configs (partly built) and the
+      Claude Code session image (built by ADR-107) marked;
+    - ADR-042's surfacing noted on the narration item;
+    - the rename-detection "subsumed" line retracted (ids stayed
+      path-based);
+    - the namespacing trigger noted as passed, with C-132's cgo shape;
+    - the audit header dated;
+    - the last four `##` sections made bullets like the rest.
+  - The register:
+    - a current status table on the debt summary (88 surfaced, 18
+      partial, 5 unsurfaced, 1 n/a), and the stale hand-kept counts in
+      the history marked;
+    - the index order matched to the files;
+    - two segment titles brought to what the files hold;
+    - C-66's trailing paragraphs folded into the entry;
+    - C-67 titled narrowed;
+    - the Java lifted preamble added, and C-100/C-101's field names made
+      standard;
+    - C-56's superseded line moved to its head;
+    - C-11's "Superseded by" wording corrected;
+    - C-15's merge order given Java and C, with C-132's cgo shape;
+    - C-130's stale "no C indexer is wired yet";
+    - C-117 names the gate's use of the cap;
+    - dead pointers into `future_additions.md` from C-35, C-41 and C-46
+      corrected;
+    - links added: C-29 → C-136, and C-125 ↔ C-140.
+- **Left for Max** (handoff, item 1):
+  - superseding C-104–C-108, C-114–C-116 and C-120;
+  - C-139's residual as C-141;
+  - a "folded into C-n" rule for five duplicate pairs;
+  - a segment for the dispatch harness's entries;
+  - whether the harness re-evaluation item is obsolete.

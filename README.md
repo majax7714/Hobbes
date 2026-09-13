@@ -275,7 +275,8 @@ is being measured with `hobbes bench`, and honestly: so far the
 measuring has produced corrections rather than a result. The per-unit
 write partition can fence a model below a multi-file fix (ADR-077);
 SWE-bench Verified turned out to be contaminated (C-39), so the
-benchmark is moving to DeepSWE 1.1. No claim that derived context
+benchmark's next set is DeepSWE 1.1, parked until a run is cleared. No
+claim that derived context
 substitutes for model size has been earned yet, and this README will say
 so until one is.
 
@@ -332,8 +333,9 @@ known line-convention off-by-one. Java landed 2026-08-29 (ADR-096) as the
 sixth language, four repos compiler-graded at 100% precision in one
 session. A four-repo extraction test (2026-09-02, one public repo
 drawn per language, run through the knowledge tools by agents) found
-no semantic edge wrong and registered ten findings, all lifted the
-next day (ADR-098; [`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
+no semantic edge wrong and registered ten findings: C-71 fixed and
+surfaced the same day (ADR-098), the other nine lifted the next day
+([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
 The constraint register holds one hundred and forty entries (one
 hundred and twelve active, twenty-five lifted, three superseded), each naming
 where a user meets the limit.
@@ -356,8 +358,9 @@ the oracle's grain), and the misses registered by class.
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
 measure), and registered eight harness defects, since all fixed
-(ADR-091, ADR-093) and validated with no model. The benchmark is moving
-to DeepSWE 1.1 on a mini-swe-agent substrate. A test-time-training
+(ADR-091, ADR-093) and validated with no model. The benchmark's next
+set is DeepSWE 1.1 on a mini-swe-agent substrate, parked until a run is
+cleared. A test-time-training
 experiment (ADR-099, 2026-09-03) asked whether the derived layer can be
 loaded into a 7B's weights instead of its prompt: the loss falls, but
 the navigation does not follow at that step count

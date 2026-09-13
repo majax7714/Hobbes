@@ -40,9 +40,23 @@ The session's record is the three 2026-09-13 BUILDLOG entries.
         records.
       - The live mount test's assertion was fixed on the host (`2aa9`'s
         notes).
+   5. **A review of the register and `future_additions.md`.** The
+      mechanical fixes are in (BUILDLOG); five calls wait on Max (item 1).
    - The image and binaries are at 0.2.11-beta. **Restart the knowledge
      server** the next session opens with (C-65).
 1. **Open for Max (no spend):**
+   - **The register and backlog review's calls** (2026-09-13):
+     - supersede the nine active entries whose path no longer runs:
+       C-104–C-108, C-114–C-116 and C-120, reached only through
+       `pipeline/scripts/calvin_probe.py` (C-124 is the precedent);
+     - C-139's residual: an active entry (C-141), or drop its status
+       line;
+     - a "folded into C-n" rule for the duplicate pairs (C-23/C-34,
+       C-130/C-135, C-58/C-97, C-118/C-119, C-28/C-137);
+     - a segment of its own for the dispatch harness's entries (C-125,
+       C-127–C-129, C-140);
+     - whether `future_additions.md`'s "re-evaluate the harness if its
+       weight stays this high" is obsolete.
    - **C-140's structural fix.** Give the policy proxy and its logs a
      container of their own, as the egress proxy has. The doer then
      cannot reach its own flight log. This is a structural change, so it

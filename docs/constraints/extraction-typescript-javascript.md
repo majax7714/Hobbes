@@ -272,7 +272,7 @@ new active entry and the two cross-reference. Field key: `README.md`,
   misses on `scripts/fetch-sponsors.mts` were the only
   function-declaration targets on the cell Hobbes had not drawn at
   symbol grain.
-- **Lifted by:** the two extensions added to the helper's set (discovery,
+- **Lifted by — the technique:** the two extensions added to the helper's set (discovery,
   the relative-import candidates, the asset rule), to
   `tssource._EXTENSIONS` / `_TS_EXTENSIONS` (a `.mts` module is
   TypeScript), to the tail's language map, the grounder's import
@@ -282,7 +282,7 @@ new active entry and the two cross-reference. Field key: `README.md`,
   0.1.7-beta: 2,682 → 2,688 edges, confirmed 2,622 → 2,628, 0
   contradicted, the six rows recovered at the semantic tier — function
   targets 1,911/1,911 at symbol grain (the cell record's 2026-09-10 block).
-- **Residual:** none for discovery; `.d.mts` / `.d.cts` fall under
+- **Residual edge cases:** none for discovery; `.d.mts` / `.d.cts` fall under
   whatever rule `.d.ts` falls under (the helper has none — a declaration
   file is walked like any other, and declares no bodies).
 - **Source:** the callee-shape bucket, 2026-09-10 — Max's question, why a
@@ -382,8 +382,8 @@ new active entry and the two cross-reference. Field key: `README.md`,
   run for each case. And the technique attributes only *calls*; the
   under-report that remained for render-only component tests became its
   own entry, **C-24**, lifted in turn below.
-- **Source:** ADR-021 (the limit), V2.M3 (the lift). Superseded by C-24,
-  which was the honest residue.
+- **Source:** ADR-021 (the limit), V2.M3 (the lift). Its honest residue
+  was C-24, lifted in turn.
 
 ### C-24 — A test that only *rendered* a component did not reach it — *lifted 2026-08-15*
 - **Was:** reach is the closure over **call** edges, and `<BetCard />` was

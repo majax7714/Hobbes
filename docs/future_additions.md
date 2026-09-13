@@ -7,7 +7,8 @@ later. Not a wishlist; everything here was deferred *on purpose*.
 **Audit 2026-08-23 (against the tree, not the entries):** 38 top-level
 items + 20 sub-items. **13 built** (struck through, with the ADR that did
 it), **8 partial**, **29 still parked**, **6 obsolete**. A built item stays
-here struck through — the reasoning is the record.
+here struck through — the reasoning is the record. The counts are as of
+that audit; an item struck or marked since carries its own date.
 
 **Not to be confused with `docs/constraints/README.md`.** This file parks deferred
 *work*; the constraint register records conceded *information* — what
@@ -23,9 +24,11 @@ these:** ~~*cross-language module-id namespacing* (moniker-keyed node ids
 make the `widget.py` / `widget.ts` collision a non-question)~~ — *retracted
 2026-08-23: ADR-033 kept path-based ids, so this one is parked, not
 subsumed (see its entry and C-15)* —,
-*per-test JS reach* (**done at V2.M3** — see below), and *graph-diff
+*per-test JS reach* (**done at V2.M3** — see below), and ~~*graph-diff
 rename detection* (any path-matching heuristic would be built against ids
-that V2.M1 replaces). Their entries stay below for the reasoning; the work
+that V2.M1 replaces)~~ — *retracted 2026-09-13 for the same reason: ids
+stayed path-based (ADR-033), so rename detection is parked, not subsumed
+(its entry is next)*. Their entries stay below for the reasoning; the work
 does not.
 
 **Also changed by v2:** *per-package tsconfigs / cross-zone imports* now
@@ -97,8 +100,11 @@ surfaced per file rather than silent.)*
   body for its own call set — doable in the helper if the coarseness
   ever hurts the behavioral index or `tests_guarding`.
 
-- **jest-globals detection and package.json bin entry points** (from
-  M6, deferred 2026-08-11). Test files using injected globals (no
+- **jest-globals detection** and ~~**package.json bin entry points**~~
+  (from M6, deferred 2026-08-11). *The `bin` half was built 2026-08-16:
+  C-14's lift added the `cli-ts` pack, which reads every `package.json`
+  `bin`. jest-globals stays parked (C-13).* Original note: Test files
+  using injected globals (no
   framework import) are inventoried as framework `unknown`; a jest
   config file in the repo could sharpen the label. `interfaces.json`
   CLI entry points still come from pyproject only — package.json `bin`
@@ -147,7 +153,11 @@ surfaced per file rather than silent.)*
   a way source access would have caught.
 
 - **The compiled configs are verified by shape, not by execution** (from
-  M8, deferred 2026-08-11). None of import-linter, dependency-cruiser,
+  M8, deferred 2026-08-11). *Partly built: import-linter executes in the
+  agreement suite since V2.M6 (ADR-039), semgrep since 2026-08-16, and CI
+  executes every emitted config since ADR-095; dependency-cruiser and Rego
+  stay unexercised until a record compiles to them (C-19).* Original note:
+  None of import-linter, dependency-cruiser,
   semgrep, or conftest is installed on the dev box, which is exactly why
   ADR-024 makes compilation pure text generation. The emitters are
   asserted against the formats' documented shapes; nothing has run
@@ -185,7 +195,11 @@ surfaced per file rather than silent.)*
   that deserves its own ADR rather than a corner of M8. Pick it up when
   a real repo hits the collision, or before the fourth language lands,
   whichever comes first; the extraction_errors record already names
-  every case that would have been affected.
+  every case that would have been affected. *(2026-09-13: the
+  fourth-language trigger passed unused — Java and C landed without it —
+  and C-132 names a real shape: cgo's `foo.go` beside `foo.c` both derive
+  `foo`. The item waits on a real repo hitting it, or on Max naming it;
+  workstreams W1.)*
 
 - **Decisions do not survive a fresh clone** (from ADR-026, deferred
   2026-08-11, Max-confirmed as a known limitation). ADR-012 gitignores
@@ -208,7 +222,10 @@ surfaced per file rather than silent.)*
   `.hobbes/invariants/`, so it happily re-proposes claims that already
   have confirmed records. Before the ledger existed that was invisible;
   now it means the decision queue can offer you something you settled
-  months ago in different words.
+  months ago in different words. *Surfaced 2026-08-16 (ADR-042, C-21):
+  each pending proposal now arrives beside its nearest confirmed record,
+  as a "possible restatement of I-n" banner. The root fix below is still
+  parked.*
 
   It bit the dogfood repo immediately: all six inferred records
   correspond 1:1 to I-1..I-6, but the statements were rewritten during
@@ -472,8 +489,11 @@ surfaced per file rather than silent.)*
   2026-08-21; `hobbes bench` is built and unrun). *Audited 2026-08-23:*
   **built** — pure-arm containment (ADR-058, the swebench image), the
   generative seed planner (ADR-059), vLLM on Modal (ADR-057/074);
-  **obsolete** — the Claude-Code session image (ADR-056) and `swebench
-  --modal` (broken upstream, C-50; eval is local); **partial** — the
+  **obsolete** — `swebench --modal` (broken upstream, C-50; eval is
+  local); ~~the Claude-Code session image~~ (marked obsolete by ADR-056)
+  — **built 2026-09-12 (ADR-107):** `hobbes-session --claude-bin` mounts
+  the host's `claude`, the token rides the environment by name, and
+  `--egress` narrows the network to the API host; **partial** — the
   post-cutoff set (DeepSWE via Pier exists but is retracted as Hobbes
   evidence, P12), seed adjustments (dotted suffix done; punctuation and
   generic weights not), evaluation at scale (workers + ADR-065; pulls
@@ -570,89 +590,84 @@ surfaced per file rather than silent.)*
   selection (an unselected unit would not have spawned) and to the
   harness re-evaluation trigger above. Tune from verdicts, not before.
 
+- **A window row in `hobbes bench report`** (ADR-068, 2026-08-22).
+  `calls.jsonl` and the envelope's `prompt_tokens_max` / `calls_saturated`
+  exist per session; the report does not yet roll them up. Add a per-arm
+  row: calls, calls saturated, share of implement wall spent at the
+  window, largest prompt. Small; opens when Max names it.
 
-## A window row in `hobbes bench report` (ADR-068, 2026-08-22)
+- **The ingest itself inside the sandbox image** (ADR-094, 2026-08-28).
+  Max asked for the whole knowledge piece in the sandbox. The proxy went
+  in (ADR-094); the ingest stayed on the host, with the provenance stamp
+  (`built_by`) covering the "which code ran" question the incident
+  raised. Parked, not declined: lane A executes no repo code (P10 gains
+  nothing); baking the pipeline's source and wheels into the image means
+  a ~4-minute rebuild per pipeline edit or a dev mount that un-pins it;
+  lane B's per-step containers would become nested rootless podman or
+  collapse into one container and lose ADR-092's network-by-phase
+  separation. **Opens when** a foreign-repo deployment needs the
+  pipeline pinned too; the shape then is a pinned wheel in the image
+  plus a nested-podman decision, not a checkout mount.
 
-`calls.jsonl` and the envelope's `prompt_tokens_max` / `calls_saturated`
-exist per session; the report does not yet roll them up. Add a per-arm
-row: calls, calls saturated, share of implement wall spent at the
-window, largest prompt. Small; opens when Max names it.
+- **Java as the sixth language** (2026-08-28).
+  Max asked, out of interest, what Java and C would cost. The answer was
+  a build plan — §3.7's checklist elaborated to five milestones (ADR-096 +
+  spike, lane A, contained `scip-java`, JUnit/Spring packs, a bytecode
+  CHA/RTA oracle, the evidence row), estimated at nine to thirteen
+  sessions — and the reasons Java ranks ahead of C: a stronger lane B
+  (`scip-java` is first-tier and its config derivable), an oracle that
+  exists off the shelf over a stable IR, packs that map to existing
+  shapes (routes, tests, injection), and the thesis's audience — large,
+  long-lived, review-heavy codebases. C is cheaper to parse and dearer
+  to build, with a weaker semantic story and per-configuration graphs;
+  it follows Java on the same checklist if named. The plan document was
+  removed 2026-09-09 (a handoff that got stored); the BUILDLOG holds
+  what it contained. **Opened 2026-08-29** (ADR-096): J.M0–J.M5 built in
+  one session — see the ADR, `docs/constraints/extraction-java.md` and
+  the cell records. What stayed parked from the plan: a Spring route
+  pack (`@GetMapping` et al. as the Flask/FastAPI shape; `@Autowired`
+  as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
+  but there is no Kotlin lane A, so it would be references without call
+  sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
+  number proves too coarse, and an allowlisted egress proxy for the
+  networked resolve pass (C-66 as narrowed by ADR-097) — the proxy exists
+  since 2026-09-12 (`hobbes-proxy egress`, ADR-107); wiring it into the
+  resolve stage is what is left (workstreams W1). Also worth keeping, because the question came up:
+  ingest is per language, gated on discovery — a language with no files
+  in the repo costs one extension walk and nothing else; only the image
+  build carries every toolchain.
 
-## The ingest itself inside the sandbox image (ADR-094, 2026-08-28)
+- **C macro-expansion calls drawn as `calls`** (C-131, parked 2026-09-12).
+  **What is parked:** drawing, at a C macro's invocation line, a `calls`
+  edge to each function the macro's expansion calls.
+  - On cJSON that is every miss of the oracle cell (ADR-110): 728 of
+    1,918 in-repo pairs, 723 into Unity's assertion and runner functions
+    and 5 into cJSON's own API (`cJSON_SetNumberValue` expands to a call of
+    `cJSON_SetNumberHelper`).
+  - Rust's same class, a call a macro's body makes, is memchr's 99
+    `macro→*` misses (C-58's macro face).
 
-Max asked for the whole knowledge piece in the sandbox. The proxy went
-in (ADR-094); the ingest stayed on the host, with the provenance stamp
-(`built_by`) covering the "which code ran" question the incident
-raised. Parked, not declined: lane A executes no repo code (P10 gains
-nothing); baking the pipeline's source and wheels into the image means
-a ~4-minute rebuild per pipeline edit or a dev mount that un-pins it;
-lane B's per-step containers would become nested rootless podman or
-collapse into one container and lose ADR-092's network-by-phase
-separation. **Opens when** a foreign-repo deployment needs the
-pipeline pinned too; the shape then is a pinned wheel in the image
-plus a nested-podman decision, not a checkout mount.
+  **Why parked (Max, 2026-09-12):**
+  - **The references already exist,** as `uses` edges at the invocation
+    line: lane B records an expansion's callees there (381 into `UnityFail`
+    on cJSON). So dependency questions see them, and only call questions
+    (`who_calls`, test reach over `calls`) do not.
+  - **Nearly all of the gap is framework-bound.**
+  - **Promoting those `uses` to `calls` is unsound.** SCIP records no call
+    role, and a function passed as a value on the same line is the same
+    kind of reference: `RUN_TEST(test_fn)` hands `test_fn` to
+    `UnityDefaultTestRun` without calling it there, and so does the
+    fixture's `apply(lib_sum)`.
 
-## Java as the sixth language (2026-08-28)
+  **The sound design, if it opens:**
+  - Lane A reads a function-like macro's body (the `#define`'s tokens)
+    into a table of the calls it makes, transitively through nested macros
+    (Unity's are several levels deep).
+  - It then draws invocation → callee at a new, labelled tier, or as
+    `calls` with a `macro` evidence lane, kept apart from the tokens passed
+    as arguments.
+  - The oracle's `macro→function` class is the answer key for it.
 
-Max asked, out of interest, what Java and C would cost. The answer was
-a build plan — §3.7's checklist elaborated to five milestones (ADR-096 +
-spike, lane A, contained `scip-java`, JUnit/Spring packs, a bytecode
-CHA/RTA oracle, the evidence row), estimated at nine to thirteen
-sessions — and the reasons Java ranks ahead of C: a stronger lane B
-(`scip-java` is first-tier and its config derivable), an oracle that
-exists off the shelf over a stable IR, packs that map to existing
-shapes (routes, tests, injection), and the thesis's audience — large,
-long-lived, review-heavy codebases. C is cheaper to parse and dearer
-to build, with a weaker semantic story and per-configuration graphs;
-it follows Java on the same checklist if named. The plan document was
-removed 2026-09-09 (a handoff that got stored); the BUILDLOG holds
-what it contained. **Opened 2026-08-29** (ADR-096): J.M0–J.M5 built in
-one session — see the ADR, `docs/constraints/extraction-java.md` and
-the cell records. What stayed parked from the plan: a Spring route
-pack (`@GetMapping` et al. as the Flask/FastAPI shape; `@Autowired`
-as C-4's injection class), Kotlin (scip-java indexes it under Gradle,
-but there is no Kotlin lane A, so it would be references without call
-sites — §3.7's rule), a bytecode RTA (SootUp/WALA) if CHA's dispatch
-number proves too coarse, and an allowlisted egress proxy for the
-networked resolve pass (C-66 as narrowed by ADR-097) — the proxy exists
-since 2026-09-12 (`hobbes-proxy egress`, ADR-107); wiring it into the
-resolve stage is what is left (workstreams W1). Also worth keeping, because the question came up:
-ingest is per language, gated on discovery — a language with no files
-in the repo costs one extension walk and nothing else; only the image
-build carries every toolchain.
-
-## C macro-expansion calls drawn as `calls` (C-131, parked 2026-09-12)
-
-**What is parked:** drawing, at a C macro's invocation line, a `calls`
-edge to each function the macro's expansion calls.
-- On cJSON that is every miss of the oracle cell (ADR-110): 728 of
-  1,918 in-repo pairs, 723 into Unity's assertion and runner functions
-  and 5 into cJSON's own API (`cJSON_SetNumberValue` expands to a call of
-  `cJSON_SetNumberHelper`).
-- Rust's same class, a call a macro's body makes, is memchr's 99
-  `macro→*` misses (C-58's macro face).
-
-**Why parked (Max, 2026-09-12):**
-- **The references already exist,** as `uses` edges at the invocation
-  line: lane B records an expansion's callees there (381 into `UnityFail`
-  on cJSON). So dependency questions see them, and only call questions
-  (`who_calls`, test reach over `calls`) do not.
-- **Nearly all of the gap is framework-bound.**
-- **Promoting those `uses` to `calls` is unsound.** SCIP records no call
-  role, and a function passed as a value on the same line is the same
-  kind of reference: `RUN_TEST(test_fn)` hands `test_fn` to
-  `UnityDefaultTestRun` without calling it there, and so does the
-  fixture's `apply(lib_sum)`.
-
-**The sound design, if it opens:**
-- Lane A reads a function-like macro's body (the `#define`'s tokens)
-  into a table of the calls it makes, transitively through nested macros
-  (Unity's are several levels deep).
-- It then draws invocation → callee at a new, labelled tier, or as
-  `calls` with a `macro` evidence lane, kept apart from the tokens passed
-  as arguments.
-- The oracle's `macro→function` class is the answer key for it.
-
-**Revisit when** a graded repo shows product APIs wrapped in macros at a
-size that matters (sqlite-style API tables are dynamic sites and would
-not count).
+  **Revisit when** a graded repo shows product APIs wrapped in macros at a
+  size that matters (sqlite-style API tables are dynamic sites and would
+  not count).

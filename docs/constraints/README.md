@@ -114,7 +114,7 @@ information appears in both, and the entries cross-reference.
 
 | File | Segment | Entries |
 |---|---|---|
-| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-80, C-3, C-59 |
+| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-80, C-3 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-97, C-98, C-99, C-100, C-90, C-89, C-11, C-24 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-34, C-64, C-74, C-85, C-79, C-16, C-33 |
@@ -124,8 +124,8 @@ information appears in both, and the entries cross-reference.
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-130, C-131, C-132, C-133, C-134, C-135, C-136, C-137, C-138 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1) and the Calvin M0 grounder | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-125, C-127, C-128, C-129, C-140, C-55, C-56, C-124 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-104, C-105, C-106, C-107, C-108, C-109, C-110, C-111, C-112, C-113, C-114, C-116, C-117, C-118, C-119, C-120, C-121, C-122, C-123, C-126 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099), the Calvin M0 local harness (ADR-100) and the dispatch harness (ADR-107) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-115, C-125, C-127, C-128, C-129, C-140, C-124, C-55, C-56 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
@@ -137,6 +137,20 @@ segment and are marked in the heading.
 ## Debt summary
 
 **One hundred and forty entries: one hundred and twelve active, twenty-five lifted, three superseded**
+
+| Status | Count | Entries |
+|---|---|---|
+| active — surfaced | 88 | every active entry not listed below |
+| active — *partial* | 18 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-108, C-115, C-117, C-125, C-131, C-132, C-135, C-138, C-140 |
+| active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-133, C-134 |
+| active — n/a (no user-visible effect yet) | 1 | C-10 |
+| lifted | 25 | at the bottom of each segment |
+| superseded | 3 | C-55, C-56, C-124 |
+
+The table is the register's current state (2026-09-13), read from each
+entry's **You find out** field. C-139's residual, recorded *partial* in
+its lifted entry, is not counted here. The dated notes below are the
+history: a count inside them is as of its date.
 
 ADR-107 amended on 2026-09-13 (0.2.11-beta), a session's reach:
 - C-140 registered: a dispatched doer can alter or delete its own
@@ -345,8 +359,8 @@ asymmetry, the reference-lane rule and design §3's four rules —
 registered surfaced the same day by the lane's phase 2, C-62 late for
 phase 1; C-59 registered and lifted the same day — unsurfaced, and the first
 entry where a coverage number reads *better* because of the gap; audited against the tree on 2026-08-23 — every active entry re-checked
-against the code that concedes it; none had been silently lifted). Seven of the active are *partial* (C-4, C-58, C-68, C-83, C-102, C-108, C-124); three
-are **unsurfaced** (C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and C-112 — the grounder's unclassed syntax error, registered as debt 2026-09-11; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
+against the code that concedes it; none had been silently lifted). The *partial* and **unsurfaced** lists this sentence kept by hand fell behind (it last read seven and three, with C-124 among the partial); the table above is current. Notes on the unsurfaced as they stood then
+(C-19 — narrowed to two tools, and since ADR-095 every compiled config is executed in CI — C-20, and C-112 — the grounder's unclassed syntax error, registered as debt 2026-09-11; the 2026-09-02 five — C-75, C-76, C-77, C-78, C-79 — were all lifted 2026-09-03; C-63 — *unsurfaced* since 2026-08-27 and never in this count — was **surfaced 2026-09-05**: the site is counted and classed `expr-callee`, ADR-045 amended); C-58 — the interface/closure call hole, whose capture number reads
 resolved — moved to *partial* on 2026-08-25 (ADR-090: the `below-floor`
 tail class); C-4 moved from unsurfaced to *partial* in that audit, its status
 having lagged the ADR-047 denominator statement by a week. The same audit
@@ -355,11 +369,11 @@ C-55/C-56 to the new Superseded part. C-31 left the unsurfaced list on 2026-08-2
 the verification base stamped into the artifact and stated wherever a
 language list is read), as did C-32's `partial`. The three derivation entries (C-35..C-37,
 ADR-051) landed surfaced on day one — the statement prints on every
-`hobbes plan` run and rides every change-spec. **Twenty are lifted**, C-33 fastest of
-all: registered from the dagger measurement (ADR-048) and lifted one
+`hobbes plan` run and rides every change-spec. **C-33 was lifted fastest of
+all**: registered from the dagger measurement (ADR-048) and lifted one
 session later (ADR-049) when Max reviewed the candidate fix and
 directed it — the register working as intended, a finding becoming a
-fix through review rather than around it. The other six —
+fix through review rather than around it. The earliest others —
 C-14 in the 2026-08-16 register paydown (three CLI packs; the entry's
 own counter-example is the pinned exit check),
 C-11 at V2.M3, C-3 and C-16 in the 2026-08-15 pre-M6 sweep (which also

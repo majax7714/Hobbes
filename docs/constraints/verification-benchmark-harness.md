@@ -1,4 +1,4 @@
-# Verification — the benchmark harness (ADR-055)
+# Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099), the Calvin M0 local harness (ADR-100) and the dispatch harness (ADR-107)
 
 *Part of the constraint register — see [`README.md`](README.md) for how to read an entry, the surfacing statuses, and the debt summary.*
 
@@ -71,7 +71,8 @@
   the network mode and the runtime line (`runtime: … → <endpoint>`)
   with the token redacted; `hobbes bench run` prints `runtime openai @
   <endpoint>`; `run.json` records the endpoint. Narrowing egress to the
-  endpoint host is in `future_additions.md`.
+  endpoint host was parked in `future_additions.md`; it is built for
+  `--egress` sessions (below).
 - **Source:** ADR-056 (2026-08-21).
 - **Narrowed 2026-09-12 (ADR-107, 0.1.21-beta).**
   - **What changed:** `hobbes-session --egress HOST` puts a live
@@ -234,7 +235,8 @@
   possible is visible there, not only in a provider's log; an elided
   result is the literal placeholder in the transcript; a clipped result
   ends in its cut line. Larger windows (a rung with more context, or a
-  paged-context loop) lift it — parked in `future_additions.md`.
+  paged-context loop) would lift it; neither is parked as an item in
+  `future_additions.md` yet.
 - **Measured (2026-08-22, the 5-fresh re-run):** the brief itself is
   the window's main tenant — an implementer brief tokenized to up to
   **16,750 of 32,768 tokens**, and 82 % of it is context the unit
@@ -865,6 +867,8 @@
     `--no-session-persistence`, and its state is removed at exit, so
     its reads are recorded nowhere. This is chosen: the doer's
     reasoning is never stored.
+- **Related:** C-140 — the flight log that does record the edits is
+  itself within the doer's reach.
 - **Source:** ADR-107, 2026-09-12.
 
 ### C-127 — The harness is validated by the developer's reading of each session, not by an answer key
@@ -944,6 +948,8 @@
 - **The fix, named:** give the proxy and its logs a container of their
   own, as the egress proxy has. It is a structural change, so it is
   Max's call.
+- **Related:** C-125 — what the flight log never holds (the doer's
+  reads).
 - **Source:** ADR-107's 2026-09-13 amendment. It was found by tracing
   where `find … -delete` could reach from a dispatch box.
 
@@ -1021,6 +1027,13 @@ refuses that arm name.)*
 - **Source:** ADR-078 (2026-08-22).
 
 ### C-56 — The two arms do not measure the same thing: repo recall in the pure arm, an off-distribution prompt in the aided arm
+*(Superseded 2026-08-23. Was: the reading rule for the Pier
+pure-vs-aided pairs. Superseded by: P12 (ADR-082), which retracted every
+single-agent pair as Hobbes evidence, and by the instruments it asked
+for — `deepswe_familiarity.py`, `deepswe_solution_shape.py`,
+`deepswe_read_volume.py` (ADR-081), so "none built yet" below is
+historical. Would return if: a pure-vs-aided table is read as a Hobbes
+comparison again.)*
 - **Cannot tell you:** how much of a *pure* success on an original task is
   the model's memory of the **repository** (its layout, idioms, the
   library parsers in its corpus) rather than reasoning; DeepSWE's
@@ -1047,12 +1060,5 @@ refuses that arm name.)*
   confound directly, and a solution-shape diff against known library
   implementations. None built yet.
 - **Source:** Max's rethink, 2026-08-22, after the first 27B pair (ADR-080).
-- **Was / Superseded by / Would return if** (moved 2026-08-23): *was* the
-  reading rule for the Pier pure-vs-aided pairs; *superseded by* P12
-  (ADR-082), which retracted every single-agent pair as Hobbes evidence,
-  and by the instruments it asked for — `deepswe_familiarity.py`,
-  `deepswe_solution_shape.py`, `deepswe_read_volume.py` (ADR-081), so
-  "none built yet" above is historical; *would return* the day a
-  pure-vs-aided table is read as a Hobbes comparison again.
 
 ---

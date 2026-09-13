@@ -1,4 +1,4 @@
-# Derivation — the plan mapping (D1)
+# Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate`
 
 *Part of the constraint register — see [`README.md`](README.md) for how to read an entry, the surfacing statuses, and the debt summary.*
 
@@ -30,8 +30,9 @@
 - **You find out:** **surfaced** — every plan run prints the C-35
   statement and every change-spec carries it in its `validation`
   field; the flags name the shapes the mapping itself distrusts.
-- **Source:** ADR-051 (2026-08-19); the lift path is the parked
-  recorder milestone (`future_additions.md`).
+- **Source:** ADR-051 (2026-08-19). The recorder is built (ADR-054);
+  the lift path is loss fitting, parked under D2 in
+  `future_additions.md`.
 
 ### C-36 — Seed resolution is lexical, not understood
 - **Cannot tell you:** what a proposal *means*. Seeds resolve by exact
@@ -499,6 +500,9 @@
   distribution, not a rule for other repos.
 - **Bites at:** a declaration whose sibling is one of the long rules;
   any repo whose declarations of a kind run longer than gitleaks'.
+  `hobbes gate` offers the same capped sibling in its message for a
+  blocked name the diff itself declares (`gate._siblings`), so the form
+  a gate record shows is cut the same way.
 - **You find out:** **partial** — the hole's `SIBLING_RULE` states the
   cap to the model and in the record, but no field says whether this
   sibling was cut.
