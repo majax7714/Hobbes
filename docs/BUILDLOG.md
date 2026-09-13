@@ -9712,3 +9712,90 @@ merged, with no false block and no `missed`.
 **Not done, for Max:** the README comparison wording; the box's
 `find*`/`xargs*`; the validation criterion and ADR-106; whether C-139's
 residual earns a finer extent (only if a graded cell shows the cost).
+
+## 2026-09-13 — (later) the top-level review; the harness validated at 40 sessions; a session contained to its own dir — 0.2.11-beta (ADR-107 amended)
+
+**Asked (Max):** "review top level documentation and report back with
+current standing". Then: "lets move harness validation to 40 sessions.
+worth being a little bulkier to strongly verify. especially because
+there are bugs being caught. the comparison section wording is good the
+recursive delete seems like an error more than a flag. either look to
+contain or prevent. the rest are good to be handled".
+
+- **The review.** README, CLAUDE.md, CHANGELOG, the handoff,
+  architecture §8 and workstreams agreed on version, counts and state.
+  Each was checked against the tree:
+  - ADRs 001–111, 110 files with 106 held;
+  - twelve session logs;
+  - the register's 139 entries, by heading;
+  - the README's 18 comparison rows, against `same-key.svg`;
+  - pytest 1,480 and every Go package green, on a re-run.
+
+  Three drifts, all fixed:
+  - The knowledge tools served the ingest at `e1c9f45` (0.2.9-beta)
+    while HEAD was `6acc028`. Re-ingested.
+  - C-139 sat among `extraction-go.md`'s active entries, because the
+    file had no lifted section. Filed.
+  - Workstreams' dates line stopped at 0.2.8-beta. Brought through
+    0.2.10.
+- **Max's calls.**
+  - The README comparison wording stands.
+  - The harness counts as validated after 40 sessions
+    (`calvin-harness.md` §4; `c0eb51f`).
+  - The recursive delete is a defect, not a flag.
+- **The recursive delete, traced** (ADR-107 amended as `c82e686`, before
+  the dispatch):
+  - `find*` and `xargs*` were allowed, so `find . -delete` and `xargs rm
+    -rf` deleted with no question. `-exec`, `-ok` and `xargs` also ran
+    commands the policy never sees.
+  - The larger gap: `hobbes-session` mounted the whole
+    `~/.hobbes/sessions` root read-write at `/sessions`. One session's
+    allowed command reached every session's clone, flight log, egress
+    log, escalation queue and records. The box header's "only the
+    worktree is writable" was not true.
+  - The glob cannot close it (`python3 *`, `make*` and `awk *` delete
+    too). So containment is the boundary, and the policy rules are
+    questions.
+  - Doers ran `find` or `xargs` once in 21 recorded sessions, so the
+    prevent half costs nothing.
+- **Dispatched as `S-20260913T163921Z-2aa9`:** 57 of 150 turns, 347 s,
+  first edit at 1.2 min. Gate clear, verify pass (77 tests, 0
+  regressions).
+  - 5 exec decisions, all allowed.
+  - Egress refused a plain GET to `llm` once, during the doer's `go
+    test`: a test's own request, not the doer reaching out.
+  - **Reviewed right-clear;** merged unsquashed as `5fb34f7`.
+  - **Found on the host:** `TestALiveSessionMountsOnlyItsOwnSessionDir`
+    failed on its first real run; it skips in the sandbox.
+    - The guarantee held. The listing showed only the session's own dir,
+      and the sibling's file was absent.
+    - The assertion searched all of stdout for `S-sibling`, which the
+      `cat` error echoes.
+    - Fixed in the next commit: the listing is tagged and read line by
+      line. It is an error outside every class, and it is noted in the
+      session file.
+- **0.2.11-beta.** C-140 registered: 140 entries, 112 active, 25
+  lifted, 3 superseded.
+  - A doer can still alter or delete its own session's records, because
+    the proxy runs in its container.
+  - The structural fix, the proxy in a container of its own, is named
+    for Max.
+  - Also updated: the CHANGELOG, README, CLAUDE.md, architecture §8, the
+    harness doc's §2 table, the register index and debt summary, and the
+    handoff. `pipeline/uv.lock` carries the version, as the last three
+    releases' did.
+  - The image and binaries were rebuilt.
+
+**Verified at 0.2.11-beta:**
+- Go 354 `--- PASS`/`SKIP` lines (353 pass, 1 skip), with the live
+  egress and live mount tests run on the host;
+- pytest 1,480;
+- `gofmt` clean on the three touched packages;
+- the image's proxy version.
+
+**Harness sessions:** thirteen logs, of the 40 the harness is validated
+at. The last five were right-clear and merged, with no false block and
+no `missed`.
+
+**Not done, for Max:** C-140's structural fix; ADR-106; whether C-139's
+residual earns a finer extent (only if a graded cell shows the cost).

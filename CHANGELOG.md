@@ -14,6 +14,48 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.9-beta untagged; 0.2.10-beta is tagged
 `v0.2.10-beta`, on Max's word at the close of 2026-09-13).
 
+## 0.2.11-beta — 2026-09-13 (a session mounts only its own dir; `find`'s executing forms and `xargs` are questions; ADR-107 amended)
+
+**Patch: what the layer refuses.** Max: "the recursive delete seems like
+an error more than a flag. either look to contain or prevent." Both,
+with containment as the boundary.
+
+- **Contain.** `hobbes-session` mounted the whole host sessions root,
+  `~/.hobbes/sessions`, read-write at `/sessions`.
+  - Every session's clone, flight log, egress log, escalation queue,
+    gate and verify records and brief sat under it. An allowed command
+    in one session could reach all of them.
+  - A session now mounts only its own dir, at `/sessions/<id>`. Every
+    in-container path is unchanged. This holds for every role and for
+    the benchmark's sessions.
+  - The exit check drops its scripted driver into the session's own dir.
+- **Prevent.** Both boxes change (`calvin.box.policy`,
+  `bench.box.policy`):
+  - `find`'s `-delete`, `-exec`, `-execdir`, `-ok` and `-okdir` escalate.
+  - `xargs` escalates instead of running.
+  - Each of those deletes recursively, or runs a command the policy
+    never sees. A plain `find` still runs.
+  - A name that contains those words escalates too. That over-match
+    asks a question and loosens nothing.
+- **What is left: C-140.** The session's own dir stays writable by its
+  doer, including its flight log, egress log and escalation records,
+  because the policy proxy runs in the doer's container. The fix is to
+  give the proxy a container of its own, and that is Max's call.
+- **The guarantee's own tests (P10):**
+  - `TestALiveSessionMountsOnlyItsOwnSessionDir` runs a real session
+    beside a sibling session dir and finds only its own.
+  - `TestFindsExecutingFormsAndXargsEscalateInBothBoxes` resolves every
+    form against both real boxes.
+- **Register:** C-140 registered (112 active, 25 lifted, 3 superseded).
+- **Built through the harness:** `S-20260913T163921Z-2aa9` (57 of 150
+  turns, 347 s). Gate clear and verify pass (77 tests, 0 regressions);
+  merged without squashing.
+  - The live test failed on its first host run, and verify could not
+    see that, because the test skips in the sandbox.
+  - The guarantee held. The fault was in the assertion, which matched
+    the path its own `cat` error echoed. The developer fixed the
+    assertion in the next commit.
+
 ## 0.2.10-beta — 2026-09-13 (C-139 lifted: a local that shadows an import's name stops lane A's guess; ADR-046 amended)
 
 **Patch: what the layer draws.** After 0.2.9-beta the patch number

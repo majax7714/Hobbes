@@ -209,18 +209,19 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-13, 0.2.10-beta; the last three
+Suite sizes at the last check (2026-09-13, 0.2.11-beta; the last three
 carried from 0.2.8-beta): 1,480 pytest (5 of them
-`lane_b`) / 351 Go (subtests counted: 350 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
+`lane_b`) / 354 Go (subtests counted: 353 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
 87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
 unittest + 7 node) / 52 vitest / 36 tsextract + 43
 scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
 ingest → stamp check → lanes → compiled invariants → review → `lane_b`
-pytest) and runs the same way on a box. The Go suite's live egress test
-runs a real session behind the real proxy wherever podman and the image
-are present.
+pytest) and runs the same way on a box. The Go suite's live tests run a
+real session behind the real proxy (egress) and beside a sibling
+session's dir (the mount) wherever podman and the image are present;
+inside a dispatch they skip, so their first run is the developer's.
 
 ## Conventions
 
@@ -285,7 +286,7 @@ are present.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-13) — Hobbes 0.2.10-beta
+## Status (2026-09-13) — Hobbes 0.2.11-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -304,7 +305,7 @@ are present.
     lost no confirmed edge.
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 139 entries (111 active, 25 lifted, 3 superseded).
+  - **Register:** 140 entries (112 active, 25 lifted, 3 superseded).
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
@@ -327,11 +328,13 @@ are present.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-13) were `list_blind_spots`' directory
-    rollup (`3c45`, merged as `9fc2036`, 0.2.9-beta) and C-139's lift
-    (`a323`, merged as `a5d1e14`, 0.2.10-beta; all 27 Go cells with a
-    stored key regraded with nothing moved). Both gates were
-    right-clear. There are twelve session logs.
+  - **The latest** (2026-09-13) were C-139's lift (`a323`, merged as
+    `a5d1e14`, 0.2.10-beta) and the session's containment (`2aa9`,
+    merged as `5fb34f7`, 0.2.11-beta, ADR-107 amended). A session now
+    mounts only its own dir, and `find`'s executing forms and `xargs`
+    escalate. C-140 is the residual. Both gates were right-clear. There
+    are thirteen session logs, and the harness counts as validated after
+    40 (Max, 2026-09-13).
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
     (enforced in `units_from_git`).
@@ -339,7 +342,8 @@ are present.
   The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
   approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
-  - the harness's validation criterion (N sessions);
+  - the proxy and its logs in a container of their own (C-140's fix,
+    a structural change);
   - whether ADR-106 stays held;
   - the Atlas-0 T items;
   - the TTT adapter points;

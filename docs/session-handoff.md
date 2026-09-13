@@ -1,63 +1,121 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-13; Hobbes 0.2.10-beta on `main`.**
-- **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13: "tag a
-  commit with the new version to end off current session"). The one
-  before it is `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta are untagged.
-  Tags stay Max's call each time.
+**Reviewed 2026-09-13; Hobbes 0.2.11-beta on `main`.**
+- **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
+  before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta
+  are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
   reaches "supported"; a structural change bumps minor (ask).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the two 2026-09-13 BUILDLOG entries.
+The session's record is the three 2026-09-13 BUILDLOG entries.
 
-## ⇢ START HERE NEXT SESSION: Max's open calls; then the named no-spend queue
+## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-13).** Three pieces of work landed, each reviewed:
-   1. **The doc sweep and the facing update** (`7602eb2`).
-      - The README has a new section: *Where Hobbes stands beside other code-graph tools*, embedding `same-key.svg` with its reading rules.
-      - Stale lines were fixed across architecture, field.md, comparative/README, oracle-grading, first-run, the harness doc, how-hobbes-differs and workstreams.
-      - The graphics' captions are now read from the cells, and the scatter has a C panel.
-      - Max reviewed the sweep ("looks good through my review").
-   2. **`list_blind_spots`' directory rollup** (`3c45`, merged as `9fc2036`), released as **0.2.9-beta**.
-   3. **C-139 lifted** (ADR-046 amended before the dispatch, `e1c9f45`; dispatched as `a323`, merged as `a5d1e14`), released as **0.2.10-beta**.
-      - Go lane A no longer resolves a qualified call whose qualifier a local shadows.
-      - All 27 Go cells with a stored key were regraded, and nothing moved. Dagger's 56 vetoes read 0.
-      - The residual is in C-139: the function-wide extent gives up 30 true package calls on dagger, and only where lane B is silent.
-   - The image and binaries are at 0.2.10-beta. **Restart the knowledge server** the next session opens with (C-65).
+0. **Latest (2026-09-13, later).** A review of the top-level docs, then
+   Max's calls on it:
+   1. **The review** found three drifts, all fixed:
+      - the knowledge tools were one version behind HEAD;
+      - C-139 was filed among the active entries;
+      - the dates line in workstreams was stale.
+   2. **The README comparison wording stands** (Max).
+   3. **The harness counts as validated after 40 sessions** (Max: "worth
+      being a little bulkier to strongly verify. especially because
+      there are bugs being caught"). The rule is `calvin-harness.md` §4:
+      40 sessions across at least three areas, no false block
+      unresolved, every `missed` fixed or registered, no refusal
+      unread.
+   4. **The recursive delete was a defect** (Max: "contain or prevent").
+      Both were done in **0.2.11-beta** (ADR-107 amended, `c82e686`;
+      dispatched as `2aa9`, merged as `5fb34f7`):
+      - **Contain.** A session mounts only its own dir at
+        `/sessions/<id>`. It had mounted the whole sessions root
+        read-write, so one session's allowed command could reach every
+        session's clone and records.
+      - **Prevent.** `find -delete/-exec/-execdir/-ok/-okdir` and
+        `xargs` escalate in both boxes.
+      - **Left: C-140.** A doer can still alter its own session's
+        records.
+      - The live mount test's assertion was fixed on the host (`2aa9`'s
+        notes).
+   - The image and binaries are at 0.2.11-beta. **Restart the knowledge
+     server** the next session opens with (C-65).
 1. **Open for Max (no spend):**
-   - **The README comparison section's wording.** It states that Hobbes is rightmost on both axes on all 18 rows, tied on precision once. Read it before publishing.
-   - **The box's `find*`/`xargs*`.** Both can delete recursively without escalating (`find . -delete`, `xargs rm -rf` as a segment). Only the header names this.
-   - **The harness's validation criterion** (N sessions, proposed 20 across three areas). There are twelve session logs so far. The last four were right-clear and merged, with no false block and no `missed`.
+   - **C-140's structural fix.** Give the policy proxy and its logs a
+     container of their own, as the egress proxy has. The doer then
+     cannot reach its own flight log. This is a structural change, so it
+     is his call.
    - **ADR-106.**
-   - **C-139's finer extent** (the binding's own line, or the enclosing block), only if a graded cell ever shows the recall cost. Nothing is owed now.
+   - **C-139's finer extent** (the binding's own line, or the enclosing
+     block). Take it only if a graded cell ever shows the recall cost.
+     Nothing is owed now.
 2. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
-   - Decide the design in an ADR or an amendment **before** the dispatch, as ADR-111 and ADR-046's amendment were.
-   - Name one small unit: `hobbes dispatch --task-file … --partition … --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the argv carries `--settings` (the hook).
+   - Decide the design in an ADR or an amendment **before** the
+     dispatch, as ADR-111, ADR-046's amendment and ADR-107's 2026-09-13
+     amendment were.
+   - Name one small unit: `hobbes dispatch --task-file … --partition …
+     --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
+     argv carries `--settings` (the hook).
    - Watch dispatch's own stderr for "first edit at".
-   - Review the session file and the diff. Merge with `git merge --no-ff -m … -m …` or `-F <file>`, never squash.
-     - `git merge` does not read `-F -` from stdin. A heredoc there fails the merge silently in a `;` chain.
+   - Review the session file and the diff. Merge with `git merge --no-ff
+     -m … -m …` or `-F <file>`, never squash.
+     - `git merge` does not read `-F -` from stdin. A heredoc there fails
+       the merge silently in a `;` chain.
+     - A heredoc followed by `&& \` in one Bash call is a syntax error;
+       write the message to a file and pass `-F <file>`.
+   - **A live test skips in the sandbox** (podman is not there), so
+     verify cannot run it. Run every new live test on the host before
+     merging (`2aa9`: the guarantee held, and the assertion was wrong).
    - **Testing a dispatch branch on the host before merging:**
-     - make a worktree with its own `uv sync`; main's venv would import main's code;
-     - copy `scip/node_modules` and `tsextract/node_modules` as real trees, because lane B's container cannot follow a symlink out of the worktree;
-     - run node tests as `node --test test/index.test.mjs`; node 22 does not take a directory.
-3. **A regrade against stored keys** (the ADR-111 pattern, used again for C-139):
-   - `~/.hobbes/bench/adr111-drivers/`: `ROOT=<worktree> regrade3.sh <out> <cells.tsv>`.
-   - `cells.tsv` names every cell's clone, module, lang, excludes, key and before-report. For a one-language gate, filter it by the lang column and point the before-report column at the last pass's reports. This session: `adr111-post/<cell>/report.json`, with the output in `~/.hobbes/bench/c139-post/`.
-   - Run a pre pass only when ingest code changed since the baseline pass. Never run two passes over the same clone at once.
-   - For a lane A change, also compare `extract_go` (or its language's provider) on main against the branch. A lane B-on regrade can move nothing where lane B already answers.
+     - make a worktree with its own `uv sync` if the Python side is
+       tested; main's venv would import main's code. Go tests need no
+       venv.
+     - copy `scip/node_modules` and `tsextract/node_modules` as real
+       trees, because lane B's container cannot follow a symlink out of
+       the worktree;
+     - run node tests as `node --test test/index.test.mjs`; node 22 does
+       not take a directory.
+   - **Toward 40 across three areas.** The thirteen logs so far cover:
+     - extraction: C's lane A and its rework, the external veto, C-139;
+     - the knowledge tools: the `path` alias, the language tables, the
+       directory rollup;
+     - the harness and sandbox: the progress hook, the containment;
+     - the oracle lane: C's oracle.
+3. **A regrade against stored keys** (the ADR-111 pattern, used again for
+   C-139):
+   - `~/.hobbes/bench/adr111-drivers/`: `ROOT=<worktree> regrade3.sh
+     <out> <cells.tsv>`.
+   - `cells.tsv` names every cell's clone, module, lang, excludes, key and
+     before-report. For a one-language gate, filter it by the lang column
+     and point the before-report column at the last pass's reports. The
+     last one: `adr111-post/<cell>/report.json`, with the output in
+     `~/.hobbes/bench/c139-post/`.
+   - Run a pre pass only when ingest code changed since the baseline
+     pass. Never run two passes over the same clone at once.
+   - For a lane A change, also compare `extract_go` (or its language's
+     provider) on main against the branch. A lane B-on regrade can move
+     nothing where lane B already answers.
    - `render.py` takes absolute paths.
 4. **Carried, untouched this session:**
-   - **The ingest's `.gitignore` edit.** Register it as a constraint or change it, on Max's reading (round 1's finding).
-   - **D-r.** `hobbes verify`'s `--shared` clone makes `git` fail in the container. It showed up again as the doer's three `test_ttt_units` failures in `a323`; they pass on the host.
+   - **The ingest's `.gitignore` edit.** Register it as a constraint or
+     change it, on Max's reading (round 1's finding).
+   - **D-r.** `hobbes verify`'s `--shared` clone makes `git` fail in the
+     container. It showed up as the doer's three `test_ttt_units`
+     failures in `a323`; they pass on the host.
+   - **pytest's 4 warnings:** a helper named `testmap_fixture` in
+     `test_ttt_corpus.py` and `test_ttt_units.py` is collected as a test
+     and returns a dict.
    - **`stringer` is not in the image.**
    - **The Gradle attach route's residuals** (C-67).
    - **`recall-collapsed` and H-23**; ADR-105/P13; the C-98 residuals.
-   - **The comparative queue:** item 4; a foreign cell for C (both tools on cJSON and sqlite-vector). `oracle import` takes no `--lang c` yet (`bench/oracle/cmd/oracle/main.go`), so it is code first.
-   - **C's residue:** C-134, C-135, C-133. The macro gap stays parked (C-131, `future_additions.md`).
+   - **The comparative queue:** item 4; a foreign cell for C (both tools
+     on cJSON and sqlite-vector). `oracle import` takes no `--lang c` yet
+     (`bench/oracle/cmd/oracle/main.go`), so it is code first.
+   - **C's residue:** C-134, C-135, C-133. The macro gap stays parked
+     (C-131, `future_additions.md`).
    - **`build-logic/`** is recorded, not built (ADR-097).
 
 ## Atlas-0 — held from 2026-09-07: Max reads the B4 record; then the T that carries the abstention act, and T_v2
@@ -116,10 +174,11 @@ assumed of $25:
     `gate.derive_map`, `gate.map_files`.
   - **Records:** each session's state is under
     `~/.hobbes/sessions/<id>/` (`flight.jsonl`, `egress.jsonl`,
-    `dispatch.json`, `gate.json`, `verify.json`, the brief). The
+    `dispatch.json`, `gate.json`, `verify.json`, the brief). Since
+    0.2.11-beta a session mounts only its own dir, never the root. The
     doer's own state is purged at exit and never kept (retention,
     0.1.22-beta). The log file is under `docs/calvin/sessions/`
-    (twelve).
+    (thirteen, of the 40 that validate the harness).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
     later session's in its brief (`~/.hobbes/sessions/<id>/brief.md`).
@@ -128,31 +187,35 @@ assumed of $25:
   `calvin-go/` and `calvin-gate/`.
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 80 cells; `render.py check` green. The README embeds
-  `same-key.svg`.
+  `same-key.svg`, and its wording stands (Max, 2026-09-13).
 - **Atlas-0** (`bench/atlas0/`, 84 tests): worlds and runs under
   `~/.hobbes/bench/atlas0/`, and on the volume `hobbes-atlas0`.
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 139 entries, 111 active, 25 lifted, 3 superseded.
-  C-139 lifted 2026-09-13, with its residual recorded in the entry.
-- **Suites** at 0.2.10-beta:
-  - 1,480 pytest (host, on the C-139 branch);
-  - Go 351 `--- PASS`/`SKIP` lines at 0.2.9-beta (350 pass, 1 skip);
-    only `version.go` has changed since.
-  - The rest was not re-run, since nothing they cover changed: 91
-    oracle-lane Go (the report test green), 52 vitest, 43 helper and 36
-    tsextract node, 84 atlas0.
+- **Register:** 140 entries, 112 active, 25 lifted, 3 superseded.
+  C-140 registered 2026-09-13.
+- **Suites** at 0.2.11-beta:
+  - 1,480 pytest (host);
+  - Go 354 `--- PASS`/`SKIP` lines (353 pass, 1 skip), with the live
+    egress and live mount tests run on the host;
+  - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
+    vitest, 43 helper and 36 tsextract node, 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).
 
 ## NEXT (in order; no API spend)
 
-1. **Max's calls** (START HERE item 1): the README comparison wording,
-   the box's `find`/`xargs`, the validation criterion, ADR-106.
-2. **Keep dispatching named no-spend work through the harness,** one unit per brief:
-   - C's residue (W1): C-134's test registrations; C-135's autotools, Meson and Bazel roots and its surfacing gap; C-133's include path read from the database;
-   - W1/W3's no-spend items: the decorated-declaration line convention, the C-15 namespacing ADR, `fetch-java` on the egress proxy;
-   - `oracle import --lang c`, then the foreign C cells (the comparative queue).
+1. **Max's calls** (START HERE item 1): C-140's structural fix, ADR-106.
+2. **Keep dispatching named no-spend work through the harness,** one
+   unit per brief, toward 40 across at least three areas:
+   - C's residue (W1): C-134's test registrations; C-135's autotools,
+     Meson and Bazel roots and its surfacing gap; C-133's include path
+     read from the database;
+   - W1/W3's no-spend items: the decorated-declaration line convention,
+     the C-15 namespacing ADR, `fetch-java` on the egress proxy;
+   - `oracle import --lang c`, then the foreign C cells (the comparative
+     queue);
+   - small harness items: pytest's `testmap_fixture` warnings, D-r.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
    - `go/internal/version` and the union fixture's ownership;
@@ -192,6 +255,9 @@ The keyed Calvin runs are closed, not held.
   once merged a dispatch and wrote its reviews while another session
   was working. Before assuming `main`'s state or a file's content, read
   `git reflog` and the file itself.
+- **A session sees only its own dir** (0.2.11-beta). A file a scripted
+  session command needs goes under `<sessions>/<id>/`, never the root
+  (`sandbox/exitcheck.py` does this).
 - **The egress route.**
   - `hobbes-egress` is a shared podman bridge; it stays between
     sessions.

@@ -920,6 +920,33 @@
   never squash" is in the procedure.
 - **Source:** ADR-107's retention amendment; Max, 2026-09-12.
 
+### C-140 — A dispatched doer can alter or delete its own session's records
+
+- **Cannot tell you:** that a session's own flight log, egress log and
+  escalation records hold exactly what the proxies wrote.
+  - The proxy that writes the flight log and the escalation queue runs
+    in the doer's container, as the doer's user. The session dir is
+    mounted read-write there.
+  - Claude Code's own Write tool reaches the same dir.
+  - The egress proxy writes `egress.jsonl` from its own container, but
+    into that same host dir.
+- **Because:** the recorder shares the doer's container. The policy
+  proxy is the doer's MCP server over stdio (ADR-015). Since
+  0.2.11-beta (ADR-107's 2026-09-13 amendment), a session mounts only its
+  own dir. No other session's records or clone are reachable; its own
+  stay in reach.
+- **Bites at:** reading a session's policy decisions, escalations and
+  egress refusals as complete. `calvin-harness.md` §4's "every refusal
+  is read" reads a log the doer could have edited.
+- **You find out:** *partial*. The box header (`calvin.box.policy`) and
+  the harness doc's §2 table name it. The session file, where the logs
+  are read, does not, and nothing detects an edit.
+- **The fix, named:** give the proxy and its logs a container of their
+  own, as the egress proxy has. It is a structural change, so it is
+  Max's call.
+- **Source:** ADR-107's 2026-09-13 amendment. It was found by tracing
+  where `find … -delete` could reach from a dispatch box.
+
 ## Superseded constraints in this segment
 
 A limit that was never lifted but whose path no longer runs. The
