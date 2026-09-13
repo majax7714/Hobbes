@@ -366,6 +366,160 @@ class TestTests:
         assert scale_test["reaches"] == []
 
 
+class TestRegistrations:
+    """The amendment (ADR-108, 2026-09-13): a registration makes a test
+    before the naming convention gets a look, C-134's narrowing."""
+
+    def test_unity_registers_in_the_same_file(self, tmp_path):
+        (tmp_path / "thing.c").write_text(
+            "static void test_helper(void) {}\n"
+            "void thing_should_add(void) { test_helper(); }\n"
+            "void thing_should_scale(void) {}\n"
+            "int main(void) {\n"
+            "    RUN_TEST(thing_should_add);\n"
+            "    RUN_TEST(thing_should_scale);\n"
+            "    return 0;\n"
+            "}\n"
+        )
+        layer = extract_c(tmp_path)
+        by_name = {t["name"]: t for t in layer["tests"]}
+        assert set(by_name) == {"thing_should_add", "thing_should_scale"}
+        assert all(t["framework"] == "unity" for t in by_name.values())
+
+    def test_a_static_helper_the_registered_functions_call_is_not_a_test(self, tmp_path):
+        (tmp_path / "thing.c").write_text(
+            "static void test_helper(void) {}\n"
+            "void thing_should_add(void) { test_helper(); }\n"
+            "int main(void) { RUN_TEST(thing_should_add); return 0; }\n"
+        )
+        layer = extract_c(tmp_path)
+        assert not any(t["name"] == "test_helper" for t in layer["tests"])
+
+    def test_unity_runner_layout_gives_one_test_not_two(self, tmp_path):
+        (tmp_path / "test").mkdir()
+        (tmp_path / "test" / "TestThing.c").write_text(
+            "void test_add(void) {}\nvoid test_scale(void) {}\n"
+        )
+        (tmp_path / "test" / "test_runners").mkdir()
+        (tmp_path / "test" / "test_runners" / "TestThing_Runner.c").write_text(
+            "void test_add(void);\n"
+            "void test_scale(void);\n"
+            "int main(void) {\n"
+            "    RUN_TEST(test_add);\n"
+            "    RUN_TEST(test_scale);\n"
+            "    return 0;\n"
+            "}\n"
+        )
+        layer = extract_c(tmp_path)
+        ids = {t["id"] for t in layer["tests"]}
+        assert ids == {"test/TestThing.c::test_add", "test/TestThing.c::test_scale"}
+        assert all(t["framework"] == "unity" for t in layer["tests"])
+        records = [e for e in layer["errors"] if e["stage"] == "c-tests"]
+        assert not any(r["path"] == "test/test_runners/TestThing_Runner.c" for r in records)
+
+    def test_cmocka_registrations_give_cmocka_tests_and_skip_setup_teardown(self, tmp_path):
+        (tmp_path / "calc_test.c").write_text(
+            "static int setup(void **state) { return 0; }\n"
+            "static int teardown(void **state) { return 0; }\n"
+            "static void test_add(void **state) {}\n"
+            "static void test_sub(void **state) {}\n"
+            "const struct CMUnitTest tests[] = {\n"
+            "    cmocka_unit_test(test_add),\n"
+            "    cmocka_unit_test_setup_teardown(test_sub, setup, teardown),\n"
+            "};\n"
+        )
+        layer = extract_c(tmp_path)
+        by_name = {t["name"]: t for t in layer["tests"]}
+        assert set(by_name) == {"test_add", "test_sub"}
+        assert all(t["framework"] == "cmocka" for t in by_name.values())
+
+    def test_check_registration_gives_a_check_test(self, tmp_path):
+        (tmp_path / "calc_test.c").write_text(
+            "START_TEST(test_add)\n{\n}\nEND_TEST\n"
+            "void suite(TCase *tc) {\n"
+            "    tcase_add_test(tc, test_add);\n"
+            "}\n"
+        )
+        layer = extract_c(tmp_path)
+        [test] = layer["tests"]
+        assert test["name"] == "test_add" and test["framework"] == "check"
+
+    def test_a_registration_naming_a_function_defined_in_two_files_abstains(self, tmp_path):
+        (tmp_path / "a.c").write_text("void dup_test(void) {}\n")
+        (tmp_path / "b.c").write_text("void dup_test(void) {}\n")
+        (tmp_path / "runner.c").write_text("int main(void) { RUN_TEST(dup_test); return 0; }\n")
+        layer = extract_c(tmp_path)
+        assert not any(t["name"] == "dup_test" for t in layer["tests"])
+
+    def test_a_registration_naming_nothing_makes_no_test(self, tmp_path):
+        (tmp_path / "runner.c").write_text("int main(void) { RUN_TEST(missing); return 0; }\n")
+        layer = extract_c(tmp_path)
+        assert layer["tests"] == []
+
+    def test_no_registrations_falls_back_to_the_naming_convention(self, tmp_path):
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_math.c").write_text("int test_add(void) { return 1; }\n")
+        layer = extract_c(tmp_path)
+        [test] = layer["tests"]
+        assert test["name"] == "test_add" and test["framework"] == "c-convention"
+
+    def test_a_test_program_with_no_nameable_test_gets_the_file_record(self, tmp_path):
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "prog.c").write_text("int main(void) { return 0; }\n")
+        layer = extract_c(tmp_path)
+        records = [e for e in layer["errors"] if e["stage"] == "c-tests"]
+        [record] = [r for r in records if r["path"] == "tests/prog.c"]
+        assert "C-134" in record["message"]
+
+    def test_a_runner_with_recognized_registrations_draws_no_file_record(self, tmp_path):
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "other.c").write_text("void elsewhere_test(void) {}\n")
+        (tmp_path / "tests" / "runner.c").write_text(
+            "void elsewhere_test(void);\n"
+            "int main(void) { RUN_TEST(elsewhere_test); return 0; }\n"
+        )
+        layer = extract_c(tmp_path)
+        records = [e for e in layer["errors"] if e["stage"] == "c-tests"]
+        assert not any(r["path"] == "tests/runner.c" for r in records)
+
+    def test_unread_forms_give_one_directory_record_with_their_counts(self, tmp_path):
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "crit.c").write_text(
+            "Test(suite, first) {\n}\nTest(suite, second) {\n}\n"
+        )
+        (tmp_path / "tests" / "fix.c").write_text(
+            "TEST(group, name) {\n}\n"
+            "void run(TestGroup *g) { RUN_TEST_CASE(group, name); }\n"
+        )
+        layer = extract_c(tmp_path)
+        records = [
+            e for e in layer["errors"] if e["stage"] == "c-tests" and e["path"] == "tests"
+        ]
+        [record] = records
+        assert record["message"] == (
+            "3 `Test(suite, name)`/`TEST(group, name)` bodies and 1 `RUN_TEST_CASE` call "
+            "in a form Hobbes does not read (C-134)"
+        )
+
+    def test_reach_works_for_a_registered_test(self, tmp_path):
+        (tmp_path / "util.c").write_text(
+            "static int helper(void) { return 1; }\n"
+            "int add(int a, int b) { return a + b + helper(); }\n"
+        )
+        (tmp_path / "runner.c").write_text(
+            "void test_add(void) { add(1, 2); }\n"
+            "int main(void) { RUN_TEST(test_add); return 0; }\n"
+        )
+        layer = extract_c(tmp_path)
+        edges = [
+            {"from": "runner.test_add", "to": "util.add", "type": "calls"},
+            {"from": "util.add", "to": "util.helper", "type": "calls"},
+        ]
+        [row] = collect_c_tests(layer["files"], edges)
+        assert row["id"] == "runner.c::test_add"
+        assert row["reaches"] == ["util.add", "util.helper"]
+
+
 @pytest.fixture(scope="module")
 def extraction():
     from hobbes.extract import extract_repo
