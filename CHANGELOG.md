@@ -11,7 +11,7 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.5-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.8-beta untagged; the last tag is
 `v0.1.8-beta`).
 
 ## 0.2.8-beta — 2026-09-12 (the external veto: lane A's guess is dropped where lane B resolved the site outside the repo; ADR-111)

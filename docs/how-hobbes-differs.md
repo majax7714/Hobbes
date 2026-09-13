@@ -39,7 +39,7 @@ flowchart LR
     TS["tree-sitter walk<br/>(ts-morph for TS/JS)"] --> S1[symbols · call sites · imports<br/>local bindings · test shapes]
   end
   subgraph B["Lane B — the language's own indexer (pinned)"]
-    SCIP[scip-python · scip-typescript · scip-go<br/>rust-analyzer scip · scip-java] --> S2[declarations resolved<br/>per occurrence]
+    SCIP[scip-python · scip-typescript · scip-go<br/>rust-analyzer scip · scip-java · scip-clang] --> S2[declarations resolved<br/>per occurrence]
   end
   F --> TS
   F --> SCIP
@@ -58,6 +58,7 @@ flowchart LR
   ORA --> O3[Python: the interpreter,<br/>sys.monitoring under the repo's suite]
   ORA --> O4[Rust: rustc MIR, a rustc_driver walker]
   ORA --> O5[Java: javac + CHA]
+  ORA --> O6[C: clang's own front end]
   FOREIGN["another tool's graph<br/>oracle import (ADR-101)"] --> ORA
 ```
 

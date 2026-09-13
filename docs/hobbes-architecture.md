@@ -271,12 +271,13 @@ is not a hosted product, an application to log into, or an IDE plugin (§10).
   helper decodes today, not the rule: a compiler's own export, a build
   plugin, an indexer emitting another format is admissible on the same
   terms — batch, pinned, stamped, decoded to the same facts, evidenced
-  in §3.8 — and two of the five providers already are not `scip-*`
+  in §3.8 — and two of the six providers already are not `scip-*`
   programs. A language server is excluded whatever its accuracy: its
   answers depend on session state, it cannot be pinned as an artifact
   or run to completion under a per-step containment profile, and it
   answers questions where Hobbes derives an artifact (P1, P5). The
-  seventh language is read against these five points before §3.7.
+  eighth language is read against these five points before §3.7, as C
+  was (ADR-108/109).
 
 ---
 
@@ -291,7 +292,7 @@ flowchart TB
     subgraph Extract["Extraction"]
         LA[Lane A: tree-sitter\nstructure · routes · tests\ncall-site detection]
         STG[Staging copy\n~/.hobbes/cache]
-        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust · java\nin the sandbox image, no network\n(Java resolves networked, no sources)\nresolution]
+        LB[Lane B: SCIP indexers\nscip-python · ts · go · rust · java · clang\nin the sandbox image, no network\n(Java resolves networked, no sources;\nC over a derived compile database)\nresolution]
         EIR[Evidence IR\nrange-anchored observations]
         JOIN[Range join\n→ semantic IR]
         GB[Graph builder\nprojection + enrichment packs]
@@ -338,8 +339,8 @@ module-level dependency edges.
 
 Seven providers: `pysource` (Python), `tssource` (TS/JS, via the ts-morph
 helper), `gosource` (Go, V2.M5), `rustsource` (Rust, V2.M7),
-`javasource` (Java, ADR-096), `csource` (C, ADR-108, the only one with
-no indexer behind it yet), and the HCL walk inside the Terraform pack. Each answers the same question — where are
+`javasource` (Java, ADR-096), `csource` (C, ADR-108; scip-clang behind
+it since ADR-109), and the HCL walk inside the Terraform pack. Each answers the same question — where are
 the call sites, and what encloses them — and none of them resolves anything.
 
 The TS provider places an overloaded function or method at its first
@@ -986,7 +987,8 @@ gets graded at scale** (ADR-089, `docs/oracle/oracle-grading.md`,
 two of Hobbes' own methods agreeing. The oracle lane grades every call
 edge against an edge source Hobbes does not control — Go's own RTA over
 SSA, `tsc`'s resolution, and in phase 2 the Python interpreter's own
-call trace and rustc's MIR — and reports **precision-against-oracle (a lower bound — contradictions mostly triage to the oracle's grain; the triage ratio is quoted per cell, A-8) and
+call trace and rustc's MIR, then javac with CHA (O8) and clang's own
+front end (O9) — and reports **precision-against-oracle (a lower bound — contradictions mostly triage to the oracle's grain; the triage ratio is quoted per cell, A-8) and
 recall together**, per tier, with the root count or coverage line the
 recall depends on and the oracle-silent size printed. A row this lane
 produces reads "compiler-graded" or "trace-graded", never as
@@ -997,15 +999,18 @@ through a per-tool converter with a hand-read fixture, and
 `grade-foreign.sh` grades it against the same key with the same
 matcher and the same poison check; the comparison with other
 code-graph tools is those cells (`docs/comparative/`), never a
-scoreboard of self-reported numbers, and its three graphics are
+scoreboard of self-reported numbers, and its four graphics are
 regenerated from the cell records (ADR-102). A foreign cell is at
 Hobbes' grain (C-94, C-95) and host-run (C-96). State at
 2026-08-28: both phases built and run (O1–O4, O6, O7), fifteen cell
 records over this repo, kbet, rust_proj, dagger and the seven-repo
 loop, the lane's own defect log reviewed (H-1..H-19,
 `oracle-defect-review.md`), and its executing oracles contained
-(ADR-092). The fixtures (`minigo`, `twomod`, `minits`, `miniapp`,
-`minirust`) remain the self-test every run of the suite lands on.
+(ADR-092). Since then O8 (javac with CHA, 2026-08-29, ADR-096) and O9
+(clang's front end, 2026-09-12, ADR-110) are built and run, contained.
+The fixtures (`minigo`, `twomod`, `minits`, `miniapp`, `minirust`,
+`minijava`, and `cclang` for C) remain the self-test every run of the
+suite lands on.
 
 ---
 
@@ -1570,7 +1575,7 @@ MultiEdit and NotebookEdit.
   is derived from a source checkout, and it is the source's dependency
   set, not the SHA's (C-92). The
   containment rule is *whatever executes repo-authored code*: agent
-  sessions, lane B, the oracle lane's O6/O7 (all built, ADR-092), a
+  sessions, lane B, the oracle lane's O6–O9 (all built, ADR-092), a
   target's tests under the verifier (ADR-100). The
   guarantee it carries — repo code never executes on the host — is
   P10-specific: a box without podman refuses the executing steps rather
@@ -1590,8 +1595,9 @@ MultiEdit and NotebookEdit.
   (default 30 min), logged approvals.
 - **Flight recorder** — append-only JSONL per session:
   `{ts, session, role, tool, argv, policy_rule, decision, exit, sha}`
-  plus `escalation` (ADR-016) and `context_fault` (ADR-054); the
-  recorder's `Event` is the pinned list.
+  plus `escalation` (ADR-016), `context_fault` (ADR-054) and `path`, a
+  dispatched doer's edit by file and never content (the progress hook,
+  ADR-107's second amendment); the recorder's `Event` is the pinned list.
 - **Quota** — designed in v1 (per-session caps, box-level reserve gating
   the spawner) and **never built**; what exists are the run/bench caps
   (`--max-turns`, `--max-units`, `--max-tokens`, the brief limit) and the
@@ -1612,7 +1618,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.1.4-beta** (2026-09-09, ADR-103; beta: graded, not stable; `CHANGELOG.md` is the
+**Hobbes 0.2.8-beta** (2026-09-12, ADR-103; beta: graded, not stable; the last tag is `v0.1.8-beta`, 0.1.9-beta to 0.2.8-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
@@ -1648,13 +1654,13 @@ The v2 extraction programme — **complete and fully reviewed as of
 | **D1** — the plan derivation | done, **reviewed 2026-08-21** | ADR-051: `hobbes plan` — impact, partition, contracts, manifests with enforced complements, the plan-review gate; C-35..C-37 registered surfaced |
 | **D2** — execution | base built, **reviewed 2026-08-21** | ADR-054: `hobbes run` — role + agent policy levels, standing/short-term context, context faults tagged, `reflect`, branch harvest, integration + review, the partition record with the declared loss; C-38 registered surfaced; what remains in `future_additions.md` |
 | **Benchmark verification** | **parked (renewed 2026-08-24)** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark/benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085); the ADR-085 validation pair ran 2026-08-24 (0/5, eight harness defects, six fixed in ADR-091 and the last two in ADR-093, all validated with no model). Next, on the owner's go: the removal A/B on the D5 fix |
-| **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR / javac / clang's front end on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision but two: quic-go's 99.6% lower bound, all 15 contradictions the oracle's grain, and C's sqlite-vector at 99.6%, three syntactic edges Hobbes got wrong (§3.8); its own defect log reviewed (`oracle-defect-review.md`) |
-| **Containment** (ADR-092) | built, all four phases, **reviewed 2026-08-28** | sandbox whatever executes repo-authored code: lane B and O6/O7 in the one image; `--uncontained` disclosed and stamped; the knowledge layer stated as a complete deployment; the claim scoped to the runs made under it (P11) |
+| **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR / javac / clang's front end on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision but one: quic-go's 99.6% lower bound, all 15 contradictions the oracle's grain (C's sqlite-vector read 99.6% from three wrong syntactic edges until ADR-111's veto, 0.2.8-beta: 851/851, §3.8); its own defect log reviewed (`oracle-defect-review.md`) |
+| **Containment** (ADR-092) | built, all four phases, **reviewed 2026-08-28** | sandbox whatever executes repo-authored code: lane B and the executing oracles (O6/O7, and O8/O9 since) in the one image; `--uncontained` disclosed and stamped; the knowledge layer stated as a complete deployment; the claim scoped to the runs made under it (P11) |
 | **Java** (ADR-096, J.M0–J.M5) | done, contained, **compiler-graded 2026-08-29**; C-66 settled 2026-09-01 (ADR-097) | the sixth language: `javasource` + `scip-java` in the image, a javac+CHA oracle (O8), four cells at 100% precision (§3.8); the build resolves networked on a stage with no sources, then indexes offline; the residual (build logic over public caches) stays registered |
 | **Test-time training** (ADR-099) | run 2026-09-03, **held for the owner's call** | `hobbes derive-corpus` renders the derived layer as a training corpus; at 300 steps a 7B's gold-diff NLL falls on every unit but navigation does not follow, past one epoch the edges enter the weights while the NLL gain leaves; H-TTT-2/3 killed at that step count (`olmo3-ttt-results.md`, § H-TTT); C-81–C-88 |
 | **Calvin M0** (`calvin-potential.md`; ADR-100 for its harness) | steps 0–6b built, **run on four keys 2026-09-04**; the design's own ADR (101) waits on the owner's *accepted*; a wider run is held with all spend | the hole language (`derive/holes.py`), `hobbes template`, `hobbes ground`, `hobbes verify`, `hobbes gate` and the orchestrator adapter; **`hobbes gate`** (Calvin M0-Gate WP-18, 2026-09-11, `derive/gate.py`): grounder v3 over any finished diff at its parent through a one-hole template, the complement split against the unit's blind-spot map (a name-absence NULL in a blind spot reads `unknown`, advisory; a file-grain site count never routes) and the partition check at file grain (by default `reach`: a file that is not code and a code file created beside the partition are listed, not blocked), clear or blocked by class, the record stamped and byte-identical on rerun; the O drivers gate post hoc and resume a blocked session for one repair turn (`agent/loop.py --resume-transcript`); C-121–C-123; since 0.1.20-beta (WP-18c, D-x) an arm-O session and its repair turn start from a repo cut at their base commit (`harness.session_repo`: no commit past the parent, no remote, no alternates, checked at the object level; the branch fetched back into the owned clone after), one sessions root per session, C-124 the network left open; the 28 golds ground at HSR 0 and verify contained with no model; on Sonnet 5 arm T pass 1 / fail 1 / empty-diff 1 / no-tests 1 against arm O pass 1 / no patch 3 — the module anchor is the cost door and the template missed importer tests, both fixed the same night (template v1, the `import` guard grain) and exercised with no model the next day — the 28 golds re-verified under the import grain at `P2F` 0, the run's answers replayed into v1; **template v2** (Calvin M0-Go, 2026-09-11): an out-degree cap on callee expansion — an anchored symbol with more than k = 20 in-repo callees opens each as a round-1 `ANCHOR_CONFIRM` showing its signature line, and only a confirmed one becomes a body; opt-in (`build_template(version=2)`), v1 the default and rebuilt byte for byte, and the `hobbes template` CLI builds v1 only; the orchestrator adapter's **protocol v0.5** (2026-09-11, superseding v0.4): **grounder v2** holds a Go fill to the world — an import must be the standard library (go1.26.5's `go list std`, pinned), a module the governing `go.mod` requires, or a directory of the module itself (`import-outside` otherwise), and a qualifier no import binds is `unimported` — so a declaration body in another project's API reads NULL; a NULL inside a placed declaration's body goes back once as a repair of the same hole, the declaration hole shows a sibling's form (a same-kind function of the binding directory, 12 lines at most), and a refused declaration reads `refused` (C-109–C-114). Protocol v0.4 (superseding v0.3, which superseded v0.2 the same day): v0.3's reading stands — an `"unchanged"` pattern on SIGNATURE or BODY, and `"unchanged"`/`"no"` on ANCHOR_CONFIRM, is read per hole and listed under `by_pattern`, never rewriting or confirming, and a refused pattern's holes are named in the repair; v0.4 adds the **declaration hole** — the NULL round-trip offers one per new name a call site writes and nothing declares, the answer must declare that name in a file of the binding directory, and the call site is re-grounded — and the **gutter guard**, which refuses a SIGNATURE or BODY fill carrying the render's line-number gutter and names it in the repair (the grounder refuses it too); C-91–C-93, C-103–C-114 |
-| **C** (ADR-108, ADR-109, ADR-110) | lane A wired 2026-09-12 (0.2.1-beta), lane B built the same day (0.2.4-beta); **compiler-graded the same day** (0.2.5-beta, §3.8) | `csource` (tree-sitter-c 0.24.2), built through the harness in two dispatched sessions; scip-clang 0.4.0 over a compile database derived in the image (the repo's own, CMake, or bear over make), with C's decode rules in the helper; graded against clang's front end (O9, `bench/oracle/internal/clang`, itself built through the harness in two sessions) on DaveGamble/cJSON and sqliteai/sqlite-vector, drawn at random. C-130–C-138 |
-| **Calvin harness** (ADR-107; `calvin/calvin-harness.md`) | built 2026-09-12, 0.1.21-beta (the 0.2.0-beta minor); validation by use under way: four sessions on 2026-09-12 (a rejected token, the `path` alias, C lane A and its rework) | `hobbes dispatch`: Claude Code in `hobbes-session` behind the egress allowlist (`hobbes-session --egress`, `hobbes-proxy egress`), `hobbes gate` with a derived map and `hobbes verify` on its diff, one log file per session under `docs/calvin/sessions/`; the keyed rounds (M0, M0-Go, M0-Gate) closed as an approach, their records history; C-41 narrowed, C-124 superseded, C-125–C-128 |
+| **C** (ADR-108, ADR-109, ADR-110) | lane A wired 2026-09-12 (0.2.1-beta), lane B built the same day (0.2.4-beta); **compiler-graded the same day** (0.2.5-beta, §3.8) | `csource` (tree-sitter-c 0.24.2), built through the harness in two dispatched sessions; scip-clang 0.4.0 over a compile database derived in the image (the repo's own, CMake, or bear over make), with C's decode rules in the helper; graded against clang's front end (O9, `bench/oracle/internal/clang`, itself built through the harness in two sessions) on DaveGamble/cJSON and sqliteai/sqlite-vector, drawn at random. The external veto (ADR-111, 0.2.8-beta, §3.4) took sqlite-vector from 851/854 to 851/851. C-130–C-138 (C-138 narrowed) |
+| **Calvin harness** (ADR-107; `calvin/calvin-harness.md`) | built 2026-09-12, 0.1.21-beta (the 0.2.0-beta minor); validation by use under way: nine session logs through 0.2.8-beta (from a rejected token and the `path` alias to C's lane A and oracle, the progress hook and ADR-111's veto); the progress hook (0.2.6-beta) and the dispatch box (0.2.7-beta) since | `hobbes dispatch`: Claude Code in `hobbes-session` behind the egress allowlist (`hobbes-session --egress`, `hobbes-proxy egress`), `hobbes gate` with a derived map and `hobbes verify` on its diff, one log file per session under `docs/calvin/sessions/`; the keyed rounds (M0, M0-Go, M0-Gate) closed as an approach, their records history; C-41 narrowed, C-124 superseded, C-125–C-129 (C-125 narrowed by the hook) |
 
 Sequencing rules carry from v1 unchanged: deterministic before generative,
 each milestone exits on a real repo, **one milestone active at a time**, and
@@ -1702,4 +1708,4 @@ Deliberately not built, and not deferred-with-intent unless said so:
   originally claimed.
 - **Dynamic-tier ingestion** — the schema reserves `dynamic` for coverage
   traces; nothing produces it.
-- **Languages beyond Python/TS/Go/Rust/Java and the Terraform/HCL layer.**
+- **Languages beyond Python/TS/Go/Rust/Java/C and the Terraform/HCL layer.**

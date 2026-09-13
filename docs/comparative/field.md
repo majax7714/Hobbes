@@ -59,11 +59,12 @@ most rows read *nothing found* — stated as exactly that.
 | **[Codanna](https://github.com/bartolli/codanna)** · Apache-2.0 · 739★ · pushed 2026-08-29 | tree-sitter ([README](https://github.com/bartolli/codanna#readme)) | unstated (throughput and latency numbers only, "not an accuracy claim") | unstated | unstated | unstated | optional — a bundled local embedding model by default; remote embeddings opt-in | "Windows support experimental" is the only limitation-type statement found | unstated ("no source code leaves your machine" is a network claim) | 15 named; no per-language evidence beyond the list | **yes in the shown example:** symbol file:line, callees "called at" file:line, callers by reverse reference; index format under `.codanna/` not specified. Not graded here |
 | **[codebadger](https://github.com/qcri/codebadger)** · GPL-3.0 · 167★ · pushed 2026-08-31 | Joern code property graphs ([README](https://github.com/qcri/codebadger#readme)) | unstated | unstated | unstated | unstated | unstated for the CPG build | nothing found | unstated (Joern's CPG for compiled languages may need a build; not confirmed) | Java, C/C++, JavaScript, Python, Go, Kotlin, C#, Ghidra, Jimple, PHP, Ruby, Swift (named) | **unstated:** CPGQL queries; the MCP tool catalogue (`docs/available-tools.md`) was not read. Docker-based. Not graded here |
 
-**Hobbes 0.1.4-beta (ADR-103; every cell record names the commit, exact
-where a version is a name), for the same columns, so the reader has
+**Hobbes 0.2.8-beta (ADR-103; every cell record names the commit, exact
+where a version is a name; this row refreshed 2026-09-13, the tool rows
+above stand as read 2026-09-09), for the same columns, so the reader has
 the row it is being compared to** — every entry points at the evidence
-rather than restating it: edge source, tree-sitter (lane A) joined to the
-language's own pinned SCIP indexer (lane B), architecture §3;
+rather than restating it: edge source, tree-sitter (lane A; ts-morph for
+TS/JS) joined to the language's own pinned SCIP indexer (lane B), architecture §3;
 precision and recall, per cell against compilers and the interpreter,
 `docs/oracle/cells/`; seeds wrong edges, yes — every cell's poison
 line; deterministic, demonstrated (byte-identical re-ingests on peft,
@@ -71,9 +72,10 @@ date-fns, quic-go, serde, jsoup, petclinic; `extraction-evidence.md`);
 model in the build, no (`hobbes narrate` sits on top and is pinned);
 says what it cannot see, a per-repo statement (`list_blind_spots`, the
 tail classes per file, the containment stamp) and the register
-(`docs/constraints/`, 96 entries); executes repo code, yes for lane B
+(`docs/constraints/`, 139 entries, 112 active); executes repo code, yes for lane B
 and the executing oracles, **contained** in the sandbox image
-(ADR-092, C-64); languages, five, each with its §3.8 evidence row;
+(ADR-092, C-64); languages, six (Python, TypeScript/JavaScript, Go,
+Rust, Java, C), each with its §3.8 evidence row;
 export, `oracle export` reads `graph.json` to (site, callee) pairs.
 
 ## 2. What our runs observed
@@ -146,6 +148,6 @@ on 2026-09-09 are in `docs/oracle/cells/` as
 `repowise-<repo>-2026-09-09.md`, one per tool × repo, beside the
 Hobbes cell each pairs with; the claim page
 [`README.md`](README.md) lists them in one table, and the scatter
-draws them as hollow squares. Nothing on this page is a number from
+and `same-key.svg` draw them in one filled colour and shape per tool. Nothing on this page is a number from
 those cells; that is the point of keeping this page and that one
 apart.

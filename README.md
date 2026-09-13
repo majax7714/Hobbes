@@ -173,6 +173,57 @@ it has been run on, with numbers);
 misses by class, the grader's own mistakes);
 [`docs/constraints/`](docs/constraints/README.md) (the register).
 
+## Where Hobbes stands beside other code-graph tools
+
+The same repos, the same commits, the same compiler answer keys, with
+every tool's graph put through them. [CodeGraphContext](https://github.com/CodeGraphContext/CodeGraphContext)
+0.6.13 and [repowise](https://github.com/repowise-dev/repowise) 0.49.0
+were run as their READMEs document (2026-09-09; either may have moved
+since), their graphs converted by a per-tool adapter with a hand-read
+fixture, and graded by the same matcher and the same poison check as
+Hobbes' own (ADR-101). One row is one cell; each tool has one marker on
+the precision axis and one on the recall axis.
+
+![Three graphs on one key per cell: precision-against-oracle and recall for Hobbes, CodeGraphContext and repowise, one row per cell](docs/comparative/graphics/same-key.svg)
+
+A comparison is only as honest as its reading rules, so here they are:
+
+- **Read across a row, never down a column.** Each cell's recall is
+  over its own roots or resolved sites (C-62). Nothing is pooled or
+  averaged.
+- **What the rows show.** On all 18 rows, Hobbes' marker is the
+  rightmost on both axes. It ties on precision only at rust_proj, where
+  CodeGraphContext stored one call edge and that edge was right. Hobbes
+  is at 100% precision-against-oracle on every row but quic-go
+  (3,766/3,781, a 99.6% lower bound whose 15 contradictions all triage
+  to the oracle's grain). Its recall lead within a row runs from about
+  one point (click, gitleaks) to 35 (zod).
+- **Precision is a lower bound for every tool alike.** Contradictions
+  mostly triage to the oracle's grain. A 40-row hand triage of the other
+  tools' contradictions found 39 tool-wrong, 1 oracle-grain and 0
+  converter defects.
+- **Their numbers are theirs at our grain.** The converter is Hobbes',
+  and a misread is Hobbes' defect (C-94). The matcher's tolerances were
+  tuned on Hobbes' output (C-95). Their runs were on the host, not in the
+  sandbox (C-96).
+- **What is not here.**
+  - C has no foreign cell yet; its cells postdate the runs.
+  - syft, one of repowise-bench's draws, has no key on this box: RTA
+    over it is killed by the kernel at 19 GB.
+  - No number a tool publishes on its own basis is put beside these.
+    Those numbers are recorded with their basis in
+    [`field.md`](docs/comparative/field.md) §3.
+- **Check it yourself:** `bench/oracle/grade-foreign.sh <your-edges.json>
+  <oracle.json> <out-dir> --lang go` grades any graph against the same
+  key.
+
+The graphic is rendered from the cell records by
+`bench/oracle/report/render.py`, and the oracle lane's Go suite fails
+when a picture drifts from its cells. The numbers behind every marker
+are in [`tables.md`](docs/comparative/tables.md), and the SVG's hover
+titles carry them when it is opened on its own. The claim page, with the
+field one row per tool, is [`docs/comparative/`](docs/comparative/README.md).
+
 ## Where this is going
 
 An accurate map of a repo is useful on its own. What Hobbes wants to do
@@ -256,7 +307,8 @@ than served as a tool menu — is laid out with diagrams in
 [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md). The
 comparison itself is not a scoreboard: other tools' graphs are put
 through the same compiler answer keys as Hobbes' own, one cell per
-tool × repo, and the field, the cells and the graphics are in
+tool × repo ([above](#where-hobbes-stands-beside-other-code-graph-tools)),
+and the field, the cells and the graphics are in
 [`docs/comparative/`](docs/comparative/README.md).
 
 ## Status
@@ -334,7 +386,9 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12.
+dispatched on 2026-09-12, and nine session logs stand through
+0.2.8-beta. The work built through it includes C's lane A, C's oracle,
+the progress hook (0.2.6-beta) and the external veto (0.2.8-beta).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry

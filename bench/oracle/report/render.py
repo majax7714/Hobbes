@@ -339,7 +339,7 @@ def render_one_number(cells: list[dict]) -> str:
     lines.append(("—", 14, GRID, "normal", 32))
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
     para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
-         "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java.", 10, INK2, width=140)
+         "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java, clang's front end for C.", 10, INK2, width=140)
     para(versions_line(cells), 10, INK2, width=140)
     H = 40 + sum(sz + 6 for _, sz, _, _, _ in lines) + 24
     o = svg_open(W, H, "Wrong edges seeded into the graph, falsely confirmed by the grader")
@@ -356,6 +356,13 @@ def render_one_number(cells: list[dict]) -> str:
 
 
 MARKS = {"hobbes": ("circle", BLUE), "codegraphcontext": ("square", ORANGE), "repowise": ("diamond", AQUA)}
+
+
+def oracle_short(oracle: str) -> str:
+    """The oracle's name for a panel title: its first word, or `clang` for
+    the C key, whose recorded version leads with the distro
+    (`Ubuntu clang version 18.1.3 … -ast-dump=json`)."""
+    return "clang" if "clang" in oracle else oracle.split(" ")[0]
 
 
 def hobbes_label(cells: list[dict]) -> str:
@@ -379,32 +386,34 @@ def mark(o: list[str], kind: str, colour: str, cx: float, cy: float, tip: str) -
     o.append("</g>")
 
 
-def tool_legend(o: list[str], cells: list[dict], y: float, tail: str) -> None:
+def tool_legend(o: list[str], cells: list[dict], y: float) -> None:
     """The one legend both graphics share: the marker itself beside each
-    tool's name, one colour per tool, Hobbes named with its version."""
+    tool's name, one colour per tool, Hobbes named with its version. The
+    reading line goes under it, never after it: Hobbes' label grows with
+    each version it names, and a tail on the same line ran off the page."""
     lx = 24
     for tool, name in (("hobbes", hobbes_label(cells)), ("codegraphcontext", "CodeGraphContext 0.6.13"), ("repowise", "repowise 0.49.0")):
         kind, colour = MARKS[tool]
         mark(o, kind, colour, lx + 6, y - 4, name)
         o.append(text(lx + 16, y, name, 11, INK2))
         lx += 16 + 6.1 * len(name) + 14
-    o.append(text(lx, y, tail, 11, INK2))
 
 
 def render_scatter(cells: list[dict]) -> str:
     comp = [c for c in cells if compiler_graded(c)]
     trace = [c for c in cells if c["kind"] == "trace"]
-    langs = ["Go", "TypeScript", "Rust", "Java"]
+    langs = ["Go", "TypeScript", "Rust", "Java", "C"]
     panels = [(l, [c for c in comp if c["lang"] == l]) for l in langs]
-    PW, PH, GAP, L, T = 300, 300, 40, 60, 92
+    PW, PH, GAP, L, T = 300, 300, 40, 60, 106
     cols = 3
     rows = 2
     W = L + cols * (PW + GAP) + 10
     H = T + rows * (PH + 74) + 120
     o = svg_open(W, H, "Precision-against-oracle by recall, one dot per cell, per language")
     o.append(text(24, 30, "One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled", 15, INK, weight="bold"))
-    tool_legend(o, cells, 50, "— one colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).")
-    o.append(text(24, 64, "Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.", 11, INK2))
+    tool_legend(o, cells, 50)
+    o.append(text(24, 66, "One colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).", 11, INK2))
+    o.append(text(24, 80, "Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.", 11, INK2))
     recalls = [c["recall"]["pct"] for c in comp if c.get("tool", "hobbes") == "hobbes" and c.get("precision")]
 
     def panel(i, title, items, x_label, y_label, y_key, hollow):
@@ -496,9 +505,9 @@ def render_scatter(cells: list[dict]) -> str:
             o.append(text(px + PW - 6, py + PH - 8, f"{subs[0]['label']}: {len(subs)} modules, recall {lo}–{hi}%, one dot each", 9, INK2, "end"))
 
     for i, (l, items) in enumerate(panels):
-        panel(i, f"{l} — {', '.join(sorted({c['oracle'].split(' ')[0] for c in items}))} (compiler-graded)", items,
+        panel(i, f"{l} — {', '.join(sorted({oracle_short(c['oracle']) for c in items}))} (compiler-graded)", items,
               "recall, % of in-repo oracle pairs at the cell's roots", "precision vs oracle, %", "precision", False)
-    panel(4, "Python — the interpreter under the repo's suite (trace-graded)", trace,
+    panel(len(panels), "Python — py-trace (trace-graded)", trace,
           "recall-against-executed, % (coverage-limited)", "confirmation rate, % — not precision", "confirmation_rate", True)
     # Caption
     y = T + rows * (PH + 74) + 8
@@ -661,7 +670,7 @@ def render_comparison(cells: list[dict]) -> str:
     draws = [(l, d) for l, d in rows if "repowise-bench" in d["hobbes"].get("draw", "")]
     if draws:
         bands.append(("repowise-bench's draws under our key (Go, TypeScript) — the 1-1", draws))
-    ROW, L, PW, GAP, T = 22, 250, 300, 60, 104
+    ROW, L, PW, GAP, T = 22, 250, 300, 60, 118
     n = sum(len(b[1]) for b in bands) + len(bands)
     W = L + 2 * PW + GAP + 40
     H = T + ROW * n + 190
@@ -669,8 +678,9 @@ def render_comparison(cells: list[dict]) -> str:
     o.append(text(24, 30, "Three graphs, one key per cell: precision-against-oracle and recall, never pooled", 15, INK, weight="bold"))
     px = {"precision": L, "recall": L + PW + GAP}
     marks = MARKS
-    tool_legend(o, cells, 50, "— one colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).")
-    o.append(text(24, 64, "The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
+    tool_legend(o, cells, 50)
+    o.append(text(24, 66, "One colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).", 11, INK2))
+    o.append(text(24, 80, "The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.", 11, INK2))
     for key, x0 in px.items():
         for v in (0, 25, 50, 75, 100):
             gx = x0 + PW * v / 100
@@ -710,13 +720,20 @@ def render_comparison(cells: list[dict]) -> str:
     y += 14
     o.append(f'<line x1="24" y1="{y}" x2="{W-24}" y2="{y}" stroke="{GRID}"/>')
     y += 20
+    # The exceptions are read from the cells, never typed: a typed list
+    # outlived ajv's and hono's fixes (ADR-104, C-98) by four days.
+    exc = sorted((lab, d["hobbes"]["precision"]) for lab, d in rows
+                 if d["hobbes"].get("precision") and d["hobbes"]["precision"]["num"] != d["hobbes"]["precision"]["den"])
+    exc_s = (" except " + ", ".join(f"{lab} ({fmt(p['num'])}/{fmt(p['den'])}, a {p['pct']}% lower bound)" for lab, p in exc)
+             + ", triaged in its record") if exc else ""
     for line in wrap("Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to the oracle's grain, A-8). "
-                     "Every Hobbes marker on the precision axis sits at 100% except ajv, hono (one scip-typescript union-member shape) and quic-go (a 99.6% lower bound, 0 hobbes-wrong). "
+                     f"Every Hobbes marker on the precision axis sits at 100%{exc_s}. "
                      "The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded. "
                      "On repowise-bench's draws the key is ours, at site grain — not comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.", 175):
         o.append(text(24, y, line, 10.5, INK2))
         y += 14
-    o.append(text(24, y + 4, "Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. " + versions_line(cells), 10, INK2))
+    for k, line in enumerate(wrap("Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. " + versions_line(cells), 165)):
+        o.append(text(24, y + 4 + 13 * k, line, 10, INK2))
     o.append("</svg>")
     return "\n".join(o) + "\n"
 

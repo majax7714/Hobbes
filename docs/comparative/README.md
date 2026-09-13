@@ -48,6 +48,17 @@ passes and exposed C-101 (the Java resolve stage held Kotlin sources;
 the Maven wrapper's distribution was not cached for the offline pass),
 fixed the same session and regraded 16,050/16,050.
 
+**Since the baseline (2026-09-12).** C joined as the sixth
+compiler-graded language at 0.2.4/0.2.5-beta (ADR-109/110): cJSON,
+sqlite-vector and the minic fixture, graded against clang's own front
+end. At 0.2.8-beta, ADR-111's acceptance regrade re-ingested every
+cell with a stored key, 44 of them, contained, and graded each against
+its standing key. A pre-veto pass reproduced every stored number first,
+and afterwards no confirmed count moved anywhere. Only sqlite-vector's
+grade changed (851/854 → 851/851), so only its record carries a
+0.2.8-beta block, and the others' standing grades still read their
+earlier version. That is why the graphics name three versions.
+
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
@@ -75,14 +86,13 @@ fixed the same session and regraded 16,050/16,050.
    sum named.
 3. **Here is how much Hobbes does not draw, and what it is.** Recall
    runs from 40.8% (fzf, at 5 roots) to 100.0% (the best of dagger's
-   nineteen Go modules, each its own cell with its own root count;
-   98.4% at spring-petclinic among the whole-repo cells) across the
+   nineteen Go modules, each its own cell with its own root count, and
+   C's sqlite-vector over its 1,091 resolved sites) across the
    compiler-graded cells, stated as a range and never averaged: each
    cell's denominator is its own roots or its resolved sites (C-62).
    The syntactic floor alone was measured once — Severed-Chains at
    23.5%, no semantic lane — and that cell reads 60.8% since
-   0.1.10-beta, when the Gradle attach route gave it one; each
-   cell's denominator is its own roots or its resolved sites (C-62).
+   0.1.10-beta, when the Gradle attach route gave it one.
    The misses are one register entry, C-58 — closures, interface
    dispatch, function values, code macros and derives wrote — tabled
    per cell in `docs/oracle/oracle-misses.md`.
@@ -103,7 +113,9 @@ fixed the same session and regraded 16,050/16,050.
    1, converter-defect 0 *after* the sample found the converter's Java
    annotation-line defect (C-94) and the Java cells were regraded with
    signed direction lines. The rest of each cell's contradictions are
-   untriaged and the records say so.
+   untriaged and the records say so. No foreign cell exists for C: the
+   C cells postdate the runs, and grading the two tools there is a
+   queue item, not a result.
 
 ## The 1-1 on repowise's draws
 

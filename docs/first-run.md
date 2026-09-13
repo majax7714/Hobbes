@@ -38,9 +38,10 @@ cd ../pipeline && uv sync
 
 # the one sandbox image: lane B for every language, the executing
 # oracles, sessions and the knowledge tools all run from it
-# (ADR-092/094, ~2.8 GB). There is no per-language host install:
-# scip-go, rust-analyzer, scip-java and the JDKs are pinned inside it,
-# and the pin is what a provider limit is filed against (P9).
+# (ADR-092/094, ~3.3 GB). There is no per-language host install:
+# scip-go, rust-analyzer, scip-java and the JDKs, and scip-clang with
+# CMake and bear, are pinned inside it, and the pin is what a provider
+# limit is filed against (P9).
 CGO_ENABLED=0 go build -C ../go -o ../sandbox/hobbes-proxy ./cmd/hobbes-proxy
 cd ../sandbox && podman build -t hobbes-session:local -f Containerfile .
 ```

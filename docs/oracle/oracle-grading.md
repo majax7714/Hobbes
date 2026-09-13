@@ -4,7 +4,10 @@
 waits on a bigger box); phase 2 built and run the same day — O6 (§6,
 this repo's Python zone under its suite; xarray not run: no workspace on
 the box) and O7 (§7, `rust_proj` and dagger's `sdk/rust`; Rupta and the
-trace lane not attempted). Cell records in `docs/oracle/cells/`; the
+trace lane not attempted); O8 (§7b, javac with CHA, 2026-08-29,
+ADR-096) and O9 (§7c, clang's front end, 2026-09-12, ADR-110) built and
+run since, contained. Every compiler-graded cell is at 100% except
+quic-go's 99.6% lower bound. Cell records in `docs/oracle/cells/`; the
 harness README carries the Python and Rust conventions.** This document is the context for the
 build session(s) that implement it. **Owner:** Max. **Scope:** bench tooling only
 — no product change. Reads with: architecture §3.8 (the claim table),
@@ -744,6 +747,10 @@ the suite's tolerance for a post-resolver-change check.
 **Phase 2** (tracked separately, not a gate on phase 1): O6–O7 with their
 own pre-registrations; the trace-asymmetry and reference-lane constraints
 registered before the first phase-2 row lands.
+
+**O8 and O9** (Java, C) followed the same shape: each oracle's
+pre-registration committed before it ran (§10.5 for C), and each cell
+with §3.8 evidence in the same commit.
 
 ## 15. Appendix — oracle provenance (search of 2026-08-25)
 
