@@ -11,8 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta untagged; the last tag is
+each time (0.1.9-beta to 0.2.10-beta untagged; the last tag is
 `v0.1.8-beta`).
+
+## 0.2.10-beta — 2026-09-13 (C-139 lifted: a local that shadows an import's name stops lane A's guess; ADR-046 amended)
+
+**Patch: what the layer draws.** After 0.2.9-beta the patch number
+counts on (Max: "next version goes 0.2.10 not 0.3.0"; ADR-103's note).
+
+- **The rule.** Go lane A's fallback reads a selector's qualifier as an
+  import alias only when no local binding of that name spans the call.
+  - After `slog := slog.SpanLogger(ctx, …)`, the call `slog.Info(...)`
+    is a method on the local logger, and lane A no longer draws it to
+    the package's `Info`.
+  - It is the scope test a bare name already got (ADR-046/090), applied
+    to the qualifier. Where lane B is silent, the site lands in
+    `attr-call`.
+- **The acceptance regrade:** all 27 Go cells with a stored key were
+  re-ingested contained and graded against their keys. **Nothing
+  moved:** confirmed, contradicted and syntactic-edge counts all
+  matched, with 0 falsely confirmed poison.
+- **On dagger:**
+  - Its 56 external vetoes (0.2.8-beta) read 0. Lane A no longer
+    proposes those sites, so there is nothing for the veto to drop.
+  - With lane A alone, 95 fallback resolutions into `engine/slog/` are
+    gone and none are new. Of those, 30 were true package calls: the
+    declaring statement's own, or one before it. The extent is the
+    enclosing function, as the amendment decided, so it gives those up
+    too. That costs an edge only where lane B is silent, and it is
+    recorded in C-139's entry.
+- **Register:** C-139 lifted, with its residual (111 active, 25 lifted).
+- **Built through the harness:** `S-20260913T145700Z-a323` (28 of 150
+  turns, 183 s). Gate clear and verify pass (213 tests, 0 regressions);
+  host pytest on the branch 1,480. Merged without squashing.
 
 ## 0.2.9-beta — 2026-09-13 (the directory rollup in `list_blind_spots`)
 

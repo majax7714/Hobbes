@@ -72,7 +72,7 @@ date-fns, quic-go, serde, jsoup, petclinic; `extraction-evidence.md`);
 model in the build, no (`hobbes narrate` sits on top and is pinned);
 says what it cannot see, a per-repo statement (`list_blind_spots`, the
 tail classes per file, the containment stamp) and the register
-(`docs/constraints/`, 139 entries, 112 active); executes repo code, yes for lane B
+(`docs/constraints/`, 139 entries, 111 active); executes repo code, yes for lane B
 and the executing oracles, **contained** in the sandbox image
 (ADR-092, C-64); languages, six (Python, TypeScript/JavaScript, Go,
 Rust, Java, C), each with its §3.8 evidence row;

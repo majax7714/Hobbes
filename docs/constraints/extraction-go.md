@@ -97,32 +97,52 @@
 - **Source:** Calvin M0-Go WP-3, 2026-09-11
   (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.
 
-### C-139 — A local named like an imported package shadows it, and lane A's fallback still draws the call to the package's function
+### C-139 — A local named like an imported package shadowed it, and lane A's fallback still drew the call to the package's function — *lifted 2026-09-13 (0.2.10-beta, ADR-046 amended)*
 
-- **Cannot tell you:** where lane B leaves the site unanswered, that a
-  syntactic edge from `slog.Info(...)` to a package function is right.
+- **Was:** where lane B left the site unanswered, a syntactic edge from
+  `slog.Info(...)` to a package function could be wrong.
   - The shape: `slog := slog.SpanLogger(ctx, …)` rebinds `slog` to a
     logger value inside the function. After it, `slog.Info(...)` is a
     method call on that value, not the package's `Info`.
-- **Because:** lane A resolves a qualified call through the import it
-  names, and does not see that a local binding shadows the qualifier.
-  ADR-046/090's scope veto covers a bare name bound locally, not the
-  qualifier of a selector call.
-- **Bites at:** a repo with a wrapper package named like the library it
-  wraps, used through a shadowing local. Measured on dagger at the 0.2.8
-  regrade: 56 sites in its ungraded root module, drawn to
-  `engine/slog.Info`/`Warn`/`Error`/`Debug`. There lane B resolved each
-  call to the logger's method outside the repo, so ADR-111's veto drops
-  the edge.
-- **You find out:** *partial*.
-  - Where lane B resolved the call outside the repo, there is no edge,
-    and `hobbes lanes` counts it in `external_vetoes`.
-  - Where lane B did not run or left the site unresolved, the edge is
-    drawn at tier `syntactic` (C-7), and nothing names the shadow.
-  - Candidate lift: lane A treats a local binding of the qualifier's
-    name as a shadow, the way it treats a bare name. It needs a
-    re-ingest and a Go fixture.
+  - Lane A resolved a qualified call through the import it names.
+    ADR-046/090's scope veto covered a bare name bound locally, not the
+    qualifier of a selector call.
+  - Measured on dagger at the 0.2.8-beta regrade: 56 sites in its
+    ungraded root module. ADR-111 vetoed them there, because lane B
+    resolved each to the logger's method outside the repo.
+- **Lifted by — the technique:** `gosource._call_fallback` reads a
+  qualifier as an import alias only when no local binding of that name
+  spans the call's line. It is the same `_shadowed` test a bare name
+  gets (ADR-046's 2026-09-13 amendment). A shadowed qualified call is a
+  method on a value and is left to lane B; where lane B is silent, it
+  lands in `attr-call` (C-2).
+  - Built through the harness (`S-20260913T145700Z-a323`), with
+    `TestQualifierShadow` in `test_gosource.py`.
+  - **Acceptance:** all 27 Go cells with a stored key were re-ingested
+    contained and graded against their keys. Nothing moved: confirmed,
+    contradicted and syntactic-edge counts matched, with 0 falsely
+    confirmed poison.
+  - Dagger's 56 external vetoes read 0, because lane A no longer
+    proposes those sites.
+- **Residual — a recall cost, recorded here (P8):** the binding's extent
+  is the enclosing function, as it is for a bare name. So a qualified
+  call on the declaring statement, or earlier in the function, is
+  skipped too, although it is the package's.
+  - On dagger with lane A alone, 95 fallback resolutions into
+    `engine/slog/` were dropped and none added. A text scan placed them:
+    - 34 after the binding: wrong edges removed;
+    - 31 it could not place. The three read (`core/c2h.go`) are calls
+      inside a closure that captures the local, so wrong edges as well.
+    - 25 on the declaring statement and 5 before the binding: 30 true
+      edges given up.
+  - The cost falls only where lane B is silent. With lane B, the
+    declaring statement's call is a semantic edge (dagger has 24 into
+    `telemetry.SpanLogger`).
+  - **You find out:** *partial*. The site is counted in `attr-call`, and
+    nothing names it as a skipped package call. A finer extent (the
+    binding's own line, the enclosing block) is the refinement, taken
+    only if a graded cell shows the cost.
 - **Source:** ADR-111's acceptance regrade, 2026-09-12. The dagger
   examples were read by hand (`core/git_remote.go:69`/`78`, and eight
-  more), and the count was checked against a scan of dagger's Go files
-  (61 such calls after a local shadow).
+  more), and a scan of dagger's Go files found 61 such calls after a
+  local shadow. Lifted by ADR-046's amendment, 2026-09-13.

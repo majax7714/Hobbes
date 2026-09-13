@@ -9643,3 +9643,72 @@ are eleven logs; no false block and no `missed` among the last three.
 `find*`/`xargs*`; C-139's lift; the validation criterion and ADR-106;
 the carried items in the handoff. A foreign C cell needs `oracle import`
 to take `--lang c` first.
+
+## 2026-09-13 — (after) C-139 lifted through the harness — 0.2.10-beta (ADR-046 amended)
+
+**Asked (Max):** "looks good through my review. good to proceed with
+dispatching the c139 lift. short note since were at 0.2.9 . next
+version goes 0.2.10 not 0.3.0."
+
+- **The number line.** ADR-103 gains a note: patch numbers count on
+  past nine. The versioning memory says the same.
+- **Decided before the dispatch** (`e1c9f45`): ADR-046 amended.
+  - Go lane A's fallback reads a selector's qualifier as an import
+    alias only when no local binding of that name spans the call. It is
+    the same `_shadowed` test a bare name gets.
+  - The extent stays function-wide (precision first), and the tail is
+    unchanged (`attr-call`).
+  - Acceptance: every Go cell with a stored key is regraded; no
+    confirmed count falls and no contradiction count rises.
+- **Dispatched as `S-20260913T145700Z-a323`:** 28 of 150 turns, 183 s,
+  first edit at 0.3 min. Gate clear, verify pass (213 tests, 0
+  regressions).
+  - The doer saw three `test_ttt_units` failures in the sandbox: D-r.
+    On the host, in a worktree of the branch with its own venv, pytest
+    passed 1,480 (1,474 plus the doer's 6).
+  - Egress refused `llm` once: the suite's own request.
+- **The acceptance regrade**, from the branch worktree
+  (`~/.hobbes/bench/c139-post/`, driver `regrade3.sh`), graded the 27 Go
+  cells against their keys, with 0.2.8-beta's post-veto reports as the
+  baseline. No ingest code had changed since that pass except version
+  strings (`git diff 0886367..HEAD`), so no pre pass was run.
+  - **Nothing moved in any cell:** confirmed, contradicted and
+    syntactic-edge counts (fzf 46, quic-go 11) matched, with poison 0
+    falsely confirmed.
+  - Dagger's external vetoes went from 56 to 0: lane A no longer
+    proposes those sites.
+- **The lift's effect, lane A alone on dagger** (`extract_go`, main
+  against the branch): fallback resolutions into `engine/slog/` went
+  from 467 to 372 (95 gone, 0 new; 33,029 to 32,930 in all).
+  - A text scan placed the 95:
+    - 34 after the binding;
+    - 31 it could not place. The three read (`core/c2h.go`) are
+      closure-captured locals, so wrong edges as well.
+    - 25 on the declaring statement and 5 before it: 30 true edges
+      given up.
+  - Those 30 are the extent's recall cost, and they cost an edge only
+    where lane B is silent. They are recorded in C-139's entry as its
+    residual (*partial*).
+- **Reviewed right-clear;** merged with a merge commit as `a5d1e14`;
+  **0.2.10-beta.**
+  - C-139 lifted: register 111 active, 25 lifted.
+  - Also: architecture's scope-veto sentence and §8; README; CLAUDE.md;
+    the harness doc; workstreams; the CHANGELOG; the evidence log; the
+    handoff.
+  - The image and binaries rebuilt (`hobbes-proxy 0.2.10-beta` in the
+    image). The regrade worktree was removed.
+
+**Verified at 0.2.10-beta:**
+- host pytest 1,480 on the branch;
+- `test_version.py`;
+- the 27-cell regrade;
+- the image's proxy version.
+
+The Go suite is unchanged apart from `version.go` (351 at 0.2.9-beta).
+
+**Harness sessions:** twelve logs. The last four were right-clear and
+merged, with no false block and no `missed`.
+
+**Not done, for Max:** the README comparison wording; the box's
+`find*`/`xargs*`; the validation criterion and ADR-106; whether C-139's
+residual earns a finer extent (only if a graded cell shows the cost).

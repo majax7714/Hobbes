@@ -136,8 +136,16 @@ segment and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and thirty-nine entries: one hundred and twelve active, twenty-four lifted, three superseded**
-(ADR-111 on 2026-09-12 (0.2.8-beta), the external veto:
+**One hundred and thirty-nine entries: one hundred and eleven active, twenty-five lifted, three superseded**
+(ADR-046 amended on 2026-09-13 (0.2.10-beta), the qualifier of a selector call:
+- C-139 lifted: Go lane A's fallback no longer resolves a qualified call
+  whose qualifier a local binding shadows. All 27 Go cells with a stored
+  key were regraded with nothing moved.
+- Its residual is recorded in the entry: the function-wide extent gives
+  up the declaring statement's own package call where lane B is silent
+  (30 of the 95 lane A drops on dagger; *partial*).
+
+ADR-111 on 2026-09-12 (0.2.8-beta), the external veto:
 - C-138 narrowed: lane A's fallback is dropped where lane B resolved the
   site outside the repo; the residuals are two same-named occurrences on
   one line, and a sibling unit's ungraphed kind (*partial*).

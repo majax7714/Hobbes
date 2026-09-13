@@ -497,3 +497,38 @@ astropy unit interiors vs gold hand-checked at phase 4. **No call edge
 was hand-checked in these repos** — the §3.8 Python row is extended at
 span/declaration grain only, and licenses nothing about edge accuracy
 here.
+
+## The Go cells regraded for C-139's lift (2026-09-13, 0.2.10-beta, ADR-046 amended)
+
+Every Go cell with a stored key was re-ingested **contained**, from a
+worktree of the dispatched branch (`S-20260913T145700Z-a323`), and
+graded against its standing key. That is 27 cells: this repo's `go/`,
+fzf, mux, toml, quic-go, cobra (with tests), gitleaks (with and without
+tests), and dagger's 19 modules. The baseline is 0.2.8-beta's post-veto
+pass (ADR-111). No ingest code changed between the two passes except
+version strings. The records are in `~/.hobbes/bench/c139-post/`.
+
+| Measure | Result |
+|---|---|
+| Confirmed, per cell | unchanged in all 27 |
+| Contradicted, per cell | unchanged (quic-go 15, the oracle's grain; the rest 0) |
+| Syntactic edges, per cell | unchanged (fzf 46, quic-go 11; the rest 0) |
+| Poison | 0 falsely confirmed in every cell |
+| Dagger's external vetoes (root, no key) | 56 → 0: lane A no longer proposes the shadowed sites |
+| Lane A alone on dagger, fallback into `engine/slog/` | 467 → 372 (95 gone, 0 new) |
+
+The 95, placed by a text scan:
+- 34 come after the binding: wrong edges removed.
+- 31 the scan could not place. The three read by hand (`core/c2h.go`)
+  are closure-captured locals, so they are wrong edges as well.
+- 25 are the declaring statement's own call, and 5 come before the
+  binding: 30 true package calls given up. That is the function-wide
+  extent's cost, where lane B is silent, recorded in C-139.
+
+**Verified:** the 27 grades were read from each cell's `report.json`
+against the baseline's. The lane A comparison is `extract_go` on main
+against the branch over the same dagger checkout. The fate of three
+unplaced sites was read in the source (`core/c2h.go:38`, `:69`,
+`:102`), along with the dagger examples first read on 2026-09-12
+(`core/git_remote.go:69`/`78`). The other 28 unplaced sites were not
+read one by one, and are stated as unplaced.

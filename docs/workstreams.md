@@ -264,8 +264,10 @@ the best on-ramp for a new contributor who should learn the codebase.*
     - ~~C-138's veto~~ **done 2026-09-12 (0.2.8-beta, ADR-111).** 44
       cells were regraded against their stored keys, with no confirmed
       edge lost, and sqlite-vector reads 851/851. Dagger's 56 vetoes
-      found C-139 (Go's local shadow), whose candidate lift is a lane A
-      rule.
+      found C-139 (Go's local shadow). ~~Its candidate lift is a lane A
+      rule.~~ **Lifted 2026-09-13 (0.2.10-beta, ADR-046 amended)** through
+      the harness (`S-20260913T145700Z-a323`). All 27 Go cells with a
+      stored key were regraded with nothing moved.
     - C-131's macro gap: parked (`future_additions.md`);
     - C-135's surfacing gap (bpftop): a candidate once named.
   - **Then the residue:**
