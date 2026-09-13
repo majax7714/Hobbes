@@ -35,9 +35,12 @@ The session's record is the 2026-09-13 BUILDLOG entries.
       `docs/calvin/sessions/README.md`, rendered by
       `pipeline/scripts/calvin_tracker.py render` from the logs and held
       by a pytest drift test. **Re-render after filling a review
-      block.** It reads 16 of 40, 4 areas, and $34.92 reported.
-   5. **Found: D-s** (item 4). The `a323` failures 0.2.12-beta pinned on
-      D-r are D-s, and the CHANGELOG says so.
+      block.** It reads 17 of 40, 4 areas, and $35.29 reported.
+   5. **D-s found and fixed** (`81df`, merged as `9bbd787`; tests only,
+      so no version). An autouse fixture clears the ambient git identity
+      before every test, and a child-pytest test holds it. The `a323`
+      failures 0.2.12-beta pinned on D-r were D-s, and the CHANGELOG says
+      so.
    - **Standing from earlier today:**
      - the harness counts as validated after 40 sessions
        (`calvin-harness.md` §4: at least three areas, no false block
@@ -91,14 +94,14 @@ The session's record is the 2026-09-13 BUILDLOG entries.
        the worktree;
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
-   - **Toward 40 across three areas.** The tracker counts them (sixteen
-     so far):
+   - **Toward 40 across three areas.** The tracker counts them
+     (seventeen so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
-       the tracker;
+       the tracker, D-s;
      - the oracle lane: C's oracle.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
@@ -116,14 +119,6 @@ The session's record is the 2026-09-13 BUILDLOG entries.
      nothing where lane B already answers.
    - `render.py` takes absolute paths.
 4. **Carried:**
-   - **D-s (found 2026-09-13).** Inside a dispatch session,
-     `GIT_AUTHOR_*`/`GIT_COMMITTER_*` are `hobbes-dispatch` (dispatch.py's
-     `IDENTITY`), which overrides a test fixture's `-c user.name`.
-     `units_from_git` then skips every fixture commit as a doer's, and
-     three `test_ttt_units.py` tests fail in the doer's full suite.
-     Reproduced on the host with that environment. The fix is the
-     fixture's: set its identity by environment, or clear dispatch's. It
-     is a small dispatch.
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading (round 1's finding).
    - **pytest's 4 warnings:** a helper named `testmap_fixture` in
@@ -199,7 +194,7 @@ assumed of $25:
     0.2.11-beta a session mounts only its own dir, never the root. The
     doer's own state is purged at exit and never kept (retention,
     0.1.22-beta). The log file is under `docs/calvin/sessions/`
-    (sixteen, of the 40 that validate the harness; the tracker counts
+    (seventeen, of the 40 that validate the harness; the tracker counts
     them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -219,7 +214,7 @@ assumed of $25:
   folded (Max's calls, 2026-09-13; ADR-043 amended). C-141 registered
   the same day.
 - **Suites** at 0.2.13-beta:
-  - 1,504 pytest (host);
+  - 1,505 pytest (host);
   - Go 354 `--- PASS`/`SKIP` lines (353 pass, 1 skip), counted at
     0.2.11-beta with the live egress and live mount tests run on the
     host. 0.2.12-beta and 0.2.13-beta moved only Go's version string, and
@@ -240,8 +235,7 @@ assumed of $25:
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
    - `oracle import --lang c`, then the foreign C cells (the comparative
      queue);
-   - small harness items: D-s (item 4), pytest's `testmap_fixture`
-     warnings.
+   - small harness items: pytest's `testmap_fixture` warnings.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
    - `go/internal/version` and the union fixture's ownership;

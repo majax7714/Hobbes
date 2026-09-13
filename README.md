@@ -389,7 +389,7 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and sixteen session logs stand through
+dispatched on 2026-09-12, and seventeen session logs stand through
 0.2.13-beta. The tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,

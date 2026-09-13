@@ -210,7 +210,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-13, 0.2.13-beta; the Go count
-from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,504 pytest (5 of them
+from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,505 pytest (5 of them
 `lane_b`) / 354 Go (subtests counted: 353 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
 87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
 unittest + 7 node) / 52 vitest / 36 tsextract + 43
@@ -335,15 +335,15 @@ inside a dispatch they skip, so their first run is the developer's.
       are found by their Unity, CMocka and Check registrations.
     - The session tracker (`78b7`).
 
-    All three gates were right-clear. D-s is open: in a session,
-    dispatch's commit identity reaches the test fixtures. C-140 is
-    0.2.11-beta's residual.
+    All three gates were right-clear. D-s, found in `e537`, is fixed
+    (`81df`, tests only): dispatch's commit identity no longer reaches
+    the test fixtures. C-140 is 0.2.11-beta's residual.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 16 of the 40 sessions that validate the
+    drift test. It reads 17 of the 40 sessions that validate the
     harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed
-    and $34.92 reported. Re-render it after filling a review block.
+    and $35.29 reported. Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
     (enforced in `units_from_git`).

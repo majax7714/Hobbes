@@ -9989,3 +9989,23 @@ route each time.
   - ADR-108's consequences as measured, and the evidence row;
   - the tracker re-rendered: 16 of 40, 4 areas, $34.92 reported over 15
     sessions.
+
+**Then (Max):** "yep good to dispatch d-s".
+- **Dispatched** as `S-20260913T210133Z-81df` from `fd129d9`: gate
+  clear, verify pass (64 tests); 19 of 60 turns, 132 s, $0.37 reported.
+  - **The fix is the suite's.** An autouse fixture in
+    `pipeline/tests/conftest.py` clears `GIT_AUTHOR_*`/`GIT_COMMITTER_*`
+    before every test. `dispatch.py` is untouched, because its identity
+    is the retention mark.
+  - **The guarantee's test** runs `test_ttt_units.py` in a child pytest
+    with dispatch's real `IDENTITY`.
+    - The doer showed it failing with the fixture disabled.
+    - The doer's own full suite in the session read 1,496 passed, 9
+      skipped, 0 failed.
+- **On the host after the merge** (`9bbd787`): `test_ttt_units.py`
+  under dispatch's identity passes 24 of 24 (3 failed before). Host
+  pytest 1,505.
+- **Tests only, so no version** (ADR-103).
+- **The tracker:** 17 of 40, $35.29 reported over 16 sessions. Row 17's
+  area reads `—`: the session changed only test files, which map to no
+  area by the tracker's rule.
