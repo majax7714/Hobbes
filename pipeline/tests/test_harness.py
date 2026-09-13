@@ -78,6 +78,49 @@ def test_the_session_repo_holds_the_base_and_its_ancestors_and_nothing_else(tmp_
     assert "-b\n+o\n" in o_only
 
 
+def test_checkout_writes_no_alternates_and_survives_the_source_moving(tmp_path):
+    """D-r: the container that runs verify's tests mounts the worktree alone, not the clone it came from — a shared clone's
+    alternates file names a host path the container can't see, and any `git` in the worktree then fails. `checkout` must write
+    no alternates file, and the worktree must still answer `git` after the source is gone, standing in for the container."""
+    src = tmp_path / "src"
+    src.mkdir()
+    _git(src, "init", "-q")
+    (src / "f.txt").write_text("one\n")
+    _git(src, "add", ".")
+    _git(src, "commit", "-q", "-m", "one")
+    first = _git(src, "rev-parse", "HEAD").strip()
+    (src / "f.txt").write_text("two\n")
+    _git(src, "commit", "-q", "-am", "two")
+
+    dest = tmp_path / "work"
+    H.checkout(src, first, dest)
+    assert not (dest / ".git" / "objects" / "info" / "alternates").exists()
+
+    src.rename(tmp_path / "src-moved")
+    assert _git(dest, "rev-parse", "HEAD").strip() == first
+    _git(dest, "log", "-1")  # must not raise: git can still read the object store with the source gone
+
+
+def test_checkout_replaces_an_existing_dest(tmp_path):
+    """A second `checkout` into the same *dest* lands at the new sha, not stacked atop the first worktree."""
+    src = tmp_path / "src"
+    src.mkdir()
+    _git(src, "init", "-q")
+    (src / "f.txt").write_text("one\n")
+    _git(src, "add", ".")
+    _git(src, "commit", "-q", "-m", "one")
+    first = _git(src, "rev-parse", "HEAD").strip()
+    (src / "f.txt").write_text("two\n")
+    _git(src, "commit", "-q", "-am", "two")
+    second = _git(src, "rev-parse", "HEAD").strip()
+
+    dest = tmp_path / "work"
+    H.checkout(src, first, dest)
+    assert _git(dest, "rev-parse", "HEAD").strip() == first
+    H.checkout(src, second, dest)
+    assert _git(dest, "rev-parse", "HEAD").strip() == second and (dest / "f.txt").read_text() == "two\n"
+
+
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
