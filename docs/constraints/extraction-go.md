@@ -97,6 +97,16 @@
 - **Source:** Calvin M0-Go WP-3, 2026-09-11
   (`docs/calvin/calvin-m0-go.md`); ADR-046, ADR-090.
 
+## Lifted constraints in this segment
+
+A lift is a technique, and the technique — not the celebration — is what
+these entries document. Each keeps its number, states the limit as it
+stood, the exact mechanism that lifted it, and the **residual edge
+cases**: inputs the technique does not classify, where the old concession
+quietly survives. When a residual case turns out to bite, it becomes a
+new active entry and the two cross-reference. Field key: `README.md`,
+"How to read a lifted entry".
+
 ### C-139 — A local named like an imported package shadowed it, and lane A's fallback still drew the call to the package's function — *lifted 2026-09-13 (0.2.10-beta, ADR-046 amended)*
 
 - **Was:** where lane B left the site unanswered, a syntactic edge from

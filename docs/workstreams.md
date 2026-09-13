@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.8-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.10-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -299,8 +299,9 @@ architecture §6–6.1); several items wait on Max's call or on run data.*
   escalate-tier record whose approval re-pins both manifests.
 - **Per-unit metering + loss fitting** (C-35) — tokens per unit are
   still unobserved; fitting the declared weights needs run data.
-- **The Calvin harness (ADR-107): validation by use, then its named
-  next builds** (`calvin/calvin-harness.md` §6):
+- **The Calvin harness (ADR-107): validation by use (40 sessions across
+  at least three areas, Max, 2026-09-13), then its named next builds**
+  (`calvin/calvin-harness.md` §6):
   - a partition from `hobbes plan` for a dispatch;
   - ~~the doer's Edit and Write into the flight log~~ — **built
     0.2.6-beta** (the progress hook, ADR-107's second amendment); the

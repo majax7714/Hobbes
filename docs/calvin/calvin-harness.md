@@ -111,11 +111,17 @@ the rounds wrote their readings before their spend.
   read.** Either the doer needed it (the list or the policy is wrong),
   or the doer reached for it and the refusal worked.
 
-**What "validated" will mean** is proposed here, for Max to set:
-- after N sessions (proposed N = 20, across at least three areas of
-  the tree), no false block unresolved;
+**What "validated" means** (set by Max, 2026-09-13):
+- after **40 sessions**, across at least three areas of the tree, no
+  false block unresolved;
 - every `missed` fixed or registered;
 - no refusal unread.
+
+The proposal was 20. Max doubled it: "worth being a little bulkier to
+strongly verify. especially because there are bugs being caught." The
+sessions keep finding defects in the harness itself: the box's
+`gofmt` and `rm` rules, the PATH order, the reasoning scan's build
+cache, and the recursive delete the box let through `find` and `xargs`.
 
 The claim reaches exactly those sessions (P11). There is no keyed
 metric and no arm comparison. The harness is judged as the environment
