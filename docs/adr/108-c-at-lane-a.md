@@ -54,7 +54,9 @@ lane B next.
   rank. A name bound to a function pointer (a parameter or a local) is
   never resolved.
 - **Tests** are `test_*` functions in a `test`/`tests` directory or a
-  `test_*.c`/`*_test.c` file, with framework `c-convention`.
+  `test_*.c`/`*_test.c` file, with framework `c-convention`. (Amended
+  2026-09-13: a registration makes a test first; see the amendment
+  below.)
 - **The tail.** `.c` and `.h` map to `c`. The pinned C11 standard
   library, plus `__builtin_*`, is builtin-name. C's row holds five
   classes: fallback, local-binding, builtin-name, attr-call and
@@ -99,3 +101,100 @@ on an oracle.
     fallback, giving 1,761 edges. Nine sampled edges were right against
     their lines (four at each commit's review, plus five after). That
     is evidence enough to review, not a §3.8 row.
+
+## Amendment (2026-09-13): C tests are found by their registrations (C-134)
+
+**Decided:** Max, 2026-09-13, on three calls, taking the proposed route
+each time. **Source:** the top-level review of 2026-09-13; C-134.
+
+### Context
+
+- **The naming rule finds none of cJSON's own tests.** cJSON names them
+  `cjson_*_should_*` and registers them with Unity's `RUN_TEST`: 162
+  registrations in 21 files under `tests/`.
+- **What it finds instead:** 39 tests.
+  - 37 are in the vendored Unity tree (`tests/unity/`).
+  - The other 2 are helpers: `json_patch_tests.c`'s `test_apply_patch`
+    and `test_generate_test`, static functions the file's registered
+    tests call.
+- **What lane A already sees.** The common frameworks register a test by
+  naming its function in a macro call, which lane A parses as a call.
+  - `RUN_TEST(fn)` and `cmocka_unit_test(fn)` are calls, usually inside
+    `main`.
+  - Check's `START_TEST(name) { … }` parses as a function named `name`,
+    which `tcase_add_test(tc, name)` registers.
+  - criterion's `Test(suite, name) { … }` and the Unity fixture's
+    `TEST(group, name) { … }` give no symbol. The body is a function the
+    macro defines, and lane A draws nothing for it.
+- **A registration need not sit beside its function.** Unity's examples
+  define their tests in `test/TestProductionCode.c` and register them
+  from `test/test_runners/TestProductionCode_Runner.c`.
+
+### Decision
+
+1. **A registration makes a test.** In any `.c` file lane A reads, a
+   call to one of these forms registers the function it names, when the
+   test argument is a bare identifier:
+   - **Unity:** `RUN_TEST(fn)` and `RUN_TEST(fn, line)`; framework
+     `unity`.
+   - **CMocka:** `cmocka_unit_test(fn)` and its `_setup`, `_teardown`,
+     `_setup_teardown` and `_prestate*` forms, with the test as the first
+     argument; framework `cmocka`.
+   - **Check:** `tcase_add_test(tc, fn)` and its `_raise_signal`,
+     `tcase_add_exit_test` and `tcase_add_loop_*` forms, with the test as
+     the second argument; framework `check`.
+2. **The named function resolves like a call.** The same-file function
+   first, then the unique non-static function repo-wide (ranks 1 and 3
+   of the fallback). A tie abstains, and a registration that resolves to
+   nothing makes no test. The test's id, line and reach are its
+   function's, as before.
+3. **The convention yields per defining file.**
+   - A file that defines any registered function, registered from any
+     file, contributes exactly its registered functions.
+   - The naming convention holds only in files that define none.
+   - A function that is both registered and convention-named is one
+     test, with the registration's framework.
+   - On cJSON, `json_patch_tests.c`'s two helpers drop. In Unity's
+     example 1, the five `test_*` functions in `TestProductionCode.c`
+     are five `unity` tests, counted once.
+4. **Out of scope. These stay in C-134, which narrows:**
+   - criterion's `Test(suite, name)` and the Unity fixture's
+     `TEST(group, name)`/`RUN_TEST_CASE`: a test needs a symbol, and lane
+     A draws none for a body a macro defines;
+   - CTest's `add_test`: its unit is a program, not a function;
+   - a registration behind the project's own macro: the preprocessor
+     never runs (C-131).
+5. **Two `c-tests` degradation records. C-134 becomes *partial*.**
+   - **A test program with no nameable test.** A `.c` file under a
+     `test`/`tests` directory that defines `main`, and neither defines
+     nor registers a test, draws a record naming the file: "a test
+     program with no test Hobbes can name; it registers its tests in a
+     form Hobbes does not read (C-134)". This catches frameworks Hobbes
+     has never heard of.
+   - **The forms Hobbes knows and does not read.** One record per
+     directory counts its `Test(…, …) { … }` and `TEST(…, …) { … }`
+     bodies and its `RUN_TEST_CASE` calls. This catches criterion, which
+     has no `main`.
+
+   `list_blind_spots` shows both with the other degradation records.
+
+### Consequences
+
+- **On cJSON (measured at review, before and after, in the cell
+  record):**
+  - the 2 helpers leave;
+  - the registered `cjson_*` tests arrive, up to 162, less any that do
+    not resolve;
+  - the Unity tree's count moves by its own registrations;
+  - its 43 `TEST(…)` bodies are counted by the second record.
+- **Fixtures:** `minic` gains:
+  - a Unity test file whose runner is a separate file;
+  - a CMocka file and a Check file, each with a `test_*`-named helper
+    beside its registered tests;
+  - a criterion-style file;
+  - a test program with `main` and no nameable test.
+- **`tests.json`'s framework strings:** `unity`, `cmocka`, `check` and
+  `c-convention`.
+- **The register:** C-134 narrowed, and *partial*.
+- **The version:** a patch, because it changes what the layer draws.
+- **How it is built:** through the harness, as one session.
