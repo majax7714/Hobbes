@@ -1,11 +1,14 @@
 // Package sandbox builds the rootless-podman invocation that launches an
-// agent session (M4, ADR-018): a fresh git worktree mounted rw, the
-// session-state dir mounted rw for the flight recorder and escalation
-// queue, the box policy mounted ro, a clean environment, and Claude Code
-// wired to the hobbes-proxy MCP server — reaching off the box, when it must,
-// only through the egress proxy (ADR-107). The Plan is pure data — it builds
-// the podman argv and MCP config without running anything, so the whole
-// design is inspectable via `hobbes-session --dry-run` and unit-testable.
+// agent session (M4, ADR-018): a fresh git worktree mounted rw, this
+// session's own dir under the sessions root mounted rw for the flight
+// recorder and escalation queue, the box policy mounted ro, a clean
+// environment, and Claude Code wired to the hobbes-proxy MCP server —
+// reaching off the box, when it must, only through the egress proxy
+// (ADR-107). No other session's clone or records are mounted, so no
+// command reaches them, however it is spelled (ADR-107's 2026-09-13
+// amendment). The Plan is pure data — it builds the podman argv and MCP
+// config without running anything, so the whole design is inspectable via
+// `hobbes-session --dry-run` and unit-testable.
 package sandbox
 
 import (
@@ -25,8 +28,12 @@ import (
 
 // In-container mount points. Fixed so the MCP config and podman args agree.
 const (
-	WorkDir      = "/work"     // the session worktree, rw
-	SessionsRoot = "/sessions" // ~/.hobbes/sessions, rw (logs + escalations)
+	WorkDir = "/work" // the session worktree, rw
+	// SessionsRoot is where a session's own dir lands: ~/.hobbes/sessions/<id>
+	// is mounted rw at SessionsRoot + "/" + <id> (logs + escalations); the
+	// root itself is never mounted, so no other session's dir is reachable
+	// under it (ADR-107's 2026-09-13 amendment).
+	SessionsRoot = "/sessions"
 	ProxyPath    = "/usr/local/bin/hobbes-proxy"
 	BoxPath      = "/policy/box.policy"         // ro, only when a host box policy exists
 	DerivedDir   = WorkDir + "/.hobbes/derived" // ro, the knowledge layer
@@ -357,11 +364,15 @@ func (p *Plan) worktreeMount() string {
 // an enforcing host (Fedora, D2) requires to read or write a bind mount.
 func (p *Plan) mounts() []string {
 	m := []string{
-		// The session dir stays rw for every role: the flight recorder
-		// and escalation queue must be writable even when the source is
-		// not, or a read-only session could not be audited.
+		// The session's own dir stays rw for every role: the flight
+		// recorder and escalation queue must be writable even when the
+		// source is not, or a read-only session could not be audited.
+		// Only this session's dir is mounted, never the sessions root —
+		// no other session's clone or records are mounted, so no command
+		// reaches them, however it is spelled (ADR-107's 2026-09-13
+		// amendment).
 		p.worktreeMount(),
-		p.cfg.HostSessions + ":" + SessionsRoot + ":rw,z",
+		filepath.Join(p.cfg.HostSessions, p.cfg.SessionID) + ":" + p.sessionHome() + ":rw,z",
 		p.cfg.HostProxyBin + ":" + ProxyPath + ":ro,z",
 	}
 	if p.cfg.HostBoxPath != "" {
