@@ -62,6 +62,11 @@ def test_3c45_area_is_knowledge_tools():
     assert _record("3c45")["area"] == "knowledge tools"
 
 
+def test_417f_the_knowledge_tools_schemas_in_the_proxy_are_knowledge_tools():
+    """`go/internal/proxy/knowledge.go` holds the knowledge tools' MCP schemas, so the `path` alias (417f) reads as `knowledge tools`, not the harness."""
+    assert _record("417f")["area"] == "knowledge tools"
+
+
 def test_a323_area_is_extraction():
     """A Branch line under `pipeline/src/hobbes/extract/` reads as the `extraction` area."""
     assert _record("a323")["area"] == "extraction"

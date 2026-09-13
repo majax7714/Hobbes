@@ -51,7 +51,7 @@ its authorship is what keeps it out of any training unit.
 | # | session | date | area | turns | wall | cost | gate | verify | review | outcome |
 |---|---------|------|------|-------|------|------|------|--------|--------|---------|
 | 1 | [96df](S-20260912T151728Z-96df.md) | 2026-09-12 | — | 1/40 | 3 s | $0.00 | clear | empty | n/a | discarded |
-| 2 | [417f](S-20260912T151945Z-417f.md) | 2026-09-12 | harness and sandbox | 38/40 | 3 min | $0.89 | clear | pass | right-clear | merged |
+| 2 | [417f](S-20260912T151945Z-417f.md) | 2026-09-12 | knowledge tools | 38/40 | 3 min | $0.89 | clear | pass | right-clear | merged |
 | 3 | [eef8](S-20260912T164904Z-eef8.md) | 2026-09-12 | extraction | 74/200 | 19 min | $4.68 | clear | pass | right-clear | merged |
 | 4 | [e6db](S-20260912T171754Z-e6db.md) | 2026-09-12 | extraction | 68/150 | 12 min | $2.84 | clear | pass | right-clear | merged |
 | 5 | [404f](S-20260912T174351Z-404f.md) | 2026-09-12 | knowledge tools | 25/60 | 3 min | $0.90 | clear | pass | right-clear | merged |
@@ -64,10 +64,12 @@ its authorship is what keeps it out of any training unit.
 | 12 | [a323](S-20260913T145700Z-a323.md) | 2026-09-13 | extraction | 28/150 | 3 min | $0.71 | clear | pass | right-clear | merged |
 | 13 | [2aa9](S-20260913T163921Z-2aa9.md) | 2026-09-13 | harness and sandbox | 57/150 | 6 min | $1.58 | clear | pass | right-clear | merged |
 | 14 | [9cad](S-20260913T200618Z-9cad.md) | 2026-09-13 | harness and sandbox | 15/80 | 60 s | $0.29 | clear | pass | right-clear | merged |
+| 15 | [e537](S-20260913T203100Z-e537.md) | 2026-09-13 | extraction | 26/150 | 9 min | $1.40 | clear | pass | right-clear | merged |
+| 16 | [78b7](S-20260913T203123Z-78b7.md) | 2026-09-13 | harness and sandbox | 29/100 | 9 min | $1.36 | clear | pass | right-clear | merged |
 
-14 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 0 · missed 0
-refusals: egress 14, policy escalations 18, denies 0 (each read in its session's notes, §4)
-reported cost $32.16 over 13 of 14 sessions (the envelope's figure, on the subscription) · turns 723 · wall 184 min
+16 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 0 · missed 0
+refusals: egress 15, policy escalations 18, denies 0 (each read in its session's notes, §4)
+reported cost $34.92 over 15 of 16 sessions (the envelope's figure, on the subscription) · turns 778 · wall 202 min
 This block is rendered by `pipeline/scripts/calvin_tracker.py render` from the logs and is not edited by hand.
 
 <!-- tracker:end -->

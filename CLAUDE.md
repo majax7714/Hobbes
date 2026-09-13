@@ -209,8 +209,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-13, 0.2.12-beta; the Go count
-from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,482 pytest (5 of them
+Suite sizes at the last check (2026-09-13, 0.2.13-beta; the Go count
+from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,504 pytest (5 of them
 `lane_b`) / 354 Go (subtests counted: 353 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
 87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
 unittest + 7 node) / 52 vitest / 36 tsextract + 43
@@ -286,7 +286,7 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-13) — Hobbes 0.2.12-beta
+## Status (2026-09-13) — Hobbes 0.2.13-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -328,14 +328,22 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-13) were the session's containment (`2aa9`,
-    merged as `5fb34f7`, 0.2.11-beta, ADR-107 amended) and D-r's fix
-    (`9cad`, merged as `0e9f5b3`, 0.2.12-beta). A session now mounts
-    only its own dir, and `find`'s executing forms and `xargs` escalate;
-    C-140 is the residual. Verify's worktrees are self-contained, so
-    `git` works in its container. Both gates were right-clear. There
-    are fourteen session logs, and the harness counts as validated after
-    40 (Max, 2026-09-13).
+  - **The latest** (2026-09-13):
+    - D-r's fix (`9cad`, 0.2.12-beta): verify's worktrees are
+      self-contained.
+    - C-134 narrowed (`e537`, 0.2.13-beta, ADR-108 amended): C tests
+      are found by their Unity, CMocka and Check registrations.
+    - The session tracker (`78b7`).
+
+    All three gates were right-clear. D-s is open: in a session,
+    dispatch's commit identity reaches the test fixtures. C-140 is
+    0.2.11-beta's residual.
+  - **The tracker** is the table at the end of
+    `docs/calvin/sessions/README.md`, rendered by
+    `pipeline/scripts/calvin_tracker.py render` and held by a pytest
+    drift test. It reads 16 of the 40 sessions that validate the
+    harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed
+    and $34.92 reported. Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
     (enforced in `units_from_git`).
@@ -343,8 +351,6 @@ inside a dispatch they skip, so their first run is the developer's.
   The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
   approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
-  - ADR-108's C-134 amendment (C tests by their registrations; drafted,
-    three calls);
   - the proxy and its logs in a container of their own (C-140's fix,
     a structural change);
   - whether ADR-106 stays held;

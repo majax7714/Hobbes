@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-13; Hobbes 0.2.12-beta on `main`.**
+**Reviewed 2026-09-13; Hobbes 0.2.13-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
-  before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta, 0.2.11-beta and
-  0.2.12-beta are untagged. Tags stay Max's call each time.
+  before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
+  0.2.13-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -14,41 +14,39 @@ The session's record is the 2026-09-13 BUILDLOG entries.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-13, last).** The top-level review again, then D-r
-   fixed and C-134's amendment drafted:
-   1. **The review** found three drifts: the ingest one docs commit
-      behind HEAD; workstreams' header at 0.2.10-beta, with C-140's fix
-      in no workstream; and W3's oracle item naming four oracles of six.
-      All fixed (`0a56199`).
-   2. **D-r fixed in 0.2.12-beta** (dispatched as `9cad`, merged as
-      `0e9f5b3`). Verify's worktrees are plain clones with no alternates
-      file, so `git` works in its container. Checked in the image on the
-      host: `efc8`'s F2F test passes through the new `checkout()` and
-      fails through a `--shared` clone.
-   3. **ADR-108's C-134 amendment is drafted, not committed**, at
-      `~/.hobbes/bench/c134/adr108-amendment-draft.md`:
-      - a test is a function a Unity, CMocka or Check registration
-        names;
-      - a file that registers drops the naming convention;
-      - a test program with `main` and no nameable test draws a
-        `c-tests` record.
+0. **Latest (2026-09-13, last).** The top-level review, then three
+   sessions through the harness:
+   1. **The review** found three drifts, all fixed (`0a56199`):
+      - the ingest one docs commit behind HEAD;
+      - workstreams' header at 0.2.10-beta, with C-140's fix in no
+        workstream;
+      - W3's oracle item naming four oracles of six.
+   2. **D-r fixed, 0.2.12-beta** (`9cad`). Verify's worktrees are plain
+      clones with no alternates file, so `git` works in its container.
+   3. **C-134 narrowed, 0.2.13-beta** (`e537`; ADR-108 amended on Max's
+      three calls):
+      - C tests are found by their Unity, CMocka and Check
+        registrations;
+      - the convention yields per defining file;
+      - two `c-tests` records.
 
-      Max's three calls are in item 1. On his word, it goes into ADR-108,
-      and then it is dispatched.
+      cJSON went from 39 to 199 tests, and C-134 is now *partial*.
+   4. **The session tracker** (`78b7`): the table at the end of
+      `docs/calvin/sessions/README.md`, rendered by
+      `pipeline/scripts/calvin_tracker.py render` from the logs and held
+      by a pytest drift test. **Re-render after filling a review
+      block.** It reads 16 of 40, 4 areas, and $34.92 reported.
+   5. **Found: D-s** (item 4). The `a323` failures 0.2.12-beta pinned on
+      D-r are D-s, and the CHANGELOG says so.
    - **Standing from earlier today:**
      - the harness counts as validated after 40 sessions
        (`calvin-harness.md` §4: at least three areas, no false block
        unresolved, every `missed` fixed or registered, no refusal
        unread);
      - C-140 is 0.2.11-beta's residual.
-   - The image and binaries are at 0.2.12-beta. **Restart the knowledge
+   - The image and binaries are at 0.2.13-beta. **Restart the knowledge
      server** the next session opens with (C-65).
 1. **Open for Max (no spend):**
-   - **ADR-108's C-134 amendment** (item 0.3):
-     - (a) Unity, CMocka and Check now, with criterion and the Unity
-       fixture deferred;
-     - (b) a file's registrations replace the naming convention;
-     - (c) the `c-tests` record as the surfacing.
    - **The register and backlog review's remaining calls** (2026-09-13;
      the superseding, C-141 and the folding rule are done):
      - a segment of its own for the dispatch harness's entries (C-125,
@@ -93,11 +91,14 @@ The session's record is the 2026-09-13 BUILDLOG entries.
        the worktree;
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
-   - **Toward 40 across three areas.** The fourteen logs so far cover:
-     - extraction: C's lane A and its rework, the external veto, C-139;
+   - **Toward 40 across three areas.** The tracker counts them (sixteen
+     so far):
+     - extraction: C's lane A and its rework, the external veto, C-139,
+       C-134's registrations;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
-     - the harness and sandbox: the progress hook, the containment, D-r;
+     - the harness and sandbox: the progress hook, the containment, D-r,
+       the tracker;
      - the oracle lane: C's oracle.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
@@ -114,7 +115,15 @@ The session's record is the 2026-09-13 BUILDLOG entries.
      provider) on main against the branch. A lane B-on regrade can move
      nothing where lane B already answers.
    - `render.py` takes absolute paths.
-4. **Carried, untouched this session:**
+4. **Carried:**
+   - **D-s (found 2026-09-13).** Inside a dispatch session,
+     `GIT_AUTHOR_*`/`GIT_COMMITTER_*` are `hobbes-dispatch` (dispatch.py's
+     `IDENTITY`), which overrides a test fixture's `-c user.name`.
+     `units_from_git` then skips every fixture commit as a doer's, and
+     three `test_ttt_units.py` tests fail in the doer's full suite.
+     Reproduced on the host with that environment. The fix is the
+     fixture's: set its identity by environment, or clear dispatch's. It
+     is a small dispatch.
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading (round 1's finding).
    - **pytest's 4 warnings:** a helper named `testmap_fixture` in
@@ -190,7 +199,8 @@ assumed of $25:
     0.2.11-beta a session mounts only its own dir, never the root. The
     doer's own state is purged at exit and never kept (retention,
     0.1.22-beta). The log file is under `docs/calvin/sessions/`
-    (fourteen, of the 40 that validate the harness).
+    (sixteen, of the 40 that validate the harness; the tracker counts
+    them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
     later session's in its brief (`~/.hobbes/sessions/<id>/brief.md`).
@@ -208,11 +218,11 @@ assumed of $25:
 - **Register:** 141 entries: 100 active, 25 lifted, 11 superseded, 5
   folded (Max's calls, 2026-09-13; ADR-043 amended). C-141 registered
   the same day.
-- **Suites** at 0.2.12-beta:
-  - 1,482 pytest (host);
+- **Suites** at 0.2.13-beta:
+  - 1,504 pytest (host);
   - Go 354 `--- PASS`/`SKIP` lines (353 pass, 1 skip), counted at
     0.2.11-beta with the live egress and live mount tests run on the
-    host. 0.2.12-beta moved only Go's version string, and
+    host. 0.2.12-beta and 0.2.13-beta moved only Go's version string, and
     `go/internal/version`'s test was re-run;
   - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
     vitest, 43 helper and 36 tsextract node, 84 atlas0.
@@ -223,15 +233,15 @@ assumed of $25:
 1. **Max's calls** (START HERE item 1): C-140's structural fix, ADR-106.
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
-   - C's residue (W1): C-134's test registrations (the amendment, on
-     Max's word); C-135's autotools,
+   - C's residue (W1): C-135's autotools,
      Meson and Bazel roots and its surfacing gap; C-133's include path
      read from the database;
    - W1/W3's no-spend items: the decorated-declaration line convention,
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
    - `oracle import --lang c`, then the foreign C cells (the comparative
      queue);
-   - small harness items: pytest's `testmap_fixture` warnings.
+   - small harness items: D-s (item 4), pytest's `testmap_fixture`
+     warnings.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
    - `go/internal/version` and the union fixture's ownership;

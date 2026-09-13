@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.11-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -271,7 +271,9 @@ the best on-ramp for a new contributor who should learn the codebase.*
     - C-131's macro gap: parked (`future_additions.md`);
     - C-135's surfacing gap (bpftop): a candidate once named.
   - **Then the residue:**
-    - C-134, the test registrations (Unity's `RUN_TEST`, CMocka, Check);
+    - ~~C-134, the test registrations (Unity's `RUN_TEST`, CMocka,
+      Check)~~ **Narrowed 2026-09-13** (0.2.13-beta, ADR-108 amended).
+      criterion and the Unity fixture stay in it;
     - C-135's autotools, Meson and Bazel roots, which get no database
       today;
     - C-133's include path, now read from the database where lane B

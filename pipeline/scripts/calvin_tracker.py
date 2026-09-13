@@ -35,7 +35,9 @@ TARGET_SESSIONS = 40
 #: A file's area, by the first prefix it matches, checked in this order.
 AREA_TABLE = [
     ("extraction", ("pipeline/src/hobbes/extract/", "tsextract/", "scip/")),
-    ("knowledge tools", ("go/internal/knowledge/",)),
+    # The knowledge tools' MCP schemas live in the proxy package (417f, the `path` alias), so that one file maps here,
+    # ahead of the rest of `go/internal/proxy/` under the harness.
+    ("knowledge tools", ("go/internal/knowledge/", "go/internal/proxy/knowledge.go")),
     ("oracle lane", ("bench/oracle/",)),
     ("harness and sandbox", (
         "go/internal/sandbox/", "go/internal/egress/", "go/internal/proxy/",
@@ -93,10 +95,19 @@ REVIEW_OUTCOME_RE = re.compile(r"^- outcome: (?P<word>[A-Za-z][\w-]*)")
 REQUIRED_LINES = ("task", "doer", "egress", "policy", "branch", "gate", "verify", "review_gate", "outcome")
 
 
+def _is_test_path(path: str) -> bool:
+    """A test file by its name or place: `*_test.go`, anything under a `tests/` directory, or a `test_*` file."""
+    return path.endswith("_test.go") or path.startswith("tests/") or "/tests/" in path or Path(path).name.startswith("test_")
+
+
 def area_for_files(files: list[str]) -> str:
-    """The area(s) a session's branch touches: every `AREA_TABLE` category a file's prefix matches, joined `", "` in table order; `"—"` if none does."""
+    """The area(s) a session's branch touches: every `AREA_TABLE` category a file's prefix matches, joined `", "` in table order; `"—"` if none does.
+
+    The code a session changed decides its area, so its test files count only when it changed nothing else (417f's
+    `go/internal/proxy/mcp_test.go` tests the exec tools as well as the knowledge tools it changed)."""
+    code = [f for f in files if not _is_test_path(f)]
     matched = set()
-    for f in files:
+    for f in code or files:
         for name, prefixes in AREA_TABLE:
             if any(f.startswith(p) for p in prefixes):
                 matched.add(name)
@@ -293,6 +304,7 @@ def cmd_check(_args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """The `render` / `check` command line; returns the exit status."""
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("render", help="rewrite the README's tracker block from the logs")

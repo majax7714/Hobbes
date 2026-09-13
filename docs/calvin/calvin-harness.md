@@ -127,6 +127,16 @@ The claim reaches exactly those sessions (P11). There is no keyed
 metric and no arm comparison. The harness is judged as the environment
 the work runs in.
 
+**The tracker** (2026-09-13) is the table at the end of
+[`sessions/README.md`](sessions/README.md).
+- It has one row per session: turns, wall time, the envelope's reported
+  cost, the gate and review verdicts, the outcome and the area.
+- Under the rows are the totals against this rule: the count toward 40,
+  the areas, false blocks, missed, and refusals.
+- `pipeline/scripts/calvin_tracker.py render` writes it from the logs.
+  A pytest drift test fails when a log changes and the table does not,
+  so re-render after filling a review block.
+
 ## Retention and use (ADR-107's amendment, 2026-09-12)
 
 **Recorded sessions are evaluation rows, never model training data.**

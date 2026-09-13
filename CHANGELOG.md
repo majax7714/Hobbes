@@ -14,6 +14,62 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.9-beta untagged; 0.2.10-beta is tagged
 `v0.2.10-beta`, on Max's word at the close of 2026-09-13).
 
+## 0.2.13-beta — 2026-09-13 (C tests by their registrations; C-134 narrowed and surfaced; ADR-108 amended)
+
+**Patch: what the layer draws and says.** Max's three calls on the
+amendment, taking the proposed route each time.
+
+- **The rule.** A function named by a Unity (`RUN_TEST`), CMocka
+  (`cmocka_unit_test*`) or Check (`tcase_add_test*`) registration is a
+  C test.
+  - It resolves by the fallback's ranks 1 and 3, and a tie abstains.
+  - A file that defines a registered function contributes exactly its
+    registered functions. The `test_*` convention holds only in files
+    that define none.
+  - A function that is both registered and convention-named is one test.
+- **Two `c-tests` degradation records**, which `list_blind_spots` shows:
+  - a test program under `test`/`tests` with a `main` and no test Hobbes
+    can name;
+  - a per-directory count of `Test`/`TEST` bodies and `RUN_TEST_CASE`
+    calls, the forms Hobbes knows and does not read.
+- **On cJSON** (lane A): 39 tests became 199.
+  - Its own `tests/`: 162 `unity` tests, one for every `RUN_TEST`
+    registration, and neither helper.
+  - The vendored Unity tree keeps 37 convention tests: its two example
+    trees share names, so rank 3 ties.
+  - Five records. The body count is a floor (27 of 32 in
+    `unity_fixture_Test.c`).
+- **Register:** C-134 narrowed, and *partial* (was unsurfaced). The debt
+  table reads 18 partial and 4 unsurfaced.
+- **Built through the harness:** `S-20260913T203100Z-e537` (26 of 150
+  turns, 555 s; $1.40 reported). Gate clear and verify pass (181 tests,
+  0 regressions). Merged without squashing.
+
+**Tooling beside the layer: the session tracker.**
+- `pipeline/scripts/calvin_tracker.py render` writes a table of every
+  harness session into `docs/calvin/sessions/README.md`, from the logs:
+  - turns, wall time and the envelope's reported cost;
+  - the gate and review verdicts, the outcome and the area;
+  - the totals against `calvin-harness.md` §4.
+
+  A pytest drift test holds the table in step with the logs.
+- **Built through the harness:** `S-20260913T203123Z-78b7` (29 of 100
+  turns, 519 s; $1.36 reported).
+- **The developer's follow-up:** a session's area comes from the code it
+  changed, and from its tests only when it changed nothing else. The
+  knowledge tools' schemas in `go/internal/proxy/knowledge.go` map to
+  knowledge tools.
+- It reads 16 of 40 sessions, 4 areas, and $34.92 reported over 15.
+
+**Found: D-s.** Inside a dispatch session, `GIT_AUTHOR_*` and
+`GIT_COMMITTER_*` are set to `hobbes-dispatch`, which overrides a test
+fixture's `-c user.name`. `units_from_git` then skips every fixture
+commit as a doer's, and three `test_ttt_units.py` tests fail. It was
+reproduced on the host with the same environment. The `a323` failures
+that 0.2.12-beta attributed to D-r are these. D-s is open.
+
+Host pytest: 1,504.
+
 ## 0.2.12-beta — 2026-09-13 (verify's worktrees are self-contained: `git` works in its container; D-r)
 
 **Patch: what the layer says.** `hobbes verify` reported tests failing
@@ -27,8 +83,10 @@ that pass on the host.
     `git` a test ran there failed (`fatal: bad object HEAD`).
   - It read as a failure on both trees: the `F2F` for
     `test_cli.py::TestIngest::test_the_artifact_says_which_hobbes_built_it`
-    in session `efc8`, and three `test_ttt_units.py` failures the doer saw
-    in `a323`. Each was ruled out by hand on the host.
+    in session `efc8`, ruled out by hand on the host.
+  - *Corrected at 0.2.13-beta:* the three `test_ttt_units.py` failures a
+    doer saw in `a323` were not D-r. They are D-s, in the doer's own
+    session, where dispatch's commit identity reaches the test fixtures.
 - **The fix.** A plain clone of the local path. It hardlinks the objects
   on one filesystem, copies them across two, and writes no alternates
   file. Its callers (`verify`, `build_row`) are unchanged.

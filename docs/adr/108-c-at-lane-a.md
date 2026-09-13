@@ -180,19 +180,22 @@ each time. **Source:** the top-level review of 2026-09-13; C-134.
 
 ### Consequences
 
-- **On cJSON (measured at review, before and after, in the cell
-  record):**
-  - the 2 helpers leave;
-  - the registered `cjson_*` tests arrive, up to 162, less any that do
-    not resolve;
-  - the Unity tree's count moves by its own registrations;
-  - its 43 `TEST(…)` bodies are counted by the second record.
-- **Fixtures:** `minic` gains:
-  - a Unity test file whose runner is a separate file;
-  - a CMocka file and a Check file, each with a `test_*`-named helper
-    beside its registered tests;
-  - a criterion-style file;
-  - a test program with `main` and no nameable test.
+- **On cJSON (measured at review, lane A, 2026-09-13;
+  `extraction-evidence.md`):**
+  - 39 tests became 199.
+  - In cJSON's own `tests/`, the 2 helpers left, and all 162 registered
+    `cjson_*` tests arrived as `unity` tests.
+  - The vendored Unity tree kept its 37 convention tests. Its
+    `example_1` and `example_3` define the same test names, so rank 3
+    ties and abstains. The prediction written here, that its count would
+    move, was wrong; the rule held.
+  - Five `c-tests` records: two fixture runners with no nameable test,
+    and three directory counts, totalling 38 `TEST(…)` bodies and 41
+    `RUN_TEST_CASE` calls. The body count is a floor: tree-sitter's
+    error recovery reshapes 5 of the 32 bodies in
+    `unity_fixture_Test.c`.
+- **Fixtures:** none were added to `minic`, whose `lane_b` cases skip in
+  the sandbox. Every case is built in `tmp_path` in `test_csource.py`.
 - **`tests.json`'s framework strings:** `unity`, `cmocka`, `check` and
   `c-convention`.
 - **The register:** C-134 narrowed, and *partial*.

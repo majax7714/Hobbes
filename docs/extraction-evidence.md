@@ -45,13 +45,14 @@ HCL pack's `packages` edge) keep their citations in code and register.*
 ## DaveGamble/cJSON (C — ADR-108, ADR-109, ADR-110; compiler-graded, §3.8)
 
 cJSON's tree includes its vendored Unity test framework, which is most
-of its C. It was run at `fb16e5c`. The two lane-A rows are host runs,
+of its C. It was run at `fb16e5c`. The lane-A rows are host runs,
 with C's name fallback alone at `syntactic` tier (C-130). The lane-B row
 ran contained: CMake's configure and scip-clang inside the image
 (`index-c`).
 
 | Date | Numbers |
 |---|---|
+| 2026-09-13 (**C-134**, the registration rule; `e537`'s code, lane A, host) | **199 tests** (was 39). **162 `unity`**: every `RUN_TEST` registration in cJSON's own `tests/`, with the 2 helpers gone. **37 `c-convention`**, in the vendored Unity tree, where `example_1` and `example_3` define the same names, so rank 3 ties and abstains. **5 `c-tests` records**: 2 fixture runners with no nameable test, and 38 `TEST(…)` bodies and 41 `RUN_TEST_CASE` calls counted by directory. The body count is a floor: 27 of 32 in `unity_fixture_Test.c` |
 | 2026-09-12 (**oracle, O9**; clang 18.1.3, contained) | **1,188/1,188 confirmed, 0 contradicted — 100.0%**, all semantic. The 525 syntactic edges are silent: 513 sit in files CMake's defaults leave uncompiled, 12 in dead `#if` arms. Recall 62.0% (1,190/1,918): `static→function` 100%, every miss `macro→function` (728). Poison PASS. [record](oracle/cells/cjson-c-2026-09-12.md) |
 | 2026-09-12 (**lane B**, 0.2.4-beta; CMake's export at its defaults gives 23 translation units. *Corrected 2026-09-12:* the 27 first written here was the spike's, with `ENABLE_CJSON_UTILS=On`) | 4.1 s end to end. Of **4,292 C call sites**: **2,075 resolved semantically (48.3%)**, 1,650 by lane A's fallback, 179 external, 186 below-floor (calls through a struct's function-pointer field), 159 builtin-name, 227 unclassified. **1,858 call edges: 1,072 semantic, 786 syntactic.** The lanes agree on all 1,717 sites both answer. 2 sites that translation units resolve into different files (`isinf` and `isnan` at `cJSON.c:612`) keep lane A's floor. 6 monikers are defined in two files (C-137). The spike before it (a stand-alone decode) found no C function joined until the helper accepted scip-clang's signature-hash disambiguator (ADR-109) |
 | 2026-09-12 (after the rework, `48684e3`) | 0.3 s. **99 C modules; 1,654 symbols** (1,026 functions, 597 function-like macros, 31 types). Of **4,292 C call sites**: **3,363 fallback-resolved (78.4%)**, 344 builtin-name, 26 attr-call, 1 local-binding, 558 unclassified. **1,761 call edges, all `syntactic`.** 345 include edges. 39 tests by the `test_*` convention (C-134: cJSON's own `RUN_TEST` tests are not among them). 38 syntax-error `parse` records (export macros and the `extern "C"` idiom) and 9 duplicate-definition records (C-131) |

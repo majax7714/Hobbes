@@ -9948,3 +9948,44 @@ current standing", then "yes proceed with those".
     `name`. criterion's `Test()` gives no symbol, which is why it is
     deferred.
   - Three calls wait on Max.
+
+**Then (Max):** "can we keep a tracker thats neat , propose routes to
+the three calls for me to adjust or approve". The three calls and the
+tracker's form went to him as four questions, and he took the proposed
+route each time.
+- **A correction to (b) before it was asked.** Unity's examples register
+  their tests from a separate runner file, so the convention yields per
+  *defining* file, not per registering file.
+- **ADR-108 amended** (`27f98af`). Two sessions then ran at once from
+  that parent:
+  - **`e537`, C-134:** gate clear, verify pass (181 tests); 26 of 150
+    turns, $1.40.
+    - On cJSON (lane A, the branch's code), 39 tests became 199: 162
+      `unity` tests in its own `tests/`, with the 2 helpers gone.
+    - The vendored tree keeps 37 convention tests, because its example
+      trees share names and rank 3 ties. The ADR's prediction that this
+      count would move was wrong, and the ADR now says so.
+    - Five `c-tests` records. The body count is a floor (27 of 32 in
+      `unity_fixture_Test.c`).
+  - **`78b7`, the tracker:** gate clear, verify pass (9 tests); 29 of
+    100 turns, $1.36. The developer's follow-ups:
+    - `417f`'s area. The brief's prefix table sent
+      `go/internal/proxy/knowledge.go` to the harness. The file now maps
+      to knowledge tools, and a session's area comes from the code it
+      changed, its tests counting only when it changed nothing else.
+    - `main()`'s docstring.
+- **D-s found.** The doer's full suite in `e537` failed three
+  `test_ttt_units` tests.
+  - Dispatch's `GIT_AUTHOR_*`/`GIT_COMMITTER_*` environment overrides the
+    fixtures' `-c user.name`, so `units_from_git` skips every fixture
+    commit as a doer's.
+  - Reproduced on the host: 3 fail with that environment, and 24 pass
+    without it.
+  - 0.2.12-beta had attributed `a323`'s same failures to D-r. The
+    CHANGELOG is corrected.
+- **0.2.13-beta:**
+  - host pytest 1,504; the image rebuilt;
+  - the register: C-134 *partial*, giving 18 partial and 4 unsurfaced;
+  - ADR-108's consequences as measured, and the evidence row;
+  - the tracker re-rendered: 16 of 40, 4 areas, $34.92 reported over 15
+    sessions.

@@ -108,28 +108,48 @@
 - **Provider (P9):** none; this is Hobbes's own rule.
 - **Source:** ADR-108.
 
-### C-134 — C tests are found by one naming convention
-- **Cannot tell you:** which C tests a framework registers by other
-  means.
-  - **The rule:** a test is a `test_*` function in a `test`/`tests`
-    directory, or in a `test_*.c`/`*_test.c` file.
-  - **Missed:** tests registered any other way are absent from the
-    inventory, and so is their reach. That includes Unity's
-    `RUN_TEST(fn)` for other names, CMocka's `cmocka_unit_test`,
-    Check's `START_TEST`, criterion's `Test(suite, name)` and CTest's
-    `add_test`.
-  - **Wrongly counted:** a helper named `test_*` in a test directory is
-    counted as a test.
-- **Because:** C has no standard test framework, and the naming
-  convention is the one rule that holds without one (ADR-108).
-- **Bites at:** cJSON's suite, which names its tests `cjson_*_should_*`
-  and registers them through `RUN_TEST`. None of those are tests to
-  Hobbes. The 39 it finds include helpers such as
-  `json_patch_tests.c::test_apply_patch`.
-- **You find out:** **unsurfaced**. `tests.json` and the Tests tab list
-  what was found, and nothing names what was missed.
+### C-134 — C tests registered in a form Hobbes does not read are missed (narrowed 2026-09-13)
+- **Cannot tell you:** which C tests a framework registers in a form
+  Hobbes does not read.
+  - **The rule** (ADR-108's 2026-09-13 amendment): a function named by
+    a Unity (`RUN_TEST`), CMocka (`cmocka_unit_test*`) or Check
+    (`tcase_add_test*`) registration is a test, resolved by the
+    fallback's ranks 1 and 3. A file that defines no registered function
+    keeps the `test_*` naming convention.
+  - **Missed:**
+    - criterion's `Test(suite, name)` and the Unity fixture's
+      `TEST(group, name)`/`RUN_TEST_CASE`, whose bodies a macro defines,
+      so they have no symbol;
+    - CTest's `add_test`, whose unit is a program, not a function;
+    - a registration behind the project's own macro (C-131);
+    - a registration whose name ties at rank 3, between two non-static
+      definitions. cJSON's vendored `example_1` and `example_3` are an
+      instance.
+  - **Wrongly counted:** a `test_*` helper in a file that defines no
+    registered function is still a convention test.
+- **Because:** C has no standard test framework. The common ones
+  register a test by naming its function in a macro call, which lane A
+  parses. The rest define the function by macro, and lane A draws no
+  symbol for a body the preprocessor would make (C-131).
+- **Bites at:**
+  - criterion suites;
+  - the Unity fixture: cJSON's vendored `extras/fixture` has 38 bodies
+    and 41 `RUN_TEST_CASE` calls;
+  - duplicated example trees.
+- **You find out:** *partial* (was **unsurfaced**; 2026-09-13).
+  - Two `c-tests` degradation records, which `list_blind_spots` shows:
+    - a test program under `test`/`tests` with a `main` and no test
+      Hobbes can name;
+    - a per-directory count of the unread forms.
+  - **Not surfaced:**
+    - The count is a floor. Tree-sitter's error recovery reshapes some
+      bodies: 27 of 32 are counted in cJSON's `unity_fixture_Test.c`.
+    - A criterion file has no `main`, so only the directory count names
+      it.
+    - A rank-3 tie, and a helper counted by the convention, draw
+      nothing.
 - **Provider (P9):** none; this is Hobbes's own rule.
-- **Source:** ADR-108.
+- **Source:** ADR-108, amended 2026-09-13.
 
 ### C-135 — A C build root with nothing to derive a compile database from is lane A only
 - **Cannot tell you:** semantic C edges under a build root whose
