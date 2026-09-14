@@ -52,7 +52,13 @@ unmatched include draws no edge. ``#include <p>`` tries the same three
 rules first — a project routinely spells its own headers with ``<>``
 under an ``-I`` — and only when none resolves does it become an
 ``imports`` edge to ``ext:<p>``. A resolved include, either form, is an
-in-repo ``imports`` module edge with file:line.
+in-repo ``imports`` module edge with file:line. An include none of the
+three steps could place draws no edge of its own, but is not silent: the
+2026-09-14 amendment gives it one ``"c-includes"`` degradation record per
+directory (naming a quoted include no step matched, and a quoted or
+angle include whose suffix step matched more than one repo header),
+because it is the build's own ``-I`` path that would settle either and
+lane A never reads it (C-133).
 
 **Call sites and their shapes.** A ``call_expression`` records a site at
 its terminal identifier: a plain identifier is a plain call (a
@@ -266,6 +272,7 @@ def extract_c(repo_root: Path) -> dict | None:
     _resolve_registrations(files)
     errors.extend(_test_degradations(files))
     bundle = _join(files)
+    errors.extend(bundle.pop("include_errors"))
     bundle["errors"] = errors
     return bundle
 
@@ -706,21 +713,38 @@ def _normalize(base: PurePosixPath, spec: str) -> str | None:
     return str(PurePosixPath(*parts)) if parts else "."
 
 
+@dataclass(frozen=True)
+class _IncludeResolution:
+    """Decision 4's outcome for one include: *path* when a step matched,
+    or ``None`` — in which case *ambiguous* says whether the miss was the
+    suffix step finding more than one repo header, or no step finding a
+    candidate at all. The amendment's C-133 report (:func:`_join`'s only
+    reader of the distinction) tells the two misses apart; the edge the
+    join draws never depended on it."""
+
+    path: str | None
+    ambiguous: bool
+
+
 def _resolve_include(
     including_path: str, spec: str, known_files: set[str], headers: set[str]
-) -> str | None:
+) -> _IncludeResolution:
     """Decision 4's three steps, shared by ``"p"`` and (when tried first)
     ``<p>``: relative to the including file's directory; relative to the
-    repo root; the unique repo header whose path ends with ``/p``."""
+    repo root; the unique repo header whose path ends with ``/p``. Reports
+    which one matched, and — when none did — whether the suffix step
+    found more than one header (ambiguous) or none (unmatched)."""
     candidate = _normalize(PurePosixPath(including_path).parent, spec)
     if candidate is not None and candidate in known_files:
-        return candidate
+        return _IncludeResolution(candidate, False)
     candidate = _normalize(PurePosixPath("."), spec)
     if candidate is not None and candidate in known_files:
-        return candidate
+        return _IncludeResolution(candidate, False)
     suffix = "/" + spec
     matches = [f for f in headers if f.endswith(suffix)]
-    return matches[0] if len(matches) == 1 else None
+    if len(matches) == 1:
+        return _IncludeResolution(matches[0], False)
+    return _IncludeResolution(None, len(matches) > 1)
 
 
 def _join(files: list[CFile]) -> dict:
@@ -730,6 +754,11 @@ def _join(files: list[CFile]) -> dict:
     symbols: list[dict] = []
     known_files = {parsed.path for parsed in files}
     headers = {p for p in known_files if p.endswith(".h")}
+    #: Per directory, the quoted specs an unmatched include named and the
+    #: specs (either spelling) an ambiguous include named — the
+    #: amendment's C-133 report, deduped and in path order of first sight.
+    unmatched_by_dir: dict[str, list[str]] = defaultdict(list)
+    ambiguous_by_dir: dict[str, list[str]] = defaultdict(list)
 
     for parsed in files:
         nodes[module_id(parsed.path)] = {
@@ -738,10 +767,11 @@ def _join(files: list[CFile]) -> dict:
 
     for parsed in files:
         mid = module_id(parsed.path)
+        directory = str(PurePosixPath(parsed.path).parent)
         for inc in parsed.includes:
-            resolved = _resolve_include(parsed.path, inc["spec"], known_files, headers)
-            if resolved is not None:
-                target_mid = module_id(resolved)
+            resolution = _resolve_include(parsed.path, inc["spec"], known_files, headers)
+            if resolution.path is not None:
+                target_mid = module_id(resolution.path)
                 if target_mid != mid:
                     module_edges[(mid, target_mid, "imports")].append(
                         {"path": parsed.path, "line": inc["line"]}
@@ -757,6 +787,15 @@ def _join(files: list[CFile]) -> dict:
                 )
             # A quoted include that resolves nowhere (ambiguous, or
             # unmatched) draws no edge — decision 4.
+            rendered = f"<{inc['spec']}>" if inc["angle"] else f'"{inc["spec"]}"'
+            if resolution.ambiguous:
+                if rendered not in ambiguous_by_dir[directory]:
+                    ambiguous_by_dir[directory].append(rendered)
+            elif not inc["angle"]:
+                if rendered not in unmatched_by_dir[directory]:
+                    unmatched_by_dir[directory].append(rendered)
+            # An angle include that was merely unmatched is the ext:<p>
+            # dependency above, and is not a miss (the amendment).
 
         for symbol in parsed.symbols:
             symbols.append({"id": f"{mid}.{symbol['qualname']}", "module": mid, **symbol})
@@ -776,7 +815,53 @@ def _join(files: list[CFile]) -> dict:
         ),
         "languages": ["c"],
         "errors": [],
+        "include_errors": _include_degradations(unmatched_by_dir, ambiguous_by_dir),
     }
+
+
+def _capped_specs(specs: list[str]) -> str:
+    """Up to three of *specs*, parenthesised; a fourth or later collapses
+    to a trailing ``…`` rather than naming every one (the amendment)."""
+    shown = specs[:3]
+    tail = ", …" if len(specs) > 3 else ""
+    return "(" + ", ".join(shown) + tail + ")"
+
+
+def _include_degradations(
+    unmatched_by_dir: dict[str, list[str]], ambiguous_by_dir: dict[str, list[str]]
+) -> list[dict]:
+    """The 2026-09-14 amendment's ``"c-includes"`` records: one per
+    directory holding an include decision 4 could not place — a quoted
+    include no step resolved, or a quoted or angle include whose suffix
+    step found more than one repo header — since it is the build's own
+    ``-I`` path that would settle either, and lane A never reads it
+    (C-133)."""
+    records: list[dict] = []
+    for directory in sorted(set(unmatched_by_dir) | set(ambiguous_by_dir)):
+        parts = []
+        unmatched = unmatched_by_dir.get(directory, [])
+        if unmatched:
+            noun = "quoted include" if len(unmatched) == 1 else "quoted includes"
+            parts.append(f"{len(unmatched)} {noun} matched no repo file {_capped_specs(unmatched)}")
+        ambiguous = ambiguous_by_dir.get(directory, [])
+        if ambiguous:
+            noun = "include" if len(ambiguous) == 1 else "includes"
+            parts.append(
+                f"{len(ambiguous)} {noun} matched more than one repo header "
+                f"{_capped_specs(ambiguous)}"
+            )
+        records.append(
+            {
+                "path": directory,
+                "stage": "c-includes",
+                "message": (
+                    " and ".join(parts)
+                    + "; the build's include path decides them, and lane A does not read it "
+                    "(C-133)"
+                ),
+            }
+        )
+    return records
 
 
 def _call_sites(files: list[CFile]) -> list:
@@ -863,9 +948,11 @@ def _call_fallback(
     includes_by_file: dict[str, list[str]] = {}
     for parsed in files:
         includes_by_file[parsed.path] = [
-            resolved
+            resolution.path
             for inc in parsed.includes
-            if (resolved := _resolve_include(parsed.path, inc["spec"], known_files, headers))
+            if (
+                resolution := _resolve_include(parsed.path, inc["spec"], known_files, headers)
+            ).path
             is not None
         ]
 

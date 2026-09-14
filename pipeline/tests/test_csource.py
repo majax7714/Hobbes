@@ -194,6 +194,101 @@ class TestIncludes:
         assert layer["module_edges"] == []
 
 
+class TestIncludeDegradations:
+    """The 2026-09-14 amendment: a `"c-includes"` record per directory for
+    an include decision 4 could not place (C-133)."""
+
+    def test_unmatched_quoted_includes_get_one_record_naming_both(self, tmp_path):
+        # Neither spec exists anywhere in the repo: both are unmatched,
+        # not ambiguous, and neither draws an edge.
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "a.c").write_text(
+            '#include "config.h"\n#include "gen/version.h"\nint main(void){return 0;}\n'
+        )
+        layer = extract_c(tmp_path)
+        assert layer["module_edges"] == []
+        records = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        [record] = records
+        assert record["path"] == "src"
+        assert record["message"] == (
+            '2 quoted includes matched no repo file ("config.h", "gen/version.h"); '
+            "the build's include path decides them, and lane A does not read it (C-133)"
+        )
+
+    def test_ambiguous_includes_count_per_spelling_and_still_draw_their_edges(self, tmp_path):
+        # Two repo headers share the suffix /util.h: the unique-suffix
+        # step abstains for both a quoted and an angle spelling of it.
+        (tmp_path / "include" / "x").mkdir(parents=True)
+        (tmp_path / "include" / "y").mkdir(parents=True)
+        (tmp_path / "include" / "x" / "util.h").write_text("void f(void);\n")
+        (tmp_path / "include" / "y" / "util.h").write_text("void g(void);\n")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "b.c").write_text('#include "util.h"\nint b(void){return 0;}\n')
+        (tmp_path / "src" / "c.c").write_text("#include <util.h>\nint c(void){return 0;}\n")
+        layer = extract_c(tmp_path)
+        edges = {(e["from"], e["to"], e["type"]) for e in layer["module_edges"]}
+        assert not any(f == "src/b" for f, _, _ in edges)
+        assert ("src/c", "ext:util.h", "imports") in edges
+        records = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        [record] = records
+        assert record["path"] == "src"
+        assert record["message"] == (
+            '2 includes matched more than one repo header ("util.h", <util.h>); '
+            "the build's include path decides them, and lane A does not read it (C-133)"
+        )
+
+    def test_a_resolved_dependency_is_not_a_miss(self, tmp_path):
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "d.h").write_text("void d(void);\n")
+        (tmp_path / "src" / "d.c").write_text(
+            '#include <stdio.h>\n#include "d.h"\nvoid d(void){}\n'
+        )
+        layer = extract_c(tmp_path)
+        assert not [e for e in layer["errors"] if e["stage"] == "c-includes"]
+
+    def test_records_once_per_directory_capped_at_three_specs(self, tmp_path):
+        (tmp_path / "dir").mkdir()
+        (tmp_path / "dir" / "one.c").write_text(
+            '#include "a.h"\n#include "b.h"\nint one(void){return 0;}\n'
+        )
+        (tmp_path / "dir" / "two.c").write_text(
+            # "a.h" repeats here — counted once, not twice.
+            '#include "c.h"\n#include "d.h"\n#include "a.h"\nint two(void){return 0;}\n'
+        )
+        layer = extract_c(tmp_path)
+        records = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        [record] = records
+        assert record["path"] == "dir"
+        assert record["message"] == (
+            '4 quoted includes matched no repo file ("a.h", "b.h", "c.h", …); '
+            "the build's include path decides them, and lane A does not read it (C-133)"
+        )
+
+    def test_a_root_level_miss_records_the_root_directory_as_dot(self, tmp_path):
+        (tmp_path / "main.c").write_text('#include "missing.h"\nint main(void){return 0;}\n')
+        layer = extract_c(tmp_path)
+        records = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        [record] = records
+        assert record["path"] == "."
+        assert record["message"] == (
+            '1 quoted include matched no repo file ("missing.h"); '
+            "the build's include path decides them, and lane A does not read it (C-133)"
+        )
+
+    def test_c_tests_records_are_unaffected_and_both_can_land_on_one_file(self, tmp_path):
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "prog.c").write_text(
+            '#include "missing.h"\nint main(void) { return 0; }\n'
+        )
+        layer = extract_c(tmp_path)
+        by_stage = {e["stage"] for e in layer["errors"]}
+        assert {"c-tests", "c-includes"} <= by_stage
+        test_records = [e for e in layer["errors"] if e["stage"] == "c-tests"]
+        assert any(r["path"] == "tests/prog.c" and "C-134" in r["message"] for r in test_records)
+        include_records = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        assert any(r["path"] == "tests" and "C-133" in r["message"] for r in include_records)
+
+
 class TestCallSites:
     def test_positions_are_the_terminal_identifier(self, layer):
         source = (FIXTURE / "src/main.c").read_text().splitlines()
