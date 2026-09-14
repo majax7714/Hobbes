@@ -72,10 +72,11 @@ its authorship is what keeps it out of any training unit.
 | 20 | [47f7](S-20260914T015405Z-47f7.md) | 2026-09-14 | extraction | 25/100 | 4 min | $0.79 | clear | pass | right-clear | merged |
 | 21 | [1ae3](S-20260914T022459Z-1ae3.md) | 2026-09-14 | extraction | 17/100 | 94 s | $0.45 | clear | pass | right-clear | merged |
 | 22 | [d2e3](S-20260914T131039Z-d2e3.md) | 2026-09-14 | oracle lane | 40/60 | 5 min | $1.04 | clear | pass | right-clear | merged |
+| 23 | [3c41](S-20260914T144539Z-3c41.md) | 2026-09-14 | oracle lane | 45/80 | 3 min | $1.10 | clear | pass | right-clear | merged |
 
-22 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 0 · missed 0
+23 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 0 · missed 0
 refusals: egress 20, policy escalations 22, denies 0 (each read in its session's notes, §4)
-reported cost $48.67 over 21 of 22 sessions (the envelope's figure, on the subscription) · turns 1055 · wall 251 min
+reported cost $49.77 over 22 of 23 sessions (the envelope's figure, on the subscription) · turns 1100 · wall 254 min
 This block is rendered by `pipeline/scripts/calvin_tracker.py render` from the logs and is not edited by hand.
 
 <!-- tracker:end -->

@@ -346,9 +346,12 @@ inside a dispatch they skip, so their first run is the developer's.
     hand-read C fixture graded against a hand-built key. The
     comparative queue's foreign C cells followed the same day, host-run:
     CodeGraphContext 1,179/1,179 and 851/863, repowise 1,073/1,637 and
-    780/879 on the clang keys; every repowise contradiction but two is
-    a function-like macro it stores as `function` (C-95's C face; the
-    converter@3 reading is Max's call, ADR-101).
+    780/879 on the clang keys; every repowise contradiction but two was
+    a function-like macro it stores as `function` (C-95's C face).
+    Max: "proceed with the recommendation" — converter@3 reads a
+    `#define` at the declared line as `macro` (ADR-101 amended; `3c41`,
+    45 turns, $1.10, gate right-clear); regraded with signed direction
+    lines: repowise 1,073/1,075 and 780/780, CodeGraphContext unmoved.
   - **Before it** (2026-09-14): **C-135's measured gap closed, ADR-109
     amended, 0.2.16-beta,** one dispatched unit (`1ae3`, 17 turns, $0.45,
     gate right-clear): a derived compile database with entries and none
@@ -372,7 +375,7 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 22 of the 40 sessions that validate the
+    drift test. It reads 23 of the 40 sessions that validate the
     harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
     Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,

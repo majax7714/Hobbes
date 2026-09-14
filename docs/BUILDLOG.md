@@ -10339,3 +10339,49 @@ cells"), the foreign C cells, host-run, no spend.**
   converter can state — C-95's own rule — not a tolerance invented
   for the tool. A harness unit (both adapters, their fixtures, the
   fixture test) and then the regrade.
+
+**Then (Max: "proceed with the recommendation. also update comparative
+graphics to show c now that weve graded foreign"): converter@3 through
+the harness, and the regrade.**
+
+- **The graphics already showed C** after the first four cells: the
+  scatter's C panel carries the four markers, the one-number graphic
+  counts the C cells among its "23 compiler-graded cells in 5
+  languages", and the same-key graphic gained its C band when its
+  fixed language order took C (the same session, earlier). They are
+  regenerated again below on the regraded records.
+- **Decided before the dispatch:** ADR-101's second amendment of the
+  day — a callee whose declared line begins with `#define` is kind
+  `macro` (converter@3), read from the source as converter@2 reads
+  the declaration line; both adapters, a hand-made C raw fixture
+  each, the record tooling signing the converter pair. Committed
+  `d16c978`; the ingest at it.
+- **The session** (`S-20260914T144539Z-3c41`, 45 of 80 turns, 3.2
+  min, $1.10, no egress refusal): `declared_kind` beside
+  `declaration_line` in each adapter, wired after the converter's own
+  kind choice; `VERSION` at `@3`; `testdata/cclang.raw.json` per
+  adapter (repowise's storing the macro as `function`, the finding
+  itself) and `TestCclangMacroRowIsExcluded`; `foreign_record.py`'s
+  direction line reads the pair from `edges.v1.json`/`edges.json`.
+  Gate clear (7 files, 47.9% uncaptured, partition checked), verify
+  pass (6 tests, 2 new). Right-clear; merged `d575428`, not squashed.
+  Host: both adapter packages and `internal/foreign` green in a
+  worktree before the merge; the full oracle-lane suite green on
+  `main` after.
+- **The regrade** (`~/.hobbes/bench/comparative/regrade-c-cell.sh`,
+  from the stored dumps, no re-index; the `@2` grade kept beside each
+  cell as `edges.v1.json` / `report.v1.*`):
+  - repowise on cJSON: 699 edges excluded as `macro`; **1,073/1,075**
+    (65.5% → 99.8%), recall unchanged 56.0%; the two left are
+    `setUp`/`tearDown` under `UNITY_WEAK_ATTRIBUTE`, declared in the
+    `#if` arm clang did not take (C-138's shape).
+  - repowise on sqlite-vector: 607 excluded; **780/780** (88.7% →
+    100%), recall 93.3%.
+  - CodeGraphContext on both: unmoved (1,179/1,179; 851/863) — it
+    stored no edge to a `#define` line; its records say so.
+  - Records regenerated with signed direction lines; the A-8 lines
+    hand-set to the read ratios. `render.py cells | render | check`
+    green, the report test green. C-95 narrowed in the register; the
+    claim page's C sentence restated; W0, the handoff, CLAUDE.md.
+- **Task files:** `~/.hobbes/bench/c-import-drivers/macro-task.md`
+  with its partition beside it. **The tracker** at 23 of 40.

@@ -57,14 +57,21 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      (C-138's shape). Poison: 0 falsely confirmed of 27,925 seeded
      across the four. Graphics and `tables.md` regenerated (84 cells),
      `check` green, the report test green.
-   - **A decision for Max (ADR-101):** whether the converters may read
-     a `#define` at the target line as kind `macro` (converter@3, the
-     reading converter@2 already makes for annotation lines), which
-     would regrade repowise's two C cells with signed direction lines.
-     Recommended: yes — it is the tool's storage read at a grain the
-     converter can state (C-95's own rule), not a tolerance invented
-     for the tool; a harness unit of the two adapters and their
-     fixtures, then the regrade. Not done.
+   - **Then (Max: "proceed with the recommendation"): converter@3.**
+     ADR-101's second amendment of the day (`d16c978`), then one unit
+     through the harness — **`3c41`** (45 of 80 turns, 3.2 min, $1.10,
+     gate right-clear, no egress refusal): `declared_kind` in both
+     adapters (a leading `#define` at the declared line is `macro`),
+     `VERSION` at `@3`, a hand-made C raw fixture and
+     `TestCclangMacroRowIsExcluded` per adapter, the record tooling
+     signing the converter pair. Merged `d575428`. Regraded from the
+     stored dumps (`regrade-c-cell.sh`, the `@2` grade kept as
+     `*.v1.*`): repowise cJSON 1,073/1,075 (699 macro edges excluded;
+     the two left are `setUp`/`tearDown` in a dead `#if` arm),
+     sqlite-vector 780/780 (607 excluded); CodeGraphContext unmoved
+     (no edge to a `#define`). Records, graphics and tables
+     regenerated; C-95 narrowed; the claim page restated. **The
+     tracker** reads 23 of 40, 4 areas, 0 false blocks, 0 missed.
    - Task files: `~/.hobbes/bench/c-import-drivers/import-task.md` and
      its partition. **The tracker** reads 22 of 40, 4 areas, 0 false
      blocks, 0 missed, $48.67 reported.
@@ -228,7 +235,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (twenty-two so far):
+     (twenty-three so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations, C-133's include record, C-135's
        compile-database check;
@@ -237,7 +244,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - the harness and sandbox: the progress hook, the containment, D-r,
        the tracker, D-s, the sink and the sidecar, the launcher's two
        worlds;
-     - the oracle lane: C's oracle, `oracle import --lang c`.
+     - the oracle lane: C's oracle, `oracle import --lang c`, converter@3.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
    - `~/.hobbes/bench/adr111-drivers/`: `ROOT=<worktree> regrade3.sh
@@ -263,8 +270,9 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - **The Gradle attach route's residuals** (C-67).
    - **`recall-collapsed` and H-23**; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** item 4; the foreign C cells are done
-     (2026-09-14); the converter@3 macro reading is the open decision
-     (item 0).
+     and regraded at converter@3 (2026-09-14). Next there, if named:
+     the two SQLite tools in `field.md` (converters first), syft's keys
+     on a bigger box.
    - **C's residue:** C-134's remainder (criterion and the Unity
      fixture, whose bodies a macro defines), C-135, C-133's unit 2 and
      its macro half. The macro gap
@@ -334,7 +342,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-two, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-three, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -376,8 +384,7 @@ assumed of $25:
      derived database), deferred until a graded cell shows the cost;
    - W1/W3's no-spend items: the decorated-declaration line convention,
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
-   - the converters' `#define`-as-`macro` reading (converter@3) and
-     the repowise C regrade, if Max takes it (item 0);
+   - the comparative queue's next tools (converters first), if named;
    - small harness items: pytest's `testmap_fixture` warnings.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;
