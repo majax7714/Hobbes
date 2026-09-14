@@ -3,7 +3,7 @@
 # answer keys (ADR-101). One command, the same matcher, the same poison
 # check as a Hobbes cell — the oracle does not care who produced the edges.
 #
-#   bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java] [--exclude a,b]
+#   bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c] [--exclude a,b]
 #
 # <edges.json> is the tool's graph converted to the minimal shape
 # (README § Grading a graph Hobbes did not build): {repo, sha, tool,

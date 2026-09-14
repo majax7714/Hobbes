@@ -51,7 +51,7 @@ def main(argv=None):
     ap.add_argument("--ingest-note", default="", help="--hobbes: the ingest's capture line and containment, quoted")
     ap.add_argument("--fix-note", default="", help="--hobbes: what changed between report.v1 and report (the signed direction line's cause)")
     ap.add_argument("--triage-note", default="", help="a hand-read triage paragraph for this cell's contradictions, quoted as written")
-    ap.add_argument("--lang", default="", help="the cell's language name as the triage file spells it (Go, TypeScript, Rust, Java, Python)")
+    ap.add_argument("--lang", default="", help="the cell's language name as the triage file spells it (Go, TypeScript, Rust, Java, Python, C)")
     ap.add_argument("--repo-name", default="", help="the cell's repo name as the triage file spells it")
     a = ap.parse_args(argv)
     cell = Path(a.cell)
@@ -111,7 +111,7 @@ def main(argv=None):
                  + f". Grain note from the adapter: {notes.get('grain', 'n/a')}.")
     if not a.hobbes:
       lines.append("")
-      lines.append(f"Command: `bench/oracle/grade-foreign.sh {cell.name}/edges.json {Path(a.key).name}/oracle.json {cell.name} --lang {Path(a.key).name.rsplit('-', 1)[-1] if Path(a.key).name.rsplit('-', 1)[-1] in ('go','ts','rust','java','py') else '<lang>'}`. Outputs in `{cell}` (`hobbes.json` is the converted graph, `raw.json` the tool's rows as stored, `edges.json` the minimal shape).")
+      lines.append(f"Command: `bench/oracle/grade-foreign.sh {cell.name}/edges.json {Path(a.key).name}/oracle.json {cell.name} --lang {Path(a.key).name.rsplit('-', 1)[-1] if Path(a.key).name.rsplit('-', 1)[-1] in ('go','ts','rust','java','py','c') else '<lang>'}`. Outputs in `{cell}` (`hobbes.json` is the converted graph, `raw.json` the tool's rows as stored, `edges.json` the minimal shape).")
     if not a.hobbes:
       lines.append("")
     lines.append("## Numbers (report.txt, head, verbatim)")

@@ -23,10 +23,13 @@
 // graph's own metadata and therefore fire for a foreign graph only when
 // the converter supplies it: the function-valued-binding rule (a callee
 // whose `kind` is a variable is `abstract`, never contradicted) needs
-// `kind`; the Rust macro exclusion needs a `macro` kind. A converter
-// that cannot tell the kind leaves it empty and its cell record says so
-// (C-95). The tool's `label` becomes the edge's tier, so the report's
-// per-tier split reads the tool's own confidence ladder.
+// `kind`; the macro exclusion (Rust's `macro_rules!`, C's object/function
+// macros) needs a `macro` kind. A converter that cannot tell the kind
+// leaves it empty and its cell record says so (C-95). The tool's `label`
+// becomes the edge's tier, so the report's per-tier split reads the
+// tool's own confidence ladder. The language set is export's six —
+// go, ts, py, rust, java, c — and nothing about a converted graph is
+// read differently for one of them (the 2026-09-14 amendment).
 package foreign
 
 import (
@@ -92,7 +95,7 @@ func Convert(f *File, module, lang string, exclude ...string) (*edges.HobbesExpo
 	}
 	exts, ok := export.Exts[lang]
 	if !ok {
-		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust|java)", lang)
+		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust|java|c)", lang)
 	}
 	module = path.Clean("/" + module)[1:]
 	out := &edges.HobbesExport{SHA: f.SHA, Module: module, Excluded: map[string]int{}}
