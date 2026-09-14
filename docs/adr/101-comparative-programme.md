@@ -122,3 +122,39 @@ first is made.
 - `hobbes.json` stays the file name of the converted graph in a
   foreign cell's directory because `grade` reads it by that name; the
   header inside says whose it is.
+
+## Amendment (2026-09-14): C joins `oracle import`'s language set
+
+**Context.** ADR-110 gave the lane a C oracle and `oracle export` the
+`c` extension set (`.c`, `.h`), and two C cells are graded (cJSON,
+sqlite-vector). `oracle import` reads the same table, so a C edge file
+already converts — but the flag's help, the refusal's message,
+`grade-foreign.sh`'s usage line, the README and the foreign record's
+language set all spell the set without C, and no fixture proves the
+C conversion. A third party reading the usage would not try.
+
+**Decision.** Decision 1 holds for C as for the five before it: the
+import applies the export's predicates (the extension set, the cell's
+module and excludes, the macro rule) and nothing C-specific of its
+own. Concretely:
+
+1. A callee in a header is graded (`.h` is in the set), as the export
+   grades it: `static inline` functions and macro-defined bodies live
+   there (ADR-110).
+2. A foreign row whose `kind` is `macro` is dropped and counted under
+   `macro`, the export's rule for a macro callee (a macro invocation is
+   expanded, not called) — the converter already does this; the
+   fixture proves it for C.
+3. Every place the language set is spelled says `c`; the foreign
+   record's command line names it for a `-c` key.
+4. A hand-read C fixture (`testdata/foreign/cclang.edges.json`, over
+   the `cclang` fixture ADR-110's tests read) converts to its hand
+   truth and grades against a hand-built key at the lane's grain —
+   confirmed in full, the poison twin refused, a wrong header target
+   contradicted. The live clang key runs contained and is the cell's
+   job, not the unit test's.
+
+**Consequences.** The comparative queue's next item, a foreign C cell
+(both graded tools on cJSON and sqlite-vector), is unblocked on the
+lane's side; whether either tool draws C edges worth grading is that
+cell's finding. Nothing under `bench/` moves the version (ADR-103).
