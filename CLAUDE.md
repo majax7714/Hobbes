@@ -55,9 +55,9 @@ context**; the graph makes that derivation possible, and the sandbox
 makes a forbidden command *absent* rather than merely refused.
 
 **Source of truth:** `docs/hobbes-architecture.md` — the running
-architecture (ADR-033). Read it before writing code. It carries no
-version number and is amended **in the same commit** as any change that
-moves it. If it describes something the tree does not do, that is a bug
+architecture (ADR-033). Read it before writing code. Its §8 header
+carries the layer's version (Max, 2026-09-14) and the file is amended
+**in the same commit** as any change that moves it. If it describes something the tree does not do, that is a bug
 in the file — fix it and note it in the BUILDLOG.
 
 Locked decisions (not open for relitigation): **D1** Python + Go + TS
