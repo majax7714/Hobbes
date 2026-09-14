@@ -1,6 +1,6 @@
 # Calvin as a harness — the environment stacked under the doer, validated by use
 
-**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation by use is under way: twelve dispatched sessions through 0.2.10-beta, each with its log in [`sessions/`](sessions/README.md). Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
+**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation by use is under way: nineteen dispatched sessions through 0.2.14-beta, each with its log in [`sessions/`](sessions/README.md), counted by the tracker at that README's end. Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
 **Supersedes, as an approach:** the keyed rounds. Their records stand as history:
 - M0 ([`calvin-potential.md`](calvin-potential.md));
 - M0-Go ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md));
@@ -45,16 +45,17 @@ flowchart TB
   DSP --> ING{"ingest at the parent?"}
   ING -->|"no: refused"| DEV
   ING -->|"yes"| SES
-  subgraph SES["hobbes-session — rootless Podman"]
+  subgraph SES["hobbes-session — rootless Podman · HOME a tmpfs"]
     DOER["Claude Code<br/>host binary, ro · token by name<br/>no Bash · strict MCP config"]
-    PX["hobbes-proxy serve<br/>exec policy-checked · knowledge tools<br/>flight.jsonl"]
+    PX["hobbes-proxy serve --sink<br/>exec policy-checked · knowledge tools<br/>no record written here"]
     DOER --> PX
   end
   subgraph NET["the session's --internal network"]
-    EG["hobbes-proxy egress<br/>CONNECT to the allowlist alone<br/>egress.jsonl"]
+    SC["hobbes-proxy sidecar (ADR-112)<br/>the sink: one flight stream, ever · flight.jsonl · escalations/ · mail.jsonl<br/>the egress: CONNECT to the allowlist alone · egress.jsonl"]
   end
+  PX -->|"the flight stream"| SC
   SES --- NET
-  EG -->|"hobbes-egress bridge"| API[("api.anthropic.com:443")]
+  SC -->|"hobbes-egress bridge"| API[("api.anthropic.com:443")]
   SES -->|"branch hobbes/&lt;session&gt;"| GATE["hobbes gate<br/>map derived from the parent's graph"]
   GATE --> VER["hobbes verify<br/>(optional)"]
   VER --> LOG["docs/calvin/sessions/&lt;session&gt;.md<br/>record + review block"]
@@ -64,8 +65,9 @@ flowchart TB
 | Layer | What it is | What it guarantees | What it does not (register) |
 |---|---|---|---|
 | Knowledge layer | the repo's ingest, which must be at the parent | the gate and the doer's knowledge tools read one graph, the parent's | the graph's own limits (`list_blind_spots`) |
-| `hobbes-session` | a fresh clone on `hobbes/<session>`, the policy proxy, the flight log, commit-on-exit, harvest | the shell only through `exec`; every command logged; the canonical repo unreachable; only the session's own dir mounted, never another session's (0.2.11-beta); the policy files and derived layer read-only | the doer's own file tools are outside the proxy: its edits reach the flight log by path through the progress hook, its reads do not (**C-125**); the session's own dir, flight and egress logs included, stays writable by its doer (**C-140**) |
-| Egress allowlist | `--egress api.anthropic.com`: an internal network, and a proxy container on it and on the `hobbes-egress` bridge | no route off the box but to a named host; every tunnel and refusal logged | the endpoint itself is a channel; the proxy sees host and bytes, not content (**C-41**, narrowed) |
+| `hobbes-session` | a fresh clone on `hobbes/<session>`, the policy proxy, commit-on-exit, harvest | the shell only through `exec`; every command logged; the canonical repo unreachable; no session dir mounted at all — HOME is a tmpfs that dies with the container, and only `<id>/in/` (the MCP config, the hook's settings) is mounted, read-only (0.2.14-beta, ADR-112); the policy files and derived layer read-only | the doer's own file tools are outside the proxy: its edits reach the flight log by path through the progress hook, its reads do not (**C-125**); a shell the doer runs can forge an *edit* line, which the diff contradicts (**C-140**, narrowed) |
+| The sidecar (ADR-112) | `hobbes-side-<id>`: one container per session on its internal network, the only writer of the flight log, the escalation queue, the mail file and the egress log | the proxy feeds it over one flight stream, claimed once; a second stream is refused and recorded; a killed proxy closes the stream, recorded, and takes the doer's shell with it; the records are complete from the sidecar's side | an explicit `--network` (the bench's pasta) has no sidecar: the session dir is mounted rw and the records are in the doer's reach, said in one line (**C-140** in full) |
+| Egress allowlist | `--egress api.anthropic.com`: the sidecar joins the `hobbes-egress` bridge and tunnels CONNECT to the named hosts alone | no route off the box but to a named host; every tunnel and refusal logged | the endpoint itself is a channel; the proxy sees host and bytes, not content (**C-41**, narrowed) |
 | The doer | Claude Code, the host's binary, the owner's subscription token | no Bash; no repo `.mcp.json`; no self-update or telemetry; refused up front without a binary, a token or a route | not reproducible (**C-128**) |
 | `hobbes gate` | grounder v3, the complement split against a map derived from the parent's graph, the partition check when one is given | clear or blocked with the class, deterministic, the record hashed | a created file in a new directory reads `unmapped` (**C-126**); `unknown` stays advisory (C-121) |
 | `hobbes verify` | the diff's guarding tests in the sandbox, with and without it | pass, fail, vacuous, and the build row, contained | a behaviour no test reaches (C-93) |

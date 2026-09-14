@@ -313,7 +313,10 @@ like an error more than a flag. either look to contain or prevent."
   its escalation records. C-140 is surfaced in the box header and the
   harness doc. The structural fix is to give the proxy and the logs a
   container of their own, as the egress proxy has. It is named for Max,
-  because a structural change is his call.
+  because a structural change is his call. **Taken: ADR-112
+  (2026-09-14, 0.2.14-beta)** — the records' writers moved to a sidecar
+  container; the doer's HOME is a tmpfs; C-140 narrowed.
+  
 - **Tests.**
   - `internal/sandbox`: the mounts name the session's own dir at
     `/sessions/<id>` and never the root.

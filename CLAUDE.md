@@ -90,16 +90,22 @@ box, against a repo on disk (architecture §10); the application mode in
   + `internal/policy/` (the merge engine: builtin floor → box → repo →
   role → folder → agent; deny overrides allow; allow|deny|escalate). `cmd/hobbes-proxy`
   is the per-session MCP daemon: `internal/proxy/` (policy-checked `exec`
-  + read-only knowledge tools), `internal/recorder/` (JSONL flight log),
-  `internal/escalation/` (park/approve/expire queue), `internal/knowledge/`
-  (graph tools over `.hobbes/derived/`, incl. `list_blind_spots`);
-  `hobbes-proxy egress` + `internal/egress/` is a session's allowlisted
-  route out (a logging CONNECT proxy, ADR-107).
+  + read-only knowledge tools, writing through a `Journal`),
+  `internal/recorder/` (JSONL flight log), `internal/escalation/`
+  (park/approve/expire queue), `internal/knowledge/` (graph tools over
+  `.hobbes/derived/`, incl. `list_blind_spots`); `hobbes-proxy sidecar`
+  is the session's records container (ADR-112): `internal/sink/` (the
+  flight log, the escalation queue and the mail file over one flight
+  stream the proxy claims once; `serve --sink`, `record-edit --sink`)
+  and `internal/egress/` (the allowlisted route out, a logging CONNECT
+  proxy, ADR-107) in one process.
   `cmd/hobbes-session` + `internal/sandbox/` launch a session in rootless
-  Podman (`--mount` binds a host tree read-only, ADR-100; `--egress`
-  puts it on its own internal network behind the egress proxy;
-  `--claude-bin` + `$CLAUDE_CODE_OAUTH_TOKEN` run Claude Code as its
-  doer, ADR-107). `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
+  Podman (`--mount` binds a host tree read-only, ADR-100; every session
+  gets its own internal network and a sidecar, its HOME a tmpfs and
+  `<id>/in/` its one read-only host dir; `--egress` names the hosts the
+  sidecar tunnels to; an explicit `--network` keeps the old file journal
+  and says so, C-140; `--claude-bin` + `$CLAUDE_CODE_OAUTH_TOKEN` run
+  Claude Code as its doer, ADR-107). `cmd/hobbes-web` + `internal/web/` serve the loopback-only API
   and the embedded SPA. Only external deps: `yaml.v3`,
   `modelcontextprotocol/go-sdk`.
 - `pipeline/` — Python package `hobbes` (uv, src layout). `cli.py`;
@@ -209,12 +215,13 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-13, 0.2.13-beta; the Go count
-from 0.2.11-beta; the last three carried from 0.2.8-beta): 1,505 pytest (5 of them
-`lane_b`) / 354 Go (subtests counted: 353 pass, 1 skip) + 91 oracle-lane Go (subtests counted:
-87 pass, 4 skip without a toolchain; two run the `shape/` suites: 24
-unittest + 7 node) / 52 vitest / 36 tsextract + 43
-scip node tests / 84 atlas0 (`cd bench/atlas0 && uv run pytest`). Keep
+Suite sizes at the last check (2026-09-14, 0.2.14-beta; the last three
+carried from 0.2.8-beta): 1,508 pytest (5 of them `lane_b`) / 386 Go
+(subtests counted: 385 pass, 1 skip; the four live launcher tests run on
+the host) + 91 oracle-lane Go (subtests counted: 87 pass, 4 skip without
+a toolchain; two run the `shape/` suites: 24 unittest + 7 node) / 52
+vitest / 36 tsextract + 43 scip node tests / 84 atlas0 (`cd bench/atlas0
+&& uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
 ingest → stamp check → lanes → compiled invariants → review → `lane_b`
@@ -231,7 +238,7 @@ inside a dispatch they skip, so their first run is the developer's.
 - Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 111;
+  architecture doesn't already make. Number sequentially (last: 112;
   106 is held for M0-Go's design).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -286,7 +293,7 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-13) — Hobbes 0.2.13-beta
+## Status (2026-09-14) — Hobbes 0.2.14-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -305,15 +312,18 @@ inside a dispatch they skip, so their first run is the developer's.
     lost no confirmed edge.
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 141 entries (100 active, 25 lifted, 11 superseded, 5 folded).
+  - **Register:** 141 entries (100 active, 25 lifted, 11 superseded, 5 folded);
+    since 0.2.14-beta, 78 of the active are surfaced and 17 partial.
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,
   2026-09-12; the 0.2.0-beta minor). Max: O+gate is a harness to stack on this environment;
   verify it by using it through Hobbes development, one log file per
   session. Built:
-  - `hobbes-session --egress`: an internal network, and a logging
-    CONNECT proxy to the named hosts alone (C-41 narrowed).
+  - `hobbes-session`: every session on its own internal network beside
+    its **sidecar** (ADR-112, 0.2.14-beta), the only writer of its
+    records; `--egress` names the hosts the sidecar tunnels to (a logging
+    CONNECT proxy to those alone, C-41 narrowed).
   - Claude Code as the session's doer: the host's binary, the owner's
     token passed by name. `--claude-cred` is withdrawn: it never worked
     and would have leaked every host transcript.
@@ -328,31 +338,29 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-13):
-    - D-r's fix (`9cad`, 0.2.12-beta): verify's worktrees are
-      self-contained.
-    - C-134 narrowed (`e537`, 0.2.13-beta, ADR-108 amended): C tests
-      are found by their Unity, CMocka and Check registrations.
-    - The session tracker (`78b7`).
-
-    All three gates were right-clear. D-s, found in `e537`, is fixed
-    (`81df`, tests only): dispatch's commit identity no longer reaches
-    the test fixtures. C-140 is 0.2.11-beta's residual.
+  - **The latest** (2026-09-14): **C-140's fix, ADR-112, 0.2.14-beta,**
+    in two dispatched units (`3ebb`, the sink and the sidecar; `de81`,
+    the launcher), both gates right-clear. A session's flight log,
+    escalation queue, mail file and egress log are written by
+    `hobbes-side-<id>` over one flight stream the proxy claims once; the
+    doer's HOME is a tmpfs and `<id>/in/` its one read-only host dir.
+    C-140 is narrowed to a forged edit line, surfaced. What verify could
+    not see both times was a live test red on the host; the developer
+    fixed it after each merge.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 17 of the 40 sessions that validate the
-    harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed
-    and $35.29 reported. Re-render it after filling a review block.
+    drift test. It reads 19 of the 40 sessions that validate the
+    harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
+    Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data
-    (enforced in `units_from_git`).
+    (enforced in `units_from_git`); since 0.2.14-beta it holds by
+    construction, the doer's state dying with its container.
 
   The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
   approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
-  - the proxy and its logs in a container of their own (C-140's fix,
-    a structural change);
   - whether ADR-106 stays held;
   - the tracker's area for a test-only session (left for now);
   - the Atlas-0 T items;

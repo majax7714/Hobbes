@@ -436,13 +436,13 @@ of by luck.*
 - **The P10 checker** — "does a broad handler enclose a path that must
   refuse?" as a graph question, once refusals are types (the V2.M6
   parked ask).
-- **C-140 — a dispatched doer can alter its own session's records.**
-  Since 0.2.11-beta (ADR-107's 2026-09-13 amendment) a session mounts
-  only its own dir, but the policy proxy that writes the flight log and
-  the escalation queue runs in the doer's container, so those records
-  stay writable by the doer. The fix is the proxy and its logs in a
-  container of their own, as the egress proxy has. It is a structural
-  change, so it waits on Max (`session-handoff.md`, item 1).
+- ~~**C-140 — a dispatched doer can alter its own session's records.**~~
+  — **built 2026-09-14 (ADR-112, 0.2.14-beta)**: the records are written
+  by a sidecar container per session, fed by the proxy over one flight
+  stream; the doer's HOME is a tmpfs and no part of the session dir is
+  mounted read-write. C-140 is narrowed to a forged edit line, surfaced.
+  The remaining route, an explicit `--network` (the bench's pasta),
+  keeps the file journal and says so.
 - **Decisions surviving a fresh clone** (C-20) — opt `.hobbes/policies/`
   + `invariants/` into git per repo, the ADR-012-sanctioned path.
 - ~~**Aided-mode guardrail**~~ — **built 2026-08-24 (ADR-086)**: an

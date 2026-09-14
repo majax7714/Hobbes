@@ -1,57 +1,60 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-13; Hobbes 0.2.13-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.14-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.13-beta are untagged. Tags stay Max's call each time.
+  0.2.14-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
-  reaches "supported"; a structural change bumps minor (ask).
+  reaches "supported"; a structural change bumps minor (ask); **a
+  constraint's fix is a patch even when structural** (Max, 2026-09-13,
+  on C-140: "its a constraint not a direct feature advancement").
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the 2026-09-13 BUILDLOG entries.
+The session's record is the 2026-09-14 BUILDLOG entry.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-13, last).** The top-level review, then three
-   sessions through the harness:
-   1. **The review** found three drifts, all fixed (`0a56199`):
-      - the ingest one docs commit behind HEAD;
-      - workstreams' header at 0.2.10-beta, with C-140's fix in no
-        workstream;
-      - W3's oracle item naming four oracles of six.
-   2. **D-r fixed, 0.2.12-beta** (`9cad`). Verify's worktrees are plain
-      clones with no alternates file, so `git` works in its container.
-   3. **C-134 narrowed, 0.2.13-beta** (`e537`; ADR-108 amended on Max's
-      three calls):
-      - C tests are found by their Unity, CMocka and Check
-        registrations;
-      - the convention yields per defining file;
-      - two `c-tests` records.
-
-      cJSON went from 39 to 199 tests, and C-134 is now *partial*.
-   4. **The session tracker** (`78b7`): the table at the end of
-      `docs/calvin/sessions/README.md`, rendered by
-      `pipeline/scripts/calvin_tracker.py render` from the logs and held
-      by a pytest drift test. **Re-render after filling a review
-      block.** It reads 17 of 40, 4 areas, and $35.29 reported.
-   5. **D-s found and fixed** (`81df`, merged as `9bbd787`; tests only,
-      so no version). An autouse fixture clears the ambient git identity
-      before every test, and a child-pytest test holds it. The `a323`
-      failures 0.2.12-beta pinned on D-r were D-s, and the CHANGELOG says
-      so.
-   - **Standing from earlier today:**
-     - the harness counts as validated after 40 sessions
-       (`calvin-harness.md` §4: at least three areas, no false block
-       unresolved, every `missed` fixed or registered, no refusal
-       unread);
-     - C-140 is 0.2.11-beta's residual.
-   - The image and binaries are at 0.2.13-beta. **Restart the knowledge
-     server** the next session opens with (C-65).
+0. **Latest (2026-09-14): C-140's fix — ADR-112, 0.2.14-beta.** Max
+   chose route 1 of three (the records' writers leave the doer's
+   container; the executor stays) and the number. Measured first (four
+   measurements, in the ADR), decided in ADR-112, built through the
+   harness in two units, both gates right-clear:
+   1. **`3ebb`, unit A** (82 of 150 turns, $4.42): `go/internal/sink`
+      (one flight stream ever, the refusal recorded, session and role
+      stamped by the sink), `hobbes-proxy sidecar` replacing `egress`,
+      `proxy.Journal` with the file journal kept, `serve --sink` and
+      `record-edit --sink`. Merged `a3c2551`. After the merge (`6ad5567`):
+      an escalation id is one path segment; the sidecar stops both
+      listeners when one fails.
+   2. **`de81`, unit B** (94 of 150 turns, $6.69): the launcher's two
+      worlds (the sidecar world by default; the file world on an explicit
+      `--network`, said in one line naming C-140; the owned runtime
+      refuses the sidecar world), HOME a tmpfs, `<id>/in/` the one
+      read-only host dir, the launcher waiting for the sink's
+      `listening` line, dispatch's stream bracket, the exit check.
+      Merged `9e264d6`. After the merge: the live mount test builds the
+      real proxy (`0223091`); the driver beside the exit check reads
+      `in/mcp.json` (`32154ca`).
+   - **What verify could not see, both times: a live test red on the
+     host.** After A, the egress route test (the old launcher still ran
+     `egress`); after B, the mount test's fake proxy. §2's rule stands:
+     run every live test on the host before merging.
+   - **Host checks:** all four live launcher tests pass; the exit check
+     5/5 through the sidecar, a host-side approval included; Go 385
+     pass / 1 skip (subtests counted); pytest 1,508.
+   - **C-140** is narrowed to a forged edit line, surfaced (78 surfaced,
+     17 partial). **The tracker** reads 19 of 40, 4 areas, 0 false
+     blocks, 0 missed, $46.40 reported.
+   - The image and binaries are at 0.2.14-beta. **Restart the knowledge
+     server** the next session opens with (C-65); this session's
+     measurements removed its container by mistake (an unnamed
+     container, taken for a probe's), so it is down anyway.
+   - The top-level review found one drift, fixed: the harness doc's
+     status line still said twelve sessions through 0.2.10-beta.
 1. **Open for Max (no spend):**
-   - **The register and backlog review's remaining calls** (2026-09-13;
-     the superseding, C-141 and the folding rule are done):
+   - **The register and backlog review's remaining calls** (2026-09-13):
      - a segment of its own for the dispatch harness's entries (C-125,
        C-127–C-129, C-140);
      - whether `future_additions.md`'s "re-evaluate the harness if its
@@ -59,10 +62,6 @@ The session's record is the 2026-09-13 BUILDLOG entries.
      - C-120, kept active: `hobbes gate` grounds through the code it
        concedes (`gate.py:552`), and there it restates C-112, so a fold
        into C-112 is the candidate.
-   - **C-140's structural fix.** Give the policy proxy and its logs a
-     container of their own, as the egress proxy has. The doer then
-     cannot reach its own flight log. This is a structural change, so it
-     is his call.
    - **ADR-106.**
    - **C-139's finer extent** (the binding's own line, or the enclosing
      block). Take it only if a graded cell ever shows the recall cost.
@@ -71,14 +70,19 @@ The session's record is the 2026-09-13 BUILDLOG entries.
      "leave rest of the table for now"). Row 17 (`81df`, D-s) reads `—`,
      because a session that changed only test files maps to no area by
      `calvin_tracker.py`'s rule. It does not move the area count.
+   - **C-140's remainder, if it ever matters:** ADR-112's route 2 (the
+     whole proxy in its own container, exec's children under a second
+     uid) closes the forged edit line. Not owed.
 2. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - Decide the design in an ADR or an amendment **before** the
-     dispatch, as ADR-111, ADR-046's amendment and ADR-107's 2026-09-13
-     amendment were.
+     dispatch, as ADR-111, ADR-112, ADR-046's amendment and ADR-107's
+     2026-09-13 amendment were.
    - Name one small unit: `hobbes dispatch --task-file … --partition …
      --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
-     argv carries `--settings` (the hook).
+     argv carries `--settings` (the hook). Task files this session:
+     `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md` with their
+     partitions beside them.
    - Watch dispatch's own stderr for "first edit at". The real session
      id differs from the dry-run's; read it from the output's last line.
    - Review the session file and the diff. Merge with `git merge --no-ff
@@ -89,13 +93,19 @@ The session's record is the 2026-09-13 BUILDLOG entries.
    - Two dispatches can run at once from one parent (`e537` and `78b7`
      did). Do not re-ingest while one is still gating: the gate reads the
      parent's derived graph.
+   - **Do not rebuild `go/bin` while a dispatch runs.** The launcher
+     and the proxy must agree on the subcommand set: a 0.2.13-beta
+     launcher runs `hobbes-proxy egress`, which the 0.2.14-beta proxy no
+     longer has. Rebuild both after the merge.
      - `git merge` does not read `-F -` from stdin. A heredoc there fails
        the merge silently in a `;` chain.
      - A heredoc followed by `&& \` in one Bash call is a syntax error;
        write the message to a file and pass `-F <file>`.
    - **A live test skips in the sandbox** (podman is not there), so
      verify cannot run it. Run every new live test on the host before
-     merging (`2aa9`: the guarantee held, and the assertion was wrong).
+     merging (`2aa9`, `3ebb` and `de81` each had one wrong or red there).
+     A live test that needs the sidecar must pass the real static proxy
+     (`staticProxyBin`), never the fake.
    - **Testing a dispatch branch on the host before merging:**
      - make a worktree with its own `uv sync` if the Python side is
        tested; main's venv would import main's code. Go tests need no
@@ -106,13 +116,14 @@ The session's record is the 2026-09-13 BUILDLOG entries.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (seventeen so far):
+     (nineteen so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
-       the tracker, D-s;
+       the tracker, D-s, the sink and the sidecar, the launcher's two
+       worlds;
      - the oracle lane: C's oracle.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
@@ -196,18 +207,21 @@ assumed of $25:
 
 ## WHERE THINGS STAND (2026-09-13)
 
-- **The Calvin harness** (ADR-107):
-  - **Code:** `go/internal/egress`, `hobbes-session --egress` and
-    `--claude-bin`, `pipeline/src/hobbes/run/dispatch.py`,
+- **The Calvin harness** (ADR-107, ADR-112):
+  - **Code:** `go/internal/sink` and `go/internal/egress` (both in
+    `hobbes-proxy sidecar`), `proxy.Journal`, `hobbes-session --egress`
+    and `--claude-bin`, `pipeline/src/hobbes/run/dispatch.py`,
     `gate.derive_map`, `gate.map_files`.
   - **Records:** each session's state is under
-    `~/.hobbes/sessions/<id>/` (`flight.jsonl`, `egress.jsonl`,
-    `dispatch.json`, `gate.json`, `verify.json`, the brief). Since
-    0.2.11-beta a session mounts only its own dir, never the root. The
-    doer's own state is purged at exit and never kept (retention,
-    0.1.22-beta). The log file is under `docs/calvin/sessions/`
-    (seventeen, of the 40 that validate the harness; the tracker counts
-    them).
+    `~/.hobbes/sessions/<id>/` (`flight.jsonl`, `escalations/`,
+    `mail.jsonl`, `egress.jsonl`, `dispatch.json`, `gate.json`,
+    `verify.json`, the brief, and `in/` with the MCP config and the
+    hook's settings). Since 0.2.14-beta they are written by the
+    session's sidecar, `hobbes-side-<id>`; the doer's container mounts
+    only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
+    doer's state reaches the host (retention by construction). The log
+    file is under `docs/calvin/sessions/` (nineteen, of the 40 that
+    validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
     later session's in its brief (`~/.hobbes/sessions/<id>/brief.md`).
@@ -225,19 +239,18 @@ assumed of $25:
 - **Register:** 141 entries: 100 active, 25 lifted, 11 superseded, 5
   folded (Max's calls, 2026-09-13; ADR-043 amended). C-141 registered
   the same day.
-- **Suites** at 0.2.13-beta:
-  - 1,505 pytest (host);
-  - Go 354 `--- PASS`/`SKIP` lines (353 pass, 1 skip), counted at
-    0.2.11-beta with the live egress and live mount tests run on the
-    host. 0.2.12-beta and 0.2.13-beta moved only Go's version string, and
-    `go/internal/version`'s test was re-run;
+- **Suites** at 0.2.14-beta:
+  - 1,508 pytest (host);
+  - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
+    counted), with the four live launcher tests run on the host;
   - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
     vitest, 43 helper and 36 tsextract node, 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).
 
 ## NEXT (in order; no API spend)
 
-1. **Max's calls** (START HERE item 1): C-140's structural fix, ADR-106.
+1. **Max's calls** (START HERE item 1): ADR-106; the register segment for
+   the dispatch entries.
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,
@@ -287,18 +300,25 @@ The keyed Calvin runs are closed, not held.
   once merged a dispatch and wrote its reviews while another session
   was working. Before assuming `main`'s state or a file's content, read
   `git reflog` and the file itself.
-- **A session sees only its own dir** (0.2.11-beta). A file a scripted
-  session command needs goes under `<sessions>/<id>/`, never the root
-  (`sandbox/exitcheck.py` does this).
-- **The egress route.**
+- **A session sees only its own `in/`** (0.2.14-beta, ADR-112). A file
+  a scripted session command needs goes under `<sessions>/<id>/in/`,
+  read-only in the container (`sandbox/exitcheck.py` does this); its
+  HOME is a tmpfs, so nothing it writes there outlives it. An explicit
+  `--network` is the old file world (the session dir mounted rw,
+  C-140 in full), which `--runtime` needs for its transcript.
+- **The sidecar and the route.**
+  - Every session gets `hobbes-int-<id>` (internal) and the container
+    `hobbes-side-<id>`, which writes its records; the launcher waits for
+    the sink's `listening` line in `flight.jsonl` and removes both at
+    the end.
   - `hobbes-egress` is a shared podman bridge; it stays between
-    sessions.
-  - A session behind `--egress` gets `hobbes-int-<id>` (internal) and
-    the container `hobbes-egress-<id>`; the launcher removes both.
+    sessions. With `--egress` the sidecar joins it too.
   - A session killed from outside can leave them behind. Clean up with
-    `podman rm -f -t 0 hobbes-egress-<id>` and `podman network rm -f
+    `podman rm -f -t 0 hobbes-side-<id>` and `podman network rm -f
     hobbes-int-<id>`. The forced network removal takes the session
     container with it. `hobbes dispatch` does this on its own timeout.
+  - A measurement's unnamed container looks like the knowledge server's
+    in `podman ps`; name every probe container before removing by name.
 - **A no-spend route check:** `CLAUDE_CODE_OAUTH_TOKEN=invalid
   go/bin/hobbes-session start --repo <a tiny repo> --role implementer
   --egress api.anthropic.com --task "Reply ok." --max-turns 1`. Expect

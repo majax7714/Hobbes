@@ -10020,3 +10020,86 @@ documentation to end sessions off".
 - The day's standing: 0.2.13-beta on `main`, unpushed. Four sessions
   this stretch (`9cad`, `e537`, `78b7`, `81df`), every gate right-clear.
   The harness is at 17 of 40, and the ingest is at the closing commit.
+
+## 2026-09-14 — C-140's fix: a session's records leave the doer's container — 0.2.14-beta (ADR-112)
+
+**Asked (Max):** "review top level documentation. then provide a plan to
+handle constraint 140", then "good with route one, its a constraint not a
+direct feature advancement so keep 0.2.11 for the work" (read as: stay on
+the 0.2.x patch line — the tree was at 0.2.13-beta, so 0.2.14-beta).
+
+- **The review.** The C-140 story was consistent across CLAUDE.md, the
+  handoff, W5, the register, ADR-107's amendment and the CHANGELOG. One
+  drift, fixed in the release commit: `calvin-harness.md`'s status line
+  said twelve sessions through 0.2.10-beta. Traced in the code, the gap
+  had three writers in the doer's container (the proxy's flight log and
+  queue, the hook, the reflect tool's mail file), the egress log in the
+  same host dir, and HOME *being* the session dir (`go-build`, `.semgrep`
+  and `.config` landed beside the records).
+- **The plan, as three routes.** Route 1, recommended and taken: the
+  records' writers leave the doer's container; the executor stays. Route
+  2: the whole proxy out, exec's children under a second uid (closes the
+  remainder at two to three times the work; kept available). Route 0:
+  detect, not prevent (dismissed under "contain first").
+- **Measured before the decision** (no spend): a sidecar is reached by
+  name on an internal network with no egress bridge, and the box has no
+  route out; Claude Code runs with HOME on a tmpfs and read-only config,
+  ending on the expected 401 in 2 s; an anonymous volume survives
+  `podman rm -f` where a tmpfs dies with the container; a socket cannot
+  be reopened through `/proc/<pid>/fd`. One probe with `--network none`
+  hung (Claude Code retries its endpoint forever); the rerun behind an
+  egress sidecar ended at once. Removing the hung probe's container took
+  the knowledge server's with it (both unnamed): restart it next session.
+- **ADR-112** written and amended once before the dispatch (the mail line
+  and a `listening` line ride the sink too).
+- **Unit A through the harness** (`S-20260914T004830Z-3ebb`, 82 of 150
+  turns, 16 min, $4.42): `go/internal/sink` (the wire, one stream ever,
+  the refusal recorded, session and role stamped by the sink, an edit
+  stripped to tool and path, mail and the escalation round trip),
+  `proxy.Journal` with the file journal kept, `serve --sink`,
+  `record-edit --sink`, `hobbes-proxy sidecar` replacing `egress`. Gate
+  clear, verify pass (83 tests, 0 regressions, 27 new). Two escalations
+  expired (`git rm`, a heredoc commit); the doer found other forms. On the
+  host, every package green but the live egress test, red for the
+  expected reason (the old launcher still ran `egress`). Right-clear;
+  merged `a3c2551`. After the merge, two hardening points the brief had
+  not asked for (`6ad5567`): an escalation id is one path segment, and
+  the sidecar cancels its sibling listener when one fails.
+- **Unit B through the harness** (`S-20260914T010846Z-de81`, 94 of 150
+  turns, 21 min, $6.69): the launcher's two worlds (the sidecar world by
+  default: `hobbes-side-<id>`, HOME a tmpfs with a 4 GB cap, `<id>/in/`
+  the one read-only host dir, the MCP config and the hook on `--sink`,
+  the launcher waiting for the sink's `listening` line and then the
+  egress `listen` record; the file world on an explicit `--network`,
+  said in one line naming C-140; `--runtime` refuses the sidecar world),
+  dispatch's stream bracket on the Policy line, `_cleanup_route` and
+  `SCAN_SKIP`, the exit check's driver under `in/`. Gate clear, verify
+  pass (96 tests, 0 regressions, 11 new). One egress refusal: a plain GET
+  to the host `llm`, a test's fake endpoint reached through the session's
+  proxy variables when the doer ran the Python suite. On the host, one
+  live test red: the mount test still handed the launcher the fake
+  proxy, so its sidecar never listened. Right-clear; merged `9e264d6`.
+  After the merge: the three live tests share `staticProxyBin`
+  (`0223091`), and the driver beside the exit check reads `in/mcp.json`
+  (`32154ca`; found by running the exit check, which then passed 5/5
+  through the sidecar with a host-side approval over the sink).
+- **The lesson, twice:** verify cannot see a live test, and both units
+  had one wrong or red on the host. The handoff's §2 now says a live
+  test that needs the sidecar must pass the real static proxy, and that
+  `go/bin` must not be rebuilt while a dispatch runs (the launcher and
+  the proxy must agree on the subcommand set).
+- **Release, 0.2.14-beta:** the CHANGELOG entry; C-140 narrowed to a
+  forged edit line and surfaced (78 surfaced, 17 partial; C-125's
+  related line); ADR-107's pointer; both box headers; the harness doc's
+  status line, diagram and §2 table; the architecture's §6.3, sandbox
+  row, recorder row (the sink's four decisions) and harness row; W5's
+  item built; CLAUDE.md's map and status; the handoff rewritten. The
+  image and the four binaries rebuilt at 0.2.14-beta (C-65).
+- **Suites:** pytest 1,508 (host); Go 386 lines (385 pass, 1 skip,
+  subtests counted, the four live launcher tests included); the tracker
+  at 19 of 40, 4 areas, 0 false blocks, 0 missed, $46.40 reported.
+- **Task files:** `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md`
+  with their partitions beside them.
+
+**Not done, for Max:** ADR-106; the register segment for the dispatch
+entries; C-140's remainder only if it ever matters (route 2).

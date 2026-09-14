@@ -13,8 +13,10 @@
 # denied and win by deny-overrides (P10, ADR-036).
 #
 # The OS sandbox is the real boundary (§5.2): no network beyond the
-# model endpoint, mounts limited to the worktree and the session's own
-# dir (ADR-107's 2026-09-13 amendment), no secrets in env. This file
+# model endpoint, mounts limited to the worktree and, behind the sidecar,
+# a tmpfs HOME (ADR-107's 2026-09-13 amendment; ADR-112 — on an explicit
+# `--network`, the bench's pasta, the session dir stays mounted rw and its
+# records in the doer's reach, C-140), no secrets in env. This file
 # only decides which shell commands the proxy will run; it cannot widen
 # what the sandbox already forbids.
 version: 1

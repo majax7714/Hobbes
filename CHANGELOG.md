@@ -14,6 +14,66 @@ it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
 each time (0.1.9-beta to 0.2.9-beta untagged; 0.2.10-beta is tagged
 `v0.2.10-beta`, on Max's word at the close of 2026-09-13).
 
+## 0.2.14-beta — 2026-09-14 (a session's records leave the doer's container; C-140 narrowed; ADR-112)
+
+**Patch: what the layer refuses.** Max chose the route (the records'
+writers move out; the executor stays) and the number: a constraint's
+fix is a patch, not a feature advancement.
+
+- **The sidecar.** `hobbes-proxy sidecar` replaces `hobbes-proxy egress`:
+  one container per session, `hobbes-side-<id>`, on the session's
+  internal network, the only writer of `flight.jsonl`, `escalations/`,
+  `mail.jsonl` and, with `--egress`, `egress.jsonl`.
+  - The proxy feeds it over **one flight stream, claimed once**
+    (`serve --sink`). A second `open` is refused and recorded; a killed
+    proxy closes the stream, recorded, and takes the doer's shell with
+    it. The sink stamps session and role from its own configuration.
+  - The progress hook posts its edit lines the same way
+    (`record-edit --sink`); the sink keeps a tool and a path and
+    nothing else.
+  - The sink's own lines bracket a session's log: `listening`,
+    `stream_opened`, `stream_closed`, `stream_refused`.
+- **The doer's container** mounts no part of the session dir
+  read-write: HOME is a tmpfs (4 GB cap), and `<id>/in/` — the MCP
+  config, the hook's settings, a scripted driver — is its one read-only
+  host dir. Retention holds by construction; `PurgeDoerState` runs only
+  in the file world.
+- **Every session gets its own internal network and a sidecar.** The
+  default `--network none` is gone. An explicit `--network` (the
+  bench's pasta; the owned runtime needs it for its transcript) keeps
+  the file journal in the doer's container, and the dry run and the
+  launcher say so in one line naming C-140.
+- **`hobbes dispatch`** reads the same three files, leaves the sink's
+  lines out of the exec and edit counts, and reports the stream's
+  bracket on its Policy line.
+- **Measured first** (ADR-112): a sidecar is reached by name on the
+  internal network with no route off the box; Claude Code runs with
+  HOME on a tmpfs and read-only config; an anonymous volume survives
+  `podman rm -f` where a tmpfs does not; a socket cannot be reopened
+  through `/proc/<pid>/fd`.
+- **The guarantee's own tests (P10):** `internal/sink` (one stream
+  ever, the refusal written, the edit shape, the escalation round
+  trip); the proxy's escalation outcomes over the sink client; and
+  live, `TestALiveSessionCannotReachItsOwnRecords` — a real session
+  finds no flight log to delete, sends one event by hand, is refused
+  a second stream, and the host log holds the bracket in order.
+- **Register:** C-140 narrowed to a forged edit line, surfaced (78
+  surfaced, 17 partial).
+- **Built through the harness,** two dispatched units, both gates
+  right-clear:
+  - `S-20260914T004830Z-3ebb` (82 of 150 turns, 16 min, $4.42): the
+    sink, the sidecar and the proxy's journal. Verify pass (83 tests,
+    0 regressions).
+  - `S-20260914T010846Z-de81` (94 of 150 turns, 21 min, $6.69): the
+    launcher, dispatch and the exit check. Verify pass (96 tests, 0
+    regressions).
+  - What verify could not see, both times: a live test red on the
+    host — the egress route between the two merges, and the mount test
+    still handing the launcher the fake proxy. The developer fixed the
+    second in the commit after the merge, and hardened the sink (an
+    escalation id is one path segment; the sidecar stops both
+    listeners when one fails).
+
 ## 0.2.13-beta — 2026-09-13 (C tests by their registrations; C-134 narrowed and surfaced; ADR-108 amended)
 
 **Patch: what the layer draws and says.** Max's three calls on the

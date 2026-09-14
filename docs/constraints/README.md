@@ -153,17 +153,25 @@ their segment, in that order, and are marked in the heading.
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 77 | every active entry not listed below |
-| active — *partial* | 18 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-134, C-135, C-138, C-140, C-141 |
+| active — surfaced | 78 | every active entry not listed below |
+| active — *partial* | 17 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-134, C-135, C-138, C-141 |
 | active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-133 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 25 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
 | folded | 5 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28 |
 
-The table is the register's current state (2026-09-13), read from each
+The table is the register's current state (2026-09-14), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+ADR-112 built on 2026-09-14 (0.2.14-beta), the session's records leave the
+doer's container:
+- C-140 narrowed to a forged edit line, and surfaced: the flight log,
+  the escalation queue, the mail file and the egress log are written by
+  a sidecar container per session over one flight stream; the doer's
+  HOME is a tmpfs. A session on an explicit `--network` keeps the old
+  reach and says so.
 
 Max's register decisions, 2026-09-13 (ADR-043 amended):
 - **Eight superseded:** C-104–C-108 and C-114–C-116, the keyed rounds'

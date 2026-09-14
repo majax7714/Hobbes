@@ -11,9 +11,12 @@
 # denied and win by deny-overrides (P10, ADR-036); the OS sandbox is the
 # real boundary (§5.2) — this file only decides which shell commands the
 # proxy will run, and cannot widen what the sandbox already forbids. The
-# session's mounts are its own clone (rw), its own session dir (rw) and
-# read-only trees; nothing of another session is mounted (ADR-107's
-# 2026-09-13 amendment).
+# session's mounts are its own clone (rw), a tmpfs HOME that dies with the
+# container, and read-only trees; nothing of another session is mounted
+# (ADR-107's 2026-09-13 amendment), and nothing of its own records: the
+# flight log, the escalation queue, the mail file and the egress log are
+# written by the session's sidecar container, which the doer's container
+# cannot reach except through the proxy's one flight stream (ADR-112).
 #
 # An escalation here is still a question, not a boundary where an allowed
 # command can do the same thing: `python3 *` and `python -c *` are allowed,
@@ -22,9 +25,11 @@
 # expired (S-20260912T201059Z-5d5f). `find`'s deleting and executing forms
 # (`-delete`, `-exec`, `-execdir`, `-ok`, `-okdir`) and `xargs` escalate the
 # same way, like a recursive `rm`. What bounds a deletion is the mounts: the
-# session's clone, which the gate reads against the partition, and the
-# session's own dir. The session's own dir stays writable by its doer, flight
-# log and egress log included (C-140).
+# session's clone, which the gate reads against the partition, and a tmpfs
+# HOME. The session's records are out of its reach; what is left of C-140
+# is a forged *edit* line through the hook's endpoint, which the harvested
+# diff contradicts, and a doer that kills its proxy closes the stream, which
+# the sidecar records (ADR-112).
 version: 1
 scope: box
 default: escalate

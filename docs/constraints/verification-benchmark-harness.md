@@ -836,8 +836,9 @@
     `--no-session-persistence`, and its state is removed at exit, so
     its reads are recorded nowhere. This is chosen: the doer's
     reasoning is never stored.
-- **Related:** C-140 — the flight log that does record the edits is
-  itself within the doer's reach.
+- **Related:** C-140 — the flight log that does record the edits was
+  within the doer's reach until ADR-112; what is left there is a forged
+  edit line.
 - **Source:** ADR-107, 2026-09-12.
 
 ### C-127 — The harness is validated by the developer's reading of each session, not by an answer key
@@ -893,34 +894,49 @@
   never squash" is in the procedure.
 - **Source:** ADR-107's retention amendment; Max, 2026-09-12.
 
-### C-140 — A dispatched doer can alter or delete its own session's records
+### C-140 — A dispatched doer can forge an edit line in its own flight log (it could alter or delete its own session's records until 0.2.14-beta)
 
-- **Cannot tell you:** that a session's own flight log, egress log and
-  escalation records hold exactly what the proxies wrote.
-  - The proxy that writes the flight log and the escalation queue runs
-    in the doer's container, as the doer's user. The session dir is
-    mounted read-write there.
-  - Claude Code's own Write tool reaches the same dir.
-  - The egress proxy writes `egress.jsonl` from its own container, but
-    into that same host dir.
-- **Because:** the recorder shares the doer's container. The policy
-  proxy is the doer's MCP server over stdio (ADR-015). Since
-  0.2.11-beta (ADR-107's 2026-09-13 amendment), a session mounts only its
-  own dir. No other session's records or clone are reachable; its own
-  stay in reach.
-- **Bites at:** reading a session's policy decisions, escalations and
-  egress refusals as complete. `calvin-harness.md` §4's "every refusal
-  is read" reads a log the doer could have edited.
-- **You find out:** *partial*. The box header (`calvin.box.policy`) and
-  the harness doc's §2 table name it. The session file, where the logs
-  are read, does not, and nothing detects an edit.
-- **The fix, named:** give the proxy and its logs a container of their
-  own, as the egress proxy has. It is a structural change, so it is
-  Max's call.
+- **Cannot tell you:** that an *edit* line in a session's flight log
+  was written by the progress hook rather than by a shell the doer ran.
+  - **Narrowed 2026-09-14 (0.2.14-beta, ADR-112).** The flight log, the
+    escalation queue, the mail file and the egress log are written by
+    the session's sidecar container, over one flight stream the proxy
+    opens once; the doer's HOME is a tmpfs and no part of the session
+    dir is mounted read-write. A second stream is refused and the
+    refusal recorded; a doer that kills its proxy closes the stream,
+    which the sidecar records, and loses its shell with the proxy. So
+    nothing the doer does can delete, rewrite or reorder a record, or
+    forge an exec decision.
+  - **What is left.** The hook's endpoint accepts an edit line from any
+    connection, so a shell `exec` spawns in the doer's container can
+    send one, naming a file it did not edit. The sink strips it to the
+    tool and the path, so it cannot look like an exec decision, and the
+    harvested diff is the truth for edits.
+  - **Where it still applies in full:** a session on an explicit
+    `--network` (the bench's pasta; the owned loop needs it for its
+    transcript, ADR-064) keeps the session dir mounted read-write and
+    the proxy's file journal in the doer's container. The dry run and
+    the launcher say so in one line naming this entry.
+- **Because:** the hook is a separate process the doer's tools start,
+  once per edit, so its endpoint cannot be a single held connection the
+  way the proxy's is. Before ADR-112, the recorder shared the doer's
+  container (the policy proxy is the doer's MCP server over stdio,
+  ADR-015), and Claude Code's own Write tool reached the same dir.
+- **Bites at:** reading the edit lines' paths as a record of what the
+  doer touched, where a doer had reason to lie about it. The exec
+  decisions, escalations and egress refusals `calvin-harness.md` §4
+  reads are complete from the sidecar's side.
+- **You find out:** **surfaced**. The box headers and the harness doc's
+  §2 table name the remainder; `hobbes dispatch`'s log reports the
+  stream's bracket (opened, closed, any refusal) on its Policy line, so
+  a stream that never opened or closed is visible in the session file.
 - **Related:** C-125 — what the flight log never holds (the doer's
   reads).
 - **Source:** ADR-107's 2026-09-13 amendment. It was found by tracing
-  where `find … -delete` could reach from a dispatch box.
+  where `find … -delete` could reach from a dispatch box. Narrowed by
+  ADR-112 (measured first: a socket cannot be reopened through
+  `/proc/<pid>/fd`; a tmpfs dies with its container where a volume
+  survives a forced removal).
 
 ## Superseded constraints in this segment
 
