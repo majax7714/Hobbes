@@ -54,6 +54,7 @@ var Exts = map[string][]string{
 	"rust": {".rs"},
 	"java": {".java"},
 	"c":    {".c", ".h"},
+	"cpp":  {".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h"},
 }
 
 // FromFile reads graph.json and exports the cell for module (a

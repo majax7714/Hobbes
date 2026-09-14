@@ -56,6 +56,40 @@ func TestMergeSeveralExternalDefs(t *testing.T) {
 	}
 }
 
+// TestMergeKeysOverloadsByMangledName covers ADR-113's join key: two C++
+// declarations sharing a name are one entity each, told apart by their
+// mangled names, so a call resolves to its own overload's definition and
+// never to both (which C's name join would have called link-ambiguous).
+func TestMergeKeysOverloadsByMangledName(t *testing.T) {
+	decl := func(mangled string, line int) Decl {
+		return Decl{Name: "f", Mangled: mangled, Kind: "function", Body: true, InRepo: true,
+			Pos: edges.Pos{Path: "over.cpp", Line: line}}
+	}
+	call := func(mangled string, line int) Call {
+		return Call{Site: edges.Pos{Path: "over.cpp", Line: line}, Col: 5,
+			Spell: edges.Pos{Path: "over.cpp", Line: line}, SpellCol: 5,
+			Caller: "use", Mode: "static", Callee: mangled, CalleeName: "f"}
+	}
+	s := &Shard{File: "over.cpp", Files: []string{"over.cpp"},
+		Decls: []Decl{decl("_Z1fi", 1), decl("_Z1fd", 2)},
+		Calls: []Call{call("_Z1fi", 10), call("_Z1fd", 11)},
+	}
+	out := Merge([]*Shard{s}, "")
+
+	for line, want := range map[int]edges.Pos{10: {Path: "over.cpp", Line: 1}, 11: {Path: "over.cpp", Line: 2}} {
+		site := siteAt(t, out, "over.cpp", line)
+		if len(site.Targets) != 1 || !hasPos(site.Targets, want) {
+			t.Errorf("over.cpp:%d should resolve to %s alone: %+v", line, want.Key(), site.Targets)
+		}
+		if len(site.Targets) == 1 && site.Targets[0].Name != "f" {
+			t.Errorf("over.cpp:%d: a target reports the name as written, not the mangling: %+v", line, site.Targets[0])
+		}
+	}
+	if out.Coverage["sites_static"] != 2 || out.Coverage["sites_link_ambiguous"] != 0 {
+		t.Errorf("coverage: %v", out.Coverage)
+	}
+}
+
 // TestMergeUndefinedVersusExternal covers the two "no definition" cases:
 // declared in the repo (undefined) versus declared only implicitly
 // (external, ADR-110's builtin case).

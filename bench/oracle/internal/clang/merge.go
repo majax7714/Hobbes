@@ -6,30 +6,49 @@ import (
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
 
-// shardInfo is one shard's linkage picture: which names it declares
+// declKey is what Merge joins declarations by: the mangled name where
+// clang gives one — unique per entity, so C++'s overloads and a
+// template's specialisations are told apart — and the plain name
+// otherwise (`extern "C"`, `main`, a declaration the dump does not
+// mangle). In C the two are the same string, so C's name join is
+// unchanged (ADR-110, ADR-113).
+func declKey(d Decl) string {
+	if d.Mangled != "" {
+		return d.Mangled
+	}
+	return d.Name
+}
+
+// shardInfo is one shard's linkage picture: which keys it declares
 // static (internal linkage in that unit), where its own definition of a
-// name sits (Body && InRepo), and which names it declares in-repo and
+// key sits (Body && InRepo), which keys it declares in-repo and
 // non-implicitly (ADR-110's "declared in the repo" test for undefined
-// vs external).
+// vs external), and what each key declares (a target's Kind).
 type shardInfo struct {
 	static         map[string]bool
 	ownDef         map[string]edges.Pos
 	declaredInRepo map[string]bool
+	kind           map[string]string
 }
 
 func buildShardInfo(s *Shard) shardInfo {
-	info := shardInfo{static: map[string]bool{}, ownDef: map[string]edges.Pos{}, declaredInRepo: map[string]bool{}}
+	info := shardInfo{static: map[string]bool{}, ownDef: map[string]edges.Pos{},
+		declaredInRepo: map[string]bool{}, kind: map[string]string{}}
 	for _, d := range s.Decls {
 		if d.Static {
-			info.static[d.Name] = true
+			info.static[declKey(d)] = true
 		}
 	}
 	for _, d := range s.Decls {
+		k := declKey(d)
 		if d.Body && d.InRepo {
-			info.ownDef[d.Name] = d.Pos
+			info.ownDef[k] = d.Pos
 		}
 		if d.InRepo && !d.Implicit {
-			info.declaredInRepo[d.Name] = true
+			info.declaredInRepo[k] = true
+		}
+		if d.Kind != "" {
+			info.kind[k] = d.Kind
 		}
 	}
 	return info
@@ -46,38 +65,48 @@ type resolved struct {
 }
 
 // resolveCall applies ADR-110's target rules to one call using its own
-// shard's info and the join of every shard's external definitions.
+// shard's info and the join of every shard's external definitions. The
+// key is the call's Callee (a mangled name where C++ gives one); the
+// target reports the name as written and what the declaration is.
 func resolveCall(c Call, info shardInfo, globalDefs map[string]map[edges.Pos]bool) resolved {
 	r := resolved{call: c}
 	if c.Mode == "dynamic" {
 		return r
 	}
-	name := c.Callee
+	key := c.Callee
+	name := c.CalleeName
+	if name == "" {
+		name = key
+	}
+	kind := info.kind[key]
+	if kind == "" {
+		kind = "function"
+	}
 	switch {
-	case info.static[name]:
-		if p, ok := info.ownDef[name]; ok {
-			r.targets = []edges.Target{{Pos: p, Name: name, Kind: "function"}}
-		} else if info.declaredInRepo[name] {
+	case info.static[key]:
+		if p, ok := info.ownDef[key]; ok {
+			r.targets = []edges.Target{{Pos: p, Name: name, Kind: kind}}
+		} else if info.declaredInRepo[key] {
 			r.reason = "undefined"
 		} else {
 			// A static function with no in-repo trace at all: defined
 			// (or only declared) outside the repo, a system header's
 			// `static inline` (ADR-110's example, `__bswap_16`).
-			r.targets = []edges.Target{{Name: name, Kind: "function", External: true}}
+			r.targets = []edges.Target{{Name: name, Kind: kind, External: true}}
 		}
-	case len(globalDefs[name]) == 0:
-		if info.declaredInRepo[name] {
+	case len(globalDefs[key]) == 0:
+		if info.declaredInRepo[key] {
 			r.reason = "undefined"
 		} else {
-			r.targets = []edges.Target{{Name: name, Kind: "function", External: true}}
+			r.targets = []edges.Target{{Name: name, Kind: kind, External: true}}
 		}
-	case len(globalDefs[name]) == 1:
-		for p := range globalDefs[name] {
-			r.targets = []edges.Target{{Pos: p, Name: name, Kind: "function"}}
+	case len(globalDefs[key]) == 1:
+		for p := range globalDefs[key] {
+			r.targets = []edges.Target{{Pos: p, Name: name, Kind: kind}}
 		}
 	default:
-		if p, ok := info.ownDef[name]; ok {
-			r.targets = []edges.Target{{Pos: p, Name: name, Kind: "function"}}
+		if p, ok := info.ownDef[key]; ok {
+			r.targets = []edges.Target{{Pos: p, Name: name, Kind: kind}}
 		} else {
 			r.reason = "link-ambiguous"
 		}
@@ -100,14 +129,24 @@ type siteKey struct {
 	callee              string
 }
 
+// bucketOf is the coverage bucket a resolved site's mode counts in.
+func bucketOf(mode string) string {
+	switch mode {
+	case "macro", "virtual", "operator", "constructor":
+		return "sites_" + mode
+	}
+	return "sites_static"
+}
+
 func keyOf(c Call) siteKey {
 	return siteKey{c.Site.Path, c.Site.Line, c.Col, c.Spell.Path, c.Spell.Line, c.SpellCol, c.Mode, c.Callee}
 }
 
-// Merge joins every shard's declarations by name (javac's keyed merge,
-// C's face of it) to resolve ADR-110's linkage rules, unions each
-// site's targets across the shards that share it, and classifies every
-// site into the coverage buckets oracle-grading.md §7c defines. Oracle,
+// Merge joins every shard's declarations by declKey (javac's keyed
+// merge, C's and C++'s face of it) to resolve ADR-110's linkage rules,
+// unions each site's targets across the shards that share it, and
+// classifies every site into the coverage buckets oracle-grading.md §7c
+// and ADR-113 §3 define. Oracle,
 // Roots and Containment are the caller's to set: this package runs no
 // clang and knows nothing about how the shards were produced.
 func Merge(shards []*Shard, module string) *edges.OracleExport {
@@ -133,11 +172,12 @@ func Merge(shards []*Shard, module string) *edges.OracleExport {
 	for i, s := range shards {
 		info := infos[i]
 		for _, d := range s.Decls {
-			if d.Body && d.InRepo && !info.static[d.Name] {
-				if globalDefs[d.Name] == nil {
-					globalDefs[d.Name] = map[edges.Pos]bool{}
+			k := declKey(d)
+			if d.Body && d.InRepo && !info.static[k] {
+				if globalDefs[k] == nil {
+					globalDefs[k] = map[edges.Pos]bool{}
 				}
-				globalDefs[d.Name][d.Pos] = true
+				globalDefs[k][d.Pos] = true
 			}
 		}
 	}
@@ -157,13 +197,17 @@ func Merge(shards []*Shard, module string) *edges.OracleExport {
 	}
 
 	cov := map[string]int{
-		"units": len(shards), "units_failed": 0,
+		"units": len(shards), "units_failed": 0, "units_cpp": 0,
 		"sites_static": 0, "sites_macro": 0, "sites_dynamic": 0,
+		"sites_virtual": 0, "sites_operator": 0, "sites_constructor": 0,
 		"sites_external": 0, "sites_link_ambiguous": 0, "sites_undefined": 0, "sites_tu_split": 0,
 	}
 	for _, s := range shards {
 		if s.Failed {
 			cov["units_failed"]++
+		}
+		if s.CXX {
+			cov["units_cpp"]++
 		}
 	}
 
@@ -199,11 +243,7 @@ func Merge(shards []*Shard, module string) *edges.OracleExport {
 		case len(targets) == 1 && targets[0].External:
 			cov["sites_external"]++
 		case len(targets) == 1:
-			if mode == "macro" {
-				cov["sites_macro"]++
-			} else {
-				cov["sites_static"]++
-			}
+			cov[bucketOf(mode)]++
 		default:
 			if rs[0].reason == "undefined" {
 				cov["sites_undefined"]++
