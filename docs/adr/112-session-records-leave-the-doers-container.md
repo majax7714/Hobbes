@@ -64,7 +64,8 @@ of the session dir read-write.
    egress`. `hobbes-session` runs it as `hobbes-side-<id>` on the
    session's internal network `hobbes-int-<id>`, mounting the session
    dir read-write at `/log`. It is the only writer of `flight.jsonl`,
-   `escalations/` and `egress.jsonl`. With `--allow` hosts it also joins
+   `escalations/`, `mail.jsonl` (the reflect tool's inbox, ADR-054) and
+   `egress.jsonl`. With `--allow` hosts it also joins
    the `hobbes-egress` bridge and runs the CONNECT proxy as today; with
    none it sits on the internal network alone. The egress package is
    unchanged.
@@ -85,6 +86,10 @@ of the session dir read-write.
      authority (ADR-016): it polls and it sends `expire`; the host-side
      `hobbes-proxy escalations approve|deny` writes the record in the
      same dir as today and the next `poll` sees it.
+   - On the stream too: `mail` appends one line to `mail.jsonl` and
+     answers with its sequence number, which is what `reflect` reports
+     today; the line's shape and the file's do not change, so
+     `run/mail.py` reads it as before.
    - `edit`, on any connection, records one edit line and the sink
      closes the connection. The sink keeps the tool and the path alone,
      requires the tool to be `Edit`, `Write`, `MultiEdit` or
@@ -95,14 +100,17 @@ of the session dir read-write.
      is the proxy's, as today. The sink's own lines carry `tool:
      "sink"`, an empty `argv`, `policy_rule: "sink"` and the decision
      named above; ADR-015's field set is unchanged, and these are the
-     three values added to `decision`.
+     values added to `decision`. A fourth, `listening`, is written once
+     when the sink is up: it is what `hobbes-session` waits for before
+     the session starts, as it waits for the egress log's `listen`
+     record today, since the host cannot reach the internal network.
    - The sink answers `{"ok":true}` or `{"ok":false,"error":…}`. A
      refused or failed write reaches the proxy, which surfaces it on the
      tool result as it does a recorder failure today: an unauditable
      proxy must not look healthy.
 3. **The proxy.** `proxy.Config` takes a `Journal` — `Record(event)`,
-   `Park(record)`, `Poll(id)`, `Expire(id, now)` — in place of `Rec` and
-   the session dir. Two implementations: the **file journal**, which is
+   `Park(record)`, `Poll(id)`, `Expire(id)`, `Mail(line)` — in place of
+   `Rec` and the session dir. Two implementations: the **file journal**, which is
    today's recorder and queue on a local dir, kept for `--knowledge-only`
    (the host's knowledge server, ADR-087), for the tests, and for a
    session that runs on a `--network` override (item 5); and the **sink
@@ -135,9 +143,9 @@ of the session dir read-write.
    removes `hobbes-side-<id>`.
 7. **Tests, where a user meets the guarantee (P10):**
    - `internal/sink`: one stream ever, the refusal written; the edit
-     shape enforced, an exec-shaped edit refused; park, poll, a
-     host-side `escalation.Resolve`, and expire, round trip; session and
-     role stamped from configuration.
+     shape enforced, an exec-shaped edit stripped to tool and path; park,
+     poll, a host-side `escalation.Resolve`, and expire, round trip; a
+     mail line's sequence; session and role stamped from configuration.
    - `internal/proxy`: the existing exec, park and expiry tests pass
      over the sink client against an in-process sink on a loopback
      listener, as they pass over the file journal.
@@ -166,8 +174,8 @@ of the session dir read-write.
    (C-65).
 10. **Built through the harness** (ADR-107), in two dispatched units,
     the second on the first's merge: **A**, the sink package, the
-    sidecar subcommand, the journal and the sink client in the proxy
-    and the hook; **B**, the launcher (mounts, tmpfs, network, the
+    sidecar subcommand (which replaces `hobbes-proxy egress`), the
+    journal and the sink client in the proxy and the hook; **B**, the launcher (mounts, tmpfs, network, the
     sidecar's lifecycle), the Python side (dispatch, the harness driver,
     the exit check) and the live tests. The docs, the register and the
     version are the developer's, in the release commit.
