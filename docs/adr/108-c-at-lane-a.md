@@ -201,3 +201,64 @@ each time. **Source:** the top-level review of 2026-09-13; C-134.
 - **The register:** C-134 narrowed, and *partial*.
 - **The version:** a patch, because it changes what the layer draws.
 - **How it is built:** through the harness, as one session.
+
+## Amendment (2026-09-14): an include lane A cannot place is written down (C-133)
+
+**Decided:** the developer, 2026-09-14, as unit 1 of C-133's two units
+(Max: "continue tackling your recommended item"). **Source:** the
+top-level review of 2026-09-14; C-133, the register's one unsurfaced C
+entry.
+
+### Context
+
+- **Decision 4 resolves an include by path, not by the build's `-I`.**
+  A `"p"` include that matches no repo file, or more than one, draws no
+  edge; a `<p>` include that matches more than one repo header falls to
+  `ext:<p>` as if it were a dependency.
+- **Nothing says so.** C-133 is *unsurfaced*: a directory whose headers
+  are reached through an `-I` the build sets, or generated at configure
+  time (`config.h`), reads in `list_blind_spots` exactly like a
+  directory whose includes all resolved.
+- **The `-I` path is compile-flag knowledge.** Lane B derives the
+  compile database (ADR-109) after lane A has run, so lane A cannot read
+  it today. Reading it is a second unit with its own amendment; this one
+  only makes the gap visible, as C-134's amendment did for tests.
+
+### Decision
+
+1. **One `c-includes` degradation record per directory** that holds an
+   include decision 4 could not place in the repo. Its `path` is the
+   directory, its `stage` is `c-includes`, and its message counts two
+   shapes and names their specs:
+   - **unmatched:** a `"p"` include no step resolved — no candidate in
+     the including file's directory or at the root, and no repo header
+     ending `/p`. (A `<p>` that matches nothing is a dependency by
+     decision 4 and is not counted.)
+   - **ambiguous:** a `"p"` or `<p>` include whose suffix matched more
+     than one repo header, so the unique-suffix step abstained.
+
+   Specs are counted once per directory, in path order; the message
+   names up to three of each shape. For example: `2 quoted includes
+   matched no repo file ("config.h", "gen/version.h") and 1 include
+   matched more than one repo header (<util.h>); the build's include
+   path decides them, and lane A does not read it (C-133)`. Name only
+   the non-zero parts.
+2. **Nothing else moves.** The edges decision 4 draws are unchanged: an
+   unmatched or ambiguous `"p"` still draws no edge, an ambiguous `<p>`
+   still draws `ext:<p>`. The record is added beside the `c-tests`
+   records in `extract_c`, and `list_blind_spots` shows it with the
+   other degradation records.
+3. **Out of scope. These stay in C-133:**
+   - resolving through the derived compile database's `-I` directories
+     (unit 2, decided separately);
+   - a macro reached through a header two includes down, which the
+     fallback's rank 2 does not see and the tail classes `unclassified`.
+4. **C-133 becomes *partial*** when this lands: the include half is
+   surfaced per directory; the macro half is not.
+
+### Consequences
+
+- **On cJSON and sqlite-vector:** measured at review, and written in
+  `extraction-evidence.md`.
+- **Fixtures:** none added to `minic`; every case is built in
+  `tmp_path` in `test_csource.py`.
