@@ -60,9 +60,13 @@ if change:
     git("-C", str(wt), "add", "-A")
     git("-C", str(wt), "commit", "-qm", "doer")
     git("-C", repo, "fetch", "-q", str(wt), "hobbes/%s:hobbes/%s" % (sid, sid))
-flight = [{"session": sid, "tool": "exec", "argv": ["python", "-m", "pytest"], "decision": "allow"},
+# The sink's own lines (ADR-112) bracket the stream around the doer's exec decisions and edits, and are neither.
+flight = [{"session": sid, "tool": "sink", "argv": [], "policy_rule": "sink", "decision": "listening"},
+          {"session": sid, "tool": "sink", "argv": [], "policy_rule": "sink", "decision": "stream_opened"},
+          {"session": sid, "tool": "exec", "argv": ["python", "-m", "pytest"], "decision": "allow"},
           {"session": sid, "tool": "exec", "argv": ["pip", "download", "x"], "decision": "deny"},
-          {"session": sid, "tool": "Edit", "path": "pkg/use.py", "ts": datetime.datetime.now(datetime.timezone.utc).isoformat()}]
+          {"session": sid, "tool": "Edit", "path": "pkg/use.py", "ts": datetime.datetime.now(datetime.timezone.utc).isoformat()},
+          {"session": sid, "tool": "sink", "argv": [], "policy_rule": "sink", "decision": "stream_closed"}]
 (sdir / "flight.jsonl").write_text("".join(json.dumps(e) + "\n" for e in flight))
 eg = [{"event": "listen", "addr": "0.0.0.0:3128", "allow": ["api.anthropic.com:443"]},
       {"event": "connect", "method": "CONNECT", "target": "api.anthropic.com:443"},
@@ -144,6 +148,8 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     # the doer's edits (ADR-107, the progress hook) are kept apart from the exec/Policy count
     assert rec["flight"]["by_decision"] == {"allow": 1, "deny": 1} and rec["flight"]["denied"] == ["pip download x"]
     assert rec["flight"]["events"] == 2 and rec["flight"]["edits"]["count"] == 1 and rec["flight"]["edits"]["files"] == ["pkg/use.py"]
+    # the sink's bracket around the stream (ADR-112) is kept apart from both
+    assert rec["flight"]["stream"] == {"listening": True, "opened": True, "closed": True, "refused": 0}
     assert rec["envelope"]["num_turns"] == 7
     # retention (ADR-107's amendment): the doer's state and reasoning are gone; its output stays
     assert rec["retention"]["doer_state_removed_by_dispatch"] == [".cache/claude-cli-nodejs", ".claude", ".claude.json"]
@@ -155,7 +161,7 @@ def test_a_clean_change_runs_the_stack_clears_the_gate_and_writes_one_log_for_th
     assert rec["log"] == str(log)
     text = log.read_text()
     for want in ("# Harness session", "**Gate:** **clear**", "refused `pypi.org:443`×1", "denied: `pip download x`",
-                 "**Edits:** 1 edit(s) to 1 file(s)", "`pkg/use.py`",
+                 "**Edits:** 1 edit(s) to 1 file(s)", "`pkg/use.py`", "records: stream opened→closed",
                  "## Review", "- gate: pending", "Changed pkg/use.py; ran pytest.",
                  "Recorded sessions are evaluation rows, never model training data."):
         assert want in text, want
@@ -248,16 +254,29 @@ def test_parse_envelope_takes_the_last_json_object_and_caps_the_result():
 def test_summarize_flight_separates_edit_lines_from_exec_decisions(tmp_path):
     path = tmp_path / "flight.jsonl"
     lines = [
+        {"tool": "sink", "argv": [], "decision": "listening"},
+        {"tool": "sink", "argv": [], "decision": "stream_opened"},
         {"tool": "exec", "argv": ["git", "status"], "decision": "allow"},
         {"tool": "exec", "argv": ["git", "push"], "decision": "deny"},
         {"tool": "Edit", "path": "a.py", "ts": "2026-01-01T00:00:00Z"},
         {"tool": "Write", "path": "b.py", "ts": "2026-01-01T00:01:00Z"},
         {"tool": "Edit", "path": "a.py", "ts": "2026-01-01T00:02:00Z"},
+        {"tool": "sink", "argv": [], "decision": "stream_refused"},
+        {"tool": "sink", "argv": [], "decision": "stream_closed"},
     ]
     path.write_text("".join(json.dumps(l) + "\n" for l in lines))
     out = dp.summarize_flight(path)
     assert out["events"] == 2 and out["by_decision"] == {"allow": 1, "deny": 1}
     assert out["edits"] == {"count": 3, "files": ["a.py", "b.py"], "first": "2026-01-01T00:00:00Z", "last": "2026-01-01T00:02:00Z"}
+    # the sink's own lines (ADR-112) are neither an exec decision nor an edit
+    assert out["stream"] == {"listening": True, "opened": True, "closed": True, "refused": 1}
+
+
+def test_summarize_flight_with_no_stream_ever_opened(tmp_path):
+    path = tmp_path / "flight.jsonl"
+    path.write_text(json.dumps({"tool": "sink", "argv": [], "decision": "listening"}) + "\n")
+    assert dp.summarize_flight(path)["stream"] == {"listening": True, "opened": False, "closed": False, "refused": 0}
+    assert dp.summarize_flight(tmp_path / "missing.jsonl")["stream"] == {"listening": False, "opened": False, "closed": False, "refused": 0}
 
 
 def _bare_render_rec(**over):
@@ -282,6 +301,22 @@ def _bare_render_rec(**over):
 def test_render_log_edits_line_with_no_edits():
     text = dp.render_log(_bare_render_rec())
     assert "- **Edits:** none recorded" in text
+
+
+def test_render_log_policy_line_with_a_closed_stream():
+    flight = {"events": 0, "by_decision": {}, "denied": [], "escalated": [],
+              "edits": {"count": 0, "files": [], "first": None, "last": None},
+              "stream": {"listening": True, "opened": True, "closed": True, "refused": 0}}
+    text = dp.render_log(_bare_render_rec(flight=flight))
+    assert "records: stream opened→closed" in text
+
+
+def test_render_log_policy_line_with_a_stream_never_opened():
+    flight = {"events": 0, "by_decision": {}, "denied": [], "escalated": [],
+              "edits": {"count": 0, "files": [], "first": None, "last": None},
+              "stream": {"listening": True, "opened": False, "closed": False, "refused": 2}}
+    text = dp.render_log(_bare_render_rec(flight=flight))
+    assert "records: WARNING stream never opened; stream not closed, refused 2" in text
 
 
 def test_render_log_edits_line_with_edits_and_a_quiet_note():
@@ -327,10 +362,11 @@ def test_the_doers_identity_never_reaches_a_test_fixtures_commits():
     assert proc.returncode == 0, proc.stdout[-4000:] + proc.stderr[-4000:]
 
 
-def test_reasoning_left_skips_the_go_build_cache_and_the_clone(tmp_path):
-    # S-20260912T215521Z-efc8: compiled test packages in the session's GOCACHE hold the retention tests' own literal
+def test_reasoning_left_no_longer_skips_the_go_build_cache(tmp_path):
+    # ADR-112: the doer's HOME, GOCACHE included, is a tmpfs in the sidecar world that dies with the container, so
+    # go-build never reaches the host in the first place — reasoning_left no longer special-cases it (only the clone).
     marker = dp.THINKING_MARKER
     for rel in ("go-build/a8/x-d", "worktree/pkg/t.jsonl", ".claude/projects/-work/t.jsonl"):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_text("{" + marker + "}")
-    assert dp.reasoning_left(tmp_path) == [".claude/projects/-work/t.jsonl"]
+    assert dp.reasoning_left(tmp_path) == [".claude/projects/-work/t.jsonl", "go-build/a8/x-d"]

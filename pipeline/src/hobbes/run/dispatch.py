@@ -4,9 +4,10 @@ The developer's own session keeps the intent. One implementation task at a time 
 environment and is judged at its end:
 
 1. **the knowledge layer** — the repo's ingest, which must be at the parent the session starts from (the gate reads that graph);
-2. **`hobbes-session`** — a fresh clone on ``hobbes/<session>``, exec only through the policy proxy, every command in the flight log;
+2. **`hobbes-session`** — a fresh clone on ``hobbes/<session>``, exec only through the policy proxy, every command in the flight
+   log — written, in the sidecar world (ADR-112), by the session's own sidecar container, never the doer's;
 3. **the egress allowlist** — the session on its own internal network, the model endpoint the one host it reaches, every decision
-   in the session's ``egress.jsonl``;
+   in the session's ``egress.jsonl`` (the sidecar's log too);
 4. **the doer** — Claude Code: the host's binary, the owner's subscription token (``CLAUDE_CODE_OAUTH_TOKEN``, passed by name),
    no Bash tool;
 5. **`hobbes gate`** on the harvested diff at its parent, the blind-spot map derived from the parent's graph (`gate.derive_map`);
@@ -265,12 +266,19 @@ def parse_envelope(stdout: str) -> dict:
     return {}
 
 
+#: The sink's own flight lines (ADR-112): tool "sink", one of these four decisions — neither an exec decision nor an edit.
+SINK_DECISIONS = ("listening", "stream_opened", "stream_closed", "stream_refused")
+
+
 def summarize_flight(path: Path) -> dict:
     """The flight log split in two: the doer's exec decisions (counts by decision, and the commands denied or escalated, first
     ten each) and its edits (ADR-107, the progress hook) — the native Edit/Write/MultiEdit/NotebookEdit calls the flight line
-    names by path alone, kept out of ``events`` and ``by_decision``."""
+    names by path alone, kept out of ``events`` and ``by_decision``. A third piece, ``stream`` (ADR-112), is the sink's own
+    bracket around the flight stream: whether it ever listened, was opened and closed, and how many later opens it refused —
+    present always, all false and 0 with no log."""
     out: dict = {"events": 0, "by_decision": {}, "denied": [], "escalated": [], "context_faults": 0,
-                "edits": {"count": 0, "files": [], "first": None, "last": None}}
+                "edits": {"count": 0, "files": [], "first": None, "last": None},
+                "stream": {"listening": False, "opened": False, "closed": False, "refused": 0}}
     if not Path(path).is_file():
         out["missing"] = True
         return out
@@ -279,6 +287,17 @@ def summarize_flight(path: Path) -> dict:
         try:
             ev = json.loads(line)
         except ValueError:
+            continue
+        if ev.get("tool") == "sink":
+            s, dec = out["stream"], ev.get("decision")
+            if dec == "listening":
+                s["listening"] = True
+            elif dec == "stream_opened":
+                s["opened"] = True
+            elif dec == "stream_closed":
+                s["closed"] = True
+            elif dec == "stream_refused":
+                s["refused"] += 1
             continue
         if ev.get("tool") in EDIT_TOOLS and ev.get("path"):
             e = out["edits"]
@@ -393,10 +412,10 @@ def purge_doer_state(session_dir: Path) -> list[str]:
     return sorted(removed)
 
 
-#: What `reasoning_left` does not scan: the clone, and the Go build cache dispatch itself puts in the session dir (`_environment`'s
-#: GOCACHE). The cache holds compiled test packages whose string literals include the marker — the retention tests' own fixture —
-#: which read as stored reasoning in S-20260912T215521Z-efc8 when the doer ran the Go suite.
-SCAN_SKIP = ("worktree", "go-build")
+#: What `reasoning_left` does not scan: the clone. Before ADR-112 this also skipped the Go build cache
+#: dispatch put in the session dir (`_environment`'s GOCACHE); in the sidecar world the doer's whole HOME, GOCACHE included, is a
+#: tmpfs that dies with the container, so nothing of it reaches the host to scan in the first place.
+SCAN_SKIP = ("worktree",)
 
 
 def reasoning_left(session_dir: Path) -> list[str]:
@@ -421,9 +440,10 @@ def _doer_version(claude_bin: str | None) -> str | None:
 
 
 def _cleanup_route(session_id: str) -> None:
-    """After a killed session: the proxy container and the session's network (whose forced removal takes the session container)."""
+    """After a killed session: the sidecar container and the session's network (whose forced removal takes the session
+    container too), ADR-112."""
     sid = session_id.lower()
-    subprocess.run(["podman", "rm", "-f", "-t", "0", f"hobbes-egress-{sid}"], capture_output=True)
+    subprocess.run(["podman", "rm", "-f", "-t", "0", f"hobbes-side-{sid}"], capture_output=True)
     subprocess.run(["podman", "network", "rm", "-f", f"hobbes-int-{sid}"], capture_output=True)
 
 
@@ -528,6 +548,24 @@ def _counts(m: dict) -> str:
     return ", ".join(f"`{k}`×{v}" for k, v in sorted(m.items())) or "none"
 
 
+def _stream_clause(f: dict) -> str:
+    """The Policy line's tail (ADR-112): the sink's own bracket around the flight stream — clear when it opened and closed,
+    a WARNING naming what is missing otherwise — and a refused count when any later open was turned away."""
+    s = f.get("stream") or {}
+    if s.get("opened") and s.get("closed"):
+        clause = "; records: stream opened→closed"
+    else:
+        missing = []
+        if not s.get("opened"):
+            missing.append("stream never opened")
+        if not s.get("closed"):
+            missing.append("stream not closed")
+        clause = "; records: WARNING " + "; ".join(missing)
+    if s.get("refused"):
+        clause += f", refused {s['refused']}"
+    return clause
+
+
 def _minutes_between(start_iso: str, end_iso: str) -> float:
     start = _dt.datetime.fromisoformat(start_iso.replace("Z", "+00:00"))
     end = _dt.datetime.fromisoformat(end_iso.replace("Z", "+00:00"))
@@ -574,7 +612,8 @@ def render_log(rec: dict) -> str:
              f"- **Policy:** {f['events']} exec decision(s) — {_counts(f['by_decision'])}"
              + (f"; denied: " + "; ".join(f"`{c}`" for c in f["denied"]) if f["denied"] else "")
              + (f"; escalated: " + "; ".join(f"`{c}`" for c in f["escalated"]) if f["escalated"] else "")
-             + ("; no flight log" if f.get("missing") else ""),
+             + ("; no flight log" if f.get("missing") else "")
+             + ("" if f.get("missing") else _stream_clause(f)),
              _edits_line(rec),
              f"- **Branch:** " + (f"`{rec['branch']}`, {rec['commits']} commit(s); files: " + (", ".join(f"`{p}`" for p in rec["files"]) or "none")
                                   if rec.get("branch") else "none harvested — the session left no commit"),

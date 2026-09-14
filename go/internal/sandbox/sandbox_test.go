@@ -37,8 +37,10 @@ func TestNewPlanDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p.cfg.Image != "hobbes-session:local" || p.cfg.Network != "none" {
-		t.Errorf("defaults wrong: image=%q network=%q", p.cfg.Image, p.cfg.Network)
+	// ADR-112: the default is the sidecar world, not --network none — a
+	// session must reach its sidecar.
+	if p.cfg.Image != "hobbes-session:local" || p.cfg.Network != "hobbes-int-s-20260811t120000z-abcd" || !p.sidecar {
+		t.Errorf("defaults wrong: image=%q network=%q sidecar=%v", p.cfg.Image, p.cfg.Network, p.sidecar)
 	}
 }
 
@@ -83,10 +85,11 @@ func TestPodmanArgsCleanEnvAndMounts(t *testing.T) {
 	}
 
 	for _, want := range []string{
-		"--network none",
+		"--network hobbes-int-s-20260811t120000z-abcd",
+		"--tmpfs /sessions/S-20260811T120000Z-abcd:rw,size=4g",
 		"--workdir /work",
 		"/home/u/.hobbes/sessions/S-x/worktree:/work:rw",
-		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/sessions/S-20260811T120000Z-abcd:rw",
+		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/in:/sessions/S-20260811T120000Z-abcd/in:ro,z",
 		"/home/u/hobbes/go/bin/hobbes-proxy:/usr/local/bin/hobbes-proxy:ro",
 		"hobbes-session:local",
 	} {
@@ -94,18 +97,34 @@ func TestPodmanArgsCleanEnvAndMounts(t *testing.T) {
 			t.Errorf("podman args missing %q in:\n%s", want, joined)
 		}
 	}
+	if strings.Contains(joined, "/sessions/S-20260811T120000Z-abcd:rw,z") {
+		t.Errorf("the sidecar world must not mount the session dir rw:\n%s", joined)
+	}
 }
 
 // TestSessionsMountIsOnlyTheSessionsOwnDir is ADR-107's 2026-09-13
-// amendment: the sessions root is never mounted, only this session's own
-// dir under it, so no other session's clone or records are reachable.
+// amendment, narrowed by ADR-112: in the sidecar world (the default) the
+// session dir is mounted nowhere but its in/ subdir, read-only; the
+// sessions root itself is never mounted, so no other session's clone or
+// records are reachable.
 func TestSessionsMountIsOnlyTheSessionsOwnDir(t *testing.T) {
 	p, _ := NewPlan(baseConfig())
+	sessionDir := filepath.Join(p.cfg.HostSessions, p.cfg.SessionID)
+	found := false
 	for _, m := range p.mounts() {
 		host := strings.SplitN(m, ":", 2)[0]
 		if host == p.cfg.HostSessions {
 			t.Errorf("a mount's host side is the sessions root itself: %q", m)
 		}
+		if host == sessionDir {
+			t.Errorf("the session dir itself is mounted, not just its in/ subdir: %q", m)
+		}
+		if host == p.InDirHostPath() {
+			found = true
+		}
+	}
+	if !found || !strings.Contains(strings.Join(p.mounts(), " "), p.InDirHostPath()+":"+p.InDir()+":ro,z") {
+		t.Errorf("in/ must be mounted ro: %v", p.mounts())
 	}
 }
 
@@ -179,8 +198,12 @@ func TestClaudeTokenTravelsByNameAndNeverInAnArgv(t *testing.T) {
 		t.Errorf("PodmanEnv = %v", env)
 	}
 
+	cfg.Network = "pasta" // ADR-112: the runtime needs the file world
 	cfg.Runtime, cfg.LLMBaseURL, cfg.Model = "/sessions/x/agent.py", "http://e/v1", "m"
-	p, _ = NewPlan(cfg)
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(p.PodmanEnv()) != 0 || strings.Contains(strings.Join(p.PodmanArgs(), " "), ClaudeTokenEnv) {
 		t.Error("the owned runtime is not Claude Code and gets no Claude token")
 	}
@@ -201,7 +224,7 @@ func TestDefaultCommandLoadsOnlyTheHobbesServerAndCarriesTheTurnBudget(t *testin
 func TestDefaultCommandCarriesTheSettingsFlag(t *testing.T) {
 	p, _ := NewPlan(baseConfig())
 	cmd := strings.Join(p.DefaultCommand(), " ")
-	want := "--settings /sessions/S-20260811T120000Z-abcd/claude-settings.json"
+	want := "--settings /sessions/S-20260811T120000Z-abcd/in/claude-settings.json"
 	if !strings.Contains(cmd, want) {
 		t.Errorf("default command lacks %q: %s", want, cmd)
 	}
@@ -238,11 +261,34 @@ func TestClaudeSettingsWiresThePostToolUseHookToThisSessionsLog(t *testing.T) {
 	if cmd.Type != "command" || cmd.Timeout != 10 {
 		t.Errorf("hook = %+v", cmd)
 	}
-	for _, want := range []string{ProxyPath + " record-edit", "--log /sessions/S-20260811T120000Z-abcd/flight.jsonl",
+	// ADR-112: in the sidecar world (the default) the hook sends the edit
+	// to the sidecar's sink, not a --log path in its own reach.
+	for _, want := range []string{ProxyPath + " record-edit", "--sink hobbes-side-s-20260811t120000z-abcd:3129",
 		"--session S-20260811T120000Z-abcd", "--role implementer", "--work /work"} {
 		if !strings.Contains(cmd.Command, want) {
 			t.Errorf("hook command lacks %q: %s", want, cmd.Command)
 		}
+	}
+	if strings.Contains(cmd.Command, "--log ") {
+		t.Errorf("the sidecar world's hook must not carry --log: %s", cmd.Command)
+	}
+	if got := p.ClaudeSettingsHostPath(); got != "/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/in/claude-settings.json" {
+		t.Errorf("ClaudeSettingsHostPath = %q", got)
+	}
+}
+
+// TestClaudeSettingsInTheFileWorldKeepsTheLogFlag is the pasta path
+// (an explicit --network, C-140): today's plan, unchanged by ADR-112.
+func TestClaudeSettingsInTheFileWorldKeepsTheLogFlag(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Network = "pasta"
+	p, _ := NewPlan(cfg)
+	settings := p.ClaudeSettings()
+	if !strings.Contains(settings, "--log /sessions/S-20260811T120000Z-abcd/flight.jsonl") {
+		t.Errorf("the file world's hook must carry --log: %s", settings)
+	}
+	if strings.Contains(settings, "--sink") {
+		t.Errorf("the file world's hook must carry no --sink: %s", settings)
 	}
 	if got := p.ClaudeSettingsHostPath(); got != "/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/claude-settings.json" {
 		t.Errorf("ClaudeSettingsHostPath = %q", got)
@@ -261,8 +307,12 @@ func TestCommandOverrideAndRuntimeCarryNoSettingsFlag(t *testing.T) {
 	}
 
 	cfg = baseConfig()
+	cfg.Network = "pasta"
 	cfg.Runtime, cfg.LLMBaseURL, cfg.Model = "/sessions/x/agent.py", "http://e/v1", "m"
-	p, _ = NewPlan(cfg)
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if strings.Contains(strings.Join(p.RuntimeCommand(), " "), "--settings") {
 		t.Error("the owned runtime must carry no --settings flag")
 	}
@@ -271,50 +321,79 @@ func TestCommandOverrideAndRuntimeCarryNoSettingsFlag(t *testing.T) {
 	}
 }
 
-func TestEgressPutsTheSessionOnItsOwnInternalNetworkBehindTheProxy(t *testing.T) {
+// TestRuntimeWithoutNetworkIsRefused is ADR-112: the owned runtime's
+// transcript lands in the session dir for the harness to read, which the
+// sidecar world's tmpfs would lose, so it needs an explicit --network.
+func TestRuntimeWithoutNetworkIsRefused(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Runtime, cfg.LLMBaseURL, cfg.Model = "/sessions/x/agent.py", "http://e/v1", "m"
+	_, err := NewPlan(cfg)
+	if err == nil || !strings.Contains(err.Error(), "--network") {
+		t.Errorf("a runtime with no --network must be refused naming --network: err = %v", err)
+	}
+}
+
+func TestEgressPutsTheSessionOnItsOwnInternalNetworkBehindTheSidecar(t *testing.T) {
 	cfg := baseConfig()
 	cfg.Egress = []string{"API.anthropic.com"}
 	p, err := NewPlan(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	net, proxy := "hobbes-int-s-20260811t120000z-abcd", "hobbes-egress-s-20260811t120000z-abcd"
+	net, side := "hobbes-int-s-20260811t120000z-abcd", "hobbes-side-s-20260811t120000z-abcd"
 	joined := strings.Join(p.PodmanArgs(), " ")
-	for _, want := range []string{"--network " + net, "HTTPS_PROXY=http://" + proxy + ":3128", "https_proxy=http://" + proxy + ":3128",
+	for _, want := range []string{"--network " + net, "HTTPS_PROXY=http://" + side + ":3128", "https_proxy=http://" + side + ":3128",
 		"NO_PROXY=localhost,127.0.0.1"} {
 		if !strings.Contains(joined, want) {
 			t.Errorf("session args lack %q:\n%s", want, joined)
 		}
 	}
-	setup := p.EgressSetup()
+	setup := p.SidecarSetup()
 	if len(setup) != 2 || strings.Join(setup[0], " ") != "network create --internal "+net {
 		t.Fatalf("setup = %v", setup)
 	}
 	run := strings.Join(setup[1], " ")
-	for _, want := range []string{"--name " + proxy, "--network " + net + " --network " + EgressBridge,
-		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/log:rw,z", "/usr/local/bin/hobbes-proxy egress --listen 0.0.0.0:3128",
-		"--log /log/egress.jsonl", "--allow api.anthropic.com:443"} {
+	for _, want := range []string{"--name " + side, "--network " + net + " --network " + EgressBridge,
+		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/log:rw,z",
+		"/usr/local/bin/hobbes-proxy sidecar --dir /log --session S-20260811T120000Z-abcd --role implementer " +
+			"--sink-listen 0.0.0.0:3129 --listen 0.0.0.0:3128", "--allow api.anthropic.com:443"} {
 		if !strings.Contains(run, want) {
-			t.Errorf("proxy run lacks %q:\n%s", want, run)
+			t.Errorf("sidecar run lacks %q:\n%s", want, run)
 		}
 	}
-	if td := p.EgressTeardown(); len(td) != 2 || strings.Join(td[1], " ") != "network rm -f "+net {
+	if td := p.SidecarTeardown(); len(td) != 2 || strings.Join(td[1], " ") != "network rm -f "+net {
 		t.Errorf("teardown = %v", td)
 	}
 	if got := p.EgressLogHostPath(); got != "/home/u/.hobbes/sessions/S-20260811T120000Z-abcd/egress.jsonl" {
 		t.Errorf("egress log = %q", got)
 	}
 	out := p.DryRun()
-	if !strings.Contains(out, "egress:") || !strings.Contains(out, "setup:    podman network create --internal") {
-		t.Errorf("the dry run should show the route:\n%s", out)
+	if !strings.Contains(out, "sidecar:") || !strings.Contains(out, "egress :3128 allow") ||
+		!strings.Contains(out, "setup:    podman network create --internal") {
+		t.Errorf("the dry run should show the sidecar and its route:\n%s", out)
 	}
 }
 
-func TestNoEgressMeansNoProxyVariablesAndNoRoute(t *testing.T) {
+// TestNoEgressStillStandsUpTheSidecarForRecords is ADR-112: the sidecar is
+// always up in the default world (it is the only writer of the session's
+// records), but without --egress it carries no --allow or --listen and the
+// session gets no proxy variables.
+func TestNoEgressStillStandsUpTheSidecarForRecords(t *testing.T) {
 	p, _ := NewPlan(baseConfig())
 	joined := strings.Join(p.PodmanArgs(), " ")
-	if strings.Contains(joined, "PROXY=") || p.EgressEnabled() || p.EgressSetup() != nil || p.EgressTeardown() != nil {
-		t.Errorf("a session without --egress must have no route and no proxy:\n%s", joined)
+	if strings.Contains(joined, "PROXY=") || p.EgressEnabled() {
+		t.Errorf("a session without --egress must have no route:\n%s", joined)
+	}
+	setup := p.SidecarSetup()
+	if len(setup) != 2 {
+		t.Fatalf("the sidecar must still stand up for records: setup = %v", setup)
+	}
+	run := strings.Join(setup[1], " ")
+	if strings.Contains(run, "--allow") || strings.Contains(run, "--listen") || strings.Contains(run, EgressBridge) {
+		t.Errorf("without --egress the sidecar must carry no allow/listen/bridge:\n%s", run)
+	}
+	if p.SidecarTeardown() == nil {
+		t.Error("the sidecar world always tears down its sidecar")
 	}
 }
 
@@ -328,6 +407,48 @@ func TestEgressRefusesANetworkBesideItAndAWideningList(t *testing.T) {
 	cfg.Egress = []string{"*.anthropic.com"}
 	if _, err := NewPlan(cfg); err == nil {
 		t.Error("a wildcard allowlist must be refused")
+	}
+}
+
+// TestFileWorldGivesTodaysArgvExactly is ADR-112's closed-approach path: an
+// explicit --network keeps the pre-ADR-112 plan unchanged — the session
+// dir mounted rw, the proxy's own --log-dir/--log, and no sidecar at all —
+// with the dry run naming C-140 at the point a user meets it.
+func TestFileWorldGivesTodaysArgvExactly(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Network = "pasta"
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.SidecarEnabled() {
+		t.Error("an explicit --network must not enable the sidecar world")
+	}
+	args := strings.Join(p.PodmanArgs(), " ")
+	for _, want := range []string{
+		"--network pasta",
+		"/home/u/.hobbes/sessions/S-20260811T120000Z-abcd:/sessions/S-20260811T120000Z-abcd:rw,z",
+	} {
+		if !strings.Contains(args, want) {
+			t.Errorf("file-world args missing %q:\n%s", want, args)
+		}
+	}
+	if strings.Contains(args, "--tmpfs") {
+		t.Errorf("the file world must carry no --tmpfs:\n%s", args)
+	}
+	if strings.Contains(args, p.InDirHostPath()) {
+		t.Errorf("the file world has no in/ dir to mount:\n%s", args)
+	}
+	if p.SidecarSetup() != nil || p.SidecarTeardown() != nil {
+		t.Error("the file world stands up no sidecar")
+	}
+	out := p.DryRun()
+	if !strings.Contains(out, "records:  in the doer's reach — --network pasta keeps the session dir writable "+
+		"from the container (C-140)") {
+		t.Errorf("the dry run must name C-140:\n%s", out)
+	}
+	if strings.Contains(out, "sidecar:") {
+		t.Errorf("the file world's dry run must show no sidecar line:\n%s", out)
 	}
 }
 
@@ -355,12 +476,33 @@ func TestMCPConfigWiresProxyToWorktree(t *testing.T) {
 	a := strings.Join(h.Args, " ")
 	for _, want := range []string{
 		"serve", "--repo /work", "--role implementer",
-		"--session S-20260811T120000Z-abcd", "--log-dir /sessions",
+		"--session S-20260811T120000Z-abcd", "--sink hobbes-side-s-20260811t120000z-abcd:3129",
 		"--box /policy/box.policy",
 	} {
 		if !strings.Contains(a, want) {
 			t.Errorf("proxy args missing %q in %q", want, a)
 		}
+	}
+	if strings.Contains(a, "--log-dir") {
+		t.Errorf("the sidecar world's proxy must carry no --log-dir: %q", a)
+	}
+}
+
+// TestMCPConfigInTheFileWorldKeepsTheLogDirFlag is the pasta path: today's
+// plan, unchanged by ADR-112.
+func TestMCPConfigInTheFileWorldKeepsTheLogDirFlag(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Network = "pasta"
+	p, err := NewPlan(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := p.MCPConfig()
+	if !strings.Contains(a, `"--log-dir"`) || !strings.Contains(a, `"/sessions"`) {
+		t.Errorf("the file world's proxy must carry --log-dir /sessions: %q", a)
+	}
+	if strings.Contains(a, "--sink") {
+		t.Errorf("the file world's proxy must carry no --sink: %q", a)
 	}
 }
 
@@ -423,10 +565,14 @@ func TestReviewerWorktreeIsReadOnly(t *testing.T) {
 	if strings.Contains(args, WorkDir+":rw") || strings.Contains(args, WorkDir+":O,z") {
 		t.Errorf("reviewer worktree mount is wrong:\n%s", args)
 	}
-	// The flight recorder and escalation queue still have to be
-	// writable, or a read-only session could not be audited.
-	if !strings.Contains(args, plan.sessionHome()+":rw,z") {
-		t.Errorf("session state must stay writable:\n%s", args)
+	// ADR-112: the flight recorder and escalation queue are the
+	// sidecar's now, not this container's — the doer's HOME is a tmpfs,
+	// and only its in/ subdir is mounted, read-only.
+	if !strings.Contains(args, plan.InDirHostPath()+":"+plan.InDir()+":ro,z") {
+		t.Errorf("in/ must be mounted ro even for a read-only role:\n%s", args)
+	}
+	if strings.Contains(args, plan.sessionHome()+":rw,z") {
+		t.Errorf("a reviewer's session dir must not be mounted rw (the sidecar owns the records now):\n%s", args)
 	}
 }
 
@@ -614,6 +760,7 @@ func TestDefaultCommandPinsModelAndEmitsJSONEnvelope(t *testing.T) {
 // credential rides as env and never appears in the dry run.
 func TestRuntimeCommandReplacesClaudeAndRedactsTheKey(t *testing.T) {
 	cfg := baseConfig()
+	cfg.Network = "pasta" // ADR-112: the runtime needs the file world
 	cfg.Runtime = "/sessions/S-x/agent.py"
 	cfg.LLMBaseURL = "https://llm.example/v1"
 	cfg.Model = "qwen2.5-coder-7b"
@@ -650,6 +797,7 @@ func TestEnvironmentBindingIsExplicitAndPrinted(t *testing.T) {
 	// named env vars, a pre-command — and every piece is visible in the
 	// argv; nothing from the host environment leaks alongside it.
 	cfg := baseConfig()
+	cfg.Network = "pasta" // ADR-112: the runtime needs the file world
 	cfg.Image = "docker.io/swebench/sweb.eval.x86_64.x_1776_y:latest"
 	cfg.Path = "/opt/miniconda3/envs/testbed/bin:/usr/bin:/bin"
 	cfg.Env = []string{"PYTHONPATH=/work"}
@@ -706,6 +854,7 @@ func TestNoPreCommandMeansNoWrapper(t *testing.T) {
 
 func TestRuntimeMaxTurnsReachesTheLoop(t *testing.T) {
 	cfg := baseConfig()
+	cfg.Network = "pasta" // ADR-112: the runtime needs the file world
 	cfg.Runtime = "/sessions/S-x/agent.py"
 	cfg.LLMBaseURL = "https://llm.example/v1"
 	cfg.Model = "m"

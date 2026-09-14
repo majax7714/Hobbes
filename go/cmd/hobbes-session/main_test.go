@@ -72,9 +72,11 @@ func TestDryRunCreatesWorktreeShowsPlanAndCleansUp(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%q", code, stderr)
 	}
-	// Plan is shown, with clean env and the worktree mount.
+	// Plan is shown, with clean env and the worktree mount. The default
+	// world is the sidecar (ADR-112): its own internal network, not
+	// --network none.
 	for _, want := range []string{
-		"podman run", "--network none",
+		"podman run", "--network hobbes-int-s-test",
 		filepath.Join(sessions, "S-test", "worktree") + ":/work:rw",
 		"HOME=/sessions/S-test", "mcpServers", "--disallowedTools Bash",
 	} {
@@ -82,8 +84,8 @@ func TestDryRunCreatesWorktreeShowsPlanAndCleansUp(t *testing.T) {
 			t.Errorf("dry-run missing %q", want)
 		}
 	}
-	// The MCP config was written host-side.
-	cfg := filepath.Join(sessions, "S-test", "mcp.json")
+	// The MCP config was written host-side, under in/.
+	cfg := filepath.Join(sessions, "S-test", "in", "mcp.json")
 	if _, err := os.Stat(cfg); err != nil {
 		t.Errorf("MCP config not written: %v", err)
 	}
@@ -109,6 +111,8 @@ func TestSettingsFileWrittenForClaudeRunNotForCommandOverride(t *testing.T) {
 	fakeProxy := filepath.Join(t.TempDir(), "hobbes-proxy")
 	os.WriteFile(fakeProxy, []byte("static\n"), 0o755)
 
+	// The default (sidecar) world: the settings file lands under in/, the
+	// one host dir the doer's container reads (ADR-112).
 	opt := options{repo: repo, role: "implementer", session: "S-settings",
 		sessions: sessions, proxyBin: fakeProxy}
 	_, _, cleanup, err := setup(opt)
@@ -116,9 +120,12 @@ func TestSettingsFileWrittenForClaudeRunNotForCommandOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 	cleanup()
-	settings := filepath.Join(sessions, "S-settings", "claude-settings.json")
+	settings := filepath.Join(sessions, "S-settings", "in", "claude-settings.json")
 	if _, err := os.Stat(settings); err != nil {
-		t.Errorf("settings file not written for a Claude run: %v", err)
+		t.Errorf("settings file not written under in/ for a Claude run: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(sessions, "S-settings", "claude-settings.json")); !os.IsNotExist(err) {
+		t.Errorf("the sidecar world must not write the settings file at the session dir's root: %v", err)
 	}
 
 	opt2 := options{repo: repo, role: "implementer", session: "S-cmd",
@@ -128,8 +135,21 @@ func TestSettingsFileWrittenForClaudeRunNotForCommandOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 	cleanup2()
-	if _, err := os.Stat(filepath.Join(sessions, "S-cmd", "claude-settings.json")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(sessions, "S-cmd", "in", "claude-settings.json")); !os.IsNotExist(err) {
 		t.Errorf("a command override should get no settings file: %v", err)
+	}
+
+	// The file world (an explicit --network): the settings file lands at
+	// the session dir's root, as before ADR-112.
+	opt3 := options{repo: repo, role: "implementer", session: "S-file",
+		sessions: sessions, proxyBin: fakeProxy, network: "pasta"}
+	_, _, cleanup3, err := setup(opt3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cleanup3()
+	if _, err := os.Stat(filepath.Join(sessions, "S-file", "claude-settings.json")); err != nil {
+		t.Errorf("the file world's settings file must land at the session dir's root: %v", err)
 	}
 }
 
@@ -335,7 +355,7 @@ func TestRuntimeFlagCopiesLoopAndBriefIntoTheSessionDir(t *testing.T) {
 	os.WriteFile(loop, []byte("print('loop')\n"), 0o644)
 	sessions := t.TempDir()
 	code, stdout, stderr := cli("start", "--repo", repo, "--role", "implementer",
-		"--session", "S-rt", "--proxy-bin", fakeProxy, "--sessions", sessions,
+		"--session", "S-rt", "--proxy-bin", fakeProxy, "--sessions", sessions, "--network", "pasta",
 		"--runtime", loop, "--llm-base-url", "http://llm/v1", "--model", "m", "--task", "the brief", "--dry-run")
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%q", code, stderr)
@@ -348,6 +368,23 @@ func TestRuntimeFlagCopiesLoopAndBriefIntoTheSessionDir(t *testing.T) {
 	}
 	if b, err := os.ReadFile(filepath.Join(sessions, "S-rt", "brief.md")); err != nil || string(b) != "the brief" {
 		t.Errorf("brief not written: %v %q", err, b)
+	}
+}
+
+// TestRuntimeWithoutNetworkIsRefused is ADR-112: the owned runtime's
+// transcript lands in the session dir for the harness to read, which the
+// sidecar world's tmpfs would lose, so the CLI needs --network too.
+func TestRuntimeWithoutNetworkIsRefused(t *testing.T) {
+	repo := gitRepo(t)
+	fakeProxy := filepath.Join(t.TempDir(), "hobbes-proxy")
+	os.WriteFile(fakeProxy, []byte("static\n"), 0o755)
+	loop := filepath.Join(t.TempDir(), "loop.py")
+	os.WriteFile(loop, []byte("print('loop')\n"), 0o644)
+	code, _, stderr := cli("start", "--repo", repo, "--role", "implementer",
+		"--session", "S-rt-no-net", "--proxy-bin", fakeProxy, "--sessions", t.TempDir(),
+		"--runtime", loop, "--llm-base-url", "http://llm/v1", "--model", "m", "--task", "the brief", "--dry-run")
+	if code != exitError || !strings.Contains(stderr, "--network") {
+		t.Errorf("a runtime with no --network must be refused naming --network: code=%d stderr=%q", code, stderr)
 	}
 }
 
@@ -490,15 +527,16 @@ func TestEgressDryRunShowsTheRouteAndPutsTheSessionOnTheInternalNetwork(t *testi
 	if code != 0 {
 		t.Fatalf("code=%d stderr=%s", code, stderr)
 	}
-	for _, want := range []string{"--network hobbes-int-s-dry-egress", "HTTPS_PROXY=http://hobbes-egress-s-dry-egress:3128",
-		"setup:    podman network create --internal hobbes-int-s-dry-egress", "egress --listen 0.0.0.0:3128",
-		"--allow api.anthropic.com:443", "teardown: podman network rm -f hobbes-int-s-dry-egress"} {
+	for _, want := range []string{"--network hobbes-int-s-dry-egress", "HTTPS_PROXY=http://hobbes-side-s-dry-egress:3128",
+		"setup:    podman network create --internal hobbes-int-s-dry-egress", "sidecar --dir /log --session S-dry-egress",
+		"--sink-listen 0.0.0.0:3129 --listen 0.0.0.0:3128", "--allow api.anthropic.com:443",
+		"teardown: podman network rm -f hobbes-int-s-dry-egress"} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("dry run lacks %q:\n%s", want, stdout)
 		}
 	}
 	if strings.Contains(stdout, "--network none") {
-		t.Error("a session behind the proxy is not on --network none; it is on its own internal network")
+		t.Error("a session behind the sidecar is not on --network none; it is on its own internal network")
 	}
 }
 
@@ -616,26 +654,34 @@ echo "ALLOWED=$a REFUSED=$b DIRECT=$c PUBLIC=$d"`
 	if out, _ := exec.Command("podman", "network", "exists", "hobbes-int-s-live-egress").CombinedOutput(); exec.Command("podman", "network", "exists", "hobbes-int-s-live-egress").Run() == nil {
 		t.Errorf("the session's internal network outlived it: %s", out)
 	}
+	if exec.Command("podman", "container", "exists", "hobbes-side-s-live-egress").Run() == nil {
+		t.Error("the session's sidecar outlived it")
+	}
 	if !strings.Contains(stderr, "egress: allow") {
 		t.Errorf("the launcher should print the log's summary:\n%s", stderr)
 	}
-	// ADR-107's retention amendment, where a user meets it: state the doer
-	// wrote in its HOME (the session dir) does not outlive the session.
+	// ADR-112: the doer's HOME is a tmpfs in the sidecar world, so
+	// whatever it wrote there (a transcript, a memory file) dies with the
+	// container — never mounted, so never on the host in the first
+	// place, and never reported as a purge (that message is the file
+	// world's now).
 	for _, gone := range []string{".claude", ".claude.json"} {
 		if _, err := os.Stat(filepath.Join(sessions, "S-live-egress", gone)); err == nil {
-			t.Errorf("%s outlived the session", gone)
+			t.Errorf("%s reached the host", gone)
 		}
 	}
-	if !strings.Contains(stderr, "retention: removed the doer's own state (.claude, .claude.json)") {
-		t.Errorf("the launcher should say what it removed:\n%s", stderr)
+	if strings.Contains(stderr, "retention:") {
+		t.Errorf("the sidecar world purges nothing on the host, so it reports nothing:\n%s", stderr)
 	}
 }
 
 // TestALiveSessionMountsOnlyItsOwnSessionDir is ADR-107's 2026-09-13
-// amendment, the guarantee where a user meets it (P10): the sessions root
-// is never mounted, only this session's own dir under it, so a sibling
-// session's clone and records are not reachable, however a command inside
-// spells it. Skips without podman or the image, like the live egress test.
+// amendment, narrowed by ADR-112, the guarantee where a user meets it
+// (P10): in the sidecar world (the default) the session's own dir is
+// mounted nowhere but its in/ subdir, so `/sessions/<id>` holds only `in`
+// — and a sibling session's clone and records are not reachable, however
+// a command inside spells it. Skips without podman or the image, like the
+// live egress test.
 func TestALiveSessionMountsOnlyItsOwnSessionDir(t *testing.T) {
 	if testing.Short() {
 		t.Skip("live podman test")
@@ -657,8 +703,10 @@ func TestALiveSessionMountsOnlyItsOwnSessionDir(t *testing.T) {
 	}
 	// The listing is tagged and read line by line: the `cat` error below
 	// echoes the sibling's path, so a search of the whole output would
-	// find that path even when nothing of the sibling is mounted.
-	script := `ls -1 /sessions | sed 's/^/LS /'
+	// find that path even when nothing of the sibling is mounted. In the
+	// sidecar world only this session's in/ subdir is mounted, so
+	// /sessions itself no longer names anything to list.
+	script := `ls -1 /sessions/S-live-mount | sed 's/^/LS /'
 cat /sessions/S-sibling/secret.txt 2>&1
 true`
 	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
@@ -672,10 +720,120 @@ true`
 			listed = append(listed, strings.TrimSpace(name))
 		}
 	}
-	if len(listed) != 1 || listed[0] != "S-live-mount" {
-		t.Errorf("/sessions should hold the session's own dir and nothing else, got %q:\n%s", listed, stdout)
+	if len(listed) != 1 || listed[0] != "in" {
+		t.Errorf("/sessions/<id> should hold in/ and nothing else, got %q:\n%s", listed, stdout)
 	}
 	if strings.Contains(stdout, "do not read me") {
 		t.Errorf("the session read a sibling session's file:\n%s", stdout)
 	}
+}
+
+// TestALiveSessionCannotReachItsOwnRecords is ADR-112 item 7: a doer's
+// container cannot delete its own flight log (it is not mounted there at
+// all) and cannot forge a flight line by hand — the sink stamps its own
+// session and role, and it takes exactly one stream, ever, refusing and
+// recording any later open. Skips without podman or the image, like the
+// other live tests.
+func TestALiveSessionCannotReachItsOwnRecords(t *testing.T) {
+	if testing.Short() {
+		t.Skip("live podman test")
+	}
+	if _, err := exec.LookPath("podman"); err != nil {
+		t.Skip("podman not installed")
+	}
+	image := "hobbes-session:local"
+	if exec.Command("podman", "image", "exists", image).Run() != nil {
+		t.Skip("the sandbox image is not built")
+	}
+	proxyBin := filepath.Join(t.TempDir(), "hobbes-proxy")
+	build := exec.Command("go", "build", "-o", proxyBin, "github.com/majax7714/Hobbes/go/cmd/hobbes-proxy")
+	build.Env = append(os.Environ(), "CGO_ENABLED=0")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("static proxy build: %v: %s", err, out)
+	}
+
+	const sid = "s-live-sink"
+	script := `import json, os, socket
+
+sid = "` + sid + `"
+for name in sorted(os.listdir("/sessions/" + sid)):
+    print("LS " + name)
+try:
+    os.remove("/sessions/" + sid + "/flight.jsonl")
+except Exception as e:
+    print(type(e).__name__)
+
+def rpc(sock, obj):
+    sock.sendall((json.dumps(obj) + "\n").encode())
+    buf = b""
+    while not buf.endswith(b"\n"):
+        buf += sock.recv(4096)
+    return buf.decode().strip()
+
+s1 = socket.create_connection(("hobbes-side-" + sid, 3129), timeout=10)
+print(rpc(s1, {"kind": "open"}))
+print(rpc(s1, {"kind": "event", "event": {"tool": "exec", "argv": ["/bin/sh", "-c", "true"],
+                                           "decision": "allow", "policy_rule": "test",
+                                           "session": "forged", "role": "forged"}}))
+
+# s1 stays open while the second attempt is refused, so the sink records
+# the refusal before the eventual close (process exit) closes s1 and the
+# sink notices — the order the flight log is checked against.
+s2 = socket.create_connection(("hobbes-side-" + sid, 3129), timeout=10)
+print(rpc(s2, {"kind": "open"}))
+s2.close()
+`
+	sessions := t.TempDir()
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", proxyBin,
+		"--sessions", sessions, "--session", sid, "--", "python3", "-c", script)
+	if code != 0 {
+		t.Fatalf("session: code=%d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if !strings.Contains(stdout, "LS in") || strings.Count(stdout, "LS ") != 1 {
+		t.Errorf("/sessions/%s should list in/ alone:\n%s", sid, stdout)
+	}
+	if !strings.Contains(stdout, "FileNotFoundError") {
+		t.Errorf("removing the flight log by its old path should fail (it is not mounted there):\n%s", stdout)
+	}
+	if !strings.Contains(stdout, "taken") {
+		t.Errorf("a second open must be refused as taken:\n%s", stdout)
+	}
+
+	logData, err := os.ReadFile(filepath.Join(sessions, sid, "flight.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decisions []string
+	for _, line := range strings.Split(strings.TrimSpace(string(logData)), "\n") {
+		if strings.Contains(line, `"tool":"sink"`) {
+			decisions = append(decisions, mustField(t, line, "decision"))
+		} else if strings.Contains(line, `"tool":"exec"`) {
+			decisions = append(decisions, "event")
+			if !strings.Contains(line, `"session":"`+sid+`"`) || strings.Contains(line, "forged") {
+				t.Errorf("the event line must carry the sink's own session and role, not the forged ones: %s", line)
+			}
+		}
+	}
+	want := []string{"listening", "stream_opened", "event", "stream_refused", "stream_closed"}
+	if strings.Join(decisions, ",") != strings.Join(want, ",") {
+		t.Errorf("flight log order = %v, want %v:\n%s", decisions, want, logData)
+	}
+}
+
+// mustField extracts a top-level string field's value from a JSON line by
+// a cheap scan — the flight log's own shape (recorder.Event), not a
+// general JSON reader, for a test that wants only one field.
+func mustField(t *testing.T, line, field string) string {
+	t.Helper()
+	key := `"` + field + `":"`
+	i := strings.Index(line, key)
+	if i < 0 {
+		t.Fatalf("no %q field in %s", field, line)
+	}
+	rest := line[i+len(key):]
+	j := strings.Index(rest, `"`)
+	if j < 0 {
+		t.Fatalf("unterminated %q field in %s", field, line)
+	}
+	return rest[:j]
 }

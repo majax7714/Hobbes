@@ -1,8 +1,10 @@
 // Command hobbes-session launches an agent session in a rootless Podman
 // sandbox (M4, ADR-018): a fresh git worktree, the merged policy mapped to
 // mounts, a clean environment, and Claude Code wired to the hobbes-proxy
-// MCP server. It creates the worktree, writes the MCP config, runs
-// `podman run`, and removes the worktree on exit.
+// MCP server. It creates the worktree, writes the MCP config, stands up
+// the session's sidecar — the only writer of its records, unless an
+// explicit --network chose the file world instead (ADR-112) — runs
+// `podman run`, and removes the worktree and the sidecar on exit.
 //
 // Usage:
 //
@@ -75,12 +77,17 @@ flags:
   --max-tokens N   completion cap per turn for --runtime (default: the loop's own)
   --loop-arg A     a flag forwarded verbatim to --runtime's loop (repeatable, e.g.
                    --loop-arg=--temperature=1.0; ADR-074)
-  --network NET    podman --network (default none); exclusive with --egress
+  --network NET    an explicit override into the file world (ADR-112):
+                   records land in the doer's reach (C-140), which --runtime
+                   needs (its transcript is written into the session dir);
+                   the default is the sidecar world, on its own internal
+                   network beside a sidecar that is the only writer of the
+                   session's records; exclusive with --egress
   --egress HOST    a host the session may reach, host or host:port (443 by
-                   default; repeatable; ADR-107): the session runs on its own
-                   --internal network, with no route off the box, behind an
-                   egress proxy that tunnels to these hosts alone and logs
-                   every decision to <sessions>/<id>/egress.jsonl
+                   default; repeatable; ADR-107/ADR-112): the sidecar joins
+                   the shared egress bridge too, tunneling to these hosts
+                   alone and logging every decision to
+                   <sessions>/<id>/egress.jsonl
   --box FILE       box policy (default ~/.hobbes/box.policy if present)
   --proxy-bin FILE static hobbes-proxy binary to mount (default: next to me)
   --sessions DIR   session-state root (default ~/.hobbes/sessions)
@@ -184,13 +191,12 @@ func runStart(args []string, stdout, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stderr, "hobbes-session: %s (role %s)\n  worktree %s\n  flight log %s\n",
-		plan.SessionID(), opt.role, worktree,
-		filepath.Join(opt.sessions, plan.SessionID(), "flight.jsonl"))
+		plan.SessionID(), opt.role, worktree, plan.FlightLogHostPath())
 
-	if plan.EgressEnabled() {
-		teardown, err := startEgress(plan, stderr)
+	if plan.SidecarEnabled() {
+		teardown, err := startSidecar(plan, stderr)
 		if err != nil {
-			fmt.Fprintf(stderr, "hobbes-session: egress: %v\n", err)
+			fmt.Fprintf(stderr, "hobbes-session: sidecar: %v\n", err)
 			return exitError
 		}
 		defer teardown()
@@ -210,13 +216,17 @@ func runStart(args []string, stdout, stderr io.Writer) int {
 		commitLeftovers(worktree, stderr)
 	}
 	// ADR-107's retention amendment: whatever the doer left in its HOME —
-	// a transcript, its reasoning — does not outlive the container. The
-	// session keeps its output: the harvested branch, the flight and
-	// egress logs, and the envelope on stdout.
-	if removed, perr := sandbox.PurgeDoerState(filepath.Join(opt.sessions, plan.SessionID())); perr != nil {
-		fmt.Fprintf(stderr, "hobbes-session: retention: %v\n", perr)
-	} else if len(removed) > 0 {
-		fmt.Fprintf(stderr, "hobbes-session: retention: removed the doer's own state (%s)\n", strings.Join(removed, ", "))
+	// a transcript, its reasoning — does not outlive the container. In
+	// the sidecar world (ADR-112) that holds by construction: the doer's
+	// HOME is a tmpfs that dies with its container, so there is nothing
+	// on the host to purge; only the file world's mounted session dir
+	// needs the sweep.
+	if !plan.SidecarEnabled() {
+		if removed, perr := sandbox.PurgeDoerState(filepath.Join(opt.sessions, plan.SessionID())); perr != nil {
+			fmt.Fprintf(stderr, "hobbes-session: retention: %v\n", perr)
+		} else if len(removed) > 0 {
+			fmt.Fprintf(stderr, "hobbes-session: retention: removed the doer's own state (%s)\n", strings.Join(removed, ", "))
+		}
 	}
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
@@ -343,6 +353,14 @@ func setupWithStart(opt options) (*sandbox.Plan, string, string, func(), error) 
 		return nil, "", "", noop, err
 	}
 
+	if plan.SidecarEnabled() {
+		// The one host dir the doer's container reads, read-only
+		// (ADR-112): the MCP config and the settings file.
+		if err := os.MkdirAll(plan.InDirHostPath(), 0o700); err != nil {
+			cleanup()
+			return nil, "", "", noop, err
+		}
+	}
 	if err := os.WriteFile(plan.MCPConfigHostPath(), []byte(plan.MCPConfig()), 0o600); err != nil {
 		cleanup()
 		return nil, "", "", noop, err
@@ -498,32 +516,39 @@ func derivedMount(repo string) string {
 	return abs
 }
 
-// startEgress stands the session's route up (ADR-107): the shared egress
-// bridge when it is missing, the session's internal network, the proxy
-// container; then it waits for the proxy's listen record in the session
-// dir's egress log, so the session never starts ahead of its route. The
-// returned teardown removes the proxy and the network and prints what the
-// log says.
-func startEgress(plan *sandbox.Plan, stderr io.Writer) (func(), error) {
-	if exec.Command("podman", "network", "exists", sandbox.EgressBridge).Run() != nil {
-		if out, err := exec.Command("podman", sandbox.EgressBridgeArgs()...).CombinedOutput(); err != nil {
-			return nil, fmt.Errorf("podman %s: %v: %s", strings.Join(sandbox.EgressBridgeArgs(), " "), err, out)
+// startSidecar stands the session's sidecar world up (ADR-112): the shared
+// egress bridge when Egress is set and it is missing, the session's
+// internal network, the sidecar container; then it waits for the sink's
+// "listening" line in the session's flight log — the host cannot reach the
+// internal network to probe the sidecar directly — and, with Egress, for
+// the egress proxy's own listen record, so the session never starts ahead
+// of either. The returned teardown removes the sidecar and the network,
+// and prints the egress summary when Egress was on.
+func startSidecar(plan *sandbox.Plan, stderr io.Writer) (func(), error) {
+	if plan.EgressEnabled() {
+		if exec.Command("podman", "network", "exists", sandbox.EgressBridge).Run() != nil {
+			if out, err := exec.Command("podman", sandbox.EgressBridgeArgs()...).CombinedOutput(); err != nil {
+				return nil, fmt.Errorf("podman %s: %v: %s", strings.Join(sandbox.EgressBridgeArgs(), " "), err, out)
+			}
 		}
 	}
-	logPath := plan.EgressLogHostPath()
+	flightPath, egressPath := plan.FlightLogHostPath(), plan.EgressLogHostPath()
 	teardown := func() {
-		for _, a := range plan.EgressTeardown() {
+		for _, a := range plan.SidecarTeardown() {
 			_ = exec.Command("podman", a...).Run()
 		}
-		f, err := os.Open(logPath)
+		if !plan.EgressEnabled() {
+			return
+		}
+		f, err := os.Open(egressPath)
 		if err != nil {
-			fmt.Fprintf(stderr, "hobbes-session: egress: no log at %s: %v\n", logPath, err)
+			fmt.Fprintf(stderr, "hobbes-session: egress: no log at %s: %v\n", egressPath, err)
 			return
 		}
 		defer f.Close()
-		fmt.Fprintf(stderr, "hobbes-session: %s (%s)\n", egress.Summarize(f), logPath)
+		fmt.Fprintf(stderr, "hobbes-session: %s (%s)\n", egress.Summarize(f), egressPath)
 	}
-	for _, a := range plan.EgressSetup() {
+	for _, a := range plan.SidecarSetup() {
 		if out, err := exec.Command("podman", a...).CombinedOutput(); err != nil {
 			teardown()
 			return nil, fmt.Errorf("podman %s: %v: %s", strings.Join(a[:2], " "), err, strings.TrimSpace(string(out)))
@@ -531,17 +556,32 @@ func startEgress(plan *sandbox.Plan, stderr io.Writer) (func(), error) {
 	}
 	deadline := time.Now().Add(20 * time.Second)
 	for {
-		if data, err := os.ReadFile(logPath); err == nil && strings.Contains(string(data), `"event":"listen"`) {
+		if data, err := os.ReadFile(flightPath); err == nil && strings.Contains(string(data), `"decision":"listening"`) {
 			break
 		}
 		if time.Now().After(deadline) {
 			teardown()
-			return nil, fmt.Errorf("the egress proxy %s did not listen within 20s (log %s)", plan.EgressProxyName(), logPath)
+			return nil, fmt.Errorf("the sidecar %s did not listen within 20s (log %s)", plan.SidecarName(), flightPath)
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	fmt.Fprintf(stderr, "hobbes-session: egress proxy %s up on %s; allow %s\n", plan.EgressProxyName(),
-		sandbox.EgressBridge, strings.Join(plan.EgressAllow(), ", "))
+	if plan.EgressEnabled() {
+		deadline = time.Now().Add(20 * time.Second)
+		for {
+			if data, err := os.ReadFile(egressPath); err == nil && strings.Contains(string(data), `"event":"listen"`) {
+				break
+			}
+			if time.Now().After(deadline) {
+				teardown()
+				return nil, fmt.Errorf("the sidecar %s's egress proxy did not listen within 20s (log %s)", plan.SidecarName(), egressPath)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		fmt.Fprintf(stderr, "hobbes-session: sidecar %s up (sink; egress: allow %s)\n", plan.SidecarName(),
+			strings.Join(plan.EgressAllow(), ", "))
+	} else {
+		fmt.Fprintf(stderr, "hobbes-session: sidecar %s up (sink)\n", plan.SidecarName())
+	}
 	return teardown, nil
 }
 
@@ -704,7 +744,8 @@ func claudeRefusal(opt options) string {
 	case os.Getenv(sandbox.ClaudeTokenEnv) == "":
 		return "Claude Code needs $" + sandbox.ClaudeTokenEnv + " (claude setup-token); it is not set"
 	case len(opt.egress) == 0 && (opt.network == "" || opt.network == "none"):
-		return "Claude Code needs its endpoint and the session has no network; pass --egress api.anthropic.com"
+		return "Claude Code needs a route to its endpoint and the session has none; pass --egress api.anthropic.com " +
+			"(the sidecar's route out, ADR-112)"
 	}
 	return ""
 }
