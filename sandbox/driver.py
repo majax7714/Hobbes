@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 SESSION = sys.argv[1]
-MCP_CONFIG = f"/sessions/{SESSION}/mcp.json"
+MCP_CONFIG = f"/sessions/{SESSION}/in/mcp.json"  # the one host dir the container reads (ADR-112)
 WORK = "/work"
 
 results = []
