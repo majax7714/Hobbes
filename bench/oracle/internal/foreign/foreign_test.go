@@ -117,10 +117,13 @@ func TestCclangFixtureConvertsToTheHandTruth(t *testing.T) {
 	if len(h.Edges) != 8 {
 		t.Fatalf("want 8 graded edges, got %d (%+v)", len(h.Edges), h.Excluded)
 	}
+	seen := map[string]bool{}
 	for _, e := range h.Edges {
-		if !cclangTruth[e.Site.Key()+"->"+e.Target.Key()] {
-			t.Errorf("%s -> %s not in the hand truth", e.Site.Key(), e.Target.Key())
+		pair := e.Site.Key() + "->" + e.Target.Key()
+		if !cclangTruth[pair] {
+			t.Errorf("%s not in the hand truth", pair)
 		}
+		seen[pair] = true
 		if len(e.Lanes) != 1 || e.Lanes[0] != "handread" || !strings.HasPrefix(e.TargetID, "handread:") {
 			t.Errorf("provenance lost: %+v", e)
 		}
@@ -128,8 +131,9 @@ func TestCclangFixtureConvertsToTheHandTruth(t *testing.T) {
 	if h.Excluded["macro"] != 1 || h.Excluded["duplicate"] != 1 || h.Excluded["other-language"] != 2 {
 		t.Errorf("excluded counts: %v", h.Excluded)
 	}
-	if !cclangTruth["main.c:20->api.h:15"] || !cclangTruth["api.h:16->lib.c:15"] {
-		t.Fatalf("the two header lines must be in the hand truth")
+	// The two header lines survive the extension filter: `.h` is in C's set.
+	if !seen["main.c:20->api.h:15"] || !seen["api.h:16->lib.c:15"] {
+		t.Fatalf("the two header lines were not converted: %v", seen)
 	}
 	// The tool's label is the tier, so the report splits by its ladder.
 	tiers := map[string]int{}
