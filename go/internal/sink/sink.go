@@ -215,6 +215,17 @@ func (s *sink) escalationPath(id string) string {
 	return filepath.Join(s.cfg.Dir, "escalations", id+".json")
 }
 
+// validEscalationID reports whether id can name one file under
+// <dir>/escalations: non-empty, one path segment, not a dot dir. The
+// proxy generates its ids (escalation.NewRecord), but the sink writes
+// files under the host's session dir and does not take a path from the
+// wire on trust.
+func validEscalationID(id string) bool {
+	return id != "" && id != "." && id != ".." && filepath.Base(id) == id
+}
+
+const badEscalationID = "an escalation id is one path segment"
+
 // handleConn reads request lines and answers them in order. Every
 // connection but the accepted flight stream reads under a deadline: only
 // the stream is meant to sit open for a session's life.
@@ -279,6 +290,10 @@ func (s *sink) handleConn(conn net.Conn) {
 				s.reply(conn, response{OK: false, Error: "park: no record"})
 				continue
 			}
+			if !validEscalationID(req.Record.ID) {
+				s.reply(conn, response{OK: false, Error: "park: " + badEscalationID})
+				continue
+			}
 			if _, err := escalation.Create(filepath.Join(s.cfg.Dir, "escalations"), req.Record); err != nil {
 				s.reply(conn, response{OK: false, Error: err.Error()})
 				continue
@@ -289,6 +304,10 @@ func (s *sink) handleConn(conn net.Conn) {
 			if !isStream {
 				s.reply(conn, response{OK: false, Error: "poll: the flight stream is not open on this connection"})
 				return
+			}
+			if !validEscalationID(req.ID) {
+				s.reply(conn, response{OK: false, Error: "poll: " + badEscalationID})
+				continue
 			}
 			rec, err := escalation.Load(s.escalationPath(req.ID))
 			if err != nil {
@@ -301,6 +320,10 @@ func (s *sink) handleConn(conn net.Conn) {
 			if !isStream {
 				s.reply(conn, response{OK: false, Error: "expire: the flight stream is not open on this connection"})
 				return
+			}
+			if !validEscalationID(req.ID) {
+				s.reply(conn, response{OK: false, Error: "expire: " + badEscalationID})
+				continue
 			}
 			rec, err := escalation.MarkExpired(s.escalationPath(req.ID), time.Now())
 			if err != nil {

@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -362,5 +363,43 @@ func TestMailSequencing(t *testing.T) {
 	lines := bytes.Split(bytes.TrimSpace(data), []byte("\n"))
 	if len(lines) != 2 {
 		t.Fatalf("mail.jsonl has %d lines, want 2: %s", len(lines), data)
+	}
+}
+
+func TestAnEscalationIDIsOnePathSegment(t *testing.T) {
+	addr, dir := startSink(t, Config{Session: "S-1", Role: "implementer"})
+	c, err := Dial(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer c.Close()
+
+	rec, err := escalation.NewRecord("S-1", "implementer", "/repo", "git push origin main",
+		"", "repo.policy: git push*", "pushes need a human", time.Now(), 10*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"", ".", "..", "../escape", "sub/dir", "escape/"} {
+		rec.ID = bad
+		if err := c.Park(rec); err == nil || !strings.Contains(err.Error(), "one path segment") {
+			t.Errorf("park with id %q: err = %v", bad, err)
+		}
+		if _, err := c.Poll(bad); err == nil || !strings.Contains(err.Error(), "one path segment") {
+			t.Errorf("poll with id %q: err = %v", bad, err)
+		}
+		if _, err := c.Expire(bad); err == nil || !strings.Contains(err.Error(), "one path segment") {
+			t.Errorf("expire with id %q: err = %v", bad, err)
+		}
+	}
+	for _, escaped := range []string{filepath.Join(dir, "escape.json"), filepath.Join(dir, "escalations", "sub", "dir.json")} {
+		if _, err := os.Stat(escaped); err == nil {
+			t.Errorf("a refused id still wrote %s", escaped)
+		}
+	}
+	// The stream is intact after the refusals: a good record still parks.
+	good, _ := escalation.NewRecord("S-1", "implementer", "/repo", "git push origin main",
+		"", "repo.policy: git push*", "pushes need a human", time.Now(), 10*time.Minute)
+	if err := c.Park(good); err != nil {
+		t.Errorf("a well-formed id after the refusals: %v", err)
 	}
 }

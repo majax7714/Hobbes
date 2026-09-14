@@ -103,8 +103,13 @@ func runSidecar(args []string, stderr io.Writer) int {
 }
 
 // serveSidecar runs the sink and, when configured, the egress proxy,
-// until ctx ends. Both run in this one process (ADR-112).
+// until ctx ends. Both run in this one process (ADR-112), and both or
+// neither: when one fails, the other is stopped too, so a sink that
+// cannot open its log never leaves the route out serving alone, and the
+// launcher sees the failure instead of a silent wait.
 func serveSidecar(ctx context.Context, cfg sidecarConfig) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	errc := make(chan error, 2)
 	go func() {
 		errc <- sink.Serve(ctx, cfg.SinkLn, sink.Config{Dir: cfg.Dir, Session: cfg.Session, Role: cfg.Role})
@@ -118,8 +123,11 @@ func serveSidecar(ctx context.Context, cfg sidecarConfig) error {
 	}
 	var first error
 	for i := 0; i < 2; i++ {
-		if err := <-errc; err != nil && first == nil {
-			first = err
+		if err := <-errc; err != nil {
+			if first == nil {
+				first = err
+			}
+			cancel()
 		}
 	}
 	return first

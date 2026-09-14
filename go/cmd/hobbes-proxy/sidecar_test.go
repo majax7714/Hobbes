@@ -115,3 +115,37 @@ func TestServeSidecarWithAllowRunsEgressToo(t *testing.T) {
 	}
 	logFile.Close()
 }
+
+func TestServeSidecarStopsBothWhenOneFails(t *testing.T) {
+	// A file where the session dir should be: the sink cannot open its
+	// log, so it fails at once. The egress proxy beside it must stop
+	// too, and serveSidecar must return the sink's error rather than
+	// wait on ctx.
+	blocked := filepath.Join(t.TempDir(), "not-a-dir")
+	if err := os.WriteFile(blocked, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	allow, err := egress.ParseAllowlist([]string{"example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	egressLn := listenLoopback(t)
+	done := make(chan error, 1)
+	go func() {
+		done <- serveSidecar(context.Background(), sidecarConfig{
+			Dir: filepath.Join(blocked, "S-1"), Session: "S-1", Role: "implementer",
+			SinkLn: listenLoopback(t), EgressLn: egressLn, Allow: allow, EgressLog: &bytes.Buffer{},
+		})
+	}()
+	select {
+	case err := <-done:
+		if err == nil || !strings.Contains(err.Error(), "sink") {
+			t.Errorf("serveSidecar returned %v, want the sink's error", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("serveSidecar kept the egress proxy serving after the sink failed")
+	}
+	if _, err := net.DialTimeout("tcp", egressLn.Addr().String(), time.Second); err == nil {
+		t.Error("the egress listener is still accepting after the sink failed")
+	}
+}
