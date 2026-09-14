@@ -222,6 +222,30 @@ def test_a_partition_reaches_the_brief_and_the_gate(world, monkeypatch, tmp_path
     assert "Write only these files (the gate checks it): pkg/core.py." in brief
 
 
+def _argv_of(world, rec):
+    return json.loads((world[3] / rec["session"] / "argv.json").read_text())["argv"]
+
+
+def test_the_checkouts_model_variable_reaches_the_session_argv_and_the_doer_record(world, monkeypatch):
+    monkeypatch.setenv(dp.MODEL_ENV, "claude-opus-5")
+    rc, rec = _run(world, monkeypatch, {"pkg/use.py": USE.replace("derive(1)", "derive(5)")})
+    a = _argv_of(world, rec)
+    assert rc == 0 and a[a.index("--model") + 1] == "claude-opus-5" and rec["doer"]["model"] == "claude-opus-5"
+
+
+def test_the_model_flag_beats_the_checkouts_variable(world, monkeypatch):
+    monkeypatch.setenv(dp.MODEL_ENV, "claude-opus-5")
+    rc, rec = _run(world, monkeypatch, {"pkg/use.py": USE.replace("derive(1)", "derive(6)")}, "--model", "other")
+    a = _argv_of(world, rec)
+    assert rc == 0 and a[a.index("--model") + 1] == "other" and "claude-opus-5" not in a and rec["doer"]["model"] == "other"
+
+
+def test_with_the_variable_unset_and_no_flag_the_choice_is_left_to_claude_code(world, monkeypatch):
+    monkeypatch.delenv(dp.MODEL_ENV, raising=False)
+    rc, rec = _run(world, monkeypatch, {"pkg/use.py": USE.replace("derive(1)", "derive(7)")})
+    assert rc == 0 and "--model" not in _argv_of(world, rec) and rec["doer"]["model"] is None
+
+
 def test_an_api_error_under_a_success_subtype_is_logged_as_an_error(world, monkeypatch):
     # the no-spend smoke (ADR-107): Claude Code with a bad token prints subtype "success" beside is_error and a 401
     root, sha, fake, sessions, logs = world

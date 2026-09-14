@@ -36,6 +36,8 @@ from hobbes import __version__
 
 #: The one host a Claude Code doer needs.
 DEFAULT_EGRESS = ("api.anthropic.com",)
+#: Where a checkout names the doer's model (ADR-107, 2026-09-14): the box's setting, not the repo's — the repo names no model.
+MODEL_ENV = "HOBBES_DISPATCH_MODEL"
 #: The doer's turn budget. 40 at 0.1.21-beta; the first real dispatch used 38 of 40 on a small task, so 80 (Max, 2026-09-12).
 DEFAULT_MAX_TURNS = 80
 #: The doer's native file tools (Edit, Write, MultiEdit, NotebookEdit) — the progress hook's flight lines (ADR-107, the progress
@@ -123,6 +125,11 @@ def token(secrets: Path | None, key_name: str, environ: dict | None = None) -> s
     if secrets is None:
         raise DispatchError(f"no token: set ${TOKEN_ENV} (claude setup-token) or pass --secrets with a {key_name!r} line")
     return key_from(secrets, key_name)
+
+
+def default_model() -> str | None:
+    """The doer's model from ``$HOBBES_DISPATCH_MODEL``, which ``--model`` beats; unset or empty leaves the choice to Claude Code."""
+    return os.environ.get(MODEL_ENV) or None
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
