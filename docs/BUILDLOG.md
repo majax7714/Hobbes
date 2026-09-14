@@ -10169,7 +10169,7 @@ through the harness — 0.2.15-beta (ADR-108 amended).**
   CLAUDE.md, the handoff; the tracker at 20 of 40, 4 areas, 0 false
   blocks, 0 missed, $47.19 reported. The binaries and the image rebuilt
   at 0.2.15-beta (C-65); the ingest re-run at the release commit.
-- **Suites:** pytest 1,516 (host); Go unchanged (nothing under `go/`
+- **Suites:** pytest 1,515 (host); Go unchanged (nothing under `go/`
   moved but the version constant).
 - **Task files:** `~/.hobbes/bench/c133-drivers/includes-task.md` with
   its partition beside it.
