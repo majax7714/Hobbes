@@ -10126,3 +10126,54 @@ tackable item from the list. the held with spend are off the table still".
   version number, and §8 carries one. Max's call which of the two gives.
 - **The knowledge server** was up again (an unnamed container on the
   local image, started by `.mcp.json`).
+
+**Then (Max: "continue tackling your recommended item"): C-133's unit 1
+through the harness — 0.2.15-beta (ADR-108 amended).**
+
+- **The item.** C-133 was the register's one unsurfaced C entry: an
+  include decision 4's three steps cannot place drew nothing, so a
+  directory whose headers sit behind the build's `-I`, or are generated,
+  read like one whose includes all resolved. Two units: surface it
+  (this one), then read the `-I` path from the derived compile database
+  (lane B derives it after lane A runs; a later amendment).
+- **Decided before the dispatch:** ADR-108's 2026-09-14 amendment —
+  one `c-includes` record per directory, two shapes (unmatched quoted;
+  ambiguous of either spelling), an angle include that matches nothing
+  stays a dependency, the edges do not move. Committed `b154bdf`; the
+  ingest at it.
+- **Measured before:** on cJSON (`fb16e5c`) 305 include edges, 12
+  external nodes, 7 unmatched and 8 ambiguous quoted includes across 6
+  directories; on sqlite-vector (`0c2223a`) 163 and 57, 6 unmatched in
+  `libs`.
+- **The session** (`S-20260914T015405Z-47f7`, 25 of 100 turns, 4.3
+  min, $0.79): `_resolve_include` returns a small frozen result naming
+  the miss, `_join` collects per directory, `_include_degradations`
+  draws the records. Gate clear, verify pass (187 tests, 0 regressions,
+  6 new). One egress refusal, the known `llm` shape from the full suite.
+  Right-clear; merged `a7ab3f6`, not squashed.
+- **Measured after,** the merged code: cJSON 305/12 unchanged, 6
+  records (`"ProductionCode.h"`/`"ProductionCode2.h"` ambiguous in four
+  Unity example directories; `"Types.h"` and six `expectdata` mocks
+  unmatched); sqlite-vector 163/57 unchanged, 1 record (`libs`' six
+  platform and generated headers). Every count as predicted.
+- **Found and fixed on the host:** the tracker's Policy pattern did not
+  take the stream bracket 0.2.14-beta's dispatch writes (`; records:
+  stream opened→closed`); `47f7` was the first session to carry it and
+  the drift test went red. The pattern takes the clause, with a test
+  for both shapes. Also: the three `package-lock.json` copies of the
+  version, which `test_version.py` checks and the bump had missed.
+- **Release, 0.2.15-beta:** the CHANGELOG entry; C-133 narrowed to
+  *partial* (18 partial, 3 unsurfaced); W1's line; the evidence table's
+  cJSON row with sqlite-vector beside it; the harness doc's status
+  line, the architecture's §8 header and harness row, the README,
+  CLAUDE.md, the handoff; the tracker at 20 of 40, 4 areas, 0 false
+  blocks, 0 missed, $47.19 reported. The binaries and the image rebuilt
+  at 0.2.15-beta (C-65); the ingest re-run at the release commit.
+- **Suites:** pytest 1,516 (host); Go unchanged (nothing under `go/`
+  moved but the version constant).
+- **Task files:** `~/.hobbes/bench/c133-drivers/includes-task.md` with
+  its partition beside it.
+
+**Not done, for Max:** the same list as above, plus whether C-133's unit
+2 (the `-I` read after lane B) is worth its amendment now or waits for a
+graded cell that shows the cost.

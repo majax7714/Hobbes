@@ -149,3 +149,18 @@ def test_unparseable_doer_line_raises(tmp_path):
     path = tmp_path / f"{sid}.md"
     with pytest.raises(ValueError, match=re.escape(str(path))):
         ct.parse_session(path)
+
+
+def test_policy_line_with_the_stream_bracket_parses(tmp_path):
+    """A Policy line carrying the sink's bracket (`; records: stream opened→closed`, ADR-112) parses, with and without an escalation clause before it; the kinds still count."""
+    sid = "S-20260101T000000Z-beef"
+    _write_session(tmp_path, sid, policy="3 exec decision(s) — `allow`×3; records: stream opened→closed")
+    rec = ct.parse_session(tmp_path / f"{sid}.md")
+    assert (rec["policy_escalate"], rec["policy_deny"]) == (0, 0)
+    sid2 = "S-20260101T000001Z-cafe"
+    _write_session(
+        tmp_path, sid2,
+        policy="5 exec decision(s) — `allow`×4, `escalate`×1; escalated: `/bin/sh -c git rm x`; records: WARNING never listened",
+    )
+    rec2 = ct.parse_session(tmp_path / f"{sid2}.md")
+    assert rec2["policy_escalate"] == 1

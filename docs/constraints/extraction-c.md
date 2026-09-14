@@ -87,7 +87,17 @@
 - **Provider (P9):** tree-sitter-c **0.24.2**.
 - **Source:** ADR-108.
 
-### C-133 — An include resolves by path, not by the build's `-I` flags
+### C-133 — An include resolves by path, not by the build's `-I` flags (narrowed 2026-09-14)
+- **Narrowed (0.2.15-beta, ADR-108's 2026-09-14 amendment).** An
+  include the three steps cannot place is written down: one `c-includes`
+  degradation record per directory counts its unmatched quoted includes
+  and its ambiguous includes (either spelling), naming up to three specs
+  of each, and `list_blind_spots` shows it. The edges did not move. On
+  cJSON, 6 records (the vendored Unity examples' `"ProductionCode.h"`
+  ambiguous in four directories; `"Types.h"` and six mock headers
+  unmatched); on sqlite-vector, 1 (`libs`' six platform and generated
+  headers). Reading the `-I` path from the derived compile database is
+  the second unit, not yet decided.
 - **Cannot tell you:** which header a `#include` reaches when the
   build's include path decides it. Hobbes tries three steps: the
   including file's directory, the repo root, then a unique path suffix.
@@ -101,12 +111,16 @@
   database of C-130.
 - **Bites at:** repos with several `include/` trees, generated headers
   (`config.h`), and macro APIs reached through an umbrella header.
-- **You find out:** **unsurfaced**:
-  - an unresolved quoted include draws no record;
+- **You find out:** **partial** (was *unsurfaced*; narrowed 2026-09-14):
+  - an unmatched quoted include, or an ambiguous include of either
+    spelling, is counted in its directory's `c-includes` record, which
+    `list_blind_spots` shows; an angle include that matches nothing is a
+    dependency (`ext:<p>`) and is not counted, so a generated header
+    spelled `<config.h>` still reads as external;
   - a call to a macro two includes down classifies `unclassified` in
-    the tail, with no reason attached.
+    the tail, with no reason attached — still unsurfaced.
 - **Provider (P9):** none; this is Hobbes's own rule.
-- **Source:** ADR-108.
+- **Source:** ADR-108; narrowed by its 2026-09-14 amendment.
 
 ### C-134 — C tests registered in a form Hobbes does not read are missed (narrowed 2026-09-13)
 - **Cannot tell you:** which C tests a framework registers in a form

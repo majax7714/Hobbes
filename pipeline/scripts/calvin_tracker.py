@@ -70,7 +70,10 @@ REFUSED_ITEM_RE = re.compile(r"×(\d+)")
 POLICY_RE = re.compile(
     r"^- \*\*Policy:\*\* (?P<total>\d+) exec decision\(s\) — "
     r"(?:none|(?P<kinds>`[a-z]+`×\d+(?:, `[a-z]+`×\d+)*))"
-    r"(?:; escalated: .+)?$"
+    r"(?:; escalated: .+)?"
+    # The sink's bracket around the flight stream (ADR-112, 0.2.14-beta):
+    # `; records: stream opened→closed`, or a WARNING naming what is missing.
+    r"(?:; records: .+)?$"
 )
 KIND_ITEM_RE = re.compile(r"`([a-z]+)`×(\d+)")
 

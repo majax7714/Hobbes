@@ -276,8 +276,11 @@ the best on-ramp for a new contributor who should learn the codebase.*
       criterion and the Unity fixture stay in it;
     - C-135's autotools, Meson and Bazel roots, which get no database
       today;
-    - C-133's include path, now read from the database where lane B
-      runs.
+    - ~~C-133's include path~~ **narrowed 2026-09-14** (0.2.15-beta,
+      ADR-108 amended): an include lane A cannot place draws a
+      `c-includes` record per directory. Reading the `-I` path from the
+      derived database, where lane B runs, is the second unit, not yet
+      decided.
   - C++ has not been named.
 
 *Profile: one owner for the Python/tree-sitter side, optionally one for

@@ -15,6 +15,42 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.14-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.15-beta — 2026-09-14 (an include lane A cannot place is written down; C-133 narrowed; ADR-108 amended)
+
+**Patch: what the layer says.** The register's one unsurfaced C entry
+is now met where a user reads the graph's boundary.
+
+- **The rule** (ADR-108's 2026-09-14 amendment). An include decision
+  4's three steps cannot place in the repo draws one `c-includes`
+  degradation record per directory, which `list_blind_spots` shows:
+  - **unmatched:** a `"p"` include no step resolved;
+  - **ambiguous:** a `"p"` or `<p>` include whose suffix matched more
+    than one repo header;
+  - an angle include that matches nothing stays a dependency
+    (`ext:<p>`) and is not counted.
+
+  Specs are counted once per directory and the message names up to
+  three of each shape. The edges did not move.
+- **On cJSON** (lane A, `fb16e5c`): 305 include edges before and after;
+  **6 records** — `"ProductionCode.h"`/`"ProductionCode2.h"` ambiguous
+  in four of the vendored Unity examples' directories (each example
+  ships its own copy), `"Types.h"` and six mock headers under
+  `test/expectdata` unmatched. **On sqlite-vector** (`0c2223a`): 163
+  before and after; **1 record**, `libs`' six platform and generated
+  headers (`"sqlite_cfg.h"`, `"_mingw.h"`, `"windows.h"`, …).
+- **Register:** C-133 narrowed to *partial* (was unsurfaced). The macro
+  half — a macro two includes down classed `unclassified` — stays; so
+  does reading the `-I` path from the derived compile database, the
+  second unit. The debt table reads 18 partial and 3 unsurfaced.
+- **Built through the harness:** `S-20260914T015405Z-47f7` (25 of 100
+  turns, 4.3 min; $0.79 reported). Gate clear and verify pass (187
+  tests, 0 regressions, 6 new). Merged without squashing.
+- **The developer's follow-up:** the session tracker's Policy pattern
+  did not read the stream bracket 0.2.14-beta's dispatch puts on the
+  Policy line (`; records: stream opened→closed`); this was the first
+  session to carry it, and the drift test was red until the pattern
+  took the clause. A test holds both shapes.
+
 ## 0.2.14-beta — 2026-09-14 (a session's records leave the doer's container; C-140 narrowed; ADR-112)
 
 **Patch: what the layer refuses.** Max chose the route (the records'

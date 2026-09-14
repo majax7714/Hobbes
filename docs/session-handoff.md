@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.14-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.15-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.14-beta are untagged. Tags stay Max's call each time.
+  0.2.15-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -16,7 +16,41 @@ The session's record is the 2026-09-14 BUILDLOG entry.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-14): C-140's fix — ADR-112, 0.2.14-beta.** Max
+0. **Latest (2026-09-14, later): C-133 narrowed — ADR-108 amended,
+   0.2.15-beta.** Max: "continue tackling your recommended item" (the
+   top-level review's pick: the register's one unsurfaced C entry).
+   Decided in ADR-108's 2026-09-14 amendment before the dispatch, then
+   one unit through the harness:
+   - **`47f7`, unit 1** (25 of 100 turns, 4.3 min, $0.79): an include
+     decision 4's three steps cannot place draws one `c-includes`
+     record per directory (unmatched quoted; ambiguous of either
+     spelling; an angle include that matches nothing stays `ext:<p>`).
+     Edges unchanged. Merged `a7ab3f6`. Measured on the merged code:
+     cJSON 6 records over 305 include edges unchanged; sqlite-vector 1
+     over 163 unchanged.
+   - **What verify could not see:** the tracker's drift test, red on
+     the host because its Policy pattern predated the stream bracket
+     0.2.14-beta's dispatch writes; fixed with a test. And the three
+     `package-lock.json` copies of the version, which the bump had
+     missed.
+   - **C-133** is *partial* (18 partial, 3 unsurfaced: C-19, C-20,
+     C-112). **Unit 2** — a re-resolution pass after lane B returns,
+     reading each translation unit's `-I` directories from the derived
+     compile database as a fourth step — needs its own ADR-108
+     amendment first, and a regrade of the two C cells after. Not
+     decided; for Max whether it is worth it now.
+   - Task files: `~/.hobbes/bench/c133-drivers/includes-task.md` and
+     its partition. **The tracker** reads 20 of 40, 4 areas, 0 false
+     blocks, 0 missed, $47.19 reported.
+   - The image and binaries are at 0.2.15-beta and the ingest is at
+     the release commit. **Restart the knowledge server** the next
+     session opens with (C-65).
+   - The top-level review before this found three stale lines from the
+     0.2.14-beta release (the README's status, the architecture's §8
+     header, the CHANGELOG's untagged list), fixed in `f2ce612`. Left
+     for Max: CLAUDE.md says the architecture carries no version
+     number, and its §8 does.
+0a. **Before it (2026-09-14): C-140's fix — ADR-112, 0.2.14-beta.** Max
    chose route 1 of three (the records' writers leave the doer's
    container; the executor stays) and the number. Measured first (four
    measurements, in the ADR), decided in ADR-112, built through the
@@ -47,10 +81,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - **C-140** is narrowed to a forged edit line, surfaced (78 surfaced,
      17 partial). **The tracker** reads 19 of 40, 4 areas, 0 false
      blocks, 0 missed, $46.40 reported.
-   - The image and binaries are at 0.2.14-beta. **Restart the knowledge
-     server** the next session opens with (C-65); this session's
-     measurements removed its container by mistake (an unnamed
-     container, taken for a probe's), so it is down anyway.
+   - (Superseded by item 0's line on the image and the ingest.)
    - The top-level review found one drift, fixed: the harness doc's
      status line still said twelve sessions through 0.2.10-beta.
 1. **Open for Max (no spend):**
@@ -81,7 +112,8 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - Name one small unit: `hobbes dispatch --task-file … --partition …
      --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
      argv carries `--settings` (the hook). Task files this session:
-     `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md` with their
+     `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md` and
+     `~/.hobbes/bench/c133-drivers/includes-task.md`, with their
      partitions beside them.
    - Watch dispatch's own stderr for "first edit at". The real session
      id differs from the dry-run's; read it from the output's last line.
@@ -116,9 +148,9 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (nineteen so far):
+     (twenty so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
-       C-134's registrations;
+       C-134's registrations, C-133's include record;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
@@ -153,7 +185,8 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      on cJSON and sqlite-vector). `oracle import` takes no `--lang c` yet
      (`bench/oracle/cmd/oracle/main.go`), so it is code first.
    - **C's residue:** C-134's remainder (criterion and the Unity
-     fixture, whose bodies a macro defines), C-135, C-133. The macro gap
+     fixture, whose bodies a macro defines), C-135, C-133's unit 2 and
+     its macro half. The macro gap
      stays parked (C-131, `future_additions.md`).
    - **`build-logic/`** is recorded, not built (ADR-097).
 
@@ -205,7 +238,7 @@ assumed of $25:
    next cell.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-13)
+## WHERE THINGS STAND (2026-09-14)
 
 - **The Calvin harness** (ADR-107, ADR-112):
   - **Code:** `go/internal/sink` and `go/internal/egress` (both in
@@ -220,7 +253,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (nineteen, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -236,11 +269,12 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 141 entries: 100 active, 25 lifted, 11 superseded, 5
-  folded (Max's calls, 2026-09-13; ADR-043 amended). C-141 registered
-  the same day.
-- **Suites** at 0.2.14-beta:
-  - 1,508 pytest (host);
+- **Register:** 141 entries: 100 active (78 surfaced, 18 partial, 3
+  unsurfaced, 1 n/a), 25 lifted, 11 superseded, 5 folded (Max's calls,
+  2026-09-13; ADR-043 amended). C-141 registered the same day; C-133
+  narrowed 2026-09-14.
+- **Suites** at 0.2.15-beta:
+  - 1,515 pytest (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
@@ -254,8 +288,8 @@ assumed of $25:
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,
-     Meson and Bazel roots and its surfacing gap; C-133's include path
-     read from the database;
+     Meson and Bazel roots and its surfacing gap; C-133's unit 2 (the
+     `-I` read from the derived database), after its amendment;
    - W1/W3's no-spend items: the decorated-declaration line convention,
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
    - `oracle import --lang c`, then the foreign C cells (the comparative
