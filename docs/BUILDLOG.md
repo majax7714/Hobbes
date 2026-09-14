@@ -10286,3 +10286,56 @@ most tackable item using harness".
 graded tools on cJSON and sqlite-vector — whether either draws C edges
 worth grading is that cell's finding); `testmap_fixture`'s two pytest
 warnings; C-135's autotools, Meson and Bazel roots.
+
+**Then (Max: "continue with the next item listed of the foreign c
+cells"), the foreign C cells, host-run, no spend.**
+
+- **The tools, back at their pins.** The 2026-09-09 venvs had lived in
+  a scratchpad; both wheels were still in uv's cache, so
+  `~/.hobbes/bench/comparative/tools/{cgc,rw}` hold CodeGraphContext
+  0.6.13 (kuzu 0.11.3) and repowise 0.49.0 again, on Python 3.12. The
+  driver `run-c-cell.sh` beside them: index as the README documents,
+  `adapter.py dump` + `convert` (converter@2), `grade-foreign.sh …
+  --lang c` against the stored clang keys (`~/.hobbes/bench/oracle/
+  {cjson,sqlite-vector}-c/oracle.json`). Walls: cgc 22 s and 136 s
+  (the amalgamation; its converter re-reads the 263k-line file per row
+  and took minutes more), repowise 11 s and 9 s.
+- **The four cells** (`docs/oracle/cells/{codegraphcontext,repowise}-
+  {cjson,sqlite-vector}-2026-09-14.md`, from the artifacts by
+  `foreign_record.py`; every contradiction read, the A-8 line
+  hand-corrected to the read ratio):
+  - CodeGraphContext on cJSON **1,179/1,179**, recall 61.5%
+    (1,180/1,918): its misses are the 728 macro-expansion sites, as
+    Hobbes', and ten static sites it stored no edge for.
+  - CodeGraphContext on sqlite-vector **851/863**, recall 100%
+    (1,091/1,091): nine `sqlite3_*` names drawn into the vendored
+    amalgamation the extension's build never compiles with it (in the
+    unit the name is `sqlite3ext.h`'s macro over the API table), and
+    the three `strcasestr` shim rows in a dead `#if` arm — Hobbes'
+    own three before ADR-111's veto (C-138).
+  - repowise on cJSON **1,073/1,637** (65.5%), recall 56.0%; on
+    sqlite-vector **780/879** (88.7%), recall 93.3%. **562 of 564 and
+    99 of 99 contradictions are `#define` targets:** the tool stores a
+    function-like macro (`can_read`, Unity's `TEST_ASSERT_*`,
+    `MM256_FMA_PS`) as kind `function`, so the macro exclusion, which
+    fires on a `macro` kind alone, never applies, and the row grades
+    against the callee clang saw in the expansion. With those rows
+    excluded as Hobbes' own are, 99.8% and 100% — stated in the
+    records, not graded. The two others are `setUp`/`tearDown` under
+    `UNITY_WEAK_ATTRIBUTE`, the other `#if` arm.
+  - Poison: 0 falsely confirmed of 27,925 seeded across the four.
+- **The lane.** `cells.meta.json` four rows; `render.py cells |
+  render | check` green (84 cells), `tables.md` and the scatter's C
+  panel regenerated; the same-key graphic's language order gained C
+  (it was a fixed list). `go test ./report/` green. C-95 gains its C
+  face (the register). The claim page's item 4 replaces "no foreign
+  cell exists for C" with the numbers and the finding; W0's item, the
+  handoff.
+- **A decision for Max, not taken (ADR-101):** whether the converters
+  may read a `#define` at the target line as kind `macro` (converter@3,
+  the same source reading converter@2 makes for annotation lines) and
+  regrade repowise's two C cells with signed direction lines.
+  Recommended yes: it is the tool's storage read at a grain the
+  converter can state — C-95's own rule — not a tolerance invented
+  for the tool. A harness unit (both adapters, their fixtures, the
+  fixture test) and then the regrade.

@@ -344,8 +344,11 @@ inside a dispatch they skip, so their first run is the developer's.
     dispatched unit (`d2e3`, 40 turns, $1.04, gate right-clear): C is
     spelled everywhere the converter's language set is, with a
     hand-read C fixture graded against a hand-built key. The
-    comparative queue's foreign C cells are unblocked on the lane's
-    side.
+    comparative queue's foreign C cells followed the same day, host-run:
+    CodeGraphContext 1,179/1,179 and 851/863, repowise 1,073/1,637 and
+    780/879 on the clang keys; every repowise contradiction but two is
+    a function-like macro it stores as `function` (C-95's C face; the
+    converter@3 reading is Max's call, ADR-101).
   - **Before it** (2026-09-14): **C-135's measured gap closed, ADR-109
     amended, 0.2.16-beta,** one dispatched unit (`1ae3`, 17 turns, $0.45,
     gate right-clear): a derived compile database with entries and none
