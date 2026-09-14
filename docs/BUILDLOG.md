@@ -10183,3 +10183,53 @@ graded cell that shows the cost.
 saying it carries none was the one that gave (`b370d1d`). The old
 server's container (unnamed, on the 0.2.14-beta image) was removed;
 the session reconnects through `.mcp.json`, which starts the new build.
+
+**Then (Max: "proceed with the recommended"): C-135's measured gap on
+bpftop — 0.2.16-beta (ADR-109 amended).**
+
+- **Read first, no spend.** A probe reproduced `_index_c_unit` on the
+  bpftop clone (`5a67ec0`), keeping the build dir. Under bear, `make`'s
+  one target, `cargo build --release`, records 45 compiles — every one
+  libbpf-sys's vendored libbpf or vsprintf under cargo's registry in
+  Hobbes's cache, none under the root. cargo's own words, re-run in the
+  image: libbpf's make fails on `libelf.h: No such file or directory`,
+  so cargo stops before bpftop's build script compiles
+  `src/bpf/pid_iter.bpf.c`. The database was not empty, so the plan's
+  check passed, scip-clang found nothing of the root's, and the unit
+  drew only the generic `scip-index` record.
+- **Decided before the dispatch:** ADR-109's 2026-09-14 amendment — an
+  entry counts for the root only when its file lies under it; a
+  database with entries and none under the root stops the plan before
+  scip-clang, naming the count, where they lie, the build's last words
+  capped, and C-135. Committed `b4b10a0`; the ingest at it.
+- **The session** (`S-20260914T022459Z-1ae3`, 17 of 100 turns, 94 s,
+  $0.45): `compdbCheck(compdb, what, stage)`, `commonOutsideDirectory`,
+  four tests. Gate clear, verify pass (48 tests, 0 regressions, 4 new).
+  One egress refusal: `npx vitest` reaching for the registry. Right-
+  clear; merged `fc7bf3d`, not squashed. Host: scip node 47/47; the C
+  lane's 12 contained tests green.
+- **Found and fixed on the host:** the check's refusal exited the
+  helper with the generic code, so the Python side labelled it "the
+  SCIP helper is unusable — install Node and run `npm install`"; the
+  empty-database case had carried the same mislabel since 0.2.4-beta.
+  A refusal now carries `indexerExit`, and both tests assert
+  `exitCodeFor(err) === INDEXER_EXIT`. The probe re-run reads "the c
+  indexer exited inside the container: bear over make recorded 45
+  compile(s), none of a file under this root — all under cargo's
+  registry (the dependencies' own C); the build compiled none of the
+  root's own C (C-135): … make failed".
+- **Release, 0.2.16-beta:** the CHANGELOG entry; C-135 narrowed (still
+  partial); the evidence's bpftop paragraph; W1's line; the harness
+  doc, the architecture's §8 header and harness row, the README,
+  CLAUDE.md, the handoff; the tracker at 21 of 40, 4 areas, 0 false
+  blocks, 0 missed. The binaries and the image rebuilt at 0.2.16-beta
+  (C-65); the helper is mounted from the checkout, so the exit-code fix
+  needed no rebuild. The ingest re-run at the release commit.
+- **Suites:** pytest 1,515 (host); scip node 47.
+- **Task files:** `~/.hobbes/bench/c135-drivers/compdb-task.md` with
+  its partition beside it.
+
+**Not done, for Max:** libelf in the image (a dependency's build the
+image cannot complete stays C-135's own case; adding a library to the
+image is a decision, ADR-092's shape); the leftover `.scip` outputs
+under `~/.hobbes/cache/stage/` (34 files, 116 KB), a housekeeping item.

@@ -15,6 +15,40 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.14-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.16-beta — 2026-09-14 (a derived compile database with none of the root's files says so; C-135's measured gap closed; ADR-109 amended)
+
+**Patch: what the layer says.** The gap C-135 measured on bpftop, a
+root whose derived database indexed nothing and said only "the indexer
+emitted no documents", now names its cause.
+
+- **The rule** (ADR-109's 2026-09-14 amendment). The C plan's
+  compile-database check, which already stops the plan on an empty
+  database, now also stops it when the database has entries and none
+  of a file under the root: the message names the count, where they
+  lie — cargo's registry (the dependencies' own C) or their common
+  directory — that the build compiled none of the root's own C, the
+  build's last words capped, and `(C-135)`. The root's `scip-c` record
+  carries it, and `list_blind_spots` shows it with the register id. A
+  database with any entry under the root is unchanged.
+- **On bpftop** (`5a67ec0`, contained): 45 compiles, every one
+  libbpf-sys's vendored libbpf or vsprintf under cargo's registry.
+  libbpf's make fails in the image for want of `libelf.h`, cargo stops,
+  and bpftop's own build script never compiles its BPF program.
+- **The developer's follow-up.** A check's refusal exited the helper
+  with the generic code, so the Python side reported it as "the SCIP
+  helper is unusable — install Node and run `npm install`". It now
+  carries the indexer's exit, and the record reads as the C build's
+  own outcome. The empty-database case had the same mislabel since
+  0.2.4-beta and takes the same fix. Both tests assert the exit code.
+- **Register:** C-135 narrowed; still *partial* (its autotools, Meson
+  and Bazel roots, and a database with root entries that still indexes
+  nothing, not yet seen).
+- **Built through the harness:** `S-20260914T022459Z-1ae3` (17 of 100
+  turns, 94 s; $0.45 reported). Gate clear and verify pass (48 tests,
+  0 regressions, 4 new). One egress refusal: `npx vitest` reaching for
+  the registry, since vitest is not in the helper's tree. Merged
+  without squashing.
+
 ## 0.2.15-beta — 2026-09-14 (an include lane A cannot place is written down; C-133 narrowed; ADR-108 amended)
 
 **Patch: what the layer says.** The register's one unsurfaced C entry

@@ -248,7 +248,7 @@ function compdbCheck(compdb, what, stage) {
     }
     if (!Array.isArray(entries) || entries.length === 0) {
       const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-600)
-      throw new Error(`${what} produced no compile database entries, so scip-clang has nothing to index: ${said}`)
+      throw buildRefusal(`${what} produced no compile database entries, so scip-clang has nothing to index: ${said}`)
     }
     const root = resolve(stage)
     const outside = entries
@@ -261,12 +261,22 @@ function compdbCheck(compdb, what, stage) {
         : commonOutsideDirectory(outside)
       const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-200)
       const tail = said ? `: ${said}` : ''
-      throw new Error(
+      throw buildRefusal(
         `${what} recorded ${entries.length} compile(s), none of a file under this root — all under ${where}; ` +
         `the build compiled none of the root's own C (C-135)${tail}`,
       )
     }
   }
+}
+
+/** A refusal the compile-database check raises is the build's outcome,
+ * not a helper that could not run: it carries `indexerExit`, so the
+ * helper exits `INDEXER_EXIT` and the Python side reports the C build's
+ * own words rather than "install Node and run npm install". */
+function buildRefusal(message) {
+  const err = new Error(message)
+  err.indexerExit = 1
+  return err
 }
 
 /** scip-java's javac plugin and the JVM flags it needs, extracted from

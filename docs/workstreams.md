@@ -275,7 +275,8 @@ the best on-ramp for a new contributor who should learn the codebase.*
       Check)~~ **Narrowed 2026-09-13** (0.2.13-beta, ADR-108 amended).
       criterion and the Unity fixture stay in it;
     - C-135's autotools, Meson and Bazel roots, which get no database
-      today;
+      today (its bpftop gap — a database with none of the root's own
+      files — **closed 2026-09-14**, 0.2.16-beta, ADR-109 amended);
     - ~~C-133's include path~~ **narrowed 2026-09-14** (0.2.15-beta,
       ADR-108 amended): an include lane A cannot place draws a
       `c-includes` record per directory. Reading the `-I` path from the

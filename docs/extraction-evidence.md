@@ -79,7 +79,15 @@ C's first graded evidence, in the session after its lane B.
 - **Two repos:** cJSON, the repo C was built on, and **one drawn at
   random** from a seeded sample of GitHub's `language:c stars:300..3000
   pushed:>2026-03-01` (seed 20260912). The first draw, jfernandez/bpftop,
-  had no C compile to derive and was passed over (C-135).
+  had no C compile to derive and was passed over (C-135). **Read
+  2026-09-14** (0.2.16-beta, ADR-109 amended; `1ae3`'s code, contained):
+  under bear, its `cargo build` records 45 compiles, all libbpf-sys's
+  vendored libbpf and vsprintf under cargo's registry, none under the
+  root — libbpf's make fails in the image for want of `libelf.h`, so
+  cargo stops before bpftop's own build script compiles
+  `src/bpf/pid_iter.bpf.c`. The root's record moved from the generic
+  "the indexer emitted no documents" to a `scip-c` record naming the 45,
+  cargo's registry and C-135.
 - Cell records are in [`oracle/cells/`](oracle/cells/).
 
 | Repo | Build | Graph (graded edges) | Cell |

@@ -215,12 +215,12 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-14, 0.2.15-beta; the last three
+Suite sizes at the last check (2026-09-14, 0.2.16-beta; the last three
 carried from 0.2.8-beta): 1,515 pytest (5 of them `lane_b`) / 386 Go
 (subtests counted: 385 pass, 1 skip; the four live launcher tests run on
 the host) + 91 oracle-lane Go (subtests counted: 87 pass, 4 skip without
 a toolchain; two run the `shape/` suites: 24 unittest + 7 node) / 52
-vitest / 36 tsextract + 43 scip node tests / 84 atlas0 (`cd bench/atlas0
+vitest / 36 tsextract + 47 scip node tests / 84 atlas0 (`cd bench/atlas0
 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
@@ -293,7 +293,7 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-14) — Hobbes 0.2.15-beta
+## Status (2026-09-14) — Hobbes 0.2.16-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -339,7 +339,12 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-14): **C-133 narrowed, ADR-108 amended,
+  - **The latest** (2026-09-14): **C-135's measured gap closed, ADR-109
+    amended, 0.2.16-beta,** one dispatched unit (`1ae3`, 17 turns, $0.45,
+    gate right-clear): a derived compile database with entries and none
+    under the root stops the plan before scip-clang and says where they
+    lie (bpftop: 45 dependency compiles under cargo's registry).
+  - **Before it** (2026-09-14): **C-133 narrowed, ADR-108 amended,
     0.2.15-beta,** one dispatched unit (`47f7`, 25 turns, $0.79, gate
     right-clear): an include lane A cannot place draws a `c-includes`
     record per directory (6 on cJSON, 1 on sqlite-vector; no edge
@@ -357,7 +362,7 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 20 of the 40 sessions that validate the
+    drift test. It reads 21 of the 40 sessions that validate the
     harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
     Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,

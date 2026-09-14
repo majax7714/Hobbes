@@ -264,7 +264,8 @@ test("an empty compile database stops the plan before scip-clang, in the build's
   const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
   cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), '[]')
   assert.throws(() => plan.steps[1].check({ stderr: 'make: *** No rule to make target' }),
-    /bear over make produced no compile database entries.*No rule to make target/)
+    (err) => /bear over make produced no compile database entries.*No rule to make target/.test(err.message)
+      && exitCodeFor(err) === INDEXER_EXIT)
   cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([{ directory: dir, file: 'a.c', arguments: ['cc', 'a.c'] }]))
   plan.steps[1].check({})
 })
@@ -282,7 +283,8 @@ test('a compile database recorded entirely under cargo\'s registry says so, befo
       { directory: libbpf, file: 'bpf.c', arguments: ['cc', 'bpf.c'] },
     ]))
     assert.throws(() => plan.steps[1].check({ stderr: 'make: *** Error 1' }),
-      /recorded 2 compile\(s\), none of a file under this root.*cargo's registry.*\(C-135\).*Error 1/s)
+      (err) => /recorded 2 compile\(s\), none of a file under this root.*cargo's registry.*\(C-135\).*Error 1/s.test(err.message)
+        && exitCodeFor(err) === INDEXER_EXIT, "the refusal is the build's outcome, so the helper exits INDEXER_EXIT")
   } finally {
     if (savedCargoHome === undefined) delete process.env.CARGO_HOME
     else process.env.CARGO_HOME = savedCargoHome

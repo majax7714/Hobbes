@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.15-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.16-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.15-beta are untagged. Tags stay Max's call each time.
+  0.2.16-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -16,7 +16,36 @@ The session's record is the 2026-09-14 BUILDLOG entry.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-14, later): C-133 narrowed — ADR-108 amended,
+0. **Latest (2026-09-14, last): C-135's measured gap closed — ADR-109
+   amended, 0.2.16-beta.** Max: "proceed with the recommended". Read
+   first, no spend: on bpftop, under bear, `cargo build` records 45
+   compiles, all libbpf-sys's vendored libbpf and vsprintf under cargo's
+   registry, none under the root; libbpf's make fails in the image for
+   want of `libelf.h`, so cargo stops before bpftop's own build script
+   compiles its BPF program. Decided in ADR-109's amendment, then one
+   unit through the harness:
+   - **`1ae3`** (17 of 100 turns, 94 s, $0.45): `compdbCheck` takes the
+     root and refuses before scip-clang when a non-empty database has
+     no entry under it, naming where they lie, the capped last words
+     and C-135. Merged `fc7bf3d`. bpftop's record moved from the
+     generic `scip-index` line to the `scip-c` record with the cause.
+   - **What verify could not see:** a check's refusal exited the helper
+     with the generic code, so Python labelled it "the SCIP helper is
+     unusable — install Node"; the empty-database case had the same
+     mislabel since 0.2.4-beta. Fixed on the host (`indexerExit`; both
+     tests assert the exit code). The scip node suite is 47.
+   - **C-135** stays *partial*: autotools, Meson and Bazel roots; a
+     database with root entries that still indexes nothing (not seen);
+     a dependency's build the image cannot complete (libelf is not in
+     the image — adding it is an image decision, not owed).
+   - Task files: `~/.hobbes/bench/c135-drivers/compdb-task.md` and its
+     partition. **The tracker** reads 21 of 40, 4 areas, 0 false
+     blocks, 0 missed. The image and binaries are at 0.2.16-beta; the
+     helper is mounted from the checkout, not baked in. **Restart the
+     knowledge server** the next session opens with (C-65).
+   - Housekeeping seen, not done: `~/.hobbes/cache/stage/` holds 34
+     small leftover `.scip` outputs (116 KB) from earlier runs.
+0b. **Before it (2026-09-14, later): C-133 narrowed — ADR-108 amended,
    0.2.15-beta.** Max: "continue tackling your recommended item" (the
    top-level review's pick: the register's one unsurfaced C entry).
    Decided in ADR-108's 2026-09-14 amendment before the dispatch, then
@@ -42,9 +71,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - Task files: `~/.hobbes/bench/c133-drivers/includes-task.md` and
      its partition. **The tracker** reads 20 of 40, 4 areas, 0 false
      blocks, 0 missed, $47.19 reported.
-   - The image and binaries are at 0.2.15-beta and the ingest is at
-     the release commit. **Restart the knowledge server** the next
-     session opens with (C-65).
+   - (Superseded by item 0's line on the image and the ingest.)
    - The top-level review before this found three stale lines from the
      0.2.14-beta release (the README's status, the architecture's §8
      header, the CHANGELOG's untagged list), fixed in `f2ce612`. Left
@@ -112,8 +139,9 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - Name one small unit: `hobbes dispatch --task-file … --partition …
      --secrets "$HOBBES_SECRETS"`, with `--dry-run` first. Check that the
      argv carries `--settings` (the hook). Task files this session:
-     `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md` and
-     `~/.hobbes/bench/c133-drivers/includes-task.md`, with their
+     `~/.hobbes/bench/adr112-drivers/{sink,launcher}-task.md`,
+     `~/.hobbes/bench/c133-drivers/includes-task.md` and
+     `~/.hobbes/bench/c135-drivers/compdb-task.md`, with their
      partitions beside them.
    - Watch dispatch's own stderr for "first edit at". The real session
      id differs from the dry-run's; read it from the output's last line.
@@ -148,9 +176,10 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (twenty so far):
+     (twenty-one so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
-       C-134's registrations, C-133's include record;
+       C-134's registrations, C-133's include record, C-135's
+       compile-database check;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
@@ -253,7 +282,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-one, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -272,9 +301,9 @@ assumed of $25:
 - **Register:** 141 entries: 100 active (78 surfaced, 18 partial, 3
   unsurfaced, 1 n/a), 25 lifted, 11 superseded, 5 folded (Max's calls,
   2026-09-13; ADR-043 amended). C-141 registered the same day; C-133
-  narrowed 2026-09-14.
-- **Suites** at 0.2.15-beta:
-  - 1,515 pytest (host);
+  and C-135 narrowed 2026-09-14.
+- **Suites** at 0.2.16-beta:
+  - 1,515 pytest (host); 47 scip node (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
@@ -288,8 +317,8 @@ assumed of $25:
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,
-     Meson and Bazel roots and its surfacing gap; C-133's unit 2 (the
-     `-I` read from the derived database), after its amendment;
+     Meson and Bazel roots; C-133's unit 2 (the `-I` read from the
+     derived database), deferred until a graded cell shows the cost;
    - W1/W3's no-spend items: the decorated-declaration line convention,
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
    - `oracle import --lang c`, then the foreign C cells (the comparative

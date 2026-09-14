@@ -165,7 +165,16 @@
 - **Provider (P9):** none; this is Hobbes's own rule.
 - **Source:** ADR-108, amended 2026-09-13.
 
-### C-135 — A C build root with nothing to derive a compile database from is lane A only
+### C-135 — A C build root with nothing to derive a compile database from is lane A only (narrowed 2026-09-14)
+- **Narrowed (0.2.16-beta, ADR-109's 2026-09-14 amendment).** A derived
+  database with entries and none of a file under the root stops the
+  plan before scip-clang runs, and the root's `scip-c` record names the
+  count, where they lie (cargo's registry, or their common directory),
+  that the build compiled none of the root's own C, the build's last
+  words, and this id. On bpftop that is 45 dependency compiles under
+  cargo's registry: libbpf-sys's vendored libbpf fails in the image for
+  want of libelf's headers, so cargo stops before bpftop's own build
+  script compiles its BPF program.
 - **Cannot tell you:** semantic C edges under a build root whose
   compile database cannot be derived. That covers four cases:
   - C files under no `CMakeLists.txt` or Makefile at all;
@@ -201,11 +210,15 @@
       emitted no documents; nothing was analysed", with no C reason and
       no register id.
     - Offline and with an empty cargo cache, bear records 0 entries
-      there, which draws the `scip-c` record above. So in the ingest's
-      own run bear recorded entries that scip-clang indexed nothing
-      from. Which entries is not yet read.
-  - So a root whose derived database indexes nothing surfaces without
-    its cause.
+      there, which draws the `scip-c` record above. With the cache
+      warm (the Rust lane's fetch), bear recorded 45 entries, every one
+      a dependency crate's C under cargo's registry, none under the
+      root. **Read 2026-09-14 and written down** (the narrowing above):
+      the root now draws a `scip-c` record with the cause.
+  - What stays: a root whose database has entries under it and whose
+    index still emits no document surfaces only as the generic
+    `scip-index` record (not yet seen); a dependency's build the image
+    cannot complete stays lane A.
 - **Provider (P9):** none; this is Hobbes's own rule.
 - **Folds in:** C-130 (2026-09-13) — what lane A's floor draws for C
   where lane B does not answer (the three name ranks, ADR-108), and its
