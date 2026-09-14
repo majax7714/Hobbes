@@ -10103,3 +10103,26 @@ the 0.2.x patch line — the tree was at 0.2.13-beta, so 0.2.14-beta).
 
 **Not done, for Max:** ADR-106; the register segment for the dispatch
 entries; C-140's remainder only if it ever matters (route 2).
+
+## 2026-09-14 — (later) the top-level review; three stale lines from the 0.2.14-beta release fixed
+
+**Asked (Max):** "review top level documentation and report back with
+current standing", then "apply the drift fix then report back with a
+tackable item from the list. the held with spend are off the table still".
+
+- **The review.** The tree, the binaries, the image and the ingest are
+  all at 0.2.14-beta on `38d364f`; the version and tracker drift tests
+  pass. CLAUDE.md, the handoff, the CHANGELOG entry, the BUILDLOG, W5,
+  the harness doc's status line, the architecture's harness row, the
+  register's debt table (141; 100 active as 78/17/4/1) and the tracker
+  (19 of 40, 4 areas, 0/0, $46.40) tell one story. Every path CLAUDE.md
+  links to exists; `AGENTS.md` is its symlink.
+- **Three drifts, fixed in one docs commit:** the README's status
+  opened at 0.2.13-beta with seventeen sessions and no ADR-112 line;
+  the architecture's §8 header read 0.2.13-beta while its harness row
+  read 0.2.14-beta; the CHANGELOG's preamble left 0.2.11-beta to
+  0.2.14-beta out of the untagged list.
+- **Noted, not changed:** CLAUDE.md says the architecture carries no
+  version number, and §8 carries one. Max's call which of the two gives.
+- **The knowledge server** was up again (an unnamed container on the
+  local image, started by `.mcp.json`).
