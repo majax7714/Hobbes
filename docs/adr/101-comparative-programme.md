@@ -158,3 +158,37 @@ own. Concretely:
 (both graded tools on cJSON and sqlite-vector), is unblocked on the
 lane's side; whether either tool draws C edges worth grading is that
 cell's finding. Nothing under `bench/` moves the version (ADR-103).
+
+## Amendment (2026-09-14, later): a `#define` at the target line is a `macro` — converter@3
+
+**Context.** The first foreign C cells (both tools on cJSON and
+sqlite-vector, records of 2026-09-14) found repowise storing a
+function-like macro — `#define can_read(buffer, size) …`, Unity's
+`TEST_ASSERT_*`, sqlite-vector's `MM256_FMA_PS` — as kind `function`.
+The lane's macro exclusion fires on a `macro` kind alone (decision 3,
+C-95), so each such edge graded against the callee clang saw in the
+expansion: 562 of its 564 cJSON contradictions and all 99 on
+sqlite-vector, where Hobbes' own edges to those macros are excluded
+before grading because its graph names the kind. CodeGraphContext
+stored no edge to a `#define` line on either cell.
+
+**Decision.** The converters read the kind at a grain they can state,
+as converter@2 already reads the declaration line past annotation
+lines (C-94's repair): **converter@3 — a callee whose declared line,
+read from the source, begins with `#define` is kind `macro`,** and the
+existing rule then excludes the edge and counts it under `macro`.
+Nothing else about the tool's kind is re-read; a `#define` in a file
+that is not C or C++ does not occur. Both adapters carry the rule and
+a hand-made C raw fixture over `bench/oracle/testdata/cclang`, read by
+hand in their Go tests: a row to a `#define` line converts as `macro`
+and the lane drops it; a row to a function converts as before. The
+grain note in the converted file says so.
+
+**Consequences.** The four C cells are regraded from their stored
+dumps (no re-index), each record keeping its converter@2 grade beside
+the cell as `edges.v1.json` / `report.v1.json` and carrying a signed
+direction line, as the Java cells did at @2; the record tooling names
+the version pair it signs. The claim page's C sentence and C-95's C
+face are restated on the regraded numbers. A foreign edge to a macro
+is still the tool's edge: it is excluded, not confirmed, and the
+count is printed.
