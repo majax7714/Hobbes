@@ -328,3 +328,41 @@ like an error more than a flag. either look to contain or prevent."
     and as a pipe segment. `find . -name '*.go'` still runs.
 - **Version:** 0.2.11-beta.
 
+
+## Amendment — 2026-09-14: the doer's model is named, per checkout
+
+- **Context.** Every one of the twenty-three sessions on record ran on
+  "model the default": `hobbes dispatch --model` exists and reaches
+  Claude Code's `--model` through `hobbes-session`, but nothing set
+  it, and the doer's container carries no user settings (its HOME is a
+  tmpfs since 0.2.14-beta), so the model was whatever Claude Code
+  chose for the owner's account — unrecorded, and not the owner's
+  choice. Max (2026-09-14): dispatched tasks are to run on Opus 5, and
+  the checkout is to carry that so a dispatch does not have to say it
+  each time. The model a dispatch spends on is the owner's call, not
+  the layer's (the bench harness names its ladder per arm, ADR-055),
+  so the repo names no model.
+- **Decision.**
+  1. **`hobbes dispatch` reads `$HOBBES_DISPATCH_MODEL` when `--model`
+     is not given.** The flag beats the variable; an unset or empty
+     variable leaves the choice to Claude Code, as before. The CLI's
+     help names the variable. Nothing else changes: the argv already
+     carries `--model`, `dispatch.json`'s doer record already stores
+     it, the session log's Doer line already prints it, and the dry
+     run shows the argv — so a pinned model is visible at every step a
+     developer reads.
+  2. **Where a checkout sets it:** the `env` block of its
+     `.claude/settings.local.json`, gitignored, beside
+     `HOBBES_SECRETS` — the box's setting, not the repo's. This box:
+     `claude-opus-5`.
+  3. The variable reaches the host process only; the session's
+     environment is the launcher's allowlist as before (nothing new
+     crosses into the container).
+- **Tests** (`test_dispatch.py`): the variable reaches the session
+  argv and the doer record; `--model` on the command line beats it;
+  unset, the argv carries no `--model`.
+- **Version:** 0.2.17-beta (patch: what the layer says — the log names
+  the model the checkout chose).
+- **Built through the harness,** the unit itself run with `--model
+  claude-opus-5` said explicitly: the first session whose Doer line
+  names its model.
