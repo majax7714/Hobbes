@@ -39,7 +39,7 @@ so a competitor's graph, or your own, is graded against the same
 answer key with the same matcher:
 
 ```sh
-bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java] [--exclude a,b]
+bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c] [--exclude a,b]
 ```
 
 `<edges.json>` is:
@@ -62,6 +62,9 @@ as a smaller graph, C-94). Two matcher rules read Hobbes-specific
 metadata and fire for a foreign graph only when its converter
 supplies `kind`: a callee that is a variable is `abstract` (D-O4's
 function-valued-binding rule), and `macro` excludes the edge (C-95).
+A C key is `oracle c-clang`'s, and a header callee (`.h` is in the
+extension set) is graded like any other (ADR-101's 2026-09-14
+amendment).
 
 One converter per tool lives under `adapters/<tool>/` (`adapter.py
 dump` reads the tool's own storage as stored; `convert` makes the

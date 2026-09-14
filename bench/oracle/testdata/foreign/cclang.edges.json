@@ -1,0 +1,21 @@
+{
+  "repo": "bench/oracle/testdata/cclang",
+  "sha": "fixture",
+  "tool": "handread",
+  "version": "0",
+  "converter": "hand@2026-09-14",
+  "edges": [
+    { "site": "main.c:19", "callee": "lib.c:11", "caller": "main", "kind": "function" },
+    { "site": "main.c:20", "callee": "api.h:15", "caller": "main", "kind": "function", "label": "high" },
+    { "site": "main.c:20", "callee": "lib.c:19", "caller": "main", "kind": "function" },
+    { "site": "main.c:23", "callee": "main.c:9", "caller": "main" },
+    { "site": "main.c:24", "callee": "main.c:13", "caller": "main" },
+    { "site": "lib.c:22", "callee": "lib.c:7", "caller": "lib_run" },
+    { "site": "lib.c:26", "callee": "api.h:15", "caller": "lib_run" },
+    { "site": "api.h:16", "callee": "lib.c:15", "caller": "sq" },
+    { "site": "main.c:18", "callee": "lib.c:11", "caller": "main", "kind": "macro" },
+    { "site": "main.c:23", "callee": "main.c:9", "caller": "main" },
+    { "site": "Makefile:3", "callee": "lib.c:11" },
+    { "site": "lib.c:22", "callee": "README.md:1" }
+  ]
+}
