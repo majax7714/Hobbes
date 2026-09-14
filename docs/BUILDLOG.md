@@ -10177,3 +10177,9 @@ through the harness — 0.2.15-beta (ADR-108 amended).**
 **Not done, for Max:** the same list as above, plus whether C-133's unit
 2 (the `-I` read after lane B) is worth its amendment now or waits for a
 graded cell that shows the cost.
+
+**Then (Max): the knowledge server restarted on the 0.2.15-beta image
+(C-65); the architecture keeps its version number** — CLAUDE.md's line
+saying it carries none was the one that gave (`b370d1d`). The old
+server's container (unnamed, on the 0.2.14-beta image) was removed;
+the session reconnects through `.mcp.json`, which starts the new build.
