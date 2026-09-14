@@ -240,7 +240,7 @@ inside a dispatch they skip, so their first run is the developer's.
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
   architecture doesn't already make. Number sequentially (last: 112;
-  106 is held for M0-Go's design).
+  106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
   pyproject spells it PEP 440, `0.1.4b0`); `hobbes.__version__`,
@@ -395,7 +395,6 @@ inside a dispatch they skip, so their first run is the developer's.
   The keyed rounds (M0, M0-Go, M0-Gate; about $27) are closed as an
   approach, and their records are history.
 - **Held for Max, or for spend** (`docs/session-handoff.md`):
-  - whether ADR-106 stays held;
   - the tracker's area for a test-only session (left for now);
   - the Atlas-0 T items;
   - the TTT adapter points;

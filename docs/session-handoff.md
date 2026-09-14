@@ -204,16 +204,10 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - The top-level review found one drift, fixed: the harness doc's
      status line still said twelve sessions through 0.2.10-beta.
 1. **Open for Max (no spend):**
-   - **The register and backlog review's remaining call** (2026-09-13):
-     whether `future_additions.md`'s "re-evaluate the harness if its
-     weight stays this high" is obsolete. (The dispatch segment and the
-     C-120 fold were taken 2026-09-14.)
-   - **ADR-106** — a held number, not a file: M0-Go's design was to
-     take it on *accepted*, and the keyed rounds closed as an approach
-     (ADR-107). Proposed route: write a one-page ADR-106 marked
-     *not taken*, pointing at `calvin-m0-go.md` as the record, so the
-     sequence has no hole and no one reuses the number; the other is
-     to leave it held. Max's call.
+   - (Settled 2026-09-14: ADR-106 written as *not taken*; the
+     `future_additions.md` harness-weight line kept, Max not yet settled
+     on where the harness goes; the dispatch segment and the C-120 fold
+     taken.) Nothing from the 2026-09-13 review is open.
    - **C-139's finer extent** (the binding's own line, or the enclosing
      block). Take it only if a graded cell ever shows the recall cost.
      Nothing is owed now.
@@ -413,8 +407,9 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **Max's calls** (START HERE item 1): ADR-106 (a route proposed);
-   `future_additions.md`'s harness-weight line.
+1. **Max's calls** (START HERE item 1): none open from the reviews;
+   the three items there are not owed (C-139's extent, the test-only
+   area, C-140's remainder).
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,

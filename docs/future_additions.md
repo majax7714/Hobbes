@@ -575,6 +575,11 @@ surfaced per file rather than silent.)*
   per-unit-session fan-out is the right execution model for a
   single-issue benchmark task, or whether a leaner derived-context
   single agent is the better arm to measure.
+  **Kept, 2026-09-14 (Max):** the top-level review asked whether this
+  line was obsolete now that the keyed rounds are closed and the
+  dispatch harness runs on subscription turns; Max: "havent settled on
+  where i want to go with harness eventually." The line stands, its
+  decision point unchanged.
 
 - ~~**The nudge's blind spot: read-only tool looping**~~ — **built** (`agent/loop.py` `--stall-after`, dry-turn and refused-repeat stalls; ADR-066/076). *Original note (observed
   2026-08-21, first 7B run):* The prose-plan nudge (ADR-058) fires only

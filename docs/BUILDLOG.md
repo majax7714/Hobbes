@@ -10487,3 +10487,11 @@ different problems."
   the debt summary and its dated note, CLAUDE.md and the handoff say
   so. No version move: the register is read by people, and nothing
   the layer draws, refuses or says changed.
+- **Then (Max: "writ the not taken note to the adr, keep the line in
+  future additions"):** ADR-106 written as *not taken* — the number
+  closed, the M0-Go record named as where its design lives, the
+  sequence contiguous; CLAUDE.md's convention line says so. The
+  `future_additions.md` harness-weight line kept with a dated note
+  (Max: "havent settled on where i want to go with harness
+  eventually"). The handoff's open list for Max is empty; its three
+  remaining items are not owed.
