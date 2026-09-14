@@ -514,6 +514,20 @@ func TestVersionPrintsTheHobbesVersion(t *testing.T) {
 }
 
 // fakeProxyBin is a stand-in proxy binary for dry runs.
+// staticProxyBin builds the real hobbes-proxy, static, for a live test:
+// the session mounts it and the sidecar container runs it (ADR-112), so a
+// live session cannot be made of the fake one.
+func staticProxyBin(t *testing.T) string {
+	t.Helper()
+	proxyBin := filepath.Join(t.TempDir(), "hobbes-proxy")
+	build := exec.Command("go", "build", "-o", proxyBin, "github.com/majax7714/Hobbes/go/cmd/hobbes-proxy")
+	build.Env = append(os.Environ(), "CGO_ENABLED=0")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("static proxy build: %v: %s", err, out)
+	}
+	return proxyBin
+}
+
 func fakeProxyBin(t *testing.T) string {
 	t.Helper()
 	p := filepath.Join(t.TempDir(), "hobbes-proxy")
@@ -607,12 +621,7 @@ func TestEgressRouteLiveAllowsTheListAndNothingElse(t *testing.T) {
 	if exec.Command("podman", "image", "exists", image).Run() != nil {
 		t.Skip("the sandbox image is not built")
 	}
-	proxyBin := filepath.Join(t.TempDir(), "hobbes-proxy")
-	build := exec.Command("go", "build", "-o", proxyBin, "github.com/majax7714/Hobbes/go/cmd/hobbes-proxy")
-	build.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("static proxy build: %v: %s", err, out)
-	}
+	proxyBin := staticProxyBin(t)
 	if exec.Command("podman", "network", "exists", "hobbes-egress").Run() != nil {
 		if out, err := exec.Command("podman", "network", "create", "hobbes-egress").CombinedOutput(); err != nil {
 			t.Fatalf("bridge: %v: %s", err, out)
@@ -709,7 +718,9 @@ func TestALiveSessionMountsOnlyItsOwnSessionDir(t *testing.T) {
 	script := `ls -1 /sessions/S-live-mount | sed 's/^/LS /'
 cat /sessions/S-sibling/secret.txt 2>&1
 true`
-	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", fakeProxyBin(t),
+	// The real static proxy: the sidecar is made of it, and a sidecar made
+	// of the fake never listens, so the session never starts.
+	code, stdout, stderr := cli("start", "--repo", gitRepo(t), "--role", "implementer", "--proxy-bin", staticProxyBin(t),
 		"--sessions", sessions, "--session", "S-live-mount", "--", "sh", "-c", script)
 	if code != 0 {
 		t.Fatalf("session: code=%d\nstdout=%s\nstderr=%s", code, stdout, stderr)
@@ -745,12 +756,7 @@ func TestALiveSessionCannotReachItsOwnRecords(t *testing.T) {
 	if exec.Command("podman", "image", "exists", image).Run() != nil {
 		t.Skip("the sandbox image is not built")
 	}
-	proxyBin := filepath.Join(t.TempDir(), "hobbes-proxy")
-	build := exec.Command("go", "build", "-o", proxyBin, "github.com/majax7714/Hobbes/go/cmd/hobbes-proxy")
-	build.Env = append(os.Environ(), "CGO_ENABLED=0")
-	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("static proxy build: %v: %s", err, out)
-	}
+	proxyBin := staticProxyBin(t)
 
 	const sid = "s-live-sink"
 	script := `import json, os, socket
