@@ -137,8 +137,9 @@ information appears in both, and the entries cross-reference.
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-130, C-137 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
-| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-120, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119 |
-| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099), the Calvin M0 local harness (ADR-100) and the dispatch harness (ADR-107) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-125, C-127, C-128, C-129, C-140, C-124, C-55, C-56, C-115 |
+| [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
+| [`verification-benchmark-harness.md`](verification-benchmark-harness.md) | Verification — the benchmark harness (ADR-055), the TTT experiment (ADR-099) and the Calvin M0 local harness (ADR-100) | C-39, C-40, C-41, C-42, C-43, C-44, C-45, C-46, C-47, C-48, C-49, C-50, C-51, C-52, C-53, C-54, C-57, C-81, C-82, C-83, C-84, C-86, C-87, C-88, C-92, C-93, C-103, C-124, C-55, C-56, C-115 |
+| [`dispatch-harness.md`](dispatch-harness.md) | The dispatch harness (ADR-107, ADR-112) — `hobbes dispatch`, the session and its records | C-125, C-127, C-128, C-129, C-140 |
 | [`system-own-claims.md`](system-own-claims.md) | The system's own claims | C-31, C-60, C-61, C-62, C-65, C-94, C-95, C-96, C-75, C-76, C-77 |
 
 Every entry keeps its `C-n`; an entry's segment is where a user meets
@@ -149,21 +150,29 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and forty-one entries: one hundred active, twenty-five lifted, eleven superseded, five folded**
+**One hundred and forty-one entries: ninety-nine active, twenty-five lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 78 | every active entry not listed below |
+| active — surfaced | 77 | every active entry not listed below |
 | active — *partial* | 18 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 25 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
-| folded | 5 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28 |
+| folded | 6 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28, C-120 → C-112 |
 
 The table is the register's current state (2026-09-14), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+Max's register decisions, 2026-09-14 (later; ADR-043 amended):
+- **A segment of its own for the dispatch harness:** C-125, C-127–C-129
+  and C-140 moved from the verification segment to
+  `dispatch-harness.md`, numbers and text unchanged.
+- **C-120 folded into C-112:** its unsurfaced remainder restates
+  C-112's (a garbled post-image reads as whatever the parse makes of
+  it, and `hobbes gate` reaches it); the gutter class is what it adds.
 
 ADR-112 built on 2026-09-14 (0.2.14-beta), the session's records leave the
 doer's container:

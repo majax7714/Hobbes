@@ -313,9 +313,9 @@ inside a dispatch they skip, so their first run is the developer's.
     lost no confirmed edge.
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 141 entries (100 active, 25 lifted, 11 superseded, 5 folded);
-    since 0.2.15-beta, 78 of the active are surfaced, 18 partial and 3
-    unsurfaced.
+  - **Register:** 141 entries (99 active, 25 lifted, 11 superseded, 6 folded);
+    since 2026-09-14, 77 of the active are surfaced, 18 partial and 3
+    unsurfaced; the dispatch harness has its own segment.
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
 - **Active: the Calvin harness** (ADR-107, `docs/calvin/calvin-harness.md`,

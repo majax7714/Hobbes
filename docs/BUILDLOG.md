@@ -10450,3 +10450,40 @@ toward 40 — C-135's autotools, Meson and Bazel roots; C-133's unit 2
 when a graded cell shows the cost; `testmap_fixture`'s pytest
 warnings; the comparative queue's next converters if named — each now
 a bare `hobbes dispatch`, on Opus 5.
+
+## 2026-09-14 — (after the release) the register: the dispatch harness's own segment; C-120 folded into C-112; ADR-106 answered
+
+**Asked (Max):** "whats adr-106 also yes a dispatch harness section for
+constraints is a good approach. also probably the fold unless
+different problems."
+
+- **ADR-106** is a held number, not a file: M0-Go's design was to take
+  it when moved to *accepted* (`calvin-m0-go.md` line 12,
+  `calvin-m0-gate.md` §9), and ADR-107 closed the keyed rounds as an
+  approach, so nothing will take it. Two routes put to Max in the
+  handoff: write a one-page ADR-106 marked *not taken* that points at
+  the M0-Go record, so the sequence has no hole and the number is never
+  reused (recommended); or leave it held.
+- **The segment** (`docs/constraints/dispatch-harness.md`): C-125,
+  C-127, C-128, C-129 and C-140 moved out of the verification segment
+  with their numbers and text unchanged; its intro says what stays
+  elsewhere (the gate's entries in the derivation segment, C-41 and the
+  keyed rounds' session entries in verification). The verification
+  segment's title drops the harness; C-41's "below" now names the new
+  file. Neither the Go knowledge package nor a test reads the segment
+  files by name, so the split is prose only.
+- **The fold.** Same problem, not different: C-120's own text calls its
+  unsurfaced remainder "C-112's subject" — a garbled post-image reads
+  as whatever lane A's parse makes of it, nothing said, and `hobbes
+  gate` grounds every dispatched diff through that code. What C-120
+  adds is the one shape that *is* named (the render gutter,
+  `malformed`) and why only that one. Folded per ADR-043's rule: the
+  entry keeps its number and text at the bottom of its segment, C-112
+  gains a **Folds in** line and keeps the weaker status, unsurfaced.
+  ADR-043 amended with the date; the 2026-09-13 line that kept C-120
+  active stands as history.
+- **The counts:** 141 entries — 99 active (77 surfaced, 18 partial, 3
+  unsurfaced, 1 n/a), 25 lifted, 11 superseded, 6 folded. The index,
+  the debt summary and its dated note, CLAUDE.md and the handoff say
+  so. No version move: the register is read by people, and nothing
+  the layer draws, refuses or says changed.

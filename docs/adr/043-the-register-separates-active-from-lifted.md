@@ -118,3 +118,12 @@ Applied in the same commit:
 
 The register reads 141 entries: 100 active, 25 lifted, 11 superseded,
 5 folded.
+
+**2026-09-14 (Max):** C-120 folded into C-112. The line above kept it
+active because `hobbes gate` reaches it; what it concedes there — a
+garbled post-image reads as whatever the parse makes of it — is
+C-112's, and the gutter class is what it adds. The same day the
+dispatch harness's entries (C-125, C-127–C-129, C-140) got a segment of
+their own, `dispatch-harness.md`, where a person running `hobbes
+dispatch` looks. The register reads 141 entries: 99 active, 25 lifted,
+11 superseded, 6 folded.

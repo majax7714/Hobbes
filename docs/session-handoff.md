@@ -204,15 +204,16 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - The top-level review found one drift, fixed: the harness doc's
      status line still said twelve sessions through 0.2.10-beta.
 1. **Open for Max (no spend):**
-   - **The register and backlog review's remaining calls** (2026-09-13):
-     - a segment of its own for the dispatch harness's entries (C-125,
-       C-127–C-129, C-140);
-     - whether `future_additions.md`'s "re-evaluate the harness if its
-       weight stays this high" is obsolete;
-     - C-120, kept active: `hobbes gate` grounds through the code it
-       concedes (`gate.py:552`), and there it restates C-112, so a fold
-       into C-112 is the candidate.
-   - **ADR-106.**
+   - **The register and backlog review's remaining call** (2026-09-13):
+     whether `future_additions.md`'s "re-evaluate the harness if its
+     weight stays this high" is obsolete. (The dispatch segment and the
+     C-120 fold were taken 2026-09-14.)
+   - **ADR-106** — a held number, not a file: M0-Go's design was to
+     take it on *accepted*, and the keyed rounds closed as an approach
+     (ADR-107). Proposed route: write a one-page ADR-106 marked
+     *not taken*, pointing at `calvin-m0-go.md` as the record, so the
+     sequence has no hole and no one reuses the number; the other is
+     to leave it held. Max's call.
    - **C-139's finer extent** (the binding's own line, or the enclosing
      block). Take it only if a graded cell ever shows the recall cost.
      Nothing is owed now.
@@ -395,10 +396,11 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 141 entries: 100 active (78 surfaced, 18 partial, 3
-  unsurfaced, 1 n/a), 25 lifted, 11 superseded, 5 folded (Max's calls,
-  2026-09-13; ADR-043 amended). C-141 registered the same day; C-133
-  and C-135 narrowed 2026-09-14.
+- **Register:** 141 entries: 99 active (77 surfaced, 18 partial, 3
+  unsurfaced, 1 n/a), 25 lifted, 11 superseded, 6 folded (Max's calls,
+  2026-09-13 and 2026-09-14; ADR-043 amended twice). C-133 and C-135
+  narrowed 2026-09-14; the dispatch harness's five entries have their
+  own segment, `dispatch-harness.md`, and C-120 folded into C-112.
 - **Suites** at 0.2.17-beta:
   - 1,519 pytest (host); 47 scip node (host, not re-run: nothing it covers changed);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
@@ -411,8 +413,8 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **Max's calls** (START HERE item 1): ADR-106; the register segment for
-   the dispatch entries.
+1. **Max's calls** (START HERE item 1): ADR-106 (a route proposed);
+   `future_additions.md`'s harness-weight line.
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,

@@ -282,6 +282,11 @@
   only from the verifier's build row, which runs later and on the whole
   diff. Candidate: a `syntax-error` class read from the parse's ERROR
   nodes inside edited ranges.
+- **Folds in:** C-120 (2026-09-14) — the one malformation shape the
+  grounder does name: a post-image carrying the template render's
+  line-number gutter reads as `malformed` (`holes.carries_gutter`, D-a's
+  pattern), and no other. A syntax error, a truncated declaration, a
+  wrong language's syntax all stay this entry's, unsurfaced.
 - **Source:** Calvin M0-Go WP-9, 2026-09-11 (defect D-1).
 
 ### C-113 — The world check covers Go fills only
@@ -368,42 +373,6 @@
 - **Folds in:** C-119 (2026-09-13) — the edited-callee abstention, and
   the gold NULLs that found it.
 - **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11.
-
-### C-120 — A malformed post-image reads as its own class only when it carries the render's gutter
-
-- **Cannot tell you:** that any file the grounder cannot meaningfully
-  parse says so. `ground()` now names exactly one shape of unreadable
-  content — a post-image whose text carries the template render's
-  line-number gutter (`holes.carries_gutter`, D-a's own pattern) — as
-  its own reference class, `malformed`, rather than silently reporting
-  0 references as though the file were legitimately empty (round 2
-  D-m). A file garbled some *other* way — truncated mid-declaration, a
-  wrong language's syntax, binary content coerced to text — is not
-  this class; it still reads as whatever lane A's parser happens to
-  make of it, symbols and calls included or emptied out with nothing
-  said.
-- **Because:** the gutter shape is the one defect this round's record
-  actually produced and reproduced (WP-6's `7fc11bb264e9`, protocol
-  v0.3, before WP-7a's validator guard existed); a general "this parse
-  looks too empty for its size" heuristic risks flagging legitimately
-  sparse real files (a one-line stub, a `//go:generate`-only file) as
-  malformed, which is a worse failure than the one being fixed.
-- **Bites at:** a replay of a pre-v0.4 record only — a live run under
-  protocol v0.4 or later never reaches `ground()` with a gutter-carrying
-  body at all (the validator refuses it first), so this class is a
-  defence-in-depth check for exactly the case the general system (the
-  validator) already owns (P10): the specific guarantee here is that
-  *this* one shape never again reads as a silent empty file, even
-  off-path. The other half is live: `hobbes gate` grounds every
-  dispatched diff through `ground()` (`gate.py:552`), so a post-image
-  garbled another way reads there as whatever the parse makes of it —
-  C-112's subject.
-- **You find out:** **surfaced** for the gutter shape —
-  `references.malformed` and a `refs` row with `class: "malformed"` and
-  `reason` (`holes.GUTTER_ERROR`); **unsurfaced** for every other
-  malformation shape, unchanged from before this fix.
-- **Source:** Calvin M0-Go round 2 WP-11b (found, D-m) / WP-14b
-  (fixed), 2026-09-11.
 
 ### C-121 — `hobbes gate`'s `unknown` is advisory: a NULL in a blind spot never blocks
 
@@ -829,3 +798,45 @@ abstention among its own. This entry adds why it exists — the two false
   abstention, and `SIGNATURE_RULE` states it in the record.
 - **Source:** Calvin M0-Go round 2 WP-14b, 2026-09-11 (found on gold's
   `ed205a5f63e3` and `2278a2a97e42`).
+
+### C-120 — A malformed post-image reads as its own class only when it carries the render's gutter — *folded into C-112 (2026-09-14)*
+*(Folded 2026-09-14 into C-112 (ADR-043 amended; Max). Its unsurfaced
+remainder — a post-image garbled in any way but the gutter reads as
+whatever lane A's parse makes of it, nothing said — is C-112's
+concession, which `hobbes gate` reaches on every dispatched diff
+(`gate.py:552`). This entry adds the one shape that *is* named,
+`malformed`, and why only that one.)*
+
+- **Cannot tell you:** that any file the grounder cannot meaningfully
+  parse says so. `ground()` now names exactly one shape of unreadable
+  content — a post-image whose text carries the template render's
+  line-number gutter (`holes.carries_gutter`, D-a's own pattern) — as
+  its own reference class, `malformed`, rather than silently reporting
+  0 references as though the file were legitimately empty (round 2
+  D-m). A file garbled some *other* way — truncated mid-declaration, a
+  wrong language's syntax, binary content coerced to text — is not
+  this class; it still reads as whatever lane A's parser happens to
+  make of it, symbols and calls included or emptied out with nothing
+  said.
+- **Because:** the gutter shape is the one defect this round's record
+  actually produced and reproduced (WP-6's `7fc11bb264e9`, protocol
+  v0.3, before WP-7a's validator guard existed); a general "this parse
+  looks too empty for its size" heuristic risks flagging legitimately
+  sparse real files (a one-line stub, a `//go:generate`-only file) as
+  malformed, which is a worse failure than the one being fixed.
+- **Bites at:** a replay of a pre-v0.4 record only — a live run under
+  protocol v0.4 or later never reaches `ground()` with a gutter-carrying
+  body at all (the validator refuses it first), so this class is a
+  defence-in-depth check for exactly the case the general system (the
+  validator) already owns (P10): the specific guarantee here is that
+  *this* one shape never again reads as a silent empty file, even
+  off-path. The other half is live: `hobbes gate` grounds every
+  dispatched diff through `ground()` (`gate.py:552`), so a post-image
+  garbled another way reads there as whatever the parse makes of it —
+  C-112's subject.
+- **You find out:** **surfaced** for the gutter shape —
+  `references.malformed` and a `refs` row with `class: "malformed"` and
+  `reason` (`holes.GUTTER_ERROR`); **unsurfaced** for every other
+  malformation shape, unchanged from before this fix.
+- **Source:** Calvin M0-Go round 2 WP-11b (found, D-m) / WP-14b
+  (fixed), 2026-09-11.
