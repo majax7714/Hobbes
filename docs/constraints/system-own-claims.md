@@ -200,6 +200,17 @@
   Rust, where a macro invocation drawn as a call is graded rather than
   excluded. Both first tools carry a kind, so the variable rule
   applies to them where their kind is a variable and nowhere else.
+  **On C (2026-09-14, the first foreign C cells):** repowise stores a
+  function-like macro (`#define can_read(buffer, size) …`, Unity's
+  `TEST_ASSERT_*`, sqlite-vector's `MM256_FMA_PS`) as kind `function`,
+  so the macro exclusion never fires for it and each such edge grades
+  against the callee clang saw in the expansion: 562 of its 564 cJSON
+  contradictions and all 99 on sqlite-vector are `#define` targets
+  (65.5% and 88.7% as stored; 99.8% and 100% with those rows excluded
+  as Hobbes' own are, stated in the records, not graded). Whether the
+  converter may read a `#define` at the target line as `macro` — the
+  same reading converter@2 made for annotation lines — is a decision
+  (ADR-101), not taken.
 - **You find out:** **surfaced** (2026-09-09). `oracle import`'s
   package doc and the cell record state which rules fired; the
   report's per-tier split reads the tool's own confidence labels, so

@@ -661,7 +661,7 @@ def render_comparison(cells: list[dict]) -> str:
             continue
         by_label.setdefault(c["label"], {})[c.get("tool", "hobbes")] = c
     rows = [(lab, d) for lab, d in by_label.items() if any(t != "hobbes" for t in d) and "hobbes" in d]
-    order = ["Go", "TypeScript", "Rust", "Java", "Python"]
+    order = ["Go", "TypeScript", "Rust", "Java", "C", "Python"]  # C since 2026-09-14, the first foreign C cells
     bands = []
     for lang in order:
         loop = [(l, d) for l, d in rows if d["hobbes"]["lang"] == lang and "repowise-bench" not in d["hobbes"].get("draw", "")]

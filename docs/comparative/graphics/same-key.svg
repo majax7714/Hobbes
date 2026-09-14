@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="950" height="836" viewBox="0 0 950 836" role="img" aria-label="Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise">
+<svg xmlns="http://www.w3.org/2000/svg" width="950" height="902" viewBox="0 0 950 902" role="img" aria-label="Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise">
 <title>Three graphs on one key per cell: precision-against-oracle and recall, Hobbes beside CodeGraphContext and repowise</title>
-<rect width="950" height="836" fill="#fcfcfb"/>
+<rect width="950" height="902" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Three graphs, one key per cell: precision-against-oracle and recall, never pooled</text>
 <g>
 <title>Hobbes 0.1.10-beta / 0.2.4-beta / 0.2.8-beta</title>
@@ -19,26 +19,26 @@
 <text x="508.69999999999993" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
 <text x="24" y="66" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).</text>
 <text x="24" y="80" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.</text>
-<line x1="250.0" y1="112" x2="250.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="250.0" y1="112" x2="250.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="250.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0%</text>
-<line x1="325.0" y1="112" x2="325.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="325.0" y1="112" x2="325.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="325.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >25%</text>
-<line x1="400.0" y1="112" x2="400.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="400.0" y1="112" x2="400.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="400.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50%</text>
-<line x1="475.0" y1="112" x2="475.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="475.0" y1="112" x2="475.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="475.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >75%</text>
-<line x1="550.0" y1="112" x2="550.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="550.0" y1="112" x2="550.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="550.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100%</text>
 <text x="400.0" y="92" font-size="11" fill="#1a1a19" text-anchor="middle" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >precision-against-oracle (a lower bound)</text>
-<line x1="610.0" y1="112" x2="610.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="610.0" y1="112" x2="610.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="610.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0%</text>
-<line x1="685.0" y1="112" x2="685.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="685.0" y1="112" x2="685.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="685.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >25%</text>
-<line x1="760.0" y1="112" x2="760.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="760.0" y1="112" x2="760.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="760.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50%</text>
-<line x1="835.0" y1="112" x2="835.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="835.0" y1="112" x2="835.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="835.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >75%</text>
-<line x1="910.0" y1="112" x2="910.0" y2="646" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<line x1="910.0" y1="112" x2="910.0" y2="712" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="910.0" y="108" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100%</text>
 <text x="760.0" y="92" font-size="11" fill="#1a1a19" text-anchor="middle" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, of in-repo oracle pairs at the cell's roots</text>
 <text x="24" y="132" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Go — the loop and random-draw cells</text>
@@ -366,176 +366,231 @@
 <title>spring-petclinic — repowise: recall 342/373 = 91.7% over every resolved site (resolution oracle: no roots)</title>
 <polygon points="885.1,451.5 891.6,458 885.1,464.5 878.6,458" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="24" y="484" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — the loop and random-draw cells</text>
-<text x="240" y="506" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click (trace: confirmation rate)</text>
-<line x1="448.9" y1="502" x2="505.0" y2="502" stroke="#d9d8d2" stroke-width="2"/>
+<text x="24" y="484" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >C — the loop and random-draw cells</text>
+<text x="240" y="506" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON</text>
+<line x1="446.5" y1="502" x2="550.0" y2="502" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>cJSON — hobbes: precision-against-oracle 1,188/1,188 = 100.0%</title>
+<circle cx="550.0" cy="502" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cJSON — codegraphcontext: precision-against-oracle 1,179/1,179 = 100.0%</title>
+<rect x="545.0" y="497" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cJSON — repowise: precision-against-oracle 1,073/1,637 = 65.5%</title>
+<polygon points="446.5,495.5 453.0,502 446.5,508.5 440.0,502" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="778.0" y1="502" x2="796.0" y2="502" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>cJSON — hobbes: recall 1,190/1,918 = 62.0% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="796.0" cy="502" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cJSON — codegraphcontext: recall 1,180/1,918 = 61.5% over every resolved site (resolution oracle: no roots)</title>
+<rect x="789.5" y="497" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cJSON — repowise: recall 1,074/1,918 = 56.0% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="778.0,495.5 784.5,502 778.0,508.5 771.5,502" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="240" y="528" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector</text>
+<line x1="516.1" y1="524" x2="550.0" y2="524" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>sqlite-vector — codegraphcontext: precision-against-oracle 851/863 = 98.6%</title>
+<rect x="540.8" y="519" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>sqlite-vector — repowise: precision-against-oracle 780/879 = 88.7%</title>
+<polygon points="516.1,517.5 522.6,524 516.1,530.5 509.6,524" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>sqlite-vector — hobbes: precision-against-oracle 851/851 = 100.0%</title>
+<circle cx="550.0" cy="524" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="889.9" y1="524" x2="910.0" y2="524" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>sqlite-vector — codegraphcontext: recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)</title>
+<rect x="905.0" y="519" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>sqlite-vector — repowise: recall 1,018/1,091 = 93.3% over every resolved site (resolution oracle: no roots)</title>
+<polygon points="889.9,517.5 896.4,524 889.9,530.5 883.4,524" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>sqlite-vector — hobbes: recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="910.0" cy="524" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="24" y="550" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — the loop and random-draw cells</text>
+<text x="240" y="572" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click (trace: confirmation rate)</text>
+<line x1="448.9" y1="568" x2="505.0" y2="568" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>click — hobbes: confirmation rate 1,755/2,065 = 85.0%</title>
-<circle cx="505.0" cy="502" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<circle cx="505.0" cy="568" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — codegraphcontext: confirmation rate 1,298/1,958 = 66.3%</title>
-<rect x="443.9" y="497" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="443.9" y="563" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — repowise: confirmation rate 1,703/2,426 = 70.2%</title>
-<polygon points="460.6,495.5 467.1,502 460.6,508.5 454.1,502" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="460.6,561.5 467.1,568 460.6,574.5 454.1,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="694.6" y1="502" x2="724.6" y2="502" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="694.6" y1="568" x2="724.6" y2="568" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>click — hobbes: recall 1,755/4,595 = 38.2% recall-against-executed (coverage-limited)</title>
-<circle cx="724.6" cy="502" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<circle cx="724.6" cy="568" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — codegraphcontext: recall 1,298/4,595 = 28.2% recall-against-executed (coverage-limited)</title>
-<rect x="689.6" y="497" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="689.6" y="563" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>click — repowise: recall 1,703/4,595 = 37.1% recall-against-executed (coverage-limited)</title>
-<polygon points="721.3,495.5 727.8,502 721.3,508.5 714.8,502" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="721.3,561.5 727.8,568 721.3,574.5 714.8,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="24" y="528" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise-bench's draws under our key (Go, TypeScript) — the 1-1</text>
-<text x="240" y="550" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cobra (with tests)</text>
-<line x1="519.4" y1="546" x2="550.0" y2="546" stroke="#d9d8d2" stroke-width="2"/>
+<text x="24" y="594" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise-bench's draws under our key (Go, TypeScript) — the 1-1</text>
+<text x="240" y="616" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cobra (with tests)</text>
+<line x1="519.4" y1="612" x2="550.0" y2="612" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>cobra (with tests) — hobbes: precision-against-oracle 2,186/2,186 = 100.0%</title>
-<circle cx="550.0" cy="546" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>cobra (with tests) — codegraphcontext: precision-against-oracle 1,874/2,086 = 89.8%</title>
-<rect x="514.4" y="541" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>cobra (with tests) — repowise: precision-against-oracle 1,997/2,056 = 97.1%</title>
-<polygon points="541.3,539.5 547.8,546 541.3,552.5 534.8,546" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<line x1="794.8" y1="546" x2="825.4" y2="546" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>cobra (with tests) — hobbes: recall 2,200/3,062 = 71.8% at 2 roots</title>
-<circle cx="825.4" cy="546" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>cobra (with tests) — codegraphcontext: recall 1,887/3,062 = 61.6% at 2 roots</title>
-<rect x="789.8" y="541" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>cobra (with tests) — repowise: recall 2,009/3,062 = 65.6% at 2 roots</title>
-<polygon points="806.8,539.5 813.3,546 806.8,552.5 800.3,546" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="240" y="572" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (no tests)</text>
-<line x1="527.5" y1="568" x2="550.0" y2="568" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>gitleaks (no tests) — codegraphcontext: precision-against-oracle 1,984/2,145 = 92.5%</title>
-<rect x="522.5" y="563" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (no tests) — hobbes: precision-against-oracle 2,010/2,010 = 100.0%</title>
-<circle cx="550.0" cy="568" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (no tests) — repowise: precision-against-oracle 1,956/2,030 = 96.4%</title>
-<polygon points="539.2,561.5 545.7,568 539.2,574.5 532.7,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<line x1="896.2" y1="568" x2="904.0" y2="568" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>gitleaks (no tests) — codegraphcontext: recall 2,043/2,111 = 96.8% at 2 roots</title>
-<rect x="895.4" y="563" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (no tests) — hobbes: recall 2,069/2,111 = 98.0% at 2 roots</title>
-<circle cx="904.0" cy="568" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (no tests) — repowise: recall 2,013/2,111 = 95.4% at 2 roots</title>
-<polygon points="896.2,561.5 902.7,568 896.2,574.5 889.7,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="240" y="594" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (with tests)</text>
-<line x1="528.4" y1="590" x2="550.0" y2="590" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>gitleaks (with tests) — codegraphcontext: precision-against-oracle 2,211/2,382 = 92.8%</title>
-<rect x="523.4" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (with tests) — hobbes: precision-against-oracle 2,266/2,266 = 100.0%</title>
-<circle cx="550.0" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (with tests) — repowise: precision-against-oracle 2,172/2,252 = 96.4%</title>
-<polygon points="539.2,583.5 545.7,590 539.2,596.5 532.7,590" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<line x1="883.0" y1="590" x2="894.7" y2="590" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>gitleaks (with tests) — codegraphcontext: recall 2,270/2,450 = 92.7% at 9 roots</title>
-<rect x="883.1" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (with tests) — hobbes: recall 2,325/2,450 = 94.9% at 9 roots</title>
-<circle cx="894.7" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>gitleaks (with tests) — repowise: recall 2,229/2,450 = 91.0% at 9 roots</title>
-<polygon points="883.0,583.5 889.5,590 883.0,596.5 876.5,590" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="240" y="616" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json)</text>
-<line x1="486.1" y1="612" x2="550.0" y2="612" stroke="#d9d8d2" stroke-width="2"/>
-<g>
-<title>hono (tsconfig.build.json) — codegraphcontext: precision-against-oracle 607/771 = 78.7%</title>
-<rect x="481.1" y="607" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<g>
-<title>hono (tsconfig.build.json) — hobbes: precision-against-oracle 768/768 = 100.0%</title>
 <circle cx="550.0" cy="612" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 735/787 = 93.4%</title>
-<polygon points="530.2,605.5 536.7,612 530.2,618.5 523.7,612" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cobra (with tests) — codegraphcontext: precision-against-oracle 1,874/2,086 = 89.8%</title>
+<rect x="514.4" y="607" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="741.1" y1="612" x2="775.6" y2="612" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>cobra (with tests) — repowise: precision-against-oracle 1,997/2,056 = 97.1%</title>
+<polygon points="541.3,605.5 547.8,612 541.3,618.5 534.8,612" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="794.8" y1="612" x2="825.4" y2="612" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>cobra (with tests) — hobbes: recall 2,200/3,062 = 71.8% at 2 roots</title>
+<circle cx="825.4" cy="612" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cobra (with tests) — codegraphcontext: recall 1,887/3,062 = 61.6% at 2 roots</title>
+<rect x="789.8" y="607" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>cobra (with tests) — repowise: recall 2,009/3,062 = 65.6% at 2 roots</title>
+<polygon points="806.8,605.5 813.3,612 806.8,618.5 800.3,612" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="240" y="638" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (no tests)</text>
+<line x1="527.5" y1="634" x2="550.0" y2="634" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>gitleaks (no tests) — codegraphcontext: precision-against-oracle 1,984/2,145 = 92.5%</title>
+<rect x="522.5" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (no tests) — hobbes: precision-against-oracle 2,010/2,010 = 100.0%</title>
+<circle cx="550.0" cy="634" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (no tests) — repowise: precision-against-oracle 1,956/2,030 = 96.4%</title>
+<polygon points="539.2,627.5 545.7,634 539.2,640.5 532.7,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="896.2" y1="634" x2="904.0" y2="634" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>gitleaks (no tests) — codegraphcontext: recall 2,043/2,111 = 96.8% at 2 roots</title>
+<rect x="895.4" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (no tests) — hobbes: recall 2,069/2,111 = 98.0% at 2 roots</title>
+<circle cx="904.0" cy="634" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (no tests) — repowise: recall 2,013/2,111 = 95.4% at 2 roots</title>
+<polygon points="896.2,627.5 902.7,634 896.2,640.5 889.7,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="240" y="660" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >gitleaks (with tests)</text>
+<line x1="528.4" y1="656" x2="550.0" y2="656" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>gitleaks (with tests) — codegraphcontext: precision-against-oracle 2,211/2,382 = 92.8%</title>
+<rect x="523.4" y="651" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (with tests) — hobbes: precision-against-oracle 2,266/2,266 = 100.0%</title>
+<circle cx="550.0" cy="656" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (with tests) — repowise: precision-against-oracle 2,172/2,252 = 96.4%</title>
+<polygon points="539.2,649.5 545.7,656 539.2,662.5 532.7,656" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="883.0" y1="656" x2="894.7" y2="656" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>gitleaks (with tests) — codegraphcontext: recall 2,270/2,450 = 92.7% at 9 roots</title>
+<rect x="883.1" y="651" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (with tests) — hobbes: recall 2,325/2,450 = 94.9% at 9 roots</title>
+<circle cx="894.7" cy="656" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>gitleaks (with tests) — repowise: recall 2,229/2,450 = 91.0% at 9 roots</title>
+<polygon points="883.0,649.5 889.5,656 883.0,662.5 876.5,656" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="240" y="682" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json)</text>
+<line x1="486.1" y1="678" x2="550.0" y2="678" stroke="#d9d8d2" stroke-width="2"/>
+<g>
+<title>hono (tsconfig.build.json) — codegraphcontext: precision-against-oracle 607/771 = 78.7%</title>
+<rect x="481.1" y="673" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>hono (tsconfig.build.json) — hobbes: precision-against-oracle 768/768 = 100.0%</title>
+<circle cx="550.0" cy="678" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<g>
+<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 735/787 = 93.4%</title>
+<polygon points="530.2,671.5 536.7,678 530.2,684.5 523.7,678" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<line x1="741.1" y1="678" x2="775.6" y2="678" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>hono (tsconfig.build.json) — codegraphcontext: recall 613/1,403 = 43.7% over every resolved site (resolution oracle: no roots)</title>
-<rect x="736.1" y="607" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="736.1" y="673" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>hono (tsconfig.build.json) — hobbes: recall 775/1,403 = 55.2% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="775.6" cy="612" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<circle cx="775.6" cy="678" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>hono (tsconfig.build.json) — repowise: recall 741/1,403 = 52.8% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="768.4,605.5 774.9,612 768.4,618.5 761.9,612" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="768.4,671.5 774.9,678 768.4,684.5 761.9,678" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="240" y="638" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
-<line x1="314.5" y1="634" x2="550.0" y2="634" stroke="#d9d8d2" stroke-width="2"/>
+<text x="240" y="704" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
+<line x1="314.5" y1="700" x2="550.0" y2="700" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>zod — codegraphcontext: precision-against-oracle 1,434/6,662 = 21.5%</title>
-<rect x="309.5" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="309.5" y="695" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — repowise: precision-against-oracle 2,182/2,361 = 92.4%</title>
-<polygon points="527.2,627.5 533.7,634 527.2,640.5 520.7,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="527.2,693.5 533.7,700 527.2,706.5 520.7,700" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — hobbes: precision-against-oracle 9,731/9,731 = 100.0%</title>
-<circle cx="550.0" cy="634" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<circle cx="550.0" cy="700" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="629.8" y1="634" x2="745.3" y2="634" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="629.8" y1="700" x2="745.3" y2="700" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>zod — codegraphcontext: recall 1,443/21,931 = 6.6% over every resolved site (resolution oracle: no roots)</title>
-<rect x="624.8" y="629" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="624.8" y="695" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — repowise: recall 2,190/21,931 = 10.0% over every resolved site (resolution oracle: no roots)</title>
-<polygon points="640.0,627.5 646.5,634 640.0,640.5 633.5,634" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="640.0,693.5 646.5,700 640.0,706.5 633.5,700" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>zod — hobbes: recall 9,893/21,931 = 45.1% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="745.3" cy="634" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<circle cx="745.3" cy="700" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="24" y1="660" x2="926" y2="660" stroke="#d9d8d2"/>
-<text x="24" y="680" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>
-<text x="24" y="694" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except quic-go (3,766/3,781, a 99.6% lower bound), triaged in its record. The tools'</text>
-<text x="24" y="708" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters'</text>
-<text x="24" y="722" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java annotation-line defect (C-94) was repaired and the Java cells regraded. On repowise-bench's draws the key is ours, at site grain — not comparable with their published</text>
-<text x="24" y="736" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >table; syft is absent because RTA over it is killed by the kernel on this box.</text>
-<text x="24" y="754" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. The Hobbes cells' standing grades are by Hobbes</text>
-<text x="24" y="767" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0.1.10-beta, 0.2.4-beta, 0.2.8-beta (ADR-103; per cell in tables.md).</text>
+<line x1="24" y1="726" x2="926" y2="726" stroke="#d9d8d2"/>
+<text x="24" y="746" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>
+<text x="24" y="760" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except quic-go (3,766/3,781, a 99.6% lower bound), triaged in its record. The tools'</text>
+<text x="24" y="774" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters'</text>
+<text x="24" y="788" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java annotation-line defect (C-94) was repaired and the Java cells regraded. On repowise-bench's draws the key is ours, at site grain — not comparable with their published</text>
+<text x="24" y="802" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >table; syft is absent because RTA over it is killed by the kernel on this box.</text>
+<text x="24" y="820" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. The Hobbes cells' standing grades are by Hobbes</text>
+<text x="24" y="833" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0.1.10-beta, 0.2.4-beta, 0.2.8-beta (ADR-103; per cell in tables.md).</text>
 </svg>

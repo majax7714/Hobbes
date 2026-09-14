@@ -470,5 +470,37 @@
   "draw": "dogfood",
   "label": "minic (fixture)",
   "note": "the C lane's own fixture in this repo, graded as make's default target builds it"
+ },
+ "codegraphcontext-cjson": {
+  "lang": "C",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "cJSON",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state"
+ },
+ "codegraphcontext-sqlite-vector": {
+  "lang": "C",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "sqlite-vector",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state"
+ },
+ "repowise-cjson": {
+  "lang": "C",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "cJSON",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state"
+ },
+ "repowise-sqlite-vector": {
+  "lang": "C",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "sqlite-vector",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state"
  }
 }

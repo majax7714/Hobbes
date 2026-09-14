@@ -113,9 +113,19 @@ earlier version. That is why the graphics name three versions.
    1, converter-defect 0 *after* the sample found the converter's Java
    annotation-line defect (C-94) and the Java cells were regraded with
    signed direction lines. The rest of each cell's contradictions are
-   untriaged and the records say so. No foreign cell exists for C: the
-   C cells postdate the runs, and grading the two tools there is a
-   queue item, not a result.
+   untriaged and the records say so. **C, 2026-09-14:** both tools on
+   the two C cells (cJSON, sqlite-vector) under the clang keys, once
+   `oracle import` took `--lang c`. CodeGraphContext reads 1,179/1,179
+   and 851/863; repowise 1,073/1,637 and 780/879 — and every repowise
+   contradiction but two is a function-like macro the tool stores as
+   `function`, graded against the callee clang saw in the expansion,
+   where Hobbes' own macro edges are excluded before grading because
+   its graph says `macro` (C-95's C face; each record reads every
+   row and states the number with those rows excluded, ungraded).
+   CodeGraphContext's twelve on sqlite-vector are nine API names
+   drawn into the vendored amalgamation the build never compiles with
+   the extension and the three `strcasestr` shim rows Hobbes' own
+   syntactic tier once drew (C-138).
 
 ## The 1-1 on repowise's draws
 
