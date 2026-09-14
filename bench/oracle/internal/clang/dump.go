@@ -76,10 +76,38 @@ type reader struct {
 	curPseudo bool
 	curLine   int
 
+	// curClass is the enclosing C++ record's name (a method's Caller
+	// qualifier and a constructor's class); curAnon marks an unnamed
+	// namespace's subtree, whose declarations link internally the way
+	// C's statics do.
+	curClass string
+	curAnon  bool
+
 	mainFile string
 	files    map[string]bool
 	decls    []Decl
 	calls    []Call
+	// declByID indexes decls by clang node id and records maps a
+	// CXXRecordDecl's id to its name: C++ names a callee by id (a member
+	// call's referencedMemberDecl, a DeclRefExpr's referencedDecl) and an
+	// out-of-line definition names its class by parentDeclContextId.
+	declByID map[string]int
+	records  map[string]string
+	pending  []pendingCall
+}
+
+// pendingCall is a site whose callee the walk cannot name where it
+// stands: a call naming a declaration by id, which a class's own body
+// may reach before the dump declares it, or a construct expression,
+// which names no callee at all. finish names both.
+type pendingCall struct {
+	idx    int
+	declID string
+	member bool
+	// class and ctorType name a construct expression's target: the
+	// record's own name and the constructor signature clang printed.
+	class    string
+	ctorType string
 }
 
 // ReadDump reads one translation unit's clang AST dump (`clang
@@ -89,10 +117,12 @@ type reader struct {
 // directory; repo is the repository root, both absolute. An
 // unparseable dump returns an error, never a partial shard.
 func ReadDump(r io.Reader, dir, repo string) (*Shard, error) {
-	rd := &reader{dec: json.NewDecoder(r), dir: dir, repo: repo, files: map[string]bool{}}
+	rd := &reader{dec: json.NewDecoder(r), dir: dir, repo: repo, files: map[string]bool{},
+		declByID: map[string]int{}, records: map[string]string{}}
 	if _, err := rd.walkNode(""); err != nil {
 		return nil, fmt.Errorf("clang: %w", err)
 	}
+	rd.finish()
 	s := &Shard{File: rd.mainFile, Decls: rd.decls, Calls: rd.calls}
 	for f := range rd.files {
 		s.Files = append(s.Files, f)
@@ -142,19 +172,18 @@ func isPseudoFile(raw string) bool {
 }
 
 // walkNode decodes one AST node value (its opening '{' not yet
-// consumed), recording function declarations and in-repo call sites as
-// it goes, and returns the node's own "kind" so a FunctionDecl's own
-// walk can notice a direct CompoundStmt child (a definition). fn is the
-// name of the nearest enclosing FunctionDecl (Caller); "" at the top.
+// consumed), recording declarations and in-repo call sites as it goes,
+// and returns the node's own "kind" so a declaration's own walk can
+// notice a direct CompoundStmt child (a definition). fn is the name of
+// the nearest enclosing function or method (Caller); "" at the top.
 func (rd *reader) walkNode(fn string) (string, error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
 		return "", err
 	}
-	var kind, name, storageClass string
-	var isImplicit bool
-	var nodeLoc pos
+	var kind, id, name, storageClass, mangled, parentID, qualType, ctorType string
+	var isImplicit, isVirtual, hasLoc bool
+	var nodeLoc, nodeRange pos
 	hasCompound := false
-	var call *Call
 
 	for rd.dec.More() {
 		key, err := nextKey(rd.dec)
@@ -166,6 +195,10 @@ func (rd *reader) walkNode(fn string) (string, error) {
 			if kind, err = nextString(rd.dec); err != nil {
 				return "", err
 			}
+		case "id":
+			if id, err = nextString(rd.dec); err != nil {
+				return "", err
+			}
 		case "name":
 			if name, err = nextString(rd.dec); err != nil {
 				return "", err
@@ -174,27 +207,62 @@ func (rd *reader) walkNode(fn string) (string, error) {
 			if storageClass, err = nextString(rd.dec); err != nil {
 				return "", err
 			}
+		case "mangledName":
+			if mangled, err = nextString(rd.dec); err != nil {
+				return "", err
+			}
+		case "parentDeclContextId":
+			if parentID, err = nextString(rd.dec); err != nil {
+				return "", err
+			}
 		case "isImplicit":
 			if isImplicit, err = nextBool(rd.dec); err != nil {
 				return "", err
 			}
+		case "virtual":
+			if isVirtual, err = nextBool(rd.dec); err != nil {
+				return "", err
+			}
+		case "type":
+			if qualType, err = rd.readQualType(); err != nil {
+				return "", err
+			}
+		case "ctorType":
+			if ctorType, err = rd.readQualType(); err != nil {
+				return "", err
+			}
 		case "loc":
+			hasLoc = true
 			if nodeLoc, err = rd.readPos(); err != nil {
 				return "", err
 			}
+		case "range":
+			if nodeRange, err = rd.readRangeBegin(); err != nil {
+				return "", err
+			}
 		case "inner":
-			if kind == "CallExpr" {
-				if call, err = rd.walkCallExprInner(fn); err != nil {
+			if isCallKind(kind) {
+				if err = rd.walkCallInner(fn, kind); err != nil {
 					return "", err
 				}
-			} else {
-				childFn := fn
-				if kind == "FunctionDecl" {
-					childFn = name
-				}
-				if hasCompound, err = rd.walkChildren(kind, childFn); err != nil {
-					return "", err
-				}
+				continue
+			}
+			childFn, childClass, childAnon := fn, rd.curClass, rd.curAnon
+			if isDeclKind(kind) {
+				childFn = qualify(rd.classOf(parentID), name)
+			}
+			if kind == "CXXRecordDecl" && name != "" {
+				childClass = name
+			}
+			if kind == "NamespaceDecl" && name == "" {
+				childAnon = true
+			}
+			outerClass, outerAnon := rd.curClass, rd.curAnon
+			rd.curClass, rd.curAnon = childClass, childAnon
+			hasCompound, err = rd.walkChildren(kind, childFn)
+			rd.curClass, rd.curAnon = outerClass, outerAnon
+			if err != nil {
+				return "", err
 			}
 		default:
 			if err := rd.skipAny(); err != nil {
@@ -206,27 +274,37 @@ func (rd *reader) walkNode(fn string) (string, error) {
 		return "", err
 	}
 
-	switch kind {
-	case "FunctionDecl":
+	switch {
+	case kind == "CXXRecordDecl":
+		if id != "" && name != "" {
+			rd.records[id] = name
+		}
+	case isDeclKind(kind) && hasLoc:
+		// A declaration node the dump writes without a location is a stub
+		// standing for one written elsewhere (an overload candidate under
+		// an UnresolvedLookupExpr, operator new under a CXXNewExpr): it
+		// declares nothing, and must not shadow the real node's id.
 		p, _ := nodeLoc.resolve()
+		if id != "" {
+			rd.declByID[id] = len(rd.decls)
+		}
 		rd.decls = append(rd.decls, Decl{
-			Name: name, Body: hasCompound, Static: storageClass == "static",
+			Name: name, Mangled: mangled, Kind: declKind(kind), Class: rd.classOf(parentID),
+			Type: qualType, Virtual: isVirtual, Body: hasCompound,
+			Static:   rd.curAnon || (kind == "FunctionDecl" && storageClass == "static"),
 			Implicit: isImplicit, InRepo: p.InRepo,
 			Pos: edges.Pos{Path: p.Path, Line: p.Line},
 		})
-	case "CallExpr":
-		if call != nil {
-			rd.calls = append(rd.calls, *call)
-		}
+	case isConstructKind(kind):
+		rd.recordConstruct(nodeRange, fn, qualType, ctorType)
 	}
 	return kind, nil
 }
 
 // walkChildren decodes an "inner" array of ordinary AST node children
-// (every kind but CallExpr, whose callee needs peeling —
-// walkCallExprInner handles that). It reports whether any direct child
-// is a CompoundStmt, so its FunctionDecl caller can tell a definition
-// from a bare declaration.
+// (every kind but a call, whose callee needs peeling — walkCallInner
+// handles those). It reports whether any direct child is a CompoundStmt,
+// so its declaring caller can tell a definition from a bare declaration.
 func (rd *reader) walkChildren(parentKind, fn string) (bool, error) {
 	if err := expectDelim(rd.dec, '['); err != nil {
 		return false, err
@@ -237,7 +315,7 @@ func (rd *reader) walkChildren(parentKind, fn string) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if parentKind == "FunctionDecl" && kind == "CompoundStmt" {
+		if isDeclKind(parentKind) && kind == "CompoundStmt" {
 			hasCompound = true
 		}
 	}
@@ -247,48 +325,68 @@ func (rd *reader) walkChildren(parentKind, fn string) (bool, error) {
 	return hasCompound, nil
 }
 
-// walkCallExprInner decodes a CallExpr's "inner" array: its first
-// element is the callee, peeled to a mode and position; the rest are
-// ordinary children (a call's arguments can hold further calls).
-func (rd *reader) walkCallExprInner(fn string) (*Call, error) {
+// walkCallInner decodes a call node's "inner" array — a CallExpr, a
+// CXXMemberCallExpr and a CXXOperatorCallExpr all write their callee
+// first: it is peeled to a mode and position, and the rest are ordinary
+// children (a call's arguments can hold further calls).
+func (rd *reader) walkCallInner(fn, siteKind string) error {
 	if err := expectDelim(rd.dec, '['); err != nil {
-		return nil, err
+		return err
 	}
-	var call *Call
 	first := true
 	for rd.dec.More() {
 		if first {
 			cr, err := rd.peelCallee(fn)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			call = rd.buildCall(cr, fn)
+			rd.record(cr, fn, siteKind)
 		} else if _, err := rd.walkNode(fn); err != nil {
-			return nil, err
+			return err
 		}
 		first = false
 	}
-	if err := expectDelim(rd.dec, ']'); err != nil {
-		return nil, err
+	return expectDelim(rd.dec, ']')
+}
+
+// record appends the site a peeled callee makes, if any, and queues it
+// for finish when it names a declaration by id.
+func (rd *reader) record(cr calleeResult, fn, siteKind string) {
+	c := rd.buildCall(cr, fn, siteKind)
+	if c == nil {
+		return
 	}
-	return call, nil
+	rd.calls = append(rd.calls, *c)
+	if c.Mode != "dynamic" && cr.declID != "" {
+		rd.pending = append(rd.pending, pendingCall{idx: len(rd.calls) - 1, declID: cr.declID, member: cr.isMember})
+	}
 }
 
 // buildCall turns a peeled callee into a Call, or nil when its site
 // does not lie in the repo (rule: only in-repo call sites are sites at
-// all).
-func (rd *reader) buildCall(cr calleeResult, fn string) *Call {
+// all). The callee's name is provisional: finish replaces it with the
+// declaration's mangled name once the whole dump is read.
+func (rd *reader) buildCall(cr calleeResult, fn, siteKind string) *Call {
 	sitePos, macroBody := cr.pos.resolve()
 	if !sitePos.InRepo {
 		return nil
 	}
 	spell := cr.pos.spellingPos()
 	mode, callee := "dynamic", ""
-	if cr.isFunc {
+	// A MemberExpr callee names a function only under a member call: the
+	// same shape under a plain CallExpr is a call through a member of
+	// function-pointer type, which stays dynamic.
+	if cr.isFunc && (!cr.isMember || siteKind == "CXXMemberCallExpr") {
 		callee = cr.name
-		mode = "static"
-		if macroBody {
+		switch {
+		case siteKind == "CXXOperatorCallExpr":
+			mode = "operator"
+		case siteKind == "CXXMemberCallExpr":
+			mode = "static"
+		case macroBody:
 			mode = "macro"
+		default:
+			mode = "static"
 		}
 	}
 	return &Call{
@@ -302,29 +400,197 @@ func (rd *reader) buildCall(cr calleeResult, fn string) *Call {
 	}
 }
 
-// calleeResult is a CallExpr's peeled callee: its position (rule 4) and,
-// when it is a DeclRefExpr naming a FunctionDecl, the direct call it
+// recordConstruct records a CXXConstructExpr (and its
+// CXXTemporaryObjectExpr subclass) as a site: the node carries no callee
+// at all, so it sits at its own range begin, mode "constructor", and
+// finish names the constructor of its own class whose signature is the
+// ctorType clang printed.
+func (rd *reader) recordConstruct(p pos, fn, qualType, ctorType string) {
+	sitePos, _ := p.resolve()
+	if !sitePos.InRepo {
+		return
+	}
+	spell := p.spellingPos()
+	rd.calls = append(rd.calls, Call{
+		Site:     edges.Pos{Path: sitePos.Path, Line: sitePos.Line},
+		Col:      sitePos.Col,
+		Spell:    edges.Pos{Path: spell.Path, Line: spell.Line},
+		SpellCol: spell.Col,
+		Caller:   fn,
+		Mode:     "constructor",
+	})
+	rd.pending = append(rd.pending, pendingCall{idx: len(rd.calls) - 1, class: className(qualType), ctorType: ctorType})
+}
+
+// finish names every queued site's callee once the whole dump is read: a
+// member call's declaration may stand below the body that calls it, and
+// a construct expression names none at all. A site that resolves to a
+// compiler-written constructor or destructor (isImplicit) is dropped —
+// no source line calls it — and so is a construct expression whose unit
+// declares no constructor of that signature.
+func (rd *reader) finish() {
+	ctors := map[string][]int{}
+	for i, d := range rd.decls {
+		if d.Kind == "constructor" {
+			k := d.Class + "\x00" + d.Type
+			ctors[k] = append(ctors[k], i)
+		}
+	}
+	dropped := map[int]bool{}
+	for _, p := range rd.pending {
+		d := rd.pendingDecl(p, ctors)
+		if d == nil {
+			if p.declID == "" {
+				dropped[p.idx] = true
+			}
+			continue
+		}
+		if d.Implicit && (d.Kind == "constructor" || d.Kind == "destructor") {
+			dropped[p.idx] = true
+			continue
+		}
+		c := &rd.calls[p.idx]
+		c.Callee, c.CalleeName = d.Name, d.Name
+		if d.Mangled != "" {
+			c.Callee = d.Mangled
+		}
+		if p.member && d.Virtual {
+			c.Mode = "virtual"
+		}
+	}
+	if len(dropped) == 0 {
+		return
+	}
+	kept := rd.calls[:0]
+	for i, c := range rd.calls {
+		if !dropped[i] {
+			kept = append(kept, c)
+		}
+	}
+	rd.calls = kept
+}
+
+// pendingDecl is the declaration a queued site names: the one its id
+// indexes, or — for a construct expression — the first constructor of
+// its class carrying that signature (a unit that both declares and
+// defines one keeps two, mangled alike, so either answers).
+func (rd *reader) pendingDecl(p pendingCall, ctors map[string][]int) *Decl {
+	if p.declID != "" {
+		if i, ok := rd.declByID[p.declID]; ok {
+			return &rd.decls[i]
+		}
+		return nil
+	}
+	for _, i := range ctors[p.class+"\x00"+p.ctorType] {
+		return &rd.decls[i]
+	}
+	return nil
+}
+
+// classOf is the record a declaration belongs to: the enclosing
+// CXXRecordDecl's name, or — for an out-of-line definition, which the
+// dump writes at namespace scope — the record its parentDeclContextId
 // names.
+func (rd *reader) classOf(parentID string) string {
+	if parentID != "" {
+		if n, ok := rd.records[parentID]; ok {
+			return n
+		}
+	}
+	return rd.curClass
+}
+
+// qualify is a site's Caller: a method carries its class, Class::name.
+func qualify(class, name string) string {
+	if class == "" {
+		return name
+	}
+	return class + "::" + name
+}
+
+// className reduces a constructed expression's type to the record's own
+// name, which is what a declaration records: the qualifiers clang prints
+// (const/volatile, the struct/class/union tag, the namespace path) are
+// stripped.
+func className(qualType string) string {
+	s := strings.TrimSpace(qualType)
+	for _, prefix := range []string{"const ", "volatile ", "struct ", "class ", "union "} {
+		for strings.HasPrefix(s, prefix) {
+			s = strings.TrimSpace(strings.TrimPrefix(s, prefix))
+		}
+	}
+	if i := strings.LastIndex(s, "::"); i >= 0 {
+		s = s[i+2:]
+	}
+	return s
+}
+
+// isDeclKind is the set of nodes that declare a callable: C's
+// FunctionDecl and C++'s four member shapes. A FunctionTemplateDecl is
+// not one of them — the FunctionDecls inside it, the pattern and each
+// specialisation, are the declarations, at the template's own line.
+func isDeclKind(kind string) bool {
+	switch kind {
+	case "FunctionDecl", "CXXMethodDecl", "CXXConstructorDecl", "CXXDestructorDecl", "CXXConversionDecl":
+		return true
+	}
+	return false
+}
+
+// declKind maps a declaration node to the kind its targets carry.
+func declKind(kind string) string {
+	switch kind {
+	case "CXXConstructorDecl":
+		return "constructor"
+	case "CXXDestructorDecl":
+		return "destructor"
+	case "CXXMethodDecl", "CXXConversionDecl":
+		return "method"
+	}
+	return "function"
+}
+
+// isCallKind is the set of nodes whose first child is a callee to peel.
+func isCallKind(kind string) bool {
+	switch kind {
+	case "CallExpr", "CXXMemberCallExpr", "CXXOperatorCallExpr":
+		return true
+	}
+	return false
+}
+
+// isConstructKind is the set of nodes that construct an object;
+// CXXTemporaryObjectExpr is CXXConstructExpr's subclass in the dump.
+func isConstructKind(kind string) bool {
+	return kind == "CXXConstructExpr" || kind == "CXXTemporaryObjectExpr"
+}
+
+// calleeResult is a call's peeled callee: its position (rule 4) and,
+// when it names a declaration — a DeclRefExpr's referencedDecl or a
+// MemberExpr's referencedMemberDecl — that declaration's name and id.
 type calleeResult struct {
-	pos    pos
-	isFunc bool
-	name   string
+	pos      pos
+	isFunc   bool
+	name     string
+	declID   string
+	isMember bool
 }
 
 // peelCallee decodes a callee expression node (its opening '{' not yet
 // consumed), peeling through ImplicitCastExpr, ParenExpr and a unary
 // `*`/`&` to the expression that remains, and returns its position and,
-// if it is a DeclRefExpr naming a FunctionDecl, that name. fn is the
-// enclosing function (Caller) for any call recorded along the way — a
-// callee that is itself a call (`get_fn()(2)`) is two sites, so a
-// CallExpr found here is peeled for ITS OWN callee and recorded as a
-// call in its own right (never dropped), and this callee then resolves
-// dynamic: a call through the value the inner call returns.
+// if it names a declaration — a DeclRefExpr's referencedDecl or a C++
+// MemberExpr's referencedMemberDecl — that declaration's name and id. fn
+// is the enclosing function (Caller) for any call recorded along the way
+// — a callee that is itself a call (`get_fn()(2)`) is two sites, so a
+// call found here is peeled for ITS OWN callee and recorded as a call in
+// its own right (never dropped), and this callee then resolves dynamic:
+// a call through the value the inner call returns.
 func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
 		return calleeResult{}, err
 	}
-	var kind, opcode, refKind, refName string
+	var kind, opcode, name, refKind, refName, refID, memberID string
 	var rangeBegin pos
 	var child *calleeResult
 
@@ -342,12 +608,20 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 			if opcode, err = nextString(rd.dec); err != nil {
 				return calleeResult{}, err
 			}
+		case "name":
+			if name, err = nextString(rd.dec); err != nil {
+				return calleeResult{}, err
+			}
+		case "referencedMemberDecl":
+			if memberID, err = nextString(rd.dec); err != nil {
+				return calleeResult{}, err
+			}
 		case "range":
 			if rangeBegin, err = rd.readRangeBegin(); err != nil {
 				return calleeResult{}, err
 			}
 		case "referencedDecl":
-			if refKind, refName, err = rd.readReferencedDecl(); err != nil {
+			if refKind, refName, refID, err = rd.readReferencedDecl(); err != nil {
 				return calleeResult{}, err
 			}
 		case "inner":
@@ -357,14 +631,12 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 			first := true
 			for rd.dec.More() {
 				switch {
-				case first && kind == "CallExpr":
+				case first && isCallKind(kind):
 					innerCallee, err := rd.peelCallee(fn)
 					if err != nil {
 						return calleeResult{}, err
 					}
-					if c := rd.buildCall(innerCallee, fn); c != nil {
-						rd.calls = append(rd.calls, *c)
-					}
+					rd.record(innerCallee, fn, kind)
 				case first && isPeelable(kind, opcode):
 					cr, err := rd.peelCallee(fn)
 					if err != nil {
@@ -393,7 +665,10 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 	if child != nil {
 		return *child, nil
 	}
-	return calleeResult{pos: rangeBegin, isFunc: kind == "DeclRefExpr" && refKind == "FunctionDecl", name: refName}, nil
+	if kind == "MemberExpr" {
+		return calleeResult{pos: rangeBegin, isFunc: memberID != "", name: name, declID: memberID, isMember: true}, nil
+	}
+	return calleeResult{pos: rangeBegin, isFunc: kind == "DeclRefExpr" && isDeclKind(refKind), name: refName, declID: refID}, nil
 }
 
 // isPeelable is ADR-110's callee-peeling set: implicit casts,
@@ -444,35 +719,66 @@ func (rd *reader) readRangeBegin() (pos, error) {
 }
 
 // readReferencedDecl decodes a "referencedDecl" object (its opening '{'
-// not yet consumed) and returns its kind and name.
-func (rd *reader) readReferencedDecl() (kind, name string, err error) {
+// not yet consumed) and returns its kind, name and id. The object is a
+// stub: it carries no mangled name, so the id is what names the
+// declaration the dump wrote in full elsewhere.
+func (rd *reader) readReferencedDecl() (kind, name, id string, err error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	for rd.dec.More() {
 		key, err := nextKey(rd.dec)
 		if err != nil {
-			return "", "", err
+			return "", "", "", err
 		}
 		switch key {
 		case "kind":
 			if kind, err = nextString(rd.dec); err != nil {
-				return "", "", err
+				return "", "", "", err
 			}
 		case "name":
 			if name, err = nextString(rd.dec); err != nil {
-				return "", "", err
+				return "", "", "", err
+			}
+		case "id":
+			if id, err = nextString(rd.dec); err != nil {
+				return "", "", "", err
 			}
 		default:
 			if err := rd.skipAny(); err != nil {
-				return "", "", err
+				return "", "", "", err
 			}
 		}
 	}
 	if err := expectDelim(rd.dec, '}'); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return kind, name, nil
+	return kind, name, id, nil
+}
+
+// readQualType decodes a "type" or "ctorType" value (its opening '{' not
+// yet consumed) and returns its "qualType".
+func (rd *reader) readQualType() (string, error) {
+	if err := expectDelim(rd.dec, '{'); err != nil {
+		return "", err
+	}
+	qual := ""
+	for rd.dec.More() {
+		key, err := nextKey(rd.dec)
+		if err != nil {
+			return "", err
+		}
+		if key == "qualType" {
+			if qual, err = nextString(rd.dec); err != nil {
+				return "", err
+			}
+			continue
+		}
+		if err := rd.skipKeyValue(key); err != nil {
+			return "", err
+		}
+	}
+	return qual, expectDelim(rd.dec, '}')
 }
 
 // readPos decodes a "loc" or "range"."begin"/"end" value: either a

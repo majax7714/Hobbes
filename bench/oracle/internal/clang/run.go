@@ -12,14 +12,16 @@ import (
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
 )
 
-// Options is one C cell: a build root inside the repo (ADR-109's
+// Options is one C or C++ cell: a build root inside the repo (ADR-109's
 // definition), mirroring rustmir's and javac's Options shape.
 type Options struct {
-	Repo   string // repo root
-	Module string // repo-relative build root ("" or "." for the repo root)
-	Compdb string // a compile database to use directly; skips ADR-109's search
-	Clang  string // clang command name/path (default "clang")
-	Out    string // cell directory: clang-shards/ and, when derived, the build's own scratch files
+	Repo    string // repo root
+	Module  string // repo-relative build root ("" or "." for the repo root)
+	Compdb  string // a compile database to use directly; skips ADR-109's search
+	Clang   string // clang command name/path (default "clang")
+	ClangXX string // clang++ command name/path (default "clang++")
+	Lang    string // "c" (default) or "cpp": the cell's language, for the record
+	Out     string // cell directory: clang-shards/ and, when derived, the build's own scratch files
 }
 
 // clangArgs is the fixed prefix every unit's clang run carries: a
@@ -27,9 +29,9 @@ type Options struct {
 // diagnostics the entry's own flags might otherwise color or warn on.
 var clangArgs = []string{"-fsyntax-only", "-Xclang", "-ast-dump=json", "-fno-color-diagnostics", "-Wno-everything"}
 
-// Run runs one C cell as ADR-110 decision 3's single contained step: the
-// oracle binary itself, mounted read-only at its own host path, invoked
-// as the internal `c-clang-units` subcommand inside the sandbox image
+// Run runs one C or C++ cell as ADR-110 decision 3's single contained
+// step: the oracle binary itself, mounted read-only at its own host
+// path, invoked as the internal `c-clang-units` subcommand in the image
 // (deriving a database and every clang run share the step, since a
 // build's generated headers exist only in its container's overlay).
 // LoadShards and Merge then run on the host.
@@ -61,6 +63,12 @@ func Run(o Options) (*edges.OracleExport, error) {
 	if o.Clang != "" {
 		cmd = append(cmd, "--clang", o.Clang)
 	}
+	if o.ClangXX != "" {
+		cmd = append(cmd, "--clangxx", o.ClangXX)
+	}
+	if o.Lang != "" {
+		cmd = append(cmd, "--lang", o.Lang)
+	}
 	plan, err := contain.New("c-clang", cmd, dir, repo, []string{outAbs}, []string{filepath.Dir(exe)}, nil)
 	if err != nil {
 		return nil, err
@@ -88,18 +96,25 @@ func Run(o Options) (*edges.OracleExport, error) {
 	}
 	merged.Oracle = version + " -ast-dump=json"
 	merged.Containment = outcome.Containment()
+	// The cell's own claim, beside units_cpp's count of what actually ran
+	// under clang++: a C++ cell over a root with no C++ unit is not an
+	// error, and the record should still say what it was graded as.
+	if o.Lang == "cpp" {
+		merged.Coverage["lang_cpp"] = 1
+	}
 	return merged, nil
 }
 
 // RunUnits is the internal subcommand (`oracle c-clang-units`) ADR-110
 // runs inside the sandbox image: derive the module's compile database
 // (ADR-109's order — a carried compile_commands.json, else CMake's
-// export, else bear over `make -k` — or --compdb directly), run clang
-// over every entry, and write one shard per unit under
-// <out>/clang-shards, plus roots.txt naming the database's source and
-// unit count and clang's own version line. Deriving via CMake or bear
-// runs the repo's own build logic, so this and every clang run happen
-// here, in one step, offline.
+// export, else bear over `make -k` — or --compdb directly), run each
+// entry under its own front end (clang, or clang++ for a C++ source,
+// ADR-113), and write one shard per unit under <out>/clang-shards, plus
+// roots.txt naming the database's source, its unit count and how many of
+// them were C++, and the front end's own version line. Deriving via
+// CMake or bear runs the repo's own build logic, so this and every clang
+// run happen here, in one step, offline.
 func RunUnits(o Options) error {
 	repo, err := filepath.Abs(o.Repo)
 	if err != nil {
@@ -125,20 +140,77 @@ func RunUnits(o Options) error {
 	if clangBin == "" {
 		clangBin = "clang"
 	}
+	clangxxBin := o.ClangXX
+	if clangxxBin == "" {
+		clangxxBin = "clang++"
+	}
+
+	cpp := 0
+	for _, e := range entries {
+		if isCPPUnit(e) {
+			cpp++
+		}
+	}
 	rootsLine := fmt.Sprintf("compile database: %s (%d units)", source, len(entries))
-	versionLine := clangVersionFirst(clangBin)
+	if cpp > 0 {
+		rootsLine = fmt.Sprintf("compile database: %s (%d units, %d c++)", source, len(entries), cpp)
+	}
+	versionBin := clangBin
+	if cpp > 0 {
+		versionBin = clangxxBin
+	}
+	versionLine := clangVersionFirst(versionBin)
 	roots := rootsLine + "\n" + versionLine + "\n"
 	if err := os.WriteFile(filepath.Join(shardsDir, "roots.txt"), []byte(roots), 0o644); err != nil {
 		return err
 	}
 
 	for i, e := range entries {
-		shard := runUnit(clangBin, e, repo)
+		bin, isCPP := clangBin, isCPPUnit(e)
+		if isCPP {
+			bin = clangxxBin
+		}
+		shard := runUnit(bin, e, repo)
+		shard.CXX = isCPP
 		if err := shard.Save(filepath.Join(shardsDir, fmt.Sprintf("%d.json", i))); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// cppExts are the source extensions that make a compile database entry a
+// C++ unit (ADR-113). A header is never an entry's own file.
+var cppExts = map[string]bool{".cpp": true, ".cc": true, ".cxx": true, ".c++": true}
+
+// isCPPExt reports whether a source file is C++ by its extension; `.C`
+// is C++ only spelled exactly so, since `.c` is C.
+func isCPPExt(file string) bool {
+	ext := filepath.Ext(file)
+	return cppExts[strings.ToLower(ext)] || ext == ".C"
+}
+
+// isCPPUnit reports whether an entry compiles C++, which decides the
+// binary its dump runs under whatever --lang the cell names: a mixed
+// build root is still one root, and its C units keep clang's own front
+// end.
+func isCPPUnit(e CompdbEntry) bool {
+	file := e.File
+	if file == "" {
+		// A database that names no "file" (some are written by hand):
+		// the entry's source is the argument that looks like one.
+		argv := e.Argv()
+		for i, a := range argv {
+			if i == 0 || strings.HasPrefix(a, "-") {
+				continue
+			}
+			if isCPPExt(a) || strings.EqualFold(filepath.Ext(a), ".c") {
+				file = a
+				break
+			}
+		}
+	}
+	return isCPPExt(file)
 }
 
 // resolveEntries picks the compile database (ADR-109's order, or

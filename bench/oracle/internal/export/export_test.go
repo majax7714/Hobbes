@@ -1,6 +1,9 @@
 package export
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestMinigoExport(t *testing.T) {
 	h, err := FromFile("../../testdata/minigo.graph.json", ".", "go")
@@ -169,6 +172,52 @@ func TestCExtensionsAndMacroExcluded(t *testing.T) {
 	}
 	if h.Excluded["macro"] != 1 {
 		t.Fatalf("the CALL_SUM target should be excluded as a macro: %v", h.Excluded)
+	}
+}
+
+// C++'s cell is the six C++ extensions plus .h, whose ownership is the
+// cell's own choice (ADR-113): a site in a .cc file and a target in a
+// .hpp header are both in the cell, and a .go file beside them is not.
+func TestCppExtensions(t *testing.T) {
+	want := []string{".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h"}
+	got := Exts["cpp"]
+	if len(got) != len(want) {
+		t.Fatalf("cpp extensions: %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("cpp extensions: %v, want %v", got, want)
+		}
+	}
+
+	var g graph
+	const doc = `{
+	  "nodes": [
+	    {"id": "src/app.cc", "kind": "module", "path": "src/app.cc"},
+	    {"id": "src/shapes.hpp", "kind": "module", "path": "src/shapes.hpp"},
+	    {"id": "tool/gen.go", "kind": "module", "path": "tool/gen.go"}
+	  ],
+	  "symbols": [
+	    {"id": "src/app.cc#main", "module": "src/app.cc", "line": 7, "kind": "function"},
+	    {"id": "src/shapes.hpp#Shape::area", "module": "src/shapes.hpp", "line": 4, "kind": "method"},
+	    {"id": "tool/gen.go#main", "module": "tool/gen.go", "line": 3, "kind": "function"}
+	  ],
+	  "symbol_edges": [
+	    {"from": "src/app.cc#main", "to": "src/shapes.hpp#Shape::area", "type": "calls", "tier": "semantic",
+	     "evidence": [{"lane": "scip", "path": "src/app.cc", "line": 9}]},
+	    {"from": "tool/gen.go#main", "to": "src/shapes.hpp#Shape::area", "type": "calls", "tier": "semantic",
+	     "evidence": [{"lane": "scip", "path": "tool/gen.go", "line": 5}]}
+	  ]
+	}`
+	if err := json.Unmarshal([]byte(doc), &g); err != nil {
+		t.Fatal(err)
+	}
+	h, err := From(&g, ".", "cpp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(h.Edges) != 1 || h.Edges[0].Site.Key() != "src/app.cc:9" || h.Edges[0].Target.Key() != "src/shapes.hpp:4" {
+		t.Fatalf("want the .cc site to the .hpp target alone, got %+v", h.Edges)
 	}
 }
 

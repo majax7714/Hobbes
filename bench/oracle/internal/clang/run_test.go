@@ -249,6 +249,64 @@ func TestOracleCClangEndToEnd(t *testing.T) {
 	}
 }
 
+// TestOracleCppClangEndToEnd is the C++ face of the test above (ADR-113,
+// O10): the same binary, `c-clang --lang cpp` over the cppclang fixture,
+// bear over `make -k` deriving the database and clang++ running per
+// unit, asserting the fixture truth TestCppclangFixture computes by
+// hand. Skips without containment, as it will in this session; the
+// developer runs it on the host, image built (sandbox/README.md).
+func TestOracleCppClangEndToEnd(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
+	outDir := t.TempDir()
+	bin := filepath.Join(outDir, "oracle")
+	build := exec.Command("go", "build", "-o", bin, "../../cmd/oracle")
+	build.Env = append(os.Environ(), "CGO_ENABLED=0")
+	build.Dir = "."
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("go build oracle: %v\n%s", err, out)
+	}
+	repo, err := filepath.Abs("../../testdata/cppclang")
+	if err != nil {
+		t.Fatal(err)
+	}
+	oracleJSON := filepath.Join(outDir, "oracle.json")
+	run := exec.Command(bin, "c-clang", "--repo", repo, "--module", "", "--lang", "cpp",
+		"--out-dir", outDir, "--out", oracleJSON)
+	if out, err := run.CombinedOutput(); err != nil {
+		t.Fatalf("oracle c-clang --lang cpp: %v\n%s", err, out)
+	}
+	raw, err := os.ReadFile(oracleJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out edges.OracleExport
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := out.Files, []string{"main.cpp", "shapes.cpp", "shapes.h", "tool.cpp"}; !equalStrings(got, want) {
+		t.Errorf("files: %v, want %v", got, want)
+	}
+	wantCoverage := map[string]int{
+		"units": 4, "units_failed": 0, "units_cpp": 4, "lang_cpp": 1,
+		"sites_static": 15, "sites_macro": 1, "sites_dynamic": 2,
+		"sites_virtual": 2, "sites_operator": 1, "sites_constructor": 4,
+		"sites_external": 0, "sites_link_ambiguous": 0, "sites_undefined": 0, "sites_tu_split": 0,
+	}
+	for k, v := range wantCoverage {
+		if out.Coverage[k] != v {
+			t.Errorf("coverage[%s] = %d, want %d (full: %v)", k, out.Coverage[k], v, out.Coverage)
+		}
+	}
+	if len(out.Sites) != 25 {
+		t.Errorf("total distinct sites: %d, want 25", len(out.Sites))
+	}
+	if out.Containment != "contained" {
+		t.Errorf("containment: %q, want contained", out.Containment)
+	}
+}
+
 // TestRunUnitsNoDatabase covers ADR-109's last source: nothing to
 // derive from is an error naming why.
 func TestRunUnitsNoDatabase(t *testing.T) {

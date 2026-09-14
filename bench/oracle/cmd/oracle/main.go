@@ -73,8 +73,8 @@ func usage() {
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
   oracle rust-mir --repo . --module . --driver rust/target/release/mir-oracle --out-dir <cell-dir> [--out oracle.json]
   oracle java-javac --repo . --module . --plugin java --out-dir <cell-dir> [--tool maven|gradle] [--out oracle.json]
-  oracle c-clang --repo . --module . --out-dir <cell-dir> [--compdb path] [--clang clang] [--out oracle.json]
-  oracle c-clang-units --repo . --module . --out-dir <cell-dir> [--compdb path] [--clang clang]   (internal: runs inside the sandbox image)
+  oracle c-clang --repo . --module . --out-dir <cell-dir> [--lang c|cpp] [--compdb path] [--clang clang] [--clangxx clang++] [--out oracle.json]
+  oracle c-clang-units --repo . --module . --out-dir <cell-dir> [--lang c|cpp] [--compdb path] [--clang clang] [--clangxx clang++]   (internal: runs inside the sandbox image)
   oracle grade  --hobbes hobbes.json --oracle oracle.json [--json report.json] [--poison]`)
 	os.Exit(2)
 }
@@ -213,20 +213,25 @@ func runJavac(args []string) error {
 
 // runCClang is the host-facing command: it runs the contained step
 // (deriving the compile database and every clang run, ADR-110 decision
-// 3), then merges the shards it wrote.
+// 3), then merges the shards it wrote. --lang cpp is the same command
+// over a C++ build root (ADR-113, O10); a root with no C++ unit is not
+// an error.
 func runCClang(args []string) error {
 	fs := flag.NewFlagSet("c-clang", flag.ExitOnError)
 	repo := fs.String("repo", ".", "repo root")
-	module := fs.String("module", "", "repo-relative C build root (cell)")
+	module := fs.String("module", "", "repo-relative C or C++ build root (cell)")
+	lang := fs.String("lang", "c", "c|cpp — the cell's language; a unit's own extension still picks its front end")
 	compdb := fs.String("compdb", "", "a compile database to use directly; skips ADR-109's search")
 	clangBin := fs.String("clang", "", "clang command name/path inside the image (default clang)")
+	clangxxBin := fs.String("clangxx", "", "clang++ command name/path inside the image (default clang++)")
 	outDir := fs.String("out-dir", "", "cell directory for the shards")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
 	if *outDir == "" {
 		return fmt.Errorf("--out-dir is required")
 	}
-	res, err := clang.Run(clang.Options{Repo: *repo, Module: *module, Compdb: *compdb, Clang: *clangBin, Out: *outDir})
+	res, err := clang.Run(clang.Options{Repo: *repo, Module: *module, Lang: *lang, Compdb: *compdb,
+		Clang: *clangBin, ClangXX: *clangxxBin, Out: *outDir})
 	if err != nil {
 		return err
 	}
@@ -239,15 +244,18 @@ func runCClang(args []string) error {
 func runCClangUnits(args []string) error {
 	fs := flag.NewFlagSet("c-clang-units", flag.ExitOnError)
 	repo := fs.String("repo", ".", "repo root")
-	module := fs.String("module", "", "repo-relative C build root (cell)")
+	module := fs.String("module", "", "repo-relative C or C++ build root (cell)")
+	lang := fs.String("lang", "c", "c|cpp — the cell's language; a unit's own extension still picks its front end")
 	compdb := fs.String("compdb", "", "a compile database to use directly; skips ADR-109's search")
 	clangBin := fs.String("clang", "", "clang command name/path (default clang)")
+	clangxxBin := fs.String("clangxx", "", "clang++ command name/path (default clang++)")
 	outDir := fs.String("out-dir", "", "cell directory for the shards")
 	fs.Parse(args)
 	if *outDir == "" {
 		return fmt.Errorf("--out-dir is required")
 	}
-	return clang.RunUnits(clang.Options{Repo: *repo, Module: *module, Compdb: *compdb, Clang: *clangBin, Out: *outDir})
+	return clang.RunUnits(clang.Options{Repo: *repo, Module: *module, Lang: *lang, Compdb: *compdb,
+		Clang: *clangBin, ClangXX: *clangxxBin, Out: *outDir})
 }
 
 func runGrade(args []string) error {
