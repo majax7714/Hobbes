@@ -269,6 +269,55 @@ test("an empty compile database stops the plan before scip-clang, in the build's
   plan.steps[1].check({})
 })
 
+test('a compile database recorded entirely under cargo\'s registry says so, before scip-clang runs (C-135)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const cargoHome = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-cargo-'))
+  const savedCargoHome = process.env.CARGO_HOME
+  process.env.CARGO_HOME = cargoHome
+  try {
+    const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+    const libbpf = cpath.join(cargoHome, 'registry', 'src', 'x', 'libbpf', 'src')
+    cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([
+      { directory: libbpf, file: 'btf.c', arguments: ['cc', 'btf.c'] },
+      { directory: libbpf, file: 'bpf.c', arguments: ['cc', 'bpf.c'] },
+    ]))
+    assert.throws(() => plan.steps[1].check({ stderr: 'make: *** Error 1' }),
+      /recorded 2 compile\(s\), none of a file under this root.*cargo's registry.*\(C-135\).*Error 1/s)
+  } finally {
+    if (savedCargoHome === undefined) delete process.env.CARGO_HOME
+    else process.env.CARGO_HOME = savedCargoHome
+  }
+})
+
+test('a compile database recorded entirely elsewhere names their common directory (C-135)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([
+    { directory: '/opt/vendor/a', file: '/opt/vendor/a/x.c', arguments: ['cc', 'x.c'] },
+    { directory: '/opt/vendor/b', file: '/opt/vendor/b/y.c', arguments: ['cc', 'y.c'] },
+  ]))
+  assert.throws(() => plan.steps[1].check({}), /recorded 2 compile\(s\), none of a file under this root.*\/opt\/vendor.*\(C-135\)/s)
+})
+
+test('a compile database with one entry under the root passes, even with another outside (C-135)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([
+    { directory: dir, file: 'a.c', arguments: ['cc', 'a.c'] },
+    { directory: '/opt/vendor/a', file: '/opt/vendor/a/x.c', arguments: ['cc', 'x.c'] },
+  ]))
+  plan.steps[1].check({})
+})
+
+test('a relative file under the root passes the compile-database check (C-135)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify([
+    { directory: dir, file: 'src/a.c', arguments: ['cc', 'src/a.c'] },
+  ]))
+  plan.steps[1].check({})
+})
+
 test('C decodes a macro by the name at its defining location, and a file-static in its own file (ADR-109)', () => {
   const stage = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
   cfs.writeFileSync(cpath.join(stage, 'util.h'), '#ifndef U\n#define U\n#define TWICE(x) ((x) * 2)\n#endif\n')

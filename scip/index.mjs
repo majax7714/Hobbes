@@ -25,7 +25,7 @@
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import pkg from '@sourcegraph/scip-typescript/dist/src/scip.js'
@@ -184,7 +184,8 @@ export function cCompdb(c) {
  * unless the repo carries one, then index. `make -k` keeps going past a
  * target that fails (a link error, a tool the image lacks), and bear
  * records every compile it saw. So the build's own exit decides nothing;
- * the database having entries does, checked before scip-clang runs. */
+ * the database having entries, and one of them under the root, does
+ * (C-135), checked before scip-clang runs. */
 export function cPlan(c) {
   const compdb = cCompdb(c)
   const index = {
@@ -199,7 +200,7 @@ export function cPlan(c) {
           bin: 'cmake', onPath: true, install: INDEXERS.c.install, cwd: c.stage,
           args: ['-S', c.stage, '-B', c.buildDir, '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'],
         },
-        { ...index, check: compdbCheck(compdb, 'CMake') },
+        { ...index, check: compdbCheck(compdb, 'CMake', c.stage) },
       ],
     }
   }
@@ -210,14 +211,34 @@ export function cPlan(c) {
           bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
           args: ['-c', 'bear --output "$1" -- make -k; exit 0', 'sh', compdb],
         },
-        { ...index, check: compdbCheck(compdb, 'bear over make') },
+        { ...index, check: compdbCheck(compdb, 'bear over make', c.stage) },
       ],
     }
   }
   throw new Error(`no compile database source for this C build root: ${c.compdbSource}`)
 }
 
-function compdbCheck(compdb, what) {
+/** The longest common directory of *paths* (absolute, `path.dirname`
+ * steps); the filesystem root when they share nothing below it. Where
+ * C-135's message says a database's outside entries lie, when they are
+ * not all under cargo's registry. */
+function commonOutsideDirectory(paths) {
+  let common = dirname(paths[0]).split(sep)
+  for (const p of paths.slice(1)) {
+    const parts = dirname(p).split(sep)
+    let i = 0
+    while (i < common.length && i < parts.length && common[i] === parts[i]) i++
+    common = common.slice(0, i)
+  }
+  return common.join(sep) || sep
+}
+
+/** C-135: a compile database that has entries but none of a file under
+ * the build root leaves scip-clang nothing of the root's own to index,
+ * so it stops the plan first, naming where the recorded compiles do lie
+ * (cargo's registry, or their common directory) and the build's own
+ * words, as the empty-database case already does. */
+function compdbCheck(compdb, what, stage) {
   return (previous) => {
     let entries = []
     try {
@@ -228,6 +249,22 @@ function compdbCheck(compdb, what) {
     if (!Array.isArray(entries) || entries.length === 0) {
       const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-600)
       throw new Error(`${what} produced no compile database entries, so scip-clang has nothing to index: ${said}`)
+    }
+    const root = resolve(stage)
+    const outside = entries
+      .map((e) => resolve(e.directory, e.file))
+      .filter((path) => path !== root && !path.startsWith(root + sep))
+    if (outside.length === entries.length) {
+      const cargoHome = process.env.CARGO_HOME && resolve(process.env.CARGO_HOME, 'registry') + sep
+      const where = cargoHome && outside.every((path) => path.startsWith(cargoHome))
+        ? "cargo's registry (the dependencies' own C)"
+        : commonOutsideDirectory(outside)
+      const said = String(previous?.stderr || previous?.stdout || '').trim().slice(-200)
+      const tail = said ? `: ${said}` : ''
+      throw new Error(
+        `${what} recorded ${entries.length} compile(s), none of a file under this root — all under ${where}; ` +
+        `the build compiled none of the root's own C (C-135)${tail}`,
+      )
     }
   }
 }
