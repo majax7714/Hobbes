@@ -103,11 +103,13 @@ build item.*
   foreign C cell (both tools on cJSON and sqlite-vector) was the queue's
   next item. **Done 2026-09-14 (later):** four foreign C cells under
   the clang keys (`docs/oracle/cells/{codegraphcontext,repowise}-{cjson,sqlite-vector}-2026-09-14.md`),
-  every contradiction read: repowise's are function-like macros it
-  stores as `function` (C-95's C face); a converter reading of a
-  `#define` at the target line as `macro` is an ADR-101 decision, not
-  taken. The tools' venvs are under `~/.hobbes/bench/comparative/tools/`,
-  the driver beside them (`run-c-cell.sh`). `oracle import` +
+  every contradiction read: repowise's were function-like macros it
+  stores as `function` (C-95's C face). **Then (later):** converter@3
+  reads a `#define` at the declared line as `macro` (ADR-101 amended;
+  dispatched, `3c41`), the four cells regraded with signed direction
+  lines (repowise 1,073/1,075 and 780/780). The tools' venvs are under
+  `~/.hobbes/bench/comparative/tools/`, the drivers beside them
+  (`run-c-cell.sh`, `regrade-c-cell.sh`). `oracle import` +
   `grade-foreign.sh` grade any tool's graph against the lane's keys;
   CodeGraphContext and repowise graded on the thirteen loop /
   random-draw cells; `docs/comparative/` holds the field, the claim

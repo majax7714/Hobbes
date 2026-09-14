@@ -206,11 +206,15 @@
   so the macro exclusion never fires for it and each such edge grades
   against the callee clang saw in the expansion: 562 of its 564 cJSON
   contradictions and all 99 on sqlite-vector are `#define` targets
-  (65.5% and 88.7% as stored; 99.8% and 100% with those rows excluded
-  as Hobbes' own are, stated in the records, not graded). Whether the
-  converter may read a `#define` at the target line as `macro` — the
-  same reading converter@2 made for annotation lines — is a decision
-  (ADR-101), not taken.
+  (65.5% and 88.7% as stored). **Narrowed the same day (later):**
+  converter@3 reads a `#define` at the declared line as `macro` — the
+  same source reading converter@2 makes for annotation lines — so the
+  exclusion applies to a tool's edge as to Hobbes' own (ADR-101's
+  second amendment of 2026-09-14, built through the harness, `3c41`);
+  the cells regraded to 1,073/1,075 and 780/780 with signed direction
+  lines, the first grade kept beside each. What stays: the rule reads
+  the source, not the tool's belief, and a tool that stores a macro
+  under a kind of its own is still read at our grain.
 - **You find out:** **surfaced** (2026-09-09). `oracle import`'s
   package doc and the cell record state which rules fired; the
   report's per-tier split reads the tool's own confidence labels, so

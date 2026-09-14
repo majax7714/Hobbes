@@ -115,17 +115,22 @@ earlier version. That is why the graphics name three versions.
    signed direction lines. The rest of each cell's contradictions are
    untriaged and the records say so. **C, 2026-09-14:** both tools on
    the two C cells (cJSON, sqlite-vector) under the clang keys, once
-   `oracle import` took `--lang c`. CodeGraphContext reads 1,179/1,179
-   and 851/863; repowise 1,073/1,637 and 780/879 — and every repowise
-   contradiction but two is a function-like macro the tool stores as
-   `function`, graded against the callee clang saw in the expansion,
-   where Hobbes' own macro edges are excluded before grading because
-   its graph says `macro` (C-95's C face; each record reads every
-   row and states the number with those rows excluded, ungraded).
-   CodeGraphContext's twelve on sqlite-vector are nine API names
-   drawn into the vendored amalgamation the build never compiles with
-   the extension and the three `strcasestr` shim rows Hobbes' own
-   syntactic tier once drew (C-138).
+   `oracle import` took `--lang c`. The first grade found repowise
+   storing a function-like macro as `function`, so 562 of its 564
+   cJSON contradictions and all 99 on sqlite-vector were edges to a
+   `#define` graded against the callee clang saw in the expansion,
+   where Hobbes' own macro edges are excluded because its graph says
+   `macro` (C-95's C face). The converters now read a `#define` at
+   the declared line as `macro` (converter@3, ADR-101's amendment of
+   the same day), and the cells were regraded with signed direction
+   lines, the first grade kept beside each: CodeGraphContext
+   1,179/1,179 and 851/863 (nothing moved — it stored no edge to a
+   `#define`); repowise 1,073/1,075 and 780/780. What is left is read
+   in full: repowise's two are `setUp`/`tearDown` declared in a dead
+   `#if` arm; CodeGraphContext's twelve on sqlite-vector are nine API
+   names drawn into the vendored amalgamation the build never
+   compiles with the extension and the three `strcasestr` shim rows
+   Hobbes' own syntactic tier once drew (C-138).
 
 ## The 1-1 on repowise's draws
 

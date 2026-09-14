@@ -2624,17 +2624,17 @@
    "label": "cJSON",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state",
-   "edges": 2027,
+   "edges": 1328,
    "confirmed": 1073,
-   "contradicted": 564,
+   "contradicted": 2,
    "abstract": 0,
-   "silent": 390,
+   "silent": 253,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 65.5,
+    "pct": 99.8,
     "num": 1073,
-    "den": 1637
+    "den": 1075
    },
    "recall": {
     "pct": 56.0,
@@ -2649,9 +2649,9 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 2027,
-    "refused": 1637,
-    "unjudged": 390,
+    "seeded": 1328,
+    "refused": 1075,
+    "unjudged": 253,
     "falsely": 0
    }
   },
@@ -3324,17 +3324,17 @@
    "label": "sqlite-vector",
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state",
-   "edges": 1657,
+   "edges": 1050,
    "confirmed": 780,
-   "contradicted": 99,
+   "contradicted": 0,
    "abstract": 0,
-   "silent": 778,
+   "silent": 270,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 88.7,
+    "pct": 100.0,
     "num": 780,
-    "den": 879
+    "den": 780
    },
    "recall": {
     "pct": 93.3,
@@ -3348,9 +3348,9 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 1657,
-    "refused": 879,
-    "unjudged": 778,
+    "seeded": 1050,
+    "refused": 780,
+    "unjudged": 270,
     "falsely": 0
    }
   },
