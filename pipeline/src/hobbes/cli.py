@@ -909,7 +909,7 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
     try:
         task = args.task if args.task is not None else Path(args.task_file).read_text()
         partition = gt.load_partition(Path(args.partition))[0] if args.partition else None
-        d = dp.prepare(repo_root, task, ref=args.ref, model=args.model, max_turns=args.max_turns, egress=args.egress, partition=partition,
+        d = dp.prepare(repo_root, task, ref=args.ref, model=args.model or dp.default_model(), max_turns=args.max_turns, egress=args.egress, partition=partition,
                        claude_bin=args.claude_bin, session_bin=args.session_bin, sessions_root=Path(args.sessions) if args.sessions else None,
                        verify=not args.no_verify, timeout=args.timeout, log_dir=Path(args.log_dir) if args.log_dir else None,
                        quiet_minutes=args.quiet_minutes)
@@ -1694,7 +1694,7 @@ def build_parser() -> argparse.ArgumentParser:
     dispatch_task.add_argument("--task-file", help="the task from a file")
     dispatch_parser.add_argument("--repo", help="repo root (default: auto-detected via .git)")
     dispatch_parser.add_argument("--ref", default="HEAD", help="the parent the session starts from; the ingest must be at it (default HEAD)")
-    dispatch_parser.add_argument("--model", help="the doer's model (default: Claude Code's own)")
+    dispatch_parser.add_argument("--model", help="the doer's model (default: $HOBBES_DISPATCH_MODEL, else Claude Code's own)")
     dispatch_parser.add_argument("--max-turns", type=int, default=80, help="the doer's turn budget (default 80)")
     dispatch_parser.add_argument("--egress", action="append", help="a host the session may reach, host or host:port (repeatable; "
                                                                    "default api.anthropic.com)")
