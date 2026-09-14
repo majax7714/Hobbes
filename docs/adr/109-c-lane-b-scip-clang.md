@@ -119,3 +119,70 @@ throwaway container from the image) found:
   scip-clang's 149 MB binary.
 - **This repo's own ingest** indexes the `minic` fixture through bear
   over its Makefile, which exercises step 3 on every ingest.
+
+## Amendment (2026-09-14): a derived database with no entry under the root says so (C-135)
+
+**Decided:** the developer, 2026-09-14, as the next item after C-133's
+unit 1 (Max: "proceed with the recommended"). **Source:** C-135's
+measured gap on jfernandez/bpftop (ADR-110's draw), read this day.
+
+### Context
+
+- **What bpftop's build does.** Its one Makefile target is `cargo build
+  --release`. Under bear, cargo builds `libbpf-sys`, whose build script
+  runs make over its vendored libbpf; that make fails in the image
+  (`libelf.h: No such file or directory`), cargo stops, and bpftop's own
+  build script, which would compile `src/bpf/pid_iter.bpf.c` with clang,
+  never runs.
+- **What bear recorded.** 45 compiles, every one a dependency crate's C
+  under cargo's registry in Hobbes's cache (libbpf's sources, vsprintf's
+  `lib.c`), none of a file under the root. The database is not empty, so
+  the plan's check passes, scip-clang runs with its cwd at the root,
+  finds no document of the root's, and the unit draws only the generic
+  `scip-index` record: "the indexer emitted no documents; nothing was
+  analysed". No C reason, no register id.
+- **The check already owns the empty case** (`compdbCheck` in
+  `scip/index.mjs`): an empty database stops the plan before scip-clang,
+  in the build's own words. The case above is its sibling.
+
+### Decision
+
+1. **An entry counts for the root only when its file lies under it.**
+   The check resolves each entry's `file` against its `directory` and
+   asks whether the path is under the stage (the root scip-clang indexes
+   from, its cwd).
+2. **A database with entries and none under the root stops the plan
+   before scip-clang runs,** as the empty database does, and the message
+   names: the count bear or CMake recorded; where they lie — under
+   cargo's registry (`$CARGO_HOME/registry`, the dependencies' own C)
+   when every one is, otherwise the longest common directory outside the
+   root; that the build compiled none of the root's own C; the build's
+   last words, capped; and `(C-135)`. The Python side wraps it as today
+   (`_unit_failure`, a `scip-c` record for the root), and
+   `list_blind_spots` shows it with the register id. The message stays
+   short enough that the record's 500-character tail keeps the reason
+   and the id: the build's words come last and are capped at 200
+   characters.
+3. **A database with any entry under the root is unchanged:** scip-clang
+   runs, and what it emits is judged as today.
+4. **Out of scope. These stay in C-135:** a root whose database has
+   entries under it and whose index still emits no document (not yet
+   seen); making the dependency's build succeed (libelf is not in the
+   image, and a build the image cannot complete is C-135's own case);
+   reading the entries that lie outside the root.
+
+### Consequences
+
+- **On bpftop** (`5a67ec0`, measured at review): the root's record moves
+  from the generic `scip-index` line to a `scip-c` record naming the 45
+  dependency compiles, cargo's registry, and C-135.
+- **C-135's "You find out"** narrows: the gap's third line ("so a root
+  whose derived database indexes nothing surfaces without its cause")
+  closes for the no-entry-under-root case. C-135 stays *partial*.
+- **Tests:** the helper's node suite (`scip/test/index.test.mjs`), where
+  the empty-database test lives; a database whose entries all lie
+  outside the root, one under cargo's registry and one elsewhere, and a
+  mixed database that passes.
+- **The version:** a patch, because it changes what the layer says.
+- **How it is built:** through the harness, as one session, on the two
+  helper files.
