@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.16-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.17-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.16-beta are untagged. Tags stay Max's call each time.
+  0.2.17-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -16,7 +16,40 @@ The session's record is the 2026-09-14 BUILDLOG entry.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-14, later still): `oracle import --lang c` —
+0. **Latest (2026-09-14, last): the doer's model named per checkout —
+   ADR-107 amended, 0.2.17-beta.** Max: "proceed with the staleness
+   fixes and re-ingest, also id like to setup this space where
+   dispatching tasks uses opus 5 instead of fable". The review's three
+   stale lines fixed first (`f09b371`: the CHANGELOG's untagged range,
+   the handoff's leftover tracker count, the workstreams header), the
+   ingest at HEAD. **The finding:** all twenty-three sessions on record
+   ran on "model the default" — `--model` reached Claude Code but
+   nothing set it, and the doer's container has no user settings — so
+   the model was never the owner's choice nor recorded. Decided in
+   ADR-107's 2026-09-14 amendment (`acf093c`), then one unit through
+   the harness:
+   - **`cd8e`** (22 of 60 turns, 76 s, $1.11, run with `--model
+     claude-opus-5` said explicitly — the first session whose Doer line
+     names its model; no egress refusal, five execs all allowed):
+     `MODEL_ENV` and `default_model()` in `dispatch.py`, `args.model or
+     dp.default_model()` and the help text in `cli.py`, three tests
+     through the fake session's `argv.json`. Gate clear, verify pass
+     (388 tests, 3 new). Merged `1f5790a`, not squashed.
+   - **Fixed on the host after the merge:** the tracker's Doer pattern
+     knew only `model the default` and refused the first named model;
+     it now takes a name, with a test.
+   - **This box's setting:** `HOBBES_DISPATCH_MODEL=claude-opus-5` in
+     `.claude/settings.local.json`'s `env` block (gitignored, beside
+     `HOBBES_SECRETS`). It reaches a shell started after the setting,
+     so the session that opened before it passed the flag by hand;
+     from the next session on, a bare `hobbes dispatch` runs on Opus 5
+     and the log says so.
+   - Task files: `~/.hobbes/bench/dispatch-model-drivers/model-task.md`
+     with its partition beside it. **The tracker** reads 24 of 40, 4
+     areas, 0 false blocks, 0 missed, $50.88 reported. Binaries and the
+     image rebuilt at 0.2.17-beta; **restart the knowledge server** the
+     next session opens with (C-65).
+0d. **Before it (2026-09-14, later still): `oracle import --lang c` —
    ADR-101 amended; no version move.** Max: "review top level
    documentation, then proceed with most tackable item using harness".
    The review found no drift. The pick, read first: the foreign
@@ -192,6 +225,9 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      uid) closes the forged edit line. Not owed.
 2. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
+   - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
+     `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
+     beats it; unset, Claude Code chooses and the log says "the default".
    - Decide the design in an ADR or an amendment **before** the
      dispatch, as ADR-111, ADR-112, ADR-046's amendment and ADR-107's
      2026-09-13 amendment were.
@@ -235,7 +271,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (twenty-three so far):
+     (twenty-four so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations, C-133's include record, C-135's
        compile-database check;
@@ -243,7 +279,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
        the tracker, D-s, the sink and the sidecar, the launcher's two
-       worlds;
+       worlds, the checkout's model variable;
      - the oracle lane: C's oracle, `oracle import --lang c`, converter@3.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
@@ -342,7 +378,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-three, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-four, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -363,8 +399,8 @@ assumed of $25:
   unsurfaced, 1 n/a), 25 lifted, 11 superseded, 5 folded (Max's calls,
   2026-09-13; ADR-043 amended). C-141 registered the same day; C-133
   and C-135 narrowed 2026-09-14.
-- **Suites** at 0.2.16-beta:
-  - 1,515 pytest (host); 47 scip node (host);
+- **Suites** at 0.2.17-beta:
+  - 1,519 pytest (host); 47 scip node (host, not re-run: nothing it covers changed);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - oracle-lane Go re-run on `main` after `d2e3`'s merge, green (the

@@ -11,9 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.16-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.17-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.17-beta — 2026-09-14 (the doer's model is named, per checkout; ADR-107 amended)
+
+**Patch: what the layer says.** Every session on record before this
+one ran on "model the default": `hobbes dispatch --model` reached
+Claude Code's own flag, but nothing set it, and the doer's container
+carries no user settings (its HOME is a tmpfs since 0.2.14-beta), so
+the model was Claude Code's choice for the owner's account —
+unrecorded, and not the owner's.
+
+- **The rule** (ADR-107's 2026-09-14 amendment). `hobbes dispatch`
+  reads `$HOBBES_DISPATCH_MODEL` when `--model` is not given; the flag
+  beats the variable; unset or empty leaves the choice to Claude Code,
+  as before. The session argv, `dispatch.json`'s doer record, the
+  session log's Doer line and the dry run already carried the model,
+  so a pinned one is visible at every step a developer reads. A
+  checkout sets it in the `env` block of its gitignored
+  `.claude/settings.local.json`, beside `HOBBES_SECRETS`: the box's
+  setting, not the repo's — the repo names no model. Nothing new
+  crosses into the container.
+- **Built through the harness:** `S-20260914T153042Z-cd8e` (22 of 60
+  turns, 76 s; $1.11 reported), run with `--model claude-opus-5` said
+  explicitly — the first session whose Doer line names its model.
+  Gate clear and verify pass (388 tests, 0 regressions, 3 new). Merged
+  without squashing.
+- **The developer's follow-up:** the session tracker's Doer pattern
+  knew only `model the default`, so the first named model broke its
+  render — as the stream bracket did at 0.2.15-beta, a first-of-its-
+  kind line the pattern had not met. It now takes a name and keeps it;
+  a test holds the shape.
 
 ## 0.2.16-beta — 2026-09-14 (a derived compile database with none of the root's files says so; C-135's measured gap closed; ADR-109 amended)
 

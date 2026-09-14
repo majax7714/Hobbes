@@ -54,7 +54,7 @@ SESSION_ID_RE = re.compile(r"^S-(\d{4})(\d{2})(\d{2})T\d{6}Z-([0-9a-f]{4})$")
 TASK_RE = re.compile(r"^- \*\*Task:\*\* .+\(brief `[^`]+`, task sha256 `[0-9a-f]+`\)$")
 
 DOER_RE = re.compile(
-    r"^- \*\*Doer:\*\* (?P<version>\S+) \(Claude Code\); model the default; "
+    r"^- \*\*Doer:\*\* (?P<version>\S+) \(Claude Code\); model (?P<model>the default|\S+); "
     r"turns (?P<turns_num>—|\d+) of (?P<turns_den>\d+); "
     r"result `(?P<result>[^`]*)`(?: \*\*with an error\*\* \([^)]*\))?; "
     r"(?:reported cost \$(?P<cost>[\d.]+) \(the envelope's figure, on the subscription\); )?"

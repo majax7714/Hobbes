@@ -151,6 +151,15 @@ def test_unparseable_doer_line_raises(tmp_path):
         ct.parse_session(path)
 
 
+def test_a_doer_line_naming_its_model_parses(tmp_path):
+    """A Doer line naming the model (`model claude-opus-5`, ADR-107's 2026-09-14 amendment) parses as `model the default` does; the turns and cost still count."""
+    sid = "S-20260101T000000Z-cd8e"
+    _write_session(tmp_path, sid, doer="2.1.270 (Claude Code); model claude-opus-5; turns 22 of 60; result `success`; "
+                                       "reported cost $1.1112 (the envelope's figure, on the subscription); wall 75.6 s; session exit 0")
+    rec = ct.parse_session(tmp_path / f"{sid}.md")
+    assert (rec["turns_num"], rec["turns_den"], rec["cost"]) == (22, 60, 1.1112)
+
+
 def test_policy_line_with_the_stream_bracket_parses(tmp_path):
     """A Policy line carrying the sink's bracket (`; records: stream opened→closed`, ADR-112) parses, with and without an escalation clause before it; the kinds still count."""
     sid = "S-20260101T000000Z-beef"

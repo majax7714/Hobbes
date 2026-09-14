@@ -212,11 +212,12 @@ uv run hobbes review main..my-branch  # exit 1 if it needs attention
 uv run hobbes plan "proposal" --seed some.module
 uv run hobbes run <task> --dry-run
 uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvin harness; the ingest at HEAD first
+#   the doer's model: --model, else $HOBBES_DISPATCH_MODEL (this box: claude-opus-5, in .claude/settings.local.json), else Claude Code's own
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-14, 0.2.16-beta; the last three
-carried from 0.2.8-beta): 1,515 pytest (5 of them `lane_b`) / 386 Go
+Suite sizes at the last check (2026-09-14, 0.2.17-beta; the last three
+carried from 0.2.8-beta): 1,519 pytest (5 of them `lane_b`) / 386 Go
 (subtests counted: 385 pass, 1 skip; the four live launcher tests run on
 the host) + 93 oracle-lane Go (subtests counted: 89 pass, 4 skip without
 a toolchain; re-counted 2026-09-14 after `d2e3`; two run the `shape/` suites: 24 unittest + 7 node) / 52
@@ -293,7 +294,7 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-14) — Hobbes 0.2.16-beta
+## Status (2026-09-14) — Hobbes 0.2.17-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
@@ -339,7 +340,15 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-14): **`oracle import --lang c`, ADR-101
+  - **The latest** (2026-09-14): **the doer's model named per checkout,
+    ADR-107 amended, 0.2.17-beta,** one dispatched unit (`cd8e`, 22
+    turns, $1.11, gate right-clear, run on `claude-opus-5` said
+    explicitly — the first session whose Doer line names its model):
+    `hobbes dispatch` reads `$HOBBES_DISPATCH_MODEL` when `--model` is
+    not given; this box sets it to `claude-opus-5` in its gitignored
+    `.claude/settings.local.json`. The tracker's Doer pattern took the
+    named model on the host after the merge.
+  - **Before it** (2026-09-14): **`oracle import --lang c`, ADR-101
     amended, no version move** (nothing under `bench/` does), one
     dispatched unit (`d2e3`, 40 turns, $1.04, gate right-clear): C is
     spelled everywhere the converter's language set is, with a
@@ -375,7 +384,7 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 23 of the 40 sessions that validate the
+    drift test. It reads 24 of the 40 sessions that validate the
     harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
     Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,

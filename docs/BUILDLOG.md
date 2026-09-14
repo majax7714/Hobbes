@@ -10385,3 +10385,68 @@ the harness, and the regrade.**
     claim page's C sentence restated; W0, the handoff, CLAUDE.md.
 - **Task files:** `~/.hobbes/bench/c-import-drivers/macro-task.md`
   with its partition beside it. **The tracker** at 23 of 40.
+
+## 2026-09-14 — (last) the top-level review's stale lines; the doer's model named per checkout — 0.2.17-beta (ADR-107 amended; `cd8e`, the first session on a named model)
+
+**Asked (Max):** "review top level documentation then report back with
+current standing", then "proceed with the staleness fixes and
+re-ingest, also id like to setup this space where dispatching tasks
+uses opus 5 instead of fable."
+
+- **The review.** The tree, the five version copies, the binaries and
+  the image were at 0.2.16-beta; the README's status, the
+  architecture's §8 header and harness row, the harness doc, the
+  register's debt table, W0 and the tracker (23 of 40, $49.77) agreed.
+  Three drifts, all prose or the ingest: the CHANGELOG's untagged range
+  stopped at 0.2.14-beta; the handoff's item 0 carried `d2e3`'s
+  tracker count under `3c41`'s; the ingest was at `d16c978`, four
+  commits behind HEAD (the converter@3 adapters). Fixed in `f09b371`
+  (with the workstreams header), then the ingest at HEAD.
+- **The finding, on the model.** Every one of the twenty-three
+  sessions' Doer lines read "model the default". `hobbes dispatch
+  --model` reaches `hobbes-session --model` and Claude Code's own
+  flag, but nothing set it, and the doer's container carries no user
+  settings (HOME a tmpfs since 0.2.14-beta), so the model was Claude
+  Code's choice for the account — never the owner's, never recorded.
+- **Decided before the dispatch:** ADR-107's 2026-09-14 amendment
+  (`acf093c`): `hobbes dispatch` reads `$HOBBES_DISPATCH_MODEL` when
+  `--model` is not given; the flag beats it; unset leaves the choice to
+  Claude Code. A checkout sets it in its gitignored
+  `.claude/settings.local.json` `env` block beside `HOBBES_SECRETS` —
+  the box's setting, since the repo names no model (the bench harness
+  names its ladder per arm, ADR-055). This box: `claude-opus-5`. The
+  variable reaches a shell started after the setting, so the unit
+  that built it passed the flag by hand.
+- **The session** (`S-20260914T153042Z-cd8e`, 22 of 60 turns, 76 s,
+  $1.11, `--model claude-opus-5`; the first Doer line naming its
+  model): `MODEL_ENV` and `default_model()` in `dispatch.py`,
+  `args.model or dp.default_model()` and the help in `cli.py`, three
+  tests through the fake session's `argv.json` (the variable reaches
+  the argv and the doer record; the flag beats it; unset leaves
+  `--model` out). Gate clear (3 files, 0.0% uncaptured, partition
+  checked), verify pass (388 tests, 3 new). Five execs, all allowed;
+  no egress refusal. Right-clear; merged `1f5790a`, not squashed.
+- **Fixed on the host after the merge:** the tracker's Doer pattern
+  matched `model the default` alone, so `render` raised on the first
+  named model — the stream bracket's shape at 0.2.15-beta again, a
+  first-of-its-kind line. It now takes a name (`(?P<model>the
+  default|\S+)`), with a test on `cd8e`'s line.
+- **Version 0.2.17-beta** (patch: what the layer says — the log names
+  the model the checkout chose): the five copies and the three lock
+  files, the CHANGELOG entry, the README's status, the architecture's
+  §8 header and harness row, CLAUDE.md, the harness doc (§5 gains the
+  once-step and the flag), the handoff. Binaries, the static proxy and
+  the image rebuilt (C-65). pytest on `main`: the count is in
+  CLAUDE.md's suite line; Go's version package green, the rest of the
+  Go suite not re-run (only the version string moved).
+- **The tracker** at 24 of 40, 4 areas, 0 false blocks, 0 missed,
+  $50.88 reported. **Task files:**
+  `~/.hobbes/bench/dispatch-model-drivers/model-task.md` with its
+  partition beside it.
+
+**Next on the queue, no spend:** Max's open calls (ADR-106; the
+register segment for the dispatch entries); then the named units
+toward 40 — C-135's autotools, Meson and Bazel roots; C-133's unit 2
+when a graded cell shows the cost; `testmap_fixture`'s pytest
+warnings; the comparative queue's next converters if named — each now
+a bare `hobbes dispatch`, on Opus 5.

@@ -1,6 +1,6 @@
 # Calvin as a harness — the environment stacked under the doer, validated by use
 
-**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation by use is under way: twenty-three dispatched sessions through 0.2.16-beta, each with its log in [`sessions/`](sessions/README.md), counted by the tracker at that README's end. Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
+**Status:** built 2026-09-12 (Hobbes 0.1.21-beta, ADR-107). Validation by use is under way: twenty-four dispatched sessions through 0.2.17-beta, each with its log in [`sessions/`](sessions/README.md), counted by the tracker at that README's end. Since then the progress hook (0.2.6-beta, ADR-107's second amendment) puts the doer's edits in the flight log, and the dispatch box's policy (0.2.7-beta) settles `rm` and C's toolchain probes. **Retention amended the same day (0.1.22-beta):** the doer's reasoning is never stored, and recorded sessions are evaluation rows, never model training data (the retention section below).
 **Supersedes, as an approach:** the keyed rounds. Their records stand as history:
 - M0 ([`calvin-potential.md`](calvin-potential.md));
 - M0-Go ([`calvin-m0-go.md`](calvin-m0-go.md), [`calvin-m0-go-r2.md`](calvin-m0-go-r2.md));
@@ -176,12 +176,18 @@ Once:
    in the key file, or export `CLAUDE_CODE_OAUTH_TOKEN`.
 2. Build the image (`sandbox/`), and `go/bin/hobbes-session` with its
    static `hobbes-proxy`.
+3. Name the doer's model for the box (0.2.17-beta, ADR-107's
+   2026-09-14 amendment): `HOBBES_DISPATCH_MODEL` in the checkout's
+   gitignored `.claude/settings.local.json` `env` block, beside
+   `HOBBES_SECRETS`. Unset, Claude Code chooses, and the log's Doer
+   line says `model the default`; set, it names the model.
 
 Per task:
 
 ```sh
 uv run hobbes ingest                       # the ingest must be at HEAD
 uv run hobbes dispatch --task-file task.md --secrets "$HOBBES_SECRETS"
+#   --model NAME             the doer's model (default $HOBBES_DISPATCH_MODEL, else Claude Code's own)
 #   --partition files.json   the files the doer may write, checked by the gate
 #   --no-verify              gate only
 #   --dry-run                the brief, the argv and hobbes-session's plan; nothing runs
