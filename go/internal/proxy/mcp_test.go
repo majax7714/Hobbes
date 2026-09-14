@@ -6,7 +6,6 @@ package proxy
 
 import (
 	"context"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/majax7714/Hobbes/go/internal/escalation"
-	"github.com/majax7714/Hobbes/go/internal/recorder"
 )
 
 func connect(t *testing.T, s *Server) *mcp.ClientSession {
@@ -83,13 +81,13 @@ func TestKnowledgeOnlyBannerScopesTheGuarantee(t *testing.T) {
 func TestKnowledgeOnlySurface(t *testing.T) {
 	repo := testRepo(t)
 	sessionDir := t.TempDir()
-	rec, err := recorder.Open(filepath.Join(sessionDir, "flight.jsonl"))
+	j, err := NewFileJournal(sessionDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { rec.Close() })
+	t.Cleanup(func() { j.Close() })
 	s, err := New(Config{Session: "S-k", Role: "developer", RepoRoot: repo,
-		SessionDir: sessionDir, Rec: rec, KnowledgeOnly: true})
+		Journal: j, KnowledgeOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}

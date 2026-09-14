@@ -79,19 +79,18 @@ func newServerFull(t *testing.T, repo string, timeout, escTimeout time.Duration)
 	t.Helper()
 	sessionDir := t.TempDir()
 	logPath := filepath.Join(sessionDir, "flight.jsonl")
-	rec, err := recorder.Open(logPath)
+	j, err := NewFileJournal(sessionDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { rec.Close() })
+	t.Cleanup(func() { j.Close() })
 	s, err := New(Config{
 		Session:           "S-test",
 		Role:              "implementer",
 		RepoRoot:          repo,
-		SessionDir:        sessionDir,
 		Timeout:           timeout,
 		EscalationTimeout: escTimeout,
-		Rec:               rec,
+		Journal:           j,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -510,19 +509,15 @@ func TestDisconnectWhileParkedSettlesRecord(t *testing.T) {
 }
 
 func TestNewRejectsAnonymousOrUnauditedProxies(t *testing.T) {
-	rec, err := recorder.Open(filepath.Join(t.TempDir(), "f.jsonl"))
+	j, err := NewFileJournal(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rec.Close()
-	dir := t.TempDir()
-	if _, err := New(Config{RepoRoot: ".", SessionDir: dir, Rec: rec}); err == nil {
+	defer j.Close()
+	if _, err := New(Config{RepoRoot: ".", Journal: j}); err == nil {
 		t.Error("missing session/role must be rejected")
 	}
-	if _, err := New(Config{Session: "s", Role: "r", RepoRoot: ".", SessionDir: dir}); err == nil {
-		t.Error("missing recorder must be rejected")
-	}
-	if _, err := New(Config{Session: "s", Role: "r", RepoRoot: ".", Rec: rec}); err == nil {
-		t.Error("missing session dir must be rejected")
+	if _, err := New(Config{Session: "s", Role: "r", RepoRoot: "."}); err == nil {
+		t.Error("missing journal must be rejected")
 	}
 }

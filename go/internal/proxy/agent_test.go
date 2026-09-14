@@ -10,7 +10,6 @@ import (
 
 	schema "github.com/majax7714/Hobbes/go/internal/derived"
 	"github.com/majax7714/Hobbes/go/internal/knowledge"
-	"github.com/majax7714/Hobbes/go/internal/recorder"
 )
 
 // agentServer builds a proxy with an agent dir holding the given files.
@@ -24,15 +23,15 @@ func agentServer(t *testing.T, repo string, files map[string]string) (*Server, s
 	}
 	sessionDir := t.TempDir()
 	logPath := filepath.Join(sessionDir, "flight.jsonl")
-	rec, err := recorder.Open(logPath)
+	j, err := NewFileJournal(sessionDir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { rec.Close() })
+	t.Cleanup(func() { j.Close() })
 	s, err := New(Config{
 		Session: "S-agent", Role: "implementer", RepoRoot: repo,
-		SessionDir: sessionDir, EscalationTimeout: 400 * time.Millisecond,
-		Rec: rec, AgentDir: agentDir,
+		EscalationTimeout: 400 * time.Millisecond,
+		Journal:           j, AgentDir: agentDir,
 	})
 	if err != nil {
 		t.Fatal(err)

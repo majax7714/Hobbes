@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"net"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -51,7 +52,7 @@ func TestServeRejectsMissingRepoDir(t *testing.T) {
 func TestParseServeDefaultsAndSessionDir(t *testing.T) {
 	repo := t.TempDir()
 	var stderr bytes.Buffer
-	cfg, logPath, err := parseServe(
+	cfg, sessionDir, sinkAddr, err := parseServe(
 		[]string{"--repo", repo, "--role", "implementer", "--session", "S-x",
 			"--log-dir", "/logs", "--timeout", "30s",
 			"--escalation-timeout", "5m"}, &stderr)
@@ -62,8 +63,38 @@ func TestParseServeDefaultsAndSessionDir(t *testing.T) {
 		cfg.EscalationTimeout != 5*time.Minute {
 		t.Errorf("cfg = %+v", cfg)
 	}
-	if cfg.SessionDir != "/logs/S-x" || logPath != "/logs/S-x/flight.jsonl" {
-		t.Errorf("sessionDir=%q logPath=%q", cfg.SessionDir, logPath)
+	if sessionDir != "/logs/S-x" {
+		t.Errorf("sessionDir=%q", sessionDir)
+	}
+	if sinkAddr != "" {
+		t.Errorf("sinkAddr=%q, want empty when --sink is not given", sinkAddr)
+	}
+}
+
+func TestParseServeCapturesSinkFlag(t *testing.T) {
+	repo := t.TempDir()
+	var stderr bytes.Buffer
+	_, _, sinkAddr, err := parseServe(
+		[]string{"--repo", repo, "--role", "implementer", "--sink", "sidecar:3129"}, &stderr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sinkAddr != "sidecar:3129" {
+		t.Errorf("sinkAddr = %q, want sidecar:3129", sinkAddr)
+	}
+}
+
+func TestServeSinkDialFailureExitsError(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ln.Addr().String()
+	ln.Close() // nothing listens now
+
+	code, _, stderr := cli("serve", "--repo", t.TempDir(), "--role", "r", "--sink", addr)
+	if code != exitError || !strings.Contains(stderr, "hobbes-proxy serve:") {
+		t.Errorf("code=%d stderr=%q", code, stderr)
 	}
 }
 

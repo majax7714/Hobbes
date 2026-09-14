@@ -45,15 +45,18 @@ const (
 
 // Config identifies the session this proxy serves and where it enforces.
 type Config struct {
-	Session    string
-	Role       string
-	RepoRoot   string        // absolute repo root; commands are confined to it
-	BoxPath    string        // box policy path, "" for none (ADR-003 rules)
-	SessionDir string        // per-session state dir (escalations/ lives here)
-	Timeout    time.Duration // per-command wall clock; 0 means DefaultTimeout
+	Session  string
+	Role     string
+	RepoRoot string        // absolute repo root; commands are confined to it
+	BoxPath  string        // box policy path, "" for none (ADR-003 rules)
+	Timeout  time.Duration // per-command wall clock; 0 means DefaultTimeout
 	// EscalationTimeout is the park deadline; 0 means the §9 default.
 	EscalationTimeout time.Duration
-	Rec               *recorder.Recorder
+	// Journal is where the session's flight log, escalation queue and
+	// mail file are written (ADR-112): FileJournal on a local session
+	// dir, or a *sink.Client dialed to the session's sidecar. Required —
+	// the proxy never runs unaudited.
+	Journal Journal
 	// AgentDir is the host path of the session's derived agent dir
 	// (ADR-054): policy.yaml is loaded as the chain's agent level on
 	// every exec, and context.json, when present, is the context
@@ -82,17 +85,14 @@ func New(cfg Config) (*Server, error) {
 		return nil, fmt.Errorf("proxy: %w", err)
 	}
 	cfg.RepoRoot = root
-	if cfg.SessionDir == "" {
-		return nil, fmt.Errorf("proxy: a session dir is required — escalations park there")
-	}
 	if cfg.Timeout <= 0 {
 		cfg.Timeout = DefaultTimeout
 	}
 	if cfg.EscalationTimeout <= 0 {
 		cfg.EscalationTimeout = DefaultEscalationTimeout
 	}
-	if cfg.Rec == nil {
-		return nil, fmt.Errorf("proxy: a flight recorder is required — the proxy never runs unaudited")
+	if cfg.Journal == nil {
+		return nil, fmt.Errorf("proxy: a journal is required — the proxy never runs unaudited")
 	}
 	s := &Server{cfg: cfg}
 	if cfg.AgentDir != "" {
@@ -224,16 +224,15 @@ func (s *Server) park(ctx context.Context, req *mcp.CallToolRequest, args ExecAr
 	if err != nil {
 		return errResult("exec: %v", err)
 	}
-	path, err := escalation.Create(filepath.Join(s.cfg.SessionDir, "escalations"), rec)
-	if err != nil {
+	if err := s.cfg.Journal.Park(rec); err != nil {
 		return errResult("exec: %v", err)
 	}
 
 	parkEv := ev
 	parkEv.Escalation = &recorder.EscalationRef{ID: rec.ID}
-	if err := s.cfg.Rec.Record(parkEv); err != nil {
+	if err := s.cfg.Journal.Record(parkEv); err != nil {
 		// An unlogged park must not sit approvable for half an hour.
-		_, _ = escalation.MarkExpired(path, time.Now())
+		_, _ = s.cfg.Journal.Expire(rec.ID)
 		return errResult("exec: flight recorder write failed while parking: %v", err)
 	}
 
@@ -254,7 +253,7 @@ func (s *Server) park(ctx context.Context, req *mcp.CallToolRequest, args ExecAr
 	for {
 		select {
 		case <-ctx.Done():
-			_, _ = escalation.MarkExpired(path, time.Now())
+			_, _ = s.cfg.Journal.Expire(rec.ID)
 			return s.record(resolved("expired", ""),
 				errResult("escalation %s: session ended while parked — command NOT run", rec.ID))
 		case <-progress.C:
@@ -264,14 +263,14 @@ func (s *Server) park(ctx context.Context, req *mcp.CallToolRequest, args ExecAr
 		}
 
 		if time.Now().After(deadline) {
-			_, _ = escalation.MarkExpired(path, time.Now())
+			_, _ = s.cfg.Journal.Expire(rec.ID)
 			return s.record(resolved("expired", ""), errResult(
 				"escalation %s expired after %s with no human response — "+
 					"command NOT run (expires to deny, architecture §9)",
 				rec.ID, s.cfg.EscalationTimeout))
 		}
 
-		current, err := escalation.Load(path)
+		current, err := s.cfg.Journal.Poll(rec.ID)
 		if err != nil {
 			continue // mid-rename read; next poll settles it
 		}
@@ -369,7 +368,7 @@ func (s *Server) run(ctx context.Context, command, dir string, ev *recorder.Even
 // record appends the event to the flight log. A recorder failure is
 // surfaced on the result — an unauditable proxy must not look healthy.
 func (s *Server) record(ev recorder.Event, result *mcp.CallToolResult) *mcp.CallToolResult {
-	if err := s.cfg.Rec.Record(ev); err != nil {
+	if err := s.cfg.Journal.Record(ev); err != nil {
 		result.IsError = true
 		result.Content = append(result.Content, &mcp.TextContent{
 			Text: fmt.Sprintf("WARNING: flight recorder write failed: %v", err),

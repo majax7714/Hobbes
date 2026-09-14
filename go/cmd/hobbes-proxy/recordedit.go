@@ -10,6 +10,7 @@ import (
 
 	"github.com/majax7714/Hobbes/go/internal/recorder"
 	"github.com/majax7714/Hobbes/go/internal/sandbox"
+	"github.com/majax7714/Hobbes/go/internal/sink"
 )
 
 // maxHookInput caps the PostToolUse hook payload this command reads.
@@ -37,20 +38,29 @@ type hookInput struct {
 // flight-recorder line naming the edited tool and path — never the
 // edit's content. It always exits 0: a hook's failure must never stop
 // the doer, so every fault (bad flags, unreadable or malformed stdin, no
-// tool_name, no path, an unopenable log) is a stderr line and nothing
-// recorded, rather than a non-zero exit.
+// tool_name, no path, an unopenable log, an unreachable or refusing
+// sink) is a stderr line and nothing recorded, rather than a non-zero
+// exit. Exactly one of --log (a local flight log) and --sink (the
+// session's sidecar, ADR-112) selects where the line goes; --session and
+// --role are required either way, so the hook's invocation stays the
+// same shape regardless.
 func runRecordEdit(args []string, stdin io.Reader, stderr io.Writer) int {
 	fs := flag.NewFlagSet("record-edit", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	logFlag := fs.String("log", "", "flight log to append to (required)")
+	logFlag := fs.String("log", "", "flight log to append to (mutually exclusive with --sink)")
+	sinkFlag := fs.String("sink", "", "the session's sidecar sink host:port (ADR-112), in place of --log")
 	sessionFlag := fs.String("session", "", "session id (required)")
 	roleFlag := fs.String("role", "", "session role (required)")
 	workFlag := fs.String("work", sandbox.WorkDir, "the worktree root a path is made relative to")
 	if err := fs.Parse(args); err != nil {
 		return exitOK
 	}
-	if *logFlag == "" || *sessionFlag == "" || *roleFlag == "" {
-		fmt.Fprintln(stderr, "hobbes-proxy record-edit: --log, --session and --role are required")
+	if *sessionFlag == "" || *roleFlag == "" {
+		fmt.Fprintln(stderr, "hobbes-proxy record-edit: --session and --role are required")
+		return exitOK
+	}
+	if (*logFlag == "") == (*sinkFlag == "") {
+		fmt.Fprintln(stderr, "hobbes-proxy record-edit: exactly one of --log or --sink is required")
 		return exitOK
 	}
 
@@ -76,6 +86,14 @@ func runRecordEdit(args []string, stdin io.Reader, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "hobbes-proxy record-edit: no file_path or notebook_path in the hook input")
 		return exitOK
 	}
+	relPath := relativeToWork(path, *workFlag)
+
+	if *sinkFlag != "" {
+		if err := sink.SendEdit(*sinkFlag, recorder.Event{Tool: in.ToolName, Path: relPath}); err != nil {
+			fmt.Fprintf(stderr, "hobbes-proxy record-edit: %v\n", err)
+		}
+		return exitOK
+	}
 
 	rec, err := recorder.Open(*logFlag)
 	if err != nil {
@@ -87,7 +105,7 @@ func runRecordEdit(args []string, stdin io.Reader, stderr io.Writer) int {
 		Session: *sessionFlag,
 		Role:    *roleFlag,
 		Tool:    in.ToolName,
-		Path:    relativeToWork(path, *workFlag),
+		Path:    relPath,
 	}); err != nil {
 		fmt.Fprintf(stderr, "hobbes-proxy record-edit: %v\n", err)
 	}

@@ -1,24 +1,30 @@
 // Command hobbes-proxy is the per-session tool proxy daemon (M4, ADR-014):
 // an MCP server over stdio that exposes one tool, exec, gated by the merged
-// Hobbes policy chain and logged to the session's flight recorder. The
-// session wrapper lists it in the sandboxed Claude Code's MCP config; one
-// proxy process serves one session and dies with it. The escalations
-// subcommand is the human side of the queue (ADR-016): list parked
-// commands, approve or deny them by id. The record-edit subcommand is a
-// Claude Code PostToolUse hook (ADR-107, the progress hook): it appends
-// one flight line per edit, naming the tool and path alone — never the
-// edit's content — and always exits 0, so a fault in it never stops the
-// doer.
+// Hobbes policy chain and logged to the session's journal (ADR-112): a
+// sidecar's sink, or, without one, a local flight recorder. The session
+// wrapper lists it in the sandboxed Claude Code's MCP config; one proxy
+// process serves one session and dies with it. The escalations subcommand
+// is the human side of the queue (ADR-016): list parked commands, approve
+// or deny them by id. The record-edit subcommand is a Claude Code
+// PostToolUse hook (ADR-107, the progress hook): it appends one flight
+// line per edit, naming the tool and path alone — never the edit's
+// content — and always exits 0, so a fault in it never stops the doer.
+// The sidecar subcommand is a session's records sink and its allowlisted
+// route out, in one container of its own (ADR-112): it replaces the
+// standalone egress proxy, since the doer's container mounts no part of
+// the session dir read-write and writes none of its own records.
 //
 // Usage:
 //
 //	hobbes-proxy serve --repo DIR --role ROLE [--session ID] [--box FILE]
-//	                   [--log-dir DIR] [--timeout DUR] [--escalation-timeout DUR]
+//	                   [--log-dir DIR] [--sink HOST:PORT] [--timeout DUR]
+//	                   [--escalation-timeout DUR]
 //	hobbes-proxy escalations list [--all] [--log-dir DIR]
 //	hobbes-proxy escalations approve <id> [--log-dir DIR]
 //	hobbes-proxy escalations deny <id> [--log-dir DIR]
-//	hobbes-proxy egress --allow HOST[:PORT]... [--listen ADDR] [--log FILE]
-//	hobbes-proxy record-edit --log FILE --session ID --role ROLE [--work DIR]
+//	hobbes-proxy sidecar --dir DIR --session ID --role ROLE [--sink-listen ADDR]
+//	                     [--allow HOST[:PORT]... [--listen ADDR]]
+//	hobbes-proxy record-edit --session ID --role ROLE (--log FILE | --sink HOST:PORT) [--work DIR]
 //
 // For serve, stdout carries the MCP protocol; all diagnostics go to
 // stderr. Exit codes: 0 ok · 1 runtime error · 2 usage (record-edit is
@@ -43,7 +49,7 @@ import (
 
 	"github.com/majax7714/Hobbes/go/internal/escalation"
 	"github.com/majax7714/Hobbes/go/internal/proxy"
-	"github.com/majax7714/Hobbes/go/internal/recorder"
+	"github.com/majax7714/Hobbes/go/internal/sink"
 	"github.com/majax7714/Hobbes/go/internal/version"
 )
 
@@ -53,18 +59,23 @@ const (
 	exitUsage = 2
 )
 
-const usage = `usage: hobbes-proxy <serve | escalations | egress> [flags]
+const usage = `usage: hobbes-proxy <serve | escalations | sidecar | record-edit> [flags]
        hobbes-proxy version            print the Hobbes version (ADR-103)
 
 serve --repo DIR --role ROLE   run the tool proxy for one agent session
   [--knowledge-only]           (knowledge tools only: for a host session
                                that keeps its own shell, ADR-087):
   an MCP server on stdio exposing exec, policy-checked
-  (allow | deny | escalate) and logged to the session flight recorder
+  (allow | deny | escalate) and logged to the session's journal (ADR-112):
+  the sidecar's sink (--sink), or, without it, a local flight recorder
   (~/.hobbes/sessions/<session>/flight.jsonl).
     --session ID              session id (default: generated S-<utc>-<rand>)
     --box FILE                box policy (default: ~/.hobbes/box.policy if present)
-    --log-dir DIR             session-state root (default: ~/.hobbes/sessions)
+    --log-dir DIR             session-state root when there is no --sink
+                              (default: ~/.hobbes/sessions)
+    --sink HOST:PORT          the session's sidecar sink (ADR-112): the flight
+                              log, escalation queue and mail file are written
+                              there instead of under --log-dir
     --timeout DUR             per-command wall clock (default 10m)
     --escalation-timeout DUR  park deadline, expires to deny (default 30m)
     --agent-dir DIR           derived agent dir (ADR-054): policy.yaml joins the
@@ -72,18 +83,23 @@ serve --repo DIR --role ROLE   run the tool proxy for one agent session
                               tags out-of-manifest knowledge queries as context
                               faults; adds the reflect tool's inbox channel
 
-egress --allow HOST[:PORT]     a session's allowlisted route out (ADR-107):
-  a CONNECT proxy that tunnels to the listed hosts (443 by default) and
-  answers 403 to everything else, one JSONL line per decision;
-  hobbes-session --egress runs it in its own container beside the session.
-    --listen ADDR   address to listen on (default 0.0.0.0:3128)
-    --log FILE      the decision log (default stdout)
+sidecar --dir DIR --session ID --role ROLE   a session's records sink and
+  its allowlisted route out, in one container of its own (ADR-112): the
+  doer's container mounts no part of the session dir read-write, so this
+  is the only writer of flight.jsonl, escalations/, mail.jsonl and, with
+  --allow, egress.jsonl. Serves until SIGTERM or SIGINT.
+    --sink-listen ADDR   the flight sink's address (default 0.0.0.0:3129)
+    --allow HOST[:PORT]  a host a session may reach (repeatable; 443 by
+                         default); with none given, no egress proxy runs
+    --listen ADDR        the egress proxy's address (default 0.0.0.0:3128)
 
-record-edit --log FILE --session ID --role ROLE   a Claude Code PostToolUse
-  hook (ADR-107, the progress hook): reads the hook's JSON on stdin and
+record-edit --session ID --role ROLE   a Claude Code PostToolUse hook
+  (ADR-107, the progress hook): reads the hook's JSON on stdin and
   appends one flight line naming the edited tool and path alone — never
   the edit's content. Always exits 0, so a fault here never stops the doer.
-    --work DIR      the worktree root a path is made relative to (default /work)
+    --log FILE       the flight log to append to (mutually exclusive with --sink)
+    --sink HOST:PORT the session's sidecar sink (ADR-112), in place of --log
+    --work DIR       the worktree root a path is made relative to (default /work)
 
 escalations [list | approve <id> | deny <id>]   the human side of the
   queue: parked commands across all sessions, oldest first.
@@ -106,8 +122,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return runServe(args[1:], stderr)
 	case "escalations":
 		return runEscalations(args[1:], stdout, stderr)
-	case "egress":
-		return runEgress(args[1:], stderr)
+	case "sidecar":
+		return runSidecar(args[1:], stderr)
 	case "record-edit":
 		return runRecordEdit(args[1:], os.Stdin, stderr)
 	case "version", "--version":
@@ -122,9 +138,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 }
 
-// runServe validates flags, opens the recorder, and serves MCP on stdio.
+// runServe validates flags, builds the session's journal (a sidecar sink,
+// or a local flight recorder), and serves MCP on stdio.
 func runServe(args []string, stderr io.Writer) int {
-	cfg, logPath, err := parseServe(args, stderr)
+	cfg, sessionDir, sinkAddr, err := parseServe(args, stderr)
 	if err != nil {
 		if errors.Is(err, flag.ErrHelp) || errors.Is(err, errUsage) {
 			return exitUsage
@@ -133,13 +150,28 @@ func runServe(args []string, stderr io.Writer) int {
 		return exitError
 	}
 
-	rec, err := recorder.Open(logPath)
-	if err != nil {
-		fmt.Fprintf(stderr, "hobbes-proxy serve: %v\n", err)
-		return exitError
+	var journal proxy.Journal
+	var journalDesc string
+	if sinkAddr != "" {
+		client, err := sink.Dial(sinkAddr)
+		if err != nil {
+			fmt.Fprintf(stderr, "hobbes-proxy serve: %v\n", err)
+			return exitError
+		}
+		defer client.Close()
+		journal = client
+		journalDesc = sinkAddr
+	} else {
+		fj, err := proxy.NewFileJournal(sessionDir)
+		if err != nil {
+			fmt.Fprintf(stderr, "hobbes-proxy serve: %v\n", err)
+			return exitError
+		}
+		defer fj.Close()
+		journal = fj
+		journalDesc = filepath.Join(sessionDir, "flight.jsonl")
 	}
-	defer rec.Close()
-	cfg.Rec = rec
+	cfg.Journal = journal
 
 	server, err := proxy.New(cfg)
 	if err != nil {
@@ -148,7 +180,7 @@ func runServe(args []string, stderr io.Writer) int {
 	}
 
 	fmt.Fprintf(stderr, "hobbes-proxy: session %s role %s repo %s\nhobbes-proxy: flight log %s\nhobbes-proxy: build %s\n",
-		cfg.Session, cfg.Role, cfg.RepoRoot, logPath, buildRevision())
+		cfg.Session, cfg.Role, cfg.RepoRoot, journalDesc, buildRevision())
 	if cfg.KnowledgeOnly {
 		fmt.Fprint(stderr, proxy.KnowledgeOnlyBanner)
 	}
@@ -162,15 +194,18 @@ func runServe(args []string, stderr io.Writer) int {
 // errUsage marks flag-validation failures whose message is already printed.
 var errUsage = errors.New("usage")
 
-// parseServe turns serve flags into a proxy config and flight-log path.
-func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
+// parseServe turns serve flags into a proxy config, the session dir a
+// file journal would use, and the sidecar sink address (--sink), if any.
+func parseServe(args []string, stderr io.Writer) (proxy.Config, string, string, error) {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	repoFlag := fs.String("repo", "", "repo root (required)")
 	roleFlag := fs.String("role", "", "session role (required)")
 	sessionFlag := fs.String("session", "", "session id (default: generated)")
 	boxFlag := fs.String("box", "", "box policy path")
-	logDirFlag := fs.String("log-dir", "", "session-state root (default: ~/.hobbes/sessions)")
+	logDirFlag := fs.String("log-dir", "", "session-state root when there is no --sink (default: ~/.hobbes/sessions)")
+	sinkFlag := fs.String("sink", "", "the session's sidecar sink host:port (ADR-112); "+
+		"records go there, not under --log-dir")
 	timeoutFlag := fs.Duration("timeout", proxy.DefaultTimeout, "per-command wall clock")
 	escalationFlag := fs.Duration("escalation-timeout", proxy.DefaultEscalationTimeout,
 		"park deadline, expires to deny")
@@ -178,37 +213,37 @@ func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
 	knowledgeOnlyFlag := fs.Bool("knowledge-only", false,
 		"serve only the read-only knowledge tools; exec and reflect are absent (ADR-087)")
 	if err := fs.Parse(args); err != nil {
-		return proxy.Config{}, "", errUsage
+		return proxy.Config{}, "", "", errUsage
 	}
 
 	if *repoFlag == "" || *roleFlag == "" {
 		fmt.Fprintf(stderr, "hobbes-proxy serve: --repo and --role are required\n\n%s", usage)
-		return proxy.Config{}, "", errUsage
+		return proxy.Config{}, "", "", errUsage
 	}
 	repoRoot, err := filepath.Abs(*repoFlag)
 	if err != nil {
-		return proxy.Config{}, "", err
+		return proxy.Config{}, "", "", err
 	}
 	if info, err := os.Stat(repoRoot); err != nil || !info.IsDir() {
-		return proxy.Config{}, "", fmt.Errorf("repo root %s is not a directory", repoRoot)
+		return proxy.Config{}, "", "", fmt.Errorf("repo root %s is not a directory", repoRoot)
 	}
 
 	boxPath, err := resolveBoxPath(*boxFlag)
 	if err != nil {
-		return proxy.Config{}, "", err
+		return proxy.Config{}, "", "", err
 	}
 
 	session := *sessionFlag
 	if session == "" {
 		session, err = generateSessionID()
 		if err != nil {
-			return proxy.Config{}, "", err
+			return proxy.Config{}, "", "", err
 		}
 	}
 
 	logDir, err := sessionRoot(*logDirFlag)
 	if err != nil {
-		return proxy.Config{}, "", err
+		return proxy.Config{}, "", "", err
 	}
 	sessionDir := filepath.Join(logDir, session)
 
@@ -216,10 +251,10 @@ func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
 	if *agentDirFlag != "" {
 		agentDir, err = filepath.Abs(*agentDirFlag)
 		if err != nil {
-			return proxy.Config{}, "", err
+			return proxy.Config{}, "", "", err
 		}
 		if info, err := os.Stat(agentDir); err != nil || !info.IsDir() {
-			return proxy.Config{}, "", fmt.Errorf("agent dir %s is not a directory", agentDir)
+			return proxy.Config{}, "", "", fmt.Errorf("agent dir %s is not a directory", agentDir)
 		}
 	}
 
@@ -228,13 +263,12 @@ func parseServe(args []string, stderr io.Writer) (proxy.Config, string, error) {
 		Role:              *roleFlag,
 		RepoRoot:          repoRoot,
 		BoxPath:           boxPath,
-		SessionDir:        sessionDir,
 		Timeout:           *timeoutFlag,
 		EscalationTimeout: *escalationFlag,
 		AgentDir:          agentDir,
 		KnowledgeOnly:     *knowledgeOnlyFlag,
 	}
-	return cfg, filepath.Join(sessionDir, "flight.jsonl"), nil
+	return cfg, sessionDir, *sinkFlag, nil
 }
 
 // sessionRoot resolves the session-state root shared by serve and the
