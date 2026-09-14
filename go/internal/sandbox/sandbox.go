@@ -1,14 +1,26 @@
 // Package sandbox builds the rootless-podman invocation that launches an
-// agent session (M4, ADR-018): a fresh git worktree mounted rw, this
-// session's own dir under the sessions root mounted rw for the flight
-// recorder and escalation queue, the box policy mounted ro, a clean
-// environment, and Claude Code wired to the hobbes-proxy MCP server —
-// reaching off the box, when it must, only through the egress proxy
-// (ADR-107). No other session's clone or records are mounted, so no
-// command reaches them, however it is spelled (ADR-107's 2026-09-13
-// amendment). The Plan is pure data — it builds the podman argv and MCP
-// config without running anything, so the whole design is inspectable via
-// `hobbes-session --dry-run` and unit-testable.
+// agent session (M4, ADR-018): a fresh git worktree mounted rw, the box
+// policy mounted ro, a clean environment, and Claude Code wired to the
+// hobbes-proxy MCP server — reaching off the box, when it must, only
+// through the sidecar's egress route (ADR-107, ADR-112).
+//
+// A session runs in one of two worlds, decided by Config.Network (ADR-112):
+// the **sidecar world** (the default, Network == "") puts the doer's
+// container on its own internal network beside a sidecar container that is
+// the only writer of the session's records — the flight log, the escalation
+// queue, the mail file and, with Egress, the egress log — and the doer's
+// HOME is a tmpfs that dies with its container on every exit path, so
+// nothing of the session dir is mounted into the doer's container but its
+// read-only in/ subdir; or the **file world** (an explicit Network, the
+// bench's pasta and none), which keeps the session's own dir mounted rw for
+// an in-container proxy to write those records directly, as every session
+// did before ADR-112 — a narrower guarantee, named C-140, that only an
+// explicit --network chooses. No other session's clone or records are
+// mounted, so no command reaches them, however it is spelled (ADR-107's
+// 2026-09-13 amendment). The Plan is pure data — it builds the podman argv,
+// the sidecar's argv and the MCP config without running anything, so the
+// whole design is inspectable via `hobbes-session --dry-run` and
+// unit-testable.
 package sandbox
 
 import (
@@ -24,14 +36,18 @@ import (
 	"time"
 
 	"github.com/majax7714/Hobbes/go/internal/egress"
+	"github.com/majax7714/Hobbes/go/internal/sink"
 )
 
 // In-container mount points. Fixed so the MCP config and podman args agree.
 const (
 	WorkDir = "/work" // the session worktree, rw
-	// SessionsRoot is where a session's own dir lands: ~/.hobbes/sessions/<id>
-	// is mounted rw at SessionsRoot + "/" + <id> (logs + escalations); the
-	// root itself is never mounted, so no other session's dir is reachable
+	// SessionsRoot is where a session's own dir lands, as HOME (in name):
+	// in the sidecar world it is a tmpfs, and the only piece of the host's
+	// <sessions>/<id> mounted into the doer's container is its in/
+	// subdir, read-only (InDir); in the file world the host dir itself is
+	// mounted rw at SessionsRoot + "/" + <id>, as before ADR-112. The root
+	// itself is never mounted, so no other session's dir is reachable
 	// under it (ADR-107's 2026-09-13 amendment).
 	SessionsRoot = "/sessions"
 	ProxyPath    = "/usr/local/bin/hobbes-proxy"
@@ -41,15 +57,29 @@ const (
 	// ClaudeBinPath is where the host's Claude Code binary is mounted, ro,
 	// when the default command runs it (ADR-107): the image carries none.
 	ClaudeBinPath = "/usr/local/bin/claude"
+	// InDirName is the session dir's one subdir the doer's container reads
+	// in the sidecar world, mounted read-only: the MCP config and the
+	// settings file, and for the owned runtime and the exit check, the
+	// loop and the driver (ADR-112). Nothing else of the session dir is
+	// mounted there.
+	InDirName = "in"
+	// SessionTmpfsSize caps the doer's HOME in the sidecar world. A tmpfs
+	// dies with its container on every exit path — measured against an
+	// anonymous volume, which survives `podman rm -f` (ADR-112's third
+	// measurement) — and past sessions' Go build caches run about 150 MB
+	// against a box with 30 GB of RAM.
+	SessionTmpfsSize = "4g"
 )
 
-// The egress plan (ADR-107): one shared custom bridge that reaches off the
-// box, one --internal network per session, and one proxy container on both.
+// The sidecar plan (ADR-107, ADR-112): one shared custom bridge that
+// reaches off the box, one --internal network per session, and one sidecar
+// container per session on both — the records sink always, the CONNECT
+// proxy only with Egress.
 const (
 	EgressBridge  = "hobbes-egress"
 	EgressPort    = "3128"
 	EgressLogName = "egress.jsonl"
-	egressLogDir  = "/log"
+	sidecarLogDir = "/log"
 )
 
 // ClaudeTokenEnv is the variable Claude Code reads a long-lived token from
@@ -73,7 +103,10 @@ type Config struct {
 	// Claude Code. LLMBaseURL is the OpenAI-compatible endpoint it
 	// talks to, and LLMKey the bearer token passed through as the
 	// HOBBES_LLM_API_KEY env var — the one secret a live session
-	// carries, stated in C-41.
+	// carries, stated in C-41. The runtime needs the file world (an
+	// explicit Network): its transcript is written into the session dir
+	// for the harness to read (ADR-064), which the sidecar world's tmpfs
+	// would lose.
 	Runtime    string
 	LLMBaseURL string
 	LLMKey     string
@@ -104,16 +137,23 @@ type Config struct {
 	// so the worktree shadows the image's installed copy). Pre is a
 	// host-authored shell command run before the session command in
 	// the same container; it is not the agent's and is not policed.
-	Path    string
-	Env     []string
-	Pre     string
-	Network string // podman --network (default "none"); exclusive with Egress
+	Path string
+	Env  []string
+	Pre  string
+	// Network selects the session's world (ADR-112): "" is the default,
+	// the sidecar world, where NewPlan puts the session on its own
+	// internal network and stands a sidecar up beside it; any other
+	// value is the file world, an explicit override (the bench's pasta
+	// path, or "none") that keeps the session's own dir mounted rw for an
+	// in-container proxy — a narrower guarantee, named C-140. Exclusive
+	// with Egress: the sidecar world owns the session's network.
+	Network string
 	// Egress names the only hosts the session may reach ("host" or
-	// "host:port", 443 by default; ADR-107). Non-empty puts the session on
-	// its own --internal network — no route off the box — beside an egress
-	// proxy container that tunnels to exactly these hosts and logs every
-	// decision to the session dir. It replaces a whole-network --network
-	// for a live session (C-41, C-124).
+	// "host:port", 443 by default; ADR-107). Non-empty requires the
+	// sidecar world (Network == ""): the session runs on its own
+	// --internal network — no route off the box — and the sidecar joins
+	// the shared egress bridge too, tunneling to exactly these hosts and
+	// logging every decision to the session dir.
 	Egress []string
 	// ClaudeBin is the host path of the Claude Code binary the default
 	// command runs, mounted read-only at ClaudeBinPath — the image carries
@@ -159,6 +199,10 @@ type Config struct {
 // Plan is a ready-to-run sandbox invocation.
 type Plan struct {
 	cfg Config
+	// sidecar is whether this plan runs the sidecar world (Config.Network
+	// was "" before NewPlan resolved it to the session's internal
+	// network name).
+	sidecar bool
 }
 
 // NewID mints a sortable, collision-safe session id (matches ADR-014).
@@ -191,19 +235,27 @@ func NewPlan(cfg Config) (*Plan, error) {
 	if cfg.Image == "" {
 		cfg.Image = "hobbes-session:local"
 	}
-	if len(cfg.Egress) > 0 {
-		if cfg.Network != "" && cfg.Network != "none" {
+	// ADR-112: Network == "" is the sidecar world, the default; any other
+	// value is an explicit override into the file world, which owns no
+	// network of its own and so cannot also carry --egress.
+	sidecar := cfg.Network == ""
+	if !sidecar {
+		if len(cfg.Egress) > 0 {
 			return nil, fmt.Errorf("sandbox: --egress and --network %q are exclusive: the egress plan owns the session's network", cfg.Network)
 		}
+	} else if len(cfg.Egress) > 0 {
 		allow, err := egress.ParseAllowlist(cfg.Egress)
 		if err != nil {
 			return nil, fmt.Errorf("sandbox: %v", err)
 		}
 		cfg.Egress = allow.Entries()
+	}
+	if sidecar {
 		cfg.Network = egressNetwork(cfg.SessionID)
 	}
-	if cfg.Network == "" {
-		cfg.Network = "none"
+	if cfg.Runtime != "" && sidecar {
+		return nil, fmt.Errorf("sandbox: the agent runtime needs --network: its transcript is written into the " +
+			"session dir for the harness to read (ADR-064), which the sidecar world's tmpfs would lose")
 	}
 	if cfg.ClaudeBin != "" && !filepath.IsAbs(cfg.ClaudeBin) {
 		return nil, fmt.Errorf("sandbox: the Claude Code binary must be an absolute host path, got %q", cfg.ClaudeBin)
@@ -223,49 +275,89 @@ func NewPlan(cfg Config) (*Plan, error) {
 			return nil, fmt.Errorf("sandbox: a host mount may not shadow %s or %s, got %q", WorkDir, SessionsRoot, hm)
 		}
 	}
-	return &Plan{cfg: cfg}, nil
+	return &Plan{cfg: cfg, sidecar: sidecar}, nil
 }
 
-// sessionHome is the in-container HOME: the session's own dir under the
-// mounted sessions root, so anything HOME-relative stays box-side.
+// SidecarEnabled reports whether this session runs the sidecar world
+// (ADR-112): the default, unless Config.Network named an explicit
+// override. It does not require Egress — the sidecar is up whenever it is
+// the only writer of the session's records.
+func (p *Plan) SidecarEnabled() bool { return p.sidecar }
+
+// sessionHome is the in-container HOME: the session's own dir name under
+// SessionsRoot, whether that is a tmpfs (the sidecar world) or the mounted
+// host dir (the file world).
 func (p *Plan) sessionHome() string {
 	return SessionsRoot + "/" + p.cfg.SessionID
 }
 
-// mcpConfigContainerPath is where the generated MCP config lands (written
-// host-side into the session dir, visible here through the mount).
+// InDir is the in-container path of this session's read-only input dir in
+// the sidecar world: what the doer's container must read from the host —
+// the MCP config, the settings file, and for the owned runtime or the exit
+// check, the loop and the driver (ADR-112).
+func (p *Plan) InDir() string {
+	return p.sessionHome() + "/" + InDirName
+}
+
+// InDirHostPath is where the launcher creates, and writes the container's
+// inputs into, this session's in/ dir on the host (mode 0700), for the
+// sidecar world's read-only mount.
+func (p *Plan) InDirHostPath() string {
+	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, InDirName)
+}
+
+// mcpConfigContainerPath is where the generated MCP config lands: under
+// in/ in the sidecar world (the one host dir the container reads), or
+// directly in the session dir in the file world, as before ADR-112.
 func (p *Plan) mcpConfigContainerPath() string {
+	if p.sidecar {
+		return p.InDir() + "/mcp.json"
+	}
 	return p.sessionHome() + "/mcp.json"
 }
 
 // MCPConfigHostPath is where the wrapper must write the MCP config on the
 // host for the container to read it.
 func (p *Plan) MCPConfigHostPath() string {
+	if p.sidecar {
+		return filepath.Join(p.InDirHostPath(), "mcp.json")
+	}
 	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, "mcp.json")
 }
 
-// claudeSettingsContainerPath is where the generated settings file lands
-// (written host-side into the session dir, visible here through the
-// mount) — the MCP config's pair.
+// claudeSettingsContainerPath is where the generated settings file lands —
+// the MCP config's pair, under the same dir it lands in.
 func (p *Plan) claudeSettingsContainerPath() string {
+	if p.sidecar {
+		return p.InDir() + "/claude-settings.json"
+	}
 	return p.sessionHome() + "/claude-settings.json"
 }
 
 // ClaudeSettingsHostPath is where the wrapper must write the settings
 // file on the host, beside the MCP config, for the container to read it.
 func (p *Plan) ClaudeSettingsHostPath() string {
+	if p.sidecar {
+		return filepath.Join(p.InDirHostPath(), "claude-settings.json")
+	}
 	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, "claude-settings.json")
 }
 
 // ClaudeSettings is the Claude Code settings JSON that wires the progress
 // hook (ADR-107): a PostToolUse hook matching Edit, Write, MultiEdit and
-// NotebookEdit that runs the mounted static proxy as `record-edit`,
-// appending one flight line per edit to this session's own flight log —
-// the one `hobbes-proxy serve --log-dir /sessions --session <session>`
-// already writes.
+// NotebookEdit that runs the mounted static proxy as `record-edit`. In the
+// sidecar world it sends the edit line to the sidecar's sink (ADR-112); in
+// the file world it appends straight to this session's own flight log, as
+// before.
 func (p *Plan) ClaudeSettings() string {
-	cmd := fmt.Sprintf("%s record-edit --log %s/%s/flight.jsonl --session %s --role %s --work %s",
-		ProxyPath, SessionsRoot, p.cfg.SessionID, p.cfg.SessionID, p.cfg.Role, WorkDir)
+	var cmd string
+	if p.sidecar {
+		cmd = fmt.Sprintf("%s record-edit --sink %s:%s --session %s --role %s --work %s",
+			ProxyPath, p.SidecarName(), sink.DefaultPort, p.cfg.SessionID, p.cfg.Role, WorkDir)
+	} else {
+		cmd = fmt.Sprintf("%s record-edit --log %s/%s/flight.jsonl --session %s --role %s --work %s",
+			ProxyPath, SessionsRoot, p.cfg.SessionID, p.cfg.SessionID, p.cfg.Role, WorkDir)
+	}
 	cfg := map[string]any{
 		"hooks": map[string]any{
 			"PostToolUse": []map[string]any{
@@ -283,13 +375,19 @@ func (p *Plan) ClaudeSettings() string {
 }
 
 // MCPConfig is the Claude Code MCP config JSON: one server, hobbes, run as
-// the policy proxy over stdio against the mounted worktree.
+// the policy proxy over stdio against the mounted worktree. In the sidecar
+// world it points the proxy at the sidecar's sink (ADR-112); in the file
+// world it writes its own records under SessionsRoot, as before.
 func (p *Plan) MCPConfig() string {
 	args := []string{"serve",
 		"--repo", WorkDir,
 		"--role", p.cfg.Role,
 		"--session", p.cfg.SessionID,
-		"--log-dir", SessionsRoot,
+	}
+	if p.sidecar {
+		args = append(args, "--sink", p.SidecarName()+":"+sink.DefaultPort)
+	} else {
+		args = append(args, "--log-dir", SessionsRoot)
 	}
 	if p.cfg.HostBoxPath != "" {
 		args = append(args, "--box", BoxPath)
@@ -363,18 +461,25 @@ func (p *Plan) worktreeMount() string {
 // an SELinux relabel to a shared container label, which rootless podman on
 // an enforcing host (Fedora, D2) requires to read or write a bind mount.
 func (p *Plan) mounts() []string {
-	m := []string{
-		// The session's own dir stays rw for every role: the flight
-		// recorder and escalation queue must be writable even when the
-		// source is not, or a read-only session could not be audited.
-		// Only this session's dir is mounted, never the sessions root —
-		// no other session's clone or records are mounted, so no command
-		// reaches them, however it is spelled (ADR-107's 2026-09-13
-		// amendment).
-		p.worktreeMount(),
-		filepath.Join(p.cfg.HostSessions, p.cfg.SessionID) + ":" + p.sessionHome() + ":rw,z",
-		p.cfg.HostProxyBin + ":" + ProxyPath + ":ro,z",
+	m := []string{p.worktreeMount()}
+	if p.sidecar {
+		// The sidecar world (ADR-112): the doer's container reads only
+		// this session's in/ dir, read-only — the MCP config and the
+		// settings file. Nothing else of the session dir is mounted: the
+		// sidecar container is the only writer of the records that used
+		// to live here, and the doer's HOME is a tmpfs (PodmanArgs).
+		m = append(m, p.InDirHostPath()+":"+p.InDir()+":ro,z")
+	} else {
+		// The file world (an explicit --network, C-140): the session's
+		// own dir stays rw so the in-container proxy can write the
+		// flight recorder and escalation queue directly, as every
+		// session did before ADR-112. Only this session's dir is
+		// mounted, never the sessions root — no other session's clone
+		// or records are mounted, so no command reaches them, however
+		// it is spelled (ADR-107's 2026-09-13 amendment).
+		m = append(m, filepath.Join(p.cfg.HostSessions, p.cfg.SessionID)+":"+p.sessionHome()+":rw,z")
 	}
+	m = append(m, p.cfg.HostProxyBin+":"+ProxyPath+":ro,z")
 	if p.cfg.HostBoxPath != "" {
 		m = append(m, p.cfg.HostBoxPath+":"+BoxPath+":ro,z")
 	}
@@ -484,7 +589,9 @@ func (p *Plan) UsesClaude() bool {
 // the same MCP config Claude Code would get, and the role so a
 // read-only role gets no write tools. Bash is not offered at all — the
 // loop withholds it whenever an MCP config is present, so the shell is
-// reachable only through the policy-checked exec tool.
+// reachable only through the policy-checked exec tool. The runtime needs
+// the file world (NewPlan refuses it otherwise), so the session dir here
+// is always the mounted host dir, not a tmpfs.
 func (p *Plan) RuntimeCommand() []string {
 	python := p.cfg.RuntimePython
 	if python == "" {
@@ -555,6 +662,12 @@ func (p *Plan) PodmanArgs() []string {
 		"--env", "HOME=" + p.sessionHome(),
 		"--env", "PATH=" + p.containerPath(),
 		"--workdir", WorkDir,
+	}
+	if p.sidecar {
+		// The doer's HOME dies with its container on every exit path
+		// (ADR-112's third measurement): a tmpfs, not a volume, which
+		// survives `podman rm -f`.
+		args = append(args, "--tmpfs", p.sessionHome()+":rw,size="+SessionTmpfsSize)
 	}
 	for _, kv := range p.cfg.Env {
 		args = append(args, "--env", kv)
@@ -636,15 +749,22 @@ func (p *Plan) DryRun() string {
 		}
 		fmt.Fprintf(&b, "doer:     Claude Code %s → %s; %s %s\n", bin, ClaudeBinPath, ClaudeTokenEnv, tok)
 	}
-	if p.EgressEnabled() {
-		fmt.Fprintf(&b, "egress:   %s → %s:%s (allow %s); log %s\n", p.cfg.Network, p.EgressProxyName(), EgressPort,
-			strings.Join(p.cfg.Egress, ", "), p.EgressLogHostPath())
-		for _, a := range p.EgressSetup() {
+	if p.sidecar {
+		desc := "sink :" + sink.DefaultPort
+		if p.EgressEnabled() {
+			desc += fmt.Sprintf("; egress :%s allow %s", EgressPort, strings.Join(p.cfg.Egress, ", "))
+		}
+		fmt.Fprintf(&b, "sidecar:  %s → %s (%s); records %s\n", p.cfg.Network, p.SidecarName(), desc,
+			filepath.Join(p.cfg.HostSessions, p.cfg.SessionID))
+		for _, a := range p.SidecarSetup() {
 			b.WriteString("  setup:    podman " + strings.Join(a, " ") + "\n")
 		}
-		for _, a := range p.EgressTeardown() {
+		for _, a := range p.SidecarTeardown() {
 			b.WriteString("  teardown: podman " + strings.Join(a, " ") + "\n")
 		}
+	} else {
+		fmt.Fprintf(&b, "records:  in the doer's reach — --network %s keeps the session dir writable from the "+
+			"container (C-140)\n", p.cfg.Network)
 	}
 	// The dry run never prints the credential.
 	b.WriteString("\npodman " + strings.Join(p.redactedArgs(), " ") + "\n")
@@ -666,68 +786,92 @@ func (p *Plan) PodmanEnv() []string {
 	return nil
 }
 
-// EgressEnabled reports whether the session runs behind the egress proxy.
+// EgressEnabled reports whether the session runs behind the sidecar's
+// egress route. Non-empty Egress is only valid in the sidecar world
+// (NewPlan refuses it otherwise), so this implies SidecarEnabled.
 func (p *Plan) EgressEnabled() bool { return len(p.cfg.Egress) > 0 }
 
 // EgressAllow is the normalized allowlist (host:port, sorted).
 func (p *Plan) EgressAllow() []string { return append([]string{}, p.cfg.Egress...) }
 
-// egressNetwork is a session's own --internal network. Podman names are
-// lowercased so a generated id is always a valid one.
+// egressNetwork is a session's own --internal network, standing whenever
+// the sidecar world is in play, whether or not Egress is set. Podman names
+// are lowercased so a generated id is always a valid one.
 func egressNetwork(id string) string { return "hobbes-int-" + strings.ToLower(id) }
 
-// EgressProxyName is the proxy container's name — also the host name the
-// session's proxy variables point at, resolved on the internal network.
-func (p *Plan) EgressProxyName() string { return "hobbes-egress-" + strings.ToLower(p.cfg.SessionID) }
+// SidecarName is the sidecar container's name — also the host name the
+// session's records sink and, with Egress, its proxy variables point at,
+// resolved on the internal network (ADR-112).
+func (p *Plan) SidecarName() string { return "hobbes-side-" + strings.ToLower(p.cfg.SessionID) }
 
-// EgressLogHostPath is the proxy's JSONL log on the host: the session dir,
-// beside the flight log, where it outlives both containers.
+// FlightLogHostPath is the session's flight log on the host — in the
+// sidecar world, written by the sidecar's sink; in the file world, by the
+// in-container proxy. The launcher waits for its "listening" line before a
+// sidecar-world session starts, since the host cannot reach the internal
+// network to probe the sink directly.
+func (p *Plan) FlightLogHostPath() string {
+	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, "flight.jsonl")
+}
+
+// EgressLogHostPath is the sidecar's egress JSONL log on the host: the
+// session dir, beside the flight log, where it outlives the container.
 func (p *Plan) EgressLogHostPath() string {
 	return filepath.Join(p.cfg.HostSessions, p.cfg.SessionID, EgressLogName)
 }
 
-// egressEnv points every HTTP client in the session at the proxy; both
+// egressEnv points every HTTP client in the session at the sidecar; both
 // spellings, since tools disagree on which they read.
 func (p *Plan) egressEnv() []string {
-	u := "http://" + p.EgressProxyName() + ":" + EgressPort
+	u := "http://" + p.SidecarName() + ":" + EgressPort
 	return []string{"HTTPS_PROXY=" + u, "https_proxy=" + u, "HTTP_PROXY=" + u, "http_proxy=" + u,
 		"NO_PROXY=localhost,127.0.0.1", "no_proxy=localhost,127.0.0.1"}
 }
 
 // EgressBridgeArgs creates the shared egress bridge. The launcher runs it
-// only when `podman network exists` says the bridge is missing. A custom
-// bridge, not podman's default: attaching to the default one broke DNS in
-// ADR-097's measurement.
+// only when `podman network exists` says the bridge is missing, and only
+// with Egress set. A custom bridge, not podman's default: attaching to the
+// default one broke DNS in ADR-097's measurement.
 func EgressBridgeArgs() []string { return []string{"network", "create", EgressBridge} }
 
-// EgressSetup is the podman argv list, in order, that stands the route up
-// before the session starts: the session's internal network, then the
-// proxy container on that network and on the bridge. The proxy is the
-// same static hobbes-proxy the session mounts, and it writes its log into
-// the session dir.
-func (p *Plan) EgressSetup() [][]string {
-	if !p.EgressEnabled() {
+// SidecarSetup is the podman argv list, in order, that stands the sidecar
+// world up before the session starts: the session's internal network, then
+// the sidecar container on that network — and, with Egress, on the shared
+// bridge too, listening for the CONNECT proxy alongside the sink (ADR-112).
+// The sidecar is the same static hobbes-proxy the session mounts, and it
+// writes every record into the session dir. nil in the file world.
+func (p *Plan) SidecarSetup() [][]string {
+	if !p.sidecar {
 		return nil
 	}
-	run := []string{"run", "-d", "--rm", "--name", p.EgressProxyName(),
-		"--network", p.cfg.Network, "--network", EgressBridge,
-		"--env", "HOME=/tmp", "--env", "PATH=" + "/usr/local/bin:/usr/bin:/bin",
-		"-v", p.cfg.HostProxyBin + ":" + ProxyPath + ":ro,z",
-		"-v", filepath.Join(p.cfg.HostSessions, p.cfg.SessionID) + ":" + egressLogDir + ":rw,z",
-		p.cfg.Image, ProxyPath, "egress", "--listen", "0.0.0.0:" + EgressPort, "--log", egressLogDir + "/" + EgressLogName}
-	for _, h := range p.cfg.Egress {
-		run = append(run, "--allow", h)
+	run := []string{"run", "-d", "--rm", "--name", p.SidecarName(), "--network", p.cfg.Network}
+	if p.EgressEnabled() {
+		run = append(run, "--network", EgressBridge)
+	}
+	run = append(run,
+		"--env", "HOME=/tmp", "--env", "PATH=/usr/local/bin:/usr/bin:/bin",
+		"-v", p.cfg.HostProxyBin+":"+ProxyPath+":ro,z",
+		"-v", filepath.Join(p.cfg.HostSessions, p.cfg.SessionID)+":"+sidecarLogDir+":rw,z",
+		p.cfg.Image, ProxyPath, "sidecar",
+		"--dir", sidecarLogDir, "--session", p.cfg.SessionID, "--role", p.cfg.Role,
+		"--sink-listen", "0.0.0.0:"+sink.DefaultPort,
+	)
+	if p.EgressEnabled() {
+		run = append(run, "--listen", "0.0.0.0:"+EgressPort)
+		for _, h := range p.cfg.Egress {
+			run = append(run, "--allow", h)
+		}
 	}
 	return [][]string{{"network", "create", "--internal", p.cfg.Network}, run}
 }
 
-// EgressTeardown removes the route after the session: the proxy container,
-// then the session's network. The bridge is shared and stays.
-func (p *Plan) EgressTeardown() [][]string {
-	if !p.EgressEnabled() {
+// SidecarTeardown removes the sidecar world after the session: the sidecar
+// container, then the session's network. The shared bridge is shared and
+// stays. nil in the file world.
+func (p *Plan) SidecarTeardown() [][]string {
+	if !p.sidecar {
 		return nil
 	}
-	return [][]string{{"rm", "-f", "-t", "0", p.EgressProxyName()}, {"network", "rm", "-f", p.cfg.Network}}
+	return [][]string{{"rm", "-f", "-t", "0", p.SidecarName()}, {"network", "rm", "-f", p.cfg.Network}}
 }
 
 // DoerStateNames are what Claude Code leaves in its HOME — the session dir —
@@ -744,9 +888,14 @@ var DoerStatePaths = []string{".cache/claude-cli-nodejs"}
 
 // PurgeDoerState removes the doer's own state from a session dir: every
 // entry named in DoerStateNames, any `.claude.json.*` backup, and every
-// path in DoerStatePaths. It
-// returns the names it removed, sorted. A session dir with none is not an
-// error.
+// path in DoerStatePaths. It returns the names it removed, sorted. A
+// session dir with none is not an error.
+//
+// It only has anything to do in the file world: in the sidecar world
+// (ADR-112) the doer's HOME is a tmpfs that dies with its container, so
+// there is nothing of the doer's state left on the host to purge — the
+// launcher calls this only when it ran the session on an explicit
+// --network.
 func PurgeDoerState(sessionDir string) ([]string, error) {
 	entries, err := os.ReadDir(sessionDir)
 	if err != nil {
