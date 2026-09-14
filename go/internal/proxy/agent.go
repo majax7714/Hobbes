@@ -4,20 +4,19 @@
 package proxy
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/majax7714/Hobbes/go/internal/recorder"
+	"github.com/majax7714/Hobbes/go/internal/sink"
 )
 
 // contextManifest is <agent-dir>/context.json: the slice of the graph a
@@ -83,16 +82,6 @@ const (
 	ReflectHandoff  = "handoff"
 )
 
-// mailLine is one line of <session-dir>/mail.jsonl.
-type mailLine struct {
-	Seq     int    `json:"seq"`
-	TS      string `json:"ts"`
-	Session string `json:"session"`
-	Role    string `json:"role"`
-	Kind    string `json:"kind"`
-	Text    string `json:"text"`
-}
-
 // addReflectTool registers reflect: the session's only outbound channel
 // besides its commits. Agents never talk to each other (agent-mapping
 // §8); they reflect to the orchestrator, which reads the session's
@@ -130,7 +119,7 @@ func (s *Server) reflect(textArg, kind string) *mcp.CallToolResult {
 	if strings.TrimSpace(textArg) == "" {
 		return errResult("reflect: empty message")
 	}
-	seq, err := appendMail(filepath.Join(s.cfg.SessionDir, "mail.jsonl"), mailLine{
+	seq, err := s.cfg.Journal.Mail(sink.MailLine{
 		TS: time.Now().UTC().Format(time.RFC3339Nano), Session: s.cfg.Session,
 		Role: s.cfg.Role, Kind: kind, Text: textArg,
 	})
@@ -140,36 +129,4 @@ func (s *Server) reflect(textArg, kind string) *mcp.CallToolResult {
 	return s.record(ev, &mcp.CallToolResult{
 		Content: []mcp.Content{&mcp.TextContent{Text: fmt.Sprintf("reflected %s (#%d) to the orchestrator's inbox", kind, seq)}},
 	})
-}
-
-// appendMail appends line to path with seq = existing lines + 1; returns
-// the seq. The file is 0600 like the flight log (ADR-012).
-func appendMail(path string, line mailLine) (int, error) {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return 0, err
-	}
-	seq := 1
-	if f, err := os.Open(path); err == nil {
-		sc := bufio.NewScanner(f)
-		for sc.Scan() {
-			if strings.TrimSpace(sc.Text()) != "" {
-				seq++
-			}
-		}
-		f.Close()
-	}
-	line.Seq = seq
-	data, err := json.Marshal(line)
-	if err != nil {
-		return 0, err
-	}
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
-	if err != nil {
-		return 0, err
-	}
-	defer f.Close()
-	if _, err := f.Write(append(data, '\n')); err != nil {
-		return 0, err
-	}
-	return seq, nil
 }

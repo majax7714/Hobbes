@@ -2,13 +2,17 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/majax7714/Hobbes/go/internal/recorder"
+	"github.com/majax7714/Hobbes/go/internal/sink"
 )
 
 func readFlight(t *testing.T, path string) []recorder.Event {
@@ -128,6 +132,97 @@ func TestRecordEditNoPathExitsZeroAndWritesNothing(t *testing.T) {
 	}
 	if _, err := os.Stat(logPath); !os.IsNotExist(err) {
 		t.Errorf("a log should not have been created: %v", err)
+	}
+}
+
+func waitForSinkListening(t *testing.T, flightLog string) {
+	t.Helper()
+	for i := 0; i < 200; i++ {
+		if data, err := os.ReadFile(flightLog); err == nil && len(strings.TrimSpace(string(data))) > 0 {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatalf("sink never wrote %s", flightLog)
+}
+
+func TestRecordEditSinkLandsTheLine(t *testing.T) {
+	dir := t.TempDir()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- sink.Serve(ctx, ln, sink.Config{Dir: dir, Session: "S-1", Role: "implementer"}) }()
+	defer func() {
+		cancel()
+		if err := <-done; err != nil {
+			t.Errorf("sink.Serve: %v", err)
+		}
+	}()
+	flightLog := filepath.Join(dir, "flight.jsonl")
+	waitForSinkListening(t, flightLog)
+
+	stdin := strings.NewReader(`{"tool_name":"Edit","tool_input":{"file_path":"/work/pkg/use.py"}}`)
+	var stderr bytes.Buffer
+	code := runRecordEdit([]string{"--sink", ln.Addr().String(), "--session", "S-1", "--role", "implementer"}, stdin, &stderr)
+	if code != exitOK {
+		t.Fatalf("code = %d, stderr = %q", code, stderr.String())
+	}
+
+	var events []recorder.Event
+	for i := 0; i < 200; i++ {
+		events = readFlight(t, flightLog)
+		if len(events) >= 2 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	found := false
+	for _, ev := range events {
+		if ev.Tool == "Edit" && ev.Path == "pkg/use.py" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("edit line missing from the sink's flight log: %+v", events)
+	}
+}
+
+func TestRecordEditSinkUnreachableExitsZero(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ln.Addr().String()
+	ln.Close()
+
+	stdin := strings.NewReader(`{"tool_name":"Edit","tool_input":{"file_path":"/work/x.py"}}`)
+	var stderr bytes.Buffer
+	code := runRecordEdit([]string{"--sink", addr, "--session", "S-1", "--role", "implementer"}, stdin, &stderr)
+	if code != exitOK {
+		t.Errorf("code = %d, want %d", code, exitOK)
+	}
+	if stderr.Len() == 0 {
+		t.Error("a diagnostic should have been printed")
+	}
+}
+
+func TestRecordEditRequiresExactlyOneOfLogOrSink(t *testing.T) {
+	var stderr bytes.Buffer
+	code := runRecordEdit([]string{"--session", "S-1", "--role", "implementer"},
+		strings.NewReader(`{"tool_name":"Edit","tool_input":{"file_path":"/work/x.py"}}`), &stderr)
+	if code != exitOK || stderr.Len() == 0 {
+		t.Errorf("neither --log nor --sink: code=%d stderr=%q", code, stderr.String())
+	}
+
+	stderr.Reset()
+	code = runRecordEdit([]string{"--log", filepath.Join(t.TempDir(), "f.jsonl"), "--sink", "127.0.0.1:1",
+		"--session", "S-1", "--role", "implementer"},
+		strings.NewReader(`{"tool_name":"Edit","tool_input":{"file_path":"/work/x.py"}}`), &stderr)
+	if code != exitOK || stderr.Len() == 0 {
+		t.Errorf("both --log and --sink: code=%d stderr=%q", code, stderr.String())
 	}
 }
 
