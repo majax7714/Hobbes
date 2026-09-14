@@ -98,7 +98,10 @@ build item.*
   are not own code a test could guard, so `_own_code` should say so.
   An ADR either way (ADR-025 is the review contract).
 - **The comparative programme (ADR-101/102) — built 2026-09-09; two
-  follow-ups parked until Max names them.** `oracle import` +
+  follow-ups parked until Max names them.** **2026-09-14:** `oracle
+  import` takes `--lang c` (ADR-101 amended; dispatched, `d2e3`), so a
+  foreign C cell (both tools on cJSON and sqlite-vector) is the queue's
+  next item, unblocked on the lane's side. `oracle import` +
   `grade-foreign.sh` grade any tool's graph against the lane's keys;
   CodeGraphContext and repowise graded on the thirteen loop /
   random-draw cells; `docs/comparative/` holds the field, the claim

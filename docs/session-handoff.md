@@ -16,7 +16,38 @@ The session's record is the 2026-09-14 BUILDLOG entry.
 
 ## ⇢ START HERE NEXT SESSION: Max's open calls; then keep dispatching toward 40
 
-0. **Latest (2026-09-14, last): C-135's measured gap closed — ADR-109
+0. **Latest (2026-09-14, later still): `oracle import --lang c` —
+   ADR-101 amended; no version move.** Max: "review top level
+   documentation, then proceed with most tackable item using harness".
+   The review found no drift. The pick, read first: the foreign
+   converter reads `export.Exts`, which has carried `c` since ADR-110,
+   so a C edge file already converted, but the flag helps, the
+   refusal, the usage block, `grade-foreign.sh`, the README and
+   `foreign_record.py` all spelled the set without it, and no fixture
+   proved it. Decided in ADR-101's amendment (`7abfdcd`), then one
+   unit through the harness:
+   - **`d2e3`** (40 of 60 turns, 4.7 min, $1.04): `c` spelled in every
+     one of those places; `testdata/foreign/cclang.edges.json`
+     (twelve rows: eight graded, two across a header; a macro row, a
+     duplicate, two other-language rows); two tests beside the minigo
+     pair, the second grading against a hand-built key with the poison
+     check. Gate clear, verify pass (11 tests, 2 new). Merged
+     `109c15b`. One egress refusal, `static.rust-lang.org`, from the
+     Rust driver tests under the doer's `go test ./...`; they skip.
+   - **Fixed on the host after the merge:** a tautological check in
+     the conversion test (the truth map read against itself); it now
+     asserts the two header pairs were converted.
+   - **Nothing under `bench/` moves the version** (ADR-103), so the
+     layer stays 0.2.16-beta; the image and binaries are current.
+   - **The comparative queue is unblocked on the lane's side:** the
+     foreign C cells (both graded tools on cJSON and sqlite-vector,
+     under a key from `oracle c-clang`) are the next item there.
+     Whether either tool draws C edges worth grading is that cell's
+     finding; the adapters may need a C reading of their own storage.
+   - Task files: `~/.hobbes/bench/c-import-drivers/import-task.md` and
+     its partition. **The tracker** reads 22 of 40, 4 areas, 0 false
+     blocks, 0 missed, $48.67 reported.
+0c. **Before it (2026-09-14, last of the release day): C-135's measured gap closed — ADR-109
    amended, 0.2.16-beta.** Max: "proceed with the recommended". Read
    first, no spend: on bpftop, under bear, `cargo build` records 45
    compiles, all libbpf-sys's vendored libbpf and vsprintf under cargo's
@@ -176,7 +207,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - run node tests as `node --test test/index.test.mjs`; node 22 does
        not take a directory.
    - **Toward 40 across three areas.** The tracker counts them
-     (twenty-one so far):
+     (twenty-two so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations, C-133's include record, C-135's
        compile-database check;
@@ -185,7 +216,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      - the harness and sandbox: the progress hook, the containment, D-r,
        the tracker, D-s, the sink and the sidecar, the launcher's two
        worlds;
-     - the oracle lane: C's oracle.
+     - the oracle lane: C's oracle, `oracle import --lang c`.
 3. **A regrade against stored keys** (the ADR-111 pattern, used again for
    C-139):
    - `~/.hobbes/bench/adr111-drivers/`: `ROOT=<worktree> regrade3.sh
@@ -211,8 +242,10 @@ The session's record is the 2026-09-14 BUILDLOG entry.
    - **The Gradle attach route's residuals** (C-67).
    - **`recall-collapsed` and H-23**; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** item 4; a foreign cell for C (both tools
-     on cJSON and sqlite-vector). `oracle import` takes no `--lang c` yet
-     (`bench/oracle/cmd/oracle/main.go`), so it is code first.
+     on cJSON and sqlite-vector). `oracle import --lang c` landed
+     2026-09-14 (`d2e3`), so the cells are next: each tool's adapter on
+     the two C clones, graded by `grade-foreign.sh … --lang c` against
+     the `oracle c-clang` keys the two C cell records name.
    - **C's residue:** C-134's remainder (criterion and the Unity
      fixture, whose bodies a macro defines), C-135, C-133's unit 2 and
      its macro half. The macro gap
@@ -282,7 +315,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-one, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-two, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -306,8 +339,10 @@ assumed of $25:
   - 1,515 pytest (host); 47 scip node (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
-  - not re-run, since nothing they cover changed: 91 oracle-lane Go, 52
-    vitest, 43 helper and 36 tsextract node, 84 atlas0.
+  - oracle-lane Go re-run on `main` after `d2e3`'s merge, green (the
+    count is in CLAUDE.md's suite line);
+  - not re-run, since nothing they cover changed: 52 vitest, 43 helper
+    and 36 tsextract node, 84 atlas0.
 - **Disk:** `~/.hobbes` is about 50 GB (swept 2026-09-11).
 
 ## NEXT (in order; no API spend)
@@ -321,8 +356,8 @@ assumed of $25:
      derived database), deferred until a graded cell shows the cost;
    - W1/W3's no-spend items: the decorated-declaration line convention,
      the C-15 namespacing ADR, `fetch-java` on the egress proxy;
-   - `oracle import --lang c`, then the foreign C cells (the comparative
-     queue);
+   - the foreign C cells (the comparative queue; `oracle import --lang
+     c` landed 2026-09-14);
    - small harness items: pytest's `testmap_fixture` warnings.
 3. **W0's remainder:**
    - the graph CI job forgets earlier red reviews;

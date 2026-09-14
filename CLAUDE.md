@@ -218,8 +218,8 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 Suite sizes at the last check (2026-09-14, 0.2.16-beta; the last three
 carried from 0.2.8-beta): 1,515 pytest (5 of them `lane_b`) / 386 Go
 (subtests counted: 385 pass, 1 skip; the four live launcher tests run on
-the host) + 91 oracle-lane Go (subtests counted: 87 pass, 4 skip without
-a toolchain; two run the `shape/` suites: 24 unittest + 7 node) / 52
+the host) + 93 oracle-lane Go (subtests counted: 89 pass, 4 skip without
+a toolchain; re-counted 2026-09-14 after `d2e3`; two run the `shape/` suites: 24 unittest + 7 node) / 52
 vitest / 36 tsextract + 47 scip node tests / 84 atlas0 (`cd bench/atlas0
 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
@@ -339,7 +339,14 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-14): **C-135's measured gap closed, ADR-109
+  - **The latest** (2026-09-14): **`oracle import --lang c`, ADR-101
+    amended, no version move** (nothing under `bench/` does), one
+    dispatched unit (`d2e3`, 40 turns, $1.04, gate right-clear): C is
+    spelled everywhere the converter's language set is, with a
+    hand-read C fixture graded against a hand-built key. The
+    comparative queue's foreign C cells are unblocked on the lane's
+    side.
+  - **Before it** (2026-09-14): **C-135's measured gap closed, ADR-109
     amended, 0.2.16-beta,** one dispatched unit (`1ae3`, 17 turns, $0.45,
     gate right-clear): a derived compile database with entries and none
     under the root stops the plan before scip-clang and says where they
@@ -362,7 +369,7 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 21 of the 40 sessions that validate the
+    drift test. It reads 22 of the 40 sessions that validate the
     harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
     Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,

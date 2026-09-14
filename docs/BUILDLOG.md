@@ -10233,3 +10233,56 @@ bpftop — 0.2.16-beta (ADR-109 amended).**
 image cannot complete stays C-135's own case; adding a library to the
 image is a decision, ADR-092's shape); the leftover `.scip` outputs
 under `~/.hobbes/cache/stage/` (34 files, 116 KB), a housekeeping item.
+
+## 2026-09-14 — (later still) the top-level review; `oracle import --lang c` through the harness (ADR-101 amended; `d2e3`)
+
+**Asked (Max):** "review top level documentation, then proceed with
+most tackable item using harness".
+
+- **The review.** The tree, the binaries, the image and the ingest were
+  all at 0.2.16-beta on `97fc3da`; the README's status, the
+  architecture's §8 header and harness row, the CHANGELOG's preamble
+  and the harness doc's status line tell one story; the knowledge
+  server answered from the ingest at HEAD. No drift found.
+- **The pick.** From the handoff's no-spend queue: `oracle import --lang
+  c`, the comparative queue's blocker. Read first: the converter reads
+  `export.Exts`, which has carried `c` since ADR-110, so a C edge file
+  already converted — but the flag helps, the refusal, the usage block
+  (whose `export` line still read `go|ts`), `grade-foreign.sh`, the
+  README and `foreign_record.py`'s tuple all spelled the set without
+  it, and no fixture proved the C conversion. Smaller than the other
+  candidates (`testmap_fixture`'s warnings are smaller still, but a
+  test-only change maps to no area); in the oracle-lane area, which
+  had two sessions.
+- **Decided before the dispatch:** ADR-101's 2026-09-14 amendment —
+  the import applies the export's predicates and nothing C-specific
+  (a header callee graded, a `macro` row dropped, `c` spelled
+  everywhere, a hand-read fixture graded against a hand-built key; the
+  live clang key is the cell's job). Committed `7abfdcd`; the ingest
+  at it.
+- **The session** (`S-20260914T131039Z-d2e3`, 40 of 60 turns, 4.7 min,
+  $1.04): seven files as partitioned; `cclang.edges.json` (twelve rows:
+  eight graded, two across a header; a macro row, a duplicate, two
+  other-language rows); two tests beside the minigo pair. Gate clear
+  (map over 7 files, 40.3% uncaptured, partition checked), verify pass
+  (11 tests, 0 regressions, 2 new). One egress refusal,
+  `static.rust-lang.org`: the doer's `go test ./...` reached the Rust
+  oracle's driver tests, which skip. Right-clear; merged `109c15b`,
+  not squashed. **Host, before the merge:** `internal/foreign`,
+  `export`, `grade` green in a worktree (the grade package needs the
+  ts node tree beside it). **After:** the full oracle-lane suite green
+  on `main`, contained tests included.
+- **Fixed on the host after the merge:** one check in the conversion
+  test read the truth map against itself (a tautology); it now asserts
+  the two header pairs were among the converted edges.
+- **No version move** (nothing under `bench/` does, ADR-103). The
+  tracker at 22 of 40, 4 areas, 0 false blocks, 0 missed, $48.67
+  reported; CLAUDE.md, the README, the harness doc, the architecture's
+  harness row and W0's comparative item say so.
+- **Task files:** `~/.hobbes/bench/c-import-drivers/import-task.md`
+  with its partition beside it.
+
+**Next on the queue, no spend:** the foreign C cells themselves (both
+graded tools on cJSON and sqlite-vector — whether either draws C edges
+worth grading is that cell's finding); `testmap_fixture`'s two pytest
+warnings; C-135's autotools, Meson and Bazel roots.
