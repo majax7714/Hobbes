@@ -73,8 +73,8 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      regenerated; C-95 narrowed; the claim page restated. **The
      tracker** reads 23 of 40, 4 areas, 0 false blocks, 0 missed.
    - Task files: `~/.hobbes/bench/c-import-drivers/import-task.md` and
-     its partition. **The tracker** reads 22 of 40, 4 areas, 0 false
-     blocks, 0 missed, $48.67 reported.
+     `macro-task.md`, each with its partition beside it. **The tracker**
+     reads 23 of 40, 4 areas, 0 false blocks, 0 missed, $49.77 reported.
 0c. **Before it (2026-09-14, last of the release day): C-135's measured gap closed — ADR-109
    amended, 0.2.16-beta.** Max: "proceed with the recommended". Read
    first, no spend: on bpftop, under bear, `cargo build` records 45
