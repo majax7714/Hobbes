@@ -1,0 +1,62 @@
+{
+ "database": "../../testdata/cclang/.repowise/wiki.db",
+ "repositories": [
+  {
+   "name": "rw",
+   "local_path": "../../testdata/cclang",
+   "head_commit": "fixture"
+  }
+ ],
+ "edges": [
+  {
+   "source_node_id": "main.c::main",
+   "target_node_id": "api.h::CALL_SUM",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[18]"
+  },
+  {
+   "source_node_id": "main.c::main",
+   "target_node_id": "lib.c::lib_sum",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[19]"
+  }
+ ],
+ "symbols": [
+  {
+   "symbol_id": "main.c::main",
+   "file_path": "main.c",
+   "name": "main",
+   "qualified_name": "main.c.main",
+   "kind": "function",
+   "start_line": 17,
+   "end_line": 26,
+   "language": "c"
+  },
+  {
+   "symbol_id": "api.h::CALL_SUM",
+   "file_path": "api.h",
+   "name": "CALL_SUM",
+   "qualified_name": "api.h.CALL_SUM",
+   "kind": "function",
+   "start_line": 10,
+   "end_line": 10,
+   "language": "c"
+  },
+  {
+   "symbol_id": "lib.c::lib_sum",
+   "file_path": "lib.c",
+   "name": "lib_sum",
+   "qualified_name": "lib.c.lib_sum",
+   "kind": "function",
+   "start_line": 11,
+   "end_line": 13,
+   "language": "c"
+  }
+ ]
+}

@@ -89,6 +89,7 @@ def main(argv=None):
         key_head = f"oracle {ok['oracle']} ({ok['kind']}), roots {len(ok.get('roots') or [])}, {len(ok.get('files') or [])} files, {len(ok.get('sites') or [])} sites"
     triage = json.loads(Path(a.triage).read_text()) if a.triage else None
     v1 = json.loads((cell / "report.v1.json").read_text()) if (cell / "report.v1.json").exists() else None
+    edges_v1 = json.loads((cell / "edges.v1.json").read_text()) if (cell / "edges.v1.json").exists() else None
     if a.hobbes:
         lines = [f"# Oracle cell — {a.repo_url.rstrip('/').split('/')[-1]} ({cell.name.split('-', 1)[1]}), module `{report['module'] or '.'}`, {a.date} (a draw of repowise's, ADR-101 § the 1-1)", ""]
         lines.append(f"**Hobbes on a repo another tool's benchmark drew.** Repo: {a.repo_url}, clone `{a.clone}`, commit {edges['sha']} — the commit repowise-bench's `graph/corpus/corpus.lock` pins for its G4 experiment; the answer key is ours (`{a.key}/oracle.json`: `{key_head}`), built by `oracle go-rta` / `ts/tsc-oracle.mjs` on this box, so this cell is 1-1 with the foreign cells beside it (`codegraphcontext-{cell.name.split('-', 1)[1]}`, `repowise-{cell.name.split('-', 1)[1]}`) and **not** with repowise-bench's own numbers, whose key is at function grain (caller declaration → callee declaration) and whose matcher is theirs. Ingest: contained, `HOBBES_SCIP=1 uv run hobbes ingest`; {a.ingest_note}")
@@ -168,8 +169,22 @@ def main(argv=None):
     lines.append("")
     if v1 and (v1["total"] != report["total"]):
         vp, p2 = v1.get("precision_against_oracle"), report.get("precision_against_oracle")
-        head = (f"**Direction of fix ({a.date}, signed):** {a.fix_note} " if a.hobbes else
-                "**Direction of fix (converter@1 → converter@2, 2026-09-09, signed):** the converter now advances a declaration line past leading annotation / decorator lines to the identifier's (C-94, found by the triage sample: Java `@Override` lines were charged to the tool). ")
+        if a.hobbes:
+            head = f"**Direction of fix ({a.date}, signed):** {a.fix_note} "
+        elif edges_v1 is not None:
+            v1_conv = edges_v1.get("converter", "")
+            if conv.endswith("@3"):
+                cause = ("the converter now reads a callee whose declared line begins with #define as kind macro, which the lane excludes as it "
+                         "excludes Hobbes' own (C-95; ADR-101's 2026-09-14 amendment: a tool storing a function-like macro as a function was graded "
+                         "against the expansion's callee). ")
+            else:
+                cause = ("the converter now advances a declaration line past leading annotation / decorator lines to the identifier's (C-94, found "
+                         "by the triage sample: Java `@Override` lines were charged to the tool). ")
+            head = f"**Direction of fix ({v1_conv} → {conv}, {a.date}, signed):** {cause}"
+        else:
+            head = ("**Direction of fix (converter@1 → converter@2, 2026-09-09, signed):** the converter now advances a declaration line past "
+                    "leading annotation / decorator lines to the identifier's (C-94, found by the triage sample: Java `@Override` lines were "
+                    "charged to the tool). ")
         body = (f"graded edges {v1['hobbes_edges']:,} → {report['hobbes_edges']:,} ({report['hobbes_edges']-v1['hobbes_edges']:+,}); confirmed {v1['total']['confirmed']:,} → {total['confirmed']:,} ({total['confirmed']-v1['total']['confirmed']:+,}); "
                 f"contradicted {v1['total'].get('contradicted', 0):,} → {total.get('contradicted', 0):,} ({total.get('contradicted', 0)-v1['total'].get('contradicted', 0):+,})"
                 + (f"; precision-against-oracle {100*vp:.1f}% → {100*p2:.1f}% ({100*(p2-vp):+.1f})" if vp is not None and p2 is not None else "")

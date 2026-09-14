@@ -30,6 +30,14 @@ annotation's line for a Java method under `@Override` and the decorator's
 for decorated TS / Python. converter@2 reads the source and advances past
 leading annotation lines (`declaration_line`); a cell graded at @1 charged
 those rows to the tool.
+
+Grain (C-95's C face, ADR-101's 2026-09-14 (later) amendment): the first
+foreign C cells found the tool storing a function-like macro as kind
+`function`, so each such edge graded against the callee clang saw in the
+expansion. converter@3 reads the declared line's source and reads a
+leading `#define` as kind `macro` (`declared_kind`), which the lane
+already excludes for a `macro` kind; a cell graded at @2 charged those
+rows to the tool.
 """
 from __future__ import annotations
 
@@ -39,7 +47,7 @@ import os
 import sys
 from pathlib import Path
 
-VERSION = "codegraphcontext-adapter@2"
+VERSION = "codegraphcontext-adapter@3"
 
 DUMP_QUERY = """
 MATCH (a)-[r:{rel}]->(b:Function)
@@ -100,6 +108,26 @@ def declaration_line(repo: str, path: str, line: int) -> int:
     return i + 1 if i < len(lines) else line
 
 
+def declared_kind(repo: str, path: str, line: int, stored: str) -> str:
+    """converter@3 (ADR-101's 2026-09-14 amendment, C-95's C face): the
+    first foreign C cells found a tool storing a function-like macro —
+    `#define can_read(buffer, size) …` — as kind `function`, so every
+    such edge graded against the callee clang saw in the expansion. Read
+    the source at the (already advanced) declaration line; if its
+    stripped text begins with `#define`, the callee is a macro and the
+    lane's existing exclusion applies as it does to Hobbes' own. A
+    `#define` does not occur outside C / C++. Unreadable source → the
+    kind as already read."""
+    try:
+        with open(os.path.join(repo, path), encoding="utf-8", errors="replace") as f:
+            lines = f.read().split("\n")
+    except OSError:
+        return stored
+    if 1 <= line <= len(lines) and lines[line - 1].strip().startswith("#define"):
+        return "macro"
+    return stored
+
+
 def rel(path: str, repo: str) -> str | None:
     p = os.path.normpath(path)
     r = os.path.normpath(repo)
@@ -127,11 +155,13 @@ def convert(raw_path: str, repo: str, sha: str, version: str, out: str, include_
             label = str(row.get("confidence_label") or "unlabelled")
             if table == "HEURISTIC_CALLS":
                 label = "heuristic:" + label
+            callee_line = declaration_line(repo, callee_path, int(row['callee_line']))
+            kind = declared_kind(repo, callee_path, callee_line, "method" if row.get("callee_class") else "function")
             edges.append({
                 "site": f"{site_path}:{int(row['site_line'])}",
-                "callee": f"{callee_path}:{declaration_line(repo, callee_path, int(row['callee_line']))}",
+                "callee": f"{callee_path}:{callee_line}",
                 "caller": str(row.get("caller_name") or ""),
-                "kind": "method" if row.get("callee_class") else "function",
+                "kind": kind,
                 "label": label,
             })
     edges.sort(key=lambda e: (e["site"], e["callee"]))
@@ -142,7 +172,8 @@ def convert(raw_path: str, repo: str, sha: str, version: str, out: str, include_
             "dropped": dropped,
             "heuristic_calls_in_db": len(raw["rows"].get("HEURISTIC_CALLS", [])),
             "heuristic_included": include_heuristic,
-            "grain": "declaration line = the tool's node start line, advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)",
+            "grain": "declaration line = the tool's node start line, advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)"
+                     "; a callee whose declared line begins with #define is kind macro, which the lane excludes (converter@3; @2 graded it as stored)",
         },
         "edges": edges,
     }
