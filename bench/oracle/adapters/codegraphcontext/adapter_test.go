@@ -38,6 +38,16 @@ func convert(t *testing.T) string {
 	return out
 }
 
+func convertCclang(t *testing.T) string {
+	t.Helper()
+	out := filepath.Join(t.TempDir(), "edges.json")
+	cmd := exec.Command("python3", "adapter.py", "convert", "--raw", "testdata/cclang.raw.json", "--repo", "../../testdata/cclang", "--sha", "fixture", "--version", "0.6.13", "--out", out)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("convert: %v\n%s", err, b)
+	}
+	return out
+}
+
 func TestConversionMatchesTheHandRead(t *testing.T) {
 	h, f, err := foreign.FromFile(convert(t), ".", "go")
 	if err != nil {
@@ -77,5 +87,33 @@ func TestGradesAgainstMinigo(t *testing.T) {
 	}
 	if c := grade.CheckPoison(h, o); !c.Passed || c.Confirmed != 0 || c.Refused != 5 {
 		t.Fatalf("poison: %+v", c)
+	}
+}
+
+// converter@3 (ADR-101's 2026-09-14 (later) amendment): a callee whose
+// declared line begins with #define reads as kind macro, so the row to
+// api.h:10 (CALL_SUM) is excluded and the row to lib.c:11 (lib_sum)
+// grades alone.
+func TestCclangMacroRowIsExcluded(t *testing.T) {
+	out := convertCclang(t)
+	h, f, err := foreign.FromFile(out, ".", "c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kinds := map[string]string{}
+	for _, e := range f.Edges {
+		kinds[e.Site] = e.Kind
+	}
+	if kinds["main.c:18"] != "macro" {
+		t.Errorf("main.c:18 kind = %q, want macro", kinds["main.c:18"])
+	}
+	if kinds["main.c:19"] != "function" {
+		t.Errorf("main.c:19 kind = %q, want function", kinds["main.c:19"])
+	}
+	if len(h.Edges) != 1 || h.Edges[0].Site.Key() != "main.c:19" || h.Edges[0].Target.Key() != "lib.c:11" {
+		t.Fatalf("graded edges: %+v", h.Edges)
+	}
+	if h.Excluded["macro"] != 1 {
+		t.Fatalf("Excluded[macro] = %d, want 1", h.Excluded["macro"])
 	}
 }

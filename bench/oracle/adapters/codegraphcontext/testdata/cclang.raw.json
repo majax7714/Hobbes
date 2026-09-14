@@ -1,0 +1,38 @@
+{
+ "database": "/repo/cclang-db",
+ "rows": {
+  "CALLS": [
+   {
+    "caller_label": "Function",
+    "caller_path": "../../testdata/cclang/main.c",
+    "caller_name": "main",
+    "site_line": 18,
+    "confidence": 0.9,
+    "confidence_label": "EXTRACTED",
+    "resolution_tier": 5,
+    "full_call_name": "CALL_SUM",
+    "callee_path": "../../testdata/cclang/api.h",
+    "callee_line": 10,
+    "callee_name": "CALL_SUM",
+    "callee_class": null,
+    "callee_is_dependency": false
+   },
+   {
+    "caller_label": "Function",
+    "caller_path": "../../testdata/cclang/main.c",
+    "caller_name": "main",
+    "site_line": 19,
+    "confidence": 0.9,
+    "confidence_label": "EXTRACTED",
+    "resolution_tier": 5,
+    "full_call_name": "lib_sum",
+    "callee_path": "../../testdata/cclang/lib.c",
+    "callee_line": 11,
+    "callee_name": "lib_sum",
+    "callee_class": null,
+    "callee_is_dependency": false
+   }
+  ],
+  "HEURISTIC_CALLS": []
+ }
+}
