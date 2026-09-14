@@ -227,4 +227,48 @@ commit is the patch that makes C++ *supported*.
 
 ## Record
 
-- (filled in as each unit lands)
+- **2026-09-14 — unit 1 (lane A) and unit 3 (the oracle) landed, in
+  parallel from one parent (`7a805de`).**
+  - **`S-20260914T161248Z-3d56`** (142 of 200 turns, 28 min, $18.67,
+    Opus 5): `cppsource.py` as §1 wrote it, C's rules by import; the
+    `.h` claim; the `cpp` tail bucket with a row-language override on
+    both sides of the drift test; `minicpp`, seven files, building
+    under `g++ -Wall`. Gate clear (15 files, 0.0% uncaptured), verify
+    pass (1,575 tests, 65 new). Nine deviations, all the grammar's: a
+    temporary `A(x)` is a plain call; an unqualified `f<int>` is plain;
+    a construction site is never resolved by lane A; a qualified call
+    is matched against the enclosing scope's prefixes first; `p->f()`
+    classes `unclassified` (the tail's shape read, a gap C shares);
+    the named casts draw no site; a gtest/Boost test gets a
+    file-local symbol so its body attributes. Merged `3030ac7`.
+  - **`S-20260914T161308Z-a848`** (139 of 200 turns, 25 min, $16.08):
+    O10 as §3 wrote it, with a per-unit id table for member calls, the
+    mangled-name merge, and `--lang`/`--clangxx`; `cppclang` hand-keyed
+    at 25 sites over 4 units. Seven deviations, all the dump's own
+    shape (§7d). Merged `1f81412`; the oracle lane's host suite 95
+    pass / 5 skip, the C++ end-to-end test included.
+  - **The cost** was far above the estimate: $34.75 for two of the
+    three units against "about $20 for three". Both doers spent their
+    turns reading and probing before writing (lane A's first edit at
+    2.5 min was a grammar probe). Unit 2's budget is Max's call.
+  - **The host read, fmtlib/fmt at `3a0661d7`** (lane A, and lane B by
+    the way: fmt has one `.c` file, so its CMake root indexed every
+    unit, C++ included — lane B works for C++ wherever a root has a C
+    file, and unit 2 makes it deliberate): 73 C++ files; 884 types,
+    1,451 methods, 1,325 functions, 418 macros; 645 gtest tests found;
+    18,156 sites, 2,992 semantic and 299 syntactic call edges; tail:
+    7,628 below-floor, 2,131 unclassified, 879 attr-call, 386
+    builtin, 137 overload-set. The `cpp-headers` record read 25
+    headers to C++ and 1 to C (`fmt-c.h`, included from both). **Two
+    findings for the register:** every library header parsed with
+    ERROR nodes (macro-spelled declarations; C-145), and an overload
+    set trips C's duplicate-definition rule, so only the first overload
+    is a symbol and lane B's answers to the rest land below the floor
+    (C-144, **unit 2's first defect**).
+  - **Register:** C-142–C-147 in `constraints/extraction-cpp.md`;
+    C-132 narrowed. **Version:** 0.2.18-beta. **The draw** for the
+    second cell was made and recorded (§7d of oracle-grading.md):
+    Taywee/args.
+- **Remaining:** unit 2 (lane B deliberate for C++-only roots, the
+  overload symbol ids and the duplicate record's wording, the decode
+  measured on `minicpp`), then the two cells and the §3.8 row.

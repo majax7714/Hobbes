@@ -11,9 +11,54 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.17-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.18-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.18-beta — 2026-09-14 (C++ at lane A, wired, not supported; ADR-113)
+
+**Patch: what the layer draws.** A language addition is a patch even
+when it reaches "supported" (ADR-103's notes), and this one has not:
+C++ has a syntax provider and an oracle, and no §3.8 row yet.
+
+- **The eighth walk** (ADR-113 §1): `extract/cppsource.py` on
+  tree-sitter-cpp 0.23.4, on `csource`'s contract, C's rules by import
+  where they are C's. `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh` and `.hxx`
+  are C++; a `.h` is claimed by its includers (a repo with C++ and no
+  `.c` claims every `.h`; a mixed repo claims a `.h` C++ includes and C
+  does not; one both include stays C), and a mixed repo says how they
+  went (`cpp-headers`). Symbols from definitions only — functions,
+  methods with `::`-joined qualnames, constructors and destructors
+  named by the class, types, function-like macros; namespaces and
+  lambdas are not symbols. Five call-site shapes at the terminal
+  identifier, `new A(x)` and `A a(x)` named by the class. The fallback
+  is C's three ranks plus the unique qualname for a qualified call; an
+  overload set abstains (`overload-set`); a member call is lane B's.
+  gtest and Boost.Test bodies attribute to their test; Catch2 and
+  doctest bodies the grammar leaves in an error node are counted
+  (`cpp-tests`). The tail gains the `cpp` bucket: a coverage row may
+  carry `language`, and both the tail and the proxy's tables prefer it
+  over the extension, so a C++ project's `.h` files count as C++.
+- **Lane B already reaches C++** wherever a build root has a C file:
+  the derived compile database names every unit and scip-clang indexes
+  them all (fmt: 2,992 semantic C++ call edges on the first read). A
+  C++-only root, the overload symbol ids and the duplicate record's
+  wording are unit 2's.
+- **Register:** C-142–C-147 in a new segment, `extraction-cpp.md`;
+  C-132 narrowed. The first host read (fmtlib/fmt) found two: every
+  macro-spelled library header parses with error nodes (C-145, C-131's
+  C++ face), and an overload set trips C's duplicate-definition rule,
+  so only its first definition is a symbol (C-144, a defect for unit 2).
+- **The oracle** (`bench/`, no version): O10, the C oracle's C++ face
+  (oracle-grading.md §7d) — member, operator, constructor and virtual
+  sites; declarations keyed by mangled name across units; `oracle
+  c-clang --lang cpp`. The `cppclang` fixture hand-keyed at 25 sites.
+- **Built through the harness,** two sessions in parallel from one
+  parent: `S-20260914T161248Z-3d56` (142 of 200 turns, 28 min; $18.67
+  reported) and `S-20260914T161308Z-a848` (139 of 200, 25 min;
+  $16.08). Both gate clear and verify pass; merged without squashing.
+  The tracker's drift test was red on `main` until the two review
+  blocks were filled (expected: it holds the table to the logs).
 
 ## 0.2.17-beta — 2026-09-14 (the doer's model is named, per checkout; ADR-107 amended)
 

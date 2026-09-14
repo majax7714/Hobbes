@@ -314,7 +314,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.17-beta** (2026-09-14). The Hobbes layer is versioned from here
+**Hobbes 0.2.18-beta** (2026-09-14). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -389,8 +389,8 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and twenty-four session logs stand through
-0.2.17-beta. The tracker at the end of
+dispatched on 2026-09-12, and twenty-six session logs stand through
+0.2.18-beta. The tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13). The work built through it includes C's lane A, C's oracle,
@@ -406,7 +406,9 @@ include lane A cannot place written down per directory, so C-133 is
 met where the graph's boundary is read (0.2.15-beta), and a C build
 root whose derived compile database holds none of its own files told so
 by name (0.2.16-beta), and the doer's model named per checkout, so a
-session's log says which model did the work (0.2.17-beta).
+session's log says which model did the work (0.2.17-beta), and C++
+wired at lane A with its oracle beside it, in two units run in
+parallel (0.2.18-beta, ADR-113; wired, not supported until its row).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry

@@ -457,6 +457,71 @@ ingest does (a carried database that rebases, CMake's export, bear over
 dumps committed), then `minic`, then cJSON and one repo drawn at random
 (§10.5).
 
+## 7d. The C++ oracle (O10, ADR-113)
+
+**Primary: clang's front end again, per translation unit, over the
+same derived compile database.** `oracle c-clang --lang cpp` runs the
+C oracle's contained step with each unit's front end chosen by its own
+extension (`clang++` for `.cpp .cc .cxx .C .c++`, `clang` otherwise,
+whatever `--lang` says: a mixed root is one root), and `export.Exts["cpp"]`
+is the six C++ extensions plus `.h`. The C rules (§7c) carry over; C++
+adds four site kinds and one merge key:
+- **Sites.** `CallExpr` as C (its `DeclRefExpr` may name a
+  `CXXMethodDecl`: a static or qualified member call, mode `static`).
+  `CXXMemberCallExpr`: the callee is the `MemberExpr`'s
+  `referencedMemberDecl`, resolved through a per-unit id table after
+  the walk; mode `static`, or `virtual` where the declaration was
+  *written* `virtual` — clang's dump prints the keyword only where the
+  source does and carries no override information, so an override
+  without the keyword reads `static`; the target is the declared
+  method either way, and no class-hierarchy analysis is built (an
+  override Hobbes drew instead is a contradiction to be measured, not
+  excused). `CXXOperatorCallExpr`: mode `operator`, the operator
+  function it names; a dependent operator in a template pattern
+  (`UnresolvedLookupExpr`) is `dynamic`. `CXXConstructExpr` and
+  `CXXTemporaryObjectExpr`: no callee; mode `constructor`; the target
+  is the constructor of the expression's class (its type's last `::`
+  component) whose signature equals the `ctorType`; an `isImplicit`
+  constructor or destructor is never a target, and a construct site
+  whose unit declares no constructor of that signature is dropped. A
+  `CXXNewExpr` contains the construct site and is not one itself.
+- **Declarations** carry `mangledName`, `kind` (function, method,
+  constructor, destructor), the enclosing class, the signature type,
+  `virtual`. A `FunctionTemplateDecl` is not a declaration; the pattern
+  and each specialisation inside it are, at the template's line. A
+  member function's `storageClass: "static"` is *not* internal linkage;
+  an unnamed namespace's declarations are.
+- **Merge across units by mangled name** where there is one — one
+  entity per mangled name, overloads and a template's specialisations
+  told apart, a header's inline method one target from every unit —
+  and by C's name rules otherwise (`extern "C"`, `main`).
+- **Coverage** adds `sites_virtual`, `sites_operator`,
+  `sites_constructor` and `units_cpp` (units that ran under clang++)
+  beside §7c's buckets; `lang_cpp: 1` marks a cell run as `--lang cpp`.
+- **What Hobbes cannot draw there** (C-146): an operator applied by
+  symbol and a named cast are not sites at lane A, so `operator` sites
+  read as recall, never precision.
+- **Fixture:** `bench/oracle/testdata/cppclang`, hand-keyed in
+  `cpp_test.go` — 25 sites over 4 units: 15 static, 4 constructor, 2
+  virtual, 2 dynamic, 1 operator, 1 macro, 0 tu-split; the overload
+  pair on two lines, `p->area()` on the base's declaration, the implicit
+  copy and default constructors never targets.
+
+**The random draw, stated before it was made (2026-09-14).** The pool:
+GitHub's `language:c++ stars:300..3000 pushed:>2026-03-01`, every
+result (1,000), sorted by full name, shuffled with
+`random.Random(20260914)`; the first taken that is not a fork or
+archived, has a `CMakeLists.txt` or Makefile at its root, and derives
+a compile database offline in the image. **Taken: Taywee/args at
+`903b07df`**, the seventh; passed over, with reasons recorded in the
+draw file: godot-orchestrator (a submodule a plain clone lacks),
+scummvm (a Makefile that needs `./configure`), deepstream_reference_apps
+(no build file at the root), libcuckoo (CMake exports 0 entries: tests
+off by default, C-135's shape), Ros_Qt5_Gui_App (FetchContent from
+github.com), TinyGSM (an ESP-IDF component). The chosen cell is
+fmtlib/fmt at `3a0661d7` (52 entries offline, 44 under `test/`). Both
+cells wait on ADR-113's unit 2.
+
 ## 8. The matcher
 
 **Inputs:** (a) a Hobbes graph export per cell — every call edge with site
@@ -505,6 +570,7 @@ cells as data, not per-cell scripts.
 | **O6** (phase 2) | Python trace cells: hobbes' own Python zone under its suite (dogfood), then one SWE-bench workspace with strong coverage and clean ingest (xarray) | First trace-oracle cells; minipy-style fixture self-test first if one exists, else add one. Exit: coverage line + recall-against-executed on the record. |
 | **O7** (phase 2) | Rust: `rust_proj` MIR oracle (must confirm ADR-040's 33/33), then dagger rust | Compiler-authority grading for the language with the thinnest evidence base. Rupta/trace lanes only if time-boxed setup succeeds. |
 | **O9** | C: the `cclang` fixture and `minic`, then DaveGamble/cJSON and one repo drawn at random (ADR-110) | clang's front end as the resolution oracle; C's first §3.8 row, per cell. Exit: §10.5 graded |
+| **O10** | C++: the `cppclang` fixture and `minicpp`, then fmtlib/fmt and one repo drawn at random (Taywee/args; ADR-113) | the C oracle's C++ face (§7d): member, operator, constructor and virtual sites, declarations keyed by mangled name; C++'s first §3.8 row, per cell. Built 2026-09-14 (`a848`); the cells wait on lane B |
 
 Each cell's runtime and machine cost gets logged — the harness is only
 useful if rerunning a cell is cheap enough to do after every resolver

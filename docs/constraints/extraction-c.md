@@ -66,8 +66,15 @@
   preprocessor by design.
 - **Source:** ADR-108.
 
-### C-132 — A `.h` is always C, and C++ is not read
-- **Cannot tell you:** anything about C++.
+### C-132 — A `.h` is always C, and C++ is not read (narrowed 2026-09-14)
+- **Narrowed (0.2.18-beta, ADR-113).** C++ is read at lane A: `.cc`,
+  `.cpp`, `.cxx`, `.hpp`, `.hh` and `.hxx` are discovered, and a `.h`
+  is claimed by C++ by its includers (C-142). What is left of this
+  entry: a `.h` both languages include, or none does in a mixed repo,
+  is still read as C; C++ itself is *wired, not supported* until its
+  §3.8 row; and cgo's `foo.go`/`foo.c` collision (C-15) is unchanged.
+  The C++ walk's own concessions are `extraction-cpp.md`.
+- **Cannot tell you (as first written):** anything about C++.
   - `.cc`, `.cpp`, `.cxx`, `.hpp` and `.hh` files are not discovered.
   - A C++ project's `.h` headers are parsed as C, so classes,
     templates and namespaces become syntax errors, and the declarations

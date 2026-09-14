@@ -10495,3 +10495,71 @@ different problems."
   (Max: "havent settled on where i want to go with harness
   eventually"). The handoff's open list for Max is empty; its three
   remaining items are not owed.
+
+## 2026-09-14 — (last) C++ as a language: ADR-113; lane A and O10 through the harness in parallel — 0.2.18-beta, wired, not supported
+
+**Asked (Max):** "add c++ as a supported language through the typical
+language addition flow", then, after his usage limit cut the session
+mid-run: "see where the current status point is, look to fix or finish
+and then note the remaining for next session".
+
+- **Read first, no spend:** §3.7's checklist against C's precedent
+  (ADR-108/109/110). Three measurements fixed the design: scip-clang
+  indexes C++ from the same derived database and its `cxx` monikers
+  already decode; tree-sitter-cpp 0.23.4 installs beside the pinned
+  tree-sitter and parses every shape the walk needs (a gtest `TEST`
+  reads as a function named `TEST`; Catch2's `TEST_CASE` as a call plus
+  an ERROR node); clang 18's C++ dump gives every declaration a
+  mangled name (the cross-unit key C++ needs where C merged by name),
+  names a member call's callee by id, and gives a constructor call no
+  callee at all. **ADR-113** written (`7a805de`, with the
+  tree-sitter-cpp pin, so the sessions could import it offline).
+- **Two units in parallel from one parent,** both on Opus 5. First
+  launched as the assistant's background commands, then stopped and
+  relaunched under `setsid nohup` on reading the BUILDLOG's ten-minute
+  cap (the orphaned sidecars and networks removed by hand; two
+  session dirs `99ad`/`ade2` hold the aborted starts, no log written).
+  - **`S-20260914T161248Z-3d56`, lane A** (142 of 200 turns, 28 min,
+    $18.67): gate clear (15 files), verify pass (1,575, 65 new). Nine
+    deviations, all the grammar's. Merged `3030ac7`.
+  - **`S-20260914T161308Z-a848`, O10** (139 of 200, 25 min, $16.08):
+    gate clear (16 files), verify pass (52 tests, 4 new). Seven
+    deviations, all the dump's. Merged `1f81412`.
+  - **Host:** pytest 1,584 (the tracker's drift test red until the
+    review blocks were filled — as designed); Go knowledge tests green;
+    the oracle lane 95 pass / 5 skip with the C++ end-to-end test.
+  - **The cost:** $34.75 for two of three units against the ADR's
+    "about $20 for three". Both doers read and probed long before
+    writing. Max hit his usage limit while they ran; both finished on
+    their own, and only the assistant's waiting loop was cut.
+- **The host read, fmtlib/fmt at `3a0661d7`:** 73 C++ files, 884
+  types, 1,451 methods, 1,325 functions, 418 macros, 645 gtest tests;
+  18,156 sites; **2,992 semantic call edges** — lane B reaches C++
+  already wherever a root has a C file, because the derived database
+  names every unit; 299 syntactic. The `cpp-headers` record: 25 to
+  C++, 1 to C (`fmt-c.h`, included from both). **Two findings,
+  registered:** every library header parses with ERROR nodes (macro-
+  spelled declarations, C-145, C-131's C++ face); an overload set
+  trips C's duplicate-definition rule, so only the first overload is a
+  symbol and lane B's answers to the rest fall below the floor — 7,628
+  below-floor sites (C-144, unit 2's first defect).
+- **Register:** `constraints/extraction-cpp.md`, C-142–C-147; C-132
+  narrowed; 147 entries, 105 active (82 surfaced, 19 partial, 3
+  unsurfaced, 1 n/a). **The draw** for the second cell made as §7d
+  states it: Taywee/args at `903b07df`, the seventh; six passed over
+  with reasons in `~/.hobbes/bench/cpp-cells/draw.json`; fmt is the
+  chosen cell (52 entries offline).
+- **Version 0.2.18-beta** (a language addition is a patch): the copies
+  and locks, the CHANGELOG, README, the architecture (§3.7's eighth
+  walk, §8), CLAUDE.md, the harness doc, oracle-grading.md §7d and the
+  O10 row, ADR-113's record, the handoff. Binaries, the static proxy
+  and the image rebuilt (the proxy's tail tables changed, C-65).
+- **The tracker** at 26 of 40, 4 areas, 0 false blocks, 0 missed.
+  **Task files:** `~/.hobbes/bench/cpp-drivers/{lane-a,oracle}-task.md`
+  with their partitions.
+
+**Remaining (the handoff's item 0):** unit 2 — lane B deliberate for a
+C++-only root, the overload symbol ids and the duplicate record's
+wording, the decode measured on `minicpp` — once Max names its budget;
+then the two cells (fmt, args) host-run and contained; then the §3.8
+row, the patch that makes C++ *supported*.
