@@ -130,12 +130,29 @@ type verificationRow struct {
 }
 
 type coverageRow struct {
-	File       string         `json:"file"`
+	File string `json:"file"`
+	// The language the provider that owns the file claimed, when the
+	// extension cannot say: a `.h` the C++ walk claimed is C++, not C
+	// (ADR-113 §1). Absent on every other row, and on every artifact
+	// written before it.
+	Language   string         `json:"language,omitempty"`
 	Sites      int            `json:"sites"`
 	Resolved   int            `json:"resolved"`
 	External   int            `json:"external"`
 	Unresolved int            `json:"unresolved"`
 	Tail       map[string]int `json:"tail"`
+}
+
+// language buckets a coverage row for the tail view: the row's own
+// language when its provider stamped one, else its extension's. Mirrors
+// the pipeline's tail.language_of, whose second argument is this same
+// row field.
+func (row coverageRow) language() (string, bool) {
+	if row.Language != "" {
+		return row.Language, true
+	}
+	lang, ok := langByExt[path.Ext(row.File)]
+	return lang, ok
 }
 
 type depCoverage struct {
@@ -786,14 +803,18 @@ var notModelled = map[string]bool{
 // too, or it goes missing from this tool rather than failing loudly.
 var artifactLangBucket = map[string]string{
 	"python": "python", "typescript": "ts/js", "javascript": "ts/js",
-	"go": "go", "rust": "rust", "java": "java", "c": "c",
+	"go": "go", "rust": "rust", "java": "java", "c": "c", "cpp": "cpp",
 }
 
+// langByExt buckets a file by name alone. `.h` is the one extension two
+// languages share: it is C here, and a row whose provider claimed it for
+// C++ overrides this table (coverageRow.language, ADR-113 §1).
 var langByExt = map[string]string{
 	".py": "python", ".ts": "ts/js", ".tsx": "ts/js", ".mts": "ts/js",
 	".cts": "ts/js", ".js": "ts/js", ".jsx": "ts/js", ".mjs": "ts/js",
 	".cjs": "ts/js", ".go": "go", ".rs": "rust", ".java": "java",
-	".c": "c", ".h": "c",
+	".c": "c", ".h": "c", ".cpp": "cpp", ".cc": "cpp", ".cxx": "cpp",
+	".hpp": "cpp", ".hh": "cpp", ".hxx": "cpp",
 }
 
 // containmentDoc mirrors the pipeline's containment.summary().
@@ -849,7 +870,7 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	// names every language the artifact lists, call sites or not).
 	inScope := map[string]bool{}
 	for _, row := range rows {
-		if lang, ok := langByExt[path.Ext(row.File)]; ok {
+		if lang, ok := row.language(); ok {
 			inScope[lang] = true
 		}
 	}
@@ -871,7 +892,7 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	}
 	langs := map[string]*agg{}
 	for _, row := range rows {
-		lang, ok := langByExt[path.Ext(row.File)]
+		lang, ok := row.language()
 		if !ok {
 			continue
 		}
@@ -1018,7 +1039,7 @@ func directoryOf(file string) string {
 func rollupDirectories(rows []coverageRow) map[dirLangKey]*dirLangAgg {
 	dirs := map[dirLangKey]*dirLangAgg{}
 	for _, row := range rows {
-		lang, ok := langByExt[path.Ext(row.File)]
+		lang, ok := row.language()
 		if !ok {
 			continue
 		}

@@ -43,10 +43,23 @@ class TestDiscovery:
         found = {p.name for p in iter_c_files(tmp_path)}
         assert found == {"main.c", "main.h"}
 
-    def test_cplusplus_extensions_are_never_discovered(self, tmp_path):
-        for ext in ("cc", "cpp", "cxx", "hpp", "hh"):
+    def test_cplusplus_extensions_are_not_c_s(self, tmp_path):
+        # They are `cppsource`'s since ADR-113 §1; this walk still never
+        # sees them.
+        for ext in ("cc", "cpp", "cxx", "hpp", "hh", "hxx"):
             (tmp_path / f"a.{ext}").write_text("")
         assert list(iter_c_files(tmp_path)) == []
+
+    def test_a_header_cpp_claimed_is_skipped(self, tmp_path):
+        # One header is read by exactly one language (ADR-113 §1): the
+        # C++ walk hands over what it took, and C does not read it twice.
+        (tmp_path / "a.c").write_text("int f(void) { return 0; }\n")
+        (tmp_path / "mine.h").write_text("int f(void);\n")
+        (tmp_path / "theirs.h").write_text("int g();\n")
+        found = {p.name for p in iter_c_files(tmp_path, claimed={"theirs.h"})}
+        assert found == {"a.c", "mine.h"}
+        layer = extract_c(tmp_path, claimed={"theirs.h"})
+        assert {n["path"] for n in layer["nodes"] if n["kind"] == "module"} == {"a.c", "mine.h"}
 
     def test_no_c_means_no_layer(self, tmp_path):
         (tmp_path / "app.py").write_text("x = 1\n")

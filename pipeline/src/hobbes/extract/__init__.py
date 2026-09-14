@@ -29,6 +29,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
 from hobbes.extract import containment, scipsource, staging, tail, tssource
+from hobbes.extract.cppsource import collect_cpp_tests, extract_cpp
 from hobbes.extract.csource import collect_c_tests, extract_c
 from hobbes.extract.discover import discover_modules, linked_copies
 from hobbes.extract.emit import ensure_hobbes_ignored, repo_stamp, write_artifacts
@@ -145,10 +146,21 @@ def extract_repo(
         degraded += _merge_layer(graph, java["nodes"], java["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], java["symbols"])
 
+    # C++ runs before C, and only because of the `.h` claim (ADR-113 §1):
+    # a header this layer took must not also be read as C, so C is handed
+    # the claimed set. Like C's first unit, C++ has no lane B yet — every
+    # edge is this layer's fallback, at `syntactic` tier.
+    cpp = extract_cpp(repo_root)
+    if cpp:
+        languages += cpp["languages"]
+        degraded += list(cpp["errors"])
+        degraded += _merge_layer(graph, cpp["nodes"], cpp["module_edges"])
+        graph["symbols"] = _merge_symbols(graph["symbols"], cpp["symbols"])
+
     # C has no lane B in this unit (no indexer exists yet): every edge is
     # this layer's fallback, at `syntactic` tier — the join's normal
     # degraded path (P6), not a special case.
-    c = extract_c(repo_root)
+    c = extract_c(repo_root, claimed=cpp["claimed_headers"] if cpp else None)
     if c:
         languages += c["languages"]
         degraded += list(c["errors"])
@@ -175,7 +187,9 @@ def extract_repo(
     degraded += _merge_layer(graph, enriched.nodes, enriched.module_edges)
     graph["packs"] = enriched.ran
 
-    degraded += _build_symbol_layer(repo_root, graph, modules, parsed, ts, go, rust, java, c)
+    degraded += _build_symbol_layer(
+        repo_root, graph, modules, parsed, ts, go, rust, java, c, cpp
+    )
 
     tests = collect_tests(modules, parsed, graph["symbol_edges"])
     if ts:
@@ -188,6 +202,8 @@ def extract_repo(
         tests += collect_java_tests(java["files"], graph["symbol_edges"])
     if c:
         tests += collect_c_tests(c["files"], graph["symbol_edges"])
+    if cpp:
+        tests += collect_cpp_tests(cpp["files"], graph["symbol_edges"])
     tests = sorted(tests, key=lambda t: t["id"])
     if degraded:
         # Sorted, not append-ordered: which pass reported first is an
@@ -251,6 +267,7 @@ def _build_symbol_layer(
     rust: dict | None = None,
     java: dict | None = None,
     c: dict | None = None,
+    cpp: dict | None = None,
 ) -> list[dict]:
     """Join every lane's evidence and project it onto the graph's ids.
 
@@ -291,6 +308,9 @@ def _build_symbol_layer(
     if c:
         syntax += c["call_sites"]
         fallback.update(c["call_fallback"])
+    if cpp:
+        syntax += cpp["call_sites"]
+        fallback.update(cpp["call_fallback"])
 
     for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, degraded):
         resolutions += scipsource.resolution_sites(facts)
@@ -379,6 +399,18 @@ def _build_symbol_layer(
         local_bindings.update(java.get("local_bindings", {}))
     if c:
         local_bindings.update(c.get("local_bindings", {}))
+    if cpp:
+        local_bindings.update(cpp.get("local_bindings", {}))
+    # The files the C++ layer owns, which is the one thing an extension
+    # cannot say: a `.h` it claimed is C++, not C (ADR-113 §1). The same
+    # map stamps the coverage rows below.
+    cpp_languages = {parsed.path: "cpp" for parsed in cpp["files"]} if cpp else {}
+    # Java abstains on an overload set and C++ on an overload of its own
+    # (a name with more than one definition at a fallback rank); the tail
+    # names both the same way.
+    overloads = (java.get("overload_sites") if java else set()) or set()
+    if cpp:
+        overloads = overloads | cpp["overload_sites"]
     tails = tail.classify(
         ev.unresolved_sites(syntax, resolutions, external),
         repo_root,
@@ -386,9 +418,11 @@ def _build_symbol_layer(
         fallback=fallback,
         import_bindings=py_bindings,
         local_bindings=local_bindings,
-        overloads=java.get("overload_sites") if java else None,
+        overloads=overloads,
         inherited=java.get("inherited_sites") if java else None,
         build_tags=go.get("build_tag_sites") if go else None,
+        qualified=cpp["qualified_sites"] if cpp else None,
+        languages=cpp_languages,
     )
     # C-58's surfacing: sites the semantic lane resolved to a declaration
     # below the symbol floor still count as `resolved` (the number is not
@@ -401,6 +435,10 @@ def _build_symbol_layer(
     graph["resolution_coverage"] = [
         {
             "file": row.file,
+            # Only where the extension would say otherwise (C-32's note,
+            # one language over): the tail and the proxy's copies of these
+            # tables prefer a row's own language.
+            **({"language": cpp_languages[row.file]} if row.file in cpp_languages else {}),
             "sites": row.sites,
             "resolved": row.resolved,
             "external": row.external,

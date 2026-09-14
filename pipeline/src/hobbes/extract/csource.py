@@ -12,10 +12,14 @@ is the only resolver, and it is what :mod:`hobbes.extract` pools into
 the join with an empty semantic side — the normal degraded path (P6),
 not a special case.
 
-**Discovery.** ``.c`` and ``.h`` files are C; a ``.h`` is always read as
-C, never guessed at as C++. C++ (``.cc``/``.cpp``/``.cxx``/``.hpp``/
-``.hh``) is out of scope and is never discovered. Pruned like every
-other walk, plus ``build/`` and any ``cmake-build-*`` directory.
+**Discovery.** ``.c`` and ``.h`` files are C, except the headers the C++
+walk claimed (ADR-113 §1: a ``.h`` in a repo with C++ sources and no
+``.c``, or one some C++ file includes and no ``.c`` file does), which
+arrive in *claimed* and are skipped here, so a header is read by exactly
+one language. The six C++ extensions are
+:mod:`hobbes.extract.cppsource`'s and are never discovered here. Pruned
+like every other walk, plus ``build/`` and any ``cmake-build-*``
+directory.
 
 **Module ids** follow the ADR-021 rule with one wrinkle: a ``.c`` file's
 id drops its extension (``src/util.c`` → ``src/util``), but a ``.h``
@@ -190,8 +194,13 @@ def has_c_files(repo_root: Path) -> bool:
     return any(True for _ in iter_c_files(Path(repo_root)))
 
 
-def iter_c_files(repo_root: Path):
-    """Repo-relative ``.c``/``.h`` paths, pruned like every other walk."""
+def iter_c_files(repo_root: Path, claimed: set[str] | None = None):
+    """Repo-relative ``.c``/``.h`` paths, pruned like every other walk.
+
+    *claimed* names the repo-relative ``.h`` paths C++ took (ADR-113 §1);
+    they are skipped, so one header is read by exactly one language.
+    """
+    repo_root = Path(repo_root)
     stack = [Path(repo_root)]
     while stack:
         directory = stack.pop()
@@ -209,6 +218,8 @@ def iter_c_files(repo_root: Path):
                 ):
                     stack.append(child)
             elif child.suffix in (".c", ".h"):
+                if claimed and child.relative_to(repo_root).as_posix() in claimed:
+                    continue
                 yield child
 
 
@@ -222,8 +233,11 @@ def module_id(path: str) -> str:
     return str(pure)
 
 
-def extract_c(repo_root: Path) -> dict | None:
+def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
     """The C layer for *repo_root*, or ``None`` when it has no C.
+
+    *claimed* names the ``.h`` paths the C++ walk took (ADR-113 §1), and
+    is the only thing C++ changes in this module.
 
     Never raises: a file that will not read or will not parse yields
     whatever the walk could see, and one degradation record names it
@@ -233,7 +247,7 @@ def extract_c(repo_root: Path) -> dict | None:
     repo_root = Path(repo_root).resolve()
     files: list[CFile] = []
     errors: list[dict] = []
-    for absolute in iter_c_files(repo_root):
+    for absolute in iter_c_files(repo_root, claimed):
         rel = absolute.relative_to(repo_root).as_posix()
         try:
             source = absolute.read_bytes()

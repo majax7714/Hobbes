@@ -393,6 +393,40 @@ class TestClassesAvailable:
             tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.UNCLASSIFIED, tail.BELOW_FLOOR,
         })
 
+    def test_the_six_cpp_extensions_share_the_cpp_row(self):
+        for f in ("src/a.cpp", "src/a.cc", "src/a.cxx", "inc/a.hpp", "inc/a.hh", "inc/a.hxx"):
+            assert tail.language_of(f) == "cpp", f
+
+    def test_a_row_s_own_language_outranks_its_extension(self):
+        # The one extension two languages share: a `.h` the C++ walk
+        # claimed says so on its coverage row (ADR-113 §1), and no
+        # extension could.
+        assert tail.language_of("src/a.h") == "c"
+        assert tail.language_of("src/a.h", "cpp") == "cpp"
+        rows = [{"file": "src/a.h", "language": "cpp"}]
+        assert list(tail.classes_available(rows)) == ["cpp"]
+
+    def test_cpp_class_list_is_exactly_the_seven_it_can_produce(self):
+        # C's five, plus overload-set (a tie at a fallback rank) and
+        # below-floor. No path-call: a qualified C++ site is either the
+        # standard library or a name this lane could not place.
+        assert tail.CLASSES_AVAILABLE["cpp"] == frozenset({
+            tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.OVERLOAD,
+            tail.UNCLASSIFIED, tail.BELOW_FLOOR,
+        })
+
+    def test_a_std_qualified_site_is_a_builtin_name(self, tmp_path):
+        # C++'s standard library is a namespace, not a list: the site's
+        # own first qualifier is the observation.
+        write(tmp_path, "a.cpp", "int f(int x) { return std::move(x); }\n")
+        moved = site("a.cpp", 1, "move", col=27)
+        got = tail.classify([moved], tmp_path, qualified={("a.cpp", 1, "move"): "std"})
+        assert dict(got["a.cpp"]) == {tail.BUILTIN: 1}
+        # Any other qualifier is a name the lane could not place — never
+        # path-call, which is Rust's.
+        got = tail.classify([moved], tmp_path, qualified={("a.cpp", 1, "move"): "ns"})
+        assert dict(got["a.cpp"]) == {tail.UNCLASSIFIED: 1}
+
     def test_ts_flavoured_extensions_share_the_ts_js_row(self):
         # .mts/.cts were unmapped until C-100: a tail row for such a file
         # had no language, so its classes were checked against nothing.

@@ -32,7 +32,10 @@ checkable fact about the site:
   builtin list. The class says "matches": a local shadowing ``len`` would
   match too, and the name is honest about that. An import binding
   outranks a builtin match — ``from rich import print`` makes the
-  import the truer observation about ``print(...)``.
+  import the truer observation about ``print(...)``. C++ has one more
+  form of the same observation: its standard library is the namespace
+  ``std``, so a qualified site whose first qualifier is ``std`` matches
+  it without any list being able to hold it (ADR-113 §1).
 - ``attr-call`` — an attribute call (``x.foo()``): a receiver no static
   provider could type. The genuine static-analysis limit, C-2's core.
 - ``expr-callee`` — the callee is itself an expression (``handlers[k]()``,
@@ -60,7 +63,9 @@ checkable fact about the site:
 - ``overload-set`` — lane A located the declaration set the name binds
   to and it holds more than one member (a Java overload set, a
   constructor pair): the resolver abstained rather than pick one, and
-  only argument types — lane B's — can (ADR-096).
+  only argument types — lane B's — can (ADR-096). C++'s overloads
+  classify here for the same reason: a name with more than one definition
+  at a fallback rank is a tie, and a tie abstains (ADR-113 §1).
 - ``inherited-member`` — a Java call bound into a type that declares
   supertypes (a bare call inside one, a static call through one):
   whether the callee is that type's own declaration or an inherited
@@ -142,7 +147,17 @@ _LANG_BY_EXT = {
     ".rs": "rust",
     ".java": "java",
     ".c": "c",
+    # A `.h` is C by extension. It is the one extension two languages
+    # share, and the only one a coverage row can override: the C++ walk
+    # stamps `language: cpp` on the headers it claimed (ADR-113 §1), and
+    # `language_of` prefers that over this table.
     ".h": "c",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".hpp": "cpp",
+    ".hh": "cpp",
+    ".hxx": "cpp",
 }
 
 #: Pinned, not read from the running interpreter (determinism across
@@ -275,15 +290,23 @@ C_BUILTINS = frozenset({
     "assert", "static_assert",
 })
 
-_BUILTINS = {"python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS, "c": C_BUILTINS}
+#: C++ takes C's list unchanged: every C11 name above is callable from
+#: C++ and spelled the same. What C++ adds is not a list — its standard
+#: library is the namespace ``std``, read from a qualified site's first
+#: qualifier in :func:`classify` (ADR-113 §1).
+_BUILTINS = {
+    "python": PY_BUILTINS, "go": GO_BUILTINS, "java": JAVA_BUILTINS,
+    "c": C_BUILTINS, "cpp": C_BUILTINS,
+}
 
 
 def _is_builtin(lang: str | None, name: str) -> bool:
     """A pinned-list match, plus C's one prefix rule: any ``__builtin_*``
-    name is a compiler intrinsic no finite list could enumerate."""
+    name is a compiler intrinsic no finite list could enumerate. Both hold
+    for C++'s unqualified names too."""
     if name in _BUILTINS.get(lang or "", frozenset()):
         return True
-    return lang == "c" and name.startswith("__builtin_")
+    return lang in ("c", "cpp") and name.startswith("__builtin_")
 
 #: Which classes each language's providers can actually produce (C-32's
 #: candidate fix, applied). A class absent from a language's set is one
@@ -315,6 +338,13 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     # no checker to see an import binding, an overload set, or an
     # expression callee.
     "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
+    # C's five, plus the one class C++ needs and C cannot have: a name
+    # defined more than once is an overload set, and lane A abstains on
+    # it (ADR-113 §1). `path-call` is not here — C++ spells `::`, but a
+    # qualified site is either the standard library (`builtin-name`, by
+    # its first qualifier) or a name this lane could not place.
+    "cpp": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, OVERLOAD, UNCLASSIFIED,
+                      BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
@@ -334,7 +364,7 @@ def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
     summary, ``list_blind_spots``) states what a language's tail *could*
     have said next to what it did say, rather than holding a second copy
     of this table."""
-    present = {language_of(row["file"]) for row in coverage_rows}
+    present = {language_of(row["file"], row.get("language")) for row in coverage_rows}
     return {
         lang: [c for c in ALL_CLASSES if c in CLASSES_AVAILABLE[lang]]
         for lang in sorted(present - {None})
@@ -345,9 +375,16 @@ def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:
 _ORIGIN_CLASS = {"local": LOCAL, "nested": NESTED, "external": EXTERNAL_ORIGIN}
 
 
-def language_of(file: str) -> str | None:
-    """The tail-view language bucket for *file*, or None (e.g. ``.tf``)."""
-    return _LANG_BY_EXT.get(PurePosixPath(file).suffix)
+def language_of(file: str, row_language: str | None = None) -> str | None:
+    """The tail-view language bucket for *file*, or None (e.g. ``.tf``).
+
+    *row_language* is the language the provider that owns the file
+    claimed, carried on its coverage row: a ``.h`` the C++ walk claimed is
+    C++, and no extension could say so (ADR-113 §1). A row that carries
+    one always wins — the provider read the file, this table only reads
+    its name.
+    """
+    return row_language or _LANG_BY_EXT.get(PurePosixPath(file).suffix)
 
 
 #: Languages whose grammar forbids a statement from ending in ``.`` — so
@@ -439,6 +476,8 @@ def classify(
     overloads: set[tuple[str, int, str]] | None = None,
     inherited: set[tuple[str, int, str]] | None = None,
     build_tags: set[tuple[str, int, str]] | None = None,
+    qualified: dict[tuple[str, int, str], str] | None = None,
+    languages: dict[str, str] | None = None,
 ) -> dict[str, Counter]:
     """Per-file tail classes for the *unresolved* call sites.
 
@@ -452,6 +491,11 @@ def classify(
     supertype lane A cannot see (Java); *build_tags* the Go sites whose
     name has several declarations under build constraints the caller's
     configuration does not single out (ADR-098).
+    *qualified* maps a C++ site to the first qualifier its provider saw
+    (``std::move`` → ``std``), since C++ spells its standard library as a
+    namespace rather than as a list a builtin table could pin (ADR-113
+    §1); *languages* maps a file to the language its provider claimed,
+    for the one extension two of them share (a ``.h`` C++ took).
     *local_bindings* maps a file to ``(name, start, end)`` tuples — lane
     A's sub-module bindings with enclosing-function extents (ADR-046);
     a bare site matches only when an extent spans its line, and a
@@ -467,11 +511,13 @@ def classify(
     overloads = overloads or set()
     inherited = inherited or set()
     build_tags = build_tags or set()
+    qualified = qualified or {}
+    languages = languages or {}
     lines = _Lines(repo_root)
     out: dict[str, Counter] = {}
     for site in unresolved:
         key = (site.file, site.line, site.name)
-        lang = language_of(site.file)
+        lang = language_of(site.file, languages.get(site.file))
         if key in fallback:
             cls = FALLBACK
         elif key in overloads:
@@ -505,6 +551,7 @@ def classify(
             )
             bound = import_bindings.get(site.file, frozenset())
             locals_ = local_bindings.get(site.file, ())
+            qualifier = qualified.get(key)
             if shape == "bare" and any(
                 name == site.name and start <= site.line <= end
                 for (name, start, end) in locals_
@@ -514,10 +561,16 @@ def classify(
                 cls = IMPORT_BINDING
             elif shape == "bare" and _is_builtin(lang, site.name):
                 cls = BUILTIN
+            elif qualifier is not None:
+                # C++'s qualified site: the standard library is a
+                # namespace, so `std::` *is* the builtin list. Any other
+                # qualifier is a name this lane could not place — never
+                # `path-call`, which is Rust's class (ADR-113 §1).
+                cls = BUILTIN if qualifier == "std" else UNCLASSIFIED
             elif shape == "attr":
                 cls = ATTR
             elif shape == "path":
-                cls = PATH_CALL
+                cls = UNCLASSIFIED if lang == "cpp" else PATH_CALL
             else:
                 cls = UNCLASSIFIED
         out.setdefault(site.file, Counter())[cls] += 1
@@ -532,7 +585,7 @@ def rollup(coverage_rows: list[dict]) -> dict[str, dict]:
     """
     langs: dict[str, dict] = {}
     for row in coverage_rows:
-        lang = language_of(row["file"])
+        lang = language_of(row["file"], row.get("language"))
         if lang is None:
             continue
         agg = langs.setdefault(
@@ -572,7 +625,7 @@ def rollup_directories(
     """
     dirs: dict[tuple[str, str], dict] = {}
     for row in coverage_rows:
-        lang = language_of(row["file"])
+        lang = language_of(row["file"], row.get("language"))
         if lang is None:
             continue
         key = (directory_of(row["file"], depth), lang)
