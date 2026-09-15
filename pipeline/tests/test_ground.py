@@ -272,6 +272,62 @@ def test_js_import_builtin_and_null(repo):
     assert g["null"][0]["null_class"] == "near-miss"
 
 
+def _js(root, L, path, code):
+    t = template(L, root, "Change `helper`.")
+    return G.ground(t, {"fills": {hole(t, "FREEFORM")["id"]: {"code": code, "span": {"path": path, "start": 1, "end": 0}}}}, L, root)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="the tsextract helper needs node")
+def test_js_call_through_a_parenthesised_arrow_parameter_is_local(repo):
+    """C-91's newest amendment, on `S-20260915T135819Z-f3c1`'s shape: an arrow's parenthesised parameter list is read
+    wherever it stands, so a call through `check` binds as `local` — the harness's first false block, closed."""
+    root, sha = repo
+    g = _js(root, ledger(sha), "web/arrow.mjs",
+            "export const before = (check) => (previous) => {\n  if (check) check(previous)\n  return previous\n}\n")
+    assert {r["term"]: r["class"] for r in g["refs"]}["check"] == "local"
+    assert [n["term"] for n in g["null"]] == [], "no NULL row for the parameter"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="the tsextract helper needs node")
+def test_js_single_name_arrow_binds_its_parameter(repo):
+    """An arrow taking one bare name, unparenthesised: `fn => fn(1)` binds `fn`, so the call through it is `local` (C-91)."""
+    root, sha = repo
+    g = _js(root, ledger(sha), "web/apply.mjs", "export const apply = fn => fn(1)\n")
+    assert {r["term"]: r["class"] for r in g["refs"]}["fn"] == "local" and g["null"] == []
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="the tsextract helper needs node")
+def test_ts_arrow_after_a_comma_async_and_typed_each_bind_their_names(repo):
+    """The three shapes the amendment names beside f3c1's: a list after `,`, an `async (x) =>`, and a list carrying a TS
+    return type — each binds, whatever precedes the `(` (C-91)."""
+    root, sha = repo
+    g = _js(root, ledger(sha), "web/shapes.ts",
+            "export function shapes(on) {\n"
+            "  on('ready', (cb) => cb())\n"
+            "  const later = async (task) => task()\n"
+            "  const typed = (make: Factory): number => make()\n"
+            "  return [later, typed]\n"
+            "}\n")
+    by = {r["term"]: r["class"] for r in g["refs"]}
+    assert by["cb"] == "local" and by["task"] == "local" and by["make"] == "local" and g["null"] == []
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="the tsextract helper needs node")
+def test_js_arrow_parameter_defaulting_to_a_call_is_the_known_miss(repo):
+    """The residue the amendment keeps: a parameter list holding a nested `(` — a default that calls — stays unread, so
+    a call through `a` is still NULL. The negative is unchanged beside it: a call bound nowhere is NULL, `near-miss`."""
+    root, sha = repo
+    g = _js(root, ledger(sha), "web/residue.mjs",
+            "import { helper } from './lib.mjs'\n"
+            "export const g = (a = make()) => a()\n"
+            "export const h = () => helpr()\n"
+            "export function make() { return helper() }\n")
+    by = {r["term"]: r["class"] for r in g["refs"]}
+    nulls = {n["term"]: n["null_class"] for n in g["null"]}
+    assert by["a"] == "NULL" and "a" in nulls
+    assert by["helpr"] == "NULL" and nulls["helpr"] == "near-miss" and by["helper"] == "in-graph"
+
+
 def test_new_symbol_placements_and_covered_by(repo):
     root, sha = repo
     L = ledger(sha)
@@ -603,7 +659,7 @@ def test_world_holds_a_fill_to_std_the_module_and_the_go_mod(repo):
     code = "func Run(o Options) error {\n\tfmt.Println(Default.Repo, o.Repo)\n\tstrings.ToUpper(o.Repo)\n\treturn nil\n}\n"
     g2 = G.ground(template(L, root, "Change `Run`."), {"fills": {body["id"]: {"code": code}}}, L, root)
     assert [(n["term"], n["null_class"]) for n in g2["null"]] == [("strings.ToUpper", "unimported")]
-    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 3  # WP-14b bumped it
+    assert not any(k.startswith("import:") for k in g2["world"]["counts"]) and g2["grounder_version"] == 4  # WP-14b bumped it to 3, the arrow read (C-91) to 4
 
 
 def test_go_signatures_in_the_world_arity_and_undeclared_type(repo):
