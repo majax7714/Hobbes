@@ -250,6 +250,67 @@ The rule, per language:
   draws no namespace.
 - **The own-file map** for colliding statics follows the same rule.
 
+**Amended a third time 2026-09-15, after the cells: the overload collapse
+and the fallback in compiled files (Max's route, "Fix both, then row").**
+Measured on the two cells' first grade at 0.2.21-beta (oracle-grading.md
+§10.6; fmt was graded before its predictions existed). The helper's
+choices were logged by a probe running a patched copy of the helper,
+with no tracked file touched. fmt read 3,439/3,577 (96.1%) and args
+2,004/2,008 (99.8%).
+
+- **The collapse.** ADR-109's one-target-per-site rule keeps the
+  smallest line where one site's references land at several lines of
+  one file, reading them as one definition's `#if` alternatives. In C++
+  they are overloads. At every one of fmt's 634 such sites the
+  references name more than one moniker: `tm_writer#write2(d4f7…).` at
+  `chrono.h:1133` and `(fc4f…).` at 1138 are both referenced at `:1348`
+  (18 references). scip-clang references the candidates of a call in a
+  template that it cannot resolve there, and the rule keeps the first
+  overload whether or not the call means it. That drew 36 wrong semantic
+  edges on fmt and all 4 of args' contradictions. Where the first
+  overload was the one meant, it drew 75 right edges on fmt and 9 on
+  args.
+- **The fallback.** Lane A's name fallback drew 182 judged syntactic
+  edges on fmt, every one in a file lane B indexed: 108 right and 74
+  wrong (59%).
+  - 70 of the 74 sit where lane B has no occurrence of the name at all.
+    Either scip-clang recorded no occurrence for a libc call in a C++
+    unit (`close(fd)`) and C's namespace-blind ranks reached fmt's mock
+    `test::close` by name, or lane A had lost the real definition to a
+    parse error (C-145), so rank 3's "unique" was not.
+  - The other 4 sit at C-148's abstentions. Across those and the
+    tu-split sites the floor drew 8 right and 12 wrong.
+  - The external veto (ADR-111) fired 0 times on fmt. It needs an
+    external occurrence, and C++ units give almost none: across fmt's
+    C++ files, libc names occur 141 times in all.
+  - A namespace-aware fallback would still guess wherever C-145 lost
+    the definition, so it is not the fix.
+- **The rules, for `cpp` roots only:**
+  1. **A site whose references name more than one moniker abstains.**
+     This goes in the helper's decode, beside the one-target rule: no
+     lane B target at the site, and one `scip-decode` record counts the
+     sites with examples (C-151). One moniker at several lines keeps
+     C-148's rule. C is unchanged, because its several lines are one
+     moniker's `#if` alternatives.
+  2. **A C++ file lane B indexed draws no fallback edge.** Lane B
+     compiled the file, so where it answered nothing the join withholds
+     lane A's guess. The withheld sites are counted in
+     `lane_agreement.cpp_withheld` and in one `cpp-fallback`
+     degradation record (C-152), and the tail classes each one as if
+     lane A had no guess. The fallback still feeds lane agreement, so
+     wherever both lanes answer the self-test is unchanged. A C++ file
+     lane B did not index keeps its fallback: no compile database, a
+     failed build, or a file outside the database (C-135's C++ face).
+- **Projected on the stored grades:** fmt 3,256/3,284 (99.1%) and args
+  1,995/1,995 (100%). The right edges lost are 183 on fmt (75 + 108)
+  and 9 on args. fmt's remaining 28 contradictions split two ways:
+  - 10 are scip-clang's own single wrong candidate for a dependent call
+    (C-153, P9): an explicit specialisation's member for the primary's,
+    the caller's own specialisation for another's, or one of two
+    overloads in different files;
+  - 18 are the oracle's (H-28–H-31, open in the defect log).
+- The count, as §2 asks: two rules and no new moniker shape.
+
 ### 3. The oracle — O10, clang's front end over the same dumps (unit 3; no version move)
 
 Extends `bench/oracle/internal/clang` (ADR-110); `oracle c-clang`
