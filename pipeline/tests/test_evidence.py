@@ -315,6 +315,66 @@ class TestExternalVetoes:
         assert len(ev.external_vetoes([site], [], fallback, external)) == 1
 
 
+class TestWithheldFallbacks:
+    """Rule 2 of ADR-113 §2's third amendment: a C++ file lane B compiled
+    draws no fallback edge. Where scip-clang indexed the file and answered
+    nothing at the site, lane A's name guess was wrong 74 times in 182 on
+    fmt — C's namespace-blind ranks reaching a mock, or a rank-3 "unique"
+    that a parse error had made untrue (C-145)."""
+
+    def test_a_withheld_file_s_guess_draws_no_edge_and_is_returned(self):
+        site = call("fmt.cc", 10, "close")
+        fallback = {("fmt.cc", 10, "close"): ("mock.h", 5)}
+        assert ev.join([site], [], fallback=fallback, withhold=frozenset({"fmt.cc"})) == []
+        out = ev.withheld_fallbacks([site], [], fallback, None, frozenset({"fmt.cc"}))
+        assert len(out) == 1
+        got_site, guess = out[0]
+        assert got_site is site
+        assert guess == ("mock.h", 5)
+
+    def test_the_same_site_in_a_file_lane_b_did_not_index_keeps_its_edge(self):
+        # C-135's C++ face: no compile database, a failed build, or a file
+        # outside it — lane B never looked, so the floor still stands.
+        site = call("tools/aux.cc", 10, "close")
+        fallback = {("tools/aux.cc", 10, "close"): ("mock.h", 5)}
+        out = ev.join([site], [], fallback=fallback, withhold=frozenset({"fmt.cc"}))
+        assert [(e.tier, e.def_file) for e in out] == [(SYNTACTIC, "mock.h")]
+        assert ev.withheld_fallbacks([site], [], fallback, None, frozenset({"fmt.cc"})) == []
+
+    def test_a_semantic_hit_in_a_withheld_file_still_draws_its_edge(self):
+        # The rule withholds lane A's guess, never lane B's answer.
+        site = call("fmt.cc", 10, "write")
+        out = ev.join(
+            [site],
+            [resolution("fmt.cc", 10, "write", "fmt.h", 22)],
+            fallback={("fmt.cc", 10, "write"): ("mock.h", 5)},
+            withhold=frozenset({"fmt.cc"}),
+        )
+        assert [(e.tier, e.def_file, e.def_line) for e in out] == [(SEMANTIC, "fmt.h", 22)]
+
+    def test_an_import_site_in_a_withheld_file_is_untouched(self):
+        # An include is lane A's fact about the source; lane B neither
+        # contradicts it nor replaces it.
+        site = imported("fmt.cc", 1, "fmt.h")
+        fallback = {("fmt.cc", 1, "fmt.h"): ("fmt.h", 1)}
+        out = ev.join([site], [], fallback=fallback, withhold=frozenset({"fmt.cc"}))
+        assert [(e.kind, e.tier) for e in out] == [("imports", SYNTACTIC)]
+        assert ev.withheld_fallbacks([site], [], fallback, None, frozenset({"fmt.cc"})) == []
+
+    def test_a_site_the_external_veto_dropped_is_not_also_counted_withheld(self):
+        # Both rules drop the same edge; only one of them may claim it, or
+        # the two counts double-count one site.
+        site = call("fmt.cc", 10, "close")
+        fallback = {("fmt.cc", 10, "close"): ("mock.h", 5)}
+        external = [{"file": "fmt.cc", "line": 10, "name": "close"}]
+        assert ev.join(
+            [site], [], fallback=fallback, external=external,
+            withhold=frozenset({"fmt.cc"}),
+        ) == []
+        assert len(ev.external_vetoes([site], [], fallback, external)) == 1
+        assert ev.withheld_fallbacks([site], [], fallback, external, frozenset({"fmt.cc"})) == []
+
+
 class TestLaneAgreement:
     """§3.4's self-test, in ADR-029's sharper form.
 

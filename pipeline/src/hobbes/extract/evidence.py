@@ -128,6 +128,7 @@ def join(
     semantic: list[Site],
     fallback: dict[tuple[str, int, str], tuple[str, int]] | None = None,
     external: list[dict] | None = None,
+    withhold: frozenset[str] = frozenset(),
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -143,6 +144,18 @@ def join(
     exactly where lane A is most likely to be wrong (C-138). The site's
     fate is unchanged elsewhere: it is still counted ``external``
     (:func:`_dispositions`), only the edge is not drawn.
+
+    *withhold* is the files lane B **compiled** and whose call sites it
+    may therefore be trusted to have answered or not answered (ADR-113 §2,
+    C-152): a C++ file scip-clang indexed. Where it answered nothing at a
+    call site there, lane A's name guess is withheld rather than drawn —
+    on fmt that guess was wrong 74 times in 182, because C's
+    namespace-blind ranks reach a mock by name and rank 3's "unique" is
+    not unique once a parse error has lost the real definition (C-145).
+    The veto above wins where both apply, so a site lane B placed outside
+    the repo is never also counted withheld. Import sites are untouched:
+    a C++ include is lane A's fact about the source, which lane B neither
+    contradicts nor replaces.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -188,6 +201,8 @@ def join(
         guess = fallback.get((site.file, site.line, site.name))
         if guess is None:
             continue  # unresolved: not an edge, ADR-007 unchanged
+        if site.kind == CALL_SITE and site.file in withhold:
+            continue  # ADR-113 §2: lane B compiled this file and said nothing here
         out.append(
             Resolved(
                 kind=kind,
@@ -254,6 +269,41 @@ def external_vetoes(
         if match_resolution(site, buckets) is not None:
             continue
         if (site.file, site.line, site.name) not in vetoed:
+            continue
+        guess = fallback.get((site.file, site.line, site.name))
+        if guess is None:
+            continue
+        out.append((site, guess))
+    return out
+
+
+def withheld_fallbacks(
+    syntax: list[Site],
+    semantic: list[Site],
+    fallback: dict[tuple[str, int, str], tuple[str, int]],
+    external: list[dict] | None,
+    withhold: frozenset[str],
+) -> list[tuple[Site, tuple[str, int]]]:
+    """The sites :func:`join` withheld (ADR-113 §2), each with lane A's guess.
+
+    Same rule as the join's, by the same predicate — a call site in a file
+    lane B compiled, with no in-repo semantic resolution, not already
+    vetoed as external, and for which lane A's fallback had an answer — so
+    this count and the edges the join actually drops cannot drift apart.
+    This is where ``lane_agreement`` and the ``cpp-fallback`` record meet
+    the guesses that were wrong 74 times in 182 on fmt.
+    """
+    buckets = index_resolutions(semantic)
+    vetoed = _veto_set(external)
+    out = []
+    for site in syntax:
+        if site.kind != CALL_SITE or site.ambiguous:
+            continue
+        if site.file not in withhold:
+            continue
+        if match_resolution(site, buckets) is not None:
+            continue
+        if (site.file, site.line, site.name) in vetoed:
             continue
         guess = fallback.get((site.file, site.line, site.name))
         if guess is None:
