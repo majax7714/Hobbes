@@ -185,8 +185,8 @@ class TestSymbols:
     def test_declarations_are_never_symbols(self, layer):
         names = {s["qualname"] for s in layer["symbols"]}
         # `static int unit();` and `virtual int area() const;` are declared
-        # in the class and defined in the source; `int area(int)` twice
-        # over; `int scale(int)` in util.h.
+        # in the class and defined in the source; both `area` prototypes
+        # likewise; `int scale(int)` in util.h.
         assert "shapes::area" not in {
             s["qualname"] for s in layer["symbols"] if s["module"] == "include/minicpp/shapes.h"
         }
@@ -259,6 +259,64 @@ class TestSymbols:
         # `template <typename T>` opens line 27; `T largest(T a, T b)` is 28,
         # which is where clang puts a specialisation too.
         assert template[0]["line"] == 28
+
+    def test_each_overload_of_the_fixture_pair_is_its_own_symbol(self, layer):
+        # C-144's fix (ADR-113 §2): C's rule kept `int area(int)` and lost
+        # `int area(double)`, so lane B's answer to the second landed below
+        # the floor. Different parameters, so two symbols, in source order.
+        by_id = _symbols(layer)
+        assert (by_id["src/shapes.shapes::area"]["line"],
+                by_id["src/shapes.shapes::area"]["kind"]) == (23, "function")
+        assert (by_id["src/shapes.shapes::area~2"]["line"],
+                by_id["src/shapes.shapes::area~2"]["kind"]) == (27, "function")
+        # The bare name never moves: it is what a call site spells.
+        assert by_id["src/shapes.shapes::area~2"]["name"] == "area"
+
+    def test_an_overload_set_draws_no_duplicate_record(self, layer):
+        assert [e for e in layer["errors"] if "defined more than once" in e["message"]] == []
+
+    def test_a_pair_of_one_signature_keeps_the_first_and_says_so(self, tmp_path):
+        # The preprocessor never runs, so both arms are parsed; they take
+        # the same parameters, so they are alternatives, not overloads.
+        _write(tmp_path, {"a.cpp": (
+            "#ifdef FAST\n"
+            "int pick(int n) { return n; }\n"
+            "#else\n"
+            "int pick(int n) { return n + 1; }\n"
+            "#endif\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(s["qualname"], s["line"]) for s in layer["symbols"]] == [("pick", 2)]
+        [record] = [e for e in layer["errors"] if e["stage"] == "parse"]
+        assert record["message"] == (
+            "pick defined more than once with the same parameters in a.cpp "
+            "(preprocessor alternatives); calls to them are left unresolved "
+            "rather than guessed"
+        )
+
+    def test_an_overloaded_constructor_pair_is_two_methods(self, tmp_path):
+        _write(tmp_path, {"a.cpp": (
+            "class Vec {\n"
+            "public:\n"
+            "    Vec() {}\n"
+            "    Vec(int n) : n_(n) {}\n"
+            "    int n_;\n"
+            "};\n"
+        )})
+        kinds = {s["qualname"]: s["kind"] for s in extract_cpp(tmp_path)["symbols"]}
+        assert kinds["Vec::Vec"] == "method" and kinds["Vec::Vec~2"] == "method"
+
+    def test_a_const_and_a_non_const_method_of_one_name_are_two(self, tmp_path):
+        # The trailing qualifiers are part of the signature: `get()` and
+        # `get() const` are two functions, and C++ picks between them.
+        _write(tmp_path, {"a.cpp": (
+            "struct Box {\n"
+            "    int get() { return 1; }\n"
+            "    int get() const { return 2; }\n"
+            "};\n"
+        )})
+        lines = {s["qualname"]: s["line"] for s in extract_cpp(tmp_path)["symbols"]}
+        assert lines["Box::get"] == 2 and lines["Box::get~2"] == 3
 
     def test_a_namespace_and_a_lambda_are_not_symbols(self, layer):
         names = {s["qualname"] for s in layer["symbols"]}
@@ -389,9 +447,9 @@ class TestTheTail:
 
         graph = extract_repo(FIXTURE).graph
         rows = {row["file"]: row for row in graph["resolution_coverage"]}
-        # `std::move` in shapes.cpp and `std::printf` in main.cpp.
+        # `std::move` in shapes.cpp; `std::printf` twice in main.cpp.
         assert rows["src/shapes.cpp"]["tail"]["builtin-name"] == 1
-        assert rows["src/main.cpp"]["tail"]["builtin-name"] == 1
+        assert rows["src/main.cpp"]["tail"]["builtin-name"] == 2
 
 
 class TestTests:

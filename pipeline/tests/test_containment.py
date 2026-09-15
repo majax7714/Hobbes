@@ -41,7 +41,12 @@ class TestProfiles:
     """Stated once, so nobody re-derives what executes (ADR-092 §1)."""
 
     def test_every_helper_language_has_an_index_step(self):
-        assert set(containment.INDEX_STEP) == {"python", "typescript", "go", "rust", "java", "c"}
+        # `cpp` shares C's step: one indexer, one derived compile database
+        # and so one containment profile (ADR-113 §2).
+        assert set(containment.INDEX_STEP) == {
+            "python", "typescript", "go", "rust", "java", "c", "cpp",
+        }
+        assert containment.INDEX_STEP["cpp"] == containment.INDEX_STEP["c"]
         assert set(containment.INDEX_STEP.values()) <= set(containment.PROFILES)
 
     def test_every_index_step_has_no_network(self):
@@ -476,7 +481,10 @@ class TestRefusalIsNeverAbsorbed:
         monkeypatch.setattr(scipsource, "extract_scip_rust", refuse)
         degraded: list[dict] = []
         facts = list(
-            _lane_b_facts(tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]}, None, None, degraded)
+            _lane_b_facts(
+                tmp_path, [], None, None, {"files": [type("F", (), {"path": "a.rs"})()]},
+                None, None, None, degraded,
+            )
         )
         assert facts == []
         (record,) = degraded

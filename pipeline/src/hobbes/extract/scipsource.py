@@ -531,6 +531,14 @@ def resolution_sites(facts: dict) -> list:
     ]
 
 
+#: Definition files whose `calls` fact with a type at the other end is not
+#: a call: Go's conversions, Rust's tuple-struct constructors and C++'s
+#: constructions. A C `.h` is here for C++'s sake — a header the C++ layer
+#: claimed keeps its `.h` name — and costs C nothing, because C has no
+#: called types at all.
+_CALLS_TO_TYPE_GUARDED = (".go", ".rs", ".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h")
+
+
 def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     """Project semantic-IR facts onto lane A's module and symbol ids.
 
@@ -570,7 +578,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
-        if edge_type == "calls" and fact.def_file.endswith((".go", ".rs")) and index.kind(callee) == "type":
+        if edge_type == "calls" and fact.def_file.endswith(_CALLS_TO_TYPE_GUARDED) and index.kind(callee) == "type":
             # Go writes a conversion exactly like a call. Lane A drops the
             # ones it can name (a type in the same or an imported repo
             # package); this is the guard for the rest — a nested module
@@ -584,8 +592,13 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
             # constructor is a call javac places at the class line (the
             # O8 fixture cell: the guard cost that pair), and the one
             # shape that references a type at a `new` — `new T() {..}` —
-            # is no lane A site at all (ADR-096). The edge to the type
-            # stays, as `uses`.
+            # is no lane A site at all (ADR-096). C++ writes a construction
+            # as a call too, and scip-clang answers it with the class
+            # beside the constructor; the helper's `constructorOverClass`
+            # rule drops the class where both are at one site, and this is
+            # the guard for the rest — a construction whose constructor is
+            # implicit, which has no constructor moniker to prefer
+            # (ADR-113 §2). The edge to the type stays, as `uses`.
             edge_type = "uses"
         key = (caller, callee, edge_type, fact.tier, lane)
         symbol_evidence.setdefault(key, []).append(site)
@@ -2019,7 +2032,9 @@ def c_build_tree(repo_root: Path, root: str) -> list[str]:
     return sorted(out)
 
 
-def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | None:
+def extract_scip_c(
+    repo_root: Path, files: list[str], sha: str = "", cpp_files: list[str] | None = None
+) -> dict | None:
     """Index every C build root and return one merged facts document (ADR-109).
 
     **Indexing C executes the repo's build logic** (C-29's C face).
@@ -2028,9 +2043,17 @@ def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | N
     configure step or ``make`` under bear, inside the ingest container and
     offline. The notice below prints every time. A root with nothing to
     derive a database from, or whose build fails, degrades alone to lane A.
+
+    *files* is both languages' — scip-clang is a C++ indexer first, and a
+    build root holding C and C++ is one index (ADR-113 §2). *cpp_files*
+    names the ones the C++ layer owns, the six extensions and the ``.h``
+    files it claimed alike; a root holding any of them is a **C++ root**,
+    indexed with the helper's ``cpp`` language, staged and reported in
+    C++'s words. A root holding none of them is C's, unchanged.
     """
     if not enabled() or not files:
         return None
+    cpp = set(cpp_files or ())
     repo_root = Path(repo_root).resolve()
     merged: dict = {
         "definitions": [],
@@ -2047,9 +2070,9 @@ def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | N
                 "path": directory,
                 "stage": "scip-c",
                 "message": (
-                    f"{len(orphans)} C file(s) under {directory!r} sit below no "
-                    "CMakeLists.txt or Makefile, so no compile database can be "
-                    "derived for them; their call edges fall to lane A's "
+                    f"{len(orphans)} {_c_orphan_noun(orphans, cpp)} under {directory!r} "
+                    "sit below no CMakeLists.txt or Makefile, so no compile database "
+                    "can be derived for them; their call edges fall to lane A's "
                     "fallback (syntactic tier, C-130)."
                 ),
             }
@@ -2064,13 +2087,16 @@ def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | N
             "offline (C-29, ADR-109)",
             file=sys.stderr,
         )
-    for root in grouped:
+    for root, paths in grouped.items():
+        language = "cpp" if any(path in cpp for path in paths) else "c"
         try:
-            facts = _index_c_unit(repo_root, root, sha)
+            facts = _index_c_unit(repo_root, root, sha, language)
         except containment.ContainmentRefusal:
             raise  # P10: the guarantee outranks the per-unit degrade
         except UNIT_ERRORS as exc:
-            merged["degraded"].append(_unit_failure(root, "scip-c", "C build", exc))
+            merged["degraded"].append(
+                _unit_failure(root, f"scip-{language}", f"{_C_NAME[language]} build", exc)
+            )
             continue
         for key in ("definitions", "references", "external_refs", "degraded"):
             merged[key].extend(facts.get(key, []))
@@ -2080,19 +2106,31 @@ def extract_scip_c(repo_root: Path, files: list[str], sha: str = "") -> dict | N
     return merged
 
 
-def _index_c_unit(repo_root: Path, root: str, sha: str) -> dict:
-    """Stage one C build root's whole tree, derive or rebase its compile database, and index it."""
+#: What a C or a C++ build root is called in the records a user reads.
+_C_NAME = {"c": "C", "cpp": "C++"}
+
+
+def _c_orphan_noun(orphans: list[str], cpp: set[str]) -> str:
+    """What a directory's orphans are, by whose files they are — so the
+    record a C++ project reads never calls its sources C."""
+    kinds = {"C++" if path in cpp else "C" for path in orphans}
+    return f"{' and '.join(sorted(kinds))} file(s)"
+
+
+def _index_c_unit(repo_root: Path, root: str, sha: str, language: str = "c") -> dict:
+    """Stage one C or C++ build root's whole tree, derive or rebase its compile database, and index it."""
     import shutil
 
+    what = _C_NAME[language]
     source, detail = c_compdb_source(repo_root, root)
     if source is None:
         return {
             "degraded": [
                 {
                     "path": root or ".",
-                    "stage": "scip-c",
+                    "stage": f"scip-{language}",
                     "message": (
-                        f"no compile database can be derived for this C build root "
+                        f"no compile database can be derived for this {what} build root "
                         f"({detail}); its call edges fall to lane A's fallback "
                         "(syntactic tier, C-130)"
                     ),
@@ -2105,7 +2143,7 @@ def _index_c_unit(repo_root: Path, root: str, sha: str) -> dict:
     build_dir.mkdir(parents=True, exist_ok=True)
     config = {
         "stage": str(unit_stage),
-        "language": "c",
+        "language": language,
         "projectName": repo_root.name,
         "projectVersion": "0",
         "output": str(stage.parent / f"{stage.name}.scip"),
@@ -2126,7 +2164,7 @@ def _index_c_unit(repo_root: Path, root: str, sha: str) -> dict:
         shutil.rmtree(build_dir, ignore_errors=True)
     if source != "repo" and detail:
         facts.setdefault("degraded", []).append(
-            {"path": root or ".", "stage": "scip-c", "message": f"{detail}; derived with {source} instead"}
+            {"path": root or ".", "stage": f"scip-{language}", "message": f"{detail}; derived with {source} instead"}
         )
     return _rebase(facts, root)
 

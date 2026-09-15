@@ -312,7 +312,7 @@ def _build_symbol_layer(
         syntax += cpp["call_sites"]
         fallback.update(cpp["call_fallback"])
 
-    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, degraded):
+    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, cpp, degraded):
         resolutions += scipsource.resolution_sites(facts)
         external += facts.get("external_refs") or []
         for record in facts.get("degraded", []):
@@ -642,6 +642,7 @@ def _lane_b_facts(
     rust: dict | None,
     java: dict | None,
     c: dict | None,
+    cpp: dict | None,
     degraded: list[dict],
 ):
     """Every semantic provider's facts, skipping the ones that cannot run."""
@@ -678,9 +679,22 @@ def _lane_b_facts(
     if java:
         java_files = sorted({f.path for f in java["files"]})
         runs.append(("java", lambda: scipsource.extract_scip_java(repo_root, java_files)))
-    if c:
-        c_files = sorted({f.path for f in c["files"]})
-        runs.append(("c", lambda: scipsource.extract_scip_c(repo_root, c_files)))
+    if c or cpp:
+        # One run for both languages (ADR-113 §2): scip-clang indexes
+        # whatever the compile database names, so a build root holding C
+        # and C++ must be one index, not two over overlapping trees. The
+        # run is named for what the repo actually holds — `cpp` only when
+        # there is no C at all, since C's records are the ones a mixed
+        # repo reads.
+        cpp_files = sorted({f.path for f in cpp["files"]}) if cpp else []
+        c_files = sorted({f.path for f in c["files"]}) if c else []
+        both = sorted(set(c_files) | set(cpp_files))
+        runs.append(
+            (
+                "c" if c_files else "cpp",
+                lambda: scipsource.extract_scip_c(repo_root, both, cpp_files=cpp_files),
+            )
+        )
 
     for language, run in runs:
         try:
