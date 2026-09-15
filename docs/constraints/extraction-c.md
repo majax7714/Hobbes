@@ -394,15 +394,54 @@ recovery (ADR-109) and the provider's moniker scheme.)*
 
   A `calls` edge could move the same way, directly or through ADR-111's
   external veto; none was seen.
-- **You find out:** **unsurfaced** — nothing in the artifact says an
-  edge or a count may differ on the next ingest. This is debt.
+- **Narrowed 2026-09-15 (0.2.21-beta; ADR-109 decision 1 amended,
+  `f3c1` and the size guard).** A root with at most 400 compile-database
+  entries is indexed one translation unit per scip-clang run, and the
+  units are decoded as one. Every unit indexes its own headers, so the
+  answer no longer depends on which unit claimed a header:
+  - three cJSON ingests are identical, edges and tail;
+  - three fmt ingests are identical at the edge level.
+
+  A root over the bound is indexed in one whole-database run, and this
+  entry applies there in full.
+- **What is left:**
+  - roots over 400 units (ScummVM's 5,958 are one: the per-unit merge
+    would need about 84 GB);
+  - a few external type references scip-clang records inconsistently
+    even within one unit (`size_t`, `ptrdiff_t`: 13 of fmt's 13,739
+    external sites). These can move a tail count (`external` against
+    `builtin-name`), never an edge.
+- **You find out:** **partial** — a root over the bound draws a
+  `scip-decode` record naming its unit count, the bound and C-149.
+  Nothing says a tail count may differ by a site or two below it.
 - **Provider (P9):** scip-clang **0.4.0**'s header deduplication.
-- **Direction:** index each translation unit alone (a one-entry
-  compile database each) and merge in the helper with ADR-109's
-  one-site rules. Measured on fmt: 52 units in 9–10 s at 6 in parallel,
-  against 8 s for one whole-database run, and each unit's index
-  repeats under the order-independent rule (52 of 52). Its cost on a
-  large repo, where every header is indexed once per unit, is not
-  measured. Max's call.
+- **Direction:** a streaming merge (two passes over the unit indexes,
+  duplicates removed) would lift the bound. It is not built.
+
+### C-150 — A C/C++ root whose index outgrows Node's heap has no lane B
+
+- **Cannot tell you:** any semantic edge for a C or C++ build root
+  whose index the helper cannot decode within Node's default heap. The
+  helper dies (exit 139, V8's allocation failure), and the root's call
+  edges fall to lane A's fallback.
+- **Because:** the helper decodes a root's whole index in memory, under
+  Node's default heap limit. Measured on ScummVM (5,958 units, one
+  whole-database run under C-149's size guard): the 370 MB index needs a
+  peak of about 9 GB to decode (8.95 GB, measured with a 14 GB heap).
+  Under the default heap the helper died. Before 0.2.21-beta the same
+  root failed earlier, on a stack overflow in the decode.
+- **Bites at:** very large C/C++ repos. ScummVM ingested with its 1.53
+  million C++ call sites all left to lane A (0.0% accounted). fmt,
+  cJSON, sqlite-vector and args are far under it.
+- **You find out:** **surfaced** — the root's `scip-c`/`scip-cpp`
+  record says the helper ran out of memory decoding the build's index,
+  and names this entry. Until 0.2.21-beta the record said "install
+  Node", which was wrong.
+- **Provider (P9):** Node's default heap limit, the image's Node.
+- **Direction:** a larger heap for the helper (machine-dependent), or a
+  streaming decode that holds only definitions and unique references.
+  The streaming decode is the same change that would lift C-149's
+  400-unit bound. Max's call.
+- **Source:** the ScummVM end-to-end ingest, 2026-09-15.
 - **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
   second amendment).

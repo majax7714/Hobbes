@@ -11,9 +11,49 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.20-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.21-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.21-beta — 2026-09-15 (C and C++ indexed one translation unit per run; ADR-109 amended)
+
+**Patch: what the layer draws.** A constraint's fix (C-149), not a
+feature; C++ is still *wired, not supported*.
+
+- **One translation unit per scip-clang run** (Max's route). scip-clang
+  indexes a header many units share once, in whichever unit claims it
+  first, so a reference whose answer depends on the unit came and went
+  between ingests: three cJSON ingests at one commit drew 2,630, 2,615
+  and 2,621 edges. The helper now writes the derived compile database
+  out as one-entry databases, runs scip-clang on each (`-j 1`, at most
+  the box's parallelism at a time), and decodes the units' indexes as
+  one with the order-independent rules 0.2.20-beta put in place. A
+  unit that fails is counted, and the others stand. Three cJSON
+  ingests are now identical, edges and tail; three fmt ingests are
+  identical at the edge level.
+- **A size guard** (Max). The merge holds every unit's index at once.
+  On ScummVM (5,958 units, built in the image for this measurement)
+  that would have needed about 84 GB. So a root with more than 400
+  units is indexed in one whole-database run, and a `scip-decode`
+  record says so and names C-149 (now *partial*). fmt (52), args (99)
+  and cJSON (23) lie under the bound. A streaming merge would lift it.
+- **A crash fixed, and the next limit named:**
+  - The decode spread its references into one call's arguments, which
+    overflows the stack at a few hundred thousand references; it now
+    loops.
+  - On ScummVM (5,958 units, ingested end to end in 614 s) that moves
+    the failure from the stack to Node's heap. The whole-database
+    decode needs about 9 GB, the helper dies (exit 139), and the root
+    falls to lane A.
+  - The record said "install Node". It now says the helper ran out of
+    memory and names C-150.
+  - A larger heap or a streaming decode would fit it; Max's call.
+- **Built through the harness:** `S-20260915T135819Z-f3c1` (59 of 120
+  turns, 9 min; $4.92 reported), verify pass, merged without
+  squashing. The gate blocked it falsely, the harness's first false
+  block: a call through an arrow-function parameter, which the gate's
+  TS/JS text read misses (C-91 amended; the fix is a small unit to
+  come). The session tracker now parses a blocked gate line.
 
 ## 0.2.20-beta — 2026-09-14 (C and C++ lane B made order-independent; ADR-113 §2 and ADR-109 amended)
 

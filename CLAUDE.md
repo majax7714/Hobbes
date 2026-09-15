@@ -216,12 +216,12 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-14, 0.2.20-beta; the last three
-carried from 0.2.8-beta): 1,600 pytest (6 of them `lane_b`) / 386 Go
+Suite sizes at the last check (2026-09-15, 0.2.21-beta; the last three
+carried from 0.2.8-beta): 1,602 pytest (6 of them `lane_b`) / 386 Go
 (subtests counted: 385 pass, 1 skip; the four live launcher tests run on
 the host) + 100 oracle-lane Go (subtests counted: 95 pass, 5 skip without
 a toolchain; re-counted 2026-09-14 after `a848`; two run the `shape/` suites: 24 unittest + 7 node) / 52
-vitest / 36 tsextract + 58 scip node tests / 84 atlas0 (`cd bench/atlas0
+vitest / 36 tsextract + 68 scip node tests / 84 atlas0 (`cd bench/atlas0
 && uv run pytest`). Keep
 them green. CI (`.github/workflows/ci.yml`, ADR-095) runs them all on
 every push; `scripts/ci-graph.sh <base>` is the graph job (image build →
@@ -294,15 +294,15 @@ inside a dispatch they skip, so their first run is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-14) — Hobbes 0.2.20-beta
+## Status (2026-09-15) — Hobbes 0.2.21-beta
 
 - **The layer.** v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete
   and reviewed.
   - **Languages:** Python, TypeScript/JavaScript, Go, Rust, Java and C
     (+ Terraform/HCL); **C++ is wired, not supported** (ADR-113: lane A
     and its oracle at 0.2.18-beta, lane B deliberate at 0.2.19-beta and
-    order-independent at 0.2.20-beta; the two cells and the §3.8 row
-    remain). Each is a syntax provider plus a pinned batch
+    order-independent at 0.2.20-beta, one unit per run at 0.2.21-beta;
+    the two cells and the §3.8 row remain). Each is a syntax provider plus a pinned batch
     indexer (P13, ADR-105), joined by one range join, with artifacts at
     schema v4. **C** (ADR-108/109: tree-sitter-c, and scip-clang over a
     compile database the ingest derives) is compiler-graded against
@@ -316,8 +316,8 @@ inside a dispatch they skip, so their first run is the developer's.
     lost no confirmed edge.
   - **Containment:** whatever executes repo code runs in the one image
     (ADR-092).
-  - **Register:** 149 entries (106 active, 26 lifted, 11 superseded, 6 folded);
-    since 2026-09-14, 82 of the active are surfaced, 19 partial and 4
+  - **Register:** 150 entries (107 active, 26 lifted, 11 superseded, 6 folded);
+    since 2026-09-15, 83 of the active are surfaced, 20 partial and 3
     unsurfaced; the dispatch harness and C++ have their own segments.
   - **Versioning:** from 0.1.3-beta (ADR-103); the per-version history
     is `CHANGELOG.md`.
@@ -343,7 +343,14 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The first real dispatch** (2026-09-12) was the `list_blind_spots`
     `path` alias: gate clear, verify pass; merged as `104c164`
     (0.1.23-beta). A dispatch's turn default is 80.
-  - **The latest** (2026-09-14): **C/C++ lane B made order-independent,
+  - **The latest** (2026-09-15): **C and C++ indexed one translation unit
+    per run, ADR-109 amended, 0.2.21-beta** (`f3c1`, 59 turns, $4.92;
+    the gate's first false block, C-91's arrow parameters). cJSON and fmt
+    now repeat. ScummVM (5,958 units) put the merge at about 84 GB, so
+    Max's size guard: over 400 units, one whole-database run, recorded
+    (C-149 partial). Also fixed: a decode stack overflow that crashed lane
+    B on large repos.
+  - **Before it** (2026-09-14): **C/C++ lane B made order-independent,
     ADR-113 §2 and ADR-109 amended, 0.2.20-beta** (`3d1a`, 32 turns,
     $2.23, gate right-clear). Found before grading fmt: three ingests at
     one commit drew three edge counts. A moniker one file defines at
@@ -406,8 +413,9 @@ inside a dispatch they skip, so their first run is the developer's.
   - **The tracker** is the table at the end of
     `docs/calvin/sessions/README.md`, rendered by
     `pipeline/scripts/calvin_tracker.py render` and held by a pytest
-    drift test. It reads 28 of the 40 sessions that validate the
-    harness (Max, 2026-09-13), with 4 areas, 0 false blocks, 0 missed.
+    drift test. It reads 29 of the 40 sessions that validate the
+    harness (Max, 2026-09-13), with 4 areas, 1 false block (`f3c1`), 0
+    missed.
     Re-render it after filling a review block.
   - **Retention** (0.1.22-beta): the doer's reasoning is never stored,
     and recorded sessions are evaluation rows, never training data

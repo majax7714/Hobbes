@@ -314,7 +314,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.20-beta** (2026-09-14). The Hobbes layer is versioned from here
+**Hobbes 0.2.21-beta** (2026-09-15). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -336,8 +336,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and forty-nine entries (one
-hundred and six active, twenty-six lifted, eleven superseded, six
+The constraint register holds one hundred and fifty entries (one
+hundred and seven active, twenty-six lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -389,8 +389,8 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and twenty-eight session logs stand through
-0.2.20-beta. The tracker at the end of
+dispatched on 2026-09-12, and twenty-nine session logs stand through
+0.2.21-beta. The tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13). The work built through it includes C's lane A, C's oracle,
@@ -412,7 +412,9 @@ parallel (0.2.18-beta, ADR-113), and C++'s lane B made deliberate, with
 every overload a symbol and a construction drawn to its constructor
 (0.2.19-beta; wired, not supported until its row), and C and C++
 lane B made order-independent where one file defines a moniker at
-several lines (0.2.20-beta).
+several lines (0.2.20-beta), and C and C++ indexed one translation unit
+per run, so a root of up to 400 units draws the same graph every time
+(0.2.21-beta).
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry

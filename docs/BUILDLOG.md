@@ -10684,3 +10684,70 @@ abstains, C min line (Recommended)".
 **Remaining:** Max's call on C-149's per-unit route. Then the cells (fmt,
 args); fmt's `calls` edges repeat, so it can be graded first with
 C-149 stated. Then the §3.8 row.
+
+## 2026-09-15 — C and C++ indexed one translation unit per run: ADR-109 amended, `f3c1`, the size guard, and C-150 — 0.2.21-beta
+
+**Asked (Max):** "Per-unit route, then cells (Recommended)". Then, once
+the ScummVM measurement was in: "Merge behind a size guard
+(Recommended)".
+
+- **Designed on measurement** (`c7782f0`). The merge probe over fmt's
+  52 per-unit indexes decoded identically across two passes (64,667
+  references). The decode's `references.push(...kept)` overflowed the
+  stack at the merged size (484,201).
+- **`S-20260915T135819Z-f3c1`** (59 of 120 turns, 9 min, $4.92, Opus
+  5). It made the plan's index step per unit (`xargs -P`, `-j 1`),
+  decoded the units as one, counted failed units, and turned the
+  spread-pushes into loops. Verify pass (65 node tests). Merged
+  `e2f7704`, not squashed.
+  - **The gate blocked it, and the block was false**, the harness's
+    first. The flagged call was `check(previous)`, through an arrow
+    parameter. `ground._TS_PARAMS` needs a word character or `function`
+    before the `(`, so in `= (check) =>` the parameter is never read as
+    a local (C-91 amended).
+- **Host:** node 65/65 and both `lane_b` tests pass.
+  - Three cJSON ingests are identical: 2,635 edges and every tail count.
+    Before, one commit gave 2,630, 2,615 and 2,621.
+  - Three fmt ingests are identical at the edge level, at 21–22 s per
+    ingest against about 15 s before. Two external type sites still
+    flip in the tail.
+- **The cost, measured:**
+  - args (99 units sharing `args.hxx`): 6 s whole-database against 8 s
+    per unit; indexes 1.5 MB against 85 MB;
+  - fmt: 8 s against 9 s;
+  - ScummVM, built in the image, offline: `./configure --backend=null`
+    (SDL is absent), then bear over `make -k -j8`, 5,958 entries. 143 s
+    against 207 s, and 370 MB against 9.36 GB of indexes;
+  - the merged decode's peak memory: +1.1 GB at 50 units, +2.45 GB at
+    200, +5.75 GB at 400, about 84 GB projected for all;
+  - `main`'s helper threw `RangeError` on ScummVM's whole index. The
+    branch's decoded it in 22 s at 8.95 GB peak.
+  - A first run of the scaling probe died at 200 units with exit 139.
+    That was my probe: it used `main`'s unfixed helper under
+    `--stack-size=60000`, beyond the thread's real stack. The rerun used
+    the branch's helper.
+- **Max's size guard** (`4832883`): `PER_UNIT_MAX = 400`. Over it, the
+  check writes the database whole, one scip-clang runs at its own
+  parallelism, and a `scip-decode` record names the count, the bound
+  and C-149. Three node tests (68/68).
+- **The tracker** could not parse a blocked gate line. Fixed with a
+  test (`f6823a6`); it reads 29 of 40, 1 false block, 0 missed.
+- **ScummVM end to end,** from a carried `compile_commands.json`, with
+  the build's artifacts and my indexes removed from the copy: 614 s,
+  exit 0, but lane B failed.
+  - The helper exited 139 with V8's allocation trace: Node's default
+    heap against the ~9 GB decode.
+  - The record said "the SCIP helper is unusable — install Node".
+    Fixed on the host: a helper exit carrying V8's heap-exhaustion
+    markers now says the helper ran out of memory, and names **C-150**
+    (registered, surfaced). One test.
+  - The root's 1.53 million C++ sites were left to lane A.
+- **Register:** C-149 narrowed to *partial*; C-150 registered; C-91
+  amended. 150 entries: 107 active (83 surfaced, 20 partial, 3
+  unsurfaced, 1 n/a), 26 lifted.
+- **Version 0.2.21-beta.** pytest 1,602 and node 68. The binaries, the
+  static proxy and the image rebuilt.
+
+**Remaining:** the fmt and args cells (both under the bound), then the
+§3.8 row. C-150's route (a larger heap or a streaming decode) is Max's
+call. The gate's arrow-parameter fix is a small unit.

@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.20-beta on `main`.**
+**Reviewed 2026-09-15; Hobbes 0.2.21-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.20-beta are untagged. Tags stay Max's call each time.
+  0.2.21-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -14,9 +14,50 @@
 
 The session's record is the 2026-09-14 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: Max's call on C-149's per-unit route; then C++'s two cells and the row
+## ⇢ START HERE NEXT SESSION: C++'s two cells (fmt, then Taywee/args), then the row; C-150's route is Max's
 
-0. **Latest (2026-09-14, later): C/C++ lane B made order-independent —
+0. **Latest (2026-09-15): C and C++ indexed one translation unit per run
+   — ADR-109 amended, 0.2.21-beta.** Max's route for C-149 ("Per-unit
+   route, then cells"), then his size guard ("Merge behind a size
+   guard").
+   - **`f3c1`** (59 of 120 turns, 9 min, $4.92): per-unit indexing and
+     the stack fix; verify pass; merged `e2f7704`. **The gate's block
+     was false, the harness's first:** C-91's TS/JS text read misses
+     arrow parameters (`(check) => …`). The fix is a small unit.
+   - **Host:** cJSON's three ingests are identical, edges and tail;
+     fmt's are identical at the edge level; both `lane_b` tests pass;
+     node 68/68.
+   - **ScummVM (5,958 units),** built in the image with
+     `--backend=null` at `~/.hobbes/bench/cpp-cells/scummvm-cost`
+     (ingested from a carried `compile_commands.json`):
+     - per-unit 207 s against 143 s whole-database; unit indexes 9.36 GB
+       against 370 MB;
+     - the merged decode peaked at 5.75 GB at 400 units (about 84 GB
+       projected), hence **the size guard** (`4832883`: `PER_UNIT_MAX =
+       400`, with a record naming C-149);
+     - end to end (614 s), the whole-database decode then **outgrew
+       Node's heap** (exit 139), leaving the root on lane A only. The
+       record said "install Node"; it was fixed on the host to name the
+       heap (**C-150**, surfaced).
+   - **The tracker** now parses a blocked gate line (`f6823a6`): 29 of
+     40, 1 false block.
+   - **Register:** C-149 is *partial*, C-150 surfaced. 150 entries: 107
+     active (83 surfaced, 20 partial, 3 unsurfaced, 1 n/a).
+   - **For Max (no spend): C-150's route.** A larger helper heap
+     (machine-dependent; ScummVM needs about 9 GB), or a streaming
+     decode (two passes, duplicates removed), which would also lift the
+     400-unit bound.
+   - **Next, in order:**
+     1. **The fmt and args cells.** Both lie under the bound (fmt 52
+        units, args 99; args' database exports offline). Re-ingest fmt
+        at HEAD first.
+     2. **The §3.8 row.**
+     3. **The gate's arrow-parameter fix,** as a small unit.
+   - Task files: `~/.hobbes/bench/cpp-drivers/{determinism,per-unit}-task.md`.
+     The scratch probes lived only in this session's scratchpad. The
+     binaries and the image are at 0.2.21-beta; restart the knowledge
+     server (C-65).
+0h. **Before it (2026-09-14, later): C/C++ lane B made order-independent —
    ADR-113 §2 and ADR-109 amended, 0.2.20-beta.** Found while preparing
    fmt's cell: three fmt ingests at one commit drew 3,308, 3,298 and
    3,293 call edges, and two cJSON ingests differed by one edge.
@@ -471,7 +512,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-eight, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-nine, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -488,15 +529,16 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 149 entries: 106 active (82 surfaced, 19 partial, 4
+- **Register:** 150 entries: 107 active (83 surfaced, 20 partial, 3
   unsurfaced, 1 n/a), 26 lifted, 11 superseded, 6 folded. C-148 and
-  C-149 registered at 0.2.20-beta. C-142–C-147
+  C-149 registered at 0.2.20-beta; C-149 narrowed and C-150 registered
+  at 0.2.21-beta. C-142–C-147
   registered 2026-09-14 (`extraction-cpp.md`); C-144 lifted the same
   day (0.2.19-beta); C-132 narrowed; the
   dispatch harness's five entries in `dispatch-harness.md`; C-120
   folded into C-112.
-- **Suites** at 0.2.20-beta:
-  - 1,600 pytest (host, 6 `lane_b`); 58 scip node (host);
+- **Suites** at 0.2.21-beta:
+  - 1,602 pytest (host, 6 `lane_b`); 68 scip node (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - oracle-lane Go on `main` after `a848`'s merge: 95 pass / 5 skip

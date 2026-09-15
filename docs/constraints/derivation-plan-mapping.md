@@ -151,6 +151,21 @@
 
 ### C-91 — Grounder v0 grounds call sites only, in three languages, and abstains on members of values
 
+- **Amended 2026-09-15: TS/JS local bindings are a text read, and a
+  bare arrow parameter list escapes it.** For TS/JS, `tssource`'s
+  helper carries no local bindings. `ground._parse_ts` reads them from
+  the text: declarations, destructurings, and parameter lists
+  (`_TS_PARAMS`). That pattern needs `function` or a word character
+  before the `(`, so the parameters of an arrow written after `=` or
+  `,` (`const f = (check) => …`) are never read. A call through such a
+  parameter grounds as `near-miss` (or `invented`) and blocks. This
+  happened once: `S-20260915T135819Z-f3c1`'s correct
+  `(check) => (previous) => { if (check) check(previous) … }` in
+  `scip/index.mjs` was the harness's first false block. **Surfaced**
+  in the gate record, as a row naming the term; the developer reads it
+  as a false block. The fix, reading arrow parameters (parenthesised and
+  single-name), is a small unit not yet done.
+
 - **Amended 2026-09-11 (Calvin M0-Go WP-3, grounder v1):** a **Go**
   member is now judged when the syntax states its receiver's type — a
   receiver or parameter, `var x T`, `:= T{}` / `&T{}` / `new(T)`, or a

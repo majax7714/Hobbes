@@ -384,6 +384,16 @@ commit is the patch that makes C++ *supported*.
   unsurfaced). Indexing each unit alone is the measured route (fmt:
   9–10 s against 8 s), for Max. **Version:** 0.2.20-beta; C-148
   registered.
+- **2026-09-15 — per-unit indexing landed** (ADR-109 decision 1
+  amended; Max's route for C-149). **`S-20260915T135819Z-f3c1`** (59
+  of 120 turns, 9 min, $4.92, Opus 5): verify pass. The gate's block
+  was false, the harness's first: C-91's text read misses an arrow's
+  parameters. Host: cJSON's three ingests are identical, edges and
+  tail, and fmt's are identical at the edge level. On ScummVM (5,958
+  units) the merge's memory was projected at about 84 GB, so Max's size
+  guard followed on the host (`4832883`): over 400 units, one
+  whole-database run, recorded. Merged `e2f7704`. **Version:**
+  0.2.21-beta; C-149 narrowed to *partial*.
 - **Remaining:** the two cells (fmt, then Taywee/args) and the §3.8
-  row. fmt's `calls` edges repeat across ingests; C-149 is stated in
-  each cell record.
+  row. fmt (52 units), args (99) and cJSON (23) lie under the bound,
+  so their lane B repeats.

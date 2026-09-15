@@ -81,6 +81,26 @@ throwaway container from the image) found:
      - The decode's two `references.push(...kept)` overflow the stack
        at the merged size (484,201 references before reduction). They
        become loops.
+     - **The size guard** (Max, 2026-09-15, after `f3c1`). The merge
+       holds every unit's index at once, and a header many units share
+       is in every one of them. ScummVM, built in the image with its
+       null backend for this measurement, has 5,958 units:
+       - per-unit indexing took 207 s against 143 s;
+       - the unit indexes came to 9.36 GB against 370 MB;
+       - the merged decode peaked at 5.75 GB already at 400 units, about
+         84 GB projected for all;
+       - one whole-database decode peaked at 8.95 GB with the loop fix,
+         and `main`'s helper crashed on it before the fix.
+
+       So a root with more than `PER_UNIT_MAX` = 400 entries is indexed
+       in one whole-database run, and a `scip-decode` record names the
+       count, the bound and C-149. A streaming merge (two passes, with
+       duplicates removed) is what would lift the bound.
+     - **End to end, the next limit:** ScummVM ingested through the
+       guard's whole-database path (614 s), and its decode then outgrew
+       Node's default heap (exit 139). The root fell to lane A, and the
+       record now names that (C-150) instead of "install Node". A larger
+       heap or the same streaming decode would fit it; Max's call.
 2. **The compile database is derived, in this order** (Max), per build
    root. A root is the outermost directory holding a `CMakeLists.txt`,
    or, with none on the path, the outermost holding a Makefile. A root

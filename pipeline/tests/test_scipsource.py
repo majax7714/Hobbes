@@ -1056,6 +1056,23 @@ class TestHelperExitClassification:
         assert "main-impl.ts:47" in str(caught.value)
         assert "unusable" not in str(caught.value)
 
+    def test_a_helper_that_ran_out_of_memory_says_so_not_install_node(self, tmp_path, monkeypatch):
+        # ScummVM (5,958 units): the whole-database decode needed ~9 GB and
+        # Node's heap gave out — exit 139 and V8's allocation trace, of which
+        # the recorded tail may hold only the frames. That is a helper that
+        # ran, not one that could not.
+        (tmp_path / "stage").mkdir()
+        for stderr in (
+            "FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory",
+            "nAlignment) [node]\n 7: 0x145c015 v8::internal::HeapAllocator::AllocateRawWithRetryOrFailSlowPath(int) [node]",
+        ):
+            self._run_returning(monkeypatch, 139, stderr)
+            with pytest.raises(scipsource.ScipError) as caught:
+                scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "cpp"})
+            assert "ran out of memory" in str(caught.value)
+            assert "C-150" in str(caught.value)
+            assert "install Node" not in str(caught.value)
+
     def test_a_helper_failure_still_says_how_to_install_it(self, tmp_path, monkeypatch):
         self._run_returning(monkeypatch, 1, "Cannot find module")
         (tmp_path / "stage").mkdir()
