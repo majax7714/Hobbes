@@ -4,7 +4,7 @@
 # grade, and leave hobbes.json / oracle.json / report.json / report.txt
 # in the output directory.
 #
-#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java|c] [--no-ingest]
+#   bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java|c|cpp] [--no-ingest]
 #       [--exclude a,b] [--python "<cmd>"] [--runs N] [--sys-path a,b] [-- <pytest args>]
 #
 # --exclude a,b drops nested module directories from a root cell.
@@ -70,7 +70,9 @@ case "$lang" in
   rust) (cd "$here/rust" && LD_LIBRARY_PATH="$(rustc +nightly --print sysroot)/lib" cargo +nightly build --release --quiet)
         "$out/oracle" rust-mir --repo "$repo" --module "$module" --driver "$here/rust/target/release/mir-oracle" --out-dir "$out" --features "$features" --out "$out/oracle.json" ;;
   java) "$out/oracle" java-javac --repo "$repo" --module "$module" --plugin "$here/java" --out-dir "$out" --tool "$tool" --out "$out/oracle.json" ;;
-  c) "$out/oracle" c-clang --repo "$repo" --module "$module" --out-dir "$out" --compdb "$compdb" --clang "$clangbin" --out "$out/oracle.json" ;;
+  # C++ (O10, ADR-113) is the C oracle's other face: one root, each
+  # unit's front end chosen by its own extension.
+  c|cpp) "$out/oracle" c-clang --repo "$repo" --module "$module" --lang "$lang" --out-dir "$out" --compdb "$compdb" --clang "$clangbin" --out "$out/oracle.json" ;;
   *) echo "unknown lang $lang" >&2; exit 2 ;;
 esac
 "$out/oracle" grade --hobbes "$out/hobbes.json" --oracle "$out/oracle.json" --json "$out/report.json" --poison | tee "$out/report.txt"
