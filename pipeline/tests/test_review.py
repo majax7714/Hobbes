@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from hobbes.extract.testmap import runner_excluded_trees
 from hobbes.review import (
     FIXED,
     REGRESSED,
@@ -67,6 +68,20 @@ def repo(tmp_path: Path) -> Path:
     git(repo, "add", "-A")
     git(repo, "commit", "-qm", "base")
     return repo
+
+
+def test_each_pytest_config_governs_its_own_directory(tmp_path):
+    """ADR-114: patterns match directory basenames below the config's own
+    directory (its testpaths when it names some), and nowhere else."""
+    write(tmp_path, "sub/pytest.ini", "[pytest]\nnorecursedirs = fix* data\n")
+    write(tmp_path, "top/setup.cfg", "[metadata]\nname = x\n")  # no pytest section: states nothing
+    paths = ["sub/fixtures/a.py", "sub/pkg/data/b.py", "sub/pkg/c.py", "other/fixtures/d.py", "top/fixtures/e.py"]
+    for path in paths:
+        write(tmp_path, path, "")
+    assert runner_excluded_trees(tmp_path, paths) == (
+        {"path": "sub/fixtures", "by": "pytest norecursedirs 'fix*' in sub/pytest.ini"},
+        {"path": "sub/pkg/data", "by": "pytest norecursedirs 'data' in sub/pytest.ini"},
+    )
 
 
 def add_violation(repo: Path) -> None:
@@ -174,6 +189,46 @@ class TestCoverageDelta:
         git(repo, "commit", "-qm", "another test")
         review = build_review(repo, "HEAD~1", "HEAD")
         assert review.coverage.new_unguarded == []
+
+    def test_a_tree_pytest_is_told_to_skip_is_not_own_code(self, repo):
+        # ADR-114: a fixture is a test's input; the tree comes from the
+        # repo's stated norecursedirs, and the review says what it skipped.
+        write(
+            repo,
+            "pyproject.toml",
+            '[project]\nname = "app"\nversion = "0"\n\n'
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\nnorecursedirs = ["fixtures"]\n',
+        )
+        write(repo, "tests/fixtures/demo/lib.py", "def helper():\n    return 1\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a fixture")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == []
+        assert review.coverage.fixture_trees == [
+            {"path": "tests/fixtures", "by": "pytest norecursedirs 'fixtures' in pyproject.toml", "modules": 1}
+        ]
+        assert not review.needs_attention
+        assert "fixture tree, not asked for a guard (C-154): tests/fixtures" in format_review(review)
+        assert review_to_dict(review)["coverage"]["fixture_trees"] == review.coverage.fixture_trees
+
+    def test_testdata_is_a_fixture_tree_only_inside_a_go_module(self, repo):
+        write(repo, "pkg/testdata/gen.py", "def gen():\n    return 1\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "testdata, no go.mod")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        # Outside a Go module the name means nothing: it is own code.
+        assert len(review.coverage.new_unguarded) == 1
+        assert review.coverage.fixture_trees == []
+
+        write(repo, "go.mod", "module example.com/app\n\ngo 1.22\n")
+        write(repo, "pkg/testdata/more.py", "def more():\n    return 2\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a go module around it")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == []
+        assert review.coverage.fixture_trees == [
+            {"path": "pkg/testdata", "by": "go: testdata inside the module at go.mod", "modules": 2}
+        ]
 
     def test_losing_every_guarding_test_is_reported(self, repo):
         (repo / "tests" / "test_core.py").unlink()

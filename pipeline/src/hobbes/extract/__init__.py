@@ -41,7 +41,7 @@ from hobbes.extract.packs import Pack, PackContext, run_packs
 from hobbes.extract.pysource import FromImport, parse_source
 from hobbes.extract.rustsource import collect_rust_tests, extract_rust
 from hobbes.extract.schema import LANE_SCIP
-from hobbes.extract.testmap import collect_tests
+from hobbes.extract.testmap import collect_tests, runner_excluded_trees
 from hobbes.extract.tssource import collect_ts_tests, extract_ts
 from hobbes.extract.verification import verification_base
 
@@ -59,11 +59,14 @@ SCHEMA_VERSION = 4
 
 @dataclass(frozen=True)
 class Extraction:
-    """The three artifact documents, minus the provenance stamp."""
+    """The three artifact documents, minus the provenance stamp — and the
+    fixture trees `hobbes review` reads beside them (ADR-114), which are
+    not emitted."""
 
     graph: dict
     tests: dict
     interfaces: dict
+    fixture_trees: tuple = ()
 
 
 def extract_repo(
@@ -237,6 +240,13 @@ def extract_repo(
             ),
             "cli_entry_points": enriched.cli_entry_points,
         },
+        # The trees this tree's own test runners exclude (ADR-114): read
+        # here, where the tree is on disk, so each end of a review exempts
+        # by its own configuration.
+        fixture_trees=runner_excluded_trees(
+            repo_root,
+            (n.get("path", "") for n in graph["nodes"] if n.get("kind") in ("module", "package")),
+        ),
     )
 
 

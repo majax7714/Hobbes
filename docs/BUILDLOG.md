@@ -10942,4 +10942,34 @@ unguarded new modules". Both failures came in with the C++ commits
   - Put to Max as routes, since either needs an ADR against ADR-025.
     The next push's graph job would pass without any fix, for the
     forgetting reason.
-- **No version move:** the change is `bench/` tooling and docs (ADR-103).
+- **No version move for the oracle fix** (`2883154`): it is `bench/`
+  tooling and docs (ADR-103).
+- **Max's route: exempt fixtures and fix the base.** ADR-114,
+  0.2.24-beta.
+  - **`runner_excluded_trees`** (`extract/testmap.py`) is read at
+    extraction from each end's own tree. It takes a pytest config's
+    stated `norecursedirs` under its `testpaths` (never pytest's
+    defaults), and Go's first `testdata` under a `go.mod`. It is carried
+    on `Extraction`, not emitted.
+  - **`_own_code`** drops sources under those trees. The coverage
+    section names each tree, its rule and its module count, and `--json`
+    carries them as `coverage.fixture_trees`. C-154 is registered,
+    surfaced: 154 entries, 111 active, 86 surfaced.
+  - **`ci.yml`** reviews a push from the last green `ci` run's commit
+    when that commit is an ancestor of `HEAD`, and from `before`
+    otherwise, with `actions: read`. Nothing local can run this; the
+    next push is its first test, and the handoff says to check it.
+  - **Tests:** three new ones — a pytest `norecursedirs` tree exempted
+    and named in text and JSON; `testdata` exempt only once a `go.mod`
+    surrounds it; each pytest config governing only its own directory.
+    pytest now stands at 1,616.
+  - **Proven locally on CI's own range:** `scripts/ci-graph.sh 38d364f`
+    (image, ingest, stamp, lanes, compiled invariants, review, `lane_b`)
+    exits 0. Its review ends "nothing needs attention", and `lane_b`
+    reads 6 passed. It names `bench/oracle/testdata`
+    (11 modules, go) and `pipeline/tests/fixtures` (54, pytest). I-4
+    reads *still failing*, as it did in CI: pre-existing, not this
+    change's.
+  - **Also moved:** architecture §8's version and its "but one", now
+    "but two" with fmt; §7's review flow names the fixture rule; the W0
+    item is closed in `workstreams.md` and the handoff.

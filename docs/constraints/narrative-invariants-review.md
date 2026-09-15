@@ -93,6 +93,24 @@
 - **Source:** ADR-026, `future_additions.md`. Instance recorded
   2026-08-15; surfaced by ADR-042 (2026-08-16).
 
+### C-154 — The review does not ask for a guard on fixture sources
+- **Cannot tell you:** whether a source inside a tree the repo's own
+  test runners exclude is reached by a test. The trees are a pytest
+  `norecursedirs` tree under `testpaths`, and a Go `testdata` directory
+  inside a module. `hobbes review` leaves their modules out of "new code
+  no test reaches" and "lost every guarding test".
+- **Because:** a fixture is a test's input, which nothing calls, so
+  asking for its guard made every fixture addition red (ADR-114). The
+  exemption reads the runners' own configuration. A repo whose fixtures
+  sit elsewhere, or whose pytest config states no `norecursedirs`, is
+  still asked.
+- **Bites at:** a fixture tree that also holds real code, such as a
+  helper the product imports from under `tests/fixtures/`, goes unasked.
+- **You find out:** **surfaced** — the review's coverage section names
+  each exempt tree, the rule that exempts it and its module count, and
+  `--json` carries them under `coverage.fixture_trees`.
+- **Source:** ADR-114 (2026-09-15), from the W0 item of 2026-09-10.
+
 ---
 
 ## Lifted constraints in this segment

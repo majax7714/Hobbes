@@ -1660,7 +1660,9 @@ MultiEdit and NotebookEdit.
 - **Human surface** — Graph · Tests · Docs · Diff · Sessions · Intent;
   loopback-only, enforced at bind and per-request `Host` (ADR-022);
   concept-review flow: graph diff → invariant verdicts → behavioral coverage
-  delta → line diff last. Edge styling by tier is **built**. The
+  delta (a source in a tree the repo's own test runners exclude is a
+  fixture, not own code, and is named as such: ADR-114, C-154) → line
+  diff last. Edge styling by tier is **built**. The
   lane-disagreement view is **not** — `hobbes lanes` is a command with no
   tab behind it, which is a known gap awaiting scope, not an oversight.
 
@@ -1673,7 +1675,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.23-beta** (2026-09-15, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.23-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.24-beta** (2026-09-15, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.24-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
@@ -1709,7 +1711,7 @@ The v2 extraction programme — **complete and fully reviewed as of
 | **D1** — the plan derivation | done, **reviewed 2026-08-21** | ADR-051: `hobbes plan` — impact, partition, contracts, manifests with enforced complements, the plan-review gate; C-35..C-37 registered surfaced |
 | **D2** — execution | base built, **reviewed 2026-08-21** | ADR-054: `hobbes run` — role + agent policy levels, standing/short-term context, context faults tagged, `reflect`, branch harvest, integration + review, the partition record with the declared loss; C-38 registered surfaced; what remains in `future_additions.md` |
 | **Benchmark verification** | **parked (renewed 2026-08-24)** | ADR-052 preregistered H1–H3 in [`benchmark-hypotheses.md`](benchmark/benchmark-hypotheses.md); ADR-055 built `hobbes bench` (§6.2) — protocol, two arms, one meter, the benchmark's verdict, the report; C-39/C-40 registered surfaced. Live runs 2026-08-21..23 (7B and 27B, both arms) produced harness/method corrections (ADR-056..081), the contamination demonstration (C-39 → DeepSWE 1.1), P12's retraction of the undecomposed pairs (ADR-082), and the requirement-coverage rework (ADR-083..085); the ADR-085 validation pair ran 2026-08-24 (0/5, eight harness defects, six fixed in ADR-091 and the last two in ADR-093, all validated with no model). Next, on the owner's go: the removal A/B on the D5 fix |
-| **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR / javac / clang's front end on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision but one: quic-go's 99.6% lower bound, all 15 contradictions the oracle's grain (C's sqlite-vector read 99.6% from three wrong syntactic edges until ADR-111's veto, 0.2.8-beta: 851/851, §3.8); its own defect log reviewed (`oracle-defect-review.md`) |
+| **Oracle-grading lane** (ADR-089) | built, both phases run, **reviewed 2026-08-27** | `bench/oracle`: the call graph graded against RTA / `tsc` / the interpreter / rustc's MIR / javac / clang's front end on this repo, kbet, rust_proj, dagger and the seven-repo loop; every compiler-graded cell at 100% precision but two: quic-go's 99.6% lower bound, all 15 contradictions the oracle's grain, and C++'s fmt at 99.1%, 10 of its 28 Hobbes' own through scip-clang (C-153) (C's sqlite-vector read 99.6% from three wrong syntactic edges until ADR-111's veto, 0.2.8-beta: 851/851, §3.8); its own defect log reviewed (`oracle-defect-review.md`) |
 | **Containment** (ADR-092) | built, all four phases, **reviewed 2026-08-28** | sandbox whatever executes repo-authored code: lane B and the executing oracles (O6/O7, and O8/O9 since) in the one image; `--uncontained` disclosed and stamped; the knowledge layer stated as a complete deployment; the claim scoped to the runs made under it (P11) |
 | **Java** (ADR-096, J.M0–J.M5) | done, contained, **compiler-graded 2026-08-29**; C-66 settled 2026-09-01 (ADR-097) | the sixth language: `javasource` + `scip-java` in the image, a javac+CHA oracle (O8), four cells at 100% precision (§3.8); the build resolves networked on a stage with no sources, then indexes offline; the residual (build logic over public caches) stays registered |
 | **Test-time training** (ADR-099) | run 2026-09-03, **held for the owner's call** | `hobbes derive-corpus` renders the derived layer as a training corpus; at 300 steps a 7B's gold-diff NLL falls on every unit but navigation does not follow, past one epoch the edges enter the weights while the NLL gain leaves; H-TTT-2/3 killed at that step count (`olmo3-ttt-results.md`, § H-TTT); C-81–C-88 |

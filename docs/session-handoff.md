@@ -1,9 +1,11 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.23-beta on `main`.**
+**Reviewed 2026-09-15; Hobbes 0.2.24-beta on `main`.** ADR-114's base
+rule runs first on the next push: check the graph job's "base ref" step
+says it reviewed from the last green run.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.23-beta are untagged. Tags stay Max's call each time.
+  0.2.24-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -205,9 +207,9 @@ min each.
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
    if named; pytest's `testmap_fixture` warnings.
-3. **W0's remainder:** the graph CI job forgets earlier red reviews;
-   `go/internal/version` and the union fixture's ownership; the
-   registry-pulled image and the drift audit, when named.
+3. **W0's remainder:** `go/internal/version`'s missing guard; the
+   registry-pulled image and the drift audit, when named. (The
+   forgotten red review and the fixtures closed with ADR-114.)
 
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;

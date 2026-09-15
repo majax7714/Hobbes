@@ -62,6 +62,9 @@ class CoverageDelta:
     broken_guards: dict[str, list[str]] = field(default_factory=dict)
     base_tests: int = 0
     head_tests: int = 0
+    #: Head's fixture trees — ``{"path", "by", "modules"}`` — whose sources
+    #: are not own code and so are never asked for a guard (ADR-114, C-154).
+    fixture_trees: list[dict] = field(default_factory=list)
 
     @property
     def needs_attention(self) -> bool:
@@ -183,27 +186,45 @@ def _guarded_modules(tests: dict) -> set[str]:
     }
 
 
-def _own_code(graph: dict, tests: dict) -> dict[str, str]:
+def _under(path: str, trees: list[str]) -> bool:
+    return any(path == tree or path.startswith(tree + "/") for tree in trees)
+
+
+def _own_code(graph: dict, tests: dict, fixture_trees=()) -> dict[str, str]:
     """Internal module ids to paths — the code a test could guard.
 
     Test modules are excluded: a test file is not behaviour needing a
     guard, and listing every new test as "unguarded new code" is the kind
     of noise that makes a coverage metric ignorable. The test inventory
     names its own files, so this is data rather than a filename heuristic.
+
+    So are the sources under *fixture_trees*, the trees the repo's own test
+    runners exclude (ADR-114): a fixture is a test's input, which nothing
+    calls, so asking for its guard asks for what cannot exist. The trees
+    come from the runners' configuration, not from a directory's name.
     """
     test_files = {t.get("file") for t in tests.get("tests", []) if t.get("file")}
+    trees = [t["path"] for t in fixture_trees]
     return {
         node["id"]: node.get("path", "")
         for node in graph.get("nodes", [])
         if node.get("kind") in ("module", "package")
         and node.get("path") not in test_files
+        and not _under(node.get("path", ""), trees)
     }
+
+
+def _fixture_counts(graph: dict, fixture_trees) -> list[dict]:
+    """Each fixture tree with the number of modules it holds — what the
+    review says it did not ask about (C-154)."""
+    paths = [n.get("path", "") for n in graph.get("nodes", []) if n.get("kind") in ("module", "package")]
+    return [{**tree, "modules": sum(1 for p in paths if _under(p, [tree["path"]]))} for tree in fixture_trees]
 
 
 def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) -> CoverageDelta:
     """Which behaviour lost its guard, and which new behaviour never had one."""
-    base_modules = _own_code(base.graph, base.tests)
-    head_modules = _own_code(head.graph, head.tests)
+    base_modules = _own_code(base.graph, base.tests, base.fixture_trees)
+    head_modules = _own_code(head.graph, head.tests, head.fixture_trees)
     base_guarded = _guarded_modules(base.tests)
     head_guarded = _guarded_modules(head.tests)
 
@@ -229,6 +250,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         broken_guards=broken,
         base_tests=len(base.tests.get("tests", [])),
         head_tests=len(head.tests.get("tests", [])),
+        fixture_trees=_fixture_counts(head.graph, head.fixture_trees),
     )
 
 
@@ -434,6 +456,11 @@ def format_review(review: Review) -> str:
     add("3. behavioral coverage")
     coverage = review.coverage
     add(f"   tests: {coverage.base_tests} -> {coverage.head_tests}")
+    for tree in coverage.fixture_trees:
+        add(
+            f"   fixture tree, not asked for a guard (C-154): {tree['path']}"
+            f" — {tree['by']} ({tree['modules']} modules)"
+        )
     if coverage.new_unguarded:
         add(f"   new code no test reaches ({len(coverage.new_unguarded)}):")
         for module in coverage.new_unguarded:
@@ -504,6 +531,7 @@ def review_to_dict(review: Review) -> dict:
             "new_unguarded": review.coverage.new_unguarded,
             "lost_guards": review.coverage.lost_guards,
             "broken_guards": review.coverage.broken_guards,
+            "fixture_trees": review.coverage.fixture_trees,
         },
         "soft": review.soft,
     }

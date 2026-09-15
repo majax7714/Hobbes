@@ -9,8 +9,12 @@ statically invisible (a documented M1 gap, ADR-007).
 
 from __future__ import annotations
 
+import configparser
+import tomllib
 from collections import defaultdict
-from pathlib import PurePosixPath
+from collections.abc import Iterable
+from fnmatch import fnmatchcase
+from pathlib import Path, PurePosixPath
 
 from hobbes.extract.discover import ModuleInfo
 from hobbes.extract.pysource import ParsedFile
@@ -20,6 +24,105 @@ def is_test_file(path: str) -> bool:
     """Pytest's default file conventions."""
     name = PurePosixPath(path).name
     return name.startswith("test_") or name.endswith("_test.py")
+
+
+#: pytest's config files, each with the section its settings live in
+#: (pyproject.toml's is the ``[tool.pytest.ini_options]`` table).
+_PYTEST_CONFIGS = {
+    "pyproject.toml": None,
+    "pytest.ini": "pytest",
+    "tox.ini": "pytest",
+    "setup.cfg": "tool:pytest",
+}
+
+
+def _pytest_settings(config: Path) -> tuple[list[str], list[str]] | None:
+    """``(testpaths, norecursedirs)`` as *config* states them, or None when
+    it holds no pytest section or does not parse."""
+    try:
+        if config.name == "pyproject.toml":
+            opts = tomllib.loads(config.read_text()).get("tool", {}).get("pytest", {}).get("ini_options")
+            if not isinstance(opts, dict):
+                return None
+
+            def listed(key: str) -> list[str]:
+                value = opts.get(key, [])
+                return value.split() if isinstance(value, str) else [str(v) for v in value]
+
+            return listed("testpaths"), listed("norecursedirs")
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.read_string(config.read_text())
+        section = _PYTEST_CONFIGS[config.name]
+        if not parser.has_section(section):
+            return None
+        return (
+            parser.get(section, "testpaths", fallback="").split(),
+            parser.get(section, "norecursedirs", fallback="").split(),
+        )
+    except (OSError, ValueError, configparser.Error):
+        return None
+
+
+def runner_excluded_trees(repo_root: Path, module_paths: Iterable[str]) -> tuple[dict, ...]:
+    """The directories the repo's own test runners exclude from collection,
+    among those holding a module: fixture trees, which a test reads as
+    input and never calls, so no test could guard them (ADR-114, C-154).
+
+    Both rules are read from the tree, never guessed from a name:
+
+    - **pytest** — a config that states ``norecursedirs`` excludes every
+      directory whose basename matches one of its patterns under each of
+      its ``testpaths`` (the config's own directory when it names none).
+      pytest's built-in defaults (``build``, ``dist``, …) are not read: an
+      exclusion the repo did not state is a guess.
+    - **Go** — the go tool ignores a directory named ``testdata`` inside a
+      module, so the first ``testdata`` with a ``go.mod`` at or above it is
+      excluded.
+
+    *module_paths* bounds the search to directories that hold code. Each
+    record is ``{"path", "by"}``, sorted by path.
+    """
+    root = Path(repo_root)
+    paths = sorted({p for p in module_paths if p})
+    trees: dict[str, str] = {}
+
+    dirs = {""}
+    for path in paths:
+        parts = PurePosixPath(path).parts[:-1]
+        dirs.update("/".join(parts[:i]) for i in range(1, len(parts) + 1))
+    for cfg_dir in sorted(dirs):
+        for name in _PYTEST_CONFIGS:
+            config = root / cfg_dir / name
+            settings = _pytest_settings(config) if config.is_file() else None
+            if not settings or not settings[1]:
+                continue
+            testpaths, patterns = settings
+            cfg_rel = f"{cfg_dir}/{name}" if cfg_dir else name
+            prefix = f"{cfg_dir}/" if cfg_dir else ""
+            for base in [f"{prefix}{t.strip('/')}" for t in testpaths] or [cfg_dir]:
+                for path in paths:
+                    if base and not path.startswith(base + "/"):
+                        continue
+                    below = PurePosixPath(path[len(base) + 1 if base else 0:]).parts[:-1]
+                    for i, part in enumerate(below):
+                        pattern = next((p for p in patterns if fnmatchcase(part, p)), None)
+                        if pattern:
+                            tree = "/".join(filter(None, [base, *below[: i + 1]]))
+                            trees.setdefault(tree, f"pytest norecursedirs {pattern!r} in {cfg_rel}")
+                            break
+
+    for path in paths:
+        parts = PurePosixPath(path).parts[:-1]
+        if "testdata" not in parts:
+            continue
+        at = parts.index("testdata")
+        for k in range(at, -1, -1):
+            if (root.joinpath(*parts[:k]) / "go.mod").is_file():
+                gomod = "/".join([*parts[:k], "go.mod"])
+                trees.setdefault("/".join(parts[: at + 1]), f"go: testdata inside the module at {gomod}")
+                break
+
+    return tuple({"path": tree, "by": by} for tree, by in sorted(trees.items()))
 
 
 def collect_tests(

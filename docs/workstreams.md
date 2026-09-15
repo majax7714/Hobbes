@@ -84,6 +84,11 @@ build item.*
   install the container mounts hop by hop; the fake venv's `home =
   /usr` had made the image's own python the base, hence `{pip}`.
   `ci-graph.sh` deselects nothing now.
+- **Closed 2026-09-15 (ADR-114, 0.2.24-beta):** the job now reviews
+  from the last green run's commit, and fixture sources in trees the
+  repo's runners exclude are not own code (C-154). The C++ fixtures
+  turned the job red on `fdc7f07`; `go/internal/version` stays
+  unguarded, and is no longer new. The record as it stood:
 - **The graph job forgets a red review.** `ci-graph.sh` reviews
   `github.event.before..HEAD`, so an "unguarded new module" that fails
   one push is in the *base* of the next and never reported again:

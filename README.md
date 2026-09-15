@@ -338,7 +338,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.23-beta** (2026-09-15). The Hobbes layer is versioned from here
+**Hobbes 0.2.24-beta** (2026-09-15). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -361,8 +361,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and fifty-three entries (one
-hundred and ten active, twenty-six lifted, eleven superseded, six
+The constraint register holds one hundred and fifty-four entries (one
+hundred and eleven active, twenty-six lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image

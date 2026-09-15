@@ -211,7 +211,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 113;
+  architecture doesn't already make. Number sequentially (last: 114;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -265,7 +265,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-15) — Hobbes 0.2.23-beta
+## Status (2026-09-15) — Hobbes 0.2.24-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -277,8 +277,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   repo code runs in the one image (ADR-092).
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
   (99.6%, all 15 the oracle's grain) and fmt (99.1%: 10 scip-clang's
-  own, C-153; 18 the oracle's, H-28–H-31 open). **Register:** 153
-  entries; 110 active (85 surfaced, 20 partial, 4 unsurfaced, 1 n/a).
+  own, C-153; 18 the oracle's, H-28–H-31 open). **Register:** 154
+  entries; 111 active (86 surfaced, 20 partial, 4 unsurfaced, 1 n/a).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes
@@ -286,8 +286,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (`pipeline/scripts/calvin_tracker.py render`, held by a drift test;
   re-render after filling a review block) reads 30 of the 40 sessions
   that validate the harness: 4 areas, 1 false block (`f3c1`), 0 missed.
-- **Latest:** C++ supported (0.2.23-beta, ADR-113 complete). **Next:**
-  the gate's arrow-parameter fix (C-91), a small unit.
+- **Latest:** ADR-114 (0.2.24-beta): fixtures are not own code; CI
+  reviews from its last green run. **Next:** the gate's fix (C-91).
 - **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
   drawn); C-150's memory assessment (large repos stay a constraint).

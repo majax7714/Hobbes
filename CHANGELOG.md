@@ -11,9 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.23-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.24-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.24-beta — 2026-09-15 (fixture sources are not own code; the graph job reviews from its last green run; ADR-114)
+
+**Patch: what the layer says.** `hobbes review` stops asking for a
+guard on sources a test can only read.
+
+- **The trigger:** the graph job went red on the push of `fdc7f07`,
+  on 8 "unguarded new modules". Every one was a C++ fixture source
+  (`minicpp`, and the oracle's `cppclang` testdata). A fixture is a
+  test's input: nothing calls it, so no test can be seen reaching it.
+  The C fixtures were just as unguarded and passed only because the job
+  forgot them.
+- **Fixture trees** (ADR-114, amending ADR-025): a source under a tree
+  the repo's own test runners exclude is not own code. The trees are a
+  pytest config's stated `norecursedirs` under its `testpaths`, and
+  Go's `testdata` inside a module. They are read from each end's tree at
+  extraction (`runner_excluded_trees`). The coverage section names each
+  tree, its rule and its module count, and `--json` carries them as
+  `coverage.fixture_trees` (C-154, surfaced). On this repo they are
+  `pipeline/tests/fixtures` and `bench/oracle/testdata`.
+- **The review's base in CI** (amending ADR-095): a push reviews from
+  the last green `ci` run's commit when that commit is an ancestor of
+  `HEAD`, and from the push's `before` otherwise. So a red review stays
+  red until it is fixed (the W0 item of 2026-09-10). The job lists runs
+  with `actions: read`.
+- **The same push's other red job**, fixed without a version move
+  (`2883154`, `bench/` tooling): the oracle lane's drift test failed
+  because the two C++ cells had no `cells.meta.json` row. They are now
+  in the comparative tables, the one number and a C++ scatter panel.
+- **Register:** C-154 registered.
 
 ## 0.2.23-beta — 2026-09-15 (C++ supported: its §3.8 row; ADR-113 complete)
 

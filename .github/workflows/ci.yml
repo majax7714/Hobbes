@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: read
+  actions: read   # the graph job's base is the last green run (ADR-114)
 
 jobs:
   go:
@@ -96,11 +97,24 @@ jobs:
         run: (cd tsextract && npm ci) && (cd scip && npm ci) && (cd pipeline && uv sync)
       - name: base ref
         id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then
             echo "ref=$(git merge-base origin/${{ github.base_ref }} HEAD)" >> "$GITHUB_OUTPUT"
           else
-            echo "ref=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            # The last green run's commit, so a red review stays red until it
+            # is fixed (ADR-114); the push's own before when there is none
+            # in this history (the first run, a rewritten branch).
+            green=$(gh run list --workflow ci.yml --branch "${{ github.ref_name }}" --status success \
+              --limit 1 --json headSha --jq '.[0].headSha // empty' || true)
+            if [ -n "$green" ] && git merge-base --is-ancestor "$green" HEAD; then
+              echo "reviewing from the last green run: $green"
+              echo "ref=$green" >> "$GITHUB_OUTPUT"
+            else
+              echo "no green run in this history; reviewing from the push's before"
+              echo "ref=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
+            fi
           fi
       - name: graph checks
         run: scripts/ci-graph.sh "${{ steps.base.outputs.ref }}"
