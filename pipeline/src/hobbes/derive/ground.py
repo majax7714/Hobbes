@@ -105,9 +105,10 @@ from hobbes.derive import holes as H
 from hobbes.derive.template import Ledger, prune
 from hobbes.extract.tail import PY_BUILTINS, language_of
 
-GROUNDER_VERSION = 3  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9);
+GROUNDER_VERSION = 4  #: 1: Go's rules 1 and 2, the universe list, the density field (M0-Go §2.4); 2: the world check on Go fills (M0-Go WP-9);
 #: 3: signatures in the world — a call's arity and a qualified reference's declared existence, each its own NULL class (M0-Go round 2 WP-14b, §2.5);
-#: also v3: a post-image carrying the render's gutter is its own class, `malformed`, rather than a silent zero (round 2 D-m)
+#: also v3: a post-image carrying the render's gutter is its own class, `malformed`, rather than a silent zero (round 2 D-m);
+#: 4: TS/JS arrow parameters read (C-91)
 EXPR = "<expr>"
 #: The reference classes; ``NULL`` is the only failure (I2). Everything else is what lane A resolves or abstains on by rule.
 #: ``malformed`` (round 2 D-m) is a file whose post-image carries the render's line-number gutter — a garbled body a live
@@ -796,6 +797,11 @@ def _materialize_imports(path: str, text: str, scratch: Path, repo_root: Path, s
 _TS_DECL = re.compile(r"\b(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)")
 _TS_DESTRUCT = re.compile(r"\b(?:const|let|var)\s*\{([^}]*)\}\s*=")
 _TS_PARAMS = re.compile(r"(?:function\s*[\w$]*\s*|\b)\(([^()]*)\)\s*(?:=>|\{)")
+#: An arrow's parameters, whatever precedes the list (`= (check) =>`, `, (a, b) =>`, `async (x) =>`), an optional TS
+#: return type between the list and the arrow; a list holding a nested `(` — a default that calls — stays unread (C-91).
+_TS_ARROW_PARAMS = re.compile(r"\(([^()]*)\)\s*(?::[^=;{}()\n]*)?=>")
+#: An arrow taking one bare name, unparenthesised (`fn => fn(1)`).
+_TS_ARROW_NAME = re.compile(r"(?<![\w$.)\]])([A-Za-z_$][\w$]*)\s*=>")
 
 
 def _parse_ts(path: str, text: str, scratch: Path, repo_root: Path, sha: str) -> Parsed:
@@ -820,16 +826,20 @@ def _parse_ts(path: str, text: str, scratch: Path, repo_root: Path, sha: str) ->
     for i in f["imports"]:
         for n in i.get("names", []):
             imports.append({"bound": n, "module": i["specifier"], "kind": "name" if not i.get("external") else "external", "name": n})
-    # the helper carries no local bindings; a text read of declarations, destructurings and parameter lists stands in (C-91)
+    # the helper carries no local bindings; a text read of declarations, destructurings and parameter lists — a
+    # function's or method's, an arrow's parenthesised list, an arrow's one bare name — stands in (C-91)
     locs: list[tuple[str, int, int]] = []
     for m in _TS_DECL.finditer(text):
         locs.append((m.group(1), 1, len(lines)))
     for m in _TS_DESTRUCT.finditer(text):
         for n in re.findall(r"[A-Za-z_$][\w$]*", m.group(1)):
             locs.append((n, 1, len(lines)))
-    for m in _TS_PARAMS.finditer(text):
-        for n in re.findall(r"[A-Za-z_$][\w$]*", m.group(1)):
-            locs.append((n, 1, len(lines)))
+    for pat in (_TS_PARAMS, _TS_ARROW_PARAMS):
+        for m in pat.finditer(text):
+            for n in re.findall(r"[A-Za-z_$][\w$]*", m.group(1)):
+                locs.append((n, 1, len(lines)))
+    for m in _TS_ARROW_NAME.finditer(text):
+        locs.append((m.group(1), 1, len(lines)))
     return Parsed("ts/js", [{"name": s["name"], "qualname": s.get("qualname", s["name"]), "kind": s["kind"], "line": s["line"], "end_line": s.get("end_line", s["line"])} for s in f["symbols"]],
                   refs, imports, locs)
 
