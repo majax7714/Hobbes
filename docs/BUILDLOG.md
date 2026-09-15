@@ -11286,6 +11286,9 @@ afterwards. this will fully close out c++ for now".
   `~/.hobbes/bench/comparative/`; the sample scripts in the session's
   scratchpad.
 
-**Open for Max:** CodeGraphContext's optional SCIP mode for C/C++ as a
-second cell, or not; H-28–H-31; C-153.
+**Open for Max:** H-28–H-31; C-153.
+**Parked (Max: "add as a future item but fine to close out for now.
+well do a full version retest at some point to fully compare"):**
+CodeGraphContext's SCIP mode for C/C++, inside a full-version
+comparative retest (`future_additions.md`). C++ is closed out.
 **Next:** named no-spend units through the harness, toward 40.

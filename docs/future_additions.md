@@ -676,3 +676,30 @@ surfaced per file rather than silent.)*
   **Revisit when** a graded repo shows product APIs wrapped in macros at a
   size that matters (sqlite-style API tables are dynamic sites and would
   not count).
+
+- **A full-version comparative retest, with CodeGraphContext's SCIP mode
+  for C/C++ inside it** (parked 2026-09-15; Max: "add as a future item
+  but fine to close out for now. well do a full version retest at some
+  point to fully compare").
+  **What is parked:**
+  - Every foreign cell re-run on the tools' versions of the day, with the
+    Hobbes cells regraded on one build, so the page describes one Hobbes
+    and one version of each tool. CodeGraphContext 0.6.13 and repowise
+    0.49.0 were pinned on 2026-09-09, and either may have moved.
+  - CodeGraphContext's optional C/C++ path (`SCIP_INDEXER=true` over a
+    compile database, scip-clang underneath) as cells of its own on the
+    C and C++ repos. Every foreign C and C++ cell so far ran its default
+    tree-sitter path. That path reads no `.cc`, `.cxx` or `.hxx` file,
+    so args graded nothing and fmt only its headers. The SCIP mode is the
+    fairer measure of what the tool can do there.
+
+  **What it needs:**
+  - the new pins recorded in `field.md`;
+  - each converter re-checked against its tool's storage, with its
+    fixture re-read by hand (a schema move is a converter defect
+    waiting, C-94);
+  - a pre-registration before the runs, as §10.7 did;
+  - a signed direction line in each record against its standing grade;
+  - the graphics restated.
+
+  **Opens when** Max names the retest.

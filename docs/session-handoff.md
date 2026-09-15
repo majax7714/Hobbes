@@ -46,10 +46,10 @@ file keeps only what the next session needs.
      triage files `triage-cpp-{codegraphcontext,repowise}.json`.
      CodeGraphContext left a `.cgcignore` in each C++ clone (`field.md`
      §2).
-   - **Open for Max:** CodeGraphContext has an optional SCIP path for
-     C/C++ (`SCIP_INDEXER=true` over a compile database). It was not run,
-     as on C. Whether a second CodeGraphContext cell in that mode earns
-     a row is his call.
+   - **Parked (Max, 2026-09-15):** CodeGraphContext's optional SCIP
+     path for C/C++ (`SCIP_INDEXER=true` over a compile database) goes
+     into a full-version comparative retest, one item in
+     `future_additions.md`. C++ is closed out for now.
 0a. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
    ADR-116).** C-150's remainder, Max's route A of three:
    - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
