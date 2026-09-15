@@ -11185,3 +11185,107 @@ write the adr".
 
 **Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo.
 **Next:** named no-spend units through the harness, toward 40.
+
+## 2026-09-15 — (last) The top-level review; the foreign C++ cells, pre-registered, graded and triaged; converter@4 (ADR-101 amended) — no version move
+
+**Asked (Max):** "review top level documentation. then proceed with
+grading c++ on foreign cells and update graphics to reflect standing
+afterwards. this will fully close out c++ for now".
+
+- **The review.** README, CLAUDE.md (AGENTS.md is its symlink), the
+  handoff and the comparative pages, read against the tree at
+  0.2.28-beta. Stale lines found:
+  - `field.md`'s Hobbes row (0.2.8-beta, 139 register entries, six
+    languages); now 0.2.28-beta, 154 and seven.
+  - The language set spelled without `cpp` in `oracle import`'s usage,
+    the import's and export's refusals, `grade-foreign.sh`, the oracle
+    README and `foreign_record.py`. The import already took `cpp`
+    through export's table.
+  - The README's and the handoff's "no foreign C++ cell", replaced
+    below.
+- **Pre-registered before either tool ran** (`ac5f7c8`):
+  `oracle-grading.md` §10.7 (P32–P35), and ADR-101's 2026-09-15
+  amendment (C++ in the import's set). The foreign C cells had no
+  section; these do.
+- **The runs** (host-run, no spend). `~/.hobbes/bench/comparative/run-cpp-cell.sh`
+  has the C driver's shape. CodeGraphContext 0.6.13 and repowise 0.49.0
+  at their pins, graded by the Hobbes cells' stored clang keys:
+  - CodeGraphContext on args: 6 CALLS rows, all in
+    `.ycm_extra_conf.py`. Its parser table maps `.cpp`, `.h`, `.hpp`
+    and `.hh` to C++ and reads no `.cc`, `.cxx` or `.hxx` file, and
+    args is one `.hxx` with 101 `.cxx` tests. Nothing graded.
+  - CodeGraphContext on fmt: 844/975 (86.6%), recall 11.8%, from the
+    headers only (fmt's 47 `.cc` files unread).
+  - repowise at converter@3: args 814/937 (86.9%), fmt 2,412/5,708
+    (42.3%).
+  - CodeGraphContext writes a `.cgcignore` into the clone. It did on
+    the C clones on 2026-09-14 too, where `field.md` §2 said "none".
+- **The triage** (§10.7: 20 rows per cell, seeded 20260915) found two
+  converter defects before a tool verdict could stand (C-94):
+  - repowise's nested macros written `#  define`: 3 of 20 on fmt; 713
+    graded edges, 365 of them contradicted;
+  - a C/C++ declaration head split over lines: args' second `ToString`
+    at its return-type line, and two gtest functions under an
+    attribute macro.
+
+  A template-line hypothesis was checked first and refuted (20 of
+  3,296 rows).
+- **converter@4**, in both adapters, under ADR-101's amendment,
+  extended:
+  - `#`, optional spaces, then `define`;
+  - a C/C++ head with no `;`, `{` or `}`, advanced up to three lines
+    to the name.
+
+  A first draft applied the head rule everywhere. Re-converting every
+  stored dump moved 46 jsoup rows where CodeGraphContext had stored a
+  javadoc or body line, so the rule reads C/C++ only and never starts
+  from a comment. The fixture is `bench/oracle/testdata/cppgrain/`,
+  with a raw dump per adapter and `TestCppGrainSpacedDefineAndSplitHead`
+  in each. Re-converting all 52 stored dumps under @4 moved only
+  repowise's two C++ cells.
+- **The regrade** (`regrade-cpp-cell.sh`, from the stored dumps, the @3
+  grade kept as `*.v1.*`):
+  - repowise fmt 2,414/5,343 (45.2%, +2.9), recall 13.9%;
+  - repowise args 815/937 (87.0%), recall 23.3%;
+  - CodeGraphContext unmoved;
+  - poison: 0 falsely confirmed of 8,567 seeded across the three
+    graded cells.
+- **The read at @4** (60 rows): tool-wrong 56, oracle-grain 4,
+  converter-defect 0. The oracle-grain rows are H-29 once and H-30 three
+  times; at each the tool drew the declaration the source names. The
+  tools' C++ errors are one shape above all: a call drawn by its short
+  name to another declaration of that name. repowise also draws a
+  construction to a type or a `using` alias (6 of its 20 fmt rows;
+  C-95's C++ face).
+- **Pre-registration graded:** P32–P34 met on the three cells with
+  graded edges, undecidable on CodeGraphContext's args. P35 missed: no
+  tool's fmt recall passes Hobbes' 14.5% (11.8%, 13.9%).
+- **The records** (`docs/oracle/cells/{codegraphcontext,repowise}-{fmt,args}-2026-09-15.md`)
+  are written by `foreign_record.py`, which gained `--grade-lang` and
+  the @4 direction cause.
+  - `cells.meta.json` has four new rows.
+  - The same-key graphic's language order gained C++.
+  - Its undefined-marker text reads "no call edge graded".
+  - Its footer names the C++ sample.
+
+  `render.py cells | render | check` is green (90 cells, 22 same-key
+  rows), and so is the report test.
+- **Docs:**
+  - the claim page: the oracle list, the cell-file pattern, the C++
+    paragraph, item 4;
+  - the README: the run dates, 22 rows, fmt as the second precision
+    exception, the recall-lead range, the converter@4 sentence, "what
+    is not here";
+  - `field.md`: the Hobbes row, and §2's `.cgcignore` and
+    file-extension rows;
+  - C-94's and C-95's C++ faces, W0, the handoff and CLAUDE.md's
+    headline.
+- **No version move** (bench only, ADR-103). Nothing was dispatched;
+  the tracker stays at 31 of 40.
+- **Kept outside the repo:** the drivers and triage files in
+  `~/.hobbes/bench/comparative/`; the sample scripts in the session's
+  scratchpad.
+
+**Open for Max:** CodeGraphContext's optional SCIP mode for C/C++ as a
+second cell, or not; H-28–H-31; C-153.
+**Next:** named no-spend units through the harness, toward 40.

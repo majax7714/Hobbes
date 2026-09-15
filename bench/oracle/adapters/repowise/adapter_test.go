@@ -118,3 +118,36 @@ func TestCclangMacroRowIsExcluded(t *testing.T) {
 		t.Fatalf("Excluded[macro] = %d, want 1", h.Excluded["macro"])
 	}
 }
+
+// converter@4 (ADR-101's 2026-09-15 amendment), read by hand from
+// testdata/cppgrain/grain.h: TWICE is `#  define`d at line 4 (spaces after
+// the #) and reads as macro, so its row is excluded; pick's start_line is
+// its return-type line (8), as the tool stored ToString in args.hxx, and
+// lands on the name's line (9); plain (11) stays where it is.
+func TestCppGrainSpacedDefineAndSplitHead(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "edges.json")
+	cmd := exec.Command("python3", "adapter.py", "convert", "--raw", "testdata/cppgrain.raw.json", "--repo", "../../testdata/cppgrain", "--sha", "fixture", "--version", "0.49.0", "--out", out)
+	if b, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("convert: %v\n%s", err, b)
+	}
+	h, _, err := foreign.FromFile(out, ".", "cpp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, e := range h.Edges {
+		got[e.Target.Key()] = e.Site.Key()
+	}
+	want := map[string]string{"grain.h:11": "grain.h:14", "grain.h:9": "grain.h:17"}
+	if len(got) != len(want) {
+		t.Fatalf("graded edges: %+v", h.Edges)
+	}
+	for callee, site := range want {
+		if got[callee] != site {
+			t.Errorf("callee %s: site %q, want %q", callee, got[callee], site)
+		}
+	}
+	if h.Excluded["macro"] != 1 {
+		t.Fatalf("Excluded[macro] = %d, want 1", h.Excluded["macro"])
+	}
+}

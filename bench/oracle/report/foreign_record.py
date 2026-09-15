@@ -53,6 +53,7 @@ def main(argv=None):
     ap.add_argument("--triage-note", default="", help="a hand-read triage paragraph for this cell's contradictions, quoted as written")
     ap.add_argument("--lang", default="", help="the cell's language name as the triage file spells it (Go, TypeScript, Rust, Java, Python, C, C++)")
     ap.add_argument("--repo-name", default="", help="the cell's repo name as the triage file spells it")
+    ap.add_argument("--grade-lang", default="", help="the --lang the grade ran with, where the key directory's name does not end in it (a C++ key sits in <repo>-cell)")
     a = ap.parse_args(argv)
     cell = Path(a.cell)
     if a.hobbes:
@@ -112,7 +113,7 @@ def main(argv=None):
                  + f". Grain note from the adapter: {notes.get('grain', 'n/a')}.")
     if not a.hobbes:
       lines.append("")
-      lines.append(f"Command: `bench/oracle/grade-foreign.sh {cell.name}/edges.json {Path(a.key).name}/oracle.json {cell.name} --lang {Path(a.key).name.rsplit('-', 1)[-1] if Path(a.key).name.rsplit('-', 1)[-1] in ('go','ts','rust','java','py','c') else '<lang>'}`. Outputs in `{cell}` (`hobbes.json` is the converted graph, `raw.json` the tool's rows as stored, `edges.json` the minimal shape).")
+      lines.append(f"Command: `bench/oracle/grade-foreign.sh {cell.name}/edges.json {Path(a.key).name}/oracle.json {cell.name} --lang {a.grade_lang or (Path(a.key).name.rsplit('-', 1)[-1] if Path(a.key).name.rsplit('-', 1)[-1] in ('go','ts','rust','java','py','c') else '<lang>')}`. Outputs in `{cell}` (`hobbes.json` is the converted graph, `raw.json` the tool's rows as stored, `edges.json` the minimal shape).")
     if not a.hobbes:
       lines.append("")
     lines.append("## Numbers (report.txt, head, verbatim)")
@@ -173,7 +174,11 @@ def main(argv=None):
             head = f"**Direction of fix ({a.date}, signed):** {a.fix_note} "
         elif edges_v1 is not None:
             v1_conv = edges_v1.get("converter", "")
-            if conv.endswith("@3"):
+            if conv.endswith("@4"):
+                cause = ("the converter now reads `# define` spelled with spaces as the same directive (kind macro, excluded as Hobbes' own are) and "
+                         "advances a declaration head split over lines to the line holding the name (C-94's C++ face; ADR-101's 2026-09-15 "
+                         "amendment, found by the foreign C++ cells' triage). ")
+            elif conv.endswith("@3"):
                 cause = ("the converter now reads a callee whose declared line begins with #define as kind macro, which the lane excludes as it "
                          "excludes Hobbes' own (C-95; ADR-101's 2026-09-14 amendment: a tool storing a function-like macro as a function was graded "
                          "against the expansion's callee). ")

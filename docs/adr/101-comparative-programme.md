@@ -203,13 +203,41 @@ without it.
 
 **Decision.** The first amendment's rule holds for C++: the import
 applies the export's predicates and nothing of its own. `.h` sits in
-both the C and the C++ set, as the export has it. converter@3's
-`#define` reading is unchanged: it already reads C++ sources. Every
-place the set is spelled says `cpp`. No new fixture: the conversion
-path is the one the C fixture proves, and only the extension table
+both the C and the C++ set, as the export has it. Every place the set
+is spelled says `cpp`. No new fixture for the import: the conversion
+path is the one the C fixture proves, only the extension table
 differs, and the export's C++ test holds that.
 
-**Consequences.** The foreign C++ cells (both tools on fmt and args)
-are unblocked. They are pre-registered in `oracle-grading.md` §10.7
-before either tool runs. Nothing under `bench/` moves the version
-(ADR-103).
+**Then, from the cells' triage: converter@4.** The first grade of the
+foreign C++ cells (converter@3) found two converter defects in the
+hand-read sample, each charged to the tool (C-94's rule):
+- **`#  define` with spaces after the `#`.** repowise stored gtest's
+  and fmt's nested macros (`GTEST_LOG_`, `EXPECT_WRITE`, `FMT_ASSERT`)
+  as kind `function`, and @3's test was a literal `#define`. That is
+  3 of 20 sampled rows; over the cell, 713 of repowise's graded fmt
+  edges, 365 of them contradicted. It is the same directive, and @3's
+  rule ("a `#define` at the declared line") names it. converter@4
+  reads `#`, optional spaces, then `define`.
+- **A declaration head split over lines.** repowise stored args'
+  second `ToString` at its return-type line (`typename
+  std::enable_if<…>::type`) and two gtest functions at their attribute
+  macro's line, where the key keys the name's line (D-O4). @2 already
+  states the grain as "the identifier's line" and skips annotation
+  lines only. converter@4 advances a C or C++ head with no `;`, `{` or
+  `}` up to three lines to the line holding the declared name. It
+  applies to C and C++ sources only, and never from a comment line. A
+  first draft applied it everywhere, and re-converting every foreign
+  cell's stored dump moved 46 jsoup rows where CodeGraphContext had
+  stored a javadoc or body line: those are not split heads, and they
+  stayed as stored.
+
+Both adapters carry the rules and a hand-made fixture
+(`testdata/cppgrain`), read by hand in their Go tests.
+
+**Consequences.** The foreign C++ cells are regraded from their stored
+dumps under @4. Each keeps its @3 grade beside the cell as
+`edges.v1.json` / `report.v1.*` and carries a signed direction line.
+Re-converting every other foreign cell under @4 checks the rule's
+reach; a cell whose edges move is regraded the same way. The foreign
+C++ cells are pre-registered in `oracle-grading.md` §10.7. Nothing
+under `bench/` moves the version (ADR-103).

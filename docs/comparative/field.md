@@ -59,8 +59,8 @@ most rows read *nothing found* — stated as exactly that.
 | **[Codanna](https://github.com/bartolli/codanna)** · Apache-2.0 · 739★ · pushed 2026-08-29 | tree-sitter ([README](https://github.com/bartolli/codanna#readme)) | unstated (throughput and latency numbers only, "not an accuracy claim") | unstated | unstated | unstated | optional — a bundled local embedding model by default; remote embeddings opt-in | "Windows support experimental" is the only limitation-type statement found | unstated ("no source code leaves your machine" is a network claim) | 15 named; no per-language evidence beyond the list | **yes in the shown example:** symbol file:line, callees "called at" file:line, callers by reverse reference; index format under `.codanna/` not specified. Not graded here |
 | **[codebadger](https://github.com/qcri/codebadger)** · GPL-3.0 · 167★ · pushed 2026-08-31 | Joern code property graphs ([README](https://github.com/qcri/codebadger#readme)) | unstated | unstated | unstated | unstated | unstated for the CPG build | nothing found | unstated (Joern's CPG for compiled languages may need a build; not confirmed) | Java, C/C++, JavaScript, Python, Go, Kotlin, C#, Ghidra, Jimple, PHP, Ruby, Swift (named) | **unstated:** CPGQL queries; the MCP tool catalogue (`docs/available-tools.md`) was not read. Docker-based. Not graded here |
 
-**Hobbes 0.2.8-beta (ADR-103; every cell record names the commit, exact
-where a version is a name; this row refreshed 2026-09-13, the tool rows
+**Hobbes 0.2.28-beta (ADR-103; every cell record names the commit, exact
+where a version is a name; this row refreshed 2026-09-15, the tool rows
 above stand as read 2026-09-09), for the same columns, so the reader has
 the row it is being compared to** — every entry points at the evidence
 rather than restating it: edge source, tree-sitter (lane A; ts-morph for
@@ -72,25 +72,27 @@ date-fns, quic-go, serde, jsoup, petclinic; `extraction-evidence.md`);
 model in the build, no (`hobbes narrate` sits on top and is pinned);
 says what it cannot see, a per-repo statement (`list_blind_spots`, the
 tail classes per file, the containment stamp) and the register
-(`docs/constraints/`, 139 entries, 111 active); executes repo code, yes for lane B
+(`docs/constraints/`, 154 entries, 111 active); executes repo code, yes for lane B
 and the executing oracles, **contained** in the sandbox image
-(ADR-092, C-64); languages, six (Python, TypeScript/JavaScript, Go,
-Rust, Java, C), each with its §3.8 evidence row;
+(ADR-092, C-64); languages, seven (Python, TypeScript/JavaScript, Go,
+Rust, Java, C, C++), each with its §3.8 evidence row;
 export, `oracle export` reads `graph.json` to (site, callee) pairs.
 
 ## 2. What our runs observed
 
 Facts about running the two graded tools on this box on 2026-09-09,
 as their READMEs document, on the loop repos at the commits the oracle
-keys were built at. These are not claims about the tools beyond that
-run.
+keys were built at, and again on the C cells (2026-09-14) and the C++
+cells (2026-09-15) at the same pins. These are not claims about the
+tools beyond those runs.
 
 | | CodeGraphContext 0.6.13 (`--db kuzudb`) | repowise 0.49.0 (`init --no-prose -y --no-editor-setup`) |
 |---|---|---|
 | Install | `uv venv && uv pip install codegraphcontext`; Python 3.14 on this box | `uv venv && uv pip install repowise` |
 | Network during index | none observed; no key asked for | none observed; no key asked for (`--no-prose`) |
 | Repo code executed | none observed (tree-sitter parse; no build invoked) | none observed |
-| Writes into the repo | none (the database is at `--db-path`) | `.repowise/` (kept out of the tree with `--no-editor-setup`; the default also writes `.mcp.json`, `.claude/CLAUDE.md`, `.vscode/*`) |
+| Writes into the repo | none on the 2026-09-09 clones (the database is at `--db-path`); on the C and C++ runs (2026-09-14, 2026-09-15) a `.cgcignore` at the clone's root, its default ignore patterns (`build/`, `node_modules/`, images, archives), left untracked | `.repowise/` (kept out of the tree with `--no-editor-setup`; the default also writes `.mcp.json`, `.claude/CLAUDE.md`, `.vscode/*`); on the C++ runs the store was moved out of the clone after its dump |
+| C and C++ files it reads | its parser table (`tools/graph_builder.py`) maps `.c` to C and `.cpp`, `.h`, `.hpp`, `.hh` to C++; `.cc`, `.cxx` and `.hxx` are not read. On args (a `.hxx` header, `.cxx` tests) it stored no C++ call edge; on fmt, none from its 47 `.cc` files | its source not read for this; on fmt it drew edges from `.cc` files, and on args from `args.hxx` and the `.cxx` tests |
 | Determinism, the same clone indexed again | **not always the same**: four fresh indexes of mux stored 767, 1,193, 767 and 767 CALLS rows (the 1,193 a strict superset; the tool's own summary printed 2,165 each time) — both grades are in the mux cell record | **same**: the converted edge file was byte-identical across two indexes of mux |
 | Wall time on mux (7.5k lines Go) | 4 s | 4 s |
 | Their own errors during the loop | read from each cell's `index.log`, quoted in its record; the spring-data-elasticsearch index exited 1 on a Kuzu binder exception and was graded as stored | none |

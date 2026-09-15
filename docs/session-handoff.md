@@ -15,15 +15,42 @@ after this session's rebuild.
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the 2026-09-15 "ADR-116" BUILDLOG entry (the
-facts arrive as a stream, then the record paths and the gate's arrow
-fix); ADR-115's (the decode streams) and C++'s
-close-out are the entries of the same day before it. Earlier sessions' detail lives in their own BUILDLOG entries; this
+The latest session's record is the 2026-09-15 "foreign C++ cells"
+BUILDLOG entry (the top-level review, the four cells, converter@4).
+Before it: the "ADR-116" entry (the facts arrive as a stream, then the
+record paths and the gate's arrow fix), and ADR-115's (the decode
+streams) and C++'s close-out, all the same day. Earlier sessions' detail lives in their own BUILDLOG entries; this
 file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-0. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
+0. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
+   out on the comparative page too.**
+   - Pre-registered first (`oracle-grading.md` §10.7, P32–P35,
+     `ac5f7c8`), then both tools on fmt and args, host-run, graded by
+     the Hobbes cells' stored clang keys:
+     - CodeGraphContext fmt 844/975 (86.6%), recall 11.8%. Its args
+       cell graded nothing: it reads no `.cc`, `.cxx` or `.hxx` file.
+     - repowise fmt 2,414/5,343 (45.2%), recall 13.9%; args 815/937
+       (87.0%), recall 23.3%.
+     - Hobbes is ahead on both axes on both rows. P32–P34 met where
+       decidable; P35 missed (no tool's fmt recall passes 14.5%).
+   - The triage (60 rows, seeded) found two converter defects (C-94).
+     converter@4 (ADR-101 amended) reads `#  define` and advances a
+     C/C++ split head. Re-converting all 52 foreign dumps moved only
+     repowise's two C++ cells, regraded with signed direction lines.
+   - Graphics regenerated: 90 cells, 22 same-key rows; `render.py
+     check` and the report test green.
+   - **Where things are:** `~/.hobbes/bench/comparative/{codegraphcontext,repowise}-{fmt,args}/`;
+     the drivers `run-cpp-cell.sh` and `regrade-cpp-cell.sh`; the
+     triage files `triage-cpp-{codegraphcontext,repowise}.json`.
+     CodeGraphContext left a `.cgcignore` in each C++ clone (`field.md`
+     §2).
+   - **Open for Max:** CodeGraphContext has an optional SCIP path for
+     C/C++ (`SCIP_INDEXER=true` over a compile database). It was not run,
+     as on C. Whether a second CodeGraphContext cell in that mode earns
+     a row is his call.
+0a. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
    ADR-116).** C-150's remainder, Max's route A of three:
    - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
      per document, a trailer that counts them; helper version 4 — and
@@ -171,8 +198,8 @@ file keeps only what the next session needs.
    - **The Gradle attach route's residuals** (C-67); `recall-collapsed`
      and H-23; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** the two SQLite tools in `field.md`
-     (converters first); syft's keys on a bigger box. No foreign C++
-     cells exist yet.
+     (converters first); syft's keys on a bigger box. The foreign C++
+     cells are done (item 0).
    - **C's residue:** C-134's remainder, C-135's autotools, Meson and
      Bazel roots, C-133's unit 2 and its macro half; the macro gap is
      parked (C-131).
@@ -223,7 +250,8 @@ min each.
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
   is a tmpfs. Thirty-one log files under `docs/calvin/sessions/`.
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 84 cells; `render.py check` green.
+  from 90 cells (22 same-key rows, C++'s two among them); `render.py
+  check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
 - **Register:** 154 entries: 111 active (85 surfaced, 21 partial, 4
@@ -235,7 +263,8 @@ min each.
 - **Suites** at 0.2.28-beta: 1,632 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;
-  oracle-lane Go 95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0
+  oracle-lane Go 97 pass / 5 skip (re-run 2026-09-15 with converter@4's
+  two tests); 52 vitest, 36 tsextract, 84 atlas0
   not re-run.
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
   cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if

@@ -516,5 +516,37 @@
   "draw": "random",
   "label": "args",
   "note": "random draw (seed 20260914); the 4 contradicted at 0.2.21-beta were the overload collapse, abstained since 0.2.22-beta (C-151)"
+ },
+ "codegraphcontext-fmt": {
+  "lang": "C++",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "fmt",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-args": {
+  "lang": "C++",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "args",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-fmt": {
+  "lang": "C++",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "fmt",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "repowise-args": {
+  "lang": "C++",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "args",
+  "tool": "repowise",
+  "note": "repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
  }
 }

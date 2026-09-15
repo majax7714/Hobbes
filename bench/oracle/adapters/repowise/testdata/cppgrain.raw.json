@@ -1,0 +1,46 @@
+{
+ "database": "../../testdata/cppgrain/.repowise/wiki.db",
+ "repositories": [
+  {
+   "name": "rw",
+   "local_path": "../../testdata/cppgrain",
+   "head_commit": "fixture"
+  }
+ ],
+ "edges": [
+  {
+   "source_node_id": "grain.h::use",
+   "target_node_id": "grain.h::TWICE",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[14]"
+  },
+  {
+   "source_node_id": "grain.h::use",
+   "target_node_id": "grain.h::plain",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[14]"
+  },
+  {
+   "source_node_id": "grain.h::first",
+   "target_node_id": "grain.h::pick",
+   "edge_type": "calls",
+   "confidence": 0.9,
+   "hint_source": null,
+   "resolution_origin": "same_file",
+   "call_lines_json": "[17]"
+  }
+ ],
+ "symbols": [
+  {"symbol_id": "grain.h::TWICE", "file_path": "grain.h", "name": "TWICE", "qualified_name": "grain.h.TWICE", "kind": "function", "start_line": 4, "end_line": 4, "language": "cpp"},
+  {"symbol_id": "grain.h::first", "file_path": "grain.h", "name": "first", "qualified_name": "grain.h.first", "kind": "function", "start_line": 17, "end_line": 17, "language": "cpp"},
+  {"symbol_id": "grain.h::pick", "file_path": "grain.h", "name": "pick", "qualified_name": "grain.h.pick", "kind": "function", "start_line": 8, "end_line": 9, "language": "cpp"},
+  {"symbol_id": "grain.h::plain", "file_path": "grain.h", "name": "plain", "qualified_name": "grain.h.plain", "kind": "function", "start_line": 11, "end_line": 11, "language": "cpp"},
+  {"symbol_id": "grain.h::use", "file_path": "grain.h", "name": "use", "qualified_name": "grain.h.use", "kind": "function", "start_line": 13, "end_line": 15, "language": "cpp"}
+ ]
+}

@@ -790,6 +790,26 @@ commits, and are graded by those cells' stored clang keys with
 args' recall is recorded, not predicted. If P33 fails on a cell, the
 claim page's list of ties gains it.
 
+**Graded 2026-09-15**, on the records at converter@4. The first grade,
+at @3, is kept beside each cell. The triage that moved it is ADR-101's
+2026-09-15 amendment.
+- P32 **met** on the three cells with graded edges. Undecidable on
+  CodeGraphContext's args cell, which graded nothing: its parser reads
+  no `.hxx` or `.cxx` file.
+- P33 **met** on the three: CodeGraphContext fmt 86.6%, repowise fmt
+  45.2% and repowise args 87.0%, against Hobbes' 99.1% and 100%.
+  Undecidable on CodeGraphContext's args.
+- P34 **met** on the three, on the rows read: 17, 14 and 19 of 20 have
+  the name-match-wrong-owner shape. The rest are the key's open defects
+  (H-29 and H-30: 3 rows on CodeGraphContext's fmt, 1 on repowise's
+  args) and 6 constructions repowise drew to a type or a `using` alias
+  on fmt.
+- P35 **missed**: on fmt, CodeGraphContext's recall is 11.8% and
+  repowise's 13.9%, both below Hobbes' 14.5%. On neither C++ row is a
+  tool's marker ahead of Hobbes' on either axis.
+- args' recall, recorded: repowise 23.3% and CodeGraphContext 0.0%,
+  against Hobbes' 56.4%.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

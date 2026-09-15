@@ -32,17 +32,30 @@ expansion. converter@3 reads the declared line's source and reads a
 leading `#define` as kind `macro` (`declared_kind`), which the lane
 already excludes for a `macro` kind; a cell graded at @2 charged those
 rows to the tool.
+
+Grain (C-94's C++ face, ADR-101's 2026-09-15 amendment): the foreign C++
+cells' triage found two lines @3 read too narrowly. A directive spelled
+`#  define` (spaces after the `#`, as gtest and fmt write nested ones) is
+the same `#define`, and a declaration head split over lines (a return
+type or an attribute macro on the line above the name) starts at a line
+that does not hold the name. converter@4 reads `#` + optional spaces +
+`define`, and advances a head with no `;`, `{` or `}` up to three lines
+to the line holding the declared name (`identifier_line`).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 from pathlib import Path
 
-VERSION = "repowise-adapter@3"
+VERSION = "repowise-adapter@4"
+
+DEFINE = re.compile(r"\s*#\s*define\b")
+C_FAMILY = (".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx")  # the export's c and cpp sets
 
 
 def dump(db: str, out: str) -> None:
@@ -58,7 +71,32 @@ def dump(db: str, out: str) -> None:
     print(f"dumped {len(edges)} call edges, {len(symbols)} symbols → {out}", file=sys.stderr)
 
 
-def declaration_line(repo: str, path: str, line: int) -> int:
+def identifier_line(lines: list[str], i: int, name: str, path: str = "") -> int:
+    """converter@4, C and C++ sources only: from index i, when that line
+    does not hold the declared name as an identifier, advance through the
+    declaration's head (lines with no `;`, `{` or `}`) up to three lines to
+    the one that does. The heads it reads (a return type, a `template <…>`
+    line or an attribute macro above the name) are C/C++ declaration
+    grammar; elsewhere, and from a comment line, the line stays (a tool
+    storing a javadoc or a body line is not a split head: the re-conversion
+    of every foreign cell found 46 such rows in jsoup). The name is the
+    tool's short name (after the last `::` or `.`, template arguments
+    dropped). Not found, or no name → i."""
+    short = re.split(r"::|\.", name.split("<")[0])[-1].strip() if name else ""
+    if not short or not path.endswith(C_FAMILY) or lines[i].lstrip().startswith(("//", "/*", "*")):
+        return i
+    pat = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(short) + r"(?![A-Za-z0-9_])")
+    if pat.search(lines[i]):
+        return i
+    j = i
+    while j + 1 < len(lines) and j - i < 3 and not re.search(r"[;{}]", lines[j]):
+        j += 1
+        if pat.search(lines[j]):
+            return j
+    return i
+
+
+def declaration_line(repo: str, path: str, line: int, name: str = "") -> int:
     """D-O4 keys a declaration at its identifier's line. Both tools start a
     declaration at its node's first line, which for a Java method under an
     annotation (`@Override` on its own line), or a decorated TS / Python
@@ -88,7 +126,7 @@ def declaration_line(repo: str, path: str, line: int) -> int:
             if depth < 0:
                 depth = 0
         i += 1
-    return i + 1 if i < len(lines) else line
+    return identifier_line(lines, i, name, path) + 1 if i < len(lines) else line
 
 
 def declared_kind(repo: str, path: str, line: int, stored: str) -> str:
@@ -106,7 +144,7 @@ def declared_kind(repo: str, path: str, line: int, stored: str) -> str:
             lines = f.read().split("\n")
     except OSError:
         return stored
-    if 1 <= line <= len(lines) and lines[line - 1].strip().startswith("#define"):
+    if 1 <= line <= len(lines) and DEFINE.match(lines[line - 1]):  # `# define` too (converter@4)
         return "macro"
     return stored
 
@@ -128,7 +166,7 @@ def convert(raw_path: str, sha: str, version: str, out: str, repo: str = "") -> 
             dropped["no-call-lines"] += 1
             continue
         repo_path = repo or (raw["repositories"][0]["local_path"] if raw.get("repositories") else "")
-        callee_line = declaration_line(repo_path, dst["file_path"], int(dst["start_line"]))
+        callee_line = declaration_line(repo_path, dst["file_path"], int(dst["start_line"]), str(dst.get("name") or ""))
         kind = declared_kind(repo_path, dst["file_path"], callee_line, str(dst.get("kind") or ""))
         for line in lines:
             edges.append({
@@ -142,7 +180,8 @@ def convert(raw_path: str, sha: str, version: str, out: str, repo: str = "") -> 
     repo = repo or (raw["repositories"][0]["local_path"] if raw.get("repositories") else "")
     doc = {"repo": repo, "sha": sha, "tool": "repowise", "version": version, "converter": VERSION,
            "notes": {"dropped": dropped, "grain": "declaration line = wiki_symbols.start_line advanced past leading annotation/decorator lines to the identifier's line (converter@2; @1 graded the annotation line)"
-                     "; a callee whose declared line begins with #define is kind macro, which the lane excludes (converter@3; @2 graded it as stored)"},
+                     "; a callee whose declared line begins with #define is kind macro, which the lane excludes (converter@3; @2 graded it as stored)"
+                     "; `# define` with spaces is the same directive, and a declaration head split over lines advances to the line holding the name (converter@4; @3 graded both as stored)"},
            "edges": edges}
     Path(out).write_text(json.dumps(doc, indent=1) + "\n")
     print(f"{len(edges)} edges (dropped {dropped}) → {out}", file=sys.stderr)

@@ -187,8 +187,8 @@ misses by class, the grader's own mistakes);
 The same repos, the same commits, the same compiler answer keys, with
 every tool's graph put through them. [CodeGraphContext](https://github.com/CodeGraphContext/CodeGraphContext)
 0.6.13 and [repowise](https://github.com/repowise-dev/repowise) 0.49.0
-were run as their READMEs document (2026-09-09, and on the two C repos
-2026-09-14; either may have moved since), their graphs converted by a per-tool adapter with a hand-read
+were run as their READMEs document (2026-09-09, on the two C repos
+2026-09-14 and on the two C++ repos 2026-09-15; either may have moved since), their graphs converted by a per-tool adapter with a hand-read
 fixture, and graded by the same matcher and the same poison check as
 Hobbes' own (ADR-101). One row is one cell; each tool has one marker on
 the precision axis and one on the recall axis.
@@ -200,7 +200,7 @@ A comparison is only as honest as its reading rules, so here they are:
 - **Read across a row, never down a column.** Each cell's recall is
   over its own roots or resolved sites (C-62). Nothing is pooled or
   averaged.
-- **What the rows show.** There are 20 rows. On each, Hobbes' marker
+- **What the rows show.** There are 22 rows. On each, Hobbes' marker
   is the rightmost on both axes or tied for it; no tool is ahead of it
   on either axis on any row. It ties on precision at three rows:
   - rust_proj, where CodeGraphContext stored one call edge and that
@@ -212,10 +212,12 @@ A comparison is only as honest as its reading rules, so here they are:
   It ties on recall at one row, sqlite-vector, where CodeGraphContext
   also reaches all 1,091 resolved sites (with 12 contradictions to
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
-  compiler-graded row but quic-go (3,766/3,781, a 99.6% lower bound
-  whose 15 contradictions all triage to the oracle's grain). Its recall
-  lead within a row runs from none (sqlite-vector) and half a point
-  (cJSON) to 35 points (zod).
+  compiler-graded row but two. quic-go reads 3,766/3,781, a 99.6% lower
+  bound whose 15 contradictions all triage to the oracle's grain. fmt
+  reads 3,254/3,282 (99.1%): 18 of its 28 contradictions are the
+  oracle's grain and 10 are scip-clang's own wrong candidate (C-153).
+  Its recall lead within a row runs from none (sqlite-vector), half a
+  point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
   mostly triage to the oracle's grain. A 40-row hand triage of the other
   tools' contradictions found 39 tool-wrong, 1 oracle-grain and 0
@@ -223,15 +225,19 @@ A comparison is only as honest as its reading rules, so here they are:
   instead: repowise stores a function-like macro as `function` (C-95's
   C face). The converters now read a `#define` as `macro` (ADR-101
   amended), the C cells were regraded, and what is left was read in
-  full: the tools' own wrong edges.
+  full: the tools' own wrong edges. The C++ rows' sample found two
+  converter defects of the same kind, a `#  define` written with spaces
+  and a declaration head split over lines. converter@4 reads both, the
+  C++ cells were regraded (C-94), and at @4 the 60 rows read tool-wrong
+  56, oracle-grain 4, converter-defect 0.
 - **Their numbers are theirs at our grain.** The converter is Hobbes',
   and a misread is Hobbes' defect (C-94). The matcher's tolerances were
   tuned on Hobbes' output (C-95). Their runs were on the host, not in the
   sandbox (C-96).
 - **What is not here.**
-  - C++ has no foreign cell: its two cells (fmt, args) postdate the
-    runs, so no C++ row appears here. They stand in the tables and the
-    scatter as Hobbes cells.
+  - CodeGraphContext's precision on args: it reads no `.hxx` or `.cxx`
+    file (its parser table), so it graded no C++ edge there, and its
+    recall marker sits at 0%.
   - syft, one of repowise-bench's draws, has no key on this box: RTA
     over it is killed by the kernel at 19 GB.
   - No number a tool publishes on its own basis is put beside these.

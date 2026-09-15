@@ -171,6 +171,24 @@
   46.2% → 79.4%, jsoup repowise 43.8% → 48.9%); no non-Java cell moved.
   After the repair the 40-row sample reads tool-wrong 39, oracle-grain
   1, converter-defect 0 — a sample, not the population.
+  **Sighted again on the C++ cells (2026-09-15), at converter@3:** the
+  sample read 3 of repowise's 20 fmt rows and 1 of its 20 args rows as
+  the converter's.
+  - A macro written `#  define` (spaces after the `#`, as gtest and fmt
+    nest them) escaped @3's literal `#define` test: 713 of the fmt
+    cell's graded edges, 365 of them contradicted.
+  - A declaration head split over lines (a return type or an attribute
+    macro above the name) was graded at its first line, where D-O4
+    keys the name's.
+
+  converter@4 reads both (ADR-101's 2026-09-15 amendment). The head
+  rule reads C and C++ sources only: a first draft applied everywhere
+  moved 46 jsoup rows where CodeGraphContext had stored a javadoc or
+  body line. Re-converting every foreign cell's stored dump on this box
+  (52 directories) under @4 moved only repowise's two C++ cells, which
+  were regraded with signed direction lines (fmt 42.3% → 45.2%, args
+  86.9% → 87.0%). At @4 the 60-row C++ sample reads tool-wrong 56,
+  oracle-grain 4, converter-defect 0.
 - **You find out:** **surfaced** (2026-09-09). Every converter ships a
   hand-read fixture (its own dump of `minigo`, read against the
   conversion in a Go test), a malformed position refuses the whole
@@ -215,6 +233,14 @@
   lines, the first grade kept beside each. What stays: the rule reads
   the source, not the tool's belief, and a tool that stores a macro
   under a kind of its own is still read at our grain.
+  **On C++ (2026-09-15, the foreign C++ cells):** repowise draws a
+  construction to the type or a `using` alias it names (`dms(12.56)` to
+  `using dms = std::chrono::duration<…>`, `tieable()` to a struct with
+  no user-declared constructor). The key holds the constructor clang
+  called, or no call at all, so the edge grades contradicted: 6 of the
+  20 rows read on its fmt cell. The converter cannot state a type's
+  constructor without the types, so these are read as stored, tool-wrong
+  at our grain, and the record says so.
 - **You find out:** **surfaced** (2026-09-09). `oracle import`'s
   package doc and the cell record state which rules fired; the
   report's per-tier split reads the tool's own confidence labels, so

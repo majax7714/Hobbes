@@ -6,7 +6,7 @@ lane, not a scoreboard.** The lane (`bench/oracle/`, ADR-089) grades
 call edges against answer keys Hobbes does not control — x/tools RTA
 for Go, `tsc` for TypeScript, CPython's `sys.monitoring` for Python,
 rustc's MIR for Rust, javac with CHA for Java, clang's front end for C
-(ADR-110) — and it does not care
+and C++ (ADR-110, ADR-113) — and it does not care
 who produced the edges. So the benchmark is: same repos, same
 commits, same compiler answer keys, every tool's graph put through
 them. A bar chart of self-reported "accuracy" with Hobbes on top is the
@@ -23,7 +23,7 @@ What is here:
 | [`graphics/same-key.svg`](graphics/same-key.svg) | **The comparison.** One row per cell that has a foreign graph on the same key: three markers on the precision axis and three on the recall axis, one colour per tool (blue dot Hobbes, orange square CodeGraphContext, green diamond repowise), grouped by language, repowise-bench's draws as their own band. Read across a row, never down a column. |
 | [`graphics/date-fns-before-after.svg`](graphics/date-fns-before-after.svg) | Before / after on one repo, as the per-directory capture view that named the fix (C-74, C-90). |
 | [`data/`](data/) | What the graphics are rendered from: `cells.json` (parsed from `docs/oracle/cells/`), `date-fns-capture.json` (parsed from two `graph.json` artifacts). |
-| `docs/oracle/cells/<tool>-<repo>-2026-09-09.md` | The foreign cells, one per tool × repo, in the same record format as a Hobbes cell. |
+| `docs/oracle/cells/<tool>-<repo>-<date>.md` | The foreign cells, one per tool × repo, in the same record format as a Hobbes cell: the loop and draws 2026-09-09, the C cells 2026-09-14, the C++ cells 2026-09-15. |
 
 Everything numeric renders from the records by
 `bench/oracle/report/render.py`; `render.py check` (run by the oracle
@@ -63,8 +63,9 @@ earlier version. That is why the graphics name several versions.
 (ADR-113, O10): fmt (chosen for shape) and Taywee/args (drawn at
 random), graded against clang's front end at 0.2.21-beta and regraded at
 0.2.22-beta after ADR-113 §2's third amendment, so their standing grades
-name a fourth version. They stand in the tables, the scatter and the
-one number as Hobbes cells; neither has a foreign cell yet.
+name a fourth version. Both tools were graded on them the same day,
+pre-registered first (`oracle-grading.md` §10.7), so each is a row of
+`same-key.svg` (item 4 below).
 
 ## The claim, in the words the evidence licenses
 
@@ -143,7 +144,27 @@ one number as Hobbes cells; neither has a foreign cell yet.
    `#if` arm; CodeGraphContext's twelve on sqlite-vector are nine API
    names drawn into the vendored amalgamation the build never
    compiles with the extension and the three `strcasestr` shim rows
-   Hobbes' own syntactic tier once drew (C-138).
+   Hobbes' own syntactic tier once drew (C-138). **C++, 2026-09-15:**
+   both tools on the two C++ cells (fmt, args), pre-registered first
+   (`oracle-grading.md` §10.7, P32–P35).
+   - **CodeGraphContext reads no `.cc`, `.cxx` or `.hxx` file** (its
+     parser table). So it graded nothing on args, and on fmt only the
+     headers: 844/975 (86.6%), recall 11.8%.
+   - **repowise:** fmt 2,414/5,343 (45.2%), recall 13.9%; args 815/937
+     (87.0%), recall 23.3%.
+   - **Hobbes, same keys:** fmt 3,254/3,282 (99.1%), recall 14.5%; args
+     1,995/1,995, recall 56.4%.
+
+   The seeded triage sample (60 rows) found two converter defects
+   first, both Hobbes' (C-94): a `#  define` written with spaces, and a
+   declaration head split over lines. converter@4 reads both (ADR-101's
+   2026-09-15 amendment), and the cells were regraded with signed
+   direction lines (repowise's fmt 42.3% → 45.2%). At @4 the sample
+   reads tool-wrong 56, oracle-grain 4 (the key's open H-29 and H-30),
+   converter-defect 0. The tools' C++ errors are one shape above all: a
+   call drawn by its short name to another declaration of that name —
+   another class's member, the other overload, `std::end` drawn to a
+   repo member `end()`.
 
 ## The 1-1 on repowise's draws
 

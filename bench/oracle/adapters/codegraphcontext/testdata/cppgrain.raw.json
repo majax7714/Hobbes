@@ -1,0 +1,53 @@
+{
+ "database": "/repo/cppgrain-db",
+ "rows": {
+  "CALLS": [
+   {
+    "caller_label": "Function",
+    "caller_path": "../../testdata/cppgrain/grain.h",
+    "caller_name": "use",
+    "site_line": 14,
+    "confidence": 0.9,
+    "confidence_label": "EXTRACTED",
+    "resolution_tier": 5,
+    "full_call_name": "TWICE",
+    "callee_path": "../../testdata/cppgrain/grain.h",
+    "callee_line": 4,
+    "callee_name": "TWICE",
+    "callee_class": null,
+    "callee_is_dependency": false
+   },
+   {
+    "caller_label": "Function",
+    "caller_path": "../../testdata/cppgrain/grain.h",
+    "caller_name": "use",
+    "site_line": 14,
+    "confidence": 0.9,
+    "confidence_label": "EXTRACTED",
+    "resolution_tier": 5,
+    "full_call_name": "plain",
+    "callee_path": "../../testdata/cppgrain/grain.h",
+    "callee_line": 11,
+    "callee_name": "plain",
+    "callee_class": null,
+    "callee_is_dependency": false
+   },
+   {
+    "caller_label": "Function",
+    "caller_path": "../../testdata/cppgrain/grain.h",
+    "caller_name": "first",
+    "site_line": 17,
+    "confidence": 0.9,
+    "confidence_label": "EXTRACTED",
+    "resolution_tier": 5,
+    "full_call_name": "pick",
+    "callee_path": "../../testdata/cppgrain/grain.h",
+    "callee_line": 7,
+    "callee_name": "pick",
+    "callee_class": null,
+    "callee_is_dependency": false
+   }
+  ],
+  "HEURISTIC_CALLS": []
+ }
+}

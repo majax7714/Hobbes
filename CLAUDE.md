@@ -194,7 +194,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 
 Suite sizes at the last check (2026-09-15, 0.2.28-beta; the last three
 carried from 0.2.8-beta): 1,632 pytest (6 `lane_b`) / 386 Go (385 pass,
-1 skip) + 100 oracle-lane Go (95 pass, 5 skip without a toolchain) / 52
+1 skip) + 102 oracle-lane Go (97 pass, 5 skip without a toolchain) / 52
 vitest / 36 tsextract + 77 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
@@ -294,7 +294,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   0.2.27-beta: a C or Java unit's own record sits at its root, not
   `root/root`. 0.2.28-beta: the gate reads a TS/JS arrow's parameters
   (C-91), closing the harness's one false block; built as session
-  `2b26`. **Next:** named no-spend units through the harness, toward 40.
+  `2b26`. Then the foreign C++ cells (no version move): both tools on
+  fmt and args, pre-registered (§10.7), Hobbes ahead on both axes on
+  both rows; their triage gave converter@4 (ADR-101 amended).
+  **Next:** named no-spend units through the harness, toward 40.
 - **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
   drawn); C-150's remainder (the join's own size and the graph built from

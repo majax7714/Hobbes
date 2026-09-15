@@ -326,6 +326,48 @@
    }
   },
   {
+   "stem": "codegraphcontext-args",
+   "record": "codegraphcontext-args-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": null,
+   "lang": "C++",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "args",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 0,
+   "confirmed": 0,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": null,
+   "undefined": true,
+   "recall": {
+    "pct": 0.0,
+    "hits": 0,
+    "pairs": 3561,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→constructor": 1332,
+    "static→function": 865,
+    "static→method": 1364
+   },
+   "poison": {
+    "passed": false,
+    "seeded": 0,
+    "refused": 0,
+    "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "codegraphcontext-cheerio",
    "record": "codegraphcontext-cheerio-2026-09-09.md",
    "date": "2026-09-09",
@@ -511,6 +553,53 @@
     "seeded": 2094,
     "refused": 2086,
     "unjudged": 8,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-fmt",
+   "record": "codegraphcontext-fmt-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": null,
+   "lang": "C++",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "fmt",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1249,
+   "confirmed": 844,
+   "contradicted": 131,
+   "abstract": 0,
+   "silent": 274,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 86.6,
+    "num": 844,
+    "den": 975
+   },
+   "recall": {
+    "pct": 11.8,
+    "hits": 5952,
+    "pairs": 50569,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 1631,
+    "macro→method": 1140,
+    "static→constructor": 8310,
+    "static→function": 10673,
+    "static→method": 22863
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1249,
+    "refused": 975,
+    "unjudged": 274,
     "falsely": 0
    }
   },
@@ -2652,6 +2741,51 @@
    }
   },
   {
+   "stem": "repowise-args",
+   "record": "repowise-args-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": null,
+   "lang": "C++",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "args",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 952,
+   "confirmed": 815,
+   "contradicted": 122,
+   "abstract": 0,
+   "silent": 15,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 87.0,
+    "num": 815,
+    "den": 937
+   },
+   "recall": {
+    "pct": 23.3,
+    "hits": 831,
+    "pairs": 3561,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→constructor": 1303,
+    "static→function": 200,
+    "static→method": 1227
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 952,
+    "refused": 937,
+    "unjudged": 15,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "repowise-cheerio",
    "record": "repowise-cheerio-2026-09-09.md",
    "date": "2026-09-09",
@@ -2837,6 +2971,53 @@
     "seeded": 2066,
     "refused": 2057,
     "unjudged": 9,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "repowise-fmt",
+   "record": "repowise-fmt-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": null,
+   "lang": "C++",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "fmt",
+   "tool": "repowise",
+   "note": "repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 6366,
+   "confirmed": 2414,
+   "contradicted": 2929,
+   "abstract": 0,
+   "silent": 1023,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 45.2,
+    "num": 2414,
+    "den": 5343
+   },
+   "recall": {
+    "pct": 13.9,
+    "hits": 7017,
+    "pairs": 50569,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 1631,
+    "macro→method": 1140,
+    "static→constructor": 8233,
+    "static→function": 10302,
+    "static→method": 22246
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 6366,
+    "refused": 5343,
+    "unjudged": 1023,
     "falsely": 0
    }
   },

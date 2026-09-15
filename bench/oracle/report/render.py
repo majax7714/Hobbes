@@ -663,7 +663,7 @@ def render_comparison(cells: list[dict]) -> str:
             continue
         by_label.setdefault(c["label"], {})[c.get("tool", "hobbes")] = c
     rows = [(lab, d) for lab, d in by_label.items() if any(t != "hobbes" for t in d) and "hobbes" in d]
-    order = ["Go", "TypeScript", "Rust", "Java", "C", "Python"]  # C since 2026-09-14, the first foreign C cells
+    order = ["Go", "TypeScript", "Rust", "Java", "C", "C++", "Python"]  # C since 2026-09-14, C++ since 2026-09-15
     bands = []
     for lang in order:
         loop = [(l, d) for l, d in rows if d["hobbes"]["lang"] == lang and "repowise-bench" not in d["hobbes"].get("draw", "")]
@@ -717,7 +717,7 @@ def render_comparison(cells: list[dict]) -> str:
                     mark(o, kind, colour, cx, y + 10, tip)
                 undefined = [t for t in d if t != "hobbes" and key == "precision" and d[t].get("undefined")]
                 if undefined:
-                    o.append(text(x0 + 4, y + 14, f"{', '.join(undefined)}: undefined (no call edge stored)", 8.5, INK2))
+                    o.append(text(x0 + 4, y + 14, f"{', '.join(undefined)}: undefined (no call edge graded)", 8.5, INK2))
             y += ROW
     y += 14
     o.append(f'<line x1="24" y1="{y}" x2="{W-24}" y2="{y}" stroke="{GRID}"/>')
@@ -730,7 +730,7 @@ def render_comparison(cells: list[dict]) -> str:
              + ", triaged in its record") if exc else ""
     for line in wrap("Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to the oracle's grain, A-8). "
                      f"Every Hobbes marker on the precision axis sits at 100%{exc_s}. "
-                     "The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded. "
+                     "The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded, and the C++ cells' 60-row sample tool-wrong 56, oracle-grain 4 after converter@4 read a spaced #define and a split declaration head. "
                      "On repowise-bench's draws the key is ours, at site grain — not comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.", 175):
         o.append(text(24, y, line, 10.5, INK2))
         y += 14
