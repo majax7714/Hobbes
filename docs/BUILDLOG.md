@@ -10772,3 +10772,74 @@ constraint for now … leaving closing out c++ as next sessions task".
   proves cheap. No code moved and no version bump; docs only.
 - **Next session:** close out C++: the fmt and args cells, then the
   §3.8 row.
+
+## 2026-09-15 — (later) C++ closed out: the two cells, ADR-113 §2 amended a third time, `8302`, and the §3.8 row — 0.2.22-beta and 0.2.23-beta
+
+**Asked (Max):** "review top level documentation then proceed with
+closing out c++". On the routes after the cells: "Fix both, then row
+(Recommended)". On O10's defects: "Record open, triage carries
+(Recommended)".
+
+- **The top-level review** found two stale lines. The README's ADR
+  range still said ADR-111 (fixed at 0.2.22-beta). The handoff pointed
+  to the 2026-09-14 entry (rewritten with this one).
+- **The driver** had no `cpp` case: `run-cell.sh --lang cpp` fell to
+  "unknown lang" (`77cbd44`).
+- **fmt was graded before a C++ pre-registration existed.** I ran the
+  cell before checking. §10.6 was then committed (`33920b6`) before
+  args ran, and it says so.
+- **The first grade** (0.2.21-beta): fmt 3,439/3,577 (96.1%, 138
+  contradicted), args 2,004/2,008 (99.8%, 4). Poison PASS on both.
+- **The triage, every row read,** with two scratch probes:
+  - The probes: the join's inputs were captured by wrapping
+    `evidence.join`, and the helper's choices were logged by a patched
+    copy of the helper mounted in its place. No tracked file was
+    touched.
+  - **The collapse:** 36 semantic (fmt) and 4 (args). C's one-target
+    rule kept the smallest line where a site's references named
+    several overloads; every one of fmt's 634 such sites names more
+    than one moniker.
+  - **The fallback:** 74 syntactic (fmt), lane A's name guesses in
+    files lane B compiled, where lane B had no occurrence. 50 were
+    namespace reach (43 into fmt's POSIX mocks), and 24 were
+    definitions lost to C-145. The external veto fired 0 times: C++
+    units carry almost no external occurrence.
+  - The remaining 28: 10 are scip-clang's own single wrong candidate
+    (C-153), and 18 are the oracle's (H-28–H-31).
+- **The route** (Max): ADR-113 §2 amended a third time (`d35e2bf`),
+  then **`S-20260915T161919Z-8302`** (77 of 120 turns, 8.7 min, $6.48,
+  Opus 5).
+  - Gate right-clear, verify pass (862 tests). Two deviations accepted.
+  - On the host, the `minicpp` `lane_b` test was red on the doer's
+    blind assertion: `tests/test_shapes.cpp` is outside the Makefile's
+    default target and so keeps its fallback. Fixed, with the rule's
+    other half asserted (`95c284b`).
+  - Merged `0f1b4d6`.
+- **Regraded against the stored keys** (0.2.22-beta, `6846d2f`): fmt
+  3,254/3,282 (99.1%), args 1,995/1,995 (100%). Recall fell for both:
+  fmt 15.5% → 14.5%, args 57.1% → 56.4%. fmt's 28 left are 28 of the
+  triaged rows.
+- **Lane agreement on fmt:** 2,239 compared, 316 disagreements,
+  unchanged by the unit. None draws an edge. Read against the key:
+  - 66 are lane B's target;
+  - 24 are lane B at a `using` declaration;
+  - 205 match neither (189 a definition lane A lost);
+  - at 21 the key has no target.
+
+  `hobbes lanes` exits 1 on fmt. This repo's graph has 0 C++
+  disagreements.
+- **The row** (0.2.23-beta): `VERIFICATION_BASE["cpp"]`, §3.8's C++
+  row and asymmetry line, §8's C++ row, the evidence log's section,
+  C-132 narrowed again, and README and CLAUDE.md.
+- **Register:** C-151 and C-152 (surfaced) and C-153 (unsurfaced, P9)
+  registered. 153 entries: 110 active (85 surfaced, 20 partial, 4
+  unsurfaced, 1 n/a). In the oracle's log, H-28–H-31 are open and RC-8
+  moved to shaped.
+- **Suites:** pytest 1,613 and node 71. The binaries, the static proxy
+  and the image were rebuilt at 0.2.23-beta; restart the knowledge
+  server (C-65). The tracker reads 30 of 40.
+
+**Open for Max:** H-28–H-31; C-153 (unsurfaced); `hobbes lanes` on a
+C++ repo (compare only where the fallback could draw, or keep); C-150's
+memory assessment. **Next:** the gate's arrow-parameter fix (C-91), as
+a small unit.
