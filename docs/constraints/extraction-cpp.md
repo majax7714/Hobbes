@@ -128,6 +128,70 @@ headers parsed with tree-sitter ERROR nodes.
   specialisation, and for overloads whose signature hash is equal.
 - **Source:** ADR-113 §2's determinism amendment; `3d1a`, 2026-09-14.
 
+### C-151 — A call site whose references name several overloads has no lane B answer
+- **Cannot tell you:** which overload a call means where scip-clang
+  references more than one at the site. scip-clang lists the candidates
+  of a call in a template it cannot resolve there, and one unit can
+  answer differently from another. Such a site draws no lane B edge.
+  Lane A abstains on the overload set (C-143), and in a file lane B
+  indexed lane A draws nothing anyway (C-152).
+- **Because:** until 0.2.22-beta, ADR-109's one-target-per-site rule
+  kept the smallest line, reading several lines of one file as one
+  definition's `#if` alternatives. In C++ they are different overloads,
+  and the first is often not the one meant. The edges drawn at such
+  sites were 36 wrong and 75 right on fmt, and 4 wrong and 9 right on
+  args (ADR-113 §2's third amendment).
+- **Bites at:** template-heavy code: fmt's 634 such sites and args' 14.
+  The right edges go with the wrong ones.
+- **You find out:** **surfaced** — one `scip-decode` record per ingest
+  counts the sites, with examples.
+- **Provider (P9):** scip-clang **0.4.0**, its references for a call it
+  does not resolve.
+- **Source:** the fmt and args cells (`docs/oracle/cells/`), 2026-09-15;
+  ADR-113 §2's third amendment.
+
+### C-152 — In a C++ file lane B indexed, a site lane B leaves unanswered draws no edge
+- **Cannot tell you:** lane A's name-only guess at a call site in a C++
+  file scip-clang compiled, where lane B has no answer. The site stays
+  unresolved, and the tail classes it as if lane A had no guess.
+- **Because:** lane A's fallback is C's, namespace-blind ranks by name.
+  In a compiled C++ file, lane B's silence mostly means one of two
+  things. The callee may lie outside the repo: scip-clang records no
+  occurrence for most libc calls in a C++ unit, so ADR-111's veto
+  cannot fire. Or lane A lost the real definition to a parse error
+  (C-145), so its "unique" match was not. On fmt the fallback drew 182
+  judged edges in such files before 0.2.22-beta: 108 right and 74 wrong
+  (59%). Lane A's guesses still feed lane agreement.
+- **Bites at:** a call lane B could not settle inside a compiled file:
+  C-148's and C-151's abstentions, tu-split sites, and a libc call,
+  which lane B places nowhere. fmt lost 108 right edges.
+- **You find out:** **surfaced** — `lane_agreement.cpp_withheld` counts
+  the sites, with examples, and one `cpp-fallback` degradation record
+  per ingest names the count. A C++ file lane B did not index keeps its
+  fallback (C-135's C++ face).
+- **Source:** fmt's cell, 2026-09-15; ADR-113 §2's third amendment.
+
+### C-153 — scip-clang's one answer at a call in a template can name the wrong declaration
+- **Cannot tell you:** that a semantic C++ edge from a call in a
+  template, or from a call qualified through another specialisation, is
+  the declaration the compiler picks when it instantiates the template.
+  Where scip-clang gives a single reference, the graph takes it.
+- **Because:** scip-clang indexes a template's pattern once. A call it
+  cannot resolve there gets the lookup's candidates, where C-151
+  abstains, or a single candidate. Measured shapes, all on fmt:
+  - the caller's own specialisation's member for another
+    specialisation's: `formatter<int>::format` drawn to
+    `formatter<type_with_get>::format` (4 edges);
+  - an explicit specialisation's member for the primary template's:
+    `test_format<20>::format` drawn to `test_format<0>` (4);
+  - one overload of two (2).
+- **Bites at:** fmt 10 of its 3,395 judged semantic edges (0.3%); args
+  none.
+- **You find out:** **unsurfaced** — nothing at the site says so. The
+  cell records and this entry are the only statement.
+- **Provider (P9):** scip-clang **0.4.0**.
+- **Source:** fmt's cell, 2026-09-15.
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that

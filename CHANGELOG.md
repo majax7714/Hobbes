@@ -11,9 +11,47 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.21-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.22-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.22-beta — 2026-09-15 (C++'s lane B answers only where it is sure; ADR-113 §2 amended a third time)
+
+**Patch: what the layer draws.** Two defects that the first C++ oracle
+cells found are fixed. C++ is still *wired, not supported* until its
+row.
+
+- **The cells.** fmt read 96.1% and args 99.8% at 0.2.21-beta, and
+  every contradiction was read. Two Hobbes mechanisms accounted for
+  most of them:
+  - C's one-target-per-site rule met C++ overloads. scip-clang lists
+    the candidates of a call in a template it cannot resolve there, and
+    the rule kept the first line: 36 wrong semantic edges on fmt, all 4
+    of args' contradictions.
+  - Lane A's name fallback drew in files scip-clang had compiled, where
+    lane B answered nothing: 74 wrong of 182 syntactic edges on fmt. C's
+    ranks do not see namespaces, so a libc call reached a namespaced
+    mock by name, and a parse error could hide the real definition. The
+    external veto could not fire, because C++ units record almost no
+    external occurrence.
+- **Two rules, for C++ only:**
+  - A call site whose references name more than one overload has no
+    lane B answer, and one `scip-decode` record counts the sites (C-151;
+    fmt 658, args 14).
+  - A C++ file lane B indexed draws no fallback edge where lane B
+    answered nothing. `lane_agreement.cpp_withheld` and one
+    `cpp-fallback` record count the sites (C-152; fmt 527, args 0). Lane
+    agreement still compares both lanes, and a C++ file lane B did not
+    index keeps its fallback.
+- **Regraded against the stored keys:** fmt 3,254/3,282 (99.1%), args
+  1,995/1,995 (100%). The cost is recall: fmt 15.5% → 14.5%, args
+  57.1% → 56.4%. fmt's 28 remaining contradictions split into 10 of
+  scip-clang's own single wrong candidate (C-153, unsurfaced, P9) and
+  18 of the oracle's (H-28–H-31, open).
+- **Built through the harness:** `S-20260915T161919Z-8302` (77 of 120
+  turns, 8.7 min; $6.48 reported). Gate right-clear, verify pass,
+  merged without squashing. The `minicpp` live test the doer extended
+  was red on the host on one wrong assumption, and was fixed there.
 
 ## 0.2.21-beta — 2026-09-15 (C and C++ indexed one translation unit per run; ADR-109 amended)
 

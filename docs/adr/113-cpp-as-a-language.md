@@ -455,6 +455,21 @@ commit is the patch that makes C++ *supported*.
   guard followed on the host (`4832883`): over 400 units, one
   whole-database run, recorded. Merged `e2f7704`. **Version:**
   0.2.21-beta; C-149 narrowed to *partial*.
-- **Remaining:** the two cells (fmt, then Taywee/args) and the §3.8
-  row. fmt (52 units), args (99) and cJSON (23) lie under the bound,
-  so their lane B repeats.
+- **2026-09-15 — the two cells, and the unit their triage asked for**
+  (§2's third amendment, Max's route "Fix both, then row").
+  - **The first grade** (0.2.21-beta, every contradiction read; records
+    in `docs/oracle/cells/`): fmt (chosen) 3,439/3,577 (96.1%), args
+    (the draw) 2,004/2,008 (99.8%). fmt was graded before the C++
+    pre-registration existed (`oracle-grading.md` §10.6 says so); args
+    was graded after it.
+  - **`S-20260915T161919Z-8302`** (77 of 120 turns, 8.7 min, $6.48,
+    Opus 5): both rules. Gate right-clear, verify pass (862 tests, 0
+    regressions). Two deviations were accepted, and the `minicpp` live
+    assertion was fixed on the host. Merged `0f1b4d6`.
+  - **Regraded against the stored keys:** fmt 3,254/3,282 (99.1%),
+    args 1,995/1,995 (100%). The recall cost is fmt 15.5% → 14.5% and
+    args 57.1% → 56.4%.
+  - **Version:** 0.2.22-beta.
+  - **Register:** C-151 and C-152 registered, surfaced. C-153
+    registered unsurfaced (P9). H-28–H-31 open in the oracle's log.
+- **Remaining:** the §3.8 row.
