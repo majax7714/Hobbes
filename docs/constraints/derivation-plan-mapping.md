@@ -164,7 +164,9 @@
   **What it over-reads, unchanged:** a parameter binds file-wide, so its
   name covers a same-named call anywhere in the file, and an invented
   call that shares a parameter's name passes. That is a miss, never a
-  false block.
+  false block. **Built** 2026-09-15 (0.2.28-beta) by
+  `S-20260915T191904Z-2b26`, merged `3526be2`: tests pin f3c1's shape,
+  the other arrow shapes, and the residue.
 - **Amended 2026-09-15: TS/JS local bindings are a text read, and a
   bare arrow parameter list escapes it.** For TS/JS, `tssource`'s
   helper carries no local bindings. `ground._parse_ts` reads them from
@@ -178,7 +180,7 @@
   `scip/index.mjs` was the harness's first false block. **Surfaced**
   in the gate record, as a row naming the term; the developer reads it
   as a false block. The fix, reading arrow parameters (parenthesised and
-  single-name), is a small unit not yet done.
+  single-name), was built at 0.2.28-beta (the amendment above).
 
 - **Amended 2026-09-11 (Calvin M0-Go WP-3, grounder v1):** a **Go**
   member is now judged when the syntax states its receiver's type — a

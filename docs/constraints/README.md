@@ -167,6 +167,12 @@ The table is the register's current state (2026-09-15), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+The gate's arrow read, 2026-09-15 (0.2.28-beta):
+- C-91 amended again: the gate's TS/JS text read takes an arrow's
+  parameters (a parenthesised list before `=>` wherever it stands, one
+  bare name before `=>`), closing the harness's one false block
+  (`f3c1`). A list holding a nested `(` stays unread, and says so.
+
 The facts arrive as a stream, 2026-09-15 (0.2.26-beta; ADR-116):
 - C-150 corrected and narrowed: the entry said ScummVM's facts reached
   the Python side as about 850 MB of JSON. The helper could not print

@@ -11,9 +11,31 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.27-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.28-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.28-beta — 2026-09-15 (the gate reads a TS/JS arrow's parameters; C-91)
+
+**Patch: what the layer refuses.** `hobbes gate`'s TS/JS text read of
+local bindings missed an arrow function's parameters. Its pattern needed
+`function` or a word character right before the `(`, so the list in
+`= (check) =>` was never read, nor the one name in `fn => fn(1)`, and a
+call through such a parameter grounded as `near-miss` or `invented` and
+blocked. That was the harness's one false block
+(`S-20260915T135819Z-f3c1`).
+
+- The read now takes a parenthesised list before `=>`, wherever it
+  stands and with an optional TS return type, and one bare name before
+  `=>`. As before, a binding covers the whole file.
+- Still unread, and written down in C-91: a list holding a nested `(`
+  (a default that calls, or a parenthesised return type). A call
+  through such a parameter still blocks.
+- The grounder's rule version is 4, and gate records say so.
+- Built through the harness: `S-20260915T191904Z-2b26` (27 of 80 turns,
+  4.2 min; $1.57 reported). Gate right-clear, verify pass, merged
+  without squashing (`3526be2`); four new tests, and the branch's full
+  pytest (1,632) passed on the host before the merge.
 
 ## 0.2.27-beta — 2026-09-15 (a C or Java unit's own record sits at its root, once)
 

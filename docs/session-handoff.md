@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.27-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-15; Hobbes 0.2.28-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
 after this session's rebuild.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.27-beta are untagged. Tags stay Max's call each time.
+  0.2.28-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -16,7 +16,8 @@ after this session's rebuild.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
 The session's record is the 2026-09-15 "ADR-116" BUILDLOG entry (the
-facts arrive as a stream); ADR-115's (the decode streams) and C++'s
+facts arrive as a stream, then the record paths and the gate's arrow
+fix); ADR-115's (the decode streams) and C++'s
 close-out are the entries of the same day before it. Earlier sessions' detail lives in their own BUILDLOG entries; this
 file keeps only what the next session needs.
 
@@ -57,7 +58,7 @@ file keeps only what the next session needs.
    - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
-   - The binaries, the static proxy and the image are at 0.2.27-beta.
+   - The binaries, the static proxy and the image are at 0.2.28-beta.
 0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -92,11 +93,12 @@ file keeps only what the next session needs.
        <out> [<helper-dir>]`.
    - **Restart the knowledge server** the next session opens with
      (C-65).
-1. **Next, no spend: the gate's arrow-parameter fix** (C-91, the
-   harness's one false block, `f3c1`), as a small unit.
-   `ground._TS_PARAMS` needs a word character or `function` before the
-   `(`, so `= (check) =>` never reads `check` as a local. Decide it in
-   C-91's entry or a short amendment first, then dispatch.
+1. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
+   was amended first (`342c5d1`), then the unit was dispatched as
+   `2b26` (27 turns, $1.57, gate right-clear) and merged no-ff
+   (`3526be2`). The harness's one false block is closed. The task and
+   partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
+   for the next brief.
 2. **Open for Max (no spend):**
    - **O10's four defects, H-28–H-31** (`oracle-defects.md`): recorded
      open by Max's call. They are the 18 oracle-side rows on fmt: a
@@ -149,8 +151,8 @@ file keeps only what the next session needs.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **Toward 40 across three areas:** the tracker reads 30 of 40, 4
-     areas, 1 false block (`f3c1`), 0 missed.
+   - **Toward 40 across three areas:** the tracker reads 31 of 40, 4
+     areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 4. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
@@ -219,7 +221,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Thirty log files under `docs/calvin/sessions/`.
+  is a tmpfs. Thirty-one log files under `docs/calvin/sessions/`.
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 84 cells; `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
@@ -230,7 +232,7 @@ min each.
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
 - **Oracle defect log:** H-28–H-31 open (O10); RC-8 shaped.
-- **Suites** at 0.2.27-beta: 1,628 pytest and 77 scip node (re-run on
+- **Suites** at 0.2.28-beta: 1,632 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;
   oracle-lane Go 95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0
@@ -241,13 +243,12 @@ min each.
 
 ## NEXT (in order; no API spend)
 
-1. The gate's arrow-parameter fix (item 1 above).
-2. **Keep dispatching named no-spend work through the harness,** one
+1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40: C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
    if named; pytest's `testmap_fixture` warnings.
-3. **W0's remainder:** `go/internal/version`'s missing guard; the
+2. **W0's remainder:** `go/internal/version`'s missing guard; the
    registry-pulled image and the drift audit, when named. (The
    forgotten red review and the fixtures closed with ADR-114.)
 

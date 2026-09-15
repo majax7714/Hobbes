@@ -11168,6 +11168,20 @@ write the adr".
   rebuilt at 0.2.27-beta.
 - **C-150's remainder parked** (Max: the memory patches are for a huge
   repo; "fine for now").
+- **Then the gate's arrow fix (0.2.28-beta; Max: "proceed with the gates
+  arrow fix to end off session"):** C-91 amended first (`342c5d1`): the
+  text read takes a parenthesised list before `=>` wherever it stands
+  and one bare name before `=>`; grounder v4; the nested-`(` residue and
+  the file-wide over-read named. Dispatched as `S-20260915T191904Z-2b26`
+  (27 of 80 turns, 250 s, $1.57 reported; task and partition in
+  `~/.hobbes/bench/gate-drivers/`): gate clear, verify pass (70 tests, 0
+  regressions). Read in full; two deviations accepted (a `.ts` fill for
+  the typed arrow; a parenthesised return type left unread, the
+  residue's own shape). The branch's full pytest 1,632 passed on the
+  host before the merge; merged no-ff (`3526be2`); the review block
+  filled (right-clear) and the tracker re-rendered: 31 of 40, 4 areas,
+  1 false block (`f3c1`, now closed), 0 missed. The binaries, the static
+  proxy and the image at 0.2.28-beta.
 
 **Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo.
-**Next:** the gate's arrow-parameter fix (C-91), as a small unit.
+**Next:** named no-spend units through the harness, toward 40.

@@ -192,8 +192,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-15, 0.2.27-beta; the last three
-carried from 0.2.8-beta): 1,628 pytest (6 `lane_b`) / 386 Go (385 pass,
+Suite sizes at the last check (2026-09-15, 0.2.28-beta; the last three
+carried from 0.2.8-beta): 1,632 pytest (6 `lane_b`) / 386 Go (385 pass,
 1 skip) + 100 oracle-lane Go (95 pass, 5 skip without a toolchain) / 52
 vitest / 36 tsextract + 77 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -265,7 +265,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-15) — Hobbes 0.2.27-beta
+## Status (2026-09-15) — Hobbes 0.2.28-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -284,14 +284,17 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes
   development. The tracker at the end of that directory's `README.md`
   (`pipeline/scripts/calvin_tracker.py render`, held by a drift test;
-  re-render after filling a review block) reads 30 of the 40 sessions
-  that validate the harness: 4 areas, 1 false block (`f3c1`), 0 missed.
+  re-render after filling a review block) reads 31 of the 40 sessions
+  that validate the harness: 4 areas, 1 false block (`f3c1`, closed at
+  0.2.28-beta), 0 missed.
 - **Latest:** ADR-116 (0.2.26-beta): lane B's facts arrive as a
   stream — a file of JSON lines read into slotted, interned sites.
   ScummVM's facts, which the helper could not print (V8's longest
   string), are written and read at 0.99 GB, identical row for row.
   0.2.27-beta: a C or Java unit's own record sits at its root, not
-  `root/root`. **Next:** the gate's fix (C-91).
+  `root/root`. 0.2.28-beta: the gate reads a TS/JS arrow's parameters
+  (C-91), closing the harness's one false block; built as session
+  `2b26`. **Next:** named no-spend units through the harness, toward 40.
 - **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
   drawn); C-150's remainder (the join's own size and the graph built from
