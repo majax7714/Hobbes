@@ -160,6 +160,59 @@ builder, the join and the schema change by zero lines (P7).
 - The join is unchanged: a C++ edge lane B resolves is `semantic`;
   lane A's fallback stays the floor.
 
+**Amended 2026-09-14, before the unit: measured on `minicpp` first, no
+spend.** A copy of the fixture with one stub `.c` file (the route fmt
+took: a root with a C file indexes every unit) was ingested contained,
+and the raw index was read with the helper's own deserializer.
+scip-clang answered every C++ shape the fixture writes. Member calls
+land on the static type's method (`c.area()` and `p->area()` on
+`Circle::area`), a qualified static on its method, the template at its
+own line (`largest<int>` on `shapes.h:28`), the macro by its location,
+and `std::` stays external. Overloads are distinct monikers
+(`shapes/area(7864…).` at `shapes.cpp:23`, `shapes/area(620b…).` at
+`:27`). Eight sites were compared and none disagreed. What the
+measurement decides:
+
+- **One decode rule: a constructor over its class.** A construction
+  site carries two references with the same name: the class
+  (`shapes/Circle#`, at the type name) and its constructor
+  (`shapes/Circle#Circle(…).`, at the declared variable for
+  `Circle c(3)`, at the type name for `new Circle(1)`). The join's
+  nearest-column pick and C's one-target-per-site rule (the smallest
+  line) both land on the class. So every construction edge was drawn
+  to the type, where O10 keys the constructor. For a `cpp` root, where
+  one `(file, line, name)` holds a reference to a constructor
+  (`X#X(…).`) and one to its class (`X#`), the helper drops the class
+  reference. A class with only an implicit constructor keeps the type
+  reference alone. The projection's calls-to-type guard (Go's
+  conversions, Rust's tuple-struct constructors) therefore extends to
+  C++ definitions: such an edge is `uses`, never `calls`, and O10 drops
+  that site too.
+- **One wording.** scip-clang declares a namespace moniker (`shapes/`)
+  from every file that opens it, and the `scip-decode` record said so in
+  C's words, about statics. The `cpp` language gets its own duplicate
+  shape.
+- **C-144's fix: every overload is a symbol.** Java's rule
+  (`javasource._suffix_overloads`, ADR-096): in one file, the first
+  definition of a qualname keeps it. Each later definition with a
+  different parameter list (the declarator's parameters and trailing
+  qualifiers, whitespace normalised) gets `~2`, `~3`, … in source order.
+  This applies to the `function` and `method` kinds only. A second
+  definition with the *same* parameter list stays C's duplicate: the
+  first is kept, and the `parse` record fires, worded as preprocessor
+  alternatives only. The fallback does not move. Its tables key by the
+  bare qualname and name, so an overload set is still a tie (C-143);
+  lane B's answer lands on each overload's own line.
+- **The run.** C and C++ files go to lane B as one set, so a mixed root
+  is one index. A root holding any C++ file is a `cpp` root: helper
+  language `cpp` (C's indexer spec, plan and decode options, plus the
+  constructor rule), stage `scip-cpp`, the `index-c` profile, and
+  records that say C++. A root with no C++ file is unchanged byte for
+  byte.
+
+The count, as §2 asked: one decode rule, one wording, one projection
+guard extended.
+
 ### 3. The oracle — O10, clang's front end over the same dumps (unit 3; no version move)
 
 Extends `bench/oracle/internal/clang` (ADR-110); `oracle c-clang`
