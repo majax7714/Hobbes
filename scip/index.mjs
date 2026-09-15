@@ -642,18 +642,27 @@ const isDefinition = (occ) =>
  * Ranges are SCIP's `[startLine, startChar, endLine, endChar]` (or a
  * 3-element form when the range is single-line), zero-based; graph lines
  * are one-based, so every line is +1 here and nowhere else.
+ *
+ * The decode is order-independent (ADR-113 §2, amended): scip-clang gives
+ * one moniker to several definitions of one file — a class template and
+ * its specialisations, `enable_if` overloads its signature hash does not
+ * tell apart, `#if` alternatives across units — and lists them in an
+ * order that varies by run. Keeping the first one met made the answer
+ * vary with it: three fmt ingests at one commit drew 3,308, 3,298 and
+ * 3,293 call edges. So such a moniker's definitions are collected in
+ * full, and the choice among them is made by rule, not by arrival.
  */
 export function decode(index, opts = {}) {
   // `opts` carries C's two rules (ADR-109, `decodeOptions`): `nameOf`
   // reads a name the moniker does not spell, and `ownFile` resolves a
-  // file-static that several files define. C++ adds a third,
-  // `constructorOverClass` (ADR-113 §2). Every other language passes
-  // nothing and decodes as before.
+  // file-static that several files define. C++ adds two of its own,
+  // `constructorOverClass` and `abstainMultiDefined` (ADR-113 §2). Every
+  // other language passes nothing and decodes as before.
   const nameOf = opts.nameOf ?? terminalName
   // A reference carries no moniker — the join keys on file, line and name
   // — so C++'s constructor rule is given one here and nowhere else.
   const monikerOf = new Map()
-  const byFile = new Map() // `${moniker}\0${file}` -> that file's own definition
+  const byFile = new Map() // `${moniker}\0${file}` -> that file's own definition, smallest line
   const definitions = new Map() // moniker -> {file, line, endLine, kind}
   const packages = new Map() // manager:package -> reference count
   const references = []
@@ -667,7 +676,7 @@ export function decode(index, opts = {}) {
   // (its own "Duplicate symbol" warning), so first-wins would attribute
   // a `use mylib` in a test to whichever binary decode saw first — a
   // false edge, which is worse than a missing one (ADR-007). Ambiguous
-  // monikers are dropped from the definitions map: their references fall
+  // monikers are kept out of the definitions map: their references fall
   // to `external`, unattributed rather than guessed, and `degradations`
   // reports the drop (ADR-040).
   const ambiguous = new Set()
@@ -681,6 +690,18 @@ export function decode(index, opts = {}) {
   // what tells "outside the repo" from "in the repo but ambiguous, or of a
   // kind we do not keep" when an external reference is recorded.
   const inRepoMonikers = new Set()
+  // Monikers one file defines at more than one line, where the language
+  // abstains rather than pick one (`opts.abstainMultiDefined`, C++ only —
+  // ADR-113 §2). They are treated as an ambiguous moniker is: no
+  // definition, no edge, and their references stay in-repo so they veto
+  // no lane A fallback (ADR-111). Counted, never silent.
+  const multiDefined = new Set()
+  let multiDefinedRefs = 0
+  // moniker -> file -> {def: its smallest-line definition, lines}. Every
+  // definition line is collected, not the first met, because scip-clang's
+  // order varies by run (see the doc comment above).
+  const defsOf = new Map()
+  const smallestLine = (a, b) => (a && a.line <= b.line ? a : b)
 
   for (const doc of index.documents) {
     if (!insideRepo(doc.relative_path)) continue
@@ -699,20 +720,36 @@ export function decode(index, opts = {}) {
         kind,
       }
       const own = `${occ.symbol}\u0000${doc.relative_path}`
-      if (opts.ownFile && !byFile.has(own)) byFile.set(own, here)
-      const prior = definitions.get(occ.symbol)
-      if (prior) {
-        if (prior.file !== doc.relative_path) {
-          ambiguous.add(occ.symbol)
-          if (!ambiguousFiles.has(occ.symbol)) ambiguousFiles.set(occ.symbol, new Set([prior.file]))
-          ambiguousFiles.get(occ.symbol).add(doc.relative_path)
-        }
-        continue
+      if (opts.ownFile) byFile.set(own, smallestLine(byFile.get(own), here))
+      let files = defsOf.get(occ.symbol)
+      if (!files) defsOf.set(occ.symbol, (files = new Map()))
+      const seen = files.get(doc.relative_path)
+      if (seen) {
+        seen.def = smallestLine(seen.def, here)
+        seen.lines.add(here.line)
+      } else {
+        files.set(doc.relative_path, { def: here, lines: new Set([here.line]) })
       }
-      definitions.set(occ.symbol, here)
     }
   }
-  for (const symbol of ambiguous) definitions.delete(symbol)
+  for (const [symbol, files] of defsOf) {
+    if (files.size > 1) {
+      ambiguous.add(symbol)
+      ambiguousFiles.set(symbol, new Set(files.keys()))
+      continue
+    }
+    const [{ def, lines }] = files.values()
+    // One file, several lines. A namespace keeps its smallest line in
+    // every language (lane A draws none of them anyway); anything else
+    // either abstains — C++, where the shapes that share a moniker are
+    // genuinely different definitions — or takes the smallest line, which
+    // is ADR-109's "kept once, at the first line" made order-independent.
+    if (lines.size > 1 && def.kind !== 'namespace' && opts.abstainMultiDefined) {
+      multiDefined.add(symbol)
+      continue
+    }
+    definitions.set(symbol, def)
+  }
   let tuSplit = 0
 
   for (const doc of index.documents) {
@@ -731,6 +768,7 @@ export function decode(index, opts = {}) {
         target = byFile.get(`${occ.symbol}\u0000${doc.relative_path}`)
       }
       if (!target) {
+        if (multiDefined.has(occ.symbol)) multiDefinedRefs += 1
         external.push({
           file: doc.relative_path,
           line: occ.range[0] + 1,
@@ -836,6 +874,8 @@ export function decode(index, opts = {}) {
 
   return {
     tu_split: tuSplit,
+    multi_defined: [...multiDefined].sort(),
+    multi_defined_refs: multiDefinedRefs,
     definitions: [...definitions.values()],
     references,
     external,
@@ -1016,6 +1056,21 @@ export function degradations(index, decoded, config) {
         "answer is dropped there and lane A's syntactic floor stands (ADR-109, C-131)",
     })
   }
+  if ((decoded.multi_defined ?? []).length > 0) {
+    const sample = decoded.multi_defined
+      .slice(0, 3)
+      .map((s) => s.split(' ').slice(4).join(' '))
+      .join(', ')
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `${decoded.multi_defined.length} symbol(s) are defined at more than one ` +
+        `line of one file (e.g. ${sample}) — a class template and its ` +
+        "specialisations, or overloads scip-clang's signature hash does not tell " +
+        `apart, share one moniker; ${decoded.multi_defined_refs} reference(s) to ` +
+        'them are left without a lane B answer rather than guessed (ADR-113)',
+    })
+  }
   if ((decoded.ambiguous ?? []).length > 0) {
     const sample = decoded.ambiguous
       .slice(0, 3)
@@ -1126,7 +1181,9 @@ export function decodeOptions(config) {
     nameOf,
     ownFile: true,
     oneTargetPerSite: true,
-    ...(config.language === 'cpp' ? { constructorOverClass: true } : {}),
+    // C++ alone abstains on a moniker one file defines at several lines;
+    // C takes the smallest of them (ADR-113 §2, ADR-109 amended).
+    ...(config.language === 'cpp' ? { constructorOverClass: true, abstainMultiDefined: true } : {}),
   }
 }
 
