@@ -1073,6 +1073,20 @@ class TestHelperExitClassification:
             assert "C-150" in str(caught.value)
             assert "install Node" not in str(caught.value)
 
+    def test_a_helper_killed_outright_names_the_box_not_install_node(self, tmp_path, monkeypatch):
+        # The kernel's OOM killer or a container memory limit ends the helper
+        # with SIGKILL — 137 through podman, -9 on a host run — and nothing
+        # on stderr. That reader was being sent to "install Node" (C-150).
+        (tmp_path / "stage").mkdir()
+        for code in (137, -9):
+            self._run_returning(monkeypatch, code, "")
+            with pytest.raises(scipsource.ScipError) as caught:
+                scipsource.run_helper({"stage": str(tmp_path / "stage"), "language": "cpp"})
+            assert "was killed" in str(caught.value)
+            assert f"exit {code}" in str(caught.value)
+            assert "C-150" in str(caught.value)
+            assert "install Node" not in str(caught.value)
+
     def test_a_helper_failure_still_says_how_to_install_it(self, tmp_path, monkeypatch):
         self._run_returning(monkeypatch, 1, "Cannot find module")
         (tmp_path / "stage").mkdir()

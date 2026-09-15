@@ -10973,3 +10973,95 @@ unguarded new modules". Both failures came in with the C++ commits
   - **Also moved:** architecture §8's version and its "but one", now
     "but two" with fmt; §7's review flow names the fixture rule; the W0
     item is closed in `workstreams.md` and the handoff.
+
+## 2026-09-15 — (later still) C-150 assessed and its decode's share taken: the helper streams the index — ADR-115, 0.2.25-beta
+
+**Asked (Max):** "review top level documentation then report back with
+any proposed fixes for c-150"; then "streaming decode is best route,
+proceed with the fix".
+
+- **The top-level review** found two stale lines: the README's ADR
+  range stopped at 113 (114 had landed with 0.2.24-beta), and
+  CLAUDE.md's suite line was dated 0.2.23-beta at 1,613 pytest against
+  1,616 collected. Both fixed here. Everything else agreed at
+  0.2.24-beta: the version copies, the CHANGELOG, §8, the handoff, the
+  register's tally.
+- **Where the memory goes, measured** on the ScummVM index the 0.2.21
+  session left in the cache (387 MB, 5,958 units, 11,265 documents,
+  7.9 million occurrences):
+  - a probe that walks the wire format document by document and keeps
+    only the fields the decode keys on: 3.3 s, 1.44 GB resident, every
+    reference row kept;
+  - the generated reader (`scip.Index.deserialize`) then the decode:
+    9.7 GB resident, 38 s, at a 14 GB heap. The heap was spent on
+    google-protobuf's message objects, not on the data;
+  - the image's Node (22.14.0) has a 4.35 GB default heap;
+  - the Python side is a second wall: 5.47 million in-repo references
+    in the index, about 850 MB of JSON on stdout, 393 bytes a row
+    parsed (measured), beside lane A's 1.5 GB;
+  - a SIGKILLed helper (137 through podman) carries no V8 marker and
+    fell back to "install Node";
+  - `HOBBES_SCIP_CMD` carries a heap flag through the container today
+    (verified on a scratch copy of `minicpp`: contained, 29 semantic
+    edges).
+- **Three routes put to Max:** the streaming decode (recommended, an
+  ADR), the two cheap fixes (the SIGKILL branch, the entry's
+  workaround), and later the facts streamed to the Python side. A heap
+  sized from the box was not recommended. Max: the streaming decode.
+- **Built (ADR-115):**
+  - `scip/index.mjs`: `streamDocuments` walks `Index.documents` with
+    google-protobuf's `BinaryReader`; `readOccurrence` reads `range`,
+    `symbol`, `symbol_roles` and scip-java's typed fields 8 and 9, and
+    an unpacked `range`; `indexFiles(paths)` streams a root's `.scip`
+    files one at a time; `mergeUnitIndexes` streams any sources;
+    `documentsOf` / `documentCount` let `decode` and `degradations`
+    read a literal or a streamed source alike. `wellFormedIndex` tells
+    a unit's output from a run that wrote nothing by a top-level skip
+    walk. The `.scip` files now stay until the decode is done. The
+    typed-range monkeypatch on the generated reader is gone with the
+    generated reader; `scip.js` stays imported for `SymbolRole`.
+  - `scipsource.run_helper`: exit 137 and -9 name C-150 ("was killed
+    decoding this build's index"); the heap-marker branch stays.
+  - `PER_UNIT_MAX` stays, its comment reworded: the merge's 84 GB is
+    gone; the references the per-unit route holds until the per-site
+    rules run, and 9.36 GB of unit indexes at 207 s, keep the bound.
+- **Verified:**
+  - **Equivalence:** the new decode and the old, on ScummVM's index,
+    digest identically on every row of definitions (380,108),
+    references (4,158,513), external (412,155), packages, ambiguous
+    (5,842), `ambiguous_files`, overload examples and degradation
+    records; `tu_split` 606, `overload_sites` 5,399, `multi_defined`
+    529. The new run: **3.4 GB resident, 2.73 GB heap, 33 s, under the
+    default heap**; the old: 9.7 GB, 38 s at 14 GB. `HELPER_VERSION`
+    stays 3.
+  - node 74/74 (the typed-range test through the reader; three new);
+    pytest 1,617 (one new); `go test ./...` 15 packages ok against the
+    rebuilt image; `test_version` at 0.2.25-beta.
+  - This repo ingested end to end with the new helper: every lane B
+    step contained (31 steps, seven languages), 11,891 semantic and 32
+    syntactic symbol edges; `hobbes lanes` exits 0, 10,190 sites
+    compared, the lanes agree wherever both answer.
+- **Register:** C-150 narrowed and retitled ("lane B's facts are held
+  in memory whole"), its record wording and the override named;
+  C-149's reason reworded; the register's dated note. Counts unchanged:
+  154 entries, 111 active.
+- **Docs:** ADR-115; CHANGELOG 0.2.25-beta; architecture §3.2 (the
+  streamed decode, the killed-helper record), §3's C++ paragraph, §8's
+  header and the C++ row; `extraction-evidence.md`'s C++ line; README's
+  ADR range; CLAUDE.md's headline, suite line and last ADR; the
+  handoff rewritten.
+- **Rebuilt:** the Go binaries, the static proxy and the image at
+  0.2.25-beta (C-65). The knowledge server this session ran on still
+  serves the 0.2.24-beta build; restart it.
+- **Kept outside the repo:** ScummVM's index and unit list in
+  `~/.hobbes/cache/stage/b7bc0819382fd513.scip.units/`; the probes
+  `decode_equiv.mjs` and `stream_probe.mjs` beside the C++ drivers'
+  probes (run from `scip/`).
+- **Not done (its own decision):** the Python side reads the facts
+  whole; streaming them is a facts-format change (helper version 4).
+  No end-to-end ScummVM ingest at 0.2.25-beta was run; the estimate is
+  8 GB free.
+
+**Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo;
+C-150's remainder. **Next:** the gate's arrow-parameter fix (C-91), as
+a small unit.

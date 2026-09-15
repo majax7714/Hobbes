@@ -1,11 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.24-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-15; Hobbes 0.2.25-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
-says it reviewed from the last green run.
+says it reviewed from the last green run. The knowledge server of the
+session that opens next serves the 0.2.24-beta build until it is
+restarted (C-65).
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.24-beta are untagged. Tags stay Max's call each time.
+  0.2.25-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -13,13 +15,40 @@ says it reviewed from the last green run.
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the 2026-09-15 "(later) C++ closed out" BUILDLOG
-entry. Earlier sessions' detail lives in their own BUILDLOG entries; this
+The session's record is the 2026-09-15 "ADR-115" BUILDLOG entry (the
+helper's decode streams); C++'s close-out is the "(later) C++ closed
+out" entry of the same day. Earlier sessions' detail lives in their own BUILDLOG entries; this
 file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-0. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
+0. **The helper's decode streams (2026-09-15, 0.2.25-beta, ADR-115).**
+   C-150's assessment, Max's route "streaming decode is best route":
+   - the helper reads SCIP's wire format one document at a time
+     (`streamDocuments`, `indexFiles`; `decode` walks its source twice
+     through `documentsOf`); the generated reader and its typed-range
+     monkeypatch are gone;
+   - ScummVM's whole index (387 MB, 11,265 documents) decodes under the
+     default heap at 3.4 GB resident, 33 s, with facts identical to the
+     old reader's by digest (old: 9.7 GB, 38 s at a 14 GB heap);
+   - a killed helper (137 / -9) names C-150 instead of "install Node";
+   - C-150 narrowed and retitled to the facts' size on the Python side
+     (about 2.1 GB parsed for ScummVM beside lane A's 1.5 GB); C-149's
+     bound stays for the references the per-unit route holds, not the
+     merge's memory. Its lift is the per-site rules on arrival.
+   - **Where things are:** ScummVM's index and its unit list stayed in
+     `~/.hobbes/cache/stage/b7bc0819382fd513.scip.units/` (`whole.scip`,
+     `whole.json`), the staged copy beside it; the two probes are
+     `~/.hobbes/bench/cpp-drivers/probes/decode_equiv.mjs` (a helper
+     module against an index, digests every row; `old` as the third
+     argument uses the generated reader) and `stream_probe.mjs`. Run
+     them from `scip/` so the imports resolve.
+   - **Not done, its own decision:** the Python side reads the facts
+     whole (`run_helper`: one JSON document on stdout). Streaming them
+     is a facts-format change (helper version 4). No end-to-end ScummVM
+     ingest at 0.2.25-beta is recorded; the estimate is 8 GB free.
+   - The binaries, the static proxy and the image are at 0.2.25-beta.
+0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
      contained):
@@ -51,8 +80,7 @@ file keeps only what the next session needs.
        `PROBE-*` stderr lines);
      - run both with `uv run --project pipeline python <script> <repo>
        <out> [<helper-dir>]`.
-   - The binaries, the static proxy and the image are at 0.2.23-beta.
-     **Restart the knowledge server** the next session opens with
+   - **Restart the knowledge server** the next session opens with
      (C-65).
 1. **Next, no spend: the gate's arrow-parameter fix** (C-91, the
    harness's one false block, `f3c1`), as a small unit.
@@ -75,9 +103,9 @@ file keeps only what the next session needs.
      repo's graph has 0 C++ disagreements, so CI is unaffected. The two
      routes: compare C++ only where the fallback could draw, or keep it
      as the self-test's report.
-   - **C-150** (large repos, every language): Max decided to keep it as
-     a constraint for now; the memory problem is to be assessed as a
-     whole, likely architecturally.
+   - **C-150's remainder** (large repos, every language): the facts
+     held whole on the Python side, after ADR-115 took the decode's
+     share. A facts-format change; Max's call whether and when.
    - Carried: C-139's finer extent (only if a cell shows the recall
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`

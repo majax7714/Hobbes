@@ -186,8 +186,10 @@ C++'s first graded evidence.
 `33920b6` before args ran; fmt was graded before it): P26 recorded,
 P27 met, P28 undecidable, P29 met, P30 met, P31 missed on args.
 
-**What no cell covers:** a build over the per-unit bound or the
-helper's heap (C-149, C-150); Meson, Bazel and autotools roots;
+**What no cell covers:** a build over the per-unit bound (C-149) or
+whose facts outgrow the Python side's memory (C-150, narrowed at
+0.2.25-beta: the helper's decode streams, ADR-115); Meson, Bazel and
+autotools roots;
 C++ modules; generated code (Qt's moc); a mixed repo's headers that
 both languages include (C-142).
 

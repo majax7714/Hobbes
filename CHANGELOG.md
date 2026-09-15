@@ -11,9 +11,45 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.24-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.25-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.25-beta — 2026-09-15 (lane B's decode streams the index; ADR-115)
+
+**Patch: what the layer draws and says.** A constraint's fix (C-150),
+taken after the memory problem was assessed as a whole and its routes
+put to Max ("streaming decode is best route").
+
+- **The helper reads SCIP's wire format itself, one document at a
+  time.** It used to build a root's whole index as generated protobuf
+  objects — one object, its wrapper arrays and a copy of the symbol
+  string per occurrence — under Node's default heap, and ScummVM's
+  387 MB index (7.9 million occurrences) needed 8.95 GB that way, so
+  the root had no lane B. The decode reads three fields of an
+  occurrence and one of a document, in two passes, and now gets
+  exactly those, materialised only while it looks at them. The same
+  index decodes under the default heap at 3.4 GB resident, in 33 s
+  against 38, with facts identical to the old reader's: every
+  definition, reference, external row, package, ambiguity set and
+  degradation record checked by digest. The unit indexes of a C or C++
+  root are streamed in turn the same way, so the merge no longer
+  holds them at once.
+- **A killed helper says so.** The out-of-memory record of 0.2.21-beta
+  read V8's heap markers; a helper the kernel's OOM killer or a
+  container's memory limit ends carries none (137 through podman, -9 on
+  a host run) and fell back to "install Node". It now says the helper
+  was killed decoding the index and names C-150.
+- **Register:** C-150 narrowed and retitled — what is left is the
+  facts' own size, held whole on the Python side (about 2.1 GB parsed
+  for ScummVM, beside lane A's 1.5 GB), which is a facts-format change
+  and a separate decision; the entry names the `HOBBES_SCIP_CMD` heap
+  override for a box that needs one. C-149 reworded: the 400-unit bound
+  stays for the references the per-unit route holds and the disk and
+  time it spends, not for the merge's memory, which is gone.
+- **The typed-range monkeypatch is gone** with the generated reader:
+  the helper's own reader knows scip-java's fields 8 and 9.
+- Node tests 74 (three new, one rewritten); pytest one new.
 
 ## 0.2.24-beta — 2026-09-15 (fixture sources are not own code; the graph job reviews from its last green run; ADR-114)
 

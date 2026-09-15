@@ -167,6 +167,19 @@ The table is the register's current state (2026-09-15), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+The helper's decode streams, 2026-09-15 (0.2.25-beta; ADR-115):
+- C-150 narrowed: the helper reads SCIP's wire format one document at
+  a time instead of building the whole index as protobuf objects.
+  ScummVM's index, which needed 8.95 GB and had no lane B, decodes
+  under Node's default heap at 3.4 GB resident with identical facts.
+  What is left is the facts' own size on the Python side; the entry
+  is retitled for it. A killed helper (exit 137 or -9) now names the
+  entry instead of "install Node", and the entry names the heap
+  override for a box that needs it.
+- C-149 reworded: the bound stays, for the references the per-unit
+  route holds and the disk and time it spends, not for the merge's
+  memory, which is gone.
+
 C++'s §3.8 row on 2026-09-15 (0.2.23-beta):
 - C-132 narrowed again: C++ is *supported* as far as its row reaches.
   What is left is a `.h` both languages include (or none does in a

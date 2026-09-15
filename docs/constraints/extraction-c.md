@@ -408,8 +408,14 @@ recovery (ADR-109) and the provider's moniker scheme.)*
   A root over the bound is indexed in one whole-database run, and this
   entry applies there in full.
 - **What is left:**
-  - roots over 400 units (ScummVM's 5,958 are one: the per-unit merge
-    would need about 84 GB);
+  - roots over 400 units (ScummVM's 5,958 are one). The bound was set
+    on the merge's memory, about 84 GB projected for ScummVM; since
+    0.2.25-beta the merge streams the unit files (ADR-115) and that
+    cost is gone. What keeps the bound is what the per-unit route
+    still holds and writes: every reference of a header once per unit
+    that includes it (ScummVM's units wrote 9.36 GB of indexes against
+    370 MB whole, and took 207 s against 143 s). Lifting it is the
+    per-site rule applied as references arrive rather than at the end;
   - a few external type references scip-clang records inconsistently
     even within one unit (`size_t`, `ptrdiff_t`: 13 of fmt's 13,739
     external sites). These can move a tail count (`external` against
@@ -418,6 +424,8 @@ recovery (ADR-109) and the provider's moniker scheme.)*
   `scip-decode` record naming its unit count, the bound and C-149.
   Nothing says a tail count may differ by a site or two below it.
 - **Provider (P9):** scip-clang **0.4.0**'s header deduplication.
-- **Direction:** a streaming merge (two passes over the unit indexes,
-  duplicates removed) would lift the bound. It is not built.- **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
+- **Direction:** the merge streams since 0.2.25-beta (ADR-115); the
+  bound lifts when the per-site rules run on arrival, so a header's
+  repeated references are collapsed as they are read. Not built.
+- **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
   second amendment).

@@ -152,42 +152,66 @@
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
 
-### C-150 — Lane B's decode holds a root's whole index in memory: a root whose index outgrows Node's heap has no lane B (every language)
+### C-150 — Lane B's facts are held in memory whole: a root whose facts outgrow the box has no lane B (every language)
 
 - **Cannot tell you:** any semantic edge for a build root, in any
-  language, whose index the helper cannot decode within Node's default
-  heap. The helper dies (exit 139, V8's allocation failure), and the
-  root's call edges fall to lane A's fallback.
-- **Because:** the helper decodes a root's whole SCIP index in memory,
-  whatever the indexer, under Node's default heap, and the Python side
-  then holds the facts and the graph in memory too. Nothing in the
-  pipeline streams.
+  language, whose lane B facts the box cannot hold: the helper's
+  references for the root, then the same facts as one JSON document
+  on the Python side, parsed whole beside lane A's own sites. The
+  helper dies or is killed, and the root's call edges fall to lane A's
+  fallback.
+- **Because:** the facts are held in memory whole once decoded. The
+  helper keeps every reference it resolves until its per-site rules
+  run; `run_helper` reads them as one JSON document on stdout and
+  parses it; the join holds them beside lane A's sites. Nothing past
+  the helper's decode streams.
+- **Narrowed 2026-09-15 (0.2.25-beta; ADR-115).** As registered, the
+  wall was the decode itself: the helper built a root's whole index as
+  generated protobuf objects under Node's default heap, and ScummVM's
+  387 MB index needed 8.95 GB. The helper now reads SCIP's wire format
+  one document at a time, keeping the fields the decode keys on, and
+  the same index decodes under the default heap at 3.4 GB resident
+  with facts identical to the old reader's (checked by digest). What
+  is left is the facts' own size, above.
 - **Bites at:** measured on C++: ScummVM (5,958 units, one
   whole-database run under C-149's size guard).
-  - Its 370 MB index needs about 9 GB to decode (8.95 GB, measured with
-    a 14 GB heap).
-  - Under the default heap the helper died, and its 1.53 million C++
-    call sites were left to lane A (0.0% accounted). The Python side
-    stood at 1.5 GB during lane A.
-  - Before 0.2.21-beta the same root failed earlier, on a stack
-    overflow in the decode.
+  - Before 0.2.25-beta: the decode needed about 9 GB (8.95 GB at a
+    14 GB heap; 9.7 GB resident re-measured the day of the fix), the
+    helper died under the default heap (exit 139, V8's allocation
+    failure), and its 1.53 million C++ call sites were left to lane A
+    (0.0% accounted). Before 0.2.21-beta the same root failed earlier,
+    on a stack overflow in the decode.
+  - After: the helper's decode of the same index holds 4.16 million
+    references at 2.7 GB of heap. The Python side then receives them
+    as about 850 MB of JSON and parses them at 393 bytes a row (about
+    2.1 GB), on top of the 1.5 GB it stood at during lane A. A box
+    with 8 GB free is the estimate for this root; none smaller is
+    measured, and no end-to-end ingest at 0.2.25-beta is recorded yet.
 
-  Any language's index of that size meets the same limit; none other
+  Any language's root of that size meets the same limit; none other
   is measured.
 - **You find out:** **surfaced** — the root's `scip-<language>` record
-  says the helper ran out of memory decoding the build's index, and
-  names this entry. Until 0.2.21-beta it said "install Node", which was
-  wrong.
-- **Provider (P9):** Node's default heap limit, the image's Node.
-- **Decision (Max, 2026-09-15):** large repos stay a constraint for
-  now. The memory problem is to be assessed as a whole, likely as an
-  architectural change: a streaming decode and bounded memory through
-  the pipeline, which would also lift C-149's 400-unit bound. A patch,
-  such as a larger helper heap (machine-dependent), is taken only if it
-  proves cheap.
+  says the helper ran out of memory decoding the build's index (V8's
+  heap markers), or, since 0.2.25-beta, that it was killed (exit 137
+  through podman, -9 on a host run: the kernel's OOM killer or a
+  container's memory limit), and names this entry either way. Until
+  0.2.21-beta the first said "install Node", and until 0.2.25-beta so
+  did the second, which was wrong both times. A helper that needs more
+  heap than the image's default can be given it today through
+  `HOBBES_SCIP_CMD` (`node --max-old-space-size=<MB> <checkout>/scip/index.mjs`),
+  which runs in the container as the default command does; the number
+  is the box's, not Hobbes'.
+- **Provider (P9):** Node's default heap limit, the image's Node
+  (22.14.0: 4.35 GB).
+- **Decision (Max, 2026-09-15):** large repos stay a constraint; the
+  memory problem was assessed as a whole and the decode's share taken
+  first (ADR-115, its routes). The remainder — the facts read by the
+  Python side as they arrive rather than whole (a facts-format change),
+  and lane A's own sites — is a separate decision. A larger helper heap
+  as the product's own answer was rejected as machine-dependent.
 - **Source:** the ScummVM end-to-end ingest, 2026-09-15; first
   registered in `extraction-c.md` the same day and moved here once it
-  was seen to be every language's.
+  was seen to be every language's; narrowed the same day (ADR-115).
 
 ## Lifted constraints in this segment
 

@@ -55,6 +55,10 @@ HELPER_VERSION = 3
 #: What V8 writes when Node's heap is exhausted — the fatal line, and the
 #: allocator frame the recorded stderr tail may keep when the line is cut.
 _HEAP_EXHAUSTED = ("heap out of memory", "Reached heap limit", "Allocation failed", "AllocateRawWithRetryOrFailSlowPath")
+#: A helper killed outright: podman reports a SIGKILLed process as 137, a
+#: host run as -9. The kernel's OOM killer and a container's memory limit
+#: both end it this way, with no V8 trace to read (C-150).
+_KILLED = (137, -9)
 
 
 class ScipError(RuntimeError):
@@ -423,12 +427,24 @@ def run_helper(
     if proc.returncode != 0 and any(m in (proc.stderr or "") for m in _HEAP_EXHAUSTED):
         # The helper ran and Node's heap gave out decoding the index: not a
         # missing helper, and "install Node" would send the reader the wrong
-        # way (ScummVM, 5,958 units: ~9 GB to decode, exit 139; C-150).
+        # way (ScummVM, 5,958 units, before the decode streamed: ~9 GB,
+        # exit 139; C-150).
         detail = (proc.stderr or proc.stdout).strip()[-300:]
         raise ScipError(
             f"the SCIP helper ran out of memory decoding this {config['language']} "
-            f"build's index (Node's heap; exit {proc.returncode}): a larger heap or a "
-            f"streaming decode is what would fit it (C-150): {detail}"
+            f"build's index (Node's heap; exit {proc.returncode}): the index outgrows "
+            f"this box's memory (C-150): {detail}"
+        )
+    if proc.returncode in _KILLED:
+        # Killed from outside — the kernel's OOM killer or a container's
+        # memory limit — with nothing on stderr to say so. The same reader
+        # is being sent the same wrong way without this (C-150).
+        detail = (proc.stderr or proc.stdout).strip()[-300:]
+        raise ScipError(
+            f"the SCIP helper was killed decoding this {config['language']} build's "
+            f"index (exit {proc.returncode}: the kernel's OOM killer or the container's "
+            f"memory limit, most likely): the index outgrows this box's memory "
+            f"(C-150): {detail}"
         )
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-500:]

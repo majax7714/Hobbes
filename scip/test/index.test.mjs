@@ -20,6 +20,10 @@ import { INDEXER_EXIT,
   INDEXERS,
   insideRepo,
   mergeUnitIndexes,
+  streamDocuments,
+  indexFiles,
+  wellFormedIndex,
+  documentCount,
   packageOf,
   PER_UNIT_MAX,
   splitCompdb,
@@ -837,7 +841,7 @@ test('a header both units answer the same way is one reference row in the merged
     { relative_path: 'util.h', occurrences: [{ symbol: emit, symbol_roles: 0, range: [9, 4, 9, 8] }] },
   ])
   const merged = mergeUnitIndexes([unit(), unit()])
-  assert.equal(merged.documents.length, 4, 'the merge concatenates, it does not deduplicate')
+  assert.equal([...merged.documents()].length, 4, 'the merge concatenates, it does not deduplicate')
   const out = decode(merged, decodeOptions({ language: 'c', stage: '/nowhere' }))
   assert.deepEqual(out.references.map((r) => [r.file, r.line, r.def_file, r.def_line]), [['util.h', 10, 'shared.h', 5]])
   assert.deepEqual(out.definitions.map((d) => [d.file, d.line]), [['shared.h', 5]], 'one definition, not one per unit')
@@ -1227,26 +1231,97 @@ test("the jdk and the dot package are not evidence of an environment (java)", ()
   assert.deepEqual(cov, { declared: 2, resolved: 1, missing: ['maven/org.assertj/assertj-core'] })
 })
 
-test('typed ranges (SCIP fields 8 and 9) are read into the range shape', async () => {
+/** A SCIP index written field by field with google-protobuf's writer:
+ * `Index.documents` (2), each with `relative_path` (1) and `occurrences`
+ * (2). *write* fills one occurrence. */
+async function writtenIndex(documents) {
   const pb = (await import('google-protobuf')).default
-  const { scip } = (await import('@sourcegraph/scip-typescript/dist/src/scip.js')).default
   const w = new pb.BinaryWriter()
-  w.writeString(2, 'scip-java maven . . a/B#m().')
-  w.writeInt32(3, 1)
-  w.writeMessage(8, {}, () => { w.writeInt32(1, 4); w.writeInt32(2, 7); w.writeInt32(3, 11) })
-  const single = scip.Occurrence.deserialize(w.getResultBuffer())
-  assert.deepEqual(single.range, [4, 7, 11])
-  assert.equal(single.symbol, 'scip-java maven . . a/B#m().')
-  assert.equal(single.symbol_roles, 1)
-  const w2 = new pb.BinaryWriter()
-  w2.writeString(2, 'x')
-  w2.writeMessage(9, {}, () => { w2.writeInt32(1, 4); w2.writeInt32(2, 7); w2.writeInt32(3, 6); w2.writeInt32(4, 2) })
-  assert.deepEqual(scip.Occurrence.deserialize(w2.getResultBuffer()).range, [4, 7, 6, 2])
-  // The deprecated field still reads, so the other four indexers are untouched.
-  const w3 = new pb.BinaryWriter()
-  w3.writeString(2, 'y')
-  w3.writePackedInt32(1, [1, 2, 3])
-  assert.deepEqual(scip.Occurrence.deserialize(w3.getResultBuffer()).range, [1, 2, 3])
+  for (const [path, occurrences] of documents) {
+    w.writeMessage(2, {}, () => {
+      w.writeString(1, path)
+      for (const write of occurrences) w.writeMessage(2, {}, () => write(w))
+    })
+  }
+  return w.getResultBuffer()
+}
+
+test('typed ranges (SCIP fields 8 and 9) are read into the range shape', async () => {
+  const bytes = await writtenIndex([
+    ['a/B.java', [
+      (w) => {
+        w.writeString(2, 'scip-java maven . . a/B#m().')
+        w.writeInt32(3, 1)
+        w.writeMessage(8, {}, () => { w.writeInt32(1, 4); w.writeInt32(2, 7); w.writeInt32(3, 11) })
+      },
+      (w) => {
+        w.writeString(2, 'x')
+        w.writeMessage(9, {}, () => { w.writeInt32(1, 4); w.writeInt32(2, 7); w.writeInt32(3, 6); w.writeInt32(4, 2) })
+      },
+      // The deprecated field still reads, so the other indexers are untouched.
+      (w) => { w.writeString(2, 'y'); w.writePackedInt32(1, [1, 2, 3]) },
+      // An unpacked writer sends one varint per element.
+      (w) => { w.writeString(2, 'z'); w.writeInt32(1, 5); w.writeInt32(1, 6); w.writeInt32(1, 7) },
+    ]],
+  ])
+  const [doc] = [...streamDocuments(bytes)]
+  assert.equal(doc.relative_path, 'a/B.java')
+  const [single, multi, packed, unpacked] = doc.occurrences
+  assert.deepEqual(single, { range: [4, 7, 11], symbol: 'scip-java maven . . a/B#m().', symbol_roles: 1 })
+  assert.deepEqual(multi.range, [4, 7, 6, 2])
+  assert.deepEqual(packed.range, [1, 2, 3])
+  assert.deepEqual(unpacked.range, [5, 6, 7])
+})
+
+test('a streamed index decodes exactly as its literal twin, and is walked afresh each pass (ADR-115)', async () => {
+  // The decode reads an index twice — definitions, then references — so
+  // a streamed source must yield the same documents on every walk.
+  const run = `${PY}/run().`
+  const literal = fakeIndex([
+    { relative_path: 'src/a.py', occurrences: [{ symbol: run, symbol_roles: DEF, range: [4, 0, 8, 0] }] },
+    { relative_path: 'src/b.py', occurrences: [
+      { symbol: run, symbol_roles: 0, range: [2, 4, 2, 7] },
+      { symbol: 'scip-python python requests 2.0 `requests`/get().', symbol_roles: 0, range: [3, 0, 3, 3] },
+      { symbol: 'local 1', symbol_roles: DEF, range: [5, 0, 5, 1] },
+    ] },
+  ])
+  const bytes = await writtenIndex(literal.documents.map((d) => [d.relative_path, d.occurrences.map((o) => (w) => {
+    w.writePackedInt32(1, o.range); w.writeString(2, o.symbol); w.writeInt32(3, o.symbol_roles)
+  })]))
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-stream-'))
+  const path = cpath.join(dir, 'u.scip')
+  cfs.writeFileSync(path, bytes)
+  const streamed = indexFiles([path])
+  const out = decode(streamed)
+  assert.deepEqual(out, decode(literal))
+  assert.equal(out.references.length, 1)
+  assert.equal(out.external.length, 1)
+  assert.equal(documentCount(streamed), 2)
+  assert.deepEqual(degradations(streamed, out, {}), degradations(literal, decode(literal), {}))
+})
+
+test('indexFiles streams several unit files in order, one file at a time (ADR-115)', async () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-units-'))
+  const paths = []
+  for (const name of ['0000', '0001']) {
+    const path = cpath.join(dir, `${name}.scip`)
+    cfs.writeFileSync(path, await writtenIndex([[`${name}.c`, [(w) => { w.writeString(2, 'x'); w.writePackedInt32(1, [0, 0, 0, 1]) }]]]))
+    paths.push(path)
+  }
+  const source = indexFiles(paths)
+  assert.deepEqual([...source.documents()].map((d) => d.relative_path), ['0000.c', '0001.c'])
+  assert.equal(source.count, 2)
+  assert.deepEqual([...source.documents()].map((d) => d.relative_path), ['0000.c', '0001.c'], 'the second walk is the same')
+  const merged = mergeUnitIndexes([source, fakeIndex([{ relative_path: 'lit.c', occurrences: [] }])])
+  assert.deepEqual([...merged.documents()].map((d) => d.relative_path), ['0000.c', '0001.c', 'lit.c'])
+  assert.equal(documentCount(merged), 3)
+})
+
+test('a unit whose output is not a SCIP index is told from one that is (ADR-115)', async () => {
+  assert.equal(wellFormedIndex(Buffer.alloc(0)), false, 'a scip-clang run that wrote nothing')
+  assert.equal(wellFormedIndex(Buffer.from('not an index at all, 0xff 0xff')), false)
+  assert.equal(wellFormedIndex(Buffer.from([0xff, 0xff, 0xff])), false, 'a truncated tag')
+  assert.equal(wellFormedIndex(await writtenIndex([['a.c', []]])), true)
 })
 
 test("an indexer's own exit is a distinct helper exit code", () => {

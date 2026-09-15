@@ -192,10 +192,10 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-15, 0.2.23-beta; the last three
-carried from 0.2.8-beta): 1,613 pytest (6 `lane_b`) / 386 Go (385 pass,
+Suite sizes at the last check (2026-09-15, 0.2.25-beta; the last three
+carried from 0.2.8-beta): 1,617 pytest (6 `lane_b`) / 386 Go (385 pass,
 1 skip) + 100 oracle-lane Go (95 pass, 5 skip without a toolchain) / 52
-vitest / 36 tsextract + 71 scip node / 84 atlas0. Keep them green. CI
+vitest / 36 tsextract + 74 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -211,7 +211,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 114;
+  architecture doesn't already make. Number sequentially (last: 115;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -265,7 +265,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-15) — Hobbes 0.2.24-beta
+## Status (2026-09-15) — Hobbes 0.2.25-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -286,11 +286,13 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (`pipeline/scripts/calvin_tracker.py render`, held by a drift test;
   re-render after filling a review block) reads 30 of the 40 sessions
   that validate the harness: 4 areas, 1 false block (`f3c1`), 0 missed.
-- **Latest:** ADR-114 (0.2.24-beta): fixtures are not own code; CI
-  reviews from its last green run. **Next:** the gate's fix (C-91).
+- **Latest:** ADR-115 (0.2.25-beta): the helper's decode streams the
+  index — ScummVM's, which had no lane B, decodes under the default
+  heap with identical facts. **Next:** the gate's fix (C-91).
 - **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
-  drawn); C-150's memory assessment (large repos stay a constraint).
+  drawn); C-150's remainder (the facts held whole on the Python side:
+  a facts-format change, its own decision).
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

@@ -199,13 +199,15 @@ function cUnitsDir(c) {
 }
 
 /** The most translation units a root is indexed one per run (Max,
- * 2026-09-15). The merge holds every unit's index at once, and a header
- * many units share is in every one of them: ScummVM's 5,958 units wrote
- * 9.36 GB of unit indexes, and the merged decode of its first 400 already
- * peaked at 5.75 GB (about 84 GB projected for all). fmt (52), args (99)
- * and cJSON (23) lie well under it. A database over the bound is indexed in
+ * 2026-09-15). A header many units share is in every unit's index:
+ * ScummVM's 5,958 units wrote 9.36 GB of unit indexes against 370 MB
+ * whole, and took 207 s against 143 s. The merge streams them since
+ * ADR-115, so the 84 GB it once projected is gone; what the per-unit
+ * route still holds is every one of those repeated references until the
+ * per-site rules run at the end of the decode. fmt (52), args (99) and
+ * cJSON (23) lie well under the bound. A database over it is indexed in
  * one whole-database run instead, and the record says C-149 applies there;
- * a streaming merge is what would lift the bound. */
+ * running the per-site rules on arrival is what would lift the bound. */
 export const PER_UNIT_MAX = 400
 
 /** The index step's shell: one scip-clang run per one-entry database the
@@ -538,71 +540,73 @@ function shardsUnder(dir) {
 }
 
 /**
- * scip-java 0.13 writes an occurrence's position as SCIP's *typed* range
- * (`single_line_range` = field 8, `multi_line_range` = field 9, the
- * `scip-code/scip` proto at a7b9c65a, 2026-08-25) and leaves the
- * deprecated `repeated int32 range` empty. The generated reader this
- * helper borrows from scip-typescript 0.4.0 — the newest release — knows
- * neither field and skips them, which read every Java occurrence as
- * unplaced (the J.M0 spike: 104,453 of 104,453 empty). So the reader is
- * extended here: `Occurrence.deserialize` is replaced with the same
- * switch plus the two typed cases, folded into `range`'s `[startLine,
- * startChar, endLine, endChar]` shape so nothing downstream changes.
- * The override goes when the borrowed reader learns the fields. A typed
+ * A root's index, read as a stream of documents (ADR-115).
+ *
+ * `scip.Index.deserialize` builds the whole index as generated message
+ * objects — an Occurrence object, its wrapper arrays and a fresh copy of
+ * its symbol string for every one of a root's occurrences — and ScummVM's
+ * 387 MB index (7.9 million occurrences) needed 8.95 GB of heap that way,
+ * twice Node's default, so the root had no lane B (C-150). Nothing in the
+ * decode needs the index at once: it reads one document's occurrences,
+ * keeps the few fields it keys on, and moves on. So the wire format is
+ * walked here directly — `Index.documents` is field 2, one
+ * length-delimited message per document — and a document is materialised
+ * only while `decode` is looking at it. The same file streamed this way
+ * peaks at 1.4 GB, most of it the references kept.
+ *
+ * The fields read are the ones `decode` uses: `Document.relative_path`
+ * (1) and `occurrences` (2); of an `Occurrence`, `range` (1), `symbol`
+ * (2) and `symbol_roles` (3). scip-java 0.13 writes an occurrence's
+ * position as SCIP's *typed* range (`single_line_range` = field 8,
+ * `multi_line_range` = field 9, the `scip-code/scip` proto at a7b9c65a,
+ * 2026-08-25) and leaves the deprecated `repeated int32 range` empty; the
+ * generated reader this helper used to borrow knew neither field, which
+ * read every Java occurrence as unplaced (the J.M0 spike: 104,453 of
+ * 104,453 empty). Both typed forms are folded into `range`'s
+ * `[startLine, startChar, endLine, endChar]` shape here, and a typed
  * range wins over a deprecated one, as the proto says.
  */
-function installTypedRangeReader() {
-  const { Occurrence, Diagnostic } = scip
-  const Message = pb.Message
-  const readFields = (reader, spec) => {
-    const out = {}
-    reader.readMessage(undefined, () => {
-      while (reader.nextField()) {
-        if (reader.isEndGroup()) break
-        const name = spec[reader.getFieldNumber()]
-        if (name) out[name] = reader.readInt32()
-        else reader.skipField()
-      }
-    })
-    return out
-  }
-  Occurrence.deserialize = function deserialize(bytes) {
-    const reader = bytes instanceof pb.BinaryReader ? bytes : new pb.BinaryReader(bytes)
-    const message = new Occurrence()
-    let typed = null
+const WIRE_VARINT = 0 // protobuf's wire type for one unpacked int
+
+const readInts = (reader, spec) => {
+  const out = {}
+  reader.readMessage(undefined, () => {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) break
+      const name = spec[reader.getFieldNumber()]
+      if (name) out[name] = reader.readInt32()
+      else reader.skipField()
+    }
+  })
+  return out
+}
+
+function readOccurrence(reader) {
+  const occ = { range: [], symbol: '', symbol_roles: 0 }
+  let typed = null
+  reader.readMessage(undefined, () => {
     while (reader.nextField()) {
       if (reader.isEndGroup()) break
       switch (reader.getFieldNumber()) {
         case 1:
-          message.range = reader.readPackedInt32()
+          // Packed in every index met so far (proto3's default); an unpacked
+          // writer sends one varint per element, and is read the same.
+          if (reader.getWireType() === WIRE_VARINT) occ.range.push(reader.readInt32())
+          else occ.range = reader.readPackedInt32()
           break
         case 2:
-          message.symbol = reader.readString()
+          occ.symbol = reader.readString()
           break
         case 3:
-          message.symbol_roles = reader.readInt32()
-          break
-        case 4:
-          Message.addToRepeatedField(message, 4, reader.readString())
-          break
-        case 5:
-          message.syntax_kind = reader.readEnum()
-          break
-        case 6:
-          reader.readMessage(message.diagnostics, () =>
-            Message.addToRepeatedWrapperField(message, 6, Diagnostic.deserialize(reader), Diagnostic),
-          )
-          break
-        case 7:
-          message.enclosing_range = reader.readPackedInt32()
+          occ.symbol_roles = reader.readInt32()
           break
         case 8: {
-          const r = readFields(reader, { 1: 'line', 2: 'start', 3: 'end' })
+          const r = readInts(reader, { 1: 'line', 2: 'start', 3: 'end' })
           typed = [r.line ?? 0, r.start ?? 0, r.end ?? 0]
           break
         }
         case 9: {
-          const r = readFields(reader, { 1: 'startLine', 2: 'start', 3: 'endLine', 4: 'end' })
+          const r = readInts(reader, { 1: 'startLine', 2: 'start', 3: 'endLine', 4: 'end' })
           typed = [r.startLine ?? 0, r.start ?? 0, r.endLine ?? 0, r.end ?? 0]
           break
         }
@@ -610,11 +614,96 @@ function installTypedRangeReader() {
           reader.skipField()
       }
     }
-    if (typed) message.range = typed
-    return message
+  })
+  if (typed) occ.range = typed
+  return occ
+}
+
+function readDocument(reader) {
+  const doc = { relative_path: '', occurrences: [] }
+  reader.readMessage(undefined, () => {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) break
+      switch (reader.getFieldNumber()) {
+        case 1:
+          doc.relative_path = reader.readString()
+          break
+        case 2:
+          doc.occurrences.push(readOccurrence(reader))
+          break
+        default:
+          reader.skipField()
+      }
+    }
+  })
+  return doc
+}
+
+/** Every document of the SCIP index in *bytes*, one at a time, in the
+ * order the indexer wrote them. Nothing else of the index is kept. */
+export function* streamDocuments(bytes) {
+  const reader = new pb.BinaryReader(bytes)
+  while (reader.nextField()) {
+    if (reader.isEndGroup()) break
+    if (reader.getFieldNumber() === 2) yield readDocument(reader)
+    else reader.skipField()
   }
 }
-installTypedRangeReader()
+
+/** Whether *bytes* parse as a SCIP index at the top level: every field
+ * skips cleanly to the end, and there is at least one. Cheap — a document
+ * is one length-delimited field, so this jumps over each rather than
+ * reading it — and it is how a unit's output is told from a scip-clang
+ * run that wrote nothing usable. */
+export function wellFormedIndex(bytes) {
+  try {
+    const reader = new pb.BinaryReader(bytes)
+    let fields = 0
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) return false
+      reader.skipField()
+      fields += 1
+    }
+    return fields > 0
+  } catch {
+    return false
+  }
+}
+
+/** An index source over the `.scip` files at *paths*: `documents()`
+ * streams every document of every file, in path order, holding one
+ * file's bytes at a time; `count` is how many documents the last walk
+ * yielded. This is the shape `decode` and `degradations` read, beside
+ * the literal `{documents: [...]}` the tests build. */
+export function indexFiles(paths) {
+  const source = {
+    count: 0,
+    *documents() {
+      source.count = 0
+      for (const path of paths) {
+        const bytes = readFileSync(path)
+        for (const doc of streamDocuments(bytes)) {
+          source.count += 1
+          yield doc
+        }
+      }
+    },
+  }
+  return source
+}
+
+/** The documents of *index*, whichever shape it has: a streamed source
+ * (`documents` is a generator function) is walked afresh each call; a
+ * literal index is its array. */
+export function documentsOf(index) {
+  return typeof index.documents === 'function' ? index.documents() : index.documents
+}
+
+/** How many documents *index* holds — for a streamed source, as of its
+ * last walk. */
+export function documentCount(index) {
+  return typeof index.documents === 'function' ? index.count : index.documents.length
+}
 
 /**
  * Is this document a file of the repo we indexed?
@@ -794,7 +883,7 @@ export function decode(index, opts = {}) {
   const defsOf = new Map()
   const smallestLine = (a, b) => (a && a.line <= b.line ? a : b)
 
-  for (const doc of index.documents) {
+  for (const doc of documentsOf(index)) {
     if (!insideRepo(doc.relative_path)) continue
     for (const occ of doc.occurrences) {
       if (!occ.symbol || occ.symbol.startsWith('local ')) continue
@@ -848,7 +937,7 @@ export function decode(index, opts = {}) {
   // not depend on the order scip-clang listed the units in.
   const overloadSites = []
 
-  for (const doc of index.documents) {
+  for (const doc of documentsOf(index)) {
     if (!insideRepo(doc.relative_path)) continue
     for (const occ of doc.occurrences) {
       if (!occ.symbol || occ.symbol.startsWith('local ')) continue
@@ -1141,7 +1230,7 @@ const RESOLVE_FLOOR = 0.5
  */
 export function degradations(index, decoded, config) {
   const out = []
-  if (index.documents.length === 0) {
+  if (documentCount(index) === 0) {
     out.push({
       stage: 'scip-index',
       message: 'the indexer emitted no documents; nothing was analysed',
@@ -1158,7 +1247,7 @@ export function degradations(index, decoded, config) {
         'rather than nonexistent',
     })
   }
-  if (decoded.definitions.length === 0 && index.documents.length > 0) {
+  if (decoded.definitions.length === 0 && documentCount(index) > 0) {
     out.push({
       stage: 'scip-decode',
       message: 'documents were indexed but no graph-worthy definitions came out',
@@ -1352,40 +1441,45 @@ export function decodeOptions(config) {
  * abstention), so merging needs no rule of its own.
  */
 export function mergeUnitIndexes(indexes) {
-  const documents = []
-  for (const index of indexes) {
-    for (const doc of index.documents ?? []) documents.push(doc)
+  const source = {
+    count: 0,
+    *documents() {
+      source.count = 0
+      for (const index of indexes) {
+        for (const doc of documentsOf(index)) {
+          source.count += 1
+          yield doc
+        }
+      }
+    },
   }
-  return { documents }
+  return source
 }
 
 /** Every unit index under *unitsDir*, in name order, with the count of
  * units whose output is not there to read: a scip-clang run that failed or
  * wrote nothing usable. The others stand. A database over `PER_UNIT_MAX`
- * left one `whole.json` and one index; `whole` then carries its unit count. */
+ * left one `whole.json` and one index; `whole` then carries its unit count.
+ * The indexes are named, not read: `indexStage` streams them (ADR-115). */
 function readUnitIndexes(unitsDir) {
   const names = existsSync(unitsDir)
     ? readdirSync(unitsDir).filter((f) => f.endsWith('.json')).sort()
     : []
+  const readable = (path) => existsSync(path) && wellFormedIndex(readFileSync(path))
   if (names.length === 1 && names[0] === 'whole.json') {
     const units = JSON.parse(readFileSync(join(unitsDir, 'whole.json'), 'utf8')).length
-    try {
-      const index = scip.Index.deserialize(readFileSync(join(unitsDir, 'whole.scip')))
-      return { units, units_failed: 0, indexes: [index], whole: units }
-    } catch {
-      return { units, units_failed: units, indexes: [], whole: units }
-    }
+    const whole = join(unitsDir, 'whole.scip')
+    return readable(whole)
+      ? { units, units_failed: 0, files: [whole], whole: units }
+      : { units, units_failed: units, files: [], whole: units }
   }
-  const indexes = []
+  const files = []
   for (const name of names) {
     const out = join(unitsDir, `${name.slice(0, -'.json'.length)}.scip`)
-    try {
-      indexes.push(scip.Index.deserialize(readFileSync(out)))
-    } catch {
-      // Missing or unreadable: that unit did not index. Counted below.
-    }
+    // Missing or unreadable: that unit did not index. Counted below.
+    if (readable(out)) files.push(out)
   }
-  return { units: names.length, units_failed: names.length - indexes.length, indexes }
+  return { units: names.length, units_failed: names.length - files.length, files }
 }
 
 /** Every one of a root's translation units failed, so there is no index to
@@ -1412,18 +1506,20 @@ export function indexStage(config) {
   const { proc, resolved, unitsDir } = runIndexer(config)
   let index
   let unitRuns = null
+  let decoded
   try {
     if (unitsDir) {
       unitRuns = readUnitIndexes(unitsDir)
-      if (unitRuns.units > 0 && unitRuns.indexes.length === 0) throw noUnitIndexed(unitRuns.units, proc)
-      index = mergeUnitIndexes(unitRuns.indexes)
+      if (unitRuns.units > 0 && unitRuns.files.length === 0) throw noUnitIndexed(unitRuns.units, proc)
+      index = indexFiles(unitRuns.files)
     } else {
-      try {
-        index = scip.Index.deserialize(readFileSync(config.output))
-      } catch (err) {
-        throw new Error(`could not read the SCIP index the indexer wrote: ${err.message}`)
+      if (!existsSync(config.output) || !wellFormedIndex(readFileSync(config.output))) {
+        throw new Error('could not read the SCIP index the indexer wrote: not a SCIP index')
       }
+      index = indexFiles([config.output])
     }
+    // The decode streams the files (ADR-115), so they stay until it is done.
+    decoded = decode(index, decodeOptions(config))
   } finally {
     // A .scip file is an intermediate, never an artifact (ADR-027 clause
     // 6): its metadata.project_root holds the absolute staging path, so
@@ -1433,7 +1529,6 @@ export function indexStage(config) {
     rmSync(config.output, { force: true })
     if (unitsDir) rmSync(unitsDir, { recursive: true, force: true })
   }
-  const decoded = decode(index, decodeOptions(config))
   // How many units ran is the run's fact, not the decode's, but it is
   // read where every other count is: in `degradations`.
   if (unitRuns) {
