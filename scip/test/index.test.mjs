@@ -496,6 +496,121 @@ test("the cpp duplicate-shape wording names namespaces as well as C's statics", 
   assert.match(record.message, /file-`static`s of one signature/, "C's two shapes are still said")
 })
 
+// One moniker, several lines of one file (ADR-113 §2 amended, ADR-109
+// decision 3): scip-clang lists those definitions in an order that varies
+// by run — three fmt ingests at one commit drew three different edge
+// counts — so the choice among them is made by rule here.
+const CPP_OVERLOAD = `${CLANG}is_negative(ee44cd12ab34cd56).`
+
+/** `is_negative` defined at format.h:10 and :20, listed either way, with
+ * one reference to it. *order* is which line comes first. */
+function multiLineIndex(order) {
+  const defs = [
+    { symbol: CPP_OVERLOAD, symbol_roles: DEF, range: [9, 5, 9, 16] },
+    { symbol: CPP_OVERLOAD, symbol_roles: DEF, range: [19, 5, 19, 16] },
+  ]
+  return fakeIndex([
+    { relative_path: 'format.h', occurrences: order === 'small-first' ? defs : [...defs].reverse() },
+    { relative_path: 'main.cpp', occurrences: [{ symbol: CPP_OVERLOAD, symbol_roles: 0, range: [3, 8, 3, 19] }] },
+  ])
+}
+
+test('a C moniker one file defines at two lines takes the smallest, in either order (ADR-109)', () => {
+  const opts = decodeOptions({ language: 'c', stage: '/nowhere' })
+  const small = decode(multiLineIndex('small-first'), opts)
+  const large = decode(multiLineIndex('large-first'), opts)
+  assert.deepEqual(small.references.map((r) => [r.def_file, r.def_line]), [['format.h', 10]],
+    "ADR-109's first line, read as the smallest")
+  assert.deepEqual(small, large, "the decode does not depend on scip-clang's listing order")
+  assert.deepEqual(small.multi_defined, [], 'C picks; only C++ abstains')
+})
+
+test('C++ abstains on a moniker one file defines at two lines, in either order (ADR-113)', () => {
+  // A class template and its specialisations, or `enable_if` overloads one
+  // signature hash covers: different definitions under one moniker.
+  const opts = decodeOptions({ language: 'cpp', stage: '/nowhere' })
+  const small = decode(multiLineIndex('small-first'), opts)
+  const large = decode(multiLineIndex('large-first'), opts)
+  assert.deepEqual(small.references, [], 'no edge is guessed between them')
+  assert.deepEqual(small.definitions, [], 'and the moniker keeps no definition')
+  assert.deepEqual(small, large, "the decode does not depend on scip-clang's listing order")
+  const [ref] = small.external.filter((e) => e.file === 'main.cpp')
+  assert.equal(ref.in_repo, true, "in-repo, so it vetoes no lane A fallback (ADR-111)")
+  const [record] = degradations(multiLineIndex('small-first'), small, { language: 'cpp' })
+    .filter((r) => /more than one line of one file/.test(r.message))
+  assert.match(record.message, /^1 symbol\(s\) are defined at more than one line of one file \(e\.g\. is_negative/)
+  assert.match(record.message, /1 reference\(s\) to them are left without a lane B answer/)
+})
+
+test('a C++ namespace defined at two lines of one file is kept, at the smallest (ADR-113)', () => {
+  // `namespace fmt { … }` reopened in one header. The abstention is for
+  // graph kinds a call site can land on; a namespace keeps its line.
+  const ns = `${CLANG}shapes/`
+  const build = (order) => {
+    const defs = [
+      { symbol: ns, symbol_roles: DEF, range: [2, 10, 2, 16] },
+      { symbol: ns, symbol_roles: DEF, range: [11, 10, 11, 16] },
+    ]
+    return fakeIndex([
+      { relative_path: 'shapes.h', occurrences: order === 'small-first' ? defs : [...defs].reverse() },
+      { relative_path: 'main.cpp', occurrences: [{ symbol: ns, symbol_roles: 0, range: [4, 0, 4, 6] }] },
+    ])
+  }
+  const opts = decodeOptions({ language: 'cpp', stage: '/nowhere' })
+  const small = decode(build('small-first'), opts)
+  assert.deepEqual(small.definitions.map((d) => [d.kind, d.line]), [['namespace', 3]])
+  assert.deepEqual(small.references.map((r) => r.def_line), [3])
+  assert.deepEqual(small, decode(build('large-first'), opts))
+})
+
+test("the own-file map takes that file's smallest line for a colliding static (ADR-109)", () => {
+  // `helper` is a file-static of two files — so the reference resolves
+  // through `byFile` — and its own file defines it at two lines.
+  const helper = `${CLANG}helper(1a35796978658aa4).`
+  const build = (order) => {
+    const defs = [
+      { symbol: helper, symbol_roles: DEF, range: [2, 11, 2, 17] },
+      { symbol: helper, symbol_roles: DEF, range: [8, 11, 8, 17] },
+    ]
+    return fakeIndex([
+      { relative_path: 'a.c', occurrences: [
+        ...(order === 'small-first' ? defs : [...defs].reverse()),
+        { symbol: helper, symbol_roles: 0, range: [20, 4, 20, 10] },
+      ] },
+      { relative_path: 'b.c', occurrences: [{ symbol: helper, symbol_roles: DEF, range: [5, 11, 5, 17] }] },
+    ])
+  }
+  const opts = decodeOptions({ language: 'c', stage: '/nowhere' })
+  const small = decode(build('small-first'), opts)
+  assert.deepEqual(small.references.map((r) => [r.file, r.def_file, r.def_line]), [['a.c', 'a.c', 3]])
+  assert.deepEqual(small, decode(build('large-first'), opts))
+})
+
+test('a moniker defined once, or in two files, decodes as it did under both C configs', () => {
+  const helper = `${CLANG}helper(1a35796978658aa4).`
+  const solo = `${CLANG}solo(2b46807a89769bb5).`
+  const idx = fakeIndex([
+    { relative_path: 'a.c', occurrences: [
+      { symbol: helper, symbol_roles: DEF, range: [2, 11, 2, 17] },
+      { symbol: solo, symbol_roles: DEF, range: [11, 4, 11, 8] },
+      { symbol: helper, symbol_roles: 0, range: [9, 4, 9, 10] },
+    ] },
+    { relative_path: 'b.c', occurrences: [
+      { symbol: helper, symbol_roles: DEF, range: [5, 11, 5, 17] },
+      { symbol: solo, symbol_roles: 0, range: [7, 4, 7, 8] },
+    ] },
+  ])
+  for (const language of ['c', 'cpp']) {
+    const out = decode(idx, decodeOptions({ language, stage: '/nowhere' }))
+    assert.deepEqual(out.definitions.map((d) => [d.file, d.line]), [['a.c', 12]],
+      `${language}: the two-file moniker is dropped, the single one kept`)
+    assert.deepEqual(out.references.map((r) => [r.file, r.line, r.def_file, r.def_line]),
+      [['a.c', 10, 'a.c', 3], ['b.c', 8, 'a.c', 12]], `${language}: the own-file static, and the plain call`)
+    assert.deepEqual(out.ambiguous, [helper], `${language}: the ambiguity is still reported (C-28)`)
+    assert.deepEqual(out.multi_defined, [], `${language}: nothing abstained`)
+  }
+})
+
 test('references carry the column and name the join needs', () => {
   const idx = fakeIndex([
     {
