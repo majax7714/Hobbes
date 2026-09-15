@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
+import { spawnSync } from 'node:child_process'
 import * as cfs from 'node:fs'
 import * as cos from 'node:os'
 import * as cpath from 'node:path'
@@ -18,7 +19,9 @@ import { INDEXER_EXIT,
   GRAPH_KINDS,
   INDEXERS,
   insideRepo,
+  mergeUnitIndexes,
   packageOf,
+  splitCompdb,
   terminalName,
   indexerPlan,
   gradleAttachScript,
@@ -241,22 +244,86 @@ test('terminalName reads the bare name a syntax provider would have seen', () =>
   assert.equal(terminalName(`${CLANG}cJSON_Delete(6efceb6909523ce2).`), 'cJSON_Delete')
 })
 
-test('a C build root plans CMake or bear over make, then scip-clang (ADR-109)', () => {
+/** The last step of every C plan: a shell running scip-clang once per
+ * one-entry database the check wrote (ADR-109 decision 1, amended). A
+ * whole-database run indexes a shared header in whichever unit claims it
+ * first, and that varies by run (C-149). */
+function assertPerUnitIndexStep(step) {
+  assert.equal(step.bin, 'sh', 'the units are driven from a shell, as bear over make is')
+  assert.equal(step.cwd, '/s/cjson', 'scip-clang reports documents relative to its cwd, the root')
+  assert.match(step.args[1], /xargs -P "\$2" -I@ scip-clang -j 1 /, 'one unit per run, the parallelism outside it')
+  assert.match(step.args[1], /--compdb-path="\$1\/@\.json" --index-output-path="\$1\/@\.scip"/)
+  assert.match(step.args[1], /exit 0$/, 'a unit that fails does not stop the others')
+  assert.equal(step.args[3], '/s/o.scip.units', 'the unit databases sit beside the output, never in the stage')
+  assert.ok(Number(step.args[4]) >= 1, "at most the box's parallelism at a time")
+  assert.equal(typeof step.check, 'function', 'the database is checked, then split, before any indexing')
+}
+
+test('a C build root plans CMake or bear over make, then scip-clang once per unit (ADR-109)', () => {
   const base = { language: 'c', stage: '/s/cjson', output: '/s/o.scip', buildDir: '/s/b' }
   const cmake = cPlan({ ...base, compdbSource: 'cmake' })
-  assert.deepEqual(cmake.steps.map((s) => s.bin), ['cmake', 'scip-clang'])
+  assert.deepEqual(cmake.steps.map((s) => s.bin), ['cmake', 'sh'])
   assert.deepEqual(cmake.steps[0].args, ['-S', '/s/cjson', '-B', '/s/b', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'])
-  assert.deepEqual(cmake.steps[1].args, ['--compdb-path=/s/b/compile_commands.json', '--index-output-path=/s/o.scip'])
-  assert.equal(cmake.steps[1].cwd, '/s/cjson', 'scip-clang reports documents relative to its cwd, the root')
+  assertPerUnitIndexStep(cmake.steps[1])
+  assert.equal(cmake.unitsDir, '/s/o.scip.units', 'the plan says where the units are, so the decode can read them')
   const make = cPlan({ ...base, compdbSource: 'make' })
-  assert.deepEqual(make.steps.map((s) => s.bin), ['sh', 'scip-clang'])
+  assert.deepEqual(make.steps.map((s) => s.bin), ['sh', 'sh'])
   assert.equal(make.steps[0].args[1], 'bear --output "$1" -- make -k; exit 0', "make's own exit decides nothing")
   assert.equal(make.steps[0].args[3], '/s/b/compile_commands.json')
+  assert.equal(make.steps[0].check, undefined, 'the database is read by the step that indexes it, not before')
+  assertPerUnitIndexStep(make.steps[1])
   const repo = cPlan({ ...base, compdbSource: 'repo', compdb: '/s/b/rebased.json' })
-  assert.deepEqual(repo.steps.map((s) => s.bin), ['scip-clang'])
+  assert.deepEqual(repo.steps.map((s) => s.bin), ['sh'], 'a carried database is split and indexed the same way')
+  assertPerUnitIndexStep(repo.steps[0])
   assert.equal(cCompdb({ ...base, compdbSource: 'repo', compdb: '/s/b/rebased.json' }), '/s/b/rebased.json')
   assert.equal(indexerPlan({ ...base, compdbSource: 'cmake' }).steps.length, 2)
   assert.throws(() => cPlan({ ...base }), /no compile database source/)
+})
+
+test('the check writes one one-entry database per compile, numbered in database order (ADR-109)', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const entries = [
+    { directory: dir, file: 'a.c', arguments: ['cc', '-c', 'a.c'] },
+    { directory: dir, file: 'b.c', command: 'cc -c b.c' },
+    { directory: dir, file: 'sub/c.c', arguments: ['cc', '-c', 'sub/c.c'], output: 'c.o' },
+  ]
+  assert.deepEqual(splitCompdb(entries).map((u) => u.name), ['0000', '0001', '0002'])
+  assert.deepEqual(splitCompdb(entries).map((u) => u.entry), entries, 'each entry is the build\'s own record, verbatim')
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(entries))
+  plan.steps[1].check({})
+  assert.deepEqual(cfs.readdirSync(plan.unitsDir).sort(), ['0000.json', '0001.json', '0002.json'])
+  assert.deepEqual(JSON.parse(cfs.readFileSync(cpath.join(plan.unitsDir, '0001.json'), 'utf8')), [entries[1]],
+    'a one-entry database, holding that entry and nothing else')
+})
+
+test("the index step's shell indexes every unit and a unit that fails stops none of them (ADR-109)", () => {
+  // The step run for real, against a stub that copies its one-entry
+  // database to the index path it was given and fails on one unit the way
+  // a scip-clang that cannot compile a translation unit does.
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  cfs.writeFileSync(cpath.join(bin, 'scip-clang'), [
+    '#!/bin/sh',
+    'for a in "$@"; do case "$a" in',
+    '  --compdb-path=*) db=${a#--compdb-path=};;',
+    '  --index-output-path=*) out=${a#--index-output-path=};;',
+    'esac; done',
+    'case "$db" in *0001.json) echo "no rule to compile this unit" >&2; exit 1;; esac',
+    'cat "$db" > "$out"',
+  ].join('\n') + '\n', { mode: 0o755 })
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'repo', compdb: cpath.join(dir, 'compile_commands.json') })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(
+    ['a.c', 'b.c', 'c.c'].map((file) => ({ directory: dir, file, arguments: ['cc', '-c', file] }))))
+  const step = plan.steps[0]
+  step.check({})
+  const proc = spawnSync('sh', step.args, { cwd: step.cwd, encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })
+  assert.equal(proc.status, 0, 'the step exits 0 even though a unit failed; the merge counts what is missing')
+  assert.deepEqual(cfs.readdirSync(plan.unitsDir).filter((f) => f.endsWith('.scip')).sort(), ['0000.scip', '0002.scip'])
+  assert.deepEqual(JSON.parse(cfs.readFileSync(cpath.join(plan.unitsDir, '0002.scip'), 'utf8'))[0].file, 'c.c',
+    'each run read its own one-entry database')
+  assert.match(String(proc.stderr), /no rule to compile this unit/, "the failed unit's words reach the facts")
 })
 
 test("an empty compile database stops the plan before scip-clang, in the build's words", () => {
@@ -609,6 +676,93 @@ test('a moniker defined once, or in two files, decodes as it did under both C co
     assert.deepEqual(out.ambiguous, [helper], `${language}: the ambiguity is still reported (C-28)`)
     assert.deepEqual(out.multi_defined, [], `${language}: nothing abstained`)
   }
+})
+
+// One translation unit per scip-clang run (ADR-109 decision 1, amended):
+// every unit indexes its own copy of the headers it includes, and the
+// helper decodes the units' indexes as one. The shared header arrives once
+// per unit, so what the merge must answer is what the units disagree
+// about — which is what `decode`'s rules already answer.
+const MERGED_MACRO_OPTS = { nameOf: () => 'SCALE', oneTargetPerSite: true, ownFile: true }
+
+/** Two unit indexes of one header, `util.h`, whose `SCALE` each unit
+ * resolves into its own `.c` — the real cross-unit disagreement. */
+function unitPair() {
+  const fromA = `${CLANG}\`a.c:5:9\`!`
+  const fromB = `${CLANG}\`b.c:7:9\`!`
+  return [
+    fakeIndex([
+      { relative_path: 'a.c', occurrences: [{ symbol: fromA, symbol_roles: DEF, range: [4, 8, 4, 13] }] },
+      { relative_path: 'util.h', occurrences: [{ symbol: fromA, symbol_roles: 0, range: [9, 4, 9, 9] }] },
+    ]),
+    fakeIndex([
+      { relative_path: 'b.c', occurrences: [{ symbol: fromB, symbol_roles: DEF, range: [6, 8, 6, 13] }] },
+      { relative_path: 'util.h', occurrences: [{ symbol: fromB, symbol_roles: 0, range: [9, 4, 9, 9] }] },
+    ]),
+  ]
+}
+
+test('a site two units answer into different files is dropped in the merged decode, either order (ADR-109)', () => {
+  const [a, b] = unitPair()
+  const ab = decode(mergeUnitIndexes([a, b]), MERGED_MACRO_OPTS)
+  const ba = decode(mergeUnitIndexes([b, a]), MERGED_MACRO_OPTS)
+  assert.deepEqual(ab.references, [], "lane B has no one answer, so the site keeps lane A's floor")
+  assert.equal(ab.tu_split, 1)
+  assert.deepEqual([ba.references, ba.tu_split], [ab.references, ab.tu_split],
+    'the answer does not depend on which unit the merge read first')
+})
+
+test('a header both units answer the same way is one reference row in the merged decode (ADR-109)', () => {
+  // The common case per-unit indexing creates: every unit that includes a
+  // header indexes it, so the same site arrives once per unit.
+  const emit = `${CLANG}emit(aaaa1111bbbb2222).`
+  const unit = () => fakeIndex([
+    { relative_path: 'shared.h', occurrences: [{ symbol: emit, symbol_roles: DEF, range: [4, 5, 4, 9] }] },
+    { relative_path: 'util.h', occurrences: [{ symbol: emit, symbol_roles: 0, range: [9, 4, 9, 8] }] },
+  ])
+  const merged = mergeUnitIndexes([unit(), unit()])
+  assert.equal(merged.documents.length, 4, 'the merge concatenates, it does not deduplicate')
+  const out = decode(merged, decodeOptions({ language: 'c', stage: '/nowhere' }))
+  assert.deepEqual(out.references.map((r) => [r.file, r.line, r.def_file, r.def_line]), [['util.h', 10, 'shared.h', 5]])
+  assert.deepEqual(out.definitions.map((d) => [d.file, d.line]), [['shared.h', 5]], 'one definition, not one per unit')
+})
+
+test('a C++ moniker two units define at two lines of one file abstains, as in one index (ADR-113)', () => {
+  // `#if` alternatives of one header, each unit configured its own way.
+  const sym = `${CLANG}is_negative(ee44cd12ab34cd56).`
+  const unit = (line) => fakeIndex([
+    { relative_path: 'format.h', occurrences: [{ symbol: sym, symbol_roles: DEF, range: [line, 5, line, 16] }] },
+    { relative_path: 'main.cpp', occurrences: [{ symbol: sym, symbol_roles: 0, range: [3, 8, 3, 19] }] },
+  ])
+  const opts = decodeOptions({ language: 'cpp', stage: '/nowhere' })
+  const out = decode(mergeUnitIndexes([unit(9), unit(19)]), opts)
+  assert.deepEqual(out.multi_defined, [sym], 'two definitions under one moniker, in one file')
+  assert.deepEqual(out.references, [], 'no edge is guessed between them')
+  assert.equal(out.external.filter((e) => e.file === 'main.cpp')[0].in_repo, true)
+})
+
+test('a quarter of a million references decode without overflowing the stack (ADR-109)', () => {
+  // The merged size a per-unit run reaches: 484,201 references on fmt.
+  // `references.push(...kept)` spread them into arguments and threw.
+  const emit = `${CLANG}emit(aaaa1111bbbb2222).`
+  const occurrences = [{ symbol: emit, symbol_roles: DEF, range: [0, 5, 0, 9] }]
+  for (let line = 1; line <= 250_000; line++) {
+    occurrences.push({ symbol: emit, symbol_roles: 0, range: [line, 4, line, 8] })
+  }
+  const out = decode(fakeIndex([{ relative_path: 'a.c', occurrences }]), decodeOptions({ language: 'c', stage: '/nowhere' }))
+  assert.equal(out.references.length, 250_000, 'and every one is kept')
+})
+
+test('a translation unit that failed to index is counted, and nothing is said when none failed (ADR-109)', () => {
+  const idx = fakeIndex([{ relative_path: 'a.c', occurrences: [] }])
+  const failed = (units_failed) => degradations(idx, { ...decode(idx), units: 5, units_failed }, { language: 'c' })
+    .filter((r) => /translation unit\(s\) failed/.test(r.message))
+  const [record] = failed(1)
+  assert.equal(record.stage, 'scip-decode')
+  assert.equal(record.message,
+    "1 of 5 translation unit(s) failed to index; the others stand, and the failed units' " +
+    "sites fall to lane A's fallback (ADR-109)")
+  assert.deepEqual(failed(0), [], 'a run whose every unit indexed says nothing')
 })
 
 test('references carry the column and name the join needs', () => {

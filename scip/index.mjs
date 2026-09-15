@@ -24,7 +24,8 @@
  * Output: facts JSON on stdout; diagnostics on stderr.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -165,6 +166,9 @@ export const INDEXERS = {
     // scratch build dir by the Python side; CMake's export; or bear over
     // make. The last two run the repo's build logic (C-29's C face), so
     // this runs only in the image, offline, like Java's index pass.
+    // `plan` is what runs, and it runs scip-clang once per translation
+    // unit (ADR-109 decision 1, amended; C-149), so `args` names the
+    // whole-database invocation only for the record.
     bin: 'scip-clang',
     onPath: true,
     install: 'build the sandbox image (sandbox/Containerfile pins scip-clang)',
@@ -187,19 +191,82 @@ export function cCompdb(c) {
   return c.compdbSource === 'repo' ? c.compdb : join(c.buildDir, 'compile_commands.json')
 }
 
+/** Where a root's one-entry compile databases and their indexes go: beside
+ * the index a whole-database run used to write, never inside the stage
+ * scip-clang reports its documents relative to. */
+function cUnitsDir(c) {
+  return `${c.output}.units`
+}
+
+/** The index step's shell: one scip-clang run per one-entry database the
+ * check wrote, `$1` their directory and `$2` how many may run at once.
+ * `-j 1` because the parallelism is here, one process per unit. `exit 0`
+ * because xargs exits 123 when any child failed, and a unit that fails
+ * must not stop the others — the merge counts what is missing. */
+const PER_UNIT_INDEX =
+  'ls "$1" | sed -n \'s/\\.json$//p\' | ' +
+  'xargs -P "$2" -I@ scip-clang -j 1 --compdb-path="$1/@.json" --index-output-path="$1/@.scip"; ' +
+  'exit 0'
+
+/** One one-entry compile database per entry of *entries*, named by the
+ * entry's zero-padded position in the database, so the units decode in
+ * database order whatever order they were indexed in (ADR-109). The entry
+ * is copied verbatim: it is the build's own record of how that translation
+ * unit compiles, and rewriting any of it would index something else. */
+export function splitCompdb(entries) {
+  return entries.map((entry, i) => ({ name: String(i).padStart(4, '0'), entry }))
+}
+
+/** A check hook that writes *compdb* out as one-entry databases under
+ * *unitsDir*, replacing whatever a previous run left there. It runs after
+ * C-135's check, on the whole database, and before any indexing. */
+function splitStep(compdb, unitsDir) {
+  return () => {
+    const entries = JSON.parse(readFileSync(compdb, 'utf8'))
+    rmSync(unitsDir, { recursive: true, force: true })
+    mkdirSync(unitsDir, { recursive: true })
+    for (const { name, entry } of splitCompdb(entries)) {
+      writeFileSync(join(unitsDir, `${name}.json`), JSON.stringify([entry]))
+    }
+  }
+}
+
 /** The steps for one C build root (ADR-109): derive the compile database,
- * unless the repo carries one, then index. `make -k` keeps going past a
- * target that fails (a link error, a tool the image lacks), and bear
- * records every compile it saw. So the build's own exit decides nothing;
- * the database having entries, and one of them under the root, does
- * (C-135), checked before scip-clang runs. */
+ * unless the repo carries one, then index.
+ *
+ * `make -k` keeps going past a target that fails (a link error, a tool the
+ * image lacks), and bear records every compile it saw. So the build's own
+ * exit decides nothing; the database having entries, and one of them under
+ * the root, does (C-135), checked before scip-clang runs.
+ *
+ * The index step then runs **one translation unit per scip-clang run**
+ * (ADR-109 decision 1, amended; C-149). A whole-database run indexes a
+ * header many units share once, in whichever unit claims it first, and
+ * that varies by run: three cJSON ingests at one commit drew 2,630, 2,615
+ * and 2,621 edges. Run per unit and every unit indexes its own headers, so
+ * the concatenation the decode reads is the same every time — the decode
+ * itself is already order-independent (ADR-113 §2). Measured on fmt (52
+ * units): 9–10 s at 6 in parallel against 8 s for one run. So the check
+ * on the step that first reads the database also splits it, and the step
+ * is a shell driving scip-clang over the pieces, at most
+ * `availableParallelism()` at a time; `indexStage` decodes them as one. */
 export function cPlan(c) {
   const compdb = cCompdb(c)
+  const unitsDir = cUnitsDir(c)
+  const split = splitStep(compdb, unitsDir)
   const index = {
-    bin: 'scip-clang', onPath: true, install: INDEXERS.c.install, cwd: c.stage,
-    args: [`--compdb-path=${compdb}`, `--index-output-path=${c.output}`],
+    bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
+    args: ['-c', PER_UNIT_INDEX, 'sh', unitsDir, String(availableParallelism())],
   }
-  if (c.compdbSource === 'repo') return { steps: [index] }
+  // Both hooks on one step: C-135 judges the whole database, then it is
+  // split. A database the check refuses is never split.
+  const before = (check) => (previous) => {
+    if (check) check(previous)
+    split(previous)
+  }
+  if (c.compdbSource === 'repo') {
+    return { steps: [{ ...index, check: before(null) }], unitsDir }
+  }
   if (c.compdbSource === 'cmake') {
     return {
       steps: [
@@ -207,8 +274,9 @@ export function cPlan(c) {
           bin: 'cmake', onPath: true, install: INDEXERS.c.install, cwd: c.stage,
           args: ['-S', c.stage, '-B', c.buildDir, '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON'],
         },
-        { ...index, check: compdbCheck(compdb, 'CMake', c.stage) },
+        { ...index, check: before(compdbCheck(compdb, 'CMake', c.stage)) },
       ],
+      unitsDir,
     }
   }
   if (c.compdbSource === 'make') {
@@ -218,8 +286,9 @@ export function cPlan(c) {
           bin: 'sh', onPath: true, install: 'a POSIX shell (the image has one)', cwd: c.stage,
           args: ['-c', 'bear --output "$1" -- make -k; exit 0', 'sh', compdb],
         },
-        { ...index, check: compdbCheck(compdb, 'bear over make', c.stage) },
+        { ...index, check: before(compdbCheck(compdb, 'bear over make', c.stage)) },
       ],
+      unitsDir,
     }
   }
   throw new Error(`no compile database source for this C build root: ${c.compdbSource}`)
@@ -831,8 +900,11 @@ export function decode(index, opts = {}) {
     }
     if (dropped.size) {
       const kept = references.filter((r) => !dropped.has(r))
+      // A loop, not `push(...kept)`: spreading hundreds of thousands of
+      // references into arguments overflows the stack, and per-unit
+      // indexing merges enough units to reach that (484,201 on fmt).
       references.length = 0
-      references.push(...kept)
+      for (const r of kept) references.push(r)
     }
   }
 
@@ -868,8 +940,9 @@ export function decode(index, opts = {}) {
       }
       kept.push(rs.reduce((a, b) => (b.def_line < a.def_line ? b : a)))
     }
+    // A loop, not `push(...kept)`, for the reason above.
     references.length = 0
-    references.push(...kept)
+    for (const r of kept) references.push(r)
   }
 
   return {
@@ -1047,6 +1120,14 @@ export function degradations(index, decoded, config) {
       message: 'documents were indexed but no graph-worthy definitions came out',
     })
   }
+  if (decoded.units_failed) {
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `${decoded.units_failed} of ${decoded.units} translation unit(s) failed to index; ` +
+        "the others stand, and the failed units' sites fall to lane A's fallback (ADR-109)",
+    })
+  }
   if (decoded.tu_split) {
     out.push({
       stage: 'scip-decode',
@@ -1120,7 +1201,7 @@ function runIndexer(config) {
   } finally {
     if (plan.cleanup) plan.cleanup()
   }
-  return { proc, resolved }
+  return { proc, resolved, unitsDir: plan.unitsDir }
 }
 
 function runStep(step) {
@@ -1187,20 +1268,94 @@ export function decodeOptions(config) {
   }
 }
 
+/**
+ * The translation units' indexes, read as one (ADR-109 decision 1,
+ * amended): their documents concatenated in database order, in the shape
+ * `decode` reads. The same header arrives once per unit that includes it,
+ * which is the point — every unit indexes its own copy, so nothing depends
+ * on which unit claimed it first. `decode` already answers a site the
+ * units answer differently by rule (tu-split, the smallest line, C++'s
+ * abstention), so merging needs no rule of its own.
+ */
+export function mergeUnitIndexes(indexes) {
+  const documents = []
+  for (const index of indexes) {
+    for (const doc of index.documents ?? []) documents.push(doc)
+  }
+  return { documents }
+}
+
+/** Every unit index under *unitsDir*, in name order, with the count of
+ * units whose output is not there to read: a scip-clang run that failed or
+ * wrote nothing usable. The others stand. */
+function readUnitIndexes(unitsDir) {
+  const names = existsSync(unitsDir)
+    ? readdirSync(unitsDir).filter((f) => f.endsWith('.json')).sort()
+    : []
+  const indexes = []
+  for (const name of names) {
+    const out = join(unitsDir, `${name.slice(0, -'.json'.length)}.scip`)
+    try {
+      indexes.push(scip.Index.deserialize(readFileSync(out)))
+    } catch {
+      // Missing or unreadable: that unit did not index. Counted below.
+    }
+  }
+  return { units: names.length, units_failed: names.length - indexes.length, indexes }
+}
+
+/** Every one of a root's translation units failed, so there is no index to
+ * decode. That is the indexer's outcome, not a helper that could not run:
+ * it carries `indexerExit`, as a refused compile database does. */
+function noUnitIndexed(units, proc) {
+  const said = String(proc?.stderr || proc?.stdout || '').trim().slice(-500)
+  const err = new Error(
+    `scip-clang indexed none of the ${units} translation unit(s) — ` +
+    `it is installed by \`${INDEXERS.c.install}\`: ${said}`,
+  )
+  err.indexerExit = 1
+  return err
+}
+
+/** Run the plan, decode what it wrote, and report it.
+ *
+ * C and C++ index one translation unit per scip-clang run (`cPlan`), so
+ * the index to decode is the units' concatenation rather than one file,
+ * and the units that failed are counted and reported rather than passed
+ * off as an empty result (C-149). Every other language writes the one
+ * `config.output` it always did. */
 export function indexStage(config) {
-  const { proc, resolved } = runIndexer(config)
+  const { proc, resolved, unitsDir } = runIndexer(config)
   let index
+  let unitRuns = null
   try {
-    index = scip.Index.deserialize(readFileSync(config.output))
-  } catch (err) {
-    throw new Error(`could not read the SCIP index the indexer wrote: ${err.message}`)
+    if (unitsDir) {
+      unitRuns = readUnitIndexes(unitsDir)
+      if (unitRuns.units > 0 && unitRuns.indexes.length === 0) throw noUnitIndexed(unitRuns.units, proc)
+      index = mergeUnitIndexes(unitRuns.indexes)
+    } else {
+      try {
+        index = scip.Index.deserialize(readFileSync(config.output))
+      } catch (err) {
+        throw new Error(`could not read the SCIP index the indexer wrote: ${err.message}`)
+      }
+    }
+  } finally {
+    // A .scip file is an intermediate, never an artifact (ADR-027 clause
+    // 6): its metadata.project_root holds the absolute staging path, so
+    // identical content staged elsewhere differs in bytes. Nothing about
+    // it is propagated, and it is removed once decoded — the unit
+    // databases and their indexes with it.
+    rmSync(config.output, { force: true })
+    if (unitsDir) rmSync(unitsDir, { recursive: true, force: true })
   }
   const decoded = decode(index, decodeOptions(config))
-  // The .scip file is an intermediate, never an artifact (ADR-027 clause
-  // 6): its metadata.project_root holds the absolute staging path, so
-  // identical content staged elsewhere differs in bytes. Nothing about it
-  // is propagated, and it is removed once decoded.
-  rmSync(config.output, { force: true })
+  // How many units ran is the run's fact, not the decode's, but it is
+  // read where every other count is: in `degradations`.
+  if (unitRuns) {
+    decoded.units = unitRuns.units
+    decoded.units_failed = unitRuns.units_failed
+  }
   return {
     helper_version: HELPER_VERSION,
     language: config.language,
@@ -1208,6 +1363,7 @@ export function indexStage(config) {
     references: decoded.references,
     external_refs: decoded.external,
     packages: Object.fromEntries(decoded.packages),
+    ...(unitRuns ? { units: unitRuns.units, units_failed: unitRuns.units_failed } : {}),
     // Reported every run, not only when something is wrong: the counts
     // are the honest form of the signal and the threshold is secondary.
     dependency_coverage: dependencyCoverage(decoded, config, resolved),
