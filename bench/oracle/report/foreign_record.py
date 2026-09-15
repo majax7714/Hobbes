@@ -51,7 +51,7 @@ def main(argv=None):
     ap.add_argument("--ingest-note", default="", help="--hobbes: the ingest's capture line and containment, quoted")
     ap.add_argument("--fix-note", default="", help="--hobbes: what changed between report.v1 and report (the signed direction line's cause)")
     ap.add_argument("--triage-note", default="", help="a hand-read triage paragraph for this cell's contradictions, quoted as written")
-    ap.add_argument("--lang", default="", help="the cell's language name as the triage file spells it (Go, TypeScript, Rust, Java, Python, C)")
+    ap.add_argument("--lang", default="", help="the cell's language name as the triage file spells it (Go, TypeScript, Rust, Java, Python, C, C++)")
     ap.add_argument("--repo-name", default="", help="the cell's repo name as the triage file spells it")
     a = ap.parse_args(argv)
     cell = Path(a.cell)

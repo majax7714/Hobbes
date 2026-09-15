@@ -754,6 +754,42 @@ the semantic tier is registered in the same commit as its cell. Whether
 it is fixed before the §3.8 row lands, or the row states it, is the
 lead's call.
 
+### 10.7 Foreign C++ cells — written 2026-09-15, before either tool ran on C++
+
+The foreign C cells (2026-09-14) were graded with no section here.
+These four are written first. Both tools run as the C cells ran them:
+- CodeGraphContext 0.6.13 on its default tree-sitter path. Its
+  optional SCIP path for C/C++ is not enabled, as on C.
+- repowise 0.49.0 with `--no-prose`.
+
+Both go through converter@3, on fmt and args at the standing cells'
+commits, and are graded by those cells' stored clang keys with
+`grade-foreign.sh --lang cpp`.
+
+**Priors.**
+- Both tools resolve a call by name and scope, not by type
+  (`field.md` §1). On C, where a name has one definition per link,
+  CodeGraphContext read 1,179/1,179 on cJSON and repowise 1,073/1,075.
+- C++ gives one name many declarations: overloads, same-named members
+  of other classes, a template's specialisations. Hobbes' own first
+  grade of fmt had 36 overload-collapse rows and 74 name-fallback rows
+  before ADR-113 §2's third amendment.
+- Hobbes' standing grades: fmt 3,254/3,282 (99.1%), recall 14.5%; args
+  1,995/1,995, recall 56.4%. fmt's recall is low by construction. Hobbes
+  abstains where lane B lists several candidates (C-151), draws nothing
+  by name in a file lane B compiled (C-152), and loses definitions to
+  parse errors (C-145). A name resolver guesses at those sites.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P32 | all four | poison check PASS, 0 falsely confirmed | met per cell |
+| P33 | all four | each tool's precision-against-oracle is below Hobbes' standing grade on the same key | met per cell |
+| P34 | all four | at least half the contradictions read have the name-match-wrong-owner shape: the tool's callee shares its short name with one of the oracle's targets at the site | graded on the rows read: every row where a cell has ≤ 60, otherwise a seeded random sample of 20, the ratio quoted as sampled (A-8) |
+| P35 | fmt | at least one tool's recall is above Hobbes' 14.5% | met if the report's recall line says so. If met, fmt is the first row where a tool's marker is ahead of Hobbes' on either axis, and the claim page says so |
+
+args' recall is recorded, not predicted. If P33 fails on a cell, the
+claim page's list of ties gains it.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

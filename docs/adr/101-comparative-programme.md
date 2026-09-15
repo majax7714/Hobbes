@@ -192,3 +192,24 @@ the version pair it signs. The claim page's C sentence and C-95's C
 face are restated on the regraded numbers. A foreign edge to a macro
 is still the tool's edge: it is excluded, not confirmed, and the
 count is printed.
+
+## Amendment (2026-09-15): C++ joins `oracle import`'s language set
+
+**Context.** ADR-113 gave `oracle export` the `cpp` extension set, and
+two C++ cells are graded (fmt, args). `oracle import` reads the same
+table, so a C++ edge file already converts. The usage lines, the
+refusal's message and `grade-foreign.sh` still spelled the set
+without it.
+
+**Decision.** The first amendment's rule holds for C++: the import
+applies the export's predicates and nothing of its own. `.h` sits in
+both the C and the C++ set, as the export has it. converter@3's
+`#define` reading is unchanged: it already reads C++ sources. Every
+place the set is spelled says `cpp`. No new fixture: the conversion
+path is the one the C fixture proves, and only the extension table
+differs, and the export's C++ test holds that.
+
+**Consequences.** The foreign C++ cells (both tools on fmt and args)
+are unblocked. They are pre-registered in `oracle-grading.md` §10.7
+before either tool runs. Nothing under `bench/` moves the version
+(ADR-103).

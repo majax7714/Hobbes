@@ -3,13 +3,13 @@
 # answer keys (ADR-101). One command, the same matcher, the same poison
 # check as a Hobbes cell — the oracle does not care who produced the edges.
 #
-#   bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c] [--exclude a,b]
+#   bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c|cpp] [--exclude a,b]
 #
 # <edges.json> is the tool's graph converted to the minimal shape
 # (README § Grading a graph Hobbes did not build): {repo, sha, tool,
 # version, converter, edges:[{site:"file:line", callee:"file:line",
 # caller?, kind?, label?}]}. <oracle.json> is an answer key produced by
-# `oracle go-rta | rust-mir | java-javac | py-trace` or ts/tsc-oracle.mjs
+# `oracle go-rta | rust-mir | java-javac | c-clang | py-trace` or ts/tsc-oracle.mjs
 # on the same repo at the same commit — every cell record names the
 # command that regenerates its key. Leaves hobbes.json (the converted
 # graph), report.json and report.txt in <out-dir>; the last line of the

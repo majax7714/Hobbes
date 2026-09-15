@@ -11,7 +11,7 @@ and regenerable by anyone with the toolchain.
 cd bench/oracle && go test ./...            # fixture self-test: minigo + twomod (Go), minits (TS), miniapp (Python), minirust (Rust), minijava (Java), cclang + the probe (C)
 cd bench/oracle/ts && npm install            # once: the fallback typescript for fixtures
 cd bench/oracle/rust && cargo +nightly build --release   # once per nightly: the MIR driver (rustc-dev)
-bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java|c] [--no-ingest] \
+bench/oracle/run-cell.sh <repo> <module-dir> <out-dir> [--lang go|ts|py|rust|java|c|cpp] [--no-ingest] \
     [--python "<cmd>"] [--runs N] [--sys-path a,b] [--features f] [--tool maven|gradle] [--compdb path] [--clang-bin clang] [-- <pytest args>]
 ```
 
@@ -39,7 +39,7 @@ so a competitor's graph, or your own, is graded against the same
 answer key with the same matcher:
 
 ```sh
-bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c] [--exclude a,b]
+bench/oracle/grade-foreign.sh <edges.json> <oracle.json> <out-dir> [--module .] [--lang go|ts|py|rust|java|c|cpp] [--exclude a,b]
 ```
 
 `<edges.json>` is:

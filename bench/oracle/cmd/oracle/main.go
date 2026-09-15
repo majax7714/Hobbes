@@ -66,8 +66,8 @@ func main() {
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `usage:
-  oracle export --graph .hobbes/derived/graph.json --module go [--lang go|ts|py|rust|java|c] [--out hobbes.json]
-  oracle import --edges tool.json --module . [--lang go|ts|py|rust|java|c] [--exclude a,b] [--out hobbes.json]   (a third-party graph, ADR-101)
+  oracle export --graph .hobbes/derived/graph.json --module go [--lang go|ts|py|rust|java|c|cpp][--out hobbes.json]
+  oracle import --edges tool.json --module . [--lang go|ts|py|rust|java|c|cpp][--exclude a,b] [--out hobbes.json]   (a third-party graph, ADR-101)
   node ts/tsc-oracle.mjs --repo . --zone web --out oracle.json      (the TypeScript oracle)
   oracle go-rta --repo . --module go [--tags a,b] [--out oracle.json]
   oracle py-trace --repo . --module pipeline --out oracle.json [--python "uv run --project pipeline python"] [--runs N] [--sys-path src] -- <pytest args>
@@ -83,7 +83,7 @@ func runExport(args []string) error {
 	fs := flag.NewFlagSet("export", flag.ExitOnError)
 	graph := fs.String("graph", ".hobbes/derived/graph.json", "Hobbes graph.json")
 	module := fs.String("module", "", "repo-relative module directory (cell)")
-	lang := fs.String("lang", "go", "go|ts|py|rust|java|c — the extension set of the cell")
+	lang := fs.String("lang", "go", "go|ts|py|rust|java|c|cpp — the extension set of the cell")
 	exclude := fs.String("exclude", "", "comma-separated repo-relative directories to drop (nested modules)")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)
@@ -102,7 +102,7 @@ func runImport(args []string) error {
 	fs := flag.NewFlagSet("import", flag.ExitOnError)
 	in := fs.String("edges", "", "the tool's converted edge file: {repo, sha, tool, version, converter, edges:[{site, callee, caller?, kind?, label?}]}")
 	module := fs.String("module", "", "repo-relative module directory (cell)")
-	lang := fs.String("lang", "go", "go|ts|py|rust|java|c — the extension set of the cell")
+	lang := fs.String("lang", "go", "go|ts|py|rust|java|c|cpp — the extension set of the cell")
 	exclude := fs.String("exclude", "", "comma-separated repo-relative directories to drop (nested modules)")
 	out := fs.String("out", "", "output path (default stdout)")
 	fs.Parse(args)

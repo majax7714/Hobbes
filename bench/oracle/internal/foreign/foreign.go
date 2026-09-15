@@ -27,9 +27,10 @@
 // macros) needs a `macro` kind. A converter that cannot tell the kind
 // leaves it empty and its cell record says so (C-95). The tool's `label`
 // becomes the edge's tier, so the report's per-tier split reads the
-// tool's own confidence ladder. The language set is export's six —
-// go, ts, py, rust, java, c — and nothing about a converted graph is
-// read differently for one of them (the 2026-09-14 amendment).
+// tool's own confidence ladder. The language set is export's seven —
+// go, ts, py, rust, java, c, cpp — and nothing about a converted graph
+// is read differently for one of them (the 2026-09-14 and 2026-09-15
+// amendments).
 package foreign
 
 import (
@@ -95,7 +96,7 @@ func Convert(f *File, module, lang string, exclude ...string) (*edges.HobbesExpo
 	}
 	exts, ok := export.Exts[lang]
 	if !ok {
-		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust|java|c)", lang)
+		return nil, fmt.Errorf("unknown lang %q (go|ts|py|rust|java|c|cpp)", lang)
 	}
 	module = path.Clean("/" + module)[1:]
 	out := &edges.HobbesExport{SHA: f.SHA, Module: module, Excluded: map[string]int{}}
