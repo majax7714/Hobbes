@@ -323,6 +323,19 @@ def test_minicpp_gets_semantic_cpp_edges_through_bear_over_its_makefile():
 
     steps = {s["step"]: s["contained"] for s in graph["containment"]["steps"]}
     assert steps.get("index-c") is True, "C++ runs in C's profile (ADR-113 §2)"
+    # Rule 2 of §2's third amendment: every file the Makefile builds is one
+    # scip-clang compiled, so no guess of lane A's survives in it. The count
+    # is reported whether or not anything was withheld.
+    assert isinstance(graph["lane_agreement"]["cpp_withheld"]["sites"], int)
+    built = ("src/main.cpp", "src/shapes.cpp", "src/util.cpp", "tests/test_shapes.cpp")
+    guessed = [
+        (f, t, site["path"], site["line"])
+        for (f, t, kind), e in edges.items()
+        if kind == "calls" and e["tier"] == "syntactic"
+        for site in e["evidence"]
+        if site["path"] in built
+    ]
+    assert guessed == [], "a file lane B compiled draws no fallback edge"
     disagreements = [
         d for d in graph["lane_agreement"]["site_disagreements"]
         if d["file"].endswith((".cpp", ".h"))
