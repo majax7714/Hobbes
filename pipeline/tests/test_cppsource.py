@@ -452,6 +452,104 @@ class TestTheTail:
         assert rows["src/main.cpp"]["tail"]["builtin-name"] == 2
 
 
+class TestTheWithheldFallback:
+    """Rule 2 of ADR-113 §2's third amendment, through the whole ingest: a
+    C++ file lane B compiled draws no fallback edge. Lane B is hand-built
+    here — the real one needs scip-clang and a container — so what is under
+    test is the wiring: which files the set holds, what the join then does
+    with them, and that the self-test is not narrowed by it."""
+
+    @staticmethod
+    def _graph(monkeypatch, references):
+        from hobbes.extract import extract_repo
+        import hobbes.extract as extract
+
+        facts = {
+            "language": "cpp",
+            "definitions": [],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        return extract_repo(FIXTURE).graph
+
+    #: One reference, into the file the rule must withhold: `scale(3)` at
+    #: main.cpp:9, where lane A guesses the same definition.
+    SCALE = [{
+        "file": "src/main.cpp", "line": 9, "col": 17, "name": "scale",
+        "def_file": "src/util.cpp", "def_line": 3,
+    }]
+
+    def _calls(self, graph):
+        return {
+            (e["from"], e["to"]): e
+            for e in graph["symbol_edges"]
+            if e["type"] == "calls"
+        }
+
+    def test_a_guess_in_a_file_lane_b_indexed_is_gone_counted_and_recorded(self, monkeypatch):
+        graph = self._graph(monkeypatch, self.SCALE)
+        calls = self._calls(graph)
+        # main.cpp:10's `shapes::largest<int>` — lane B answered nothing
+        # there, and main.cpp is a file it compiled.
+        assert ("src/main.main", "include/minicpp/shapes.h.shapes::largest") not in calls
+        withheld = graph["lane_agreement"]["cpp_withheld"]
+        assert withheld["sites"] == 1
+        assert withheld["examples"] == [{
+            "file": "src/main.cpp", "line": 10, "name": "largest",
+            "lane_a": "include/minicpp/shapes.h:28",
+        }]
+        record = [
+            e for e in graph["extraction_errors"] if e["stage"] == "cpp-fallback"
+        ]
+        assert len(record) == 1 and record[0]["path"] == "."
+        assert record[0]["message"].startswith("1 lane A guess(es) withheld in C++ files")
+        assert "(ADR-113 §2, C-152)" in record[0]["message"]
+
+    def test_lane_b_s_own_answer_in_that_file_still_draws_its_edge(self, monkeypatch):
+        calls = self._calls(self._graph(monkeypatch, self.SCALE))
+        assert calls[("src/main.main", "src/util.scale")]["tier"] == "semantic"
+
+    def test_a_cpp_file_the_facts_do_not_touch_keeps_its_fallback(self, monkeypatch):
+        # C-135's C++ face: lane B never compiled shapes.cpp here, so its
+        # floor stands exactly as it did before the rule.
+        calls = self._calls(self._graph(monkeypatch, self.SCALE))
+        edge = calls[("src/shapes.shapes::measure", "include/minicpp/shapes.h.shapes::largest")]
+        assert edge["tier"] == "syntactic"
+
+    def _tail(self, monkeypatch, references):
+        rows = {
+            row["file"]: row
+            for row in self._graph(monkeypatch, references)["resolution_coverage"]
+        }
+        return rows["src/main.cpp"]["tail"]
+
+    def test_the_withheld_site_classes_as_one_lane_a_had_no_guess_for(self, monkeypatch):
+        # Without lane B, main.cpp's two guesses read `fallback-resolved`.
+        # With it, `scale` is resolved and `largest` is withheld — and a
+        # withheld site must not still read as one lane A answered.
+        assert self._tail(monkeypatch, [])["fallback-resolved"] == 2
+        tail_row = self._tail(monkeypatch, self.SCALE)
+        assert "fallback-resolved" not in tail_row
+        # It is counted where its shape earns, one class over.
+        assert tail_row["unclassified"] == 2
+
+    def test_sites_compared_does_not_drop_because_of_the_rule(self, monkeypatch):
+        # The self-test is fed the whole fallback: where both lanes answered
+        # main.cpp:9 they are still compared, and still agree.
+        agreement = self._graph(monkeypatch, self.SCALE)["lane_agreement"]
+        assert agreement["sites_compared"] == 1
+        assert agreement["site_disagreements"] == []
+
+    def test_an_ingest_with_no_lane_b_withholds_nothing(self, monkeypatch):
+        graph = self._graph(monkeypatch, [])
+        assert graph["lane_agreement"]["cpp_withheld"] == {"sites": 0, "examples": []}
+        errors = graph.get("extraction_errors", [])
+        assert [e for e in errors if e["stage"] == "cpp-fallback"] == []
+        assert ("src/main.main", "include/minicpp/shapes.h.shapes::largest") in self._calls(graph)
+
+
 class TestTests:
     def test_the_gtest_shaped_bodies_are_tests_named_suite_dot_name(self, layer):
         assert [(t["name"], t["framework"]) for t in layer["tests"]] == [

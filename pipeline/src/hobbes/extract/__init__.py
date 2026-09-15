@@ -312,9 +312,29 @@ def _build_symbol_layer(
         syntax += cpp["call_sites"]
         fallback.update(cpp["call_fallback"])
 
+    # ADR-113 §2 (amended a third time): the C++ call-site files lane B
+    # compiled. An occurrence of any kind — a definition, a reference, an
+    # external reference — is the proof that scip-clang indexed the file;
+    # where it then answered nothing at a call site, the join withholds
+    # lane A's name guess rather than drawing it (C-152). A C++ file lane B
+    # did not index carries no occurrence and keeps its fallback, which is
+    # C-135's C++ face: no compile database, a failed build, a file outside
+    # it. Read off the C++ layer's own files rather than off a facts
+    # document's language, because the C and C++ roots merge into one
+    # document that carries none — and the two say the same thing here: a
+    # root holding any C++ file is a `cpp` root (`extract_scip_c`), and no
+    # other indexer sees a C++ file at all.
+    cpp_site_files = {site.file for site in cpp["call_sites"]} if cpp else set()
+    cpp_withheld_files: set[str] = set()
+
     for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, cpp, degraded):
         resolutions += scipsource.resolution_sites(facts)
         external += facts.get("external_refs") or []
+        if cpp_site_files:
+            for key in ("definitions", "references", "external_refs"):
+                for row in facts.get(key) or []:
+                    if row["file"] in cpp_site_files:
+                        cpp_withheld_files.add(row["file"])
         for record in facts.get("degraded", []):
             degraded.append(
                 {
@@ -327,7 +347,10 @@ def _build_symbol_layer(
         if coverage.get("declared"):
             graph.setdefault("dependency_coverage", []).append(coverage)
 
-    resolved = ev.join(syntax, resolutions, fallback=fallback, external=external)
+    withhold = frozenset(cpp_withheld_files)
+    resolved = ev.join(
+        syntax, resolutions, fallback=fallback, external=external, withhold=withhold
+    )
     projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
     graph["lane_agreement"] = _lane_agreement(
         syntax,
@@ -351,7 +374,9 @@ def _build_symbol_layer(
             if "path" in n
         },
         external=external,
+        withhold=withhold,
     )
+    degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
     graph["module_edges"] = _merge_module_edges(
         graph["module_edges"], projected["module_edges"]
@@ -411,11 +436,22 @@ def _build_symbol_layer(
     overloads = (java.get("overload_sites") if java else set()) or set()
     if cpp:
         overloads = overloads | cpp["overload_sites"]
+    # The tail reads a site with a fallback entry as `fallback` — lane A
+    # answered. A withheld site's answer was not drawn, so the tail is given
+    # the fallback without those files' keys and classes each one as a site
+    # lane A had no guess for (ADR-113 §2). `ev.agreement` above still gets
+    # the whole fallback, so the lane self-test compares both lanes wherever
+    # both answered.
+    tail_fallback = (
+        {key: guess for key, guess in fallback.items() if key[0] not in withhold}
+        if withhold
+        else fallback
+    )
     tails = tail.classify(
         ev.unresolved_sites(syntax, resolutions, external),
         repo_root,
         origins=origins,
-        fallback=fallback,
+        fallback=tail_fallback,
         import_bindings=py_bindings,
         local_bindings=local_bindings,
         overloads=overloads,
@@ -463,6 +499,30 @@ def _build_symbol_layer(
             graph["resolution_coverage"], go.get("constrained_files", {})
         )
     return degraded
+
+
+def _cpp_fallback_records(lane_agreement: dict) -> list[dict]:
+    """C-152's surfacing: the lane A guesses the join withheld (ADR-113 §2).
+
+    Read off the count :func:`_lane_agreement` already holds, so the record
+    and the report can never say two different numbers. Silent when nothing
+    was withheld — which is every repo without C++, and every C++ repo lane
+    B could not index.
+    """
+    withheld = lane_agreement["cpp_withheld"]["sites"]
+    if not withheld:
+        return []
+    return [
+        {
+            "path": ".",
+            "stage": "cpp-fallback",
+            "message": (
+                f"{withheld} lane A guess(es) withheld in C++ files scip-clang "
+                "indexed, where lane B answered nothing at the site: those sites "
+                "stay unresolved rather than drawn by name (ADR-113 §2, C-152)"
+            ),
+        }
+    ]
 
 
 def _one_configuration_records(
@@ -525,6 +585,7 @@ def _lane_agreement(
     lane_b_edges,
     lane_b_only_modules: set[str] | None = None,
     external: list[dict] | None = None,
+    withhold: frozenset[str] = frozenset(),
 ) -> dict:
     """The §3.4 self-test: where both lanes can answer, they must agree.
 
@@ -558,11 +619,24 @@ def _lane_agreement(
     lane B's answer there — so it does not affect ``sites_compared`` or
     change ``hobbes lanes``' exit status; it is where a user meets the
     sites lane A would have drawn wrong.
+
+    *withhold* is the same thing one rule over (ADR-113 §2): the C++ files
+    lane B compiled, where a site it answered nothing at draws no fallback
+    edge either. Reported the same way and for the same reason, and
+    ``sites_compared`` is untouched by it — the comparison is fed the whole
+    fallback, so wherever both lanes answered the self-test is unchanged.
     """
+
+    def by_site(pair):
+        return (pair[0].file, pair[0].line, pair[0].name)
+
     compared, disagreements = ev.agreement(syntax, resolutions, fallback)
     vetoes = sorted(
-        ev.external_vetoes(syntax, resolutions, fallback, external),
-        key=lambda pair: (pair[0].file, pair[0].line, pair[0].name),
+        ev.external_vetoes(syntax, resolutions, fallback, external), key=by_site
+    )
+    withheld = sorted(
+        ev.withheld_fallbacks(syntax, resolutions, fallback, external, withhold),
+        key=by_site,
     )
     lane_b_only_modules = lane_b_only_modules or set()
     lane_b_edges = [
@@ -619,18 +693,27 @@ def _lane_agreement(
         "module_edges_lane_b_only": [
             {"from": f, "to": t} for f, t in sorted(b - a)
         ],
-        "external_vetoes": {
-            "sites": len(vetoes),
-            "examples": [
-                {
-                    "file": site.file,
-                    "line": site.line,
-                    "name": site.name,
-                    "lane_a": f"{guess[0]}:{guess[1]}",
-                }
-                for site, guess in vetoes[:10]
-            ],
-        },
+        "external_vetoes": _withheld_report(vetoes),
+        # The same shape, one rule over (ADR-113 §2, C-152): the C++ files
+        # lane B compiled and said nothing in.
+        "cpp_withheld": _withheld_report(withheld),
+    }
+
+
+def _withheld_report(pairs: list[tuple]) -> dict:
+    """A count of dropped fallbacks with up to ten of them named — the one
+    shape both drop rules report in, so a reader compares them directly."""
+    return {
+        "sites": len(pairs),
+        "examples": [
+            {
+                "file": site.file,
+                "line": site.line,
+                "name": site.name,
+                "lane_a": f"{guess[0]}:{guess[1]}",
+            }
+            for site, guess in pairs[:10]
+        ],
     }
 
 

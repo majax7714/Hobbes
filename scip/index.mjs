@@ -744,13 +744,15 @@ const isDefinition = (occ) =>
 export function decode(index, opts = {}) {
   // `opts` carries C's two rules (ADR-109, `decodeOptions`): `nameOf`
   // reads a name the moniker does not spell, and `ownFile` resolves a
-  // file-static that several files define. C++ adds two of its own,
-  // `constructorOverClass` and `abstainMultiDefined` (ADR-113 §2). Every
-  // other language passes nothing and decodes as before.
+  // file-static that several files define. C++ adds three of its own,
+  // `constructorOverClass`, `abstainMultiDefined` and
+  // `abstainOverloadSites` (ADR-113 §2). Every other language passes
+  // nothing and decodes as before.
   const nameOf = opts.nameOf ?? terminalName
   // A reference carries no moniker — the join keys on file, line and name
-  // — so C++'s constructor rule is given one here and nowhere else.
+  // — so C++'s two rules that need one are given it here and nowhere else.
   const monikerOf = new Map()
+  const keepMonikers = Boolean(opts.constructorOverClass || opts.abstainOverloadSites)
   const byFile = new Map() // `${moniker}\0${file}` -> that file's own definition, smallest line
   const definitions = new Map() // moniker -> {file, line, endLine, kind}
   const packages = new Map() // manager:package -> reference count
@@ -840,6 +842,11 @@ export function decode(index, opts = {}) {
     definitions.set(symbol, def)
   }
   let tuSplit = 0
+  // Sites where the references name more than one overload of one name
+  // (`opts.abstainOverloadSites`, C++ only — ADR-113 §2, C-151). Every
+  // example is collected and sorted below, so which three are shown does
+  // not depend on the order scip-clang listed the units in.
+  const overloadSites = []
 
   for (const doc of index.documents) {
     if (!insideRepo(doc.relative_path)) continue
@@ -888,7 +895,7 @@ export function decode(index, opts = {}) {
         def_file: target.file,
         def_line: target.line,
       }
-      if (opts.constructorOverClass) monikerOf.set(reference, occ.symbol)
+      if (keepMonikers) monikerOf.set(reference, occ.symbol)
       references.push(reference)
     }
   }
@@ -958,6 +965,18 @@ export function decode(index, opts = {}) {
         tuSplit += 1
         continue
       }
+      // C++ (ADR-113 §2, amended a third time, measured on the two cells):
+      // one file, several lines, *several monikers* is an overload set, not
+      // one definition's `#if` alternatives. scip-clang lists the candidates
+      // of a call in a template it cannot resolve there — `write2` at
+      // chrono.h:1348 references both `write2(d4f7…)` and `(fc4f…)` — and
+      // keeping the smallest line answers whichever the call meant: 36 wrong
+      // semantic edges on fmt and all 4 of args' contradictions. So the site
+      // abstains. C keeps its rule: its several lines are one moniker's.
+      if (opts.abstainOverloadSites && new Set(rs.map((r) => monikerOf.get(r))).size > 1) {
+        overloadSites.push({ name: rs[0].name, file: rs[0].file, line: rs[0].line })
+        continue
+      }
       kept.push(rs.reduce((a, b) => (b.def_line < a.def_line ? b : a)))
     }
     // A loop, not `push(...kept)`, for the reason above.
@@ -965,8 +984,13 @@ export function decode(index, opts = {}) {
     for (const r of kept) references.push(r)
   }
 
+  overloadSites.sort((a, b) =>
+    a.file.localeCompare(b.file) || a.line - b.line || a.name.localeCompare(b.name),
+  )
   return {
     tu_split: tuSplit,
+    overload_sites: overloadSites.length,
+    overload_examples: overloadSites.slice(0, 3),
     multi_defined: [...multiDefined].sort(),
     multi_defined_refs: multiDefinedRefs,
     definitions: [...definitions.values()],
@@ -1167,6 +1191,19 @@ export function degradations(index, decoded, config) {
         "answer is dropped there and lane A's syntactic floor stands (ADR-109, C-131)",
     })
   }
+  if (decoded.overload_sites) {
+    const sample = (decoded.overload_examples ?? [])
+      .map((e) => `\`${e.name}\` at ${e.file}:${e.line}`)
+      .join(', ')
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `${decoded.overload_sites} call site(s) name more than one overload of one ` +
+        `name (e.g. ${sample}) — scip-clang lists the candidates of a call it cannot ` +
+        "resolve there, or units answer differently; lane B's answer is dropped " +
+        'rather than the first line taken (ADR-113 §2, C-151)',
+    })
+  }
   if ((decoded.multi_defined ?? []).length > 0) {
     const sample = decoded.multi_defined
       .slice(0, 3)
@@ -1262,7 +1299,7 @@ function runStep(step) {
   return proc
 }
 
-/** C's decode rules (ADR-109) — C++ takes all three and adds one
+/** C's decode rules (ADR-109) — C++ takes all three and adds three
  * (ADR-113 §2); every other language gets none.
  *
  * scip-clang names a macro by where it is defined, not by what it is
@@ -1292,9 +1329,16 @@ export function decodeOptions(config) {
     nameOf,
     ownFile: true,
     oneTargetPerSite: true,
-    // C++ alone abstains on a moniker one file defines at several lines;
-    // C takes the smallest of them (ADR-113 §2, ADR-109 amended).
-    ...(config.language === 'cpp' ? { constructorOverClass: true, abstainMultiDefined: true } : {}),
+    // C++ alone abstains on a moniker one file defines at several lines,
+    // and on a site whose references name more than one overload; C takes
+    // the smallest line in both (ADR-113 §2, ADR-109 amended).
+    ...(config.language === 'cpp'
+      ? {
+          constructorOverClass: true,
+          abstainMultiDefined: true,
+          abstainOverloadSites: true,
+        }
+      : {}),
   }
 }
 
