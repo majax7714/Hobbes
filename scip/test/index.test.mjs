@@ -731,6 +731,69 @@ test('a moniker defined once, or in two files, decodes as it did under both C co
   }
 })
 
+// One site, several monikers (ADR-113 §2 amended a third time, measured on
+// the fmt and args cells): where a call sits in a template scip-clang cannot
+// resolve, it references every candidate at the call's own position. The
+// one-target rule read those as one definition's `#if` alternatives and kept
+// the smallest line, which answered whichever overload the call meant — 36
+// wrong semantic edges on fmt, all 4 of args' contradictions.
+const CPP_WRITE2_A = `${CLANG}tm_writer#write2(d4f7abc123456789).`
+const CPP_WRITE2_B = `${CLANG}tm_writer#write2(fc4f9876543210ab).`
+
+/** `write2` defined at chrono.h:1133 and :1138 under *two* monikers, both
+ * referenced at chrono.h:1348 — fmt's own shape. */
+function overloadSiteIndex() {
+  return fakeIndex([
+    { relative_path: 'include/fmt/chrono.h', occurrences: [
+      { symbol: CPP_WRITE2_A, symbol_roles: DEF, range: [1132, 7, 1132, 13] },
+      { symbol: CPP_WRITE2_B, symbol_roles: DEF, range: [1137, 7, 1137, 13] },
+      { symbol: CPP_WRITE2_A, symbol_roles: 0, range: [1347, 6, 1347, 12] },
+      { symbol: CPP_WRITE2_B, symbol_roles: 0, range: [1347, 6, 1347, 12] },
+    ] },
+  ])
+}
+
+test('a C++ site whose references name two overloads of one name draws no reference (ADR-113)', () => {
+  const cpp = decode(overloadSiteIndex(), decodeOptions({ language: 'cpp', stage: '/nowhere' }))
+  assert.deepEqual(cpp.references, [], 'neither candidate is the answer, so the site abstains')
+  assert.equal(cpp.overload_sites, 1)
+  assert.deepEqual(cpp.overload_examples, [{ name: 'write2', file: 'include/fmt/chrono.h', line: 1348 }])
+  assert.deepEqual(cpp.definitions.map((d) => d.line), [1133, 1138], 'both overloads keep their symbols')
+  const [record] = degradations(overloadSiteIndex(), cpp, { language: 'cpp' })
+    .filter((r) => /more than one overload/.test(r.message))
+  assert.match(record.message, /^1 call site\(s\) name more than one overload of one name \(e\.g\. `write2` at include\/fmt\/chrono\.h:1348\)/)
+  assert.match(record.message, /scip-clang lists the candidates of a call it cannot resolve there/)
+  assert.match(record.message, /dropped rather than the first line taken \(ADR-113 §2, C-151\)/)
+})
+
+test('the same index under C keeps the smallest line: the rule is C++\'s alone (ADR-109)', () => {
+  const c = decode(overloadSiteIndex(), decodeOptions({ language: 'c', stage: '/nowhere' }))
+  assert.deepEqual(c.references.map((r) => [r.line, r.def_line]), [[1348, 1133]],
+    "C's several lines are one moniker's `#if` alternatives, and it still picks")
+  assert.equal(c.overload_sites, 0)
+  assert.deepEqual(degradations(overloadSiteIndex(), c, { language: 'c' })
+    .filter((r) => /more than one overload/.test(r.message)), [], 'and says nothing')
+})
+
+test('a C++ site with several references to one moniker keeps one of them (ADR-113)', () => {
+  // The ordinary macro-and-expansion shape: one name, one answer, arriving
+  // once per unit. Only *several monikers* is an overload set.
+  const one = `${CLANG}tm_writer#write2(d4f7abc123456789).`
+  const idx = fakeIndex([
+    { relative_path: 'include/fmt/chrono.h', occurrences: [
+      { symbol: one, symbol_roles: DEF, range: [1132, 7, 1132, 13] },
+      { symbol: one, symbol_roles: 0, range: [1347, 6, 1347, 12] },
+      { symbol: one, symbol_roles: 0, range: [1347, 6, 1347, 12] },
+      { symbol: one, symbol_roles: 0, range: [1347, 6, 1347, 12] },
+    ] },
+  ])
+  const cpp = decode(idx, decodeOptions({ language: 'cpp', stage: '/nowhere' }))
+  assert.deepEqual(cpp.references.map((r) => [r.line, r.def_line]), [[1348, 1133]])
+  assert.equal(cpp.overload_sites, 0, 'nothing abstained')
+  assert.deepEqual(degradations(idx, cpp, { language: 'cpp' })
+    .filter((r) => /more than one overload/.test(r.message)), [], 'no site, no record')
+})
+
 // One translation unit per scip-clang run (ADR-109 decision 1, amended):
 // every unit indexes its own copy of the headers it includes, and the
 // helper decodes the units' indexes as one. The shared header arrives once
