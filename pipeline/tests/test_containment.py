@@ -284,12 +284,18 @@ class TestRouting:
     }
 
     def _capture(self, monkeypatch):
+        from tests.test_scipsource import write_facts_file
+
         plans = []
 
         def run(plan, *, timeout):
             plans.append(plan)
+            if "--config" in plan.command:
+                # The helper writes its facts where its config names (ADR-116).
+                with open(plan.command[plan.command.index("--config") + 1]) as config:
+                    write_facts_file(json.load(config)["facts"], self.FACTS)
             return containment.Outcome(
-                subprocess.CompletedProcess(plan.command, 0, json.dumps(self.FACTS), ""),
+                subprocess.CompletedProcess(plan.command, 0, "", ""),
                 True,
             )
 

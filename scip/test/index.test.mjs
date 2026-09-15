@@ -32,6 +32,9 @@ import { INDEXER_EXIT,
   gradleAttachScript,
   javacInternals,
   resolvedPackages,
+  HELPER_VERSION,
+  factsLines,
+  writeFacts,
 } from '../index.mjs'
 
 // Real monikers, pasted from scip-python 0.6.6 and scip-typescript 0.4.0
@@ -1332,4 +1335,73 @@ test("an indexer's own exit is a distinct helper exit code", () => {
   assert.equal(exitCodeFor(new Error('no indexer configured')), 1)
   assert.notEqual(INDEXER_EXIT, 1)
   assert.notEqual(INDEXER_EXIT, 2)
+})
+
+// ADR-116: the facts are JSON lines — a header, one record per document, a
+// trailer that counts them — because the whole document is one V8 string, and
+// V8's longest (536,870,888 characters) is shorter than ScummVM's facts.
+const FACTS = () => ({
+  helper_version: HELPER_VERSION,
+  language: 'cpp',
+  definitions: [{ moniker: 'm', file: 'b.h', line: 1, end_line: 2, kind: 'type' }],
+  references: [
+    { file: 'a.cc', line: 3, col: 1, name: 'f', def_file: 'b.h', def_line: 1 },
+    { file: 'b.h', line: 5, col: 2, name: 'g', def_file: 'b.h', def_line: 1 },
+    { file: 'a.cc', line: 3, col: 9, name: 'f', def_file: 'b.h', def_line: 1 },
+  ],
+  external_refs: [{ file: 'c.cc', line: 1, col: 0, name: 'printf', package: 'libc', moniker: 'x' }],
+  packages: { libc: 1 },
+  degraded: [],
+  stderr: '',
+})
+
+test('factsLines: a header, one record per document in first-row order, rows in decode order, a counting trailer', () => {
+  const lines = [...factsLines(FACTS())].map((line) => JSON.parse(line))
+  assert.deepEqual(lines[0], { helper_version: HELPER_VERSION, language: 'cpp' })
+  // Definitions are read first, so b.h (a definition's file) leads.
+  assert.deepEqual(lines.slice(1, -1).map((doc) => doc.file), ['b.h', 'a.cc', 'c.cc'])
+  assert.deepEqual(lines[2], {
+    file: 'a.cc',
+    definitions: [],
+    references: [
+      { line: 3, col: 1, name: 'f', def_file: 'b.h', def_line: 1 },
+      { line: 3, col: 9, name: 'f', def_file: 'b.h', def_line: 1 },
+    ],
+    external_refs: [],
+  })
+  assert.deepEqual(lines.at(-1), {
+    end: true, documents: 3, definitions: 1, references: 3, external_refs: 1,
+    packages: { libc: 1 }, degraded: [], stderr: '',
+  })
+})
+
+test('writeFacts writes one line per record, each ending in a newline', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'facts-'))
+  try {
+    const path = cpath.join(dir, 's.facts.ndjson')
+    writeFacts(FACTS(), path)
+    const text = cfs.readFileSync(path, 'utf8')
+    assert.ok(text.endsWith('\n'))
+    assert.deepEqual(
+      text.trimEnd().split('\n').map((line) => JSON.parse(line)),
+      [...factsLines(FACTS())].map((line) => JSON.parse(line)),
+    )
+  } finally {
+    cfs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('the helper prints nothing on stdout and refuses a config that names no facts file', () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'facts-'))
+  try {
+    const config = cpath.join(dir, 'c.json')
+    cfs.writeFileSync(config, JSON.stringify({ language: 'python', stage: dir }))
+    const helper = new URL('../index.mjs', import.meta.url).pathname
+    const proc = spawnSync(process.execPath, [helper, '--config', config], { encoding: 'utf8' })
+    assert.equal(proc.status, 1)
+    assert.equal(proc.stdout, '')
+    assert.match(proc.stderr, /names no `facts` file/)
+  } finally {
+    cfs.rmSync(dir, { recursive: true, force: true })
+  }
 })

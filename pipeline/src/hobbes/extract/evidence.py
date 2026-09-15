@@ -38,13 +38,17 @@ DEFINITION = "definition"
 RESOLUTION = "resolution"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Site:
     """One range-anchored observation.
 
     *name* is the identifying text the provider saw — a callee's last
     segment for a call site, a symbol's terminal descriptor for a
     resolution. It is what disambiguates several sightings sharing a line.
+
+    Slotted (ADR-116): a large root holds millions at once — ScummVM's
+    4.16 million resolutions and 1.53 million C++ call sites — and a
+    per-instance dictionary was most of each one's weight.
     """
 
     provider: str

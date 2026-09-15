@@ -11065,3 +11065,103 @@ proceed with the fix".
 **Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo;
 C-150's remainder. **Next:** the gate's arrow-parameter fix (C-91), as
 a small unit.
+
+## 2026-09-15 — (later still) C-150's remainder: lane B's facts arrive as a stream — ADR-116, 0.2.26-beta
+
+**Asked (Max):** "review top level documentation, and report back with
+current status"; then "fix the drift, then lets looks to deal with the
+python side an offered fix is switching facts from a singular json to
+ndjson with one record per document then consume. open to an
+alternative better suggested approach"; then "yes proceed with a and
+write the adr".
+
+- **The top-level review** found three stale lines, fixed in
+  `8576c3b`: README's status read 0.2.24-beta; the handoff's register
+  line read 153 / 110 (C-154 is the 154th) and its suite line carried
+  0.2.23-beta's counts; workstreams' revision line stopped at
+  2026-09-14. The suites were re-run for the handoff: 1,617 pytest, 74
+  scip node.
+- **Measured before choosing**, on ScummVM's cached index (the probes
+  are kept beside ADR-115's, below):
+  - **the wall at 0.2.25-beta was the helper's output, not the Python
+    side.** ScummVM's facts are 699 MB of JSON (the references 582 MB)
+    and V8's longest string is 536,870,888 characters in the image's
+    Node 22.14.0 and the host's 24: `JSON.stringify` threw `RangeError:
+    Invalid string length`, the helper exits 1, and `run_helper` said
+    "install Node". ADR-115's 850 MB reaching Python was an estimate no
+    run could reach, and C-150's entry named the wrong wall;
+  - the Python side's read, four ways (the facts alone, then through
+    `evidence.join` with no lane A sites): one document → dicts →
+    `Site` 3.63 GB (5.71 GB); JSON lines into today's dicts 3.65 GB;
+    JSON lines straight into today's `Site` 2.50 GB; JSON lines into a
+    slotted `Site` with interned strings 1.19 GB (3.26 GB). The line
+    format alone moves nothing; the join's `Resolved` list is about
+    2.1 GB whichever way; `containment.run` captures stdout whole.
+- **Three routes put to Max:** A, a file of JSON lines read into
+  slotted, interned sites (recommended); B, the offered line format
+  into today's dicts; C, after A and a measurement, a slimmer
+  `Resolved`. A join that streams by file was not recommended. Max: A,
+  with the ADR.
+- **Built (ADR-116, committed before the code as `aaffca6`):**
+  - `scip/index.mjs`: `factsLines` — a header, one record per document
+    in first-row order with the rows' `file` dropped, a trailer
+    counting documents and rows and carrying the root-level fields —
+    and `writeFacts`; `main` writes where the config's `facts` names,
+    prints nothing on stdout, and refuses a config without it.
+    `HELPER_VERSION` 4.
+  - `scipsource`: `run_helper` names `<stage>.facts.ndjson` and removes
+    it whatever happens; `read_facts` reads it line by line, references
+    into slotted resolution `Site`s and definitions and external
+    references into rows, interning paths and names and putting the
+    root in front of every path. Missing, empty, another version,
+    malformed, no trailer, or counts not reached: each a `ScipError`
+    that says which. `resolution_sites` is gone; `_rebase` keeps only
+    the records' rule; the five callers pass their root;
+    `join_cross_unit` appends sites.
+  - `evidence.Site` is `slots=True`; the C++ withheld-files loop reads
+    `site.file`.
+- **Verified:**
+  - ScummVM in the image at the default heap: decode and write in
+    33.2 s at 3.29 GB resident, 487 MB of lines; `read_facts` at
+    0.99 GB (1.36 GB with the buckets) in 10.4 s; every row the same
+    as the one-document form's, per file and in order (380,108
+    definitions, 4,158,513 references, 412,155 external).
+  - This repo, the same tree ingested by `aaffca6`'s code (a scratch
+    worktree, since removed) and by this change's: `graph.json`,
+    `tests.json` and `interfaces.json` identical, stamps aside.
+  - **ScummVM end to end at 0.2.26-beta:** exit 0 in 8 min 57 s, every
+    step contained, 7.72 GB peak on the Python side (`/usr/bin/time
+    -v`; the helper's container is its own). The root has lane B for the
+    first time: 941,498 semantic and 63,225 syntactic symbol edges;
+    1,546,539 C/C++ call sites, 61.3% accounted (937,863 resolved, 9,735
+    external) where 0.2.21-beta's run read 0.0%. Mid-join the process
+    stood at 4.6 GB; the rest of the peak is the graph built from the
+    join. So the join's `Resolved` list is part of the next wall, not
+    all of it.
+  - pytest 1,626 (eleven new, two retired with `resolution_sites`);
+    node 77 (three new); `test_version` at 0.2.26-beta; `go test ./...`
+    15 packages ok against the rebuilt image (385 pass, 1 skip).
+- **Register:** C-150 corrected (the 0.2.25-beta wall and its record),
+  narrowed to the join's own size, retitled, and moved to *partial*:
+  an ingest the kernel kills on the Python side ends with no graph and
+  no record, which was as true before and not written down. Tally: 85
+  surfaced, 21 partial; the register's dated note.
+- **Docs:** ADR-116; CHANGELOG 0.2.26-beta; architecture §3.2 and §8's
+  header; `extraction-evidence.md`'s C++ line; README's status and ADR
+  range; CLAUDE.md's headline, register line, last ADR and suite line;
+  the handoff rewritten.
+- **Rebuilt:** the Go binaries, the static proxy and the image at
+  0.2.26-beta (C-65); the knowledge server this session ran on serves
+  the image it started from until it is restarted.
+- **Kept outside the repo:** `facts_probe.mjs`, `helper_facts_probe.mjs`
+  and `py_facts_probe.py` in `~/.hobbes/bench/cpp-drivers/probes/`.
+- **Seen in passing, not changed:** the C and Java callers append a
+  degradation record at `path: root` and then `_rebase(facts, root)`
+  puts the root in front again — `proj/proj`, checked. The C record is
+  the "derived with <source> instead" one, the Java one the failed
+  resolve pass's; TypeScript's is appended after rebasing and is right.
+  A fix is a record-path change, its own small unit.
+
+**Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo;
+C-150's remainder (the join's output); the double-rooted record paths.
+**Next:** the gate's arrow-parameter fix (C-91), as a small unit.

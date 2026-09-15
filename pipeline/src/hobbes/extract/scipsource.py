@@ -32,6 +32,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import containment, staging
 from hobbes.extract.discover import SKIPPED_DIR_NAMES
+from hobbes.extract.evidence import RESOLUTION, Site
 from hobbes.extract.evidence import SCIP as SCIP_LANE
 from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, tiered_edge
 
@@ -44,12 +45,14 @@ SCIP_ENABLE_ENV = "HOBBES_SCIP"
 
 #: Facts schema this join understands (helper HELPER_VERSION).
 #: v2 (V2.M3, ADR-032): facts carry ``dependency_coverage`` on every run.
+#: v4 (ADR-116): a file of JSON lines, one record per document, read by
+#: :func:`read_facts` as it arrives.
 #: The helper's exit code when the *indexer* it drove exited non-zero
 #: (`scip/index.mjs` ``INDEXER_EXIT``): the helper ran, the indexer did not
 #: — a different failure from a helper that could not start, and it is
 #: recorded as one (C-85, C-74: the record used to blame the helper).
 INDEXER_EXIT = 3
-HELPER_VERSION = 3
+HELPER_VERSION = 4
 
 
 #: What V8 writes when Node's heap is exhausted — the fatal line, and the
@@ -382,8 +385,9 @@ def run_helper(
     timeout: int = 900,
     ro: list[str] | tuple[str, ...] = (),
     env: tuple[str, ...] | list[str] = (),
+    root: str = "",
 ) -> dict:
-    """Run the helper with *config* and return its parsed facts.
+    """Run the helper with *config* and return its facts.
 
     The helper runs **inside the ingest container** (ADR-092): the
     stage, its config and output are under the cache root (mounted rw at
@@ -393,10 +397,27 @@ def run_helper(
     venv — mounted ro at their host paths. Network: none. A step that ran
     on the host instead (no container runtime, non-executing provider;
     or the escape hatch) says so in the facts' ``degraded`` records.
+
+    The facts come back in a file the helper writes beside its config,
+    never on stdout, which :func:`containment.run` would hold whole
+    (ADR-116). They are read as they arrive (:func:`read_facts`), with
+    *root* — the repo-relative directory the stage's paths sit under —
+    put in front of every row's path.
     """
     stage = Path(config["stage"])
     config_path = stage.parent / f"{stage.name}.config.json"
+    facts_path = stage.parent / f"{stage.name}.facts.ndjson"
+    config["facts"] = str(facts_path)
     config_path.write_text(json.dumps(config))
+    try:
+        return _run_helper(config, config_path, facts_path, timeout, ro, env, root)
+    finally:
+        facts_path.unlink(missing_ok=True)
+
+
+def _run_helper(config, config_path, facts_path, timeout, ro, env, root) -> dict:
+    """:func:`run_helper`'s run, its exit read, and its facts read; the
+    caller removes the facts file whatever happens here."""
     setup = (
         "the SCIP helper is unusable — install Node and run `npm install` in "
         f"the hobbes repo's scip/, or set ${SCIP_CMD_ENV} (ADR-027)"
@@ -404,7 +425,7 @@ def run_helper(
     plan = containment.plan(
         containment.INDEX_STEP[config["language"]],
         [*_helper_cmd(), "--config", str(config_path)],
-        cwd=stage.parent,
+        cwd=config_path.parent,
         ro=ro,
         env=env,
     )
@@ -449,18 +470,117 @@ def run_helper(
     if proc.returncode != 0:
         detail = (proc.stderr or proc.stdout).strip()[-500:]
         raise ScipError(f"{setup}: helper exited {proc.returncode}: {detail}")
-    try:
-        facts = json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        raise ScipError(f"the SCIP helper emitted invalid JSON: {exc}") from exc
-    if facts.get("helper_version") != HELPER_VERSION:
-        raise ScipError(
-            f"SCIP facts version {facts.get('helper_version')!r} unsupported "
-            f"(want {HELPER_VERSION})"
-        )
+    facts = read_facts(facts_path, root)
     record = containment.host_record(".", f"scip-{config['language']}", plan, outcome)
     if record is not None:
         facts.setdefault("degraded", []).append(record)
+    return facts
+
+
+#: The row lists a facts file carries per document; its trailer counts
+#: each of them, and the documents (ADR-116).
+_FACT_ROWS = ("definitions", "references", "external_refs")
+
+
+def read_facts(path: Path, root: str = "") -> dict:
+    """The helper's facts file, read as it arrives (ADR-116).
+
+    JSON lines: a header naming the helper version, one record per
+    document, and a trailer carrying the counts and the root-level fields
+    (``packages``, ``dependency_coverage``, ``degraded``, …). A reference
+    becomes an evidence-IR resolution :class:`~hobbes.extract.evidence.Site`
+    on arrival and no dict row is kept for it: ScummVM's 4.16 million are
+    1.19 GB read this way, against 3.63 GB as one JSON document.
+    Definitions and external references stay dict rows, their ``file``
+    set from the document: they are a tenth of the references, and
+    :func:`join_cross_unit` needs every unit's at once. Every path and
+    name is interned, so a file is one string however many rows name it,
+    and *root* is put in front of every path as it is read.
+
+    A file that is missing, empty, of another version, malformed, or
+    short — no trailer, or counts its rows do not reach — is a
+    :class:`ScipError` saying which. A helper stopped mid-write leaves a
+    file that parses line by line and is short, and a short file must
+    never read as a smaller answer.
+    """
+    pool: dict[str, str] = {}
+
+    def text(value: str) -> str:
+        return pool.setdefault(value, value)
+
+    def at(rel: str) -> str:
+        return text(f"{root}/{rel}" if root and rel else rel)
+
+    facts: dict = {key: [] for key in _FACT_ROWS}
+    definitions, references, external = (facts[key] for key in _FACT_ROWS)
+    header = trailer = None
+    documents = number = 0
+    try:
+        with path.open(encoding="utf-8") as lines:
+            for number, line in enumerate(lines, 1):
+                record = json.loads(line)
+                if header is None:
+                    header = record
+                    if header.get("helper_version") != HELPER_VERSION:
+                        raise ScipError(
+                            f"SCIP facts version {header.get('helper_version')!r} unsupported "
+                            f"(want {HELPER_VERSION})"
+                        )
+                elif record.get("end"):
+                    trailer = record
+                    break
+                else:
+                    documents += 1
+                    file = at(record["file"])
+                    for ref in record["references"]:
+                        references.append(
+                            Site(
+                                provider=SCIP_LANE,
+                                kind=RESOLUTION,
+                                file=file,
+                                line=ref["line"],
+                                name=text(ref.get("name", "")),
+                                col=ref.get("col", -1),
+                                def_file=at(ref["def_file"]),
+                                def_line=ref["def_line"],
+                            )
+                        )
+                    for row in record["definitions"]:
+                        row["file"] = file
+                        definitions.append(row)
+                    for row in record["external_refs"]:
+                        row["file"] = file
+                        if "name" in row:
+                            row["name"] = text(row["name"])
+                        external.append(row)
+    except FileNotFoundError as exc:
+        raise ScipError(
+            f"the SCIP helper exited 0 and wrote no facts file ({path.name}); a helper "
+            f"older than version {HELPER_VERSION} prints its facts instead (ADR-116)"
+        ) from exc
+    except json.JSONDecodeError as exc:
+        raise ScipError(f"the SCIP helper's facts file is not JSON lines (line {number}): {exc}") from exc
+    except (KeyError, TypeError, AttributeError) as exc:
+        raise ScipError(
+            f"the SCIP helper's facts file has a malformed record (line {number}): {exc!r}"
+        ) from exc
+    if header is None:
+        raise ScipError(f"the SCIP helper's facts file is empty ({path.name})")
+    if trailer is None:
+        raise ScipError(
+            f"the SCIP helper's facts file ends before its trailer, after {documents} "
+            "document(s): the helper stopped mid-write, and a short file is not a "
+            "smaller answer (ADR-116)"
+        )
+    read = {"documents": documents, **{key: len(facts[key]) for key in _FACT_ROWS}}
+    wrong = [f"{key} {n} read, {trailer.get(key)!r} written" for key, n in read.items() if trailer.get(key) != n]
+    if wrong:
+        raise ScipError(
+            f"the SCIP helper's facts file disagrees with its own trailer ({'; '.join(wrong)}) (ADR-116)"
+        )
+    facts.update((key, value) for key, value in trailer.items() if key != "end" and key not in read)
+    facts["helper_version"] = header["helper_version"]
+    facts["language"] = header.get("language")
     return facts
 
 
@@ -541,25 +661,6 @@ class _SymbolIndex:
             return None
         matches = [s["id"] for s in rows if s["line"] == line]
         return matches[-1] if matches else None
-
-
-def resolution_sites(facts: dict) -> list:
-    """SCIP's references as evidence-IR resolution sites (ADR-029)."""
-    from hobbes.extract.evidence import RESOLUTION, SCIP, Site
-
-    return [
-        Site(
-            provider=SCIP,
-            kind=RESOLUTION,
-            file=ref["file"],
-            line=ref["line"],
-            name=ref.get("name", ""),
-            col=ref.get("col", -1),
-            def_file=ref["def_file"],
-            def_line=ref["def_line"],
-        )
-        for ref in facts.get("references", [])
-    ]
 
 
 #: Definition files whose `calls` fact with a type at the other end is not
@@ -1211,15 +1312,18 @@ def join_cross_unit(merged: dict) -> None:
             # not outside it, and must not veto lane A's fallback.
             still_external.append({**ref, "in_repo": True})
             continue
+        # A resolution site, as the facts file's references are (ADR-116).
         merged["references"].append(
-            {
-                "file": ref["file"],
-                "line": ref["line"],
-                "col": ref["col"],
-                "name": ref["name"],
-                "def_file": target["file"],
-                "def_line": target["line"],
-            }
+            Site(
+                provider=SCIP_LANE,
+                kind=RESOLUTION,
+                file=ref["file"],
+                line=ref["line"],
+                name=ref["name"],
+                col=ref["col"],
+                def_file=target["file"],
+                def_line=target["line"],
+            )
         )
     merged["external_refs"] = still_external
     if ambiguous:
@@ -1604,7 +1708,8 @@ def _index_cargo_root(
                 "projectVersion": "0",
                 "output": str(stage.parent / f"{stage.name}.scip"),
                 "declaredDeps": sorted(declared),
-            }
+            },
+            root=root,
         )
     finally:
         staging.remove_stage(stage)
@@ -2194,7 +2299,7 @@ def _index_c_unit(repo_root: Path, root: str, sha: str, language: str = "c") -> 
             compdb = build_dir / "compile_commands.json"
             compdb.write_text(json.dumps(rebased_compdb(repo_root, db_dir, carried, stage)))
             config["compdb"] = str(compdb)
-        facts = run_helper(config)
+        facts = run_helper(config, root=root)
     finally:
         staging.remove_stage(stage)
         shutil.rmtree(build_dir, ignore_errors=True)
@@ -2336,6 +2441,7 @@ def _index_java_unit(
             },
             timeout=_JAVA_INDEX_TIMEOUT,
             env=env,
+            root=root,
         )
     except UNIT_ERRORS as exc:
         if resolve_failure is not None:
@@ -2422,7 +2528,8 @@ def _index_go_module(
                 "projectVersion": "0",
                 "output": str(stage.parent / f"{stage.name}.scip"),
                 "declaredDeps": [],
-            }
+            },
+            root=module_root,
         )
     finally:
         staging.remove_stage(stage)
@@ -2544,6 +2651,7 @@ def _index_ts_zone(
                     for target in workspace_link_targets(Path(tree))
                 }
             ),
+            root=zone,
         )
     finally:
         staging.remove_stage(stage)
@@ -2569,7 +2677,7 @@ def _index_ts_zone(
 
 
 def _rebase(facts: dict, zone: str) -> dict:
-    """Re-root a zone's file paths at the repo.
+    """Re-root a zone's degradation records at the repo.
 
     A zone is indexed with ``--cwd`` at *its own* directory, so SCIP
     reports ``src/App.tsx`` where lane A says ``web/src/App.tsx``. The two
@@ -2577,19 +2685,14 @@ def _rebase(facts: dict, zone: str) -> dict:
     nothing — which is not an error, just a graph with no semantic TS
     edges and a coverage denominator full of holes. Python never hit this
     because its ``--cwd`` is the stage root, where the two already agree.
+    The rows' paths are re-rooted as the facts are read (``run_helper``'s
+    *root*, ADR-116); what is left here is the helper's records.
     """
     if not zone:
         return facts
     def at(path: str) -> str:
         return f"{zone}/{path}" if path else path
 
-    for ref in facts.get("references", []):
-        ref["file"] = at(ref["file"])
-        ref["def_file"] = at(ref["def_file"])
-    for definition in facts.get("definitions", []):
-        definition["file"] = at(definition["file"])
-    for ref in facts.get("external_refs", []):
-        ref["file"] = at(ref["file"])
     for record in facts.get("degraded", []):
         # A record scoped to a directory inside the zone (ADR-091, D7);
         # a whole-index record is *this zone's* whole index, so it sits

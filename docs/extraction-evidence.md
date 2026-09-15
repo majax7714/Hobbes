@@ -187,8 +187,9 @@ C++'s first graded evidence.
 P27 met, P28 undecidable, P29 met, P30 met, P31 missed on args.
 
 **What no cell covers:** a build over the per-unit bound (C-149) or
-whose facts outgrow the Python side's memory (C-150, narrowed at
-0.2.25-beta: the helper's decode streams, ADR-115); Meson, Bazel and
+whose references, joined, outgrow the box (C-150, narrowed at
+0.2.25-beta and 0.2.26-beta: the helper's decode and the facts' read
+stream, ADR-115 and ADR-116); Meson, Bazel and
 autotools roots;
 C++ modules; generated code (Qt's moc); a mixed repo's headers that
 both languages include (C-142).

@@ -135,3 +135,12 @@ among them).
 - `HELPER_VERSION` is 4 on both sides; a helper of another version is
   refused as before (ADR-027 Decision 5), by the header line.
 - Version: 0.2.26-beta — a constraint's fix, a patch (ADR-103's notes).
+- **Measured after the code** (the same day): the helper writes
+  ScummVM's facts under the image's default heap at 3.29 GB resident
+  (487 MB of lines); `read_facts` holds them at 0.99 GB; every row is
+  the one-document form's, per file and in order; this repo's graph is
+  identical under the old code and the new. ScummVM end to end: exit 0
+  in 8 min 57 s at a 7.72 GB peak on the Python side, with lane B for
+  the first time (941,498 semantic symbol edges). The peak is lane A,
+  the read and the join, then the graph built from them — the last
+  alternative above takes part of it, not all.

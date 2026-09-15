@@ -338,13 +338,17 @@ def _build_symbol_layer(
     cpp_withheld_files: set[str] = set()
 
     for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, cpp, degraded):
-        resolutions += scipsource.resolution_sites(facts)
+        # A reference arrives as a resolution site (ADR-116); definitions
+        # and external references stay the helper's rows.
+        references = facts.get("references") or []
+        resolutions += references
         external += facts.get("external_refs") or []
         if cpp_site_files:
-            for key in ("definitions", "references", "external_refs"):
-                for row in facts.get(key) or []:
-                    if row["file"] in cpp_site_files:
-                        cpp_withheld_files.add(row["file"])
+            indexed = {site.file for site in references}
+            indexed.update(
+                row["file"] for key in ("definitions", "external_refs") for row in facts.get(key) or []
+            )
+            cpp_withheld_files |= indexed & cpp_site_files
         for record in facts.get("degraded", []):
             degraded.append(
                 {

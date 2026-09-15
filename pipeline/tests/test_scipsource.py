@@ -31,20 +31,112 @@ SYMBOLS = [
 ]
 
 
-class TestResolutionSites:
-    def test_references_become_evidence_ir_sites(self):
-        sites = scipsource.resolution_sites(
-            {"references": [{"file": "a.py", "line": 3, "col": 8, "name": "run",
-                             "def_file": "b.py", "def_line": 5}]}
-        )
-        assert len(sites) == 1
-        site = sites[0]
+def write_facts_file(path, facts):
+    """Answer as the helper does (ADR-116): *facts*, in the one-document
+    shape whose rows carry their own ``file``, written as the facts file's
+    JSON lines where the config names. The run_helper fakes use it."""
+    keys = ("definitions", "references", "external_refs")
+    docs: dict = {}
+    for key in keys:
+        for row in facts.get(key, []):
+            doc = docs.setdefault(row["file"], {"file": row["file"], **{k: [] for k in keys}})
+            doc[key].append({k: v for k, v in row.items() if k != "file"})
+    rest = {k: v for k, v in facts.items() if k not in (*keys, "helper_version", "language")}
+    end = {"end": True, "documents": len(docs), **{k: len(facts.get(k, [])) for k in keys}, **rest}
+    lines = [{"helper_version": scipsource.HELPER_VERSION, "language": facts.get("language")}, *docs.values(), end]
+    Path(path).write_text("".join(json.dumps(line) + "\n" for line in lines))
+
+
+HEADER = {"helper_version": scipsource.HELPER_VERSION, "language": "python"}
+
+
+class TestReadFacts:
+    """ADR-116: the helper's facts arrive as JSON lines — a header, one
+    record per document, a trailer with the counts — and are read into
+    what the join keeps. The lines are written out by hand: this is the
+    contract with `scip/index.mjs`'s `factsLines`, not a round trip."""
+
+    DOC = {
+        "file": "a.py",
+        "definitions": [{"moniker": "m", "line": 1, "end_line": 4, "kind": "function"}],
+        "references": [
+            {"line": 3, "col": 8, "name": "run", "def_file": "b.py", "def_line": 5},
+            {"line": 7, "col": 1, "name": "run", "def_file": "b.py", "def_line": 5},
+        ],
+        "external_refs": [{"line": 9, "col": 0, "name": "get", "package": "p", "moniker": "x"}],
+    }
+    END = {"end": True, "documents": 1, "definitions": 1, "references": 2, "external_refs": 1,
+           "packages": {"p": 1}, "degraded": [], "stderr": ""}
+
+    def read(self, tmp_path, *records, root=""):
+        path = tmp_path / "s.facts.ndjson"
+        path.write_text("".join(json.dumps(r) + "\n" for r in records))
+        return scipsource.read_facts(path, root)
+
+    def test_references_become_slotted_evidence_ir_sites(self, tmp_path):
+        facts = self.read(tmp_path, HEADER, self.DOC, self.END)
+        site = facts["references"][0]
         assert (site.provider, site.kind) == (ev.SCIP, ev.RESOLUTION)
         assert (site.file, site.line, site.col, site.name) == ("a.py", 3, 8, "run")
         assert (site.def_file, site.def_line) == ("b.py", 5)
+        assert not hasattr(site, "__dict__"), "slotted: no per-site dictionary"
 
-    def test_facts_without_references_yield_nothing(self):
-        assert scipsource.resolution_sites({}) == []
+    def test_the_other_rows_keep_their_shape_with_the_documents_file(self, tmp_path):
+        facts = self.read(tmp_path, HEADER, self.DOC, self.END)
+        assert facts["definitions"] == [
+            {"moniker": "m", "line": 1, "end_line": 4, "kind": "function", "file": "a.py"}
+        ]
+        assert facts["external_refs"] == [
+            {"line": 9, "col": 0, "name": "get", "package": "p", "moniker": "x", "file": "a.py"}
+        ]
+        assert facts["packages"] == {"p": 1} and facts["degraded"] == []
+        assert facts["helper_version"] == scipsource.HELPER_VERSION and facts["language"] == "python"
+        assert "end" not in facts and "documents" not in facts
+
+    def test_a_path_or_a_name_is_one_string_however_many_rows_name_it(self, tmp_path):
+        facts = self.read(tmp_path, HEADER, self.DOC, self.END)
+        first, second = facts["references"]
+        assert first.file is facts["definitions"][0]["file"] is facts["external_refs"][0]["file"]
+        assert first.def_file is second.def_file and first.name is second.name
+
+    def test_the_root_goes_in_front_of_every_path(self, tmp_path):
+        facts = self.read(tmp_path, HEADER, self.DOC, self.END, root="pkgs/core")
+        site = facts["references"][0]
+        assert (site.file, site.def_file) == ("pkgs/core/a.py", "pkgs/core/b.py")
+        assert facts["definitions"][0]["file"] == facts["external_refs"][0]["file"] == "pkgs/core/a.py"
+
+    def test_no_documents_is_empty_rows(self, tmp_path):
+        end = {**self.END, "documents": 0, "definitions": 0, "references": 0, "external_refs": 0}
+        facts = self.read(tmp_path, HEADER, end)
+        assert facts["references"] == facts["definitions"] == facts["external_refs"] == []
+
+    def test_a_file_without_its_trailer_is_refused_not_read_short(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="ends before its trailer, after 1 document"):
+            self.read(tmp_path, HEADER, self.DOC)
+
+    def test_counts_the_rows_do_not_reach_are_refused(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="references 2 read, 3 written"):
+            self.read(tmp_path, HEADER, self.DOC, {**self.END, "references": 3})
+
+    def test_another_version_is_refused(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="version 3 unsupported"):
+            self.read(tmp_path, {**HEADER, "helper_version": 3}, self.DOC, self.END)
+
+    def test_no_file_names_an_older_helper(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="wrote no facts file.*older than version"):
+            scipsource.read_facts(tmp_path / "missing.facts.ndjson")
+
+    def test_an_empty_file_is_refused(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="is empty"):
+            self.read(tmp_path)
+
+    def test_a_malformed_record_or_line_is_refused(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="malformed record \\(line 2\\)"):
+            self.read(tmp_path, HEADER, {"file": "a.py"}, self.END)
+        path = tmp_path / "t.facts.ndjson"
+        path.write_text(json.dumps(HEADER) + "\n{not json\n")
+        with pytest.raises(scipsource.ScipError, match="not JSON lines \\(line 2\\)"):
+            scipsource.read_facts(path)
 
 
 def resolved(kind, file, line, def_file, def_line, tier=SEMANTIC, scope="",
@@ -253,8 +345,10 @@ class TestCrossUnitJoin:
         )
         scipsource.join_cross_unit(merged)
         (ref,) = merged["references"]
-        assert ref["def_file"] == "sdk/go/api.go" and ref["def_line"] == 4
-        assert ref["file"] == "main.go" and ref["name"] == "Hello"
+        # A resolution site, as the facts file's references are (ADR-116).
+        assert (ref.provider, ref.kind) == (ev.SCIP, ev.RESOLUTION)
+        assert ref.def_file == "sdk/go/api.go" and ref.def_line == 4
+        assert ref.file == "main.go" and ref.name == "Hello" and ref.col == 5
         assert merged["external_refs"] == []
 
     def test_a_truly_external_ref_stays_external(self):
@@ -1118,7 +1212,8 @@ class TestNoVenvStillIndexes:
                 "references": [], "external_refs": [], "packages": {}, "degraded": [],
                 "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
             }
-            proc = subprocess.CompletedProcess(plan.command, 0, stdout=json.dumps(facts), stderr="")
+            write_facts_file(config["facts"], facts)  # where the helper writes them (ADR-116)
+            proc = subprocess.CompletedProcess(plan.command, 0, stdout="", stderr="")
             return containment.Outcome(proc, True)
 
         monkeypatch.setattr(containment, "run", run)
@@ -1220,7 +1315,7 @@ class TestReferencedTsConfigs:
         self._write(tmp_path)
         seen: dict = {}
 
-        def fake_run_helper(config, timeout=900, ro=(), env=()):
+        def fake_run_helper(config, timeout=900, ro=(), env=(), root=""):
             stage = Path(config["stage"])
             seen["config"] = config
             seen["root"] = json.loads((stage / "tsconfig.json").read_text())
@@ -1296,7 +1391,7 @@ class TestReferencedTsConfigs:
         # HOBBES_UNCONTAINED) is not this test's subject; nothing else
         # may degrade — no zone-map fallback, no provisioning record
         assert not [d for d in facts["degraded"] if "contained" not in d["message"]], facts["degraded"]
-        resolved = {(r["file"], r["def_file"]) for r in facts["references"]}
+        resolved = {(r.file, r.def_file) for r in facts["references"]}  # resolution sites (ADR-116)
         assert ("src/app.ts", "src/shapes.ts") in resolved
         assert ("src/app.test.ts", "src/app.ts") in resolved
         assert any(d["file"] == "scripts/tool.ts" for d in facts["definitions"])

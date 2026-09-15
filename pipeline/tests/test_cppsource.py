@@ -461,13 +461,14 @@ class TestTheWithheldFallback:
 
     @staticmethod
     def _graph(monkeypatch, references):
-        from hobbes.extract import extract_repo
+        from hobbes.extract import evidence as ev, extract_repo
         import hobbes.extract as extract
 
         facts = {
             "language": "cpp",
             "definitions": [],
-            "references": references,
+            # Resolution sites, as the facts file is read into (ADR-116).
+            "references": [ev.Site(provider=ev.SCIP, kind=ev.RESOLUTION, **ref) for ref in references],
             "external_refs": [],
             "degraded": [],
         }

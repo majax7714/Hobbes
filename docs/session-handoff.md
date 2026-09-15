@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.25-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-15; Hobbes 0.2.26-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
-says it reviewed from the last green run. The knowledge server of the
-session that opens next serves the 0.2.24-beta build until it is
-restarted (C-65).
+says it reviewed from the last green run. The knowledge server serves
+the image it started from until it is restarted (C-65): restart it
+after this session's rebuild.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.25-beta are untagged. Tags stay Max's call each time.
+  0.2.26-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -15,39 +15,45 @@ restarted (C-65).
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The session's record is the 2026-09-15 "ADR-115" BUILDLOG entry (the
-helper's decode streams); C++'s close-out is the "(later) C++ closed
-out" entry of the same day. Earlier sessions' detail lives in their own BUILDLOG entries; this
+The session's record is the 2026-09-15 "ADR-116" BUILDLOG entry (the
+facts arrive as a stream); ADR-115's (the decode streams) and C++'s
+close-out are the entries of the same day before it. Earlier sessions' detail lives in their own BUILDLOG entries; this
 file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-0. **The helper's decode streams (2026-09-15, 0.2.25-beta, ADR-115).**
-   C-150's assessment, Max's route "streaming decode is best route":
-   - the helper reads SCIP's wire format one document at a time
-     (`streamDocuments`, `indexFiles`; `decode` walks its source twice
-     through `documentsOf`); the generated reader and its typed-range
-     monkeypatch are gone;
-   - ScummVM's whole index (387 MB, 11,265 documents) decodes under the
-     default heap at 3.4 GB resident, 33 s, with facts identical to the
-     old reader's by digest (old: 9.7 GB, 38 s at a 14 GB heap);
-   - a killed helper (137 / -9) names C-150 instead of "install Node";
-   - C-150 narrowed and retitled to the facts' size on the Python side
-     (about 2.1 GB parsed for ScummVM beside lane A's 1.5 GB); C-149's
-     bound stays for the references the per-unit route holds, not the
-     merge's memory. Its lift is the per-site rules on arrival.
-   - **Where things are:** ScummVM's index and its unit list stayed in
-     `~/.hobbes/cache/stage/b7bc0819382fd513.scip.units/` (`whole.scip`,
-     `whole.json`), the staged copy beside it; the two probes are
-     `~/.hobbes/bench/cpp-drivers/probes/decode_equiv.mjs` (a helper
-     module against an index, digests every row; `old` as the third
-     argument uses the generated reader) and `stream_probe.mjs`. Run
-     them from `scip/` so the imports resolve.
-   - **Not done, its own decision:** the Python side reads the facts
-     whole (`run_helper`: one JSON document on stdout). Streaming them
-     is a facts-format change (helper version 4). No end-to-end ScummVM
-     ingest at 0.2.25-beta is recorded; the estimate is 8 GB free.
-   - The binaries, the static proxy and the image are at 0.2.25-beta.
+0. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
+   ADR-116).** C-150's remainder, Max's route A of three:
+   - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
+     per document, a trailer that counts them; helper version 4 — and
+     prints nothing; `scipsource.read_facts` reads it into slotted,
+     interned resolution `Site`s and rows, and refuses a short file;
+   - found first: at 0.2.25-beta ScummVM's facts (699 MB of JSON) were
+     longer than V8's longest string, so the helper threw and the
+     record read "install Node". C-150 corrected, and moved to
+     *partial*: a kill on the Python side leaves no record;
+   - measured: the helper 3.29 GB resident at the image's default heap,
+     `read_facts` 0.99 GB (1.36 GB with the buckets), every row the
+     same as the one-document form's; this repo's graph identical under
+     `aaffca6`'s code and this change's;
+   - **ScummVM end to end:** exit 0 in 8 min 57 s, contained, 7.72 GB
+     peak on the Python side; 941,498 semantic symbol edges, its C/C++
+     sites 61.3% accounted where they were 0.0%. Its graph is in
+     `~/.hobbes/bench/cpp-cells/scummvm-cost/.hobbes/derived/`;
+   - **Where things are:** ScummVM's index and unit list in
+     `~/.hobbes/cache/stage/b7bc0819382fd513.scip.units/`; the probes in
+     `~/.hobbes/bench/cpp-drivers/probes/` — ADR-115's `decode_equiv.mjs`
+     and `stream_probe.mjs`, and this session's `facts_probe.mjs` (the
+     V8 string check, and a line file), `helper_facts_probe.mjs`
+     (`writeFacts` in the image) and `py_facts_probe.py` (the Python
+     read, by route; `join` as the third argument adds the join). Run
+     the `.mjs` from `scip/`, the `.py` with `uv run --project pipeline
+     python`.
+   - **Next on C-150, its own decision:** the 7.72 GB peak is lane A,
+     the read and the join (4.6 GB mid-join), then the graph built from
+     them. A slotted `Resolved` takes part of it; measure the graph
+     build's share before choosing.
+   - The binaries, the static proxy and the image are at 0.2.26-beta.
 0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -103,9 +109,13 @@ file keeps only what the next session needs.
      repo's graph has 0 C++ disagreements, so CI is unaffected. The two
      routes: compare C++ only where the fallback could draw, or keep it
      as the self-test's report.
-   - **C-150's remainder** (large repos, every language): the facts
-     held whole on the Python side, after ADR-115 took the decode's
-     share. A facts-format change; Max's call whether and when.
+   - **C-150's remainder** (large repos, every language): the join's
+     output, after ADR-115 and ADR-116 took the decode's and the
+     read's share. Max's call whether and when.
+   - **Double-rooted record paths** (seen 2026-09-15, not changed): the
+     C and Java callers append a record at `path: root`, then `_rebase`
+     prefixes the root again (`proj/proj`, checked). A record-path fix
+     is a patch, a small unit.
    - Carried: C-139's finer extent (only if a cell shows the recall
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
@@ -214,14 +224,15 @@ min each.
   from 84 cells; `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 154 entries: 111 active (86 surfaced, 20 partial, 4
+- **Register:** 154 entries: 111 active (85 surfaced, 21 partial, 4
   unsurfaced — C-19, C-20, C-112, C-153 — 1 n/a), 26 lifted, 11
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
-  0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta).
+  0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
+  corrected, narrowed again and moved to *partial* (0.2.26-beta).
 - **Oracle defect log:** H-28–H-31 open (O10); RC-8 shaped.
-- **Suites** at 0.2.25-beta: 1,617 pytest and 74 scip node (re-run on
+- **Suites** at 0.2.26-beta: 1,626 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
-  skip), not re-run beyond the version test since no Go code moved;
+  skip), re-run against the rebuilt image;
   oracle-lane Go 95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0
   not re-run.
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's

@@ -152,19 +152,20 @@
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
 
-### C-150 — Lane B's facts are held in memory whole: a root whose facts outgrow the box has no lane B (every language)
+### C-150 — Lane B's references are held whole for the join: a root whose references, joined, outgrow the box has no lane B (every language)
 
 - **Cannot tell you:** any semantic edge for a build root, in any
-  language, whose lane B facts the box cannot hold: the helper's
-  references for the root, then the same facts as one JSON document
-  on the Python side, parsed whole beside lane A's own sites. The
-  helper dies or is killed, and the root's call edges fall to lane A's
-  fallback.
-- **Because:** the facts are held in memory whole once decoded. The
-  helper keeps every reference it resolves until its per-site rules
-  run; `run_helper` reads them as one JSON document on stdout and
-  parses it; the join holds them beside lane A's sites. Nothing past
-  the helper's decode streams.
+  language, whose lane B references the box cannot hold through the
+  join: the helper's, until its per-site rules run, and then the
+  Python side's, as resolution sites beside lane A's own sites and the
+  join's output. The helper or the ingest dies or is killed, and the
+  root's call edges fall to lane A's fallback — or, if the ingest
+  itself is killed, there is no graph at all.
+- **Because:** the join is whole. The helper keeps every reference it
+  resolves until its per-site rules run at the end of the decode. The
+  Python side reads the facts as they arrive (ADR-116) but holds every
+  reference before the join can run, and the join makes one fact per
+  reference beside them.
 - **Narrowed 2026-09-15 (0.2.25-beta; ADR-115).** As registered, the
   wall was the decode itself: the helper built a root's whole index as
   generated protobuf objects under Node's default heap, and ScummVM's
@@ -173,6 +174,18 @@
   the same index decodes under the default heap at 3.4 GB resident
   with facts identical to the old reader's (checked by digest). What
   is left is the facts' own size, above.
+- **Corrected and narrowed 2026-09-15 (0.2.26-beta; ADR-116).** This
+  entry then said ScummVM's facts reached the Python side as about
+  850 MB of JSON. They could not: the helper printed its facts with
+  one `JSON.stringify`, they are 699 MB of JSON, and V8's longest
+  string is 536,870,888 characters. The helper threw `RangeError:
+  Invalid string length` and exited 1, and `run_helper` said "install
+  Node", so at 0.2.25-beta the root still had no lane B, for a reason
+  this entry did not state. The helper now writes its facts to a file,
+  one JSON line per document and a trailer that counts them, and the
+  Python side reads each reference straight into a slotted resolution
+  site, its paths and names interned. What is left is the join's own
+  size. The surfacing status moved to *partial* the same day (below).
 - **Bites at:** measured on C++: ScummVM (5,958 units, one
   whole-database run under C-149's size guard).
   - Before 0.2.25-beta: the decode needed about 9 GB (8.95 GB at a
@@ -181,16 +194,27 @@
     failure), and its 1.53 million C++ call sites were left to lane A
     (0.0% accounted). Before 0.2.21-beta the same root failed earlier,
     on a stack overflow in the decode.
-  - After: the helper's decode of the same index holds 4.16 million
-    references at 2.7 GB of heap. The Python side then receives them
-    as about 850 MB of JSON and parses them at 393 bytes a row (about
-    2.1 GB), on top of the 1.5 GB it stood at during lane A. A box
-    with 8 GB free is the estimate for this root; none smaller is
-    measured, and no end-to-end ingest at 0.2.25-beta is recorded yet.
+  - At 0.2.25-beta: the decode fit the default heap (4.16 million
+    references at 2.7 GB of heap, 3.4 GB resident); its facts did not
+    fit a V8 string, as above.
+  - At 0.2.26-beta: the helper decodes and writes the facts at 3.29 GB
+    resident (487 MB of lines, 33 s, the image's default heap); the
+    Python side reads them at 0.99 GB, 1.36 GB with the join's
+    buckets, where the one document parsed took 3.63 GB. The join's
+    output, one fact per reference, is about 2.1 GB more (measured
+    with no lane A sites), beside lane A's own 1.5 GB.
+  - End to end at 0.2.26-beta (this box, 2026-09-15): the ingest ran in
+    8 min 57 s, every step contained, at a 7.72 GB peak on the Python
+    side (the helper's 3.29 GB is its own container's, earlier). The
+    root has lane B: 941,498 semantic symbol edges, and its 1,546,539
+    C/C++ call sites are 61.3% accounted where they were 0.0%. The
+    peak is lane A, the read and the join (about 4.6 GB mid-join) and
+    then the graph built from them. 8 GB free is the measured need for
+    this root; no smaller box is measured.
 
   Any language's root of that size meets the same limit; none other
   is measured.
-- **You find out:** **surfaced** — the root's `scip-<language>` record
+- **You find out:** **partial** — the root's `scip-<language>` record
   says the helper ran out of memory decoding the build's index (V8's
   heap markers), or, since 0.2.25-beta, that it was killed (exit 137
   through podman, -9 on a host run: the kernel's OOM killer or a
@@ -200,18 +224,26 @@
   heap than the image's default can be given it today through
   `HOBBES_SCIP_CMD` (`node --max-old-space-size=<MB> <checkout>/scip/index.mjs`),
   which runs in the container as the default command does; the number
-  is the box's, not Hobbes'.
+  is the box's, not Hobbes'. A facts file cut short is refused, and the
+  record says which way (ADR-116). **Not surfaced:** an ingest the
+  kernel kills on the Python side — the read, the join, lane A beside
+  them — ends with no graph and no record at all, only the shell's
+  "Killed"; nothing names this entry there.
 - **Provider (P9):** Node's default heap limit, the image's Node
-  (22.14.0: 4.35 GB).
+  (22.14.0: 4.35 GB), for the references the helper keeps; until
+  0.2.26-beta, V8's longest string (536,870,888 characters), for its
+  output.
 - **Decision (Max, 2026-09-15):** large repos stay a constraint; the
-  memory problem was assessed as a whole and the decode's share taken
-  first (ADR-115, its routes). The remainder — the facts read by the
-  Python side as they arrive rather than whole (a facts-format change),
-  and lane A's own sites — is a separate decision. A larger helper heap
+  memory problem was assessed as a whole and taken in steps: the
+  decode's share first (ADR-115), then the facts' read (ADR-116, route
+  A of three — the records read into slotted, interned sites; the
+  offered line format into today's dicts measured no gain). A slimmer
+  join output waits for an end-to-end measurement. A larger helper heap
   as the product's own answer was rejected as machine-dependent.
 - **Source:** the ScummVM end-to-end ingest, 2026-09-15; first
   registered in `extraction-c.md` the same day and moved here once it
-  was seen to be every language's; narrowed the same day (ADR-115).
+  was seen to be every language's; narrowed the same day twice
+  (ADR-115, ADR-116), the second time corrected.
 
 ## Lifted constraints in this segment
 

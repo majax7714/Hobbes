@@ -24,7 +24,7 @@
  * Output: facts JSON on stdout; diagnostics on stderr.
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,8 +38,11 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 /** Facts schema version; the Python join refuses anything else.
  *
  * v2 (V2.M3, ADR-032): facts carry `dependency_coverage` on every run,
- * replacing Decision 4's all-or-nothing degradation test. */
-export const HELPER_VERSION = 3
+ * replacing Decision 4's all-or-nothing degradation test.
+ * v4 (ADR-116): the facts are a file of JSON lines — a header, one record
+ * per document, a trailer with the counts — written where the config's
+ * `facts` names, never one document on stdout. */
+export const HELPER_VERSION = 4
 
 /** The helper's exit code when the indexer it drove exited non-zero: the
  * helper ran, the indexer did not. The Python side records that as the
@@ -1554,6 +1557,61 @@ export function indexStage(config) {
   }
 }
 
+/** The facts as JSON lines (ADR-116), one string per line and none of them
+ * the whole: a header, one record per document, and a trailer.
+ *
+ * The whole facts document is one V8 string, and V8's longest is 536,870,888
+ * characters: ScummVM's facts are 699 MB of JSON, and `JSON.stringify` threw
+ * `RangeError: Invalid string length`. A line here is one document's rows
+ * (ScummVM's longest: 5.3 MB).
+ *
+ * A document's rows drop the `file` its record states once. Documents come in
+ * the order of their first row — definitions, then references, then external
+ * references — and rows keep the decode's order within one, so every
+ * (file, line) bucket the Python join builds holds its sites in the order it
+ * did when the facts were one document. The trailer counts the documents and
+ * each kind of row, so a file cut short is told from a smaller answer, and
+ * carries the root-level fields. */
+export function* factsLines(facts) {
+  const { helper_version, language, definitions, references, external_refs, ...rest } = facts
+  yield JSON.stringify({ helper_version, language })
+  const documents = new Map()
+  for (const [key, rows] of Object.entries({ definitions, references, external_refs })) {
+    for (const row of rows) {
+      let doc = documents.get(row.file)
+      if (!doc) documents.set(row.file, (doc = { file: row.file, definitions: [], references: [], external_refs: [] }))
+      doc[key].push(row)
+    }
+  }
+  const bare = ({ file, ...row }) => row
+  for (const doc of documents.values()) {
+    yield JSON.stringify({
+      file: doc.file,
+      definitions: doc.definitions.map(bare),
+      references: doc.references.map(bare),
+      external_refs: doc.external_refs.map(bare),
+    })
+  }
+  yield JSON.stringify({
+    end: true,
+    documents: documents.size,
+    definitions: definitions.length,
+    references: references.length,
+    external_refs: external_refs.length,
+    ...rest,
+  })
+}
+
+/** Write `factsLines(facts)` to *path*, a line at a time. */
+export function writeFacts(facts, path) {
+  const fd = openSync(path, 'w')
+  try {
+    for (const line of factsLines(facts)) writeSync(fd, line + '\n')
+  } finally {
+    closeSync(fd)
+  }
+}
+
 function main(argv) {
   const at = argv.indexOf('--config')
   if (at === -1 || !argv[at + 1]) {
@@ -1563,7 +1621,10 @@ function main(argv) {
   }
   const config = JSON.parse(readFileSync(argv[at + 1], 'utf8'))
   try {
-    process.stdout.write(JSON.stringify(indexStage(config)))
+    // Never stdout (ADR-116): the Python side names the file and reads it as
+    // it arrives, and nothing is printed there.
+    if (!config.facts) throw new Error('the config names no `facts` file to write (helper version 4, ADR-116)')
+    writeFacts(indexStage(config), config.facts)
   } catch (err) {
     process.stderr.write(String(err.message ?? err) + '\n')
     // process.exitCode, not process.exit: a hard exit can truncate a large

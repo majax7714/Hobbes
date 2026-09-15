@@ -11,9 +11,51 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.25-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.26-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.26-beta — 2026-09-15 (lane B's facts arrive as a stream; ADR-116)
+
+**Patch: what the layer draws and says.** A constraint's fix (C-150's
+remainder), taken after the routes were put to Max with measurements
+("yes proceed with a").
+
+- **The helper writes its facts to a file, one JSON line per document.**
+  It printed them as one JSON document on stdout, built by one
+  `JSON.stringify`. ScummVM's facts are 699 MB of JSON and V8's longest
+  string is 536,870,888 characters: the helper threw `RangeError:
+  Invalid string length` and exited 1, and the record said "install
+  Node", so at 0.2.25-beta that root still had no lane B. The file
+  (`<stage>.facts.ndjson`, beside the config) is a header naming the
+  helper version, one record per document whose rows no longer repeat
+  its path, and a trailer that counts the documents and each kind of
+  row. ScummVM's is 487 MB, written under the image's default heap at
+  3.29 GB resident in 33 s.
+- **The Python side reads it as it arrives.** Each reference becomes an
+  evidence-IR resolution site on arrival, with no dict row kept;
+  definitions and external references stay rows, and every path and
+  name is one interned string. ScummVM's facts read at 0.99 GB (1.36 GB
+  with the join's buckets), where the one document parsed at 3.63 GB.
+  The records carry exactly the decode's rows, per file and in order
+  (checked on every row of ScummVM's facts), and this repo's graph,
+  test map and interfaces are identical whether 0.2.25-beta's code or
+  this one's builds them from the same tree.
+- **ScummVM, end to end, has lane B for the first time:** 941,498
+  semantic symbol edges, and its 1.55 million C/C++ call sites 61.3%
+  accounted where they were 0.0%, in 8 min 57 s at a 7.72 GB peak on
+  the Python side, every step contained.
+- **A short file is refused.** No trailer, counts the rows do not
+  reach, another version, a malformed record or no file at all is a
+  `ScipError` that says which, never a smaller answer.
+- **`Site` is slotted**, lane A's call sites included.
+- **Register:** C-150 corrected (the wall at 0.2.25-beta was the
+  helper's output string, and its record read "install Node") and
+  narrowed to the join's own size; its surfacing moved to *partial*,
+  because an ingest the kernel kills on the Python side leaves no
+  record at all.
+- Helper version 4. Node tests 77 (three new); pytest 1,626 (eleven
+  new for the facts file, two retired with `resolution_sites`).
 
 ## 0.2.25-beta — 2026-09-15 (lane B's decode streams the index; ADR-115)
 

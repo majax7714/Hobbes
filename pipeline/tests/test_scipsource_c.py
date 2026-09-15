@@ -117,9 +117,12 @@ class TestExtract:
 
         def fake(config, **kw):
             stage = Path(config["stage"])
-            seen.update(config=config, files=sorted(p.relative_to(stage).as_posix() for p in stage.rglob("*") if p.is_file()),
+            seen.update(config=config, root=kw.get("root"),
+                        files=sorted(p.relative_to(stage).as_posix() for p in stage.rglob("*") if p.is_file()),
                         build_dir_existed=Path(config["buildDir"]).is_dir())
-            return {"definitions": [{"moniker": "m", "file": "src/a.c", "line": 1, "end_line": 1, "kind": "method"}],
+            # run_helper puts the root in front of every path as it reads
+            # the facts (ADR-116; `TestReadFacts`), so its rows come re-rooted.
+            return {"definitions": [{"moniker": "m", "file": f"{kw['root']}/src/a.c", "line": 1, "end_line": 1, "kind": "method"}],
                     "references": [], "external_refs": [], "degraded": []}
 
         monkeypatch.setattr(scipsource, "run_helper", fake)
@@ -127,7 +130,8 @@ class TestExtract:
         assert seen["config"]["language"] == "c" and seen["config"]["compdbSource"] == "make"
         assert seen["files"] == ["Makefile", "src/a.c", "tools/gen.sh"], "the whole tree, less build output"
         assert seen["build_dir_existed"] and not Path(seen["config"]["buildDir"]).exists(), "made before, removed after"
-        assert merged["definitions"][0]["file"] == "proj/src/a.c", "paths come back re-rooted at the repo"
+        assert seen["root"] == "proj", "the root rides into run_helper, which re-roots paths as it reads"
+        assert merged["definitions"][0]["file"] == "proj/src/a.c"
 
     def test_a_failed_build_degrades_its_root_alone(self, tmp_path, monkeypatch, lane_b_on):
         repo = tmp_path / "repo"

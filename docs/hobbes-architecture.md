@@ -508,7 +508,16 @@ names C-150. **The helper's decode streams the index** (ADR-115,
 keeps only the fields the decode keys on, so a root's index is never
 held whole — ScummVM's 387 MB index decodes under Node's default heap
 where the generated reader needed 8.95 GB. The unit indexes of a C or
-C++ root are streamed in turn the same way. The registry steps (`npm ci --ignore-scripts`, `cargo
+C++ root are streamed in turn the same way. **The facts arrive as a
+stream too** (ADR-116, 0.2.26-beta): the helper writes them to a file
+beside its config — a header naming helper version 4, one JSON line per
+document whose rows do not repeat its path, and a trailer that counts
+the documents and each kind of row — never one JSON document on stdout,
+which for ScummVM (699 MB) was longer than V8's longest string. The
+Python side reads each reference straight into a slotted resolution
+`Site`, its paths and names interned, keeps definitions and external
+references as rows for the cross-unit join, and refuses a file cut
+short rather than read it as a smaller answer. The registry steps (`npm ci --ignore-scripts`, `cargo
 fetch`, `go mod download`) are separate fetch containers that download
 and execute nothing — phase separation in place of a route filter
 rootless podman cannot offer. The guarantee is P10-specific: **repo
@@ -1681,7 +1690,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.25-beta** (2026-09-15, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.25-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.26-beta** (2026-09-15, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.26-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
