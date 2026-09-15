@@ -50,6 +50,50 @@
    }
   },
   {
+   "stem": "args-cpp",
+   "record": "args-cpp-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": "0.2.22-beta",
+   "lang": "C++",
+   "run": "contained",
+   "draw": "random",
+   "label": "args",
+   "note": "random draw (seed 20260914); the 4 contradicted at 0.2.21-beta were the overload collapse, abstained since 0.2.22-beta (C-151)",
+   "edges": 2000,
+   "confirmed": 1995,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 5,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 100.0,
+    "num": 1995,
+    "den": 1995
+   },
+   "recall": {
+    "pct": 56.4,
+    "hits": 2010,
+    "pairs": 3561,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "static→constructor": 889,
+    "static→function": 50,
+    "static→method": 612
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2000,
+    "refused": 1995,
+    "unjudged": 5,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "cheerio-ts",
    "record": "cheerio-ts-2026-08-27.md",
    "date": "2026-08-27",
@@ -1916,6 +1960,52 @@
     "seeded": 3598,
     "refused": 3592,
     "unjudged": 6,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "fmt-cpp",
+   "record": "fmt-cpp-2026-09-15.md",
+   "date": "2026-09-15",
+   "kind": "resolution",
+   "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
+   "hobbes_version": "0.2.22-beta",
+   "lang": "C++",
+   "run": "contained",
+   "draw": "picked",
+   "label": "fmt",
+   "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 are scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31, open)",
+   "edges": 3525,
+   "confirmed": 3254,
+   "contradicted": 28,
+   "abstract": 0,
+   "silent": 243,
+   "suspect": 0,
+   "unobserved": 0,
+   "precision": {
+    "pct": 99.1,
+    "num": 3254,
+    "den": 3282
+   },
+   "recall": {
+    "pct": 14.5,
+    "hits": 7319,
+    "pairs": 50569,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "macro→function": 1622,
+    "macro→method": 1140,
+    "static→constructor": 8205,
+    "static→function": 10320,
+    "static→method": 21963
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 3525,
+    "refused": 3282,
+    "unjudged": 243,
     "falsely": 0
    }
   },

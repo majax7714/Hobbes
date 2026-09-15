@@ -57,15 +57,26 @@ its standing key. A pre-veto pass reproduced every stored number first,
 and afterwards no confirmed count moved anywhere. Only sqlite-vector's
 grade changed (851/854 → 851/851), so only its record carries a
 0.2.8-beta block, and the others' standing grades still read their
-earlier version. That is why the graphics name three versions.
+earlier version. That is why the graphics name several versions.
+
+**C++, 2026-09-15.** C++ joined as the seventh compiler-graded language
+(ADR-113, O10): fmt (chosen for shape) and Taywee/args (drawn at
+random), graded against clang's front end at 0.2.21-beta and regraded at
+0.2.22-beta after ADR-113 §2's third amendment, so their standing grades
+name a fourth version. They stand in the tables, the scatter and the
+one number as Hobbes cells; neither has a foreign cell yet.
 
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
-   compiler-graded cell, with one named exception.** Every
+   compiler-graded cell, with two named exceptions.** Every
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
-   fifteen are the test build's shadowing methods, 0 hobbes-wrong).
+   fifteen are the test build's shadowing methods, 0 hobbes-wrong) and
+   C++'s fmt (3,254/3,282, 99.1%: 18 are the oracle's grain, H-28–H-31,
+   recorded open; 10 are hobbes-wrong — scip-clang names a single wrong
+   candidate and Hobbes draws it, a provider's error owned as Hobbes'
+   own, C-153).
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -85,7 +96,7 @@ earlier version. That is why the graphics name three versions.
    0 falsely confirmed, with N and K beside it and the cells not in the
    sum named.
 3. **Here is how much Hobbes does not draw, and what it is.** Recall
-   runs from 40.8% (fzf, at 5 roots) to 100.0% (the best of dagger's
+   runs from 14.5% (C++'s fmt, over every resolved site) to 100.0% (the best of dagger's
    nineteen Go modules, each its own cell with its own root count, and
    C's sqlite-vector over its 1,091 resolved sites) across the
    compiler-graded cells, stated as a range and never averaged: each
@@ -95,7 +106,9 @@ earlier version. That is why the graphics name three versions.
    0.1.10-beta, when the Gradle attach route gave it one.
    The misses are one register entry, C-58 — closures, interface
    dispatch, function values, code macros and derives wrote — tabled
-   per cell in `docs/oracle/oracle-misses.md`.
+   per cell in `docs/oracle/oracle-misses.md`. C++'s are tabled in its
+   two records: constructions, the member calls and overload sets lane
+   B leaves unsettled (C-143, C-151), and macro-heavy parses (C-145).
 4. **Other tools' graphs, same keys.** CodeGraphContext 0.6.13 and
    repowise 0.49.0 were run as their READMEs document on the thirteen
    repos with keys on disk — the seven-repo loop of 2026-08-27 plus the

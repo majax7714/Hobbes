@@ -10892,3 +10892,54 @@ a small unit.
 - **Not changed:** the Watterson image stays (Max's call). C++ in the
   comparative programme is its own piece of work. There is no version
   move, since the change is docs only (ADR-103).
+
+## 2026-09-15 — (later still) CI on `fdc7f07`: the oracle lane's drift test, and the graph job's review
+
+Max: "go test oracle lane failed, as well as graph check returned 8
+unguarded new modules". Both failures came in with the C++ commits
+(`6846d2f` onward). This session's docs commit was not yet pushed.
+
+- **Oracle lane:** `TestGraphicsMatchTheCellRecords` failed.
+  - **The cause:** `render.py check` refused `args-cpp-2026-09-15.md`,
+    and would have refused fmt's, because neither had a
+    `cells.meta.json` row. The two C++ cells landed in
+    `docs/oracle/cells/` without one.
+  - **The fix:**
+    - two rows: fmt picked, args random, both contained;
+    - `render_scatter` gains a C++ panel, and its grid rows are now
+      counted from the panels (three rows) instead of being fixed at two
+      over five languages;
+    - the one-number footnote and the scatter caption name C++. Its
+      misses are not C-58's alone: constructions, C-143, C-145 and
+      C-151;
+    - the caption's headline no longer says "we draw nothing the
+      compiler contradicts", which fmt's 10 (C-153) made untrue.
+  - **Regenerated:**
+    - fmt and args are in `tables.md`;
+    - the one number is over 25 cells in 6 languages;
+    - the scatter's recall range is 14.5–100.0%;
+    - `same-key.svg` moved only in its legend's version list.
+  - **The prose beside it:**
+    - the comparative page's claim 1 names two exceptions, including
+      fmt's 10 hobbes-wrong edges;
+    - claim 3's range starts at fmt's 14.5%;
+    - a C++ paragraph is added;
+    - the README's C++ bullet is updated.
+  - **Checked:** `go test -count=1 ./...` in `bench/oracle` passes. A
+    cached pass is not evidence here: the test execs `render.py`, and
+    Go's cache does not see the files a subprocess reads.
+- **Graph job:** `hobbes review 38d364f..HEAD` reported "needs
+  attention: 8 unguarded new module(s)".
+  - All 8 are C++ fixture sources: `bench/oracle/testdata/cppclang/*`
+    and `pipeline/tests/fixtures/minicpp/*`. By its own rule the review
+    is right.
+  - This is the W0 item of 2026-09-10 (`workstreams.md`): a fixture
+    source is not own code a test could guard, and the job forgets a
+    red review.
+  - The C fixtures are just as unguarded (in `minic` only `util` is
+    guarded, in `cclang` nothing). They passed only because the job
+    forgot them.
+  - Put to Max as routes, since either needs an ADR against ADR-025.
+    The next push's graph job would pass without any fix, for the
+    forgetting reason.
+- **No version move:** the change is `bench/` tooling and docs (ADR-103).

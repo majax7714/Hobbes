@@ -339,7 +339,7 @@ def render_one_number(cells: list[dict]) -> str:
     lines.append(("—", 14, GRID, "normal", 32))
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
     para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
-         "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java, clang's front end for C.", 10, INK2, width=140)
+         "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java, clang's front end for C and C++.", 10, INK2, width=140)
     para(versions_line(cells), 10, INK2, width=140)
     H = 40 + sum(sz + 6 for _, sz, _, _, _ in lines) + 24
     o = svg_open(W, H, "Wrong edges seeded into the graph, falsely confirmed by the grader")
@@ -402,11 +402,11 @@ def tool_legend(o: list[str], cells: list[dict], y: float) -> None:
 def render_scatter(cells: list[dict]) -> str:
     comp = [c for c in cells if compiler_graded(c)]
     trace = [c for c in cells if c["kind"] == "trace"]
-    langs = ["Go", "TypeScript", "Rust", "Java", "C"]
+    langs = ["Go", "TypeScript", "Rust", "Java", "C", "C++"]
     panels = [(l, [c for c in comp if c["lang"] == l]) for l in langs]
     PW, PH, GAP, L, T = 300, 300, 40, 60, 106
     cols = 3
-    rows = 2
+    rows = -(-(len(panels) + 1) // cols)  # the language panels and the trace panel
     W = L + cols * (PW + GAP) + 10
     H = T + rows * (PH + 74) + 120
     o = svg_open(W, H, "Precision-against-oracle by recall, one dot per cell, per language")
@@ -513,11 +513,13 @@ def render_scatter(cells: list[dict]) -> str:
     y = T + rows * (PH + 74) + 8
     o.append(f'<line x1="24" y1="{y}" x2="{W-24}" y2="{y}" stroke="{GRID}"/>')
     y += 22
-    o.append(text(24, y, "We draw nothing the compiler contradicts; here is how much we do not draw, and what it is.", 13, INK, weight="bold"))
+    o.append(text(24, y, "The compiler contradicts almost nothing we draw, and each contradiction is read in its record; here is how much we do not draw, and what it is.", 13, INK, weight="bold"))
     y += 18
     o.append(text(24, y, f"Recall across Hobbes' compiler-graded cells runs {min(recalls)}–{max(recalls)}% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).", 11, INK2))
     y += 16
-    o.append(text(24, y, "The misses are one register entry, C-58: closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables.", 11, INK2))
+    o.append(text(24, y, "The misses are registered by class: C-58 (closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables),", 11, INK2))
+    y += 16
+    o.append(text(24, y, "and in C++ the classes each record tables: constructions, the member calls and overload sets lane B leaves unsettled, and macro-heavy parses (C-143, C-145, C-151).", 11, INK2))
     y += 16
     o.append(text(24, y, "Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.", 11, INK))
     y += 16

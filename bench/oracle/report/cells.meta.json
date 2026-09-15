@@ -502,5 +502,19 @@
   "label": "sqlite-vector",
   "tool": "repowise",
   "note": "repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state"
+ },
+ "fmt-cpp": {
+  "lang": "C++",
+  "run": "contained",
+  "draw": "picked",
+  "label": "fmt",
+  "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 are scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31, open)"
+ },
+ "args-cpp": {
+  "lang": "C++",
+  "run": "contained",
+  "draw": "random",
+  "label": "args",
+  "note": "random draw (seed 20260914); the 4 contradicted at 0.2.21-beta were the overload collapse, abstained since 0.2.22-beta (C-151)"
  }
 }

@@ -229,9 +229,9 @@ A comparison is only as honest as its reading rules, so here they are:
   tuned on Hobbes' output (C-95). Their runs were on the host, not in the
   sandbox (C-96).
 - **What is not here.**
-  - C++ has no foreign cell. Its two cells (fmt, args) postdate the
-    runs and are not yet in the comparative renderer, so no C++ row
-    appears here.
+  - C++ has no foreign cell: its two cells (fmt, args) postdate the
+    runs, so no C++ row appears here. They stand in the tables and the
+    scatter as Hobbes cells.
   - syft, one of repowise-bench's draws, has no key on this box: RTA
     over it is killed by the kernel at 19 GB.
   - No number a tool publishes on its own basis is put beside these.
