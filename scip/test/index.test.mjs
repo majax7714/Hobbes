@@ -413,6 +413,89 @@ test("a macro and its expansion's symbols at one position are different names, n
   assert.deepEqual(c.references.map((r) => [r.name, r.def_file]).sort(), [['TEST_ASSERT_TRUE', 'unity.h'], ['UnityFail', 'unity.c']])
 })
 
+// C++ is C's indexer with one decode rule of its own (ADR-113 §2, measured
+// on the `minicpp` fixture): a construction site carries a reference to the
+// class beside one to its constructor, and the constructor is the answer.
+const CPP_CTOR = `${CLANG}shapes/Circle#Circle(3f1a2b3c4d5e6f70).`
+const CPP_CLASS = `${CLANG}shapes/Circle#`
+
+function constructionIndex(ctorRange, classRange) {
+  return fakeIndex([
+    { relative_path: 'shapes.h', occurrences: [
+      { symbol: CPP_CLASS, symbol_roles: DEF, range: [15, 6, 24, 1] },
+      { symbol: CPP_CTOR, symbol_roles: DEF, range: [17, 4, 17, 10] },
+    ] },
+    { relative_path: 'main.cpp', occurrences: [
+      { symbol: CPP_CTOR, symbol_roles: 0, range: ctorRange },
+      { symbol: CPP_CLASS, symbol_roles: 0, range: classRange },
+    ] },
+  ])
+}
+
+test('a C++ construction site keeps the constructor and drops its class (ADR-113)', () => {
+  // `new Circle(1)`: scip-clang puts both references on the type name.
+  const idx = constructionIndex([6, 21, 6, 27], [6, 21, 6, 27])
+  assert.deepEqual(decode(idx, { oneTargetPerSite: true }).references.map((r) => r.def_line), [16],
+    "without the rule the one-target reduction takes the smallest line — the class, which is what the read on `minicpp` found")
+  const cpp = decode(idx, { oneTargetPerSite: true, constructorOverClass: true })
+  assert.deepEqual(cpp.references.map((r) => [r.name, r.def_file, r.def_line]),
+    [['Circle', 'shapes.h', 18]], 'the constructor, at its own line')
+})
+
+test('a C++ construction at two columns on one line is still one site (ADR-113)', () => {
+  // `Circle c(3)`: the class at the type name, the constructor at the
+  // declared variable. The site is a position *and a name*, and the join
+  // keys the line — so the pair is read by line and name, not by column.
+  const idx = constructionIndex([6, 20, 6, 21], [6, 12, 6, 18])
+  const cpp = decode(idx, { oneTargetPerSite: true, constructorOverClass: true })
+  assert.deepEqual(cpp.references.map((r) => [r.col, r.def_line]), [[20, 18]])
+})
+
+test('a C++ class referenced with no constructor beside it survives (ADR-113)', () => {
+  // An implicit constructor is declared nowhere, so scip-clang writes the
+  // type reference alone; dropping it would lose the site altogether.
+  const idx = fakeIndex([
+    { relative_path: 'shapes.h', occurrences: [
+      { symbol: CPP_CLASS, symbol_roles: DEF, range: [15, 6, 24, 1] },
+    ] },
+    { relative_path: 'main.cpp', occurrences: [
+      { symbol: CPP_CLASS, symbol_roles: 0, range: [6, 4, 6, 10] },
+    ] },
+  ])
+  const cpp = decode(idx, { oneTargetPerSite: true, constructorOverClass: true })
+  assert.deepEqual(cpp.references.map((r) => [r.name, r.def_line]), [['Circle', 16]])
+})
+
+test("a c config decodes the same construction as before: the rule is C++'s alone", () => {
+  const idx = constructionIndex([6, 21, 6, 27], [6, 21, 6, 27])
+  assert.equal(decode(idx).references.length, 2, 'the rule is off unless a config asks for it')
+  const c = decode(idx, decodeOptions({ language: 'c', stage: '/nowhere' }))
+  assert.deepEqual(c.references.map((r) => r.def_line), [16], "C's own answer, unchanged")
+  assert.equal(decodeOptions({ language: 'c', stage: '/nowhere' }).constructorOverClass, undefined)
+  assert.equal(decodeOptions({ language: 'cpp', stage: '/nowhere' }).constructorOverClass, true)
+})
+
+test('a cpp config plans bear or CMake exactly as a c one does (ADR-113)', () => {
+  const config = { language: 'cpp', stage: '/s', output: '/s/o.scip', buildDir: '/b', compdbSource: 'make' }
+  const shape = (plan) => plan.steps.map((s) => [s.bin, s.onPath, s.install, s.cwd, s.args])
+  assert.deepEqual(shape(indexerPlan(config)), shape(indexerPlan({ ...config, language: 'c' })))
+  assert.equal(indexerPlan(config).steps[0].bin, 'sh', 'bear over make, the C plan')
+  assert.deepEqual(shape(indexerPlan({ ...config, compdbSource: 'cmake' })),
+    shape(indexerPlan({ ...config, language: 'c', compdbSource: 'cmake' })))
+  assert.equal(INDEXERS.cpp, INDEXERS.c, 'one indexer spec, not a copy that can drift')
+})
+
+test("the cpp duplicate-shape wording names namespaces as well as C's statics", () => {
+  const idx = fakeIndex([
+    { relative_path: 'a.cpp', occurrences: [{ symbol: `${CLANG}shapes/`, symbol_roles: DEF, range: [4, 10, 4, 16] }] },
+    { relative_path: 'b.cpp', occurrences: [{ symbol: `${CLANG}shapes/`, symbol_roles: DEF, range: [2, 10, 2, 16] }] },
+  ])
+  const decoded = decode(idx, { oneTargetPerSite: true, constructorOverClass: true })
+  const [record] = degradations(idx, decoded, { language: 'cpp' }).filter((r) => /defined in more than one/.test(r.message))
+  assert.match(record.message, /a namespace is declared from every file that opens it/)
+  assert.match(record.message, /file-`static`s of one signature/, "C's two shapes are still said")
+})
+
 test('references carry the column and name the join needs', () => {
   const idx = fakeIndex([
     {

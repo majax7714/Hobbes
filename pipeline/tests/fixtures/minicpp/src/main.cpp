@@ -9,5 +9,6 @@ int main() {
     int scaled = scale(3);
     int biggest = shapes::largest<int>(measured, scaled);
     std::printf("%d %d %d\n", c.area(), biggest, scaled);
+    std::printf("%d\n", shapes::area(2.5));
     return 0;
 }

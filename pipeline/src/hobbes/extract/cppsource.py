@@ -80,11 +80,19 @@ whichever definition parsed first. A member call is never resolved here
 — the receiver's type is lane B's to know (``attr-call``) — and neither
 is a name bound to a function pointer or a lambda (``local-binding``).
 
-**One symbol per id** is C's rule (``csource._dedupe_symbols``), and C++
-gives it a second cause: overloads. The first definition in file order is
-the id's one symbol, the rest are named in one ``errors`` entry per file,
-and every rank above abstains on those names rather than pointing at a
-definition the layer already dropped.
+**One symbol per id** is C's rule with C++'s overloads told apart
+(:func:`_dedupe_symbols`, ADR-113 §2, C-144's fix). In file order the
+first definition of a qualname keeps it; a later ``function`` or
+``method`` definition whose *signature* differs — the declarator's
+parameter list and the qualifiers trailing it — is an overload and takes
+``~2``, ``~3``, … on its qualname (Java's convention, ADR-096), so lane
+B's answer to each overload lands on a symbol of its own. A repeat of the
+same signature, and any repeated ``type`` or ``macro``, is C's duplicate
+still: the first is kept and the rest are named in one ``errors`` entry
+per file, as the preprocessor alternatives they are. **The fallback does
+not move**: :func:`_tables` keys on the bare qualname and the bare name,
+so an overload set is the tie it always was and every rank abstains on
+it.
 
 **Tests.** gtest's ``TEST``, ``TEST_F``, ``TEST_P`` and ``TYPED_TEST``
 parse as a function definition whose declarator names the macro; each is
@@ -159,9 +167,10 @@ class CppFile:
     #: extent. Never resolved by the fallback, and fed to the tail as this
     #: language's ``local_bindings``.
     local_bindings: list[tuple[str, int, int]] = field(default_factory=list)
-    #: Qualnames defined more than once in this file — an overload set, or
-    #: a preprocessor alternative. The kept symbol is the first in file
-    #: order; every fallback rank abstains on these.
+    #: Qualnames this file defines more than once *with the same
+    #: parameters* — preprocessor alternatives, not overloads. The kept
+    #: symbol is the first in file order; every fallback rank abstains on
+    #: these.
     duplicate_names: set[str] = field(default_factory=set)
     #: Every namespace this file opens — the evidence
     #: :func:`_settle_member_kinds` reads to tell a member definition from
@@ -279,9 +288,9 @@ def _read_and_parse(repo_root: Path, rel: str, files: list[CppFile]) -> list[dic
                 "path": rel,
                 "stage": "parse",
                 "message": (
-                    f"{', '.join(duplicated)} defined more than once in {rel} "
-                    "(an overload set, or preprocessor alternatives); calls to "
-                    "them are left unresolved rather than guessed"
+                    f"{', '.join(duplicated)} defined more than once with the "
+                    f"same parameters in {rel} (preprocessor alternatives); "
+                    "calls to them are left unresolved rather than guessed"
                 ),
             }
         )
@@ -431,10 +440,77 @@ def _parse_file(rel: str, source: bytes) -> tuple[CppFile, bool, list[str]]:
     parsed = CppFile(path=rel)
     _walk_declarations(root, parsed, ())
     _scan_string_tests(root, parsed)
-    # C's rule, C's code: one symbol per id, the first in file order.
-    duplicated = csource._dedupe_symbols(parsed)
+    # One symbol per id, before `_calls` runs — so a call written inside an
+    # overload is scoped to that overload, not to the first of the set.
+    duplicated = _dedupe_symbols(parsed)
     parsed.calls = _calls(root, parsed.symbols)
     return parsed, root.has_error, duplicated
+
+
+#: The kinds an overload set can hold. Everything else — a ``type``, a
+#: ``macro`` — repeats only by defining one name twice.
+_OVERLOADABLE = ("function", "method")
+
+
+def _dedupe_symbols(parsed: CppFile) -> list[str]:
+    """One symbol per id, with C++'s overloads told apart (ADR-113 §2).
+
+    C's rule (:func:`csource._dedupe_symbols`) keeps the first definition
+    of a qualname and drops the rest, which in C++ costs an overload set
+    every symbol but one (C-144, read on fmtlib/fmt). Here, in file order:
+    the first definition keeps its qualname; a later ``function`` or
+    ``method`` definition whose signature differs takes ``~2``, ``~3``, …;
+    a later definition of the same signature, or any other repeat, is the
+    preprocessor alternative C's rule was written for and is dropped.
+
+    Returns the qualnames that were dropped, so the caller can register
+    one ``errors`` record per file. The bare ``name`` never moves.
+    """
+    taken: dict[str, list[str] | None] = {}  # qualname -> its signatures, or None
+    duplicated: set[str] = set()
+    kept: list[dict] = []
+    for symbol in parsed.symbols:
+        base = symbol["qualname"]
+        signature = symbol.pop("_signature", "")
+        if base not in taken:
+            taken[base] = [signature] if symbol["kind"] in _OVERLOADABLE else None
+            kept.append(symbol)
+            continue
+        signatures = taken[base]
+        if signatures is None or symbol["kind"] not in _OVERLOADABLE or signature in signatures:
+            duplicated.add(base)
+            continue
+        signatures.append(signature)
+        symbol["qualname"] = f"{base}~{len(signatures)}"
+        kept.append(symbol)
+    parsed.symbols = kept
+    parsed.duplicate_names = duplicated
+    return sorted(duplicated)
+
+
+def _bare(qualname: str) -> str:
+    """A qualname without its overload suffix — what every fallback rank
+    keys on, so an overload set stays the tie it is (C-143). A destructor
+    (``A::~A``) carries a ``~`` that is part of its name, not a suffix."""
+    base, tilde, suffix = qualname.rpartition("~")
+    return base if tilde and suffix.isdigit() else qualname
+
+
+def _signature(function_declarator: Node) -> str:
+    """A definition's signature: the declarator's parameter list and the
+    qualifiers trailing it (``const``, ``volatile``, ``&``, ``&&``,
+    ``noexcept``, a trailing return type), whitespace-collapsed. Two
+    definitions of one qualname are overloads when these differ, and
+    preprocessor alternatives when they do not."""
+    params = function_declarator.child_by_field_name("parameters")
+    if params is None:
+        return ""
+    written = [_text(params)] + [
+        _text(child)
+        for child in function_declarator.children
+        if child.start_byte >= params.end_byte
+    ]
+    return " ".join(" ".join(written).split())
 
 
 def _walk_declarations(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
@@ -536,6 +612,9 @@ def _function_definition(node: Node, parsed: CppFile, scope: tuple[tuple[str, bo
     in_class = bool(scope) and scope[-1][1]
     kind = "method" if in_class else "function"
     symbol = _symbol(name, _qualname(scope, *qualifiers, name), kind, terminal, node)
+    # Read off the declarator, dropped by `_dedupe_symbols`: it decides
+    # whether a repeated qualname is an overload or a duplicate.
+    symbol["_signature"] = _signature(function_declarator)
     if qualifiers:
         # Settled against the repo's namespaces once every file is parsed.
         symbol["kind"] = "method"
@@ -771,7 +850,9 @@ def _test_definition(
         name, framework = f"{names[0]}.{names[1]}", "gtest"
     symbol = _symbol(name, name, "function", ident, node)
     # A test is not callable from anywhere else: file-local, so no
-    # fallback rank can ever land on it.
+    # fallback rank can ever land on it. Its signature is the macro's own
+    # arguments, so two tests of one name are duplicates, never overloads.
+    symbol["_signature"] = _signature(function_declarator)
     symbol["static"] = True
     parsed.symbols.append(symbol)
     parsed.tests.append(
@@ -1015,26 +1096,34 @@ def _tables(files: list[CppFile]) -> tuple:
     ambiguous ones, per-file macros, repo-wide free functions) and C++'s
     fourth, by qualname.
 
-    A name the file defines more than once is entered twice, so every rank
-    sees the tie it is: the layer keeps one symbol row per id, and a rank
-    that counted rows alone would resolve an overload set to whichever
-    overload parsed first.
+    Every lookup is keyed by the **bare** qualname and the bare name, so
+    the ranks read an overload set exactly as they read a preprocessor
+    alternative: more than one definition, and nothing but argument types
+    to pick between them (C-143). A name whose definitions the dedupe
+    dropped appears once in ``parsed.symbols`` and is entered twice here;
+    an overload set's definitions are each their own row already.
     """
     local_defs: dict[tuple[str, str], tuple[str, int]] = {}
     ambiguous_locals: set[tuple[str, str]] = set()
     macros_by_file: dict[str, dict[str, tuple[str, int]]] = defaultdict(dict)
     globals_by_name: dict[str, list[tuple[str, int]]] = defaultdict(list)
     by_qualname: dict[str, list[tuple[str, int]]] = defaultdict(list)
+    functions_seen: set[tuple[str, str]] = set()
     for parsed in files:
         for symbol in parsed.symbols:
             here = (parsed.path, symbol["line"])
-            duplicated = symbol["qualname"] in parsed.duplicate_names
+            qualname = _bare(symbol["qualname"])
+            duplicated = qualname in parsed.duplicate_names
             if symbol["kind"] in ("function", "macro"):
                 key = (parsed.path, symbol["name"])
-                if duplicated:
+                repeated = symbol["kind"] == "function" and key in functions_seen
+                if duplicated or repeated:
                     ambiguous_locals.add(key)
-                else:
+                    local_defs.pop(key, None)
+                elif key not in ambiguous_locals:
                     local_defs[key] = here
+                if symbol["kind"] == "function":
+                    functions_seen.add(key)
             if symbol["kind"] == "macro":
                 macros_by_file[parsed.path][symbol["name"]] = here
             if symbol["kind"] == "function" and not symbol.get("static", False):
@@ -1042,9 +1131,9 @@ def _tables(files: list[CppFile]) -> tuple:
                 if duplicated:
                     globals_by_name[symbol["name"]].append(here)
             if symbol["kind"] in ("function", "method", "macro"):
-                by_qualname[symbol["qualname"]].append(here)
+                by_qualname[qualname].append(here)
                 if duplicated:
-                    by_qualname[symbol["qualname"]].append(here)
+                    by_qualname[qualname].append(here)
     return local_defs, ambiguous_locals, macros_by_file, globals_by_name, by_qualname
 
 

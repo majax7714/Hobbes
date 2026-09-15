@@ -174,6 +174,13 @@ export const INDEXERS = {
   },
 }
 
+// C++ is C's indexer, exactly (ADR-113 §2): scip-clang is a C++ indexer
+// first, and neither the compile database nor its derivation cares what
+// language a translation unit is. The `cpp` language exists so the ingest
+// can say which roots hold C++ — and so `decodeOptions` can add the one
+// rule C++ needs (a constructor over its class).
+INDEXERS.cpp = INDEXERS.c
+
 /** Where scip-clang reads the compile database: the rebased copy of the
  * repo's own, or what CMake or bear wrote into the scratch build dir. */
 export function cCompdb(c) {
@@ -598,6 +605,27 @@ export function terminalName(symbol) {
   return name
 }
 
+/**
+ * The class moniker a C++ constructor moniker belongs to, or '' when
+ * *symbol* is not one.
+ *
+ * scip-clang names a constructor after its class, as C++ does:
+ * `` `shapes/Circle#Circle(9b2f…).` `` is the constructor of
+ * `shapes/Circle#`. The test is the moniker's own shape — a method whose
+ * name equals the last segment of the type that owns it — so no
+ * language-specific name list is needed.
+ */
+function constructorClass(symbol) {
+  const parts = String(symbol).split(' ')
+  if (parts.length < 5) return ''
+  const method = /^(.*#)([^#/]+)\([\w+]*\)\.$/.exec(parts.slice(4).join(' '))
+  if (!method) return ''
+  const [, owner, name] = method
+  const segments = owner.slice(0, -1).split(/[/#]/)
+  if (segments[segments.length - 1] !== name) return ''
+  return `${parts.slice(0, 4).join(' ')} ${owner}`
+}
+
 /** `<manager>:<package>` for a symbol, or '' when it has no package. */
 export function packageOf(symbol) {
   const p = String(symbol).split(' ')
@@ -618,9 +646,13 @@ const isDefinition = (occ) =>
 export function decode(index, opts = {}) {
   // `opts` carries C's two rules (ADR-109, `decodeOptions`): `nameOf`
   // reads a name the moniker does not spell, and `ownFile` resolves a
-  // file-static that several files define. Every other language passes
+  // file-static that several files define. C++ adds a third,
+  // `constructorOverClass` (ADR-113 §2). Every other language passes
   // nothing and decodes as before.
   const nameOf = opts.nameOf ?? terminalName
+  // A reference carries no moniker — the join keys on file, line and name
+  // — so C++'s constructor rule is given one here and nowhere else.
+  const monikerOf = new Map()
   const byFile = new Map() // `${moniker}\0${file}` -> that file's own definition
   const definitions = new Map() // moniker -> {file, line, endLine, kind}
   const packages = new Map() // manager:package -> reference count
@@ -719,7 +751,7 @@ export function decode(index, opts = {}) {
         })
         continue // resolves outside this index: not a repo edge
       }
-      references.push({
+      const reference = {
         file: doc.relative_path,
         line: occ.range[0] + 1,
         // Column and name are what let the join tell two same-named
@@ -728,7 +760,41 @@ export function decode(index, opts = {}) {
         name: nameOf(occ.symbol),
         def_file: target.file,
         def_line: target.line,
-      })
+      }
+      if (opts.constructorOverClass) monikerOf.set(reference, occ.symbol)
+      references.push(reference)
+    }
+  }
+
+  // C++ (ADR-113 §2, measured on `minicpp`): a construction site carries
+  // two references of one name — the class (`shapes/Circle#`, at the type)
+  // and its constructor (`shapes/Circle#Circle(…).`, at the declared
+  // variable for `Circle c(3)`, at the type for `new Circle(1)`). The
+  // join's nearest-column pick and the one-target-per-site rule below both
+  // land on the class, so every construction edge was drawn to the type,
+  // where the oracle keys the constructor. Where both are at one
+  // `(file, line, name)`, the class reference goes. A class with only an
+  // implicit constructor has no constructor reference and keeps its type
+  // reference alone.
+  if (opts.constructorOverClass) {
+    const dropped = new Set()
+    const bySite = new Map()
+    for (const r of references) {
+      const key = JSON.stringify([r.file, r.line, r.name])
+      if (!bySite.has(key)) bySite.set(key, [])
+      bySite.get(key).push(r)
+    }
+    for (const rs of bySite.values()) {
+      const classes = new Set(
+        rs.map((r) => constructorClass(monikerOf.get(r))).filter(Boolean),
+      )
+      if (classes.size === 0) continue
+      for (const r of rs) if (classes.has(monikerOf.get(r))) dropped.add(r)
+    }
+    if (dropped.size) {
+      const kept = references.filter((r) => !dropped.has(r))
+      references.length = 0
+      references.push(...kept)
     }
   }
 
@@ -810,6 +876,7 @@ const DUPLICATE_SHAPES = {
   python: 'the same module name lives under more than one directory (a tutorial\'s skeletons/ and solutions/, a vendored copy)',
   typescript: 'the same module or namespace is declared from more than one file',
   c: 'file-`static`s of one signature in several files share one scip-clang moniker (a reference from a file that defines it resolves to that file\'s own, ADR-109), and so does `main` across programs',
+  cpp: 'file-`static`s of one signature in several files share one scip-clang moniker (a reference from a file that defines it resolves to that file\'s own, ADR-109), `main` does too across programs, and a namespace is declared from every file that opens it',
 }
 
 /**
@@ -1029,7 +1096,8 @@ function runStep(step) {
   return proc
 }
 
-/** C's decode rules (ADR-109); every other language gets none.
+/** C's decode rules (ADR-109) — C++ takes all three and adds one
+ * (ADR-113 §2); every other language gets none.
  *
  * scip-clang names a macro by where it is defined, not by what it is
  * called (`` cxx . . $ `cJSON.h:281:9`! ``), so no call site could ever
@@ -1037,7 +1105,7 @@ function runStep(step) {
  * location outside the repo (a libc macro) keeps the moniker's own form,
  * which matches nothing, and stays external. */
 export function decodeOptions(config) {
-  if (config.language !== 'c') return {}
+  if (config.language !== 'c' && config.language !== 'cpp') return {}
   const lines = new Map()
   const nameOf = (symbol) => {
     const at = /`([^`]+):(\d+):(\d+)`!$/.exec(String(symbol))
@@ -1054,7 +1122,12 @@ export function decodeOptions(config) {
     const id = text == null ? null : /^[A-Za-z_]\w*/.exec(text.slice(Number(col) - 1))
     return id ? id[0] : terminalName(symbol)
   }
-  return { nameOf, ownFile: true, oneTargetPerSite: true }
+  return {
+    nameOf,
+    ownFile: true,
+    oneTargetPerSite: true,
+    ...(config.language === 'cpp' ? { constructorOverClass: true } : {}),
+  }
 }
 
 export function indexStage(config) {

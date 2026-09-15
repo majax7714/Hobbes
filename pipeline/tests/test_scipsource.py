@@ -723,7 +723,9 @@ class TestDeclaredDependencies:
 class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
     """O4 (oracle lane, 2026-08-25): a function's call to itself is an
     edge — C-59 lifted — and a Go `calls` fact whose target is a type is
-    a conversion, projected as `uses` (40 of 40 dagger contradictions)."""
+    a conversion, projected as `uses` (40 of 40 dagger contradictions).
+    Rust's tuple-struct constructors and C++'s constructions (ADR-113 §2)
+    are the same shape, one language at a time."""
 
     NODES = [{"id": "pkg/a", "kind": "module", "path": "pkg/a.go"}]
     SYMBOLS = [
@@ -769,7 +771,30 @@ class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
         out = project([self._fact("calls", 2, 5, scope="src/lib.build", file="src/lib.rs")], nodes, symbols)
         assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("src/lib.FinderRev", "uses")]
 
-    def test_the_guard_is_go_and_rust_only(self):
+    def test_a_cpp_call_whose_target_is_a_type_is_a_construction(self):
+        # ADR-113 §2: scip-clang answers `Circle c(3)` with the class beside
+        # the constructor, and the helper drops the class where both are at
+        # one site. Where the constructor is implicit there is nothing to
+        # prefer, and a type is still never called.
+        from hobbes.extract.scipsource import project
+
+        nodes = [
+            {"id": "src/main", "kind": "module", "path": "src/main.cpp"},
+            {"id": "include/shapes.h", "kind": "module", "path": "include/shapes.h"},
+        ]
+        symbols = [
+            {"id": "src/main.main", "module": "src/main", "kind": "function", "line": 1, "end_line": 4, "name": "main", "qualname": "main"},
+            {"id": "include/shapes.h.Circle", "module": "include/shapes.h", "kind": "type", "line": 5, "end_line": 9, "name": "Circle", "qualname": "Circle"},
+        ]
+        from hobbes.extract.evidence import Resolved
+
+        fact = Resolved(kind="calls", source_file="src/main.cpp", line=2, scope="src/main.main",
+                        def_file="include/shapes.h", def_line=5, tier="semantic", lanes=("scip",))
+        out = project([fact], nodes, symbols)
+        assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("include/shapes.h.Circle", "uses")]
+
+    def test_a_language_outside_the_guard_keeps_its_call(self):
+        # Python calls a class to construct, and the call *is* a call.
         from hobbes.extract.scipsource import project
 
         nodes = [{"id": "m", "kind": "module", "path": "m.py"}]

@@ -292,6 +292,9 @@ INDEX_STEP = {
     "rust": "index-rust",
     "java": "index-java",
     "c": "index-c",
+    # C++ runs C's indexer over C's derived compile database (ADR-113 §2),
+    # so it executes the repo's build logic in exactly the same container.
+    "cpp": "index-c",
 }
 
 

@@ -14,6 +14,7 @@ import pytest
 from hobbes.extract import scipsource, staging
 
 MINIC = Path(__file__).parent / "fixtures" / "minic"
+MINICPP = Path(__file__).parent / "fixtures" / "minicpp"
 
 
 def write(root: Path, rel: str, text: str = "") -> Path:
@@ -44,6 +45,20 @@ class TestBuildRoots:
         grouped = scipsource.c_units(tmp_path, ["tools/x.c"])
         assert grouped == {}
         assert scipsource.go_orphans(["tools/x.c"], grouped) == {"tools": ["tools/x.c"]}
+
+    def test_a_cpp_only_repo_groups_under_its_build_file_like_any_other(self, tmp_path):
+        # The grouping never looks at an extension: scip-clang indexes what
+        # the compile database names, and C++ is C's indexer (ADR-113 §2).
+        write(tmp_path, "Makefile")
+        assert scipsource.c_units(tmp_path, ["src/a.cpp", "src/b.hpp"]) == {
+            "": ["src/a.cpp", "src/b.hpp"]
+        }
+
+    def test_a_mixed_root_is_one_unit(self, tmp_path):
+        write(tmp_path, "CMakeLists.txt")
+        assert scipsource.c_units(tmp_path, ["src/a.c", "src/b.cpp"]) == {
+            "": ["src/a.c", "src/b.cpp"]
+        }
 
 
 class TestCompdbSource:
@@ -136,6 +151,84 @@ class TestExtract:
         assert facts["degraded"][0]["stage"] == "scip-c"
         assert "no compile database can be derived" in facts["degraded"][0]["message"]
 
+    def test_a_cpp_root_says_so_in_that_record_too(self, tmp_path, monkeypatch, lane_b_on):
+        facts = scipsource._index_c_unit(tmp_path, "empty", "", "cpp")
+        assert facts["degraded"][0]["stage"] == "scip-cpp"
+        assert "this C++ build root" in facts["degraded"][0]["message"]
+
+
+class TestRootLanguage:
+    """ADR-113 §2: a root holding any C++ file is a C++ root — one index
+    for both languages, and records that say which one it was."""
+
+    @pytest.fixture
+    def lane_b_on(self, tmp_path, monkeypatch):
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")
+        monkeypatch.setenv(staging._CACHE_ENV, str(tmp_path / "cache"))
+
+    def _configs(self, repo, monkeypatch, files, cpp_files):
+        seen = []
+
+        def fake(config, **kw):
+            seen.append(config)
+            return {"definitions": [], "references": [], "external_refs": [], "degraded": []}
+
+        monkeypatch.setattr(scipsource, "run_helper", fake)
+        merged = scipsource.extract_scip_c(repo, files, cpp_files=cpp_files)
+        return seen, merged
+
+    def test_a_root_with_no_cpp_file_is_a_c_root(self, tmp_path, monkeypatch, lane_b_on):
+        repo = tmp_path / "repo"
+        write(repo, "Makefile")
+        write(repo, "src/a.c", "int f(void) { return 0; }\n")
+        seen, _ = self._configs(repo, monkeypatch, ["src/a.c"], ["other/x.cpp"])
+        assert [c["language"] for c in seen] == ["c"]
+
+    def test_one_cpp_file_makes_the_whole_root_a_cpp_root(self, tmp_path, monkeypatch, lane_b_on):
+        # A mixed root is one index (scip-clang indexes whichever units the
+        # database names), so the root's language is the wider of the two.
+        repo = tmp_path / "repo"
+        write(repo, "Makefile")
+        write(repo, "src/a.c")
+        write(repo, "src/b.cpp")
+        seen, _ = self._configs(repo, monkeypatch, ["src/a.c", "src/b.cpp"], ["src/b.cpp"])
+        assert [c["language"] for c in seen] == ["cpp"]
+
+    def test_a_claimed_header_makes_its_root_a_cpp_root(self, tmp_path, monkeypatch, lane_b_on):
+        # The C++ layer claims a `.h`, so it arrives in `cpp_files` and the
+        # root it sits in is C++'s, extension or no extension.
+        repo = tmp_path / "repo"
+        write(repo, "Makefile")
+        write(repo, "src/a.h")
+        seen, _ = self._configs(repo, monkeypatch, ["src/a.h"], ["src/a.h"])
+        assert [c["language"] for c in seen] == ["cpp"]
+
+    def test_a_failed_cpp_build_is_reported_in_cpp_s_words(self, tmp_path, monkeypatch, lane_b_on):
+        repo = tmp_path / "repo"
+        write(repo, "Makefile")
+        write(repo, "src/a.cpp")
+
+        def fake(config, **kw):
+            raise scipsource.ScipError("the cpp indexer exited: make: *** [all] Error 1")
+
+        monkeypatch.setattr(scipsource, "run_helper", fake)
+        merged = scipsource.extract_scip_c(repo, ["src/a.cpp"], cpp_files=["src/a.cpp"])
+        [record] = merged["degraded"]
+        assert record["stage"] == "scip-cpp"
+        assert "semantic indexing failed for this C++ build alone" in record["message"]
+
+    def test_an_orphan_directory_is_named_by_whose_files_are_in_it(self, tmp_path, monkeypatch, lane_b_on):
+        repo = tmp_path / "repo"
+        merged = scipsource.extract_scip_c(
+            repo,
+            ["pure/a.cpp", "mixed/b.c", "mixed/c.cpp", "plain/d.c"],
+            cpp_files=["pure/a.cpp", "mixed/c.cpp"],
+        )
+        records = {r["path"]: r["message"] for r in merged["degraded"]}
+        assert "1 C++ file(s) under 'pure'" in records["pure"]
+        assert "2 C and C++ file(s) under 'mixed'" in records["mixed"]
+        assert "1 C file(s) under 'plain'" in records["plain"]
+
 
 @pytest.mark.lane_b
 def test_minic_gets_semantic_c_edges_through_bear_over_its_makefile():
@@ -168,3 +261,65 @@ def test_minic_gets_semantic_c_edges_through_bear_over_its_makefile():
     [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/util.c"]
     assert row["external"] >= 1, "the site's fate is external, as C-138 already counted it"
     assert graph["lane_agreement"]["external_vetoes"]["sites"] == 1
+
+
+@pytest.mark.lane_b
+def test_minicpp_gets_semantic_cpp_edges_through_bear_over_its_makefile():
+    """C++ at lane B (ADR-113 §2), end to end: the fixture holds no `.c` file
+    at all, so its root is a C++ root — scip-clang's own language — and the
+    edges lane A could only abstain on come back semantic. The three the
+    unit exists for: each overload on its own symbol (C-144), a construction
+    on the constructor rather than on its class, and a member call on the
+    receiver's static type."""
+    from hobbes.extract import containment, extract_repo
+
+    why = containment.unavailable_reason()
+    if why is not None:
+        pytest.skip(f"containment unavailable here: {why}")
+    graph = extract_repo(MINICPP).graph
+    errors = graph.get("extraction_errors", [])
+    why = [e for e in errors if e["stage"].startswith("scip")]
+    edges = {(e["from"], e["to"], e["type"]): e for e in graph["symbol_edges"]}
+    calls = {(f, t): e for (f, t, kind), e in edges.items() if kind == "calls"}
+
+    def lines(edge):
+        return sorted({site["line"] for site in edge["evidence"]})
+
+    assert calls[("src/main.main", "src/util.scale")]["tier"] == "semantic", why
+    # C-144's fix, measured: `shapes::area(1)` at main.cpp:8 is the `int`
+    # overload, `shapes::area(2.5)` at :12 the `double` one. Lane A abstains
+    # on both — only argument types tell them apart — and before the fix the
+    # second had no symbol to land on at all.
+    first = calls[("src/main.main", "src/shapes.shapes::area")]
+    second = calls[("src/main.main", "src/shapes.shapes::area~2")]
+    assert (first["tier"], lines(first)) == ("semantic", [8]), why
+    assert (second["tier"], lines(second)) == ("semantic", [12]), why
+
+    # The construction rule: `shapes::Circle c(3)` draws the constructor,
+    # not the class, and the class keeps no `calls` edge at all.
+    ctor = "include/minicpp/shapes.h.shapes::Circle::Circle"
+    assert calls[("src/main.main", ctor)]["tier"] == "semantic", why
+    assert ("src/main.main", "include/minicpp/shapes.h.shapes::Circle") not in calls
+    # `Circle made(2)` and `new Circle(1)`, the two spellings, one target.
+    assert lines(calls[("src/shapes.shapes::measure", ctor)]) == [38, 39], why
+
+    # `p->area()` and `Circle::unit()`: the receiver's type is lane B's to know.
+    assert ("src/shapes.shapes::measure", "src/shapes.shapes::Circle::area") in calls
+    assert ("src/shapes.shapes::measure", "src/shapes.shapes::Circle::unit") in calls
+
+    steps = {s["step"]: s["contained"] for s in graph["containment"]["steps"]}
+    assert steps.get("index-c") is True, "C++ runs in C's profile (ADR-113 §2)"
+    disagreements = [
+        d for d in graph["lane_agreement"]["site_disagreements"]
+        if d["file"].endswith((".cpp", ".h"))
+    ]
+    assert disagreements == [], "where both lanes answer for C++, they agree"
+    assert [e for e in errors if e["stage"] == "parse" and e["path"] == "src/shapes.cpp"] == [], (
+        "an overload set is not a duplicate definition"
+    )
+    # scip-clang declares `shapes/` from every file that opens it, so the
+    # duplicate-symbol record fires — in C++'s words, not C's statics-only ones.
+    statics = [e for e in errors if e["stage"] == "scip-decode" and "file-`static`s" in e["message"]]
+    assert all(
+        "a namespace is declared from every file that opens it" in e["message"] for e in statics
+    ), statics
