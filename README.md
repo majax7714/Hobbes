@@ -21,7 +21,7 @@ built around three properties, in order:
 - **Honest** — determinism promises the same answer twice, not a true
   one. So every edge says which tool proved it, every limit is written
   down where you will meet it, and the blind spots of the third-party
-  indexers Hobbes runs are owned as Hobbes's own.
+  indexers Hobbes runs are owned as Hobbes' own.
 
 Faster agents may fall out of this. An agent handed the right twelve
 files does less wandering, but speed is a side effect, not the goal.
@@ -40,7 +40,7 @@ does not control. The full list is under
 The comic Calvin and Hobbes by Bill Watterson is a wonderful
 masterpiece, and everyone should read it at least once.
 
-Also worth checking out- https://calvinandhobbes.webflow.io/
+Also worth checking out: <https://calvinandhobbes.webflow.io/>
 
 ![Calvin and Hobbes asleep on a tree branch, by Bill Watterson](hobbesncalvin.jpg)
 
@@ -86,7 +86,7 @@ A few ideas carry most of the weight:
   limit that is structural gets an entry in the constraint register,
   [`docs/constraints/`](docs/constraints/README.md), naming where a user
   will meet it.
-- **A provider's limits are Hobbes's limits.** Semantics come from
+- **A provider's limits are Hobbes' limits.** Semantics come from
   third-party indexers Hobbes runs and does not wrap. Their blind spots
   land in the graph, so they are recorded as *ours*.
 
@@ -100,7 +100,7 @@ This is the part most worth understanding, because it is where the
 accuracy comes from. **tree-sitter** knows that a call site *is* a call
 and where it sits; the language's own **SCIP indexer** (`scip-python`,
 `scip-typescript`, `scip-go`, `rust-analyzer`'s native export,
-`scip-java`, `scip-clang` for C) knows what
+`scip-java`, `scip-clang` for C and C++) knows what
 an occurrence *resolves to*. Neither is asked a question it would have
 to guess at. The two meet on file:line ranges before any graph exists,
 so an edge is a call *because* tree-sitter saw one and points where it
@@ -153,16 +153,25 @@ miss" is always answered next to "what did you find".
 Then the graph is graded, per language, against something Hobbes does
 not control — Go against `x/tools` RTA, TypeScript against `tsc`, Python
 against the interpreter running the repo's own test suite, Rust against
-rustc's MIR, Java against javac's own resolution, C against clang's own
-front end — with wrong edges deliberately seeded on every cell to
-prove the grader can say no. Every compiler-graded cell is at 100%
-precision-against-oracle but one. quic-go reads 99.6%, a lower bound whose
-15 contradictions all triage to the oracle's own grain, with none Hobbes'.
+rustc's MIR, Java against javac's own resolution, C and C++ against
+clang's own front end — with wrong edges deliberately seeded on every
+cell to prove the grader can say no. Every compiler-graded cell is at
+100% precision-against-oracle but two:
+
+- **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
+  all triage to the oracle's own grain, with none Hobbes'.
+- **fmt** (C++) reads 99.1% (3,254/3,282). 18 of its 28 contradictions
+  are the oracle's grain (H-28–H-31, recorded open). The other 10 are
+  wrong edges Hobbes draws where scip-clang itself names the wrong
+  candidate. A provider's error in the graph is Hobbes' own, so it is
+  registered (C-153).
+
 C's sqlite-vector read 99.6% until 0.2.8-beta, from three syntactic edges
 Hobbes got wrong (C-138). The external veto (ADR-111) removed them, and it
-reads 851/851.
-Every miss falls into one known class (closures, function values,
-interface dispatch) and is written down.
+reads 851/851. The misses are registered by class (closures, function
+values, interface dispatch) in `oracle-misses.md`. C++'s two cells are
+not tabled there yet; the abstentions behind part of their recall (fmt
+14.5%, args 56.4%) are registered (C-148, C-151, C-152).
 
 Deeper: architecture §3;
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) (every repo
@@ -178,8 +187,8 @@ misses by class, the grader's own mistakes);
 The same repos, the same commits, the same compiler answer keys, with
 every tool's graph put through them. [CodeGraphContext](https://github.com/CodeGraphContext/CodeGraphContext)
 0.6.13 and [repowise](https://github.com/repowise-dev/repowise) 0.49.0
-were run as their READMEs document (2026-09-09; either may have moved
-since), their graphs converted by a per-tool adapter with a hand-read
+were run as their READMEs document (2026-09-09, and on the two C repos
+2026-09-14; either may have moved since), their graphs converted by a per-tool adapter with a hand-read
 fixture, and graded by the same matcher and the same poison check as
 Hobbes' own (ADR-101). One row is one cell; each tool has one marker on
 the precision axis and one on the recall axis.
@@ -191,23 +200,38 @@ A comparison is only as honest as its reading rules, so here they are:
 - **Read across a row, never down a column.** Each cell's recall is
   over its own roots or resolved sites (C-62). Nothing is pooled or
   averaged.
-- **What the rows show.** On all 18 rows, Hobbes' marker is the
-  rightmost on both axes. It ties on precision only at rust_proj, where
-  CodeGraphContext stored one call edge and that edge was right. Hobbes
-  is at 100% precision-against-oracle on every row but quic-go
-  (3,766/3,781, a 99.6% lower bound whose 15 contradictions all triage
-  to the oracle's grain). Its recall lead within a row runs from about
-  one point (click, gitleaks) to 35 (zod).
+- **What the rows show.** There are 20 rows. On each, Hobbes' marker
+  is the rightmost on both axes or tied for it; no tool is ahead of it
+  on either axis on any row. It ties on precision at three rows:
+  - rust_proj, where CodeGraphContext stored one call edge and that
+    edge was right;
+  - cJSON, where all 1,179 of CodeGraphContext's graded edges are
+    confirmed;
+  - sqlite-vector, where all 780 of repowise's are.
+
+  It ties on recall at one row, sqlite-vector, where CodeGraphContext
+  also reaches all 1,091 resolved sites (with 12 contradictions to
+  Hobbes' none). Hobbes is at 100% precision-against-oracle on every
+  compiler-graded row but quic-go (3,766/3,781, a 99.6% lower bound
+  whose 15 contradictions all triage to the oracle's grain). Its recall
+  lead within a row runs from none (sqlite-vector) and half a point
+  (cJSON) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
   mostly triage to the oracle's grain. A 40-row hand triage of the other
   tools' contradictions found 39 tool-wrong, 1 oracle-grain and 0
-  converter defects.
+  converter defects. The C rows' first grade found a grain mismatch
+  instead: repowise stores a function-like macro as `function` (C-95's
+  C face). The converters now read a `#define` as `macro` (ADR-101
+  amended), the C cells were regraded, and what is left was read in
+  full: the tools' own wrong edges.
 - **Their numbers are theirs at our grain.** The converter is Hobbes',
   and a misread is Hobbes' defect (C-94). The matcher's tolerances were
   tuned on Hobbes' output (C-95). Their runs were on the host, not in the
   sandbox (C-96).
 - **What is not here.**
-  - C has no foreign cell yet; its cells postdate the runs.
+  - C++ has no foreign cell. Its two cells (fmt, args) postdate the
+    runs and are not yet in the comparative renderer, so no C++ row
+    appears here.
   - syft, one of repowise-bench's draws, has no key on this box: RTA
     over it is killed by the kernel at 19 GB.
   - No number a tool publishes on its own basis is put beside these.
@@ -337,8 +361,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and fifty entries (one
-hundred and seven active, twenty-six lifted, eleven superseded, six
+The constraint register holds one hundred and fifty-three entries (one
+hundred and ten active, twenty-six lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -352,9 +376,11 @@ its own: no model, no credential, no network.
 
 **The oracle lane (ADR-089) has run both phases** — Go and TS
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
-javac-graded, C clang-graded — with every compiler-graded cell at 100%
-after ADR-090 and ADR-111 but one, quic-go at 99.6% (every contradiction
-the oracle's grain), and the misses registered by class.
+javac-graded, C and C++ clang-graded — with every compiler-graded cell
+at 100% after ADR-090 and ADR-111 but two: quic-go at 99.6% (every
+contradiction the oracle's grain) and C++'s fmt at 99.1% (10 of its 28
+contradictions Hobbes' own through scip-clang, C-153). The misses are
+registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
@@ -394,30 +420,12 @@ dispatched on 2026-09-12, and thirty session logs stand through
 0.2.22-beta. The tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
-2026-09-13). The work built through it includes C's lane A, C's oracle,
-the progress hook (0.2.6-beta), the external veto (0.2.8-beta),
-`list_blind_spots`' directory rollup (0.2.9-beta), C-139's lift
-(0.2.10-beta), a session contained to its own dir (0.2.11-beta),
-verify's worktrees made self-contained, so `git` works in its container
-(0.2.12-beta), C tests found by their Unity, CMocka and Check
-registrations (0.2.13-beta), and a session's records written by a
-sidecar container the doer cannot reach, so C-140 narrows to a forged
-edit line (0.2.14-beta, ADR-112, in two dispatched units), and an
-include lane A cannot place written down per directory, so C-133 is
-met where the graph's boundary is read (0.2.15-beta), and a C build
-root whose derived compile database holds none of its own files told so
-by name (0.2.16-beta), and the doer's model named per checkout, so a
-session's log says which model did the work (0.2.17-beta), and C++
-wired at lane A with its oracle beside it, in two units run in
-parallel (0.2.18-beta, ADR-113), and C++'s lane B made deliberate, with
-every overload a symbol and a construction drawn to its constructor
-(0.2.19-beta; wired, not supported until its row), and C and C++
-lane B made order-independent where one file defines a moniker at
-several lines (0.2.20-beta), and C and C++ indexed one translation unit
-per run, so a root of up to 400 units draws the same graph every time
-(0.2.21-beta), and C++'s lane B made to answer only where it is sure,
-after its first oracle cells: a site naming several overloads abstains,
-and a file scip-clang compiled draws no name guess (0.2.22-beta).
+2026-09-13). The work built through it includes C's lane A and its
+oracle, the external veto (0.2.8-beta), a session's records written by
+a sidecar container the doer cannot reach (0.2.14-beta, ADR-112), and
+C++ from its lane A to the fixes its first graded cells asked for
+(0.2.18-beta to 0.2.22-beta). [`CHANGELOG.md`](CHANGELOG.md) has every
+version, and names the session that built it where one did.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
 (the resume point) and [`CLAUDE.md`](CLAUDE.md) (the contributor entry
@@ -457,7 +465,7 @@ interactive graph.
 |---|---|---|
 | `go/` | Policy engine, session tool proxy + flight recorder, sandbox launcher, and the web surface server | Go (≥1.26) |
 | `pipeline/` | Extractors, the two-lane join, invariant compiler, review, and the `hobbes` CLI | Python (uv) |
-| `web/` | Human surface — five-tab SPA, embedded into `hobbes-web` | TypeScript + React |
+| `web/` | Human surface — six-tab SPA, embedded into `hobbes-web` | TypeScript + React |
 | `tsextract/` | TS/JS syntax provider (ts-morph), invoked as a subprocess | Node |
 | `scip/` | Lane B — the pinned SCIP indexers and the facts helper | Node |
 | `sandbox/` | Session container image and the exit-check harness | Containerfile + Python |
@@ -472,12 +480,12 @@ Go, uv and Node are expected on `PATH`. `go.mod` needs **Go ≥ 1.26**, so a
 user-local install must come before any distro Go.
 
 ```sh
-# one-time
-cd go   && go build -o bin/hobbes-policy  ./cmd/hobbes-policy \
-        && go build -o bin/hobbes-web     ./cmd/hobbes-web \
-        && go build -o bin/hobbes-session ./cmd/hobbes-session \
-        && CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy
-cd ../web && npm install && npm run build   # then rebuild hobbes-web
+# one-time, from the checkout's root
+cd web    && npm install && npm run build   # the SPA hobbes-web embeds: build it first
+cd ../go  && go build -o bin/hobbes-policy  ./cmd/hobbes-policy \
+          && go build -o bin/hobbes-web     ./cmd/hobbes-web \
+          && go build -o bin/hobbes-session ./cmd/hobbes-session \
+          && CGO_ENABLED=0 go build -o bin/hobbes-proxy ./cmd/hobbes-proxy
 cd ../tsextract && npm install              # TS/JS extraction
 cd ../scip      && npm install              # lane B indexers
 cd ../bench/oracle/ts && npm install        # the oracle lane's tsc (its Go tests)
@@ -497,6 +505,13 @@ ingest without the image runs lane A only and says so.
 > `hobbes-proxy` **must be statically linked** — `hobbes-session` mounts it
 > into the sandbox, where a dynamic binary fails as a confusing
 > `No such file or directory` (the loader is missing, not the binary).
+
+`hobbes` is the console script in `pipeline/.venv/bin/`, and the
+commands find each other by name: `hobbes up` looks for `hobbes-web`
+on `PATH`, and `hobbes-session` finds `hobbes-proxy` next to itself.
+Linking `hobbes`, `hobbes-policy`, `hobbes-web` and `hobbes-session`
+into one directory on `PATH` is enough. A `hobbes` already on `PATH`
+may be another checkout's (ADR-094), so check `which hobbes` first.
 
 Then, in the repo you want to work on:
 
@@ -545,13 +560,14 @@ script runs on a developer box.
 ## Tests
 
 ```sh
-cd go          && go test ./...   # the Go packages
-cd bench/oracle && go test ./...   # the oracle lane (Rust/Python/Java cells skip without toolchains)
-cd pipeline    && uv run pytest    # lane A only by default; `lane_b` cases need the image
-cd web         && npm test         # vitest, the pure layer
-cd tsextract   && npm test         # node --test
-cd scip        && npm test         # node --test
-cd bench/atlas0 && uv run pytest   # the Atlas-0 instruments (bench tooling)
+# from the checkout's root
+(cd go           && go test ./...)   # the Go packages
+(cd bench/oracle && go test ./...)   # the oracle lane (Rust/Python/Java cells skip without toolchains)
+(cd pipeline     && uv run pytest)   # lane A only by default; `lane_b` cases need the image
+(cd web          && npm test)        # vitest, the pure layer
+(cd tsextract    && npm test)        # node --test
+(cd scip         && npm test)        # node --test
+(cd bench/atlas0 && uv run pytest)   # the Atlas-0 instruments (bench tooling)
 ```
 
 Suite sizes are kept in one place, [`CLAUDE.md`](CLAUDE.md), rather
@@ -563,14 +579,14 @@ fast, which also means the degraded path is exercised on every run.
 
 ## Acknowledgements — what Hobbes is built on
 
-Honesty is the third property, and it starts with credit. Hobbes's own
+Honesty is the third property, and it starts with credit. Hobbes' own
 contribution is the *join* and what sits on it — the two-lane evidence
 IR, the graph, the policy engine and proxy, the derivation, the
 harness. The things it joins are other projects', used as they are and
 pinned where a pin is possible:
 
 - **[tree-sitter](https://tree-sitter.github.io/)** and its grammars
-  (`tree-sitter-python`, `-go`, `-rust`, `-java`, `-c`, `-hcl`; the core pinned
+  (`tree-sitter-python`, `-go`, `-rust`, `-java`, `-c`, `-cpp`, `-hcl`; the core pinned
   `<0.26` in `pipeline/pyproject.toml`) — **lane A, every language but
   TS/JS.** tree-sitter is how Hobbes knows a call site *is* a call and
   where it sits; outside TS/JS, every `syntactic` edge and every
@@ -585,7 +601,7 @@ pinned where a pin is possible:
   reads the compile database **[CMake](https://cmake.org/)** or
   **[bear](https://github.com/rizsotto/Bear)** derives —
   **lane B.** Every `semantic`
-  edge is theirs; their limits are registered as Hobbes's own (P9,
+  edge is theirs; their limits are registered as Hobbes' own (P9,
   C-6, C-23). Architecture §3.2.
 - **[ts-morph](https://ts-morph.com/)** (over the TypeScript compiler)
   — **lane A for TS/JS**, the syntax provider in `tsextract/` (ADR-021).
@@ -620,7 +636,7 @@ pinned where a pin is possible:
   on a pinned nightly (`rustc-dev`), walking the MIR the compiler built;
   **javac**'s own resolution, with CHA for dispatch, for Java; and
   **clang**'s own front end (`-ast-dump=json`, Ubuntu's clang 18 in the
-  image) for C.
+  image) for C and C++.
   Each cell records the exact oracle version; a different nightly is a
   different oracle and the record says so.
 - **The invariant compile targets** — `hobbes invariants compile` emits
@@ -641,4 +657,5 @@ pinned where a pin is possible:
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE). Keep a reference to the beloved tiger, HOBBES!!
+MIT — see [`LICENSE`](LICENSE). And one request, not a license term:
+keep a reference to the beloved tiger, HOBBES!!

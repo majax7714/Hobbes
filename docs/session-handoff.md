@@ -211,7 +211,7 @@ min each.
 
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
-`hobbes narrate` on this repo. The keyed Calvin runs are closed, not
+DeepSWE's decomposed protocol; `hobbes narrate` on this repo. The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything

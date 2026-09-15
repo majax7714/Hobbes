@@ -10843,3 +10843,52 @@ closing out c++". On the routes after the cells: "Fix both, then row
 C++ repo (compare only where the fallback could draw, or keep); C-150's
 memory assessment. **Next:** the gate's arrow-parameter fix (C-91), as
 a small unit.
+
+## 2026-09-15 — (later still) The top-level docs brought up to date: README's claims after C++, CLAUDE.md cut to its headline
+
+- **The review** (Max: "review top level documentation and report
+  back"). README, CLAUDE.md/AGENTS.md, CHANGELOG and LICENSE were read
+  against the tree. These agreed: the version everywhere, the tags, every
+  link, pytest's 1,613, the 30 session logs and the register's tally.
+  The README had not moved with C++ (0.2.22-beta, 0.2.23-beta), and
+  CLAUDE.md was 462 lines against its own "kept short".
+- **README, reworded to the evidence** (Max: "reword the claims to be up
+  to date"):
+  - **The comparative reading rules.** There are 20 rows now: the four C
+    foreign cells of 2026-09-14 and the five repowise-bench draws, read
+    against `tables.md` and `same-key.svg`. On each, Hobbes is rightmost
+    or tied on both axes. It ties on precision at rust_proj, at cJSON
+    (CodeGraphContext 1,179/1,179) and at sqlite-vector (repowise
+    780/780), and on recall at sqlite-vector. Its recall lead runs from
+    none to 35 points. "C has no foreign cell yet" now reads that C++
+    has none and is not in the renderer (`render.py`'s panel list stops
+    at C). The C regrade after converter@3 is named.
+  - **"100% but one" is now "but two",** in both places: fmt at 99.1%.
+    Its 10 contradictions through scip-clang are said to be Hobbes' own
+    (C-153, P9). The misses line says C++'s cells are not yet tabled by
+    class.
+  - **C++ where the lists stopped at C:** lane B, the oracles,
+    tree-sitter's grammars and clang in the acknowledgements.
+  - **Smaller fixes:**
+    - the register is 150 → 153 entries;
+    - the SPA has six tabs, not five;
+    - Getting started builds the SPA before `hobbes-web`, and says how
+      `hobbes` reaches `PATH` (first-run's four links, ADR-094's
+      warning);
+    - the test commands run from the root in subshells;
+    - the Calvin paragraph's 24-line sentence is now a pointer to the
+      CHANGELOG;
+    - "Hobbes'" is used throughout;
+    - the license line is marked a request, not a term.
+- **CLAUDE.md, 462 lines to under 300** (Max: 300 at most). The Status
+  block had 162 lines and nine "before it" entries, all already in the
+  CHANGELOG and this log. It is now the headline, the open items and
+  the spend rule, and its closing line says to replace, never pile. The
+  project map now keeps what `get_module_doc` does not answer. Every
+  convention is kept, the versioning one shortened, and
+  `modal_atlas0.py` is spelled from the root. The held list lives in the
+  handoff alone, which gained the one item it lacked (DeepSWE's
+  decomposed protocol).
+- **Not changed:** the Watterson image stays (Max's call). C++ in the
+  comparative programme is its own piece of work. There is no version
+  move, since the change is docs only (ADR-103).
