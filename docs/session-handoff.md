@@ -214,15 +214,16 @@ min each.
   from 84 cells; `render.py check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 153 entries: 110 active (85 surfaced, 20 partial, 4
+- **Register:** 154 entries: 111 active (86 surfaced, 20 partial, 4
   unsurfaced — C-19, C-20, C-112, C-153 — 1 n/a), 26 lifted, 11
-  superseded, 6 folded. This session: C-151, C-152 (surfaced), C-153
-  (unsurfaced, P9); C-132 narrowed again.
+  superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
+  0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta).
 - **Oracle defect log:** H-28–H-31 open (O10); RC-8 shaped.
-- **Suites** at 0.2.23-beta: 1,613 pytest (host, `lane_b` included); 71
-  scip node; Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip), not
-  re-run beyond the version test since no Go code moved; oracle-lane Go
-  95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0 not re-run.
+- **Suites** at 0.2.25-beta: 1,617 pytest and 74 scip node (re-run on
+  the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
+  skip), not re-run beyond the version test since no Go code moved;
+  oracle-lane Go 95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0
+  not re-run.
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
   cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if
   space is needed).
