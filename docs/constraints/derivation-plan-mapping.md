@@ -151,6 +151,20 @@
 
 ### C-91 — Grounder v0 grounds call sites only, in three languages, and abstains on members of values
 
+- **Amended again 2026-09-15, decided before its unit: the text read
+  takes arrow parameters.** `_parse_ts` reads two more shapes into its
+  local bindings: a parenthesised list followed by `=>`, after an
+  optional TS return type and whatever precedes the `(` (`= (check) =>`,
+  `, (a, b) =>`, `async (x) =>`, `(x: number): number =>`); and one bare
+  name followed by `=>` (`fn => fn(1)`). As before, every identifier in
+  a list binds for the whole file. The grounder's rule version moves to
+  4. **What the read still misses:** a list holding a nested `(` (a
+  default that calls, `(a = make()) =>`); a call through such a
+  parameter still grounds as `near-miss` or `invented` and blocks.
+  **What it over-reads, unchanged:** a parameter binds file-wide, so its
+  name covers a same-named call anywhere in the file, and an invented
+  call that shares a parameter's name passes. That is a miss, never a
+  false block.
 - **Amended 2026-09-15: TS/JS local bindings are a text read, and a
   bare arrow parameter list escapes it.** For TS/JS, `tssource`'s
   helper carries no local bindings. `ground._parse_ts` reads them from
