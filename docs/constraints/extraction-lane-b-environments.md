@@ -237,8 +237,10 @@
   memory problem was assessed as a whole and taken in steps: the
   decode's share first (ADR-115), then the facts' read (ADR-116, route
   A of three — the records read into slotted, interned sites; the
-  offered line format into today's dicts measured no gain). A slimmer
-  join output waits for an end-to-end measurement. A larger helper heap
+  offered line format into today's dicts measured no gain). The rest —
+  the join's output and the graph built from it — is parked (Max,
+  2026-09-15: the memory patches are for a huge repo; "fine for now").
+  A larger helper heap
   as the product's own answer was rejected as machine-dependent.
 - **Source:** the ScummVM end-to-end ingest, 2026-09-15; first
   registered in `extraction-c.md` the same day and moved here once it

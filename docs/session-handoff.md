@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.26-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-15; Hobbes 0.2.27-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
 after this session's rebuild.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.26-beta are untagged. Tags stay Max's call each time.
+  0.2.27-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -52,8 +52,12 @@ file keeps only what the next session needs.
    - **Next on C-150, its own decision:** the 7.72 GB peak is lane A,
      the read and the join (4.6 GB mid-join), then the graph built from
      them. A slotted `Resolved` takes part of it; measure the graph
-     build's share before choosing.
-   - The binaries, the static proxy and the image are at 0.2.26-beta.
+     build's share before choosing. **Parked** (Max, 2026-09-15: the
+     memory patches are for a huge repo; "fine for now").
+   - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
+     root, not `root/root` (the caller re-roots first, then appends, as
+     the TS zone did); two tests, each red on 0.2.26-beta's code.
+   - The binaries, the static proxy and the image are at 0.2.27-beta.
 0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -110,12 +114,8 @@ file keeps only what the next session needs.
      routes: compare C++ only where the fallback could draw, or keep it
      as the self-test's report.
    - **C-150's remainder** (large repos, every language): the join's
-     output, after ADR-115 and ADR-116 took the decode's and the
-     read's share. Max's call whether and when.
-   - **Double-rooted record paths** (seen 2026-09-15, not changed): the
-     C and Java callers append a record at `path: root`, then `_rebase`
-     prefixes the root again (`proj/proj`, checked). A record-path fix
-     is a patch, a small unit.
+     output and the graph built from it, after ADR-115 and ADR-116 took
+     the decode's and the read's share. Parked (Max: "fine for now").
    - Carried: C-139's finer extent (only if a cell shows the recall
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
@@ -230,7 +230,7 @@ min each.
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
 - **Oracle defect log:** H-28–H-31 open (O10); RC-8 shaped.
-- **Suites** at 0.2.26-beta: 1,626 pytest and 77 scip node (re-run on
+- **Suites** at 0.2.27-beta: 1,628 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;
   oracle-lane Go 95 pass / 5 skip; 52 vitest, 36 tsextract, 84 atlas0

@@ -2303,11 +2303,15 @@ def _index_c_unit(repo_root: Path, root: str, sha: str, language: str = "c") -> 
     finally:
         staging.remove_stage(stage)
         shutil.rmtree(build_dir, ignore_errors=True)
+    # Rebase first: the helper's records name root-relative paths, and the
+    # one appended below is already repo-relative (as `_index_ts_zone`'s
+    # is) — appended before, it came back at `root/root`.
+    facts = _rebase(facts, root)
     if source != "repo" and detail:
         facts.setdefault("degraded", []).append(
             {"path": root or ".", "stage": f"scip-{language}", "message": f"{detail}; derived with {source} instead"}
         )
-    return _rebase(facts, root)
+    return facts
 
 
 #: The image's JDK homes by major (sandbox/Containerfile).
@@ -2451,6 +2455,8 @@ def _index_java_unit(
         raise
     finally:
         staging.remove_stage(stage)
+    # Rebase first, then the repo-relative record (see `_index_c_unit`).
+    facts = _rebase(facts, root)
     if resolve_failure is not None:
         facts.setdefault("degraded", []).append(
             {
@@ -2463,7 +2469,7 @@ def _index_java_unit(
                 ),
             }
         )
-    return _rebase(facts, root)
+    return facts
 
 
 def _stage_java(repo_root: Path, root: str, files: list[str], sha: str) -> tuple[Path, Path]:

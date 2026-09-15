@@ -192,8 +192,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-15, 0.2.26-beta; the last three
-carried from 0.2.8-beta): 1,626 pytest (6 `lane_b`) / 386 Go (385 pass,
+Suite sizes at the last check (2026-09-15, 0.2.27-beta; the last three
+carried from 0.2.8-beta): 1,628 pytest (6 `lane_b`) / 386 Go (385 pass,
 1 skip) + 100 oracle-lane Go (95 pass, 5 skip without a toolchain) / 52
 vitest / 36 tsextract + 77 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -265,7 +265,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-15) — Hobbes 0.2.26-beta
+## Status (2026-09-15) — Hobbes 0.2.27-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -290,11 +290,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   stream — a file of JSON lines read into slotted, interned sites.
   ScummVM's facts, which the helper could not print (V8's longest
   string), are written and read at 0.99 GB, identical row for row.
-  **Next:** the gate's fix (C-91).
+  0.2.27-beta: a C or Java unit's own record sits at its root, not
+  `root/root`. **Next:** the gate's fix (C-91).
 - **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
-  drawn); C-150's remainder (the join's own size: a slimmer `Resolved`,
-  after ScummVM's end-to-end measurement).
+  drawn); C-150's remainder (the join's own size and the graph built from
+  it; parked, Max: "fine for now").
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

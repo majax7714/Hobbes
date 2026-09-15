@@ -11,9 +11,28 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.26-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.27-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.27-beta — 2026-09-15 (a C or Java unit's own record sits at its root, once)
+
+**Patch: what the layer says.** A C build root or a Java unit below the
+repo root recorded one of its own degradations at `root/root`. The
+caller appended its record, already repo-relative, and then re-rooted
+the facts, whose rule puts the root in front of every record path the
+helper wrote relative to it. The caller now re-roots first and appends
+after, as the TypeScript zone always did.
+
+- C: "…; derived with <source> instead", when a root's carried compile
+  database is not usable here. Java: "dependency resolution failed …",
+  when the resolve pass fails. The ingest summary and
+  `list_blind_spots` showed each at a directory that does not exist.
+- A root at the repo's own root was never affected, and neither were
+  the helper's records or Rust's and Go's (written at `.`, which the
+  rule maps to the root).
+- Found in passing during ADR-116. Tests: two new, one per language,
+  each failing on 0.2.26-beta's code.
 
 ## 0.2.26-beta — 2026-09-15 (lane B's facts arrive as a stream; ADR-116)
 

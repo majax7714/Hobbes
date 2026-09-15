@@ -11155,13 +11155,19 @@ write the adr".
   the image it started from until it is restarted.
 - **Kept outside the repo:** `facts_probe.mjs`, `helper_facts_probe.mjs`
   and `py_facts_probe.py` in `~/.hobbes/bench/cpp-drivers/probes/`.
-- **Seen in passing, not changed:** the C and Java callers append a
-  degradation record at `path: root` and then `_rebase(facts, root)`
-  puts the root in front again — `proj/proj`, checked. The C record is
-  the "derived with <source> instead" one, the Java one the failed
-  resolve pass's; TypeScript's is appended after rebasing and is right.
-  A fix is a record-path change, its own small unit.
+- **Seen in passing, then fixed (0.2.27-beta; Max: "handle the bug"):**
+  the C and Java callers appended a degradation record at `path: root`
+  and then `_rebase(facts, root)` put the root in front again —
+  `proj/proj`. The C record is "…; derived with <source> instead" (a
+  carried compile database not usable here), the Java one the failed
+  resolve pass's; TypeScript's was already appended after rebasing. Both
+  callers now re-root first and append after. Two tests
+  (`TestExtract::test_the_roots_own_record_and_the_helpers_both_sit_at_the_root`,
+  `TestJavaUnitRecords`), each red with the fix stashed and green with
+  it; pytest 1,628. The binaries, the static proxy and the image
+  rebuilt at 0.2.27-beta.
+- **C-150's remainder parked** (Max: the memory patches are for a huge
+  repo; "fine for now").
 
-**Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo;
-C-150's remainder (the join's output); the double-rooted record paths.
+**Open for Max:** H-28–H-31; C-153; `hobbes lanes` on a C++ repo.
 **Next:** the gate's arrow-parameter fix (C-91), as a small unit.

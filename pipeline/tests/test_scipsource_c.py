@@ -160,6 +160,26 @@ class TestExtract:
         assert facts["degraded"][0]["stage"] == "scip-cpp"
         assert "this C++ build root" in facts["degraded"][0]["message"]
 
+    def test_the_roots_own_record_and_the_helpers_both_sit_at_the_root(self, tmp_path, monkeypatch, lane_b_on):
+        # The helper's records are root-relative and the caller's is
+        # repo-relative. The caller's was appended before the rebase, so a
+        # root below the repo's read `proj/proj` (2026-09-15, 0.2.27-beta).
+        repo = tmp_path / "repo"
+        write(repo, "proj/Makefile", "all:\n\tcc -c src/a.c\n")
+        write(repo, "proj/src/a.c", "int f(void) { return 0; }\n")
+        write(repo, "proj/compile_commands.json", json.dumps([{"directory": "/home/someone/proj", "file": "a.c"}]))
+
+        def fake(config, **kw):
+            return {"definitions": [], "references": [], "external_refs": [],
+                    "degraded": [{"path": ".", "stage": "scip-decode", "message": "the helper's, at the unit's root"}]}
+
+        monkeypatch.setattr(scipsource, "run_helper", fake)
+        merged = scipsource.extract_scip_c(repo, ["proj/src/a.c"])
+        (own,) = [r for r in merged["degraded"] if "derived with make instead" in r["message"]]
+        (helpers,) = [r for r in merged["degraded"] if r["stage"] == "scip-decode"]
+        assert own["path"] == "proj", merged["degraded"]
+        assert helpers["path"] == "proj", merged["degraded"]
+
 
 class TestRootLanguage:
     """ADR-113 §2: a root holding any C++ file is a C++ root — one index

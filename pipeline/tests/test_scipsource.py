@@ -1128,6 +1128,37 @@ class TestCoverageGapRecord:
         assert _coverage_gap_records("go", {}) == []
 
 
+class TestJavaUnitRecords:
+    """A unit's own record is repo-relative, the helper's root-relative:
+    the unit's is appended after the rebase, not before, where a unit
+    below the repo root read `svc/svc` (2026-09-15, 0.2.27-beta)."""
+
+    def test_a_failed_resolve_is_recorded_at_its_root_once(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "1")  # the suite runs lane B off
+        repo = tmp_path / "repo"
+        (repo / "svc/src/main/java/a").mkdir(parents=True)
+        (repo / "svc/pom.xml").write_text("<project><groupId>g</groupId><artifactId>a</artifactId></project>")
+        (repo / "svc/src/main/java/a/A.java").write_text("package a; class A {}")
+
+        def run(plan, *, timeout):
+            if plan.profile.step == "fetch-java":
+                return containment.Outcome(subprocess.CompletedProcess(plan.command, 1, "", "resolve failed"), True)
+            config = json.loads(Path(plan.command[plan.command.index("--config") + 1]).read_text())
+            write_facts_file(config["facts"], {
+                "language": "java",
+                "degraded": [{"path": ".", "stage": "scip-decode", "message": "the helper's, at the unit's root"}],
+            })
+            return containment.Outcome(subprocess.CompletedProcess(plan.command, 0, "", ""), True)
+
+        monkeypatch.setattr(containment, "run", run)
+        merged = scipsource.extract_scip_java(repo, ["svc/src/main/java/a/A.java"])
+        (own,) = [r for r in merged["degraded"] if "dependency resolution failed" in r["message"]]
+        (helpers,) = [r for r in merged["degraded"] if r["stage"] == "scip-decode"]
+        assert own["path"] == "svc", merged["degraded"]
+        assert helpers["path"] == "svc", merged["degraded"]
+
+
 class TestHelperExitClassification:
     """C-85 / C-74 (lifted): an indexer that died inside the container is
     recorded as the indexer's failure; only a helper that could not run
