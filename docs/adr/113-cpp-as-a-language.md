@@ -213,6 +213,43 @@ measurement decides:
 The count, as §2 asked: one decode rule, one wording, one projection
 guard extended.
 
+**Amended again 2026-09-14, after the unit: determinism (the route was
+Max's).** Three ingests of fmt at one commit drew 3,308, 3,298 and
+3,293 call edges; two ingests of cJSON differed by one `uses` edge. It
+was measured in the image, over four whole-database runs at 12 jobs and
+at 1 job and 52 per-unit pairs.
+
+- **The cause:** scip-clang gives one moniker to several definitions
+  in one file, and lists them in an order that varies by run. The
+  helper kept the first definition it met. Three shapes share a
+  moniker:
+  - a class template and its specialisations (`float_info#` at
+    `format.h:1677` and `:1691`);
+  - `enable_if` overloads its signature hash does not tell apart
+    (`is_negative(ee44…).` at 1151 and 1155);
+  - `#if` alternatives across units.
+- **The evidence:** with that choice made order-independent, all 55 run
+  pairs decode identically. So the header-to-unit scheduling that
+  scip-clang does not fix never reaches the answer. Its own
+  `--deterministic` flag took 307 s against 8 s and lost 3 of 52
+  units.
+
+The rule, per language:
+
+- **C++ (`cpp` roots) abstains.** A moniker of a graph kind other than
+  a namespace that one file defines at more than one line has no lane B
+  target. Its references are treated as a cross-file ambiguous
+  moniker's are: no edge, and marked in-repo so they veto no fallback
+  (ADR-111). One `scip-decode` record counts the monikers and the
+  references. On fmt that is 5,024 of 65,440 references. No wrong edge
+  comes from this; the recall cost is the cell's to measure.
+- **C (`c` roots) takes the smallest line.** That is ADR-109's "kept
+  once, at the first line, where the graph keeps the symbol", made true
+  whatever the order (ADR-109 amended).
+- **A namespace keeps its smallest line** in both languages; lane A
+  draws no namespace.
+- **The own-file map** for colliding statics follows the same rule.
+
 ### 3. The oracle — O10, clang's front end over the same dumps (unit 3; no version move)
 
 Extends `bench/oracle/internal/clang` (ADR-110); `oracle c-clang`

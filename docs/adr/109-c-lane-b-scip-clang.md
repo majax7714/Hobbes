@@ -95,6 +95,12 @@ throwaway container from the image) found:
 
      Found by the product-path run on cJSON, the one lane disagreement
      it raised.
+   - **One moniker, several lines of one file** (amended 2026-09-14,
+     with ADR-113 §2's determinism amendment). The definition kept is
+     the smallest line, whatever order scip-clang lists them in. Until
+     then it was the first one met, and scip-clang's order varies by
+     run: two cJSON ingests at one commit differed by one edge. C++
+     roots abstain on such a moniker instead (ADR-113).
 4. **The join.** C edges lane B resolves are `semantic`. Lane A's
    fallback stays the floor where lane B is silent, and `hobbes lanes`
    checks the two where both answer.
