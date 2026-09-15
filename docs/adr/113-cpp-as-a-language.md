@@ -371,5 +371,19 @@ commit is the patch that makes C++ *supported*.
   that parsed with errors and have no lane A symbol near: C-145's cost,
   not C-144's. **Register:** C-144 lifted; C-143 and C-145 restated.
   **Version:** 0.2.19-beta.
+- **2026-09-14 — the determinism unit landed,** after §2's second
+  amendment (`3e74477`, Max's route: C++ abstains, C takes the smallest
+  line). **`S-20260915T015439Z-3d1a`** (32 of 80 turns, 3.7 min, $2.23,
+  Opus 5): gate clear (2 files), verify pass (59 tests); no deviations.
+  Host: the scip node suite is 58/58, and three fmt ingests are
+  identical at the edge level (3,273 call edges; 240 monikers, 2,228
+  references abstained). Merged `f0cd459`. **The residue:** three
+  cJSON ingests on `main` still drew 2,630, 2,615 and 2,621 edges (all
+  `uses`, Unity's assertion macros from `tests/common.h`). scip-clang
+  indexes a shared header once, in whichever unit claims it (C-149,
+  unsurfaced). Indexing each unit alone is the measured route (fmt:
+  9–10 s against 8 s), for Max. **Version:** 0.2.20-beta; C-148
+  registered.
 - **Remaining:** the two cells (fmt, then Taywee/args) and the §3.8
-  row.
+  row. fmt's `calls` edges repeat across ingests; C-149 is stated in
+  each cell record.

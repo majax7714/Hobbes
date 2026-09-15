@@ -107,6 +107,27 @@ headers parsed with tree-sitter ERROR nodes.
   per file, like C-134's.
 - **Source:** ADR-113 §1.
 
+### C-148 — A moniker one file defines at several lines has no lane B answer in C++
+
+- **Cannot tell you:** which of several definitions a reference means
+  when scip-clang gives them one moniker in one file. Two shapes do
+  this: a class template and its specialisations (`float_info#` at
+  `format.h:1677` and `:1691`), and `enable_if` overloads its
+  signature hash does not tell apart (`is_negative(ee44…).` at 1151 and
+  1155). Such a reference draws no lane B edge. Lane A's fallback floor
+  stands there, and it abstains on overload sets (C-143).
+- **Because:** the moniker is all the index gives, and scip-clang lists
+  the definitions in an order that varies by run. Choosing one would be
+  a guess, and until 0.2.20-beta the guess followed that order: three
+  fmt ingests drew 3,308, 3,298 and 3,293 call edges.
+- **Bites at:** template-heavy code. On fmt: 240 monikers, 2,228
+  references.
+- **You find out:** **surfaced** — one `scip-decode` record per ingest
+  counting the monikers and the references, with examples.
+- **Provider (P9):** scip-clang **0.4.0** — its moniker for a
+  specialisation, and for overloads whose signature hash is equal.
+- **Source:** ADR-113 §2's determinism amendment; `3d1a`, 2026-09-14.
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that

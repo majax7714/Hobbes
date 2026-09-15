@@ -369,3 +369,40 @@ recovery (ADR-109) and the provider's moniker scheme.)*
 - **Provider (P9):** inherited from scip-clang **0.4.0**'s moniker
   scheme.
 - **Source:** ADR-109.
+
+### C-149 — A shared header is indexed in one unit's context, and which unit varies by run (C and C++)
+
+- **Cannot tell you:** the same lane B answer twice for a reference
+  inside a header many translation units include, when the answer
+  depends on the unit: a macro's configured arm, or a name a unit's
+  includes bring in. scip-clang indexes such a header once, in
+  whichever unit claims it first, so the reference can be present in
+  one ingest and absent in the next.
+- **Because:** scip-clang deduplicates header indexing across units,
+  and its scheduling is not deterministic. Its own `--deterministic`
+  flag "does not support deterministic work scheduling yet", and it was
+  measured and refused: on fmt, 307 s against 8 s, with 3 of 52 units
+  lost.
+- **Bites at:** measured at 0.2.20-beta, after the helper's own order
+  dependence was fixed (C-148; ADR-109's smallest-line rule):
+  - three cJSON ingests at one commit drew 2,630, 2,615 and 2,621
+    edges. The differing ones are all `uses` edges from
+    `tests/common.h`'s assertion macros to Unity's;
+  - fmt's edges repeat, but four tail sites flip between `external` and
+    `builtin-name` (`std::FILE`, `fwrite`, `size_t`, `tm` in shared
+    headers).
+
+  A `calls` edge could move the same way, directly or through ADR-111's
+  external veto; none was seen.
+- **You find out:** **unsurfaced** — nothing in the artifact says an
+  edge or a count may differ on the next ingest. This is debt.
+- **Provider (P9):** scip-clang **0.4.0**'s header deduplication.
+- **Direction:** index each translation unit alone (a one-entry
+  compile database each) and merge in the helper with ADR-109's
+  one-site rules. Measured on fmt: 52 units in 9–10 s at 6 in parallel,
+  against 8 s for one whole-database run, and each unit's index
+  repeats under the order-independent rule (52 of 52). Its cost on a
+  large repo, where every header is indexed once per unit, is not
+  measured. Max's call.
+- **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
+  second amendment).

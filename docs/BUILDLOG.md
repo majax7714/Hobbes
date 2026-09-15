@@ -10627,3 +10627,60 @@ c++ development"; then, asked as a route, unit 2's budget: "One unit,
 read, records in `docs/oracle/cells/`, and the poison check. Then the
 §3.8 row, the patch that makes C++ *supported*. Expect fmt's recall to
 carry C-145's cost.
+
+## 2026-09-14 — (later) C/C++ lane B made order-independent: ADR-113 §2 and ADR-109 amended, then `3d1a` — 0.2.20-beta
+
+**Asked (Max):** the route, once the finding was in front of him: "C++
+abstains, C min line (Recommended)".
+
+- **Found before grading fmt.** Three fmt ingests at one commit drew
+  3,308, 3,298 and 3,293 call edges, and two cJSON ingests differed by
+  one edge. The symbols were identical; 117 and 123 edges swapped
+  between siblings in `chrono.h` (a template against its
+  specialisation, an overload against `~2`).
+- **Measured, no spend,** with scratch probes over fmt indexed in the
+  image four ways: the whole database at `-j12` twice and at `-j1`
+  twice, and each unit alone twice.
+  - The raw indexes differ on every run, and the decoded references
+    differed by 1,339–3,612 rows.
+  - The raw occurrences showed the cause: one moniker defined at several
+    lines of one file (`float_info#` at 1677/1691,
+    `is_negative(ee44…)` at 1151/1155, `bit_cast(5dc1…)` at 262/418),
+    listed in an order that varies by run, with the helper keeping the
+    first one it met.
+  - With either order-independent rule (the smallest line, or
+    abstaining), all 55 run pairs decoded identically.
+  - scip-clang's `--deterministic` also decoded identically, but took
+    307 s against 8 s and errored on 3 of 52 units, so it was refused.
+  - A first probe of mine reported 35 of 54 pairs repeatable under the
+    rules. It was wrong: the careful probe checks that its rewrite
+    reached the index.
+- **The route, Max's:** C++ abstains and C takes the smallest line.
+  ADR-113 §2 amended again, and ADR-109 decision 3 (`3e74477`).
+- **`S-20260915T015439Z-3d1a`** (32 of 80 turns, 3.7 min, $2.23, Opus
+  5): gate clear (2 files), verify pass (59); no deviations. On the
+  host, the node suite is 58/58, and three fmt ingests are identical at
+  the edge level (9,830 edges; 3,273 calls; 240 monikers and 2,228
+  references abstained). Merged `f0cd459`.
+- **The residue:** four fmt tail sites still flip between `external`
+  and `builtin-name`, and three cJSON ingests on `main` drew 2,630,
+  2,615 and 2,621 edges (`uses` edges from `tests/common.h`'s
+  assertion macros to Unity's). Lane B's unit-dependent references come
+  and go, because scip-clang indexes a shared header once, in
+  whichever unit claims it. Registered as **C-149** (unsurfaced, debt),
+  with the per-unit route measured on fmt (9–10 s against 8 s; each
+  unit's index repeats under the rule, 52 of 52) for Max.
+- **A slip, recorded:** the launch's `grep` printed nothing, I read it
+  as a failed launch, and re-ran this repo's ingest while the session
+  was starting. It was at the same commit with a clean tree, so the
+  parent graph the gate read later was unchanged.
+- **Register:** C-148 (surfaced) and C-149 (unsurfaced). 149 entries:
+  106 active (82 surfaced, 19 partial, 4 unsurfaced, 1 n/a), 26 lifted.
+- **Version 0.2.20-beta:** pytest 1,600 (6 `lane_b`) and scip node 58.
+  The binaries, the static proxy and the image rebuilt. **The tracker**
+  reads 28 of 40. **Task file:**
+  `~/.hobbes/bench/cpp-drivers/determinism-task.md`.
+
+**Remaining:** Max's call on C-149's per-unit route. Then the cells (fmt,
+args); fmt's `calls` edges repeat, so it can be graded first with
+C-149 stated. Then the §3.8 row.

@@ -134,8 +134,8 @@ information appears in both, and the entries cross-reference.
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
-| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-130, C-137 |
-| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-144, C-145, C-146, C-147 |
+| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
+| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-144, C-145, C-146, C-147, C-148 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
@@ -151,13 +151,13 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and forty-seven entries: one hundred and four active, twenty-six lifted, eleven superseded, six folded**
+**One hundred and forty-nine entries: one hundred and six active, twenty-six lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 81 | every active entry not listed below |
+| active — surfaced | 82 | every active entry not listed below |
 | active — *partial* | 19 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142 |
-| active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
+| active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-149 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 26 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
@@ -166,6 +166,14 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-14), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+ADR-113's determinism unit on 2026-09-14 (0.2.20-beta), C and C++ lane B:
+- C-148 registered (surfaced): a moniker one file defines at several
+  lines abstains in C++, counted in a `scip-decode` record.
+- C-149 registered (**unsurfaced**, debt): scip-clang indexes a shared
+  header once, in whichever unit claims it, so a unit-dependent
+  reference can come and go by run. The per-unit indexing route is
+  Max's call.
 
 ADR-113 unit 2 on 2026-09-14 (0.2.19-beta), C++ at lane B:
 - C-144 lifted: every overload is a symbol (`~n`), and the duplicate

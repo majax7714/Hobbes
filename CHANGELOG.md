@@ -11,9 +11,44 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.19-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.20-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.20-beta — 2026-09-14 (C and C++ lane B made order-independent; ADR-113 §2 and ADR-109 amended)
+
+**Patch: what the layer draws.** A defect's fix; C++ is still *wired,
+not supported*.
+
+- **The defect:** lane B for C and C++ drew a different graph from one
+  ingest to the next at one commit. Three fmt ingests drew 3,308,
+  3,298 and 3,293 call edges, and two cJSON ingests differed by one
+  edge; C had this since 0.2.4-beta. scip-clang gives one moniker to
+  several definitions in one file: a class template and its
+  specialisations, `enable_if` overloads its signature hash does not
+  tell apart, and `#if` alternatives. It lists them in an order that
+  varies by run, and the helper kept the first one it met.
+- **The fix (Max chose the rule):** every definition line is collected
+  and the choice is made by rule. **C++ abstains:** such a reference
+  draws no lane B edge, stays in-repo (no ADR-111 veto), and one
+  `scip-decode` record counts them (on fmt, 240 monikers and 2,228
+  references; C-148). **C takes the smallest line,** which is what
+  ADR-109's first-line rule meant. A namespace keeps its smallest line
+  in both. Three fmt ingests are now identical at the edge level (3,273
+  call edges each).
+- **What it does not fix, registered (C-149, debt):** scip-clang
+  indexes a header many units share once, in whichever unit claims it
+  first, and that varies by run. So a reference whose answer depends
+  on the unit can come and go. On `main`, three cJSON ingests drew
+  2,630, 2,615 and 2,621 edges, all `uses` edges from Unity's
+  assertion macros; four of fmt's tail sites flip between `external`
+  and `builtin-name`. scip-clang's own `--deterministic` flag was
+  measured and refused: 307 s against 8 s on fmt, with 3 of 52 units
+  lost. Indexing each unit alone, measured at 9–10 s against 8 s on
+  fmt, is the route to lift it, and it is Max's call.
+- **Built through the harness:** `S-20260915T015439Z-3d1a` (32 of 80
+  turns, 3.7 min; $2.23 reported). Gate clear and verify pass; merged
+  without squashing.
 
 ## 0.2.19-beta — 2026-09-14 (C++ at lane B, deliberate; every overload a symbol; ADR-113 §2)
 

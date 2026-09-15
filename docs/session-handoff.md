@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.19-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.20-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.19-beta are untagged. Tags stay Max's call each time.
+  0.2.20-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -14,9 +14,43 @@
 
 The session's record is the 2026-09-14 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C++'s two cells (fmt, then Taywee/args); then the row
+## ⇢ START HERE NEXT SESSION: Max's call on C-149's per-unit route; then C++'s two cells and the row
 
-0. **Latest (2026-09-14, after the release): C++'s lane B — ADR-113 §2
+0. **Latest (2026-09-14, later): C/C++ lane B made order-independent —
+   ADR-113 §2 and ADR-109 amended, 0.2.20-beta.** Found while preparing
+   fmt's cell: three fmt ingests at one commit drew 3,308, 3,298 and
+   3,293 call edges, and two cJSON ingests differed by one edge.
+   - **Measured, no spend** (scratch probes; the method is in ADR-113's
+     second amendment). The helper kept the first definition it met for
+     a moniker one file defines at several lines (template
+     specialisations, `enable_if` overloads, `#if` alternatives), in
+     scip-clang's run-varying order. Either order-independent rule made
+     55 of 55 run pairs decode identically. scip-clang's
+     `--deterministic` took 307 s against 8 s and lost 3 of 52 units, so
+     it was refused.
+   - **Max's route:** C++ abstains (C-148, surfaced by a record; on fmt
+     240 monikers and 2,228 references), C takes the smallest line.
+     **`3d1a`** (32 of 80 turns, $2.23): gate right-clear, merged
+     `f0cd459`. fmt's three ingests are identical at the edge level
+     (3,273 call edges).
+   - **The residue, C-149 (unsurfaced, debt):** scip-clang indexes a
+     shared header once, in whichever unit claims it. On `main`, cJSON
+     still drew 2,630, 2,615 and 2,621 edges (`uses` edges, Unity's
+     macros from `tests/common.h`), and fmt's tail flips 4 sites.
+     **The route to lift it, for Max:** index each translation unit
+     alone (one-entry compile databases) and merge in the helper with
+     ADR-109's one-site rules. Measured on fmt: 52 units in 9–10 s at 6
+     in parallel, against 8 s for one run, and each unit's index
+     repeats (52 of 52). It needs an ADR-109 amendment and one unit
+     (the helper's plan and merge). The cost on a large repo is not
+     measured.
+   - **The cells:** fmt's `calls` edges repeat, so fmt can be graded
+     now with C-149 stated in its record, or after the per-unit route.
+     Which order is Max's call. The rest of item 0g's list stands.
+   - Task file: `~/.hobbes/bench/cpp-drivers/determinism-task.md`.
+     **The tracker** reads 28 of 40. Binaries and the image rebuilt at
+     0.2.20-beta; restart the knowledge server (C-65).
+0g. **Before it (2026-09-14, after the release): C++'s lane B — ADR-113 §2
    amended, 0.2.19-beta; wired, not supported.** Max: "review top level
    documentation and proceed with the c++ development"; unit 2's budget,
    asked as a route: "One unit, 150 turns".
@@ -437,7 +471,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-seven, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-eight, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -454,14 +488,15 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 147 entries: 104 active (81 surfaced, 19 partial, 3
-  unsurfaced, 1 n/a), 26 lifted, 11 superseded, 6 folded. C-142–C-147
+- **Register:** 149 entries: 106 active (82 surfaced, 19 partial, 4
+  unsurfaced, 1 n/a), 26 lifted, 11 superseded, 6 folded. C-148 and
+  C-149 registered at 0.2.20-beta. C-142–C-147
   registered 2026-09-14 (`extraction-cpp.md`); C-144 lifted the same
   day (0.2.19-beta); C-132 narrowed; the
   dispatch harness's five entries in `dispatch-harness.md`; C-120
   folded into C-112.
-- **Suites** at 0.2.19-beta:
-  - 1,600 pytest (host, 6 `lane_b`); 53 scip node (host);
+- **Suites** at 0.2.20-beta:
+  - 1,600 pytest (host, 6 `lane_b`); 58 scip node (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - oracle-lane Go on `main` after `a848`'s merge: 95 pass / 5 skip
