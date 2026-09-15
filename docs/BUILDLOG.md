@@ -10751,3 +10751,24 @@ the ScummVM measurement was in: "Merge behind a size guard
 **Remaining:** the fmt and args cells (both under the bound), then the
 §3.8 row. C-150's route (a larger heap or a streaming decode) is Max's
 call. The gate's arrow-parameter fix is a small unit.
+
+## 2026-09-15 — (addendum) C-150 is cross-language; large repos stay a constraint
+
+**Max:** "for c-150 the large repos problem is an issue outside of just
+c … we might have to assess the memory problem as a whole … overarching
+might be an architectural change. large repos are fine to leave as a
+constraint for now … leaving closing out c++ as next sessions task".
+
+- Checked against the code: the helper's `decode` is one function for
+  every indexer, and it holds a root's whole index in memory. The
+  Python side holds the facts and the graph too (1.5 GB on ScummVM
+  during lane A). So C-150 is **re-scoped to every language** and moved
+  to `extraction-lane-b-environments.md`. The out-of-memory record was
+  already language-neutral: it lives in `run_helper`.
+- **Recorded, not built:** the memory problem is to be assessed as a
+  whole, likely as an architectural change (a streaming decode, bounded
+  memory through the pipeline, which would also lift C-149's 400-unit
+  bound). A patch such as a larger helper heap is taken only if it
+  proves cheap. No code moved and no version bump; docs only.
+- **Next session:** close out C++: the fmt and args cells, then the
+  §3.8 row.

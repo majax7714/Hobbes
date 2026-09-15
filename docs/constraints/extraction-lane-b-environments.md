@@ -152,6 +152,43 @@
   toolchains inside the image are pinned in `sandbox/Containerfile`.
 - **Source:** ADR-092.
 
+### C-150 — Lane B's decode holds a root's whole index in memory: a root whose index outgrows Node's heap has no lane B (every language)
+
+- **Cannot tell you:** any semantic edge for a build root, in any
+  language, whose index the helper cannot decode within Node's default
+  heap. The helper dies (exit 139, V8's allocation failure), and the
+  root's call edges fall to lane A's fallback.
+- **Because:** the helper decodes a root's whole SCIP index in memory,
+  whatever the indexer, under Node's default heap, and the Python side
+  then holds the facts and the graph in memory too. Nothing in the
+  pipeline streams.
+- **Bites at:** measured on C++: ScummVM (5,958 units, one
+  whole-database run under C-149's size guard).
+  - Its 370 MB index needs about 9 GB to decode (8.95 GB, measured with
+    a 14 GB heap).
+  - Under the default heap the helper died, and its 1.53 million C++
+    call sites were left to lane A (0.0% accounted). The Python side
+    stood at 1.5 GB during lane A.
+  - Before 0.2.21-beta the same root failed earlier, on a stack
+    overflow in the decode.
+
+  Any language's index of that size meets the same limit; none other
+  is measured.
+- **You find out:** **surfaced** — the root's `scip-<language>` record
+  says the helper ran out of memory decoding the build's index, and
+  names this entry. Until 0.2.21-beta it said "install Node", which was
+  wrong.
+- **Provider (P9):** Node's default heap limit, the image's Node.
+- **Decision (Max, 2026-09-15):** large repos stay a constraint for
+  now. The memory problem is to be assessed as a whole, likely as an
+  architectural change: a streaming decode and bounded memory through
+  the pipeline, which would also lift C-149's 400-unit bound. A patch,
+  such as a larger helper heap (machine-dependent), is taken only if it
+  proves cheap.
+- **Source:** the ScummVM end-to-end ingest, 2026-09-15; first
+  registered in `extraction-c.md` the same day and moved here once it
+  was seen to be every language's.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

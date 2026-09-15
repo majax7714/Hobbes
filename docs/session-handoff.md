@@ -14,7 +14,7 @@
 
 The session's record is the 2026-09-14 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C++'s two cells (fmt, then Taywee/args), then the row; C-150's route is Max's
+## ⇢ START HERE NEXT SESSION: close out C++ — the two cells (fmt, then Taywee/args), then the §3.8 row (Max: "leaving closing out c++ as next sessions task")
 
 0. **Latest (2026-09-15): C and C++ indexed one translation unit per run
    — ADR-109 amended, 0.2.21-beta.** Max's route for C-149 ("Per-unit
@@ -43,10 +43,16 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      40, 1 false block.
    - **Register:** C-149 is *partial*, C-150 surfaced. 150 entries: 107
      active (83 surfaced, 20 partial, 3 unsurfaced, 1 n/a).
-   - **For Max (no spend): C-150's route.** A larger helper heap
-     (machine-dependent; ScummVM needs about 9 GB), or a streaming
-     decode (two passes, duplicates removed), which would also lift the
-     400-unit bound.
+   - **C-150, Max's decision (2026-09-15):** "the large repos problem
+     is an issue outside of just c". The helper's decode (every
+     language) and the Python side both hold a root's whole index and
+     graph in memory. **Large repos stay a constraint for now.** The
+     memory problem is to be assessed as a whole, likely as an
+     architectural change: a streaming decode and bounded memory
+     through the pipeline, which would also lift C-149's 400-unit
+     bound. A patch (such as a larger helper heap, machine-dependent) is
+     taken only if it proves cheap. C-150 now sits in
+     `extraction-lane-b-environments.md`, cross-language.
    - **Next, in order:**
      1. **The fmt and args cells.** Both lie under the bound (fmt 52
         units, args 99; args' database exports offline). Re-ingest fmt

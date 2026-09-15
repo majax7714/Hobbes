@@ -130,11 +130,11 @@ information appears in both, and the entries cross-reference.
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-80, C-3 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-74, C-85, C-79, C-16, C-33, C-34 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-74, C-85, C-150, C-79, C-16, C-33, C-34 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
-| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-150, C-130, C-137 |
+| [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
 | [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-144, C-145, C-146, C-147, C-148 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-18 |
@@ -175,9 +175,13 @@ Per-unit indexing on 2026-09-15 (0.2.21-beta; ADR-109 decision 1 amended, with M
 - C-91 amended: the gate's TS/JS text read misses a bare arrow
   parameter list, and that caused the harness's first false block
   (`f3c1`).
-- C-150 registered (surfaced): a C/C++ root whose index outgrows Node's
-  heap has no lane B. ScummVM needs about 9 GB. The record used to say
-  "install Node"; it now names the heap.
+- C-150 registered (surfaced), in `extraction-lane-b-environments.md`:
+  lane B's decode holds a root's whole index in memory, so a root whose
+  index outgrows Node's heap has no lane B, in every language.
+  Measured on C++: ScummVM needs about 9 GB. The record used to say
+  "install Node"; it now names the heap. Max, 2026-09-15: large repos
+  stay a constraint for now; the memory problem is to be assessed as a
+  whole, likely as an architectural change.
 
 ADR-113's determinism unit on 2026-09-14 (0.2.20-beta), C and C++ lane B:
 - C-148 registered (surfaced): a moniker one file defines at several

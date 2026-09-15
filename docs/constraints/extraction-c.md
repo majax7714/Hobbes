@@ -416,32 +416,5 @@ recovery (ADR-109) and the provider's moniker scheme.)*
   Nothing says a tail count may differ by a site or two below it.
 - **Provider (P9):** scip-clang **0.4.0**'s header deduplication.
 - **Direction:** a streaming merge (two passes over the unit indexes,
-  duplicates removed) would lift the bound. It is not built.
-
-### C-150 — A C/C++ root whose index outgrows Node's heap has no lane B
-
-- **Cannot tell you:** any semantic edge for a C or C++ build root
-  whose index the helper cannot decode within Node's default heap. The
-  helper dies (exit 139, V8's allocation failure), and the root's call
-  edges fall to lane A's fallback.
-- **Because:** the helper decodes a root's whole index in memory, under
-  Node's default heap limit. Measured on ScummVM (5,958 units, one
-  whole-database run under C-149's size guard): the 370 MB index needs a
-  peak of about 9 GB to decode (8.95 GB, measured with a 14 GB heap).
-  Under the default heap the helper died. Before 0.2.21-beta the same
-  root failed earlier, on a stack overflow in the decode.
-- **Bites at:** very large C/C++ repos. ScummVM ingested with its 1.53
-  million C++ call sites all left to lane A (0.0% accounted). fmt,
-  cJSON, sqlite-vector and args are far under it.
-- **You find out:** **surfaced** — the root's `scip-c`/`scip-cpp`
-  record says the helper ran out of memory decoding the build's index,
-  and names this entry. Until 0.2.21-beta the record said "install
-  Node", which was wrong.
-- **Provider (P9):** Node's default heap limit, the image's Node.
-- **Direction:** a larger heap for the helper (machine-dependent), or a
-  streaming decode that holds only definitions and unique references.
-  The streaming decode is the same change that would lift C-149's
-  400-unit bound. Max's call.
-- **Source:** the ScummVM end-to-end ingest, 2026-09-15.
-- **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
+  duplicates removed) would lift the bound. It is not built.- **Source:** the determinism measurements, 2026-09-14 (ADR-113 §2's
   second amendment).

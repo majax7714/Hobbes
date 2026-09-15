@@ -349,7 +349,11 @@ inside a dispatch they skip, so their first run is the developer's.
     now repeat. ScummVM (5,958 units) put the merge at about 84 GB, so
     Max's size guard: over 400 units, one whole-database run, recorded
     (C-149 partial). Also fixed: a decode stack overflow that crashed lane
-    B on large repos.
+    B on large repos. Still standing: past that, the decode outgrows
+    Node's heap (C-150, every language). Max: large repos stay a
+    constraint for now; memory is to be assessed as a whole, likely as an
+    architectural change. Next session: close out C++ (the two cells, the
+    §3.8 row).
   - **Before it** (2026-09-14): **C/C++ lane B made order-independent,
     ADR-113 §2 and ADR-109 amended, 0.2.20-beta** (`3d1a`, 32 turns,
     $2.23, gate right-clear). Found before grading fmt: three ingests at

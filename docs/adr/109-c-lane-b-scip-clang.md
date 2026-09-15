@@ -100,7 +100,10 @@ throwaway container from the image) found:
        guard's whole-database path (614 s), and its decode then outgrew
        Node's default heap (exit 139). The root fell to lane A, and the
        record now names that (C-150) instead of "install Node". A larger
-       heap or the same streaming decode would fit it; Max's call.
+       heap or the same streaming decode would fit it. Max, 2026-09-15:
+       the limit is not C's alone (every language's decode holds the
+       whole index), so large repos stay a constraint for now, and the
+       memory question is to be assessed as a whole.
 2. **The compile database is derived, in this order** (Max), per build
    root. A root is the outermost directory holding a `CMakeLists.txt`,
    or, with none on the path, the outermost holding a Makefile. A root
