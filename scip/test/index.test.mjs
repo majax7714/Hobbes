@@ -21,6 +21,7 @@ import { INDEXER_EXIT,
   insideRepo,
   mergeUnitIndexes,
   packageOf,
+  PER_UNIT_MAX,
   splitCompdb,
   terminalName,
   indexerPlan,
@@ -376,6 +377,58 @@ test('a compile database with one entry under the root passes, even with another
     { directory: '/opt/vendor/a', file: '/opt/vendor/a/x.c', arguments: ['cc', 'x.c'] },
   ]))
   plan.steps[1].check({})
+})
+
+test('a compile database over the per-unit bound is written whole, and one under it one per unit (C-149)', () => {
+  // The merge holds every unit's index at once: ScummVM's 5,958 units
+  // projected to ~84 GB. Over the bound, one whole-database run instead.
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'make' })
+  const entries = (n) => Array.from({ length: n }, (_, i) => ({ directory: dir, file: `u${i}.c`, arguments: ['cc', '-c', `u${i}.c`] }))
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(entries(PER_UNIT_MAX + 1)))
+  plan.steps[1].check({})
+  assert.deepEqual(cfs.readdirSync(plan.unitsDir), ['whole.json'], 'one database, not a split')
+  assert.equal(JSON.parse(cfs.readFileSync(cpath.join(plan.unitsDir, 'whole.json'), 'utf8')).length, PER_UNIT_MAX + 1,
+    'the whole database, verbatim')
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(entries(PER_UNIT_MAX)))
+  plan.steps[1].check({})
+  assert.equal(cfs.readdirSync(plan.unitsDir).length, PER_UNIT_MAX, 'at the bound itself, one database per unit')
+  assert.ok(!cfs.existsSync(cpath.join(plan.unitsDir, 'whole.json')), "a previous run's whole database is gone")
+})
+
+test("the index step's shell runs one whole-database scip-clang over whole.json (C-149)", () => {
+  const dir = cfs.mkdtempSync(cpath.join(cos.tmpdir(), 'hobbes-c-'))
+  const bin = cpath.join(dir, 'bin')
+  cfs.mkdirSync(bin)
+  const calls = cpath.join(dir, 'calls')
+  cfs.writeFileSync(cpath.join(bin, 'scip-clang'), [
+    '#!/bin/sh',
+    `echo "$*" >> "${calls}"`,
+    'for a in "$@"; do case "$a" in --index-output-path=*) out=${a#--index-output-path=};; esac; done',
+    'echo indexed > "$out"',
+  ].join('\n') + '\n', { mode: 0o755 })
+  const plan = cPlan({ language: 'c', stage: dir, output: cpath.join(dir, 'o.scip'), buildDir: dir, compdbSource: 'repo', compdb: cpath.join(dir, 'compile_commands.json') })
+  cfs.writeFileSync(cpath.join(dir, 'compile_commands.json'), JSON.stringify(
+    Array.from({ length: PER_UNIT_MAX + 1 }, (_, i) => ({ directory: dir, file: `u${i}.c`, arguments: ['cc', '-c', `u${i}.c`] }))))
+  const step = plan.steps[0]
+  step.check({})
+  const proc = spawnSync('sh', step.args, { cwd: step.cwd, encoding: 'utf8', env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } })
+  assert.equal(proc.status, 0)
+  const lines = cfs.readFileSync(calls, 'utf8').trim().split('\n')
+  assert.equal(lines.length, 1, 'one scip-clang run for the whole database')
+  assert.doesNotMatch(lines[0], /-j 1/, "at scip-clang's own parallelism")
+  assert.match(lines[0], /--compdb-path=\S*whole\.json --index-output-path=\S*whole\.scip/)
+})
+
+test('a whole-database run says so and names C-149; a per-unit run says nothing of it (C-149)', () => {
+  const idx = fakeIndex([{ relative_path: 'a.c', occurrences: [] }])
+  const said = (whole_database) => degradations(idx, { ...decode(idx), units: whole_database || 5, units_failed: 0, whole_database }, { language: 'cpp' })
+    .filter((r) => /per-unit bound/.test(r.message))
+  const [record] = said(5958)
+  assert.equal(record.stage, 'scip-decode')
+  assert.match(record.message, new RegExp(`holds 5958 translation units, over the per-unit bound \\(${PER_UNIT_MAX}\\)`))
+  assert.match(record.message, /\(C-149\)$/)
+  assert.deepEqual(said(0), [])
 })
 
 test('a relative file under the root passes the compile-database check (C-135)', () => {

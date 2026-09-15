@@ -198,12 +198,26 @@ function cUnitsDir(c) {
   return `${c.output}.units`
 }
 
+/** The most translation units a root is indexed one per run (Max,
+ * 2026-09-15). The merge holds every unit's index at once, and a header
+ * many units share is in every one of them: ScummVM's 5,958 units wrote
+ * 9.36 GB of unit indexes, and the merged decode of its first 400 already
+ * peaked at 5.75 GB (about 84 GB projected for all). fmt (52), args (99)
+ * and cJSON (23) lie well under it. A database over the bound is indexed in
+ * one whole-database run instead, and the record says C-149 applies there;
+ * a streaming merge is what would lift the bound. */
+export const PER_UNIT_MAX = 400
+
 /** The index step's shell: one scip-clang run per one-entry database the
  * check wrote, `$1` their directory and `$2` how many may run at once.
  * `-j 1` because the parallelism is here, one process per unit. `exit 0`
  * because xargs exits 123 when any child failed, and a unit that fails
- * must not stop the others — the merge counts what is missing. */
+ * must not stop the others — the merge counts what is missing. When the
+ * check wrote `whole.json` instead (a database over `PER_UNIT_MAX`), one
+ * scip-clang run indexes it at scip-clang's own parallelism. */
 const PER_UNIT_INDEX =
+  'if [ -f "$1/whole.json" ]; then ' +
+  'scip-clang --compdb-path="$1/whole.json" --index-output-path="$1/whole.scip"; exit 0; fi; ' +
   'ls "$1" | sed -n \'s/\\.json$//p\' | ' +
   'xargs -P "$2" -I@ scip-clang -j 1 --compdb-path="$1/@.json" --index-output-path="$1/@.scip"; ' +
   'exit 0'
@@ -219,12 +233,18 @@ export function splitCompdb(entries) {
 
 /** A check hook that writes *compdb* out as one-entry databases under
  * *unitsDir*, replacing whatever a previous run left there. It runs after
- * C-135's check, on the whole database, and before any indexing. */
+ * C-135's check, on the whole database, and before any indexing. A
+ * database over `PER_UNIT_MAX` is written whole, as `whole.json`, for one
+ * whole-database run. */
 function splitStep(compdb, unitsDir) {
   return () => {
     const entries = JSON.parse(readFileSync(compdb, 'utf8'))
     rmSync(unitsDir, { recursive: true, force: true })
     mkdirSync(unitsDir, { recursive: true })
+    if (entries.length > PER_UNIT_MAX) {
+      writeFileSync(join(unitsDir, 'whole.json'), JSON.stringify(entries))
+      return
+    }
     for (const { name, entry } of splitCompdb(entries)) {
       writeFileSync(join(unitsDir, `${name}.json`), JSON.stringify([entry]))
     }
@@ -1128,6 +1148,16 @@ export function degradations(index, decoded, config) {
         "the others stand, and the failed units' sites fall to lane A's fallback (ADR-109)",
     })
   }
+  if (decoded.whole_database) {
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `this build root's compile database holds ${decoded.whole_database} translation units, ` +
+        `over the per-unit bound (${PER_UNIT_MAX}), so it was indexed in one whole-database run: ` +
+        'scip-clang indexes a header many units share once, in whichever unit claims it first, ' +
+        'so a reference whose answer depends on the unit may differ from one ingest to the next (C-149)',
+    })
+  }
   if (decoded.tu_split) {
     out.push({
       stage: 'scip-decode',
@@ -1287,11 +1317,21 @@ export function mergeUnitIndexes(indexes) {
 
 /** Every unit index under *unitsDir*, in name order, with the count of
  * units whose output is not there to read: a scip-clang run that failed or
- * wrote nothing usable. The others stand. */
+ * wrote nothing usable. The others stand. A database over `PER_UNIT_MAX`
+ * left one `whole.json` and one index; `whole` then carries its unit count. */
 function readUnitIndexes(unitsDir) {
   const names = existsSync(unitsDir)
     ? readdirSync(unitsDir).filter((f) => f.endsWith('.json')).sort()
     : []
+  if (names.length === 1 && names[0] === 'whole.json') {
+    const units = JSON.parse(readFileSync(join(unitsDir, 'whole.json'), 'utf8')).length
+    try {
+      const index = scip.Index.deserialize(readFileSync(join(unitsDir, 'whole.scip')))
+      return { units, units_failed: 0, indexes: [index], whole: units }
+    } catch {
+      return { units, units_failed: units, indexes: [], whole: units }
+    }
+  }
   const indexes = []
   for (const name of names) {
     const out = join(unitsDir, `${name.slice(0, -'.json'.length)}.scip`)
@@ -1355,6 +1395,7 @@ export function indexStage(config) {
   if (unitRuns) {
     decoded.units = unitRuns.units
     decoded.units_failed = unitRuns.units_failed
+    decoded.whole_database = unitRuns.whole ?? 0
   }
   return {
     helper_version: HELPER_VERSION,
@@ -1363,7 +1404,9 @@ export function indexStage(config) {
     references: decoded.references,
     external_refs: decoded.external,
     packages: Object.fromEntries(decoded.packages),
-    ...(unitRuns ? { units: unitRuns.units, units_failed: unitRuns.units_failed } : {}),
+    ...(unitRuns
+      ? { units: unitRuns.units, units_failed: unitRuns.units_failed, whole_database: unitRuns.whole ?? 0 }
+      : {}),
     // Reported every run, not only when something is wrong: the counts
     // are the honest form of the signal and the threshold is secondary.
     dependency_coverage: dependencyCoverage(decoded, config, resolved),
