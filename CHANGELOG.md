@@ -11,9 +11,29 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.22-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.23-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.23-beta — 2026-09-15 (C++ supported: its §3.8 row; ADR-113 complete)
+
+**Patch: what the layer says.** A language reaching *supported* is a
+patch (ADR-103's notes).
+
+- **C++'s §3.8 row**, on two compiler-graded cells (O10, clang's own
+  front end), regraded at 0.2.22-beta:
+  - fmtlib/fmt (chosen): 3,254/3,282 (99.1%);
+  - Taywee/args (drawn at random): 1,995/1,995 (100%).
+
+  `VERIFICATION_BASE` carries the row, so the ingest summary, the
+  surface's language badges and `list_blind_spots` now say "cpp 2
+  repos" where they said "not verified on any repo".
+- **What the row does not cover:** fmt's 10 wrong edges are
+  scip-clang's own (C-153, unsurfaced, P9). A build over the per-unit
+  bound or the helper's heap (C-149, C-150), modules, generated code
+  and a mixed repo's shared headers (C-142) are outside the sample.
+- **Register:** C-132 narrowed again. A `.h` both languages include is
+  still read as C, and cgo's collision (C-15) stands.
 
 ## 0.2.22-beta — 2026-09-15 (C++'s lane B answers only where it is sure; ADR-113 §2 amended a third time)
 

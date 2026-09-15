@@ -24,6 +24,7 @@ ROW_LANGUAGES = {
     "Rust": ["rust"],
     "Java": ["java"],
     "C": ["c"],
+    "C++": ["cpp"],
     "Terraform/HCL": ["hcl"],
 }
 

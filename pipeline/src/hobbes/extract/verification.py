@@ -79,6 +79,15 @@ VERIFICATION_BASE: dict[str, dict] = {
         "on": "DaveGamble/cJSON (a library with its vendored Unity tests); sqliteai/sqlite-vector — drawn at random (2026-09-12)",
         "depth": "multi-repo",
     },
+    "cpp": {
+        # Compiler-graded against clang's own front end (ADR-113, O10,
+        # 2026-09-15): a header-heavy library chosen for the `.h` claim
+        # and one repo drawn at random, both regraded after ADR-113 §2's
+        # third amendment (0.2.22-beta).
+        "repos": 2,
+        "on": "fmtlib/fmt (a header-heavy library with its bundled gtest and gmock); Taywee/args — drawn at random (2026-09-14)",
+        "depth": "multi-repo",
+    },
     "hcl": {
         "repos": 1,
         "on": "this repo only",

@@ -472,4 +472,9 @@ commit is the patch that makes C++ *supported*.
   - **Version:** 0.2.22-beta.
   - **Register:** C-151 and C-152 registered, surfaced. C-153
     registered unsurfaced (P9). H-28–H-31 open in the oracle's log.
-- **Remaining:** the §3.8 row.
+- **2026-09-15 — the row** (0.2.23-beta): `VERIFICATION_BASE["cpp"]`
+  and §3.8's C++ row on the regraded cells, the evidence log's C++
+  section, and C-132 narrowed again. C++ is *supported* as far as the
+  row reaches. This record's units are complete. H-28–H-31, C-153, and
+  `hobbes lanes`' exit status on fmt (316 disagreements where lane A
+  guesses, none drawn) are open, for the lead.

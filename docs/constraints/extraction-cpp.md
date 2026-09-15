@@ -5,8 +5,10 @@
 C++ joined at lane A on 2026-09-14 (ADR-113 §1, 0.2.18-beta): a
 tree-sitter-cpp walk on `csource`'s contract. Lane B (scip-clang over
 the same derived compile database) was made deliberate the same day
-(§2, 0.2.19-beta). The §3.8 row is the last unit; until it lands C++ is
-*wired, not supported* (P11). The entries below were written from the
+(§2, 0.2.19-beta). Its two oracle cells (fmt and args, 2026-09-15)
+found two rules the decode and the join needed (C-151, C-152, 0.2.22-beta).
+Its §3.8 row landed on them (0.2.23-beta): C++ is *supported* as far as
+that row reaches (P11). The first entries below were written from the
 walk's first host read, fmtlib/fmt at `3a0661d7` (2026-09-14): 26
 headers claimed, 25 to C++ and 1 to C, and every one of its 21 library
 headers parsed with tree-sitter ERROR nodes.

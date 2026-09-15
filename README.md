@@ -314,16 +314,17 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.22-beta** (2026-09-15). The Hobbes layer is versioned from here
+**Hobbes 0.2.23-beta** (2026-09-15). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-Semantic edges for **Python, TypeScript/JavaScript, Go, Rust, Java and C**
-(plus Terraform/HCL structure; C, the newest, is scip-clang over a compile
-database the ingest derives and compiler-graded on two repos since
-0.2.5-beta, ADR-108/109/110), graph schema v4 with tiers
+Semantic edges for **Python, TypeScript/JavaScript, Go, Rust, Java, C and
+C++** (plus Terraform/HCL structure). C and C++, the newest, are
+scip-clang over a compile database the ingest derives: C compiler-graded
+on two repos since 0.2.5-beta, C++ on two since 0.2.23-beta
+(ADR-108/109/110/113). The layer carries graph schema v4 with tiers
 and evidence
 lanes, framework knowledge in removable enrichment packs, a tier-aware
 invariant checker, and a lane-agreement self-test — 3,085 call sites on

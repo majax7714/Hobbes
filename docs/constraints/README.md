@@ -167,6 +167,11 @@ The table is the register's current state (2026-09-15), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C++'s §3.8 row on 2026-09-15 (0.2.23-beta):
+- C-132 narrowed again: C++ is *supported* as far as its row reaches.
+  What is left is a `.h` both languages include (or none does in a
+  mixed repo), which is still read as C, and cgo's collision (C-15).
+
 The C++ cells on 2026-09-15 (0.2.22-beta; ADR-113 §2 amended a third time):
 - C-151 registered (surfaced): a C++ call site whose references name
   several overloads abstains, counted in a `scip-decode` record. Before

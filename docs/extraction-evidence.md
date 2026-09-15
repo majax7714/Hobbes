@@ -134,9 +134,62 @@ committed `b7d17b8` before any cell):
   (H-24–H-27), three in the dump reader at review and one in the
   contained step at the first cell.
 
-**What no cell covers:** autotools, Meson and Bazel roots (C-135), C++
-(C-132), a kernel-style or cross-compiled build, and a repo whose build
-fetches at configure time.
+**What no cell covers:** autotools, Meson and Bazel roots (C-135), a
+kernel-style or cross-compiled build, and a repo whose build fetches at
+configure time. C++ has its own cells since 2026-09-15 (the section
+below).
+
+## C++ — the oracle cells of 2026-09-15 (ADR-113, oracle lane O10)
+
+C++'s first graded evidence.
+- **The key** is clang 18.1.3's own front end over the compile database
+  the ingest derives, each unit under clang++, contained and offline
+  (`oracle-grading.md` §7d).
+- **Two repos:** fmtlib/fmt, chosen because its code is in `.h` files,
+  the claim rule's hardest case; and Taywee/args, **drawn at random**
+  from GitHub's `language:c++ stars:300..3000 pushed:>2026-03-01`
+  (seed 20260914). Six draws were passed over first, with reasons
+  (§7d).
+- **The first grade found two Hobbes mechanisms.** ADR-113 §2's third
+  amendment fixed both (0.2.22-beta), and both cells were regraded
+  against their stored keys.
+- Cell records are in [`oracle/cells/`](oracle/cells/).
+
+| Repo | Build | Graph (graded edges) | Cell |
+|---|---|---|---|
+| **fmtlib/fmt** `3a0661d7` (chosen) | CMake, 52 units (51 C++) | at 0.2.21-beta 4,092 graded (3,657 semantic, 435 syntactic); at 0.2.22-beta 3,525 (3,471 semantic, 54 syntactic, all silent); lanes 2,239 / 316 | **96.1%** (3,439/3,577) at 0.2.21-beta; **3,254/3,282 — 99.1%** at 0.2.22-beta, every graded edge semantic; recall 14.5% (7,319/50,569); [record](oracle/cells/fmt-cpp-2026-09-15.md) |
+| **Taywee/args** `903b07df` (**random draw**) | CMake, 99 units | at 0.2.21-beta 2,014 graded (2,009 semantic, 5 syntactic); at 0.2.22-beta 2,000; lanes 793 / 2 | **99.8%** (2,004/2,008) at 0.2.21-beta; **1,995/1,995 — 100.0%** at 0.2.22-beta; recall 56.4% (2,010/3,561); [record](oracle/cells/args-cpp-2026-09-15.md) |
+
+**Verified:**
+- No hand-checked edges; every number is compiler-graded. The
+  `cppclang` fixture's 25 sites are hand-keyed in the lane's test
+  (`a848`).
+- Poison check PASS on every grade, 0 falsely confirmed.
+- Contained (ADR-092), every cell.
+
+**What the cells say.**
+- **After the fix, the semantic tier's wrong edges are scip-clang's
+  own,** at calls in templates: 10 on fmt, none on args (C-153). fmt's
+  other 18 contradictions are the oracle's (H-28–H-31).
+- **Lane A's name fallback is not trusted where scip-clang compiled the
+  file** (C-152). On fmt it had been right 108 times and wrong 74.
+- **C++'s recall hole is the parse, not dispatch.** fmt's macro-spelled
+  headers lose their definitions at lane A (C-145), so lane B's answers
+  there have no symbol to land on. Operators are recall only (C-146).
+- **Lane agreement disagrees where lane A guesses:** 316 of 2,239 fmt
+  sites. Read against the key, 66 are lane B's target, 24 are lane B
+  naming a `using` declaration, 205 match neither lane (189 of them a
+  definition lane A lost), and at 21 the key has no target. None draws
+  an edge, and `hobbes lanes` exits 1 on fmt.
+
+**Pre-registration graded** (`oracle-grading.md` §10.6, committed
+`33920b6` before args ran; fmt was graded before it): P26 recorded,
+P27 met, P28 undecidable, P29 met, P30 met, P31 missed on args.
+
+**What no cell covers:** a build over the per-unit bound or the
+helper's heap (C-149, C-150); Meson, Bazel and autotools roots;
+C++ modules; generated code (Qt's moc); a mixed repo's headers that
+both languages include (C-142).
 
 ## hobbes (this repo — dogfood, continuous)
 
