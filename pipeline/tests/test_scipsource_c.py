@@ -323,11 +323,14 @@ def test_minicpp_gets_semantic_cpp_edges_through_bear_over_its_makefile():
 
     steps = {s["step"]: s["contained"] for s in graph["containment"]["steps"]}
     assert steps.get("index-c") is True, "C++ runs in C's profile (ADR-113 §2)"
-    # Rule 2 of §2's third amendment: every file the Makefile builds is one
-    # scip-clang compiled, so no guess of lane A's survives in it. The count
-    # is reported whether or not anything was withheld.
+    # Rule 2 of §2's third amendment: every file the Makefile's default
+    # target builds is one scip-clang compiled, so no guess of lane A's
+    # survives in it. The count is reported whether or not anything was
+    # withheld. `tests/test_shapes.cpp` is built only by `make test`, which
+    # bear over the default target never runs: lane B holds no occurrence
+    # there, and the file keeps its fallback (the rule's other half).
     assert isinstance(graph["lane_agreement"]["cpp_withheld"]["sites"], int)
-    built = ("src/main.cpp", "src/shapes.cpp", "src/util.cpp", "tests/test_shapes.cpp")
+    built = ("src/main.cpp", "src/shapes.cpp", "src/util.cpp")
     guessed = [
         (f, t, site["path"], site["line"])
         for (f, t, kind), e in edges.items()
@@ -336,6 +339,9 @@ def test_minicpp_gets_semantic_cpp_edges_through_bear_over_its_makefile():
         if site["path"] in built
     ]
     assert guessed == [], "a file lane B compiled draws no fallback edge"
+    assert calls[("tests/test_shapes.Shapes.Scale", "src/util.scale")]["tier"] == "syntactic", (
+        "a C++ file lane B did not index keeps its fallback"
+    )
     disagreements = [
         d for d in graph["lane_agreement"]["site_disagreements"]
         if d["file"].endswith((".cpp", ".h"))
