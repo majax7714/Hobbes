@@ -4,12 +4,12 @@
 
 C++ joined at lane A on 2026-09-14 (ADR-113 §1, 0.2.18-beta): a
 tree-sitter-cpp walk on `csource`'s contract. Lane B (scip-clang over
-the same derived compile database) and the §3.8 row are later units;
-until the row lands C++ is *wired, not supported* (P11). The entries
-below were written from the walk's first host read, fmtlib/fmt at
-`3a0661d7` (2026-09-14): 26 headers claimed 25 to C++ and 1 to C, and
-every one of its 21 library headers parsed with tree-sitter ERROR
-nodes.
+the same derived compile database) was made deliberate the same day
+(§2, 0.2.19-beta). The §3.8 row is the last unit; until it lands C++ is
+*wired, not supported* (P11). The entries below were written from the
+walk's first host read, fmtlib/fmt at `3a0661d7` (2026-09-14): 26
+headers claimed, 25 to C++ and 1 to C, and every one of its 21 library
+headers parsed with tree-sitter ERROR nodes.
 
 ### C-142 — A `.h` is claimed by its includers, never by the build
 
@@ -41,38 +41,16 @@ nodes.
   (`overload-set`); a member call's receiver type is lane B's to know.
 - **Because:** overload resolution and member lookup need types, which
   a syntax walk does not have (the Java precedent, ADR-096).
-- **Bites at:** every C++ repo until lane B answers (unit 2); on fmt,
-  overload sets are the norm in every header.
+- **Bites at:** every C++ site lane B does not answer: a root with no
+  derivable compile database or a failed build (C-135's C++ face), a
+  file outside the database, a definition lane A lost to a parse error
+  (C-145). On fmt, overload sets are the norm in every header.
 - **You find out:** **surfaced** — `overload-set` and `attr-call` in
   the tail; a member call written `p->f()` or `this->f()` classes
   `unclassified`, not `attr-call`, because the tail's shape read looks
   at the character before the name and `>` is not one of its markers —
   a gap C's tail shares, left as is so a C++ unit moves no C number.
 - **Source:** ADR-113 §1; the doer's deviation list (`3d56`).
-
-### C-144 — One symbol per qualified name per file: an overload set's later definitions are below the floor
-
-- **Cannot tell you:** that a function defined twice in one file with
-  different signatures is two symbols. C's rule (ADR-108: the first
-  definition in file order is the symbol, the rest a `parse` record
-  naming preprocessor alternatives) applies to C++ unchanged, where an
-  overload set is the language's norm. The later overloads have no
-  symbol, so a call lane B resolves to one of them lands nowhere
-  (`below-floor`), and the fallback abstains on all of them (C-143).
-- **Because:** symbol ids are `module.qualname`; nothing in the id
-  tells overloads apart, and the walk was not asked to (ADR-113 §1
-  says "a template declaration is the entity it declares, once").
-- **Bites at:** every overloaded function's callers beyond the first
-  definition; on fmt, `format`, `format_to`, `print`, `vformat` in
-  every header. The `parse` record it draws per file reads as a
-  defect ("defined more than once … an overload set, or preprocessor
-  alternatives") on code that is fine.
-- **You find out:** **surfaced**, wrongly worded — the record fires,
-  but names the overload set as if it were a duplicate. **This is a
-  defect to fix in unit 2** (lane B): an overload needs an id that
-  carries its signature or line, and the record should fire only for
-  same-signature duplicates.
-- **Source:** the fmt read, 2026-09-14.
 
 ### C-145 — Macro-heavy C++ parses with error nodes: the preprocessor never runs (C-131's C++ face)
 
@@ -86,11 +64,19 @@ nodes.
   tree-sitter-cpp's recovery is per node, not per macro.
 - **Bites at:** library headers in the modern style — every one of
   fmt's 21 library headers and 5 of its sources parsed with errors.
-  Lane B does not share the gap: scip-clang runs the preprocessor.
+  Lane B does not share the gap, since scip-clang runs the preprocessor,
+  but it cannot draw what it knows. Measured once lane B joined
+  (0.2.19-beta): 6,896 of fmt's 7,376 below-floor call facts point at a
+  definition in a file that parsed with errors, with no lane A symbol
+  near it (3,375 in the vendored `gtest.h`, 2,398 in `format.h`). Lane
+  B names the callee, and the graph has no symbol to draw it to. This,
+  not the overload rule (C-144, lifted), is C++'s below-floor mass.
 - **You find out:** **surfaced** — a `parse` degradation record per
-  file, the same record C draws.
+  file, the same record C draws, and each such site's `below-floor`
+  class in the tail.
 - **Provider (P9):** tree-sitter-cpp **0.23.4**.
-- **Source:** the fmt read, 2026-09-14.
+- **Source:** the fmt read, 2026-09-14; the below-floor diagnostic after
+  `be34`'s merge, the same day.
 
 ### C-146 — An operator applied by symbol and a named cast are not sites
 
@@ -120,3 +106,38 @@ nodes.
 - **You find out:** **surfaced** — one `cpp-tests` degradation record
   per file, like C-134's.
 - **Source:** ADR-113 §1.
+
+## Lifted constraints in this segment
+
+A lift keeps its number, the limit as it stood, the technique that
+lifted it, and the residual edge cases where the old concession
+survives. Field key: `README.md`, "How to read a lifted entry".
+
+### C-144 — One symbol per qualified name per file: an overload set's later definitions were below the floor — *lifted 2026-09-14, the day it was registered*
+
+- **Was:** C's rule (ADR-108: the first definition in file order is
+  the symbol, the rest a `parse` record naming preprocessor
+  alternatives) applied to C++ unchanged. So only an overload set's
+  first definition was a symbol, and a call lane B resolved to any of
+  the others landed nowhere (`below-floor`). The record called code
+  that was fine a duplicate ("an overload set, or preprocessor
+  alternatives").
+- **Lifted by — the technique:** a C++ dedupe of its own
+  (`cppsource._dedupe_symbols`, ADR-113 §2's amendment; `be34`,
+  0.2.19-beta). A later `function` or `method` definition of a qualname
+  whose signature differs (the declarator's parameter list and the
+  qualifiers trailing it, whitespace-collapsed) takes `~2`, `~3`, … in
+  source order, Java's rule (ADR-096). A repeat with the same signature
+  is C's duplicate still, and the record names preprocessor
+  alternatives only. The fallback keys on the bare qualname, so an
+  overload set is still a tie (C-143), and lane B's answer lands on
+  each overload's own line. Verified on `minicpp`: `shapes::area(2.5)`
+  at `main.cpp:12` is semantic on `shapes::area~2` (the `lane_b` test).
+- **Residual edge cases:** the signature is text, so two `#if`
+  alternatives that spell one parameter list differently (a renamed
+  parameter, a typedef for its type) read as overloads. Both become
+  symbols, and lane B answers only the configured one. A `~n` follows
+  source order, so an overload inserted above another renumbers it. On
+  fmt the lift moved 271 below-floor sites (7,628 → 7,357); the rest is
+  C-145's.
+- **Source:** the fmt read and `be34`, 2026-09-14.

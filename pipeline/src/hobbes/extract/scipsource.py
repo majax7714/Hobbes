@@ -2080,8 +2080,13 @@ def extract_scip_c(
     if grouped:
         import sys
 
+        # Named for what the roots hold, so a C++ project's disclosure
+        # never reads "c" (ADR-113 §2); a C-only run prints what it always did.
+        what = " and ".join(
+            sorted({"c++" if path in cpp else "c" for paths in grouped.values() for path in paths})
+        )
         print(
-            "NOTE: c semantics: scip-clang indexes from a compile database; "
+            f"NOTE: {what} semantics: scip-clang indexes from a compile database; "
             "unless the repo carries one, CMake's configure step or make under "
             "bear runs the repo's build logic inside the ingest container, "
             "offline (C-29, ADR-109)",

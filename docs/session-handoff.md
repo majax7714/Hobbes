@@ -1,9 +1,9 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-14; Hobbes 0.2.18-beta on `main`.**
+**Reviewed 2026-09-14; Hobbes 0.2.19-beta on `main`.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.18-beta are untagged. Tags stay Max's call each time.
+  0.2.19-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -14,70 +14,62 @@
 
 The session's record is the 2026-09-14 BUILDLOG entry.
 
-## ⇢ START HERE NEXT SESSION: C++'s unit 2 (Max's call on its budget); then the cells and the row
+## ⇢ START HERE NEXT SESSION: C++'s two cells (fmt, then Taywee/args); then the row
 
-0. **Latest (2026-09-14, last): C++ at lane A and its oracle — ADR-113,
-   0.2.18-beta; wired, not supported.** Max: "add c++ as a supported
-   language through the typical language addition flow". Decided in
-   ADR-113 (three units: lane A, lane B, the oracle; then two cells and
-   the row), then units 1 and 3 dispatched **in parallel from one
-   parent** (`7a805de`), both on Opus 5, both gate right-clear, verify
-   pass, merged not squashed (`3030ac7`, `1f81412`):
-   - **`3d56`, lane A** (142 of 200 turns, 28 min, $18.67):
-     `extract/cppsource.py` on `csource`'s contract; the `.h` claim;
-     the `cpp` tail bucket with a row-language override on both sides
-     of the drift test; `fixtures/minicpp`. Nine deviations, all the
-     grammar's, in its log.
-   - **`a848`, O10** (139 of 200 turns, 25 min, $16.08): the C oracle's
-     C++ face — member, operator, constructor, virtual sites; the
-     mangled-name merge; `oracle c-clang --lang cpp`; `cppclang`
-     hand-keyed at 25 sites. Oracle-grading.md §7d.
-   - **The cost:** $34.75 for two of three units against my "about $20
-     for three". Max hit his usage limit mid-run (the sessions finished
-     on their own; only my waiting loop was cut). **Unit 2's budget is
-     Max's call before it is dispatched.**
-   - **The host read on fmtlib/fmt** (`~/.hobbes/bench/cpp-cells/fmt`,
-     ingested): 73 C++ files, 3,660 symbols, 645 gtest tests, 2,992
-     semantic + 299 syntactic call edges — lane B reaches C++ already
-     wherever a root has a C file, since the derived database names
-     every unit. Two findings, registered: every macro-spelled header
-     parses with ERROR nodes (C-145); an overload set trips C's
-     duplicate rule, so only the first overload is a symbol and lane
-     B's answers to the rest fall below the floor — 7,628 below-floor
-     sites on fmt (C-144, **unit 2's first defect**).
-   - **Register:** C-142–C-147 in `constraints/extraction-cpp.md`;
-     C-132 narrowed. 147 entries: 105 active (82 surfaced, 19 partial,
-     3 unsurfaced, 1 n/a).
-   - **The draw for the second cell is made and recorded**
-     (`~/.hobbes/bench/cpp-cells/draw.json`, §7d): Taywee/args at
-     `903b07df`, the seventh in the shuffled order; six passed over
-     with reasons. fmt at `3a0661d7` is the chosen cell (52 compile
-     entries offline). Both clones are under `cpp-cells/`.
+0. **Latest (2026-09-14, after the release): C++'s lane B — ADR-113 §2
+   amended, 0.2.19-beta; wired, not supported.** Max: "review top level
+   documentation and proceed with the c++ development"; unit 2's budget,
+   asked as a route: "One unit, 150 turns".
+   - **Measured first, no spend** (the amendment's evidence, `e7b117e`):
+     `minicpp` through the C route (a stub `.c`), and the raw scip-clang
+     index read with the helper's own deserializer. Every shape
+     resolved, with 0 disagreements. The outcome: one decode rule (a
+     constructor over its class at one site), one wording (namespaces),
+     the calls-to-type guard for C++, and C-144's `~n`.
+   - **`be34`** (114 of 150 turns, 13.5 min, $10.84, Opus 5): gate
+     right-clear, verify pass; merged `cecb025`, not squashed. On the
+     host, both `lane_b` tests pass and the scip node suite is 53/53.
+     After the merge, the build disclosure's language word was fixed,
+     with a test.
+   - **The fmt read:** below-floor went from 7,628 to 7,357. A
+     diagnostic put 6,896 of 7,376 below-floor facts in files that
+     parsed with errors, with no lane A symbol near. It is scratch: wrap
+     `scipsource.project` and record `def_file`/`def_line` wherever
+     `starting_at` is None. **C-145 is fmt's recall cost, not C-144**
+     (C-144 is lifted). Expect fmt's cell recall to be low; precision is
+     what the row rests on.
+   - **Register:** C-144 lifted. 147 entries: 104 active (81 surfaced,
+     19 partial, 3 unsurfaced, 1 n/a), 26 lifted.
    - **Remaining, in order:**
-     1. **Unit 2 — lane B deliberate for C++** (one dispatch; ADR-113
-        §2, amended first with C-144's fix): a C++-only root joins
-        `c_units` and the C plan (`scipsource.py`, `containment.py`'s
-        `"cpp": "index-c"`, the helper's `cpp` alias); **overload
-        symbol ids** (qualname plus signature or line, so every
-        overload is a symbol and the duplicate record fires only on
-        same-signature duplicates — `csource._dedupe_symbols`'s C++
-        face); the decode measured on `minicpp` (each moniker shape
-        read against the fixture; any mis-named shape gets its rule
-        beside ADR-109's). Patch 0.2.19-beta. Task file to write under
-        `~/.hobbes/bench/cpp-drivers/lane-b-task.md`; the two earlier
-        task files there are the pattern.
-     2. **The cells**, host-run, contained: `oracle c-clang --lang cpp`
-        on fmt (module `.`) and on args; `oracle grade`; every
-        contradiction read; records in `docs/oracle/cells/`; the
-        poison check.
-     3. **The row:** `VERIFICATION_BASE["cpp"]`, §3.8's C++ row,
+     1. **The cells**, host-run and contained, on fmt (module `.`;
+        `~/.hobbes/bench/cpp-cells/fmt` at `3a0661d7`, 52 compile
+        entries offline) and on Taywee/args (`cpp-cells/draw-args` at
+        `903b07df`):
+        - build `oracle` from the tree first;
+        - run `oracle c-clang --lang cpp`, then `oracle grade`;
+        - read every contradiction;
+        - write the records in `docs/oracle/cells/`;
+        - run the poison check.
+
+        fmt's `.hobbes/derived/` was last written by the branch code
+        (`f3868fd`), so re-ingest it at HEAD before grading.
+     2. **The row:** `VERIFICATION_BASE["cpp"]`, §3.8's C++ row,
         `extraction-evidence.md`, C-132's remainder, README/CLAUDE.md's
         language lines. The patch that makes C++ *supported*.
-   - Task files: `~/.hobbes/bench/cpp-drivers/{lane-a,oracle}-task.md`
-     with their partitions. **The tracker** reads 26 of 40, 4 areas, 0
-     false blocks, 0 missed. Binaries and the image rebuilt at
-     0.2.18-beta; **restart the knowledge server** the next session
-     opens with (C-65).
+   - Task file: `~/.hobbes/bench/cpp-drivers/lane-b-task.md`, with its
+     partition and the dispatch log beside it. **The tracker** reads 27
+     of 40, 4 areas, 0 false blocks, 0 missed. Binaries and the image
+     rebuilt at 0.2.19-beta; **restart the knowledge server** the next
+     session opens with (C-65).
+0f. **Before it (2026-09-14, last): C++ at lane A and its oracle —
+   ADR-113, 0.2.18-beta.** Units 1 and 3 ran in parallel from `7a805de`
+   on Opus 5, both gate right-clear:
+   - `3d56`: lane A, 142 turns, $18.67; merged `3030ac7`.
+   - `a848`: O10, 139 turns, $16.08; merged `1f81412`.
+
+   The draw for the second cell is Taywee/args
+   (`~/.hobbes/bench/cpp-cells/draw.json`, §7d). Task files:
+   `~/.hobbes/bench/cpp-drivers/{lane-a,oracle}-task.md`.
 0e. **Before it (2026-09-14): the doer's model named per checkout —
    ADR-107 amended, 0.2.17-beta.** Max: "proceed with the staleness
    fixes and re-ingest, also id like to setup this space where
@@ -340,7 +332,7 @@ The session's record is the 2026-09-14 BUILDLOG entry.
      (twenty-six so far):
      - extraction: C's lane A and its rework, the external veto, C-139,
        C-134's registrations, C-133's include record, C-135's
-       compile-database check, C++'s lane A;
+       compile-database check, C++'s lane A, C++'s lane B;
      - the knowledge tools: the `path` alias, the language tables, the
        directory rollup;
      - the harness and sandbox: the progress hook, the containment, D-r,
@@ -445,7 +437,7 @@ assumed of $25:
     session's sidecar, `hobbes-side-<id>`; the doer's container mounts
     only `in/`, read-only, and its HOME is a tmpfs, so nothing of the
     doer's state reaches the host (retention by construction). The log
-    file is under `docs/calvin/sessions/` (twenty-six, of the 40 that
+    file is under `docs/calvin/sessions/` (twenty-seven, of the 40 that
     validate the harness; the tracker counts them).
   - **Task files** are kept off the tree:
     `~/.hobbes/bench/adr111-drivers/{hook,veto}-task.md`, and each
@@ -462,13 +454,14 @@ assumed of $25:
 - **TTT:** the Modal apps `hobbes-ttt` and `hobbes-ttt-cell` are
   deployed and idle; the volume `hobbes-ttt` holds the adapters,
   corpora, units and runs.
-- **Register:** 147 entries: 105 active (82 surfaced, 19 partial, 3
-  unsurfaced, 1 n/a), 25 lifted, 11 superseded, 6 folded. C-142–C-147
-  registered 2026-09-14 (`extraction-cpp.md`); C-132 narrowed; the
+- **Register:** 147 entries: 104 active (81 surfaced, 19 partial, 3
+  unsurfaced, 1 n/a), 26 lifted, 11 superseded, 6 folded. C-142–C-147
+  registered 2026-09-14 (`extraction-cpp.md`); C-144 lifted the same
+  day (0.2.19-beta); C-132 narrowed; the
   dispatch harness's five entries in `dispatch-harness.md`; C-120
   folded into C-112.
-- **Suites** at 0.2.18-beta:
-  - 1,584 pytest (host); 47 scip node (host, not re-run: nothing it covers changed);
+- **Suites** at 0.2.19-beta:
+  - 1,600 pytest (host, 6 `lane_b`); 53 scip node (host);
   - Go 386 `--- PASS`/`SKIP` lines (385 pass, 1 skip; subtests
     counted), with the four live launcher tests run on the host;
   - oracle-lane Go on `main` after `a848`'s merge: 95 pass / 5 skip
@@ -479,8 +472,8 @@ assumed of $25:
 
 ## NEXT (in order; no API spend)
 
-1. **C++'s remainder** (START HERE item 0): unit 2 once Max names its
-   budget, then the two cells, then the row.
+1. **C++'s remainder** (START HERE item 0): the two cells, then the
+   row.
 2. **Keep dispatching named no-spend work through the harness,** one
    unit per brief, toward 40 across at least three areas:
    - C's residue (W1): C-135's autotools,

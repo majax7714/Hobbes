@@ -229,6 +229,20 @@ class TestRootLanguage:
         assert "2 C and C++ file(s) under 'mixed'" in records["mixed"]
         assert "1 C file(s) under 'plain'" in records["plain"]
 
+    def test_the_build_disclosure_names_the_languages_its_roots_hold(self, tmp_path, monkeypatch, lane_b_on, capsys):
+        # C-29's disclosure prints once per run: a C++ project must not be
+        # told its build logic runs for "c semantics".
+        cpp_repo = tmp_path / "cpp"
+        write(cpp_repo, "Makefile")
+        write(cpp_repo, "src/a.cpp")
+        self._configs(cpp_repo, monkeypatch, ["src/a.cpp"], ["src/a.cpp"])
+        assert "NOTE: c++ semantics:" in capsys.readouterr().err
+        c_repo = tmp_path / "c"
+        write(c_repo, "Makefile")
+        write(c_repo, "src/a.c")
+        self._configs(c_repo, monkeypatch, ["src/a.c"], [])
+        assert "NOTE: c semantics:" in capsys.readouterr().err
+
 
 @pytest.mark.lane_b
 def test_minic_gets_semantic_c_edges_through_bear_over_its_makefile():

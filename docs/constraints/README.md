@@ -151,21 +151,27 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and forty-seven entries: one hundred and five active, twenty-five lifted, eleven superseded, six folded**
+**One hundred and forty-seven entries: one hundred and four active, twenty-six lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 82 | every active entry not listed below |
+| active — surfaced | 81 | every active entry not listed below |
 | active — *partial* | 19 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
-| lifted | 25 | at the bottom of each segment |
+| lifted | 26 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
 | folded | 6 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28, C-120 → C-112 |
 
 The table is the register's current state (2026-09-14), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+ADR-113 unit 2 on 2026-09-14 (0.2.19-beta), C++ at lane B:
+- C-144 lifted: every overload is a symbol (`~n`), and the duplicate
+  record fires only on a same-signature repeat. C-143 and C-145 are
+  restated with lane B in; C-145 now carries fmt's measured below-floor
+  cost (6,896 of 7,376 facts).
 
 ADR-113 unit 1 on 2026-09-14 (0.2.18-beta), C++ at lane A:
 - C-142–C-147 registered in a new segment, `extraction-cpp.md`: the

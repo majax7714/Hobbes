@@ -322,6 +322,17 @@ commit is the patch that makes C++ *supported*.
     C-132 narrowed. **Version:** 0.2.18-beta. **The draw** for the
     second cell was made and recorded (§7d of oracle-grading.md):
     Taywee/args.
-- **Remaining:** unit 2 (lane B deliberate for C++-only roots, the
-  overload symbol ids and the duplicate record's wording, the decode
-  measured on `minicpp`), then the two cells and the §3.8 row.
+- **2026-09-14 — unit 2 (lane B) landed,** after §2's amendment
+  (`e7b117e`), on Max's budget of one unit at 150 turns.
+  **`S-20260915T001249Z-be34`** (114 of 150 turns, 13.5 min, $10.84,
+  Opus 5): §2 as amended; gate clear (11 files), verify pass (837
+  tests, 0 regressions). Four deviations, none of them the design's.
+  On the host, both `lane_b` tests pass and the scip node suite is
+  53/53. Merged `cecb025`; the build disclosure's language word was
+  fixed after the merge. **The fmt read after:** below-floor went from
+  7,628 to 7,357. 6,896 of 7,376 below-floor facts point into files
+  that parsed with errors and have no lane A symbol near: C-145's cost,
+  not C-144's. **Register:** C-144 lifted; C-143 and C-145 restated.
+  **Version:** 0.2.19-beta.
+- **Remaining:** the two cells (fmt, then Taywee/args) and the §3.8
+  row.

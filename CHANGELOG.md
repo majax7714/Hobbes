@@ -11,9 +11,47 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.18-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.19-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.19-beta — 2026-09-14 (C++ at lane B, deliberate; every overload a symbol; ADR-113 §2)
+
+**Patch: what the layer draws.** C++ is still *wired, not supported*:
+the two oracle cells and the §3.8 row come next.
+
+- **Lane B for every C++ build root** (ADR-113 §2, amended with a
+  measurement on `minicpp` before the unit). C and C++ files go to
+  scip-clang as one set, so a mixed root is one index. A root holding
+  any C++ file (one of the six extensions, or a `.h` the C++ layer
+  claimed) is a C++ root. It uses the helper's `cpp` language, which is
+  C's indexer spec, plan and decode rules, with stage `scip-cpp`, the
+  `index-c` containment profile, and records and a build disclosure that
+  say C++. A C-only root is unchanged, byte for byte.
+- **A construction draws the constructor.** scip-clang answers
+  `Circle c(3)` and `new Circle(1)` with the class and its constructor
+  under one name, and both the join and C's one-target rule picked the
+  class. The helper now drops the class there (C++ only). A
+  construction whose constructor is implicit keeps the type alone. The
+  projection's calls-to-type guard (Go's conversions, Rust's tuple
+  structs) now covers C++ definitions, so such an edge is `uses`, never
+  `calls`.
+- **Every overload is a symbol** (C-144, lifted). A later definition of
+  a qualname with different parameters takes `~2`, `~3`, …, Java's
+  convention. A repeat with the same parameters is still C's duplicate,
+  and its `parse` record now names preprocessor alternatives only. The
+  fallback is unchanged: an overload set is still a tie.
+- **The duplicate-moniker record** names C++'s namespaces (scip-clang
+  declares one from every file that opens it) beside C's statics.
+- **Measured on fmt after the merge:** below-floor sites went from
+  7,628 to 7,357, so overloads were a small part of them. A diagnostic
+  places 6,896 of 7,376 below-floor facts on definitions in files that
+  parsed with errors and have no lane A symbol near. That is C-145's
+  cost (the vendored `gtest.h` alone accounts for 3,375), now stated in
+  its entry.
+- **Built through the harness:** `S-20260915T001249Z-be34` (114 of 150
+  turns, 13.5 min; $10.84 reported). Gate clear and verify pass; merged
+  without squashing.
 
 ## 0.2.18-beta — 2026-09-14 (C++ at lane A, wired, not supported; ADR-113)
 

@@ -10563,3 +10563,67 @@ C++-only root, the overload symbol ids and the duplicate record's
 wording, the decode measured on `minicpp` — once Max names its budget;
 then the two cells (fmt, args) host-run and contained; then the §3.8
 row, the patch that makes C++ *supported*.
+
+## 2026-09-14 — (after the release) C++'s lane B through the harness: ADR-113 §2 amended, then `be34` — 0.2.19-beta
+
+**Asked (Max):** "review top level documentation and proceed with the
+c++ development"; then, asked as a route, unit 2's budget: "One unit,
+150 turns".
+
+- **The top-level review:** the README, CLAUDE.md, the CHANGELOG and
+  the architecture's §8 agreed on 0.2.18-beta, and the knowledge server
+  was current. One stale line surfaced later, during the bump: the
+  README's register count (141 entries, five folded), fixed to 147.
+- **Measured before the unit, no spend:**
+  - **Method:** a `minicpp` copy with a stub `.c` (fmt's route) was
+    ingested contained. The raw scip-clang index was built in the image
+    (bear and make, offline; 3 units, 0 errored) and read with the
+    helper's own deserializer (a scratch `read_scip.mjs`).
+  - **Result:** every C++ shape resolved; 8 sites compared, 0
+    disagreements.
+  - **Finding 1:** a construction site carries the class and its
+    constructor under one name. The join's nearest-column pick and C's
+    one-target rule both chose the class, so every construction edge
+    was drawn to the type, where O10 keys the constructor.
+  - **Finding 2:** scip-clang declares a namespace from every file that
+    opens it, and the record worded that as C's statics.
+  - **ADR-113 §2 amended** (`e7b117e`): one decode rule, one wording,
+    the calls-to-type guard extended, C-144's fix (Java's `~n`), and
+    each root's language.
+- **`S-20260915T001249Z-be34`** (114 of 150 turns, 13.5 min, $10.84,
+  Opus 5; first edit at 4.4 min):
+  - gate clear (11 files); verify pass (837, 0 regressions);
+  - four deviations, none of the design's (one was the task's own: it
+    named a test file that does not exist);
+  - six escalations expired (a `cat` loop, `g++ -fsyntax-only` twice);
+  - on the host, both `lane_b` tests pass and the scip node suite is
+    53/53;
+  - merged `cecb025`;
+  - after the merge, the build disclosure said "c" for a C++-only root
+    (the doer's own note); fixed with a test.
+- **The fmt read after the merge** (branch code, contained):
+  - below-floor went from 7,628 to 7,357, and call edges from 3,291 to
+    3,308;
+  - a scratch diagnostic (`below_floor.py`, wrapping `project`) placed
+    6,896 of 7,376 below-floor facts on definitions in files that
+    parsed with errors and have no lane A symbol near: 3,375 in the
+    vendored `gtest.h`, 2,398 in `format.h`;
+  - so the 0.2.18-beta record's attribution of all 7,628 to C-144 was
+    wrong. Overloads were about 271, and C-145 now carries the cost.
+- **Register:** C-144 lifted (the residue: signatures compared as text;
+  `~n` in source order). C-143 and C-145 restated. 147 entries: 104
+  active (81 surfaced, 19 partial, 3 unsurfaced, 1 n/a), 26 lifted.
+- **Version 0.2.19-beta:** the copies and locks, the CHANGELOG, the
+  README (and its stale register count), the architecture (§3.7's C++
+  paragraph, §8), CLAUDE.md, the harness doc, ADR-113's record and the
+  handoff. pytest 1,600 (6 `lane_b`) and scip node 53. The binaries,
+  the static proxy and the image rebuilt (C-65).
+- **The tracker** reads 27 of 40, 4 areas, 0 false blocks, 0 missed.
+  **Task file:** `~/.hobbes/bench/cpp-drivers/lane-b-task.md` with its
+  partition.
+
+**Remaining:** the two cells. For fmt (module `.`) and Taywee/args:
+`oracle c-clang --lang cpp`, then `oracle grade`, every contradiction
+read, records in `docs/oracle/cells/`, and the poison check. Then the
+§3.8 row, the patch that makes C++ *supported*. Expect fmt's recall to
+carry C-145's cost.
