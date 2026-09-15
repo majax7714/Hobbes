@@ -83,7 +83,7 @@ FILE_RE = re.compile(r"`([^`]+)`")
 
 GATE_RE = re.compile(
     r"^- \*\*Gate:\*\* \*\*(?P<verdict>clear|blocked)\*\* at `[0-9a-f]+` "
-    r"\(gate v2, grounder v3, record `[0-9a-f]+`\); unknown \d+; "
+    r"\(gate v2, grounder v3, record `[0-9a-f]+`\)(?: — blocking: [\w, -]+)?; unknown \d+; "
     r"map over \d+ file\(s\), [\d.]+% of their lines uncaptured; partition checked$"
 )
 

@@ -160,6 +160,20 @@ def test_a_doer_line_naming_its_model_parses(tmp_path):
     assert (rec["turns_num"], rec["turns_den"], rec["cost"]) == (22, 60, 1.1112)
 
 
+def test_a_blocked_gate_line_naming_its_classes_parses(tmp_path):
+    """A Gate line the gate blocked (`**blocked** … — blocking: near-miss; …`, the shape `f3c1` first wrote) parses, with its verdict; the row it names on the next line does not break the parse."""
+    sid = "S-20260101T000000Z-f3c1"
+    _write_session(tmp_path, sid)
+    path = tmp_path / f"{sid}.md"
+    clear = ("- **Gate:** **clear** at `deadbeef` (gate v2, grounder v3, record `cafef00d`); unknown 0; "
+             "map over 2 file(s), 0.0% of their lines uncaptured; partition checked")
+    blocked = ("- **Gate:** **blocked** at `deadbeef` (gate v2, grounder v3, record `cafef00d`) — blocking: near-miss; "
+               "unknown 0; map over 2 file(s), 0.0% of their lines uncaptured; partition checked\n"
+               "  - `near-miss` scip/index.mjs:264 `check`")
+    path.write_text(path.read_text().replace(clear, blocked))
+    assert ct.parse_session(path)["gate"] == "blocked"
+
+
 def test_policy_line_with_the_stream_bracket_parses(tmp_path):
     """A Policy line carrying the sink's bracket (`; records: stream opened→closed`, ADR-112) parses, with and without an escalation clause before it; the kinds still count."""
     sid = "S-20260101T000000Z-beef"
