@@ -53,6 +53,34 @@ throwaway container from the image) found:
      version stated, its tier `semantic`, not a language server, and
      its output (SCIP) decoded by the helper.
    - It is x86_64 only, as the image already is.
+   - **One translation unit per run** (amended 2026-09-15, Max's route
+     for C-149). scip-clang indexes a header that many units share once,
+     in whichever unit claims it first, and that varies by run. So a
+     reference whose answer depends on the unit came and went: three
+     cJSON ingests at one commit drew 2,630, 2,615 and 2,621 edges.
+     After the derived database passes C-135's check, the helper
+     therefore writes it out as one-entry databases and runs scip-clang
+     once per entry (`-j 1`, at most the box's parallelism at a time).
+     It decodes the units' indexes as one, concatenated in database
+     order, with the order-independent rules this record and ADR-113
+     §2 already hold: a site answered into different files is dropped
+     (tu-split), same-file answers take the smallest line, and C++
+     abstains on a moniker one file defines at several lines. A unit
+     whose run fails is counted in a `scip-decode` record, and the
+     others stand.
+     - Measured on fmt (52 units): 9–10 s at 6 in parallel, against 8 s
+       for one whole-database run. The merged decode repeats between
+       two passes: 64,667 references, identical. Against a
+       whole-database run, 27 and 237 references differ, all
+       `FMT_BUILTIN`, a macro in two `#if` arms that the merge sees both
+       of and answers at the smallest line. tu-split rises from 320 to
+       326 sites.
+     - What stays: 13 of 13,739 external sites (`size_t`, `ptrdiff_t`
+       type references) differ between passes even per unit. They are
+       scip-clang's own, and move no edge.
+     - The decode's two `references.push(...kept)` overflow the stack
+       at the merged size (484,201 references before reduction). They
+       become loops.
 2. **The compile database is derived, in this order** (Max), per build
    root. A root is the outermost directory holding a `CMakeLists.txt`,
    or, with none on the path, the outermost holding a Makefile. A root
