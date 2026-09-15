@@ -713,6 +713,47 @@ that triage attributes mostly to match-defect means the conventions
 any number is quoted. A draw whose compile database cannot be derived
 is C-135 measured, not a cell.
 
+### 10.6 C++ — written 2026-09-15, before args ran (fmt already graded)
+
+**Stated first: fmt was graded before this section existed.** ADR-113
+named the two cells, and no prediction was committed for either. The
+fmt cell ran on 2026-09-15 at 0.2.21-beta before that gap was seen, so
+its numbers stand in its record as measured, never as predictions met or
+missed. This section was written after reading fmt's first grade and
+before Taywee/args ran, and its args predictions carry what fmt showed.
+
+**Priors.**
+- `cppclang` lands its 25 hand-keyed sites (`cpp_test.go`, `a848`).
+  `minicpp`'s lane B matched scip-clang at 8 of 8 compared sites
+  (ADR-113 §2).
+- fmt's first grade, before triage: precision-against-oracle 96.1%
+  (3,439/3,577), the semantic tier 3,331/3,395 and the syntactic
+  108/182; recall 15.5%.
+- The first read of fmt's 138 contradictions names three Hobbes
+  mechanisms:
+  - C's one-target-per-site rule keeping the smallest line where a
+    site's references name several overloads of one file (40 semantic
+    rows);
+  - C's own-file rule meeting class-template specialisations that share
+    a moniker across files (4);
+  - lane A's name fallback reaching a namespace member (`test::close`)
+    at a site where lane B's index carries no occurrence, so the
+    external veto has nothing to fire on.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P26 | O10 (`cppclang`) | the fixture lands its hand-keyed truth exactly | met if `cpp_test.go` passes as written. It did at `a848`, before this section: recorded, not predicted |
+| P27 | O10 (args, the draw) | semantic precision ≥ 98% and below 100%: `args.hxx` is one template-heavy header, so the smallest-line collapse over overloads appears there too, and ≥ 50% of the semantic contradictions are a later overload of the same name in the same file | graded after triage |
+| P28 | O10 (args) | every syntactic contradiction sits at a site where lane B carries no occurrence of that name | met if the join's inputs say so row by row |
+| P29 | O10 (args) | recall is dominated by `static→method` and `static→constructor` misses (C-145, C-146, the implicit-construction guard): together ≥ 60% of misses | met if the miss decomposition says so |
+| P30 | O10 (every C++ cell) | poison check PASS, 0 falsely confirmed | met per cell |
+| P31 | O10 | at least one defect of the oracle-at-another-grain class is found in args' first triage before its numbers are quoted (P14's habit) | recorded regardless |
+
+**What the row rests on.** A mechanism the triage charges to Hobbes on
+the semantic tier is registered in the same commit as its cell. Whether
+it is fixed before the §3.8 row lands, or the row states it, is the
+lead's call.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
