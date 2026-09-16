@@ -1094,6 +1094,14 @@ suite lands on.
   states the P11 scope of the containment guarantee, and
   `list_blind_spots` names an artifact whose lane B ran uncontained
   (the `containment` stamp in `graph.json`, C-64).
+  **The store decodes an artifact once per version of its file
+  (ADR-118, 0.2.30-beta):** every answer used to re-read and re-decode
+  the whole of `graph.json` and scan every edge; the store now keeps
+  the decoded document with the file's size and modification time,
+  re-checks both on every call, reloads on a change, and indexes
+  module and symbol edges by endpoint in the artifact's order. A
+  missing file is reported, never served from memory. Answers are
+  unchanged.
 
 ---
 
@@ -1695,7 +1703,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.29-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.29-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.30-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.30-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

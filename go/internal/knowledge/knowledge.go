@@ -1,10 +1,16 @@
 // Package knowledge answers the knowledge-layer queries (architecture
 // §6, ADR-017) from a repo's derived artifacts: graph_neighborhood,
 // who_calls, and tests_guarding over the extracted skeleton, and
-// get_module_doc over the M5 narrative artifacts (ADR-019), read fresh
-// from .hobbes/derived/ on every call. Answers are agent-facing text
-// with file:line provenance and a visible staleness header (P1) — this
-// package never writes.
+// get_module_doc over the M5 narrative artifacts (ADR-019). Answers are
+// agent-facing text with file:line provenance and a visible staleness
+// header (P1) — this package never writes.
+//
+// The graph and the test map are decoded once and served until their
+// file changes (ADR-118): every answer used to re-read and re-decode the
+// whole artifact — 8 MB on this repo, 980 MB on ScummVM — and scan every
+// edge. The store keeps the decoded document with the file's size and
+// modification time, re-checks both on every call, and reloads when
+// either moves; a missing file is reported, never served from memory.
 package knowledge
 
 import (
@@ -17,19 +23,149 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/majax7714/Hobbes/go/internal/derived"
 )
 
-// Store reads one repo's derived artifacts.
+// Store reads one repo's derived artifacts, decoding each once per
+// version of its file (ADR-118).
 type Store struct {
 	repoRoot string
+
+	mu    sync.Mutex
+	graph *cachedGraph
+	tests *cachedTests
 }
 
 // Open returns a Store for the repo. No I/O happens until a query.
 func Open(repoRoot string) *Store { return &Store{repoRoot: repoRoot} }
+
+// readArtifact reads an artifact's bytes; a test swaps it to count reads.
+var readArtifact = os.ReadFile
+
+// fileStamp is what decides whether a cached artifact is still the file
+// on disk: an ingest rewrites the file, which moves its modification
+// time and, almost always, its size. Both are compared on every call.
+type fileStamp struct {
+	modTime time.Time
+	size    int64
+}
+
+type cachedGraph struct {
+	stamp fileStamp
+	doc   *graphDoc
+	idx   *graphIndex
+}
+
+type cachedTests struct {
+	stamp fileStamp
+	doc   *testsDoc
+}
+
+// graphIndex is built once per decoded graph: edges by endpoint, as
+// positions into the document's own slices so an answer lists them in
+// the artifact's order, exactly as the scan it replaces did.
+type graphIndex struct {
+	nodeByID    map[string]int
+	nodeIDs     []string
+	symbolIDs   []string
+	symbolKnown map[string]bool
+	moduleFrom  map[string][]int
+	moduleTo    map[string][]int
+	symbolTo    map[string][]int
+}
+
+func indexGraph(g *graphDoc) *graphIndex {
+	idx := &graphIndex{
+		nodeByID:    make(map[string]int, len(g.Nodes)),
+		nodeIDs:     make([]string, len(g.Nodes)),
+		symbolIDs:   make([]string, len(g.Symbols)),
+		symbolKnown: make(map[string]bool, len(g.Symbols)),
+		moduleFrom:  map[string][]int{},
+		moduleTo:    map[string][]int{},
+		symbolTo:    map[string][]int{},
+	}
+	for i := range g.Nodes {
+		idx.nodeByID[g.Nodes[i].ID] = i
+		idx.nodeIDs[i] = g.Nodes[i].ID
+	}
+	for i := range g.Symbols {
+		idx.symbolIDs[i] = g.Symbols[i].ID
+		idx.symbolKnown[g.Symbols[i].ID] = true
+	}
+	for i := range g.ModuleEdges {
+		e := &g.ModuleEdges[i]
+		idx.moduleFrom[e.From] = append(idx.moduleFrom[e.From], i)
+		idx.moduleTo[e.To] = append(idx.moduleTo[e.To], i)
+	}
+	for i := range g.SymbolEdges {
+		e := &g.SymbolEdges[i]
+		idx.symbolTo[e.To] = append(idx.symbolTo[e.To], i)
+	}
+	return idx
+}
+
+// artifactStamp stats one artifact; a missing file is the one error
+// agents can fix themselves, so say how — and it is never served from
+// memory: an artifact that has gone is gone.
+func (s *Store) artifactStamp(name string) (fileStamp, error) {
+	path := filepath.Join(s.repoRoot, ".hobbes", "derived", name)
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fileStamp{}, fmt.Errorf("%s not found — run `hobbes ingest` first", path)
+	}
+	if err != nil {
+		return fileStamp{}, err
+	}
+	return fileStamp{modTime: info.ModTime(), size: info.Size()}, nil
+}
+
+// loadGraph returns the decoded graph and its index, decoding only when
+// graph.json has changed since the last call.
+func (s *Store) loadGraph() (*graphDoc, *graphIndex, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	stamp, err := s.artifactStamp("graph.json")
+	if err != nil {
+		s.graph = nil
+		return nil, nil, err
+	}
+	if s.graph != nil && s.graph.stamp == stamp {
+		return s.graph.doc, s.graph.idx, nil
+	}
+	var g graphDoc
+	if err := s.loadInto("graph.json", &g); err != nil {
+		s.graph = nil
+		return nil, nil, err
+	}
+	s.graph = &cachedGraph{stamp: stamp, doc: &g, idx: indexGraph(&g)}
+	return s.graph.doc, s.graph.idx, nil
+}
+
+// loadTests is loadGraph for tests.json.
+func (s *Store) loadTests() (*testsDoc, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	stamp, err := s.artifactStamp("tests.json")
+	if err != nil {
+		s.tests = nil
+		return nil, err
+	}
+	if s.tests != nil && s.tests.stamp == stamp {
+		return s.tests.doc, nil
+	}
+	var t testsDoc
+	if err := s.loadInto("tests.json", &t); err != nil {
+		s.tests = nil
+		return nil, err
+	}
+	s.tests = &cachedTests{stamp: stamp, doc: &t}
+	return s.tests.doc, nil
+}
 
 // evidence is a file:line citation on an edge.
 type evidence struct {
@@ -185,7 +321,7 @@ type testsDoc struct {
 // agents can fix themselves, so say how.
 func (s *Store) loadInto(name string, v any) error {
 	path := filepath.Join(s.repoRoot, ".hobbes", "derived", name)
-	data, err := os.ReadFile(path)
+	data, err := readArtifact(path)
 	if os.IsNotExist(err) {
 		return fmt.Errorf("%s not found — run `hobbes ingest` first", path)
 	}
@@ -264,20 +400,17 @@ func suggest(query string, ids []string) string {
 // Neighborhood answers graph_neighborhood(node): the node's kind, then
 // every module edge in and out, with types and provenance.
 func (s *Store) Neighborhood(nodeID string) (string, error) {
-	var g graphDoc
-	if err := s.loadInto("graph.json", &g); err != nil {
+	g, idx, err := s.loadGraph()
+	if err != nil {
 		return "", err
 	}
 	var b strings.Builder
 	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 
 	var found *node
-	ids := make([]string, len(g.Nodes))
-	for i := range g.Nodes {
-		ids[i] = g.Nodes[i].ID
-		if g.Nodes[i].ID == nodeID {
-			found = &g.Nodes[i]
-		}
+	ids := idx.nodeIDs
+	if i, ok := idx.nodeByID[nodeID]; ok {
+		found = &g.Nodes[i]
 	}
 	if found == nil {
 		// ADR-073: the planner's map lists "`id` — path"; a 7B passes the
@@ -299,23 +432,21 @@ func (s *Store) Neighborhood(nodeID string) (string, error) {
 	b.WriteString(")\n")
 
 	out, in := 0, 0
-	for _, e := range g.ModuleEdges {
-		if e.From == nodeID {
-			if out == 0 {
-				b.WriteString("outgoing:\n")
-			}
-			out++
-			b.WriteString(fmt.Sprintf("  -%s-> %s%s\n", e.Type, e.To, e.cite()))
+	for _, i := range idx.moduleFrom[nodeID] {
+		e := g.ModuleEdges[i]
+		if out == 0 {
+			b.WriteString("outgoing:\n")
 		}
+		out++
+		b.WriteString(fmt.Sprintf("  -%s-> %s%s\n", e.Type, e.To, e.cite()))
 	}
-	for _, e := range g.ModuleEdges {
-		if e.To == nodeID {
-			if in == 0 {
-				b.WriteString("incoming:\n")
-			}
-			in++
-			b.WriteString(fmt.Sprintf("  <-%s- %s%s\n", e.Type, e.From, e.cite()))
+	for _, i := range idx.moduleTo[nodeID] {
+		e := g.ModuleEdges[i]
+		if in == 0 {
+			b.WriteString("incoming:\n")
 		}
+		in++
+		b.WriteString(fmt.Sprintf("  <-%s- %s%s\n", e.Type, e.From, e.cite()))
 	}
 	if out+in == 0 {
 		b.WriteString("no module edges touch this node\n")
@@ -339,8 +470,8 @@ func (s *Store) Neighborhood(nodeID string) (string, error) {
 // asking who calls this usually also wants to know who else names it, and
 // silently discarding a true edge is its own kind of dishonesty (P8).
 func (s *Store) WhoCalls(symbolID string) (string, error) {
-	var g graphDoc
-	if err := s.loadInto("graph.json", &g); err != nil {
+	g, idx, err := s.loadGraph()
+	if err != nil {
 		return "", err
 	}
 	var b strings.Builder
@@ -348,10 +479,8 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 
 	callers, users := 0, 0
 	var uses strings.Builder
-	for _, e := range g.SymbolEdges {
-		if e.To != symbolID {
-			continue
-		}
+	for _, i := range idx.symbolTo[symbolID] {
+		e := g.SymbolEdges[i]
 		switch e.Type {
 		case "calls":
 			if callers == 0 {
@@ -379,13 +508,8 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		return b.String(), nil
 	}
 
-	ids := make([]string, len(g.Symbols))
-	known := false
-	for i, sym := range g.Symbols {
-		ids[i] = sym.ID
-		known = known || sym.ID == symbolID
-	}
-	if known {
+	ids := idx.symbolIDs
+	if idx.symbolKnown[symbolID] {
 		b.WriteString(fmt.Sprintf("no recorded callers of %s (static call edges only — dynamic dispatch is not traced)\n", symbolID))
 	} else {
 		b.WriteString(fmt.Sprintf("no symbol %q in the graph\n", symbolID))
@@ -398,12 +522,12 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 // id or a path (file or directory prefix): the tests that statically
 // reach it.
 func (s *Store) TestsGuarding(target string) (string, error) {
-	var g graphDoc
-	if err := s.loadInto("graph.json", &g); err != nil {
+	g, _, err := s.loadGraph()
+	if err != nil {
 		return "", err
 	}
-	var t testsDoc
-	if err := s.loadInto("tests.json", &t); err != nil {
+	t, err := s.loadTests()
+	if err != nil {
 		return "", err
 	}
 	var b strings.Builder
@@ -465,7 +589,7 @@ var callableKinds = map[string]bool{"function": true, "method": true, "class": t
 // could reach: no symbol of a callable kind and no recorded call into any
 // symbol they declare (C-156). The pipeline's value_only_modules is the
 // same rule; a const a call targets (a TS arrow) is callable.
-func valueOnly(g graphDoc, want map[string]bool) []string {
+func valueOnly(g *graphDoc, want map[string]bool) []string {
 	reachable := map[string]bool{}
 	moduleOf := map[string]string{}
 	for _, sym := range g.Symbols {
@@ -873,8 +997,8 @@ type containmentStep struct {
 // and verify itself. Scope is a repo-relative path prefix, "." for the
 // whole repo.
 func (s *Store) ListBlindSpots(scope string) (string, error) {
-	var g graphDoc
-	if err := s.loadInto("graph.json", &g); err != nil {
+	g, _, err := s.loadGraph()
+	if err != nil {
 		return "", err
 	}
 	prefix := scope

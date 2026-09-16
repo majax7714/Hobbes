@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.28-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.30-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.30-beta — 2026-09-16 (the knowledge store decodes an artifact once; ADR-118)
+
+**Patch: how the layer answers.** Every knowledge tool call re-read
+and re-decoded the whole of `graph.json` (and `tests.json` for
+`tests_guarding`), then scanned every edge: 8 MB per answer on this
+repo, 980 MB on ScummVM.
+
+- The store decodes each artifact once and serves it until the file's
+  size or modification time moves; a re-ingest is seen on the next
+  answer, and a removed artifact is reported, never served from memory.
+- Module and symbol edges are indexed by endpoint at decode time, in
+  the artifact's order, so every answer is byte-identical to the
+  scan's.
+- Rebuild the image and restart the knowledge server (C-65).
 
 ## 0.2.29-beta — 2026-09-16 (an unguarded module no call can reach says why; C-156)
 

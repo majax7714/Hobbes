@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/majax7714/Hobbes/go/internal/derived"
 )
@@ -1180,5 +1181,83 @@ func TestEveryGraphAnswerNamesWhichHobbesBuiltIt(t *testing.T) {
 	}
 	if strings.Contains(strings.SplitN(guard, "\n", 2)[0], "built by") {
 		t.Errorf("tests.json carries no builder stamp; header must not invent one:\n%s", guard)
+	}
+}
+
+// ADR-118: an artifact is decoded once per version of its file. Four
+// answers read graph.json once; a rewrite (what a re-ingest does) is
+// read on the next answer and reflected in it.
+func TestArtifactsDecodeOncePerFileVersion(t *testing.T) {
+	repo := fixtureRepo(t)
+	reads := 0
+	orig := readArtifact
+	readArtifact = func(p string) ([]byte, error) { reads++; return orig(p) }
+	defer func() { readArtifact = orig }()
+
+	s := Open(repo)
+	for i := 0; i < 3; i++ {
+		if _, err := s.WhoCalls("app.core.run"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.Neighborhood("app.core"); err != nil {
+		t.Fatal(err)
+	}
+	if reads != 1 {
+		t.Fatalf("graph.json read %d times for four answers; want 1", reads)
+	}
+
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any), map[string]any{
+		"from": "app.api.Config", "to": "app.core.run", "type": "calls", "tier": "semantic",
+		"evidence": []any{map[string]any{"path": "src/app/api.py", "line": 20}},
+	})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	later := time.Now().Add(2 * time.Second)
+	if err := os.Chtimes(path, later, later); err != nil {
+		t.Fatal(err)
+	}
+	answer, err := s.WhoCalls("app.core.run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads != 2 {
+		t.Fatalf("graph.json read %d times after a rewrite; want 2", reads)
+	}
+	if !strings.Contains(answer, "app.api.Config  [src/app/api.py:20]") {
+		t.Fatalf("the rewritten artifact's new edge is not in the answer:\n%s", answer)
+	}
+	if _, err := s.TestsGuarding("app.core"); err != nil {
+		t.Fatal(err)
+	}
+	if reads != 3 {
+		t.Fatalf("tests.json should have been read once more (reads=%d)", reads)
+	}
+}
+
+// A removed artifact is reported, never served from memory.
+func TestARemovedArtifactIsNotServedFromMemory(t *testing.T) {
+	repo := fixtureRepo(t)
+	s := Open(repo)
+	if _, err := s.WhoCalls("app.core.run"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(repo, ".hobbes", "derived", "graph.json")); err != nil {
+		t.Fatal(err)
+	}
+	_, err := s.WhoCalls("app.core.run")
+	if err == nil || !strings.Contains(err.Error(), "run `hobbes ingest`") {
+		t.Fatalf("a removed graph.json should say to ingest; got %v", err)
 	}
 }
