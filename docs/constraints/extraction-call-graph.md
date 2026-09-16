@@ -73,6 +73,29 @@
   short and give no reason.
 - **Source:** ADR-007. See also `future_additions.md` → test-reach trimming.
 
+### C-156 — A test that reads a value but calls nothing guards nothing
+- **Cannot tell you:** that a test guards a module whose behaviour is a
+  value (a constant, a package variable, a table) rather than a
+  function, when the test reads that value and calls nothing in the
+  module.
+- **Because:** reach is the closure over `calls` edges from the test
+  symbol, in every language's test map (ADR-007; `testmap.py` states
+  why `uses` edges are not followed: reach must not widen to code a
+  test merely names). A read of a constant is not a call, so a module
+  with no function a test calls cannot be reached, however directly the
+  test checks it.
+- **Bites at:** `go/internal/version` in this repo: its one test,
+  `TestVersionMatchesTheRootFile`, compares `version.Version` with the
+  root `VERSION` file and is recorded with `reaches: []`, so
+  `tests_guarding` answers "unguarded" and the graph job's review
+  reported the package as new code no test reaches (2026-09-09, the W0
+  item). The same holds for any constants-only module in any language.
+- **You find out:** **unsurfaced**: `tests_guarding` and `hobbes review`
+  say "no test reaches" with no reason, and the denominator statement
+  names C-4 but not this. This entry is the only statement.
+- **Source:** W0's "`go/internal/version` stays unguarded" item, traced
+  2026-09-16 to the rule in ADR-007.
+
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an
   f-string or a variable rather than a literal.

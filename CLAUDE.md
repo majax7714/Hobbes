@@ -281,8 +281,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   contradiction left is ours: 4 scip-clang's own (C-153) and 1 a call
   drawn in an unevaluated operand (C-155). All four of the oracle's own
   defects, H-28–H-31, were fixed that day).
-  **Register:** 155 entries; 112 active (85 surfaced, 21 partial, 5
-  unsurfaced, 1 n/a) — C-155 registered 2026-09-16 from H-31's trace.
+  **Register:** 156 entries; 113 active (85 surfaced, 21 partial, 6
+  unsurfaced, 1 n/a) — C-156 registered 2026-09-16 (reach follows calls
+  only, so a constants-only module reads unguarded; W0's version item).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes

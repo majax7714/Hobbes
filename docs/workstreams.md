@@ -88,7 +88,12 @@ build item.*
   from the last green run's commit, and fixture sources in trees the
   repo's runners exclude are not own code (C-154). The C++ fixtures
   turned the job red on `fdc7f07`; `go/internal/version` stays
-  unguarded, and is no longer new. The record as it stood:
+  unguarded, and is no longer new. **Traced 2026-09-16: C-156.** Its
+  test reads `version.Version` and calls nothing, and reach follows
+  `calls` edges only (ADR-007), so no test *can* reach a constants-only
+  module. It is not a missing test. Whether reach should count a read
+  is a design call (ADR-007 excluded `uses` on purpose). The record as
+  it stood:
 - **The graph job forgets a red review.** `ci-graph.sh` reviews
   `github.event.before..HEAD`, so an "unguarded new module" that fails
   one push is in the *base* of the next and never reported again:
