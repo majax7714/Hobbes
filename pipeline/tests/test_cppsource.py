@@ -376,6 +376,109 @@ class TestCallSites:
         # `Circle`, so lane B's occurrence will key on the same range.
         assert call["col"] == 22
 
+    def test_no_shape_of_unevaluated_operand_records_a_site_and_the_controls_do(self, tmp_path):
+        # Every context the grammar spells differently (ADR-121's table),
+        # one per line, then the two evaluated calls the drop must not
+        # reach — one of them on a line an unevaluated operand shares.
+        _write(tmp_path, {"a.cpp": (
+            "int f(int);\n"
+            "template <class T> struct H {};\n"
+            "int a = sizeof(f(1));\n"
+            "int b = sizeof f(1);\n"
+            "int c = alignof(decltype(f(1)));\n"
+            "H<decltype(f(1))> h;\n"
+            "auto g() -> decltype(f(1));\n"
+            "using A = decltype(f(1));\n"
+            "bool nb = noexcept(f(1));\n"
+            "void h2() noexcept(noexcept(f(1)));\n"
+            "template <class T> requires requires { f(1); } void t(T);\n"
+            "int y = f(2);\n"
+            "int x = f(3) + sizeof(f(1));\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(c["line"], c["name"]) for c in _calls(layer, "a.cpp")] == [
+            (12, "f"), (13, "f"),
+        ]
+
+    def test_noexcept_and_typeid_are_keywords_not_callees(self, tmp_path):
+        # The grammar spells both as a call of a bare identifier; only
+        # `typeid`'s operand is evaluated, so only its `f` is a site.
+        _write(tmp_path, {"a.cpp": (
+            "int f(int);\n"
+            "bool b = noexcept(f(1));\n"
+            "auto& t = typeid(f(1));\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(c["line"], c["name"]) for c in _calls(layer, "a.cpp")] == [(3, "f")]
+
+    def test_a_constant_expression_is_evaluated_and_keeps_its_sites(self, tmp_path):
+        # A `static_assert` and a `noexcept` *specifier*'s own condition are
+        # both evaluated — by the compiler, not at run time, but evaluated.
+        _write(tmp_path, {"a.cpp": (
+            "constexpr bool g() { return true; }\n"
+            'static_assert(g(), "");\n'
+            "void h() noexcept(g());\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(c["line"], c["name"]) for c in _calls(layer, "a.cpp")] == [
+            (2, "g"), (3, "g"),
+        ]
+
+    def test_a_construction_and_a_new_inside_a_decltype_record_nothing(self, tmp_path):
+        _write(tmp_path, {"a.cpp": (
+            "struct A { A(int); };\n"
+            "using D1 = decltype(A(1));\n"
+            "using D2 = decltype(new A(1));\n"
+            "A a(2);\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(c["line"], c["name"]) for c in _calls(layer, "a.cpp")] == [(4, "A")]
+
+    def test_lane_b_s_occurrence_at_a_dropped_site_is_a_use_and_not_a_call(
+        self, tmp_path, monkeypatch
+    ):
+        """ADR-121 §2, through the whole ingest: the reference is real — the
+        file needs `f`'s declaration to type-check — so it falls through as
+        a `uses` edge, as every resolution no syntax site claims does. Lane
+        B is hand-built here, as in :class:`TestTheWithheldFallback`."""
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {
+            "src/lib.h": "inline int f(int x) { return x; }\n",
+            "src/use.cpp": (
+                '#include "lib.h"\n'
+                "\n"
+                "int use() {\n"
+                "    return (int) sizeof(f(1));\n"
+                "}\n"
+            ),
+        })
+        facts = {
+            "language": "cpp",
+            "definitions": [],
+            # `f` at use.cpp:4, inside the `sizeof` — the column of `f`.
+            "references": [ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=4, col=24, name="f",
+                def_file="src/lib.h", def_line=1,
+            )],
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        graph = extract_repo(tmp_path).graph
+        at_site = [
+            edge for edge in graph["symbol_edges"]
+            if any(
+                (site["path"], site["line"]) == ("src/use.cpp", 4)
+                for site in edge["evidence"]
+            )
+        ]
+        assert [edge["type"] for edge in at_site] == ["uses"]
+        assert at_site[0]["tier"] == "semantic"
+        assert (at_site[0]["from"], at_site[0]["to"]) == ("src/use.use", "src/lib.h.f")
+
 
 class TestTheFallback:
     def test_the_unique_free_function_repo_wide_resolves(self, layer):
