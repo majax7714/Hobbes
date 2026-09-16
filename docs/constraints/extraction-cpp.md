@@ -277,17 +277,23 @@ survives. Field key: `README.md`, "How to read a lifted entry".
   - **An operand a macro spells** — `MACRO(f(x))` whose body is
     `decltype(…)` or `sizeof(…)` — is read as a call inside a macro
     argument, and drawn: the macro gap, C-131.
-  - **A `.h` C++ did not claim** is walked by C's provider, which has no
-    such rule (C-142's face); C's own `sizeof(f())` is unmeasured and
-    stands.
+  - **C's walk abstains too** (ADR-121 §1's amendment, 0.2.34-beta,
+    `S-20260916T231525Z-367f`): no site under a `sizeof` or `_Alignof`
+    operand, so a `.h` C++ did not claim (C-142's face) reads the same
+    rule under C's walk. C's residual is its own: C11 6.5.3.4 evaluates
+    a `sizeof` operand whose type is a variable-length array
+    (`sizeof(int[n()])` calls `n`), which the syntax cannot tell from any
+    other, so that call is dropped with the rest. 0 such sites on cJSON,
+    sqlite-vector and `minic`.
   - **A constant expression is not unevaluated** — `static_assert(g())`,
     a `noexcept` specifier's own condition, `alignas(N)` — and keeps its
     sites, as the compiler evaluates it and clang's dump holds it.
-  - **The oracle's own half**, H-32: clang's dump keeps the call under
-    `sizeof`, `noexcept` and `typeid`, and O10's reader recorded it as a
-    site, so the key held a site for a call the program never makes.
-    Decided in ADR-121 §3, built as the unit after this one; until it
-    lands, a repo that writes `sizeof(f(x))` reads those sites as key
-    pairs Hobbes misses.
+  - **The oracle's own half, H-32, is fixed** (`S-20260916T230256Z-5261`,
+    ADR-121 §3): O10's reader drops and counts a call under a `sizeof`,
+    `alignof`, `noexcept(..)` or requires-expression
+    (`sites_unevaluated` in coverage) and keeps `typeid`'s, the same list
+    as the lane's. On fmt the re-run key lost 6 sites, all `sizeof`
+    operands, and no judgement moved; the lane and its key now hold one
+    rule for what an unevaluated operand is.
 - **Source:** H-31's trace, 2026-09-16 (the concession); ADR-121 and
   `S-20260916T225041Z-d95c` (the lift).

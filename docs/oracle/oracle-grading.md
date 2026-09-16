@@ -1103,7 +1103,22 @@ keys are the standing ones, unchanged. Outputs in
   The key's `sites_*` are untouched, as predicted.
 - **P55 — met, in its strong form.** args' export is identical as a set
   (2,000 rows), 1,995/1,995, 5 silent, recall 56.4%, collapsed 63.1%.
-- **P56 — pending the oracle unit.**
+- **P56 — MISSED on the premise, met on the judgement.** After the
+  oracle unit (`fffadbd`) both keys re-ran contained (fmt 355 s, args
+  363 s; `~/.hobbes/bench/uneval-drivers/keys/`). args' key is identical
+  site for site (5,101). fmt's key lost **6 sites** (36,018 → 36,012),
+  every one read: `core.h:915` `sizeof(isalpha('x', loc))` (two
+  entries, the dynamic and the static), `os.h:380` `sizeof(data()[0])`,
+  `gmock-gtest-all.cc:3252` `sizeof(needle[0])`, `gtest.h:4352` and
+  `:4359` `sizeof(test<T>(…))` — all `sizeof` operands, which the
+  prediction said fmt had none of, written before ADR-121's corrected
+  count found 5 lane A sites under `sizeof` there. `sites_unevaluated`
+  reads 153 on fmt (a per-unit sum) and 0 on args. **No judgement
+  moved:** the standing export against the new key is 3,269/3,274 as
+  against the old; the fresh 0.2.33-beta export against the new key is
+  **3,269/3,273 (99.88%)**, recall 7,333/50,524, poison PASS 2,642 /
+  857, 0 falsely confirmed. The fixture is not the only place H-32
+  shows after all, but nowhere it shows did Hobbes draw an edge.
 - Poison PASS on both, 0 falsely confirmed: fmt 3,499 seeded, 2,641
   refused / 858 unjudged; args 2,000 seeded, 1,938 / 62.
 

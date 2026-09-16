@@ -11696,3 +11696,92 @@ count (1,648 pytest, was 1,640). Go — `who_calls` lists an implementor
 under its heading, not as a caller and not as nothing (390 Go). The
 binaries and the static proxy rebuilt; the image rebuilt; this repo
 re-ingested at HEAD. **Restart the knowledge server** (C-65).
+
+## 2026-09-16 (night, last) — No call in an unevaluated operand: C-155 lifted the day it was registered, on both sides of the grade; ADR-121, 0.2.33-beta and 0.2.34-beta
+
+Max: "review top level documentation then proceed with an item from the
+hobbes review." The review's next undone item was C-155 — "lift at lane
+A, one dispatched unit, graded on fmt's stored key" — and it became
+three units and one decision, because the oracle turned out to carry
+half the defect.
+
+**Measured before the decision, in three places.** The grammar
+(tree-sitter-cpp 0.23.4): `sizeof_expression`, `alignof_expression`,
+`decltype`, `requires_expression` wrap their operand; `noexcept(..)` and
+`typeid(..)` parse as a *call of a bare identifier*, so lane A had been
+recording a call to a keyword at each. The cells: fmt's and args' lane
+A sites under those nodes, against each cell's standing key. clang's
+own `-ast-dump=json`, run in the image on a probe: it **keeps** the
+`CallExpr` under `sizeof`/`alignof` (`UnaryExprOrTypeTraitExpr`),
+`noexcept` (`CXXNoexceptExpr`) and `typeid` (`CXXTypeidExpr`), and
+never holds a `decltype` operand — so O10's reader, which records every
+call kind it meets, keyed a site for a call the program never makes.
+That is H-32, logged open before any code, root RC-11.
+
+**Decided (ADR-121).** Lane A records no C++ call site under the four
+node types or a `noexcept(..)` expression; `noexcept` and `typeid` in
+call position record no site of their own; **`typeid`'s operand keeps
+its sites**, because [expr.typeid]/3 evaluates a polymorphic glvalue
+and the syntax cannot tell. The join and the tail do not move — and
+here the review's sketch was corrected rather than built: lane B's
+occurrence at such a site falls through as a `uses` edge, the true
+statement of a dependency that is not a call, instead of being claimed
+and hidden; and there is no tail class, because a site that is not a
+call is not a concession. The oracle drops and counts the same list
+(`sites_unevaluated`), `typeid` kept on both sides. Pre-registered as
+§10.10 (P52–P56) before the regrade.
+
+**Three units through the harness, all gate right-clear, all merged
+no-ff:**
+- `S-20260916T225041Z-d95c` (32 turns, $2.08): `cppsource._unevaluated`,
+  one drop point, five tests including the ingest-level `uses`-not-`calls`
+  check. 0.2.33-beta.
+- `S-20260916T230256Z-5261` (57 turns, $4.09): O10's reader, a depth
+  around three node kinds, `sites_unevaluated` in coverage, the
+  `uneval.cpp` fixture measured on the real dump (9 sites before, 4
+  after, 5 dropped). Verified in the image, where clang++ is: all five
+  C++ tests run and pass. **The doer read past its brief:**
+  `UnaryExprOrTypeTraitExpr` is C's `sizeof` too, so the key now
+  abstained in C where lane A's C walk did not — measured at 0 sites on
+  the C cells, then closed on the lane's side.
+- `S-20260916T231525Z-367f` (29 turns, $1.37): `csource._unevaluated`,
+  the same predicate one grammar over; `_Alignof(f(1))` does not even
+  parse, so the `alignof` half is exercised through the one shape C
+  allows, a VLA — which is also the residual (C11 6.5.3.4 evaluates a
+  VLA's size). 0.2.34-beta.
+
+**The regrade, and the misses it found in my own measurement.** fmt
+against its standing key: contradicted 5 → **4** (C-153's four, row for
+row), confirmed 3,269 unchanged, **99.88%** (3,269/3,273), like-for-like
+99.69%; args identical row for row. But the export lost **26** rows,
+not the 1 predicted: the pre-measurement had walked the six C++
+extensions and skipped the 25 headers C++ claims, and had matched sites
+to graded rows by the target's bare name, so `parse_context::begin`
+never matched `begin`. Re-measured with the provider's own file list:
+**299** sites under an unevaluated operand (294 `decltype`, 5 `sizeof`),
+26 of them drawing an edge — 1 contradicted, 25 oracle-silent, every
+one read and every one a `decltype` operand. P52 and P54 recorded as
+missed on the counts and met on the judgement; P56 missed on its
+premise (fmt's re-run key lost 6 `sizeof` sites, all read, no judgement
+moved) and met on the judgement. The lesson is written where the next
+lift will read it: count with the provider's file list, match by
+position. **Every contradiction left on fmt is C-153.**
+
+**Records.** ADR-121 (with its dated correction and its C amendment);
+C-155 lifted at the bottom of `extraction-cpp.md` with the technique
+and four residuals (`typeid`, a macro-spelled operand, C's VLA, and
+nothing else on the oracle's side now); the register 157 / 113 active /
+27 lifted; H-32 fixed and RC-11 opened; §10.10 graded; fmt's cell
+record with the regrade and the key re-run; the graphics re-rendered
+(the report drift test caught the stale `cells.json`); three session
+files, the tracker at 37 of 40; CHANGELOG 0.2.33-beta and 0.2.34-beta.
+The binaries, the static proxy and the image rebuilt at 0.2.34-beta
+(C-65); this repo re-ingested at HEAD.
+
+**Suites:** pipeline 1,655 passed (the tracker's drift test red once
+per unfilled review block, green after each render); Go 390 with
+subtests (389 pass, 1 skip) against the rebuilt image; oracle-lane Go
+116 with subtests, 104 pass / 12 skip on this host (no clang++, no
+cmake), the five C++ fixture tests run and pass in the image; the
+report drift test green after the render.
+

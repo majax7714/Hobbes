@@ -11,9 +11,22 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.33-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.34-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.34-beta — 2026-09-16 (C's walk abstains under `sizeof` too; ADR-121's amendment)
+
+**Patch: what the layer draws.** The oracle's reader is one for both
+languages, so once it stopped keying a call under `sizeof` (H-32) the
+key abstained in C where lane A's C walk still recorded the site.
+
+- Lane A's C walk records no call site under a `sizeof` or `_Alignof`
+  operand (C11 6.5.3.4), the C++ predicate one grammar over. Measured
+  first: 0 such sites on cJSON, sqlite-vector and `minic`.
+- The residual is C's own: a `sizeof` operand whose type is a
+  variable-length array is evaluated (`sizeof(int[n()])` calls `n`),
+  and the syntax cannot tell it apart, so that call is dropped too.
 
 ## 0.2.33-beta — 2026-09-16 (no call in an unevaluated operand; ADR-121)
 

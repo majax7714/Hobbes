@@ -226,6 +226,13 @@ only place H-32 is observable.
 - 2026-09-16 — measured (the grammar, the two cells, the oracle's dump
   in the image); decided; §10.10 written; H-32 logged open. The Hobbes
   unit dispatched next, the oracle unit after its merge.
+- 2026-09-16 (last) — **the C unit landed** as `S-20260916T231525Z-367f`
+  (29 turns, $1.37, gate right-clear, merged `83b60c9`), 0.2.34-beta.
+  Both keys re-run after the oracle unit: args identical, fmt 6 sites
+  gone (all `sizeof` operands), no judgement moved — §10.10's P56,
+  missed on its premise and met on the judgement. The three units
+  together: fmt **99.88%** (3,269/3,273), every contradiction left
+  C-153's.
 - 2026-09-16 (later still) — **the oracle unit landed** as
   `S-20260916T230256Z-5261` (57 turns, $4.09, gate right-clear, merged
   `fffadbd`); H-32 fixed, `sites_unevaluated` in coverage. Its doer's

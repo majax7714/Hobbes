@@ -192,10 +192,11 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-16, 0.2.32-beta; the last three
-carried from 0.2.8-beta): 1,648 pytest (6 `lane_b`) / 390 Go (389 pass,
-1 skip) + 102 oracle-lane Go (97 pass, 5 skip without a toolchain) / 52
-vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
+Suite sizes at the last check (2026-09-16, 0.2.34-beta; the last three
+carried from 0.2.8-beta): 1,655 pytest (6 `lane_b`) / 390 Go (389 pass,
+1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip on a host
+without clang++ or cmake; the C++ ones pass in the image) / 52 vitest /
+36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -211,7 +212,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 120;
+  architecture doesn't already make. Number sequentially (last: 121;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -265,7 +266,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-16) — Hobbes 0.2.32-beta
+## Status (2026-09-16) — Hobbes 0.2.34-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -289,28 +290,32 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes
   development. The tracker at the end of that directory's `README.md`
   (`pipeline/scripts/calvin_tracker.py render`, held by a drift test;
-  re-render after filling a review block) reads 34 of the 40 sessions
+  re-render after filling a review block) reads 37 of the 40 sessions
   that validate the harness: 4 areas, 1 false block (`f3c1`, closed at
   0.2.28-beta), 0 missed.
-- **Latest — 0.2.32-beta (ADR-120): the override set is drawn.** SCIP
-  `relationships` measured on the six indexers first (five state
-  `is_implementation`; rust-analyzer none, C-157), then decoded by the
-  helper (version 5) and drawn as **`implements`** edges at semantic
-  tier; `who_calls` lists implementors under their own heading; C-58
-  narrowed to the dispatch itself. This repo: 18 edges, 7 pairs below
-  lane A's floor (Go's interface method specs). Before it the same day:
-  0.2.29-beta (ADR-117, C-156 surfaced), 0.2.30-beta (ADR-118, the store
-  decodes once), 0.2.31-beta (ADR-119, the ingest timed); the top-level
-  review's page and its remaining items are in the handoff.
-  **Next:** ADR-120 §7's decision — expanding a call to an interface
-  method into its overrides as a labelled step, with the oracle question
-  first; then the review's other items through the harness, toward 40.
+- **Latest — 0.2.33/0.2.34-beta (ADR-121): no call in an unevaluated
+  operand.** Lane A's C++ walk records no site under `sizeof`,
+  `alignof`, `decltype`, `noexcept(..)` or a requires-expression
+  (`typeid`'s operand kept: evaluated when polymorphic), C's walk none
+  under `sizeof`/`_Alignof`, and O10's key holds none either (H-32, the
+  oracle's own half, found by probing clang's dump before the ADR).
+  Three harness units, one decision; C-155 lifted the day it was
+  registered; fmt 99.85% → **99.88%**, its export 26 rows lighter, every
+  one read. The measurement before the decision was wrong by six on
+  sites and twenty-six on edges (headers skipped, names not positions) —
+  §10.10 records the misses. Before it the same day: 0.2.32-beta
+  (ADR-120, `implements` edges), 0.2.29–0.2.31-beta; the review's page
+  and its remaining items are in the handoff.
+  **Next:** the review's index cache (lane B by stage key, then lane A's
+  file cache, each measured with the timing block); ADR-120 §7's
+  expansion once Max decides it; toward 40.
 - **Open for Max:** whether the lane should print a "judged-as-before"
   companion number on any cell where `line-unresolved > 0`, since
-  H-30's fix silences 6 of C-153's 10 wrong rows and lifts fmt 99.66% →
-  99.85%; C-153 (unsurfaced, P9, now 4 judged : 6 unjudged); C-155
-  (unsurfaced, the unevaluated-operand edge — fix in the join, or accept
-  as documented); `hobbes lanes`
+  H-30's fix silences 6 of C-153's 10 wrong rows and lifts fmt 99.69% →
+  99.88%; C-153 (unsurfaced, P9, 4 judged : 6 unjudged, now the whole
+  of fmt's contradictions); ADR-121 §2's choice to let lane B's
+  occurrence at an unevaluated site stand as a `uses` edge (the review
+  had sketched claiming it); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
   drawn); C-150's remainder (the join's own size and the graph built from
   it; parked, Max: "fine for now").
