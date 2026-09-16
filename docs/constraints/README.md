@@ -167,6 +167,19 @@ The table is the register's current state (2026-09-15), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+O10's defects fixed, 2026-09-16 (bench only, no version move):
+- C-153 restated, still **unsurfaced**: only **4 of its 10 fmt rows are
+  still judged**. The oracle's own H-30 fix silences a row whose line
+  also carries a call the key left unresolved, and 6 of C-153's sit on
+  such a line — *unjudged, not fixed*; the edge is still the wrong
+  declaration. fmt's cell reads 99.7% where the like-for-like figure is
+  99.48%, and both are in its record. The number that would have exposed
+  this concession is now smaller than the concession.
+- **No status moved and no entry was added.** H-28, H-29 and H-30 are
+  defects of the oracle that grades Hobbes (`oracle/oracle-defects.md`),
+  not concessions the layer makes to a user, so they take no `C-n` and
+  the table above is unchanged.
+
 The gate's arrow read, 2026-09-15 (0.2.28-beta):
 - C-91 amended again: the gate's TS/JS text read takes an arrow's
   parameters (a parenthesised list before `=>` wherever it stands, one

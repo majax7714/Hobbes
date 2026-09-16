@@ -276,15 +276,17 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   joined by one range join; artifacts at schema v4. Whatever executes
   repo code runs in the one image (ADR-092).
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
-  (99.6%, all 15 the oracle's grain) and fmt (99.1%: 10 scip-clang's
-  own, C-153; 18 the oracle's, H-28–H-31 open). **Register:** 154
-  entries; 111 active (85 surfaced, 21 partial, 4 unsurfaced, 1 n/a).
+  (99.6%, all 15 the oracle's grain) and fmt (**99.7%** after
+  2026-09-16's regrade — 99.48% judged like-for-like: 4 scip-clang's own
+  (C-153) and 7 the oracle's (H-31, open); H-28, H-29 and H-30 fixed).
+  **Register:** 154 entries; 111 active (85 surfaced, 21 partial, 4
+  unsurfaced, 1 n/a).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes
   development. The tracker at the end of that directory's `README.md`
   (`pipeline/scripts/calvin_tracker.py render`, held by a drift test;
-  re-render after filling a review block) reads 31 of the 40 sessions
+  re-render after filling a review block) reads 33 of the 40 sessions
   that validate the harness: 4 areas, 1 false block (`f3c1`, closed at
   0.2.28-beta), 0 missed.
 - **Latest:** ADR-116 (0.2.26-beta): lane B's facts arrive as a
@@ -297,8 +299,20 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   `2b26`. Then the foreign C++ cells (no version move): both tools on
   fmt and args, pre-registered (§10.7), Hobbes ahead on both axes on
   both rows; their triage gave converter@4 (ADR-101 amended).
+  **2026-09-16 (bench only, no version move):** O10's H-28, H-29 and
+  H-30 fixed in two dispatched units (`8170`, `8d48`), H-31 left open;
+  the three-tier regrade re-ran both C++ keys and graded 38 own and 44
+  foreign cells pre/post. fmt 99.1% → 99.7%, but 6 of C-153's wrong rows
+  are now unjudged, so 99.48% like-for-like — and the same rule raised
+  every moved competitor cell while moving none of ours. P36–P38 missed,
+  recorded as misses. A tracker defect (pinned rule versions) found by
+  use and fixed.
   **Next:** named no-spend units through the harness, toward 40.
-- **Open for Max:** H-28–H-31; C-153 (unsurfaced, P9); `hobbes lanes`
+- **Open for Max:** H-31 (its `os.cc` half never reproduced under a
+  probe); whether the lane should print a "judged-as-before" companion
+  number on any cell where `line-unresolved > 0`, since H-30's fix
+  silences 6 of C-153's 10 wrong rows and lifts fmt 99.48% → 99.7%;
+  C-153 (unsurfaced, P9, now 4 judged : 6 unjudged); `hobbes lanes`
   exiting 1 on fmt (316 disagreements where lane A guesses, none
   drawn); C-150's remainder (the join's own size and the graph built from
   it; parked, Max: "fine for now").

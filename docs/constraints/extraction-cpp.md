@@ -188,9 +188,17 @@ headers parsed with tree-sitter ERROR nodes.
     `test_format<20>::format` drawn to `test_format<0>` (4);
   - one overload of two (2).
 - **Bites at:** fmt 10 of its 3,395 judged semantic edges (0.3%); args
-  none.
-- **You find out:** **unsurfaced** — nothing at the site says so. The
-  cell records and this entry are the only statement.
+  none. **Since 2026-09-16, only 4 of those 10 are still judged.** The
+  matcher's H-30 rule silences a row whose line also carries a call the
+  key left unresolved, and 6 of these sit on such a line. They are
+  *unjudged, not fixed* — the edge is still the wrong declaration. fmt's
+  cell therefore reads 99.7% where the like-for-like figure, judging the
+  rows the previous grade judged, is 99.48%; both are in its record.
+- **You find out:** **unsurfaced** — nothing at the site says so, and
+  since 2026-09-16 six of the ten do not even read as contradictions in
+  the cell's own grade, so the number that would have exposed them is
+  smaller than the defect. The cell records and this entry are the only
+  statement.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 

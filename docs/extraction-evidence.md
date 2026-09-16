@@ -170,7 +170,11 @@ C++'s first graded evidence.
 **What the cells say.**
 - **After the fix, the semantic tier's wrong edges are scip-clang's
   own,** at calls in templates: 10 on fmt, none on args (C-153). fmt's
-  other 18 contradictions are the oracle's (H-28–H-31).
+  other 18 contradictions are the oracle's (H-28–H-31). *(As of this
+  entry's date. H-28, H-29 and H-30 were fixed on 2026-09-16 and both
+  cells regraded — fmt 99.7%, and 6 of C-153's 10 rows now unjudged
+  rather than fixed; see the 2026-09-16 section at the end of this
+  file.)*
 - **Lane A's name fallback is not trusted where scip-clang compiled the
   file** (C-152). On fmt it had been right 108 times and wrong 74.
 - **C++'s recall hole is the parse, not dispatch.** fmt's macro-spelled
@@ -598,3 +602,47 @@ unplaced sites was read in the source (`core/c2h.go:38`, `:69`,
 `:102`), along with the dagger examples first read on 2026-09-12
 (`core/git_remote.go:69`/`78`). The other 28 unplaced sites were not
 read one by one, and are stated as unplaced.
+
+## The C++ cells and every foreign cell regraded for O10's defect fixes (2026-09-16, bench only, ADR-113 §3 amended)
+
+Three defects **of the oracle that grades Hobbes** were fixed in two
+dispatched units — H-28 (a member call keyed at its object's start),
+H-29 (an unmangled declaration keyed by its bare name) and H-30 (a line
+the key left unresolved still contradicting). H-31 stays open. Each
+cause was probed in the image before the design was written, which is
+what kept two wrong hypotheses out of it. The regrade ran in three
+tiers, each holding the Hobbes side fixed so that only the key or the
+matcher could move a number; outputs in
+`~/.hobbes/bench/oracle-defect-drivers/regrade-out/`.
+
+| Measure | Result |
+|---|---|
+| **fmt** (key re-run contained, 305 s; standing export, 3,525 edges, identical as a set) | confirmed 3,254 → **3,263**; contradicted 28 → **11**; precision 99.1% → **99.7%**. Exactly three movements: contradicted → `silent`/`line-unresolved` 13, `silent`/`unreachable` → confirmed 5, contradicted → confirmed 4 |
+| **fmt, judged like-for-like** | **99.48%** (3,263/3,280) — 6 of C-153's 10 rows are now unjudged rather than fixed |
+| **args** (key re-run, 318 s) | not one graded row moved: 1,995/1,995, 100.0%. Collapsed recall 63.4% → 63.1% (the site line moved), poison 1,995/5 → 1,938/62 |
+| **38 own cells** (stored export × stored key, two binaries, no ingest) | **nothing moved on any cell**; `line-unresolved` 0 throughout; precision fell nowhere. H-30 is inert outside C++ on the standing corpus |
+| **44 foreign cells** (same method) | 13 moved, every one purely contradicted → silent, the fall equal to the rise equal to that cell's `line-unresolved`; confirmed unchanged on all 44 |
+| **The four foreign C++ cells** | regraded against the **new** key: CodeGraphContext fmt 95.7%, repowise fmt 48.0%, repowise args 90.2%, CodeGraphContext args still grading nothing |
+| Poison | PASS everywhere, 0 falsely confirmed; but the instrument covers fewer sites — fmt 3,282 → 2,643 refused |
+| Pre-registration (`oracle-grading.md` §10.8) | P36, P37, P38 **missed**, all in the flattering direction, recorded as misses with their causes; P39–P45 met |
+
+**The finding that runs against our own interest.** H-30 raised every
+moved *competitor* cell's precision (CodeGraphContext on fmt 86.6% →
+95.7%, repowise on fmt 45.2% → 48.0%) while moving none of Hobbes' 38
+non-C++ cells, because Hobbes abstains where lane B is silent and a name
+resolver guesses there. The gap narrows, from a defect found in our own
+grader and fixed at our own expense.
+
+**Verified:** every number above was read from a `report.json` produced
+in this session, not computed by hand. fmt's and args' before/after were
+compared **row by row as sets**, not by totals, and fmt's 28 standing
+contradictions were classified individually by their new bucket (the
+table's "exactly three movements"). One foreign mover
+(`codegraphcontext-toml`) had its two silenced rows checked against the
+key itself, and minits' key was dumped to confirm the three lines behind
+`poison_test.go`'s moved expectation — which are the only three mixed
+lines in that fixture. **Not verified one by one:** the remaining 12
+foreign movers' individual rows, which are stated only in aggregate with
+the contradicted → silent invariant checked per cell; and the six
+cells whose keys carry no stored Hobbes export, which are named as not
+covered rather than graded.

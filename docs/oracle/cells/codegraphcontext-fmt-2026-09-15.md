@@ -10,35 +10,37 @@ Command: `bench/oracle/grade-foreign.sh codegraphcontext-fmt/edges.json fmt-cell
 
 ```
 cell   oracle Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution)  sha 3a0661d7
-hobbes edges 1249: confirmed 844  contradicted 131  abstract 0  silent 274 map[no-targets:218 not-loaded:1 unreachable:55]
-precision-against-oracle 86.6% (844/975)
-recall 11.8% (5952/50569 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 6985; misses map[macro→function:1631 macro→method:1140 static→constructor:8310 static→function:10673 static→method:22863]
-recall-collapsed 3.2% (844/26333 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+hobbes edges 1249: confirmed 847  contradicted 38  abstract 0  silent 364 map[line-unresolved:90 no-targets:218 not-loaded:1 unreachable:55]
+precision-against-oracle 95.7% (847/885)
+recall 11.8% (5955/50524 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 6987; misses map[macro→function:1631 macro→method:1140 static→constructor:8310 static→function:10674 static→method:22814]
+recall-collapsed 3.2% (847/26281 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
   recall[macro→function    ]   0.0% (0/1631)  misses 1631 = 3.7% of all misses
   recall[macro→method      ]   0.0% (0/1140)  misses 1140 = 2.6% of all misses
   recall[static→constructor]   0.3% (23/8333)  misses 8310 = 18.6% of all misses
   recall[static→function   ]  14.9% (1873/12546)  misses 10673 = 23.9% of all misses
   recall[static→method     ]  15.1% (4056/26919)  misses 22863 = 51.2% of all misses
-  tier codegraphcontext:EXTRACTED confirmed 817  contradicted 98  abstract 0  silent 252
-  tier codegraphcontext:INFERRED confirmed 27  contradicted 33  abstract 0  silent 22
+  tier codegraphcontext:EXTRACTED confirmed 820  contradicted 23  abstract 0  silent 324
+  tier codegraphcontext:INFERRED confirmed 27  contradicted 15  abstract 0  silent 40
   line-grain tolerance used on 750 edge(s) (several oracle sites on one line)
-poison check: PASS — 1249 seeded wrong edges: 975 refused, 274 unjudged (oracle silent there), 0 falsely confirmed
+poison check: PASS — 1249 seeded wrong edges: 405 refused, 844 unjudged (oracle silent there), 0 falsely confirmed
 foreign cell . (edges.json): 0s
 ```
 
 | bucket | count |
 |---|---|
 | graded edges | 1,249 |
-| confirmed | 844 |
-| contradicted | 131 |
+| confirmed | 847 |
+| contradicted | 38 |
 | abstract | 0 |
-| silent | 274 {"no-targets": 218, "not-loaded": 1, "unreachable": 55} |
-| precision-against-oracle (lower bound) | **86.6%** (844/975) |
+| silent | 364 {"line-unresolved": 90, "no-targets": 218, "not-loaded": 1, "unreachable": 55} |
+| precision-against-oracle (lower bound) | **95.7%** (847/885) |
 | recall | 11.8% (5,952/50,569) at 1 roots |
 
-**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `codegraphcontext:EXTRACTED` confirmed 817 / contradicted 98 / abstract 0 / silent 252; `codegraphcontext:INFERRED` confirmed 27 / contradicted 33 / abstract 0 / silent 22.
+**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `codegraphcontext:EXTRACTED` confirmed 820 / contradicted 23 / abstract 0 / silent 324; `codegraphcontext:INFERRED` confirmed 27 / contradicted 15 / abstract 0 / silent 40.
 
-## Contradicted (131 rows; all in report.json)
+## Contradicted (131 rows at converter@4, read 2026-09-15; 38 after the 2026-09-16 regrade — all in report.json)
+
+*The counts in this section — the mechanical shape, the by-label split and the triage ratio — are **as of the converter@4 grade of 2026-09-15**, when these rows were read. The 2026-09-16 regrade of the oracle's own H-30 defect moved 93 of them to `silent`/`line-unresolved`, leaving 38; it read no row and re-triaged nothing. The signed before → after is in **Direction of fix (the oracle's H-30)** below.*
 
 Mechanical shape (no reading): same file as an oracle target, other line 71; another file than every oracle target 60. By label: `codegraphcontext:EXTRACTED` 98, `codegraphcontext:INFERRED` 33.
 
@@ -85,7 +87,9 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 | `macro→function` | 0 / 1,631 | 1,631 |
 | `macro→method` | 0 / 1,140 | 1,140 |
 
-**Poison check:** PASS — 1,249 seeded wrong edges: 975 refused, 274 unjudged (oracle silent there), 0 falsely confirmed.
+**Poison check:** PASS — 1,249 seeded wrong edges: 405 refused, 844 unjudged (oracle silent there), 0 falsely confirmed.
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
+
+**Direction of fix (the oracle's H-30, 2026-09-16, signed):** the grader no longer contradicts on a line the key itself left unresolved — a defect of the oracle, not of this tool (`oracle-grading.md` §7d and D-O4; `oracle-defects.md` H-30). The key was regenerated as well (H-28, H-29 changed what a shard holds), so this cell is graded against the **new** key (§10.8, P45). graded edges 1,249 → 1,249 (+0); confirmed 844 → 847 (+3); contradicted 131 → 38 (-93); silent 274 → 364 (+90), of which `line-unresolved` 90; precision-against-oracle 86.6% → 95.7%. Nothing on the tool's side moved and its graph is unchanged: the rule withdraws judgement where the key is silent, which is why every moved foreign cell moves upward. Hobbes' own 38 non-C++ cells did not move at all, because it abstains where lane B is silent. The regrade's outputs are in `~/.hobbes/bench/oracle-defect-drivers/regrade-out/foreign-newkey/codegraphcontext-fmt/`; the `report.json` beside this cell in `~/.hobbes/bench/comparative/` is still the converter@4 grade this line moves from, kept as it was.
 

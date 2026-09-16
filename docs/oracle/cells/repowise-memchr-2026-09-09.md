@@ -10,8 +10,8 @@ Command: `bench/oracle/grade-foreign.sh repowise-memchr/edges.json memchr-rust-r
 
 ```
 cell   oracle rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution)  sha bd6068c3
-hobbes edges 3514: confirmed 362  contradicted 29  abstract 0  silent 3123 map[no-targets:5 not-loaded:3037 unreachable:81]
-precision-against-oracle 92.6% (362/391)
+hobbes edges 3514: confirmed 362  contradicted 25  abstract 0  silent 3127 map[line-unresolved:4 no-targets:5 not-loaded:3037 unreachable:81]
+precision-against-oracle 93.5% (362/387)
 recall 31.8% (365/1146 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 1476; misses map[macro→function:57 macro→method:42 static→closure:1 static→function:151 static→generated:5 static→method:525]
   recall[macro→function    ]   0.0% (0/57)  misses 57 = 7.3% of all misses
   recall[macro→method      ]   0.0% (0/42)  misses 42 = 5.4% of all misses
@@ -20,17 +20,17 @@ recall 31.8% (365/1146 in-repo oracle pairs) over every resolved site in the cel
   recall[static→generated  ]   0.0% (0/5)  misses 5 = 0.6% of all misses
   recall[static→method     ]  36.1% (297/822)  misses 525 = 67.2% of all misses
   tier repowise:crate_root confirmed 0  contradicted 0  abstract 0  silent 2
-  tier repowise:global_unique confirmed 36  contradicted 7  abstract 0  silent 26
+  tier repowise:global_unique confirmed 36  contradicted 4  abstract 0  silent 29
   tier repowise:import_merged confirmed 2  contradicted 0  abstract 0  silent 7
   tier repowise:import_scoped confirmed 1  contradicted 0  abstract 0  silent 0
   tier repowise:module_alias confirmed 8  contradicted 0  abstract 0  silent 0
   tier repowise:receiver_global confirmed 14  contradicted 0  abstract 0  silent 14
   tier repowise:receiver_import confirmed 6  contradicted 0  abstract 0  silent 0
   tier repowise:receiver_same_file confirmed 112  contradicted 0  abstract 0  silent 1070
-  tier repowise:same_file confirmed 73  contradicted 22  abstract 0  silent 1275
+  tier repowise:same_file confirmed 73  contradicted 21  abstract 0  silent 1276
   tier repowise:self_scope confirmed 110  contradicted 0  abstract 0  silent 729
   line-grain tolerance used on 164 edge(s) (several oracle sites on one line)
-poison check: PASS — 3514 seeded wrong edges: 391 refused, 3123 unjudged (oracle silent there), 0 falsely confirmed
+poison check: PASS — 3514 seeded wrong edges: 386 refused, 3128 unjudged (oracle silent there), 0 falsely confirmed
 foreign cell . (edges.json): 0s
 ```
 
@@ -38,15 +38,17 @@ foreign cell . (edges.json): 0s
 |---|---|
 | graded edges | 3,514 |
 | confirmed | 362 |
-| contradicted | 29 |
+| contradicted | 25 |
 | abstract | 0 |
-| silent | 3,123 {"no-targets": 5, "not-loaded": 3037, "unreachable": 81} |
-| precision-against-oracle (lower bound) | **92.6%** (362/391) |
+| silent | 3,127 {"line-unresolved": 4, "no-targets": 5, "not-loaded": 3037, "unreachable": 81} |
+| precision-against-oracle (lower bound) | **93.5%** (362/387) |
 | recall | 31.8% (365/1,146) at 2 roots |
 
-**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `repowise:crate_root` confirmed 0 / contradicted 0 / abstract 0 / silent 2; `repowise:global_unique` confirmed 36 / contradicted 7 / abstract 0 / silent 26; `repowise:import_merged` confirmed 2 / contradicted 0 / abstract 0 / silent 7; `repowise:import_scoped` confirmed 1 / contradicted 0 / abstract 0 / silent 0; `repowise:module_alias` confirmed 8 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_global` confirmed 14 / contradicted 0 / abstract 0 / silent 14; `repowise:receiver_import` confirmed 6 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_same_file` confirmed 112 / contradicted 0 / abstract 0 / silent 1070; `repowise:same_file` confirmed 73 / contradicted 22 / abstract 0 / silent 1275; `repowise:self_scope` confirmed 110 / contradicted 0 / abstract 0 / silent 729.
+**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `repowise:crate_root` confirmed 0 / contradicted 0 / abstract 0 / silent 2; `repowise:global_unique` confirmed 36 / contradicted 4 / abstract 0 / silent 29; `repowise:import_merged` confirmed 2 / contradicted 0 / abstract 0 / silent 7; `repowise:import_scoped` confirmed 1 / contradicted 0 / abstract 0 / silent 0; `repowise:module_alias` confirmed 8 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_global` confirmed 14 / contradicted 0 / abstract 0 / silent 14; `repowise:receiver_import` confirmed 6 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_same_file` confirmed 112 / contradicted 0 / abstract 0 / silent 1070; `repowise:same_file` confirmed 73 / contradicted 21 / abstract 0 / silent 1276; `repowise:self_scope` confirmed 110 / contradicted 0 / abstract 0 / silent 729.
 
-## Contradicted (29 rows; all in report.json)
+## Contradicted (29 rows at converter@4, read 2026-09-15; 25 after the 2026-09-16 regrade — all in report.json)
+
+*The counts in this section — the mechanical shape, the by-label split and the triage ratio — are **as of the converter@4 grade of 2026-09-15**, when these rows were read. The 2026-09-16 regrade of the oracle's own H-30 defect moved 4 of them to `silent`/`line-unresolved`, leaving 25; it read no row and re-triaged nothing. The signed before → after is in **Direction of fix (the oracle's H-30)** below.*
 
 Mechanical shape (no reading): another file than every oracle target 21; same file as an oracle target, other line 8. By label: `repowise:same_file` 22, `repowise:global_unique` 7.
 
@@ -77,7 +79,9 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 | `static→generated` | 0 / 5 | 5 |
 | `static→closure` | 0 / 1 | 1 |
 
-**Poison check:** PASS — 3,514 seeded wrong edges: 391 refused, 3,123 unjudged (oracle silent there), 0 falsely confirmed.
+**Poison check:** PASS — 3,514 seeded wrong edges: 386 refused, 3,128 unjudged (oracle silent there), 0 falsely confirmed.
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
+
+**Direction of fix (the oracle's H-30, 2026-09-16, signed):** the grader no longer contradicts on a line the key itself left unresolved — a defect of the oracle, not of this tool (`oracle-grading.md` §7d and D-O4; `oracle-defects.md` H-30). graded edges 3,514 → 3,514 (+0); confirmed 362 → 362 (+0); contradicted 29 → 25 (-4); silent 3,123 → 3,127 (+4), of which `line-unresolved` 4; precision-against-oracle 92.6% → 93.5%. Nothing on the tool's side moved and its graph is unchanged: the rule withdraws judgement where the key is silent, which is why every moved foreign cell moves upward. Hobbes' own 38 non-C++ cells did not move at all, because it abstains where lane B is silent. The regrade's outputs are in `~/.hobbes/bench/oracle-defect-drivers/regrade-out/foreign-poison/repowise-memchr/`; the `report.json` beside this cell in `~/.hobbes/bench/comparative/` is still the converter@4 grade this line moves from, kept as it was.
 

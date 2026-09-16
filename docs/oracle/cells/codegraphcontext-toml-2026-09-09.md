@@ -10,8 +10,8 @@ Command: `bench/oracle/grade-foreign.sh codegraphcontext-toml/edges.json toml-go
 
 ```
 cell .  oracle go-rta (reachability)  sha d733fc53
-hobbes edges 888: confirmed 812  contradicted 60  abstract 0  silent 16 map[not-loaded:7 unreachable:9]
-precision-against-oracle 93.1% (812/872)
+hobbes edges 888: confirmed 812  contradicted 58  abstract 0  silent 18 map[line-unresolved:2 not-loaded:7 unreachable:9]
+precision-against-oracle 93.3% (812/870)
 recall 56.4% (832/1475 in-repo oracle pairs) at 4 roots; external oracle pairs 2700; misses map[func-value→closure:57 func-value→named:74 interface→named:213 static→closure:58 static→named:241]
   recall[func-value→closure]   0.0% (0/57)  misses 57 = 8.9% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
   recall[func-value→named  ]   0.0% (0/74)  misses 74 = 11.5% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
@@ -19,9 +19,9 @@ recall 56.4% (832/1475 in-repo oracle pairs) at 4 roots; external oracle pairs 2
   recall[static→closure    ]   0.0% (0/58)  misses 58 = 9.0% of all misses
   recall[static→named      ]  77.3% (819/1060)  misses 241 = 37.5% of all misses
   tier codegraphcontext:EXTRACTED confirmed 750  contradicted 4  abstract 0  silent 5
-  tier codegraphcontext:INFERRED confirmed 62  contradicted 56  abstract 0  silent 11
+  tier codegraphcontext:INFERRED confirmed 62  contradicted 54  abstract 0  silent 13
   line-grain tolerance used on 259 edge(s) (several oracle sites on one line)
-poison check: PASS — 888 seeded wrong edges: 872 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+poison check: PASS — 888 seeded wrong edges: 856 refused, 32 unjudged (oracle silent there), 0 falsely confirmed
 foreign cell . (edges.json): 1s
 ```
 
@@ -29,15 +29,17 @@ foreign cell . (edges.json): 1s
 |---|---|
 | graded edges | 888 |
 | confirmed | 812 |
-| contradicted | 60 |
+| contradicted | 58 |
 | abstract | 0 |
-| silent | 16 {"not-loaded": 7, "unreachable": 9} |
-| precision-against-oracle (lower bound) | **93.1%** (812/872) |
+| silent | 18 {"line-unresolved": 2, "not-loaded": 7, "unreachable": 9} |
+| precision-against-oracle (lower bound) | **93.3%** (812/870) |
 | recall | 56.4% (832/1,475) at 4 roots |
 
-**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `codegraphcontext:EXTRACTED` confirmed 750 / contradicted 4 / abstract 0 / silent 5; `codegraphcontext:INFERRED` confirmed 62 / contradicted 56 / abstract 0 / silent 11.
+**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `codegraphcontext:EXTRACTED` confirmed 750 / contradicted 4 / abstract 0 / silent 5; `codegraphcontext:INFERRED` confirmed 62 / contradicted 54 / abstract 0 / silent 13.
 
-## Contradicted (60 rows; all in report.json)
+## Contradicted (60 rows at converter@4, read 2026-09-15; 58 after the 2026-09-16 regrade — all in report.json)
+
+*The counts in this section — the mechanical shape, the by-label split and the triage ratio — are **as of the converter@4 grade of 2026-09-15**, when these rows were read. The 2026-09-16 regrade of the oracle's own H-30 defect moved 2 of them to `silent`/`line-unresolved`, leaving 58; it read no row and re-triaged nothing. The signed before → after is in **Direction of fix (the oracle's H-30)** below.*
 
 Mechanical shape (no reading): another file than every oracle target 59; same file as an oracle target, other line 1. By label: `codegraphcontext:INFERRED` 56, `codegraphcontext:EXTRACTED` 4.
 
@@ -62,7 +64,9 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 | `static→closure` | 0 / 58 | 58 |
 | `func-value→closure` | 0 / 57 | 57 |
 
-**Poison check:** PASS — 888 seeded wrong edges: 872 refused, 16 unjudged (oracle silent there), 0 falsely confirmed.
+**Poison check:** PASS — 888 seeded wrong edges: 856 refused, 32 unjudged (oracle silent there), 0 falsely confirmed.
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
+
+**Direction of fix (the oracle's H-30, 2026-09-16, signed):** the grader no longer contradicts on a line the key itself left unresolved — a defect of the oracle, not of this tool (`oracle-grading.md` §7d and D-O4; `oracle-defects.md` H-30). graded edges 888 → 888 (+0); confirmed 812 → 812 (+0); contradicted 60 → 58 (-2); silent 16 → 18 (+2), of which `line-unresolved` 2; precision-against-oracle 93.1% → 93.3%. Nothing on the tool's side moved and its graph is unchanged: the rule withdraws judgement where the key is silent, which is why every moved foreign cell moves upward. Hobbes' own 38 non-C++ cells did not move at all, because it abstains where lane B is silent. The regrade's outputs are in `~/.hobbes/bench/oracle-defect-drivers/regrade-out/foreign-poison/codegraphcontext-toml/`; the `report.json` beside this cell in `~/.hobbes/bench/comparative/` is still the converter@4 grade this line moves from, kept as it was.
 

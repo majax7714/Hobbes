@@ -308,7 +308,9 @@ with no tracked file touched. fmt read 3,439/3,577 (96.1%) and args
     (C-153, P9): an explicit specialisation's member for the primary's,
     the caller's own specialisation for another's, or one of two
     overloads in different files;
-  - 18 are the oracle's (H-28–H-31, open in the defect log).
+  - 18 are the oracle's (H-28–H-31, open in the defect log at the time
+    of this split; H-28, H-29 and H-30 were fixed on 2026-09-16 and both
+    cells regraded — see §3's amendment and the cell records).
 - The count, as §2 asks: two rules and no new moniker shape.
 
 ### 3. The oracle — O10, clang's front end over the same dumps (unit 3; no version move)
@@ -531,6 +533,13 @@ commit is the patch that makes C++ *supported*.
 - **2026-09-15 — the row** (0.2.23-beta): `VERIFICATION_BASE["cpp"]`
   and §3.8's C++ row on the regraded cells, the evidence log's C++
   section, and C-132 narrowed again. C++ is *supported* as far as the
-  row reaches. This record's units are complete. H-28–H-31, C-153, and
-  `hobbes lanes`' exit status on fmt (316 disagreements where lane A
-  guesses, none drawn) are open, for the lead.
+  row reaches. This record's units are complete.
+- **2026-09-16 — O10's defects** (bench only, no version move): H-28,
+  H-29 and H-30 fixed in two dispatched units (`eec8141`, `f747aef`,
+  §3's amendment); both C++ keys re-run and every cell regraded. fmt
+  3,254/3,282 (99.1%) → **3,263/3,274 (99.7%)**, args unmoved at
+  1,995/1,995. **Open, for the lead:** H-31 alone; C-153, now 4 judged :
+  6 unjudged, because H-30's rule silences the other six — which lifts
+  fmt's headline above its like-for-like 99.48% and is why the cell
+  record carries both numbers; and `hobbes lanes`' exit status on fmt
+  (316 disagreements where lane A guesses, none drawn).

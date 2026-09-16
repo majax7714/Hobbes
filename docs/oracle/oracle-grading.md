@@ -899,6 +899,71 @@ that moves is re-rendered and ADR-102's drift test
 `os.cc` half does not; it stays open in the log unless its trace names
 a rule, and its 7 rows are expected to survive the regrade (P36).
 
+**Graded 2026-09-16**, after H-28/H-29 (`eec8141`) and H-30 (`f747aef`).
+Both C++ cells were re-run contained against their standing Hobbes
+export, so the Hobbes side is identical row for row (fmt 3,525 edges,
+args 2,000 — checked as sets, not counts) and only the key and the
+matcher moved.
+
+- **P36 — MISSED.** Predicted contradicted 28 → 17, the survivors being
+  C-153's 10 and H-31's 7. Actual: **11**. H-31's 7 survive exactly as
+  predicted (the six `os.cc` rows and `compile-test.cc:127`), but only
+  **4** of C-153's 10 do. The other 6 were silenced by H-30, which the
+  prediction did not anticipate.
+- **P37 — MISSED.** Predicted confirmed +6 exactly (H-28's 1, H-29's 5)
+  with none lost. Actual **+9**, none lost: 4 came from the contradicted
+  set (H-28 ×1, H-29 ×3) and 5 from `silent/unreachable`, where H-28's
+  member-token repositioning moved a site onto the line Hobbes already
+  drew (all five in `gmock-gtest-all.cc`). The prediction counted only
+  the contradicted set and forgot that a position fix also reaches rows
+  the key had never matched.
+- **P38 — MISSED.** Predicted 99.4–99.6%; actual **99.7%** (3,263/3,274),
+  just above the range, for the reasons P36 and P37 name.
+- **P39 — met.** args stays 100.0% (1,995/1,995) with no contradiction;
+  its graded rows did not move at all, though its *poison* line did
+  (below).
+- **P40 — met.** Recall fell on neither cell: fmt 14.5% → 14.5%
+  (7,319/50,569 → 7,328/50,524), args 56.4% → 56.4%.
+- **P41 — met.** `cppclang`'s 25 hand-keyed sites stand at their lines;
+  seven member-call **columns** moved onto the member token, which D-O4
+  carries outside the match.
+- **P42 — met.** All 38 own cells with a stored pair: nothing moved at
+  all, `line-unresolved` 0 on every one, precision fell nowhere. H-30 is
+  inert outside C++ on the standing corpus. The other 6 rows are keys
+  with no stored Hobbes export and are not covered.
+- **P43 — met.** Poison PASS with 0 falsely confirmed on every cell run
+  (fmt, args, and all 44 foreign).
+- **P44 — met.** 13 of 44 foreign cells moved, every one purely
+  contradicted → silent, with the contradicted fall equal to the silent
+  rise equal to that cell's `line-unresolved`, confirmed unchanged
+  throughout; no foreign row moved for any other reason.
+- **P45 — met.** The four foreign C++ cells were regraded against the
+  **new** key: CodeGraphContext fmt 95.71%, repowise fmt 47.96%,
+  repowise args 90.15%, CodeGraphContext args still grading nothing.
+
+**What the headline does not say, stated here because it runs against
+our own interest.** Of the 17 rows that left fmt's contradicted bucket,
+**6 are C-153's** — scip-clang naming the wrong declaration in a
+template, where Hobbes' edge is genuinely wrong. They are now
+*unjudged*, not fixed: the same line carries a dependent call the key
+left unresolved, so H-30 declines to judge it. Precision therefore
+reads 99.7% where the like-for-like figure, judging the rows the
+standing grade judged, is **99.48%** (3,263/3,280). Both numbers belong
+in the cell record, and C-153's own entry now reads 4 judged : 6
+unjudged rather than 10 judged. Whether the lane should print a
+"judged-as-before" companion on any cell with `line-unresolved > 0` is
+a reporting decision for the lead, not something a regrade may settle
+for itself.
+
+**The same trade shows on the poison instrument.** On a line the key
+left unresolved the matcher declines to judge, so it also declines to
+*refuse* a poisoned edge there: fmt's poison went 3,282 refused / 243
+unjudged to 2,643 / 882, and args' grade did not move at all while its
+poison went 1,995 / 5 to 1,938 / 62 — the regenerated key repositions
+member-call sites, so the twins land differently. Every cell still
+passes with 0 falsely confirmed, which is how P43 is worded, but the
+instrument covers fewer sites than it did.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

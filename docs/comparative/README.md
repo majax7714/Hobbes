@@ -74,10 +74,16 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong) and
-   C++'s fmt (3,254/3,282, 99.1%: 18 are the oracle's grain, H-28–H-31,
-   recorded open; 10 are hobbes-wrong — scip-clang names a single wrong
-   candidate and Hobbes draws it, a provider's error owned as Hobbes'
-   own, C-153).
+   C++'s fmt (3,263/3,274, 99.7% after the 2026-09-16 regrade: 7 are
+   the oracle's grain — H-31 alone, still open; 4 are hobbes-wrong,
+   scip-clang naming a single wrong candidate that Hobbes draws, a
+   provider's error owned as Hobbes' own, C-153). **That 99.7% is
+   flattered by the fix that produced it, and the record says so:**
+   H-28 and H-29 were the oracle's own errors and are fixed, but H-30's
+   silence rule also withdrew judgement from 6 further C-153 rows, which
+   are still wrong and now simply unjudged. Judging the rows the
+   previous grade judged, fmt is **99.48%** (3,263/3,280). Both numbers
+   are in the cell record.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -149,18 +155,33 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
    (`oracle-grading.md` §10.7, P32–P35).
    - **CodeGraphContext reads no `.cc`, `.cxx` or `.hxx` file** (its
      parser table). So it graded nothing on args, and on fmt only the
-     headers: 844/975 (86.6%), recall 11.8%.
-   - **repowise:** fmt 2,414/5,343 (45.2%), recall 13.9%; args 815/937
-     (87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,254/3,282 (99.1%), recall 14.5%; args
+     headers: 847/885 (**95.7%**), recall 11.8% — 844/975 (86.6%) as
+     first run on 2026-09-15.
+   - **repowise:** fmt 2,410/5,025 (**48.0%**, was 45.2%), recall 13.9%;
+     args 815/904 (**90.2%**, was 87.0%), recall 23.3%.
+   - **Hobbes, same keys:** fmt 3,263/3,274 (**99.7%**; 99.48% judging
+     the rows the previous grade judged), recall 14.5%; args
      1,995/1,995, recall 56.4%.
+
+   **Why every tool's number rose on 2026-09-16, and Hobbes' barely
+   moved.** The oracle's own H-30 defect was fixed that day: a line the
+   key left unresolved can no longer contradict anyone. Hobbes abstains
+   where lane B is silent, so it draws almost nothing on such lines and
+   13 of 44 foreign cells moved while **none** of Hobbes' 38 non-C++
+   cells did; a name resolver guesses there, and the rule forgives
+   exactly those guesses. The gap narrows for that reason, not because
+   either tool improved — and it narrows on our own initiative, from a
+   defect found in our grader and fixed against our own interest. Each
+   moved cell record carries its signed before → after line.
 
    The seeded triage sample (60 rows) found two converter defects
    first, both Hobbes' (C-94): a `#  define` written with spaces, and a
    declaration head split over lines. converter@4 reads both (ADR-101's
    2026-09-15 amendment), and the cells were regraded with signed
    direction lines (repowise's fmt 42.3% → 45.2%). At @4 the sample
-   reads tool-wrong 56, oracle-grain 4 (the key's open H-29 and H-30),
+   reads tool-wrong 56, oracle-grain 4 (H-29 and H-30, then open in the
+   key and both fixed on 2026-09-16, so those four rows would be graded
+   differently today — the sample's ratio is as of its date),
    converter-defect 0. The tools' C++ errors are one shape above all: a
    call drawn by its short name to another declaration of that name —
    another class's member, the other overload, `std::end` drawn to a

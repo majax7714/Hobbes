@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-15; Hobbes 0.2.28-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-16; Hobbes 0.2.28-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
@@ -24,7 +24,36 @@ file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-0. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
+0. **O10's defects (2026-09-16, bench only, no version move): three
+   fixed, H-31 open, everything regraded.**
+   - **H-28** (a member call keyed at its object's start) and **H-29**
+     (an unmangled declaration keyed by its bare name) fixed as
+     `S-20260916T153010Z-8170`, merged `eec8141`; **H-30** (a line the
+     key left unresolved still contradicting) as
+     `S-20260916T155426Z-8d48`, merged `f747aef`. Both gate-clear,
+     verify-pass, merged not squashed. Tracker **33 of 40**.
+   - Each cause was **probed in the image before the ADR was written**,
+     which overturned two wrong hypotheses. H-31's `os.cc` half never
+     reproduced, so it stays open by design.
+   - **The regrade (§10.8, P36–P45):** fmt 99.1% → **99.7%**, args
+     unmoved, **38 own cells unmoved**, **13 of 44 foreign cells moved**
+     (all contradicted → silent). The four foreign C++ cells were
+     regraded against the new key.
+   - **The costs, all recorded:** 6 of C-153's 10 wrong rows are now
+     *unjudged*, so fmt is **99.48% like-for-like**; the poison
+     instrument covers fewer sites; and the rule raised every moved
+     **competitor** cell while moving none of ours. **P36, P37, P38
+     missed**, all flattering, recorded as misses.
+   - **Where things are:** `~/.hobbes/bench/oracle-defect-drivers/`
+     (task files, partitions, `rerun-cpp-key.sh`, `regrade-stored.sh`,
+     `regrade-foreign.sh`, `foreign-pairs.tsv`) and its `regrade-out/`.
+   - **Open for Max:** H-31; whether the lane should print a
+     "judged-as-before" companion number on any cell with
+     `line-unresolved > 0`; C-153's status, now 4 judged : 6 unjudged.
+   - Found by use: `calvin_tracker.py` pinned `gate v2, grounder v3`, so
+     the first session at grounder v4 could not be parsed; fixed with a
+     test red on the old pattern (`ce43e5a`).
+0a. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
    out on the comparative page too.**
    - Pre-registered first (`oracle-grading.md` §10.7, P32–P35,
      `ac5f7c8`), then both tools on fmt and args, host-run, graded by
@@ -127,12 +156,16 @@ file keeps only what the next session needs.
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
 2. **Open for Max (no spend):**
-   - **O10's four defects, H-28–H-31** (`oracle-defects.md`): recorded
-     open by Max's call. They are the 18 oracle-side rows on fmt: a
-     member call keyed at its object's start; a template pattern's
-     members merged by bare name; dynamic sites judged against their
-     line's other calls; calls the key does not hold. A bench unit
-     would fix them, with no version move.
+   - **H-31 alone** (`oracle-defects.md`): H-28, H-29 and H-30 were
+     fixed on 2026-09-16 (item 0). H-31's `decltype` half reproduces in
+     thirteen lines; its `os.cc` half did not reproduce under a probe of
+     that shape, so no rule was written from the synthetic. Its 7 rows
+     survived the regrade exactly as P36 predicted.
+   - **The reporting call H-30's fix forces:** the rule silences 6 of
+     C-153's 10 rows, where Hobbes' edge is genuinely wrong, lifting fmt
+     from 99.48% like-for-like to a reported 99.7%. Whether the lane
+     should print a "judged-as-before" companion number on any cell with
+     `line-unresolved > 0` is yours, not a regrade's to settle.
    - **C-153 is unsurfaced** (debt): scip-clang's single answer at a
      call in a template can name the wrong declaration (10 of fmt's
      3,395 judged semantic edges). Nothing at the site can detect it.
@@ -178,7 +211,7 @@ file keeps only what the next session needs.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **Toward 40 across three areas:** the tracker reads 31 of 40, 4
+   - **Toward 40 across three areas:** the tracker reads 33 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 4. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -248,7 +281,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Thirty-one log files under `docs/calvin/sessions/`.
+  is a tmpfs. Thirty-three log files under `docs/calvin/sessions/`.
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -259,7 +292,10 @@ min each.
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
-- **Oracle defect log:** H-28–H-31 open (O10); RC-8 shaped.
+- **Oracle defect log:** H-31 open (O10); H-28, H-29 and H-30 fixed
+  2026-09-16. RC-3 and RC-8 closed-policy (D-O4 gained the member-call
+  bullet; the C reader's key is owner-qualified as javac's is); RC-4
+  closed for H-30 and carrying its price — silencing is indiscriminate.
 - **Suites** at 0.2.28-beta: 1,632 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;

@@ -55,7 +55,7 @@
    "date": "2026-09-15",
    "kind": "resolution",
    "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
-   "hobbes_version": "0.2.22-beta",
+   "hobbes_version": "0.2.28-beta",
    "lang": "C++",
    "run": "contained",
    "draw": "random",
@@ -88,8 +88,8 @@
    "poison": {
     "passed": true,
     "seeded": 2000,
-    "refused": 1995,
-    "unjudged": 5,
+    "refused": 1938,
+    "unjudged": 62,
     "falsely": 0
    }
   },
@@ -570,21 +570,21 @@
    "tool": "codegraphcontext",
    "note": "codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 1249,
-   "confirmed": 844,
-   "contradicted": 131,
+   "confirmed": 847,
+   "contradicted": 38,
    "abstract": 0,
-   "silent": 274,
+   "silent": 364,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 86.6,
-    "num": 844,
-    "den": 975
+    "pct": 95.7,
+    "num": 847,
+    "den": 885
    },
    "recall": {
     "pct": 11.8,
-    "hits": 5952,
-    "pairs": 50569,
+    "hits": 5955,
+    "pairs": 50524,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
@@ -592,14 +592,14 @@
     "macro→function": 1631,
     "macro→method": 1140,
     "static→constructor": 8310,
-    "static→function": 10673,
-    "static→method": 22863
+    "static→function": 10674,
+    "static→method": 22814
    },
    "poison": {
     "passed": true,
     "seeded": 1249,
-    "refused": 975,
-    "unjudged": 274,
+    "refused": 405,
+    "unjudged": 844,
     "falsely": 0
    }
   },
@@ -618,15 +618,15 @@
    "note": "codegraphcontext graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 3517,
    "confirmed": 2720,
-   "contradicted": 423,
+   "contradicted": 362,
    "abstract": 0,
-   "silent": 374,
+   "silent": 435,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 86.5,
+    "pct": 88.3,
     "num": 2720,
-    "den": 3143
+    "den": 3082
    },
    "recall": {
     "pct": 39.0,
@@ -645,8 +645,8 @@
    "poison": {
     "passed": true,
     "seeded": 3517,
-    "refused": 3143,
-    "unjudged": 374,
+    "refused": 2969,
+    "unjudged": 548,
     "falsely": 0
    }
   },
@@ -759,15 +759,15 @@
    "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 5849,
    "confirmed": 607,
-   "contradicted": 164,
+   "contradicted": 163,
    "abstract": 0,
-   "silent": 5078,
+   "silent": 5079,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 78.7,
+    "pct": 78.8,
     "num": 607,
-    "den": 771
+    "den": 770
    },
    "recall": {
     "pct": 43.7,
@@ -793,8 +793,8 @@
    "poison": {
     "passed": true,
     "seeded": 5849,
-    "refused": 771,
-    "unjudged": 5078,
+    "refused": 768,
+    "unjudged": 5081,
     "falsely": 0
    }
   },
@@ -955,15 +955,15 @@
    "note": "codegraphcontext graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 18689,
    "confirmed": 2769,
-   "contradicted": 1640,
+   "contradicted": 1614,
    "abstract": 0,
-   "silent": 14280,
+   "silent": 14306,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 62.8,
+    "pct": 63.2,
     "num": 2769,
-    "den": 4409
+    "den": 4383
    },
    "recall": {
     "pct": 34.8,
@@ -982,8 +982,8 @@
    "poison": {
     "passed": true,
     "seeded": 18689,
-    "refused": 4409,
-    "unjudged": 14280,
+    "refused": 4331,
+    "unjudged": 14358,
     "falsely": 0
    }
   },
@@ -1183,15 +1183,15 @@
    "note": "codegraphcontext graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state",
    "edges": 22720,
    "confirmed": 851,
-   "contradicted": 12,
+   "contradicted": 4,
    "abstract": 0,
-   "silent": 21857,
+   "silent": 21865,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 98.6,
+    "pct": 99.5,
     "num": 851,
-    "den": 863
+    "den": 855
    },
    "recall": {
     "pct": 100.0,
@@ -1204,8 +1204,8 @@
    "poison": {
     "passed": true,
     "seeded": 22720,
-    "refused": 863,
-    "unjudged": 21857,
+    "refused": 847,
+    "unjudged": 21873,
     "falsely": 0
    }
   },
@@ -1224,15 +1224,15 @@
    "note": "codegraphcontext graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 888,
    "confirmed": 812,
-   "contradicted": 60,
+   "contradicted": 58,
    "abstract": 0,
-   "silent": 16,
+   "silent": 18,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 93.1,
+    "pct": 93.3,
     "num": 812,
-    "den": 872
+    "den": 870
    },
    "recall": {
     "pct": 56.4,
@@ -1251,8 +1251,8 @@
    "poison": {
     "passed": true,
     "seeded": 888,
-    "refused": 872,
-    "unjudged": 16,
+    "refused": 856,
+    "unjudged": 32,
     "falsely": 0
    }
   },
@@ -1271,15 +1271,15 @@
    "note": "codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 6891,
    "confirmed": 1434,
-   "contradicted": 5228,
+   "contradicted": 4457,
    "abstract": 0,
-   "silent": 229,
+   "silent": 1000,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 21.5,
+    "pct": 24.3,
     "num": 1434,
-    "den": 6662
+    "den": 5891
    },
    "recall": {
     "pct": 6.6,
@@ -1304,8 +1304,8 @@
    "poison": {
     "passed": true,
     "seeded": 6891,
-    "refused": 6662,
-    "unjudged": 229,
+    "refused": 5821,
+    "unjudged": 1070,
     "falsely": 0
    }
   },
@@ -2058,28 +2058,28 @@
    "date": "2026-09-15",
    "kind": "resolution",
    "oracle": "Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json",
-   "hobbes_version": "0.2.22-beta",
+   "hobbes_version": "0.2.28-beta",
    "lang": "C++",
    "run": "contained",
    "draw": "picked",
    "label": "fmt",
    "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 are scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31, open)",
    "edges": 3525,
-   "confirmed": 3254,
-   "contradicted": 28,
+   "confirmed": 3263,
+   "contradicted": 11,
    "abstract": 0,
-   "silent": 243,
+   "silent": 251,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 99.1,
-    "num": 3254,
-    "den": 3282
+    "pct": 99.7,
+    "num": 3263,
+    "den": 3274
    },
    "recall": {
     "pct": 14.5,
-    "hits": 7319,
-    "pairs": 50569,
+    "hits": 7328,
+    "pairs": 50524,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
@@ -2087,14 +2087,14 @@
     "macro→function": 1622,
     "macro→method": 1140,
     "static→constructor": 8205,
-    "static→function": 10320,
-    "static→method": 21963
+    "static→function": 10321,
+    "static→method": 21908
    },
    "poison": {
     "passed": true,
     "seeded": 3525,
-    "refused": 3282,
-    "unjudged": 243,
+    "refused": 2643,
+    "unjudged": 882,
     "falsely": 0
    }
   },
@@ -2755,15 +2755,15 @@
    "note": "repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 952,
    "confirmed": 815,
-   "contradicted": 122,
+   "contradicted": 89,
    "abstract": 0,
-   "silent": 15,
+   "silent": 48,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 87.0,
+    "pct": 90.2,
     "num": 815,
-    "den": 937
+    "den": 904
    },
    "recall": {
     "pct": 23.3,
@@ -2780,8 +2780,8 @@
    "poison": {
     "passed": true,
     "seeded": 952,
-    "refused": 937,
-    "unjudged": 15,
+    "refused": 867,
+    "unjudged": 85,
     "falsely": 0
    }
   },
@@ -2988,21 +2988,21 @@
    "tool": "repowise",
    "note": "repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 6366,
-   "confirmed": 2414,
-   "contradicted": 2929,
+   "confirmed": 2410,
+   "contradicted": 2615,
    "abstract": 0,
-   "silent": 1023,
+   "silent": 1341,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 45.2,
-    "num": 2414,
-    "den": 5343
+    "pct": 48.0,
+    "num": 2410,
+    "den": 5025
    },
    "recall": {
     "pct": 13.9,
-    "hits": 7017,
-    "pairs": 50569,
+    "hits": 7013,
+    "pairs": 50524,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
@@ -3010,14 +3010,14 @@
     "macro→function": 1631,
     "macro→method": 1140,
     "static→constructor": 8233,
-    "static→function": 10302,
-    "static→method": 22246
+    "static→function": 10303,
+    "static→method": 22204
    },
    "poison": {
     "passed": true,
     "seeded": 6366,
-    "refused": 5343,
-    "unjudged": 1023,
+    "refused": 4475,
+    "unjudged": 1891,
     "falsely": 0
    }
   },
@@ -3036,15 +3036,15 @@
    "note": "repowise graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 2478,
    "confirmed": 2125,
-   "contradicted": 172,
+   "contradicted": 167,
    "abstract": 0,
-   "silent": 181,
+   "silent": 186,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 92.5,
+    "pct": 92.7,
     "num": 2125,
-    "den": 2297
+    "den": 2292
    },
    "recall": {
     "pct": 30.5,
@@ -3063,8 +3063,8 @@
    "poison": {
     "passed": true,
     "seeded": 2478,
-    "refused": 2297,
-    "unjudged": 181,
+    "refused": 2225,
+    "unjudged": 253,
     "falsely": 0
    }
   },
@@ -3177,15 +3177,15 @@
    "note": "repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 944,
    "confirmed": 735,
-   "contradicted": 52,
+   "contradicted": 50,
    "abstract": 2,
-   "silent": 155,
+   "silent": 157,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 93.4,
+    "pct": 93.6,
     "num": 735,
-    "den": 787
+    "den": 785
    },
    "recall": {
     "pct": 52.8,
@@ -3211,8 +3211,8 @@
    "poison": {
     "passed": true,
     "seeded": 944,
-    "refused": 789,
-    "unjudged": 155,
+    "refused": 784,
+    "unjudged": 160,
     "falsely": 0
    }
   },
@@ -3278,15 +3278,15 @@
    "note": "repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 3514,
    "confirmed": 362,
-   "contradicted": 29,
+   "contradicted": 25,
    "abstract": 0,
-   "silent": 3123,
+   "silent": 3127,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 92.6,
+    "pct": 93.5,
     "num": 362,
-    "den": 391
+    "den": 387
    },
    "recall": {
     "pct": 31.8,
@@ -3306,8 +3306,8 @@
    "poison": {
     "passed": true,
     "seeded": 3514,
-    "refused": 391,
-    "unjudged": 3123,
+    "refused": 386,
+    "unjudged": 3128,
     "falsely": 0
    }
   },
@@ -3373,15 +3373,15 @@
    "note": "repowise graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 11845,
    "confirmed": 2796,
-   "contradicted": 240,
+   "contradicted": 218,
    "abstract": 1,
-   "silent": 8808,
+   "silent": 8830,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 92.1,
+    "pct": 92.8,
     "num": 2796,
-    "den": 3036
+    "den": 3014
    },
    "recall": {
     "pct": 35.4,
@@ -3400,8 +3400,8 @@
    "poison": {
     "passed": true,
     "seeded": 11845,
-    "refused": 3037,
-    "unjudged": 8808,
+    "refused": 2972,
+    "unjudged": 8873,
     "falsely": 0
    }
   },

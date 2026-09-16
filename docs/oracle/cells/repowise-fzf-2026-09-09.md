@@ -10,25 +10,25 @@ Command: `bench/oracle/grade-foreign.sh repowise-fzf/edges.json fzf-go-r2/oracle
 
 ```
 cell .  oracle go-rta (reachability)  sha f7ae439f
-hobbes edges 2478: confirmed 2125  contradicted 172  abstract 0  silent 181 map[not-loaded:132 unreachable:49]
-precision-against-oracle 92.5% (2125/2297)
+hobbes edges 2478: confirmed 2125  contradicted 167  abstract 0  silent 186 map[line-unresolved:5 not-loaded:132 unreachable:49]
+precision-against-oracle 92.7% (2125/2292)
 recall 30.5% (2144/7035 in-repo oracle pairs) at 5 roots; external oracle pairs 8094; misses map[func-value→closure:2457 func-value→named:81 interface→named:416 static→closure:1212 static→named:725]
   recall[func-value→closure]   0.0% (0/2457)  misses 2457 = 50.2% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
   recall[func-value→named  ]   0.0% (0/81)  misses 81 = 1.7% of all misses  (inflated: reachability oracle over-approximates function values; upper bound)
   recall[interface→named   ]   0.2% (1/417)  misses 416 = 8.5% of all misses
   recall[static→closure    ]   0.0% (0/1212)  misses 1212 = 24.8% of all misses
   recall[static→named      ]  74.7% (2143/2868)  misses 725 = 14.8% of all misses
-  tier repowise:global_unique confirmed 0  contradicted 10  abstract 0  silent 0
+  tier repowise:global_unique confirmed 0  contradicted 7  abstract 0  silent 3
   tier repowise:import_merged confirmed 9  contradicted 3  abstract 0  silent 0
   tier repowise:package_alias confirmed 253  contradicted 8  abstract 0  silent 38
   tier repowise:receiver_import confirmed 4  contradicted 0  abstract 0  silent 0
   tier repowise:receiver_typed_global confirmed 31  contradicted 0  abstract 0  silent 1
   tier repowise:receiver_typed_import confirmed 169  contradicted 2  abstract 0  silent 10
   tier repowise:receiver_typed_same_file confirmed 676  contradicted 0  abstract 0  silent 35
-  tier repowise:same_file confirmed 554  contradicted 17  abstract 0  silent 38
+  tier repowise:same_file confirmed 554  contradicted 15  abstract 0  silent 40
   tier repowise:same_package confirmed 429  contradicted 132  abstract 0  silent 59
   line-grain tolerance used on 502 edge(s) (several oracle sites on one line)
-poison check: PASS — 2478 seeded wrong edges: 2297 refused, 181 unjudged (oracle silent there), 0 falsely confirmed
+poison check: PASS — 2478 seeded wrong edges: 2225 refused, 253 unjudged (oracle silent there), 0 falsely confirmed
 foreign cell . (edges.json): 0s
 ```
 
@@ -36,15 +36,17 @@ foreign cell . (edges.json): 0s
 |---|---|
 | graded edges | 2,478 |
 | confirmed | 2,125 |
-| contradicted | 172 |
+| contradicted | 167 |
 | abstract | 0 |
-| silent | 181 {"not-loaded": 132, "unreachable": 49} |
-| precision-against-oracle (lower bound) | **92.5%** (2,125/2,297) |
+| silent | 186 {"line-unresolved": 5, "not-loaded": 132, "unreachable": 49} |
+| precision-against-oracle (lower bound) | **92.7%** (2,125/2,292) |
 | recall | 30.5% (2,144/7,035) at 5 roots |
 
-**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `repowise:global_unique` confirmed 0 / contradicted 10 / abstract 0 / silent 0; `repowise:import_merged` confirmed 9 / contradicted 3 / abstract 0 / silent 0; `repowise:package_alias` confirmed 253 / contradicted 8 / abstract 0 / silent 38; `repowise:receiver_import` confirmed 4 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_typed_global` confirmed 31 / contradicted 0 / abstract 0 / silent 1; `repowise:receiver_typed_import` confirmed 169 / contradicted 2 / abstract 0 / silent 10; `repowise:receiver_typed_same_file` confirmed 676 / contradicted 0 / abstract 0 / silent 35; `repowise:same_file` confirmed 554 / contradicted 17 / abstract 0 / silent 38; `repowise:same_package` confirmed 429 / contradicted 132 / abstract 0 / silent 59.
+**By the tool's own label** (the edge's tier is the tool's confidence label, C-95): `repowise:global_unique` confirmed 0 / contradicted 7 / abstract 0 / silent 3; `repowise:import_merged` confirmed 9 / contradicted 3 / abstract 0 / silent 0; `repowise:package_alias` confirmed 253 / contradicted 8 / abstract 0 / silent 38; `repowise:receiver_import` confirmed 4 / contradicted 0 / abstract 0 / silent 0; `repowise:receiver_typed_global` confirmed 31 / contradicted 0 / abstract 0 / silent 1; `repowise:receiver_typed_import` confirmed 169 / contradicted 2 / abstract 0 / silent 10; `repowise:receiver_typed_same_file` confirmed 676 / contradicted 0 / abstract 0 / silent 35; `repowise:same_file` confirmed 554 / contradicted 15 / abstract 0 / silent 40; `repowise:same_package` confirmed 429 / contradicted 132 / abstract 0 / silent 59.
 
-## Contradicted (172 rows; all in report.json)
+## Contradicted (172 rows at converter@4, read 2026-09-15; 167 after the 2026-09-16 regrade — all in report.json)
+
+*The counts in this section — the mechanical shape, the by-label split and the triage ratio — are **as of the converter@4 grade of 2026-09-15**, when these rows were read. The 2026-09-16 regrade of the oracle's own H-30 defect moved 5 of them to `silent`/`line-unresolved`, leaving 167; it read no row and re-triaged nothing. The signed before → after is in **Direction of fix (the oracle's H-30)** below.*
 
 Mechanical shape (no reading): another file than every oracle target 145; same file as an oracle target, other line 27. By label: `repowise:same_package` 132, `repowise:same_file` 17, `repowise:global_unique` 10, `repowise:package_alias` 8, `repowise:import_merged` 3, `repowise:receiver_typed_import` 2.
 
@@ -71,7 +73,9 @@ Sample rows (site → the tool's callee; the oracle's targets at that site):
 | `interface→named` | 1 / 417 | 416 |
 | `func-value→named` | 0 / 81 | 81 |
 
-**Poison check:** PASS — 2,478 seeded wrong edges: 2,297 refused, 181 unjudged (oracle silent there), 0 falsely confirmed.
+**Poison check:** PASS — 2,478 seeded wrong edges: 2,225 refused, 253 unjudged (oracle silent there), 0 falsely confirmed.
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
+
+**Direction of fix (the oracle's H-30, 2026-09-16, signed):** the grader no longer contradicts on a line the key itself left unresolved — a defect of the oracle, not of this tool (`oracle-grading.md` §7d and D-O4; `oracle-defects.md` H-30). graded edges 2,478 → 2,478 (+0); confirmed 2,125 → 2,125 (+0); contradicted 172 → 167 (-5); silent 181 → 186 (+5), of which `line-unresolved` 5; precision-against-oracle 92.5% → 92.7%. Nothing on the tool's side moved and its graph is unchanged: the rule withdraws judgement where the key is silent, which is why every moved foreign cell moves upward. Hobbes' own 38 non-C++ cells did not move at all, because it abstains where lane B is silent. The regrade's outputs are in `~/.hobbes/bench/oracle-defect-drivers/regrade-out/foreign-poison/repowise-fzf/`; the `report.json` beside this cell in `~/.hobbes/bench/comparative/` is still the converter@4 grade this line moves from, kept as it was.
 

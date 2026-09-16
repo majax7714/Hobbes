@@ -11292,3 +11292,73 @@ well do a full version retest at some point to fully compare"):**
 CodeGraphContext's SCIP mode for C/C++, inside a full-version
 comparative retest (`future_additions.md`). C++ is closed out.
 **Next:** named no-spend units through the harness, toward 40.
+
+## 2026-09-16 — O10's four defects: three fixed through the harness, the fourth left open, and a regrade that cost us the headline
+
+Max: "restart knowledge server then proceed with the oracle defects and
+side rows with the fix." The knowledge server turned out not to need a
+restart — its container had started *after* the image was built, so it
+already served the current build; what was stale were the artifacts, and
+an ingest fixed that.
+
+**Probed before designing.** Each of H-28–H-31 was reproduced in the
+image first, and two probes overturned the hypothesis I would otherwise
+have written into the ADR: a `MemberExpr` carries no `loc` at all (the
+member token is its `range.end`), and it is a class template's
+*pattern* members — not its specialisations — that carry a class with no
+mangling. H-31's `os.cc` half did **not** reproduce
+(`OUTER(INNER(sink(2)))` keys correctly), so no rule was written from a
+synthetic that disagrees with the cell's evidence, and it stays open.
+
+**Decided before dispatching** (`7240ebd`, `a0023a4`, `21f4f57`):
+ADR-113 §3's amendment (the member token, the class-qualified key), §7d
+and D-O4 (the silence rule), and §10.8 pre-registering the regrade as
+P36–P45. A self-review of `7240ebd` caught my own overstatement — the
+bullets claimed the silence rule also covers a call the key holds
+nowhere, which contradicts P36 and would have misled unit 2's doer.
+
+**Two units, both merged not squashed.** `S-20260916T153010Z-8170`
+(H-28, H-29; 77 turns, $7.21) and `S-20260916T155426Z-8d48` (H-30; 36
+turns, $1.49). Both gate-clear, verify-pass, none missed. Verified
+inside the image, because this host has no `clang++` and a fresh
+worktree has no `bench/oracle/ts/node_modules` — a host run would have
+skipped the very tests that mattered, as my own pre-unit baseline
+silently did. Tracker 31 → **33 of 40**.
+
+**Found by using the harness:** `calvin_tracker.py` pinned `gate v2,
+grounder v3` as literals, so the first session ever run at grounder v4
+could not be parsed and `render` refused the harness's own output. Its
+drift test carried the same literals, so it could never have caught it.
+Fixed with a case proven red on the old pattern (`ce43e5a`).
+
+**The regrade, three tiers, each holding the Hobbes side fixed:** fmt
+and args re-run contained against their standing exports; 38 own cells
+and 44 foreign cells graded by two binaries (pre/post) over identical
+stored inputs. fmt 99.1% → 99.7%, args unmoved, 38 own cells unmoved,
+13 foreign cells moved.
+
+**What it cost, recorded against our own interest.** Six of C-153's ten
+rows — where Hobbes' edge is genuinely wrong — are now *unjudged* rather
+than fixed, so fmt reads 99.7% where the like-for-like figure is
+**99.48%**; the poison instrument covers fewer sites (fmt 3,282 → 2,643
+refused); and the same rule raised every moved **competitor** cell while
+moving none of ours (CodeGraphContext on fmt 86.6% → 95.7%), narrowing
+the gap on our own initiative. **P36, P37 and P38 all missed**, every
+one in the flattering direction, recorded as misses with their causes
+rather than rationalised.
+
+**Four defects of my own, caught by checking rather than trusting:** a
+regrade baseline that compared against 0.1.10-beta reports and so
+measured release drift, not this change (discarded and redone with two
+binaries); an auto-generated foreign key table that confidently paired
+`args` with `minic`'s key (deleted after four attempts, then done from
+each record); a scripted record rewrite that dropped thousands
+separators and left twelve prose sentences contradicting their own
+blocks; and a `--compdb` path the contained step could not see. Each is
+in this entry because the alternative was a number nobody could check.
+
+**No version move** (bench and records only, ADR-103). Graphics
+re-rendered, `render.py check` and ADR-102's drift test green.
+**Open for Max:** H-31; whether a "judged-as-before" companion number
+belongs on any cell with `line-unresolved > 0`; C-153's status, now 4
+judged : 6 unjudged.
