@@ -276,13 +276,14 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   joined by one range join; artifacts at schema v4. Whatever executes
   repo code runs in the one image (ADR-092).
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
-  (99.6%, all 15 the oracle's grain) and fmt (**99.85%** after
-  2026-09-16's regrades — 99.66% judged like-for-like, and every
-  contradiction left is ours: 4 scip-clang's own (C-153) and 1 a call
-  drawn in an unevaluated operand (C-155). All four of the oracle's own
-  defects, H-28–H-31, were fixed that day).
-  **Register:** 157 entries; 114 active (87 surfaced, 21 partial, 5
-  unsurfaced, 1 n/a) — C-157 registered and surfaced 2026-09-16 (ADR-120).
+  (99.6%, all 15 the oracle's grain) and fmt (**99.88%** at 0.2.33-beta —
+  99.69% judged like-for-like, and every contradiction left is
+  scip-clang's own wrong candidate, C-153: 4 judged, 6 unjudged. C-155,
+  the call drawn in an unevaluated operand, was lifted 2026-09-16; the
+  oracle's four defects H-28–H-31 were fixed that day and its fifth,
+  H-32, is C-155's own half).
+  **Register:** 157 entries; 113 active (87 surfaced, 21 partial, 4
+  unsurfaced, 1 n/a), 27 lifted — C-155 lifted 2026-09-16 (ADR-121).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes

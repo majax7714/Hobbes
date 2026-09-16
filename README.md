@@ -160,13 +160,13 @@ cell to prove the grader can say no. Every compiler-graded cell is at
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 99.85% (3,269/3,274), 99.66% judged like-for-like
+- **fmt** (C++) reads 99.88% (3,269/3,273), 99.69% judged like-for-like
   after the oracle's own four defects (H-28–H-31) were fixed on
-  2026-09-16. Every contradiction left is Hobbes' own: 4 are wrong edges
-  drawn where scip-clang itself names the wrong candidate (C-153, with
-  6 more of that shape unjudged rather than fixed), and 1 is a call
-  drawn inside an unevaluated `decltype` operand (C-155). A provider's
-  error in the graph is Hobbes' own, so it is registered.
+  2026-09-16 and C-155 was lifted the same day (ADR-121: no call site
+  in an unevaluated operand). Every contradiction left is a wrong edge
+  drawn where scip-clang itself names the wrong candidate (C-153, 4
+  judged and 6 more of that shape unjudged rather than fixed). A
+  provider's error in the graph is Hobbes' own, so it is registered.
 
 C's sqlite-vector read 99.6% until 0.2.8-beta, from three syntactic edges
 Hobbes got wrong (C-138). The external veto (ADR-111) removed them, and it
@@ -216,9 +216,9 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but two. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 3,269/3,274 (99.85%; 99.66% like-for-like): all 5 contradictions
-  are Hobbes' own — scip-clang's wrong candidate (C-153) and one
-  unevaluated operand (C-155).
+  reads 3,269/3,273 (99.88%; 99.69% like-for-like): all 4 contradictions
+  are scip-clang's wrong candidate (C-153); the unevaluated-operand
+  edge (C-155) was lifted at 0.2.33-beta.
   Its recall lead within a row runs from none (sqlite-vector), half a
   point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
@@ -387,8 +387,8 @@ its own: no model, no credential, no network.
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C and C++ clang-graded — with every compiler-graded cell
 at 100% after ADR-090 and ADR-111 but two: quic-go at 99.6% (every
-contradiction the oracle's grain) and C++'s fmt at 99.85% (99.66% like-for-like; all 5
-contradictions Hobbes' own — C-153 through scip-clang, and C-155). The
+contradiction the oracle's grain) and C++'s fmt at 99.88% (99.69% like-for-like; all 4
+contradictions C-153 through scip-clang; C-155 lifted). The
 misses are registered by class.
 
 **The derivation programme is built and under test.** The latest run (the

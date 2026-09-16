@@ -1078,6 +1078,42 @@ contained and diffed site for site against the standing ones.
 
 Poison PASS on both, 0 falsely confirmed (the usual P51 clause).
 
+**Graded 2026-09-16**, after `86b826a` (0.2.33-beta). Both clones
+re-ingested at the new tree (lane B on, contained) and re-exported; the
+keys are the standing ones, unchanged. Outputs in
+`~/.hobbes/bench/uneval-drivers/regrade/{fmt,args}/`.
+
+- **P52 — met on the judgement, MISSED on the count.** Contradicted 5 →
+  **4**, the four C-153 rows exactly (`format-test.cc:689`, 690, 692,
+  696); confirmed 3,269 unchanged; precision **99.88%** (3,269/3,273);
+  like-for-like **99.69%** (3,269/3,279). But the export is **3,499**
+  rows, not 3,524: 26 removed, 0 added, every removed row read — the
+  contradiction and **25 oracle-silent edges**, all at `decltype`
+  operands (`unreachable` 65 → 42, `no-targets` 119 → 117). The
+  pre-measurement had skipped the 25 headers C++ claims and matched
+  targets by bare name, so it saw 1 edge where there were 26 (ADR-121's
+  dated correction). The versions between the standing export
+  (0.2.21-beta) and this one contributed nothing else: 0 rows added,
+  none removed outside the rule.
+- **P53 — met.** Recall 14.5% (7,334/50,525), unchanged to the pair;
+  collapsed 12.4%.
+- **P54 — MISSED, same cause.** 299 lane A sites gone, not 49 (294
+  `decltype`, 5 `sizeof`; 183 in headers, 116 under `test/`), measured
+  by running the old and the new walk over the provider's own file list.
+  The key's `sites_*` are untouched, as predicted.
+- **P55 — met, in its strong form.** args' export is identical as a set
+  (2,000 rows), 1,995/1,995, 5 silent, recall 56.4%, collapsed 63.1%.
+- **P56 — pending the oracle unit.**
+- Poison PASS on both, 0 falsely confirmed: fmt 3,499 seeded, 2,641
+  refused / 858 unjudged; args 2,000 seeded, 1,938 / 62.
+
+**The lesson, for the next lift:** a count taken before a decision must
+use the provider's file list, not a walk of its own, and must match
+graded rows by position, not by name. Both are one line each; the
+prediction that carried them was wrong by a factor of six on sites and
+twenty-six on edges, in the direction that made the change look
+smaller than it was.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

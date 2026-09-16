@@ -66,6 +66,23 @@ that count and 49 sites in all. The 12 edges on `sizeof(` lines the
 entry mentioned all sit outside the operand: fmt has no lane A site
 under a `sizeof` at all.
 
+**Corrected 2026-09-16, after the regrade — the count above is wrong
+twice, both errors mine and both in the flattering direction.** The
+measurement walked the six C++ extensions and skipped the 25 `.h`
+files C++ claims, and it matched a site to its graded row by the
+target's bare name, so a target spelled `parse_context::begin` never
+matched a site named `begin`. Re-measured with the provider's own file
+list and the landed predicate: fmt has **299** lane A sites under an
+unevaluated operand (294 `decltype`, 5 `sizeof`; 183 in headers, 116
+under `test/`), plus 6 `typeid` pseudo-callees, and **26** of them drew
+an edge in the standing export — the 1 contradiction and **25
+oracle-silent edges**, every one read and every one a `decltype`
+operand (`-> decltype(ctx.begin())` and `void_t<decltype(…)>` shapes).
+args: 7 sites, 0 edges, as stated. So the lift removed 26 rows from
+fmt's export, not 1; the judged outcome is exactly as predicted.
+§10.10 records P52 and P54 as missed on the counts and met on the
+judgement.
+
 **The oracle** (clang 18's `-ast-dump=json`, run in the image on a
 probe holding every shape above). The dump keeps the `CallExpr` under
 `UnaryExprOrTypeTraitExpr` (`sizeof`, `alignof`), `CXXNoexceptExpr` and
@@ -109,6 +126,22 @@ a call. It is logged as **H-32**, open until its unit lands.
 - The C walk does not change: C has `sizeof` (rarely over a call) and
   `_Alignof`, no `decltype`, `noexcept`, `typeid` or `requires`; its
   cells stand at 100% and a change there is a separate measurement.
+
+  **Amended 2026-09-16, after the oracle unit — C's walk abstains
+  too.** The oracle's rule is the reader's, and the reader is one for
+  both languages: `UnaryExprOrTypeTraitExpr` is C's `sizeof` and
+  `_Alignof` as much as C++'s, so once §3 landed the key abstained
+  under `sizeof(f(x))` in C while lane A's C walk still recorded it —
+  the doer of the oracle unit said so in its closing lines. Measured on
+  cJSON, sqlite-vector and `minic`: **0** C call sites under a `sizeof`
+  or `_Alignof`, so no cell moves. The asymmetry is closed on the lane's
+  side rather than registered: `csource`'s walk records no call site
+  under a `sizeof_expression` or an `alignof_expression`, the same
+  predicate one grammar over, as a third unit. **Residual, C's own:**
+  C11 6.5.3.4 evaluates a `sizeof` operand whose type is a
+  variable-length array (`sizeof(int[n()])` calls `n`); the syntax
+  cannot tell a VLA type from any other, so that call is dropped with
+  the rest and the lifted entry says so.
 
 ### 2. The join and the tail — unchanged, and the review's sketch corrected
 
@@ -193,3 +226,15 @@ only place H-32 is observable.
 - 2026-09-16 — measured (the grammar, the two cells, the oracle's dump
   in the image); decided; §10.10 written; H-32 logged open. The Hobbes
   unit dispatched next, the oracle unit after its merge.
+- 2026-09-16 (later still) — **the oracle unit landed** as
+  `S-20260916T230256Z-5261` (57 turns, $4.09, gate right-clear, merged
+  `fffadbd`); H-32 fixed, `sites_unevaluated` in coverage. Its doer's
+  finding that the rule reaches C is the amendment above; the C unit
+  follows.
+- 2026-09-16 (later) — **the Hobbes unit landed** as
+  `S-20260916T225041Z-d95c` (32 turns, $2.08, gate right-clear, merged
+  `86b826a`), 0.2.33-beta. fmt regraded against its standing key:
+  contradicted 5 → **4** (all C-153), confirmed 3,269 unchanged,
+  **99.88%** (3,269/3,273), like-for-like 99.69%; the export lost 26
+  rows, all at unevaluated sites (the correction above); args identical
+  row for row. C-155 lifted. The oracle unit dispatched after it.

@@ -3,20 +3,20 @@
 <rect width="950" height="968" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Three graphs, one key per cell: precision-against-oracle and recall, never pooled</text>
 <g>
-<title>Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.4-beta / 0.2.8-beta</title>
+<title>Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.33-beta / 0.2.4-beta / 0.2.8-beta</title>
 <circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.4-beta / 0.2.8-beta</text>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.33-beta / 0.2.4-beta / 0.2.8-beta</text>
 <g>
 <title>CodeGraphContext 0.6.13</title>
-<rect x="408.79999999999995" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="494.2" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="423.79999999999995" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<text x="509.2" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
 <g>
 <title>repowise 0.49.0</title>
-<polygon points="584.0999999999999,39.5 590.5999999999999,46 584.0999999999999,52.5 577.5999999999999,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="669.5,39.5 676.0,46 669.5,52.5 663.0,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="594.0999999999999" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="679.5" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
 <text x="24" y="66" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One colour per tool; the same repo, commit, answer key, matcher and poison check (ADR-101).</text>
 <text x="24" y="80" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The tools' numbers are at our grain (C-94, C-95) and host-run (C-96). Hover a marker for its fraction; the grey line spans the three.</text>
 <line x1="250.0" y1="112" x2="250.0" y2="778" stroke="#d9d8d2" stroke-dasharray="2 3"/>
@@ -447,14 +447,14 @@
 <polygon points="679.9,561.5 686.4,568 679.9,574.5 673.4,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="240" y="594" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
-<line x1="394.0" y1="590" x2="549.4" y2="590" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="394.0" y1="590" x2="549.7" y2="590" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>fmt — codegraphcontext: precision-against-oracle 847/885 = 95.7%</title>
 <rect x="532.1" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — hobbes: precision-against-oracle 3,269/3,274 = 99.8%</title>
-<circle cx="549.4" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>fmt — hobbes: precision-against-oracle 3,269/3,273 = 99.9%</title>
+<circle cx="549.7" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>fmt — repowise: precision-against-oracle 2,410/5,024 = 48.0%</title>
@@ -639,11 +639,11 @@
 </g>
 <line x1="24" y1="792" x2="926" y2="792" stroke="#d9d8d2"/>
 <text x="24" y="812" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>
-<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (3,269/3,274, a 99.8% lower bound), quic-go (3,766/3,781, a 99.6% lower bound),</text>
+<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (3,269/3,273, a 99.9% lower bound), quic-go (3,766/3,781, a 99.6% lower bound),</text>
 <text x="24" y="840" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >triaged in its record. The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39,</text>
 <text x="24" y="854" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded, and the C++ cells' 60-row sample tool-wrong 56, oracle-grain</text>
 <text x="24" y="868" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >4 after converter@4 read a spaced #define and a split declaration head. On repowise-bench's draws the key is ours, at site grain — not comparable with their published table;</text>
 <text x="24" y="882" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >syft is absent because RTA over it is killed by the kernel on this box.</text>
 <text x="24" y="900" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md. The Hobbes cells' standing grades are by Hobbes</text>
-<text x="24" y="913" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0.1.10-beta, 0.2.28-beta, 0.2.4-beta, 0.2.8-beta (ADR-103; per cell in tables.md).</text>
+<text x="24" y="913" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0.1.10-beta, 0.2.28-beta, 0.2.33-beta, 0.2.4-beta, 0.2.8-beta (ADR-103; per cell in tables.md).</text>
 </svg>
