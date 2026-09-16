@@ -125,6 +125,87 @@ func TestBuckets(t *testing.T) {
 	}
 }
 
+// H-30 (D-O4, 2026-09-16): a line carrying an unresolved site — a
+// dependent call in a template pattern the key holds as `dynamic` —
+// cannot contradict, because judging the edge against the *other*
+// sites' targets reads the key's silence as a verdict (RC-4). The
+// dependent call's declaration is the one the source names; the row is
+// silent, and out of the precision denominator.
+func TestUnresolvedSiteOnTheLineSilencesTheEdge(t *testing.T) {
+	line := edges.Pos{Path: "format.h", Line: 40}
+	resolved := edges.Pos{Path: "format.h", Line: 10}
+	dependent := edges.Pos{Path: "format.h", Line: 20}
+	o := &edges.OracleExport{
+		Oracle: "c-clang", Kind: "resolution", Files: []string{"format.h"},
+		Sites: []edges.Site{
+			{Pos: line, Mode: "static", Targets: []edges.Target{{Pos: resolved}}},
+			{Pos: line, Mode: "dynamic"},
+		},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{{Site: line, Target: dependent, Tier: "syntactic"}}}
+	r := Grade(h, o)
+	if r.Total != (TierCounts{Silent: 1}) || r.SilentBy["line-unresolved"] != 1 {
+		t.Fatalf("the dependent call must be silent, not contradicted: %+v %v", r.Total, r.SilentBy)
+	}
+	if r.Precision != nil {
+		t.Fatalf("a silent row is outside the precision denominator: %v", *r.Precision)
+	}
+}
+
+// The rule silences only what the key did not resolve: an edge matching
+// the resolved neighbour on the same line still confirms.
+func TestResolvedNeighbourOnAnUnresolvedLineStillConfirms(t *testing.T) {
+	line := edges.Pos{Path: "format.h", Line: 40}
+	resolved := edges.Pos{Path: "format.h", Line: 10}
+	o := &edges.OracleExport{
+		Oracle: "c-clang", Kind: "resolution", Files: []string{"format.h"},
+		Sites: []edges.Site{
+			{Pos: line, Mode: "static", Targets: []edges.Target{{Pos: resolved}}},
+			{Pos: line, Mode: "dynamic"},
+		},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{{Site: line, Target: resolved, Tier: "semantic"}}}
+	r := Grade(h, o)
+	if r.Total != (TierCounts{Confirmed: 1}) {
+		t.Fatalf("a resolved neighbour still confirms: %+v", r.Total)
+	}
+}
+
+// A line where *every* site is targetless keeps its own reason: the new
+// rule is about a mixed line, and no-targets must not be renamed by it.
+func TestAllTargetlessLineKeepsNoTargets(t *testing.T) {
+	line := edges.Pos{Path: "format.h", Line: 40}
+	o := &edges.OracleExport{
+		Oracle: "c-clang", Kind: "resolution", Files: []string{"format.h"},
+		Sites: []edges.Site{{Pos: line, Mode: "dynamic"}, {Pos: line, Mode: "dynamic"}},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{{Site: line, Target: edges.Pos{Path: "format.h", Line: 10}}}}
+	r := Grade(h, o)
+	if r.Total != (TierCounts{Silent: 1}) || r.SilentBy["no-targets"] != 1 || r.SilentBy["line-unresolved"] != 0 {
+		t.Fatalf("an all-targetless line stays no-targets: %+v %v", r.Total, r.SilentBy)
+	}
+}
+
+// The fix must not silence real disagreement: where every site on the
+// line resolved, an edge matching none of them still contradicts (this
+// is also H-31's shape — a call the key holds nowhere at all leaves the
+// line fully resolved, so the rule does not reach it).
+func TestFullyResolvedLineStillContradicts(t *testing.T) {
+	line := edges.Pos{Path: "format.h", Line: 40}
+	o := &edges.OracleExport{
+		Oracle: "c-clang", Kind: "resolution", Files: []string{"format.h"},
+		Sites: []edges.Site{
+			{Pos: line, Mode: "static", Targets: []edges.Target{{Pos: edges.Pos{Path: "format.h", Line: 10}}}},
+			{Pos: line, Mode: "static", Targets: []edges.Target{{Pos: edges.Pos{Path: "format.h", Line: 11}}}},
+		},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{{Site: line, Target: edges.Pos{Path: "format.h", Line: 99}}}}
+	r := Grade(h, o)
+	if r.Total != (TierCounts{Contradicted: 1}) || r.Precision == nil || *r.Precision != 0 {
+		t.Fatalf("a fully resolved line still contradicts: %+v precision %v", r.Total, r.Precision)
+	}
+}
+
 func TestExternalPairsStayOutOfRecall(t *testing.T) {
 	site := edges.Pos{Path: "a.go", Line: 1}
 	o := &edges.OracleExport{Files: []string{"a.go"}, Sites: []edges.Site{{Pos: site, Mode: "static", Targets: []edges.Target{{Pos: edges.Pos{Path: "/goroot/fmt/print.go", Line: 1}, External: true}}}}}

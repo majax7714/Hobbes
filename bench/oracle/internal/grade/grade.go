@@ -324,10 +324,14 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 			}
 			var targets []edges.Target
 			abstract := false
+			unresolved := false
 			for _, s := range sites {
 				targets = append(targets, s.Targets...)
 				if s.Interface != nil && s.Interface.Pos == e.Target {
 					abstract = true
+				}
+				if len(s.Targets) == 0 {
+					unresolved = true
 				}
 			}
 			switch {
@@ -348,6 +352,16 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 				row.OracleTargets = targets
 			case len(targets) == 0:
 				row.Bucket, row.Reason = "silent", "no-targets"
+			case unresolved:
+				// A line the key left unresolved cannot contradict (D-O4,
+				// 2026-09-16; H-30, RC-4): one of its sites carries no
+				// targets — a dependent call in a template pattern the key
+				// holds as `dynamic` — so judging the edge against the
+				// *other* sites' targets reads the key's silence as a
+				// verdict. This is the precision-side analogue of
+				// traceRow's `line-mixed`.
+				row.Bucket, row.Reason = "silent", "line-unresolved"
+				row.OracleTargets = targets
 			default:
 				row.Bucket = "contradicted"
 				row.OracleTargets = targets
