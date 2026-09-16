@@ -65,7 +65,16 @@ on the class name). An operator applied by symbol (``a + b``) is not a
 site: the provider sees no call (C-63's face). The four named casts
 (``static_cast`` and its three siblings) parse as calls and are not
 ones; they are dropped rather than recorded as calls to a function no
-repo defines.
+repo defines. **A call written inside an unevaluated operand is not a
+site either** (C-155's fix, ADR-121 §1): nothing under a
+``sizeof_expression``, an ``alignof_expression``, a ``decltype``, a
+``requires_expression`` or a ``noexcept(..)`` expression is recorded,
+however deep — the program never evaluates it, so the provider sees no
+call — with ``typeid(..)`` excepted, because its operand *is* evaluated
+when it is a polymorphic glvalue and the syntax cannot tell. ``noexcept``
+and ``typeid`` themselves parse as a call of a bare identifier: each is a
+keyword and not a callee, and records no site of its own, the named
+casts' rule one set over.
 
 **The fallback** (:func:`_call_fallback`, the syntactic floor) resolves a
 plain call by name in C's three ranks (``csource._resolve_fallback``
@@ -149,6 +158,25 @@ _STRING_TEST_MACROS = {"TEST_CASE", "SCENARIO"}
 #: C++'s named casts parse as a call of a template function and are not
 #: calls at all; recording them would put every cast in the tail.
 _NAMED_CASTS = {"static_cast", "dynamic_cast", "const_cast", "reinterpret_cast"}
+
+#: The node types whose whole subtree is an unevaluated operand: a call
+#: written anywhere inside one is a call the program never makes (C-155,
+#: ADR-121 §1). A ``noexcept(..)`` *expression* is a fifth shape the
+#: grammar spells as a call rather than a node type, so
+#: :func:`_unevaluated` reads it there; ``typeid`` is absent on purpose,
+#: for the reason that function gives.
+_UNEVALUATED_OPERANDS = {
+    "sizeof_expression",
+    "alignof_expression",
+    "decltype",
+    "requires_expression",
+}
+
+#: The bare identifiers that parse in call position and are keywords, not
+#: callees: neither names anything any repo defines, so neither records a
+#: site of its own (ADR-121 §1). Their *operands* are another question —
+#: ``noexcept``'s are unevaluated, ``typeid``'s keep their sites.
+_KEYWORD_CALLEES = {"noexcept", "typeid"}
 
 
 @dataclass
@@ -754,6 +782,30 @@ def _type_terminal(node: Node) -> tuple[Node | None, tuple[str, ...]]:
     return None, ()
 
 
+def _unevaluated(node: Node) -> bool:
+    """Whether *node* sits inside an operand the program never evaluates —
+    a ``sizeof``, an ``alignof``, a ``decltype``, a requires-expression or
+    a ``noexcept(..)`` expression (C-155, ADR-121 §1).
+
+    ``typeid(f())`` is not one of them: its operand is evaluated when it is
+    a glvalue of polymorphic class type ([expr.typeid]/3), which lane A
+    cannot type, so a call written there keeps its site — the conservative
+    side of a case the syntax cannot decide. The walk to the root is
+    unbounded: a lambda's body, or a definition, inside a ``decltype`` is
+    still inside it.
+    """
+    parent = node.parent
+    while parent is not None:
+        if parent.type in _UNEVALUATED_OPERANDS:
+            return True
+        if parent.type == "call_expression":
+            function = parent.child_by_field_name("function")
+            if function is not None and function.type == "identifier" and _text(function) == "noexcept":
+                return True
+        parent = parent.parent
+    return False
+
+
 def _site(
     name: str,
     shape: str,
@@ -780,14 +832,23 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     same as every other language."""
     found: list[dict] = []
     for node in _walk(root):
+        if node.type not in ("call_expression", "new_expression", "declaration"):
+            continue
+        # Every shape below, dropped in one place: inside an unevaluated
+        # operand there is no call to record (ADR-121 §1).
+        if _unevaluated(node):
+            continue
         if node.type == "call_expression":
             function = node.child_by_field_name("function")
             if function is None:
                 continue
             shape, terminal, qualifiers = _callee_shape(function)
-            if terminal is None or _text(terminal) in _NAMED_CASTS:
+            if terminal is None:
                 continue
-            found.append(_site(_text(terminal), shape, terminal, node, qualifiers, symbols))
+            name = _text(terminal)
+            if name in _NAMED_CASTS or name in _KEYWORD_CALLEES:
+                continue
+            found.append(_site(name, shape, terminal, node, qualifiers, symbols))
         elif node.type == "new_expression":
             type_node = node.child_by_field_name("type")
             if type_node is None:
