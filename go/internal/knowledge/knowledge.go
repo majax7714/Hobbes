@@ -455,7 +455,8 @@ func (s *Store) Neighborhood(nodeID string) (string, error) {
 }
 
 // WhoCalls answers who_calls(symbol): every call edge into the symbol,
-// with provenance and tier.
+// with provenance and tier — and, under their own headings, the `uses`
+// and `implements` edges into it.
 //
 // Filtered to type "calls" deliberately. Since V2.M2 the symbol layer also
 // carries `uses` edges — a resolution no call site claimed: a type
@@ -477,8 +478,8 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 	var b strings.Builder
 	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 
-	callers, users := 0, 0
-	var uses strings.Builder
+	callers, users, implementors := 0, 0, 0
+	var uses, implemented strings.Builder
 	for _, i := range idx.symbolTo[symbolID] {
 		e := g.SymbolEdges[i]
 		switch e.Type {
@@ -491,12 +492,17 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		case "uses":
 			users++
 			uses.WriteString(fmt.Sprintf("  %s%s\n", e.From, e.cite()))
+		case "implements":
+			implementors++
+			implemented.WriteString(fmt.Sprintf("  %s%s\n", e.From, e.cite()))
 		}
 	}
-	if users > 0 {
+	if users > 0 || implementors > 0 {
 		if callers == 0 {
 			b.WriteString(fmt.Sprintf("no callers of %s\n", symbolID))
 		}
+	}
+	if users > 0 {
 		// A `uses` edge is a resolution no detected call site claimed
 		// (ADR-029): a type annotation, an except clause, a value passed
 		// by name — or a call through a receiver lane A could not see
@@ -504,7 +510,14 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 		b.WriteString(fmt.Sprintf("references %s where no call site was detected (type annotations, except clauses, values passed by name; a call through a receiver lane A cannot see, C-1):\n", symbolID))
 		b.WriteString(uses.String())
 	}
-	if callers > 0 || users > 0 {
+	if implementors > 0 {
+		// The override set (ADR-120): what the index states implements or
+		// overrides this symbol. A call to an interface method reaches one
+		// of these at run time — which one, the graph does not say (C-58).
+		b.WriteString(fmt.Sprintf("implemented or overridden by (a call to %s may reach any of these; which one is not traced, C-58):\n", symbolID))
+		b.WriteString(implemented.String())
+	}
+	if callers > 0 || users > 0 || implementors > 0 {
 		return b.String(), nil
 	}
 

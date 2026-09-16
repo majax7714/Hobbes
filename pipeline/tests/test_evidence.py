@@ -25,6 +25,10 @@ def resolution(file, line, name, def_file, def_line, col=4):
     )
 
 
+def implements(file, line, def_file, def_line):
+    return ev.Site(ev.SCIP, ev.IMPLEMENTS, file, line, def_file=def_file, def_line=def_line)
+
+
 class TestTheTable:
     def test_a_call_scip_resolved_is_a_semantic_call(self):
         out = ev.join(
@@ -61,6 +65,28 @@ class TestTheTable:
         assert out[0].kind == "uses"
         assert out[0].tier == SEMANTIC
         assert out[0].lanes == (ev.SCIP,)
+
+    def test_an_implements_site_is_an_implements_fact_from_lane_b_alone(self):
+        # ADR-120: the index states the pair between two definitions; no
+        # syntax site claims it, and no fallback stands in for it.
+        out = ev.join(
+            [call("a.py", 10, "run")],
+            [implements("a.py", 10, "b.py", 5)],
+            fallback={("a.py", 10, "run"): ("c.py", 1)},
+        )
+        kinds = sorted(o.kind for o in out)
+        assert kinds == ["calls", "implements"]
+        fact = next(o for o in out if o.kind == "implements")
+        assert (fact.source_file, fact.line, fact.def_file, fact.def_line) == ("a.py", 10, "b.py", 5)
+        assert fact.tier == SEMANTIC and fact.lanes == (ev.SCIP,) and fact.scope == ""
+        assert fact.evidence == [{"path": "a.py", "line": 10}]
+        # The call on the same line is untouched: an implements site is
+        # never a resolution a call could claim.
+        assert next(o for o in out if o.kind == "calls").tier == SYNTACTIC
+
+    def test_an_implements_site_is_not_a_reference_either(self):
+        out = ev.join([], [implements("a.py", 1, "b.py", 5)])
+        assert [o.kind for o in out] == ["implements"]
 
     def test_an_import_statement_scip_resolved_is_a_semantic_import(self):
         out = ev.join(

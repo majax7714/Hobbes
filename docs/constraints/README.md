@@ -132,7 +132,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-74, C-85, C-150, C-79, C-16, C-33, C-34 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
-| [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
+| [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-157, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
 | [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-155, C-144 |
@@ -151,11 +151,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and fifty-six entries: one hundred and thirteen active, twenty-six lifted, eleven superseded, six folded**
+**One hundred and fifty-seven entries: one hundred and fourteen active, twenty-six lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 86 | every active entry not listed below |
+| active — surfaced | 87 | every active entry not listed below |
 | active — *partial* | 21 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150 |
 | active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-153, C-155 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
@@ -166,6 +166,15 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-16), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-157 registered and C-58 narrowed, 2026-09-16 (night; ADR-120, 0.2.32-beta):
+- **C-157 registered (surfaced)**, in `extraction-rust.md`:
+  rust-analyzer's SCIP export states no `relationships`, so Rust draws
+  no `implements` edge; every Rust run says so. Measured against the
+  five other indexers, which all state the set.
+- **C-58 narrowed:** the override set it said Hobbes lacks is drawn as
+  `implements` edges (ADR-120); the dispatch through an interface is
+  still not. 157 entries, 114 active, 87 surfaced.
 
 C-156 surfaced, 2026-09-16 (later; ADR-117, 0.2.29-beta):
 - **C-156 moved from unsurfaced to surfaced** (Max's route (a)):

@@ -222,7 +222,7 @@
   because it is a paid cost with a deferred bill.
 - **Source:** ADR-027, Decision 1.
 
-### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved
+### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not*
 - **Cannot tell you:** that `s.Get(key)` reaches `MemStore.Get`, that
   `run(query)` reaches the `Store` method the map handed it, that
   `defer cancel()` runs anything, or that `run("init")` in a test helper
@@ -288,9 +288,30 @@
   through an interface it cannot see past (the Go/TS interface method
   before C-9's filter) is not in this class — the oracle lane's miss
   record (`docs/oracle/oracle-misses.md`) is still where that is sized.
+- **The override set is in the graph (ADR-120, 2026-09-16, 0.2.32-beta).**
+  What this entry said Hobbes lacks — which implementations sit below
+  an interface method, which classes below a base — was a field the
+  helper read past: SCIP's `SymbolInformation.relationships`
+  (`is_implementation`). Measured on the six indexers first: scip-clang,
+  scip-go, scip-typescript, scip-python and scip-java state it (scip-java
+  in both directions on an abstract method, oriented by the type level);
+  rust-analyzer states none (C-157). The helper decodes it (version 5),
+  the join draws each pair as an **`implements`** edge at semantic tier,
+  and `who_calls` on an interface method lists its implementors under
+  "implemented or overridden by" with this entry's caveat. **What stays
+  conceded:** no `calls` edge is drawn *through* the interface — a call
+  to `s.Get(key)` still reaches `Store.Get` and not `MemStore.Get`, and
+  `tests_guarding`'s reach still follows `calls` only (ADR-007); the
+  expansion of a call into its overrides is ADR-120 §7's open decision,
+  with the oracle question it carries. And a pair whose end lane A keeps
+  no symbol for — Go's interface method specs, which lane A does not
+  declare (C-9) — is counted (`implements_below_floor`, the ingest
+  summary's "below lane A's floor" line) and not drawn: on this repo 7
+  of 25 in-repo pairs, all of them Go's.
 - **Provider (P9):** ours. `scip-go` **0.2.7** resolves the occurrence
   correctly (to the interface method); Hobbes' descriptor filter and the
-  absence of a dispatch analysis are Hobbes' choices.
+  absence of a dispatch analysis are Hobbes' choices. The override set
+  is the indexers' (above), read since ADR-120.
 - **Folds in:** C-97 (2026-09-13) — the TypeScript face above, with its
   provider shape and the `union-member` class.
 - **Source:** oracle lane O1/O2 (ADR-089, `docs/oracle/oracle-grading.md`;

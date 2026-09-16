@@ -661,7 +661,8 @@ points where it does *because* SCIP resolved it — that edge belongs to
 neither lane alone. Every edge records:
 
 - `type` — `imports` | `calls` | `uses` (a SCIP resolution no call site
-  claimed, ADR-029) | the pack-promoted types (`http-call`, `db-read`,
+  claimed, ADR-029) | `implements` (the override set the index states
+  between two definitions, ADR-120) | the pack-promoted types (`http-call`, `db-read`,
   `db-write`, `queue`, `env-read`) | the Terraform layer's `references`,
   `env-set`, `packages`
 - `tier` — `semantic` (SCIP-proven) | `syntactic` (lane A) | `dynamic`
@@ -699,6 +700,28 @@ same-named repo function there is lane A's guess, not the build's target
 - **Where a user meets it.** The vetoes are counted in
   `lane_agreement.external_vetoes`, and `hobbes lanes` prints them. A
   veto is not a disagreement, so the exit status does not move.
+
+**The override set (ADR-120, 0.2.32-beta).** A SCIP index states, in
+each document's symbol table, which definition implements or overrides
+which (`SymbolInformation.relationships`, `is_implementation`); the
+helper read past the field until 0.2.31-beta. Measured first on the
+six indexers (ADR-120's table): five state it, rust-analyzer none
+(C-157). The helper (version 5) reads it and emits one `implements`
+row per pair between two in-repo definitions, from the implementor's
+definition to the implemented's; a pair scip-java states in both
+directions on an abstract method is oriented by the index's own
+type-level pairs, transitively, or dropped both ways and counted. The
+join draws each row as an **`implements`** edge at semantic tier, lane
+B alone — no syntax site claims it and no fallback stands in — with
+both ends the symbol *starting* at the line. What is not drawn is
+counted and printed: a pair to a declaration outside the repo, one
+whose source is no graph definition, one nothing oriented, and one
+whose end lane A keeps no symbol for (Go's interface method specs;
+C-58's floor). `who_calls` lists the edges into a symbol under
+"implemented or overridden by". **The edge is the set, not the
+dispatch:** a call to an interface method still draws to the declared
+target only (C-58), and reach still follows `calls` (ADR-007); the
+expansion of a call into its overrides is ADR-120 §7's open decision.
 
 **The tail view (ADR-045).** Resolution coverage counts the detected call
 sites with no known destination (C-2); the tail view says what that
@@ -1713,7 +1736,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.31-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.31-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.32-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.32-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

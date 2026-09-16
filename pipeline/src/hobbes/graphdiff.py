@@ -101,8 +101,9 @@ def format_delta(delta: dict, base_label: str, head_label: str) -> str:
     for edge in delta["module_edges_removed"]:
         lines.append(f"  - {edge['type']} {edge['from']} -> {edge['to']}")
 
-    # C-76: `calls` and `uses` counted apart, as the ingest summary does.
-    for edge_type in ("calls", "uses"):
+    # C-76: `calls` and `uses` counted apart, as the ingest summary does;
+    # `implements` (ADR-120) beside them.
+    for edge_type in ("calls", "uses", "implements"):
         added = sum(1 for e in delta["symbol_edges_added"] if e["type"] == edge_type)
         removed = sum(1 for e in delta["symbol_edges_removed"] if e["type"] == edge_type)
         if added or removed:

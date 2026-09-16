@@ -53,6 +53,9 @@ TYPE_WEIGHT = {
     "env-set": 0.8,
     "packages": 0.8,
     "uses": 0.7,
+    # An implementation is coupled to what it implements as tightly as an
+    # importer to its import: a change to the interface reaches it (ADR-120).
+    "implements": 0.8,
     "references": 0.6,
 }
 UNKNOWN_TYPE_WEIGHT = 0.5

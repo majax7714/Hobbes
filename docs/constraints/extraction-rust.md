@@ -94,6 +94,36 @@
   cargo toolchain it drives.
 - **Source:** ADR-040, finding 6. The Rust sibling of C-23/C-27.
 
+### C-157 — rust-analyzer's SCIP export states no override set: no `implements` edge for Rust
+- **Cannot tell you:** which type implements which trait, or which
+  method of an `impl Trait for T` block overrides which trait method.
+  No `implements` edge is drawn for Rust (ADR-120), and `who_calls` on
+  a trait method lists no implementor under "implemented or overridden
+  by" — the heading every other lane B language answers.
+- **Because:** rust-analyzer's `scip` command writes no
+  `SymbolInformation.relationships` at all — measured 2026-09-16 on
+  this repo's three cargo roots (202 symbol informations, 0
+  relationships) against the five other indexers, every one of which
+  states `is_implementation` pairs (ADR-120's table). Lane A could
+  state the type-to-trait half from an `impl` block's syntax at
+  syntactic tier; the method-to-trait-method half needs the trait
+  resolved, which is lane B's job. Neither is built: a half-drawn set
+  from one lane would read as the whole.
+- **Bites at:** `who_calls` on a trait method, `graph_neighborhood`,
+  `hobbes plan`'s impact through `implements` edges, and whatever
+  ADR-120 §7's expansion of a call into its overrides comes to rest on
+  — Rust would be the language it cannot reach.
+- **You find out:** **surfaced** — every Rust lane B run appends a
+  degradation record naming this entry ("rust-analyzer's SCIP export
+  carries no `relationships` …, C-157"), printed as a WARNING by the
+  ingest and listed by `list_blind_spots`, so a Rust root's silence
+  reads as the provider's, not as a repo with no traits.
+- **Provider (P9):** inherited from `rust-analyzer` **1.97.1**
+  (8bab26f, 2026-07-14), its native SCIP export. Ends on an upstream
+  release that writes the field; the helper reads it already.
+- **Source:** ADR-120, the relationships measurement of 2026-09-16
+  (`~/.hobbes/bench/relationships-probe/measure-this-repo.txt`).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

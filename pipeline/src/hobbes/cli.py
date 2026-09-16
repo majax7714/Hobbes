@@ -75,6 +75,27 @@ def _print_built_by(record: dict | None) -> None:
     print(f"  built by hobbes{version} @ {sha[:12]}{dirty} from {record.get('checkout', '?')}")
 
 
+def _print_implements(counts: dict | None) -> None:
+    """What the override set could not draw (ADR-120): every count that
+    is not zero, with what it means, under the graph line."""
+    if not counts:
+        return
+    parts = []
+    if counts.get("below_floor"):
+        parts.append(
+            f"{counts['below_floor']} pair(s) name a declaration lane A keeps no "
+            "symbol for (a Go interface's method spec; C-58)"
+        )
+    if counts.get("outside"):
+        parts.append(f"{counts['outside']} pair(s) implement a declaration outside the repo")
+    if counts.get("unplaced"):
+        parts.append(f"{counts['unplaced']} pair(s) start at no graph definition")
+    if counts.get("undirected"):
+        parts.append(f"{counts['undirected']} mutual pair(s) nothing oriented")
+    if parts:
+        print("    implements not drawn: " + "; ".join(parts))
+
+
 def _print_containment(record: dict | None) -> None:
     """One line on where lane B ran (ADR-092): silent when every step was
     contained and no escape hatch was set — the guarantee holding is the
@@ -160,15 +181,17 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     # reader takes as the call-graph size must not carry the `uses` share
     # (serde: 4,361 for 1,557 calls).
     edge_types = Counter(e["type"] for e in graph["symbol_edges"])
-    other = sum(n for t, n in edge_types.items() if t not in ("calls", "uses"))
+    other = sum(n for t, n in edge_types.items() if t not in ("calls", "uses", "implements"))
     print(
         f"  graph.json:      {len(graph['nodes'])} nodes, "
         f"{len(graph['module_edges'])} module edges, "
         f"{len(graph['symbols'])} symbols, "
         f"{edge_types.get('calls', 0)} call edges, "
-        f"{edge_types.get('uses', 0)} uses edges"
+        f"{edge_types.get('uses', 0)} uses edges, "
+        f"{edge_types.get('implements', 0)} implements edges"
         + (f", {other} other symbol edges" if other else "")
     )
+    _print_implements(graph.get("implements"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

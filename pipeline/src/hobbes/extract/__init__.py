@@ -353,6 +353,7 @@ def _build_symbol_layer(
     # other indexer sees a C++ file at all.
     cpp_site_files = {site.file for site in cpp["call_sites"]} if cpp else set()
     cpp_withheld_files: set[str] = set()
+    implements_counts: Counter = Counter()
 
     for facts in _lane_b_facts(
         repo_root, modules, ts, go, rust, java, c, cpp, degraded, timings=timings
@@ -361,6 +362,12 @@ def _build_symbol_layer(
         # and external references stay the helper's rows.
         references = facts.get("references") or []
         resolutions += references
+        # The override set rides with the resolutions (ADR-120): the join
+        # buckets only resolutions by line, and draws every implements
+        # site as its own fact.
+        resolutions += facts.get("implements") or []
+        for key in scipsource._IMPLEMENTS_COUNTS:
+            implements_counts[key] += facts.get(key) or 0
         external += facts.get("external_refs") or []
         if cpp_site_files:
             indexed = {site.file for site in references}
@@ -387,6 +394,17 @@ def _build_symbol_layer(
         )
     with timings.step("project"):
         projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
+    # What the override set could not draw (ADR-120), so the summary says
+    # how far the `implements` edges reach: pairs to a declaration outside
+    # the repo (a stdlib interface), pairs whose source is no graph
+    # definition, mutual pairs nothing oriented, and pairs whose end lane A
+    # keeps no symbol for (a Go interface's method spec — C-58's floor).
+    graph["implements"] = {
+        "outside": implements_counts["implements_outside"],
+        "unplaced": implements_counts["implements_unplaced"],
+        "undirected": implements_counts["implements_undirected"],
+        "below_floor": projected.get("implements_below_floor", 0),
+    }
     with timings.step("lane agreement"):
       graph["lane_agreement"] = _lane_agreement(
         syntax,

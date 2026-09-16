@@ -11,9 +11,34 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.31-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.32-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.32-beta — 2026-09-16 (the override set is drawn as `implements` edges; ADR-120)
+
+**Patch: what the layer draws and says.** A SCIP index states which
+definition implements or overrides which, and the helper read past the
+field on every language.
+
+- Measured first: scip-clang, scip-go, scip-typescript, scip-python and
+  scip-java state the set (scip-java in both directions on an abstract
+  method); rust-analyzer states none — **C-157**, surfaced on every
+  Rust run.
+- The helper (version 5) decodes `SymbolInformation.relationships` and
+  emits one `implements` row per pair between two in-repo definitions,
+  oriented from the implementor, deduplicated and sorted; the facts
+  carry it as a fourth row kind, counted in the trailer.
+- The join draws each pair as an **`implements`** symbol edge at
+  semantic tier; the ingest summary counts them apart from calls and
+  uses and says what was not drawn (below lane A's floor, outside the
+  repo, unplaced, undirected); `who_calls` lists a symbol's
+  implementors under "implemented or overridden by"; `hobbes diff`
+  counts the type; `hobbes plan` weights it as an import.
+- **C-58 narrowed:** the override set is in the graph; the dispatch
+  through an interface is still not drawn, and reach still follows
+  `calls`. This repo: 18 edges, 7 pairs below the floor (Go's interface
+  method specs), 83 to the stdlib.
 
 ## 0.2.31-beta — 2026-09-16 (the ingest says where its time went; ADR-119)
 

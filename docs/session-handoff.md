@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-16 (late); Hobbes 0.2.31-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-16 (night); Hobbes 0.2.32-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
 after this session's rebuild.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.31-beta are untagged. Tags stay Max's call each time.
+  0.2.32-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -15,13 +15,52 @@ after this session's rebuild.
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-16 "top-level review"
-BUILDLOG entry (the drift fix, ADR-118, ADR-119, the review page).
-Before it, the same day: ADR-117 (C-156 surfaced), O10's four defects
-fixed, and the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' detail lives in their own BUILDLOG entries; this
-file keeps only what the next session needs.
+The latest session's record is the 2026-09-16 "the override set is
+drawn" BUILDLOG entry (ADR-120, 0.2.32-beta). Before it, the same day:
+the "top-level review" entry (the drift fix, ADR-118, ADR-119, the
+review page), ADR-117 (C-156 surfaced), O10's four defects fixed, and
+the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' detail
+lives in their own BUILDLOG entries; this file keeps only what the next
+session needs.
 
 ## ⇢ START HERE NEXT SESSION
+
+0. **0.2.32-beta (ADR-120): SCIP `relationships` measured, then drawn
+   as `implements` edges.** The review's first recall item, in Max's
+   order (measure first).
+   - **The measurement:** five of six indexers state `is_implementation`
+     pairs on the implementor — scip-clang (49,912 on ScummVM), scip-go
+     (method pairs to the interface's method *spec*), scip-typescript,
+     scip-python, scip-java (and the reverse row on an abstract method);
+     **rust-analyzer states none** → **C-157**, surfaced on every Rust
+     run. ADR-120's table; probes and outputs in
+     `~/.hobbes/bench/relationships-probe/` (`keep_probe.py` runs an
+     ingest through `helper-keep-index.mjs`, which keeps the raw `.scip`;
+     `measure_relationships.mjs` and `pairs.mjs` read them — a helper
+     copy's `node_modules` must be a real tree, `cp -a`).
+   - **Built:** helper version 5 decodes `Document.symbols[].relationships`
+     and emits `implements` rows (deduplicated, sorted, scip-java's
+     mutual rows oriented by the type level transitively or dropped and
+     counted); the facts' fourth row kind; `IMPLEMENTS` sites; the join
+     draws `implements` at semantic tier; `project` takes both ends as
+     the symbol starting at the line and counts an end below lane A's
+     floor; the summary, `who_calls` ("implemented or overridden by"),
+     `hobbes diff`, `hobbes plan` (0.8) know the type.
+   - **This repo:** 18 edges (twomod's `MemStore → Store` among them), 7
+     pairs below the floor — all Go's interface method specs, which lane A
+     does not declare — 83 to the stdlib.
+   - **C-58 narrowed**, not lifted: the set is drawn; the dispatch is not.
+   - **Open, ADR-120 §7 (Max's call):** expanding a call to an interface
+     method into its overrides as a labelled step. It changes what reach
+     means (ADR-007) and needs the oracle question first — the RTA and
+     CHA keys judge a call by its concrete targets, so an expanded edge
+     is either confirmed by them or the graph's first inferred edge.
+     Deferred with it: Go's interface method specs as lane A symbols
+     (lands the 7, but turns every resolved call to a spec into a `calls`
+     edge and moves Go's cells); a cross-unit match for outside pairs.
+   - The binaries, the static proxy and the image are rebuilt at
+     0.2.32-beta and this repo re-ingested at HEAD; **restart the
+     knowledge server** (C-65).
 
 1. **The 2026-09-16 top-level review, and its two patches.** Max asked
    for a review of the top-level docs, the architecture and the
@@ -40,9 +79,9 @@ file keeps only what the next session needs.
    - the binaries, the static proxy and the image are rebuilt at
      0.2.31-beta and this repo re-ingested at HEAD; **restart the
      knowledge server** (C-65).
-   Its recommendations not started, in the review's order: measure
-   SCIP `relationships` across the six indexers before an `implements`
-   edge (C-58); C-155 lifted at lane A (abstain under `decltype`,
+   Its recommendations not started, in the review's order (the first,
+   the `relationships` measurement and the `implements` edge, is done —
+   item 0): C-155 lifted at lane A (abstain under `decltype`,
    `sizeof`, `noexcept`, `typeid`); a lane B index cache by stage key,
    then lane A's file cache, each measured with the timing block;
    pytest fixtures as edges (C-4); the compile database's `-I` path at
@@ -346,20 +385,19 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 156 entries: 113 active (86 surfaced, 21 partial, 5
+- **Register:** 157 entries: 114 active (87 surfaced, 21 partial, 5
   unsurfaced — C-19, C-20, C-112, C-153, C-155 — 1 n/a), 26 lifted, 11
-  superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
-  0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
-  corrected, narrowed again and moved to *partial* (0.2.26-beta).
+  superseded, 6 folded. Latest: C-157 registered and surfaced, C-58
+  narrowed (0.2.32-beta, ADR-120); C-156 surfaced (0.2.29-beta).
 - **Oracle defect log: nothing open.** H-28–H-31 all fixed 2026-09-16.
   RC-2 gained its sixth sighting and closed with H-31 (macro-carried
   code keeps getting the wrong position); RC-3 and RC-8 closed-policy
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.31-beta: 1,640 pytest, 0 warnings, and Go 389
-  (388 pass, 1 skip) against the rebuilt image (2026-09-16); 77 scip node (re-run on
-  the host, 2026-09-15);
+- **Suites** at 0.2.32-beta: 1,648 pytest, 0 warnings, and Go 390
+  (389 pass, 1 skip) against the rebuilt image (2026-09-16); 87 scip node
+  (2026-09-16);
   oracle-lane Go 97 pass / 5 skip (re-run 2026-09-15 with converter@4's
   two tests); 52 vitest, 36 tsextract, 84 atlas0
   not re-run.
@@ -370,8 +408,9 @@ min each.
 ## NEXT (in order; no API spend)
 
 1. **Keep dispatching named no-spend work through the harness,** one
-   unit per brief, toward 40: the review's items (START HERE, item 1:
-   C-155 at lane A, the `relationships` measurement, the index cache),
+   unit per brief, toward 40: ADR-120 §7's expansion once Max decides it
+   (START HERE, item 0); the review's items (item 1: C-155 at lane A,
+   the index cache),
    C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools

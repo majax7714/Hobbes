@@ -35,7 +35,7 @@ def write_facts_file(path, facts):
     """Answer as the helper does (ADR-116): *facts*, in the one-document
     shape whose rows carry their own ``file``, written as the facts file's
     JSON lines where the config names. The run_helper fakes use it."""
-    keys = ("definitions", "references", "external_refs")
+    keys = ("definitions", "references", "external_refs", "implements")
     docs: dict = {}
     for key in keys:
         for row in facts.get(key, []):
@@ -64,9 +64,10 @@ class TestReadFacts:
             {"line": 7, "col": 1, "name": "run", "def_file": "b.py", "def_line": 5},
         ],
         "external_refs": [{"line": 9, "col": 0, "name": "get", "package": "p", "moniker": "x"}],
+        "implements": [{"line": 1, "def_file": "b.py", "def_line": 20}],
     }
     END = {"end": True, "documents": 1, "definitions": 1, "references": 2, "external_refs": 1,
-           "packages": {"p": 1}, "degraded": [], "stderr": ""}
+           "implements": 1, "packages": {"p": 1}, "degraded": [], "stderr": ""}
 
     def read(self, tmp_path, *records, root=""):
         path = tmp_path / "s.facts.ndjson"
@@ -80,6 +81,19 @@ class TestReadFacts:
         assert (site.file, site.line, site.col, site.name) == ("a.py", 3, 8, "run")
         assert (site.def_file, site.def_line) == ("b.py", 5)
         assert not hasattr(site, "__dict__"), "slotted: no per-site dictionary"
+
+    def test_an_implements_row_becomes_an_implements_site(self, tmp_path):
+        # ADR-120 (helper version 5): the override set. The row's own line
+        # is the implementor's definition; def_file/def_line the implemented.
+        facts = self.read(tmp_path, HEADER, self.DOC, self.END, root="pkgs/core")
+        [site] = facts["implements"]
+        assert (site.provider, site.kind) == (ev.SCIP, ev.IMPLEMENTS)
+        assert (site.file, site.line) == ("pkgs/core/a.py", 1)
+        assert (site.def_file, site.def_line) == ("pkgs/core/b.py", 20)
+
+    def test_an_implements_count_the_rows_do_not_reach_is_refused(self, tmp_path):
+        with pytest.raises(scipsource.ScipError, match="implements 1 read, 2 written"):
+            self.read(tmp_path, HEADER, self.DOC, {**self.END, "implements": 2})
 
     def test_the_other_rows_keep_their_shape_with_the_documents_file(self, tmp_path):
         facts = self.read(tmp_path, HEADER, self.DOC, self.END)
@@ -106,9 +120,11 @@ class TestReadFacts:
         assert facts["definitions"][0]["file"] == facts["external_refs"][0]["file"] == "pkgs/core/a.py"
 
     def test_no_documents_is_empty_rows(self, tmp_path):
-        end = {**self.END, "documents": 0, "definitions": 0, "references": 0, "external_refs": 0}
+        end = {**self.END, "documents": 0, "definitions": 0, "references": 0, "external_refs": 0,
+               "implements": 0}
         facts = self.read(tmp_path, HEADER, end)
         assert facts["references"] == facts["definitions"] == facts["external_refs"] == []
+        assert facts["implements"] == []
 
     def test_a_file_without_its_trailer_is_refused_not_read_short(self, tmp_path):
         with pytest.raises(scipsource.ScipError, match="ends before its trailer, after 1 document"):
@@ -898,6 +914,59 @@ class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
         ]
         out = project([self._fact("calls", 2, 5, scope="m.f", file="m.py")], nodes, symbols)
         assert out["symbol_edges"][0]["type"] == "calls"
+
+
+class TestImplementsProjection:
+    """ADR-120: an `implements` fact joins two definitions, so both ends
+    are the symbols *starting* at their lines — the enclosing lookup a
+    call uses would name the class for a method declared inside it."""
+
+    def test_an_implements_fact_projects_onto_both_definitions(self):
+        out = scipsource.project(
+            [resolved("implements", "src/app/api.py", 5, "src/app/core.py", 15, lanes=(ev.SCIP,))],
+            NODES, SYMBOLS,
+        )
+        [edge] = out["symbol_edges"]
+        assert (edge["from"], edge["to"], edge["type"]) == (
+            "app.api.handler", "app.core.Engine.run", "implements"
+        )
+        assert edge["tier"] == SEMANTIC and edge["evidence"][0]["lane"] == LANE_SCIP
+        assert edge["evidence"] == [{"path": "src/app/api.py", "line": 5, "lane": LANE_SCIP}]
+        assert out["implements_below_floor"] == 0
+
+    def test_a_method_inside_its_class_is_the_method_not_the_class(self):
+        # Engine.run starts at 15 inside Engine (10–30): the enclosing
+        # lookup would answer Engine for a fact at line 15.
+        out = scipsource.project(
+            [resolved("implements", "src/app/core.py", 15, "src/app/api.py", 5, lanes=(ev.SCIP,))],
+            NODES, SYMBOLS,
+        )
+        assert out["symbol_edges"][0]["from"] == "app.core.Engine.run"
+
+    def test_a_cross_module_implements_also_makes_a_module_edge(self):
+        out = scipsource.project(
+            [resolved("implements", "src/app/api.py", 5, "src/app/core.py", 10, lanes=(ev.SCIP,))],
+            NODES, SYMBOLS,
+        )
+        [edge] = out["module_edges"]
+        assert (edge["from"], edge["to"], edge["type"]) == ("app.api", "app.core", "imports")
+
+    def test_an_end_lane_a_keeps_no_symbol_for_is_counted_not_guessed(self):
+        # A Go interface's method spec: lane A declares the interface, not
+        # its specs, so the method-level pair has no node to land on (C-58).
+        out = scipsource.project(
+            [
+                resolved("implements", "src/app/api.py", 5, "src/app/core.py", 12, lanes=(ev.SCIP,)),
+                resolved("implements", "src/app/api.py", 6, "src/app/core.py", 10, lanes=(ev.SCIP,)),
+            ],
+            NODES, SYMBOLS,
+        )
+        assert out["symbol_edges"] == []
+        assert out["implements_below_floor"] == 2
+        assert out["below_floor"] == [], "an implements pair is not a call site"
+        # The module-level dependency is still true, and drawn, as it is
+        # for a call below the floor: the file does depend on that module.
+        assert [(e["from"], e["to"]) for e in out["module_edges"]] == [("app.api", "app.core")]
 
 
 class TestBelowFloor:

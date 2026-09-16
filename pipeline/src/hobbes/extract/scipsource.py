@@ -32,7 +32,7 @@ from pathlib import Path, PurePosixPath
 
 from hobbes.extract import containment, staging
 from hobbes.extract.discover import SKIPPED_DIR_NAMES
-from hobbes.extract.evidence import RESOLUTION, Site
+from hobbes.extract.evidence import IMPLEMENTS, RESOLUTION, Site
 from hobbes.extract.evidence import SCIP as SCIP_LANE
 from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, tiered_edge
 
@@ -47,12 +47,14 @@ SCIP_ENABLE_ENV = "HOBBES_SCIP"
 #: v2 (V2.M3, ADR-032): facts carry ``dependency_coverage`` on every run.
 #: v4 (ADR-116): a file of JSON lines, one record per document, read by
 #: :func:`read_facts` as it arrives.
+#: v5 (ADR-120): a document carries ``implements`` rows — the override set
+#: SCIP states as ``relationships`` — and the trailer counts them.
 #: The helper's exit code when the *indexer* it drove exited non-zero
 #: (`scip/index.mjs` ``INDEXER_EXIT``): the helper ran, the indexer did not
 #: — a different failure from a helper that could not start, and it is
 #: recorded as one (C-85, C-74: the record used to blame the helper).
 INDEXER_EXIT = 3
-HELPER_VERSION = 4
+HELPER_VERSION = 5
 
 
 #: What V8 writes when Node's heap is exhausted — the fatal line, and the
@@ -479,7 +481,7 @@ def _run_helper(config, config_path, facts_path, timeout, ro, env, root) -> dict
 
 #: The row lists a facts file carries per document; its trailer counts
 #: each of them, and the documents (ADR-116).
-_FACT_ROWS = ("definitions", "references", "external_refs")
+_FACT_ROWS = ("definitions", "references", "external_refs", "implements")
 
 
 def read_facts(path: Path, root: str = "") -> dict:
@@ -493,7 +495,10 @@ def read_facts(path: Path, root: str = "") -> dict:
     1.19 GB read this way, against 3.63 GB as one JSON document.
     Definitions and external references stay dict rows, their ``file``
     set from the document: they are a tenth of the references, and
-    :func:`join_cross_unit` needs every unit's at once. Every path and
+    :func:`join_cross_unit` needs every unit's at once. An ``implements``
+    row (ADR-120) — the implementor's definition line and the implemented
+    declaration's — becomes an :data:`~hobbes.extract.evidence.IMPLEMENTS`
+    site the join draws as an ``implements`` edge. Every path and
     name is interned, so a file is one string however many rows name it,
     and *root* is put in front of every path as it is read.
 
@@ -512,7 +517,7 @@ def read_facts(path: Path, root: str = "") -> dict:
         return text(f"{root}/{rel}" if root and rel else rel)
 
     facts: dict = {key: [] for key in _FACT_ROWS}
-    definitions, references, external = (facts[key] for key in _FACT_ROWS)
+    definitions, references, external, implements = (facts[key] for key in _FACT_ROWS)
     header = trailer = None
     documents = number = 0
     try:
@@ -543,6 +548,17 @@ def read_facts(path: Path, root: str = "") -> dict:
                                 col=ref.get("col", -1),
                                 def_file=at(ref["def_file"]),
                                 def_line=ref["def_line"],
+                            )
+                        )
+                    for row in record["implements"]:
+                        implements.append(
+                            Site(
+                                provider=SCIP_LANE,
+                                kind=IMPLEMENTS,
+                                file=file,
+                                line=row["line"],
+                                def_file=at(row["def_file"]),
+                                def_line=row["def_line"],
                             )
                         )
                     for row in record["definitions"]:
@@ -688,6 +704,10 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     # below C-9's floor. The site counts as resolved and draws no edge
     # (C-58); returned so the tail view can name it `below-floor`.
     below_floor: list[tuple[str, int]] = []
+    # `implements` facts (ADR-120) whose either end lane A keeps no symbol
+    # for: a Go interface's method spec, which lane A does not declare, so
+    # the method-level pair has no node to land on. Counted, never guessed.
+    implements_below_floor = 0
 
     for fact in resolved:
         source_module = index.module(fact.source_file)
@@ -701,6 +721,19 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
             key = (source_module, target_module, "imports", fact.tier, lane)
             module_evidence.setdefault(key, []).append(site)
 
+        if fact.kind == "implements":
+            # Both ends are definitions: the implementor *starts* at the
+            # source line as the implemented starts at the target's. The
+            # enclosing lookup would answer for a class's line too, but a
+            # method's line inside it must name the method, not the class.
+            caller = index.starting_at(source_module, fact.line)
+            callee = index.starting_at(target_module, fact.def_line)
+            if caller is None or callee is None:
+                implements_below_floor += 1
+                continue
+            key = (caller, callee, "implements", fact.tier, lane)
+            symbol_evidence.setdefault(key, []).append(site)
+            continue
         caller = fact.scope or index.enclosing(source_module, fact.line) or source_module
         callee = index.starting_at(target_module, fact.def_line)
         if callee is None:
@@ -739,6 +772,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         "module_edges": _edges(module_evidence),
         "symbol_edges": _edges(symbol_evidence),
         "below_floor": below_floor,
+        "implements_below_floor": implements_below_floor,
     }
 
 
@@ -1215,6 +1249,7 @@ def extract_scip_typescript(
         "definitions": [],
         "references": [],
         "external_refs": [],
+        "implements": [],
         "packages": {},
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
@@ -1251,10 +1286,7 @@ def extract_scip_typescript(
             continue
         if facts is None:
             continue
-        for key in ("definitions", "references", "external_refs", "degraded"):
-            merged[key].extend(facts.get(key, []))
-        for name, count in (facts.get("packages") or {}).items():
-            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        _merge_unit_facts(merged, facts)
         zone_coverage = facts.get("dependency_coverage") or {}
         merged["dependency_coverage"]["declared"] += zone_coverage.get("declared", 0)
         merged["dependency_coverage"]["resolved"] += zone_coverage.get("resolved", 0)
@@ -1266,6 +1298,28 @@ def extract_scip_typescript(
     )
     join_cross_unit(merged)
     return merged
+
+
+#: The row kinds a unit's facts carry, merged by extension across a
+#: language's units. ``implements`` since helper version 5 (ADR-120).
+_MERGED_ROWS = ("definitions", "references", "external_refs", "implements", "degraded")
+
+#: The override set's counts a unit's trailer carries (ADR-120), summed
+#: across units: pairs whose target is outside the unit's index, whose
+#: source is no graph definition, and mutual pairs nothing oriented.
+_IMPLEMENTS_COUNTS = ("implements_outside", "implements_unplaced", "implements_undirected")
+
+
+def _merge_unit_facts(merged: dict, facts: dict) -> None:
+    """Fold one unit's *facts* into the language's *merged* facts: every
+    row kind by extension, the package counts and the override set's
+    counts by sum."""
+    for key in _MERGED_ROWS:
+        merged.setdefault(key, []).extend(facts.get(key, []))
+    for name, count in (facts.get("packages") or {}).items():
+        merged["packages"][name] = merged["packages"].get(name, 0) + count
+    for key in _IMPLEMENTS_COUNTS:
+        merged[key] = merged.get(key, 0) + (facts.get(key) or 0)
 
 
 def join_cross_unit(merged: dict) -> None:
@@ -1410,6 +1464,7 @@ def extract_scip_go(
         "definitions": [],
         "references": [],
         "external_refs": [],
+        "implements": [],
         "packages": {},
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
@@ -1445,10 +1500,7 @@ def extract_scip_go(
             continue
         if facts is None:
             continue
-        for key in ("definitions", "references", "external_refs", "degraded"):
-            merged[key].extend(facts.get(key, []))
-        for name, count in (facts.get("packages") or {}).items():
-            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        _merge_unit_facts(merged, facts)
     join_cross_unit(merged)
     return merged
 
@@ -1602,6 +1654,7 @@ def extract_scip_rust(
         "definitions": [],
         "references": [],
         "external_refs": [],
+        "implements": [],
         "packages": {},
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
@@ -1643,10 +1696,7 @@ def extract_scip_rust(
             continue
         if facts is None:
             continue
-        for key in ("definitions", "references", "external_refs", "degraded"):
-            merged[key].extend(facts.get(key, []))
-        for name, count in (facts.get("packages") or {}).items():
-            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        _merge_unit_facts(merged, facts)
         coverage = facts.get("dependency_coverage") or {}
         merged["dependency_coverage"]["declared"] += coverage.get("declared", 0)
         merged["dependency_coverage"]["resolved"] += coverage.get("resolved", 0)
@@ -1964,6 +2014,7 @@ def extract_scip_java(
         "definitions": [],
         "references": [],
         "external_refs": [],
+        "implements": [],
         "packages": {},
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
@@ -2005,10 +2056,7 @@ def extract_scip_java(
             continue
         if facts is None:
             continue
-        for key in ("definitions", "references", "external_refs", "degraded"):
-            merged[key].extend(facts.get(key, []))
-        for name, count in (facts.get("packages") or {}).items():
-            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        _merge_unit_facts(merged, facts)
         coverage = facts.get("dependency_coverage") or {}
         merged["dependency_coverage"]["declared"] += coverage.get("declared", 0)
         merged["dependency_coverage"]["resolved"] += coverage.get("resolved", 0)
@@ -2195,6 +2243,7 @@ def extract_scip_c(
         "definitions": [],
         "references": [],
         "external_refs": [],
+        "implements": [],
         "packages": {},
         "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
@@ -2239,10 +2288,7 @@ def extract_scip_c(
                 _unit_failure(root, f"scip-{language}", f"{_C_NAME[language]} build", exc)
             )
             continue
-        for key in ("definitions", "references", "external_refs", "degraded"):
-            merged[key].extend(facts.get(key, []))
-        for name, count in (facts.get("packages") or {}).items():
-            merged["packages"][name] = merged["packages"].get(name, 0) + count
+        _merge_unit_facts(merged, facts)
     join_cross_unit(merged)
     return merged
 

@@ -216,8 +216,9 @@ class TestIngestSummaryCounts:
         )
         calls = sum(1 for e in graph["symbol_edges"] if e["type"] == "calls")
         uses = sum(1 for e in graph["symbol_edges"] if e["type"] == "uses")
-        assert calls + uses == len(graph["symbol_edges"])
-        assert f"{calls} call edges, {uses} uses edges" in out
+        impls = sum(1 for e in graph["symbol_edges"] if e["type"] == "implements")
+        assert calls + uses + impls == len(graph["symbol_edges"])
+        assert f"{calls} call edges, {uses} uses edges, {impls} implements edges" in out
         assert f"{len(graph['symbol_edges'])} call edges" not in out or calls == len(
             graph["symbol_edges"]
         )

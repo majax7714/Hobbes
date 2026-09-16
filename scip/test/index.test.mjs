@@ -3,6 +3,7 @@ import { test } from 'node:test'
 
 import { spawnSync } from 'node:child_process'
 import * as cfs from 'node:fs'
+import pkg from '@sourcegraph/scip-typescript/dist/src/scip.js'
 import * as cos from 'node:os'
 import * as cpath from 'node:path'
 
@@ -15,6 +16,7 @@ import { INDEXER_EXIT,
   commonDirectory,
   decode,
   degradations,
+  implementsRows,
   dependencyCoverage,
   GRAPH_KINDS,
   INDEXERS,
@@ -45,6 +47,8 @@ const TS = 'scip-typescript npm betchat-frontend 1.0.0 src/api/`axios.ts`'
 // the C lane B spike (scip-clang 0.4.0 on DaveGamble/cJSON).
 const JAVA_OVERLOAD = 'scip-java maven maven/org.jsoup/jsoup 1.24.1-SNAPSHOT org/jsoup/Jsoup'
 const CLANG = 'cxx . . $ '
+// The bundled proto bindings, to write an index the way an indexer does.
+const { scip } = pkg
 
 test('descriptor kinds are read off real monikers', () => {
   assert.equal(classify(`${PY}/__init__:`), 'meta')
@@ -1350,6 +1354,10 @@ const FACTS = () => ({
     { file: 'a.cc', line: 3, col: 9, name: 'f', def_file: 'b.h', def_line: 1 },
   ],
   external_refs: [{ file: 'c.cc', line: 1, col: 0, name: 'printf', package: 'libc', moniker: 'x' }],
+  implements: [{ file: 'a.cc', line: 8, def_file: 'b.h', def_line: 1 }],
+  implements_outside: 2,
+  implements_unplaced: 0,
+  implements_undirected: 0,
   packages: { libc: 1 },
   degraded: [],
   stderr: '',
@@ -1368,11 +1376,212 @@ test('factsLines: a header, one record per document in first-row order, rows in 
       { line: 3, col: 9, name: 'f', def_file: 'b.h', def_line: 1 },
     ],
     external_refs: [],
+    // ADR-120 (helper version 5): the override set is the fourth row kind.
+    implements: [{ line: 8, def_file: 'b.h', def_line: 1 }],
   })
   assert.deepEqual(lines.at(-1), {
-    end: true, documents: 3, definitions: 1, references: 3, external_refs: 1,
+    end: true, documents: 3, definitions: 1, references: 3, external_refs: 1, implements: 1,
+    implements_outside: 2, implements_unplaced: 0, implements_undirected: 0,
     packages: { libc: 1 }, degraded: [], stderr: '',
   })
+})
+
+test('factsLines: facts with no implements at all still count them as zero', () => {
+  const { implements: _drop, ...older } = FACTS()
+  const lines = [...factsLines(older)].map((line) => JSON.parse(line))
+  assert.equal(lines.at(-1).implements, 0)
+  assert.deepEqual(lines[1].implements, [])
+})
+
+// --- ADR-120: the override set, from SymbolInformation.relationships ------
+//
+// Measured on the six indexers (2026-09-16): scip-clang, scip-go,
+// scip-typescript and scip-python state a pair on the implementor only;
+// scip-java states it and its reverse on an abstract or interface method;
+// rust-analyzer states none.
+const JV = 'scip-java maven maven/com.example/minijava 0.1.0'
+const def = (symbol, line) => ({ symbol, symbol_roles: DEF, range: [line - 1, 0, line - 1, 5] })
+
+function implementsIndex(docs) {
+  return fakeIndex(docs)
+}
+
+test('implements: a pair between two in-repo definitions is a row from the implementor to the implemented', () => {
+  const idx = implementsIndex([
+    {
+      relative_path: 'src/union.ts',
+      occurrences: [def(`${TS}/Base#`, 8), def(`${TS}/Base#render().`, 9), def(`${TS}/Alpha#`, 12), def(`${TS}/Alpha#render().`, 13)],
+      symbols: [
+        { symbol: `${TS}/Alpha#`, implements: [`${TS}/Base#`] },
+        { symbol: `${TS}/Alpha#render().`, implements: [`${TS}/Base#render().`] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  assert.deepEqual(out.implements, [
+    { file: 'src/union.ts', line: 12, def_file: 'src/union.ts', def_line: 8 },
+    { file: 'src/union.ts', line: 13, def_file: 'src/union.ts', def_line: 9 },
+  ])
+  assert.deepEqual(
+    [out.implements_outside, out.implements_unplaced, out.implements_undirected],
+    [0, 0, 0],
+  )
+})
+
+test('implements: a target outside the index is counted, never drawn; a local source is skipped', () => {
+  const GO = 'scip-go gomod github.com/x/y 0 `github.com/x/y/p`'
+  const idx = implementsIndex([
+    {
+      relative_path: 'p/a.go',
+      occurrences: [def(`${GO}/Buf#`, 3), def(`${GO}/Buf#Write().`, 5)],
+      symbols: [
+        { symbol: `${GO}/Buf#`, implements: ['scip-go gomod github.com/golang/go/src go1.24 io/Writer#'] },
+        { symbol: `${GO}/Buf#Write().`, implements: ['scip-go gomod github.com/golang/go/src go1.24 io/Writer#Write().'] },
+        { symbol: 'local 4', implements: [`${GO}/Buf#`] },
+        // A parameter is no graph definition: unplaced, and said so.
+        { symbol: `${GO}/Buf#Write().(p)`, implements: [`${GO}/Buf#`] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  assert.deepEqual(out.implements, [])
+  assert.equal(out.implements_outside, 2)
+  assert.equal(out.implements_unplaced, 1)
+})
+
+test("implements: scip-java's reverse row on the interface method is oriented by the type level and dropped", () => {
+  const idx = implementsIndex([
+    {
+      relative_path: 'Shape.java',
+      occurrences: [def(`${JV} com/example/app/Shape#`, 4), def(`${JV} com/example/app/Shape#area().`, 5)],
+      symbols: [{ symbol: `${JV} com/example/app/Shape#area().`, implements: [`${JV} com/example/app/Circle#area().`] }],
+    },
+    {
+      relative_path: 'Circle.java',
+      occurrences: [def(`${JV} com/example/app/Circle#`, 3), def(`${JV} com/example/app/Circle#area().`, 11)],
+      symbols: [
+        { symbol: `${JV} com/example/app/Circle#`, implements: [`${JV} com/example/app/Shape#`] },
+        { symbol: `${JV} com/example/app/Circle#area().`, implements: [`${JV} com/example/app/Shape#area().`] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  assert.deepEqual(out.implements, [
+    { file: 'Circle.java', line: 3, def_file: 'Shape.java', def_line: 4 },
+    { file: 'Circle.java', line: 11, def_file: 'Shape.java', def_line: 5 },
+  ])
+  assert.equal(out.implements_undirected, 0)
+})
+
+test('implements: a chain orients a method overridden two levels up', () => {
+  // C extends B extends A; C#m overrides A#m. The class row names the
+  // direct base, the method row the declaring class (javac, scip-clang).
+  const rows = (name, line) => [def(`${JV} p/${name}#`, line), def(`${JV} p/${name}#m().`, line + 1)]
+  const idx = implementsIndex([
+    {
+      relative_path: 'P.java',
+      occurrences: [...rows('A', 1), ...rows('B', 10), ...rows('C', 20)],
+      symbols: [
+        { symbol: `${JV} p/A#m().`, implements: [`${JV} p/C#m().`] },
+        { symbol: `${JV} p/B#`, implements: [`${JV} p/A#`] },
+        { symbol: `${JV} p/C#`, implements: [`${JV} p/B#`] },
+        { symbol: `${JV} p/C#m().`, implements: [`${JV} p/A#m().`] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  assert.deepEqual(
+    out.implements.map((r) => [r.line, r.def_line]),
+    [[10, 1], [20, 10], [21, 2]],
+  )
+})
+
+test('implements: a mutual pair nothing orients is dropped both ways and counted', () => {
+  const idx = implementsIndex([
+    {
+      relative_path: 'P.java',
+      occurrences: [def(`${JV} p/A#m().`, 1), def(`${JV} p/B#m().`, 5)],
+      symbols: [
+        { symbol: `${JV} p/A#m().`, implements: [`${JV} p/B#m().`] },
+        { symbol: `${JV} p/B#m().`, implements: [`${JV} p/A#m().`] },
+      ],
+    },
+  ])
+  const out = decode(idx)
+  assert.deepEqual(out.implements, [])
+  assert.equal(out.implements_undirected, 1)
+  const said = degradations(idx, out, { language: 'java' })
+  assert.ok(said.some((d) => /stated in both directions/.test(d.message)))
+})
+
+test('implements: a pair scip-clang states once per translation unit is one row, in a fixed order', () => {
+  const docs = [
+    {
+      relative_path: 'shapes.h',
+      occurrences: [def(`${CLANG}shapes/Shape#`, 3), def(`${CLANG}shapes/Circle#`, 9)],
+      symbols: [{ symbol: `${CLANG}shapes/Circle#`, implements: [`${CLANG}shapes/Shape#`] }],
+    },
+    {
+      relative_path: 'shapes.h',
+      occurrences: [def(`${CLANG}shapes/Shape#`, 3), def(`${CLANG}shapes/Circle#`, 9)],
+      symbols: [{ symbol: `${CLANG}shapes/Circle#`, implements: [`${CLANG}shapes/Shape#`] }],
+    },
+  ]
+  const forward = decode(implementsIndex(docs)).implements
+  const backward = decode(implementsIndex([...docs].reverse())).implements
+  assert.deepEqual(forward, [{ file: 'shapes.h', line: 9, def_file: 'shapes.h', def_line: 3 }])
+  assert.deepEqual(backward, forward)
+})
+
+test('implements: a document from outside the repo states nothing', () => {
+  const idx = implementsIndex([
+    {
+      relative_path: '../../.cache/go-build/x.go',
+      occurrences: [def(`${TS}/A#`, 1), def(`${TS}/B#`, 2)],
+      symbols: [{ symbol: `${TS}/A#`, implements: [`${TS}/B#`] }],
+    },
+  ])
+  assert.deepEqual(implementsRows(idx, new Map()).implements, [])
+})
+
+test('implements: every Rust run says rust-analyzer states no override set (C-157)', () => {
+  const idx = implementsIndex([
+    { relative_path: 'src/lib.rs', occurrences: [def(`${RS} lib/Counter#`, 1)], symbols: [] },
+  ])
+  const rust = degradations(idx, decode(idx), { language: 'rust' })
+  assert.ok(rust.some((d) => /C-157/.test(d.message) && /no `relationships`/.test(d.message)))
+  const go = degradations(idx, decode(idx), { language: 'go' })
+  assert.ok(!go.some((d) => /C-157/.test(d.message)))
+})
+
+test('the real proto reader decodes SymbolInformation.relationships (is_implementation only)', () => {
+  // Built with the bundled proto bindings, as an indexer would write it.
+  const index = new scip.Index({
+    metadata: new scip.Metadata({ project_root: 'file:///stage' }),
+    documents: [
+      new scip.Document({
+        relative_path: 'src/a.ts',
+        occurrences: [
+          new scip.Occurrence({ symbol: `${TS}/Base#`, symbol_roles: DEF, range: [0, 0, 4] }),
+          new scip.Occurrence({ symbol: `${TS}/Alpha#`, symbol_roles: DEF, range: [5, 0, 5] }),
+        ],
+        symbols: [
+          new scip.SymbolInformation({
+            symbol: `${TS}/Alpha#`,
+            relationships: [
+              new scip.Relationship({ symbol: `${TS}/Base#`, is_implementation: true }),
+              // A reference-only relationship is not an override.
+              new scip.Relationship({ symbol: `${TS}/Other#`, is_reference: true }),
+            ],
+          }),
+        ],
+      }),
+    ],
+  })
+  const [doc] = [...streamDocuments(index.serialize())]
+  assert.deepEqual(doc.symbols, [{ symbol: `${TS}/Alpha#`, implements: [`${TS}/Base#`] }])
+  const out = decode({ documents: [doc] })
+  assert.deepEqual(out.implements, [{ file: 'src/a.ts', line: 6, def_file: 'src/a.ts', def_line: 1 }])
 })
 
 test('writeFacts writes one line per record, each ending in a newline', () => {

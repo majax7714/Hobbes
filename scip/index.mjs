@@ -42,7 +42,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
  * v4 (ADR-116): the facts are a file of JSON lines — a header, one record
  * per document, a trailer with the counts — written where the config's
  * `facts` names, never one document on stdout. */
-export const HELPER_VERSION = 4
+export const HELPER_VERSION = 5
 
 /** The helper's exit code when the indexer it drove exited non-zero: the
  * helper ran, the indexer did not. The Python side records that as the
@@ -558,8 +558,10 @@ function shardsUnder(dir) {
  * peaks at 1.4 GB, most of it the references kept.
  *
  * The fields read are the ones `decode` uses: `Document.relative_path`
- * (1) and `occurrences` (2); of an `Occurrence`, `range` (1), `symbol`
- * (2) and `symbol_roles` (3). scip-java 0.13 writes an occurrence's
+ * (1), `occurrences` (2) and `symbols` (3); of an `Occurrence`, `range`
+ * (1), `symbol` (2) and `symbol_roles` (3); of a `SymbolInformation`,
+ * `symbol` (1) and `relationships` (4), and of a `Relationship` its
+ * `symbol` (1) and `is_implementation` (3) — the override set (ADR-120). scip-java 0.13 writes an occurrence's
  * position as SCIP's *typed* range (`single_line_range` = field 8,
  * `multi_line_range` = field 9, the `scip-code/scip` proto at a7b9c65a,
  * 2026-08-25) and leaves the deprecated `repeated int32 range` empty; the
@@ -622,8 +624,60 @@ function readOccurrence(reader) {
   return occ
 }
 
+/** One `Relationship`'s target symbol when it says `is_implementation`,
+ * else ''. The other flags (`is_reference`, `is_type_definition`,
+ * `is_definition`) are search hints for an editor and nothing here reads
+ * them (ADR-120). */
+function readImplementation(reader) {
+  let symbol = ''
+  let implementation = false
+  reader.readMessage(undefined, () => {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) break
+      switch (reader.getFieldNumber()) {
+        case 1:
+          symbol = reader.readString()
+          break
+        case 3:
+          implementation = reader.readBool()
+          break
+        default:
+          reader.skipField()
+      }
+    }
+  })
+  return implementation ? symbol : ''
+}
+
+/** A `SymbolInformation` reduced to what the decode keeps: the symbol and
+ * the symbols it implements (`relationships[].is_implementation`). Every
+ * other field — documentation, kind, display name, signature — is skipped
+ * unread, so a document's symbol table costs the decode nothing but its
+ * override pairs (ScummVM: 411,173 symbol informations, 49,912 pairs). */
+function readSymbolInformation(reader) {
+  const info = { symbol: '', implements: [] }
+  reader.readMessage(undefined, () => {
+    while (reader.nextField()) {
+      if (reader.isEndGroup()) break
+      switch (reader.getFieldNumber()) {
+        case 1:
+          info.symbol = reader.readString()
+          break
+        case 4: {
+          const target = readImplementation(reader)
+          if (target) info.implements.push(target)
+          break
+        }
+        default:
+          reader.skipField()
+      }
+    }
+  })
+  return info
+}
+
 function readDocument(reader) {
-  const doc = { relative_path: '', occurrences: [] }
+  const doc = { relative_path: '', occurrences: [], symbols: [] }
   reader.readMessage(undefined, () => {
     while (reader.nextField()) {
       if (reader.isEndGroup()) break
@@ -634,6 +688,13 @@ function readDocument(reader) {
         case 2:
           doc.occurrences.push(readOccurrence(reader))
           break
+        case 3: {
+          const info = readSymbolInformation(reader)
+          // Only a symbol that implements something is kept: that is the
+          // one thing the table carries which an occurrence does not.
+          if (info.implements.length) doc.symbols.push(info)
+          break
+        }
         default:
           reader.skipField()
       }
@@ -1079,7 +1140,9 @@ export function decode(index, opts = {}) {
   overloadSites.sort((a, b) =>
     a.file.localeCompare(b.file) || a.line - b.line || a.name.localeCompare(b.name),
   )
+  const overrides = implementsRows(index, definitions)
   return {
+    ...overrides,
     tu_split: tuSplit,
     overload_sites: overloadSites.length,
     overload_examples: overloadSites.slice(0, 3),
@@ -1093,6 +1156,128 @@ export function decode(index, opts = {}) {
     ambiguous_files: Object.fromEntries(
       [...ambiguousFiles].sort().map(([symbol, files]) => [symbol, [...files].sort()]),
     ),
+  }
+}
+
+/** The owning type of a member moniker — everything up to and including
+ * its last `#` — or '' for a moniker that is not a member of a type.
+ * `…/Circle#area().` → `…/Circle#`; scip-go's interface method spec
+ * `…/Journal#Park.` → `…/Journal#`; a type `…/Circle#` → `…/` prefix of
+ * itself is not wanted, so a type answers ''. */
+function ownerOf(symbol) {
+  if (symbol.endsWith('#')) return ''
+  const at = symbol.lastIndexOf('#')
+  return at === -1 ? '' : symbol.slice(0, at + 1)
+}
+
+/**
+ * The override set (ADR-120): every `implements` pair the index states
+ * between two in-repo definitions, as rows the join draws as `implements`
+ * edges — `{file, line}` the implementor's definition, `{def_file,
+ * def_line}` the implemented's.
+ *
+ * SCIP's convention (the proto's own example) puts the relationship on
+ * the *implementor*: `Dog#` carries `{symbol: "Animal#",
+ * is_implementation}`, and `Dog#bark().` the same toward `Animal#bark().`.
+ * Measured on the six indexers (2026-09-16, this repo's fixtures and its
+ * own Go and Python, ScummVM for scip-clang): scip-clang, scip-go,
+ * scip-typescript and scip-python write exactly that; scip-java writes it
+ * and, on an abstract or interface method, the *reverse* row too
+ * (`Shape#area().` → `Circle#area().`, so that an editor's "find
+ * implementations" on the interface method finds them); rust-analyzer
+ * writes no relationships at all (C-157).
+ *
+ * So a pair whose reverse is also stated is oriented by the type level:
+ * the row whose owner reaches the other's owner through the index's own
+ * type-level pairs is the implementor's, and the other is dropped. A
+ * chain counts (`C#m` → `A#m` where `C#` → `B#` → `A#`: scip-clang and
+ * javac name the overridden method by where it is declared, and the
+ * class by its direct base). A mutual pair no type-level row can orient
+ * is dropped both ways and counted (`implements_undirected`), never
+ * guessed. A pair whose target is outside this index — a stdlib
+ * interface, a sibling unit's — is counted (`implements_outside`) and
+ * draws nothing; a pair whose source is no graph definition (a local, an
+ * ambiguous moniker) is counted (`implements_unplaced`).
+ *
+ * Rows are deduplicated — scip-clang states a class's base once per
+ * translation unit that sees it — and sorted, so the facts do not depend
+ * on the order the units were listed in.
+ */
+export function implementsRows(index, definitions) {
+  const stated = new Set() // `${source}\u0000${target}` for every stated pair
+  const pairs = []
+  for (const doc of documentsOf(index)) {
+    if (!insideRepo(doc.relative_path)) continue
+    for (const info of doc.symbols ?? []) {
+      if (!info.symbol || info.symbol.startsWith('local ')) continue
+      for (const target of info.implements) {
+        if (!target || target.startsWith('local ')) continue
+        const key = `${info.symbol}\u0000${target}`
+        if (stated.has(key)) continue
+        stated.add(key)
+        pairs.push([info.symbol, target])
+      }
+    }
+  }
+  // Type-level pairs, for orienting a mutual member pair.
+  const bases = new Map() // type -> Set of the types it is stated to implement
+  for (const [source, target] of pairs) {
+    if (!source.endsWith('#') || !target.endsWith('#')) continue
+    if (!bases.has(source)) bases.set(source, new Set())
+    bases.get(source).add(target)
+  }
+  const reaches = (from, to) => {
+    const seen = new Set()
+    const stack = [from]
+    while (stack.length) {
+      const here = stack.pop()
+      if (here === to) return true
+      if (seen.has(here)) continue
+      seen.add(here)
+      for (const next of bases.get(here) ?? []) stack.push(next)
+    }
+    return false
+  }
+  const rows = new Map()
+  let outside = 0
+  let unplaced = 0
+  let undirected = 0
+  for (const [source, target] of pairs) {
+    const from = definitions.get(source)
+    if (!from) {
+      unplaced += 1
+      continue
+    }
+    const to = definitions.get(target)
+    if (!to) {
+      outside += 1
+      continue
+    }
+    if (stated.has(`${target}\u0000${source}`)) {
+      const forward = reaches(ownerOf(source), ownerOf(target))
+      const backward = reaches(ownerOf(target), ownerOf(source))
+      if (!forward) {
+        // The reverse row's turn will keep it, or neither is kept.
+        if (!backward) undirected += 1
+        continue
+      }
+    }
+    const row = { file: from.file, line: from.line, def_file: to.file, def_line: to.line }
+    rows.set(JSON.stringify([row.file, row.line, row.def_file, row.def_line]), row)
+  }
+  const implementsList = [...rows.values()].sort(
+    (a, b) =>
+      a.file.localeCompare(b.file) ||
+      a.line - b.line ||
+      a.def_file.localeCompare(b.def_file) ||
+      a.def_line - b.def_line,
+  )
+  return {
+    implements: implementsList,
+    implements_outside: outside,
+    implements_unplaced: unplaced,
+    // Counted once per mutual pair, not once per direction.
+    implements_undirected: undirected / 2,
   }
 }
 
@@ -1309,6 +1494,28 @@ export function degradations(index, decoded, config) {
         "specialisations, or overloads scip-clang's signature hash does not tell " +
         `apart, share one moniker; ${decoded.multi_defined_refs} reference(s) to ` +
         'them are left without a lane B answer rather than guessed (ADR-113)',
+    })
+  }
+  if (config.language === 'rust') {
+    // C-157 (ADR-120): rust-analyzer's SCIP export writes no
+    // `relationships`, so a trait impl states no override pair and Rust
+    // draws no `implements` edge. Said on every Rust run, because it is a
+    // fact about the provider, not about the crate.
+    out.push({
+      stage: 'scip-decode',
+      message:
+        "rust-analyzer's SCIP export carries no `relationships`, so no `implements` " +
+        'edge is drawn for Rust: which type implements which trait, and which method ' +
+        'overrides which, is not in the index (C-157)',
+    })
+  }
+  if (decoded.implements_undirected) {
+    out.push({
+      stage: 'scip-decode',
+      message:
+        `${decoded.implements_undirected} implements pair(s) are stated in both directions ` +
+        'and no type-level pair orients them; both rows are dropped rather than one ' +
+        'guessed (ADR-120)',
     })
   }
   if ((decoded.ambiguous ?? []).length > 0) {
@@ -1545,6 +1752,11 @@ export function indexStage(config) {
     definitions: decoded.definitions,
     references: decoded.references,
     external_refs: decoded.external,
+    // The override set (ADR-120): drawn by the join as `implements` edges.
+    implements: decoded.implements,
+    implements_outside: decoded.implements_outside,
+    implements_unplaced: decoded.implements_unplaced,
+    implements_undirected: decoded.implements_undirected,
     packages: Object.fromEntries(decoded.packages),
     ...(unitRuns
       ? { units: unitRuns.units, units_failed: unitRuns.units_failed, whole_database: unitRuns.whole ?? 0 }
@@ -1573,13 +1785,15 @@ export function indexStage(config) {
  * each kind of row, so a file cut short is told from a smaller answer, and
  * carries the root-level fields. */
 export function* factsLines(facts) {
-  const { helper_version, language, definitions, references, external_refs, ...rest } = facts
+  const { helper_version, language, definitions, references, external_refs, implements: overrides = [], ...rest } = facts
   yield JSON.stringify({ helper_version, language })
   const documents = new Map()
-  for (const [key, rows] of Object.entries({ definitions, references, external_refs })) {
+  // `implements` rows (ADR-120, helper version 5) are the fourth row kind,
+  // keyed like the others by the file they sit in — the implementor's.
+  for (const [key, rows] of Object.entries({ definitions, references, external_refs, implements: overrides })) {
     for (const row of rows) {
       let doc = documents.get(row.file)
-      if (!doc) documents.set(row.file, (doc = { file: row.file, definitions: [], references: [], external_refs: [] }))
+      if (!doc) documents.set(row.file, (doc = { file: row.file, definitions: [], references: [], external_refs: [], implements: [] }))
       doc[key].push(row)
     }
   }
@@ -1590,6 +1804,7 @@ export function* factsLines(facts) {
       definitions: doc.definitions.map(bare),
       references: doc.references.map(bare),
       external_refs: doc.external_refs.map(bare),
+      implements: doc.implements.map(bare),
     })
   }
   yield JSON.stringify({
@@ -1598,6 +1813,7 @@ export function* factsLines(facts) {
     definitions: definitions.length,
     references: references.length,
     external_refs: external_refs.length,
+    implements: overrides.length,
     ...rest,
   })
 }

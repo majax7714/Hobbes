@@ -11616,3 +11616,83 @@ ingest from 53 s to about 30. Neither is built.
 static proxy and the image rebuilt at 0.2.31-beta, and this repo
 re-ingested at HEAD. The knowledge server serves the old build until it
 is restarted (C-65).
+
+## 2026-09-16 (night, later) — The override set is drawn: SCIP `relationships` measured on six indexers, then `implements` edges; ADR-120, 0.2.32-beta
+
+Max: "review top level documentation. then proceed with … decode SCIP
+relationships and draw implements edges … measure which indexers
+populate it first." The review's first recall recommendation, taken in
+that order.
+
+**The measurement, before any code.** A probe helper copy kept every
+raw `.scip` the six indexers wrote for this repo before the decode
+removed it (the ingest ran contained through it, as the C++ probes
+did; the copy's `node_modules` has to be a real tree, `cp -a`, or the
+symlink dangles inside the container), and a node script read every
+`SymbolInformation` and `Relationship` of each, plus ScummVM's stored
+scip-clang index for a large C++ answer. Five of six indexers state
+`is_implementation` pairs on the implementor, as the proto's example
+says: scip-clang (49,912 on ScummVM, 49,550 in-repo; class → base,
+method → overridden, once per translation unit), scip-go (39 here,
+30 of them to the stdlib; struct → interface, method → the interface's
+method *spec*), scip-typescript (8), scip-python (49, 47 to builtins;
+class → base, and method → overridden only to the stdlib here),
+scip-java (11 — and the **reverse row on an abstract method**,
+`Shape#area().` → `Circle#area().`, with the same two flags both
+ways). **rust-analyzer states none** (202 symbol informations, 0
+relationships). Probes and outputs: `~/.hobbes/bench/relationships-probe/`.
+
+**ADR-120, 0.2.32-beta.** The helper (version 5) reads `Document.symbols`
+beside `occurrences` and keeps only a symbol's `is_implementation`
+targets; `implementsRows` turns each pair between two in-repo
+definitions into a row from the implementor's definition to the
+implemented's, deduplicated and sorted; a pair stated both ways is
+oriented by the index's own type-level pairs, transitively (C extends
+B extends A: javac names the overridden method by its declaring class
+and the class by its direct base), or dropped both ways and counted;
+a pair to a declaration outside the index, or from no graph
+definition, is counted. The facts carry `implements` as a fourth row
+kind, counted in the trailer. `read_facts` makes each an `IMPLEMENTS`
+site; `evidence.join` emits it as an `implements` fact at semantic
+tier, lane B alone; `project` takes both ends as the symbol *starting*
+at the line (the enclosing lookup would answer the class for a method
+inside it) and counts an end lane A keeps no symbol for. The summary
+counts `implements edges` apart and prints every non-zero not-drawn
+count; `who_calls` lists implementors under "implemented or overridden
+by" with C-58's caveat; `hobbes diff` counts the type; `hobbes plan`
+weights it 0.8. Every Rust run appends a C-157 record.
+
+**Measured on this repo:** 18 `implements` edges, all read against
+their sources — twomod's `MemStore → Store` (C-58's opening example)
+among them; 7 pairs below lane A's floor (all Go's interface method
+specs, which lane A does not declare); 83 to the stdlib; 0 unplaced;
+0 undirected. Calls and uses edges unchanged from 0.2.31-beta.
+
+**Not done, on purpose (ADR-120 §7):** the expansion of a call to an
+interface method into its overrides. It changes what reach means
+(ADR-007) and needs the oracle question answered first — the RTA and
+CHA keys judge a call by its concrete targets. Deferred with it: Go's
+interface method specs as lane A symbols (the 7 below the floor; it
+would also turn every resolved call to a spec into a `calls` edge and
+move Go's graded cells), and a cross-unit match for the outside pairs.
+
+**Paperwork:** ADR-120; C-58 narrowed; **C-157 registered, surfaced**
+(register 157 entries, 114 active, 87 surfaced); architecture §3.4
+(the fourth edge type and its paragraph) and §8; CHANGELOG; README's
+ADR range (it read ADR-117 at ADR-119) and register tally; every
+version copy.
+
+**Tests:** helper — the real proto reader on a `scip.Index` built with
+the bundled bindings, a pair between two definitions, an outside target
+counted and a local skipped, scip-java's reverse row oriented, a chain
+two levels up, a mutual pair dropped and said, scip-clang's per-unit
+repeat as one row in a fixed order, an outside-repo document, the C-157
+record on Rust only, `factsLines` with and without rows (87 scip node,
+was 77). Python — an `implements` row read as a site with the root in
+front, a trailer count the rows do not reach refused, the join passing
+the site through beside a call on the same line, projection onto both
+definitions, a method inside its class, the module edge, the below-floor
+count (1,648 pytest, was 1,640). Go — `who_calls` lists an implementor
+under its heading, not as a caller and not as nothing (390 Go). The
+binaries and the static proxy rebuilt; the image rebuilt; this repo
+re-ingested at HEAD. **Restart the knowledge server** (C-65).

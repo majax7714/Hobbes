@@ -278,7 +278,7 @@ class TestRouting:
 
     FACTS = {
         "helper_version": scipsource.HELPER_VERSION,
-        "definitions": [], "references": [], "external_refs": [],
+        "definitions": [], "references": [], "external_refs": [], "implements": [],
         "packages": {}, "degraded": [],
         "dependency_coverage": {"declared": 0, "resolved": 0, "missing": []},
     }

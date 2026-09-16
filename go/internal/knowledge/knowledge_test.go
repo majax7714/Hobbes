@@ -161,6 +161,49 @@ func TestWhoCallsSeparatesUsesFromCalls(t *testing.T) {
 	}
 }
 
+// ADR-120: the override set. An `implements` edge into a symbol is what
+// the index states implements or overrides it — reported under its own
+// heading, neither counted as a caller nor dropped (P8), and the heading
+// says a call to the symbol may reach any of them (C-58).
+func TestWhoCallsListsImplementors(t *testing.T) {
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "app.api.Shape.area", "module": "app.api", "kind": "method", "line": 20},
+		map[string]any{"id": "app.api.Circle.area", "module": "app.api", "kind": "method", "line": 30})
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any),
+		map[string]any{"from": "app.api.Circle.area", "to": "app.api.Shape.area", "type": "implements", "tier": "semantic",
+			"evidence": []map[string]any{{"path": "src/app/api.py", "line": 30, "lane": "scip"}}})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := Open(repo)
+	got, err := s.WhoCalls("app.api.Shape.area")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, "no callers of app.api.Shape.area") {
+		t.Errorf("an implementor is not a caller:\n%s", got)
+	}
+	heading, rest, found := strings.Cut(got, "implemented or overridden by")
+	if !found || !strings.Contains(rest, "C-58") || !strings.Contains(rest, "app.api.Circle.area") {
+		t.Errorf("want the implementor under its own heading with C-58's caveat:\n%s", got)
+	}
+	if strings.Contains(heading, "app.api.Circle.area") {
+		t.Errorf("the implementor is listed above its heading:\n%s", got)
+	}
+	if strings.Contains(got, "no recorded callers") {
+		t.Errorf("a symbol with implementors is not answered as if nothing touched it:\n%s", got)
+	}
+}
+
 // Tier is the graph's trust signal (§3.4); a syntactic call edge is lane
 // A's own resolution and can be wrong (C-7), so an agent must see that.
 func TestWhoCallsMarksApproximateEdges(t *testing.T) {

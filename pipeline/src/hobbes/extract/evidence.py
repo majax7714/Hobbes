@@ -34,8 +34,13 @@ CALL_SITE = "call-site"
 IMPORT_SITE = "import-site"
 DEFINITION = "definition"
 
-#: Evidence kinds a semantic provider emits.
+#: Evidence kinds a semantic provider emits. A ``resolution`` is an
+#: occurrence resolved to its declaration; an ``implements`` site
+#: (ADR-120) is the override set — one definition stated by the index to
+#: implement or override another — which no syntax site claims and the
+#: join draws as an ``implements`` edge at semantic tier.
 RESOLUTION = "resolution"
+IMPLEMENTS = "implements"
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,7 +64,9 @@ class Site:
     col: int = -1
     #: Syntax provider only: the symbol id enclosing this site, if any.
     scope: str = ""
-    #: Semantic provider only: where the resolved definition lives.
+    #: Semantic provider only: where the resolved definition lives — for
+    #: an ``implements`` site, where the implemented declaration lives,
+    #: ``file``/``line`` being the implementor's own definition.
     def_file: str = ""
     def_line: int = 0
     #: Syntax provider only: the name of an ambiguity the provider saw
@@ -148,6 +155,12 @@ def join(
     exactly where lane A is most likely to be wrong (C-138). The site's
     fate is unchanged elsewhere: it is still counted ``external``
     (:func:`_dispositions`), only the edge is not drawn.
+
+    An ``implements`` site in *semantic* (ADR-120) is the index's own
+    statement that one definition implements or overrides another. No
+    syntax site claims it and no fallback stands in for it: it becomes an
+    ``implements`` fact at semantic tier, lane B alone, as a ``uses``
+    reference does.
 
     *withhold* is the files lane B **compiled** and whose call sites it
     may therefore be trusted to have answered or not answered (ADR-113 §2,
@@ -246,6 +259,25 @@ def join(
                     evidence=[{"path": file, "line": line}],
                 )
             )
+
+    # The override set (ADR-120): stated by the index between two
+    # definitions, so there is no site to match and nothing to guess.
+    for site in semantic:
+        if site.kind != IMPLEMENTS:
+            continue
+        out.append(
+            Resolved(
+                kind="implements",
+                source_file=site.file,
+                line=site.line,
+                scope="",
+                def_file=site.def_file,
+                def_line=site.def_line,
+                tier=SEMANTIC,
+                lanes=(SCIP,),
+                evidence=[{"path": site.file, "line": site.line}],
+            )
+        )
     return out
 
 
