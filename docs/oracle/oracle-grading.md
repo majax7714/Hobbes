@@ -521,14 +521,20 @@ are rules and are corrected; the fourth stays open.
   it has a class — a class template's pattern members — and by the bare
   name otherwise (`extern "C"`, `main`). Keyed by the bare name, two
   classes' same-named members merge into one declaration (H-29, RC-8).
-- **A line the key left unresolved cannot contradict** (H-30, H-31,
-  RC-4). Where any oracle site on a Hobbes edge's file and line carries
-  no targets — a dependent call in a template pattern the key holds as
-  `dynamic`, or a call it holds nowhere at all — a non-confirmed edge
-  on that line is **silent** (`line-unresolved`), never contradicted.
-  The key's silence is its own state, not a verdict against Hobbes.
-  This is the precision-side analogue of the trace oracle's
-  `line-mixed`.
+- **A line the key left unresolved cannot contradict** (H-30, RC-4).
+  Where any oracle site on a Hobbes edge's file and line **carries no
+  targets** — a dependent call in a template pattern the key holds as
+  `dynamic` — a non-confirmed edge on that line is **silent**
+  (`line-unresolved`), never contradicted. The key's silence is its own
+  state, not a verdict against Hobbes. This is the precision-side
+  analogue of the trace oracle's `line-mixed`.
+
+  **What this rule does not reach**, stated so it is not mistaken for
+  more than it is: a call the key holds **nowhere at all**. There the
+  line's sites are present and resolved, nothing on it carries an empty
+  target list, and the rule does not fire — the edge still reads
+  contradicted. That is H-31, and it is why §10.8's P36 expects its
+  seven rows to survive the regrade.
 - **Open:** H-31's `os.cc` half, a call in a macro argument nested in
   another's, which a probe of that shape did not reproduce. Its
   `decltype` half does reproduce — a call in an unevaluated operand

@@ -121,12 +121,14 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
   targets of *any* oracle site on the same file and line. A line holding
   several oracle sites is logged as a tolerance match in the report.
   **A line the oracle left unresolved cannot contradict** (2026-09-16,
-  H-30/H-31): where any site on that line carries no targets — a
-  dependent call in a template pattern the key holds as `dynamic`, or a
-  call it holds nowhere at all — a non-confirmed edge there is silent
-  (`line-unresolved`). Silence is the key's own state, never a verdict
-  against Hobbes (RC-4); this is the precision-side analogue of the
-  trace oracle's `line-mixed`.
+  H-30): where any site on that line carries no targets — a dependent
+  call in a template pattern the key holds as `dynamic` — a
+  non-confirmed edge there is silent (`line-unresolved`). Silence is
+  the key's own state, never a verdict against Hobbes (RC-4); this is
+  the precision-side analogue of the trace oracle's `line-mixed`. The
+  rule does **not** reach a call the key holds nowhere at all: that
+  line's sites are all resolved, nothing on it has an empty target
+  list, and the edge still contradicts (H-31, open).
 - **C++ member calls** (2026-09-16, H-28). The site is the member's own
   name token. clang's `MemberExpr` carries no `loc`: its `range.begin`
   is the start of the object expression and its `range.end` is the
