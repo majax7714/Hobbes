@@ -193,7 +193,7 @@ uv run hobbes bench select|run|report # runs spend GPU/quota — see the standin
 ```
 
 Suite sizes at the last check (2026-09-15, 0.2.28-beta; the last three
-carried from 0.2.8-beta): 1,632 pytest (6 `lane_b`) / 386 Go (385 pass,
+carried from 0.2.8-beta): 1,631 pytest (6 `lane_b`; re-run 2026-09-16) / 386 Go (385 pass,
 1 skip) + 102 oracle-lane Go (97 pass, 5 skip without a toolchain) / 52
 vitest / 36 tsextract + 77 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;

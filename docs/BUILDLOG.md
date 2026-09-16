@@ -11458,3 +11458,39 @@ rule still withholds judgement from six of C-153's wrong rows.
 **Open for Max, unchanged:** the "judged-as-before" companion number;
 C-153's status (4 judged : 6 unjudged); and now C-155 — fix it in the
 join or accept it as documented-only.
+
+## 2026-09-16 (evening) — Two no-spend backlog items: pytest's warnings, and W0's unguarded version package traced to C-156
+
+A top-level documentation review (CLAUDE.md, the handoff, W0), then two
+small items from the handoff's "carried" and "W0's remainder" lists,
+done directly on `main`, not dispatched.
+
+**pytest's four warnings, gone** (`fec7a6b`). Two were
+`PytestReturnNotNoneWarning`: `testmap_fixture`, a helper defined in
+`test_ttt_corpus.py` and imported into `test_ttt_units.py`, matched
+`test*` and was collected as a test in both. Renamed `sample_testmap`.
+The other two were pytest 9's deprecation of class-scoped fixtures
+defined as instance methods (`shapes` in `test_gosource.py`, `out` in
+`test_javasource.py`); both moved to module level, same scope. The
+suite is **1,631 passed, 0 warnings**, where 1,633 were collected
+before: the missing two were the helper.
+
+**W0's "`go/internal/version` stays unguarded", traced: C-156**
+(`b1ae4df`). `version_test.go` exists and `tests.json` lists it, with
+`reaches: []`. The test reads `version.Version` and calls nothing, and
+every language's test map closes over `calls` edges only (ADR-007;
+`testmap.py` says why `uses` edges are left out). A constants-only module
+cannot be reached by any test, so this is not a missing test. It is an
+unregistered concession, now **C-156, unsurfaced** (debt), in
+`extraction-call-graph.md`. The register's header had not taken in C-155
+(154 / 111). Now it reads 156 entries, 113 active, 6 unsurfaced.
+
+**No version move:** tests and the register only. Re-ingested at HEAD,
+since the knowledge tools were serving `58d70ff`.
+
+**Open for Max:** C-156's route. (a) Surface it: `tests_guarding` and
+the review's "new code no test reaches" name C-156 when the module
+declares no function, a patch. (b) Let reach follow a test's reads of a
+module's values, which reopens ADR-007's rule that reach must not widen
+to code a test only names. (c) Accept it as documented-only. My
+recommendation is (a).

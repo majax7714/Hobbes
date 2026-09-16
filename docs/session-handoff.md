@@ -177,6 +177,12 @@ file keeps only what the next session needs.
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
 2. **Open for Max (no spend):**
+   - **C-156** (unsurfaced, new 2026-09-16 evening): test reach follows
+     `calls` only, so `go/internal/version` (a constant its test reads)
+     reads unguarded. The routes: (a) surface C-156 where
+     `tests_guarding` and the review say "no test reaches" for a module
+     with no function (a patch; recommended); (b) let reach follow reads,
+     which reopens ADR-007; (c) documented-only.
    - **Nothing in the oracle's defect log is open.** H-28–H-31 were all
      fixed on 2026-09-16 (item 0); what is left on fmt is C-153 and
      C-155, both Hobbes'.
@@ -249,8 +255,6 @@ file keeps only what the next session needs.
 5. **Carried:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading.
-   - **pytest's 4 warnings:** a helper named `testmap_fixture` in
-     `test_ttt_corpus.py` and `test_ttt_units.py` is collected as a test.
    - **`stringer` is not in the image.**
    - **The Gradle attach route's residuals** (C-67); `recall-collapsed`
      and H-23; ADR-105/P13; the C-98 residuals.
@@ -311,8 +315,8 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 155 entries: 112 active (85 surfaced, 21 partial, 5
-  unsurfaced — C-19, C-20, C-112, C-153, C-155 — 1 n/a), 26 lifted, 11
+- **Register:** 156 entries: 113 active (85 surfaced, 21 partial, 6
+  unsurfaced — C-19, C-20, C-112, C-153, C-155, C-156 — 1 n/a), 26 lifted, 11
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
@@ -322,7 +326,7 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.28-beta: 1,632 pytest and 77 scip node (re-run on
+- **Suites** at 0.2.28-beta: 1,631 pytest, 0 warnings (2026-09-16), and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;
   oracle-lane Go 97 pass / 5 skip (re-run 2026-09-15 with converter@4's
@@ -338,9 +342,8 @@ min each.
    unit per brief, toward 40: C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
-   if named; pytest's `testmap_fixture` warnings.
-2. **W0's remainder:** `go/internal/version`'s missing guard; the
-   registry-pulled image and the drift audit, when named. (The
+   if named.
+2. **W0's remainder:** the registry-pulled image and the drift audit, when named. (The
    forgotten red review and the fixtures closed with ADR-114.)
 
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
