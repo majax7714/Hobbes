@@ -42,6 +42,7 @@ from hobbes.extract.pysource import FromImport, parse_source
 from hobbes.extract.rustsource import collect_rust_tests, extract_rust
 from hobbes.extract.schema import LANE_SCIP
 from hobbes.extract.testmap import collect_tests, runner_excluded_trees
+from hobbes.extract.timings import Timings
 from hobbes.extract.tssource import collect_ts_tests, extract_ts
 from hobbes.extract.verification import verification_base
 
@@ -73,6 +74,7 @@ def extract_repo(
     repo_root: Path,
     tf_plan: Path | None = None,
     packs: tuple[Pack, ...] = PACK_REGISTRY,
+    timings: Timings | None = None,
 ) -> Extraction:
     """Extract the knowledge skeleton (lanes + packs) under *repo_root*.
 
@@ -95,12 +97,18 @@ def extract_repo(
     pack's contribution. Callers have no reason to pass it.
     """
     containment.reset_ledger()
+    # Every step below is timed (ADR-119); the record never enters an
+    # artifact, and a caller that passes none gets one that is dropped.
+    timings = timings if timings is not None else Timings()
     repo_root = Path(repo_root).resolve()
-    modules = discover_modules(repo_root)
-    parsed = {
-        m.id: parse_source((repo_root / m.path).read_bytes()) for m in modules
-    }
-    graph = build_graph(modules, parsed)
+    with timings.step("discover [python]"):
+        modules = discover_modules(repo_root)
+    with timings.step("parse [python]"):
+        parsed = {
+            m.id: parse_source((repo_root / m.path).read_bytes()) for m in modules
+        }
+    with timings.step("graph [python]"):
+        graph = build_graph(modules, parsed)
     degraded: list[dict] = [
         # C-73: a repo-internal directory link is walked once, at its
         # target, by every language's discovery; the record says why the
@@ -121,28 +129,32 @@ def extract_repo(
     # (M6) must not claim python.
     languages = ["python"] if modules else []
 
-    ts = extract_ts(repo_root)
+    with timings.step("lane A [ts]"):
+        ts = extract_ts(repo_root)
     if ts:
         languages += ts["languages"]
         degraded += list(ts["errors"])
         degraded += _merge_layer(graph, ts["nodes"], ts["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], ts["symbols"])
 
-    go = extract_go(repo_root)
+    with timings.step("lane A [go]"):
+        go = extract_go(repo_root)
     if go:
         languages += go["languages"]
         degraded += list(go["errors"])
         degraded += _merge_layer(graph, go["nodes"], go["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], go["symbols"])
 
-    rust = extract_rust(repo_root)
+    with timings.step("lane A [rust]"):
+        rust = extract_rust(repo_root)
     if rust:
         languages += rust["languages"]
         degraded += list(rust["errors"])
         degraded += _merge_layer(graph, rust["nodes"], rust["module_edges"])
         graph["symbols"] = _merge_symbols(graph["symbols"], rust["symbols"])
 
-    java = extract_java(repo_root)
+    with timings.step("lane A [java]"):
+        java = extract_java(repo_root)
     if java:
         languages += java["languages"]
         degraded += list(java["errors"])
@@ -153,7 +165,8 @@ def extract_repo(
     # a header this layer took must not also be read as C, so C is handed
     # the claimed set. Like C's first unit, C++ has no lane B yet — every
     # edge is this layer's fallback, at `syntactic` tier.
-    cpp = extract_cpp(repo_root)
+    with timings.step("lane A [cpp]"):
+        cpp = extract_cpp(repo_root)
     if cpp:
         languages += cpp["languages"]
         degraded += list(cpp["errors"])
@@ -163,7 +176,8 @@ def extract_repo(
     # C has no lane B in this unit (no indexer exists yet): every edge is
     # this layer's fallback, at `syntactic` tier — the join's normal
     # degraded path (P6), not a special case.
-    c = extract_c(repo_root, claimed=cpp["claimed_headers"] if cpp else None)
+    with timings.step("lane A [c]"):
+        c = extract_c(repo_root, claimed=cpp["claimed_headers"] if cpp else None)
     if c:
         languages += c["languages"]
         degraded += list(c["errors"])
@@ -172,7 +186,8 @@ def extract_repo(
 
     # Lane A is complete. Packs read it and add framework knowledge; the
     # graph builder itself knows nothing about FastAPI, Express or HCL.
-    enriched = run_packs(
+    with timings.step("packs"):
+      enriched = run_packs(
         PackContext(
             repo_root=repo_root,
             modules=modules,
@@ -191,9 +206,11 @@ def extract_repo(
     graph["packs"] = enriched.ran
 
     degraded += _build_symbol_layer(
-        repo_root, graph, modules, parsed, ts, go, rust, java, c, cpp
+        repo_root, graph, modules, parsed, ts, go, rust, java, c, cpp, timings=timings
     )
 
+    timings_tests = timings.step("tests")
+    timings_tests.__enter__()
     tests = collect_tests(modules, parsed, graph["symbol_edges"])
     if ts:
         tests += collect_ts_tests(ts["files"], ts["symbols"], graph["symbol_edges"])
@@ -208,6 +225,7 @@ def extract_repo(
     if cpp:
         tests += collect_cpp_tests(cpp["files"], graph["symbol_edges"])
     tests = sorted(tests, key=lambda t: t["id"])
+    timings_tests.__exit__(None, None, None)
     if degraded:
         # Sorted, not append-ordered: which pass reported first is an
         # accident of pipeline order, and an artifact that changes with it
@@ -243,11 +261,21 @@ def extract_repo(
         # The trees this tree's own test runners exclude (ADR-114): read
         # here, where the tree is on disk, so each end of a review exempts
         # by its own configuration.
-        fixture_trees=runner_excluded_trees(
-            repo_root,
-            (n.get("path", "") for n in graph["nodes"] if n.get("kind") in ("module", "package")),
+        fixture_trees=_timed(
+            timings,
+            "fixture trees",
+            lambda: runner_excluded_trees(
+                repo_root,
+                (n.get("path", "") for n in graph["nodes"] if n.get("kind") in ("module", "package")),
+            ),
         ),
     )
+
+
+def _timed(timings: Timings, name: str, thunk):
+    """Run *thunk* as the timed step *name* and return its value."""
+    with timings.step(name):
+        return thunk()
 
 
 def _syntax_sites(modules, parsed) -> list:
@@ -278,6 +306,7 @@ def _build_symbol_layer(
     java: dict | None = None,
     c: dict | None = None,
     cpp: dict | None = None,
+    timings: Timings | None = None,
 ) -> list[dict]:
     """Join every lane's evidence and project it onto the graph's ids.
 
@@ -294,33 +323,21 @@ def _build_symbol_layer(
     Returns degradation records; never raises. A missing indexer, a crashed
     one, or an uninstalled environment must not fail an ingest.
     """
+    timings = timings if timings is not None else Timings()
     degraded: list[dict] = []
     syntax: list[ev.Site] = []
     resolutions: list[ev.Site] = []
     fallback: dict[tuple, tuple] = {}
     external: list[dict] = []
 
-    if modules:
-        syntax += _syntax_sites(modules, parsed)
-        fallback.update(resolve_call_sites(modules, parsed))
-    if ts:
-        syntax += ts["call_sites"]
-        fallback.update(ts["call_fallback"])
-    if go:
-        syntax += go["call_sites"]
-        fallback.update(go["call_fallback"])
-    if rust:
-        syntax += rust["call_sites"]
-        fallback.update(rust["call_fallback"])
-    if java:
-        syntax += java["call_sites"]
-        fallback.update(java["call_fallback"])
-    if c:
-        syntax += c["call_sites"]
-        fallback.update(c["call_fallback"])
-    if cpp:
-        syntax += cpp["call_sites"]
-        fallback.update(cpp["call_fallback"])
+    with timings.step("lane A sites"):
+        if modules:
+            syntax += _syntax_sites(modules, parsed)
+            fallback.update(resolve_call_sites(modules, parsed))
+        for layer in (ts, go, rust, java, c, cpp):
+            if layer:
+                syntax += layer["call_sites"]
+                fallback.update(layer["call_fallback"])
 
     # ADR-113 §2 (amended a third time): the C++ call-site files lane B
     # compiled. An occurrence of any kind — a definition, a reference, an
@@ -337,7 +354,9 @@ def _build_symbol_layer(
     cpp_site_files = {site.file for site in cpp["call_sites"]} if cpp else set()
     cpp_withheld_files: set[str] = set()
 
-    for facts in _lane_b_facts(repo_root, modules, ts, go, rust, java, c, cpp, degraded):
+    for facts in _lane_b_facts(
+        repo_root, modules, ts, go, rust, java, c, cpp, degraded, timings=timings
+    ):
         # A reference arrives as a resolution site (ADR-116); definitions
         # and external references stay the helper's rows.
         references = facts.get("references") or []
@@ -362,11 +381,14 @@ def _build_symbol_layer(
             graph.setdefault("dependency_coverage", []).append(coverage)
 
     withhold = frozenset(cpp_withheld_files)
-    resolved = ev.join(
-        syntax, resolutions, fallback=fallback, external=external, withhold=withhold
-    )
-    projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
-    graph["lane_agreement"] = _lane_agreement(
+    with timings.step("join"):
+        resolved = ev.join(
+            syntax, resolutions, fallback=fallback, external=external, withhold=withhold
+        )
+    with timings.step("project"):
+        projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
+    with timings.step("lane agreement"):
+      graph["lane_agreement"] = _lane_agreement(
         syntax,
         resolutions,
         fallback,
@@ -461,7 +483,8 @@ def _build_symbol_layer(
         if withhold
         else fallback
     )
-    tails = tail.classify(
+    with timings.step("tail"):
+      tails = tail.classify(
         ev.unresolved_sites(syntax, resolutions, external),
         repo_root,
         origins=origins,
@@ -741,10 +764,12 @@ def _lane_b_facts(
     c: dict | None,
     cpp: dict | None,
     degraded: list[dict],
+    timings: Timings | None = None,
 ):
     """Every semantic provider's facts, skipping the ones that cannot run."""
     if not scipsource.enabled():
         return
+    timings = timings if timings is not None else Timings()
     runs = []
     if modules:
         files = sorted({m.path for m in modules})
@@ -795,7 +820,8 @@ def _lane_b_facts(
 
     for language, run in runs:
         try:
-            facts = run()
+            with timings.step(f"lane B [{language}]"):
+                facts = run()
         except containment.ContainmentRefusal as exc:
             # P10 (ADR-036, ADR-092): the general catch below is a policy
             # about the unknown failure; this is the known one. Named and
@@ -961,7 +987,9 @@ def built_by() -> dict:
     return {"version": __version__, "checkout": root, "sha": sha, "dirty": dirty}
 
 
-def ingest(repo_root: Path, tf_plan: Path | None = None) -> list[Path]:
+def ingest(
+    repo_root: Path, tf_plan: Path | None = None, timings: Timings | None = None
+) -> list[Path]:
     """Extract *repo_root*, stamp with its git SHA, write the artifacts.
 
     Returns the written paths (``.hobbes/derived/{graph,tests,interfaces}.json``).
@@ -972,13 +1000,15 @@ def ingest(repo_root: Path, tf_plan: Path | None = None) -> list[Path]:
     """
     repo_root = Path(repo_root).resolve()
     ensure_hobbes_ignored(repo_root)
-    extraction = extract_repo(repo_root, tf_plan=tf_plan)
+    timings = timings if timings is not None else Timings()
+    extraction = extract_repo(repo_root, tf_plan=tf_plan, timings=timings)
     stamp = {"schema_version": SCHEMA_VERSION, **repo_stamp(repo_root)}
-    return write_artifacts(
-        repo_root,
-        {
-            "graph.json": {**stamp, **extraction.graph},
-            "tests.json": {**stamp, **extraction.tests},
-            "interfaces.json": {**stamp, **extraction.interfaces},
-        },
-    )
+    with timings.step("write"):
+        return write_artifacts(
+            repo_root,
+            {
+                "graph.json": {**stamp, **extraction.graph},
+                "tests.json": {**stamp, **extraction.tests},
+                "interfaces.json": {**stamp, **extraction.interfaces},
+            },
+        )

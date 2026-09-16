@@ -11,9 +11,23 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.30-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.31-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.31-beta — 2026-09-16 (the ingest says where its time went; ADR-119)
+
+**Patch: what the layer says.** No step of the ingest was timed, so no
+speed change could be measured.
+
+- Every step of `extract_repo` — each language's lane A walk, the
+  packs, each lane B index run, the join, the projection, the lane
+  agreement, the tail, the test map, the write — is timed in run order.
+- The ingest summary prints the total and every step, and `hobbes
+  ingest` appends one JSON line per run to
+  `~/.hobbes/cache/timings/<key>.jsonl`, naming the path.
+- Nothing enters an artifact: two ingests of one commit stay
+  byte-identical.
 
 ## 0.2.30-beta — 2026-09-16 (the knowledge store decodes an artifact once; ADR-118)
 

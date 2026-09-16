@@ -122,8 +122,15 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
             "here (ADR-092, C-64); recorded in graph.json",
             file=sys.stderr,
         )
+    from hobbes.extract.timings import Timings, record
+
+    timings = Timings()
     try:
-        paths = ingest(repo_root, tf_plan=Path(args.tf_plan) if args.tf_plan else None)
+        paths = ingest(
+            repo_root,
+            tf_plan=Path(args.tf_plan) if args.tf_plan else None,
+            timings=timings,
+        )
     # PackRefusal is how a pack declines user-supplied input (ADR-035); it
     # reaches here rather than degrading, so `--tf-plan some.tfstate` still
     # exits 1 rather than warning and ingesting (I-1).
@@ -171,6 +178,15 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
         graph.get("resolution_coverage", []),
         graph.get("tail_classes_available", {}),
     )
+    # Where the time went (ADR-119): every step, in run order, printed
+    # here and appended to the repo's log under the Hobbes cache — never
+    # into an artifact, which stays byte-identical across ingests (P1).
+    for line in timings.render():
+        print(line)
+    log = record(
+        repo_root, graph["sha"], (graph.get("built_by") or {}).get("version"), timings
+    )
+    print(f"    logged to {log}")
     for path in sorted(paths):
         print(f"  wrote {path}")
     return 0

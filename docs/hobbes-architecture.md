@@ -812,6 +812,16 @@ ingests inside it); lane A remains the
 every-commit fast path. Full re-index is always available and always correct
 (`P1`), the cache only makes it cheap.
 
+**The ingest says where its time went (ADR-119, 0.2.31-beta).** Every
+step of `extract_repo` — each language's lane A walk, the packs, each
+lane B index run, the join, the projection, the lane agreement, the
+tail, the test map, the write — is timed in run order
+(`extract/timings.py`); the summary prints the total and every step,
+and `hobbes ingest` appends one JSON line per run under the Hobbes
+cache (`timings/<key>.jsonl`, keyed by the repo's path). Nothing enters
+an artifact: two ingests of one commit stay byte-identical (P1). The
+caches above are measured against this record, or they are guesses.
+
 ### 3.7 Adding a language — the checklist
 1. Register the **indexer** (resolution): command, version pin, and how its
    per-repo config is derived. **It must be a pinned batch program with
@@ -1703,7 +1713,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.30-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.30-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.31-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.31-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this
