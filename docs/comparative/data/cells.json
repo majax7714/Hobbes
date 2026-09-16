@@ -2063,38 +2063,38 @@
    "run": "contained",
    "draw": "picked",
    "label": "fmt",
-   "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 are scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31, open)",
+   "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 were scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31) — all four of those oracle defects were fixed on 2026-09-16, after which the cell reads 3,269/3,274 (99.85%, and 99.66% judged as the earlier grade judged) with 5 contradictions left, every one Hobbes' own: C-153's four and C-155's one",
    "edges": 3525,
-   "confirmed": 3263,
-   "contradicted": 11,
+   "confirmed": 3269,
+   "contradicted": 5,
    "abstract": 0,
    "silent": 251,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
-    "pct": 99.7,
-    "num": 3263,
+    "pct": 99.8,
+    "num": 3269,
     "den": 3274
    },
    "recall": {
     "pct": 14.5,
-    "hits": 7328,
-    "pairs": 50524,
+    "hits": 7334,
+    "pairs": 50525,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
-    "macro→function": 1622,
+    "macro→function": 1621,
     "macro→method": 1140,
     "static→constructor": 8205,
-    "static→function": 10321,
+    "static→function": 10317,
     "static→method": 21908
    },
    "poison": {
     "passed": true,
     "seeded": 3525,
-    "refused": 2643,
-    "unjudged": 882,
+    "refused": 2642,
+    "unjudged": 883,
     "falsely": 0
    }
   },
@@ -2989,15 +2989,15 @@
    "note": "repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
    "edges": 6366,
    "confirmed": 2410,
-   "contradicted": 2615,
+   "contradicted": 2614,
    "abstract": 0,
-   "silent": 1341,
+   "silent": 1342,
    "suspect": 0,
    "unobserved": 0,
    "precision": {
     "pct": 48.0,
     "num": 2410,
-    "den": 5025
+    "den": 5024
    },
    "recall": {
     "pct": 13.9,
@@ -3016,8 +3016,8 @@
    "poison": {
     "passed": true,
     "seeded": 6366,
-    "refused": 4475,
-    "unjudged": 1891,
+    "refused": 4473,
+    "unjudged": 1893,
     "falsely": 0
    }
   },

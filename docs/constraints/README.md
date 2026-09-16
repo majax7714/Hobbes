@@ -172,8 +172,8 @@ O10's defects fixed, 2026-09-16 (bench only, no version move):
   still judged**. The oracle's own H-30 fix silences a row whose line
   also carries a call the key left unresolved, and 6 of C-153's sit on
   such a line — *unjudged, not fixed*; the edge is still the wrong
-  declaration. fmt's cell reads 99.7% where the like-for-like figure is
-  99.48%, and both are in its record. The number that would have exposed
+  declaration. fmt's cell reads 99.85% where the like-for-like figure is
+  99.66%, and both are in its record. The number that would have exposed
   this concession is now smaller than the concession.
 - **C-155 registered (unsurfaced, debt)**, in `extraction-cpp.md`: a
   C++ `calls` edge drawn inside an **unevaluated operand** —

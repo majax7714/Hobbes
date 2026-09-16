@@ -74,16 +74,18 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong) and
-   C++'s fmt (3,263/3,274, 99.7% after the 2026-09-16 regrade: 7 are
-   the oracle's grain — H-31 alone, still open; 4 are hobbes-wrong,
-   scip-clang naming a single wrong candidate that Hobbes draws, a
-   provider's error owned as Hobbes' own, C-153). **That 99.7% is
-   flattered by the fix that produced it, and the record says so:**
-   H-28 and H-29 were the oracle's own errors and are fixed, but H-30's
-   silence rule also withdrew judgement from 6 further C-153 rows, which
-   are still wrong and now simply unjudged. Judging the rows the
-   previous grade judged, fmt is **99.48%** (3,263/3,280). Both numbers
-   are in the cell record.
+   C++'s fmt (3,269/3,274, **99.85%** after the 2026-09-16 regrades) —
+   and on that cell the exception is now entirely ours: **0 rows are the
+   oracle's grain**, 4 are scip-clang naming a single wrong candidate
+   that Hobbes draws (a provider's error owned as Hobbes' own, C-153)
+   and 1 is a call Hobbes draws inside an unevaluated `decltype` operand
+   that the compiler never calls (C-155). All four defects of the oracle
+   itself — H-28, H-29, H-30, H-31 — were found by triaging this cell
+   and fixed the same day. **The 99.85% is still flattered by one of
+   them, and the record says so:** H-30's silence rule withdrew
+   judgement from 6 further C-153 rows, which are wrong and now simply
+   unjudged. Judging the rows the previous grade judged, fmt is
+   **99.66%** (3,269/3,280). Both numbers are in the cell record.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -159,7 +161,7 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
      first run on 2026-09-15.
    - **repowise:** fmt 2,410/5,025 (**48.0%**, was 45.2%), recall 13.9%;
      args 815/904 (**90.2%**, was 87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,263/3,274 (**99.7%**; 99.48% judging
+   - **Hobbes, same keys:** fmt 3,269/3,274 (**99.85%**; 99.66% judging
      the rows the previous grade judged), recall 14.5%; args
      1,995/1,995, recall 56.4%.
 

@@ -24,8 +24,28 @@ file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-0. **O10's defects (2026-09-16, bench only, no version move): three
-   fixed, H-31 open, everything regraded.**
+0. **O10's defects (2026-09-16, bench only, no version move): all four
+   fixed, everything regraded twice.**
+   - **H-31 traced and fixed the same day** as `S-20260916T165315Z-16f4`
+     (merged `db20845`): a callee whose qualifier a macro body supplied
+     (`#define FMT_SYSTEM(call) ::call`) was keyed on the `#define`'s own
+     line — in fmt another file — so six real `os.cc` calls sat where
+     nobody wrote them. Traced on the cell's key, not a synthetic; my
+     first probe missed it because it spliced macros but never a
+     *qualifier*. **Regraded: all six confirmed**, fmt **99.85%**
+     (3,269/3,274), and **fmt's triage ratio is now `hobbes-wrong 5 :
+     oracle-wrong 0`** — the oracle's share of that cell is zero.
+   - **Its seventh row was never the oracle's:** `compile-test.cc:127`
+     draws `fmt::arg` inside an unevaluated `decltype`, which the
+     compiler never calls. Registered **C-155** (unsurfaced), and fmt's
+     ratio corrected against us from 4:7 to 5:6 before this fix.
+   - **P50 missed:** I predicted all four foreign C++ cells would rise as
+     they did under H-30; three did not move and the fourth moved one
+     row. A fix to the key's *position* reaches a tool only where it had
+     already drawn there, unlike H-30's *silence* rule.
+   - Tracker **34 of 40**. The earlier three fixes and the first
+     three-tier regrade are below.
+0a. **The first three (2026-09-16): H-28, H-29, H-30.**
    - **H-28** (a member call keyed at its object's start) and **H-29**
      (an unmangled declaration keyed by its bare name) fixed as
      `S-20260916T153010Z-8170`, merged `eec8141`; **H-30** (a line the
@@ -47,9 +67,10 @@ file keeps only what the next session needs.
    - **Where things are:** `~/.hobbes/bench/oracle-defect-drivers/`
      (task files, partitions, `rerun-cpp-key.sh`, `regrade-stored.sh`,
      `regrade-foreign.sh`, `foreign-pairs.tsv`) and its `regrade-out/`.
-   - **Open for Max:** H-31; whether the lane should print a
+   - **Open for Max:** whether the lane should print a
      "judged-as-before" companion number on any cell with
-     `line-unresolved > 0`; C-153's status, now 4 judged : 6 unjudged.
+     `line-unresolved > 0`; C-153's status, now 4 judged : 6 unjudged;
+     and C-155. Nothing in the oracle's own log is open.
    - Found by use: `calvin_tracker.py` pinned `gate v2, grounder v3`, so
      the first session at grounder v4 could not be parsed; fixed with a
      test red on the old pattern (`ce43e5a`).
@@ -156,14 +177,17 @@ file keeps only what the next session needs.
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
 2. **Open for Max (no spend):**
-   - **H-31 alone** (`oracle-defects.md`): H-28, H-29 and H-30 were
-     fixed on 2026-09-16 (item 0). H-31's `decltype` half reproduces in
-     thirteen lines; its `os.cc` half did not reproduce under a probe of
-     that shape, so no rule was written from the synthetic. Its 7 rows
-     survived the regrade exactly as P36 predicted.
+   - **Nothing in the oracle's defect log is open.** H-28–H-31 were all
+     fixed on 2026-09-16 (item 0); what is left on fmt is C-153 and
+     C-155, both Hobbes'.
+   - **C-155** (unsurfaced, new): a call drawn inside an unevaluated
+     operand — `decltype`, and the same shape in `sizeof`/`noexcept` —
+     which the compiler never calls. One row read from source; 26 more
+     sit on `decltype(` lines oracle-silent, an upper bound. Fix it in
+     the join, or accept it as documented-only; that call is yours.
    - **The reporting call H-30's fix forces:** the rule silences 6 of
      C-153's 10 rows, where Hobbes' edge is genuinely wrong, lifting fmt
-     from 99.48% like-for-like to a reported 99.7%. Whether the lane
+     from 99.66% like-for-like to a reported 99.85%. Whether the lane
      should print a "judged-as-before" companion number on any cell with
      `line-unresolved > 0` is yours, not a regrade's to settle.
    - **C-153 is unsurfaced** (debt): scip-clang's single answer at a
@@ -292,10 +316,12 @@ min each.
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
-- **Oracle defect log:** H-31 open (O10); H-28, H-29 and H-30 fixed
-  2026-09-16. RC-3 and RC-8 closed-policy (D-O4 gained the member-call
-  bullet; the C reader's key is owner-qualified as javac's is); RC-4
-  closed for H-30 and carrying its price — silencing is indiscriminate.
+- **Oracle defect log: nothing open.** H-28–H-31 all fixed 2026-09-16.
+  RC-2 gained its sixth sighting and closed with H-31 (macro-carried
+  code keeps getting the wrong position); RC-3 and RC-8 closed-policy
+  (D-O4 gained the member-call bullet; the C reader's key is
+  owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
+  price — silencing is indiscriminate, and it hides 6 of C-153's rows.
 - **Suites** at 0.2.28-beta: 1,632 pytest and 77 scip node (re-run on
   the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
   skip), re-run against the rebuilt image;

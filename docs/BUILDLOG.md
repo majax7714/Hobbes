@@ -11407,3 +11407,54 @@ unsurfaced 4 → 5.
 whether the six rows become confirmed or silent, is the developer's.
 Left for next session on Max's word: the "judged-as-before" reporting
 decision and C-153's status.
+
+## 2026-09-16 (later still) — H-31's oracle half fixed, and fmt's oracle-wrong count reaches zero
+
+Unit 3, `S-20260916T165315Z-16f4` (`bfab66b`, merged `db20845`): 79 of
+100 turns, $5.11, gate right-clear. Tracker **34 of 40**.
+
+**The doer corrected my amendment on evidence I had misread.** I wrote
+that the callee's `range.begin` must be *not* an argument expansion; in
+fmt's real shape — `FMT_RETRY_VAL(…, FMT_SYSTEM(fopen(…)), …)` — clang
+prints only the outermost spelling/expansion pair and flags the macro
+body's `::` `isMacroArgExpansion` exactly as it flags an author's own
+token, so the clause could never fire on the shape it was written for.
+My own probe said so and I read it wrong. The landed rule uses what the
+flags can support: both ends macro positions, the end an argument
+expansion, the begin spelled somewhere other than where it expands, and
+the two ends spelled on different lines or files. The fixture carries
+both H-31 halves and three controls — including `RETRY(ns::h(2))`, whose
+ends clang flags identically — so the naive "always take `range.end`",
+which would have moved `cppclang`'s hand-keyed columns a second time, is
+guarded against.
+
+**The regrade, pre-registered as §10.9 before it ran.** Both keys re-run
+contained against the same standing exports.
+
+- **P46 met in its strong form:** the six `os.cc` rows are **confirmed**,
+  checked individually — not merely absent from the contradicted set.
+  fmt contradicted 11 → **5**, confirmed +6, precision 99.7% →
+  **99.85%**.
+- **P47 met:** the five left are C-153's four and C-155's one.
+  **fmt's triage ratio is now `hobbes-wrong 5 : oracle-wrong 0`.**
+- **P48 recorded:** `sites_macro` 2,771 → 2,761, `sites_static` 30,765 →
+  30,776 — coverage and miss classes move, judgment does not.
+- **P49 met in its strong form:** args identical as a set of rows, no
+  bucket movement at all.
+- **P50 MISSED.** I predicted all four foreign C++ cells would rise "as
+  they did under H-30". Three did not move; the fourth moved one row
+  (repowise fmt 47.96% → 47.97%). The cause the prediction should have
+  seen: H-30 forgave *guesses on unresolved lines*, which a name
+  resolver makes constantly, so it lifted every tool; H-31 moves
+  *sites*, which helps a tool only where it had already drawn at the
+  corrected position — and at fmt's `os.cc` use sites they drew nothing.
+- **P51 met:** poison PASS everywhere, 0 falsely confirmed.
+
+**What is left on fmt is entirely ours:** C-153's four provider rows and
+C-155's one. Both figures stay on the record — 99.85% as reported,
+**99.66%** judged as the pre-H-30 grade judged — because H-30's silence
+rule still withholds judgement from six of C-153's wrong rows.
+
+**Open for Max, unchanged:** the "judged-as-before" companion number;
+C-153's status (4 judged : 6 unjudged); and now C-155 — fix it in the
+join or accept it as documented-only.

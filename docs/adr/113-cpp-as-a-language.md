@@ -573,7 +573,8 @@ commit is the patch that makes C++ *supported*.
     args 57.1% → 56.4%.
   - **Version:** 0.2.22-beta.
   - **Register:** C-151 and C-152 registered, surfaced. C-153
-    registered unsurfaced (P9). H-28–H-31 open in the oracle's log.
+    registered unsurfaced (P9). H-28–H-31 open in the oracle's log at
+    the time of this unit; all four were fixed on 2026-09-16.
 - **2026-09-15 — the row** (0.2.23-beta): `VERIFICATION_BASE["cpp"]`
   and §3.8's C++ row on the regraded cells, the evidence log's C++
   section, and C-132 narrowed again. C++ is *supported* as far as the
@@ -582,8 +583,15 @@ commit is the patch that makes C++ *supported*.
   H-29 and H-30 fixed in two dispatched units (`eec8141`, `f747aef`,
   §3's amendment); both C++ keys re-run and every cell regraded. fmt
   3,254/3,282 (99.1%) → **3,263/3,274 (99.7%)**, args unmoved at
-  1,995/1,995. **Open, for the lead:** H-31 alone; C-153, now 4 judged :
-  6 unjudged, because H-30's rule silences the other six — which lifts
-  fmt's headline above its like-for-like 99.48% and is why the cell
-  record carries both numbers; and `hobbes lanes`' exit status on fmt
-  (316 disagreements where lane A guesses, none drawn).
+  1,995/1,995.
+- **2026-09-16 (later) — H-31 too** (`db20845`, §3's "as built" rule):
+  its six `os.cc` rows were the oracle's and are **confirmed** on the
+  regrade; its seventh was ours and is **C-155**. fmt **3,269/3,274
+  (99.85%)**, args unmoved. **Every defect of the oracle on this cell is
+  now fixed, and its triage ratio is `hobbes-wrong 5 : oracle-wrong 0`.**
+  **Open, for the lead:** C-153, now 4 judged : 6 unjudged, because
+  H-30's rule silences the other six — which lifts fmt's headline above
+  its like-for-like **99.66%** and is why the cell record carries both
+  numbers; C-155, to fix in the join or accept as documented-only; and
+  `hobbes lanes`' exit status on fmt (316 disagreements where lane A
+  guesses, none drawn).

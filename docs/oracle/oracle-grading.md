@@ -535,7 +535,7 @@ are rules and are corrected; the fourth stays open.
   target list, and the rule does not fire — the edge still reads
   contradicted. That is H-31, and it is why §10.8's P36 expects its
   seven rows to survive the regrade.
-- **Open:** H-31's `os.cc` half, a call in a macro argument nested in
+- **Closed 2026-09-16** (it read *open* here until it was traced): H-31's `os.cc` half, a call in a macro argument nested in
   another's, which a probe of that shape did not reproduce. Its
   `decltype` half does reproduce — a call in an unevaluated operand
   yields no site — and is fixed only if the trace names a clean rule.
@@ -940,6 +940,49 @@ unchanged.
 re-key onto lines that already carry pairs, and the collapsed line reads
 site-line grain, so the direction is not obvious enough to claim in
 advance.
+
+**Graded 2026-09-16**, after `db20845`. Both keys re-run contained (fmt
+302 s, args 315 s) against the same standing exports, so the Hobbes side
+is identical row for row and only the key moved.
+
+- **P46 — met, in its strong form.** The six `os.cc` rows are
+  **confirmed**, checked individually and not inferred from the
+  contradicted count: 176, 222, 274, 282, 300 and 310 each now key at
+  the use site, and in `posix-mock-test`'s unit the target is the mock
+  Hobbes draws. Contradicted 11 → **5**, confirmed 3,263 → **3,269**,
+  precision 99.7% → **99.85%** (3,269/3,274).
+- **P47 — met.** The five left are exactly C-155's one
+  (`compile-test.cc:127`) and C-153's four (`format-test.cc:689`, 690,
+  692, 696). **fmt's triage ratio is now `hobbes-wrong 5 : oracle-wrong
+  0`:** every contradiction left on that cell is ours.
+- **P48 — recorded, as predicted.** `sites_macro` 2,771 → 2,761 and
+  `sites_static` 30,765 → 30,776; the `macro→*` miss classes shed what
+  `static→*` gained. No judgment moved with it.
+- **P49 — met, in its strong form.** args' edge set is identical and
+  **no row changed bucket at all** — checked as a set, not by totals.
+  100.0% (1,995/1,995), recall 56.4%, collapsed 63.1%, poison 1,938 /
+  62.
+- **P50 — MISSED.** I predicted all four foreign C++ cells would rise
+  "as they did under H-30". Three did not move at all
+  (CodeGraphContext fmt 95.71%, CodeGraphContext args still grading
+  nothing, repowise args 90.15%) and the fourth moved by a single row
+  (repowise fmt 47.96% → 47.97%). **The cause, which the prediction
+  should have seen:** H-30 forgave *guesses on lines the key left
+  unresolved*, which a name resolver makes constantly, so it lifted
+  every tool. H-31 moves *sites*, which helps a tool only where it had
+  already drawn an edge at the corrected position — and at fmt's
+  `os.cc` use sites the tools drew nothing. A fix to the key's
+  **position** is not the same kind of event as a fix to the matcher's
+  **silence**, and P50 treated them alike.
+- **P51 — met.** Poison PASS on every cell run, 0 falsely confirmed
+  (fmt 2,642 / 883, args 1,938 / 62).
+- **Recall did not fall:** fmt 14.5% (7,328/50,524 → 7,334/50,525),
+  args 56.4% unchanged.
+
+**Both of fmt's figures stand, and both belong in the record.** As
+reported: **99.85%**. Judged as the pre-H-30 grade judged — adding back
+the six C-153 rows H-30 silences — **99.66%** (3,269/3,280). The gap is
+C-155 and C-153's remainder, which are ours, not the oracle's.
 
 **Graded 2026-09-16**, after H-28/H-29 (`eec8141`) and H-30 (`f747aef`).
 Both C++ cells were re-run contained against their standing Hobbes

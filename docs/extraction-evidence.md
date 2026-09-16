@@ -603,6 +603,44 @@ unplaced sites was read in the source (`core/c2h.go:38`, `:69`,
 (`core/git_remote.go:69`/`78`). The other 28 unplaced sites were not
 read one by one, and are stated as unplaced.
 
+### The same cells regraded again, after H-31's oracle half (2026-09-16, later)
+
+The section above says H-31 stays open; it was traced and fixed the same
+day, so this is the second regrade of the same cells. H-31 was two
+defects on opposite sides. Its oracle half — a callee whose qualifier a
+macro body supplied (`#define FMT_SYSTEM(call) ::call`) keyed on the
+`#define`'s own line, in fmt another file — was fixed as
+`S-20260916T165315Z-16f4` (`db20845`) and both C++ keys re-run contained
+against the same standing exports. Outputs in
+`~/.hobbes/bench/oracle-defect-drivers/regrade-out/h31/`.
+
+| Measure | Result |
+|---|---|
+| **fmt** (key re-run, 302 s; 3,525 edges, identical as a set) | confirmed 3,263 → **3,269**; contradicted 11 → **5**; precision 99.7% → **99.85%**. The six `os.cc` rows are **confirmed**, checked row by row |
+| **fmt, judged like-for-like** | **99.66%** (3,269/3,280) — H-30 still withholds judgement from 6 of C-153's wrong rows |
+| **fmt's triage ratio** | **`hobbes-wrong 5 : oracle-wrong 0`** — C-153's four and C-155's one. The oracle's share of this cell is now zero |
+| **args** (key re-run, 315 s) | identical as a set of rows, no bucket movement at all: 1,995/1,995, 100.0% |
+| **Coverage, without judgment** | `sites_macro` 2,771 → 2,761, `sites_static` 30,765 → 30,776; the `macro→*` miss classes shed what `static→*` gained |
+| **The four foreign C++ cells** (new key again) | three did not move at all (CodeGraphContext fmt 95.71%, repowise args 90.15%, CodeGraphContext args still grading nothing); repowise fmt moved one row, 47.96% → 47.97% |
+| Poison | PASS on every cell, 0 falsely confirmed (fmt 2,642 / 883, args 1,938 / 62) |
+| Pre-registration (`oracle-grading.md` §10.9) | P46, P47, P49, P51 met; P48 recorded; **P50 missed** |
+
+**P50's miss, and why it is not a quibble.** I predicted every foreign
+C++ cell would rise, "as they did under H-30". They did not, and the
+reason separates two kinds of fix: H-30 forgave *guesses on lines the
+key left unresolved*, which a name resolver makes constantly, so it
+lifted every tool; H-31 moved *sites*, which reaches a tool only where
+it had already drawn an edge at the corrected position — and at fmt's
+`os.cc` use sites the tools drew nothing. A position fix and a silence
+fix are not the same event, and the prediction treated them alike.
+
+**Verified:** fmt's six rows were confirmed individually against the new
+report, not inferred from the contradicted count; args was compared as a
+**set of rows** and showed no movement; the four foreign cells were each
+re-graded against the new key and their before/after read per cell. The
+`decltype` half of H-31 was **not** fixed here — it is Hobbes' own
+(C-155) and remains drawn.
+
 ## The C++ cells and every foreign cell regraded for O10's defect fixes (2026-09-16, bench only, ADR-113 §3 amended)
 
 Three defects **of the oracle that grades Hobbes** were fixed in two
