@@ -870,6 +870,24 @@ H-31 7). args stands at 1,995/1,995 (100%), recall 56.4%.
 | P41 | O10 (`cppclang`) | the 25 hand-keyed sites stand unchanged — every member call in the fixture is written on one line — and the unit **adds** a multi-line member chain and a two-template collision, each hand-keyed | met if `cpp_test.go` passes with the existing 25 untouched; if any of the 25 moves, it is a multi-line chain and its new line is stated per site |
 | P42 | every non-C++ stored cell | the matcher change moves only rows contradicted at a line the key left unresolved; precision falls on no cell | met per regrade; every cell that moves is listed before → after, signed |
 | P43 | all cells | poison check PASS, 0 falsely confirmed | met per cell |
+| P44 | the 52 foreign cells (ADR-101) | the same matcher grades them, so H-30 can move a foreign row too: precision moves only where a row sat on a line its key left unresolved, and no foreign row moves for any other reason | met per cell; every cell that moves is listed before → after, signed, as a Hobbes cell is |
+| P45 | the four foreign **C++** cells | regraded against the **new** key, not the old one, and their direction stated signed | met if each record names the regenerated key; the comparative page may not compare a tool against a key Hobbes has stopped using |
+
+**Scope, stated once.** Three tiers, and every one of them holds the
+Hobbes side fixed so that only the key or the matcher moves:
+- **fmt and args** — `oracle c-clang` re-run (contained, as the cells
+  ran: ~330 s each), graded against each cell's standing
+  `*-regrade/hobbes.json`, never `*-cell/`'s superseded first grade;
+- **38 of the 44 own cells** — stored `hobbes.json` × stored key, no
+  ingest and no oracle re-run. The other 6 rows are keys with no Hobbes
+  export beside them and are named as not covered;
+- **52 foreign cells** — `grade-foreign.sh` over each stored
+  `edges.json` and the key its record names; the four C++ ones against
+  the new key (P45).
+
+The comparative graphics are read from the cell records, so any row
+that moves is re-rendered and ADR-102's drift test
+(`TestGraphicsMatchTheCellRecords`) is green before the commit.
 
 **H-31 is not predicted.** Its `decltype` half reproduces and its
 `os.cc` half does not; it stays open in the log unless its trace names
