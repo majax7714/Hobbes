@@ -90,6 +90,33 @@ func TestMergeKeysOverloadsByMangledName(t *testing.T) {
 	}
 }
 
+// TestDeclKeySpelling covers ADR-113 §3's key, as the amendment spells
+// it: the mangled name where the front end gives one, else the name
+// qualified by the declaration's class (a class template's pattern
+// members, which carry no mangling), else the bare name (`extern "C"`,
+// `main`).
+func TestDeclKeySpelling(t *testing.T) {
+	cases := []struct {
+		what string
+		d    Decl
+		want string
+	}{
+		{"a pattern member of A", Decl{Name: "format_as", Class: "A", Kind: "method"}, "A::format_as"},
+		{"a pattern member of B", Decl{Name: "format_as", Class: "B", Kind: "method"}, "B::format_as"},
+		{"its specialisation", Decl{Name: "format_as", Class: "A", Mangled: "_ZN1AIiE9format_asEi"}, "_ZN1AIiE9format_asEi"},
+		{"an extern \"C\" function", Decl{Name: "shared_entry"}, "shared_entry"},
+		{"main", Decl{Name: "main"}, "main"},
+	}
+	for _, c := range cases {
+		if got := declKey(c.d); got != c.want {
+			t.Errorf("%s: declKey = %q, want %q", c.what, got, c.want)
+		}
+	}
+	if declKey(cases[0].d) == declKey(cases[1].d) {
+		t.Errorf("two classes' same-named members must not share a key: %q", declKey(cases[0].d))
+	}
+}
+
 // TestMergeUndefinedVersusExternal covers the two "no definition" cases:
 // declared in the repo (undefined) versus declared only implicitly
 // (external, ADR-110's builtin case).
