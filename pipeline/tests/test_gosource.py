@@ -608,13 +608,14 @@ class TestLocalBindings:
 SHAPES = Path(__file__).parent / "fixtures" / "goshapes"
 
 
+@pytest.fixture(scope="class")
+def shapes():
+    return extract_go(SHAPES)
+
+
 class TestCallShapesTheOracleFoundMissing:
     """The O4 findings (oracle lane, 2026-08-25), each as a site that must
     exist — or must not — in lane A's view of the ``goshapes`` fixture."""
-
-    @pytest.fixture(scope="class")
-    def shapes(self):
-        return extract_go(SHAPES)
 
     def test_a_conversion_is_not_a_site(self, shapes):
         assert _sites(shapes, "JSON") == []

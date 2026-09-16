@@ -283,17 +283,18 @@ class TestTests:
         assert test["reaches_modules"] == [f"{APP}/Report", f"{APP}/Shape"]
 
 
+@pytest.fixture(scope="class")
+def out():
+    os.environ["HOBBES_SCIP"] = "0"
+    try:
+        return extract_repo(FIXTURE)
+    finally:
+        os.environ.pop("HOBBES_SCIP", None)
+
+
 class TestIngest:
     """The J.M1 exit: the fixture ingests to a syntactic-tier graph with
     every planted site detected and nothing `unclassified` in the tail."""
-
-    @pytest.fixture(scope="class")
-    def out(self):
-        os.environ["HOBBES_SCIP"] = "0"
-        try:
-            return extract_repo(FIXTURE)
-        finally:
-            os.environ.pop("HOBBES_SCIP", None)
 
     def test_the_language_is_claimed_and_unverified_is_stated(self, out):
         assert out.graph["languages"] == ["java"]

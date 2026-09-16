@@ -13,7 +13,7 @@ from hobbes.ttt.units import (
     CONDITIONINGS, Unit, UnitError, attach_context, attach_tasks, context_block, files_in_patch, message_keys,
     nll_messages, read_tasks, read_units, unit_from_deepswe, units_from_git, write_units,
 )
-from tests.test_ttt_corpus import graph_fixture, testmap_fixture
+from tests.test_ttt_corpus import graph_fixture, sample_testmap
 
 PATCH = """diff --git a/src/app/core.py b/src/app/core.py
 --- a/src/app/core.py
@@ -104,7 +104,7 @@ class TestContext:
         assert files_in_patch(PATCH) == ["src/app/core.py", "docs/new.md", "old.txt"]
 
     def test_block_seeds_from_files_and_named_symbols(self):
-        block, notes = context_block(graph_fixture(), testmap_fixture(),
+        block, notes = context_block(graph_fixture(), sample_testmap(),
                                      "Make handle_request log before it calls render_page.", ["src/app/core.py", "docs/new.md"])
         assert block.startswith("## What Hobbes can see")
         assert "files the change centers on: src/app/core.py" in block
@@ -118,7 +118,7 @@ class TestContext:
         graph = graph_fixture()
         graph["symbols"].append({"id": "app.core.token", "kind": "function", "module": "app.core",
                                  "name": "token", "qualname": "token", "line": 30, "end_line": 31})
-        block, _ = context_block(graph, testmap_fixture(), "the token is read once", ["src/app/core.py"])
+        block, _ = context_block(graph, sample_testmap(), "the token is read once", ["src/app/core.py"])
         assert "symbols:" not in block
 
     def test_nll_messages_differ_only_by_the_block(self):
@@ -134,7 +134,7 @@ class TestContext:
     def test_round_trip_and_attach(self, tmp_path):
         u = Unit(id="x", repo="demo", sha="c" * 40, source="git", proposal="Change handle_request.",
                  files=["src/app/core.py"], gold_diff="+x\n")
-        attach_context([u], graph_fixture(), testmap_fixture())
+        attach_context([u], graph_fixture(), sample_testmap())
         write_units([u], tmp_path / "u.jsonl")
         back = read_units(tmp_path / "u.jsonl")
         assert back[0]["context"].startswith("## What Hobbes can see") and back[0]["id"] == "x"

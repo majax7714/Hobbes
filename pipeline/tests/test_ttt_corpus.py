@@ -66,7 +66,7 @@ def graph_fixture() -> dict:
     }
 
 
-def testmap_fixture() -> dict:
+def sample_testmap() -> dict:
     return {"schema_version": 4, "sha": SHA, "dirty": False, "tests": [
         {"id": "tests/test_api.py::test_serve", "file": "tests/test_api.py", "line": 3, "framework": "pytest",
          "symbol": "test_serve", "reaches": ["app.api.serve", "app.core.handle_request", "app.auth.token"],
@@ -89,7 +89,7 @@ def ingested(tmp_path) -> Path:
     derived = tmp_path / ".hobbes" / "derived"
     (derived / "docs" / "modules").mkdir(parents=True)
     (derived / "graph.json").write_text(json.dumps(graph_fixture()))
-    (derived / "tests.json").write_text(json.dumps(testmap_fixture()))
+    (derived / "tests.json").write_text(json.dumps(sample_testmap()))
     (derived / "docs" / "modules" / "app.core.json").write_text(json.dumps(doc_fixture()))
     return tmp_path
 
@@ -124,7 +124,7 @@ class TestSplit:
         assert all(r["symbol"] not in hidden for r in train if r["kind"] == "qa")
 
     def test_masking_replaces_ids_qualnames_and_unique_names(self):
-        index = build_index(graph_fixture(), testmap_fixture())
+        index = build_index(graph_fixture(), sample_testmap())
         text = "handle_request calls render_page; app.core.render_page and Router.dispatch; app.api.Router.dispatch."
         masked, n, left = mask_text(text, index, {"app.core.render_page", "app.api.Router.dispatch"})
         assert masked == (f"handle_request calls {HELD_OUT}; {HELD_OUT} and {HELD_OUT}; {HELD_OUT}.")
@@ -136,7 +136,7 @@ class TestSplit:
         graph = graph_fixture()
         graph["symbols"].append({"id": "app.core.token", "kind": "function", "module": "app.core",
                                  "name": "token", "qualname": "token", "line": 30, "end_line": 31})
-        shared = build_index(graph, testmap_fixture())
+        shared = build_index(graph, sample_testmap())
         assert mask_text("token here", shared, {"app.auth.token"}) == ("token here", 0, 0)
 
     def test_a_held_out_class_takes_its_methods(self):
@@ -152,7 +152,7 @@ class TestSplit:
 class TestAbsent:
     def test_every_distractor_is_unresolvable(self, ingested):
         build_corpus(ingested, ingested / "out")
-        index = build_index(graph_fixture(), testmap_fixture())
+        index = build_index(graph_fixture(), sample_testmap())
         rows = [r for f in ("train.jsonl", "eval.jsonl") for r in read(ingested / "out" / f) if r["family"] == "absent"]
         assert rows
         for r in rows:
@@ -164,7 +164,7 @@ class TestAbsent:
         graph = graph_fixture()
         graph["symbols"].append({"id": "app.api.Serve", "kind": "function", "module": "app.api",
                                  "name": "Serve", "qualname": "Serve", "line": 40, "end_line": 41})
-        index = build_index(graph, testmap_fixture())
+        index = build_index(graph, sample_testmap())
         fake = distractor(index, index.symbols["app.api.serve"], set())
         assert fake == "app.api.serve2"  # the case flip resolves, so it is passed over
 
@@ -192,7 +192,7 @@ class TestRenderings:
         assert all(r["split"] == "eval" for r in eval_)
 
     def test_card_prints_tiers_and_drops_held_out_targets(self):
-        index = build_index(graph_fixture(), testmap_fixture())
+        index = build_index(graph_fixture(), sample_testmap())
         text, dropped = corpus.symbol_card(index, index.symbols["app.api.serve"], set())
         assert "called by: none recorded" in text
         assert "calls: app.auth.token (semantic), app.core.handle_request (semantic)" in text
@@ -205,7 +205,7 @@ class TestRenderings:
         assert "calls: app.core.render_page (syntactic)" in text and "tier of this card: syntactic" in text
 
     def test_answers_use_semantic_edges_only(self):
-        index = build_index(graph_fixture(), testmap_fixture())
+        index = build_index(graph_fixture(), sample_testmap())
         rows = dict((f, a) for f, a, _ in corpus.answers(index, graph_fixture(), index.symbols["app.core.render_page"], set(), FAMILIES))
         assert rows["callers"] == "Semantic-tier callers of `app.core.render_page`: `app.core.handle_request`."
         assert rows["callees"].startswith("No semantic-tier callee of")
@@ -227,7 +227,7 @@ class TestRenderings:
         expected = sorted(best, key=lambda n: (-best[n], n))
         assert impact_modules(graph, "app.api") == expected and expected
         assert all(n in {"app.core", "app.auth", "ext:react"} for n in expected)
-        index = build_index(graph, testmap_fixture())
+        index = build_index(graph, sample_testmap())
         rows = dict((f, a) for f, a, _ in corpus.answers(index, graph, index.symbols["app.api.serve"], set(), ("impact",)))
         assert all(f"`{m}`" in rows["impact"] for m in expected)
 
