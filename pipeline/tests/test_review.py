@@ -230,6 +230,27 @@ class TestCoverageDelta:
             {"path": "pkg/testdata", "by": "go: testdata inside the module at go.mod", "modules": 2}
         ]
 
+    def test_a_value_only_module_is_listed_with_its_reason(self, repo):
+        # C-156: reach follows calls, so a test that reads a constant
+        # guards nothing. The review still lists the module, and says why.
+        write(repo, "src/app/settings.py", "LIMIT = 3\n")
+        write(repo, "src/app/billing.py", "def charge():\n    return 1\n")
+        write(
+            repo,
+            "tests/test_settings.py",
+            "from app import settings\n\n\ndef test_limit():\n    assert settings.LIMIT == 3\n",
+        )
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a constant and a function")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == ["app.billing", "app.settings"]
+        assert review.coverage.value_only == ["app.settings"]
+        assert review.needs_attention
+        text = format_review(review)
+        assert "      app.settings — declares no function and no call targets it; reach follows calls only (C-156)" in text
+        assert "      app.billing\n" in text
+        assert review_to_dict(review)["coverage"]["value_only"] == ["app.settings"]
+
     def test_losing_every_guarding_test_is_reported(self, repo):
         (repo / "tests" / "test_core.py").unlink()
         git(repo, "add", "-A")

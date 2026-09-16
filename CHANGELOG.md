@@ -15,6 +15,25 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.28-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.29-beta — 2026-09-16 (an unguarded module no call can reach says why; C-156)
+
+**Patch: what the layer says.** Test reach follows `calls` edges only
+(ADR-007), so a module that holds only values, such as a constant its
+test reads, can never be seen as guarded. `tests_guarding` and
+`hobbes review` called it unguarded and gave no reason (C-156).
+
+- A module is *value-only* when it declares no function, method,
+  class, type or macro, and no recorded call targets anything it
+  declares. A TS/JS `const` holding a called arrow function is
+  callable (ADR-117).
+- `hobbes review` still lists such a module under "new code no test
+  reaches" or "lost every guarding test", and it still needs attention.
+  Its line now carries the reason, and `--json` lists it under
+  `coverage.value_only`.
+- `tests_guarding` still answers "unguarded", and adds a line naming
+  each value-only module and C-156.
+- C-156 moves from unsurfaced to surfaced.
+
 ## 0.2.28-beta — 2026-09-15 (the gate reads a TS/JS arrow's parameters; C-91)
 
 **Patch: what the layer refuses.** `hobbes gate`'s TS/JS text read of

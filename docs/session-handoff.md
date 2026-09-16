@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-16; Hobbes 0.2.28-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-16; Hobbes 0.2.29-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
@@ -23,6 +23,17 @@ streams) and C++'s close-out, all the same day. Earlier sessions' detail lives i
 file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
+
+00. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
+   surfaced.** Test reach follows `calls` only (ADR-007), so a module
+   of values alone (`go/internal/version`) reads unguarded. Max chose
+   route (a): `tests_guarding` and `hobbes review` now say why, citing
+   C-156, and the module stays listed. The rule is
+   `testmap.value_only_modules` and Go's `valueOnly`. Also that evening:
+   pytest's four warnings closed (the `testmap_fixture` helper renamed,
+   two class fixtures moved to module level). The binaries, the static
+   proxy and the image are rebuilt; **restart the knowledge server**
+   (C-65).
 
 0. **O10's defects (2026-09-16, bench only, no version move): all four
    fixed, everything regraded twice.**
@@ -135,7 +146,7 @@ file keeps only what the next session needs.
    - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
-   - The binaries, the static proxy and the image are at 0.2.28-beta.
+   - The binaries, the static proxy and the image are at 0.2.29-beta.
 0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -177,12 +188,6 @@ file keeps only what the next session needs.
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
 2. **Open for Max (no spend):**
-   - **C-156** (unsurfaced, new 2026-09-16 evening): test reach follows
-     `calls` only, so `go/internal/version` (a constant its test reads)
-     reads unguarded. The routes: (a) surface C-156 where
-     `tests_guarding` and the review say "no test reaches" for a module
-     with no function (a patch; recommended); (b) let reach follow reads,
-     which reopens ADR-007; (c) documented-only.
    - **Nothing in the oracle's defect log is open.** H-28–H-31 were all
      fixed on 2026-09-16 (item 0); what is left on fmt is C-153 and
      C-155, both Hobbes'.
@@ -315,8 +320,8 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 156 entries: 113 active (85 surfaced, 21 partial, 6
-  unsurfaced — C-19, C-20, C-112, C-153, C-155, C-156 — 1 n/a), 26 lifted, 11
+- **Register:** 156 entries: 113 active (86 surfaced, 21 partial, 5
+  unsurfaced — C-19, C-20, C-112, C-153, C-155 — 1 n/a), 26 lifted, 11
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).
@@ -326,9 +331,9 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.28-beta: 1,631 pytest, 0 warnings (2026-09-16), and 77 scip node (re-run on
-  the host, 2026-09-15); Go 386 `--- PASS`/`SKIP` lines (385 pass, 1
-  skip), re-run against the rebuilt image;
+- **Suites** at 0.2.29-beta: 1,636 pytest, 0 warnings, and Go 387
+  (386 pass, 1 skip) against the rebuilt image (2026-09-16); 77 scip node (re-run on
+  the host, 2026-09-15);
   oracle-lane Go 97 pass / 5 skip (re-run 2026-09-15 with converter@4's
   two tests); 52 vitest, 36 tsextract, 84 atlas0
   not re-run.

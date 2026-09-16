@@ -450,8 +450,43 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 	}
 	if guarded == 0 {
 		b.WriteString(fmt.Sprintf("no tests statically reach %s — changes there are unguarded\n", target))
+		for _, m := range valueOnly(g, modules) {
+			b.WriteString(fmt.Sprintf("  %s declares no function and no call targets it; reach follows calls only, so no test can be seen guarding it (C-156)\n", m))
+		}
 	}
 	return b.String(), nil
+}
+
+// callableKinds are the symbol kinds a `calls` edge can target; the
+// pipeline's testmap.CALLABLE_KINDS is the same set.
+var callableKinds = map[string]bool{"function": true, "method": true, "class": true, "type": true, "macro": true}
+
+// valueOnly returns, sorted, the modules among want that no `calls` edge
+// could reach: no symbol of a callable kind and no recorded call into any
+// symbol they declare (C-156). The pipeline's value_only_modules is the
+// same rule; a const a call targets (a TS arrow) is callable.
+func valueOnly(g graphDoc, want map[string]bool) []string {
+	reachable := map[string]bool{}
+	moduleOf := map[string]string{}
+	for _, sym := range g.Symbols {
+		moduleOf[sym.ID] = sym.Module
+		if callableKinds[sym.Kind] {
+			reachable[sym.Module] = true
+		}
+	}
+	for _, e := range g.SymbolEdges {
+		if m, ok := moduleOf[e.To]; ok && e.Type == "calls" {
+			reachable[m] = true
+		}
+	}
+	var out []string
+	for m := range want {
+		if !reachable[m] {
+			out = append(out, m)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // --- module docs (ADR-019 artifacts) ---------------------------------------

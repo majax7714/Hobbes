@@ -90,11 +90,17 @@
   `tests_guarding` answers "unguarded" and the graph job's review
   reported the package as new code no test reaches (2026-09-09, the W0
   item). The same holds for any constants-only module in any language.
-- **You find out:** **unsurfaced**: `tests_guarding` and `hobbes review`
-  say "no test reaches" with no reason, and the denominator statement
-  names C-4 but not this. This entry is the only statement.
+- **You find out:** **surfaced** (was *unsurfaced* on the day it was
+  registered; ADR-117, 0.2.29-beta): where `tests_guarding` answers
+  "unguarded", it adds a line naming each value-only module and C-156.
+  `hobbes review` puts the same reason on the module's line under "new
+  code no test reaches" or "lost every guarding test", and lists it in
+  `--json` under `coverage.value_only`. The module is still listed and
+  still needs attention: the reason is said, not exempted. *Value-only*
+  is read from the graph: no function, method, class, type or macro,
+  and no `calls` edge into the module.
 - **Source:** W0's "`go/internal/version` stays unguarded" item, traced
-  2026-09-16 to the rule in ADR-007.
+  2026-09-16 to the rule in ADR-007; surfaced by ADR-117.
 
 ### C-5 — Routes with computed paths are skipped
 - **Cannot tell you:** that an endpoint exists when its path is an

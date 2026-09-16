@@ -8,7 +8,7 @@ from hobbes.extract import _build_symbol_layer
 from hobbes.extract.discover import discover_modules
 from hobbes.extract.graph import build_graph
 from hobbes.extract.pysource import parse_source
-from hobbes.extract.testmap import collect_tests, is_test_file
+from hobbes.extract.testmap import collect_tests, is_test_file, value_only_modules
 
 FIXTURE = Path(__file__).parent / "fixtures" / "miniapp"
 
@@ -159,3 +159,34 @@ class TestReachFollowsCallsOnly:
         ]
         (record,) = collect_tests(modules, parsed, edges)
         assert record["reaches"] == []
+
+
+class TestValueOnlyModules:
+    """C-156: a module no calls edge could reach, read from the graph."""
+
+    @staticmethod
+    def graph(symbols, calls=()):
+        modules = sorted({s[0] for s in symbols} | {"m.empty"})
+        return {
+            "nodes": [{"id": m, "kind": "module"} for m in modules],
+            "symbols": [{"id": f"{m}.{name}", "module": m, "kind": kind} for m, name, kind in symbols],
+            "symbol_edges": [{"from": a, "to": b, "type": "calls"} for a, b in calls],
+        }
+
+    def test_constants_and_an_empty_module_are_value_only(self):
+        g = self.graph([("m.consts", "LIMIT", "const"), ("m.code", "run", "function")])
+        assert value_only_modules(g) == {"m.consts", "m.empty"}
+
+    def test_a_class_type_or_macro_is_callable(self):
+        g = self.graph([("m.cls", "Box", "class"), ("m.typ", "ID", "type"), ("m.mac", "MAX", "macro")])
+        assert value_only_modules(g) == {"m.empty"}
+
+    def test_a_const_a_call_targets_is_callable(self):
+        # A TS/JS `const f = () => …` is recorded as a const; the edge says it is called.
+        g = self.graph([("m.arrow", "f", "const"), ("m.code", "run", "function")], calls=[("m.code.run", "m.arrow.f")])
+        assert value_only_modules(g) == {"m.empty"}
+
+    def test_a_uses_edge_does_not_make_a_module_callable(self):
+        g = self.graph([("m.consts", "LIMIT", "const"), ("m.code", "run", "function")])
+        g["symbol_edges"].append({"from": "m.code.run", "to": "m.consts.LIMIT", "type": "uses"})
+        assert "m.consts" in value_only_modules(g)

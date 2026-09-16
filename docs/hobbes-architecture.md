@@ -1680,7 +1680,8 @@ MultiEdit and NotebookEdit.
   loopback-only, enforced at bind and per-request `Host` (ADR-022);
   concept-review flow: graph diff → invariant verdicts → behavioral coverage
   delta (a source in a tree the repo's own test runners exclude is a
-  fixture, not own code, and is named as such: ADR-114, C-154) → line
+  fixture, not own code, and is named as such: ADR-114, C-154; a listed
+  module no call could reach carries that reason: ADR-117, C-156) → line
   diff last. Edge styling by tier is **built**. The
   lane-disagreement view is **not** — `hobbes lanes` is a command with no
   tab behind it, which is a known gap awaiting scope, not an oversight.

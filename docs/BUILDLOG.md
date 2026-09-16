@@ -11494,3 +11494,40 @@ declares no function, a patch. (b) Let reach follow a test's reads of a
 module's values, which reopens ADR-007's rule that reach must not widen
 to code a test only names. (c) Accept it as documented-only. My
 recommendation is (a).
+
+## 2026-09-16 (evening, later) — C-156 surfaced: an unguarded module no call can reach says why; ADR-117, 0.2.29-beta
+
+Max chose route (a) of the three put to him ("go with the recommended
+route").
+
+**The rule, read from the graph.** A module is *value-only* when none of
+its symbols is a `function`, `method`, `class`, `type` or `macro`, and no
+`calls` edge targets any symbol it declares. The kinds were measured
+before the rule was written: on this repo's graph `calls` edges target
+functions (6,880), methods (1,257), classes (496), macros (18), types (2)
+and one `const`, a TS/JS binding that is called. So a const alone does
+not settle it, and the edge half is what makes an arrow-function const
+callable. On this repo the rule picks out `go/internal/version`,
+`scip/compare`, `web/src/main`, `web/src/types`, `web/vite.config`,
+`bench/oracle/internal/clang/clang` and one fixture header.
+
+**Built:** `testmap.value_only_modules` and `CALLABLE_KINDS`, and the
+review's `CoverageDelta.value_only` with the reason on the module's line
+and under `--json`'s `coverage.value_only`. The module is still listed
+and still needs attention: the reason is said, not exempted. In Go,
+`valueOnly` in `internal/knowledge` adds one line per value-only module
+to an "unguarded" `tests_guarding` answer. Tests: four cases for the
+rule (constants and an empty module, class/type/macro, a called const,
+a `uses` edge), one review case (a constant beside a function: both
+listed, only the constant with C-156), and one Go case (a const-only
+module named; a called const and a guarded module not).
+
+**Paperwork in the same change:** ADR-117; C-156 moved to surfaced
+(register 86 surfaced, 5 unsurfaced); architecture's concept-review
+line; CHANGELOG 0.2.29-beta and every version copy; CLAUDE.md, the
+handoff.
+
+**Suites:** 1,636 pytest (0 warnings), Go 387 (386 pass, 1 skip) against
+the rebuilt image. The binaries, the static proxy and the image were
+rebuilt; the running knowledge server serves the old build until it is
+restarted (C-65).

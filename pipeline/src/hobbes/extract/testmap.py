@@ -187,6 +187,40 @@ def collect_tests(
     return sorted(records, key=lambda r: r["id"])
 
 
+#: Symbol kinds a ``calls`` edge can target (a class or type is called to
+#: construct or convert). A ``const`` or ``var`` is a value; one holding a
+#: function is caught by the edge check below, not by its kind.
+CALLABLE_KINDS = frozenset({"function", "method", "class", "type", "macro"})
+
+
+def value_only_modules(graph: dict) -> set[str]:
+    """Module ids no ``calls`` edge could reach: no symbol of a callable
+    kind, and no recorded call into any symbol they declare (C-156).
+
+    Reach is the closure over ``calls`` edges, so no test can be seen
+    guarding such a module, however directly it reads its values. This is
+    an observation about the graph, not a guess about the source: a TS
+    ``const`` holding an arrow function counts as callable once a call
+    targets it.
+    """
+    callable_modules = {
+        symbol["module"] for symbol in graph.get("symbols", []) if symbol.get("kind") in CALLABLE_KINDS
+    }
+    symbol_module = {symbol["id"]: symbol["module"] for symbol in graph.get("symbols", [])}
+    called_modules = {
+        symbol_module[edge["to"]]
+        for edge in graph.get("symbol_edges", [])
+        if edge.get("type") == "calls" and edge.get("to") in symbol_module
+    }
+    return {
+        node["id"]
+        for node in graph.get("nodes", [])
+        if node.get("kind") in ("module", "package")
+        and node["id"] not in callable_modules
+        and node["id"] not in called_modules
+    }
+
+
 def _is_test_symbol(symbol, quals: dict) -> bool:
     """Pytest defaults: test* functions, and test* methods on top-level
     Test* classes that lack an ``__init__``."""

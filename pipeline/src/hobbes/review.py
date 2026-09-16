@@ -19,6 +19,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from hobbes.extract.testmap import value_only_modules
 from hobbes.graphdiff import diff_graphs, extract_all_at_ref, has_changes
 from hobbes.invariants import Invariant, load_all, scope_matches
 from hobbes.invariants.verdict import FAIL, PASS, SUSPECT, Verdict, judge_all
@@ -65,6 +66,10 @@ class CoverageDelta:
     #: Head's fixture trees — ``{"path", "by", "modules"}`` — whose sources
     #: are not own code and so are never asked for a guard (ADR-114, C-154).
     fixture_trees: list[dict] = field(default_factory=list)
+    #: The listed modules (new or lost) that declare nothing a call could
+    #: reach, so no test can be seen guarding them (C-156). Still listed:
+    #: the review says why, it does not exempt them.
+    value_only: list[str] = field(default_factory=list)
 
     @property
     def needs_attention(self) -> bool:
@@ -251,6 +256,7 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         base_tests=len(base.tests.get("tests", [])),
         head_tests=len(head.tests.get("tests", [])),
         fixture_trees=_fixture_counts(head.graph, head.fixture_trees),
+        value_only=sorted(value_only_modules(head.graph) & {*new_unguarded, *lost_guards}),
     )
 
 
@@ -412,6 +418,13 @@ def soft_prompt(
     return "\n".join(sections)
 
 
+def _value_only_note(coverage: CoverageDelta, module: str) -> str:
+    """Why a listed module can have no guard, when the graph shows it (C-156)."""
+    if module in coverage.value_only:
+        return " — declares no function and no call targets it; reach follows calls only (C-156)"
+    return ""
+
+
 def format_review(review: Review) -> str:
     """The human-facing review, in §7's order."""
     lines: list[str] = []
@@ -464,11 +477,11 @@ def format_review(review: Review) -> str:
     if coverage.new_unguarded:
         add(f"   new code no test reaches ({len(coverage.new_unguarded)}):")
         for module in coverage.new_unguarded:
-            add(f"      {module}")
+            add(f"      {module}{_value_only_note(coverage, module)}")
     if coverage.lost_guards:
         add(f"   lost every guarding test ({len(coverage.lost_guards)}):")
         for module in coverage.lost_guards:
-            add(f"      {module}")
+            add(f"      {module}{_value_only_note(coverage, module)}")
     for invariant_id, guards in sorted(coverage.broken_guards.items()):
         add(f"   {invariant_id} names {len(guards)} test(s) that no longer exist:")
         for guard in guards:
@@ -532,6 +545,7 @@ def review_to_dict(review: Review) -> dict:
             "lost_guards": review.coverage.lost_guards,
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
+            "value_only": review.coverage.value_only,
         },
         "soft": review.soft,
     }

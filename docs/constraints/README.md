@@ -155,9 +155,9 @@ their segment, in that order, and are marked in the heading.
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 85 | every active entry not listed below |
+| active — surfaced | 86 | every active entry not listed below |
 | active — *partial* | 21 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150 |
-| active — **unsurfaced** (debt) | 6 | C-19, C-20, C-112, C-153, C-155, C-156 |
+| active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-153, C-155 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 26 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
@@ -166,6 +166,11 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-16), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-156 surfaced, 2026-09-16 (later; ADR-117, 0.2.29-beta):
+- **C-156 moved from unsurfaced to surfaced** (Max's route (a)):
+  `tests_guarding` and `hobbes review` name C-156 on a value-only
+  module listed as unguarded. The module is still listed.
 
 C-156 registered, 2026-09-16 (no version move):
 - **C-156 registered (unsurfaced, debt)**, in `extraction-call-graph.md`:

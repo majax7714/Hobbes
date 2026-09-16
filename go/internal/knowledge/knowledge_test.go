@@ -224,6 +224,53 @@ func TestTestsGuardingUnguardedModuleSaysSo(t *testing.T) {
 	}
 }
 
+// C-156: a module of values alone is unguarded by construction, and the
+// answer says why; an ordinary unguarded module gets no such reason.
+func TestTestsGuardingNamesAValueOnlyModule(t *testing.T) {
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["nodes"] = append(doc["nodes"].([]any),
+		map[string]any{"id": "app.settings", "kind": "module", "path": "src/app/settings.py"},
+		map[string]any{"id": "app.arrows", "kind": "module", "path": "src/app/arrows.ts"})
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "app.settings.LIMIT", "module": "app.settings", "kind": "const", "line": 1},
+		map[string]any{"id": "app.arrows.f", "module": "app.arrows", "kind": "const", "line": 1})
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any),
+		map[string]any{"from": "app.core.run", "to": "app.settings.LIMIT", "type": "uses", "tier": "semantic"},
+		map[string]any{"from": "app.core.run", "to": "app.arrows.f", "type": "calls", "tier": "semantic"})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := Open(repo)
+	settings, err := s.TestsGuarding("app.settings")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(settings, "unguarded") ||
+		!strings.Contains(settings, "app.settings declares no function and no call targets it") ||
+		!strings.Contains(settings, "(C-156)") {
+		t.Errorf("want the unguarded warning with C-156's reason:\n%s", settings)
+	}
+	arrows, err := s.TestsGuarding("app.arrows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(arrows, "unguarded") || strings.Contains(arrows, "C-156") {
+		t.Errorf("a const a call targets is callable; no C-156 reason:\n%s", arrows)
+	}
+	guarded, _ := s.TestsGuarding("app.core")
+	if strings.Contains(guarded, "C-156") {
+		t.Errorf("a guarded module needs no reason:\n%s", guarded)
+	}
+}
+
 func TestStaleArtifactsWarn(t *testing.T) {
 	repo := fixtureRepo(t)
 	git := append([]string{"-C", repo, "-c", "user.name=t", "-c", "user.email=t@t"},
