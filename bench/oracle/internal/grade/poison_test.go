@@ -82,7 +82,29 @@ func TestTSFixtureRefusesEveryPoisonedEdge(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assertPoisonRefused(t, h, o, false)
+	// Three of the five confirmed sites share their line with a call tsc
+	// cannot resolve without node_modules — `res.json(..)` at server.js:8,
+	// `assert.equal(..)` at each of util.test.mjs:7 and :11 — so their
+	// poisoned twins are silent by H-30's rule, not contradicted. The
+	// remaining two are refused, none is confirmed, and the silenced ones
+	// are named here so a row that goes quiet for any other reason fails.
+	assertPoisonRefused(t, h, o, true)
+	silenced := map[string]bool{}
+	for _, row := range Grade(Poison(h, o), o).Rows {
+		if row.Bucket == "silent" && row.Reason == "line-unresolved" {
+			silenced[row.Edge.Site.Key()] = true
+		}
+	}
+	c := CheckPoison(h, o)
+	want := []string{"src/server.js:8", "tests/util.test.mjs:7", "tests/util.test.mjs:11"}
+	if len(silenced) != len(want) || c.Refused != c.Seeded-len(want) {
+		t.Fatalf("refused %d unjudged %d of %d; silenced %v", c.Refused, c.Unjudged, c.Seeded, silenced)
+	}
+	for _, s := range want {
+		if !silenced[s] {
+			t.Errorf("%s carries an unresolved site and must be silent: %v", s, silenced)
+		}
+	}
 }
 
 func TestPythonFixtureRefusesEveryPoisonedEdge(t *testing.T) {
