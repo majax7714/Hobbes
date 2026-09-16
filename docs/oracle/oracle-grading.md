@@ -913,6 +913,34 @@ edge — registered **C-155**, and fmt's triage ratio corrected from
 `hobbes-wrong 4 : oracle-wrong 7` to **5 : 6**. P36's count stands; its
 attribution of all seven to the oracle does not.
 
+### 10.9 The C++ cells re-run after H-31's fix — written 2026-09-16, before the regrade
+
+H-31's oracle half landed as `db20845` (ADR-113 §3's "as built" rule: a
+callee whose qualifier a macro body supplied is keyed at the author's own
+name token). That **changes the key again**, so the same discipline as
+§10.8 applies and the predictions go down first.
+
+**Scope.** fmt and args re-run contained, graded against their standing
+exports; **and the four foreign C++ cells re-graded against the new
+key**, because §10.8's P45 numbers were measured against the key this fix
+supersedes. No other cell is touched: the rule needs a macro body to
+supply a qualifier, which is a C/C++ shape, and `internal/grade` is
+unchanged.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P46 | O10 (fmt) | the six `os.cc` rows move from contradicted to **confirmed**, not to silent: the key will hold a site at each use site, and in `posix-mock-test`'s unit its target is the mock Hobbes draws (`FMT_SYSTEM(call)` is `test::call` there). Contradicted 11 → **5**, confirmed 3,263 → **3,269**, precision 99.7% → **99.8%** | met if the six named rows are confirmed row for row; any of them landing silent is a finding to read, not a result |
+| P47 | O10 (fmt) | the 5 left are C-153's 4 and C-155's 1 (`compile-test.cc:127`), and the triage ratio becomes `hobbes-wrong 5 : oracle-wrong 0` | met on the row sets |
+| P48 | O10 (fmt) | coverage moves without judgment moving: `sites_macro` falls and `sites_static` rises by the same count, and the `macro→*` miss classes shed what `static→*` gains — the mode follows the repositioned site | recorded either way; a judgment change here would mean the rule reaches further than the fixture says |
+| P49 | O10 (args) | unchanged — no `FMT_SYSTEM`-shaped macro in that repo | met per the report |
+| P50 | the four foreign C++ cells | each moves only where the key moved: a tool's edge at a use site can now confirm where the key previously held nothing there. **Every one of them is expected to rise**, as they did under H-30 | met per cell, each listed before → after, signed |
+| P51 | all cells re-run | poison PASS, 0 falsely confirmed | met per cell |
+
+**Recall is not predicted** beyond "it does not fall": the six calls
+re-key onto lines that already carry pairs, and the collapsed line reads
+site-line grain, so the direction is not obvious enough to claim in
+advance.
+
 **Graded 2026-09-16**, after H-28/H-29 (`eec8141`) and H-30 (`f747aef`).
 Both C++ cells were re-run contained against their standing Hobbes
 export, so the Hobbes side is identical row for row (fmt 3,525 edges,

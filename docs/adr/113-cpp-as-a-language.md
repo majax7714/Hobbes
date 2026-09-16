@@ -382,20 +382,40 @@ stays open.
   `range.end` is the author's own name token:
 
   - `begin` — `spellingLoc` in the macro body, `expansionLoc` at the use
-    site, **not** an argument expansion;
-  - `end` — an argument expansion (`isMacroArgExpansion: true`).
+    site;
+  - `end` — the author's own name token, an argument expansion.
 
   `resolve()` therefore keys the call on the macro definition's line, in
   another file. Confirmed on the cell's own key: fmt's six `os.cc` calls
   sit at `include/fmt/os.h:57` and `:62` — one per caller, collapsed
   onto two lines — so `src/os.cc:176` holds `c_str` and
-  `__errno_location` but never `fopen`. **The rule:** where a callee's
-  `range.begin` is spelled in a macro body and is not an argument
-  expansion while its `range.end` is, the site is the end's resolved
-  position. A plain qualified call (`ns::h(1)`) has neither end in a
-  macro and is untouched — checked, because the naive form would move
-  `cppclang`'s hand-keyed columns. Root RC-2: a call attributed to a
-  line nobody wrote it on.
+  `__errno_location` but never `fopen`. Root RC-2: a call attributed to
+  a line nobody wrote it on.
+
+  **The rule, as built** (`bfab66b`, session `S-20260916T165315Z-16f4`).
+  This record's first wording said the begin must be **not** an argument
+  expansion. That is wrong for the shape it was written for, and the
+  unit's probes showed why: where the invocation is itself a macro's
+  argument — fmt's `FMT_RETRY_VAL(…, FMT_SYSTEM(fopen(…)), …)` — clang
+  prints only the outermost spelling/expansion pair and flags the body's
+  `::` `isMacroArgExpansion: true`, exactly as it flags an author's own
+  token, so the clause can never fire there. The discriminator the flags
+  can support, and what `qualifierFromMacroBody` implements: **both ends
+  are macro positions, the end is an argument expansion, the begin is
+  spelled somewhere other than where it expands, and the two ends are
+  spelled on different lines or in different files.** Then the site and
+  the spelling are the end's.
+
+  A plain qualified call is untouched by construction: `ns::h(1)` has
+  neither end in a macro, and `RETRY(ns::h(1))` — whose ends clang flags
+  exactly as it flags the H-31 shape — has both ends spelled at the use
+  site, so the last clause is false and it keeps its qualifier's column.
+  Both are in `testdata/cppclang/macroqual.cpp` as controls, because the
+  naive "always take `range.end`" would have moved `cppclang`'s 25
+  hand-keyed columns. **A consequence to carry into any regrade:** these
+  sites now read mode `static` rather than `macro`, which feeds
+  `bucketOf` and `missClass`, so a cell's coverage split and miss
+  classes move even where no judgment does.
 - **H-31's seventh row was never the oracle's.** `compile-test.cc:127`
   is `compile<decltype(fmt::arg("arg", 42))>(...)`: an **unevaluated
   operand**, which the compiler never calls. clang emits no site there
