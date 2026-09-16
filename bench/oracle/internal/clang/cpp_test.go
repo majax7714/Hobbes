@@ -271,6 +271,103 @@ func TestCppMemberCallSitsAtItsMemberToken(t *testing.T) {
 	}
 }
 
+// TestCppMacroQualifiedCallSitsAtTheNameTheAuthorWrote is H-31's
+// evidence: a call whose qualifier comes from a macro body (`#define
+// SYS(call) ::call`, fmt's FMT_SYSTEM) and whose name comes from the
+// macro's argument sits at the name the author wrote. Before the reader
+// read the callee's range end, macroqual.cpp:32's `g` keyed on the
+// `#define` line 28 and macroqual.cpp:40's on its own `SYS` token — the
+// two halves that put fmt's six `os.cc` calls on `include/fmt/os.h:57`
+// and `:62`, lines in another file altogether.
+func TestCppMacroQualifiedCallSitsAtTheNameTheAuthorWrote(t *testing.T) {
+	out := Merge(loadCppUnits(t, []string{"macroqual.cpp"}), "")
+
+	// `return RETRY(SYS(g(s.c_str())));` on line 32, the `g` at column 22
+	// and its own argument's `c_str` at 26; `return SYS(g(s.c_str()));`
+	// on line 40, at 16 and 20. The `c_str` of each is a pure
+	// macro-argument call, always keyed right and right still — which is
+	// what made the loss invisible in fmt, where `src/os.cc:176` held
+	// `c_str` and `__errno_location` but never `fopen`.
+	for _, c := range []struct {
+		line, col int
+		target    string
+		callee    string
+		caller    string
+	}{
+		{32, 22, "macroqual.cpp:14", "g", "run"},
+		{32, 26, "macroqual.cpp:11", "c_str", "run"},
+		{40, 16, "macroqual.cpp:14", "g", "once"},
+		{40, 20, "macroqual.cpp:11", "c_str", "once"},
+	} {
+		got := sitesAt(out, "macroqual.cpp", c.line, c.col)
+		if len(got) != 1 {
+			t.Errorf("macroqual.cpp:%d col %d (%s): %d sites, want the one call: %+v",
+				c.line, c.col, c.callee, len(got), got)
+			continue
+		}
+		s := got[0]
+		if s.Mode != "static" || s.Caller != c.caller {
+			t.Errorf("macroqual.cpp:%d col %d (%s): mode=%s caller=%s, want static %s",
+				c.line, c.col, c.callee, s.Mode, s.Caller, c.caller)
+		}
+		if len(s.Targets) != 1 || s.Targets[0].Pos.Key() != c.target {
+			t.Errorf("macroqual.cpp:%d col %d (%s): targets %+v, want %s alone",
+				c.line, c.col, c.callee, s.Targets, c.target)
+		}
+	}
+
+	// The two `#define` lines carry no call: line 28 is where `run`'s `g`
+	// sat, and `once`'s sat at the `SYS` token of its own line, column 12.
+	for _, s := range out.Sites {
+		if s.Pos.Line == 28 || s.Pos.Line == 29 || (s.Pos.Line == 40 && s.Col == 12) {
+			t.Errorf("macroqual.cpp:%d col %d is the macro's position, not the call's: %+v",
+				s.Pos.Line, s.Col, s)
+		}
+	}
+	// Two `g`s, two `c_str`s and the controls' three, and nothing else.
+	if len(out.Sites) != 7 {
+		t.Errorf("total distinct sites: %d, want 7: %+v", len(out.Sites), out.Sites)
+	}
+}
+
+// TestCppQualifiedCallKeepsItsQualifiersColumn is H-31's control: a
+// qualified call the author wrote whole keys where it always has, at the
+// qualifier's own token, whether or not a macro carried it. The naive
+// form of the fix — always take the callee's range end — would move all
+// three of these onto the name, and with them the cppclang fixture's
+// hand-keyed columns.
+func TestCppQualifiedCallKeepsItsQualifiersColumn(t *testing.T) {
+	out := Merge(loadCppUnits(t, []string{"macroqual.cpp"}), "")
+
+	// `return ns::h(1) + ns::t<int>(2);` on line 45: the first `ns` at
+	// column 12, the second at 23. `return RETRY(ns::h(2));` on line 53:
+	// the `ns` at 18, inside the macro's argument, where clang flags the
+	// call's two ends exactly as it flags the H-31 shape's.
+	for _, c := range []struct {
+		line, col int
+		target    string
+		caller    string
+	}{
+		{45, 12, "macroqual.cpp:18", "plain"},
+		{45, 23, "macroqual.cpp:21", "plain"},
+		{53, 18, "macroqual.cpp:18", "wrapped"},
+	} {
+		got := sitesAt(out, "macroqual.cpp", c.line, c.col)
+		if len(got) != 1 {
+			t.Errorf("macroqual.cpp:%d col %d: %d sites, want the one call: %+v", c.line, c.col, len(got), got)
+			continue
+		}
+		s := got[0]
+		if s.Mode != "static" || s.Caller != c.caller {
+			t.Errorf("macroqual.cpp:%d col %d: mode=%s caller=%s, want static %s",
+				c.line, c.col, s.Mode, s.Caller, c.caller)
+		}
+		if len(s.Targets) != 1 || s.Targets[0].Pos.Key() != c.target {
+			t.Errorf("macroqual.cpp:%d col %d: targets %+v, want %s alone", c.line, c.col, s.Targets, c.target)
+		}
+	}
+}
+
 // TestCppTemplatePatternsKeyByTheirClass is H-29's evidence: two class
 // templates with a same-named static member are two entities, so each
 // template's call answers its own class's member. Both patterns keyed as

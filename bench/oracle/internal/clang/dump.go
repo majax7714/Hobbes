@@ -62,6 +62,31 @@ func (p pos) spellingPos() rawPos {
 	return p.spelling
 }
 
+// qualifierFromMacroBody is H-31's shape (ADR-113 §3): a callee whose
+// range begins in a macro's body — the `::` of `#define SYS(call)
+// ::call`, fmt's FMT_SYSTEM — and ends at the name the macro's argument
+// supplied. The begin is then a position nobody wrote the call on (the
+// `#define`'s own line, in fmt another file altogether); the end is the
+// author's own token, and the site is the end's.
+//
+// The flags alone cannot say it: a nested expansion prints only its
+// outermost spelling/expansion pair, so where the invocation is itself
+// a macro's argument the body token carries isMacroArgExpansion exactly
+// as the author's own token does. What separates them is where they are
+// spelled — a body token on the `#define`'s line, the author's at the
+// use site — so a plain qualified call written inside a macro argument
+// (`RETRY(ns::h(1))`, both ends spelled at the use site) keeps its
+// qualifier's column, as an unwrapped `ns::h(1)` does.
+func qualifierFromMacroBody(begin, end pos) bool {
+	if !begin.macro || !end.macro || !end.argExpansion {
+		return false
+	}
+	if begin.spelling == begin.expansion {
+		return false
+	}
+	return begin.spelling.Path != end.spelling.Path || begin.spelling.Line != end.spelling.Line
+}
+
 // reader is a single left-to-right pass over one dump's JSON tokens,
 // carrying the location state the dumper's omissions rely on (file and
 // line repeat forward until a location spells them again) and the
@@ -376,8 +401,13 @@ func (rd *reader) buildCall(cr calleeResult, fn, siteKind string) *Call {
 	// member's own token instead, position and spelling both (H-28).
 	memberCall := cr.isMember && siteKind == "CXXMemberCallExpr"
 	at := cr.pos
-	if memberCall {
+	switch {
+	case memberCall:
 		at = cr.memberPos
+	// A macro body supplied the qualifier and the argument the name: the
+	// range end is the only position the author wrote (H-31).
+	case qualifierFromMacroBody(cr.pos, cr.endPos):
+		at = cr.endPos
 	}
 	sitePos, macroBody := at.resolve()
 	if !sitePos.InRepo {
@@ -587,6 +617,10 @@ type calleeResult struct {
 	// member call written across lines keys on a line its member is not
 	// on unless the site is taken from here (ADR-113 §3, H-28).
 	memberPos pos
+	// endPos is a DeclRefExpr's range end — the callee's own name token,
+	// where its begin is the qualifier's first — kept for the one shape
+	// that needs it, a qualifier spelled in a macro's body (H-31).
+	endPos pos
 }
 
 // peelCallee decodes a callee expression node (its opening '{' not yet
@@ -682,7 +716,11 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 		return calleeResult{pos: rangeBegin, memberPos: rangeEnd, isFunc: memberID != "",
 			name: name, declID: memberID, isMember: true}, nil
 	}
-	return calleeResult{pos: rangeBegin, isFunc: kind == "DeclRefExpr" && isDeclKind(refKind), name: refName, declID: refID}, nil
+	cr := calleeResult{pos: rangeBegin, isFunc: kind == "DeclRefExpr" && isDeclKind(refKind), name: refName, declID: refID}
+	if kind == "DeclRefExpr" {
+		cr.endPos = rangeEnd
+	}
+	return cr, nil
 }
 
 // isPeelable is ADR-110's callee-peeling set: implicit casts,
@@ -702,7 +740,8 @@ func isPeelable(kind, opcode string) bool {
 // caller wants "begin" — the callee name token, not the parenthesis,
 // positions a call — but a MemberExpr, which carries no "loc", spells
 // the object at its begin and the member's own token at its end
-// (ADR-113 §3, H-28).
+// (ADR-113 §3, H-28), and a DeclRefExpr's end is the callee's own name
+// where its begin is a qualifier a macro body supplied (H-31).
 func (rd *reader) readRange() (begin, end pos, err error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
 		return pos{}, pos{}, err
