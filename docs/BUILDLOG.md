@@ -11531,3 +11531,88 @@ handoff.
 the rebuilt image. The binaries, the static proxy and the image were
 rebuilt; the running knowledge server serves the old build until it is
 restarted (C-65).
+
+## 2026-09-16 (night) — The top-level review: the drift fixed, the store decodes once (ADR-118, 0.2.30-beta), the ingest says where its time went (ADR-119, 0.2.31-beta)
+
+Max asked for a review of the top-level documentation, then the
+architecture and the register, for any fix or restructure that would
+raise recall, raise speed, cut memory or knock out constraints. The
+write-up is a Claude Docs page
+(<https://claude.ai/code/artifact/2cd3c181-444a-42f5-a81e-c3a62928eb28>);
+what it recommends, in one line each, so the record does not depend on
+the page:
+
+- **Recall:** decode SCIP `relationships` (`is_implementation`) in the
+  helper and draw `implements` edges, then expand a call to an interface
+  method into its overrides as a labelled step — the override set C-58
+  says Hobbes lacks is a field the helper reads past today (it keeps an
+  occurrence's range, symbol and roles and nothing else); measure which
+  of the six indexers populate it first. Pytest fixtures as syntactic
+  edges (C-4; the trace oracle executes them). C-155 lifted at lane A
+  by abstaining under `decltype`/`sizeof`/`noexcept`/`typeid`. The
+  derived compile database's `-I` path and unit language at lane A
+  (C-133, C-142).
+- **Speed:** the proxy re-read and re-decoded the whole artifact on
+  every tool call (fixed below); a lane B index cache keyed by the stage
+  key, which is already a content hash; a lane A per-file cache; a
+  process pool for lane A and concurrent helper containers for lane B's
+  units, which run one at a time; and a timing block, because nothing
+  was timed (built below).
+- **Memory:** `Resolved` unslotted with a list of dicts per fact, and
+  one object per unclaimed resolution before `_edges` aggregates (C-150's
+  parked remainder, Max: "fine for now"); `graph.json` written with a
+  two-space indent and one evidence entry per sighting (980 MB on
+  ScummVM); a started record under `derived/` so a killed ingest leaves
+  a trace (C-150 partial → surfaced).
+- **Docs:** five drifted numbers (below); the register README's 490
+  lines of dated history to their own file; §3.8's paragraph cells to
+  per-language pages; one tally held by a test; CLAUDE.md's "Latest"
+  bullet kept to four lines; the handoff's start-here numbering, which
+  had collapsed to 00/0/0a/0a/0a/0b.
+
+**The drift, fixed (`ed56089`):** README said 154 register entries and
+111 active (156, 113), fmt 99.1% with 28 contradictions in three places
+(99.85%, 99.66% like-for-like, 5, all Hobbes' own), ADR-001 to ADR-116
+(117); architecture §8's header read 0.2.28-beta at 0.2.29-beta, and
+§10's out-of-scope line omitted C++. ADR-117's commit had missed §8,
+which CLAUDE.md says moves in the same commit.
+
+**ADR-118, 0.2.30-beta (`82fb103`).** `internal/knowledge.Store` held
+only the repo root; `WhoCalls`, `Neighborhood`, `TestsGuarding` and
+`ListBlindSpots` each called `loadInto`, which read and decoded the
+whole of `graph.json`, then scanned every edge — 8 MB per answer here,
+980 MB on ScummVM. The store now keeps the decoded graph and test map
+with each file's size and mtime, stats the file on every call, reloads
+on a change, drops the cache and reports a missing file rather than
+serving memory, and indexes module edges by both ends and symbol edges
+by `to` as positions into the document's slices, so every answer is
+byte-identical to the scan's. `readArtifact` is a package variable a
+test swaps to count reads: four answers read the file once, a rewrite
+with a later mtime is read on the next answer and its new edge appears,
+and a removed file says "run `hobbes ingest`". The knowledge package's
+suite held the scan and holds the index unchanged.
+
+**ADR-119, 0.2.31-beta (`a934180`).** `extract/timings.py`: every step
+of `extract_repo` is timed in run order (`Timings.step`, a step that
+raises still recorded), threaded through `_build_symbol_layer` and
+`_lane_b_facts` as an optional argument so the bench's `ingest(workspace)`
+is unchanged; `hobbes ingest` prints the total and every step and
+appends one JSON line per run to `~/.hobbes/cache/timings/<key>.jsonl`.
+Never in an artifact: `test_emit`'s byte-identical re-ingest still
+holds, and `test_timings` asserts `graph.json` carries no timings. Four
+tests.
+
+**The first measurement, this repo at `a934180`, contained:** 53.26 s in
+24 steps. Lane B is 48.6 s of it — python 25.3, java 7.0, rust 6.8,
+typescript 4.2, go 3.1, c 2.2 — run one language after another; lane A
+is 3.5 s (ts 2.1, python parse 0.8, go 0.5); the join 0.16, the
+projection 0.14, the tail 0.16, the write 0.21. Two things the block
+says on its first run that the review could only guess: the lane B
+index cache would take about 90% off a re-ingest of an unchanged repo,
+and running the six lane B languages concurrently would take this
+ingest from 53 s to about 30. Neither is built.
+
+**Suites:** 1,640 pytest, Go 389 (388 pass, 1 skip); the binaries, the
+static proxy and the image rebuilt at 0.2.31-beta, and this repo
+re-ingested at HEAD. The knowledge server serves the old build until it
+is restarted (C-65).

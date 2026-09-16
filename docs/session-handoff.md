@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-16; Hobbes 0.2.29-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-16 (late); Hobbes 0.2.31-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): restart it
 after this session's rebuild.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.28-beta are untagged. Tags stay Max's call each time.
+  0.2.31-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -15,16 +15,42 @@ after this session's rebuild.
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-15 "foreign C++ cells"
-BUILDLOG entry (the top-level review, the four cells, converter@4).
-Before it: the "ADR-116" entry (the facts arrive as a stream, then the
-record paths and the gate's arrow fix), and ADR-115's (the decode
-streams) and C++'s close-out, all the same day. Earlier sessions' detail lives in their own BUILDLOG entries; this
+The latest session's record is the 2026-09-16 "top-level review"
+BUILDLOG entry (the drift fix, ADR-118, ADR-119, the review page).
+Before it, the same day: ADR-117 (C-156 surfaced), O10's four defects
+fixed, and the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' detail lives in their own BUILDLOG entries; this
 file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-00. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
+1. **The 2026-09-16 top-level review, and its two patches.** Max asked
+   for a review of the top-level docs, the architecture and the
+   register for anything that would raise recall, speed, cut memory or
+   knock out constraints. The write-up is a Claude Docs page,
+   <https://claude.ai/code/artifact/2cd3c181-444a-42f5-a81e-c3a62928eb28>;
+   the BUILDLOG entry carries the substance. Done the same day:
+   - five drifted numbers across README and the architecture fixed
+     (`ed56089`);
+   - **0.2.30-beta (ADR-118):** the knowledge store decodes an artifact
+     once per version of its file and indexes edges by endpoint; every
+     tool call used to re-decode the whole of `graph.json`;
+   - **0.2.31-beta (ADR-119):** every ingest step timed, printed, and
+     logged to `~/.hobbes/cache/timings/<key>.jsonl`, never in an
+     artifact;
+   - the binaries, the static proxy and the image are rebuilt at
+     0.2.31-beta and this repo re-ingested at HEAD; **restart the
+     knowledge server** (C-65).
+   Its recommendations not started, in the review's order: measure
+   SCIP `relationships` across the six indexers before an `implements`
+   edge (C-58); C-155 lifted at lane A (abstain under `decltype`,
+   `sizeof`, `noexcept`, `typeid`); a lane B index cache by stage key,
+   then lane A's file cache, each measured with the timing block;
+   pytest fixtures as edges (C-4); the compile database's `-I` path at
+   lane A (C-133, C-142); a distinct `hobbes lanes` exit for registered
+   shapes (C-70, C++); the docs restructure (the register's history to
+   its own file, §3.8 per language, one tally held by a test).
+
+2. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
    surfaced.** Test reach follows `calls` only (ADR-007), so a module
    of values alone (`go/internal/version`) reads unguarded. Max chose
    route (a): `tests_guarding` and `hobbes review` now say why, citing
@@ -35,7 +61,7 @@ file keeps only what the next session needs.
    proxy and the image are rebuilt; **restart the knowledge server**
    (C-65).
 
-0. **O10's defects (2026-09-16, bench only, no version move): all four
+3. **O10's defects (2026-09-16, bench only, no version move): all four
    fixed, everything regraded twice.**
    - **H-31 traced and fixed the same day** as `S-20260916T165315Z-16f4`
      (merged `db20845`): a callee whose qualifier a macro body supplied
@@ -56,7 +82,7 @@ file keeps only what the next session needs.
      already drawn there, unlike H-30's *silence* rule.
    - Tracker **34 of 40**. The earlier three fixes and the first
      three-tier regrade are below.
-0a. **The first three (2026-09-16): H-28, H-29, H-30.**
+4. **The first three (2026-09-16): H-28, H-29, H-30.**
    - **H-28** (a member call keyed at its object's start) and **H-29**
      (an unmangled declaration keyed by its bare name) fixed as
      `S-20260916T153010Z-8170`, merged `eec8141`; **H-30** (a line the
@@ -85,7 +111,7 @@ file keeps only what the next session needs.
    - Found by use: `calvin_tracker.py` pinned `gate v2, grounder v3`, so
      the first session at grounder v4 could not be parsed; fixed with a
      test red on the old pattern (`ce43e5a`).
-0a. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
+5. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
    out on the comparative page too.**
    - Pre-registered first (`oracle-grading.md` §10.7, P32–P35,
      `ac5f7c8`), then both tools on fmt and args, host-run, graded by
@@ -111,7 +137,7 @@ file keeps only what the next session needs.
      path for C/C++ (`SCIP_INDEXER=true` over a compile database) goes
      into a full-version comparative retest, one item in
      `future_additions.md`. C++ is closed out for now.
-0a. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
+6. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
    ADR-116).** C-150's remainder, Max's route A of three:
    - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
      per document, a trailer that counts them; helper version 4 — and
@@ -146,8 +172,8 @@ file keeps only what the next session needs.
    - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
-   - The binaries, the static proxy and the image are at 0.2.29-beta.
-0b. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
+   - The binaries, the static proxy and the image were at 0.2.29-beta; see item 1.
+7. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
      contained):
@@ -181,13 +207,13 @@ file keeps only what the next session needs.
        <out> [<helper-dir>]`.
    - **Restart the knowledge server** the next session opens with
      (C-65).
-1. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
+8. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
    was amended first (`342c5d1`), then the unit was dispatched as
    `2b26` (27 turns, $1.57, gate right-clear) and merged no-ff
    (`3526be2`). The harness's one false block is closed. The task and
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
-2. **Open for Max (no spend):**
+9. **Open for Max (no spend):**
    - **Nothing in the oracle's defect log is open.** H-28–H-31 were all
      fixed on 2026-09-16 (item 0); what is left on fmt is C-153 and
      C-155, both Hobbes'.
@@ -217,7 +243,7 @@ file keeps only what the next session needs.
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
      read), deferred until a graded cell shows the cost.
-3. **Running a session** (`calvin-harness.md` §5):
+10. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
      `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
@@ -248,7 +274,7 @@ file keeps only what the next session needs.
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
    - **Toward 40 across three areas:** the tracker reads 33 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
-4. **A regrade against stored keys:**
+11. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
      regrades did).
@@ -257,7 +283,7 @@ file keeps only what the next session needs.
      changed; never two passes over one clone at once.
    - A regrade after a fix carries signed direction-of-fix lines in its
      record.
-5. **Carried:**
+12. **Carried:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading.
    - **`stringer` is not in the image.**
@@ -265,7 +291,7 @@ file keeps only what the next session needs.
      and H-23; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** the two SQLite tools in `field.md`
      (converters first); syft's keys on a bigger box. The foreign C++
-     cells are done (item 0).
+     cells are done (item 5).
    - **C's residue:** C-134's remainder, C-135's autotools, Meson and
      Bazel roots, C-133's unit 2 and its macro half; the macro gap is
      parked (C-131).
@@ -307,7 +333,7 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-15)
+## WHERE THINGS STAND (2026-09-16)
 
 - **Languages:** Python, TS/JS, Go, Rust, Java, C and C++ supported, each
   as far as its §3.8 row (P11); Terraform/HCL structure.
@@ -331,8 +357,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.29-beta: 1,636 pytest, 0 warnings, and Go 387
-  (386 pass, 1 skip) against the rebuilt image (2026-09-16); 77 scip node (re-run on
+- **Suites** at 0.2.31-beta: 1,640 pytest, 0 warnings, and Go 389
+  (388 pass, 1 skip) against the rebuilt image (2026-09-16); 77 scip node (re-run on
   the host, 2026-09-15);
   oracle-lane Go 97 pass / 5 skip (re-run 2026-09-15 with converter@4's
   two tests); 52 vitest, 36 tsextract, 84 atlas0
@@ -344,7 +370,9 @@ min each.
 ## NEXT (in order; no API spend)
 
 1. **Keep dispatching named no-spend work through the harness,** one
-   unit per brief, toward 40: C's residue (W1); W1/W3's no-spend items
+   unit per brief, toward 40: the review's items (START HERE, item 1:
+   C-155 at lane A, the `relationships` measurement, the index cache),
+   C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
    if named.

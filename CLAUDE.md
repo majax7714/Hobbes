@@ -192,8 +192,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-16, 0.2.29-beta; the last three
-carried from 0.2.8-beta): 1,636 pytest (6 `lane_b`) / 387 Go (386 pass,
+Suite sizes at the last check (2026-09-16, 0.2.31-beta; the last three
+carried from 0.2.8-beta): 1,640 pytest (6 `lane_b`) / 389 Go (388 pass,
 1 skip) + 102 oracle-lane Go (97 pass, 5 skip without a toolchain) / 52
 vitest / 36 tsextract + 77 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -211,7 +211,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 117;
+  architecture doesn't already make. Number sequentially (last: 119;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -265,7 +265,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-16) — Hobbes 0.2.29-beta
+## Status (2026-09-16) — Hobbes 0.2.31-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -291,30 +291,21 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   re-render after filling a review block) reads 33 of the 40 sessions
   that validate the harness: 4 areas, 1 false block (`f3c1`, closed at
   0.2.28-beta), 0 missed.
-- **Latest:** ADR-116 (0.2.26-beta): lane B's facts arrive as a
-  stream — a file of JSON lines read into slotted, interned sites.
-  ScummVM's facts, which the helper could not print (V8's longest
-  string), are written and read at 0.99 GB, identical row for row.
-  0.2.27-beta: a C or Java unit's own record sits at its root, not
-  `root/root`. 0.2.28-beta: the gate reads a TS/JS arrow's parameters
-  (C-91), closing the harness's one false block; built as session
-  `2b26`. **0.2.29-beta (ADR-117):** `tests_guarding` and `hobbes
-  review` say why a module no call can reach reads unguarded (C-156;
-  test reach follows calls only). Then the foreign C++ cells (no version move): both tools on
-  fmt and args, pre-registered (§10.7), Hobbes ahead on both axes on
-  both rows; their triage gave converter@4 (ADR-101 amended).
-  **2026-09-16 (bench only, no version move):** **all four of O10's
-  defects fixed** in three dispatched units (`8170`, `8d48`, `16f4`),
-  tracker 31 → 34 of 40. fmt 99.1% → **99.85%** (99.66% like-for-like),
-  and every contradiction left on it is ours — the oracle's share is 0.
-  H-31 was traced from fmt's own key, not a synthetic, and split: six
-  `os.cc` rows the oracle's (a callee whose qualifier a macro body
-  supplied, keyed on the `#define`'s line) and one ours, registered
-  **C-155** (a call drawn in an unevaluated `decltype` operand), which
-  moved fmt's triage ratio against us. P36–P38 and P50 missed, all
-  recorded as misses with causes. A tracker defect (pinned rule
-  versions) found by use and fixed.
-  **Next:** named no-spend units through the harness, toward 40.
+- **Latest — 0.2.31-beta, from the 2026-09-16 top-level review.**
+  0.2.29-beta (ADR-117): `tests_guarding` and `hobbes review` say why a
+  module no call can reach reads unguarded (C-156). **0.2.30-beta
+  (ADR-118):** the knowledge store decodes an artifact once per version
+  of its file and indexes edges by endpoint; every tool call used to
+  re-decode the whole of `graph.json` (980 MB on ScummVM). **0.2.31-beta
+  (ADR-119):** the ingest prints and logs where its time went, never
+  into an artifact. The review's page and its other recommendations
+  (`implements` edges from SCIP relationships against C-58, pytest
+  fixtures as edges against C-4, C-155 lifted at lane A, a lane B index
+  cache by stage key, the docs restructure) are in the handoff. The
+  same day's oracle work (all four of O10's defects fixed, fmt 99.85%,
+  tracker 34 of 40) is in the CHANGELOG and BUILDLOG.
+  **Next:** named no-spend units through the harness, toward 40; the
+  review's items are candidates.
 - **Open for Max:** whether the lane should print a "judged-as-before"
   companion number on any cell where `line-unresolved > 0`, since
   H-30's fix silences 6 of C-153's 10 wrong rows and lifts fmt 99.66% →
