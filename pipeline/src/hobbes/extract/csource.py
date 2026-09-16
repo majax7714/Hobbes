@@ -70,7 +70,13 @@ function-like macro invocation parses identically — C's preprocessor
 never runs here, so tree-sitter cannot tell the two apart, and neither
 needs to); a ``field_expression`` (``s->fn(x)``, ``s.fn(x)``) is an
 attribute call through a struct's field; a parenthesized dereference
-(``(*fp)(x)``) is a call through a value. Calls inside a macro's body are
+(``(*fp)(x)``) is a call through a value. A call written inside a
+``sizeof`` or ``_Alignof`` operand is **not** a site: C11 6.5.3.4 does not
+evaluate that operand, so ``sizeof(f(x))`` makes no call (ADR-121 §1's
+amendment, the rule the C++ walk already holds) — the residual is the
+variable-length array, whose operand *is* evaluated (``sizeof(int[n()])``
+does call ``n``) and which the syntax cannot tell from any other type, so
+that call is dropped with the rest. Calls inside a macro's body are
 never walked — moot in practice, since a macro's replacement text is an
 unparsed ``preproc_arg`` to begin with.
 
@@ -149,6 +155,14 @@ _C_SKIPPED = SKIPPED_DIR_NAMES | {"build"}
 #: tree, and a walk that only looked at ``translation_unit``'s direct
 #: children would see nothing inside a guarded header at all.
 _PREPROC_CONTAINERS = {"preproc_ifdef", "preproc_if", "preproc_elif", "preproc_else"}
+
+#: The node types whose whole subtree is an unevaluated operand: C11
+#: 6.5.3.4 does not evaluate a ``sizeof`` or ``_Alignof`` operand, so a
+#: call written anywhere inside one is a call the program never makes
+#: (ADR-121 §1's amendment, C++'s ``_UNEVALUATED_OPERANDS`` one grammar
+#: over). ``alignof_expression`` is how tree-sitter-c spells ``_Alignof``
+#: and ``__alignof__`` alike. C has none of the other four contexts.
+_UNEVALUATED_OPERANDS = {"sizeof_expression", "alignof_expression"}
 
 
 @dataclass
@@ -590,6 +604,24 @@ def _callee_shape(function: Node) -> tuple[str, Node | None]:
     return "other", None
 
 
+def _unevaluated(node: Node) -> bool:
+    """Whether *node* sits inside an operand the program never evaluates —
+    a ``sizeof`` or an ``_Alignof`` (ADR-121 §1's amendment).
+
+    The walk to the root is unbounded, as C++'s is: a call nested any depth
+    inside the operand is still inside it. The residual is C's own —
+    6.5.3.4 *does* evaluate an operand whose type is a variable-length
+    array (``sizeof(int[n()])`` calls ``n``), and the syntax cannot tell a
+    VLA type from any other, so that call is dropped with the rest.
+    """
+    parent = node.parent
+    while parent is not None:
+        if parent.type in _UNEVALUATED_OPERANDS:
+            return True
+        parent = parent.parent
+    return False
+
+
 def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     """Every call site — decision 5's three callee shapes. Position is the
     terminal identifier's, so the (never-run, in this unit) semantic join
@@ -597,6 +629,11 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     found: list[dict] = []
     for node in _walk(root):
         if node.type != "call_expression":
+            continue
+        # Inside an unevaluated operand there is no call to record, at
+        # any depth and in any of the three shapes (ADR-121 §1's
+        # amendment).
+        if _unevaluated(node):
             continue
         function = node.child_by_field_name("function")
         if function is None:
