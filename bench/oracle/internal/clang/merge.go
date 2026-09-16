@@ -8,15 +8,18 @@ import (
 
 // declKey is what Merge joins declarations by: the mangled name where
 // clang gives one — unique per entity, so C++'s overloads and a
-// template's specialisations are told apart — and the plain name
-// otherwise (`extern "C"`, `main`, a declaration the dump does not
-// mangle). In C the two are the same string, so C's name join is
-// unchanged (ADR-110, ADR-113).
+// template's specialisations are told apart — and otherwise the name
+// qualified by the declaration's class, javac's owner-qualified key
+// (H-23) on the C reader: a class template's pattern members carry a
+// class and no mangling at all, so `A::format_as` and `B::format_as` are
+// two entities, not one (ADR-113 §3, H-29). A declaration with no class
+// keeps the bare name (`extern "C"`, `main`), and in C the mangled name
+// is the plain one, so C's name join is unchanged (ADR-110).
 func declKey(d Decl) string {
 	if d.Mangled != "" {
 		return d.Mangled
 	}
-	return d.Name
+	return qualify(d.Class, d.Name)
 }
 
 // shardInfo is one shard's linkage picture: which keys it declares

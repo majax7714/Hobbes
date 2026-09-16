@@ -16,6 +16,22 @@ import (
 // from a stored file would freeze the very thing under test.
 func loadCppFixtureShards(t *testing.T) []*Shard {
 	t.Helper()
+	shards := loadCppUnits(t, []string{"main.cpp", "shapes.cpp", "tool.cpp", "shapes.cpp"})
+	for i, s := range shards {
+		if !s.CXX {
+			t.Errorf("unit %d: a .cpp entry must run the C++ binary", i)
+		}
+	}
+	return shards
+}
+
+// loadCppUnits compiles the named cppclang sources, one unit each in the
+// order given and each with extra on its own command line, and loads the
+// shards RunUnits wrote. A defect's own test names its own sources, so
+// the fixture's hand-keyed table below stands on exactly the four it has
+// always stood on.
+func loadCppUnits(t *testing.T, srcs []string, extra ...string) []*Shard {
+	t.Helper()
 	if !haveTool("clang++") {
 		t.Skip("clang++ not on PATH")
 	}
@@ -23,12 +39,18 @@ func loadCppFixtureShards(t *testing.T) []*Shard {
 	if err != nil {
 		t.Fatal(err)
 	}
-	unit := func(src string) CompdbEntry {
-		return CompdbEntry{Directory: repo, File: src, Arguments: []string{"c++", "-Wall", "-I.", "-c", src}}
+	entries := make([]CompdbEntry, 0, len(srcs))
+	for _, src := range srcs {
+		cc := "c++"
+		if !isCPPExt(src) {
+			cc = "cc"
+		}
+		args := append([]string{cc, "-Wall", "-I."}, extra...)
+		entries = append(entries, CompdbEntry{Directory: repo, File: src, Arguments: append(args, "-c", src)})
 	}
 	out := t.TempDir()
 	compdb := filepath.Join(out, "compile_commands.json")
-	writeCompdb(t, compdb, []CompdbEntry{unit("main.cpp"), unit("shapes.cpp"), unit("tool.cpp"), unit("shapes.cpp")})
+	writeCompdb(t, compdb, entries)
 	if err := RunUnits(Options{Repo: repo, Lang: "cpp", Compdb: compdb, Out: out}); err != nil {
 		t.Fatalf("RunUnits: %v", err)
 	}
@@ -38,13 +60,24 @@ func loadCppFixtureShards(t *testing.T) []*Shard {
 	}
 	for i, s := range shards {
 		if s.Failed {
-			t.Fatalf("unit %d: clang++ rejected it: %s", i, s.Stderr)
-		}
-		if !s.CXX {
-			t.Errorf("unit %d: a .cpp entry must run the C++ binary", i)
+			t.Fatalf("unit %d (%s): the front end rejected it: %s", i, srcs[i], s.Stderr)
 		}
 	}
 	return shards
+}
+
+// sitesAt is every site at one exact position: a call written inside a
+// class template is two sites there, the pattern's and the
+// instantiation's, keyed apart by what each one's declaration is keyed
+// by.
+func sitesAt(out *edges.OracleExport, path string, line, col int) []edges.Site {
+	var got []edges.Site
+	for _, s := range out.Sites {
+		if s.Pos.Path == path && s.Pos.Line == line && s.Col == col {
+			got = append(got, s)
+		}
+	}
+	return got
 }
 
 // TestCppclangFixture is O10's own evidence (ADR-113 §3): every pair the
@@ -115,21 +148,25 @@ func TestCppclangFixture(t *testing.T) {
 		{"tool.cpp", 4, 20, "constructor", "main", "shapes.cpp:21", "constructor"},
 		// A virtual call through a base pointer to a derived object is
 		// the base's method: the front end names the static type's, and
-		// O10 builds no class hierarchy over it.
-		{"main.cpp", 25, 10, "virtual", "main", "shapes.cpp:13", "method"},
+		// O10 builds no class hierarchy over it. Every member call below
+		// is keyed at the member's own token, not at its object's first
+		// (H-28): `p->area()` at the `area`, column 13.
+		{"main.cpp", 25, 13, "virtual", "main", "shapes.cpp:13", "method"},
 		// The same rule inside the header's inline method (this->area()).
+		// An implicit `this` is written nowhere, so the object and the
+		// member begin at one column.
 		{"shapes.h", 9, 32, "virtual", "Shape::twice", "shapes.cpp:13", "method"},
 		// Circle::area does not repeat the `virtual` keyword, and the
 		// dump prints only what was written: the call reads as an
 		// ordinary member call. The target is the same method either way.
-		{"main.cpp", 28, 10, "static", "main", "shapes.cpp:23", "method"},
-		{"main.cpp", 29, 10, "static", "main", "shapes.cpp:23", "method"},
+		{"main.cpp", 28, 16, "static", "main", "shapes.cpp:23", "method"},
+		{"main.cpp", 29, 28, "static", "main", "shapes.cpp:23", "method"},
 		// The operator applied by symbol is the free operator function.
 		{"main.cpp", 32, 25, "operator", "main", "shapes.cpp:27", "function"},
 		// A method and a `this->` call, both inside an unnamed namespace,
 		// and the method the dump declares below the body that calls it.
-		{"main.cpp", 35, 10, "static", "main", "main.cpp:6", "method"},
-		{"main.cpp", 6, 24, "static", "Runner::run", "main.cpp:7", "method"},
+		{"main.cpp", 35, 17, "static", "main", "main.cpp:6", "method"},
+		{"main.cpp", 6, 30, "static", "Runner::run", "main.cpp:7", "method"},
 		{"main.cpp", 36, 10, "static", "main", "main.cpp:12", "function"},
 		// The unnamed namespace's helper and the file-static one resolve
 		// in their own unit, as C's statics do.
@@ -137,7 +174,7 @@ func TestCppclangFixture(t *testing.T) {
 		{"shapes.cpp", 18, 12, "static", "Shape::units", "shapes.cpp:9", "function"},
 		// tool.cpp is the second program: the same header, the same
 		// inline method, the same free function.
-		{"tool.cpp", 5, 12, "static", "main", "shapes.h:9", "method"},
+		{"tool.cpp", 5, 14, "static", "main", "shapes.h:9", "method"},
 		{"tool.cpp", 5, 24, "static", "main", "shapes.cpp:37", "function"},
 	}
 	for _, c := range cases {
@@ -158,7 +195,7 @@ func TestCppclangFixture(t *testing.T) {
 	// The header's inline method is one entity across the two units that
 	// call it — both compile their own copy, at one position — so its
 	// site keeps one target and never counts tu-split.
-	inline := get("main.cpp", 26, 10, "static")
+	inline := get("main.cpp", 26, 12, "static")
 	if len(inline.Targets) != 1 || inline.Targets[0].Pos.Key() != "shapes.h:9" {
 		t.Errorf("c.twice(): %+v, want the header's own line, once", inline.Targets)
 	}
@@ -189,6 +226,152 @@ func TestCppclangFixture(t *testing.T) {
 
 	if len(out.Sites) != 25 {
 		t.Errorf("total distinct sites: %d, want 25", len(out.Sites))
+	}
+}
+
+// TestCppMemberCallSitsAtItsMemberToken is H-28's evidence: a member
+// call whose object expression is written across two lines sits at the
+// member's own token, on the line the member is on. member.cpp's chain
+// keyed both of its calls at the object's opening `(`, line 25 column
+// 12, before the reader read a MemberExpr's range end (ADR-113 §3).
+func TestCppMemberCallSitsAtItsMemberToken(t *testing.T) {
+	out := Merge(loadCppUnits(t, []string{"member.cpp"}), "")
+
+	// `(m << 1` opens on line 25 and `<< 2).str().get()` closes it on
+	// line 26: `str` at column 21, `get` at 27, each resolving to its own
+	// method's definition.
+	for _, c := range []struct {
+		col    int
+		target string
+	}{{21, "member.cpp:20"}, {27, "member.cpp:11"}} {
+		got := sitesAt(out, "member.cpp", 26, c.col)
+		if len(got) != 1 {
+			t.Errorf("member.cpp:26 col %d: %d sites, want the one member call: %+v", c.col, len(got), got)
+			continue
+		}
+		s := got[0]
+		if s.Mode != "static" || s.Caller != "build" {
+			t.Errorf("member.cpp:26 col %d: mode=%s caller=%s, want static build", c.col, s.Mode, s.Caller)
+		}
+		if len(s.Targets) != 1 || s.Targets[0].Pos.Key() != c.target {
+			t.Errorf("member.cpp:26 col %d: targets %+v, want %s alone", c.col, s.Targets, c.target)
+		}
+	}
+
+	// Line 25 carries the first `<<` and nothing else: the object's own
+	// start is not a call site.
+	for _, s := range out.Sites {
+		if s.Pos.Line == 25 && s.Mode != "operator" {
+			t.Errorf("member.cpp:25 is the object's line, not a member call's: %+v", s)
+		}
+	}
+	// Two operator calls, at their own tokens, and the two member calls.
+	if len(out.Sites) != 4 {
+		t.Errorf("total distinct sites: %d, want 4: %+v", len(out.Sites), out.Sites)
+	}
+}
+
+// TestCppTemplatePatternsKeyByTheirClass is H-29's evidence: two class
+// templates with a same-named static member are two entities, so each
+// template's call answers its own class's member. Both patterns keyed as
+// the bare `format_as` before declKey fell back to the class, and the
+// merge answered whichever of the two it had kept.
+func TestCppTemplatePatternsKeyByTheirClass(t *testing.T) {
+	shards := loadCppUnits(t, []string{"tmpl.cpp"})
+
+	// The front end's own half of the defect: a pattern member carries
+	// its class and no mangled name at all, where the instantiation it
+	// stands for carries one and keys by it.
+	patterns := map[string]string{}
+	for _, d := range shards[0].Decls {
+		if d.Name != "format_as" {
+			continue
+		}
+		if d.Mangled == "" {
+			patterns[d.Class] = declKey(d)
+			continue
+		}
+		if declKey(d) != d.Mangled {
+			t.Errorf("a specialisation keys by its mangled name: %q, want %q", declKey(d), d.Mangled)
+		}
+	}
+	if patterns["A"] != "A::format_as" || patterns["B"] != "B::format_as" {
+		t.Errorf("the two patterns' keys are %v, want A::format_as and B::format_as", patterns)
+	}
+
+	out := Merge(shards, "")
+
+	// `format_as(…)` is written at column 30 of both line 9 and line 15,
+	// and each line is a member function of its own class: A's call
+	// answers tmpl.cpp:8 and B's tmpl.cpp:14, never the other's. Each
+	// position holds two sites — the pattern's and the A<int>/B<int>
+	// instantiation's — and both name the one definition.
+	for _, c := range []struct {
+		line   int
+		target string
+	}{{9, "tmpl.cpp:8"}, {15, "tmpl.cpp:14"}} {
+		got := sitesAt(out, "tmpl.cpp", c.line, 30)
+		if len(got) != 2 {
+			t.Errorf("tmpl.cpp:%d col 30: %d sites, want the pattern's and the instantiation's: %+v", c.line, len(got), got)
+		}
+		for _, s := range got {
+			if len(s.Targets) != 1 || s.Targets[0].Pos.Key() != c.target {
+				t.Errorf("tmpl.cpp:%d col 30: targets %+v, want %s alone", c.line, s.Targets, c.target)
+			}
+		}
+	}
+
+	// And the two member calls that instantiate them, at their own member
+	// tokens (H-28), each to its own class's `use`.
+	for _, c := range []struct {
+		col    int
+		target string
+	}{{14, "tmpl.cpp:9"}, {24, "tmpl.cpp:15"}} {
+		got := sitesAt(out, "tmpl.cpp", 21, c.col)
+		if len(got) != 1 || len(got[0].Targets) != 1 || got[0].Targets[0].Pos.Key() != c.target {
+			t.Errorf("tmpl.cpp:21 col %d: %+v, want %s alone", c.col, got, c.target)
+		}
+	}
+}
+
+// TestCppBareNameKeysJoinAcrossUnits covers what H-29's fallback leaves
+// alone: `extern "C"` and `main` are the names the front end does not
+// decorate, so their key is the bare name whichever branch declKey
+// takes, and a declaration in one unit still joins the definition in
+// another — ADR-110's C join, unchanged. extc.c and extc2.c compile
+// under either front end, so both are run.
+func TestCppBareNameKeysJoinAcrossUnits(t *testing.T) {
+	for _, lang := range []struct {
+		name  string
+		extra []string
+	}{
+		{"as c", nil},
+		{"as c++", []string{"-x", "c++"}},
+	} {
+		t.Run(lang.name, func(t *testing.T) {
+			out := Merge(loadCppUnits(t, []string{"extc.c", "extc2.c"}, lang.extra...), "")
+
+			// extc.c calls what extc2.c defines; extc2.c calls the `main`
+			// extc.c defines.
+			for _, c := range []struct {
+				path      string
+				line, col int
+				name      string
+				target    string
+			}{
+				{"extc.c", 17, 12, "shared_entry", "extc2.c:16"},
+				{"extc2.c", 21, 12, "main", "extc.c:16"},
+			} {
+				got := sitesAt(out, c.path, c.line, c.col)
+				if len(got) != 1 {
+					t.Errorf("%s:%d col %d: %d sites, want one: %+v", c.path, c.line, c.col, len(got), got)
+					continue
+				}
+				if ts := got[0].Targets; len(ts) != 1 || ts[0].Pos.Key() != c.target || ts[0].Name != c.name {
+					t.Errorf("%s:%d col %d: targets %+v, want %s (%s) alone", c.path, c.line, c.col, ts, c.target, c.name)
+				}
+			}
+		})
 	}
 }
 

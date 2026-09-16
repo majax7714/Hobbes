@@ -237,7 +237,9 @@ func (rd *reader) walkNode(fn string) (string, error) {
 				return "", err
 			}
 		case "range":
-			if nodeRange, err = rd.readRangeBegin(); err != nil {
+			// A construct site sits at its node's range begin: it names no
+			// callee whose own token could position it.
+			if nodeRange, _, err = rd.readRange(); err != nil {
 				return "", err
 			}
 		case "inner":
@@ -365,18 +367,25 @@ func (rd *reader) record(cr calleeResult, fn, siteKind string) {
 // buildCall turns a peeled callee into a Call, or nil when its site
 // does not lie in the repo (rule: only in-repo call sites are sites at
 // all). The callee's name is provisional: finish replaces it with the
-// declaration's mangled name once the whole dump is read.
+// declaration's own key once the whole dump is read.
 func (rd *reader) buildCall(cr calleeResult, fn, siteKind string) *Call {
-	sitePos, macroBody := cr.pos.resolve()
+	// A MemberExpr callee names a function only under a member call: the
+	// same shape under a plain CallExpr is a call through a member of
+	// function-pointer type, which stays dynamic and keeps the whole
+	// expression's position (C's shape, ADR-110). A member call takes the
+	// member's own token instead, position and spelling both (H-28).
+	memberCall := cr.isMember && siteKind == "CXXMemberCallExpr"
+	at := cr.pos
+	if memberCall {
+		at = cr.memberPos
+	}
+	sitePos, macroBody := at.resolve()
 	if !sitePos.InRepo {
 		return nil
 	}
-	spell := cr.pos.spellingPos()
+	spell := at.spellingPos()
 	mode, callee := "dynamic", ""
-	// A MemberExpr callee names a function only under a member call: the
-	// same shape under a plain CallExpr is a call through a member of
-	// function-pointer type, which stays dynamic.
-	if cr.isFunc && (!cr.isMember || siteKind == "CXXMemberCallExpr") {
+	if cr.isFunc && (!cr.isMember || memberCall) {
 		callee = cr.name
 		switch {
 		case siteKind == "CXXOperatorCallExpr":
@@ -450,10 +459,9 @@ func (rd *reader) finish() {
 			continue
 		}
 		c := &rd.calls[p.idx]
-		c.Callee, c.CalleeName = d.Name, d.Name
-		if d.Mangled != "" {
-			c.Callee = d.Mangled
-		}
+		// The site's key is the declaration's own, spelled the one way
+		// Merge joins by; CalleeName stays the name as written.
+		c.Callee, c.CalleeName = declKey(*d), d.Name
 		if p.member && d.Virtual {
 			c.Mode = "virtual"
 		}
@@ -574,6 +582,11 @@ type calleeResult struct {
 	name     string
 	declID   string
 	isMember bool
+	// memberPos is a MemberExpr's range end: the member's own token. The
+	// node carries no "loc" and its range begins at the object, so a
+	// member call written across lines keys on a line its member is not
+	// on unless the site is taken from here (ADR-113 §3, H-28).
+	memberPos pos
 }
 
 // peelCallee decodes a callee expression node (its opening '{' not yet
@@ -591,7 +604,7 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 		return calleeResult{}, err
 	}
 	var kind, opcode, name, refKind, refName, refID, memberID string
-	var rangeBegin pos
+	var rangeBegin, rangeEnd pos
 	var child *calleeResult
 
 	for rd.dec.More() {
@@ -617,7 +630,7 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 				return calleeResult{}, err
 			}
 		case "range":
-			if rangeBegin, err = rd.readRangeBegin(); err != nil {
+			if rangeBegin, rangeEnd, err = rd.readRange(); err != nil {
 				return calleeResult{}, err
 			}
 		case "referencedDecl":
@@ -666,7 +679,8 @@ func (rd *reader) peelCallee(fn string) (calleeResult, error) {
 		return *child, nil
 	}
 	if kind == "MemberExpr" {
-		return calleeResult{pos: rangeBegin, isFunc: memberID != "", name: name, declID: memberID, isMember: true}, nil
+		return calleeResult{pos: rangeBegin, memberPos: rangeEnd, isFunc: memberID != "",
+			name: name, declID: memberID, isMember: true}, nil
 	}
 	return calleeResult{pos: rangeBegin, isFunc: kind == "DeclRefExpr" && isDeclKind(refKind), name: refName, declID: refID}, nil
 }
@@ -683,39 +697,40 @@ func isPeelable(kind, opcode string) bool {
 	return false
 }
 
-// readRangeBegin decodes a "range" object (its opening '{' not yet
-// consumed) and returns its "begin" position; "end" is consumed for the
-// carried location state but otherwise unused (rule: the callee name
-// token, not the parenthesis, positions a call).
-func (rd *reader) readRangeBegin() (pos, error) {
+// readRange decodes a "range" object (its opening '{' not yet consumed)
+// and returns both its "begin" and its "end" position. Almost every
+// caller wants "begin" — the callee name token, not the parenthesis,
+// positions a call — but a MemberExpr, which carries no "loc", spells
+// the object at its begin and the member's own token at its end
+// (ADR-113 §3, H-28).
+func (rd *reader) readRange() (begin, end pos, err error) {
 	if err := expectDelim(rd.dec, '{'); err != nil {
-		return pos{}, err
+		return pos{}, pos{}, err
 	}
-	var begin pos
 	for rd.dec.More() {
 		key, err := nextKey(rd.dec)
 		if err != nil {
-			return pos{}, err
+			return pos{}, pos{}, err
 		}
 		switch key {
 		case "begin":
 			if begin, err = rd.readPos(); err != nil {
-				return pos{}, err
+				return pos{}, pos{}, err
 			}
 		case "end":
-			if _, err = rd.readPos(); err != nil {
-				return pos{}, err
+			if end, err = rd.readPos(); err != nil {
+				return pos{}, pos{}, err
 			}
 		default:
 			if err := rd.skipAny(); err != nil {
-				return pos{}, err
+				return pos{}, pos{}, err
 			}
 		}
 	}
 	if err := expectDelim(rd.dec, '}'); err != nil {
-		return pos{}, err
+		return pos{}, pos{}, err
 	}
-	return begin, nil
+	return begin, end, nil
 }
 
 // readReferencedDecl decodes a "referencedDecl" object (its opening '{'
