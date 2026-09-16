@@ -339,6 +339,43 @@ class TestCallSites:
         [site] = _sites(layer, "MINIC_MAX")
         assert site.scope == "src/main.main"
 
+    def test_no_call_under_a_sizeof_or_alignof_records_a_site_and_the_controls_do(
+        self, tmp_path
+    ):
+        # Both spellings of `sizeof`, then `_Alignof` — which takes a type
+        # name, so the only call its operand can hold is a VLA's size —
+        # then the two evaluated calls the drop must not reach, one of
+        # them on a line an unevaluated operand shares (ADR-121 §1).
+        (tmp_path / "a.c").write_text(
+            "int f(int);\n"
+            "int n(void);\n"
+            "unsigned a = sizeof(f(1));\n"
+            "unsigned b = sizeof f(1);\n"
+            "unsigned c = _Alignof(int[n()]);\n"
+            "int y = f(2);\n"
+            "int x = f(3) + sizeof(f(1));\n"
+        )
+        layer = extract_c(tmp_path)
+        [parsed] = [p for p in layer["files"] if p.path == "a.c"]
+        assert [(c["line"], c["name"]) for c in parsed.calls] == [(6, "f"), (7, "f")]
+        # The one site left on line 7 is `f(3)`, not the `f(1)` that
+        # shares its line.
+        [shared] = [c for c in parsed.calls if c["line"] == 7]
+        assert shared["col"] == len("int x = ")
+
+    def test_the_vla_residual_is_the_known_miss_a_call_sizing_an_array_records_nothing(
+        self, tmp_path
+    ):
+        # C11 6.5.3.4 evaluates a `sizeof` operand whose type is a VLA, so
+        # `sizeof(int[n()])` really does call `n` — the syntax cannot tell
+        # a VLA type from any other, so the site goes with the rest
+        # (ADR-121 §1's amendment). Asserted as today's behaviour, so a
+        # later change to it is deliberate.
+        (tmp_path / "a.c").write_text("int n(void);\nunsigned a = sizeof(int[n()]);\n")
+        layer = extract_c(tmp_path)
+        [parsed] = [p for p in layer["files"] if p.path == "a.c"]
+        assert parsed.calls == []
+
 
 class TestFallback:
     def test_same_file_static_helpers_each_resolve_to_their_own_file(self, layer):
