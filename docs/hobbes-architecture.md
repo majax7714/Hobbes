@@ -824,11 +824,11 @@ Known cost: **a pack cannot be disabled for a repo where it misfires**
 suppressible.
 
 ### 3.6 Incrementality
-Caching, not cleverness — and mostly still design: the only cache built
-is ADR-050's content-hashed `node_modules` provisioning (and, since
-ADR-092, the cargo / go / npm caches under the Hobbes cache root); SCIP
-indexes are written fresh per ingest, there is no partial-index merge
-(ADR-027 demoted it to "a refinement to measure") and no debounce —
+Caching, not cleverness: ADR-050's content-hashed `node_modules`
+provisioning, the cargo / go / npm caches under the Hobbes cache root
+(ADR-092), and — since ADR-122 — lane B's index cache, below. There is
+no partial-index merge (ADR-027 demoted it to "a refinement to
+measure") and no debounce —
 lane B runs when `hobbes ingest` runs, gated by `HOBBES_SCIP` (per-PR
 CI is its home since ADR-095 — the graph job builds the image and
 ingests inside it); lane A remains the
@@ -844,6 +844,23 @@ and `hobbes ingest` appends one JSON line per run under the Hobbes
 cache (`timings/<key>.jsonl`, keyed by the repo's path). Nothing enters
 an artifact: two ingests of one commit stay byte-identical (P1). The
 caches above are measured against this record, or they are guesses.
+
+**Lane B reads an unchanged unit from its index cache (ADR-122,
+0.2.35-beta).** Every indexing unit passes through `run_helper`, and
+that is where the cache sits: the helper's facts file (ADR-116) is kept
+under `<cache>/index/` by the hash of everything the container can see
+— the helper's source and lockfile, the image's id, the config with the
+stage's path tokenised, the sidecar files it names by their bytes, the
+stage tree file by file, a linked tree by its target and fingerprint,
+the mounts and the environment — and a hit is read by the same reader a
+miss's file goes through, so the facts are the same by construction and
+the artifact byte-identical (measured: sha256 of `graph.json` and
+`tests.json`, cached against `HOBBES_INDEX_CACHE=0`). Only a contained,
+successful run is stored; a stored file that no longer reads is dropped
+and the unit indexed. This repo: 54.0 s → 8.9 s, lane B 49.2 s → 4.1 s,
+what remains the fetch passes that run before the helper. The summary
+prints hits and misses under the timings and the log line carries them;
+`graph.json` carries nothing. The fingerprint's residue is C-158.
 
 ### 3.7 Adding a language — the checklist
 1. Register the **indexer** (resolution): command, version pin, and how its
@@ -1736,7 +1753,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.34-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.34-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.35-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.35-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

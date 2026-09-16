@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-16 (night, last); Hobbes 0.2.34-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-16 (night, latest); Hobbes 0.2.35-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): **restart it**
-— the image was rebuilt at 0.2.34-beta at the end of this session.
+— the image was rebuilt at 0.2.35-beta at the end of this session.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.34-beta are untagged. Tags stay Max's call each time.
+  0.2.35-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -15,10 +15,11 @@ the image it started from until it is restarted (C-65): **restart it**
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-16 "no call in an
-unevaluated operand" BUILDLOG entry (ADR-121, 0.2.33-beta and
-0.2.34-beta). Before it, the same day: "the override set is drawn"
-(ADR-120, 0.2.32-beta), the "top-level review" entry (the drift fix,
+The latest session's record is the 2026-09-16 "lane B reads an
+unchanged unit from its index cache" BUILDLOG entry (ADR-122,
+0.2.35-beta). Before it, the same day: "no call in an unevaluated
+operand" (ADR-121, 0.2.33-beta and 0.2.34-beta), "the override set is
+drawn" (ADR-120, 0.2.32-beta), the "top-level review" entry (the drift fix,
 ADR-118, ADR-119, the review page), ADR-117 (C-156 surfaced), O10's four
 defects fixed, and the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' detail
 lives in their own BUILDLOG entries; this file keeps only what the next
@@ -26,7 +27,44 @@ session needs.
 
 ## ⇢ START HERE NEXT SESSION
 
-00. **0.2.33-beta and 0.2.34-beta (ADR-121): no call in an unevaluated
+0. **0.2.35-beta (ADR-122): lane B reads an unchanged unit from its
+   index cache.** The review's next speed item, done and measured.
+   - **Measured first:** python's 26 s is the index container (the venv
+     listing 0.24 s, staging 0.02 s, the decode 0.08 s); two helper runs
+     write byte-identical facts files (python and 8 Go modules). The
+     review's premise — "the stage key, already a content hash" — was
+     wrong: `stage_key` is stat-based. The cache keys by content.
+   - **Built:** `extract/indexcache.py` and one hook in
+     `scipsource.run_helper`, so every unit of six languages gets it.
+     Key: helper source + lockfile, image id, config (stage path
+     tokenised, `facts` dropped), sidecar files by bytes, the stage tree
+     file by file, links by target + top-level stat + installer marker,
+     ro mounts, env; the root left out. A hit is `read_facts` over the
+     stored file; one that no longer reads is dropped and the unit
+     indexed. Only a contained successful run is stored;
+     `HOBBES_INDEX_CACHE=0` indexes afresh. Store
+     `~/.hobbes/cache/index/`, a 30-day sweep at the next write. The
+     summary prints one line under the timings; the log line carries
+     `index_cache`; nothing enters an artifact.
+   - **This repo:** 54.0 s → 8.9 s; lane B 49.2 → 4.1 s; keys 0.04 s;
+     `graph.json` and `tests.json` sha256-identical to an uncached
+     ingest. What remains on a hit is the fetch passes before the helper
+     (java's resolve 2.3 s, go 0.8, rust 0.5, the venv listing 0.4); the
+     key is computable before a fetch, so skipping them is a small
+     follow-on if wanted.
+   - **C-158 registered (surfaced):** linked trees and venvs
+     fingerprinted by surface, not files; a lockfile-less manifest keeps
+     its first resolution. 18 tests in `test_indexcache.py`, one through
+     the image.
+   - **Found by use, not fixed:** `~/.hobbes/cache/stage/` holds 38
+     86-byte `.scip` files from 2026-08-22 and two old stage
+     directories; `staging.sweep_stale` has no caller in the ingest.
+   - The binaries, the static proxy and the image are rebuilt at
+     0.2.35-beta and this repo re-ingested at HEAD (the first ingest
+     after a rebuild misses everywhere — the image id is in the key);
+     **restart the knowledge server** (C-65).
+
+1. **0.2.33-beta and 0.2.34-beta (ADR-121): no call in an unevaluated
    operand — C-155 lifted the day it was registered, on both sides of
    the grade.** The review's third item, and the next undone one.
    - **Measured first:** the grammar (`noexcept(..)`/`typeid(..)` parse
@@ -63,7 +101,7 @@ session needs.
      0.2.34-beta and this repo re-ingested at HEAD; **restart the
      knowledge server** (C-65).
 
-0. **0.2.32-beta (ADR-120): SCIP `relationships` measured, then drawn
+2. **0.2.32-beta (ADR-120): SCIP `relationships` measured, then drawn
    as `implements` edges.** The review's first recall item, in Max's
    order (measure first).
    - **The measurement:** five of six indexers state `is_implementation`
@@ -100,7 +138,7 @@ session needs.
      0.2.32-beta and this repo re-ingested at HEAD; **restart the
      knowledge server** (C-65).
 
-1. **The 2026-09-16 top-level review, and its two patches.** Max asked
+3. **The 2026-09-16 top-level review, and its two patches.** Max asked
    for a review of the top-level docs, the architecture and the
    register for anything that would raise recall, speed, cut memory or
    knock out constraints. The write-up is a Claude Docs page,
@@ -118,16 +156,17 @@ session needs.
      0.2.31-beta and this repo re-ingested at HEAD; **restart the
      knowledge server** (C-65).
    Its recommendations not started, in the review's order (the first
-   two, the `relationships` measurement with the `implements` edge and
-   C-155's lift, are done — items 0 and 00): **a lane B index cache by
-   stage key, then lane A's file cache, each measured with the timing
-   block** (next); pytest fixtures as edges (C-4); the compile
+   three — the `relationships` measurement with the `implements` edge,
+   C-155's lift, and the lane B index cache — are done: items 2, 1 and
+   0): **lane A's file cache, measured with the timing block** (next);
+   the fetch passes skipped on a cache hit, if their 4.1 s warrant it
+   (item 0); pytest fixtures as edges (C-4); the compile
    database's `-I` path at lane A (C-133, C-142); a distinct `hobbes
    lanes` exit for registered shapes (C-70, C++); the docs restructure
    (the register's history to its own file, §3.8 per language, one
    tally held by a test).
 
-2. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
+4. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
    surfaced.** Test reach follows `calls` only (ADR-007), so a module
    of values alone (`go/internal/version`) reads unguarded. Max chose
    route (a): `tests_guarding` and `hobbes review` now say why, citing
@@ -138,7 +177,7 @@ session needs.
    proxy and the image are rebuilt; **restart the knowledge server**
    (C-65).
 
-3. **O10's defects (2026-09-16, bench only, no version move): all four
+5. **O10's defects (2026-09-16, bench only, no version move): all four
    fixed, everything regraded twice.**
    - **H-31 traced and fixed the same day** as `S-20260916T165315Z-16f4`
      (merged `db20845`): a callee whose qualifier a macro body supplied
@@ -159,7 +198,7 @@ session needs.
      already drawn there, unlike H-30's *silence* rule.
    - Tracker **34 of 40**. The earlier three fixes and the first
      three-tier regrade are below.
-4. **The first three (2026-09-16): H-28, H-29, H-30.**
+6. **The first three (2026-09-16): H-28, H-29, H-30.**
    - **H-28** (a member call keyed at its object's start) and **H-29**
      (an unmangled declaration keyed by its bare name) fixed as
      `S-20260916T153010Z-8170`, merged `eec8141`; **H-30** (a line the
@@ -188,7 +227,7 @@ session needs.
    - Found by use: `calvin_tracker.py` pinned `gate v2, grounder v3`, so
      the first session at grounder v4 could not be parsed; fixed with a
      test red on the old pattern (`ce43e5a`).
-5. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
+7. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
    out on the comparative page too.**
    - Pre-registered first (`oracle-grading.md` §10.7, P32–P35,
      `ac5f7c8`), then both tools on fmt and args, host-run, graded by
@@ -214,7 +253,7 @@ session needs.
      path for C/C++ (`SCIP_INDEXER=true` over a compile database) goes
      into a full-version comparative retest, one item in
      `future_additions.md`. C++ is closed out for now.
-6. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
+8. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
    ADR-116).** C-150's remainder, Max's route A of three:
    - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
      per document, a trailer that counts them; helper version 4 — and
@@ -250,7 +289,7 @@ session needs.
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
    - The binaries, the static proxy and the image were at 0.2.29-beta; see item 1.
-7. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
+9. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
      contained):
@@ -284,13 +323,13 @@ session needs.
        <out> [<helper-dir>]`.
    - **Restart the knowledge server** the next session opens with
      (C-65).
-8. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
+10. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
    was amended first (`342c5d1`), then the unit was dispatched as
    `2b26` (27 turns, $1.57, gate right-clear) and merged no-ff
    (`3526be2`). The harness's one false block is closed. The task and
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
-9. **Open for Max (no spend):**
+11. **Open for Max (no spend):**
    - **Nothing in the oracle's defect log is open.** H-28–H-32 were all
      fixed on 2026-09-16; what is left on fmt is C-153 alone.
    - **ADR-121 §2's choice** (item 00): lane B's occurrence at an
@@ -318,7 +357,7 @@ session needs.
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
      read), deferred until a graded cell shows the cost.
-10. **Running a session** (`calvin-harness.md` §5):
+12. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
      `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
@@ -349,7 +388,7 @@ session needs.
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
    - **Toward 40 across three areas:** the tracker reads 37 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
-11. **A regrade against stored keys:**
+13. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
      regrades did).
@@ -358,7 +397,7 @@ session needs.
      changed; never two passes over one clone at once.
    - A regrade after a fix carries signed direction-of-fix lines in its
      record.
-12. **Carried:**
+14. **Carried:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading.
    - **`stringer` is not in the image.**

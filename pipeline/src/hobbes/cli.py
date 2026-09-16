@@ -206,8 +206,24 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     # into an artifact, which stays byte-identical across ingests (P1).
     for line in timings.render():
         print(line)
+    # Lane B's index cache (ADR-122): what the lane B steps above were
+    # — a read of a stored facts file, or an index — printed and logged
+    # beside the timings, never in an artifact.
+    from hobbes.extract import indexcache
+
+    cache = indexcache.summary()
+    if cache is not None:
+        print(
+            f"    lane B index cache: {cache['hits']} hit, {cache['misses']} miss "
+            f"(keys {cache['key_seconds']:.2f} s; {cache['store']}; "
+            f"{indexcache.ENABLE_ENV}=0 to index afresh)"
+        )
     log = record(
-        repo_root, graph["sha"], (graph.get("built_by") or {}).get("version"), timings
+        repo_root,
+        graph["sha"],
+        (graph.get("built_by") or {}).get("version"),
+        timings,
+        index_cache=cache,
     )
     print(f"    logged to {log}")
     for path in sorted(paths):

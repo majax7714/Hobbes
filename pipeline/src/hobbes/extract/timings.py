@@ -63,8 +63,19 @@ def timings_log(repo_root: Path) -> Path:
     return cache_root() / "timings" / f"{key}.jsonl"
 
 
-def record(repo_root: Path, sha: str, version: str | None, timings: Timings) -> Path:
-    """Append one line for this ingest to the repo's log and return its path."""
+def record(
+    repo_root: Path,
+    sha: str,
+    version: str | None,
+    timings: Timings,
+    index_cache: dict | None = None,
+) -> Path:
+    """Append one line for this ingest to the repo's log and return its path.
+
+    *index_cache* is lane B's cache ledger for the run (ADR-122: hits,
+    misses, the keys' seconds), so the log says why a lane B step took
+    the time it took; absent when no lookup was made.
+    """
     path = timings_log(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     line = {
@@ -75,6 +86,8 @@ def record(repo_root: Path, sha: str, version: str | None, timings: Timings) -> 
         "total_seconds": timings.total,
         "steps": timings.steps,
     }
+    if index_cache is not None:
+        line["index_cache"] = index_cache
     with path.open("a") as handle:
         handle.write(json.dumps(line, sort_keys=True) + "\n")
     return path

@@ -390,6 +390,33 @@ def unavailable_reason() -> str | None:
     return reason
 
 
+_image_ids: dict[str, str | None] = {}
+
+
+def image_id() -> str | None:
+    """The built image's id — what the indexers are, for lane B's index
+    cache key (ADR-122) — or ``None`` when a run would not be contained
+    (no podman, no image, or the escape hatch): an uncontained run's
+    toolchain is the host's, unpinned, and is never cached.
+
+    Cached per process beside :func:`unavailable_reason`, for the same
+    reason: one podman round trip per unit otherwise.
+    """
+    if uncontained_requested() or unavailable_reason() is not None:
+        return None
+    key = image()
+    if key not in _image_ids:
+        try:
+            proc = subprocess.run(
+                ["podman", "image", "inspect", "--format", "{{.Id}}", key],
+                capture_output=True, text=True, timeout=60,
+            )
+            _image_ids[key] = proc.stdout.strip() or None if proc.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired):
+            _image_ids[key] = None
+    return _image_ids[key]
+
+
 def helper_dir() -> Path:
     """The hobbes checkout's ``scip/`` — the helper and its indexers."""
     return Path(__file__).resolve().parents[4] / "scip"

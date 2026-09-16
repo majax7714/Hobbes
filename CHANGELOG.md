@@ -15,6 +15,32 @@ each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.34-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
 
+## 0.2.35-beta — 2026-09-16 (lane B reads an unchanged unit from its index cache; ADR-122)
+
+**Patch: what the layer says, and how fast it says it.** The graph is
+unchanged: an ingest that reads from the cache writes the bytes an
+ingest that indexed would have written (sha256-compared on this repo).
+
+- Every lane B indexing unit — six languages, one hook in `run_helper`
+  — keeps the helper's facts file under `~/.hobbes/cache/index/` by the
+  hash of everything the container can see: the helper's source and
+  lockfile, the image's id, the config, the sidecar files it names, the
+  stage tree file by file, the mounts, the environment. A hit is read
+  by the same reader a miss goes through; a stored file that no longer
+  reads is dropped and the unit indexed. Only a contained, successful
+  run is stored; `HOBBES_INDEX_CACHE=0` indexes afresh.
+- The ingest summary prints, under the timings, how many units were
+  read and how many indexed, the keys' cost and the store's path; the
+  timings log line (ADR-119) carries the same under `index_cache`.
+  Nothing enters an artifact.
+- Measured on this repo: 54.0 s → 8.9 s; lane B 49.2 s → 4.1 s, what
+  remains the fetch passes that run before the helper (Java's resolve
+  2.3 s, Go's downloads 0.8 s, Rust's 0.5 s, the venv listing 0.4 s).
+- **C-158 registered (surfaced):** a linked dependency tree and a venv
+  are fingerprinted by their surface, not their files; a lockfile-less
+  manifest keeps its first resolution until the stage changes or the
+  entry is swept (30 days untouched).
+
 ## 0.2.34-beta — 2026-09-16 (C's walk abstains under `sizeof` too; ADR-121's amendment)
 
 **Patch: what the layer draws.** The oracle's reader is one for both

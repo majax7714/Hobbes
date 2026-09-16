@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
-from hobbes.extract import containment, scipsource, staging, tail, tssource
+from hobbes.extract import containment, indexcache, scipsource, staging, tail, tssource
 from hobbes.extract.cppsource import collect_cpp_tests, extract_cpp
 from hobbes.extract.csource import collect_c_tests, extract_c
 from hobbes.extract.discover import discover_modules, linked_copies
@@ -97,6 +97,7 @@ def extract_repo(
     pack's contribution. Callers have no reason to pass it.
     """
     containment.reset_ledger()
+    indexcache.reset_ledger()
     # Every step below is timed (ADR-119); the record never enters an
     # artifact, and a caller that passes none gets one that is dropped.
     timings = timings if timings is not None else Timings()

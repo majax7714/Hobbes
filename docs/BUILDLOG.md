@@ -11785,3 +11785,82 @@ subtests (389 pass, 1 skip) against the rebuilt image; oracle-lane Go
 cmake), the five C++ fixture tests run and pass in the image; the
 report drift test green after the render.
 
+
+## 2026-09-16 (night, latest) — Lane B reads an unchanged unit from its index cache; ADR-122, 0.2.35-beta
+
+Max: "review top level documentation and proceed with next hobbes
+review item." The review's next speed recommendation after the proxy
+(ADR-118) and the timing block (ADR-119): "a lane B index cache by
+stage key, then lane A's file cache, each measured with the timing
+block". The first half, measured before and after.
+
+**Measured before the decision** (a scratch driver over
+`scipsource.extract_scip` and `extract_scip_go`, each run twice with
+the sub-steps wrapped): python's 26.4 s is the index container — 26.05
+s — with the venv listing at 0.24 s, staging 0.02 s and the facts
+decode 0.08 s; go's 3.3 s is eight modules at a 0.13 s fetch and a
+0.2–0.5 s index each. The helper's facts file is byte-identical across
+the two runs for python and for all eight modules (sha256). And the
+review's premise was wrong: `staging.stage_key` folds in size and
+mtime, not bytes — it names a tree so removal is idempotent — so a
+cache keyed on it would reuse an index across an edit inside one mtime
+tick. The cache keys by content.
+
+**Built (ADR-122).** `extract/indexcache.py`: the key (helper source +
+lockfile, the image's id, the config with the stage path tokenised and
+the run-local `facts` path dropped, every sidecar file the config names
+under the cache by its bytes, the stage tree file by file, a link by
+target + top-level stat + installer marker, the ro mounts, the env; the
+root left out — it is put in front at read time), the store
+(`<cache>/index/<key>.facts.ndjson`, `.partial` then rename, a hit
+touches, a 30-day sweep at the next write), and a per-ingest ledger
+reset beside containment's. One hook in `scipsource.run_helper`: look
+up before run; a hit is `read_facts` over the stored file, and a
+`ScipError` on it drops the entry and indexes; the containment ledger
+takes the index step on a hit, since the stored run was contained and
+the artifact's stamp says where the facts came from. `_run_helper`
+stores after the read validated the file (the trailer's counts) and
+only when `outcome.contained`. `containment.image_id()` (one podman
+inspect per process; `None` when a run would not be contained, so
+nothing uncontained is ever keyed). The CLI prints one line under the
+timings — hits, misses, the keys' seconds, the store, the switch — and
+`timings.record` takes `index_cache` for the log line.
+
+**Measured after.** This repo, the same dirty tree, contained: 54.00 s
+→ 8.89 s; lane B python 26.15 → 0.44, typescript 4.27 → 0.03, go 2.68
+→ 0.83, rust 6.84 → 0.50, java 6.98 → 2.26, c 2.27 → 0.02; 19 units,
+keys 0.04 s in all. `graph.json` and `tests.json` sha256-identical
+between the cached ingest and a fresh `HOBBES_INDEX_CACHE=0` one. What
+a hit still spends is the fetch passes that run before the helper —
+Java's resolve pass, Go's `go mod download` per module, Rust's `cargo
+fetch`, the venv listing — 4.1 s here; the key is computable before a
+fetch (the stage exists by then), so skipping them is a small follow-on
+if the number warrants it. Rejected in the ADR: a cache at the language
+level (a second input discovery beside each extractor's own, and the
+two drift), the stage key (stat-based), a pickle of the decoded facts
+(a second reader is a second answer), the raw `.scip` (the decode is
+the helper's).
+
+**Records.** ADR-122; architecture §3.6 amended and §8 at 0.2.35-beta;
+**C-158 registered (surfaced)** in `extraction-lane-b-environments.md`
+— linked trees and venvs fingerprinted by surface, not files; a
+lockfile-less manifest keeps the resolution its first index saw — the
+register at 158 / 114 active / 88 surfaced; CHANGELOG 0.2.35-beta;
+CLAUDE.md's status; the handoff renumbered from 0 (the review had
+flagged its 00/0 collapse). 18 tests in `test_indexcache.py`: the hit
+is the miss's facts and the same containment stamp, two stages of one
+content share a key, every input moves the key (a staged file, the
+config, a sidecar's bytes, a link's marker, the helper, the image) and
+the root does not, a host run and a failed run store nothing, the
+switch and a stage outside the cache bypass, a short entry is dropped
+and re-indexed, the sweep, the summary; and one through the image (a
+fixture ingested twice: every unit a hit, the artifact byte-identical,
+no `index_cache` in it). Found by use, not fixed:
+`~/.hobbes/cache/stage/` holds 38 86-byte `.scip` files from 2026-08-22
+and two old stage directories, and `staging.sweep_stale` has no caller
+in the ingest.
+
+**Suites:** pipeline 1,673 passed (1,655 + 18); Go `./...` green after
+the bump. The static proxy and the image rebuilt at 0.2.35-beta
+(C-65); this repo re-ingested at HEAD — the first ingest after the
+rebuild misses everywhere, by design.

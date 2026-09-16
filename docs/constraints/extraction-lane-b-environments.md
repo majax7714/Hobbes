@@ -247,6 +247,35 @@
   was seen to be every language's; narrowed the same day twice
   (ADR-115, ADR-116), the second time corrected.
 
+### C-158 — The index cache fingerprints a linked dependency tree and a venv by their surface, not their files
+- **Cannot tell you:** that a lane B answer read from the index cache
+  (ADR-122) reflects a dependency tree that changed *underneath* its
+  link without its installer's marker moving, a venv whose
+  distributions kept their names and versions while their files
+  changed, or a manifest with no lockfile whose registry resolution
+  would come out differently today than at the first index.
+- **Because:** the key hashes the stage file by file, but a linked
+  `node_modules` (ADR-032) runs to hundreds of megabytes and is not
+  walked: it enters the key as its target path, its top directory's
+  size and mtime, and the size and mtime of the installer's hidden
+  lockfile (`.package-lock.json`, `.yarn-integrity`, `.modules.yaml`,
+  `.yarn-state.yml`) where one exists. A venv enters as its path and
+  the listing of distributions the helper is handed (name and version,
+  by its bytes). The Go, cargo and Maven caches are pinned by the
+  lockfiles staged beside the source — where there is one.
+- **Bites at:** a package reinstalled in place at the same version; a
+  tree edited by hand; a lockfile-less crate or module whose
+  dependencies moved on the registry — its cached index keeps the
+  resolution it had, until any staged file changes or the entry is
+  swept (30 days untouched).
+- **You find out:** **surfaced** — every ingest that made a lookup
+  prints, under the timings, how many units were read from the cache
+  and the switch that indexes afresh (`HOBBES_INDEX_CACHE=0`), and the
+  timings log line carries the counts; a first ingest after an image
+  rebuild misses everywhere, because the image's id is in the key.
+- **Source:** ADR-122; the measurement of 2026-09-16 (54.0 s → 8.9 s
+  on this repo, artifacts byte-identical).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

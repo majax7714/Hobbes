@@ -30,7 +30,7 @@ import subprocess
 from bisect import bisect_right
 from pathlib import Path, PurePosixPath
 
-from hobbes.extract import containment, staging
+from hobbes.extract import containment, indexcache, staging
 from hobbes.extract.discover import SKIPPED_DIR_NAMES
 from hobbes.extract.evidence import IMPLEMENTS, RESOLUTION, Site
 from hobbes.extract.evidence import SCIP as SCIP_LANE
@@ -405,21 +405,57 @@ def run_helper(
     (ADR-116). They are read as they arrive (:func:`read_facts`), with
     *root* — the repo-relative directory the stage's paths sit under —
     put in front of every row's path.
+
+    **Read before run (ADR-122):** the unit's key — the stage's content,
+    the config, its sidecars, the mounts, the helper and the image — is
+    looked up in :mod:`indexcache` first, and a stored facts file is read
+    by the same reader instead of indexing again. The stored run was
+    contained (nothing else is stored), so the containment ledger takes
+    the same step it would have taken: the artifact's stamp says where
+    the facts came from, and stays byte-identical to a miss's (P1). A
+    stored file that no longer reads is dropped and the unit indexed.
     """
     stage = Path(config["stage"])
     config_path = stage.parent / f"{stage.name}.config.json"
     facts_path = stage.parent / f"{stage.name}.facts.ndjson"
     config["facts"] = str(facts_path)
+    key = _cache_key(config, ro, env)
+    if key is not None:
+        cached = indexcache.lookup(key)
+        if cached is not None:
+            try:
+                facts = read_facts(cached, root)
+            except ScipError:
+                indexcache.discard(key)
+            else:
+                containment.LEDGER.append(
+                    {"step": containment.INDEX_STEP[config["language"]], "contained": True}
+                )
+                indexcache.record(config["language"], key, hit=True)
+                return facts
     config_path.write_text(json.dumps(config))
     try:
-        return _run_helper(config, config_path, facts_path, timeout, ro, env, root)
+        return _run_helper(config, config_path, facts_path, timeout, ro, env, root, key)
     finally:
         facts_path.unlink(missing_ok=True)
 
 
-def _run_helper(config, config_path, facts_path, timeout, ro, env, root) -> dict:
+def _cache_key(config: dict, ro, env) -> indexcache.Key | None:
+    """The unit's index-cache key, or ``None`` when nothing may be
+    cached: the cache is off, the run would not be contained, or the
+    stage is not a staging tree under the cache."""
+    if not indexcache.enabled():
+        return None
+    image_id = containment.image_id()
+    if image_id is None:
+        return None
+    return indexcache.key(config, ro, env, image_id, containment.helper_dir())
+
+
+def _run_helper(config, config_path, facts_path, timeout, ro, env, root, key=None) -> dict:
     """:func:`run_helper`'s run, its exit read, and its facts read; the
-    caller removes the facts file whatever happens here."""
+    caller removes the facts file whatever happens here. A contained run
+    whose facts read is stored under *key* (ADR-122)."""
     setup = (
         "the SCIP helper is unusable — install Node and run `npm install` in "
         f"the hobbes repo's scip/, or set ${SCIP_CMD_ENV} (ADR-027)"
@@ -476,6 +512,12 @@ def _run_helper(config, config_path, facts_path, timeout, ro, env, root) -> dict
     record = containment.host_record(".", f"scip-{config['language']}", plan, outcome)
     if record is not None:
         facts.setdefault("degraded", []).append(record)
+    if key is not None:
+        indexcache.record(config["language"], key, hit=False)
+        if outcome.contained:
+            # Stored after the read validated it (the trailer's counts),
+            # and only when contained: the host's toolchain is unpinned.
+            indexcache.store(key, facts_path)
     return facts
 
 
