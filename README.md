@@ -160,11 +160,13 @@ cell to prove the grader can say no. Every compiler-graded cell is at
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 99.1% (3,254/3,282). 18 of its 28 contradictions
-  are the oracle's grain (H-28–H-31, recorded open). The other 10 are
-  wrong edges Hobbes draws where scip-clang itself names the wrong
-  candidate. A provider's error in the graph is Hobbes' own, so it is
-  registered (C-153).
+- **fmt** (C++) reads 99.85% (3,269/3,274), 99.66% judged like-for-like
+  after the oracle's own four defects (H-28–H-31) were fixed on
+  2026-09-16. Every contradiction left is Hobbes' own: 4 are wrong edges
+  drawn where scip-clang itself names the wrong candidate (C-153, with
+  6 more of that shape unjudged rather than fixed), and 1 is a call
+  drawn inside an unevaluated `decltype` operand (C-155). A provider's
+  error in the graph is Hobbes' own, so it is registered.
 
 C's sqlite-vector read 99.6% until 0.2.8-beta, from three syntactic edges
 Hobbes got wrong (C-138). The external veto (ADR-111) removed them, and it
@@ -214,8 +216,9 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but two. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 3,254/3,282 (99.1%): 18 of its 28 contradictions are the
-  oracle's grain and 10 are scip-clang's own wrong candidate (C-153).
+  reads 3,269/3,274 (99.85%; 99.66% like-for-like): all 5 contradictions
+  are Hobbes' own — scip-clang's wrong candidate (C-153) and one
+  unevaluated operand (C-155).
   Its recall lead within a row runs from none (sqlite-vector), half a
   point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
@@ -367,8 +370,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and fifty-four entries (one
-hundred and eleven active, twenty-six lifted, eleven superseded, six
+The constraint register holds one hundred and fifty-six entries (one
+hundred and thirteen active, twenty-six lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -384,9 +387,9 @@ its own: no model, no credential, no network.
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C and C++ clang-graded — with every compiler-graded cell
 at 100% after ADR-090 and ADR-111 but two: quic-go at 99.6% (every
-contradiction the oracle's grain) and C++'s fmt at 99.1% (10 of its 28
-contradictions Hobbes' own through scip-clang, C-153). The misses are
-registered by class.
+contradiction the oracle's grain) and C++'s fmt at 99.85% (99.66% like-for-like; all 5
+contradictions Hobbes' own — C-153 through scip-clang, and C-155). The
+misses are registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
 ADR-085 validation pair, 7B, 2026-08-24) mostly held, solved 0/5 (not the
@@ -444,7 +447,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-116 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-117 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
