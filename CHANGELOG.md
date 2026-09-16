@@ -11,9 +11,30 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.32-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.33-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.33-beta — 2026-09-16 (no call in an unevaluated operand; ADR-121)
+
+**Patch: what the layer draws.** A C++ call written inside an operand
+the program never evaluates was drawn as a `calls` edge.
+
+- Lane A's C++ walk records no call site under `sizeof`, `alignof`,
+  `decltype`, a `noexcept(..)` expression or a requires-expression;
+  `noexcept` and `typeid` in call position, which the grammar spells as
+  a call of a bare identifier, record no site of their own. `typeid`'s
+  operand keeps its sites: it is evaluated when it is a polymorphic
+  glvalue, which the syntax cannot tell.
+- The join and the tail are unchanged: lane B's occurrence at such a
+  site falls through as a `uses` edge, the true statement of a
+  dependency that is not a call.
+- **C-155 lifted** the day it was registered. Measured first: fmt had
+  49 such sites, one drawing a graded edge (its last contradiction that
+  was not scip-clang's); args 7, none drawing.
+- The oracle's own half — clang's dump keeps the call under `sizeof`,
+  `noexcept` and `typeid`, and O10 keyed it — is logged as H-32 and
+  fixed under `bench/` (no version move).
 
 ## 0.2.32-beta — 2026-09-16 (the override set is drawn as `implements` edges; ADR-120)
 

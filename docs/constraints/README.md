@@ -135,7 +135,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-157, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
-| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-155, C-144 |
+| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-144, C-155 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-154, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
@@ -151,21 +151,32 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and fifty-seven entries: one hundred and fourteen active, twenty-six lifted, eleven superseded, six folded**
+**One hundred and fifty-seven entries: one hundred and thirteen active, twenty-seven lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
 | active — surfaced | 87 | every active entry not listed below |
 | active — *partial* | 21 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150 |
-| active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-153, C-155 |
+| active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-153 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
-| lifted | 26 | at the bottom of each segment |
+| lifted | 27 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
 | folded | 6 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28, C-120 → C-112 |
 
 The table is the register's current state (2026-09-16), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-155 lifted, 2026-09-16 (night, later; ADR-121, 0.2.33-beta):
+- **C-155 lifted the day it was registered**, at the bottom of
+  `extraction-cpp.md`: lane A records no C++ call site inside an
+  unevaluated operand (`sizeof`, `alignof`, `decltype`, `noexcept(..)`, a
+  requires-expression), and `noexcept`/`typeid` in call position record
+  no site of their own. `typeid`'s operand keeps its sites (evaluated
+  when it is a polymorphic glvalue) — the residual, with the macro gap
+  and C's unclaimed headers. The oracle's matching half is H-32 (RC-11),
+  fixed as the next unit. 157 entries, 113 active, 87 surfaced, 4
+  unsurfaced.
 
 C-157 registered and C-58 narrowed, 2026-09-16 (night; ADR-120, 0.2.32-beta):
 - **C-157 registered (surfaced)**, in `extraction-rust.md`:

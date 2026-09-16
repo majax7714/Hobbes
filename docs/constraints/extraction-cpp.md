@@ -205,34 +205,6 @@ headers parsed with tree-sitter ERROR nodes.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 
-### C-155 — a call drawn inside an unevaluated operand, which the compiler never calls
-
-- **Cannot tell you:** that a C++ `calls` edge whose site lies inside an
-  **unevaluated operand** — `decltype(...)`, and the same shape in
-  `sizeof`, `noexcept` and `typeid` — corresponds to a call the program
-  makes. It does not: the operand is never evaluated, so no call is
-  emitted. The graph draws one anyway.
-- **Because:** lane B's index records an *occurrence* of the name at
-  that position, and the join reads an occurrence in a call-shaped
-  expression as a call. scip-clang's occurrence carries no "this operand
-  is unevaluated" flag, and lane A's walk sees `arg("arg", 42)` as a
-  call expression wherever it stands.
-- **Bites at:** fmt's `test/compile-test.cc:127`,
-  `fmt::detail::compile<decltype(fmt::arg("arg", 42))>(...)`, where the
-  graph draws `arg` and clang's own front end records no site — read
-  from the source and confirmed against a probe. On that cell 27 edges
-  sit on a line containing `decltype(`; 26 of them are oracle-silent and
-  1 is the contradiction above. **The 27 is an upper bound**: a keyword
-  on the line does not put the edge inside the operand, and the 12 edges
-  on `sizeof(` lines are all confirmed real calls. Only the one row was
-  read individually.
-- **You find out:** **unsurfaced** — nothing at the site says so, and on
-  a line the key resolves the edge reads as a contradiction charged to
-  the oracle until someone reads the source. This entry and fmt's cell
-  record are the only statement.
-- **Source:** H-31's trace, 2026-09-16. Six of H-31's seven rows were
-  the oracle's (fixed); this one was Hobbes'.
-
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that
@@ -267,3 +239,55 @@ survives. Field key: `README.md`, "How to read a lifted entry".
   fmt the lift moved 271 below-floor sites (7,628 → 7,357); the rest is
   C-145's.
 - **Source:** the fmt read and `be34`, 2026-09-14.
+
+### C-155 — A call drawn inside an unevaluated operand, which the compiler never calls — *lifted 2026-09-16, the day it was registered*
+
+- **Was:** a C++ `calls` edge whose site lay inside an **unevaluated
+  operand** — `decltype(...)`, and the same shape in `sizeof`, `alignof`,
+  `noexcept` and a requires-expression — was drawn although the operand
+  is never evaluated and no call is emitted. Lane B's index records an
+  occurrence of the name there, lane A's walk saw `arg("arg", 42)` as a
+  call expression wherever it stood, and the join read the two as a
+  call. Registered from fmt's `test/compile-test.cc:127`
+  (`compile<decltype(fmt::arg("arg", 42))>(…)`), the cell's one
+  contradiction that was Hobbes' own and not scip-clang's; the entry's
+  "27 edges on `decltype(` lines" was an upper bound. **Unsurfaced**
+  while it stood.
+- **Lifted by — the technique** (ADR-121 §1, `cppsource._unevaluated`,
+  `S-20260916T225041Z-d95c`, 0.2.33-beta): lane A records no call site
+  whose node has an ancestor `sizeof_expression`, `alignof_expression`,
+  `decltype` or `requires_expression`, or a `call_expression` whose
+  callee is the bare identifier `noexcept` — the provider sees no call,
+  the rule the named casts and the operators already follow. `noexcept`
+  and `typeid` in call position, which the grammar spells as a call of
+  a bare identifier, record no site of their own. The join and the tail
+  do not move: lane B's occurrence at such a site falls through as a
+  `uses` edge at semantic tier, which is the true statement (the file
+  depends on the declaration to type-check) and is not a call.
+  Measured before the decision: fmt had 49 such sites (all `decltype`)
+  of which exactly one drew a graded edge; args 7, none drawing; the
+  lift moves one row on the two cells and nothing else.
+- **Residual edge cases:**
+  - **`typeid`'s operand keeps its sites.** `typeid(f())` evaluates its
+    operand when it is a glvalue of polymorphic class type
+    ([expr.typeid]/3), which lane A cannot type; a site there is right
+    in that case and a call the program never makes otherwise. The
+    oracle keeps the same rule (ADR-121 §3), so a contradiction there
+    is a real disagreement.
+  - **An operand a macro spells** — `MACRO(f(x))` whose body is
+    `decltype(…)` or `sizeof(…)` — is read as a call inside a macro
+    argument, and drawn: the macro gap, C-131.
+  - **A `.h` C++ did not claim** is walked by C's provider, which has no
+    such rule (C-142's face); C's own `sizeof(f())` is unmeasured and
+    stands.
+  - **A constant expression is not unevaluated** — `static_assert(g())`,
+    a `noexcept` specifier's own condition, `alignas(N)` — and keeps its
+    sites, as the compiler evaluates it and clang's dump holds it.
+  - **The oracle's own half**, H-32: clang's dump keeps the call under
+    `sizeof`, `noexcept` and `typeid`, and O10's reader recorded it as a
+    site, so the key held a site for a call the program never makes.
+    Decided in ADR-121 §3, built as the unit after this one; until it
+    lands, a repo that writes `sizeof(f(x))` reads those sites as key
+    pairs Hobbes misses.
+- **Source:** H-31's trace, 2026-09-16 (the concession); ADR-121 and
+  `S-20260916T225041Z-d95c` (the lift).
