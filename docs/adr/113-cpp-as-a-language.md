@@ -377,6 +377,27 @@ stays open.
   a probe of that shape, so no rule is written from the synthetic. It
   is traced against fmt's own evidence or it stays open.
 
+**As built** (`e19f850`, session `S-20260916T153010Z-8170`), where the
+tree is narrower or plainer than the wording above — the record follows
+the tree, not the reverse:
+
+- **The member token positions a site only where the `MemberExpr` is a
+  `CXXMemberCallExpr`'s callee**, not for every `MemberExpr` callee.
+  The same shape under a plain `CallExpr` is a call through a member of
+  function-pointer type: it stays `dynamic` and keeps the whole
+  expression's position, which is C's shape and ADR-110's to own.
+  Widening it would re-key C's sites and move `cclang`'s hand-keyed
+  dynamic site. This is also why only the two C++ cells are re-run.
+- **`extern "C"` and `main` do not reach the class-less fallback.**
+  Probed in the image: clang gives both a `mangledName` equal to their
+  own name, in C and C++ alike, so they key bare through the mangled
+  branch. The fallback's class-less arm is real but is covered by
+  `TestDeclKeySpelling` rather than by a fixture.
+- The fixtures are `member.cpp` (the two-line chain), `tmpl.cpp` (the
+  two patterns), and `extc.c`/`extc2.c` (the bare-name join, run under
+  both front ends). `cppclang`'s existing 25 sites stand at their lines;
+  seven member-call columns moved onto the member token.
+
 ### 4. The cells and the row (the developer, host-run and contained)
 
 Two cells on the clang keys: **fmtlib/fmt** (a header-heavy library

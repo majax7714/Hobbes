@@ -70,9 +70,11 @@ type Call struct {
 	// Mode is "static", "macro" or "dynamic", and for C++ also
 	// "virtual", "operator" or "constructor".
 	Mode string `json:"mode"`
-	// Callee is the key Merge joins by: a declaration's mangled name
-	// where it has one, else the name as written. Empty for a dynamic
-	// site.
+	// Callee is the key Merge joins by, spelled as declKey spells it: a
+	// declaration's mangled name where it has one, else its name
+	// qualified by its class (a class template's pattern members, which
+	// carry no mangling — ADR-113 §3, H-29), else the bare name. Empty
+	// for a dynamic site.
 	Callee string `json:"callee,omitempty"`
 	// CalleeName is the name as written, which a mangled Callee does not
 	// carry: the name a target reports. Empty when it is the Callee.
