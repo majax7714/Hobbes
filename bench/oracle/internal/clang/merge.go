@@ -204,6 +204,7 @@ func Merge(shards []*Shard, module string) *edges.OracleExport {
 		"sites_static": 0, "sites_macro": 0, "sites_dynamic": 0,
 		"sites_virtual": 0, "sites_operator": 0, "sites_constructor": 0,
 		"sites_external": 0, "sites_link_ambiguous": 0, "sites_undefined": 0, "sites_tu_split": 0,
+		"sites_unevaluated": 0,
 	}
 	for _, s := range shards {
 		if s.Failed {
@@ -212,6 +213,12 @@ func Merge(shards []*Shard, module string) *edges.OracleExport {
 		if s.CXX {
 			cov["units_cpp"]++
 		}
+		// sites_unevaluated is what the readers dropped for standing in an
+		// unevaluated operand (ADR-121 §3, H-32). It is a sum over units,
+		// not a count of distinct sites like every bucket below: a dropped
+		// site carries no position to key on, so one written in a header
+		// counts once per unit that reads it, as units_cpp does.
+		cov["sites_unevaluated"] += s.Unevaluated
 	}
 
 	sites := make([]edges.Site, 0, len(order))

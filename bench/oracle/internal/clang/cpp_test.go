@@ -3,6 +3,7 @@ package clang
 import (
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/majax7714/Hobbes/bench/oracle/internal/edges"
@@ -327,6 +328,120 @@ func TestCppMacroQualifiedCallSitsAtTheNameTheAuthorWrote(t *testing.T) {
 	// Two `g`s, two `c_str`s and the controls' three, and nothing else.
 	if len(out.Sites) != 7 {
 		t.Errorf("total distinct sites: %d, want 7: %+v", len(out.Sites), out.Sites)
+	}
+}
+
+// TestUnevaluatedOperandMakesNoSiteInAHandWrittenDump is H-32's rule on
+// a dump fragment rather than on clang's own output, so it runs wherever
+// the package's tests run: a `sizeof` over a call, and an evaluated call
+// beside it. The unevaluated one makes no site and is counted; the
+// evaluated one is untouched.
+func TestUnevaluatedOperandMakesNoSiteInAHandWrittenDump(t *testing.T) {
+	const doc = `{
+	  "kind": "FunctionDecl", "name": "use",
+	  "loc": {"offset": 1, "file": "main.cpp", "line": 3, "col": 1},
+	  "inner": [
+	    {"kind": "CompoundStmt", "inner": [
+	      {"kind": "UnaryExprOrTypeTraitExpr", "name": "sizeof",
+	       "range": {"begin": {"offset": 10, "line": 4, "col": 10}}, "inner": [
+	        {"kind": "CallExpr", "inner": [
+	          {"kind": "DeclRefExpr", "range": {"begin": {"offset": 12, "col": 17}},
+	           "referencedDecl": {"kind": "FunctionDecl", "name": "measured"}}
+	        ]}
+	      ]},
+	      {"kind": "CallExpr", "inner": [
+	        {"kind": "DeclRefExpr", "range": {"begin": {"offset": 30, "line": 5, "col": 3}},
+	         "referencedDecl": {"kind": "FunctionDecl", "name": "called"}}
+	      ]}
+	    ]}
+	  ]
+	}`
+	s, err := ReadDump(strings.NewReader(doc), "/fx", "/fx")
+	if err != nil {
+		t.Fatalf("ReadDump: %v", err)
+	}
+	if len(s.Calls) != 1 {
+		t.Fatalf("want the evaluated call alone, got %+v", s.Calls)
+	}
+	c := s.Calls[0]
+	if c.Callee != "called" || c.Caller != "use" || c.Site.Line != 5 || c.Col != 3 {
+		t.Errorf("the evaluated call must be untouched: %+v", c)
+	}
+	if s.Unevaluated != 1 {
+		t.Errorf("Unevaluated = %d, want 1 (the call under the sizeof)", s.Unevaluated)
+	}
+}
+
+// TestCppUnevaluatedOperandIsNotASite is H-32's evidence through the
+// front end (ADR-121 §3): a call the program never makes — the operand
+// of a `sizeof` or a `noexcept` expression, a requires-expression's
+// requirement — keys no site, while `typeid`'s operand, a
+// `static_assert`'s condition and every evaluated call keep theirs.
+func TestCppUnevaluatedOperandIsNotASite(t *testing.T) {
+	shards := loadCppUnits(t, []string{"uneval.cpp"}, "-std=c++20")
+	out := Merge(shards, "")
+
+	// The five dropped calls, by hand: `sizeof(f(1))` at 27:27 and
+	// `sizeof f(1)` at 28:27, the `noexcept(f(1))` initialiser at 40:20,
+	// the requires-expression's requirement at 45:21, and the `sizeof`'s
+	// own call on the shared line, 61:33. Two more shapes the fixture
+	// writes are dropped by clang before the reader ever sees them and so
+	// count as neither site nor drop: the `alignof(decltype(f(1)))` on
+	// line 33, whose operand is a type, and the `noexcept` specifier's
+	// condition on line 41, which the dump prints only inside a type.
+	for _, c := range []struct {
+		line, col int
+		what      string
+	}{
+		{27, 27, "sizeof(f(1))"},
+		{28, 27, "sizeof f(1)"},
+		{33, 37, "alignof(decltype(f(1)))"},
+		{40, 20, "noexcept(f(1)) as an initialiser"},
+		{41, 28, "the noexcept specifier's condition"},
+		{45, 21, "a requires-expression's requirement"},
+		{61, 33, "sizeof(f(1)) beside an evaluated call"},
+	} {
+		if got := sitesAt(out, "uneval.cpp", c.line, c.col); len(got) != 0 {
+			t.Errorf("uneval.cpp:%d col %d (%s): %d sites, want none: %+v", c.line, c.col, c.what, len(got), got)
+		}
+	}
+
+	// The kept calls: both `typeid` operands (the syntax cannot say which
+	// is evaluated, so both stay), `static_assert`'s condition, and the
+	// evaluated `f(3)` on the line whose `sizeof` was dropped.
+	for _, c := range []struct {
+		line, col int
+		target    string
+		caller    string
+		what      string
+	}{
+		{52, 35, "uneval.cpp:13", "", "typeid(f(1))"},
+		{53, 35, "uneval.cpp:21", "", "typeid(p())"},
+		{57, 15, "uneval.cpp:15", "", "static_assert(g(), \"\")"},
+		{61, 41, "uneval.cpp:13", "both", "the evaluated f(3)"},
+	} {
+		got := sitesAt(out, "uneval.cpp", c.line, c.col)
+		if len(got) != 1 {
+			t.Errorf("uneval.cpp:%d col %d (%s): %d sites, want the one call: %+v", c.line, c.col, c.what, len(got), got)
+			continue
+		}
+		s := got[0]
+		if s.Mode != "static" || s.Caller != c.caller {
+			t.Errorf("uneval.cpp:%d col %d (%s): mode=%s caller=%q, want static %q",
+				c.line, c.col, c.what, s.Mode, s.Caller, c.caller)
+		}
+		if len(s.Targets) != 1 || s.Targets[0].Pos.Key() != c.target {
+			t.Errorf("uneval.cpp:%d col %d (%s): targets %+v, want %s alone", c.line, c.col, c.what, s.Targets, c.target)
+		}
+	}
+
+	// Four sites in all, and the five drops counted where a user reads
+	// them: the coverage line, beside sites_tu_split.
+	if len(out.Sites) != 4 {
+		t.Errorf("total distinct sites: %d, want 4: %+v", len(out.Sites), out.Sites)
+	}
+	if out.Coverage["sites_unevaluated"] != 5 {
+		t.Errorf("coverage[sites_unevaluated] = %d, want 5 (full: %v)", out.Coverage["sites_unevaluated"], out.Coverage)
 	}
 }
 
