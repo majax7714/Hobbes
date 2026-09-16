@@ -11362,3 +11362,48 @@ re-rendered, `render.py check` and ADR-102's drift test green.
 **Open for Max:** H-31; whether a "judged-as-before" companion number
 belongs on any cell with `line-unresolved > 0`; C-153's status, now 4
 judged : 6 unjudged.
+
+## 2026-09-16 (later) — H-31 traced from fmt's own evidence: six rows the oracle's, the seventh ours
+
+Max: "fix 31 from the evidence leave the rest for next session." The
+entry above says H-31 stays open because its `os.cc` half would not
+reproduce. That was true of the *synthetic* and wrong about the defect:
+my probe spliced macros (`OUTER(INNER(sink(2)))`) but never spliced a
+**qualifier**, which is the whole shape.
+
+**The trace.** fmt's `include/fmt/os.h:57` is `#define FMT_SYSTEM(call)
+::call`, so the macro body supplies `::` and the argument supplies the
+name. clang spells the callee's `range.begin` in the macro body — not an
+argument expansion — while `range.end` is the author's own name token,
+an argument expansion. `resolve()` therefore keys the call on the
+macro's definition line, in another file. Confirmed on the cell's key,
+not inferred: fmt's six POSIX calls sit at `os.h:57` and `os.h:62`, one
+per caller, which is exactly why `src/os.cc:176` holds `c_str` and
+`__errno_location` but never `fopen`. The call's own *argument* keys
+correctly, which is what made the loss invisible. Root **RC-2** (a call
+attributed to a line nobody wrote it on), not RC-4.
+
+**A control probe kept the rule narrow.** `ns::h(1)` and `ns::t<int>(2)`
+have neither end in a macro, so "always take `range.end`" would have
+moved `cppclang`'s hand-keyed columns for every plain qualified call.
+The rule is conditioned on begin-in-body-and-not-arg + end-is-arg.
+
+**The seventh row was never the oracle's.** `compile-test.cc:127` is
+`compile<decltype(fmt::arg("arg", 42))>(...)` — an unevaluated operand,
+which the compiler never calls. clang emits no site and is right;
+Hobbes draws the edge from a lane B occurrence and is wrong. Registered
+**C-155** (unsurfaced), and fmt's triage ratio corrected from
+`hobbes-wrong 4 : oracle-wrong 7` to **5 : 6**. Sizing, honestly: one
+row read from source, and 26 further edges sit on `decltype(` lines
+oracle-silent — an upper bound, unread individually, while all 12 on
+`sizeof(` lines are confirmed real calls.
+
+So the cell record charged a row to the wrong side for a day, and the
+correction moves a number **against** us. Register 154 → 155 entries,
+unsurfaced 4 → 5.
+
+**Next:** the oracle-side rule is dispatched as its own unit
+(`macroqual-task.md`); the regrade of fmt after it lands, and with it
+whether the six rows become confirmed or silent, is the developer's.
+Left for next session on Max's word: the "judged-as-before" reporting
+decision and C-153's status.

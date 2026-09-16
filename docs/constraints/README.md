@@ -135,7 +135,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
-| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-144 |
+| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-155, C-144 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-154, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
@@ -157,7 +157,7 @@ their segment, in that order, and are marked in the heading.
 |---|---|---|
 | active — surfaced | 85 | every active entry not listed below |
 | active — *partial* | 21 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150 |
-| active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-153 |
+| active — **unsurfaced** (debt) | 5 | C-19, C-20, C-112, C-153, C-155 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 26 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
@@ -175,10 +175,17 @@ O10's defects fixed, 2026-09-16 (bench only, no version move):
   declaration. fmt's cell reads 99.7% where the like-for-like figure is
   99.48%, and both are in its record. The number that would have exposed
   this concession is now smaller than the concession.
-- **No status moved and no entry was added.** H-28, H-29 and H-30 are
-  defects of the oracle that grades Hobbes (`oracle/oracle-defects.md`),
-  not concessions the layer makes to a user, so they take no `C-n` and
-  the table above is unchanged.
+- **C-155 registered (unsurfaced, debt)**, in `extraction-cpp.md`: a
+  C++ `calls` edge drawn inside an **unevaluated operand** —
+  `decltype(...)` and the same shape in `sizeof`, `noexcept`, `typeid` —
+  which the compiler never calls. Found by tracing H-31 on 2026-09-16:
+  six of its seven rows were the oracle's, but `compile-test.cc:127` was
+  Hobbes drawing `fmt::arg` inside a `decltype`, where clang is right to
+  emit nothing. One row read from source; 26 more sit on `decltype(`
+  lines oracle-silent, an upper bound, unread individually.
+- **H-28, H-29 and H-30 take no `C-n`:** they are defects of the oracle
+  that grades Hobbes (`oracle/oracle-defects.md`), not concessions the
+  layer makes to a user.
 
 The gate's arrow read, 2026-09-15 (0.2.28-beta):
 - C-91 amended again: the gate's TS/JS text read takes an arrow's

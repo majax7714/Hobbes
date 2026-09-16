@@ -202,6 +202,34 @@ headers parsed with tree-sitter ERROR nodes.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 
+### C-155 — a call drawn inside an unevaluated operand, which the compiler never calls
+
+- **Cannot tell you:** that a C++ `calls` edge whose site lies inside an
+  **unevaluated operand** — `decltype(...)`, and the same shape in
+  `sizeof`, `noexcept` and `typeid` — corresponds to a call the program
+  makes. It does not: the operand is never evaluated, so no call is
+  emitted. The graph draws one anyway.
+- **Because:** lane B's index records an *occurrence* of the name at
+  that position, and the join reads an occurrence in a call-shaped
+  expression as a call. scip-clang's occurrence carries no "this operand
+  is unevaluated" flag, and lane A's walk sees `arg("arg", 42)` as a
+  call expression wherever it stands.
+- **Bites at:** fmt's `test/compile-test.cc:127`,
+  `fmt::detail::compile<decltype(fmt::arg("arg", 42))>(...)`, where the
+  graph draws `arg` and clang's own front end records no site — read
+  from the source and confirmed against a probe. On that cell 27 edges
+  sit on a line containing `decltype(`; 26 of them are oracle-silent and
+  1 is the contradiction above. **The 27 is an upper bound**: a keyword
+  on the line does not put the edge inside the operand, and the 12 edges
+  on `sizeof(` lines are all confirmed real calls. Only the one row was
+  read individually.
+- **You find out:** **unsurfaced** — nothing at the site says so, and on
+  a line the key resolves the edge reads as a contradiction charged to
+  the oracle until someone reads the source. This entry and fmt's cell
+  record are the only statement.
+- **Source:** H-31's trace, 2026-09-16. Six of H-31's seven rows were
+  the oracle's (fixed); this one was Hobbes'.
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that

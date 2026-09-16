@@ -287,8 +287,8 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 154 entries: 111 active (85 surfaced, 21 partial, 4
-  unsurfaced — C-19, C-20, C-112, C-153 — 1 n/a), 26 lifted, 11
+- **Register:** 155 entries: 112 active (85 surfaced, 21 partial, 5
+  unsurfaced — C-19, C-20, C-112, C-153, C-155 — 1 n/a), 26 lifted, 11
   superseded, 6 folded. Since C++'s close-out: C-154 (surfaced,
   0.2.24-beta); C-150 narrowed and C-149 reworded (0.2.25-beta); C-150
   corrected, narrowed again and moved to *partial* (0.2.26-beta).

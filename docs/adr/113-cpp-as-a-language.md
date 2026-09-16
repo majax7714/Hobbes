@@ -373,11 +373,35 @@ stays open.
   stored key the way H-23's did (`--merge-only --carry`): the reader
   streams clang's dump and keeps no raw copy, only the reduced shards.
   Both C++ cells are therefore re-run, not re-merged.
-- **H-31 stays open.** Its `decltype` half reproduces (a call in an
-  unevaluated operand yields no site at all); its `os.cc` half — a call
-  in a macro argument nested in another's — did **not** reproduce under
-  a probe of that shape, so no rule is written from the synthetic. It
-  is traced against fmt's own evidence or it stays open.
+- **H-31 traced 2026-09-16, and it was two defects on opposite sides.**
+  The first probe of it failed because the synthetic
+  (`OUTER(INNER(sink(2)))`) never spliced a **qualifier**; fmt's shape
+  does. With `#define FMT_SYSTEM(call) ::call` (os.h:57) the macro body
+  supplies `::` and the argument supplies the name, and clang spells the
+  `DeclRefExpr`'s `range.begin` at the **macro body** while its
+  `range.end` is the author's own name token:
+
+  - `begin` — `spellingLoc` in the macro body, `expansionLoc` at the use
+    site, **not** an argument expansion;
+  - `end` — an argument expansion (`isMacroArgExpansion: true`).
+
+  `resolve()` therefore keys the call on the macro definition's line, in
+  another file. Confirmed on the cell's own key: fmt's six `os.cc` calls
+  sit at `include/fmt/os.h:57` and `:62` — one per caller, collapsed
+  onto two lines — so `src/os.cc:176` holds `c_str` and
+  `__errno_location` but never `fopen`. **The rule:** where a callee's
+  `range.begin` is spelled in a macro body and is not an argument
+  expansion while its `range.end` is, the site is the end's resolved
+  position. A plain qualified call (`ns::h(1)`) has neither end in a
+  macro and is untouched — checked, because the naive form would move
+  `cppclang`'s hand-keyed columns. Root RC-2: a call attributed to a
+  line nobody wrote it on.
+- **H-31's seventh row was never the oracle's.** `compile-test.cc:127`
+  is `compile<decltype(fmt::arg("arg", 42))>(...)`: an **unevaluated
+  operand**, which the compiler never calls. clang emits no site there
+  and is right; Hobbes draws the edge from a lane B occurrence and is
+  wrong. Registered as **C-155**, and fmt's triage ratio moves to
+  `hobbes-wrong 5 : oracle-wrong 6`.
 
 **As built** (`e19f850`, session `S-20260916T153010Z-8170`), where the
 tree is narrower or plainer than the wording above — the record follows

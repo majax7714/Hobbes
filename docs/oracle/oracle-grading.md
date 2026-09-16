@@ -899,6 +899,20 @@ that moves is re-rendered and ADR-102's drift test
 `os.cc` half does not; it stays open in the log unless its trace names
 a rule, and its 7 rows are expected to survive the regrade (P36).
 
+**Traced 2026-09-16, after the regrade, and it was two defects on
+opposite sides.** The first probe missed because the synthetic never
+spliced a *qualifier*; fmt's `#define FMT_SYSTEM(call) ::call` does, and
+clang then spells the callee's `range.begin` in the macro body while its
+`range.end` is the author's name token. So the six `os.cc` calls are
+keyed at `include/fmt/os.h:57` and `:62` — confirmed on the key itself —
+and are the oracle's, with the rule in ADR-113 §3's amendment (root
+RC-2). **The seventh was never the oracle's:** `compile-test.cc:127` is
+`decltype(fmt::arg(…))`, an unevaluated operand the compiler never
+calls, so clang is right to emit no site and Hobbes is wrong to draw the
+edge — registered **C-155**, and fmt's triage ratio corrected from
+`hobbes-wrong 4 : oracle-wrong 7` to **5 : 6**. P36's count stands; its
+attribution of all seven to the oracle does not.
+
 **Graded 2026-09-16**, after H-28/H-29 (`eec8141`) and H-30 (`f747aef`).
 Both C++ cells were re-run contained against their standing Hobbes
 export, so the Hobbes side is identical row for row (fmt 3,525 edges,

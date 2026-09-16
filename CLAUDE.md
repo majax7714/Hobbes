@@ -279,8 +279,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain) and fmt (**99.7%** after
   2026-09-16's regrade — 99.48% judged like-for-like: 4 scip-clang's own
   (C-153) and 7 the oracle's (H-31, open); H-28, H-29 and H-30 fixed).
-  **Register:** 154 entries; 111 active (85 surfaced, 21 partial, 4
-  unsurfaced, 1 n/a).
+  **Register:** 155 entries; 112 active (85 surfaced, 21 partial, 5
+  unsurfaced, 1 n/a) — C-155 registered 2026-09-16 from H-31's trace.
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. Max: verify it by using it through Hobbes
