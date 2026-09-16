@@ -132,10 +132,11 @@ roots. Maintained in the same commit as the log entry that changes it
 | RC-7 | Miss-class taxonomy diverges across languages | H-7 | 1 | provisional | Patched: local-binding split from closure; TS modes derived from binding shape so Go and TS classes read alike. Watch for the Rust/Python analogue. |
 | RC-9 | A walk that consumes a node on one path without recording it | H-25 | 1 | closed-structural | Every `CallExpr` is recorded wherever the C reader meets it, and the site identity carries mode and callee. Watch any walker with a special path for one child (a callee, a receiver). |
 | RC-10 | A test that passes on a layout the lane never uses | H-27 | 1 | provisional | The C end-to-end test now builds where `run-cell.sh` builds. Any oracle test that stages its own binary or tree elsewhere risks a sighting. |
+| RC-11 | An expression the front end holds but the program never evaluates, keyed as a call | H-32 | 1 | provisional | The dump is the front end's syntax, not its codegen: `sizeof`, `noexcept` and `typeid` operands and a requires-expression's requirements carry `CallExpr` nodes no call instruction follows. Rule (ADR-121 §3): drop and count under those parents, `typeid` excepted (its polymorphic-glvalue operand is evaluated). The tell was asking what the key held where Hobbes was about to abstain — a cross-check the lifting of any constraint should repeat. Watch: a constant expression the compiler folds (`static_assert(f())`) is *evaluated* and stays; a sighting there is a different root. |
 | — | Cosmetic | H-8, H-11 | 2 | — | H-11 → A-3. |
 | — | Environment limit (not a defect root) | H-9 | 1 | parked | A-9. |
 
-Coverage check: 31 of 31 entries mapped (updated 2026-09-15 for H-28–H-31; the line had read 22 since H-22, while H-23–H-27 were each mapped in their rows).
+Coverage check: 32 of 32 entries mapped (updated 2026-09-16 for H-32 → RC-11; 2026-09-15 for H-28–H-31; the line had read 22 since H-22, while H-23–H-27 were each mapped in their rows).
 
 **Promotion mechanics.** New defect → assign to an existing RC or open
 a new one at *provisional*. Assignment to an RC with n≥2 triggers the

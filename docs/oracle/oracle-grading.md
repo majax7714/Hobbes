@@ -1049,6 +1049,35 @@ member-call sites, so the twins land differently. Every cell still
 passes with 0 falsely confirmed, which is how P43 is worded, but the
 instrument covers fewer sites than it did.
 
+### 10.10 C-155 lifted at lane A — written 2026-09-16, before the regrade
+
+ADR-121: lane A records no C++ call site under `sizeof`, `alignof`,
+`decltype`, the `noexcept` operator or a requires-expression, and
+`noexcept`/`typeid` in call position record no site of their own;
+`typeid`'s operand keeps its sites. Measured before writing this: fmt has
+49 lane A sites under those shapes (all `decltype`), of which exactly one
+draws a graded edge — `compile-test.cc:127`, C-155's row; args has 7
+(all `decltype`), none drawing an edge. The oracle's own half (H-32: the
+key holds a site under `sizeof`, `noexcept` and `typeid`) has no
+instance on either cell, so its fix moves neither key.
+
+**Scope.** The Hobbes side only: fmt and args re-ingested at the new
+version and re-exported, then graded against their **standing** keys
+(`regrade-out/h31/{fmt,args}/oracle.json`), so the key is identical and
+only the export moves. The foreign cells are untouched (their side did
+not change). After the oracle unit lands, both keys are re-run
+contained and diffed site for site against the standing ones.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P52 | O10 (fmt) | edges 3,525 → **3,524**: the one `arg` edge at `compile-test.cc:127` is gone and no other row changes bucket; contradicted 5 → **4** (C-153's four, row for row), confirmed 3,269 unchanged, precision 99.85% → **99.88%** (3,269/3,273); like-for-like 99.66% → **99.69%** (3,269/3,279) | met if the removed row is exactly that one and the rest of the export is identical as a set; a second moved row is a finding to read |
+| P53 | O10 (fmt) | recall unchanged, 7,334/50,525: the removed edge was never a key pair | met per the report |
+| P54 | O10 (fmt) | coverage on the Hobbes side: 49 fewer C++ call sites in the ingest's rows, the key's `sites_*` untouched | recorded; the count is the measurement's, and a different number means the walk's ancestor rule reaches somewhere the count did not |
+| P55 | O10 (args) | identical row for row — 2,000 edges, 1,995/1,995, 5 silent — since none of its 7 sites drew an edge | met if the export is identical as a set |
+| P56 | both, after the oracle unit | the re-run keys are identical site for site to the standing ones; the fixture `uneval.cpp` is the only place H-32 shows | met per the diff; a moved site is a sighting for RC-11 |
+
+Poison PASS on both, 0 falsely confirmed (the usual P51 clause).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
