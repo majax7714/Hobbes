@@ -174,6 +174,27 @@ def test_a_blocked_gate_line_naming_its_classes_parses(tmp_path):
     assert ct.parse_session(path)["gate"] == "blocked"
 
 
+def test_a_gate_line_at_newer_rule_versions_parses(tmp_path):
+    """The gate's and the grounder's versions are read, not pinned, and a non-zero uncaptured percentage parses.
+
+    Found by use on 2026-09-16: `GATE_RE` held `gate v2, grounder v3` as
+    literals, so the first session run at grounder v4 (0.2.28-beta's C-91
+    fix) could not be parsed and `calvin_tracker.py render` refused the
+    harness's own output. Every fixture here carried the same literals,
+    which is why the drift test could not catch it — so this case moves
+    both numbers and the percentage away from the fixture's values.
+    """
+    sid = "S-20260101T000000Z-4a44"
+    _write_session(tmp_path, sid)
+    path = tmp_path / f"{sid}.md"
+    pinned = ("- **Gate:** **clear** at `deadbeef` (gate v2, grounder v3, record `cafef00d`); unknown 0; "
+              "map over 2 file(s), 0.0% of their lines uncaptured; partition checked")
+    moved = ("- **Gate:** **clear** at `deadbeef` (gate v3, grounder v4, record `cafef00d`); unknown 0; "
+             "map over 9 file(s), 7.0% of their lines uncaptured; partition checked")
+    path.write_text(path.read_text().replace(pinned, moved))
+    assert ct.parse_session(path)["gate"] == "clear"
+
+
 def test_policy_line_with_the_stream_bracket_parses(tmp_path):
     """A Policy line carrying the sink's bracket (`; records: stream opened→closed`, ADR-112) parses, with and without an escalation clause before it; the kinds still count."""
     sid = "S-20260101T000000Z-beef"

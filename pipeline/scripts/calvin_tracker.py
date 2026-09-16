@@ -81,9 +81,17 @@ BRANCH_NONE_RE = re.compile(r"^- \*\*Branch:\*\* none harvested — the session 
 BRANCH_RE = re.compile(r"^- \*\*Branch:\*\* `[^`]+`, \d+ commit\(s\); files: (?P<files>.+)$")
 FILE_RE = re.compile(r"`([^`]+)`")
 
+# The gate's and the grounder's version numbers are READ, never pinned.
+# They were literals (`gate v2, grounder v3`) until 2026-09-16, when
+# 0.2.28-beta moved the grounder to v4 for C-91 and the first session run
+# at v4 (`S-20260916T153010Z-8170`) could not be parsed at all — the
+# tracker refusing the harness's own current output. Every fixture in
+# test_calvin_tracker.py held the same two literals, so the drift test
+# could not see it either: a rule-version bump is a routine event, and
+# nothing here may depend on its value.
 GATE_RE = re.compile(
     r"^- \*\*Gate:\*\* \*\*(?P<verdict>clear|blocked)\*\* at `[0-9a-f]+` "
-    r"\(gate v2, grounder v3, record `[0-9a-f]+`\)(?: — blocking: [\w, -]+)?; unknown \d+; "
+    r"\(gate v\d+, grounder v\d+, record `[0-9a-f]+`\)(?: — blocking: [\w, -]+)?; unknown \d+; "
     r"map over \d+ file\(s\), [\d.]+% of their lines uncaptured; partition checked$"
 )
 
