@@ -95,9 +95,16 @@ type Shard struct {
 	// CXX is whether the unit ran the C++ binary (its entry's file has a
 	// C++ extension, ADR-113): the coverage line counts them, so a mixed
 	// build root says how it split.
-	CXX    bool   `json:"cxx,omitempty"`
-	Failed bool   `json:"failed"`
-	Stderr string `json:"stderr,omitempty"`
+	CXX bool `json:"cxx,omitempty"`
+	// Unevaluated is how many in-repo sites this unit dropped for
+	// standing inside an unevaluated operand — a `sizeof` or `alignof`
+	// argument, a `noexcept` expression's operand, a
+	// requires-expression's requirement (ADR-121 §3, H-32). One per call
+	// or construct dropped, the provenance rule's shape: the key does not
+	// hold the site, and the count says how many it does not hold.
+	Unevaluated int    `json:"unevaluated,omitempty"`
+	Failed      bool   `json:"failed"`
+	Stderr      string `json:"stderr,omitempty"`
 }
 
 // Save writes the shard as one indented JSON file.

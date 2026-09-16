@@ -108,6 +108,16 @@ type reader struct {
 	curClass string
 	curAnon  bool
 
+	// uneval is the depth of enclosing unevaluated operands: a `sizeof`
+	// or `alignof` argument, a `noexcept` expression's operand, a
+	// requires-expression's requirements (ADR-121 §3). The subtree is
+	// still walked — a lambda or a local class inside one declares — but
+	// no site it holds is recorded, because no instruction makes that
+	// call. unevaluated counts what that drops, one per call or
+	// construct, for the coverage line.
+	uneval      int
+	unevaluated int
+
 	mainFile string
 	files    map[string]bool
 	decls    []Decl
@@ -148,7 +158,7 @@ func ReadDump(r io.Reader, dir, repo string) (*Shard, error) {
 		return nil, fmt.Errorf("clang: %w", err)
 	}
 	rd.finish()
-	s := &Shard{File: rd.mainFile, Decls: rd.decls, Calls: rd.calls}
+	s := &Shard{File: rd.mainFile, Decls: rd.decls, Calls: rd.calls, Unevaluated: rd.unevaluated}
 	for f := range rd.files {
 		s.Files = append(s.Files, f)
 	}
@@ -286,7 +296,13 @@ func (rd *reader) walkNode(fn string) (string, error) {
 			}
 			outerClass, outerAnon := rd.curClass, rd.curAnon
 			rd.curClass, rd.curAnon = childClass, childAnon
+			if isUnevaluatedKind(kind) {
+				rd.uneval++
+			}
 			hasCompound, err = rd.walkChildren(kind, childFn)
+			if isUnevaluatedKind(kind) {
+				rd.uneval--
+			}
 			rd.curClass, rd.curAnon = outerClass, outerAnon
 			if err != nil {
 				return "", err
@@ -377,10 +393,17 @@ func (rd *reader) walkCallInner(fn, siteKind string) error {
 }
 
 // record appends the site a peeled callee makes, if any, and queues it
-// for finish when it names a declaration by id.
+// for finish when it names a declaration by id. A call standing inside
+// an unevaluated operand makes no site: the callee has already been
+// peeled where it stands (nothing is consumed unrecorded), and the site
+// it would have made is counted instead.
 func (rd *reader) record(cr calleeResult, fn, siteKind string) {
 	c := rd.buildCall(cr, fn, siteKind)
 	if c == nil {
+		return
+	}
+	if rd.uneval > 0 {
+		rd.unevaluated++
 		return
 	}
 	rd.calls = append(rd.calls, *c)
@@ -447,6 +470,13 @@ func (rd *reader) buildCall(cr calleeResult, fn, siteKind string) *Call {
 func (rd *reader) recordConstruct(p pos, fn, qualType, ctorType string) {
 	sitePos, _ := p.resolve()
 	if !sitePos.InRepo {
+		return
+	}
+	// A construction inside an unevaluated operand — `sizeof(Circle(1))`
+	// — is the call rule's other face: no object is built, so it is
+	// dropped and counted, its class never named.
+	if rd.uneval > 0 {
+		rd.unevaluated++
 		return
 	}
 	spell := p.spellingPos()
@@ -592,6 +622,24 @@ func declKind(kind string) string {
 func isCallKind(kind string) bool {
 	switch kind {
 	case "CallExpr", "CXXMemberCallExpr", "CXXOperatorCallExpr":
+		return true
+	}
+	return false
+}
+
+// isUnevaluatedKind is the set of nodes whose operand the program never
+// evaluates, so no call written under one is a call the program makes
+// (ADR-121 §3): `sizeof` and `alignof` (one node, distinguished only by
+// a "name" field the rule does not need), a `noexcept` expression, and a
+// requires-expression's requirements. CXXTypeidExpr is deliberately not
+// one of them — `typeid`'s operand IS evaluated when it is a glvalue of
+// polymorphic class type ([expr.typeid]/3), which the node does not say,
+// and keeping the site is the conservative side, lane A's rule too
+// (ADR-121 §1). A `decltype` needs no rule: its operand is printed as
+// part of a type string and never reaches the reader as a node.
+func isUnevaluatedKind(kind string) bool {
+	switch kind {
+	case "UnaryExprOrTypeTraitExpr", "CXXNoexceptExpr", "RequiresExpr":
 		return true
 	}
 	return false
