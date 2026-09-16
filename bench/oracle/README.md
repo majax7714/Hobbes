@@ -120,6 +120,20 @@ off-by-ones the lane-agreement suite has been logging (131 of dagger's
 - **Line grain.** A Hobbes edge is confirmed if its target is among the
   targets of *any* oracle site on the same file and line. A line holding
   several oracle sites is logged as a tolerance match in the report.
+  **A line the oracle left unresolved cannot contradict** (2026-09-16,
+  H-30/H-31): where any site on that line carries no targets — a
+  dependent call in a template pattern the key holds as `dynamic`, or a
+  call it holds nowhere at all — a non-confirmed edge there is silent
+  (`line-unresolved`). Silence is the key's own state, never a verdict
+  against Hobbes (RC-4); this is the precision-side analogue of the
+  trace oracle's `line-mixed`.
+- **C++ member calls** (2026-09-16, H-28). The site is the member's own
+  name token. clang's `MemberExpr` carries no `loc`: its `range.begin`
+  is the start of the object expression and its `range.end` is the
+  member token, so a call whose object spans lines keys on the object's
+  line unless the end is taken. Hobbes and scip-clang both hold the
+  member token, so the begin convention reads as a contradiction and a
+  miss at once.
 - **Overloads / instantiations.** Generic instantiations collapse to the
   origin declaration; wrappers, thunks and bound closures unwind to the
   source function they end in; closures are identified by declaration

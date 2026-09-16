@@ -342,6 +342,41 @@ is). The rules, oracle-grading.md's §7d:
 - **The fixture** `bench/oracle/testdata/cppclang`, hand-keyed as
   `cclang` is.
 
+**Amended 2026-09-16 (O10's four defects, H-28–H-31; no version move).**
+fmt's triage charged 18 false contradictions to the oracle. Two of them
+are rules of this section and are corrected here; the third is the
+matcher's, amended in `oracle-grading.md` §7d and D-O4; the fourth
+stays open.
+
+- **A member call's position is the member's own token, not the
+  object's start** (H-28, RC-3). A `MemberExpr` carries no `loc`: its
+  `range.begin` is the start of the object expression and its
+  `range.end` is the member name token. The reader took `begin` and
+  discarded `end`, so a call whose object spans lines keyed on a line
+  the member is not on. The site is `range.end`, which is where Hobbes
+  and scip-clang both hold it. Probed in the image before this was
+  written: the two member calls of a chain broken across lines both
+  keyed at the object's `8:11`, against the source's `9:20` and `9:26`.
+- **A declaration the front end does not mangle is keyed by its
+  class** (H-29, RC-8). `declKey` fell back to the bare name, and a
+  class template's *pattern* members carry `Class` with an empty
+  `mangledName` — so `A::format_as` and `B::format_as` merged under one
+  key and each call graded against the other class's member. The
+  fallback is `Class::Name` where the declaration has a class, and the
+  bare name otherwise (`extern "C"`, `main`): javac's owner-qualified
+  key (H-23), on the C reader. Specialisations carry a mangled name and
+  are untouched. Probed: a ten-line two-template file reproduces the
+  collision exactly.
+- **Both fixes change what a shard holds**, so neither can re-merge a
+  stored key the way H-23's did (`--merge-only --carry`): the reader
+  streams clang's dump and keeps no raw copy, only the reduced shards.
+  Both C++ cells are therefore re-run, not re-merged.
+- **H-31 stays open.** Its `decltype` half reproduces (a call in an
+  unevaluated operand yields no site at all); its `os.cc` half — a call
+  in a macro argument nested in another's — did **not** reproduce under
+  a probe of that shape, so no rule is written from the synthetic. It
+  is traced against fmt's own evidence or it stays open.
+
 ### 4. The cells and the row (the developer, host-run and contained)
 
 Two cells on the clang keys: **fmtlib/fmt** (a header-heavy library

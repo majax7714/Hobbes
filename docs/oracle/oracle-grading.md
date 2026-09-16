@@ -507,6 +507,33 @@ adds four site kinds and one merge key:
   pair on two lines, `p->area()` on the base's declaration, the implicit
   copy and default constructors never targets.
 
+**Amended 2026-09-16 (H-28–H-31, ADR-113 §3's amendment).** fmt's
+triage charged 18 false contradictions to the oracle. Three of the four
+are rules and are corrected; the fourth stays open.
+
+- **A member call's site is the `MemberExpr`'s `range.end`** — the
+  member's own name token — and not its `range.begin`, which is the
+  start of the object expression. A call whose object spans lines
+  otherwise keys on a line the member is not on, so Hobbes' edge at
+  the member's line reads as both a false contradiction and a false
+  miss (H-28, RC-3).
+- **A declaration with no mangled name is keyed `Class::Name`** where
+  it has a class — a class template's pattern members — and by the bare
+  name otherwise (`extern "C"`, `main`). Keyed by the bare name, two
+  classes' same-named members merge into one declaration (H-29, RC-8).
+- **A line the key left unresolved cannot contradict** (H-30, H-31,
+  RC-4). Where any oracle site on a Hobbes edge's file and line carries
+  no targets — a dependent call in a template pattern the key holds as
+  `dynamic`, or a call it holds nowhere at all — a non-confirmed edge
+  on that line is **silent** (`line-unresolved`), never contradicted.
+  The key's silence is its own state, not a verdict against Hobbes.
+  This is the precision-side analogue of the trace oracle's
+  `line-mixed`.
+- **Open:** H-31's `os.cc` half, a call in a macro argument nested in
+  another's, which a probe of that shape did not reproduce. Its
+  `decltype` half does reproduce — a call in an unevaluated operand
+  yields no site — and is fixed only if the trace names a clean rule.
+
 **The random draw, stated before it was made (2026-09-14).** The pool:
 GitHub's `language:c++ stars:300..3000 pushed:>2026-03-01`, every
 result (1,000), sorted by full name, shuffled with
@@ -809,6 +836,44 @@ at @3, is kept beside each cell. The triage that moved it is ADR-101's
   tool's marker ahead of Hobbes' on either axis.
 - args' recall, recorded: repowise 23.3% and CodeGraphContext 0.0%,
   against Hobbes' 56.4%.
+
+### 10.8 The regrade after O10's defect fixes — written 2026-09-16, before the fix
+
+H-28, H-29 and H-30 are fixed under ADR-113 §3's 2026-09-16 amendment
+and §7d's. This section is written before any of them lands, because a
+fix to the *oracle* moves the key every standing grade was measured
+against, and a regrade with no stated direction is the shape a
+flattering patch takes (§11).
+
+**What moves what.**
+- **H-28 and H-29 change the key** (a shard's positions and its join
+  spelling), so **fmt and args are re-run**, not re-merged: the reader
+  streams clang's dump and keeps no raw copy, so `--merge-only` cannot
+  serve as it did for Java's H-23.
+- **H-30 changes the matcher**, which is language-neutral: it can move
+  a row on *any* stored cell where a Hobbes edge sits on a line the key
+  left unresolved. **Every stored cell is therefore re-graded from its
+  saved key** — no oracle re-run, `oracle grade --poison` against the
+  stored `oracle.json`.
+
+**Priors.** fmt stands at 3,254/3,282 (99.1%), its 28 contradictions
+triaged 10 provider (C-153) : 18 oracle (H-28 1, H-29 5, H-30 5,
+H-31 7). args stands at 1,995/1,995 (100%), recall 56.4%.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P36 | O10 (fmt) | contradicted 28 → 17, and the 17 are C-153's 10 plus H-31's 7, row for row against the stored `contradicted.tsv` | met if the row sets match exactly; any other row moving is a finding to triage before the number is quoted |
+| P37 | O10 (fmt) | confirmed rises by exactly 6 — H-28's 1 and H-29's 5, which were Hobbes' edges at the right declaration all along — and **no** previously confirmed edge is lost | met on the before/after sets; a lost confirmation is a regression, not a result |
+| P38 | O10 (fmt) | precision-against-oracle 99.1% → 99.4–99.6% | met if the reported figure lands in the range; stated signed either way |
+| P39 | O10 (args) | precision stays 100% and no contradiction appears: a position fix can only move a site to where Hobbes already holds it | met per the report |
+| P40 | O10 (both) | recall falls on neither cell | met per the report; fmt's may rise slightly as 6 pairs re-key |
+| P41 | O10 (`cppclang`) | the 25 hand-keyed sites stand unchanged — every member call in the fixture is written on one line — and the unit **adds** a multi-line member chain and a two-template collision, each hand-keyed | met if `cpp_test.go` passes with the existing 25 untouched; if any of the 25 moves, it is a multi-line chain and its new line is stated per site |
+| P42 | every non-C++ stored cell | the matcher change moves only rows contradicted at a line the key left unresolved; precision falls on no cell | met per regrade; every cell that moves is listed before → after, signed |
+| P43 | all cells | poison check PASS, 0 falsely confirmed | met per cell |
+
+**H-31 is not predicted.** Its `decltype` half reproduces and its
+`os.cc` half does not; it stays open in the log unless its trace names
+a rule, and its 7 rows are expected to survive the regrade (P36).
 
 ## 11. Evidence, claims, and register updates
 
