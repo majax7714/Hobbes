@@ -60,8 +60,11 @@ ENABLE_ENV = "HOBBES_LANEA_CACHE"
 KEEP_DAYS = 30
 
 #: Hashed into every key, so a change to the record's shape invalidates
-#: the store rather than meeting it as a decode failure per file.
-FORMAT = "lanea-cpp v1"
+#: the store rather than meeting it as a decode failure per file. v2: a
+#: call carries its written argument count and a symbol its parameter
+#: count (ADR-130), and an entry written without them would read back as
+#: a parse that never counted.
+FORMAT = "lanea-cpp v2"
 
 #: The tags the encoding gives the two types JSON has not. Neither can
 #: collide with a field name: a NUL is not in any identifier, and the

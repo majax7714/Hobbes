@@ -76,6 +76,16 @@ and ``typeid`` themselves parse as a call of a bare identifier: each is a
 keyword and not a callee, and records no site of its own, the named
 casts' rule one set over.
 
+Every site also carries the **argument count as written** (``argc``,
+ADR-130) where the parse can count it, and every ``function`` or
+``method`` symbol the **parameter count its declarator spells**
+(``max_params``). A call written with more arguments than the
+declaration lane B resolved it to can take is a contradiction the source
+text states, and the projection draws nothing there (C-153). Both are
+*unknown* rather than wrong wherever the read is not clean — a pack
+expansion, a braced initialiser, an ERROR node, a variadic parameter
+list — because an unknown draws the edge.
+
 **The fallback** (:func:`_call_fallback`, the syntactic floor) resolves a
 plain call by name in C's three ranks (``csource._resolve_fallback``
 itself: same-file function or macro; a macro in a directly included
@@ -556,6 +566,66 @@ def _bare(qualname: str) -> str:
     return base if tilde and suffix.isdigit() else qualname
 
 
+#: A parameter list holding one of these takes any number of arguments,
+#: so the count is unbounded and ADR-130's rule can never fire on it: a
+#: parameter pack (``Args&&... args``), and the optional twin a grammar
+#: may spell for one carrying a default. The C ellipsis ``...`` is an
+#: anonymous token rather than a named child and is read beside them.
+_UNBOUNDED_PARAMS = ("variadic_parameter_declaration", "variadic_optional_parameter_declaration")
+
+
+def _max_params(function_declarator: Node) -> int | None:
+    """How many arguments a definition's declarator can take (ADR-130's
+    ``max_params``), or ``None`` for unbounded or unreadable.
+
+    ``()`` and ``(void)`` are 0. ``None`` where the list holds a ``...``,
+    a parameter pack or an ERROR node — a macro in a parameter list
+    parses as one — because the rule this feeds withholds an edge, and
+    withholding on a count that was not read is the one failure it must
+    not have. A comment is an extra the parse hangs in the list and is
+    not a parameter."""
+    params = function_declarator.child_by_field_name("parameters")
+    if params is None or params.has_error:
+        return None
+    declared = []
+    for child in params.children:
+        if not child.is_named:
+            if child.type == "...":
+                return None  # a C ellipsis: any number of arguments
+            continue
+        if child.type in _UNBOUNDED_PARAMS:
+            return None
+        if child.type != "comment":
+            declared.append(child)
+    if len(declared) == 1 and _text(declared[0]) == "void":
+        return 0
+    return len(declared)
+
+
+def _argc(arguments: Node | None) -> int | None:
+    """How many arguments a call site was **written** with (ADR-130's
+    ``argc``), or ``None`` where the parse cannot count them.
+
+    ``None`` for a site with no argument list of its own, for a braced
+    initialiser list (``T{a, b}`` may be one ``std::initializer_list``
+    argument, so the written count is not the argument count), for a list
+    holding an ERROR or MISSING node, and for one holding a pack
+    expansion (``f(args...)`` stands for as many arguments as the pack
+    holds). A comment between two arguments is an extra, not one."""
+    if arguments is None or arguments.type != "argument_list":
+        return None
+    if arguments.has_error:
+        return None
+    count = 0
+    for child in arguments.children:
+        if not child.is_named or child.type == "comment":
+            continue
+        if child.type == "parameter_pack_expansion":
+            return None
+        count += 1
+    return count
+
+
 def _signature(function_declarator: Node) -> str:
     """A definition's signature: the declarator's parameter list and the
     qualifiers trailing it (``const``, ``volatile``, ``&``, ``&&``,
@@ -787,6 +857,9 @@ def _function_definition(
     # Read off the declarator, dropped by `_dedupe_symbols`: it decides
     # whether a repeated qualname is an overload or a duplicate.
     symbol["_signature"] = _signature(function_declarator)
+    # The same list, counted rather than spelled, and kept: the projection
+    # reads it against a call's own argument count (ADR-130).
+    symbol["max_params"] = _max_params(function_declarator)
     if qualifiers:
         # Settled against the repo's namespaces once every file is parsed.
         symbol["kind"] = "method"
@@ -957,13 +1030,16 @@ def _site(
     node: Node,
     qualifiers: tuple[str, ...],
     symbols: list[dict],
+    arguments: Node | None = None,
 ) -> dict:
-    """One call site: C's dict, plus the qualifier chain C has no use for.
-    Positioned on *terminal*, scoped by the definition *node* sits in."""
+    """One call site: C's dict, plus the qualifier chain C has no use for
+    and the argument count written at *arguments* (ADR-130). Positioned on
+    *terminal*, scoped by the definition *node* sits in."""
     return {
         "name": name,
         "shape": shape,
         "qualifiers": qualifiers,
+        "argc": _argc(arguments),
         "line": terminal.start_point.row + 1,
         "col": terminal.start_point.column,
         "scope": _enclosing(symbols, node.start_point.row + 1),
@@ -992,7 +1068,12 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
             name = _text(terminal)
             if name in _NAMED_CASTS or name in _KEYWORD_CALLEES:
                 continue
-            found.append(_site(name, shape, terminal, node, qualifiers, symbols))
+            found.append(
+                _site(
+                    name, shape, terminal, node, qualifiers, symbols,
+                    node.child_by_field_name("arguments"),
+                )
+            )
         elif node.type == "new_expression":
             type_node = node.child_by_field_name("type")
             if type_node is None:
@@ -1000,7 +1081,14 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
             terminal, qualifiers = _type_terminal(type_node)
             if terminal is None:
                 continue
-            found.append(_site(_text(terminal), "construct", terminal, node, qualifiers, symbols))
+            # `new A{1}` and `new A` carry no argument list of their own,
+            # and each reads unknown rather than zero.
+            found.append(
+                _site(
+                    _text(terminal), "construct", terminal, node, qualifiers, symbols,
+                    node.child_by_field_name("arguments"),
+                )
+            )
         elif node.type == "declaration":
             found += _construction_sites(node, symbols)
     return sorted(found, key=lambda call: (call["line"], call["col"], call["name"]))
@@ -1021,7 +1109,9 @@ def _construction_sites(node: Node, symbols: list[dict]) -> list[dict]:
             continue
         value = child.child_by_field_name("value")
         if value is not None and value.type == "argument_list":
-            out.append(_site(_text(terminal), "construct", terminal, node, qualifiers, symbols))
+            out.append(
+                _site(_text(terminal), "construct", terminal, node, qualifiers, symbols, value)
+            )
     return out
 
 
@@ -1058,6 +1148,7 @@ def _test_definition(
     # fallback rank can ever land on it. Its signature is the macro's own
     # arguments, so two tests of one name are duplicates, never overloads.
     symbol["_signature"] = _signature(function_declarator)
+    symbol["max_params"] = _max_params(function_declarator)
     symbol["static"] = True
     parsed.symbols.append(symbol)
     parsed.tests.append(
@@ -1302,6 +1393,7 @@ def _call_sites(files: list[CppFile]) -> list:
                 else module_id(parsed.path)
             ),
             qualifier=_written_qualifier(call),
+            argc=call["argc"],
         )
         for parsed in files
         for call in parsed.calls

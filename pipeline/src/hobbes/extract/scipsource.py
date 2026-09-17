@@ -678,6 +678,13 @@ class _SymbolIndex:
 
     def __init__(self, nodes: list[dict], symbols: list[dict]):
         self._kinds = {s["id"]: s.get("kind") for s in symbols}
+        # Only the symbols that carry a count (ADR-130): the C++ layer's
+        # functions and methods, and the mint's. An absent id and one
+        # whose read was not clean answer the same way — unknown — so a
+        # repo with millions of symbols keeps no row per unknown.
+        self._max_params = {
+            s["id"]: s["max_params"] for s in symbols if s.get("max_params") is not None
+        }
         self.module_of_path = {
             n["path"]: n["id"] for n in nodes if n.get("path")
         }
@@ -694,6 +701,12 @@ class _SymbolIndex:
     def kind(self, symbol_id: str) -> str | None:
         """The declared kind of a symbol id, or None for a module id."""
         return self._kinds.get(symbol_id)
+
+    def max_params(self, symbol_id: str) -> int | None:
+        """How many arguments the symbol's declaration can take (ADR-130),
+        or None where nothing read it — every non-C++ symbol, and every
+        C++ one whose parameter list is unbounded or unreadable."""
+        return self._max_params.get(symbol_id)
 
     def module(self, path: str) -> str | None:
         return self.module_of_path.get(path)
@@ -727,6 +740,16 @@ class _SymbolIndex:
 #: claimed keeps its `.h` name — and costs C nothing, because C has no
 #: called types at all.
 _CALLS_TO_TYPE_GUARDED = (".go", ".rs", ".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h")
+
+#: The definition files ADR-130's R-arity may fire in: the C++ ones above,
+#: Go's and Rust's dropped. A `.h` is here for the same reason it is there
+#: — a header the C++ layer claimed keeps its `.h` name — and costs C
+#: nothing, since only the C++ layer and ADR-129's mint ever record a
+#: `max_params`, and without one the rule cannot fire. The rule's real
+#: floor is the other end: only C++'s lane A counts a site's arguments,
+#: so a C call site carries no count and is never read this way (K&R's
+#: `f()` takes any arguments at all, which is why C is out — ADR-130 §3).
+_ARITY_GUARDED = tuple(e for e in _CALLS_TO_TYPE_GUARDED if e not in (".go", ".rs"))
 
 
 def _split_template_name(text: str) -> tuple[str, str]:
@@ -831,6 +854,13 @@ def project(
     different one's member, the source text contradicts the index, and
     the edge is not drawn — the site is returned in ``qualifier_mismatch``
     for the tail to name, exactly as ``below_floor`` is.
+
+    Beside it, on the same reading and returned the same way
+    (``arity_mismatch``, ADR-130): a C++ ``calls`` fact written with more
+    arguments than the function or method lane B resolved it to can take.
+    Only *more* — a default argument lives on a declaration this lane
+    never sees, so fewer arguments proves nothing — and only where both
+    counts are known.
     """
     index = _SymbolIndex(nodes, symbols)
     module_evidence: dict[tuple, list] = {}
@@ -846,6 +876,11 @@ def project(
     # and no edge is drawn (C-153). Returned so the tail can name it
     # `qualifier-mismatch` — the recall cost is a number, not a silence.
     qualifier_mismatch: list[tuple[str, int]] = []
+    # Call sites ADR-130's R-arity abstains on: the call is written with
+    # more arguments than lane B's answer can take, which no default
+    # argument, conversion or deduction makes land there (C-153). Returned
+    # so the tail can name it `arity-mismatch`, R-qual's neighbour.
+    arity_mismatch: list[tuple[str, int]] = []
     # `implements` facts (ADR-120) whose either end lane A keeps no symbol
     # for: a Go interface's method spec, which lane A does not declare, so
     # the method-level pair has no node to land on. Counted, never guessed.
@@ -894,6 +929,29 @@ def project(
             ):
                 qualifier_mismatch.append((fact.source_file, fact.line))
                 continue
+        if (
+            fact.kind == "calls"
+            and fact.argc is not None
+            and SCIP_LANE in fact.lanes
+            and fact.def_file.endswith(_ARITY_GUARDED)
+        ):
+            # ADR-130. scip-clang indexes a template's pattern once and
+            # answers a dependent call with one candidate, which can be
+            # the wrong overload: `copy<Char>(begin, end, out)` onto
+            # `copy(basic_string_view<V> s, OutputIt out)`, three
+            # arguments onto two. The source text contradicts the index,
+            # so nothing is drawn. Only too many — a default argument
+            # lives on a declaration elsewhere, so too few proves nothing
+            # (152 confirmed edges would have gone) — and never with a
+            # count either side did not read.
+            max_params = index.max_params(callee)
+            if (
+                max_params is not None
+                and index.kind(callee) in ("function", "method")
+                and fact.argc > max_params
+            ):
+                arity_mismatch.append((fact.source_file, fact.line))
+                continue
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
@@ -927,6 +985,7 @@ def project(
         "symbol_edges": _edges(symbol_evidence),
         "below_floor": below_floor,
         "qualifier_mismatch": qualifier_mismatch,
+        "arity_mismatch": arity_mismatch,
         "implements_below_floor": implements_below_floor,
     }
 

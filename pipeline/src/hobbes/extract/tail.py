@@ -82,6 +82,14 @@ checkable fact about the site:
   edge is drawn (ADR-125, C-153). Like ``below-floor`` it is not a
   :func:`classify` verdict — the projection decides it, from the written
   qualifier and the owner's own declaration.
+- ``arity-mismatch`` — a C++ call written with **more arguments** than
+  the declaration lane B resolved it to can take
+  (``copy<Char>(begin, end, out)`` onto a ``copy`` of two parameters):
+  scip-clang's one answer at a call in a template can be the wrong
+  overload, and no default argument, conversion or deduction makes the
+  call land there, so no edge is drawn (ADR-130, C-153). Fewer arguments
+  than parameters is never this class — a default argument lives on a
+  declaration elsewhere. The projection decides it too.
 
 The classes roll up into the two statements the ingest summary prints
 (architecture §3.4): *seen and not modelled by design* (local-binding,
@@ -134,6 +142,10 @@ UNCLASSIFIED = "unclassified"
 #: member (ADR-125, C-153); the projection abstains and the site is
 #: counted here. Not a :func:`classify` verdict, like ``below-floor``.
 QUALIFIER_MISMATCH = "qualifier-mismatch"
+#: A C++ call written with more arguments than lane B's answer can take
+#: (ADR-130, C-153); the projection abstains and the site is counted
+#: here. Not a :func:`classify` verdict either, and R-qual's neighbour.
+ARITY_MISMATCH = "arity-mismatch"
 #: The semantic lane resolved the site to a declaration lane A keeps no
 #: symbol for — an interface method, a closure, a nested function (C-9's
 #: floor) — so the site counts as resolved and draws no edge (C-58).
@@ -351,29 +363,33 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     # no checker to see an import binding, an overload set, or an
     # expression callee.
     "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
-    # C's five, plus the two classes C++ needs and C cannot have: a name
+    # C's five, plus the three classes C++ needs and C cannot have: a name
     # defined more than once is an overload set, and lane A abstains on
-    # it (ADR-113 §1); and a call written through one explicit
+    # it (ADR-113 §1); a call written through one explicit
     # specialisation that the index resolved to another's member is a
     # `qualifier-mismatch`, which needs template arguments C has no
-    # grammar for (ADR-125). `path-call` is not here — C++ spells `::`,
-    # but a qualified site is either the standard library
-    # (`builtin-name`, by its first qualifier) or a name this lane could
-    # not place.
+    # grammar for (ADR-125); and a call written with more arguments than
+    # the resolved declaration takes is an `arity-mismatch` (ADR-130),
+    # which needs the overloads C does not have — in C a name is defined
+    # once, and K&R's `f()` takes any arguments at all. `path-call` is not
+    # here — C++ spells `::`, but a qualified site is either the standard
+    # library (`builtin-name`, by its first qualifier) or a name this lane
+    # could not place.
     "cpp": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, OVERLOAD, UNCLASSIFIED,
-                      QUALIFIER_MISMATCH, BELOW_FLOOR}),
+                      QUALIFIER_MISMATCH, ARITY_MISMATCH, BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
-#: The last two are not :func:`classify` verdicts: both are counted from
+#: The last three are not :func:`classify` verdicts: each is counted from
 #: the projection and added to the tail beside the unresolved classes —
 #: ``qualifier-mismatch`` a resolved site the written qualifier
-#: contradicted (ADR-125), ``below-floor``, last, a resolved site with no
-#: symbol to land on.
+#: contradicted (ADR-125), ``arity-mismatch`` one the written argument
+#: count contradicted (ADR-130), ``below-floor``, last, a resolved site
+#: with no symbol to land on.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
                BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, PATH_CALL, OVERLOAD,
                INHERITED, BUILD_TAG, UNCLASSIFIED, QUALIFIER_MISMATCH,
-               BELOW_FLOOR)
+               ARITY_MISMATCH, BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:

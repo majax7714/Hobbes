@@ -1108,6 +1108,104 @@ class TestQualifierMismatch:
         assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
 
 
+class TestArityMismatch:
+    """ADR-130's R-arity, R-qual's neighbour. scip-clang indexes a
+    template's pattern once, so `copy<Char>(begin, end, out)` comes back
+    resolved to the two-parameter `copy` — the source text contradicts the
+    index (C-153), and nothing is drawn. Measured on fmt: 35 wrong edges
+    removed, 0 confirmed ones. **Only too many**: a default argument lives
+    on a declaration this lane never sees, so too few proves nothing (a
+    two-sided rule would have withheld 152 confirmed edges). Every test
+    below that draws the edge is the rule declining to fire.
+    """
+
+    NODES = [{"id": "src/fmt", "kind": "module", "path": "src/fmt.cc"}]
+    SYMBOLS = [
+        {"id": "src/fmt.g", "module": "src/fmt", "kind": "function", "line": 20, "end_line": 30, "name": "g", "qualname": "g", "max_params": 1},
+        # `copy(basic_string_view<V> s, OutputIt out)` — the overload
+        # scip-clang answers with, and the one the call cannot be.
+        {"id": "src/fmt.copy", "module": "src/fmt", "kind": "function", "line": 4, "end_line": 4, "name": "copy", "qualname": "copy", "max_params": 2},
+        # A method, to show the rule is not about free functions; and a
+        # target whose own list could not be read.
+        {"id": "src/fmt.A::m", "module": "src/fmt", "kind": "method", "line": 6, "end_line": 6, "name": "m", "qualname": "A::m", "max_params": 1},
+        {"id": "src/fmt.variadic", "module": "src/fmt", "kind": "function", "line": 8, "end_line": 8, "name": "variadic", "qualname": "variadic", "max_params": None},
+        # A type at the other end: the called-type guard's business, never
+        # this rule's.
+        {"id": "src/fmt.T", "module": "src/fmt", "kind": "type", "line": 10, "end_line": 12, "name": "T", "qualname": "T"},
+    ]
+
+    def _fact(self, argc, def_line=4, line=21, tier=SEMANTIC, lanes=(ev.TREE_SITTER, ev.SCIP), def_file="src/fmt.cc"):
+        return ev.Resolved(
+            kind="calls", source_file="src/fmt.cc", line=line, scope="src/fmt.g",
+            def_file=def_file, def_line=def_line, tier=tier, lanes=lanes, argc=argc,
+        )
+
+    def _project(self, fact):
+        return scipsource.project([fact], self.NODES, self.SYMBOLS)
+
+    def test_three_arguments_onto_a_two_parameter_target_draws_nothing(self):
+        # fmt's shape: `copy<Char>(begin, end, out)` onto `copy(s, out)`.
+        out = self._project(self._fact(3))
+        assert out["symbol_edges"] == []
+        assert out["arity_mismatch"] == [("src/fmt.cc", 21)]
+
+    def test_a_method_is_read_the_same_way(self):
+        out = self._project(self._fact(2, def_line=6))
+        assert out["symbol_edges"] == []
+        assert out["arity_mismatch"] == [("src/fmt.cc", 21)]
+
+    def test_as_many_arguments_as_parameters_draws(self):
+        out = self._project(self._fact(2))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.copy"]
+        assert out["arity_mismatch"] == []
+
+    def test_fewer_arguments_than_parameters_never_fires(self):
+        # The rule's one measured danger: a default argument lives on a
+        # declaration in another file, so `vformat_to` called with 3 of
+        # its 4 is right. 152 confirmed edges ride on this.
+        out = self._project(self._fact(1))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.copy"]
+        assert out["arity_mismatch"] == []
+
+    def test_an_uncounted_call_draws(self):
+        # A pack expansion, a braced initialiser, an ERROR node: lane A
+        # read no count, and an unknown draws the edge.
+        out = self._project(self._fact(None))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.copy"]
+        assert out["arity_mismatch"] == []
+
+    def test_a_target_whose_list_was_not_read_draws(self):
+        # `max_params` None is unbounded or unread — a variadic, a pack, a
+        # macro in the list — and neither can be contradicted.
+        out = self._project(self._fact(9, def_line=8))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.variadic"]
+        assert out["arity_mismatch"] == []
+
+    def test_a_syntactic_fact_is_never_read_against_the_index(self):
+        # Lane A's own guess: there is no index answer for the source text
+        # to contradict (the join carries no count onto one).
+        out = self._project(self._fact(3, tier=SYNTACTIC, lanes=(ev.TREE_SITTER,)))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.copy"]
+        assert out["arity_mismatch"] == []
+
+    def test_a_target_that_is_a_type_is_untouched_by_this_rule(self):
+        # A construction resolved to the class: the called-type guard
+        # turns it into `uses`, as it did before this rule existed.
+        out = self._project(self._fact(3, def_line=10))
+        assert [(e["to"], e["type"]) for e in out["symbol_edges"]] == [("src/fmt.T", "uses")]
+        assert out["arity_mismatch"] == []
+
+    def test_a_go_definition_file_is_never_read_this_way(self):
+        # The rule is C++'s: Go and Rust are out of `_ARITY_GUARDED`, and
+        # nothing outside the C++ layer records a `max_params` anyway.
+        nodes = [{"id": "src/fmt", "kind": "module", "path": "src/fmt.go"}]
+        fact = self._fact(3, def_file="src/fmt.go")
+        fact.source_file = "src/fmt.go"
+        out = scipsource.project([fact], nodes, self.SYMBOLS)
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.copy"]
+        assert out["arity_mismatch"] == []
+
+
 class TestJavaUnits:
     """Java's indexing unit is the build root (ADR-096, decision 7)."""
 

@@ -530,6 +530,182 @@ class TestTheWrittenSpecialisation:
         }
         assert layer["full_specializations"] == frozenset({"a.ns::S<0>"})
 
+
+class TestTheWrittenArgumentCount:
+    """ADR-130, one step beside R-qual: the projection draws nothing where
+    a call is written with more arguments than lane B's answer takes. This
+    walk records the count as written, and ``None`` — unknown, which draws
+    the edge — wherever the parse cannot count it."""
+
+    SOURCE = (
+        "void f();\n"
+        "template <typename T> void h(T a, T b);\n"
+        "struct X { void m(int); };\n"
+        "namespace ns { struct A { static void s(int, int); }; }\n"
+        "struct T { T(int, int); };\n"
+        "void g(X x) {\n"
+        "    f();\n"
+        "    f(1);\n"
+        "    f(1, g(2, 3));\n"
+        "    h<int>(1, 2);\n"
+        "    x.m(1);\n"
+        "    ns::A::s(1, 2);\n"
+        "    f({1, 2});\n"
+        "    f(args...);\n"
+        "    T t{1, 2};\n"
+        "    new T{1, 2};\n"
+        '    f("a,b");\n'
+        "}\n"
+    )
+
+    @pytest.fixture
+    def sites(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return {(s.line, s.name): s for s in extract_cpp(tmp_path)["call_sites"]}
+
+    def test_the_count_is_the_arguments_and_not_the_punctuation(self, sites):
+        assert sites[(7, "f")].argc == 0
+        assert sites[(8, "f")].argc == 1
+
+    def test_a_nested_call_s_own_commas_belong_to_it(self, sites):
+        # `f(1, g(2, 3))` is two arguments and `g(2, 3)` is two of its own.
+        assert sites[(9, "f")].argc == 2
+        assert sites[(9, "g")].argc == 2
+
+    def test_every_call_shape_is_counted(self, sites):
+        # plain with template arguments, member, qualified: the count is
+        # the site's own list wherever the callee was written.
+        assert sites[(10, "h")].argc == 2
+        assert sites[(11, "m")].argc == 1
+        assert sites[(12, "s")].argc == 2
+
+    def test_a_comma_inside_a_string_is_text(self, sites):
+        assert sites[(17, "f")].argc == 1
+
+    def test_a_braced_argument_is_one_argument(self, sites):
+        # `f({1, 2})` passes one initialiser list, and it is one.
+        assert sites[(13, "f")].argc == 1
+
+    def test_a_pack_expansion_counts_nothing(self, sites):
+        # `f(args...)` stands for as many arguments as the pack holds.
+        assert sites[(14, "f")].argc is None
+
+    def test_a_braced_construction_counts_nothing(self, sites):
+        # `T t{1, 2}` may be one `std::initializer_list` argument rather
+        # than two, so neither form is counted: the declaration records no
+        # site at all, and `new T{1, 2}` records one with no count.
+        assert (15, "T") not in sites
+        assert sites[(16, "T")].argc is None
+
+    def test_an_error_in_the_list_counts_nothing(self, tmp_path):
+        # The commas are the parse's own, so a list it could not read is
+        # not a count. Unknown draws the edge.
+        _write(tmp_path, {"a.cpp": "void g() {\n    f(1,);\n}\n"})
+        [site] = [s for s in extract_cpp(tmp_path)["call_sites"] if s.name == "f"]
+        assert site.argc is None
+
+
+class TestTheDeclaredParameterCount:
+    """ADR-130's other end: what a definition's own declarator can take.
+    ``None`` is unbounded or unread, and the rule cannot fire on it."""
+
+    SOURCE = (
+        "void a() {}\n"
+        "void b(void) {}\n"
+        "void c(int x, int y = 2) {}\n"
+        "void d(int x, ...) {}\n"
+        "template <typename... A> void e(A&&... args) {}\n"
+        "struct S { void m(int x, int y); };\n"
+        "void S::m(int x, int y) {}\n"
+    )
+
+    def test_the_declarator_s_list_is_counted_and_the_unbounded_are_not(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        layer = extract_cpp(tmp_path)
+        # Functions and methods alone carry it: `struct S` takes no
+        # arguments in this sense, and has no key at all.
+        assert "max_params" not in _symbols(layer)["a.S"]
+        assert {
+            s["id"]: s["max_params"] for s in layer["symbols"] if "max_params" in s
+        } == {
+            # `()` and `(void)` are both none at all.
+            "a.a": 0,
+            "a.b": 0,
+            # A default argument is still a parameter the call may fill.
+            "a.c": 2,
+            # A C ellipsis and a parameter pack each take any number.
+            "a.d": None,
+            "a.e": None,
+            # Read off the definition, out of line and all.
+            "a.S::m": 2,
+        }
+
+    def test_fmts_shape_in_miniature_draws_nothing_and_says_so(self, tmp_path, monkeypatch):
+        """ADR-130 through the whole ingest, on the shape it was measured
+        on: two ``copy`` overloads, and a three-argument call scip-clang
+        answers with the two-parameter one. Lane B is hand-built here, as
+        in :class:`TestTheWithheldFallback`."""
+        assert self._ingest(tmp_path, monkeypatch, 3) == (
+            [], {"arity-mismatch": 1},
+        )
+
+    def test_the_same_facts_onto_the_overload_that_fits_draw_it(self, tmp_path, monkeypatch):
+        # The one difference is the line lane B answers with, so what the
+        # rule reads is the target's own parameter list and nothing else.
+        assert self._ingest(tmp_path, monkeypatch, 4) == (
+            ["src/fmt.h.copy~2"], {},
+        )
+
+    def _ingest(self, tmp_path, monkeypatch, def_line):
+        """The edges the call at ``src/use.cpp:3`` draws, and the tail its
+        file carries, with lane B resolving ``copy`` to *def_line*."""
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {
+            "src/fmt.h": (
+                "struct OutputIt {};\n"
+                "struct View {};\n"
+                "int copy(View s, OutputIt out) { return 0; }\n"
+                "int copy(char* b, char* e, OutputIt out) { return 1; }\n"
+            ),
+            "src/use.cpp": (
+                '#include "fmt.h"\n'
+                "int use(char* b, char* e, OutputIt out) {\n"
+                "    return copy(b, e, out);\n"
+                "}\n"
+            ),
+        })
+        facts = {
+            "language": "cpp",
+            "definitions": [],
+            "references": [ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=3, col=11, name="copy",
+                def_file="src/fmt.h", def_line=def_line,
+            )],
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        graph = extract_repo(tmp_path).graph
+        drawn = [
+            edge["to"] for edge in graph["symbol_edges"]
+            if any(
+                (site["path"], site["line"]) == ("src/use.cpp", 3)
+                for site in edge["evidence"]
+            )
+        ]
+        [row] = [r for r in graph["resolution_coverage"] if r["file"] == "src/use.cpp"]
+        return drawn, row.get("tail", {})
+
+    def test_a_macro_in_the_parameter_list_is_no_count(self, tmp_path):
+        # It parses as an ERROR node, and what the macro expands to is not
+        # in this file's tokens.
+        _write(tmp_path, {"a.cpp": "void f(int x, FMT_API(y) z) {}\n"})
+        symbols = _symbols(extract_cpp(tmp_path))
+        assert symbols["a.f"]["max_params"] is None
+
     def test_a_template_header_a_macro_parse_lost_still_records_the_specialisation(self, tmp_path):
         # fmt's compile-test.cc (§10.11, P69): an unreadable macro pulls
         # `template <>` into an ERROR node before a bare `struct S<X>`. The
