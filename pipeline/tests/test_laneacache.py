@@ -1,0 +1,268 @@
+"""ADR-128 §4: lane A's C++ file cache — one unchanged file's parse kept
+under the hash of the path, the bytes and the pipeline's code, decoded
+back into the object `_parse_file` returned, and never able to fail an
+extraction."""
+from __future__ import annotations
+
+import json
+import os
+import time
+from pathlib import Path
+
+import pytest
+
+from hobbes.extract import cppsource, laneacache
+from hobbes.extract.cppsource import extract_cpp
+
+#: Every test here writes a store, so every test opts in; the suite's
+#: default is off, so no other test can reach the developer's own cache.
+pytestmark = pytest.mark.lanea_cache
+
+#: One file carrying every shape the encoding has to survive: a qualified
+#: call and an out-of-line definition (``qualifiers`` tuples inside
+#: dicts), a namespace and a same-signature duplicate (sets), a lambda
+#: (a ``local_bindings`` tuple), a template pattern, and a ``TEST_CASE``
+#: the walk can attach no symbol to.
+BOX = """namespace shapes {
+
+int scale(int n) { return n * 2; }
+
+struct Box {
+    int w;
+    int h;
+    int area() const { return shapes::scale(w * h); }
+};
+
+struct Counter {
+    int n;
+    int bump();
+};
+
+template <typename T>
+T twice(T value) { return value + value; }
+
+int doubled(int n) {
+    auto doubler = [](int v) { return v * 2; };
+    return doubler(n);
+}
+
+#ifdef FAST
+int perimeter(int w, int h) { return 2 * (w + h); }
+#else
+int perimeter(int w, int h) { return (w + h) << 1; }
+#endif
+
+}  // namespace shapes
+
+int shapes::Counter::bump() { return ++n; }
+
+TEST_CASE("a box knows its area") {
+    shapes::Box box{2, 3};
+    box.area();
+}
+"""
+
+UTIL = """int scale_by_ten(int a) {
+    return a * 10;
+}
+"""
+
+
+@pytest.fixture
+def cache(tmp_path, monkeypatch):
+    """The store under a tmp_path, and a process ledger of this test's own."""
+    root = tmp_path / "cache"
+    monkeypatch.setenv("HOBBES_CACHE_DIR", str(root))
+    laneacache.reset_ledger()
+    laneacache._swept.clear()
+    return root
+
+
+@pytest.fixture
+def repo(tmp_path):
+    """Two C++ sources and no header, so a run's lookups are exactly two."""
+    root = tmp_path / "repo" / "src"
+    root.mkdir(parents=True)
+    (root / "box.cpp").write_text(BOX)
+    (root / "util.cpp").write_text(UTIL)
+    return root.parent
+
+
+def entries(store: Path) -> list[Path]:
+    return sorted(store.rglob("*.json"))
+
+
+def test_a_record_round_trips_through_json_with_its_tuples_and_sets_intact(cache):
+    # The first prototype's plain JSON turned a `qualifiers` tuple into a
+    # list; what is read back must be the object that was parsed.
+    result = cppsource._parse_file("src/box.cpp", BOX.encode())
+    text = json.dumps(laneacache.encode_record(result), sort_keys=True)
+    decoded = laneacache.decode_record(json.loads(text))
+
+    assert decoded == result
+    parsed, had_error, duplicated = decoded
+    assert had_error is result[1] and duplicated == result[2]
+    qualified = next(c for c in parsed.calls if c["shape"] == "qualified")
+    assert qualified["qualifiers"] == ("shapes",)
+    out_of_line = next(s for s in parsed.symbols if "qualifiers" in s)
+    assert out_of_line["qualifiers"] == ("shapes", "Counter")
+    assert all(isinstance(binding, tuple) for binding in parsed.local_bindings)
+    assert parsed.duplicate_names == {"shapes::perimeter"}
+    assert parsed.namespaces == {"shapes"}
+    assert parsed.unattached_tests == 1
+
+
+def test_a_second_extraction_is_all_hits_and_the_same_bundle(cache, repo):
+    first = extract_cpp(repo)
+    cold = laneacache.summary()
+    assert (cold["hits"], cold["misses"]) == (0, 2)
+    assert len(entries(laneacache.store_root())) == 2
+
+    laneacache.reset_ledger()
+    second = extract_cpp(repo)
+    warm = laneacache.summary()
+    assert (warm["hits"], warm["misses"]) == (2, 0)
+    assert first == second  # nodes, module edges, symbols, sites, errors
+    assert warm["store"] == str(cache / "lanea" / "cpp")
+
+
+def test_a_hit_gives_the_join_the_file_a_parse_would_have(cache, repo, monkeypatch):
+    warm: list[cppsource.CppFile] = []
+    cppsource._read_and_parse(repo, "src/box.cpp", warm)  # a miss, stored
+    laneacache.reset_ledger()
+    hit: list[cppsource.CppFile] = []
+    cppsource._read_and_parse(repo, "src/box.cpp", hit)
+    assert laneacache.summary()["hits"] == 1
+
+    monkeypatch.setenv(laneacache.ENABLE_ENV, "0")
+    fresh: list[cppsource.CppFile] = []
+    cppsource._read_and_parse(repo, "src/box.cpp", fresh)
+    assert hit[0] == fresh[0]
+    # A new object every time: the join's in-place edits (the member-kind
+    # settlement pops `qualifiers`) cannot reach the store.
+    assert hit[0] is not warm[0]
+
+
+def test_one_changed_byte_misses_only_the_file_it_changed(cache, repo):
+    extract_cpp(repo)
+    (repo / "src" / "util.cpp").write_text(UTIL.replace("10", "11"))
+
+    laneacache.reset_ledger()
+    extract_cpp(repo)
+    counts = laneacache.summary()
+    assert (counts["hits"], counts["misses"]) == (1, 1)
+    assert len(entries(laneacache.store_root())) == 3  # the old util.cpp stays
+
+
+def test_a_changed_code_fingerprint_misses_everywhere(cache, repo, monkeypatch):
+    # The key's whole point: a change to the extraction code cannot be
+    # read past (ADR-128 §4), so every file is walked again.
+    extract_cpp(repo)
+    monkeypatch.setattr(laneacache, "_FINGERPRINT", "a-later-pipeline")
+
+    laneacache.reset_ledger()
+    extract_cpp(repo)
+    counts = laneacache.summary()
+    assert (counts["hits"], counts["misses"]) == (0, 2)
+    assert len(entries(laneacache.store_root())) == 4
+
+
+def test_a_truncated_entry_is_dropped_and_written_again(cache, repo, monkeypatch):
+    extract_cpp(repo)
+    source = (repo / "src" / "box.cpp").read_bytes()
+    entry = laneacache.entry_path(laneacache.key("src/box.cpp", source))
+    stored = entry.read_text()
+    entry.write_text(stored[: len(stored) // 2])
+
+    laneacache.reset_ledger()
+    with_a_bad_entry = extract_cpp(repo)
+    counts = laneacache.summary()
+    assert (counts["hits"], counts["misses"]) == (1, 1)
+
+    monkeypatch.setenv(laneacache.ENABLE_ENV, "0")
+    assert with_a_bad_entry == extract_cpp(repo)
+    assert json.loads(entry.read_text())["file"]["path"] == "src/box.cpp"
+
+
+def test_the_cache_off_writes_nothing_and_counts_nothing(cache, repo, monkeypatch):
+    monkeypatch.setenv(laneacache.ENABLE_ENV, "0")
+    assert extract_cpp(repo) is not None
+    assert not laneacache.store_root().exists()
+    assert laneacache.summary() is None
+
+
+def test_a_missing_fingerprint_parses_every_file(cache, repo, monkeypatch):
+    # No version to read is not a reason to trust a key that cannot see
+    # the grammar: nothing is stored and nothing is counted.
+    monkeypatch.setattr(laneacache, "_FINGERPRINT", None)
+    assert extract_cpp(repo) is not None
+    assert not laneacache.store_root().exists()
+    assert laneacache.summary() is None
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes a read-only directory anyway")
+def test_a_store_that_cannot_be_written_never_fails_the_extraction(cache, repo):
+    store = laneacache.store_root()
+    store.mkdir(parents=True)
+    store.chmod(0o500)
+    try:
+        bundle = extract_cpp(repo)
+    finally:
+        store.chmod(0o700)
+    assert bundle is not None and bundle["symbols"]
+    assert entries(store) == []
+    counts = laneacache.summary()
+    assert (counts["hits"], counts["misses"]) == (0, 2)
+
+
+def test_a_value_the_encoding_refuses_is_not_stored_and_the_parse_still_returns(
+    cache, repo, monkeypatch
+):
+    parse = cppsource._parse_file
+
+    def carrying_an_object(rel, source):
+        parsed, had_error, duplicated = parse(rel, source)
+        parsed.symbols[0]["owner"] = object()
+        return parsed, had_error, duplicated
+
+    monkeypatch.setattr(cppsource, "_parse_file", carrying_an_object)
+    bundle = extract_cpp(repo)
+    assert bundle is not None and bundle["symbols"]
+    assert entries(laneacache.store_root()) == []
+    assert laneacache.summary()["misses"] == 2
+
+
+def test_an_encoding_that_lost_a_tuple_would_keep_nothing(cache, tmp_path, monkeypatch):
+    # The write-side assertion itself: a record that does not decode back
+    # to its object is dropped rather than read as an answer later.
+    monkeypatch.setattr(laneacache, "decode_record", lambda record: ("not the parse",))
+    path = laneacache.entry_path(laneacache.key("src/box.cpp", BOX.encode()))
+    laneacache._store(path, cppsource._parse_file("src/box.cpp", BOX.encode()))
+    assert not path.exists()
+
+
+def test_sweep_takes_partials_and_stale_entries_and_leaves_fresh_ones(cache):
+    store = laneacache.store_root()
+    (store / "ab").mkdir(parents=True)
+    (store / "cd").mkdir(parents=True)
+    now = time.time()
+    stale = store / "ab" / "old.json"
+    stale.write_text("{}")
+    os.utime(stale, (now - (laneacache.KEEP_DAYS + 1) * 86400,) * 2)
+    partial = store / "ab" / "killed.json.partial"
+    partial.write_text("{")
+    fresh = store / "cd" / "new.json"
+    fresh.write_text("{}")
+
+    assert laneacache.sweep(now=now) == 2
+    assert not stale.exists() and not partial.exists()
+    assert fresh.exists()
+
+
+def test_the_sweep_runs_once_per_process_per_store(cache, repo, monkeypatch):
+    # Two files are stored; the sweep costs a directory walk and runs at
+    # the first of them.
+    swept: list[Path] = []
+    monkeypatch.setattr(laneacache, "sweep", lambda root=None, now=None: swept.append(root))
+    extract_cpp(repo)
+    assert swept == [laneacache.store_root()]

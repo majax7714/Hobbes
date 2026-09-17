@@ -11,7 +11,7 @@ import pytest
 
 from hobbes import cli
 from hobbes.extract import extract_repo, ingest
-from hobbes.extract.timings import Timings, timings_log
+from hobbes.extract.timings import Timings, record, timings_log
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -58,6 +58,19 @@ def test_ingest_times_the_write_and_the_artifact_carries_none(repo):
     assert timings.steps[-1]["step"] == "write"
     graph = json.loads(next(p for p in paths if p.name == "graph.json").read_text())
     assert "timings" not in graph
+
+
+def test_the_log_line_carries_lane_as_cpp_cache_when_there_was_one(repo):
+    # ADR-128 §4: the line says why the C++ walk took the time it took.
+    ledger = {"hits": 3, "misses": 1, "read_seconds": 0.01,
+              "store_seconds": 0.02, "store": "/cache/lanea/cpp"}
+    path = record(repo, "0" * 40, "0.2.39-beta", Timings(), lanea_cache=ledger)
+    assert json.loads(path.read_text().splitlines()[-1])["lanea_cache"] == ledger
+
+
+def test_the_log_line_omits_the_cpp_cache_when_no_lookup_was_made(repo):
+    path = record(repo, "0" * 40, "0.2.39-beta", Timings())
+    assert "lanea_cache" not in json.loads(path.read_text().splitlines()[-1])
 
 
 def test_cli_prints_the_block_and_appends_one_log_line(repo, capsys):

@@ -69,12 +69,14 @@ def record(
     version: str | None,
     timings: Timings,
     index_cache: dict | None = None,
+    lanea_cache: dict | None = None,
 ) -> Path:
     """Append one line for this ingest to the repo's log and return its path.
 
     *index_cache* is lane B's cache ledger for the run (ADR-122: hits,
     misses, the keys' seconds), so the log says why a lane B step took
     the time it took; absent when no lookup was made.
+    *lanea_cache* is the same for lane A's C++ file cache (ADR-128 §4).
     """
     path = timings_log(repo_root)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,6 +90,8 @@ def record(
     }
     if index_cache is not None:
         line["index_cache"] = index_cache
+    if lanea_cache is not None:
+        line["lanea_cache"] = lanea_cache
     with path.open("a") as handle:
         handle.write(json.dumps(line, sort_keys=True) + "\n")
     return path

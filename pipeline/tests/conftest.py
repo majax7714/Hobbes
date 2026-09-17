@@ -14,6 +14,16 @@ import subprocess
 import pytest
 
 
+def pytest_configure(config):
+    """`lanea_cache` is registered here rather than in `pyproject.toml`
+    beside `lane_b`: the marker belongs to the fixture below, and a test
+    run must not warn about a marker the suite itself uses."""
+    config.addinivalue_line(
+        "markers",
+        "lanea_cache: exercises lane A's C++ file cache, which writes under the Hobbes cache",
+    )
+
+
 @pytest.fixture(autouse=True)
 def _lane_a_only(monkeypatch, request):
     """Run the extractor lane-A-only unless a test opts in.
@@ -26,6 +36,12 @@ def _lane_a_only(monkeypatch, request):
     """
     if "lane_b" not in request.keywords:
         monkeypatch.setenv("HOBBES_SCIP", "0")
+    # Lane A's C++ file cache is off for the same reason (ADR-128 §4): a
+    # test must never read or write the developer's real store under
+    # `~/.hobbes/cache`. A test of the cache itself carries the
+    # `lanea_cache` marker and points HOBBES_CACHE_DIR at a tmp_path.
+    if request.node.get_closest_marker("lanea_cache") is None:
+        monkeypatch.setenv("HOBBES_LANEA_CACHE", "0")
     # Every test starts contained: the escape hatch (ADR-092) is on only in
     # a test that sets it itself. A test that ran `hobbes ingest
     # --uncontained` in-process once leaked it into the rest of a full

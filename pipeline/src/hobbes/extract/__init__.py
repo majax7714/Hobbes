@@ -32,6 +32,7 @@ from hobbes.extract import (
     containment,
     indexcache,
     ingestlock,
+    laneacache,
     scipsource,
     staging,
     tail,
@@ -106,6 +107,7 @@ def extract_repo(
     """
     containment.reset_ledger()
     indexcache.reset_ledger()
+    laneacache.reset_ledger()
     # Every step below is timed (ADR-119); the record never enters an
     # artifact, and a caller that passes none gets one that is dropped.
     timings = timings if timings is not None else Timings()
