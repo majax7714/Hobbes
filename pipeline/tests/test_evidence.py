@@ -208,6 +208,108 @@ class TestProviderSeparation:
         assert by_kind["uses"] == (ev.SCIP,)
 
 
+class TestAnOperatorAppliedBySymbol:
+    """ADR-131: lane B names an ``operator…`` at the operator token, no
+    call site claims it, and the join draws the call — outside a template,
+    at exactly the token lane A recorded, and nowhere else."""
+
+    #: `os << x` at line 10: the `<<` is written at column 3, inside no
+    #: template, and the `<` of some other line at 20.
+    @staticmethod
+    def tokens(*written):
+        from array import array
+
+        from hobbes.extract.cppsource import pack_operator
+
+        return {"a.cc": array("Q", sorted(pack_operator(*one) for one in written))}
+
+    @staticmethod
+    def reference(name="operator<<", col=3, line=10):
+        return resolution("a.cc", line, name, "fmt.h", 5, col=col)
+
+    def counted(self, semantic, operators, syntax=()):
+        counts: dict = {"drawn": 0, "in_template": 0}
+        out = ev.join(list(syntax), list(semantic), operators=operators, counts=counts)
+        return out, counts
+
+    def test_outside_a_template_it_is_a_call_and_not_a_reference(self):
+        out, counts = self.counted(
+            [self.reference()], self.tokens((10, 3, "<<", False))
+        )
+        assert [fact.kind for fact in out] == ["calls"]
+        [fact] = out
+        assert fact.tier == SEMANTIC
+        assert fact.lanes == (ev.TREE_SITTER, ev.SCIP)
+        # No scope of its own: `project` names the caller by the enclosing
+        # symbol, as it does for every unscoped fact.
+        assert fact.scope == ""
+        # Nothing for R-qual or R-arity to read: there is no written
+        # callee at an operator token.
+        assert (fact.qualifier, fact.argc) == ("", None)
+        assert (fact.def_file, fact.def_line) == ("fmt.h", 5)
+        assert counts == {"drawn": 1, "in_template": 0}
+
+    def test_inside_a_template_it_stays_a_use_and_is_counted(self):
+        # scip-clang answers a dependent operator with its single by-name
+        # candidate, at the same arity, and nothing in the source
+        # contradicts it (C-153): given up on purpose, counted so the cost
+        # is a number rather than a silence.
+        out, counts = self.counted(
+            [self.reference()], self.tokens((10, 3, "<<", True))
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 1}
+
+    def test_one_column_off_is_not_the_token(self):
+        out, counts = self.counted(
+            [self.reference(col=4)], self.tokens((10, 3, "<<", False))
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 0}
+
+    def test_another_spelling_at_that_position_is_not_the_token(self):
+        # `a < b` where the index says `operator<<`: the position agrees
+        # and the source does not, so nothing is drawn.
+        out, _ = self.counted([self.reference()], self.tokens((10, 3, "<", False)))
+        assert [fact.kind for fact in out] == ["uses"]
+
+    def test_a_reference_with_no_column_is_not_the_token_either(self):
+        out, _ = self.counted(
+            [resolution("a.cc", 10, "operator=", "fmt.h", 5, col=-1)],
+            self.tokens((10, 3, "=", False)),
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+
+    def test_a_file_with_no_tokens_at_all_is_untouched(self):
+        out, _ = self.counted([self.reference()], {"other.cc": []})
+        assert [fact.kind for fact in out] == ["uses"]
+
+    def test_an_operator_written_by_name_still_claims_its_resolution(self):
+        # `ns::operator<<(a, 1)` is a call site already, and the site's own
+        # claim comes first: one `calls` fact, scoped by lane A, and the
+        # resolution is not also drawn by the rule above.
+        site = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 10, "operator<<", 3, "a.g")
+        out, counts = self.counted(
+            [self.reference()], self.tokens((10, 3, "<<", False)), syntax=[site]
+        )
+        assert [fact.kind for fact in out] == ["calls"]
+        assert out[0].scope == "a.g"
+        assert counts == {"drawn": 0, "in_template": 0}
+
+    def test_without_the_tokens_the_join_is_what_it_was(self):
+        # P6: with lane B off, or on a repo with no C++, nothing reads the
+        # tokens and the same reference is the same `uses` fact.
+        assert [fact.kind for fact in ev.join([], [self.reference()])] == ["uses"]
+
+    def test_a_plain_reference_is_never_taken_for_an_operator(self):
+        out, counts = self.counted(
+            [resolution("a.cc", 10, "format", "fmt.h", 5, col=3)],
+            self.tokens((10, 3, "<<", False)),
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 0}
+
+
 class TestCoverage:
     """The denominator: what the semantic provider could not account for."""
 

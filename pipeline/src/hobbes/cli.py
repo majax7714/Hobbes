@@ -132,6 +132,28 @@ def _print_minted(counts: dict | None) -> None:
         print("    not minted: " + ", ".join(parts))
 
 
+def _print_operators(counts: dict | None) -> None:
+    """The C++ operators applied by symbol that became call edges, and the
+    ones inside a template that did not (ADR-131) — printed under the
+    graph line, beside the minted block, where a reader meets the numbers
+    the rule moved.
+
+    Both halves in one line, because the second is the first's price: a
+    reference at an operator token inside a template stays a ``uses``
+    edge, since the index answers a dependent operator with its single
+    by-name candidate and the source contradicts none of it (C-146,
+    C-153). Nothing is printed where the block is absent — no indexer, or
+    no C++, is the floor exactly as it was (P6).
+    """
+    if not counts:
+        return
+    print(
+        f"    operators: {counts.get('drawn', 0)} drawn as calls where the index "
+        f"names one at the token; {counts.get('in_template', 0)} inside a template "
+        "left as uses (ADR-131, C-146)"
+    )
+
+
 def _print_containment(record: dict | None) -> None:
     """Where lane B ran (ADR-092), and what a contained step that ran repo
     code could still write (ADR-128 §2).
@@ -258,6 +280,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     )
     _print_implements(graph.get("implements"))
     _print_minted(graph.get("minted"))
+    _print_operators(graph.get("operators"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

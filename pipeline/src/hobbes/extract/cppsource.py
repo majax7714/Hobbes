@@ -62,7 +62,9 @@ carries the qualifier chain, with any template arguments dropped),
 (``(*fp)(x)``) and ``construct`` (``new A(x)`` and ``A a(x)``, named by
 the type's terminal, Java's ``new Foo(..)`` rule so the two lanes meet
 on the class name). An operator applied by symbol (``a + b``) is not a
-site: the provider sees no call (C-63's face). The four named casts
+site: the provider sees no call (C-63's face), and a built-in ``+`` is
+not one — what this walk records for it is an **operator token**, not a
+site (below). The four named casts
 (``static_cast`` and its three siblings) parse as calls and are not
 ones; they are dropped rather than recorded as calls to a function no
 repo defines. **A call written inside an unevaluated operand is not a
@@ -85,6 +87,26 @@ text states, and the projection draws nothing there (C-153). Both are
 *unknown* rather than wrong wherever the read is not clean — a pack
 expansion, a braced initialiser, an ERROR node, a variadic parameter
 list — because an unknown draws the edge.
+
+**Operator tokens** (ADR-131) are the other half of what a site cannot
+say. ``a + b`` names no callee, so it is no site — but scip-clang does
+emit a reference named ``operator+`` at the ``+``, and the join can draw
+a call there if lane A can say a ``+`` was written at exactly that
+position. So the walk records the token and nothing else: its line, its
+column, its spelling (the text that follows the word ``operator``) and
+whether it sits under a ``template_declaration``, held packed
+(:func:`pack_operator`) and never as a :class:`~hobbes.extract.evidence.
+Site` — a built-in operator is not a call, lane A cannot tell one from an
+overloaded one, and counting ScummVM's ~3.2 million tokens as detected
+sites would make every denominator false. Recorded for
+``binary_expression``, ``unary_expression``, ``pointer_expression``,
+``update_expression``, ``assignment_expression`` (compound ones too),
+``subscript_expression`` (its ``[``, spelled ``[]``) and a ``->``
+``field_expression`` — never a ``.``, never inside an unevaluated operand
+or under an ERROR node, and never for ``operator()`` on an object, a
+literal operator, a conversion operator, ``new``/``delete``, the comma or
+a named cast. An operator called by name (``ns::operator<<(a, b)``) is a
+call site already and stays one.
 
 **The fallback** (:func:`_call_fallback`, the syntactic floor) resolves a
 plain call by name in C's three ranks (``csource._resolve_fallback``
@@ -131,6 +153,8 @@ apply.
 
 from __future__ import annotations
 
+import bisect
+from array import array
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
@@ -189,6 +213,108 @@ _UNEVALUATED_OPERANDS = {
 _KEYWORD_CALLEES = {"noexcept", "typeid"}
 
 
+# ------------------------------------------------------- operator tokens
+#
+# ADR-131. An operator applied by symbol is not a call site — a built-in
+# `+` is not a call at all, and this walk cannot tell one from an
+# overloaded one — so what is recorded here is the *token*: where a
+# spelling was written, and whether it sits in a template. The join reads
+# it to decide whether lane B's `operator+` reference at that exact
+# position is a call, and nothing else reads it: these never reach the
+# fallback, the veto, `coverage`, `_dispositions`, `unresolved_sites` or
+# the tail.
+#
+# Packed, one integer per token, because a `Site` each is the cost this
+# design exists to avoid: ScummVM has about 3.2 million operator tokens
+# beside its 1.53 million call sites (ADR-116's concern), which is tens
+# of megabytes packed and a slotted object graph otherwise.
+
+#: The spellings a token can carry — the text that follows the word
+#: ``operator`` in ``operator<<``. A token's index into this tuple rides
+#: in its packed integer, so the order is the encoding's: append, never
+#: reorder (the lane A cache keys on this module's bytes, so a reorder
+#: misses every stored record rather than reading one wrong).
+OPERATOR_SPELLINGS = (
+    "+", "-", "*", "/", "%",
+    "==", "!=", "<", ">", "<=", ">=", "<=>",
+    "<<", ">>", "&", "|", "^", "&&", "||",
+    "!", "~",
+    "++", "--",
+    "=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^=",
+    "[]", "->",
+)
+
+_SPELLING_INDEX = {spelling: i for i, spelling in enumerate(OPERATOR_SPELLINGS)}
+
+#: The packing's one bound: a column past this would carry into the line
+#: field, so such a token is dropped rather than recorded at a position
+#: it was not written at. No source line is a megabyte wide.
+COLUMN_LIMIT = 1 << 20
+
+_SPELLING_MASK = (1 << 11) - 1
+_COLUMN_MASK = COLUMN_LIMIT - 1
+
+
+def pack_operator(line: int, column: int, spelling: str, in_template: bool) -> int:
+    """One operator token as ``line << 32 | column << 12 | spelling << 1 |
+    in_template`` — sortable by position, and searchable by its leading
+    32 bits alone (:func:`operator_token`)."""
+    return (
+        line << 32
+        | column << 12
+        | _SPELLING_INDEX[spelling] << 1
+        | int(in_template)
+    )
+
+
+def unpack_operator(packed: int) -> tuple[int, int, str, bool]:
+    """:func:`pack_operator`'s inverse: ``(line, column, spelling,
+    in_template)``."""
+    return (
+        packed >> 32,
+        (packed >> 12) & _COLUMN_MASK,
+        OPERATOR_SPELLINGS[(packed >> 1) & _SPELLING_MASK],
+        bool(packed & 1),
+    )
+
+
+def operator_token(packed: array, line: int, column: int, spelling: str) -> bool | None:
+    """Whether the file wrote *spelling* at exactly (*line*, *column*),
+    and if so whether that token sits inside a template — ADR-131's whole
+    question, answered off one file's sorted array.
+
+    ``None`` is "no such token here", which is every case the join leaves
+    as the ``uses`` reference it draws today: another spelling at that
+    position, a position one column off, a spelling this walk does not
+    record. The search is a binary one on the packed position, so a file
+    with 30,000 tokens costs a handful of comparisons per reference.
+    """
+    index = _SPELLING_INDEX.get(spelling)
+    if index is None or not 0 <= column < COLUMN_LIMIT:
+        return None
+    prefix = line << 32 | column << 12
+    at = bisect.bisect_left(packed, prefix)
+    while at < len(packed) and packed[at] < prefix + (1 << 12):
+        if (packed[at] >> 1) & _SPELLING_MASK == index:
+            return bool(packed[at] & 1)
+        at += 1
+    return None
+
+
+#: The nodes an operator token is read from. The token itself is the
+#: ``operator`` field on every one of them but the subscript, whose ``[``
+#: the grammar hangs in a ``subscript_argument_list``.
+_OPERATOR_NODES = frozenset({
+    "binary_expression",
+    "unary_expression",
+    "pointer_expression",
+    "update_expression",
+    "assignment_expression",
+    "subscript_expression",
+    "field_expression",
+})
+
+
 @dataclass
 class CppFile:
     """One parsed C++ file, in the shape the join consumes — ``csource.CFile``
@@ -225,6 +351,11 @@ class CppFile:
     #: :func:`_pattern_header` for the shape and for what a lost
     #: ``template <…>`` header (C-145) costs here.
     template_patterns: list[str] = field(default_factory=list)
+    #: Every operator this file applies by symbol, packed by
+    #: :func:`pack_operator` and sorted by position (ADR-131). Not sites,
+    #: and read by nothing but the join: an empty array is the ordinary
+    #: case for a file that writes only calls.
+    operators: array = field(default_factory=lambda: array("Q"))
     #: Count of ``TEST_CASE``/``SCENARIO`` bodies this file has: tests the
     #: walk names but can attach no symbol to, tallied for the file's
     #: ``cpp-tests`` degradation record.
@@ -514,6 +645,7 @@ def _parse_file(rel: str, source: bytes) -> tuple[CppFile, bool, list[str]]:
     # overload is scoped to that overload, not to the first of the set.
     duplicated = _dedupe_symbols(parsed)
     parsed.calls = _calls(root, parsed.symbols)
+    parsed.operators = _operator_tokens(root)
     return parsed, root.has_error, duplicated
 
 
@@ -1094,6 +1226,81 @@ def _calls(root: Node, symbols: list[dict]) -> list[dict]:
     return sorted(found, key=lambda call: (call["line"], call["col"], call["name"]))
 
 
+def _operator_tokens(root: Node) -> array:
+    """Every operator this file applies by symbol, packed and sorted
+    (ADR-131) — the module docstring's node list, one token each.
+
+    Dropped, in the direction of drawing less: a token inside an
+    unevaluated operand (``sizeof(a + b)``: the program never applies it,
+    ADR-121's test reused), one whose expression sits directly under an
+    ERROR node (the parse there is a guess about what was written, and
+    the rule this feeds needs the position to be exact), one whose text
+    is a spelling this walk does not record — a ``.``, a ``,`` — and one
+    written past :data:`COLUMN_LIMIT`.
+    """
+    packed: set[int] = set()
+    for node in _walk(root):
+        if node.type not in _OPERATOR_NODES:
+            continue
+        parent = node.parent
+        if parent is not None and parent.type == "ERROR":
+            continue
+        if _unevaluated(node):
+            continue
+        token, spelling = _operator_of(node)
+        if token is None:
+            continue
+        column = token.start_point.column
+        if column >= COLUMN_LIMIT:
+            continue
+        packed.add(
+            pack_operator(
+                token.start_point.row + 1, column, spelling, _in_template(node)
+            )
+        )
+    return array("Q", sorted(packed))
+
+
+def _operator_of(node: Node) -> tuple[Node | None, str]:
+    """``(token, spelling)`` for one expression, or ``(None, "")``.
+
+    The anonymous leaf, never an operand: the ``operator`` field for
+    every shape the grammar gives one, and the ``[`` of a subscript,
+    which the grammar hangs in a ``subscript_argument_list`` and which is
+    spelled ``[]`` the way a declaration spells it. A ``field_expression``
+    falls out here on its own: ``->`` is a spelling and ``.`` is not.
+    """
+    if node.type == "subscript_expression":
+        indices = node.child_by_field_name("indices")
+        for child in (indices or node).children:
+            if child.type == "[":
+                return child, "[]"
+        return None, ""
+    token = node.child_by_field_name("operator")
+    if token is None:
+        return None, ""
+    spelling = _text(token)
+    return (token, spelling) if spelling in _SPELLING_INDEX else (None, "")
+
+
+def _in_template(node: Node) -> bool:
+    """Whether any ancestor of *node* is a ``template_declaration``.
+
+    The one flag a token carries, because it is the one place scip-clang
+    answers a dependent operator with its single by-name candidate and
+    nothing in the source contradicts it (C-153): inside a template the
+    join draws no call. Unbounded to the root, as :func:`_unevaluated`
+    is — a lambda body, or a member of a class template, is inside its
+    header at any depth.
+    """
+    parent = node.parent
+    while parent is not None:
+        if parent.type == "template_declaration":
+            return True
+        parent = parent.parent
+    return False
+
+
 def _construction_sites(node: Node, symbols: list[dict]) -> list[dict]:
     """``A a(x)`` — a declaration whose declarator carries an argument
     list is a constructor call, named by the type's terminal."""
@@ -1364,6 +1571,13 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
         ),
         "local_bindings": {
             parsed.path: tuple(parsed.local_bindings) for parsed in files if parsed.local_bindings
+        },
+        #: The operator tokens each file applies by symbol (ADR-131),
+        #: packed. Read by the join alone, to draw a call where lane B
+        #: names an `operator…` at exactly one of these positions; a file
+        #: that wrote none is absent rather than empty.
+        "operators": {
+            parsed.path: parsed.operators for parsed in files if parsed.operators
         },
         "files": files,
         "tests": sorted(

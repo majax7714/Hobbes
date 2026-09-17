@@ -415,10 +415,27 @@ def _build_symbol_layer(
             graph.setdefault("dependency_coverage", []).append(coverage)
 
     withhold = frozenset(cpp_withheld_files)
+    # ADR-131: lane A's operator tokens, read by the join alone and only
+    # where lane B ran for C++ — with no indexer there is no reference to
+    # match, so the tokens are read by nothing and the graph is what it
+    # was (P6). The two counts come back in this dict rather than in the
+    # join's return value, which every other caller reads unchanged.
+    operator_counts: dict[str, int] = {"drawn": 0, "in_template": 0}
     with timings.step("join"):
         resolved = ev.join(
-            syntax, resolutions, fallback=fallback, external=external, withhold=withhold
+            syntax,
+            resolutions,
+            fallback=fallback,
+            external=external,
+            withhold=withhold,
+            operators=cpp["operators"] if cpp and lane_b_ran else None,
+            counts=operator_counts,
         )
+    if operator_counts["drawn"] or operator_counts["in_template"]:
+        # Additive, and absent on a repo with nothing to say — a C++
+        # operator drawn as a call is a new thing in the graph, and the
+        # one inside a template that was not is the cost beside it.
+        graph["operators"] = dict(operator_counts)
     # ADR-129, after the join and before the projection: where lane A's
     # parse lost a C or C++ definition, lane B's definition row becomes the
     # symbol, so `starting_at` answers for the lost line and the calls

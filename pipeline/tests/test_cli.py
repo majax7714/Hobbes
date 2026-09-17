@@ -249,6 +249,30 @@ class TestMintedLine:
         assert "read from the index" not in capsys.readouterr().out
 
 
+class TestOperatorLine:
+    """ADR-131 §5: an operator applied by symbol drawn as a call is a new
+    edge in the graph, and the one inside a template that was not drawn is
+    its price — both in the one line, under the graph line."""
+
+    def test_the_line_says_what_was_drawn_and_what_was_left(self, capsys):
+        cli._print_operators({"drawn": 393, "in_template": 175})
+        line = capsys.readouterr().out.strip()
+        assert line.startswith("operators: 393 drawn as calls where the index names one")
+        assert "175 inside a template left as uses" in line
+        assert "(ADR-131, C-146)" in line
+
+    def test_nothing_is_said_where_the_block_is_absent(self, capsys):
+        # P6: no indexer, or no C++, writes no block — and the floor is
+        # exactly what it was, so the summary says nothing.
+        cli._print_operators(None)
+        cli._print_operators({})
+        assert capsys.readouterr().out == ""
+
+    def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        assert "operators:" not in capsys.readouterr().out
+
+
 class TestContainmentNote:
     """What containment does *not* take away (ADR-128 §2): a contained step
     that ran repo code wrote the tool caches and the stage, and a later

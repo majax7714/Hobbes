@@ -17,8 +17,9 @@ numbers), so a store there is a cost with nothing to buy.
 **JSON, never pickle.** The store sits under the Hobbes cache, a
 directory other processes can reach, so it holds data and not code — an
 unpickle is a call into whatever wrote the file. The cost is that JSON
-has no tuple and no set, which ``_parse_file``'s result uses (a symbol's
-``qualifiers``, a file's ``duplicate_names``); the first prototype's
+has no tuple, no set and no ``array``, which ``_parse_file``'s result
+uses (a symbol's ``qualifiers``, a file's ``duplicate_names``, its packed
+``operators``); the first prototype's
 plain JSON turned a ``qualifiers`` tuple into a list, so
 :func:`encode` tags both and every record written is decoded back and
 compared to the object it came from before it is kept.
@@ -45,6 +46,7 @@ import importlib.metadata
 import json
 import os
 import time
+from array import array
 from pathlib import Path
 from typing import Callable
 
@@ -63,14 +65,20 @@ KEEP_DAYS = 30
 #: the store rather than meeting it as a decode failure per file. v2: a
 #: call carries its written argument count and a symbol its parameter
 #: count (ADR-130), and an entry written without them would read back as
-#: a parse that never counted.
-FORMAT = "lanea-cpp v2"
+#: a parse that never counted. v3: a file carries its operator tokens
+#: (ADR-131), and an entry written without them would read back as a
+#: parse that saw no operator at all.
+FORMAT = "lanea-cpp v3"
 
-#: The tags the encoding gives the two types JSON has not. Neither can
+#: The tags the encoding gives the three types JSON has not. None can
 #: collide with a field name: a NUL is not in any identifier, and the
 #: encoder refuses a dict key that is one of these anyway.
 TUPLE_TAG = "\0tuple"
 SET_TAG = "\0set"
+#: An ``array`` of packed operator tokens (ADR-131) — a list of ints on
+#: disk, the ``array`` in memory, so a record read back is the object
+#: ``_parse_file`` returned and not a list that merely compares equal.
+ARRAY_TAG = "\0array"
 
 #: The leaf types a record may hold. Anything else is a refusal, not a
 #: best effort: a record that is not what ``_parse_file`` returned is
@@ -287,19 +295,23 @@ def encode(value):
         return {TUPLE_TAG: [encode(item) for item in value]}
     if isinstance(value, (set, frozenset)):
         return {SET_TAG: [encode(item) for item in sorted(value)]}
+    if isinstance(value, array):
+        # ADR-131's operator tokens: the typecode rides with them, so the
+        # array read back is the one that was packed.
+        return {ARRAY_TAG: [value.typecode, list(value)]}
     if isinstance(value, list):
         return [encode(item) for item in value]
     if isinstance(value, dict):
         for name in value:
-            if not isinstance(name, str) or name in (TUPLE_TAG, SET_TAG):
+            if not isinstance(name, str) or name in (TUPLE_TAG, SET_TAG, ARRAY_TAG):
                 raise ValueError(f"lane A cache: unencodable field name {name!r}")
         return {name: encode(item) for name, item in value.items()}
     raise TypeError(f"lane A cache: unencodable value of type {type(value).__name__}")
 
 
 def decode(value):
-    """:func:`encode`'s inverse: the tags become a tuple and a set again,
-    everything else is itself."""
+    """:func:`encode`'s inverse: the tags become a tuple, a set and an
+    array again, everything else is itself."""
     if isinstance(value, list):
         return [decode(item) for item in value]
     if isinstance(value, dict):
@@ -308,6 +320,9 @@ def decode(value):
                 return tuple(decode(item) for item in value[TUPLE_TAG])
             if SET_TAG in value:
                 return {decode(item) for item in value[SET_TAG]}
+            if ARRAY_TAG in value:
+                typecode, items = value[ARRAY_TAG]
+                return array(typecode, items)
         return {name: decode(item) for name, item in value.items()}
     return value
 
