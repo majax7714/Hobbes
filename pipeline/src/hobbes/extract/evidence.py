@@ -165,6 +165,12 @@ def _operator_call(hit: Site, operators: Mapping) -> bool | None:
     a token lane A recorded, and if so whether that token sits inside a
     template (ADR-131). ``None`` wherever any part of that does not hold.
 
+    The three answers are three fates: ``False`` is the ``calls`` fact,
+    ``True`` is **nothing at all** — neither a call nor a ``uses``, since
+    the index answers a dependent operator with its single by-name
+    candidate (C-153) and no key grades a ``uses`` that would contradict
+    it — and ``None`` is the ``uses`` fact the reference is today.
+
     scip-clang names such a reference ``operator<<`` and puts it at the
     operator token's own column, which no call site claims — so this is
     the whole of what tells that reference apart from every other
@@ -230,16 +236,20 @@ def join(
     positions and **outside a template**, is a ``calls`` fact rather than
     the ``uses`` reference it would otherwise be: the index names the
     overload and lane A proves the operator was written there. Inside a
-    template it stays ``uses`` — scip-clang answers a dependent operator
-    with its single by-name candidate, at the same arity, and nothing in
-    the source contradicts it (C-153) — and every other reference is
-    untouched. The fact carries no ``qualifier`` and no ``argc``: there is
-    no written callee for R-qual or R-arity to read.
+    template the same reference is **withheld** — no ``calls`` fact and no
+    ``uses`` fact either (ADR-131's amendment): scip-clang answers a
+    dependent operator with its single by-name candidate, at the same
+    arity, so ``val * x`` reads onto whatever ``operator*`` it can name,
+    and a ``uses`` edge no key grades would be believed as a true
+    dependency. Every other reference is untouched. The fact carries no
+    ``qualifier`` and no ``argc``: there is no written callee for R-qual
+    or R-arity to read.
 
     *counts* is an out-parameter for the two numbers that rule produces —
-    ``drawn`` and ``in_template`` — added into the dict the caller passes,
-    so the return type is what every existing caller already reads. Left
-    ``None``, nothing is counted and nothing else changes.
+    ``drawn`` and ``in_template``, the second now the number **withheld**
+    — added into the dict the caller passes, so the return type is what
+    every existing caller already reads. Left ``None``, nothing is counted
+    and the withholding is the same: it is the rule, not the tally.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -345,10 +355,18 @@ def join(
                     )
                 )
                 continue
-            if in_template is True and counts is not None:
-                # Given up on purpose, and counted so the cost is a
-                # number rather than a silence (C-146, C-153).
-                counts["in_template"] = counts.get("in_template", 0) + 1
+            if in_template is True:
+                # ADR-131's amendment: inside a template the reference is
+                # withheld outright — not a call, and not the `uses` it
+                # was either. At a dependent operator the index has one
+                # by-name candidate and answers with it (C-153), so the
+                # edge would read as a true dependency no key can
+                # contradict. Counted so the cost is a number rather than
+                # a silence (C-146, C-153); per hit, so another unclaimed
+                # resolution on the same line still gets its `uses`.
+                if counts is not None:
+                    counts["in_template"] = counts.get("in_template", 0) + 1
+                continue
             out.append(
                 Resolved(
                     kind="uses",

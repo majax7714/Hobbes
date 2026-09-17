@@ -211,7 +211,8 @@ class TestProviderSeparation:
 class TestAnOperatorAppliedBySymbol:
     """ADR-131: lane B names an ``operator…`` at the operator token, no
     call site claims it, and the join draws the call — outside a template,
-    at exactly the token lane A recorded, and nowhere else."""
+    at exactly the token lane A recorded, and nowhere else. Inside one it
+    draws nothing at all (the 2026-09-17 amendment)."""
 
     #: `os << x` at line 10: the `<<` is written at column 3, inside no
     #: template, and the `<` of some other line at 20.
@@ -249,16 +250,44 @@ class TestAnOperatorAppliedBySymbol:
         assert (fact.def_file, fact.def_line) == ("fmt.h", 5)
         assert counts == {"drawn": 1, "in_template": 0}
 
-    def test_inside_a_template_it_stays_a_use_and_is_counted(self):
+    def test_inside_a_template_it_is_withheld_entirely_and_counted(self):
         # scip-clang answers a dependent operator with its single by-name
         # candidate, at the same arity, and nothing in the source
-        # contradicts it (C-153): given up on purpose, counted so the cost
-        # is a number rather than a silence.
+        # contradicts it (C-153) — and no key grades a `uses`, so the edge
+        # would stand unchallenged. Neither a call nor a use: given up on
+        # purpose, counted so the cost is a number rather than a silence.
         out, counts = self.counted(
             [self.reference()], self.tokens((10, 3, "<<", True))
         )
-        assert [fact.kind for fact in out] == ["uses"]
+        assert out == []
         assert counts == {"drawn": 0, "in_template": 1}
+
+    def test_only_the_hit_at_the_token_is_withheld_not_its_line(self):
+        # Per hit, not per line or per bucket: `plain` sits in the same
+        # bucket as the in-template operator and is at no token at all, so
+        # its own `uses` fact survives untouched.
+        out, counts = self.counted(
+            [
+                self.reference(),
+                resolution("a.cc", 10, "plain", "fmt.h", 5, col=20),
+            ],
+            self.tokens((10, 3, "<<", True)),
+        )
+        assert [(fact.kind, fact.def_file, fact.def_line) for fact in out] == [
+            ("uses", "fmt.h", 5)
+        ]
+        assert counts == {"drawn": 0, "in_template": 1}
+
+    def test_it_is_withheld_whether_or_not_the_caller_counts(self):
+        # The withholding is the rule, not the tally: `counts=None` is a
+        # caller that wants no numbers, not one that wants the old edge.
+        out = ev.join(
+            [],
+            [self.reference()],
+            operators=self.tokens((10, 3, "<<", True)),
+            counts=None,
+        )
+        assert out == []
 
     def test_one_column_off_is_not_the_token(self):
         out, counts = self.counted(
