@@ -1006,3 +1006,13 @@ class TestTheBundle:
         layer = extract_cpp(tmp_path)
         assert [e["stage"] for e in layer["errors"]] == ["parse"]
         assert "parsed with syntax errors" in layer["errors"][0]["message"]
+
+    def test_the_layer_names_the_files_whose_parse_had_error_nodes(self, tmp_path):
+        """ADR-129's first condition, read off the walk and not off the
+        record's message text: a definition lane B holds in one of these
+        is one this parse lost; in any other file it is lane A's floor."""
+        _write(tmp_path, {
+            "a.cpp": "class {{{ ;;; int f() {\n",
+            "b.cpp": "int g() { return 1; }\n",
+        })
+        assert extract_cpp(tmp_path)["lossy_files"] == frozenset({"a.cpp"})

@@ -262,6 +262,7 @@ def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
     repo_root = Path(repo_root).resolve()
     files: list[CFile] = []
     errors: list[dict] = []
+    lossy: set[str] = set()
     for absolute in iter_c_files(repo_root, claimed):
         rel = absolute.relative_to(repo_root).as_posix()
         try:
@@ -274,6 +275,7 @@ def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
         parsed, had_error, duplicated = _parse_file(rel, source)
         files.append(parsed)
         if had_error:
+            lossy.add(rel)
             errors.append(
                 {
                     "path": rel,
@@ -303,6 +305,11 @@ def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
     bundle = _join(files)
     errors.extend(bundle.pop("include_errors"))
     bundle["errors"] = errors
+    #: The files whose parse had ERROR nodes — ADR-129's first condition,
+    #: read off the walk rather than off the record's message text. C's
+    #: measured answer is that it mints nothing (cJSON and sqlite-vector
+    #: both mint zero), but the condition is the layer's to report.
+    bundle["lossy_files"] = frozenset(lossy)
     return bundle
 
 
