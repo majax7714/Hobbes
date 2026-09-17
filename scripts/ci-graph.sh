@@ -44,8 +44,17 @@ if not c["all_contained"] or c["escape_hatch"]:
     sys.exit("graph.json: lane B did not run contained — see C-64")
 EOF
 
-step "hobbes lanes (exit 1 on disagreement)"
-(cd pipeline && uv run hobbes lanes)
+step "hobbes lanes (exit 1 on an unexplained disagreement; 3 is registered, ADR-123)"
+# `set -e` would kill the script on any non-zero, so the status is caught
+# here: 3 means every row is a shape a registered limit explains (C-70,
+# C-152) and the job passes; 1 and 2 still fail it.
+lanes_status=0
+(cd pipeline && uv run hobbes lanes) || lanes_status=$?
+if [ "$lanes_status" -eq 3 ]; then
+  echo "    every lane disagreement is a registered shape (exit 3, ADR-123) — not a failure"
+elif [ "$lanes_status" -ne 0 ]; then
+  exit "$lanes_status"
+fi
 
 step "hobbes invariants compile, then run every compiled checker (C-19)"
 # The compiler creates compiled/ itself, but the shell opens the redirect

@@ -483,3 +483,71 @@ class TestLaneAgreement:
         }
         _, bad = ev.agreement(sites, semantic, fallback)
         assert [(d.file, d.line) for d in bad] == [("a.py", 2), ("a.py", 9), ("b.py", 5)]
+
+
+class TestDisagreementShapes:
+    """ADR-123 §1: the two registered limits that produce a disagreement by
+    construction name themselves, by a rule the report can check."""
+
+    def test_the_c_70_swap_is_a_same_line_pair(self):
+        # One line, two `run` calls; lane A holds one guess for both keys
+        # (C-70) while lane B answers each by column, so the site whose
+        # answer lane A's guess is not disagrees — and could not have done
+        # otherwise.
+        sites = [call("a.py", 1, "run", col=4), call("a.py", 1, "run", col=20)]
+        semantic = [
+            resolution("a.py", 1, "run", "x.py", 1, col=4),
+            resolution("a.py", 1, "run", "y.py", 2, col=20),
+        ]
+        fallback = {("a.py", 1, "run"): ("x.py", 1)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        assert [(d.semantic_file, d.semantic_line) for d in bad] == [("y.py", 2)]
+        assert ev.disagreement_shapes(sites, semantic, fallback, bad) == [
+            "same-line-pair"
+        ]
+
+    def test_a_same_named_line_whose_guess_matches_no_sibling_stays_unexplained(self):
+        # The honesty case (ADR-123's third rejected alternative): two
+        # same-named sites alone would excuse a genuine disagreement, so
+        # the rule asks that lane A's guess *be* a sibling's answer.
+        sites = [call("a.py", 1, "run", col=4), call("a.py", 1, "run", col=20)]
+        semantic = [
+            resolution("a.py", 1, "run", "x.py", 1, col=4),
+            resolution("a.py", 1, "run", "y.py", 2, col=20),
+        ]
+        fallback = {("a.py", 1, "run"): ("elsewhere.py", 9)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        assert len(bad) == 2
+        assert ev.disagreement_shapes(sites, semantic, fallback, bad) == [None, None]
+
+    def test_a_site_in_a_file_lane_b_compiled_is_cpp_withheld(self):
+        sites = [call("fmt.cc", 10, "close")]
+        semantic = [resolution("fmt.cc", 10, "close", "real.h", 3)]
+        fallback = {("fmt.cc", 10, "close"): ("guess.h", 7)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, frozenset({"fmt.cc"})
+        ) == ["cpp-withheld"]
+
+    def test_the_same_site_outside_the_withhold_set_has_no_shape(self):
+        # C-152 is about the files lane B *compiled*; elsewhere lane A's
+        # guess is drawn, so a disagreement there is unexplained.
+        sites = [call("fmt.cc", 10, "close")]
+        semantic = [resolution("fmt.cc", 10, "close", "real.h", 3)]
+        fallback = {("fmt.cc", 10, "close"): ("guess.h", 7)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        assert ev.disagreement_shapes(sites, semantic, fallback, bad) == [None]
+
+    def test_a_row_both_rules_explain_is_the_same_line_pair(self):
+        # The order: C-70 explains the row completely, C-152 only says the
+        # edge was not drawn.
+        sites = [call("fmt.cc", 1, "run", col=4), call("fmt.cc", 1, "run", col=20)]
+        semantic = [
+            resolution("fmt.cc", 1, "run", "x.h", 1, col=4),
+            resolution("fmt.cc", 1, "run", "y.h", 2, col=20),
+        ]
+        fallback = {("fmt.cc", 1, "run"): ("x.h", 1)}
+        _, bad = ev.agreement(sites, semantic, fallback)
+        assert ev.disagreement_shapes(
+            sites, semantic, fallback, bad, frozenset({"fmt.cc"})
+        ) == ["same-line-pair"]

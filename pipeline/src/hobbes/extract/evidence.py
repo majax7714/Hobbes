@@ -411,6 +411,69 @@ def agreement(
     return compared, sorted(out, key=lambda d: (d.file, d.line, d.name))
 
 
+#: The shapes a registered limit gives a site disagreement (ADR-123 §1),
+#: in the order :func:`disagreement_shapes` tries them.
+SAME_LINE_PAIR = "same-line-pair"
+CPP_WITHHELD = "cpp-withheld"
+
+
+def disagreement_shapes(
+    syntax: list[Site],
+    semantic: list[Site],
+    fallback: dict[tuple[str, int, str], tuple[str, int]],
+    disagreements: list[Disagreement],
+    withhold: frozenset[str] = frozenset(),
+) -> list[str | None]:
+    """The shape of each *disagreement*, or None where no rule explains it.
+
+    ADR-123 §1: a disagreement a registered limit produces by construction
+    is named by a rule the report can check, never by a triage. One entry
+    per row, in the rows' own order, by the predicates :func:`agreement`
+    used to produce them.
+
+    - ``same-line-pair`` (C-70) — the fallback is keyed on
+      ``(file, line, name)``, so two same-named calls on one line share
+      lane A's one guess while lane B answers each by column. The shape
+      holds only when that guess *is* lane B's answer at another of those
+      sites: then lane A could not have said anything else. A same-named
+      line whose guess matches no sibling's answer stays unexplained —
+      shaping it by "two sites on the line" would excuse a genuine
+      disagreement without evidence (ADR-123's third rejected alternative).
+    - ``cpp-withheld`` (C-152) — the site sits in a C++ file lane B
+      compiled, where the join draws nothing from lane A's guess anyway
+      (ADR-113 §2).
+
+    Checked in that order, so a row both rules could explain is the one
+    that explains it completely.
+    """
+    buckets = index_resolutions(semantic)
+    by_key: dict[tuple[str, int, str], list[Site]] = defaultdict(list)
+    for site in syntax:
+        if site.kind != CALL_SITE or site.ambiguous:
+            continue
+        by_key[(site.file, site.line, site.name)].append(site)
+
+    out: list[str | None] = []
+    for row in disagreements:
+        key = (row.file, row.line, row.name)
+        guess = fallback.get(key)
+        siblings = by_key.get(key, [])
+        shape: str | None = None
+        if guess is not None and len(siblings) > 1:
+            # A sibling whose answer *is* the guess agreed, so it is never
+            # the disagreeing site itself — "another of those sites" holds
+            # by construction.
+            for sibling in siblings:
+                hit = match_resolution(sibling, buckets)
+                if hit is not None and (hit.def_file, hit.def_line) == guess:
+                    shape = SAME_LINE_PAIR
+                    break
+        if shape is None and row.file in withhold:
+            shape = CPP_WITHHELD
+        out.append(shape)
+    return out
+
+
 @dataclass(frozen=True)
 class Coverage:
     """How much of a file's syntax the semantic provider could account for.

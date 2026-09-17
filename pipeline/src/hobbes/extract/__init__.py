@@ -430,6 +430,7 @@ def _build_symbol_layer(
         },
         external=external,
         withhold=withhold,
+        cpp_site_files=cpp_site_files,
     )
     degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
@@ -642,6 +643,7 @@ def _lane_agreement(
     lane_b_only_modules: set[str] | None = None,
     external: list[dict] | None = None,
     withhold: frozenset[str] = frozenset(),
+    cpp_site_files: set[str] | None = None,
 ) -> dict:
     """The §3.4 self-test: where both lanes can answer, they must agree.
 
@@ -681,12 +683,28 @@ def _lane_agreement(
     edge either. Reported the same way and for the same reason, and
     ``sites_compared`` is untouched by it — the comparison is fed the whole
     fallback, so wherever both lanes answered the self-test is unchanged.
+
+    *cpp_site_files* is every file the C++ layer saw a call site in, which
+    is what ADR-123 §3 needs beside the C++ rows: the denominator they are
+    a share of (``cpp_sites_compared``), and the guesses of the same kind
+    that *are* drawn — the ones in the C++ files lane B did not index
+    (``cpp_guess_drawn``, C-135's C++ face). Neither moves
+    ``sites_compared``, the rows, or their order.
     """
 
     def by_site(pair):
         return (pair[0].file, pair[0].line, pair[0].name)
 
     compared, disagreements = ev.agreement(syntax, resolutions, fallback)
+    # ADR-123 §1: a rule the report can check, per row and in the rows'
+    # order, so a registered limit's disagreement is named rather than
+    # triaged away.
+    shapes = ev.disagreement_shapes(
+        syntax, resolutions, fallback, disagreements, withhold
+    )
+    cpp_compared, cpp_guess_drawn = _cpp_site_counts(
+        syntax, resolutions, fallback, withhold, cpp_site_files or set()
+    )
     vetoes = sorted(
         ev.external_vetoes(syntax, resolutions, fallback, external), key=by_site
     )
@@ -724,8 +742,11 @@ def _lane_agreement(
                 "name": d.name,
                 "syntactic": f"{d.syntactic_file}:{d.syntactic_line}",
                 "semantic": f"{d.semantic_file}:{d.semantic_line}",
+                # The registered limit that explains this row, or None
+                # (ADR-123). Nothing is removed by it.
+                "shape": shape,
             }
-            for d in disagreements
+            for d, shape in zip(disagreements, shapes)
         ],
         # Only meaningful when lane B ran at all; an empty lane B would
         # otherwise report every module edge as "lane A only".
@@ -753,7 +774,46 @@ def _lane_agreement(
         # The same shape, one rule over (ADR-113 §2, C-152): the C++ files
         # lane B compiled and said nothing in.
         "cpp_withheld": _withheld_report(withheld),
+        # The C++ rows' denominator and their drawn counterpart (ADR-123
+        # §3): the C++ call sites both lanes answered, and the guesses of
+        # the same kind lane A does draw, where lane B never compiled.
+        "cpp_sites_compared": cpp_compared,
+        "cpp_guess_drawn": cpp_guess_drawn,
     }
+
+
+def _cpp_site_counts(
+    syntax,
+    resolutions,
+    fallback,
+    withhold: frozenset[str],
+    cpp_site_files: set[str],
+) -> tuple[int, int]:
+    """``(C++ sites compared, C++ guesses drawn)`` for ADR-123 §3.
+
+    The first is :func:`~hobbes.extract.evidence.agreement`'s own predicate
+    restricted to the C++ layer's files — the denominator the withheld rows
+    are a share of. The second is the guess the join *does* draw: a C++ call
+    site lane B never compiled (so not in *withhold*), with no in-repo
+    resolution and a fallback answer, drawn at syntactic tier (C-135's C++
+    face). Zero when the C++ layer did not run.
+    """
+    if not cpp_site_files:
+        return 0, 0
+    buckets = ev.index_resolutions(resolutions)
+    compared = drawn = 0
+    for site in syntax:
+        if site.kind != ev.CALL_SITE or site.ambiguous:
+            continue
+        if site.file not in cpp_site_files:
+            continue
+        if fallback.get((site.file, site.line, site.name)) is None:
+            continue
+        if ev.match_resolution(site, buckets) is not None:
+            compared += 1
+        elif site.file not in withhold:
+            drawn += 1
+    return compared, drawn
 
 
 def _withheld_report(pairs: list[tuple]) -> dict:

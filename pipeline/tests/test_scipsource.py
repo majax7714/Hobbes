@@ -1174,6 +1174,33 @@ class TestLaneAgreementCountsOnlySemanticModuleEdges:
         assert report["module_edges_lane_b_only"] == [{"from": "pkg.a", "to": "pkg.c"}]
 
 
+class TestCppGuessDrawn:
+    """ADR-123 §3: the C++ rows are a share of something, and the same
+    guess is drawn where lane B never compiled (C-152, C-135's C++ face)."""
+
+    def test_only_a_guess_outside_the_withhold_set_counts_as_drawn(self):
+        from hobbes.extract import _lane_agreement
+
+        sites = [
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "compiled.cc", 1, "run", 4),
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "skipped.cc", 2, "run", 4),
+        ]
+        fallback = {
+            ("compiled.cc", 1, "run"): ("a.h", 1),
+            ("skipped.cc", 2, "run"): ("b.h", 2),
+        }
+        report = _lane_agreement(
+            sites, [], fallback, [], [],
+            withhold=frozenset({"compiled.cc"}),
+            cpp_site_files={"compiled.cc", "skipped.cc"},
+        )
+        # The withheld file's guess draws nothing; the uncompiled file's does.
+        assert report["cpp_guess_drawn"] == 1
+        # Neither site had a lane B answer, so nothing was compared.
+        assert report["cpp_sites_compared"] == 0
+        assert report["sites_compared"] == 0
+
+
 class TestCoverageGapRecord:
     """C-79 (lifted): the environment check that had nothing to check
     against says so, instead of leaving `dependency_coverage` absent."""
