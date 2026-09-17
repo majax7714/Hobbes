@@ -161,7 +161,7 @@ figure below it:
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 100% (6,901/6,901), **strict 99.61%** (6,901/6,928)
+- **fmt** (C++) reads 100% (6,993/6,993), **strict 99.62%** (6,993/7,020)
   with the 27 rows the grader could not judge counted against it (ADR-124).
   scip-clang can name the wrong declaration at a call in a template
   (C-153); where the source text contradicts the index — the written
@@ -183,7 +183,11 @@ and about 100 of the 161 rows it could not judge read wrong by hand
 (ADR-131, C-146): fmt 30.1%, args 62.5%, still at no contradiction. At
 0.2.43-beta such a reference inside a template draws no `uses` edge
 either: no key grades `uses`, and the one module edge it cost each cell
-was wrong. The
+was wrong. At 0.2.44-beta a construction (`T x(args);`, a member
+initialiser, a braced argument) is a call where the index names the
+constructor at exactly the token, outside a template (ADR-132, C-162):
+args, held out, 62.5% → 72.9% with every added row confirmed; fmt 30.3%,
+where 80% of the missed constructions sit inside gtest's macros. The
 abstentions behind part of what is left are registered (C-146, C-148,
 C-151, C-152).
 
@@ -228,7 +232,7 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but one. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 6,901/6,901 (100%; strict 99.61%, ADR-124): scip-clang's
+  reads 6,993/6,993 (100%; strict 99.62%, ADR-124): scip-clang's
   wrong-candidate edges are withheld where the source contradicts
   them (ADR-125, ADR-130), and three C-153 rows remain unjudged.
   Its recall lead within a row runs from none (sqlite-vector) and half a
@@ -359,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.43-beta** (2026-09-17). The Hobbes layer is versioned from here
+**Hobbes 0.2.44-beta** (2026-09-17). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -449,7 +453,8 @@ made exact-faster and cached per file (ADR-128: ScummVM's lane A 261 s →
 154 s, 39.5 s warm, byte-identical), and the definitions a macro parse
 loses read from the index (ADR-129, with ADR-130's arity rule: fmt's
 recall 14.5% → 29.1% at no contradiction), and operators as calls
-outside templates (ADR-131: 30.1%, args 58.6% → 62.5%).
+outside templates (ADR-131: 30.1%, args 58.6% → 62.5%), then
+constructions at the token (ADR-132: fmt 30.3%, args 72.9%).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 

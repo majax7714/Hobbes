@@ -11,9 +11,49 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.43-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.44-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.44-beta — 2026-09-17 (a C++ construction is a call where the index names the constructor at the token, outside a template; ADR-132)
+
+**Patch: what the layer draws** — a constraint's fix (C-162, registered
+and narrowed in the same commit).
+
+- **Measured first, nothing drawn.** fmt's "8,117 missed constructions"
+  is not one class: 80% sit at a macro invocation's name (gtest's
+  `Message` and `AssertHelper` at `EXPECT_EQ` — the macro class, C-131),
+  7% are gtest's `new TestClass`, 10% have no lane B reference at all
+  (a dependent type's construction is not indexed), and 152 name the
+  constructor at a real token outside a template. args, held out: no
+  macros, 383 of 889 drawable — 324 at the `{` of a braced argument —
+  and 484 implicit conversions the index says nothing about. Two of five
+  predictions missed there, recorded as misses.
+- **The rule.** Lane A records construction *tokens* (C++ only, packed,
+  never sites): the declared name of `T x(args)` / `T x{…}` / `T x;`, a
+  member initialiser's name, the `{` of a braced argument or return, the
+  `=` of a defaulted parameter, the type's start in `T{…}` and
+  `new T(…)`. The join draws a semantic `calls` edge where a lane B
+  reference **onto a constructor** sits at exactly that token, outside a
+  template and outside an unevaluated operand. Inside a template the
+  reference stays the `uses` edge it was, and is counted
+  (`graph.json`'s `constructions` block; one line in the ingest summary).
+  Lane A's C++ cache format moves (`lanea-cpp v4`).
+- **The grades, stored keys:** args, held out, **2,198 → 2,567 confirmed,
+  0 contradicted, recall 62.5% → 72.9%**, the built export the probe's
+  row for row. fmt **6,901 → 6,993 confirmed, 0 contradicted, recall
+  30.1% → 30.3%, strict 99.61% → 99.62%**; the 24 rows the key could not
+  judge were read by hand before the build, all right. cJSON and
+  sqlite-vector identical.
+- **Recorded miss:** P102's count (fmt 6,993 where 7,012 ± 3 was
+  predicted). 19 rows the simulation drew are not drawn: the type is
+  named through a using-declaration, and lane A's existing construct
+  site claims the constructor's reference by name and lands below the
+  floor. It draws less, not wrong; registered in C-162 as its own item.
+- **One wrong class found on fmt's read and excluded before args ran:** a
+  constructor's own in-class declaration under a macro-broken class head
+  looked like a local; a declaration under a label records nothing.
+- Unit `4834` (84 turns, $8.57), gate clear, verify pass.
 
 ## 0.2.43-beta — 2026-09-17 (a dependent C++ operator's reference inside a template draws nothing, not a `uses` either; ADR-131 amended)
 

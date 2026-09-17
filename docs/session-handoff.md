@@ -1,14 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-17; Hobbes 0.2.43-beta on `main`.** CI is green on
-`dbef0af` (the first green since `d1feba1`), and ADR-114's base rule was
-read on it: the graph job reviewed from the last green run. The
-knowledge server serves the image it started from until it is restarted
-(C-65): **restart it** — the image was rebuilt at 0.2.43-beta at the end
-of this session.
+**Reviewed 2026-09-17; Hobbes 0.2.44-beta on `main`.** CI was green on
+`dbef0af` (ADR-114's base rule read on it: the graph job reviewed from
+the last green run); everything since is unpushed. The knowledge server
+serves the image it started from until it is restarted (C-65):
+**restart it** — the image was rebuilt at 0.2.44-beta at the end of this
+session.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.43-beta are untagged. Tags stay Max's call each time.
+  0.2.44-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -17,91 +17,94 @@ of this session.
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-17 "a dependent operator's
-reference draws nothing … constructions measured" BUILDLOG entry
-(ADR-131 amended, 0.2.43-beta). Before it, the same day: "C++ recall:
-operators" (ADR-131, 0.2.42-beta), the two CI entries, "C++ recall"
-(ADR-129, ADR-130, 0.2.41-beta), and the ADR-123–128 entries
-(0.2.36–0.2.40-beta). Earlier sessions' detail lives in their own
-BUILDLOG entries; this file keeps only what the next session needs.
+The latest session's records are the two 2026-09-17 evening BUILDLOG
+entries: "a dependent operator's reference draws nothing …
+constructions measured" (ADR-131 amended, 0.2.43-beta) and
+"constructions at the token" (ADR-132, 0.2.44-beta). Before them, the
+same day: "C++ recall: operators" (ADR-131, 0.2.42-beta), the two CI
+entries, "C++ recall" (ADR-129, ADR-130, 0.2.41-beta), and the
+ADR-123–128 entries (0.2.36–0.2.40-beta). Earlier sessions' detail lives
+in their own BUILDLOG entries; this file keeps only what the next session
+needs.
 
 ## ⇢ START HERE NEXT SESSION (2026-09-17)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
-its list is below, each item measured before it is designed.
-**Constructions are measured; the next move there is Max's.**
+its list is below, each item measured before it is designed. **Next is
+the lost definition's extent** (item 2), unless Max takes one of the two
+small things below first.
 
-### One thing for Max first — constructions are not one class
+### Two things for Max first
 
-Measured on fmt, args held out (`~/.hobbes/bench/cpp-constructions/`;
-the BUILDLOG entry has the table). Of fmt's 8,047 distinct missed
-constructor pairs, **80% sit at a macro invocation's name** (gtest's
-`Message` and `AssertHelper` at `EXPECT_EQ`: the macro class, C-131,
-parked), 7% are gtest's `new TestClass`, 10% have **no lane B reference
-at all** (690 of 814 inside a template), and **152 (1.9%) are a
-constructor lane B names at a real token outside a template**. args is
-the other way round: no macros, 383 of 889 (43%) in that last class —
-324 at the `{` of a braced argument (`{'f', "foo"}` → `Matcher`) — and
-484 `EitherFlag` conversions of the literals inside those braces that
-scip-clang says nothing about. Two of five args predictions missed.
-Every drawable row already stands as a `uses` edge onto a `method`
-symbol. Routes:
+1. **Constructions inside a template read right — draw them?** ADR-132
+   draws outside a template only. The same rule inside one would add 44
+   rows on fmt (42 confirmed, 2 `MutexLock` rows the key cannot judge,
+   read right) and 1 on args (confirmed); none reads wrong, unlike
+   operators. The likely reason: a dependent type's construction gets no
+   reference at all (690 rows on fmt), so what the index emits in a
+   template is a non-dependent type's. Routes: **(a, recommended) leave
+   it** — 45 rows is evidence, not a mechanism proved, the gain is 0.1
+   point on fmt, and they are true `uses` edges today; **(b)** draw them,
+   one flag's change in `evidence._construction_call`, with a third C++
+   cell graded first as the held-out check.
+2. **The join's claim is by `(file, line, name)`** and it cost ADR-132
+   19 confirmed rows on fmt: `using fmt::detail::bigint;` then
+   `bigint n1(42);` gives two references named `bigint` on the line;
+   lane A's existing construct site takes the nearer (the
+   using-declaration, below the floor) and the claim swallows the
+   constructor's. Routes: **(a, recommended) measure it as its own small
+   item** — across all graded cells and languages, how many unclaimed-
+   by-position references a by-name claim hides, and what a by-hit claim
+   would draw, graded — before touching a rule every language shares;
+   **(b)** leave it registered in C-162.
 
-- **(a, recommended) a construction-token rule in ADR-131's shape.**
-  Lane A records construction *tokens* (a declarator with an argument or
-  initialiser list, a member initialiser's name, the `{` of a braced
-  argument or return, the `=` of a defaulted parameter), packed, never
-  sites; the join draws `calls` where lane B names a **constructor**
-  (the facts stream's definition row at the target carries the moniker) at
-  exactly that token, outside a template, outside an unevaluated
-  operand. Ceiling: fmt +152 rows (+0.3 points), args +383 (+10.8).
-  First: the simulated exports graded (as `c146-operators/simulate.py`
-  did), the unjudged rows read by hand, and the implicit-conversion rows
-  (a reference at an arbitrary expression: `return style_ & 0x3FFFFFF`
-  → `color_type`) decided — there is no token to be exact about, so the
-  default is not to draw them. args has now been read for this class, so
-  it is no longer held out for it; the rule would be fitted on both and
-  say so, or a third C++ cell is graded first.
-- **(b) register and move on** to the list's item 2. Constructions get
-  their `C-n` (the C++ segment has none for them — see the BUILDLOG
-  entry) as they stand, unsurfaced, and fmt's headline "8,117" is
-  restated as mostly the macro class.
-- **(c) unpark the macro class (C-131).** It is 80% of fmt's
-  constructions, 75% of its operator references (3,011), and all 728 of
-  cJSON's misses. Drawn naively the operator rows read 73 contradicted,
-  so it is a design of its own, not a switch.
+### What landed on 2026-09-17, last session (merged no-ff; tracker 50 of 40)
 
-Either way the constructions entry is owed to the register.
-
-### What landed on 2026-09-17, last session (merged no-ff; tracker 49 of 40)
-
-- **ADR-131 amended (Max: route a), C-153 narrowed a third time:** a lane
-  B reference named `operator…` at exactly an operator token **inside a
-  template draws nothing** — no `calls` (as before) and no `uses`. Still
-  counted (`operators.in_template`, now the number withheld); the ingest
-  line says *withheld, neither a call nor a uses*.
-- **Measured first** (`~/.hobbes/bench/c153-operator-uses/`): fmt −156
-  `uses` symbol edges, args −24, none added; **one module edge gone on
-  each cell, both wrong** (`test/scan.h → include/fmt/format.h` on
-  integer `n * 10`; `args.hxx → test/test_common.hxx` on `ss >> x`).
-- **The grades, stored keys, 0.2.43-beta:** every graded number ±0, all
-  four exports identical row for row; the built graphs equal the
-  probe's edge for edge. P98–P101 met (§10.16). Not held out, and the
-  records say so.
-- **The price:** the right candidates go with the wrong ones (175
-  key-confirmed in-template rows on fmt were true dependencies).
-- Unit: `4033` (36 turns, $1.78), gate right-clear, verify pass.
-- **Housekeeping:** `c146-operators/wt` removed. Six older worktrees are
-  still listed by `git worktree list` (`adr111-wt`,
-  `adr111-before/hobbes-wt`, `calvin-gate/wp-18`, `calvin-go/wp-11a`,
-  `wp-14`, `wp-14b`) — removable on Max's word; `c153-operator-uses/wt`
-  is this session's, removable.
+- **ADR-132, constructions (C-162 registered and narrowed):** lane A's
+  C++ walk records construction *tokens* (the declared name of
+  `T x(args)` / `T x{…}` / `T x;` in a declaration that names a type and
+  sits directly in a block or at namespace scope, a member initialiser's
+  name, the `{` of a braced argument or return, the `=` of a defaulted
+  parameter, the type's start in `T{…}` / `new T(…)`), packed beside the
+  operator tokens. The join draws a semantic `calls` fact where a lane B
+  reference **onto a constructor** (`minted.constructor_lines`: the
+  definition row's moniker ends `T#T(…)`) sits at exactly that token,
+  outside a template; inside one it stays `uses` and is counted
+  (`graph.json`'s `constructions` block, one line in the ingest summary).
+  Cache format `lanea-cpp v4`.
+- **Measured first** (`~/.hobbes/bench/cpp-constructions/`): fmt's 8,047
+  missed pairs are 80% the macro class (C-131), 7% gtest's
+  `new TestClass`, 10% no lane B reference, 152 drawable; args (held out)
+  383 of 889 drawable, 484 implicit `EitherFlag` conversions the index
+  does not emit. Drawn naively on fmt: 95 contradicted. One wrong class
+  found by the hand read and excluded before args ran (a constructor's
+  own declaration under a macro-broken class head).
+- **The grades, stored keys, 0.2.44-beta:** args **2,198 → 2,567
+  confirmed, 0 contradicted, 62.5% → 72.9%**, the probe's export row for
+  row; fmt **6,901 → 6,993, 0 contradicted, 30.1% → 30.3%, strict
+  99.62%**; cJSON and sqlite-vector identical. P103–P107 met.
+- **Recorded misses:** P102's count (fmt 6,993 where 7,012 ± 3 was
+  predicted — item 2 above); step 0's P-c1 and P-c3 on args; P-s5 by one
+  row.
+- **ADR-131 amended (Max: route a), C-153 narrowed a third time
+  (0.2.43-beta):** a lane B reference named `operator…` at exactly an
+  operator token inside a template draws nothing — no `calls`, no `uses`.
+  fmt −156 `uses` symbol edges, args −24, every graded number ±0; the one
+  module edge gone on each cell was wrong. The price: 175 key-confirmed
+  in-template rows on fmt were true dependencies.
+- Units: `4033` (36 turns, $1.78) and `4834` (84 turns, $8.57), both gate
+  right-clear, verify pass.
+- **Housekeeping:** seven merged worktrees removed (branches kept);
+  `ttt/hobbes-base` stays. `cpp-constructions/wt` is this session's,
+  removable.
 
 ### C++ recall — what is next, in order, each measured first
 
-1. **Constructions:** measured (above); waits on Max's route.
+1. **Constructions: built (ADR-132).** What is left is registered in
+   C-162: the macro class, templates, untokened conversions, references
+   the index does not emit, and the using-declaration claim.
 2. **A lost definition's extent (C-145's residual):** calls written
    inside a minted symbol keep the enclosing caller. Count them first;
    Route B (blanking known-empty macros) is the candidate, and it is
@@ -126,10 +129,15 @@ The 2026-09-15 and 2026-09-16 resume points were folded into their
 BUILDLOG entries on 2026-09-17; only the paths a next session reaches for
 stay here.
 
-- **Constructions, step 0:** `~/.hobbes/bench/cpp-constructions/`
-  (`probe.py` the per-pair read, `classes.py` the six classes,
-  `PREREG-args.md` with both hashes and the result, `fmt-out/`,
-  `args-out/`). Run as `uv run --project pipeline python probe.py <clone>
+- **Constructions (ADR-132):** `~/.hobbes/bench/cpp-constructions/`
+  (step 0: `probe.py` the per-pair read, `classes.py` the six classes,
+  `PREREG-args.md`, `fmt-out/`, `args-out/`; step 1: `simulate.py` the
+  exports a rule would produce — `simulate-v1.py` its first form —
+  `grade.sh`, `buckets.py` bucket × token class, `tokenpos.py`,
+  `PREREG-args-sim.md`, `fmt-sim2/` and `args-sim2/` the probe exports;
+  `regrade.sh` with `OUT=`/`ROOT=`, which compares against 0.2.43-beta's
+  export and the probe's; `final/` the 0.2.44-beta grades; `units/` the
+  brief; `wt/` a worktree, removable). Run as `uv run --project pipeline python probe.py <clone>
   <facts.ndjson> <report.json> <out-dir>`; the facts stream is the
   cell's newest `~/.hobbes/cache/index/*.facts.ndjson`.
 - **Operator `uses` withheld (ADR-131 amended):**
@@ -179,8 +187,10 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **New, the constructions read:** routes (a)/(b)/(c) — see START
-     HERE. The register owes constructions an entry either way.
+   - **New, from ADR-132:** constructions inside a template, and the
+     join's by-name claim — see START HERE.
+   - **Settled 2026-09-17 (Max: "go with recommended"):** constructions —
+     the token rule (ADR-132, 0.2.44-beta); C-162 registered.
    - **Settled 2026-09-17 (Max: route a):** the wrong `uses` edges at
      dependent operators — withheld (ADR-131 amended, 0.2.43-beta).
    - **Settled 2026-09-17 (routes Max approved):** the judged-as-before
@@ -234,7 +244,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 49 of 40, 4
+   - **The validating 40 are done:** the tracker reads 50 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -302,15 +312,16 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Forty-nine log files under `docs/calvin/sessions/`; the tracker reads 49 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty log files under `docs/calvin/sessions/`; the tracker reads 50 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 161 entries: 117 active (91 surfaced, 22 partial, 3
+- **Register:** 162 entries: 118 active (92 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 27 lifted, 11 superseded, 6
-  folded. Latest: C-153 narrowed a third time (ADR-131 amended,
+  folded. Latest: C-162 registered and narrowed (ADR-132, 0.2.44-beta);
+  C-153 narrowed a third time (ADR-131 amended,
   0.2.43-beta; no entry added); C-146 narrowed (ADR-131, 0.2.42-beta; no entry added);
   C-145 narrowed and C-153 narrowed a second time
   (ADR-129, ADR-130, 0.2.41-beta; no entry added); C-160 and C-161 registered (ADR-128, 0.2.40-beta);
@@ -324,8 +335,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.43-beta (2026-09-17, all pass on the host): 1,867
-  pytest (`lane_b` 9 of them, run at 0.2.43-beta), Go `./...` 395 with
+- **Suites** at 0.2.44-beta (2026-09-17, all pass on the host): 1,900
+  pytest (`lane_b` 9 of them, run at 0.2.44-beta), Go `./...` 395 with
   subtests (394 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests

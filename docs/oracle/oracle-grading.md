@@ -1539,6 +1539,33 @@ files carry the frozen scripts' hashes. For the built rule:
 A contradicted row, or a new `line-unresolved` one, is a finding against
 the rule and is fixed before the version moves.
 
+**Results (2026-09-17, 0.2.44-beta; unit `4834`, stored keys, contained;
+`~/.hobbes/bench/cpp-constructions/final/`).**
+- **P102 — missed on the count, met on 0 contradicted.** fmt 6,993/6,993,
+  not 7,012 ± 3; recall 30.3% (15,320/50,524), not 30.4%. 19 of the
+  probe's rows are not drawn, one cause: the type is named through a
+  using-declaration (`using fmt::detail::bigint;` ×14, `using fmt::file;`
+  ×5), lane A's existing construct site takes the line's nearer
+  same-named reference — the using-declaration, below the floor — and
+  the join's claim is by `(file, line, name)`, so the constructor's
+  reference never reaches the rule. The probe did not model the claim.
+  Draws less; C-162 registers it.
+- **P103 — met.** `line-unresolved` 27; `unreachable` 43 → 67, the 24 the
+  probe's hand read called right; strict 99.62% (6,993/7,020).
+- **P104 — met.** args 2,567/2,567, 0 contradicted, silent 5 → 5; recall
+  72.9% (2,595/3,561).
+- **P105 — met.** cJSON 1,713 rows and sqlite-vector 19,744, identical;
+  neither graph has a `constructions` block.
+- **P106 — met.** No row outside the probe's export on either cell; args
+  is the probe's export exactly.
+- **P107 — met.** fmt 120 drawn and 44 inside a template; args 369 and 1;
+  no `calls` edge from a token inside a template. In the graph a `uses`
+  becomes a `calls` between the same ends (fmt −86 / +85, args −156 /
+  +155); no module edge moved.
+- Signed direction of fix: fmt confirmed +92, contradicted ±0,
+  unjudged-line ±0, `unreachable` +24 (read right), recall +0.2 points;
+  args confirmed +369, recall +10.4 points.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

@@ -366,6 +366,77 @@ headers parsed with tree-sitter ERROR nodes.
   a hit is byte-identical to a parse (measured on ScummVM, 217 MB).
 - **Source:** ADR-128; the measurement of 2026-09-17.
 
+### C-162 — A construction is a call only where a call site names it, or the index names the constructor at a construction token outside a template
+
+- **Cannot tell you:** that a construction calls its constructor where
+  it sits **inside a template**; inside a macro's expansion (gtest's
+  `Message` and `AssertHelper` at `EXPECT_EQ`'s own name: 80% of fmt's
+  missed constructions, C-131); where it has **no token** — an implicit
+  conversion (`return style_ & 0x3FFFFFF;` into a `color_type`,
+  `fmt::format(loc, …)` into a `locale_ref`); where scip-clang emits no
+  reference at all (a dependent type's construction; the literals inside
+  a braced list — 484 `EitherFlag` rows on args); at a base-class or
+  delegating initialiser (`Base<T>(args)`); at a default member
+  initialiser in a class body; at a declaration under a label; or where
+  **the type is named through a using-declaration** (below).
+- **Because:** `T x(args);`, `T x{…};`, `T x;`, `m_(args)`, a braced
+  argument, `T{…}`, `new T(…)` and `T p = {}` have no callee identifier —
+  the written name is a variable, a member, a brace or a type — and
+  `int x(3);` is the same syntax and no call. Lane A cannot tell the two
+  apart, so a construction is never a site of its own; only `T(args)` is.
+  This was true from ADR-113 and stood unregistered until ADR-132's
+  measurement read it (2026-09-17).
+- **Narrowed the day it was registered (ADR-132, 0.2.44-beta).** Lane A
+  records each construction **token** (the declared name of `T x(args)` /
+  `T x{…}` / `T x;` in a declaration that names a type and sits directly
+  in a block or at namespace scope; the member name opening a member
+  initialiser; the `{` of a braced argument or return; the `=` of a
+  defaulted parameter; the type's start in `T{…}` and `new T(…)`), packed
+  and never as a site, and the join draws a semantic `calls` edge where a
+  lane B reference **onto a constructor** (its definition row's moniker
+  ends `T#T(…)`) sits at exactly that token, **outside any
+  `template_declaration`** and outside an unevaluated operand. Measured
+  before it was built (`oracle-grading.md` §10.17): fmt +116 rows, 92
+  confirmed, 0 contradicted, the 24 the key could not judge read right by
+  hand, recall 30.1% → 30.3%; args, held out, +369, all confirmed, 62.5%
+  → 72.9%; C untouched.
+- **Why not inside a template:** every other in-template answer on this
+  lane has needed a guard (C-153). Here the 45 in-template rows the rule
+  would add (44 on fmt, 1 on args) read right — a dependent type's
+  construction gets no reference at all, so what the index does emit in
+  a template is a non-dependent type's — and that is 45 rows, not a
+  proof. They stay the `uses` edges they were, which is a true statement
+  either way. Put to Max.
+- **The using-declaration residual, found by the build's grade:** where a
+  file says `using fmt::detail::bigint;` and then `bigint n(0);`, lane B
+  gives two references named `bigint` on the line — the using-declaration
+  at the type, the constructor at `n`. Lane A's existing construct site
+  takes the nearer one, which is below the floor, and the join's claim is
+  by `(file, line, name)`, so the constructor's reference never reaches
+  the rule. 19 key-confirmed rows on fmt (`bigint` ×14, `file` ×5), none
+  on args. It draws nothing, not something wrong; the fix is the join's
+  claim, which every language shares, so it is its own item.
+- **Other residuals:** a `template <…>` header a macro parse lost flags
+  its tokens plain (C-146's residual, the same blind spot; none found on
+  either cell); a class head a macro broke (`class GTEST_API_ X {`) reads
+  `public:` as a label, which is why a declaration under a label records
+  nothing — a constructor's own in-class declaration looked like a local
+  there, and lane B points it at the out-of-line definition (4 wrong rows
+  in the first simulation, none since).
+- **Bites at:** test code that builds objects by declaration, and
+  option-table APIs that take braced arguments (args). The oracle records
+  a construction as its own class (`static→constructor`), so the cell
+  reads these as recall, never precision.
+- **You find out:** **surfaced** — the ingest summary's `constructions:`
+  line and `graph.json`'s `constructions` block count the tokens drawn and
+  the references inside a template left as `uses` (fmt: 120 and 44; args:
+  369 and 1); O10's `sites_constructor` coverage bucket; nothing at the
+  site.
+- **Provider (P9):** scip-clang **0.4.0** (what it does and does not emit
+  a reference for).
+- **Source:** ADR-113 §2 (the concession); ADR-132 (the measurement and
+  the narrowing).
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that

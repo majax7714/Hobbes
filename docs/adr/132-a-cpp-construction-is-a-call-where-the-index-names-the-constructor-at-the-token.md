@@ -1,6 +1,6 @@
 # ADR-132 — A C++ construction is a call where the index names the constructor at the token, outside a template
 
-**Date:** 2026-09-17 · **Status:** accepted; measured, not yet built (`oracle-grading.md` §10.17 holds the predictions for the build) · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its second item; his word on the constructions read the same day ("good to go with recommended"); his standing direction — honesty and accuracy before a recall number; rules fail toward drawing less.
+**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.44-beta (unit `4834`; `oracle-grading.md` §10.17: args 2,567/2,567, 72.9%, the probe's export row for row; fmt 6,993/6,993 at 0 contradicted, 30.3% — **P102 missed on the count**, 19 probe rows not drawn where the type is named through a using-declaration, C-162) · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its second item; his word on the constructions read the same day ("good to go with recommended"); his standing direction — honesty and accuracy before a recall number; rules fail toward drawing less.
 
 Registers **C-162** with the build (the C++ segment had no entry for a
 construction that draws no call). Follows ADR-131, whose shape it takes.

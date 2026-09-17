@@ -12563,3 +12563,80 @@ fmt's 152 the check; (b) register and move to the list's next item;
 to unpark.
 
 No spend beyond the subscription's $1.78.
+
+## 2026-09-17 (late evening) — constructions at the token, outside a template (ADR-132, 0.2.44-beta)
+
+Max, on the constructions routes: "remove the old work trees. then good
+to go with recommended." The six worktrees went first (each looked at:
+clean, merged into `main`; branches kept). `ttt/hobbes-base` stays — the
+held TTT work's base.
+
+**The rule simulated and graded before it was designed**
+(`~/.hobbes/bench/cpp-constructions/`: `simulate.py`, `buckets.py`,
+`grade.sh`, `tokenpos.py`, `PREREG-args-sim.md`). A candidate is a lane B
+reference onto a definition row with a constructor moniker. Every
+candidate drawn on fmt reads **95 contradicted**, 94 at a macro's name.
+At a construction token outside a template: +135 rows, 111 confirmed, 0
+contradicted, 0 `line-unresolved`, 24 `unreachable` — all 24 read by
+hand as right (`MutexLock l(&m)` onto `GTestMutexLock`'s constructor
+through its typedef ×23; `basic_format_context<appender, char>` onto
+`context`'s).
+
+**The hand read found one wrong class before args was run:** 4 rows were
+a constructor's own in-class declaration, which lane B points at its
+out-of-line definition. The class head is macro-broken (`class
+GTEST_API_ X {` parses as a function, `public:` as a label, `explicit`
+as the type), so the declaration looked like a local. First excluded by
+comparing the identifier with the constructor's name; then restated as
+what lane A can test without the name — the declaration sits directly
+in a block, never under a label — since a packed token carries no text.
+Both forms draw the same rows on both cells (`simulate-v1.py` kept).
+
+**args, held out on the precision side, run once:** +369 rows, 369
+confirmed, 0 contradicted, 0 silent; 62.5% → 72.9%. P-s1–P-s4 met; P-s5
+half missed (16 untokened rows where ≤ 15 was predicted — none drawn).
+What had and had not been read of args is written at the top of the
+prereg: step 0 had read its misses, so the recall side was known; nothing
+the rule would draw *beyond* the key's misses had been.
+
+**Inside a template the rule would add 45 rows and none reads wrong** (44
+on fmt: 42 confirmed, 2 the same `MutexLock`; 1 on args, confirmed) —
+unlike operators. The likely reason is in step 0's table: a dependent
+type's construction gets no reference at all (690 rows), so what the
+index does emit in a template is a non-dependent type's. ADR-132 does
+not draw them: 45 rows is evidence, not a mechanism proved, and every
+other in-template answer on this lane has needed a guard. They stay
+`uses`. **Put to Max.**
+
+**ADR-132 and §10.17 (P102–P107) committed before the unit** (`7133aba`).
+Unit `4834`: 84 turns of 140, $8.57, 15 minutes, gate clear, verify pass;
+1,900 pytest and 9 `lane_b` on the host. Five deviations, each the
+pinned grammar's shape or drawing less.
+
+**The grade, from the branch before the merge.** args is the probe's
+export row for row: **2,567/2,567, 72.9%**. fmt **6,993/6,993, 0
+contradicted, 30.3%, strict 99.62%**, no row outside the probe's — and
+**19 of the probe's rows not drawn. P102 missed on the count** (7,012 ± 3
+predicted). One cause, found by reading both lanes on one line:
+`using fmt::detail::bigint;` then `bigint n1(42);` gives two lane B
+references named `bigint` — the using-declaration at the type, the
+constructor at `n1`. Lane A already records a construct site for
+`T x(args)` named by the type; it takes the nearer reference, which is
+below the floor, and the join's `claimed` set is keyed by `(file, line,
+name)`, so the constructor's reference is claimed with it and never
+reaches the unclaimed loop. The simulation did not model the claim; the
+doer's closing note ("that site claims every same-named resolution on
+its line") is what pointed at it. 14 `bigint` rows and 5 `file` rows on
+fmt, none on args. It draws nothing rather than something wrong, and the
+fix is the join's claim — shared by every language — so it is registered
+in C-162 and left as its own item.
+
+**C-162 registered and narrowed in one commit.** The concession had stood
+since ADR-113 in the projection's comment only. 162 entries, 118 active,
+92 surfaced. The comparative data and graphics re-rendered from the cell
+records (`render.py check` green): fmt 6,993/6,993, args 2,567/2,567.
+
+Merged no-ff (`112e738`); tracker 50 of 40. Image rebuilt at
+0.2.44-beta — **restart the knowledge server** (C-65).
+
+No spend beyond the subscription's $8.57.

@@ -135,7 +135,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-157, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
 | [`extraction-c.md`](extraction-c.md) | Extraction — C (ADR-108, ADR-109, ADR-110) | C-131, C-132, C-133, C-134, C-135, C-136, C-138, C-149, C-130, C-137 |
-| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-160, C-144, C-155 |
+| [`extraction-cpp.md`](extraction-cpp.md) | Extraction — C++ (ADR-113) | C-142, C-143, C-145, C-146, C-147, C-148, C-151, C-152, C-153, C-160, C-162, C-144, C-155 |
 | [`extraction-enrichment-packs.md`](extraction-enrichment-packs.md) | Extraction — enrichment packs | C-25, C-78, C-14 |
 | [`narrative-invariants-review.md`](narrative-invariants-review.md) | Narrative, invariants, and review | C-17, C-19, C-20, C-21, C-154, C-18 |
 | [`derivation-plan-mapping.md`](derivation-plan-mapping.md) | Derivation — the plan mapping (D1), the Calvin grounder and `hobbes gate` | C-35, C-36, C-37, C-38, C-91, C-109, C-110, C-111, C-112, C-113, C-117, C-118, C-121, C-122, C-123, C-126, C-104, C-105, C-106, C-107, C-108, C-114, C-116, C-119, C-120 |
@@ -151,11 +151,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and sixty-one entries: one hundred and seventeen active, twenty-seven lifted, eleven superseded, six folded**
+**One hundred and sixty-two entries: one hundred and eighteen active, twenty-seven lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 91 | every active entry not listed below |
+| active — surfaced | 92 | every active entry not listed below |
 | active — *partial* | 22 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
@@ -166,6 +166,18 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-162 registered and narrowed, 2026-09-17 (ADR-132, 0.2.44-beta):
+- **C-162 registered (surfaced)**, in `extraction-cpp.md`: a C++
+  construction has no callee lane A records, so it drew no call unless
+  written `T(args)`. True since ADR-113 and unregistered until ADR-132's
+  measurement read it. Narrowed in the same commit: a call where lane B
+  names a constructor at exactly a construction token, outside a
+  template. fmt +92 confirmed at 0 contradicted (30.1% → 30.3%), args
+  held out +369 (62.5% → 72.9%). What is left: templates, the macro
+  class, conversions with no token, references the index does not emit,
+  and a type named through a using-declaration (19 rows on fmt). 162
+  entries, 118 active, 92 surfaced, 22 partial, 3 unsurfaced.
 
 C-153 narrowed a third time, 2026-09-17 (ADR-131 amended, 0.2.43-beta):
 - **C-153 narrowed (still partial), C-146's surfacing line restated:** a
