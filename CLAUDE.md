@@ -278,7 +278,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   repo code runs in the one image (ADR-092).
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
   (99.6%, all 15 the oracle's grain) and fmt (**99.88%** at 0.2.33-beta —
-  99.69% judged like-for-like, and every contradiction left is
+  strict 99.48% (ADR-124), and every contradiction left is
   scip-clang's own wrong candidate, C-153: 4 judged, 6 unjudged. C-155,
   the call drawn in an unevaluated operand, was lifted 2026-09-16; the
   oracle's four defects H-28–H-31 were fixed that day and its fifth,

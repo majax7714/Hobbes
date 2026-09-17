@@ -71,6 +71,7 @@ def parse_blocks(text: str) -> list[dict]:
             for k in ("confirmed", "contradicted", "abstract", "silent", "suspect", "unobserved"):
                 mm = re.search(rf"\b{k} {NUM}", m.group(2))
                 cur[k] = _int(mm.group(1)) if mm else 0
+            cur["silent_by"] = _pairs(m.group(2))
             blocks.append(cur)
             continue
         if cur is None:
@@ -144,6 +145,28 @@ def parse_dagger_after(text: str) -> list[dict]:
     return list(by_module.values())
 
 
+def strict_precision(c: dict) -> dict | None:
+    """ADR-124: the rows H-30's rule declined to judge (silent,
+    line-unresolved) counted as contradicted — a lower bound under the
+    lower bound, read off the silent map every record prints, so no cell
+    is regraded. None when the cell has no such row or no precision."""
+    pr = c.get("precision")
+    lu = (c.get("silent_by") or {}).get("line-unresolved", 0)
+    if not pr or not lu:
+        return None
+    den = pr["den"] + lu
+    return {"pct": round(100 * pr["num"] / den, 1), "num": pr["num"], "den": den, "line_unresolved": lu}
+
+
+def strict_s(c: dict | None, bold: bool = False) -> str:
+    """The strict companion as a table/tooltip suffix; empty when absent."""
+    st = c.get("precision_strict") if c else None
+    if not st:
+        return ""
+    frac = f"{fmt(st['num'])}/{fmt(st['den'])}"
+    return f" · strict {'**' + frac + '**' if bold else frac} ({st['pct']}%)"
+
+
 def load_cells(cells_dir: Path, meta_path: Path) -> dict:
     meta = json.loads(meta_path.read_text())
     latest: dict[str, Path] = {}
@@ -185,6 +208,9 @@ def load_cells(cells_dir: Path, meta_path: Path) -> dict:
                 "kind": kind.group(1) if kind else None,
                 "oracle": oracle.group(1).strip() if oracle else None, **m}
         cell.update({k: v for k, v in last.items() if k != "cell_line"})
+        strict = strict_precision(cell)
+        if strict:
+            cell["precision_strict"] = strict
         cell["misses"] = misses
         cell["poison"] = poison
         if last.get("recall") and "misses" in last["recall"]:
@@ -281,8 +307,8 @@ def render_one_number(cells: list[dict]) -> str:
     t_seeded = sum(c["poison"]["seeded"] for c in trace if c.get("poison"))
     t_falsely = sum(c["poison"]["falsely"] for c in trace if c.get("poison"))
     t_k = sum(1 for c in trace if c.get("poison"))
-    exceptions = [c for c in comp if c["precision"]["num"] != c["precision"]["den"]]
-    perfect = [c for c in comp if c["precision"]["num"] == c["precision"]["den"]]
+    exceptions = [c for c in comp if c["precision"]["num"] != c["precision"]["den"] or c.get("precision_strict")]
+    perfect = [c for c in comp if c not in exceptions]
     n_sub = sum(1 for c in comp if c.get("sub"))
     W = 900
     lines: list[tuple[str, int, str, str, int]] = []  # (text, size, fill, weight, indent)
@@ -303,7 +329,9 @@ def render_one_number(cells: list[dict]) -> str:
     para(f"{len(perfect)} at 100% — confirmed equals graded, 0 contradicted. The exceptions, printed because they are what make the number believable:", 12, INK2)
     for c in sorted(exceptions, key=lambda c: c["label"]):
         pr = c["precision"]
-        para(f"{cell_name(c)} ({c['lang']}): {fmt(pr['num'])}/{fmt(pr['den'])} = {pr['pct']}% — {c.get('note', '')}", 12, INK, indent=48, width=112)
+        st = c.get("precision_strict")
+        st_s = f" (strict {fmt(st['num'])}/{fmt(st['den'])} = {st['pct']}%, ADR-124)" if st else ""
+        para(f"{cell_name(c)} ({c['lang']}): {fmt(pr['num'])}/{fmt(pr['den'])} = {pr['pct']}%{st_s} — {c.get('note', '')}", 12, INK, indent=48, width=112)
     lines.append(("", 6, INK, "normal", 32))
     para(f"Trace-graded cells (Python — the interpreter under the repo's own suite): {fmt(t_falsely)} of {fmt(t_seeded)} seeded wrong edges falsely confirmed "
          f"across {t_k} cell{'s' if t_k != 1 else ''}. A refusal there is 'suspect', never a contradiction: the interpreter confirms and cannot contradict (C-60), "
@@ -420,7 +448,7 @@ def render_scatter(cells: list[dict]) -> str:
             misses = ", ".join(f"{k} {fmt(v)}" for k, v in sorted(c.get("misses", {}).items(), key=lambda kv: -kv[1])) or "none recorded"
             pr = c[y_key]
             tip = (f"{cell_name(c)}" + (f" — {c['tool']}" if foreign else "") + f" — {c['lang']}, {c['oracle']} ({c['kind']}), {c['run']}, {c['date']}\n"
-                   f"{'confirmation rate' if c['kind']=='trace' else 'precision-against-oracle'} {fmt(pr['num'])}/{fmt(pr['den'])} = {pr['pct']}%\n"
+                   f"{'confirmation rate' if c['kind']=='trace' else 'precision-against-oracle'} {fmt(pr['num'])}/{fmt(pr['den'])} = {pr['pct']}%{strict_s(c) if y_key == 'precision' else ''}\n"
                    f"recall {fmt(c['recall']['hits'])}/{fmt(c['recall']['pairs'])} = {c['recall']['pct']}% {c['recall']['basis']}\n"
                    f"misses by class: {misses}" + (f"\n{c['note']}" if c.get("note") else ""))
             o.append("<g>")
@@ -563,12 +591,12 @@ def render_tables(cells: list[dict]) -> str:
     frn = [c for c in cells if c.get("tool", "hobbes") != "hobbes" and c not in draws]
     out = ["<!-- generated by bench/oracle/report/render.py tables (ADR-102); do not edit — regenerate -->", "",
            "## The standing Hobbes cells", "",
-           "Precision-against-oracle is a lower bound (A-8). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row.", "",
+           "Precision-against-oracle is a lower bound (A-8). Where the matcher left rows unjudged on a line the key did not resolve (H-30), a strict figure follows, counting them as contradicted (ADR-124). Recall carries its root count or basis and is never pooled (C-62). Trace cells print a confirmation rate, never precision (C-60). dagger's 19 Go modules are one row.", "",
            "| cell | lang | oracle | edges | precision-against-oracle | recall | run | poison (seeded / falsely confirmed) | record |", "|---|---|---|---|---|---|---|---|---|"]
     dag = [c for c in hob if c.get("sub")]
     for c in sorted([c for c in hob if not c.get("sub")], key=lambda c: (c["lang"], c["label"])):
         p = c.get("precision") or c.get("confirmation_rate")
-        pl = f"**{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%)" if c.get("precision") else f"confirmation rate {p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}) — not precision"
+        pl = f"**{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%){strict_s(c, True)}" if c.get("precision") else f"confirmation rate {p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}) — not precision"
         r = c["recall"]
         po = c.get("poison")
         out.append(f"| {c['label']} | {c['lang']} | {c['oracle']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {c['run']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else 'not run (graded before the check)'} | [{c['record']}](../oracle/cells/{c['record']}) |")
@@ -585,7 +613,7 @@ def render_tables(cells: list[dict]) -> str:
             h = by_label.get(c["label"])
             p = c.get("precision"); r = c["recall"]; po = c.get("poison")
             if p:
-                pl = f"{p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])})"
+                pl = f"{p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}){strict_s(c)}"
             elif c.get("undefined"):
                 pl = "undefined (nothing confirmed or contradicted)"
             elif c.get("confirmation_rate"):
@@ -593,7 +621,7 @@ def render_tables(cells: list[dict]) -> str:
             else:
                 pl = "undefined (nothing graded)"
             hp = (h.get("precision") or h.get("confirmation_rate")) if h else None
-            hpl = (f"{hp['pct']}% ({fmt(hp['num'])}/{fmt(hp['den'])})" if h and h.get("precision") else (f"confirmation {hp['pct']}% — not precision" if hp else "—"))
+            hpl = (f"{hp['pct']}% ({fmt(hp['num'])}/{fmt(hp['den'])}){strict_s(h)}" if h and h.get("precision") else (f"confirmation {hp['pct']}% — not precision" if hp else "—"))
             out.append(f"| {c['label']} | {c['lang']} | {c['tool']} | {fmt(c['edges'])} | {pl} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {hpl} | {h['recall']['pct'] if h else '—'}% | [{c['record']}](../oracle/cells/{c['record']}), [{h['record'] if h else '—'}](../oracle/cells/{h['record'] if h else ''}) |")
     dh = [c for c in draws if c.get("tool", "hobbes") == "hobbes"]
     if dh:
@@ -606,11 +634,11 @@ def render_tables(cells: list[dict]) -> str:
                 if not c:
                     return "—"
                 p = c.get("precision")
-                pl = f"{p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])})" if p else ("undefined" if c.get("undefined") else "—")
+                pl = f"{p['pct']}% ({fmt(p['num'])}/{fmt(p['den'])}){strict_s(c)}" if p else ("undefined" if c.get("undefined") else "—")
                 return f"{pl} / {c['recall']['pct']}% ({fmt(c['recall']['hits'])}/{fmt(c['recall']['pairs'])})"
             p = h["precision"]; r = h["recall"]; po = h.get("poison")
             recs = ", ".join(f"[{x['record']}](../oracle/cells/{x['record']})" for x in [h] + [x for x in draws if x.get("tool") and x["label"] == h["label"]])
-            out.append(f"| {h['label']} | {h['lang']} | {fmt(h['edges'])} | **{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%) | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {cellp('codegraphcontext')} | {cellp('repowise')} | {recs} |")
+            out.append(f"| {h['label']} | {h['lang']} | {fmt(h['edges'])} | **{fmt(p['num'])}/{fmt(p['den'])}** ({p['pct']}%){strict_s(h, True)} | {r['pct']}% ({fmt(r['hits'])}/{fmt(r['pairs'])}) {r['basis']} | {fmt(po['seeded']) + ' / ' + fmt(po['falsely']) if po else '—'} | {cellp('codegraphcontext')} | {cellp('repowise')} | {recs} |")
     return "\n".join(out) + "\n"
 
 
@@ -671,7 +699,7 @@ def render_comparison(cells: list[dict]) -> str:
                         v = (c.get("confirmation_rate") if trace else c.get("precision"))
                         if not v:
                             continue
-                        val = v["pct"]; tip = f"{lab} — {t}: {'confirmation rate' if trace else 'precision-against-oracle'} {fmt(v['num'])}/{fmt(v['den'])} = {val}%"
+                        val = v["pct"]; tip = f"{lab} — {t}: {'confirmation rate' if trace else 'precision-against-oracle'} {fmt(v['num'])}/{fmt(v['den'])} = {val}%{'' if trace else strict_s(c)}"
                     else:
                         r = c["recall"]; val = r["pct"]; tip = f"{lab} — {t}: recall {fmt(r['hits'])}/{fmt(r['pairs'])} = {val}% {r['basis']}"
                     pts.append((t, val, tip))
@@ -691,9 +719,9 @@ def render_comparison(cells: list[dict]) -> str:
     y += 20
     # The exceptions are read from the cells, never typed: a typed list
     # outlived ajv's and hono's fixes (ADR-104, C-98) by four days.
-    exc = sorted((lab, d["hobbes"]["precision"]) for lab, d in rows
-                 if d["hobbes"].get("precision") and d["hobbes"]["precision"]["num"] != d["hobbes"]["precision"]["den"])
-    exc_s = (" except " + ", ".join(f"{lab} ({fmt(p['num'])}/{fmt(p['den'])}, a {p['pct']}% lower bound)" for lab, p in exc)
+    exc = sorted((lab, d["hobbes"]["precision"], d["hobbes"].get("precision_strict")) for lab, d in rows
+                 if d["hobbes"].get("precision") and (d["hobbes"]["precision"]["num"] != d["hobbes"]["precision"]["den"] or d["hobbes"].get("precision_strict")))
+    exc_s = (" except " + ", ".join(f"{lab} ({fmt(p['num'])}/{fmt(p['den'])}, a {p['pct']}% lower bound" + (f"; strict {fmt(st['num'])}/{fmt(st['den'])}, {st['pct']}%" if st else "") + ")" for lab, p, st in exc)
              + ", triaged in its record") if exc else ""
     for line in wrap("Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to the oracle's grain, A-8). "
                      f"Every Hobbes marker on the precision axis sits at 100%{exc_s}. "

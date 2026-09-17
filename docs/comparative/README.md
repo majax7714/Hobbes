@@ -64,8 +64,9 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    C-155's oracle half. **The 99.88% is still flattered by one of those
    fixes, and the record says so:** H-30's silence rule withdrew
    judgement from 6 further C-153 rows, which are wrong and now simply
-   unjudged. Judged like-for-like, fmt is **99.69%** (3,269/3,279).
-   Both numbers are in the cell record.
+   unjudged. Counting every row the grader could not judge on such a line
+   as contradicted — the strict figure now printed beside every precision
+   (ADR-124) — fmt is **99.48%** (3,269/3,286). Both are in `tables.md`.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -137,12 +138,13 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    (`oracle-grading.md` §10.7, P32–P35).
    - **CodeGraphContext reads no `.cc`, `.cxx` or `.hxx` file** (its
      parser table). So it graded nothing on args, and on fmt only the
-     headers: 847/885 (**95.7%**), recall 11.8% — 844/975 (86.6%) as
-     first run on 2026-09-15.
-   - **repowise:** fmt 2,410/5,025 (**48.0%**, was 45.2%), recall 13.9%;
-     args 815/904 (**90.2%**, was 87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,269/3,273 (**99.88%**; 99.69% judged
-     like-for-like), recall 14.5%; args
+     headers: 847/885 (**95.7%**; strict 847/975, 86.9%), recall 11.8% —
+     844/975 (86.6%) as first run on 2026-09-15.
+   - **repowise:** fmt 2,410/5,024 (**48.0%**, was 45.2%; strict
+     2,410/5,343, 45.1%), recall 13.9%; args 815/904 (**90.2%**, was
+     87.0%; strict 815/937, 87.0%), recall 23.3%.
+   - **Hobbes, same keys:** fmt 3,269/3,273 (**99.88%**; strict
+     3,269/3,286, 99.48%), recall 14.5%; args
      1,995/1,995, recall 56.4%.
 
    **Why every tool's number rose on 2026-09-16, and Hobbes' barely

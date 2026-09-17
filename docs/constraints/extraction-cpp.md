@@ -192,16 +192,16 @@ headers parsed with tree-sitter ERROR nodes.
   matcher's H-30 rule silences a row whose line also carries a call the
   key left unresolved, and 6 of these sit on such a line. They are
   *unjudged, not fixed* — the edge is still the wrong declaration. fmt's
-  cell therefore reads 99.88% (3,269/3,273) where the like-for-like
-  figure, judging the rows the previous grade judged, is 99.69%; both
-  are in its record. Since C-155's lift (ADR-121, 0.2.33-beta) this
+  cell therefore reads 99.88% (3,269/3,273) where the strict figure
+  (ADR-124), counting all 13 of its line-unresolved rows as
+  contradicted, is 99.48% (3,269/3,286); both are in `tables.md`. Since C-155's lift (ADR-121, 0.2.33-beta) this
   entry's four judged rows are the whole of that cell's contradictions —
   its triage ratio is `hobbes-wrong 4 : oracle-wrong 0`.
 - **You find out:** **unsurfaced** — nothing at the site says so, and
   since 2026-09-16 six of the ten do not even read as contradictions in
-  the cell's own grade, so the number that would have exposed them is
-  smaller than the defect. The cell records and this entry are the only
-  statement.
+  the cell's own grade, so the standing number is smaller than the
+  defect; the strict figure beside it (ADR-124) counts them again. The
+  cell records, `tables.md` and this entry are the only statement.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 

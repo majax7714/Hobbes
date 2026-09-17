@@ -150,6 +150,53 @@ func TestUnresolvedSiteOnTheLineSilencesTheEdge(t *testing.T) {
 	if r.Precision != nil {
 		t.Fatalf("a silent row is outside the precision denominator: %v", *r.Precision)
 	}
+	// ADR-124: the strict number counts it against the tool.
+	if r.PrecisionStrict == nil || *r.PrecisionStrict != 0 || r.StrictGraded != 1 {
+		t.Fatalf("strict precision must count the silenced row as contradicted: %v %d", r.PrecisionStrict, r.StrictGraded)
+	}
+}
+
+// ADR-124: strict precision sits beside the standing number, counts the
+// line-unresolved rows in its denominator only, prints on its own line,
+// and is absent when no row was silenced that way.
+func TestStrictPrecisionCountsLineUnresolvedRowsAsContradicted(t *testing.T) {
+	line := edges.Pos{Path: "format.h", Line: 40}
+	ok := edges.Pos{Path: "format.h", Line: 50}
+	resolved := edges.Pos{Path: "format.h", Line: 10}
+	o := &edges.OracleExport{
+		Oracle: "c-clang", Kind: "resolution", Files: []string{"format.h"},
+		Sites: []edges.Site{
+			{Pos: line, Mode: "static", Targets: []edges.Target{{Pos: resolved}}},
+			{Pos: line, Mode: "dynamic"},
+			{Pos: ok, Mode: "static", Targets: []edges.Target{{Pos: resolved}}},
+		},
+	}
+	h := &edges.HobbesExport{Edges: []edges.HobbesEdge{
+		{Site: line, Target: edges.Pos{Path: "format.h", Line: 20}, Tier: "semantic"},
+		{Site: ok, Target: resolved, Tier: "semantic"},
+	}}
+	r := Grade(h, o)
+	if r.Precision == nil || *r.Precision != 1 {
+		t.Fatalf("the standing number judges only the confirmed row: %v", r.Precision)
+	}
+	if r.PrecisionStrict == nil || *r.PrecisionStrict != 0.5 || r.StrictGraded != 2 {
+		t.Fatalf("strict must be 1/2: %v %d", r.PrecisionStrict, r.StrictGraded)
+	}
+	var b strings.Builder
+	Print(&b, r)
+	if !strings.Contains(b.String(), "precision-against-oracle 100.0% (1/1)\nprecision-strict 50.0% (1/2): the 1 line-unresolved rows counted as contradicted") {
+		t.Fatalf("the strict line must print under the standing one:\n%s", b.String())
+	}
+
+	clean := Grade(&edges.HobbesExport{Edges: h.Edges[1:]}, o)
+	if clean.PrecisionStrict != nil {
+		t.Fatalf("no line-unresolved row, no strict number: %v", *clean.PrecisionStrict)
+	}
+	b.Reset()
+	Print(&b, clean)
+	if strings.Contains(b.String(), "precision-strict") {
+		t.Fatalf("no strict line without line-unresolved rows:\n%s", b.String())
+	}
 }
 
 // The rule silences only what the key did not resolve: an edge matching

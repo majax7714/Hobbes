@@ -45,7 +45,7 @@
 <text x="26" y="256.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 26 256.0)">precision vs oracle, %, axis from 60</text>
 <g>
 <title>fzf — repowise — Go, go-rta (reachability), host-run, 2026-09-09
-precision-against-oracle 2,125/2,292 = 92.7%
+precision-against-oracle 2,125/2,292 = 92.7% · strict 2,125/2,297 (92.5%)
 recall 2,144/7,035 = 30.5% at 5 roots
 misses by class: func-value→closure 2,457, static→closure 1,212, static→named 725, interface→named 416, func-value→named 81
 repowise graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -54,7 +54,7 @@ repowise graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96
 <text x="159.5" y="214.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fzf ·rw</text>
 <g>
 <title>quic-go — codegraphcontext — Go, go-rta (no test packages) (reachability), host-run, 2026-09-09
-precision-against-oracle 2,769/4,383 = 63.2%
+precision-against-oracle 2,769/4,383 = 63.2% · strict 2,769/4,409 (62.8%)
 recall 2,775/7,985 = 34.8% at 5 roots
 misses by class: interface→named 2,064, static→named 1,462, func-value→closure 1,406, func-value→named 242, static→closure 36
 codegraphcontext graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -63,7 +63,7 @@ codegraphcontext graded by the same key as the Hobbes quic-go cell (ADR-101); ho
 <text x="172.4" y="386.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >quic-go ·cgc</text>
 <g>
 <title>quic-go — repowise — Go, go-rta (no test packages) (reachability), host-run, 2026-09-09
-precision-against-oracle 2,796/3,014 = 92.8%
+precision-against-oracle 2,796/3,014 = 92.8% · strict 2,796/3,036 (92.1%)
 recall 2,824/7,985 = 35.4% at 5 roots
 misses by class: interface→named 2,480, func-value→closure 1,405, static→named 991, func-value→named 249, static→closure 36
 repowise graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -72,7 +72,7 @@ repowise graded by the same key as the Hobbes quic-go cell (ADR-101); host-run (
 <text x="174.2" y="174.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >quic-go ·rw</text>
 <g>
 <title>fzf — codegraphcontext — Go, go-rta (reachability), host-run, 2026-09-09
-precision-against-oracle 2,720/3,082 = 88.3%
+precision-against-oracle 2,720/3,082 = 88.3% · strict 2,720/3,143 (86.5%)
 recall 2,742/7,035 = 39.0% at 5 roots
 misses by class: func-value→closure 2,457, static→closure 1,212, static→named 437, interface→named 106, func-value→named 81
 codegraphcontext graded by the same key as the Hobbes fzf cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -108,7 +108,7 @@ random draw; binary roots only (the full test program OOM-killed the box); all 1
 <text x="210.5" y="123.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >quic-go</text>
 <g>
 <title>toml — codegraphcontext — Go, go-rta (reachability), host-run, 2026-09-09
-precision-against-oracle 812/870 = 93.3%
+precision-against-oracle 812/870 = 93.3% · strict 812/872 (93.1%)
 recall 832/1,475 = 56.4% at 4 roots
 misses by class: static→named 241, interface→named 213, func-value→named 74, static→closure 58, func-value→closure 57
 codegraphcontext graded by the same key as the Hobbes toml cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -437,7 +437,7 @@ repowise graded by the same key as the Hobbes cheerio cell (ADR-101); host-run (
 <text x="416.4" y="164.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio ·rw</text>
 <g>
 <title>zod — codegraphcontext — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
-precision-against-oracle 1,434/5,891 = 24.3%
+precision-against-oracle 1,434/5,891 = 24.3% · strict 1,434/6,662 (21.5%)
 recall 1,443/21,931 = 6.6% over every resolved site (resolution oracle: no roots)
 misses by class: static→function 9,904, static→type-member 4,955, static→method 2,680, static→property 1,274, func-value→variable 1,143, static→closure 145, static→variable 117, static→class 110, interface→type-member 88, func-value→local-binding 59, static→anonymous-signature 13
 codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -482,7 +482,7 @@ a private Vite+React app: the cell is published, the repo is not; contained and 
 <text x="532.2" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >kbet (private app)</text>
 <g>
 <title>hono (tsconfig.build.json) — codegraphcontext — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
-precision-against-oracle 607/770 = 78.8%
+precision-against-oracle 607/770 = 78.8% · strict 607/771 (78.7%)
 recall 613/1,403 = 43.7% over every resolved site (resolution oracle: no roots)
 misses by class: static→closure 196, static→method 188, static→property 93, static→variable 92, static→class 78, func-value→local-binding 61, interface→type-member 30, static→type-member 20, static→anonymous-signature 15, static→function 12, func-value→variable 4, static→anonymous-function 1
 codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -518,7 +518,7 @@ codegraphcontext graded by the same key as the Hobbes ajv cell (ADR-101); host-r
 <text x="560.7" y="204.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv ·cgc</text>
 <g>
 <title>hono (tsconfig.build.json) — repowise — TypeScript, tsc 5.9.3 (harness) (resolution), host-run, 2026-09-09
-precision-against-oracle 735/785 = 93.6%
+precision-against-oracle 735/785 = 93.6% · strict 735/787 (93.4%)
 recall 741/1,403 = 52.8% over every resolved site (resolution oracle: no roots)
 misses by class: static→closure 229, static→method 169, static→property 93, func-value→local-binding 61, interface→type-member 30, static→variable 30, static→type-member 20, static→anonymous-signature 15, static→class 12, func-value→variable 1, static→anonymous-function 1, static→function 1
 repowise on a draw of repowise's, graded by our key (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -588,7 +588,7 @@ codegraphcontext graded by the same key as the Hobbes memchr cell (ADR-101); hos
 <text x="820.3" y="390.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·cgc</text>
 <g>
 <title>memchr — repowise — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
-precision-against-oracle 362/387 = 93.5%
+precision-against-oracle 362/387 = 93.5% · strict 362/391 (92.6%)
 recall 365/1,146 = 31.8% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 525, static→function 151, macro→function 57, macro→method 42, static→generated 5, static→closure 1
 repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -819,7 +819,7 @@ repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `orac
 <text x="671.9" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·rw</text>
 <g>
 <title>sqlite-vector — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 851/855 = 99.5%
+precision-against-oracle 851/855 = 99.5% · strict 851/863 (98.6%)
 recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)
 misses by class: none recorded
 codegraphcontext graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
@@ -875,7 +875,7 @@ random draw; the 3 contradicted are syntactic and hobbes-wrong, a strcasestr shi
 <text x="746" y="772" font-size="9" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >not drawn (nothing graded): args (codegraphcontext)</text>
 <g>
 <title>fmt — codegraphcontext — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 847/885 = 95.7%
+precision-against-oracle 847/885 = 95.7% · strict 847/975 (86.9%)
 recall 5,955/50,524 = 11.8% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 22,814, static→function 10,674, static→constructor 8,310, macro→function 1,631, macro→method 1,140
 codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -884,7 +884,7 @@ codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle
 <text x="783.4" y="505.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·cgc</text>
 <g>
 <title>fmt — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 2,410/5,024 = 48.0%
+precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)
 recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 22,204, static→function 10,303, static→constructor 8,233, macro→function 1,631, macro→method 1,140
 repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
@@ -893,7 +893,7 @@ repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import 
 <text x="789.7" y="744.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
 <g>
 <title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 3,269/3,273 = 99.9%
+precision-against-oracle 3,269/3,273 = 99.9% · strict 3,269/3,286 (99.5%)
 recall 7,334/50,525 = 14.5% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 21,908, static→function 10,317, static→constructor 8,205, macro→function 1,621, macro→method 1,140
 chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; all 4 contradictions are scip-clang's own single wrong candidate, drawn by Hobbes and owned by P9 (C-153), and 6 more of that shape are unjudged, not fixed: judged like-for-like it reads 99.69% (3,269/3,279); the oracle's own defects on this cell (H-28–H-31) are fixed, and C-155 is lifted</title>
@@ -902,7 +902,7 @@ chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; al
 <text x="791.5" y="494.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
 <g>
 <title>args — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 815/904 = 90.2%
+precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)
 recall 831/3,561 = 23.3% over every resolved site (resolution oracle: no roots)
 misses by class: static→constructor 1,303, static→method 1,227, static→function 200
 repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>

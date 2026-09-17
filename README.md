@@ -160,7 +160,8 @@ cell to prove the grader can say no. Every compiler-graded cell is at
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 99.88% (3,269/3,273), 99.69% judged like-for-like,
+- **fmt** (C++) reads 99.88% (3,269/3,273), strict 99.48% (3,269/3,286)
+  with the 13 rows the grader could not judge counted against it (ADR-124),
   with the oracle's own defects on it (H-28–H-31) fixed and C-155
   lifted (ADR-121: no call site in an unevaluated operand). Every
   contradiction left is a wrong edge
@@ -216,7 +217,7 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but two. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 3,269/3,273 (99.88%; 99.69% like-for-like): all 4 contradictions
+  reads 3,269/3,273 (99.88%; strict 99.48%, ADR-124): all 4 contradictions
   are scip-clang's wrong candidate (C-153); the unevaluated-operand
   edge (C-155) is lifted (ADR-121).
   Its recall lead within a row runs from none (sqlite-vector), half a
@@ -386,7 +387,7 @@ its own: no model, no credential, no network.
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C and C++ clang-graded — with every compiler-graded cell
 at 100% after ADR-090 and ADR-111 but two: quic-go at 99.6% (every
-contradiction the oracle's grain) and C++'s fmt at 99.88% (99.69% like-for-like; all 4
+contradiction the oracle's grain) and C++'s fmt at 99.88% (strict 99.48%; all 4
 contradictions C-153 through scip-clang; C-155 lifted). The
 misses are registered by class.
 

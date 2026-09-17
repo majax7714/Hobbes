@@ -45,7 +45,7 @@
 <text x="240" y="154" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fzf</text>
 <line x1="514.9" y1="150" x2="550.0" y2="150" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>fzf — codegraphcontext: precision-against-oracle 2,720/3,082 = 88.3%</title>
+<title>fzf — codegraphcontext: precision-against-oracle 2,720/3,082 = 88.3% · strict 2,720/3,143 (86.5%)</title>
 <rect x="509.9" y="145" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -53,7 +53,7 @@
 <circle cx="550.0" cy="150" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fzf — repowise: precision-against-oracle 2,125/2,292 = 92.7%</title>
+<title>fzf — repowise: precision-against-oracle 2,125/2,292 = 92.7% · strict 2,125/2,297 (92.5%)</title>
 <polygon points="528.1,143.5 534.6,150 528.1,156.5 521.6,150" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="701.5" y1="150" x2="732.4" y2="150" stroke="#d9d8d2" stroke-width="2"/>
@@ -99,7 +99,7 @@
 <text x="240" y="198" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >quic-go</text>
 <line x1="439.6" y1="194" x2="548.8" y2="194" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>quic-go — codegraphcontext: precision-against-oracle 2,769/4,383 = 63.2%</title>
+<title>quic-go — codegraphcontext: precision-against-oracle 2,769/4,383 = 63.2% · strict 2,769/4,409 (62.8%)</title>
 <rect x="434.6" y="189" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -107,7 +107,7 @@
 <circle cx="548.8" cy="194" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>quic-go — repowise: precision-against-oracle 2,796/3,014 = 92.8%</title>
+<title>quic-go — repowise: precision-against-oracle 2,796/3,014 = 92.8% · strict 2,796/3,036 (92.1%)</title>
 <polygon points="528.4,187.5 534.9,194 528.4,200.5 521.9,194" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="714.4" y1="194" x2="752.5" y2="194" stroke="#d9d8d2" stroke-width="2"/>
@@ -126,7 +126,7 @@
 <text x="240" y="220" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >toml</text>
 <line x1="529.9" y1="216" x2="550.0" y2="216" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>toml — codegraphcontext: precision-against-oracle 812/870 = 93.3%</title>
+<title>toml — codegraphcontext: precision-against-oracle 812/870 = 93.3% · strict 812/872 (93.1%)</title>
 <rect x="524.9" y="211" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -217,7 +217,7 @@
 <circle cx="550.0" cy="326" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>memchr — repowise: precision-against-oracle 362/387 = 93.5%</title>
+<title>memchr — repowise: precision-against-oracle 362/387 = 93.5% · strict 362/391 (92.6%)</title>
 <polygon points="530.5,319.5 537.0,326 530.5,332.5 524.0,326" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="682.3" y1="326" x2="852.1" y2="326" stroke="#d9d8d2" stroke-width="2"/>
@@ -397,7 +397,7 @@
 <text x="240" y="528" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector</text>
 <line x1="548.5" y1="524" x2="550.0" y2="524" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>sqlite-vector — codegraphcontext: precision-against-oracle 851/855 = 99.5%</title>
+<title>sqlite-vector — codegraphcontext: precision-against-oracle 851/855 = 99.5% · strict 851/863 (98.6%)</title>
 <rect x="543.5" y="519" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -429,7 +429,7 @@
 <circle cx="550.0" cy="568" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>args — repowise: precision-against-oracle 815/904 = 90.2%</title>
+<title>args — repowise: precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)</title>
 <polygon points="520.6,561.5 527.1,568 520.6,574.5 514.1,568" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <text x="254" y="572" font-size="8.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >codegraphcontext: undefined (no call edge graded)</text>
@@ -449,15 +449,15 @@
 <text x="240" y="594" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
 <line x1="394.0" y1="590" x2="549.7" y2="590" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>fmt — codegraphcontext: precision-against-oracle 847/885 = 95.7%</title>
+<title>fmt — codegraphcontext: precision-against-oracle 847/885 = 95.7% · strict 847/975 (86.9%)</title>
 <rect x="532.1" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — hobbes: precision-against-oracle 3,269/3,273 = 99.9%</title>
+<title>fmt — hobbes: precision-against-oracle 3,269/3,273 = 99.9% · strict 3,269/3,286 (99.5%)</title>
 <circle cx="549.7" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — repowise: precision-against-oracle 2,410/5,024 = 48.0%</title>
+<title>fmt — repowise: precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)</title>
 <polygon points="394.0,583.5 400.5,590 394.0,596.5 387.5,590" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="645.4" y1="590" x2="653.5" y2="590" stroke="#d9d8d2" stroke-width="2"/>
@@ -586,7 +586,7 @@
 <text x="240" y="748" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hono (tsconfig.build.json)</text>
 <line x1="486.4" y1="744" x2="550.0" y2="744" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>hono (tsconfig.build.json) — codegraphcontext: precision-against-oracle 607/770 = 78.8%</title>
+<title>hono (tsconfig.build.json) — codegraphcontext: precision-against-oracle 607/770 = 78.8% · strict 607/771 (78.7%)</title>
 <rect x="481.4" y="739" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -594,7 +594,7 @@
 <circle cx="550.0" cy="744" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 735/785 = 93.6%</title>
+<title>hono (tsconfig.build.json) — repowise: precision-against-oracle 735/785 = 93.6% · strict 735/787 (93.4%)</title>
 <polygon points="530.8,737.5 537.3,744 530.8,750.5 524.3,744" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <line x1="741.1" y1="744" x2="775.6" y2="744" stroke="#d9d8d2" stroke-width="2"/>
@@ -613,7 +613,7 @@
 <text x="240" y="770" font-size="10" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >zod</text>
 <line x1="322.9" y1="766" x2="550.0" y2="766" stroke="#d9d8d2" stroke-width="2"/>
 <g>
-<title>zod — codegraphcontext: precision-against-oracle 1,434/5,891 = 24.3%</title>
+<title>zod — codegraphcontext: precision-against-oracle 1,434/5,891 = 24.3% · strict 1,434/6,662 (21.5%)</title>
 <rect x="317.9" y="761" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
@@ -639,10 +639,10 @@
 </g>
 <line x1="24" y1="792" x2="926" y2="792" stroke="#d9d8d2"/>
 <text x="24" y="812" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>
-<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (3,269/3,273, a 99.9% lower bound), quic-go (3,766/3,781, a 99.6% lower bound),</text>
-<text x="24" y="840" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >triaged in its record. The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample read by hand found tool-wrong 39,</text>
-<text x="24" y="854" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded, and the C++ cells' 60-row sample tool-wrong 56, oracle-grain</text>
-<text x="24" y="868" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >4 after converter@4 read a spaced #define and a split declaration head. On repowise-bench's draws the key is ours, at site grain — not comparable with their published table;</text>
-<text x="24" y="882" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >syft is absent because RTA over it is killed by the kernel on this box.</text>
+<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (3,269/3,273, a 99.9% lower bound; strict 3,269/3,286, 99.5%), quic-go</text>
+<text x="24" y="840" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >(3,766/3,781, a 99.6% lower bound), triaged in its record. The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample</text>
+<text x="24" y="854" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded, and the C++ cells' 60-row</text>
+<text x="24" y="868" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sample tool-wrong 56, oracle-grain 4 after converter@4 read a spaced #define and a split declaration head. On repowise-bench's draws the key is ours, at site grain — not</text>
+<text x="24" y="882" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >comparable with their published table; syft is absent because RTA over it is killed by the kernel on this box.</text>
 <text x="24" y="900" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the numbers are in tables.md.</text>
 </svg>

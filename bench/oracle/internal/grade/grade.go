@@ -122,6 +122,12 @@ type Report struct {
 	ByTier         map[string]TierCounts `json:"by_tier"`
 	SilentBy       map[string]int        `json:"silent_by"`
 	Precision      *float64              `json:"precision_against_oracle"`
+	// PrecisionStrict counts the rows H-30's rule declined to judge
+	// (silent, line-unresolved) as contradicted (ADR-124): a lower bound
+	// under the lower bound, recomputable from any one report, set only
+	// when there are such rows. StrictGraded is its denominator.
+	PrecisionStrict *float64 `json:"precision_strict,omitempty"`
+	StrictGraded    int      `json:"precision_strict_graded,omitempty"`
 	OraclePairs    int                   `json:"oracle_pairs_in_repo"`
 	OracleExternal int                   `json:"oracle_pairs_external"`
 	RecallHits     int                   `json:"recall_confirmed"`
@@ -402,9 +408,16 @@ func Grade(h *edges.HobbesExport, o *edges.OracleExport) *Report {
 			sr := float64(r.Total.Suspect) / float64(d)
 			r.SuspectRate = &sr
 		}
-	} else if d := r.Total.Confirmed + r.Total.Contradicted; d > 0 {
-		p := float64(r.Total.Confirmed) / float64(d)
-		r.Precision = &p
+	} else {
+		if d := r.Total.Confirmed + r.Total.Contradicted; d > 0 {
+			p := float64(r.Total.Confirmed) / float64(d)
+			r.Precision = &p
+		}
+		if lu := r.SilentBy["line-unresolved"]; lu > 0 {
+			d := r.Total.Confirmed + r.Total.Contradicted + lu
+			s := float64(r.Total.Confirmed) / float64(d)
+			r.PrecisionStrict, r.StrictGraded = &s, d
+		}
 	}
 
 	for _, s := range o.Sites {
@@ -610,6 +623,11 @@ func Print(w io.Writer, r *Report) {
 		fmt.Fprintf(w, "precision-against-oracle %.1f%% (%d/%d)\n", *r.Precision*100, r.Total.Confirmed, r.Total.Confirmed+r.Total.Contradicted)
 	} else {
 		fmt.Fprintln(w, "precision-against-oracle: undefined (no confirmed or contradicted edges)")
+	}
+	if r.PrecisionStrict != nil {
+		lu := r.StrictGraded - r.Total.Confirmed - r.Total.Contradicted
+		fmt.Fprintf(w, "precision-strict %.1f%% (%d/%d): the %d line-unresolved rows counted as contradicted — a lower bound under the lower bound (ADR-124)\n",
+			*r.PrecisionStrict*100, r.Total.Confirmed, r.StrictGraded, lu)
 	}
 	if r.State == edges.StateNoRoots {
 		// Absence prints as its own state (RR-6): the module has no main

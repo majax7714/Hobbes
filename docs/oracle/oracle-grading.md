@@ -529,6 +529,14 @@ are rules and are corrected; the fourth stays open.
   state, not a verdict against Hobbes. This is the precision-side
   analogue of the trace oracle's `line-mixed`.
 
+  **Its price is printed beside every grade** (ADR-124, 2026-09-17): the
+  rule silences a wrong edge as readily as a right one, so the report
+  adds `precision-strict` — confirmed / (confirmed + contradicted +
+  `line-unresolved`) — on its own line under the standing precision
+  whenever a row was silenced this way, for every tool alike. The
+  renderer computes the same number from each record's silent map, and
+  every quoted precision carries it where the two differ.
+
   **What this rule does not reach**, stated so it is not mistaken for
   more than it is: a call the key holds **nowhere at all**. There the
   line's sites are present and resolved, nothing on it carries an empty
