@@ -12083,3 +12083,76 @@ red until d238's review block was filled), `lane_b` 7 passed, Go
 
 Binaries, static proxy and image rebuilt at 0.2.39-beta; this repo
 re-ingested at HEAD. **Restart the knowledge server** (C-65).
+
+### Later the same session — lane A's file cache, measured first: ADR-128, 0.2.40-beta
+
+**Direction (Max).** "proceed with the file cache for lane a".
+
+**Measured before designing** (drivers in `~/.hobbes/bench/laneA-cache/`).
+- Every timing log since ADR-119 had lane A under 2 s per language on
+  every repo (this repo 3.4 s of 8.5 s; fmt 1.2 s; jsoup 1.1 s; quic-go
+  2.0 s). The only large repo, ScummVM, had no timing record.
+- Timed lane A alone on ScummVM (lane B off, nothing written): 258 s,
+  of which **C++ 242 s**; nothing else over 2 s.
+- cProfile over `extract_cpp`: tree-sitter's parse was 21 of 622 profiled
+  seconds. Named: `csource._resolve_include`'s suffix step (262,159
+  includes × every header, 1.65 billion `endswith`) and the recursive
+  generator `_walk` (2.06 billion calls). cProfile inflates call-heavy
+  code, so the split was re-taken by wall-time wrappers: per-file
+  `_parse_file` 130 s, cross-file work about 28 s.
+
+**Tried as driver patches before any ADR,** each output `cmp`'d against
+the tree's 217 MB extraction:
+- the iterative walk plus the basename index: identical, C++ 242 → 154 s;
+- plus the string-test pre-filter: identical, 141 s;
+- a JSON per-file cache around `_parse_file`: the first version's
+  write-side equality assertion failed on the first file (a `qualifiers`
+  tuple became a list); with tuples and sets tagged, cold 156 s, warm
+  22 s, both identical, 289 MB.
+
+**Found while placing the store.** `containment.plan` mounted the whole
+cache root read-write in every step, including those that execute repo
+code, so ADR-122's index store was writable by repo code and read back
+as lane B's answer by a later ingest. The register covered what repo
+code could read there, not what it could write. Contained first, in the
+same ADR.
+
+**ADR-128 written first (its own docs commit), then three
+units, all merged no-ff:**
+- `9943` (§1–2; 34 turns, $2.31): `TRUSTED_STORES` (`index`, `lanea`)
+  laid read-only in every plan; a `NOTE:` naming C-161 whenever repo code
+  ran contained. **Verify failed on two tests outside the partition** —
+  `test_indexcache.py` (an absent `index/`) and `test_harness.py` (the
+  nested-mount tuple). The partition was mine and too narrow; the doer
+  named both fixes, applied on top. The live test passes on the host: a
+  write into `<cache>/index` fails in the image, the stage write succeeds.
+- `1ef9` (§3; 66 turns, $3.61): `_walk` iterative, `HeaderIndex`, the
+  pre-filter. Checked that every converted header set only feeds the
+  resolver. ScummVM after the merge: identical, C++ 135 s, lane A 154 s.
+- `6956` (§4; 58 turns, $3.30): `extract/laneacache.py`; JSON, tagged;
+  never pickle; the equality guard on write; `HOBBES_LANEA_CACHE`; the
+  summary line and the timings log field; conftest keeps the suite off
+  the real store. ScummVM through the real store: cold 144 s, warm
+  21.7 s (lane A 163 s / 39.5 s), both identical; 19,948 records,
+  318 MB. fmt through `hobbes ingest` twice: 72 misses then 72 hits,
+  artifacts sha256-identical.
+
+**Registered:** C-160 (the fingerprint sees the grammar's version, not
+its build) and C-161 (repo code can write the tool caches and the stage
+that later ingests read), both surfaced. 161 entries, 117 active, 91
+surfaced. Architecture §3.6 amended.
+
+**Found by use:**
+- **My mistake, the recorded one again:** a chain ending `… && setsid
+  nohup … &` backgrounded the whole chain (render, pytest, commit,
+  ingest, dispatch). It ran in order and launched one dispatch; nothing
+  was duplicated, but its output was invisible until checked.
+- The pytest suite appends timing lines for its tmp repos to the real
+  `~/.hobbes/cache/timings/`. Not fixed.
+- The index cache's key includes the mounts, so after §1 every repo's
+  first ingest misses lane B's store once.
+
+**Suites:** pytest 1,751 passed on the host, `lane_b` 8 passed, Go
+`./...` ok. Tracker **44 of 40**. Binaries, static proxy and image
+rebuilt at 0.2.40-beta; this repo re-ingested at HEAD. **Restart the
+knowledge server** (C-65).
