@@ -15,6 +15,7 @@ import pytest
 
 from hobbes.extract import tail
 from hobbes.extract.cppsource import (
+    _STRING_TEST_MACROS,
     collect_cpp_tests,
     extract_cpp,
     has_cpp_files,
@@ -958,6 +959,28 @@ class TestTests:
     def test_c_s_naming_convention_does_not_apply(self, tmp_path):
         _write(tmp_path, {"tests/t.cpp": "void test_adds() {}\n"})
         assert extract_cpp(tmp_path)["tests"] == []
+
+    def test_a_macro_spelled_test_case_still_runs_the_scan_and_still_names_nothing(
+        self, tmp_path
+    ):
+        # ADR-128 §3's pre-filter reads the file's bytes: `TEST_CASE`
+        # occurs in the `#define`, so the scan runs — and finds, as it did
+        # before the pre-filter, no `TEST_CASE` call (the parse does not
+        # expand `T`).
+        source = '#define T TEST_CASE\nT("through a macro") {\n}\n'
+        _write(tmp_path, {"tests/m.cpp": source})
+        assert any(macro in source for macro in _STRING_TEST_MACROS)
+        layer = extract_cpp(tmp_path)
+        assert layer["tests"] == []
+        assert [(p.path, p.unattached_tests) for p in layer["files"]] == [("tests/m.cpp", 0)]
+
+    def test_a_file_holding_no_macro_name_at_all_names_no_string_test(self, tmp_path):
+        source = "int helper() { return 1; }\nint caller() { return helper(); }\n"
+        _write(tmp_path, {"src/plain.cpp": source})
+        assert not any(macro in source for macro in _STRING_TEST_MACROS)
+        layer = extract_cpp(tmp_path)
+        assert layer["tests"] == []
+        assert [(p.path, p.unattached_tests) for p in layer["files"]] == [("src/plain.cpp", 0)]
 
 
 class TestTheBundle:

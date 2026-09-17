@@ -9,11 +9,17 @@ built to exercise its three ranks, its abstentions, and the shapes
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import pytest
 
 from hobbes.extract.csource import (
+    _PARSER,
+    HeaderIndex,
+    _IncludeResolution,
+    _normalize,
+    _resolve_include,
+    _walk,
     collect_c_tests,
     extract_c,
     iter_c_files,
@@ -205,6 +211,102 @@ class TestIncludes:
         (tmp_path / "main.c").write_text('#include "missing.h"\nint main(void){return 0;}\n')
         layer = extract_c(tmp_path)
         assert layer["module_edges"] == []
+
+
+class TestWalk:
+    """ADR-128 §3: the walk is an explicit stack now, and must yield what
+    the recursive generator it replaced yielded."""
+
+    def test_the_stack_walk_yields_the_nodes_the_recursion_did_in_its_order(self):
+        def recursive(node):  # the definition ADR-128 §3 replaced
+            yield node
+            for child in node.children:
+                yield from recursive(child)
+
+        source = (
+            b"struct S { int (*fp)(int); };\n"
+            b"int f(int x) {\n"
+            b"    if (x) { return g(x - 1); }\n"
+            b"    for (int i = 0; i < x; i++) { h(i); }\n"
+            b"    return 0;\n"
+            b"}\n"
+            b"int broken(void { ;\n"  # the walk must cross ERROR nodes too
+        )
+        root = _PARSER.parse(source).root_node
+        walked = list(_walk(root))
+        assert walked == list(recursive(root))
+        assert any(node.type == "ERROR" for node in walked)
+        assert len(walked) > 1
+
+
+class TestIncludeIndex:
+    """ADR-128 §3: the suffix step reads a basename index instead of every
+    repo header, and must decide every spec the linear scan's way."""
+
+    #: Two headers share `shared.h` (ambiguous bare, unique with their
+    #: directory); two share `config.h` across a nested and a flat path.
+    HEADERS = {
+        "a/shared.h",
+        "b/shared.h",
+        "include/minic/config.h",
+        "vendor/config.h",
+        "src/util.h",
+    }
+    KNOWN = HEADERS | {"src/main.c", "a/x.c"}
+
+    SPECS = [
+        "shared.h",             # ambiguous: two headers end in /shared.h
+        "a/shared.h",           # unique once the directory is spelled
+        "minic/config.h",       # unique, a directory the scan matched too
+        "other/config.h",       # the basename matches, the directory does not
+        "config.h",             # ambiguous across two directories
+        "util.h",               # unique
+        "src/",                 # a spec ending in `/`: no path ends in one
+        "a/",
+        "../a/shared.h",        # a climb, normalized by steps 1 and 2
+        "a/../b/shared.h",
+        "nothing.h",            # no candidate at any step
+    ]
+
+    @staticmethod
+    def old(including_path, spec, known_files, headers):
+        """:func:`_resolve_include` as ADR-128 §3 found it — step 3 an
+        ``endswith`` over the whole header set."""
+        candidate = _normalize(PurePosixPath(including_path).parent, spec)
+        if candidate is not None and candidate in known_files:
+            return _IncludeResolution(candidate, False)
+        candidate = _normalize(PurePosixPath("."), spec)
+        if candidate is not None and candidate in known_files:
+            return _IncludeResolution(candidate, False)
+        suffix = "/" + spec
+        matches = [f for f in headers if f.endswith(suffix)]
+        if len(matches) == 1:
+            return _IncludeResolution(matches[0], False)
+        return _IncludeResolution(None, len(matches) > 1)
+
+    @pytest.mark.parametrize("including", ["src/main.c", "a/x.c"])
+    def test_the_index_decides_every_spec_exactly_as_the_linear_scan_did(self, including):
+        index = HeaderIndex(self.HEADERS)
+        for spec in self.SPECS:
+            now = _resolve_include(including, spec, self.KNOWN, index)
+            assert now == self.old(including, spec, self.KNOWN, self.HEADERS), spec
+
+    def test_the_specs_cover_a_match_an_ambiguity_and_a_miss(self):
+        # So the equivalence above cannot pass by finding nothing at all.
+        outcomes = {
+            (r.path is not None, r.ambiguous)
+            for r in (
+                self.old("src/main.c", spec, self.KNOWN, self.HEADERS) for spec in self.SPECS
+            )
+        }
+        assert outcomes == {(True, False), (False, True), (False, False)}
+
+    def test_a_plain_set_still_resolves_the_same_as_its_index(self):
+        # Any caller that does not build the index keeps the old signature.
+        for spec in self.SPECS:
+            assert _resolve_include(
+                "src/main.c", spec, self.KNOWN, self.HEADERS
+            ) == _resolve_include("src/main.c", spec, self.KNOWN, HeaderIndex(self.HEADERS))
 
 
 class TestIncludeDegradations:

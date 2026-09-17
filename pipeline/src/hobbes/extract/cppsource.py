@@ -368,7 +368,9 @@ def _claim_headers(repo_root: Path, files: list[CppFile]) -> _HeaderClaim:
         return _HeaderClaim(frozenset(headers), frozenset(), frozenset(), c_sources, False)
 
     known = {parsed.path for parsed in files} | c_paths
-    candidates = headers | {p for p in known if PurePosixPath(p).suffix in CPP_HEADER_SUFFIXES}
+    candidates = csource.HeaderIndex(
+        headers | {p for p in known if PurePosixPath(p).suffix in CPP_HEADER_SUFFIXES}
+    )
     by_cpp: set[str] = set()
     for parsed in files:
         by_cpp |= _included_headers(parsed.path, parsed.includes, known, candidates, headers)
@@ -391,7 +393,7 @@ def _included_headers(
     path: str,
     includes: list[dict],
     known: set[str],
-    candidates: set[str],
+    candidates: csource.HeaderIndex,
     headers: set[str],
 ) -> set[str]:
     """The ``.h`` files *path*'s includes resolve to, by C's three steps
@@ -478,7 +480,10 @@ def _parse_file(rel: str, source: bytes) -> tuple[CppFile, bool, list[str]]:
     root = tree.root_node
     parsed = CppFile(path=rel)
     _walk_declarations(root, parsed, ())
-    _scan_string_tests(root, parsed)
+    # An identifier node's text is a slice of the source, so a file whose
+    # bytes hold no macro name has no node the scan could take (ADR-128).
+    if any(macro.encode() in source for macro in _STRING_TEST_MACROS):
+        _scan_string_tests(root, parsed)
     # One symbol per id, before `_calls` runs — so a call written inside an
     # overload is scoped to that overload, not to the first of the set.
     duplicated = _dedupe_symbols(parsed)
@@ -1172,7 +1177,9 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
     # source including a header C kept still names a real module, and the
     # C layer merges its node right after this one.
     known_files = owned | set(claim.c_sources) | set(claim.left_to_c)
-    headers = {p for p in known_files if PurePosixPath(p).suffix in CPP_HEADER_SUFFIXES + (".h",)}
+    headers = csource.HeaderIndex(
+        p for p in known_files if PurePosixPath(p).suffix in CPP_HEADER_SUFFIXES + (".h",)
+    )
     unmatched_by_dir: dict[str, list[str]] = defaultdict(list)
     ambiguous_by_dir: dict[str, list[str]] = defaultdict(list)
 
@@ -1406,7 +1413,7 @@ def _is_tie(
 
 
 def _call_fallback(
-    files: list[CppFile], known_files: set[str], headers: set[str]
+    files: list[CppFile], known_files: set[str], headers: csource.HeaderIndex
 ) -> tuple[dict[tuple[str, int, str], tuple[str, int]], set[tuple[str, int, str]]]:
     """Lane A's own resolutions and its overload-set abstentions, both
     keyed by call site — the syntactic floor this unit's whole graph rests
