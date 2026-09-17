@@ -529,6 +529,22 @@ class TestTheWrittenSpecialisation:
         }
         assert layer["full_specializations"] == frozenset({"a.ns::S<0>"})
 
+    def test_a_template_header_a_macro_parse_lost_still_records_the_specialisation(self, tmp_path):
+        # fmt's compile-test.cc (§10.11, P69): an unreadable macro pulls
+        # `template <>` into an ERROR node before a bare `struct S<X>`. The
+        # header's exact tokens mark it; a lost header with a parameter in
+        # it, or no header at all, records nothing.
+        _write(tmp_path, {"a.cpp": (
+            "template <typename T> struct S { void format() {} };\n"
+            "UNREADABLE_MACRO\n"
+            "template <> struct S<int> : S<long> { void format() {} };\n"
+            "UNREADABLE_MACRO\n"
+            "template <typename U> struct S<U*> { void format() {} };\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert "a.S<int>" in layer["full_specializations"]
+        assert "a.S<U*>" not in layer["full_specializations"]
+
 
 class TestTheFallback:
     def test_the_unique_free_function_repo_wide_resolves(self, layer):

@@ -589,6 +589,8 @@ def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...
             return  # a bare tag reference: not a definition
         tag = _text(name)
         parsed.symbols.append(_symbol(tag, _qualname(scope, tag), "type", name, node))
+        if name.type == "template_type" and _lost_template_header(node):
+            parsed.full_specializations.append(_qualname(scope, tag))
         _walk_declarations(body, parsed, scope + ((tag, True),))
     elif node.type == "enum_specifier":
         name = node.child_by_field_name("name")
@@ -658,6 +660,25 @@ def _record_full_specialisation(
             and child.child_by_field_name("body") is not None
         ):
             parsed.full_specializations.append(_qualname(scope, _text(name)))
+
+
+def _lost_template_header(node: Node) -> bool:
+    """Whether a class written with arguments (``struct S<X> {..}``) is
+    an explicit full specialisation whose ``template <>`` the parse lost.
+
+    A macro the grammar cannot read (``FMT_BEGIN_NAMESPACE``, C-145) can
+    pull the header into an ERROR node just before the class, which then
+    parses bare. The tokens are still there: the ERROR node immediately
+    before the class ends in exactly ``template`` ``<`` ``>``. Nothing
+    looser counts (ADR-125 as amended, §10.11's P69) — a header with a
+    parameter in it, or anything after the ``>``, is not this shape, and
+    the class is then not recorded, which only makes the rule fire less.
+    """
+    previous = node.prev_sibling
+    if previous is None or previous.type != "ERROR" or previous.child_count < 3:
+        return False
+    tail = [_text(child) for child in previous.children[-3:]]
+    return tail == ["template", "<", ">"]
 
 
 def _function_definition(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
