@@ -1517,6 +1517,28 @@ fixed before the version moves.
   `uses` symbol edges fmt −156, args −24; module edges −1 and −1, both
   read by hand as wrong.
 
+### 10.17 Constructions at the token, outside a template — written 2026-09-17, before the unit is dispatched
+
+ADR-132. The misses were classed on fmt with args held out
+(`~/.hobbes/bench/cpp-constructions/PREREG-args.md`: 3 of 5 met — the
+largest class and the dominant shape were both guessed wrong), and the
+rule's export was fitted on fmt with args held out on the precision side
+(`PREREG-args-sim.md`: P-s1–P-s4 met, 369 added rows all confirmed;
+P-s5 half missed, 16 untokened rows where ≤ 15 was predicted). Both
+files carry the frozen scripts' hashes. For the built rule:
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P102 | fmt | confirmed 6,901 → 7,012 ± 3, **0 contradicted**; recall 30.4% | stored key, `--poison` |
+| P103 | fmt | `line-unresolved` stays 27; `unreachable` 43 → 67 ± 2, every new one a row the probe's hand read called right; strict 99.62%, not below 99.61% | per the report |
+| P104 | args | confirmed 2,198 → 2,567 ± 3, 0 contradicted, no new silent row; recall 72.9% | stored key |
+| P105 | cJSON, sqlite-vector | exports identical, row for row; no `constructions` block | the export compared as a set |
+| P106 | fmt, args | every added row is one the probe's `token-plain` export holds (`fmt-sim2`, `args-sim2`); any other is read by hand and named | the two exports compared as sets |
+| P107 | fmt, args | no `calls` edge from a token inside a template; `constructions.in_template` reads 44 ± 3 on fmt and 1 on args, and each stays a `uses` edge | the ingest's block against the export and the graph |
+
+A contradicted row, or a new `line-unresolved` one, is a finding against
+the rule and is fixed before the version moves.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
