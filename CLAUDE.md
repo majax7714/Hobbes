@@ -192,11 +192,11 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-17, 0.2.40-beta; the last three
-carried from 0.2.8-beta; Go counted 2026-09-16, all ok 2026-09-17): 1,751 pytest (8 `lane_b`) / 390 Go (389 pass,
-1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip on a host
-without clang++ or cmake; the C++ ones pass in the image) / 52 vitest /
-36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
+Suite sizes at the last check (2026-09-17, 0.2.40-beta; oracle-lane Go
+counted 2026-09-16): 1,752 pytest (8 `lane_b`) / 392 Go with subtests
+(391 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
+on a host without clang++ or cmake; the C++ ones pass in the image) / 52
+vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),

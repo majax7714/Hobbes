@@ -12156,3 +12156,49 @@ surfaced. Architecture §3.6 amended.
 `./...` ok. Tracker **44 of 40**. Binaries, static proxy and image
 rebuilt at 0.2.40-beta; this repo re-ingested at HEAD. **Restart the
 knowledge server** (C-65).
+
+## 2026-09-17 (evening) — Top-level docs drift and two found-by-use items (no version move)
+
+Max asked for a review of the top-level docs, then for the drift and the
+two items the ADR-128 session found by use to be fixed.
+
+**Review, against the tree.** `VERSION`, `CHANGELOG.md`, architecture §8
+and `CLAUDE.md` agreed on 0.2.40-beta; ADR files 128; register 161
+entries, highest C-161; 44 session logs, the rendered tracker 44 of 40.
+The drift: README's status still read 0.2.35-beta, "ADR-001 to ADR-122",
+158 register entries and thirty-seven session logs; the handoff said
+"tracker 40 of 40" twice and "Forty log files" beside "44 of 40"; its
+summary called ADR-128's units gate right-clear without `9943`'s failed
+verify; its 2026-09-15/16 resume points (items 0–10) had piled to 626
+lines; four suite counts were carried from 0.2.8-beta.
+
+**Fixed (docs):** README's status numbers and ADR range, with ADR-128's
+result in the harness paragraph; the handoff rewritten — the day's
+landings as one list with `9943`'s verify named, the old resume points
+folded to a list of driver paths, the standing items renumbered 1–4;
+suites re-run and counted: 1,752 pytest, Go 392 with subtests (391 pass,
+1 skip; the earlier 390 was the same method), 87 scip, 36 tsextract, 52
+vitest, 84 atlas0, all green.
+
+**Found item 1, fixed (`e976ba5`, test only):** the suite's in-process
+ingests appended timing lines to the real `~/.hobbes/cache/timings/` —
+341 of its 347 files were pytest tmp repos. `conftest.py` redirects
+`hobbes.extract.timings`' cache root to the run's basetemp unless a test
+sets `HOBBES_CACHE_DIR` itself; `test_timings.py` holds it. A run of
+`test_timings` and `test_cli` left the store at 347 files. The 341 old
+files are left in place, not swept.
+
+**Found item 2, a misreading — corrected, nothing built.** The record said
+the index key includes the mounts, so after ADR-128 §1 every repo's first
+ingest misses lane B's store once. Read against the code: the key's `ro`
+is the caller's list (`scipsource._cache_key`); the trusted stores are
+added in `containment.plan`, outside it. This repo's timings log: 19 of
+19 misses at 0.2.39-beta's first ingest and again at 0.2.40-beta's, 18/1
+at the commits between (the changed Python unit) — the whole-miss
+ingests fall on version bumps, which rebuild the image (C-65); the image
+id is in the key by design (ADR-122), and so is the helper's lockfile,
+whose root carries the version. Re-ingested at `e976ba5` under the
+0.2.40 mounts: 18 hit, 1 miss (the Python unit, its tests changed). One
+miss per bump is the key being true.
+
+**Suites:** as above. Tracker unchanged (44 of 40).

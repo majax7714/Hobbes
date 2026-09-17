@@ -15,389 +15,113 @@ the image it started from until it is restarted (C-65): **restart it**
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-17 "Top-level docs reviewed
-at 0.2.38-beta; one ingest of a repo at a time" BUILDLOG entry (ADR-127,
-0.2.39-beta) and its later section (ADR-128, 0.2.40-beta). Before it, the same day: "Top-level docs reviewed at
-0.2.35-beta" and its later section (ADR-123–126, 0.2.36–0.2.38-beta). Before it, 2026-09-16: "lane B reads an unchanged
-unit from its index cache" (ADR-122, 0.2.35-beta), "no call in an unevaluated
-operand" (ADR-121, 0.2.33-beta and 0.2.34-beta), "the override set is
-drawn" (ADR-120, 0.2.32-beta), the "top-level review" entry (the drift fix,
-ADR-118, ADR-119, the review page), ADR-117 (C-156 surfaced), O10's four
-defects fixed, and the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' detail
-lives in their own BUILDLOG entries; this file keeps only what the next
-session needs.
+The latest session's record is the 2026-09-17 "Top-level docs drift and
+two found-by-use items" BUILDLOG entry (no version move). Before it, the
+same day: "Top-level docs reviewed at 0.2.38-beta; one ingest of a repo at
+a time" (ADR-127, 0.2.39-beta, and its later section, ADR-128,
+0.2.40-beta), and "Top-level docs reviewed at 0.2.35-beta" (ADR-123–126,
+0.2.36–0.2.38-beta). Earlier sessions' detail lives in their own BUILDLOG
+entries; this file keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION (2026-09-17)
 
-The 2026-09-17 BUILDLOG entry is the record: the top-level review, then
-the review's decisions written up (ADR-123–126, §10.11–10.12) and built
-in Max's order. Max's standing direction from it: **honesty and accuracy
-come before a recall number on the extraction lane** — weigh every
-extraction decision against them first.
+Max's standing direction: **honesty and accuracy come before a recall
+number on the extraction lane** — weigh every extraction decision
+against them first. **Next** is NEXT item 1.
 
-0. **What landed (all merged no-ff, gate right-clear; tracker 40 of 40):**
-   - **0.2.36-beta, ADR-123:** `hobbes lanes` shapes a disagreement
-     `same-line-pair` (C-70) or `cpp-withheld` (C-152) and exits 3 when
-     every row is shaped (quic-go 17/17, fmt 316/316); CI passes on 3.
-   - **ADR-124 (bench):** strict precision beside every grade and every
-     quoted figure, for every tool; "like-for-like" retired.
-   - **0.2.37-beta, ADR-125 R-qual:** a C++ call whose written
-     specialisation contradicts lane B's `template <>` owner draws
-     nothing (`qualifier-mismatch`). fmt **100%** (3,269/3,269), strict
-     99.73%, recall unchanged; args identical.
-   - **0.2.40-beta, ADR-128 (C++ lane A measured, made exact-faster,
-     cached per file; the trusted stores read-only):** measured first —
-     lane A passes 2 s on no timed repo but ScummVM (C++ 242 s of 258 s,
-     Python around the parse, not tree-sitter). Three units, merged no-ff:
-     `9943` (the index and lane A stores ride read-only in every
-     contained step, a NOTE when repo code ran; C-161), `1ef9` (iterative
-     walk, `HeaderIndex`, string-test pre-filter), `6956` (the JSON
-     per-file cache, `HOBBES_LANEA_CACHE`; C-160). ScummVM lane A 261 s →
-     154 s every ingest, 39.5 s warm, **each step byte-identical by
-     `cmp`** (217 MB); store 318 MB. Drivers and logs:
-     `~/.hobbes/bench/laneA-cache/` (`equiv.py`, `split.py`,
-     `cacheproto.py`, `scummvm-tree.json` the reference output,
-     `units/` the briefs).
-   - **0.2.39-beta, ADR-127 (the second session of the day):** a second
-     ingest of a repo is refused while one runs (`flock` on
-     `.hobbes/derived/.ingest.lock`, `IngestBusy`, exit 1, before
-     anything is staged); artifacts written through a temporary and a
-     rename, keeping their mode. Dispatched as `d238` (34 turns, $1.57,
-     gate right-clear); the mode fix is the developer's. Live on this
-     repo: the second exited 1 naming the first's pid, the first indexed
-     all 19 lane B units. **C-159 registered (surfaced):** an older
-     build takes no lock; a filesystem without `flock` runs unlocked
-     with a warning. Brief and partition: `~/.hobbes/bench/ingest-lock/`.
-   - **0.2.38-beta, ADR-125 §4:** `who_calls` marks semantic C++ calls
-     from a template pattern; one `cpp-template-sites` record. C-153
-     unsurfaced → partial.
-   - **ADR-126 measured, nothing drawn:** the override set is javac's
-     (97.4% CHA recall), but 106 of jsoup's 2,944 expanded pairs (3.6%)
-     sit at calls that do not dispatch (`super.`, private, final).
-   - Where things are: `~/.hobbes/bench/lanes-shape-drivers/`,
-     `c153-rule/` (measure.py, regrade.sh, the briefs),
-     `dispatch-reach/` (measure.py, jsoup/click/args JSON).
-00. **Done this session:** the duplicate dispatch branch
-   `hobbes/S-20260917T132013Z-e1c6` and its session directory deleted
-   (its one commit was a second run of `145d`'s brief, merged as `145d`);
-   the concurrent-ingest breakage fixed as 0.2.39-beta (above); the
-   handoff's and `workstreams.md`'s drift fixed (`ca1f2fd`); lane A's
-   file cache built as ADR-128 (above). **Found by use, not fixed:**
-   - the pytest suite appends timing lines for its tmp repos to the real
-     `~/.hobbes/cache/timings/` (`hobbes ingest` in `test_cli.py` records
-     them); one conftest line, like `HOBBES_LANEA_CACHE`, would stop it;
-   - the index cache's key includes the mounts, so the first ingest of
-     every repo after 0.2.40-beta misses lane B's store once.
-   **Next** is NEXT item 1.
+### What landed on 2026-09-17 (all merged no-ff; tracker 44 of 40)
 
-## Earlier resume points (2026-09-16), kept for their paths
+- **0.2.36-beta, ADR-123:** `hobbes lanes` shapes a disagreement
+  `same-line-pair` (C-70) or `cpp-withheld` (C-152) and exits 3 when
+  every row is shaped (quic-go 17/17, fmt 316/316); CI passes on 3.
+- **ADR-124 (bench):** strict precision beside every grade and every
+  quoted figure, for every tool; "like-for-like" retired.
+- **0.2.37-beta, ADR-125 R-qual:** a C++ call whose written
+  specialisation contradicts lane B's `template <>` owner draws nothing
+  (`qualifier-mismatch`). fmt **100%** (3,269/3,269), strict 99.73%,
+  recall unchanged; args identical.
+- **0.2.38-beta, ADR-125 §4:** `who_calls` marks semantic C++ calls from
+  a template pattern; one `cpp-template-sites` record. C-153 unsurfaced
+  → partial.
+- **ADR-126 measured, nothing drawn:** the override set is javac's
+  (97.4% CHA recall), but 106 of jsoup's 2,944 expanded pairs (3.6%) sit
+  at calls that do not dispatch (`super.`, private, final).
+- **0.2.39-beta, ADR-127:** a second ingest of a repo is refused while
+  one runs (`flock` on `.hobbes/derived/.ingest.lock`, `IngestBusy`,
+  exit 1, before anything is staged); artifacts written through a
+  temporary and a rename, keeping their mode. Dispatched as `d238`
+  (gate right-clear); the mode fix is the developer's. **C-159
+  registered (surfaced).**
+- **0.2.40-beta, ADR-128 (C++ lane A measured, made exact-faster, cached
+  per file; the trusted stores read-only):** measured first — lane A
+  passes 2 s on no timed repo but ScummVM (C++ 242 s of 258 s, Python
+  around the parse, not tree-sitter). Three units, merged no-ff: `9943`
+  (the index and lane A stores ride read-only in every contained step, a
+  NOTE when repo code ran; C-161), `1ef9` (iterative walk,
+  `HeaderIndex`, string-test pre-filter), `6956` (the JSON per-file
+  cache, `HOBBES_LANEA_CACHE`; C-160). ScummVM lane A 261 s → 154 s
+  every ingest, 39.5 s warm, **each step byte-identical by `cmp`**
+  (217 MB); store 318 MB. All three gate right-clear; **`9943`'s verify
+  read fail** (2 regressions): both tests sat outside its partition
+  (`test_indexcache.py`, `test_harness.py` asserted the old mount set),
+  the doer named them and the one-line fixes, applied on top (`230102e`).
+- **Housekeeping:** the duplicate dispatch branch
+  `hobbes/S-20260917T132013Z-e1c6` and its session directory deleted.
 
-0. **0.2.35-beta (ADR-122): lane B reads an unchanged unit from its
-   index cache.** The review's next speed item, done and measured.
-   - **Measured first:** python's 26 s is the index container (the venv
-     listing 0.24 s, staging 0.02 s, the decode 0.08 s); two helper runs
-     write byte-identical facts files (python and 8 Go modules). The
-     review's premise — "the stage key, already a content hash" — was
-     wrong: `stage_key` is stat-based. The cache keys by content.
-   - **Built:** `extract/indexcache.py` and one hook in
-     `scipsource.run_helper`, so every unit of six languages gets it.
-     Key: helper source + lockfile, image id, config (stage path
-     tokenised, `facts` dropped), sidecar files by bytes, the stage tree
-     file by file, links by target + top-level stat + installer marker,
-     ro mounts, env; the root left out. A hit is `read_facts` over the
-     stored file; one that no longer reads is dropped and the unit
-     indexed. Only a contained successful run is stored;
-     `HOBBES_INDEX_CACHE=0` indexes afresh. Store
-     `~/.hobbes/cache/index/`, a 30-day sweep at the next write. The
-     summary prints one line under the timings; the log line carries
-     `index_cache`; nothing enters an artifact.
-   - **This repo:** 54.0 s → 8.9 s; lane B 49.2 → 4.1 s; keys 0.04 s;
-     `graph.json` and `tests.json` sha256-identical to an uncached
-     ingest. What remains on a hit is the fetch passes before the helper
-     (java's resolve 2.3 s, go 0.8, rust 0.5, the venv listing 0.4); the
-     key is computable before a fetch, so skipping them is a small
-     follow-on if wanted.
-   - **C-158 registered (surfaced):** linked trees and venvs
-     fingerprinted by surface, not files; a lockfile-less manifest keeps
-     its first resolution. 18 tests in `test_indexcache.py`, one through
-     the image.
-   - **Found by use, not fixed:** `~/.hobbes/cache/stage/` holds 38
-     86-byte `.scip` files from 2026-08-22 and two old stage
-     directories; `staging.sweep_stale` has no caller in the ingest.
-   - The binaries, the static proxy and the image are rebuilt at
-     0.2.35-beta and this repo re-ingested at HEAD (the first ingest
-     after a rebuild misses everywhere — the image id is in the key);
-     **restart the knowledge server** (C-65).
+### Closed by the last session (no version move)
 
-1. **0.2.33-beta and 0.2.34-beta (ADR-121): no call in an unevaluated
-   operand — C-155 lifted the day it was registered, on both sides of
-   the grade.** The review's third item, and the next undone one.
-   - **Measured first:** the grammar (`noexcept(..)`/`typeid(..)` parse
-     as a call of a bare identifier); fmt's and args' sites under those
-     nodes; and clang's own dump in the image, which keeps a call under
-     `sizeof`/`noexcept`/`typeid` and never holds a `decltype` operand —
-     so the oracle carried half the defect (**H-32**, RC-11).
-   - **Three units, all gate right-clear, merged no-ff:** `d95c` (lane A
-     C++: `cppsource._unevaluated`, `typeid`'s operand kept), `5261`
-     (O10's reader drops and counts, `sites_unevaluated`; verified in
-     the image), `367f` (lane A C: `sizeof`/`_Alignof`, the VLA residual
-     — the oracle unit's doer found the reader's rule reaches C).
-   - **The join and the tail did not move**, against the review's
-     sketch: lane B's occurrence at such a site stands as a `uses` edge
-     (a true dependency, not a call), and there is no tail class. If
-     Max wants the review's version (claim it; class `unevaluated`), it
-     is a small change on top.
-   - **fmt: 99.85% → 99.88%** (3,269/3,273; like-for-like 99.69%),
-     contradicted 5 → 4, all C-153's; export 3,525 → 3,499, every
-     removed row a `decltype` operand; args identical. Keys re-run after
-     H-32: args identical, fmt 6 `sizeof` sites gone, no judgement
-     moved.
-   - **My pre-measurement was wrong** (49 sites / 1 edge; truth 299 /
-     26): it skipped the headers C++ claims and matched by name. §10.10
-     records P52, P54 and P56 as missed on the counts, met on the
-     judgement; ADR-121 carries the dated correction. Next time: the
-     provider's file list, and positions.
-   - **Where things are:** `~/.hobbes/bench/uneval-drivers/` (the three
-     task files and partitions, `ingest-cell.sh`, `grade-cell.sh`,
-     `regrade/{fmt,args}/` the fresh exports and grades against the
-     standing keys, `keys/{fmt,args}/` the re-run keys and
-     `final-report.json`).
-   - The binaries, the static proxy and the image are rebuilt at
-     0.2.34-beta and this repo re-ingested at HEAD; **restart the
-     knowledge server** (C-65).
+- **The top-level docs' drift:** README's status (0.2.35 → 0.2.40, ADRs
+  to 128, the register and tracker counts), this file's tracker count,
+  and the 2026-09-15/16 resume points folded to a paths list below.
+- **The suite no longer writes the developer's timings log:**
+  `tests/conftest.py` sends `hobbes.extract.timings`' log to the run's
+  basetemp unless a test sets `HOBBES_CACHE_DIR` itself;
+  `test_timings.py` holds it.
+- **"The index key includes the mounts" was a misreading, corrected, not
+  built:** the key's `ro` is the caller's list; ADR-128 §1's trusted
+  stores are added in `containment.plan`, outside it. This repo's timings
+  log shows the whole-miss ingests (19 of 19) only at a version bump,
+  0.2.39 and 0.2.40 alike: a bump rebuilds the image (C-65), and the
+  image id is in the key (ADR-122, by design), as is the helper's
+  lockfile, whose root carries the version. One miss per bump is the
+  key being true, not a defect.
 
-2. **0.2.32-beta (ADR-120): SCIP `relationships` measured, then drawn
-   as `implements` edges.** The review's first recall item, in Max's
-   order (measure first).
-   - **The measurement:** five of six indexers state `is_implementation`
-     pairs on the implementor — scip-clang (49,912 on ScummVM), scip-go
-     (method pairs to the interface's method *spec*), scip-typescript,
-     scip-python, scip-java (and the reverse row on an abstract method);
-     **rust-analyzer states none** → **C-157**, surfaced on every Rust
-     run. ADR-120's table; probes and outputs in
-     `~/.hobbes/bench/relationships-probe/` (`keep_probe.py` runs an
-     ingest through `helper-keep-index.mjs`, which keeps the raw `.scip`;
-     `measure_relationships.mjs` and `pairs.mjs` read them — a helper
-     copy's `node_modules` must be a real tree, `cp -a`).
-   - **Built:** helper version 5 decodes `Document.symbols[].relationships`
-     and emits `implements` rows (deduplicated, sorted, scip-java's
-     mutual rows oriented by the type level transitively or dropped and
-     counted); the facts' fourth row kind; `IMPLEMENTS` sites; the join
-     draws `implements` at semantic tier; `project` takes both ends as
-     the symbol starting at the line and counts an end below lane A's
-     floor; the summary, `who_calls` ("implemented or overridden by"),
-     `hobbes diff`, `hobbes plan` (0.8) know the type.
-   - **This repo:** 18 edges (twomod's `MemStore → Store` among them), 7
-     pairs below the floor — all Go's interface method specs, which lane A
-     does not declare — 83 to the stdlib.
-   - **C-58 narrowed**, not lifted: the set is drawn; the dispatch is not.
-   - **Open, ADR-120 §7 (Max's call):** expanding a call to an interface
-     method into its overrides as a labelled step. It changes what reach
-     means (ADR-007) and needs the oracle question first — the RTA and
-     CHA keys judge a call by its concrete targets, so an expanded edge
-     is either confirmed by them or the graph's first inferred edge.
-     Deferred with it: Go's interface method specs as lane A symbols
-     (lands the 7, but turns every resolved call to a spec into a `calls`
-     edge and moves Go's cells); a cross-unit match for outside pairs.
-   - The binaries, the static proxy and the image are rebuilt at
-     0.2.32-beta and this repo re-ingested at HEAD; **restart the
-     knowledge server** (C-65).
+## Where earlier sessions' drivers are (their records are the BUILDLOG's)
 
-3. **The 2026-09-16 top-level review, and its two patches.** Max asked
-   for a review of the top-level docs, the architecture and the
-   register for anything that would raise recall, speed, cut memory or
-   knock out constraints. The write-up is a Claude Docs page,
-   <https://claude.ai/code/artifact/2cd3c181-444a-42f5-a81e-c3a62928eb28>;
-   the BUILDLOG entry carries the substance. Done the same day:
-   - five drifted numbers across README and the architecture fixed
-     (`ed56089`);
-   - **0.2.30-beta (ADR-118):** the knowledge store decodes an artifact
-     once per version of its file and indexes edges by endpoint; every
-     tool call used to re-decode the whole of `graph.json`;
-   - **0.2.31-beta (ADR-119):** every ingest step timed, printed, and
-     logged to `~/.hobbes/cache/timings/<key>.jsonl`, never in an
-     artifact;
-   - the binaries, the static proxy and the image are rebuilt at
-     0.2.31-beta and this repo re-ingested at HEAD; **restart the
-     knowledge server** (C-65).
-   Its recommendations not started, in the review's order (the first
-   three — the `relationships` measurement with the `implements` edge,
-   C-155's lift, and the lane B index cache — are done: items 2, 1 and
-   0; the distinct `hobbes lanes` exit for registered shapes followed as
-   ADR-123, 0.2.36-beta; lane A's file cache followed as ADR-128,
-   0.2.40-beta);
-   the fetch passes skipped on a cache hit, if their 4.1 s warrant it
-   (item 0); pytest fixtures as edges (C-4); the compile
-   database's `-I` path at lane A (C-133, C-142); the docs restructure
-   (the register's history to its own file, §3.8 per language, one
-   tally held by a test).
+The 2026-09-15 and 2026-09-16 resume points were folded into their
+BUILDLOG entries on 2026-09-17; only the paths a next session reaches for
+stay here.
 
-4. **0.2.29-beta (2026-09-16 evening, ADR-117): C-156 registered and
-   surfaced.** Test reach follows `calls` only (ADR-007), so a module
-   of values alone (`go/internal/version`) reads unguarded. Max chose
-   route (a): `tests_guarding` and `hobbes review` now say why, citing
-   C-156, and the module stays listed. The rule is
-   `testmap.value_only_modules` and Go's `valueOnly`. Also that evening:
-   pytest's four warnings closed (the `testmap_fixture` helper renamed,
-   two class fixtures moved to module level). The binaries, the static
-   proxy and the image are rebuilt; **restart the knowledge server**
-   (C-65).
+- **Lane A's C++ cache (ADR-128):** `~/.hobbes/bench/laneA-cache/`
+  (`equiv.py`, `split.py`, `cacheproto.py`, `scummvm-tree.json` the
+  reference output, `units/` the briefs).
+- **The ingest lock (ADR-127):** `~/.hobbes/bench/ingest-lock/`.
+- **ADR-123–126:** `~/.hobbes/bench/lanes-shape-drivers/`, `c153-rule/`
+  (measure.py, regrade.sh, the briefs), `dispatch-reach/` (measure.py,
+  jsoup/click/args JSON).
+- **The index cache (ADR-122):** the store `~/.hobbes/cache/index/`
+  (30-day sweep at the next write); the timings logs
+  `~/.hobbes/cache/timings/<key>.jsonl`.
+- **Unevaluated operands (ADR-121):** `~/.hobbes/bench/uneval-drivers/`
+  (the task files and partitions, `ingest-cell.sh`, `grade-cell.sh`).
+- **The override set (ADR-120):** `~/.hobbes/bench/relationships-probe/`.
+- **O10's defects:** `~/.hobbes/bench/oracle-defect-drivers/` (task
+  files, partitions, `rerun-cpp-key.sh`, `regrade-stored.sh`,
+  `regrade-foreign.sh`, `foreign-pairs.tsv`) and its `regrade-out/`.
+- **The foreign C++ cells:** `~/.hobbes/bench/comparative/{codegraphcontext,repowise}-{fmt,args}/`,
+  with `run-cpp-cell.sh` and `regrade-cpp-cell.sh`.
+- **C++ close-out and the facts stream (ADR-113, ADR-115/116):**
+  `~/.hobbes/bench/cpp-cells/{fmt,args}-cell/`,
+  `~/.hobbes/bench/cpp-cells/scummvm-cost/` (the large clone; sweep it
+  if space is needed), `~/.hobbes/bench/cpp-drivers/closeout-task.md`
+  and `probes/` (`decode_equiv.mjs`, `py_facts_probe.py`,
+  `capture_join.py`, `probe_helper.py`).
+- **The gate's arrow-parameter fix (C-91):** `~/.hobbes/bench/gate-drivers/`,
+  a pattern for the next brief.
 
-5. **O10's defects (2026-09-16, bench only, no version move): all four
-   fixed, everything regraded twice.**
-   - **H-31 traced and fixed the same day** as `S-20260916T165315Z-16f4`
-     (merged `db20845`): a callee whose qualifier a macro body supplied
-     (`#define FMT_SYSTEM(call) ::call`) was keyed on the `#define`'s own
-     line — in fmt another file — so six real `os.cc` calls sat where
-     nobody wrote them. Traced on the cell's key, not a synthetic; my
-     first probe missed it because it spliced macros but never a
-     *qualifier*. **Regraded: all six confirmed**, fmt **99.85%**
-     (3,269/3,274), and **fmt's triage ratio is now `hobbes-wrong 5 :
-     oracle-wrong 0`** — the oracle's share of that cell is zero.
-   - **Its seventh row was never the oracle's:** `compile-test.cc:127`
-     draws `fmt::arg` inside an unevaluated `decltype`, which the
-     compiler never calls. Registered **C-155** (unsurfaced), and fmt's
-     ratio corrected against us from 4:7 to 5:6 before this fix.
-   - **P50 missed:** I predicted all four foreign C++ cells would rise as
-     they did under H-30; three did not move and the fourth moved one
-     row. A fix to the key's *position* reaches a tool only where it had
-     already drawn there, unlike H-30's *silence* rule.
-   - Tracker **34 of 40**. The earlier three fixes and the first
-     three-tier regrade are below.
-6. **The first three (2026-09-16): H-28, H-29, H-30.**
-   - **H-28** (a member call keyed at its object's start) and **H-29**
-     (an unmangled declaration keyed by its bare name) fixed as
-     `S-20260916T153010Z-8170`, merged `eec8141`; **H-30** (a line the
-     key left unresolved still contradicting) as
-     `S-20260916T155426Z-8d48`, merged `f747aef`. Both gate-clear,
-     verify-pass, merged not squashed. Tracker **33 of 40**.
-   - Each cause was **probed in the image before the ADR was written**,
-     which overturned two wrong hypotheses. H-31's `os.cc` half never
-     reproduced there, so it was left open — then traced on the cell's key
-     and fixed the same day (item 5).
-   - **The regrade (§10.8, P36–P45):** fmt 99.1% → **99.7%**, args
-     unmoved, **38 own cells unmoved**, **13 of 44 foreign cells moved**
-     (all contradicted → silent). The four foreign C++ cells were
-     regraded against the new key.
-   - **The costs, all recorded:** 6 of C-153's 10 wrong rows are now
-     *unjudged*, so fmt is **99.48% like-for-like**; the poison
-     instrument covers fewer sites; and the rule raised every moved
-     **competitor** cell while moving none of ours. **P36, P37, P38
-     missed**, all flattering, recorded as misses.
-   - **Where things are:** `~/.hobbes/bench/oracle-defect-drivers/`
-     (task files, partitions, `rerun-cpp-key.sh`, `regrade-stored.sh`,
-     `regrade-foreign.sh`, `foreign-pairs.tsv`) and its `regrade-out/`.
-   - **Open for Max:** whether the lane should print a
-     "judged-as-before" companion number on any cell with
-     `line-unresolved > 0`; C-153's status, now 4 judged : 6 unjudged;
-     and C-155. Nothing in the oracle's own log is open.
-   - Found by use: `calvin_tracker.py` pinned `gate v2, grounder v3`, so
-     the first session at grounder v4 could not be parsed; fixed with a
-     test red on the old pattern (`ce43e5a`).
-7. **The foreign C++ cells (2026-09-15, no version move): C++ is closed
-   out on the comparative page too.**
-   - Pre-registered first (`oracle-grading.md` §10.7, P32–P35,
-     `ac5f7c8`), then both tools on fmt and args, host-run, graded by
-     the Hobbes cells' stored clang keys:
-     - CodeGraphContext fmt 844/975 (86.6%), recall 11.8%. Its args
-       cell graded nothing: it reads no `.cc`, `.cxx` or `.hxx` file.
-     - repowise fmt 2,414/5,343 (45.2%), recall 13.9%; args 815/937
-       (87.0%), recall 23.3%.
-     - Hobbes is ahead on both axes on both rows. P32–P34 met where
-       decidable; P35 missed (no tool's fmt recall passes 14.5%).
-   - The triage (60 rows, seeded) found two converter defects (C-94).
-     converter@4 (ADR-101 amended) reads `#  define` and advances a
-     C/C++ split head. Re-converting all 52 foreign dumps moved only
-     repowise's two C++ cells, regraded with signed direction lines.
-   - Graphics regenerated: 90 cells, 22 same-key rows; `render.py
-     check` and the report test green.
-   - **Where things are:** `~/.hobbes/bench/comparative/{codegraphcontext,repowise}-{fmt,args}/`;
-     the drivers `run-cpp-cell.sh` and `regrade-cpp-cell.sh`; the
-     triage files `triage-cpp-{codegraphcontext,repowise}.json`.
-     CodeGraphContext left a `.cgcignore` in each C++ clone (`field.md`
-     §2).
-   - **Parked (Max, 2026-09-15):** CodeGraphContext's optional SCIP
-     path for C/C++ (`SCIP_INDEXER=true` over a compile database) goes
-     into a full-version comparative retest, one item in
-     `future_additions.md`. C++ is closed out for now.
-8. **Lane B's facts arrive as a stream (2026-09-15, 0.2.26-beta,
-   ADR-116).** C-150's remainder, Max's route A of three:
-   - the helper writes `<stage>.facts.ndjson` — a header, one JSON line
-     per document, a trailer that counts them; helper version 4 — and
-     prints nothing; `scipsource.read_facts` reads it into slotted,
-     interned resolution `Site`s and rows, and refuses a short file;
-   - found first: at 0.2.25-beta ScummVM's facts (699 MB of JSON) were
-     longer than V8's longest string, so the helper threw and the
-     record read "install Node". C-150 corrected, and moved to
-     *partial*: a kill on the Python side leaves no record;
-   - measured: the helper 3.29 GB resident at the image's default heap,
-     `read_facts` 0.99 GB (1.36 GB with the buckets), every row the
-     same as the one-document form's; this repo's graph identical under
-     `aaffca6`'s code and this change's;
-   - **ScummVM end to end:** exit 0 in 8 min 57 s, contained, 7.72 GB
-     peak on the Python side; 941,498 semantic symbol edges, its C/C++
-     sites 61.3% accounted where they were 0.0%. Its graph is in
-     `~/.hobbes/bench/cpp-cells/scummvm-cost/.hobbes/derived/`;
-   - **Where things are:** ScummVM's index and unit list in
-     `~/.hobbes/cache/stage/b7bc0819382fd513.scip.units/`; the probes in
-     `~/.hobbes/bench/cpp-drivers/probes/` — ADR-115's `decode_equiv.mjs`
-     and `stream_probe.mjs`, and this session's `facts_probe.mjs` (the
-     V8 string check, and a line file), `helper_facts_probe.mjs`
-     (`writeFacts` in the image) and `py_facts_probe.py` (the Python
-     read, by route; `join` as the third argument adds the join). Run
-     the `.mjs` from `scip/`, the `.py` with `uv run --project pipeline
-     python`.
-   - **Next on C-150, its own decision:** the 7.72 GB peak is lane A,
-     the read and the join (4.6 GB mid-join), then the graph built from
-     them. A slotted `Resolved` takes part of it; measure the graph
-     build's share before choosing. **Parked** (Max, 2026-09-15: the
-     memory patches are for a huge repo; "fine for now").
-   - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
-     root, not `root/root` (the caller re-roots first, then appends, as
-     the TS zone did); two tests, each red on 0.2.26-beta's code.
-   - The binaries, the static proxy and the image are now at
-     0.2.38-beta; see START HERE.
-9. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
-   units are complete.
-   - **The cells** (records in `docs/oracle/cells/`, host-run and
-     contained):
-     - fmtlib/fmt, chosen: 96.1% at 0.2.21-beta, **99.1%** (3,254/3,282)
-       at 0.2.22-beta;
-     - Taywee/args, the draw: 99.8%, then **100%** (1,995/1,995).
-   - **The fix between them**, Max's route "Fix both, then row": ADR-113
-     §2's third amendment, one unit (`8302`, 77 turns, $6.48, gate
-     right-clear). Two rules:
-     - a C++ site whose references name several overloads abstains
-       (C-151);
-     - a C++ file lane B compiled draws no fallback edge (C-152).
-   - **The row:** `VERIFICATION_BASE["cpp"]`, §3.8, the evidence log,
-     and C-132 narrowed again.
-   - **fmt was graded before its pre-registration existed**; §10.6 says
-     so, and args was graded after it.
-   - **Where things are:**
-     - cells, regrades, clones and the static `oracle`:
-       `~/.hobbes/bench/cpp-cells/{fmt,args}-cell/` and
-       `{fmt,args}-regrade/`, beside the clones, with `oracle` in
-       `fmt-cell/`;
-     - the task file: `~/.hobbes/bench/cpp-drivers/closeout-task.md`;
-     - the triage probes: `~/.hobbes/bench/cpp-drivers/probes/`.
-   - **The probes:**
-     - `capture_join.py` wraps `evidence.join` during an ingest and
-       dumps what lane B handed the join;
-     - `probe_helper.py` runs an ingest through a patched helper copy,
-       mounted where `helper_dir()` points (`helper-probe.patch`: the
-       `PROBE-*` stderr lines);
-     - run both with `uv run --project pipeline python <script> <repo>
-       <out> [<helper-dir>]`.
-   - **Restart the knowledge server** the next session opens with
-     (C-65).
-10. **Done: the gate's arrow-parameter fix** (C-91, 0.2.28-beta). C-91
-   was amended first (`342c5d1`), then the unit was dispatched as
-   `2b26` (27 turns, $1.57, gate right-clear) and merged no-ff
-   (`3526be2`). The harness's one false block is closed. The task and
-   partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
-   for the next brief.
-11. **Open for Max (no spend):**
+## Standing items (carried)
+
+1. **Open for Max (no spend):**
    - **Settled 2026-09-17 (routes Max approved):** the judged-as-before
      companion (ADR-124: strict precision instead); C-153 (ADR-125:
      withheld where the source contradicts, the rest surfaced as
@@ -420,7 +144,7 @@ extraction decision against them first.
      cost); the tracker's area for a test-only session (row 17, `—`);
      C-140's remainder (ADR-112's route 2); C-133's unit 2 (the `-I`
      read), deferred until a graded cell shows the cost.
-12. **Running a session** (`calvin-harness.md` §5):
+2. **Running a session** (`calvin-harness.md` §5):
    - Keep the token in the key file, and ingest at HEAD.
    - The doer's model is the checkout's: `HOBBES_DISPATCH_MODEL` in
      `.claude/settings.local.json` (this box: `claude-opus-5`); `--model`
@@ -449,9 +173,9 @@ extraction decision against them first.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 40 of 40, 4
+   - **The validating 40 are done:** the tracker reads 44 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
-13. **A regrade against stored keys:**
+3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
      --poison` against the cell's saved `oracle.json` (as the C++
      regrades did).
@@ -460,7 +184,7 @@ extraction decision against them first.
      changed; never two passes over one clone at once.
    - A regrade after a fix carries signed direction-of-fix lines in its
      record.
-14. **Carried:**
+4. **Carried:**
    - **The ingest's `.gitignore` edit.** Register it as a constraint or
      change it, on Max's reading.
    - **`stringer` is not in the image.**
@@ -517,7 +241,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Forty log files under `docs/calvin/sessions/`; the tracker reads 44 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Forty-four log files under `docs/calvin/sessions/`; the tracker reads 44 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -536,14 +260,12 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.40-beta: 1,751 pytest (all pass on the host,
-  `lane_b` 8 of them; 2026-09-17), Go `./...` all ok (2026-09-17;
-  last counted 390, 389 pass / 1 skip, 2026-09-16); 87 scip node
-  (2026-09-16);
-  oracle-lane Go 116 with subtests, 104 pass / 12 skip on this host,
-  which has no clang++ or cmake (the five C++ fixture tests run and
-  pass in the image; counted by `go test -json`, 2026-09-16); 52 vitest, 36 tsextract, 84 atlas0
-  not re-run.
+- **Suites** at 0.2.40-beta (2026-09-17, all pass on the host): 1,752
+  pytest (`lane_b` 8 of them, run at 0.2.40-beta), Go `./...` 392 with
+  subtests (391 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
+  84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
+  this host, which has no clang++ or cmake (the five C++ fixture tests
+  run and pass in the image; counted 2026-09-16).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
   cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if
   space is needed).
