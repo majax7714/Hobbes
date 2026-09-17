@@ -1353,6 +1353,30 @@ A miss on P74, P77 or P79 is a finding against the rule and is fixed
 before the version moves. A miss in the flattering direction is recorded
 as a miss.
 
+### 10.14 R-arity — written 2026-09-17, before either rule is built
+
+ADR-130. ADR-129 §6's hand read of the 53 rows its mint leaves unjudged
+on fmt found 34 wrong edges, and a 35th among the `no-targets` rows:
+`copy<Char>(begin, end, out)` drawn to the two-parameter `copy` at
+`format.h:549` (C-153, surfaced by the mint). The too-many-arguments rule
+was measured over the probe export with a regex reader (`arity.py`); the
+built rule reads lane A's parse. ADR-129 and ADR-130 ship together, so
+**§10.13's P76 (the mint alone: strict 98.9–99.2%) is never graded as
+written**: it is replaced by P83 here, before anything is built, and P74's
+confirmed count stands with the five local-to-function edges ADR-129's
+amendment gave up inside its band. Every other §10.13 row stands.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P82 | fmt, args | **0 confirmed edges withheld by R-arity**: every `arity-mismatch` site, joined to the mint-only export's grade, is unjudged or contradicted there, never confirmed | the sites listed from the ingest, joined by (site, target) to a grade of the same tree with the rule disabled by a scratch wrapper that clears every fact's `argc` before `project` (`~/.hobbes/bench/c145-recovery/`, as the step-0 probe wrapped it); no product seam |
+| P83 | fmt | `line-unresolved` 27 ± 5; strict precision 99.5–99.7% | per the report |
+| P84 | fmt | R-arity fires on ≥ 38 graded sites: the 35 `copy` rows, `holds_alternative` ×2, `any_cast` ×2, `scan.h:466` — each of those 40 named rows withheld; any the built reader misses is listed with why | the 40 rows checked by name against the fresh export |
+| P85 | args, cJSON, sqlite-vector | R-arity fires nowhere graded; the C cells' tails gain no class | per the ingest |
+| P86 | fmt | every row R-arity withholds beyond the 40 is read by hand; ≥ 90% are wrong edges, the rest named as the rule's cost | the read, in the cell record |
+
+A miss on P82 is a finding against the rule and is fixed before the
+version moves.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
