@@ -12387,3 +12387,44 @@ operator paragraph), §3.8, §8; both cell records; `cells.json`,
 `report/` ok. Tracker **48 of 40**. Binaries, static proxy and image
 rebuilt; **restart the knowledge server** (C-65). Spend: one dispatch on
 the subscription, $8.63 reported; no API or Modal spend.
+
+## 2026-09-17 (after the regrade) — CI's go job red since the morning: `grade.go` unformatted (no version move)
+
+**Asked:** review the top-level docs, then find why CI's gofmt step failed;
+then apply the fix and commit.
+
+**Found:** `gofmt -l go bench/oracle` names one file,
+`bench/oracle/internal/grade/grade.go`, on the runner and on this box
+alike (go1.26.5). `d1feba1` (ADR-124) added `PrecisionStrict` and
+`StrictGraded` to the report struct without re-running gofmt, so the
+field block's alignment was off; the diff is whitespace only. The go job
+stops at its gofmt step, so on the four pushes from `2555e57` (14:09Z)
+to `dbd1665` **CI ran neither Go suite nor the static proxy builds**:
+the Go side of 0.2.35-beta to 0.2.42-beta was tested on this box only.
+The last green run is `762348f` (0.2.34-beta). `web`, `python` and
+`graph` passed throughout. No record named the red runs before this
+entry.
+
+**Done:** `gofmt -w` on the file (`e5d2e6f`); then, standing in for what
+CI skipped, `go test ./...` in `go/` and in `bench/oracle/`, and the
+static `hobbes-proxy` build — all pass on the host (the C++ oracle cells
+skip here without clang++, as they do on the runner). Under `bench/`, so
+no bump and no CHANGELOG entry (ADR-103). Not pushed: the run that
+proves it on CI is the lead's next push.
+
+**The docs read:** `VERSION`, README, CLAUDE.md and the CHANGELOG's head
+agree on 0.2.42-beta and on every figure compared (fmt 6,901/6,901 and
+strict 99.61%, recall 30.1%, args 62.5%, quic-go 99.6%, the register's
+161 / 117 / 27, ADR-131, 48 sessions). Cosmetic only, left alone: the
+README's unwrapped line at the comparative dates, the run-on in its
+Calvin paragraph, a stray line break at "schema v4 with tiers".
+
+**Found by use:**
+- `actions/setup-go` warns on every run that it finds no `go.sum` at the
+  root (the module is under `go/`), so the Go cache is never restored; a
+  `cache-dependency-path` would fix it. Not changed.
+- A red gofmt step hides the suites behind it. Nothing local runs gofmt
+  before a commit; a hook or a line in the session checklist would have
+  caught this at `d1feba1`. Put to Max, not built.
+
+No spend.
