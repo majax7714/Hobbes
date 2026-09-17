@@ -128,7 +128,7 @@ from pathlib import Path, PurePosixPath
 import tree_sitter_cpp
 from tree_sitter import Language, Node, Parser
 
-from hobbes.extract import csource
+from hobbes.extract import csource, laneacache
 from hobbes.extract.csource import _text, _walk
 from hobbes.extract.discover import SKIPPED_DIR_NAMES, is_linked_copy
 from hobbes.extract.graph import _edge_list
@@ -307,7 +307,9 @@ def _read_and_parse(repo_root: Path, rel: str, files: list[CppFile]) -> list[dic
         source = (repo_root / rel).read_bytes()
     except OSError as exc:
         return [{"path": rel, "stage": "discover", "message": f"could not read {rel}: {exc}"}]
-    parsed, had_error, duplicated = _parse_file(rel, source)
+    # An unchanged file is read back rather than walked again (ADR-128 §4);
+    # the cache is a pure wrapper of `_parse_file` and returns its triple.
+    parsed, had_error, duplicated = laneacache.cached_parse(rel, source, _parse_file)
     files.append(parsed)
     errors: list[dict] = []
     if had_error:

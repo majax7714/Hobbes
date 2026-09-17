@@ -238,7 +238,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     # Lane B's index cache (ADR-122): what the lane B steps above were
     # — a read of a stored facts file, or an index — printed and logged
     # beside the timings, never in an artifact.
-    from hobbes.extract import indexcache
+    from hobbes.extract import indexcache, laneacache
 
     cache = indexcache.summary()
     if cache is not None:
@@ -247,12 +247,22 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
             f"(keys {cache['key_seconds']:.2f} s; {cache['store']}; "
             f"{indexcache.ENABLE_ENV}=0 to index afresh)"
         )
+    # Lane A's C++ file cache (ADR-128 §4), the same way: what the C++
+    # walk above was, and the line C-160 is surfaced by.
+    lanea = laneacache.summary()
+    if lanea is not None:
+        print(
+            f"    lane A C++ file cache: {lanea['hits']} hit, {lanea['misses']} miss "
+            f"(read {lanea['read_seconds']:.2f} s, store {lanea['store_seconds']:.2f} s; "
+            f"{lanea['store']}; {laneacache.ENABLE_ENV}=0 to parse afresh; C-160)"
+        )
     log = record(
         repo_root,
         graph["sha"],
         (graph.get("built_by") or {}).get("version"),
         timings,
         index_cache=cache,
+        lanea_cache=lanea,
     )
     print(f"    logged to {log}")
     for path in sorted(paths):

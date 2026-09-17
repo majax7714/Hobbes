@@ -142,6 +142,43 @@ class TestIngest:
         assert "state" in capsys.readouterr().err
 
 
+class TestLaneACppCache:
+    """ADR-128 §4: the ingest says what lane A's C++ walk was — a read of
+    a stored parse, or a walk — and the line is where C-160 is met."""
+
+    @pytest.fixture
+    def cpp_fixture(self, tmp_path, monkeypatch):
+        """The minicpp fixture as a git repo, with the store under
+        tmp_path: a test never writes the developer's own cache."""
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        repo = tmp_path / "minicpp"
+        shutil.copytree(Path(__file__).parent / "fixtures" / "minicpp", repo)
+        (repo / ".gitignore").write_text(".hobbes/\n")
+        git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t"]
+        subprocess.run([*git[:3], "init", "-q"], check=True)
+        subprocess.run([*git, "add", "."], check=True)
+        subprocess.run([*git, "commit", "-qm", "fixture"], check=True)
+        return repo
+
+    @pytest.mark.lanea_cache
+    def test_a_cpp_ingest_prints_the_line_and_the_second_one_is_all_hits(
+        self, cpp_fixture, capsys
+    ):
+        assert cli.main(["ingest", "--repo", str(cpp_fixture)]) == 0
+        out = capsys.readouterr().out
+        assert "lane A C++ file cache: 0 hit," in out
+        assert "C-160" in out and "HOBBES_LANEA_CACHE=0 to parse afresh" in out
+
+        assert cli.main(["ingest", "--repo", str(cpp_fixture)]) == 0
+        warm = capsys.readouterr().out
+        assert "lane A C++ file cache: " in warm and " hit, 0 miss (" in warm
+
+    def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
+        # No C++ in the repo is no lookup, and no lookup is no line.
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        assert "lane A C++ file cache" not in capsys.readouterr().out
+
+
 class TestContainmentNote:
     """What containment does *not* take away (ADR-128 §2): a contained step
     that ran repo code wrote the tool caches and the stage, and a later
