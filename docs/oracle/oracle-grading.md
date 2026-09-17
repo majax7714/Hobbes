@@ -1167,6 +1167,40 @@ C-153's ten). Matched edges in any other silent bucket are read and
 reported, and count on neither side. The surfacing of ADR-125 §4 is built
 whatever this reads.
 
+**Graded 2026-09-17**, `~/.hobbes/bench/c153-rule/measure.py` over the
+standing grades' rows (`uneval-drivers/keys/{fmt,args}/final-report.json`,
+3,499 and 2,000 edges) and the clones at `3a0661d7` and `903b07d`; outputs
+`fmt.json`, `args.json` beside it. The rule as implemented, stated so it
+is not mistaken for more: every call-shaped occurrence of the callee's
+name on the site line must be written qualified as `Q<args>::name`, `Q`
+the resolved owner's base name, and every one's arguments (whitespace
+removed) must differ from the owner's; an unqualified occurrence on the
+line, a different `Q`, or an owner whose arguments cannot be read stops
+it.
+
+- **P57 — met.** R-qual matches exactly the eight: `format-test.cc:689`,
+  `:690`, `:692`, `:696` (written `test_format<20>`, `<20>`, `<21>`,
+  `<max_packed_args>`, resolved `test_format<0>`), and `compile-test.cc:37`
+  (`formatter<int>` → `formatter<type_with_get>`), `:62` (`formatter<const
+  char*>` → `formatter<test_formattable>`), `format-test.cc:1910`
+  (`formatter<int>` → `formatter<Answer>`), `std.h:698`
+  (`formatter<std::exception>` → `formatter<std::exception_ptr>`). Neither
+  `format_as` row.
+- **P58 — met.** Confirmed edges removed: **0** on fmt, **0** on args.
+- **P59 — met.** R-self matches the four self rows and **3 confirmed
+  recursions** on fmt (`chrono.h:943` `pow10`, two in gtest), plus 2
+  `no-targets` rows read as gmock recursions.
+- **P60 — met.** On args R-qual matches nothing; R-self matches **10
+  confirmed recursions** and no wrong row.
+
+**The decision rule reads:** R-qual removes 0 right and 8 wrong on fmt, 0
+and 0 on args — **built** (ADR-125 §3). R-self removes 3 right against 4
+wrong on fmt but **10 right against 0 wrong on args — not built.** The
+residual R-qual carries into C-153 when built: a written argument that is
+an alias or a default the owner spells differently (`formatter<int>` for
+`formatter<int, char>`) would make it remove a right edge; 0 such on
+these two cells, and the build's tests pin the shape.
+
 ### 10.12 Reach through dispatch, measured — written 2026-09-17, before anything is expanded
 
 ADR-126. For each Hobbes `calls` edge whose target has `implements`
@@ -1189,6 +1223,51 @@ Go, TS and Rust are recorded as not measurable (ADR-126's table). The
 measurement decides the wording of any surface and whether it is worth
 building; it cannot make a pair a proven edge, and a CHA confirmation is
 reported as agreement with the hierarchy, never as reach.
+
+**Graded 2026-09-17** with `~/.hobbes/bench/dispatch-reach/measure.py`
+(outputs `jsoup.json`, `click.json`, `args.json` beside it). jsoup and
+click were re-ingested at 0.2.35-beta, contained, at the keys' commits
+(`7860d088`, `36baa15f`). args came from its stored graph. Only
+method-level `implements` edges were followed.
+
+- **P61 — met on the count; the read found what the count hides.**
+  - jsoup has 1,530 call sites with overrides and 2,944 pairs. 2,837 are
+    in the CHA set (**96.4%** of all pairs), 1 is outside it, and 106 had
+    no dispatch site to judge them against. Over judged pairs alone the
+    figure is 99.96%, but that quotient leaves out the 106, and they are
+    the finding.
+  - **All 106 sit where javac resolved the call statically to the base
+    method:** `super.clone()` at `CDataNode.java:37` and
+    `Document.java:287`, plus the other `super.`, private and final
+    shapes. No dispatch happens there, so every override those pairs
+    list is wrong, including the caller itself (`CDataNode.clone` for
+    its own `super.clone()`). A naive expansion is therefore wrong on
+    3.6% of jsoup's pairs.
+  - The one outside pair is the key's grain, not a wrong pair:
+    `this.set(..)` at `Nodes.java:342` reaches `Elements.set(int,
+    Element)`, which overrides `Nodes<T>.set(int, T)` through a bridge
+    method. The CHA set compares erased parameters, so it leaves that
+    override out.
+- **P62 — met.** Set recall is **97.4%** (2,837 of the 2,913 CHA targets
+  at the expanded sites).
+- **P63 — MISSED on the median, met on the maximum.** The median fan-out
+  is **1**, not ≥ 2: most overridden jsoup methods have one override.
+  The maximum is **41**.
+- **P64 — met.** Of click's 360 pairs over 128 call sites, 99 were
+  observed (**27.5%**) and 261 unobserved, none counted as wrong. The
+  maximum fan-out is 27.
+- **P65 — met.** args has 353 pairs over 99 call sites, all unjudged by
+  construction. The median fan-out is 2 and the maximum 15.
+
+**What this says for ADR-126 §3.** The override set is accurate (C-58's
+set, ADR-120). **Expanding every call to a base method with overrides is
+not:** a call the language does not dispatch has to be excluded by its
+syntax before any pair is listed. That covers Java `super.` calls,
+private, static and final methods, Python `super().` calls, and C++
+calls qualified with a class name. On jsoup that excluded shape was 3.6%
+of all pairs. Any surface built on this measurement names the exclusion
+and its measured share, and says that the key can confirm the set but
+never the reach.
 
 ## 11. Evidence, claims, and register updates
 
