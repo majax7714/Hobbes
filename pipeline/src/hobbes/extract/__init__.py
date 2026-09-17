@@ -33,6 +33,7 @@ from hobbes.extract import (
     indexcache,
     ingestlock,
     laneacache,
+    minted,
     scipsource,
     staging,
     tail,
@@ -366,6 +367,16 @@ def _build_symbol_layer(
     cpp_withheld_files: set[str] = set()
     implements_counts: Counter = Counter()
 
+    # ADR-129: the C and C++ files lane A walked, and the ones whose parse
+    # had ERROR nodes. A `definitions` row in a lossy file is a definition
+    # the parse *lost*, and `minted.mint` decides which of them becomes a
+    # symbol; rows outside these files belong to another language's lane A,
+    # which has no such loss to recover.
+    lane_a_c_files = {parsed.path for layer in (c, cpp) if layer for parsed in layer["files"]}
+    lossy_files = frozenset().union(*(layer["lossy_files"] for layer in (c, cpp) if layer))
+    lane_b_definitions: list[dict] = []
+    lane_b_ran = False
+
     for facts in _lane_b_facts(
         repo_root, modules, ts, go, rust, java, c, cpp, degraded, timings=timings
     ):
@@ -380,6 +391,11 @@ def _build_symbol_layer(
         for key in scipsource._IMPLEMENTS_COUNTS:
             implements_counts[key] += facts.get(key) or 0
         external += facts.get("external_refs") or []
+        lane_b_ran = True
+        if lane_a_c_files:
+            lane_b_definitions += [
+                row for row in facts.get("definitions") or [] if row["file"] in lane_a_c_files
+            ]
         if cpp_site_files:
             indexed = {site.file for site in references}
             indexed.update(
@@ -403,6 +419,28 @@ def _build_symbol_layer(
         resolved = ev.join(
             syntax, resolutions, fallback=fallback, external=external, withhold=withhold
         )
+    # ADR-129, after the join and before the projection: where lane A's
+    # parse lost a C or C++ definition, lane B's definition row becomes the
+    # symbol, so `starting_at` answers for the lost line and the calls
+    # scip-clang already resolved there draw instead of falling
+    # `below-floor`. Nothing lane A decided sees these — the fallback
+    # tables, `withhold`, the lane agreement inputs and
+    # `full_specializations` are all settled above — and `project` needs no
+    # change: the called-type guard, R-qual and the macro handling apply to
+    # a minted target as to any other.
+    if lane_a_c_files and lane_b_ran:
+        with timings.step("mint"):
+            minted_symbols, graph["minted"] = minted.mint(
+                repo_root,
+                lane_b_definitions,
+                lossy_files,
+                graph["symbols"],
+                {n["path"]: n["id"] for n in graph["nodes"] if n.get("path")},
+            )
+        if minted_symbols:
+            graph["symbols"] = sorted(
+                graph["symbols"] + minted_symbols, key=lambda s: s["id"]
+            )
     with timings.step("project"):
         projected = scipsource.project(
             resolved,

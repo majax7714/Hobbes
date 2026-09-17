@@ -380,3 +380,85 @@ def test_minicpp_gets_semantic_cpp_edges_through_bear_over_its_makefile():
     assert all(
         "a namespace is declared from every file that opens it" in e["message"] for e in statics
     ), statics
+
+
+#: A header whose definitions tree-sitter-cpp loses whole (C-145): the
+#: ``BEGIN_NS`` macro opens two namespaces the grammar cannot read, and the
+#: template that follows pulls the rest of the file into an ERROR node.
+#: fmt's shape, in a form the fixture's Makefile really compiles.
+LOST_HEADER = """#ifndef MINICPP_LOST_H
+#define MINICPP_LOST_H
+#define BEGIN_NS namespace lost_ns { inline namespace v1 {
+
+BEGIN_NS
+
+template <typename T> struct Holder { T v; };
+
+int lost(int x) { return x + 1; }
+
+} }
+
+#endif
+"""
+
+
+@pytest.mark.lane_b
+def test_a_definition_the_cpp_parse_lost_is_minted_and_its_call_draws(tmp_path):
+    """ADR-129 end to end, against the real scip-clang: a header lane A
+    cannot parse keeps no symbol, the index holds the definition, and the
+    call the compiler resolved there draws to the minted node instead of
+    falling `below-floor`.
+
+    A copy of the ``minicpp`` fixture, so the fixture itself is untouched
+    and its own case above still measures what it always did.
+    """
+    import shutil
+
+    from hobbes.extract import containment, extract_repo
+    from hobbes.extract.cppsource import extract_cpp
+
+    why = containment.unavailable_reason()
+    if why is not None:
+        pytest.skip(f"containment unavailable here: {why}")
+    repo = tmp_path / "minicpp"
+    shutil.copytree(MINICPP, repo)
+    write(repo, "include/minicpp/lost.h", LOST_HEADER)
+    main = (repo / "src" / "main.cpp").read_text()
+    write(
+        repo,
+        "src/main.cpp",
+        main.replace(
+            '#include "minicpp/shapes.h"',
+            '#include "minicpp/shapes.h"\n#include "minicpp/lost.h"',
+        ).replace("    return 0;", "    return lost_ns::lost(biggest) - biggest - 1;"),
+    )
+    definition_line = LOST_HEADER.splitlines().index("int lost(int x) { return x + 1; }") + 1
+    call_line = (repo / "src" / "main.cpp").read_text().splitlines().index(
+        "    return lost_ns::lost(biggest) - biggest - 1;"
+    ) + 1
+
+    # The premise, from the parser rather than assumed: if a grammar
+    # release starts reading `BEGIN_NS`, this case stops testing C-145.
+    layer = extract_cpp(repo)
+    assert "include/minicpp/lost.h" in layer["lossy_files"]
+    assert [s for s in layer["symbols"] if s["module"] == "include/minicpp/lost.h"] == []
+
+    graph = extract_repo(repo).graph
+    why = [e for e in graph.get("extraction_errors", []) if e["stage"].startswith("scip")]
+    assert graph["minted"]["symbols"] >= 1, why
+    read_from_index = [
+        s for s in graph["symbols"]
+        if s.get("declared_by") == "scip" and s["module"] == "include/minicpp/lost.h"
+    ]
+    assert [(s["name"], s["line"], s["end_line"], s["kind"]) for s in read_from_index] == [
+        ("lost", definition_line, definition_line, "function")
+    ], why
+    edge = next(
+        e for e in graph["symbol_edges"]
+        if (e["from"], e["to"], e["type"]) == ("src/main.main", read_from_index[0]["id"], "calls")
+    )
+    assert edge["tier"] == "semantic", why
+    assert [site["line"] for site in edge["evidence"]] == [call_line]
+    # And the site is no longer in the below-floor tail.
+    row = next(r for r in graph["resolution_coverage"] if r["file"] == "src/main.cpp")
+    assert "floored" not in row, row

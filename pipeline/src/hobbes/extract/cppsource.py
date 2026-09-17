@@ -279,12 +279,13 @@ def extract_cpp(repo_root: Path) -> dict | None:
         return None
     files: list[CppFile] = []
     errors: list[dict] = []
+    lossy: set[str] = set()
     for rel in sorted(sources):
-        errors += _read_and_parse(repo_root, rel, files)
+        errors += _read_and_parse(repo_root, rel, files, lossy)
 
     claim = _claim_headers(repo_root, files)
     for rel in sorted(claim.claimed):
-        errors += _read_and_parse(repo_root, rel, files)
+        errors += _read_and_parse(repo_root, rel, files, lossy)
     errors += _header_degradation(claim)
     errors += _id_collisions(files, claim.c_sources)
 
@@ -296,13 +297,24 @@ def extract_cpp(repo_root: Path) -> dict | None:
     errors.extend(bundle.pop("include_errors"))
     bundle["errors"] = errors
     bundle["claimed_headers"] = set(claim.claimed)
+    #: The files whose parse had ERROR nodes — ADR-129's first condition,
+    #: read off the walk itself rather than off the record's message text.
+    #: A definition lane B holds in one of these is a definition this
+    #: parse *lost*; in any other file it is lane A's floor by decision.
+    bundle["lossy_files"] = frozenset(lossy)
     return bundle
 
 
-def _read_and_parse(repo_root: Path, rel: str, files: list[CppFile]) -> list[dict]:
+def _read_and_parse(
+    repo_root: Path, rel: str, files: list[CppFile], lossy: set[str] | None = None
+) -> list[dict]:
     """Read and parse one file into *files*, returning its degradation
     records — C's own reporting, one entry per unreadable file, one per
-    file with syntax errors, one per file defining a name twice."""
+    file with syntax errors, one per file defining a name twice.
+
+    *lossy* collects the paths whose parse had ERROR nodes (ADR-129). The
+    cache returns ``had_error`` in its triple, so a hit reports it exactly
+    as a parse does."""
     try:
         source = (repo_root / rel).read_bytes()
     except OSError as exc:
@@ -313,6 +325,8 @@ def _read_and_parse(repo_root: Path, rel: str, files: list[CppFile]) -> list[dic
     files.append(parsed)
     errors: list[dict] = []
     if had_error:
+        if lossy is not None:
+            lossy.add(rel)
         errors.append(
             {
                 "path": rel,

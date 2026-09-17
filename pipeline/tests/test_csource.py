@@ -857,6 +857,11 @@ class TestDegradation:
         assert len(records) == 1
         assert records[0]["path"] == "broken.c"
         assert any(s.name == "helper" for s in layer["call_sites"])
+        # ADR-129's first condition, read off the walk rather than off the
+        # record's message text. C's measured answer is that it mints
+        # nothing (cJSON and sqlite-vector both mint zero), but the
+        # condition is the layer's to report.
+        assert layer["lossy_files"] == frozenset({"broken.c"})
 
     def test_only_the_extern_c_idiom_and_the_duplicate_sep_draw_error_records(self, layer):
         # api.h's `#ifdef __cplusplus` / `extern "C" {` idiom is real,

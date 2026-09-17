@@ -143,6 +143,27 @@ def test_a_hit_gives_the_join_the_file_a_parse_would_have(cache, repo, monkeypat
     assert hit[0] is not warm[0]
 
 
+def test_a_hit_reports_had_error_so_the_lossy_set_survives_a_warm_ingest(cache, repo):
+    """ADR-129's first condition is read off ``had_error``, which rides in
+    the cached triple: a file whose parse the store answered must still
+    report that its parse had ERROR nodes, or the second ingest of a repo
+    would mint nothing where the first minted."""
+    (repo / "src" / "lossy.cpp").write_text(
+        "#define BEGIN_NS namespace lib { inline namespace v1 {\n"
+        "BEGIN_NS\n"
+        "template <typename T> struct Holder { T v; };\n"
+        "int lost(int x) { return x + 1; }\n"
+        "} }\n"
+    )
+    cold = extract_cpp(repo)
+    assert "src/lossy.cpp" in cold["lossy_files"]
+
+    laneacache.reset_ledger()
+    warm = extract_cpp(repo)
+    assert laneacache.summary()["misses"] == 0
+    assert warm["lossy_files"] == cold["lossy_files"]
+
+
 def test_one_changed_byte_misses_only_the_file_it_changed(cache, repo):
     extract_cpp(repo)
     (repo / "src" / "util.cpp").write_text(UTIL.replace("10", "11"))
