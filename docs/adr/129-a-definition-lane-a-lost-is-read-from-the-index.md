@@ -102,6 +102,12 @@ symbol.** After every lane A walk and before `project`, for each
   A's floor speaking (a lambda, a local class), not a loss;
 - the row's kind is `method` (scip-clang's descriptor for every function)
   or `type`. Never `term`, `macro` or `namespace`;
+- the moniker's owner chain holds no function: a class or function
+  defined *inside a function body* (`gmtime(…).dispatcher#run(…).`) is
+  below the symbol floor by decision (C-9), and a recovery rule does not
+  lower the floor. Measured after the rule was otherwise frozen, as a
+  floor question and not from a contradiction: 10 facts on fmt, 5 of
+  them confirmed edges given up; 0 on args. Inside §10.13's P74 band;
 - exactly one moniker is defined at that file and line (C-148's and
   C-151's abstentions are already out of the rows);
 - no lane A symbol starts at the line, and none of the same terminal name
