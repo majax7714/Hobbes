@@ -196,11 +196,12 @@ extraction decision against them first.
    Its recommendations not started, in the review's order (the first
    three — the `relationships` measurement with the `implements` edge,
    C-155's lift, and the lane B index cache — are done: items 2, 1 and
-   0): **lane A's file cache, measured with the timing block** (next);
+   0; the distinct `hobbes lanes` exit for registered shapes followed as
+   ADR-123, 0.2.36-beta): **lane A's file cache, measured with the timing
+   block** (next);
    the fetch passes skipped on a cache hit, if their 4.1 s warrant it
    (item 0); pytest fixtures as edges (C-4); the compile
-   database's `-I` path at lane A (C-133, C-142); a distinct `hobbes
-   lanes` exit for registered shapes (C-70, C++); the docs restructure
+   database's `-I` path at lane A (C-133, C-142); the docs restructure
    (the register's history to its own file, §3.8 per language, one
    tally held by a test).
 
@@ -328,7 +329,7 @@ extraction decision against them first.
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
    - The binaries, the static proxy and the image are now at
-     0.2.35-beta; see item 0.
+     0.2.38-beta; see START HERE.
 9. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -421,7 +422,7 @@ extraction decision against them first.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **Toward 40 across three areas:** the tracker reads 37 of 40, 4
+   - **The validating 40 are done:** the tracker reads 40 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 13. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade

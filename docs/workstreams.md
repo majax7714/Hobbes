@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.35-beta patches and the top-level review's items 2026-09-17.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.38-beta patches, the top-level review's items and its decisions (ADR-123–126) 2026-09-17.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -61,7 +61,12 @@ item opens when Max names it. Sequencing context is
    ingest is timed (ADR-119); `implements` edges from SCIP
    `relationships` (ADR-120, C-157, C-58 narrowed); no call site in an
    unevaluated operand (ADR-121, C-155 lifted); lane B's index cache
-   (ADR-122, C-158). The oracle's defect log is empty (H-28–H-32 fixed).
+   (ADR-122, C-158). The review's decisions followed (0.2.36–0.2.38-beta):
+   `hobbes lanes` exits 3 on registered shapes only (ADR-123); strict
+   precision beside every grade (ADR-124); C-153 withheld where the
+   source contradicts and surfaced as partial (ADR-125); reach through
+   dispatch measured, not drawn (ADR-126). The oracle's defect log is
+   empty (H-28–H-32 fixed).
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
    oracle's grain); fmt reached 100% at 0.2.37-beta (strict 99.73%, ADR-124/125).
    The review's remaining items, in order, are in `session-handoff.md`
