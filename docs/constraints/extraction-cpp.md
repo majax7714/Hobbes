@@ -142,8 +142,9 @@ headers parsed with tree-sitter ERROR nodes.
   fmt every one of the 45 `line-unresolved` and 116 of the 117
   `no-targets` rows a naive rule adds is inside a template, and about
   100 of them read wrong by hand. The price is the 175 rows the key
-  confirms there (4 on args). Such a reference stays the `uses` edge it
-  was.
+  confirms there (4 on args). **Since 0.2.43-beta (ADR-131 amended)
+  such a reference draws nothing, not a `uses` either** — C-153's entry
+  has the measurement — so those 175 are given up as dependencies too.
 - **Residuals:** a `template <…>` header a macro parse lost (C-145)
   leaves its tokens flagged plain — the measurement was made with the
   same blind spot, and found none on either cell; a reference positioned
@@ -156,8 +157,8 @@ headers parsed with tree-sitter ERROR nodes.
   (`operator`, O10), so the cell reads these as recall, never precision.
 - **You find out:** **surfaced** — the ingest summary's `operators:`
   line and `graph.json`'s `operators` block count the tokens drawn and
-  the references inside a template left as `uses` (fmt: 551 and 437;
-  args: 140 and 40); O10's coverage buckets; nothing at the site.
+  the references inside a template **withheld** — neither a call nor
+  a `uses` since 0.2.43-beta (fmt: 551 and 437; args: 140 and 40); O10's coverage buckets; nothing at the site.
 - **Source:** ADR-113 §1 and §3; ADR-131.
 
 ### C-147 — A test body the parse leaves in an error node is counted, not read
@@ -292,15 +293,28 @@ headers parsed with tree-sitter ERROR nodes.
   `<20>`) would withhold a right edge (measured 0 on fmt and args); a
   wrong answer at an owner that is a primary template or a partial
   specialisation is not caught.
-- **Found 2026-09-17 by ADR-131's read, not fixed: the same shape on
-  `uses` edges.** A lane B reference no call site claims is drawn as a
-  `uses` edge (ADR-029), and at a dependent operator in a template that
+- **Narrowed a third time 2026-09-17 (ADR-131 amended, 0.2.43-beta;
+  Max: route a): the same shape on `uses` edges, withheld at an operator
+  token.** A lane B reference no call site claims is drawn as a `uses`
+  edge (ADR-029), and at a dependent operator in a template that
   reference is scip-clang's single by-name candidate: on fmt about 100
-  of the 437 operator references ADR-131 leaves as `uses` name the wrong
+  of the 437 operator references ADR-131 left as `uses` named the wrong
   declaration (`wday == 0` → `basic_fp`'s `operator==`;
-  `it != c.end()` → gtest's `faketype` stub). They were in the graph
-  before ADR-131 and no key grades `uses`. ADR-131 refuses to draw them
-  as calls; whether to withhold the `uses` edge too is put to Max.
+  `it != c.end()` → gtest's `faketype` stub), and no key grades `uses`.
+  A reference named `operator…` at exactly a lane A operator token
+  inside a template now draws **nothing**. Measured first, then built
+  equal to the probe (§10.16): fmt −156 `uses` symbol edges, args −24,
+  none added, no graded row moved; **one module edge went on each cell
+  and both were wrong** — `test/scan.h → include/fmt/format.h` stood only
+  on integer `n * 10` read as `fp`'s `operator*`, `args.hxx →
+  test/test_common.hxx` only on `ss >> destination` read as the test's
+  `operator>>`. **The price:** the right candidates go with the wrong
+  ones (the key confirms 175 of fmt's in-template rows as calls; they
+  were true dependencies). **Its residual:** a dependent reference that
+  is *not* at an operator token — a named call, a type, a construction —
+  still stands as `uses` wherever no call site claims it, ungraded; and
+  a `template <…>` header a macro parse lost flags its tokens plain
+  (C-146's residual), so a wrong candidate there is drawn as a call.
 - **Bites at:** fmt, 3 known wrong edges since 0.2.41-beta — the
   `format_as` rows at `std.h:714` and `:726` and `format.h:2387`'s
   `write` — all unjudged under H-30 rather than fixed; 10 before
@@ -322,7 +336,9 @@ headers parsed with tree-sitter ERROR nodes.
   and a method of a class nested in a class body (no lane A symbol). The
   strict figure (ADR-124) counts the unjudged rows again. What R-qual
   withholds is tailed `qualifier-mismatch`, what R-arity withholds
-  `arity-mismatch`.
+  `arity-mismatch`; the operator references withheld inside templates
+  are counted on the ingest summary's `operators:` line and in
+  `graph.json`'s `operators.in_template`.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 

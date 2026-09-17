@@ -74,10 +74,12 @@ item opens when Max names it. Sequencing context is
    (ADR-129, ADR-130, 0.2.41-beta: fmt 14.5% → 29.1% at 0 contradicted),
    then operators as calls where the index names one at the token,
    outside a template (ADR-131, C-146 narrowed, 0.2.42-beta: fmt 30.1%,
-   args 58.6% → 62.5%).
+   args 58.6% → 62.5%), and inside one the reference draws nothing, not
+   a `uses` either (ADR-131 amended, C-153 narrowed, 0.2.43-beta: no
+   graded row moved).
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
    oracle's grain); fmt reads 100% with a strict 99.61% beside it
-   (ADR-124) at 0.2.42-beta.
+   (ADR-124) at 0.2.43-beta.
    The C++ recall list and the review's remaining items, in order, are
    in `session-handoff.md` under START HERE; W1 carries the extraction
    ones.

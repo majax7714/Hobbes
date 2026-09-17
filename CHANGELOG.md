@@ -11,9 +11,36 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.42-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.43-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.43-beta — 2026-09-17 (a dependent C++ operator's reference inside a template draws nothing, not a `uses` either; ADR-131 amended)
+
+**Patch: what the layer draws** — a constraint's fix (C-153 narrowed a
+third time). Max's call on the item 0.2.42-beta left open: route a.
+
+- **What was wrong.** A lane B reference no call site claims is a `uses`
+  edge. At an operator inside a template that reference is scip-clang's
+  single by-name candidate, and about 100 of fmt's 437 named the wrong
+  declaration. No key grades `uses`, so nothing would ever say so.
+- **The rule.** Such a reference — named `operator…`, at exactly an
+  operator token lane A recorded, the token inside a template — draws no
+  fact at all. It is still counted (`operators.in_template`, now the
+  number withheld) and the ingest line says *withheld, neither a call nor
+  a uses*. Every other unclaimed reference is the `uses` edge it was.
+- **Measured first, built equal to the probe** (`oracle-grading.md`
+  §10.16, P98–P101 met): fmt −156 `uses` symbol edges, args −24, none
+  added; all four graded exports identical row for row (fmt 6,901/6,901,
+  strict 99.61%; args 2,198/2,198). **One module edge went on each cell
+  and both were wrong:** `test/scan.h → include/fmt/format.h` stood only
+  on integer `n * 10` read as `fp`'s `operator*`; `args.hxx →
+  test/test_common.hxx` — a library header depending on its own test
+  header — only on `ss >> destination`.
+- **The price, owned:** the right candidates go with the wrong ones; the
+  key confirms 175 of fmt's in-template rows as calls, and those were
+  true dependencies.
+- Unit `4033` (36 turns, $1.78), gate clear, verify pass.
 
 ## 0.2.42-beta — 2026-09-17 (a C++ operator applied by symbol is a call where the index names it at the token, outside a template; ADR-131)
 

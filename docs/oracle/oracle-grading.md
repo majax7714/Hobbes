@@ -1500,6 +1500,23 @@ A `calls` row that moves, or an edge lost that is not a `uses` at an
 operator token inside a template, is a finding against the build and is
 fixed before the version moves.
 
+**Results (2026-09-17, 0.2.43-beta; unit `4033`, stored keys, contained;
+`~/.hobbes/bench/c153-operator-uses/final/`).**
+- **P98 — met.** fmt 7,331 export rows and args 2,203, identical to
+  0.2.42-beta's as sets; fmt 6,901/6,901, 0 contradicted,
+  `line-unresolved` 27, strict 99.61%; args 2,198/2,198. Poison PASS on
+  both, 0 falsely confirmed.
+- **P99 — met.** cJSON 1,713 rows and sqlite-vector 19,744, identical;
+  neither graph has an `operators` block.
+- **P100 — met.** fmt −156 symbol edges and args −24, every one a `uses`,
+  none added; the two named module edges went and no other; nodes and
+  symbols unmoved. Against the probe's graphs: 0 edges differ on either
+  cell, evidence included.
+- **P101 — met.** `operators` reads 551 / 437 on fmt and 140 / 40 on args.
+- Signed direction of fix: every graded number ±0 on all four cells;
+  `uses` symbol edges fmt −156, args −24; module edges −1 and −1, both
+  read by hand as wrong.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

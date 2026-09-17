@@ -167,6 +167,17 @@ The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-153 narrowed a third time, 2026-09-17 (ADR-131 amended, 0.2.43-beta):
+- **C-153 narrowed (still partial), C-146's surfacing line restated:** a
+  lane B reference named `operator…` at exactly an operator token inside
+  a template draws nothing — not a call (as before) and no longer a
+  `uses` (Max: route a). fmt −156 `uses` symbol edges, args −24, none
+  added, no graded row moved; one wrong module edge gone on each
+  (`test/scan.h → include/fmt/format.h`, `args.hxx →
+  test/test_common.hxx`). The right candidates among them go too (175
+  key-confirmed rows on fmt). No entry added: 161 entries, 117 active,
+  91 surfaced, 22 partial, 3 unsurfaced.
+
 C-146 narrowed, 2026-09-17 (ADR-131, 0.2.42-beta):
 - **C-146 narrowed (still surfaced):** a C++ operator applied by symbol
   draws a `calls` edge where lane B names an `operator…` at exactly the

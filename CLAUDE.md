@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-17, 0.2.42-beta; oracle-lane Go
-counted 2026-09-16): 1,865 pytest (9 `lane_b`) / 395 Go with subtests
+Suite sizes at the last check (2026-09-17, 0.2.43-beta; oracle-lane Go
+counted 2026-09-16): 1,867 pytest (9 `lane_b`) / 395 Go with subtests
 (394 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-17) — Hobbes 0.2.42-beta
+## Status (2026-09-17) — Hobbes 0.2.43-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -283,43 +283,48 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (6,901/6,901
-  at 0.2.42-beta), **strict 99.61%** — every quoted precision carries
+  at 0.2.43-beta), **strict 99.61%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 161 entries; 117 active (91
   surfaced, 22 partial, 3 unsurfaced, 1 n/a), 27 lifted — C-145 narrowed
-  (ADR-129), C-153 narrowed twice and partial (ADR-125, ADR-130), C-146
-  narrowed (ADR-131).
+  (ADR-129), C-153 narrowed three times and partial (ADR-125, ADR-130,
+  ADR-131 amended), C-146 narrowed (ADR-131).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **48 of 40**
+  drift test; re-render after filling a review block) reads **49 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.42-beta (ADR-131): operators, the C++ recall list's
-  first item.** Measured first: scip-clang does emit an occurrence at an
-  operator token, and inside a template it is its single by-name
-  candidate (C-153, same arity — about 100 of the 161 rows no key could
-  judge read wrong). So lane A records operator *tokens* (packed, never
-  sites) and the join draws a call where lane B names `operator…` at
-  exactly the token, **outside a template**; inside one it stays `uses`.
-  fmt **6,510 → 6,901 confirmed at 0 contradicted, recall 29.1% →
-  30.1%**; args (held out) 58.6% → 62.5%; C unmoved.
-  **Next on C++ recall, each measured first:** constructions (8,117
-  misses on fmt, 889 on args — 67% of what is left there), a lost
-  definition's extent (C-145's residual: callers inside it), the 15
-  line-convention rows, ScummVM as a scale read (now also the operator
-  walk's cost). Operators at a macro's name (3,011 references on fmt)
-  belong to the macro class (C-131, parked).
+- **Latest — 0.2.43-beta (ADR-131 amended; Max: route a): a dependent
+  operator's reference draws nothing.** A lane B reference named
+  `operator…` at exactly an operator token inside a template was
+  scip-clang's single by-name candidate standing as a `uses` edge no key
+  grades (C-153; about 100 of fmt's 437 wrong). It now draws neither a
+  call nor a `uses`, and is counted as withheld. Measured first, built
+  equal to the probe: fmt −156 `uses` symbol edges, args −24, **every
+  graded number ±0**, and the one module edge that went on each cell was
+  wrong. The price: 175 key-confirmed in-template rows on fmt were true
+  dependencies.
+  **Next on C++ recall, each measured first:** constructions are
+  **measured and wait on Max** (below); then a lost definition's extent
+  (C-145's residual: callers inside it), the 15 line-convention rows,
+  ScummVM as a scale read (now also the operator walk's cost). Operators
+  at a macro's name (3,011 references on fmt) belong to the macro class
+  (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** **the wrong `uses` edges ADR-131's read found** —
-  a dependent operator's single candidate stands as a `uses` edge (about
-  100 on fmt; C-153's entry), ungraded by any key: withhold `uses` at an
-  operator token inside a template, or leave it registered; ADR-126 §3 —
-  whether to build a "may reach through dispatch (not traced)" section
-  on §10.12's numbers (it needs a syntax exclusion for non-dispatched
-  calls); C-150's remainder (parked, Max: "fine for now").
+- **Open for Max:** **constructions are not one class** — on fmt 80% of
+  the 8,047 missed pairs sit at a macro invocation's name (C-131), 10%
+  have no lane B reference, and 152 are drawable; on args (held out, two
+  of five predictions missed) 383 of 889 are drawable, 324 at a braced
+  argument's `{`. Routes in the handoff: a construction-token rule in
+  ADR-131's shape (recommended), register and move on, or unpark the
+  macro class; the register owes constructions an entry either way.
+  ADR-126 §3 — whether to build a "may reach through dispatch (not
+  traced)" section on §10.12's numbers (it needs a syntax exclusion for
+  non-dispatched calls); C-150's remainder (parked, Max: "fine for
+  now").
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

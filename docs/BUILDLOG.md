@@ -12466,3 +12466,100 @@ runs whichever is first on PATH; the PATH order Build & test already
 asks for is what keeps it CI's gofmt.
 
 No spend.
+
+## 2026-09-17 (evening) — a dependent operator's reference draws nothing (ADR-131 amended, 0.2.43-beta); constructions measured, nothing built
+
+Max asked for the noted items and a plan, then: "route a approved good to
+go with first three steps" — housekeeping, the wrong `uses` edges
+ADR-131's read found, and the constructions measurement.
+
+**Housekeeping.** CI went green on `dbef0af`, the first green since
+`d1feba1`: go, python, web, graph. ADR-114's base rule was read on it as
+the handoff asked — "reviewing from the last green run: `762348ff`", the
+2026-09-16 commit, so the review covered every commit of the red day and
+passed. The knowledge server started with this session on the
+0.2.42-beta image (its first answer said so); the artifacts were three
+commits stale and were re-ingested. `c146-operators/wt` removed (merged,
+clean). Six older worktrees are still listed (`adr111-wt`,
+`adr111-before/hobbes-wt`, four from the closed Calvin rounds); left for
+Max's word.
+
+**Route a, measured before it was written down**
+(`~/.hobbes/bench/c153-operator-uses/`). A scratch wrapper
+(`ingest_withheld.py`, no product seam) re-ingested fmt and args with the
+`uses` fact dropped wherever `_operator_call` answers `True`, and
+`diff.py` compared the graphs: fmt −156 `uses` symbol edges (437
+references), args −24 (40), nothing added, nodes and symbols unmoved —
+and **one module edge gone on each cell**, which ADR-131's Consequences
+had said would not move. Both read by hand as wrong: `test/scan.h →
+include/fmt/format.h` stood only on integer `n * 10` and `prev * 10ull`
+read as `fp`'s `operator*`; `args.hxx → test/test_common.hxx`, a library
+header depending on its own test header, only on `ss >> destination`.
+That is the best evidence the route had, and it is in the amendment.
+
+**Then the amendment and §10.16 (P98–P101), committed before the unit**
+(`17ddef0`), and unit `4033` through the harness: 36 turns of 80, $1.78,
+4 minutes, gate clear, verify pass. The diff is the rule as briefed (`True`
+counts and `continue`s, per hit). On the host: 1,867 pytest, 9 `lane_b`.
+Regraded from the branch's worktree before the merge: all four exports
+identical row for row, the built graphs equal the probe's edge for edge,
+evidence included. **P98–P101 met.** Not held out, and the record says
+so: both C++ cells were read by the wrapper and no key judges `uses`.
+Merged no-ff (`f38fc63`); tracker 49 of 40.
+
+**The price, written where a reader meets it** (C-153's entry, the
+CHANGELOG): the right candidates go with the wrong ones — the key
+confirms 175 of fmt's in-template rows as calls, and those were true
+dependencies. C-153's residual now names what is left of the shape: a
+dependent reference *not* at an operator token still stands as `uses`.
+
+**Constructions, step 0 — measured, nothing drawn**
+(`~/.hobbes/bench/cpp-constructions/`: `probe.py`, `classes.py`,
+`PREREG-args.md`, `fmt-out/`, `args-out/`). For every distinct missed
+`static→constructor` pair: what lane B holds on the site line, what the
+graph holds at the target and at the site, the syntax at the reference's
+column, in a template or not.
+
+| class | fmt (8,047 pairs) | args (889, held out) |
+|---|---|---|
+| 1–2 the constructor (or only its class) named at a **macro invocation's name** (C-131) | 6,450 — 80.2% | 0 |
+| 3 no reference; gtest's `new TestClass`, the target a `TEST` line | 557 — 6.9% | 0 |
+| 4 **no lane B reference on the line** | 814 — 10.1% (690 in a template) | 491 — 55.2% (484 `EitherFlag`: `'f'`/`"foo"` converted implicitly inside a braced list) |
+| 5 the constructor named at a real token, **outside a template** | **152 — 1.9%** | **383 — 43.1%** (324 at the `{` of a braced argument: `Matcher`, `Nargs`) |
+| 5 the same, inside a template | 45 | 2 |
+| 6 the class named at a real token, the constructor not | 29 | 13 |
+
+So the handoff's "8,117 misses, 67% of what is left on args" is not one
+class. On fmt it is the macro class again (gtest's `Message` and
+`AssertHelper` constructors: 4,899 of the pairs), exactly
+as operators were. What a token rule in ADR-131's shape could draw is
+class 5 outside a template: **at most 152 rows on fmt (+0.3 points of
+recall) and 383 on args (+10.8)**. Every such row already stands as a
+`uses` edge onto a `method` symbol; the reference sits at the declared
+variable's name, the `{`, the member's name in an initialiser, the `=`
+of a default argument, or an arbitrary expression converted implicitly —
+never at a callee lane A records. Class 4 is lane B saying nothing:
+undrawable from this index. Nothing in class 5 is inside an unevaluated
+operand on either cell.
+
+**args was held out and two of five predictions missed**
+(`PREREG-args.md`, scripts frozen by hash, run once): P-c1 (class 5 the
+largest, ≥ 50%: it is 43.1%, and class 4 is larger — I did not think of
+the implicit conversions at all) and P-c3 (declarator shapes ≥ 70% of
+class 5: they are 8 of 383; braced arguments are 324). P-c2, P-c4, P-c5
+met.
+
+**Not registered, and said here so it is not lost:** the C++ segment has
+no entry for a construction that draws no call. It is a concession in
+ADR-113 §2's text and in the projection's comment only. It gets its
+`C-n` with whichever route Max takes below — the entry's shape depends on
+it — and if he takes none it is registered as it stands, unsurfaced.
+
+**Put to Max as routes (the handoff has them):** (a) a construction-token
+rule, outside a template, in ADR-131's shape, args' 383 the prize and
+fmt's 152 the check; (b) register and move to the list's next item;
+(c) open the macro class (C-131), which is 80% of fmt's constructions,
+75% of its operator references and all of cJSON's misses — parked, his
+to unpark.
+
+No spend beyond the subscription's $1.78.

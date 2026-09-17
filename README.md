@@ -180,7 +180,10 @@ macros began to be read from the index (ADR-129, C-145). At 0.2.42-beta
 an operator applied by symbol is a call where the index names it at the
 token — outside a template only, because inside one the key goes silent
 and about 100 of the 161 rows it could not judge read wrong by hand
-(ADR-131, C-146): fmt 30.1%, args 62.5%, still at no contradiction. The
+(ADR-131, C-146): fmt 30.1%, args 62.5%, still at no contradiction. At
+0.2.43-beta such a reference inside a template draws no `uses` edge
+either: no key grades `uses`, and the one module edge it cost each cell
+was wrong. The
 abstentions behind part of what is left are registered (C-146, C-148,
 C-151, C-152).
 
@@ -356,7 +359,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.42-beta** (2026-09-17). The Hobbes layer is versioned from here
+**Hobbes 0.2.43-beta** (2026-09-17). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
