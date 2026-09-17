@@ -63,6 +63,30 @@ measured set precision and the languages it does not cover. Building
 that section is Max's call on the measured numbers, in an amendment
 here.
 
+## Measured 2026-09-17 (§10.12)
+
+- **The override set is the compiler's.** On jsoup, 2,837 of the 2,944
+  expanded pairs are in javac's CHA set. Recall of that set is 97.4%, and
+  the one pair outside it is a bridge-method override the key's
+  erased-parameter rule misses.
+- **A naive expansion is wrong on 3.6% of pairs.** All 106 unjudged pairs
+  sit where javac resolved the call statically (`super.clone()` at
+  `CDataNode.java:37`, private and final methods). No dispatch happens
+  there, and one listed override is the caller itself.
+- **click:** 27.5% of its 360 pairs ran under the suite (coverage-limited).
+- **args:** 353 pairs, unjudged by construction.
+- **Median fan-out is 1 on jsoup** (maximum 41), not the ≥ 2 predicted.
+
+**What a surface would have to do,** if Max decides to build §3's
+section:
+- exclude, by syntax, every call the language does not dispatch: Java
+  `super.`, private, static and final methods, Python `super()`, and a
+  C++ call qualified with a class name;
+- print the measured set agreement and the excluded share;
+- say that no key confirms reach.
+
+Until that decision, nothing is built.
+
 ## Consequences
 
 - The graph and every grade are unchanged by this ADR.

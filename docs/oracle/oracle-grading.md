@@ -1208,6 +1208,15 @@ partial specialisation would have removed right edges on other repos.
 All eight matched owners are full specialisations, so the grade above
 stands unchanged.
 
+**The build's regrade, predicted before the ingest (2026-09-17, after
+`S-20260917T132019Z-145d`):**
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P66 | fmt | the export loses exactly the 8 rows, 3,499 → **3,491**; contradicted 4 → **0**; `line-unresolved` 13 → **9**; confirmed 3,269 unchanged; precision **100%** (3,269/3,269), strict **99.73%** (3,269/3,278); the tail counts **8** `qualifier-mismatch` sites | met if the removed rows are exactly the eight, as a set |
+| P67 | args | export identical as a set (2,000 rows), 0 `qualifier-mismatch` | met per the diff |
+| P68 | this repo | 0 `qualifier-mismatch`; `graph.json` identical to the pre-merge ingest apart from its stamp | met per the diff |
+
 ### 10.12 Reach through dispatch, measured — written 2026-09-17, before anything is expanded
 
 ADR-126. For each Hobbes `calls` edge whose target has `implements`
