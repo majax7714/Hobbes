@@ -28,7 +28,9 @@ path** inside the container:
 - the Hobbes cache root (``staging.cache_root()``) **rw** — the stage,
   the SCIP output, the helper config, the provisioned ``node_modules``,
   the cargo/go/npm caches all live there; it is Hobbes's copy (ADR-027's
-  contract already guarantees nothing writes back to the repo);
+  contract already guarantees nothing writes back to the repo) — with
+  :data:`TRUSTED_STORES` laid back **ro** over it, the two stores a
+  later ingest reads as an answer (ADR-128 §1);
 - the hobbes checkout's ``scip/`` (the helper and its pinned indexers)
   **ro**;
 - every symlink target the stage points at outside the cache — a
@@ -94,6 +96,13 @@ CONTAINER_PATH = "/usr/local/java/bin:/opt/maven/bin:/usr/local/cargo/bin:/usr/l
 #: these is never mounted: bind-mounting the host's /usr over the
 #: image's would replace the toolchain the profile pins.
 SYSTEM_PREFIXES = ("/usr", "/lib", "/lib64", "/bin", "/sbin", "/etc", "/proc", "/sys", "/dev", "/run")
+
+#: The stores under the cache root that only the host writes — lane B's
+#: index cache (ADR-122) and lane A's file cache (ADR-128) — laid
+#: read-only in *every* step, not only the executing ones, so repo code
+#: cannot plant an answer a later ingest reads back as its own (ADR-128
+#: §1; the key is a hash of inputs an attacker can know).
+TRUSTED_STORES = ("index", "lanea")
 
 
 class ContainmentError(RuntimeError):
@@ -493,11 +502,18 @@ def plan(
 ) -> Plan:
     """Build the plan for *step*: the profile is looked up, the helper
     dir is always mounted, the cache root is always rw — except the
-    existing paths under it named in *ro_cache*, which ride read-only."""
+    existing paths under it named in *ro_cache*, which ride read-only,
+    and :data:`TRUSTED_STORES`, which do so in every plan."""
     profile = PROFILES[step]
     cache = staging.cache_root()
     ro_paths = mount_roots([helper_dir(), *(Path(p) for p in ro)])
-    nested = tuple(sorted({os.path.normpath(p) for p in ro_cache
+    # Created before the plan names them: the nested mechanism binds only
+    # existing directories, so an unwritten store would silently be
+    # writable on the first ingest that has one (ADR-128 §1).
+    trusted = [cache / name for name in TRUSTED_STORES]
+    for store in trusted:
+        store.mkdir(parents=True, exist_ok=True)
+    nested = tuple(sorted({os.path.normpath(p) for p in (*ro_cache, *trusted)
                            if Path(p).is_dir() and _under(Path(os.path.normpath(p)), cache) and Path(os.path.normpath(p)) != cache}))
     return Plan(
         profile=profile,

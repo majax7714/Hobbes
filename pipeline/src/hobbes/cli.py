@@ -97,22 +97,48 @@ def _print_implements(counts: dict | None) -> None:
 
 
 def _print_containment(record: dict | None) -> None:
-    """One line on where lane B ran (ADR-092): silent when every step was
-    contained and no escape hatch was set — the guarantee holding is the
-    default and needs no banner; anything else is stated."""
+    """Where lane B ran (ADR-092), and what a contained step that ran repo
+    code could still write (ADR-128 §2).
+
+    The guarantee holding is the default and needs no banner, so nothing
+    is said about *where* unless a step ran on this host or the escape
+    hatch was set. What containment does not take away is said whenever
+    it applies: the tool caches and the stage stay writable, and later
+    ingests of other repos read them (C-161).
+    """
     if not record:
         return
     steps = record.get("steps", [])
-    if record.get("all_contained", True) and not record.get("escape_hatch"):
-        return
-    host = [s for s in steps if not s.get("contained")]
-    why = sorted({s.get("reason", "") for s in host})
-    print(
-        f"  WARNING: containment: {len(host)} of {len(steps)} lane B step(s) ran on "
-        f"this host ({'; '.join(why) or 'escape hatch set'}) — repo code may have "
-        "executed here (ADR-092, C-64)",
-        file=sys.stderr,
-    )
+    if not record.get("all_contained", True) or record.get("escape_hatch"):
+        host = [s for s in steps if not s.get("contained")]
+        why = sorted({s.get("reason", "") for s in host})
+        print(
+            f"  WARNING: containment: {len(host)} of {len(steps)} lane B step(s) ran on "
+            f"this host ({'; '.join(why) or 'escape hatch set'}) — repo code may have "
+            "executed here (ADR-092, C-64)",
+            file=sys.stderr,
+        )
+    from hobbes.extract import containment
+
+    # A step name the profiles do not know (an older artifact, a renamed
+    # step) counts as running no repo code: this note claims what it can
+    # name, never more.
+    executing = [
+        s for s in steps
+        if s.get("contained")
+        and s.get("step") in containment.PROFILES
+        and containment.PROFILES[s["step"]].executes_repo_code
+    ]
+    if executing:
+        names = ", ".join(sorted({s["step"] for s in executing}))
+        print(
+            f"  NOTE: containment: repo code ran in {len(executing)} lane B step(s) "
+            f"({names}) with write access to the Hobbes tool caches (cargo, Go, "
+            "Maven, Gradle, npm) and the stage directory, which later ingests of "
+            "other repos read (C-161); the index and lane A stores ride read-only "
+            "(ADR-128)",
+            file=sys.stderr,
+        )
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:

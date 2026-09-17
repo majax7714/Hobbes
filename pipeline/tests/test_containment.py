@@ -118,8 +118,28 @@ class TestPlan:
         plan = containment.plan("verify", ["go"], cwd=cache, ro_cache=[cache / "go" / "mod", tmp_path / "elsewhere", cache / "missing", cache])
         mounts = plan.mounts()
         assert mounts[:2] == [f"{cache}:{cache}:rw", f"{cache}/go/mod:{cache}/go/mod:ro"]
-        assert plan.ro_cache == (str(cache / "go" / "mod"),), "only an existing path strictly under the cache root rides nested"
-        assert containment.plan("verify", ["go"], cwd=cache).ro_cache == ()
+        # the trusted stores ride alongside the caller's path (ADR-128 §1), sorted
+        assert plan.ro_cache == (
+            str(cache / "go" / "mod"), str(cache / "index"), str(cache / "lanea"),
+        ), "only an existing path strictly under the cache root rides nested"
+        assert containment.plan("verify", ["go"], cwd=cache).ro_cache == (
+            str(cache / "index"), str(cache / "lanea"),
+        )
+
+    def test_every_profile_lays_the_trusted_stores_read_only_over_the_rw_mount(self, cache):
+        # ADR-128 §1: the index cache (ADR-122) and lane A's file cache are
+        # the host's to write. Contained repo code could otherwise plant a
+        # record under a key it can compute, and a later ingest would read
+        # it back as lane B's or lane A's own answer. Every profile, so the
+        # property never rests on which step is thought to execute.
+        for step in containment.PROFILES:
+            mounts = containment.plan(step, ["node"], cwd=cache).mounts()
+            assert mounts[0] == f"{cache}:{cache}:rw", step
+            for name in containment.TRUSTED_STORES:
+                store = cache / name
+                # created by the plan: the nested mechanism binds only existing dirs
+                assert store.is_dir(), (step, name)
+                assert f"{store}:{store}:ro" in mounts[1:], (step, name)
 
     def test_the_helper_dir_is_always_mounted_ro(self, cache):
         plan = containment.plan("index-go", ["node"], cwd=cache)
@@ -536,6 +556,34 @@ class TestCanary:
         assert not self.ESCAPED.exists()
         # And no host-run disclosure was recorded.
         assert not any("ran on the host" in d["message"] for d in facts["degraded"])
+
+
+@pytest.mark.lane_b
+class TestTrustedStoresLive:
+    """ADR-128 §1 through the real image: what the plan lays read-only is
+    read-only where it counts, in the container."""
+
+    def test_a_contained_step_cannot_write_the_index_store_but_can_write_the_stage(
+        self, cache
+    ):
+        why = _containment_available()
+        if why is not None:
+            pytest.skip(f"containment unavailable here: {why}")
+        (cache / "stage-probe").mkdir()
+        plan = containment.plan(
+            "index-python",
+            ["sh", "-c", f"echo planted > {cache}/index/planted.facts.ndjson; "
+                         f"echo ran > {cache}/stage-probe/ran"],
+            cwd=cache,
+        )
+        out = containment.run(plan, timeout=120)
+        assert out.contained
+        # The store the host writes and a later ingest reads: refused.
+        assert not (cache / "index" / "planted.facts.ndjson").exists()
+        assert "ead-only file system" in out.proc.stderr, out.proc.stderr
+        # The control — the step ran at all, and the rest of the cache root
+        # is still writable by design (ADR-128 §2, C-161).
+        assert (cache / "stage-probe" / "ran").read_text() == "ran\n"
 
 
 @pytest.mark.lane_b
