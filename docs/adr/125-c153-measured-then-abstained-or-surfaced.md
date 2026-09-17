@@ -64,6 +64,26 @@ the region where the error can occur, not the edges that are wrong.
 **5. Version.** The abstention (if built) and the surfacing are each a
 patch.
 
+## Amended 2026-09-17, after the grade and before the build — R-qual narrowed
+
+Reading the rule for the build found it too wide in two cases the
+measurement never met. An owner **with no template arguments** is the
+primary template, and `vector<int>::size` resolving to it is right. An
+owner that is a **partial specialisation** spells its own template
+parameters (`formatter<std::vector<T>, Char>`), so a right resolution
+differs from the written text. Either would remove right edges on
+another repo. **The rule fires only when the resolved owner is an
+explicit full specialisation** (`template <>`), whose arguments are
+concrete, and the written arguments differ from its (whitespace
+removed). Re-measured the same day: all eight matched owners are full
+specialisations (the four self rows are each `template <> struct
+formatter<X> : formatter<Y>` calling `formatter<Y>::format` — scip-clang
+resolves the qualified base call to the derived specialisation), so the
+grade is unchanged — 8 wrong, 0 right on fmt; 0 and 0 on args. The
+residual left: a written argument that is an alias or an expression of
+the owner's (`<string_view>` for `<basic_string_view<char>>`, `<2*10>`
+for `<20>`) would still fire; measured 0.
+
 ## Consequences
 
 - fmt's standing precision can only rise if R-qual is built, and its

@@ -1201,6 +1201,13 @@ an alias or a default the owner spells differently (`formatter<int>` for
 `formatter<int, char>`) would make it remove a right edge; 0 such on
 these two cells, and the build's tests pin the shape.
 
+**Amended the same day, before the build (ADR-125's amendment):** R-qual
+fires only when the resolved owner is an explicit full specialisation
+(`template <>`) — an owner without arguments (the primary template) or a
+partial specialisation would have removed right edges on other repos.
+All eight matched owners are full specialisations, so the grade above
+stands unchanged.
+
 ### 10.12 Reach through dispatch, measured — written 2026-09-17, before anything is expanded
 
 ADR-126. For each Hobbes `calls` edge whose target has `implements`
