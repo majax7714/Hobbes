@@ -217,6 +217,71 @@ func TestWhoCallsMarksApproximateEdges(t *testing.T) {
 	}
 }
 
+// ADR-125 §4: C-153's region, surfaced where a user meets the edge. A
+// semantic caller that is a C++ template pattern carries the note — the
+// pattern is indexed once, so scip-clang's one answer inside it can name
+// another specialisation's declaration. It marks the region, not the wrong
+// edge: an unmarked caller and a syntactic edge out of a pattern say
+// nothing, since neither is an answer that can be wrong that way.
+func TestWhoCallsMarksCallersInACppTemplatePattern(t *testing.T) {
+	const note = "C-153: from a C++ template pattern"
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["cpp_template_patterns"] = []any{"src/tpl.pattern", "src/tpl.guessing"}
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "src/lib.h.f", "module": "src/lib.h", "kind": "function", "line": 1})
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any),
+		map[string]any{"from": "src/tpl.pattern", "to": "src/lib.h.f", "type": "calls", "tier": "semantic",
+			"evidence": []map[string]any{{"path": "src/tpl.cpp", "line": 3, "lane": "scip"}}},
+		map[string]any{"from": "src/tpl.plainfn", "to": "src/lib.h.f", "type": "calls", "tier": "semantic",
+			"evidence": []map[string]any{{"path": "src/tpl.cpp", "line": 5, "lane": "scip"}}},
+		// A pattern lane B never answered in: lane A's guess, which
+		// qualify() already marks approximate.
+		map[string]any{"from": "src/tpl.guessing", "to": "src/lib.h.f", "type": "calls", "tier": "syntactic",
+			"evidence": []map[string]any{{"path": "src/tpl.cpp", "line": 7, "lane": "tree-sitter"}}})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Open(repo).WhoCalls("src/lib.h.f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(got, "\n") {
+		switch {
+		case strings.Contains(line, "src/tpl.pattern"):
+			if !strings.Contains(line, note) {
+				t.Errorf("a semantic caller in a template pattern is unmarked: %q", line)
+			}
+		case strings.Contains(line, "src/tpl.plainfn"), strings.Contains(line, "src/tpl.guessing"):
+			if strings.Contains(line, note) {
+				t.Errorf("C-153 claimed where it cannot occur: %q", line)
+			}
+		}
+	}
+	if !strings.Contains(got, "src/tpl.guessing") || !strings.Contains(got, "syntactic") {
+		t.Errorf("the syntactic caller lost its own qualifier:\n%s", got)
+	}
+}
+
+// An artifact built before ADR-125 carries no such key, and neither does a
+// repo without C++. Both must read exactly as they did.
+func TestWhoCallsWithoutTemplatePatternsRendersUnchanged(t *testing.T) {
+	got, err := Open(fixtureRepo(t)).WhoCalls("app.core.run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(got, "C-153") {
+		t.Errorf("a graph without cpp_template_patterns gained a note:\n%s", got)
+	}
+}
+
 func TestWhoCallsKnownSymbolWithoutCallers(t *testing.T) {
 	s := Open(fixtureRepo(t))
 	out, err := s.WhoCalls("app.api.handler")

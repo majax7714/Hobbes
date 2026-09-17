@@ -77,6 +77,21 @@ type graphIndex struct {
 	moduleFrom  map[string][]int
 	moduleTo    map[string][]int
 	symbolTo    map[string][]int
+	// C-153's region as a set, so marking a caller costs one lookup.
+	cppPattern map[string]bool
+}
+
+// templateNote marks a caller whose edge starts in a C++ template pattern
+// (C-153, ADR-125 §4). It marks the region, not the wrong edge: a call in a
+// pattern is usually resolved right, and the ones that are not cannot be
+// told apart at the site. Only a semantic edge carries it — a syntactic one
+// is lane A's own guess, which qualify() already says, and scip-clang had no
+// answer there to be wrong.
+func (idx *graphIndex) templateNote(e edge) string {
+	if e.Tier != "semantic" || !idx.cppPattern[e.From] {
+		return ""
+	}
+	return "  (C-153: from a C++ template pattern — scip-clang's one answer there can name another specialisation's declaration)"
 }
 
 func indexGraph(g *graphDoc) *graphIndex {
@@ -88,6 +103,10 @@ func indexGraph(g *graphDoc) *graphIndex {
 		moduleFrom:  map[string][]int{},
 		moduleTo:    map[string][]int{},
 		symbolTo:    map[string][]int{},
+		cppPattern:  make(map[string]bool, len(g.CppTemplatePatterns)),
+	}
+	for _, id := range g.CppTemplatePatterns {
+		idx.cppPattern[id] = true
 	}
 	for i := range g.Nodes {
 		idx.nodeByID[g.Nodes[i].ID] = i
@@ -254,6 +273,13 @@ type graphDoc struct {
 	// reported (C-32) — so an absent class reads as a boundary, not an
 	// absence. Stamped by the pipeline; absent in pre-ADR-053 artifacts.
 	TailClassesAvailable map[string][]string `json:"tail_classes_available"`
+	// C-153's region (ADR-125 §4): the ids of the C++ symbols that are a
+	// template pattern and call something semantically. scip-clang indexes
+	// a pattern once, so its one answer at a call inside one can name
+	// another specialisation's declaration — who_calls says so on the
+	// lines that come from here. Absent in pre-ADR-125 artifacts and in
+	// every repo without C++, which then render exactly as before.
+	CppTemplatePatterns []string `json:"cpp_template_patterns"`
 	// Per artifact language, how many repos Hobbes's accuracy was
 	// measured on (architecture §3.8, C-31) — a property of Hobbes, not
 	// of the repo, stamped so the proxy states it where an agent reads.
@@ -488,7 +514,7 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 				b.WriteString(fmt.Sprintf("callers of %s:\n", symbolID))
 			}
 			callers++
-			b.WriteString(fmt.Sprintf("  %s%s%s\n", e.From, e.cite(), e.qualify()))
+			b.WriteString(fmt.Sprintf("  %s%s%s%s\n", e.From, e.cite(), e.qualify(), idx.templateNote(e)))
 		case "uses":
 			users++
 			uses.WriteString(fmt.Sprintf("  %s%s\n", e.From, e.cite()))

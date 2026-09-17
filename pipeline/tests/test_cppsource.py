@@ -546,6 +546,172 @@ class TestTheWrittenSpecialisation:
         assert "a.S<U*>" not in layer["full_specializations"]
 
 
+class TestTheTemplatePattern:
+    """ADR-125 §4: which callers lie in the region C-153's wrong answer can
+    occur in — a template written once and instantiated per argument list.
+    This walk records the callers' own qualnames; the join marks the
+    semantic edges that start at them."""
+
+    SOURCE = (
+        "template <typename T> T ident(T t) { return t; }\n"
+        "namespace ns {\n"
+        "template <typename T> struct S {\n"
+        "    void inline_member() {}\n"
+        "    template <typename U> void both(U u) {}\n"
+        "    void g();\n"
+        "};\n"
+        "template <typename T> void S<T>::g() {}\n"
+        "template <typename T> struct S<T*> { void partial() {} };\n"
+        "template <> struct S<int> { void concrete() {} };\n"
+        "}\n"
+        "struct P { void member() {} };\n"
+        "void plain() {}\n"
+    )
+
+    @pytest.fixture
+    def built(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return extract_cpp(tmp_path)
+
+    def test_the_four_pattern_shapes_are_recorded_and_nothing_else_is(self, built):
+        # A function template; a class template's inline member and its own
+        # member template, which is a pattern's at any depth under the
+        # header above it; the out-of-line member definition written under a
+        # non-empty header; and a partial specialisation's member, which
+        # spells parameters rather than concrete arguments too.
+        assert built["template_patterns"] == frozenset({
+            "a.ident",
+            "a.ns::S::inline_member",
+            "a.ns::S::both",
+            "a.ns::S<T>::g",
+            "a.ns::S<T*>::partial",
+        })
+
+    def test_a_full_specialisations_member_a_method_and_a_plain_function_are_not(self, built):
+        # `template <>` is concrete code with one instantiation — the shape
+        # R-qual already withholds the wrong edges of — and neither a plain
+        # class's method nor a free function was ever a template. Marking
+        # any of them would say C-153 where C-153 cannot happen.
+        patterns = built["template_patterns"]
+        assert not ({"a.ns::S<int>::concrete", "a.P::member", "a.plain"} & patterns)
+        # All three are still symbols: the region is marked, not narrowed.
+        assert {"a.ns::S<int>::concrete", "a.P::member", "a.plain"} <= {
+            s["id"] for s in built["symbols"]
+        }
+
+    def test_a_class_nested_in_a_class_body_is_no_symbol_so_its_members_go_unmarked(
+        self, tmp_path
+    ):
+        # Lane A's walk does not descend into a class declared inside a
+        # class body, so a method of one is no symbol and can be the `from`
+        # of no edge. The region there goes unmarked rather than
+        # mis-marked — less than the truth, the only direction this rule is
+        # allowed to fail in.
+        _write(tmp_path, {"a.cpp": (
+            "template <typename T> struct S { struct N { void nested() {} }; };\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [s["id"] for s in layer["symbols"]] == ["a.S"]
+        assert layer["template_patterns"] == frozenset()
+
+
+class TestTheTemplatePatternThroughTheIngest:
+    """ADR-125 §4's two outputs, through the whole ingest: the list
+    ``who_calls`` marks its lines from, and the one record
+    ``list_blind_spots`` names the region by. Lane B is hand-built here, as
+    in :class:`TestTheWithheldFallback`."""
+
+    LIB = "inline int f(int x) { return x; }\ninline int h(int x) { return x; }\n"
+    TPL = (
+        '#include "lib.h"\n'
+        "\n"
+        "template <typename T> int pattern(T t) { return f(1); }\n"
+        "\n"
+        "int plainfn() { return f(2); }\n"
+        "\n"
+        "template <typename T> T silent(T t) { return t; }\n"
+    )
+    # A file lane B answers nothing in at all is a file it did not index
+    # (ADR-113 §2), so its sites keep lane A's guess — a `syntactic` edge
+    # out of a pattern, which scip-clang never spoke about.
+    QUIET = (
+        '#include "lib.h"\n'
+        "\n"
+        "template <typename T> int unindexed(T t) { return h(1); }\n"
+    )
+
+    def _ref(self, line: str, number: int, call: str, name: str):
+        from hobbes.extract import evidence as ev
+
+        return ev.Site(
+            provider=ev.SCIP, kind=ev.RESOLUTION,
+            file="src/tpl.cpp", line=number, col=line.index(call), name=name,
+            def_file="src/lib.h", def_line=1,
+        )
+
+    @pytest.fixture
+    def built(self, tmp_path, monkeypatch):
+        from hobbes.extract import extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {
+            "src/lib.h": self.LIB, "src/tpl.cpp": self.TPL, "src/quiet.cpp": self.QUIET,
+        })
+        lines = self.TPL.splitlines()
+        facts = {
+            "language": "cpp",
+            "definitions": [],
+            "references": [
+                self._ref(lines[2], 3, "f(1)", "f"),
+                self._ref(lines[4], 5, "f(2)", "f"),
+            ],
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        return extract_repo(tmp_path).graph
+
+    def test_only_a_pattern_that_calls_semantically_is_listed(self, built):
+        # `plainfn` calls semantically but is no pattern; `silent` is a
+        # pattern that calls nothing, so no answer is drawn from it and
+        # listing it would grow the artifact for nothing; `unindexed` is a
+        # pattern whose one edge is lane A's own guess.
+        assert built["cpp_template_patterns"] == ["src/tpl.pattern"]
+        drawn = {
+            (edge["from"], edge["tier"])
+            for edge in built["symbol_edges"] if edge["type"] == "calls"
+        }
+        assert ("src/tpl.plainfn", "semantic") in drawn
+        assert ("src/quiet.unindexed", "syntactic") in drawn
+
+    def test_one_record_counts_the_edges_and_names_c_153(self, built):
+        records = [
+            r for r in built.get("extraction_errors", [])
+            if r["stage"] == "cpp-template-sites"
+        ]
+        assert len(records) == 1
+        assert records[0]["path"] == "."
+        assert records[0]["message"].startswith("1 semantic C++ call edge(s) start in a template")
+        assert "C-153" in records[0]["message"]
+
+    def test_no_semantic_edge_out_of_a_pattern_is_an_empty_list_and_no_record(
+        self, tmp_path, monkeypatch
+    ):
+        # The C++ layer ran and was asked, so the key is written: an empty
+        # list reads as "none here", which an absent key could not say.
+        from hobbes.extract import extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {"src/lib.h": self.LIB, "src/quiet.cpp": self.QUIET})
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([]))
+        graph = extract_repo(tmp_path).graph
+        assert graph["cpp_template_patterns"] == []
+        assert not [
+            r for r in graph.get("extraction_errors", [])
+            if r["stage"] == "cpp-template-sites"
+        ]
+
+
 class TestTheFallback:
     def test_the_unique_free_function_repo_wide_resolves(self, layer):
         assert layer["call_fallback"][("src/main.cpp", 9, "scale")] == ("src/util.cpp", 3)

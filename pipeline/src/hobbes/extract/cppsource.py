@@ -210,6 +210,11 @@ class CppFile:
     #: both spell parameters rather than concrete arguments, so neither
     #: is here and neither can make the projection abstain.
     full_specializations: list[str] = field(default_factory=list)
+    #: The qualnames of the functions and methods this file defines inside
+    #: a **template pattern** — what ADR-125 §4 surfaces of C-153. See
+    #: :func:`_pattern_header` for the shape and for what a lost
+    #: ``template <…>`` header (C-145) costs here.
+    template_patterns: list[str] = field(default_factory=list)
     #: Count of ``TEST_CASE``/``SCENARIO`` bodies this file has: tests the
     #: walk names but can attach no symbol to, tallied for the file's
     #: ``cpp-tests`` degradation record.
@@ -547,16 +552,31 @@ def _signature(function_declarator: Node) -> str:
     return " ".join(" ".join(written).split())
 
 
-def _walk_declarations(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
+def _walk_declarations(
+    node: Node,
+    parsed: CppFile,
+    scope: tuple[tuple[str, bool], ...],
+    pattern: bool = False,
+) -> None:
     """The declarations at this level, in *scope* — a stack of
     ``(name, is_class)`` pairs, since a definition inside a class body is
     a method and one inside a namespace is not. Transparent through
-    header guards and ``extern "C"`` exactly as C's walk is."""
+    header guards and ``extern "C"`` exactly as C's walk is.
+
+    *pattern* is whether this level is inside a template pattern
+    (:func:`_pattern_header`); it is carried down rather than derived,
+    since a member is a pattern's because of a header written above its
+    enclosing class, at any depth."""
     for child in csource._flatten_top_level(node):
-        _declaration(child, parsed, scope)
+        _declaration(child, parsed, scope, pattern)
 
 
-def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
+def _declaration(
+    node: Node,
+    parsed: CppFile,
+    scope: tuple[tuple[str, bool], ...],
+    pattern: bool = False,
+) -> None:
     if node.type == "preproc_include":
         entry = csource._include_entry(node)
         if entry is not None:
@@ -575,13 +595,18 @@ def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...
             parsed.namespaces.add(_text(name))
             inner = scope + ((_text(name), False),)
         if body is not None:
-            _walk_declarations(body, parsed, inner)
+            _walk_declarations(body, parsed, inner, pattern)
     elif node.type == "template_declaration":
         # The entity it declares, once, at the entity's own line.
         _record_full_specialisation(node, parsed, scope)
+        # A non-empty header makes what it declares a pattern; an empty one
+        # (`template <>`) declares a full specialisation, which is concrete.
+        # Never *un*-set: a member of a class template is a pattern's
+        # whatever header it carries itself.
+        inner = pattern or _pattern_header(node)
         for child in node.children:
             if child.is_named and child.type != "template_parameter_list":
-                _declaration(child, parsed, scope)
+                _declaration(child, parsed, scope, inner)
     elif node.type in ("class_specifier", "struct_specifier", "union_specifier"):
         name = node.child_by_field_name("name")
         body = node.child_by_field_name("body")
@@ -591,7 +616,7 @@ def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...
         parsed.symbols.append(_symbol(tag, _qualname(scope, tag), "type", name, node))
         if name.type == "template_type" and _lost_template_header(node):
             parsed.full_specializations.append(_qualname(scope, tag))
-        _walk_declarations(body, parsed, scope + ((tag, True),))
+        _walk_declarations(body, parsed, scope + ((tag, True),), pattern)
     elif node.type == "enum_specifier":
         name = node.child_by_field_name("name")
         if name is not None and node.child_by_field_name("body") is not None:
@@ -612,7 +637,7 @@ def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...
                 _symbol(_text(name), _qualname(scope, _text(name)), "type", name, node)
             )
     elif node.type == "function_definition":
-        _function_definition(node, parsed, scope)
+        _function_definition(node, parsed, scope, pattern)
     # A `declaration` (a prototype, an out-of-line member declaration, a
     # variable), a `preproc_def` (an object-like macro) and a
     # `using_declaration` are never symbols.
@@ -681,7 +706,39 @@ def _lost_template_header(node: Node) -> bool:
     return tail == ["template", "<", ">"]
 
 
-def _function_definition(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
+def _pattern_header(node: Node) -> bool:
+    """Whether a ``template_declaration``'s header is a **pattern**'s —
+    ADR-125 §4's condition, the region C-153's error lives in.
+
+    A non-empty ``template <…>`` is a pattern: a function template, a class
+    template, or a partial specialisation, each written once with
+    parameters and instantiated per argument list. scip-clang indexes that
+    one text once, so its single answer at a call inside it can name
+    another specialisation's declaration. An **empty** list is
+    ``template <>``, an explicit full specialisation — concrete code, one
+    instantiation, and the shape ADR-125's R-qual already withholds the
+    wrong edges of; it is not a pattern and neither are its members.
+
+    Where a macro the grammar cannot read pulls the header into an ERROR
+    node (``FMT_BEGIN_NAMESPACE``, C-145), there is no
+    ``template_declaration`` to ask, and nothing here guesses one: the
+    class parses bare, its members are not recorded, and the region goes
+    unmarked. That surfaces *less* than the truth, never more — the
+    direction a marking rule must fail in. :func:`_lost_template_header`
+    reads the tokens back for the other rule, whose recovery needs the
+    exact ``template`` ``<`` ``>``; a pattern's header holds a parameter
+    whose text no rule can bound, so it is not recovered here.
+    """
+    parameters = node.child_by_field_name("parameters")
+    return parameters is not None and bool(parameters.named_child_count)
+
+
+def _function_definition(
+    node: Node,
+    parsed: CppFile,
+    scope: tuple[tuple[str, bool], ...],
+    pattern: bool = False,
+) -> None:
     """A definition with a body: a function, a method, or a test."""
     body = node.child_by_field_name("body")
     declarator = node.child_by_field_name("declarator")
@@ -700,7 +757,12 @@ def _function_definition(node: Node, parsed: CppFile, scope: tuple[tuple[str, bo
         return
     in_class = bool(scope) and scope[-1][1]
     kind = "method" if in_class else "function"
-    symbol = _symbol(name, _qualname(scope, *qualifiers, name), kind, terminal, node)
+    qualname = _qualname(scope, *qualifiers, name)
+    symbol = _symbol(name, qualname, kind, terminal, node)
+    if pattern:
+        # The caller's own symbol, so the join can mark the edges that
+        # start here without reading a site (ADR-125 §4).
+        parsed.template_patterns.append(qualname)
     # Read off the declarator, dropped by `_dedupe_symbols`: it decides
     # whether a repeated qualname is an overload or a duplicate.
     symbol["_signature"] = _signature(function_declarator)
@@ -1176,6 +1238,15 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
             f"{module_id(parsed.path)}.{qualname}"
             for parsed in files
             for qualname in parsed.full_specializations
+        ),
+        #: The symbol ids of the functions and methods defined in a
+        #: template pattern (ADR-125 §4) — the region C-153's wrong answer
+        #: can occur in, which the join marks in `who_calls`. Nothing in
+        #: `symbols` changes: this is a set over ids it already holds.
+        "template_patterns": frozenset(
+            f"{module_id(parsed.path)}.{qualname}"
+            for parsed in files
+            for qualname in parsed.template_patterns
         ),
         "local_bindings": {
             parsed.path: tuple(parsed.local_bindings) for parsed in files if parsed.local_bindings

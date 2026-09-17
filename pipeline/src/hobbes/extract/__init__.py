@@ -40,7 +40,7 @@ from hobbes.extract.packs import REGISTRY as PACK_REGISTRY
 from hobbes.extract.packs import Pack, PackContext, run_packs
 from hobbes.extract.pysource import FromImport, parse_source
 from hobbes.extract.rustsource import collect_rust_tests, extract_rust
-from hobbes.extract.schema import LANE_SCIP
+from hobbes.extract.schema import LANE_SCIP, SEMANTIC
 from hobbes.extract.testmap import collect_tests, runner_excluded_trees
 from hobbes.extract.timings import Timings
 from hobbes.extract.tssource import collect_ts_tests, extract_ts
@@ -442,6 +442,9 @@ def _build_symbol_layer(
     )
     degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
+    # C-153's surfacing (ADR-125 §4), read off the edges the projection has
+    # just settled: which of them start in a C++ template pattern.
+    degraded += _cpp_template_pattern_records(graph, cpp)
     graph["module_edges"] = _merge_module_edges(
         graph["module_edges"], projected["module_edges"]
     )
@@ -592,6 +595,52 @@ def _cpp_fallback_records(lane_agreement: dict) -> list[dict]:
                 f"{withheld} lane A guess(es) withheld in C++ files scip-clang "
                 "indexed, where lane B answered nothing at the site: those sites "
                 "stay unresolved rather than drawn by name (ADR-113 §2, C-152)"
+            ),
+        }
+    ]
+
+
+def _cpp_template_pattern_records(graph: dict, cpp: dict | None) -> list[dict]:
+    """C-153's surfacing (ADR-125 §4): the region, not the wrong edges.
+
+    scip-clang indexes a template's pattern once, so its one answer at a
+    call written inside one can name another specialisation's declaration.
+    R-qual (ADR-125's decision rule) withholds the answers the source text
+    contradicts; what is left cannot be told from a right edge at the site,
+    so the honest response is to say where the edge comes from. This writes
+    the callers a reader meets that in — ``graph["cpp_template_patterns"]``,
+    which ``who_calls`` marks its lines from — and one record so
+    ``list_blind_spots`` names the region too.
+
+    Only the patterns that actually *call* something semantically are
+    listed: a pattern with no such edge out of it is a region no answer is
+    drawn from, and listing it would grow the artifact for nothing. The key
+    is written whenever the C++ layer ran, so an empty list reads as "asked
+    and none" rather than as an older artifact.
+    """
+    if cpp is None:
+        return []
+    patterns = cpp["template_patterns"]
+    marked = [
+        edge
+        for edge in graph["symbol_edges"]
+        if edge["type"] == "calls"
+        and edge["tier"] == SEMANTIC
+        and edge["from"] in patterns
+    ]
+    graph["cpp_template_patterns"] = sorted({edge["from"] for edge in marked})
+    if not marked:
+        return []
+    return [
+        {
+            "path": ".",
+            "stage": "cpp-template-sites",
+            "message": (
+                f"{len(marked)} semantic C++ call edge(s) start in a template "
+                "pattern (a function template, or a member of a class template "
+                "or partial specialisation): scip-clang indexes a pattern once, "
+                "and its one answer there can name another specialisation's "
+                "declaration (C-153); who_calls marks each"
             ),
         }
     ]
