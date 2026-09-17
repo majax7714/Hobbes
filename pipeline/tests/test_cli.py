@@ -101,6 +101,17 @@ class TestIngest:
         assert cli.main(["ingest", "--repo", str(tmp_path)]) == 1
         assert "git repo" in capsys.readouterr().err
 
+    def test_a_second_ingest_of_one_repo_is_refused(self, git_fixture, capsys):
+        # ADR-127: refused, not queued — and before anything is staged or
+        # written, so the running ingest's artifacts are its own.
+        from tests.test_ingestlock import held_by_subprocess
+
+        with held_by_subprocess(git_fixture):
+            assert cli.main(["ingest", "--repo", str(git_fixture)]) == 1
+        err = capsys.readouterr().err
+        assert "hobbes ingest: another hobbes ingest of" in err
+        assert not (git_fixture / ".hobbes" / "derived" / "graph.json").exists()
+
     def test_summary_breaks_capture_down_by_directory(self, git_fixture, capsys):
         # Lane B is off in the suite, so sites go unresolved and the
         # per-directory view must give those misses an address.

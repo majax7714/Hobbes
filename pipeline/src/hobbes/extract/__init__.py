@@ -28,7 +28,15 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from hobbes.extract import evidence as ev
-from hobbes.extract import containment, indexcache, scipsource, staging, tail, tssource
+from hobbes.extract import (
+    containment,
+    indexcache,
+    ingestlock,
+    scipsource,
+    staging,
+    tail,
+    tssource,
+)
 from hobbes.extract.cppsource import collect_cpp_tests, extract_cpp
 from hobbes.extract.csource import collect_c_tests, extract_c
 from hobbes.extract.discover import discover_modules, linked_copies
@@ -1148,19 +1156,23 @@ def ingest(
     Requires *repo_root* to be a git repo with at least one commit — the SHA
     is the provenance every downstream claim pins to (P3). Always ensures
     the repo gitignores Hobbes files first (ADR-012), so the stamp's
-    ``dirty`` flag reflects that edit when it happens.
+    ``dirty`` flag reflects that edit when it happens. An ingest of a repo
+    whose ingest is already running raises
+    :class:`~hobbes.extract.ingestlock.IngestBusy` before anything is
+    staged, indexed or written (ADR-127).
     """
     repo_root = Path(repo_root).resolve()
-    ensure_hobbes_ignored(repo_root)
-    timings = timings if timings is not None else Timings()
-    extraction = extract_repo(repo_root, tf_plan=tf_plan, timings=timings)
-    stamp = {"schema_version": SCHEMA_VERSION, **repo_stamp(repo_root)}
-    with timings.step("write"):
-        return write_artifacts(
-            repo_root,
-            {
-                "graph.json": {**stamp, **extraction.graph},
-                "tests.json": {**stamp, **extraction.tests},
-                "interfaces.json": {**stamp, **extraction.interfaces},
-            },
-        )
+    with ingestlock.hold(repo_root):
+        ensure_hobbes_ignored(repo_root)
+        timings = timings if timings is not None else Timings()
+        extraction = extract_repo(repo_root, tf_plan=tf_plan, timings=timings)
+        stamp = {"schema_version": SCHEMA_VERSION, **repo_stamp(repo_root)}
+        with timings.step("write"):
+            return write_artifacts(
+                repo_root,
+                {
+                    "graph.json": {**stamp, **extraction.graph},
+                    "tests.json": {**stamp, **extraction.tests},
+                    "interfaces.json": {**stamp, **extraction.interfaces},
+                },
+            )

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from hobbes.extract import SCHEMA_VERSION, ingest
+from hobbes.extract import SCHEMA_VERSION, emit, ingest
 from hobbes.extract.emit import (
     StampError,
     ensure_hobbes_ignored,
@@ -60,6 +60,30 @@ class TestWriteArtifacts:
     def test_writes_into_derived(self, tmp_path):
         (path,) = write_artifacts(tmp_path, {"tests.json": {}})
         assert path == tmp_path / ".hobbes" / "derived" / "tests.json"
+
+    def test_the_rename_leaves_no_temporary_behind(self, tmp_path):
+        # ADR-127: each file goes through a sibling temporary, and the
+        # directory a reader lists holds only the artifacts.
+        write_artifacts(tmp_path, {"graph.json": {"a": 1}, "tests.json": {}})
+        derived = tmp_path / ".hobbes" / "derived"
+        assert sorted(p.name for p in derived.iterdir()) == ["graph.json", "tests.json"]
+
+    def test_a_failed_write_leaves_the_previous_bytes_and_no_temporary(
+        self, tmp_path, monkeypatch
+    ):
+        # The point of the rename (ADR-127): a reader sees the old file or
+        # the new one, never a half-written one.
+        (path,) = write_artifacts(tmp_path, {"graph.json": {"a": 1}})
+        before = path.read_bytes()
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("serialization failed")
+
+        monkeypatch.setattr(emit.json, "dumps", boom)
+        with pytest.raises(RuntimeError, match="serialization failed"):
+            write_artifacts(tmp_path, {"graph.json": {"a": 2}})
+        assert path.read_bytes() == before
+        assert [p.name for p in path.parent.iterdir()] == ["graph.json"]
 
 
 class TestEnsureHobbesIgnored:
