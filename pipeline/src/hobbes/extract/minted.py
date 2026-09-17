@@ -92,6 +92,11 @@ lane A never parsed unless something reads the count, and these symbols
 are precisely the ones the wrong edges land on. The read is *unknown*
 wherever it is not clean, and an unknown draws the edge.
 
+:func:`constructor_lines` reads the same rows for a different question
+(ADR-132): which lines a **constructor** is defined at, so the join can
+tell a construction's reference from a type's at a declared name. It
+mints nothing, and it lives here because the moniker reader does.
+
 **P6.** With no indexer there are no ``definitions`` rows, so nothing is
 minted and the floor is exactly what it was; the caller writes no
 ``minted`` block into the graph either.
@@ -260,6 +265,40 @@ def mint(
         files.add(file)
 
     return minted, {"symbols": len(minted), "files": len(files), "refused": refused}
+
+
+def constructor_lines(definitions: Iterable[Mapping]) -> frozenset[tuple[str, int]]:
+    """The ``(file, line)`` of every definition row that is a constructor's
+    — ADR-132's second half, and the whole of what tells a construction's
+    reference apart from a type's.
+
+    A constructor's moniker ends in the same name twice, a type then a
+    method of it (``…/T#T(hash).``), which is scip-clang's spelling and no
+    other entity's: a destructor is ``~T``, an operator is spelled as
+    written, and a free function has no type before it. A moniker
+    :func:`read_moniker` refuses names nothing here can stand behind.
+
+    A line carrying **more than one distinct moniker** is left out, for
+    :func:`mint`'s ``several-monikers`` reason: which definition the
+    reference lands on would be a guess, and a wrong one here draws a call
+    that is not there.
+    """
+    monikers_at: dict[tuple[str, int], set[str]] = {}
+    for row in definitions:
+        monikers_at.setdefault((row["file"], row["line"]), set()).add(
+            row.get("moniker") or ""
+        )
+    out: set[tuple[str, int]] = set()
+    for where, monikers in monikers_at.items():
+        if len(monikers) > 1:
+            continue
+        chain = read_moniker(next(iter(monikers)))
+        if chain is None or len(chain) < 2:
+            continue
+        (owner, owner_kind), (name, name_kind) = chain[-2], chain[-1]
+        if owner_kind == "type" and name_kind == "method" and owner == name:
+            out.add(where)
+    return frozenset(out)
 
 
 def read_moniker(moniker: str) -> list[tuple[str, str]] | None:

@@ -421,6 +421,14 @@ def _build_symbol_layer(
     # was (P6). The two counts come back in this dict rather than in the
     # join's return value, which every other caller reads unchanged.
     operator_counts: dict[str, int] = {"drawn": 0, "in_template": 0}
+    # ADR-132, on the same condition and for the same reason: the tokens
+    # and the constructor set are read together or not at all. The set is
+    # read off the rows the mint already collected below — the C++ ones
+    # among them; C has no constructors, so its rows name none.
+    construction_counts: dict[str, int] = {"drawn": 0, "in_template": 0}
+    constructors = (
+        minted.constructor_lines(lane_b_definitions) if cpp and lane_b_ran else None
+    )
     with timings.step("join"):
         resolved = ev.join(
             syntax,
@@ -430,12 +438,20 @@ def _build_symbol_layer(
             withhold=withhold,
             operators=cpp["operators"] if cpp and lane_b_ran else None,
             counts=operator_counts,
+            constructions=cpp["constructions"] if cpp and lane_b_ran else None,
+            constructors=constructors,
+            construction_counts=construction_counts,
         )
     if operator_counts["drawn"] or operator_counts["in_template"]:
         # Additive, and absent on a repo with nothing to say — a C++
         # operator drawn as a call is a new thing in the graph, and the
         # one inside a template that was not is the cost beside it.
         graph["operators"] = dict(operator_counts)
+    if construction_counts["drawn"] or construction_counts["in_template"]:
+        # Additive too, and absent where there is nothing to say: a
+        # construction drawn as a call is a new edge, and the one inside a
+        # template left as a `uses` is what the rule did not draw.
+        graph["constructions"] = dict(construction_counts)
     # ADR-129, after the join and before the projection: where lane A's
     # parse lost a C or C++ definition, lane B's definition row becomes the
     # symbol, so `starting_at` answers for the lost line and the calls

@@ -156,19 +156,40 @@ def test_the_operator_tokens_the_join_reads_survive_as_an_array(cache):
     assert len(operators) > 1
 
 
-def test_the_format_tag_moved_so_a_v2_entry_is_never_read_back(cache, repo, monkeypatch):
+def test_the_construction_tokens_the_join_reads_survive_as_an_array(cache):
+    # ADR-132: the same packing, the same binary search, and the same
+    # failure if a record read back as a list — or empty, which would be a
+    # parse that saw no construction and a call the join never draws.
+    from array import array
+
+    result = cppsource._parse_file("src/box.cpp", BOX.encode())
+    text = json.dumps(laneacache.encode_record(result), sort_keys=True)
+    decoded = laneacache.decode_record(json.loads(text))
+
+    assert decoded == result
+    constructions = decoded[0].constructions
+    assert isinstance(constructions, array) and constructions.typecode == "Q"
+    assert list(constructions) == list(result[0].constructions)
+    # `shapes::Box box{2, 3};` in the `TEST_CASE` body: the file does
+    # construct, so an empty array here would be an assertion that passes
+    # by saying nothing.
+    assert len(constructions) > 0
+
+
+def test_the_format_tag_moved_so_a_v3_entry_is_never_read_back(cache, repo, monkeypatch):
     # An entry written before the tokens existed would read back as a file
-    # that applied no operator, and the join would draw nothing there. The
-    # tag is hashed into the key, so the v2 entry is not a decode failure
-    # per file: it is a key this Hobbes never looks up.
-    assert laneacache.FORMAT == "lanea-cpp v3"
+    # that applied no operator and constructed nothing, and the join would
+    # draw nothing there. The tag is hashed into the key, so the v3 entry
+    # is not a decode failure per file: it is a key this Hobbes never
+    # looks up.
+    assert laneacache.FORMAT == "lanea-cpp v4"
     source = (repo / "src" / "box.cpp").read_bytes()
-    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v2")
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v3")
     extract_cpp(repo)
     stale = laneacache.entry_path(laneacache.key("src/box.cpp", source))
     assert stale.is_file()
 
-    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v3")
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v4")
     laneacache.reset_ledger()
     extract_cpp(repo)
     assert laneacache.summary()["hits"] == 0

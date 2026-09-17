@@ -157,6 +157,26 @@ def _print_operators(counts: dict | None) -> None:
     )
 
 
+def _print_constructions(counts: dict | None) -> None:
+    """The C++ constructions that became call edges, and the ones inside a
+    template that stayed ``uses`` references (ADR-132) — beside the
+    operator line, where the same reader meets the same kind of number.
+
+    Both halves again, and the second is not the first's price here: a
+    construction inside a template keeps the ``uses`` edge it had, because
+    a dependent type's construction is not indexed at all and every
+    in-template row the measurement read was right. Nothing is printed
+    where the block is absent — no indexer, or no C++ (P6).
+    """
+    if not counts:
+        return
+    print(
+        f"    constructions: {counts.get('drawn', 0)} drawn as calls where the index "
+        f"names a constructor at the token; {counts.get('in_template', 0)} inside a "
+        "template left as uses (ADR-132, C-162)"
+    )
+
+
 def _print_containment(record: dict | None) -> None:
     """Where lane B ran (ADR-092), and what a contained step that ran repo
     code could still write (ADR-128 §2).
@@ -284,6 +304,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     _print_implements(graph.get("implements"))
     _print_minted(graph.get("minted"))
     _print_operators(graph.get("operators"))
+    _print_constructions(graph.get("constructions"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

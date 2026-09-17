@@ -57,6 +57,17 @@ def _operators(layer, path):
     return [unpack_operator(packed) for packed in layer["operators"].get(path, ())]
 
 
+def _constructions(layer, path):
+    """One file's construction tokens (ADR-132), unpacked — ``(line,
+    column, kind, in_template)`` each, in position order."""
+    from hobbes.extract.cppsource import unpack_construction
+
+    return [
+        unpack_construction(packed)
+        for packed in layer["constructions"].get(path, ())
+    ]
+
+
 def _call_at(layer, path, line, name):
     hits = [c for c in _calls(layer, path) if c["line"] == line and c["name"] == name]
     assert len(hits) == 1, (path, line, name, hits)
@@ -1023,6 +1034,295 @@ class TestThePacking:
         assert operator_token(packed, 1, column, "-") is None
         assert operator_token(packed, 1, column, "()") is None
         assert operator_token(packed, 2, column, "+") is None
+
+
+class TestConstructionTokens:
+    """ADR-132: a construction calls a constructor and names no callee, so
+    it is no call site — but the token is where scip-clang puts its
+    constructor reference, and the join draws a call only if lane A can
+    say a construction was written at exactly that position."""
+
+    SOURCE = (
+        "struct T { T(int); T(); };\n"
+        "void f(int a) {\n"
+        "    T x(1);\n"
+        "    T xa(a);\n"
+        "    T y{1};\n"
+        "    T z;\n"
+        "    T w = T(1);\n"
+        "    T v = {1, 2};\n"
+        "    q({1, 2});\n"
+        "    new T(1);\n"
+        "    ns::Foo{1};\n"
+        "    label: T lab(1);\n"
+        "}\n"
+        "struct C { C(int a) : m_(a), n_{2}, Base<int>(1) {} int m_; int n_; };\n"
+        "void h(T p = {});\n"
+        "T r() { return {1, 2}; }\n"
+        "class GTEST_API_ X { public: explicit X(int); };\n"
+    )
+
+    @pytest.fixture
+    def tokens(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return _constructions(extract_cpp(tmp_path), "a.cpp")
+
+    def _at(self, line: int, needle: str) -> int:
+        """The 0-based column *needle* is written at on *line*, read off
+        the fixture's own text."""
+        return self.SOURCE.splitlines()[line - 1].index(needle)
+
+    def test_every_shape_the_walk_records_is_at_its_own_token(self, tokens):
+        assert [(line, column, kind) for line, column, kind, _ in tokens] == [
+            # `T x(1);` — the pinned grammar reads a literal argument as an
+            # `init_declarator` whose value is an `argument_list`, so this
+            # is a `decl-init`; only a *named* argument (`T xa(a);`) reads
+            # as the function declaration `decl-paren` is for.
+            (3, self._at(3, "x(1)"), "decl-init"),
+            (4, self._at(4, "xa"), "decl-paren"),
+            (5, self._at(5, "y{1}"), "decl-init"),
+            (6, self._at(6, "z;"), "decl-default"),
+            # Line 7, `T w = T(1);`: none. The value is a call expression,
+            # which is a call site already.
+            #
+            # Line 8 is copy-list-initialisation, and the token is the
+            # declared name: the `{` gets no `braced` token of its own,
+            # because its holder is an `init_declarator` and not one of
+            # the two the `braced` rule reads.
+            (8, self._at(8, "v ="), "decl-init"),
+            (9, self._at(9, "{1, 2}"), "braced"),
+            (10, self._at(10, "T(1)"), "new"),
+            # `ns::Foo{1}` is recorded at the type's start, whatever node
+            # kind the type is — here a qualified name, so at `ns`.
+            (11, self._at(11, "ns"), "compound-literal"),
+            # Line 12's declaration sits under a `labeled_statement`: none.
+            (14, self._at(14, "m_("), "member-init"),
+            (14, self._at(14, "n_{"), "member-init"),
+            # A base-class initialiser (`Base<int>(1)`) opens with a
+            # `template_method` rather than a `field_identifier`: none.
+            (15, self._at(15, "="), "default-arg"),
+            (16, self._at(16, "{1, 2}"), "braced"),
+            # Line 17, the macro-broken class head, is below.
+        ]
+
+    def test_a_declaration_under_a_label_records_nothing(self, tokens):
+        # `label: T lab(1);` and, on line 17, the shape that found this
+        # rule: `class GTEST_API_ X { public: explicit X(int); };` parses
+        # as a function whose body holds `public:` as a label and the
+        # constructor's own declaration as a local. Lane B points that
+        # declaration at the out-of-line definition, so a token here would
+        # draw a call from a class body — 4 wrong rows on fmt.
+        assert not [line for line, *_ in tokens if line in (12, 17)]
+
+    def test_a_declaration_initialised_by_a_call_is_left_to_the_call_site(
+        self, tokens
+    ):
+        assert not [line for line, *_ in tokens if line == 7]
+
+    def test_nothing_inside_an_unevaluated_operand(self, tmp_path):
+        # ADR-121's test, reused: the program constructs nothing inside a
+        # `sizeof` or a `decltype`, so there is no call to draw there.
+        _write(tmp_path, {"a.cpp": (
+            "void f() {\n"
+            "    sizeof(T{1});\n"
+            "    using D = decltype(T{1});\n"
+            "}\n"
+        )})
+        assert _constructions(extract_cpp(tmp_path), "a.cpp") == []
+
+    def test_a_default_member_initialiser_in_a_class_body_is_not_recorded(
+        self, tmp_path
+    ):
+        # A `field_declaration`, not a `declaration`: ADR-132 measured no
+        # row of that shape and records none.
+        _write(tmp_path, {"a.cpp": "struct S { T member{1}; };\n"})
+        assert _constructions(extract_cpp(tmp_path), "a.cpp") == []
+
+    def test_a_c_file_records_none(self, tmp_path):
+        # C has no constructors, so the C layer never asks the question
+        # and a `.c` file is in no C++ file's answer.
+        from hobbes.extract.csource import extract_c
+
+        _write(tmp_path, {
+            "a.c": "void g(void) { int n = 0; T t; }\n",
+            "b.cpp": "void h() { T t; }\n",
+        })
+        assert "constructions" not in extract_c(tmp_path)
+        assert set(extract_cpp(tmp_path)["constructions"]) == {"b.cpp"}
+
+    def test_a_file_that_constructs_nothing_is_absent_rather_than_empty(
+        self, tmp_path
+    ):
+        # A prototype at file scope is a function declaration and no
+        # construction: `decl-paren` needs a block above it.
+        _write(tmp_path, {"a.cpp": "int f(int a);\nint g() { return f(1); }\n"})
+        assert extract_cpp(tmp_path)["constructions"] == {}
+
+
+class TestTheConstructionTemplateFlag:
+    """The one flag a construction token carries (ADR-132): inside a
+    template the join keeps the ``uses`` edge rather than drawing a call
+    — 45 of 45 such rows read right, but no other in-template answer of
+    this lane has stood without a guard."""
+
+    SOURCE = (
+        "template <typename U> void h(U u) { T t(1); }\n"
+        "void plain() { T p(1); }\n"
+    )
+
+    @pytest.fixture
+    def flags(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return {
+            line: in_template
+            for line, _, _, in_template in _constructions(extract_cpp(tmp_path), "a.cpp")
+        }
+
+    def test_a_function_templates_body_is_inside_one_and_a_plain_body_is_not(
+        self, flags
+    ):
+        assert flags == {1: True, 2: False}
+
+
+class TestAConstructionEdgeThroughTheIngest:
+    """ADR-132 end to end, on the shape it was measured on: the same
+    declaration written in a plain function and in a template, with the
+    index naming the constructor at the declared name. Lane B is
+    hand-built here, as in :class:`TestAnOperatorEdgeThroughTheIngest`.
+
+    Braces rather than ``A a(1);``, which is the one construction lane A
+    already records a ``construct`` **site** for: that site claims every
+    resolution its line spells ``A``, the constructor's among them, and
+    the rule is about the references no site claims.
+    """
+
+    LIB = (
+        "struct A {\n"
+        "    A(int v) : v_(v) {}\n"
+        "    int v_;\n"
+        "};\n"
+    )
+    USE = (
+        '#include "lib.h"\n'
+        "void plain() {\n"
+        "    A a{1};\n"
+        "}\n"
+        "template <typename T>\n"
+        "void tpl() {\n"
+        "    A b{1};\n"
+        "}\n"
+    )
+
+    def _built(self, tmp_path, monkeypatch, lane_b: bool):
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {"src/lib.h": self.LIB, "src/use.cpp": self.USE})
+        lines = self.USE.splitlines()
+        references = []
+        for number, declared in ((3, "a"), (7, "b")):
+            # Both occurrences scip-clang emits on such a line: the type
+            # at `A`, which is the `uses` reference it has always been,
+            # and the constructor at the declared name, which this rule
+            # reads. Both are named by their terminal descriptor, so the
+            # column is the whole of what tells them apart.
+            references.append(ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=number, col=lines[number - 1].index("A"),
+                name="A", def_file="src/lib.h", def_line=1,
+            ))
+            references.append(ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=number,
+                col=lines[number - 1].index(declared + "{1}"),
+                name="A", def_file="src/lib.h", def_line=2,
+            ))
+        facts = [{
+            "language": "cpp",
+            "definitions": [
+                {"file": "src/lib.h", "line": 1, "end_line": 4,
+                 "kind": "type", "moniker": "cxx . . $ A#"},
+                {"file": "src/lib.h", "line": 2, "end_line": 2,
+                 "kind": "method", "moniker": "cxx . . $ A#A(1a2b3c4d)."},
+            ],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }]
+        monkeypatch.setattr(
+            extract, "_lane_b_facts", lambda *a, **k: iter(facts if lane_b else [])
+        )
+        graph = extract_repo(tmp_path).graph
+        return graph, {
+            (edge["from"], edge["type"], edge["to"])
+            for edge in graph["symbol_edges"]
+            if any(site["path"] == "src/use.cpp" for site in edge["evidence"])
+        }
+
+    def test_the_plain_function_calls_the_constructor_and_the_template_uses_it(
+        self, tmp_path, monkeypatch
+    ):
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=True)
+        # The caller is named by the enclosing symbol, since the fact
+        # carries no scope of its own.
+        assert ("src/use.plain", "calls", "src/lib.h.A::A") in edges
+        # Inside the template the same reference is the `uses` edge it
+        # was, from the module: the fact is unscoped, and ADR-132 does
+        # not withhold it — a dependent type's construction is not
+        # indexed at all, so this one's type is not dependent.
+        assert ("src/use.tpl", "calls", "src/lib.h.A::A") not in edges
+        assert ("src/use.tpl", "uses", "src/lib.h.A::A") in edges
+        assert graph["constructions"] == {"drawn": 1, "in_template": 1}
+
+    def test_with_no_lane_b_there_is_no_block_and_no_construction_edge(
+        self, tmp_path, monkeypatch
+    ):
+        # P6: the tokens and the constructor set are read by nothing, so
+        # the graph is what it was before this rule existed.
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=False)
+        assert "constructions" not in graph
+        assert not [edge for edge in edges if edge[2] == "src/lib.h.A::A"]
+
+
+class TestTheConstructionPacking:
+    """One integer per token (ADR-132), in the operator tokens' own
+    layout: the kind rides where the spelling's index does."""
+
+    def test_it_round_trips_line_column_kind_and_flag_at_their_extremes(self):
+        from hobbes.extract.cppsource import (
+            COLUMN_LIMIT, CONSTRUCTION_KINDS, pack_construction, unpack_construction,
+        )
+
+        for kind in (CONSTRUCTION_KINDS[0], CONSTRUCTION_KINDS[-1], "member-init"):
+            for line, column in ((1, 0), (999_999, COLUMN_LIMIT - 1)):
+                for flag in (False, True):
+                    packed = pack_construction(line, column, kind, flag)
+                    assert unpack_construction(packed) == (line, column, kind, flag)
+
+    def test_the_packing_sorts_by_position(self):
+        from hobbes.extract.cppsource import pack_construction
+
+        assert pack_construction(2, 0, "new", True) > pack_construction(1, 4000, "new", False)
+        assert pack_construction(1, 5, "braced", False) > pack_construction(1, 4, "new", True)
+
+    def test_a_column_past_the_bound_is_dropped_rather_than_misplaced(self, tmp_path):
+        from hobbes.extract.cppsource import COLUMN_LIMIT
+
+        _write(tmp_path, {"a.cpp": (
+            "void f() {\n" + " " * COLUMN_LIMIT + "T t(1);\n" + "}\n"
+        )})
+        assert extract_cpp(tmp_path)["constructions"] == {}
+
+    def test_a_lookup_answers_only_at_the_exact_token(self, tmp_path):
+        from hobbes.extract.cppsource import construction_token
+
+        _write(tmp_path, {"a.cpp": "void f() { T t{1}; }\n"})
+        packed = extract_cpp(tmp_path)["constructions"]["a.cpp"]
+        column = "void f() { T t{1}; }".index("t{1}")
+        assert construction_token(packed, 1, column) is False
+        assert construction_token(packed, 1, column + 1) is None
+        assert construction_token(packed, 1, column - 1) is None
+        assert construction_token(packed, 2, column) is None
 
 
 class TestTheTemplatePattern:
