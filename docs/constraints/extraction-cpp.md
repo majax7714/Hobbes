@@ -197,21 +197,31 @@ headers parsed with tree-sitter ERROR nodes.
   - an explicit specialisation's member for the primary template's:
     `test_format<20>::format` drawn to `test_format<0>` (4);
   - one overload of two (2).
-- **Bites at:** fmt 10 of its 3,395 judged semantic edges (0.3%); args
-  none. **Since 2026-09-16, only 4 of those 10 are still judged.** The
-  matcher's H-30 rule silences a row whose line also carries a call the
-  key left unresolved, and 6 of these sit on such a line. They are
-  *unjudged, not fixed* — the edge is still the wrong declaration. fmt's
-  cell therefore reads 99.88% (3,269/3,273) where the strict figure
-  (ADR-124), counting all 13 of its line-unresolved rows as
-  contradicted, is 99.48% (3,269/3,286); both are in `tables.md`. Since C-155's lift (ADR-121, 0.2.33-beta) this
-  entry's four judged rows are the whole of that cell's contradictions —
-  its triage ratio is `hobbes-wrong 4 : oracle-wrong 0`.
-- **You find out:** **unsurfaced** — nothing at the site says so, and
-  since 2026-09-16 six of the ten do not even read as contradictions in
-  the cell's own grade, so the standing number is smaller than the
-  defect; the strict figure beside it (ADR-124) counts them again. The
-  cell records, `tables.md` and this entry are the only statement.
+- **Narrowed 2026-09-17 (ADR-125, 0.2.37-beta): R-qual.** A call written
+  through one specialisation (`X<A>::f`) that lane B resolved to a
+  member of a *different* explicit full specialisation (`template <>`,
+  `X<B>::f`) draws no edge; the site is counted `qualifier-mismatch`.
+  On fmt it withholds the first two shapes, all eight, and no confirmed
+  edge (§10.11). A `template <>` header a macro parse lost (C-145) is
+  still read, from the ERROR node's exact tokens. **The rule's own
+  residuals:** a written argument the owner spells differently (an
+  alias, a default argument, an expression: `<string_view>` for
+  `<basic_string_view<char>>`, `<int>` for `<int, char>`, `<2*10>` for
+  `<20>`) would withhold a right edge (measured 0 on fmt and args); a
+  wrong answer at an owner that is a primary template or a partial
+  specialisation is not caught.
+- **Bites at:** fmt 2 of its judged semantic edges since 0.2.37-beta —
+  the `format_as` rows at `std.h:714` and `:726` — both unjudged under
+  H-30 rather than fixed; 10 before ADR-125. args none. fmt reads 100%
+  (3,269/3,269) where the strict figure (ADR-124), counting its 9
+  line-unresolved rows as contradicted, is 99.73% (3,269/3,278); both
+  are in `tables.md`.
+- **You find out:** **unsurfaced** for what R-qual does not reach —
+  nothing at the site says so, and the two rows left do not read as
+  contradictions in the cell's own grade; the strict figure beside it
+  (ADR-124) counts them again. What R-qual withholds is surfaced: the
+  `qualifier-mismatch` class in the tail and `list_blind_spots`. The
+  surfacing of the rest is ADR-125 §4, not built yet.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 

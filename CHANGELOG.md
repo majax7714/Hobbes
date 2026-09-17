@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.36-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.37-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.37-beta — 2026-09-17 (a C++ call the written specialisation contradicts draws nothing; ADR-125)
+
+**Patch: what the layer draws.** A C++ call written through one
+specialisation (`test_format<20>::format(..)`, `formatter<int>::format(..)`)
+that scip-clang resolved into a member of a *different* explicit full
+specialisation (`template <> struct test_format<0>`) is contradicted by
+the source text, so no edge is drawn.
+
+- The rule fires only when all four hold: the call's immediate qualifier
+  carries template arguments; the answer is lane B's; the resolved owner
+  is declared `template <>`; the base names match and the argument lists
+  (whitespace removed) differ. A primary template or a partial
+  specialisation never fires it. A `template <>` a macro parse lost
+  (C-145) is read from the ERROR node's exact tokens.
+- The site is counted in a new tail class, `qualifier-mismatch` (C++
+  only), which `list_blind_spots` and the review gate know.
+- **Measured before building** (`oracle-grading.md` §10.11): on fmt the
+  rule removes 8 wrong edges and 0 right ones; on args, nothing. At the
+  build fmt reads **100%** (3,269/3,269), strict 99.73%; recall is
+  unchanged to the pair; args is identical.
+- **C-153 narrowed**, still unsurfaced for what the rule does not reach
+  (two `format_as` rows on fmt); the rule's residuals (an alias, default
+  argument or expression spelled differently) are in the entry.
+- Dispatched as `S-20260917T132019Z-145d` (merged no-ff); the lost-header
+  recovery is the developer's (`9daffdc`, §10.11 P69).
 
 ## 0.2.36-beta — 2026-09-17 (`hobbes lanes` names a registered disagreement and exits 3; ADR-123)
 

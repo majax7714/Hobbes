@@ -50,23 +50,22 @@ offline pass), fixed the same session and regraded 16,050/16,050.
 ## The claim, in the words the evidence licenses
 
 1. **Hobbes draws nothing the compiler contradicts, on every
-   compiler-graded cell, with two named exceptions.** Every
+   compiler-graded cell, with one named exception.** Every
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
-   fifteen are the test build's shadowing methods, 0 hobbes-wrong) and
-   C++'s fmt (3,269/3,273, **99.88%**) — and on that cell the exception
-   is entirely ours: **0 rows are the oracle's grain**, and all 4 are
-   scip-clang naming a single wrong candidate that Hobbes draws (a
-   provider's error owned as Hobbes' own, C-153). The call Hobbes once
-   drew inside an unevaluated `decltype` operand (C-155) is lifted
-   (ADR-121). All four defects of the oracle itself that this cell's
-   triage found — H-28, H-29, H-30, H-31 — are fixed, and so is H-32,
-   C-155's oracle half. **The 99.88% is still flattered by one of those
-   fixes, and the record says so:** H-30's silence rule withdrew
-   judgement from 6 further C-153 rows, which are wrong and now simply
-   unjudged. Counting every row the grader could not judge on such a line
-   as contradicted — the strict figure now printed beside every precision
-   (ADR-124) — fmt is **99.48%** (3,269/3,286). Both are in `tables.md`.
+   fifteen are the test build's shadowing methods, 0 hobbes-wrong).
+   C++'s fmt reached 100% (3,269/3,269) at 0.2.37-beta. Its last four
+   contradictions were scip-clang naming a wrong specialisation that
+   Hobbes drew (C-153); where the qualifier written at the call
+   contradicts the index, Hobbes now draws nothing (ADR-125, 8 edges
+   withheld, 0 right ones). The call once drawn inside an unevaluated
+   `decltype` operand (C-155) is lifted (ADR-121), and the oracle's own
+   defects on this cell, H-28–H-32, are fixed. **The 100% is still a
+   lower bound with a lower companion, and the record says so:** H-30's
+   silence rule leaves 9 rows unjudged, two of them C-153's wrong
+   `format_as` edges. Counted as contradicted — the strict figure printed
+   beside every precision (ADR-124) — fmt is **99.73%** (3,269/3,278).
+   Both are in `tables.md`.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -143,8 +142,8 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    - **repowise:** fmt 2,410/5,024 (**48.0%**, was 45.2%; strict
      2,410/5,343, 45.1%), recall 13.9%; args 815/904 (**90.2%**, was
      87.0%; strict 815/937, 87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,269/3,273 (**99.88%**; strict
-     3,269/3,286, 99.48%), recall 14.5%; args
+   - **Hobbes, same keys:** fmt 3,269/3,269 (**100%**; strict
+     3,269/3,278, 99.73%, at 0.2.37-beta), recall 14.5%; args
      1,995/1,995, recall 56.4%.
 
    **Why every tool's number rose on 2026-09-16, and Hobbes' barely

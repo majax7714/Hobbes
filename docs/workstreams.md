@@ -63,7 +63,7 @@ item opens when Max names it. Sequencing context is
    unevaluated operand (ADR-121, C-155 lifted); lane B's index cache
    (ADR-122, C-158). The oracle's defect log is empty (H-28–H-32 fixed).
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
-   oracle's grain) and fmt (99.88%; its 4 contradictions are C-153's).
+   oracle's grain); fmt reached 100% at 0.2.37-beta (strict 99.73%, ADR-124/125).
    The review's remaining items, in order, are in `session-handoff.md`
    item 3; W1 carries the extraction ones.
 

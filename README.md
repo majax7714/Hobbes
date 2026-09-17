@@ -156,18 +156,18 @@ against the interpreter running the repo's own test suite, Rust against
 rustc's MIR, Java against javac's own resolution, C and C++ against
 clang's own front end — with wrong edges deliberately seeded on every
 cell to prove the grader can say no. Every compiler-graded cell is at
-100% precision-against-oracle but two:
+100% precision-against-oracle but one, and one more carries a strict
+figure below it:
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 99.88% (3,269/3,273), strict 99.48% (3,269/3,286)
-  with the 13 rows the grader could not judge counted against it (ADR-124),
-  with the oracle's own defects on it (H-28–H-31) fixed and C-155
-  lifted (ADR-121: no call site in an unevaluated operand). Every
-  contradiction left is a wrong edge
-  drawn where scip-clang itself names the wrong candidate (C-153, 4
-  judged and 6 more of that shape unjudged rather than fixed). A
-  provider's error in the graph is Hobbes' own, so it is registered.
+- **fmt** (C++) reads 100% (3,269/3,269), **strict 99.73%** (3,269/3,278)
+  with the 9 rows the grader could not judge counted against it (ADR-124).
+  Its last four contradictions were scip-clang naming the wrong
+  specialisation; where the written qualifier contradicts the index
+  Hobbes now draws nothing (ADR-125). Two rows of that provider error
+  (C-153) remain, unjudged rather than fixed, and a provider's error in
+  the graph is Hobbes' own, so it is registered.
 
 C's sqlite-vector once read 99.6%, from three syntactic edges Hobbes
 got wrong (C-138). The external veto (ADR-111) removed them, and it
@@ -215,11 +215,11 @@ A comparison is only as honest as its reading rules, so here they are:
   It ties on recall at one row, sqlite-vector, where CodeGraphContext
   also reaches all 1,091 resolved sites (with 12 contradictions to
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
-  compiler-graded row but two. quic-go reads 3,766/3,781, a 99.6% lower
+  compiler-graded row but one. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 3,269/3,273 (99.88%; strict 99.48%, ADR-124): all 4 contradictions
-  are scip-clang's wrong candidate (C-153); the unevaluated-operand
-  edge (C-155) is lifted (ADR-121).
+  reads 3,269/3,269 (100%; strict 99.73%, ADR-124): scip-clang's
+  wrong-specialisation edges are withheld where the source contradicts
+  them (ADR-125), and two C-153 rows remain unjudged.
   Its recall lead within a row runs from none (sqlite-vector), half a
   point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
@@ -386,9 +386,9 @@ its own: no model, no credential, no network.
 **The oracle lane (ADR-089) has run both phases** — Go and TS
 compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C and C++ clang-graded — with every compiler-graded cell
-at 100% after ADR-090 and ADR-111 but two: quic-go at 99.6% (every
-contradiction the oracle's grain) and C++'s fmt at 99.88% (strict 99.48%; all 4
-contradictions C-153 through scip-clang; C-155 lifted). The
+at 100% after ADR-090 and ADR-111 but one: quic-go at 99.6% (every
+contradiction the oracle's grain). C++'s fmt reads 100% with a strict
+99.73% beside it (ADR-124; two C-153 rows unjudged, ADR-125). The
 misses are registered by class.
 
 **The derivation programme is built and under test.** The latest run (the

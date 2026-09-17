@@ -163,9 +163,23 @@ their segment, in that order, and are marked in the heading.
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
 | folded | 6 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28, C-120 → C-112 |
 
-The table is the register's current state (2026-09-16), read from each
+The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-153 narrowed, C-152 amended, C-70 settled, 2026-09-17 (ADR-125, 0.2.37-beta; ADR-123, 0.2.36-beta):
+- **C-153 narrowed, still unsurfaced:** a C++ call written through one
+  explicit specialisation that lane B resolved into another's member draws
+  no edge (`qualifier-mismatch` in the tail). On fmt that withheld 8 of the
+  10 wrong edges and no right one. Two `format_as` rows remain, and the
+  rule has residuals of its own. The surfacing ADR-125 §4 names is next.
+- **C-152 amended:** a disagreement in a compiled C++ file is shaped
+  `cpp-withheld` and no longer fails `hobbes lanes` (exit 3); the residual
+  (a lane B error there is reported, not failed on) is written in the
+  entry.
+- **C-70:** the open question whether CI should fail on it is settled by
+  the `same-line-pair` shape.
+- Counts unchanged: 158 entries, 114 active, 88 surfaced, 4 unsurfaced.
 
 C-158 registered, 2026-09-16 (night, last; ADR-122, 0.2.35-beta):
 - **C-158 registered (surfaced)**, in `extraction-lane-b-environments.md`:

@@ -508,7 +508,7 @@
   "run": "contained",
   "draw": "picked",
   "label": "fmt",
-  "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; all 4 contradictions are scip-clang's own single wrong candidate, drawn by Hobbes and owned by P9 (C-153), and 6 more of that shape are unjudged, not fixed: judged like-for-like it reads 99.69% (3,269/3,279); the oracle's own defects on this cell (H-28–H-31) are fixed, and C-155 is lifted"
+  "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted"
  },
  "args-cpp": {
   "lang": "C++",
