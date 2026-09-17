@@ -11912,3 +11912,109 @@ still counted among fmt's contradictions (ratio 5 : 0 → 4 : 0).
 The register index's dated 2026-09-16 note keeps its numbers: it was
 true when written. AGENTS.md is the same file as CLAUDE.md. No version
 bump: docs only.
+
+### Later the same session — the review's decisions, written up, then built in Max's order (0.2.36–0.2.38-beta)
+
+**Direction (Max).** "Honesty and accuracy matter more than just a recall
+number due to being our floor… any decisions should first consider
+honesty and accuracy when dealing with the extraction lane." Then, on the
+routes recommended: "go with your order, write up first then proceed with
+the order". The order was item 5 (lanes), 3 (strict precision),
+4 (C-153), 1 (dispatch reach).
+
+**Written first (`4553a5a`), before any build or measurement:** ADR-123
+(`hobbes lanes` names a registered disagreement, exit 3), ADR-124 (strict
+precision beside every grade), ADR-125 (C-153: measure a rule, then
+abstain or surface), ADR-126 (reach through dispatch is measured, not
+drawn). §10.11 and §10.12 pre-registered in `oracle-grading.md`.
+
+**Item 5 — ADR-123, 0.2.36-beta.** Dispatched as `4338` (41 turns, gate
+right-clear, merged no-ff).
+- Every site disagreement carries a `shape`: `same-line-pair` (C-70)
+  when lane A's one guess is lane B's answer at a sibling site of that
+  name; `cpp-withheld` (C-152) in a compiled C++ file. The command exits
+  3 when every row is shaped.
+- Two gaps the review found were fixed by the developer on top:
+  - the drawn-guess count included sites the external veto had already
+    dropped;
+  - the C++ rate counted only `cpp-withheld` rows.
+- Predictions met exactly:
+  - quic-go: 17 of 17 `same-line-pair`, exit 3;
+  - fmt: 316 of 316 `cpp-withheld`, exit 3, printing that lane A's C++
+    guess disagreed at 316 of 2,097 C++ sites and that the same guess is
+    drawn at 63 sites in C++ files lane B did not index;
+  - this repo: 0.
+- C-152 amended with the residual (a lane B error in those files is
+  reported, not failed on). C-70's open CI question settled.
+
+**Item 3 — ADR-124, bench and docs only (`d1feba1`).**
+- The grader adds `precision_strict` = confirmed / (confirmed +
+  contradicted + `line-unresolved`), printed under the standing line.
+- `render.py` computes it from every record's silent map, with no
+  regrade, and every quoted precision carries it where the two differ.
+  That applies to the competitor tools alike: 14 records have
+  `line-unresolved > 0`.
+- "Like-for-like" retired from the public docs. fmt then read 99.88%
+  (strict 99.48%).
+- Found on the way: the claim page read repowise fmt 2,410/5,025; the
+  record says 5,024.
+
+**Item 4 — ADR-125, 0.2.37-beta and 0.2.38-beta.**
+- **§10.11 graded before any build.**
+  - R-qual (the written qualifier's template arguments against the
+    resolved owner's) matched exactly the eight predicted rows and no
+    confirmed edge on fmt or args.
+  - R-self (target is the caller) would have removed 10 real recursions
+    on args, so it was not built.
+- **Amended before the build.** Reading the rule found it too wide for
+  a primary-template owner or a partial specialisation (right edges on
+  other repos). Narrowed to owners declared `template <>`; all eight
+  still qualify.
+- **Built as `145d`** (94 turns, gate right-clear, merged no-ff).
+  - The regrade missed P66 on the count: 6 of the 8 went, because
+    `FMT_BEGIN_NAMESPACE` put `template <>` into an ERROR node before
+    two specialisations (C-145).
+  - The developer's `9daffdc` reads those exact tokens back. P69 met:
+    fmt **3,269/3,269 (100%), strict 99.73%**, recall unchanged to the
+    pair, args identical, poison PASS.
+  - Record, graphics, README, architecture and C-153 updated.
+- **§4 surfacing built as `b0ed`** (61 turns, gate right-clear, merged
+  no-ff).
+  - `who_calls` marks semantic C++ calls from a template pattern, and
+    one `cpp-template-sites` record counts them.
+  - fmt: 596 of 2,811, both remaining `format_as` rows marked.
+  - C-153: unsurfaced → **partial**. The register is now 88 surfaced,
+    22 partial, 3 unsurfaced.
+
+**Item 1 — ADR-126, measured only (§10.12).** jsoup and click were
+re-ingested at the keys' commits, contained.
+- The override set is the compiler's: 2,837 of 2,944 expanded pairs are
+  in javac's CHA set, and CHA-set recall is 97.4%. The one pair outside
+  is a bridge-method override the key's erasure rule misses.
+- **All 106 unjudged pairs sit at calls javac resolved statically**
+  (`super.clone()` at `CDataNode.java:37`, private and final methods).
+  A naive expansion would be wrong there, 3.6% of pairs, including the
+  caller as its own override.
+- click: 27.5% of 360 pairs observed. args: 353 unjudged by construction.
+- The median fan-out is 1 (P63 missed on the median).
+- **Nothing drawn.** A surface is Max's decision, and would need a
+  syntax exclusion for every call the language does not dispatch.
+
+**Tracker 40 of 40** (4 areas, 1 false block, 0 missed). Suites: pytest
+1,709 collected (lane_b 7 passed on the host), Go `./...` ok, oracle
+grade and report ok.
+
+**Found by use, my mistakes, recorded:**
+- **A chained `… && setsid … &` backgrounds the whole chain.** It
+  launched a duplicate dispatch of `145d`'s brief
+  (`S-20260917T132013Z-e1c6`), stopped before its gate. Its branch holds
+  `b4d8b38`, not merged, with no session log.
+- **The same mistake ran two ingests of this repo at once.** The graph
+  it left had several lane B units failed ("wrote no facts file"), all
+  recorded in `extraction_errors`. Concurrent ingests of one repo break
+  each other, and nothing refuses the second; worth a constraint or a
+  lock.
+
+Binaries, static proxy and image rebuilt at 0.2.38-beta; this repo
+re-ingested at `8bda3ec` (all 19 units a cache miss after the image
+change, lanes exit 0). **Restart the knowledge server** (C-65).

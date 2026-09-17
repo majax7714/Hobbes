@@ -1,13 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-16 (night, latest); Hobbes 0.2.35-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-17; Hobbes 0.2.38-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): **restart it**
-— the image was rebuilt at 0.2.35-beta at the end of this session.
+— the image was rebuilt at 0.2.38-beta at the end of this session.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.35-beta are untagged. Tags stay Max's call each time.
+  0.2.38-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -15,9 +15,10 @@ the image it started from until it is restarted (C-65): **restart it**
   constraint's fix is a patch even when structural** (Max, 2026-09-13).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-16 "lane B reads an
-unchanged unit from its index cache" BUILDLOG entry (ADR-122,
-0.2.35-beta). Before it, the same day: "no call in an unevaluated
+The latest session's record is the 2026-09-17 "Top-level docs reviewed
+at 0.2.35-beta" BUILDLOG entry and its later section (ADR-123–126,
+0.2.36–0.2.38-beta). Before it, 2026-09-16: "lane B reads an unchanged
+unit from its index cache" (ADR-122, 0.2.35-beta), "no call in an unevaluated
 operand" (ADR-121, 0.2.33-beta and 0.2.34-beta), "the override set is
 drawn" (ADR-120, 0.2.32-beta), the "top-level review" entry (the drift fix,
 ADR-118, ADR-119, the review page), ADR-117 (C-156 surfaced), O10's four
@@ -25,7 +26,44 @@ defects fixed, and the 2026-09-15 "foreign C++ cells" entry. Earlier sessions' d
 lives in their own BUILDLOG entries; this file keeps only what the next
 session needs.
 
-## ⇢ START HERE NEXT SESSION
+## ⇢ START HERE NEXT SESSION (2026-09-17)
+
+The 2026-09-17 BUILDLOG entry is the record: the top-level review, then
+the review's decisions written up (ADR-123–126, §10.11–10.12) and built
+in Max's order. Max's standing direction from it: **honesty and accuracy
+come before a recall number on the extraction lane** — weigh every
+extraction decision against them first.
+
+0. **What landed (all merged no-ff, gate right-clear; tracker 40 of 40):**
+   - **0.2.36-beta, ADR-123:** `hobbes lanes` shapes a disagreement
+     `same-line-pair` (C-70) or `cpp-withheld` (C-152) and exits 3 when
+     every row is shaped (quic-go 17/17, fmt 316/316); CI passes on 3.
+   - **ADR-124 (bench):** strict precision beside every grade and every
+     quoted figure, for every tool; "like-for-like" retired.
+   - **0.2.37-beta, ADR-125 R-qual:** a C++ call whose written
+     specialisation contradicts lane B's `template <>` owner draws
+     nothing (`qualifier-mismatch`). fmt **100%** (3,269/3,269), strict
+     99.73%, recall unchanged; args identical.
+   - **0.2.38-beta, ADR-125 §4:** `who_calls` marks semantic C++ calls
+     from a template pattern; one `cpp-template-sites` record. C-153
+     unsurfaced → partial.
+   - **ADR-126 measured, nothing drawn:** the override set is javac's
+     (97.4% CHA recall), but 106 of jsoup's 2,944 expanded pairs (3.6%)
+     sit at calls that do not dispatch (`super.`, private, final).
+   - Where things are: `~/.hobbes/bench/lanes-shape-drivers/`,
+     `c153-rule/` (measure.py, regrade.sh, the briefs),
+     `dispatch-reach/` (measure.py, jsoup/click/args JSON).
+00. **Clean up, then decide:**
+   - **A duplicate dispatch branch to delete:** `hobbes/S-20260917T132013Z-e1c6`
+     (`b4d8b38`, a second run of `145d`'s brief launched by mistake,
+     stopped before its gate, no session log). Unmerged; delete with
+     `git branch -D` once read, and `rm -r ~/.hobbes/sessions/S-20260917T132013Z-e1c6`.
+   - **Concurrent ingests of one repo break each other** (found by the
+     same mistake): lane B units failed with "wrote no facts file", recorded
+     in `extraction_errors`, and nothing refused the second ingest. A lock
+     or a constraint entry is the next small no-spend item.
+
+## Earlier resume points (2026-09-16), kept for their paths
 
 0. **0.2.35-beta (ADR-122): lane B reads an unchanged unit from its
    index cache.** The review's next speed item, done and measured.
@@ -332,26 +370,21 @@ session needs.
    partition files are in `~/.hobbes/bench/gate-drivers/`, a pattern
    for the next brief.
 11. **Open for Max (no spend):**
+   - **Settled 2026-09-17 (routes Max approved):** the judged-as-before
+     companion (ADR-124: strict precision instead); C-153 (ADR-125:
+     withheld where the source contradicts, the rest surfaced as
+     partial); `hobbes lanes` on fmt (ADR-123: exit 3).
+   - **New, ADR-126 §3:** whether to build the "may reach through
+     dispatch (not traced)" section in `tests_guarding` and `hobbes
+     review` on §10.12's numbers. It would need a syntax exclusion for
+     every non-dispatched call (Java `super.`/private/static/final,
+     Python `super()`, C++ class-qualified) and would say no key confirms
+     reach. Nothing is drawn until then.
    - **Nothing in the oracle's defect log is open.** H-28–H-32 were all
-     fixed on 2026-09-16; what is left on fmt is C-153 alone.
-   - **ADR-121 §2's choice** (item 1): lane B's occurrence at an
-     unevaluated site stands as a `uses` edge and there is no tail
-     class; the review had sketched claiming it and a class
-     `unevaluated`. Yours to keep or reverse.
-   - **The reporting call H-30's fix forces:** the rule silences 6 of
-     C-153's 10 rows, where Hobbes' edge is genuinely wrong, lifting fmt
-     from 99.69% like-for-like to a reported 99.88%. Whether the lane
-     should print a "judged-as-before" companion number on any cell with
-     `line-unresolved > 0` is yours, not a regrade's to settle.
-   - **C-153 is unsurfaced** (debt): scip-clang's single answer at a
-     call in a template can name the wrong declaration (10 of fmt's
-     3,395 judged semantic edges). Nothing at the site can detect it.
-     Whether to accept it as documented-only is Max's.
-   - **`hobbes lanes` exits 1 on fmt**: 316 disagreements where lane A
-     guesses, none drawn (read against the key in fmt's record). This
-     repo's graph has 0 C++ disagreements, so CI is unaffected. The two
-     routes: compare C++ only where the fallback could draw, or keep it
-     as the self-test's report.
+     fixed on 2026-09-16; fmt has no contradiction left.
+   - **ADR-121 §2's choice — kept** (Max approved the routes 2026-09-17):
+     lane B's occurrence at an unevaluated site stays a `uses` edge, a
+     true dependency; nothing to build.
    - **C-150's remainder** (large repos, every language): the join's
      output and the graph built from it, after ADR-115 and ADR-116 took
      the decode's and the read's share. Parked (Max: "fine for now").
@@ -449,24 +482,24 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-16)
+## WHERE THINGS STAND (2026-09-17)
 
 - **Languages:** Python, TS/JS, Go, Rust, Java, C and C++ supported, each
   as far as its §3.8 row (P11); Terraform/HCL structure.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Thirty-seven log files under `docs/calvin/sessions/`.
+  is a tmpfs. Forty log files under `docs/calvin/sessions/`; the tracker reads 40 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 158 entries: 114 active (88 surfaced, 21 partial, 4
-  unsurfaced — C-19, C-20, C-112, C-153 — 1 n/a), 27 lifted, 11
-  superseded, 6 folded. Latest: C-158 registered and surfaced (ADR-122,
-  0.2.35-beta); C-155 lifted (ADR-121, 0.2.33-beta); C-157 registered
-  and surfaced, C-58 narrowed (0.2.32-beta, ADR-120).
+- **Register:** 158 entries: 114 active (88 surfaced, 22 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 27 lifted, 11 superseded, 6
+  folded. Latest: C-153 narrowed then partial (ADR-125, 0.2.37/0.2.38-beta);
+  C-152 amended and C-70 settled (ADR-123, 0.2.36-beta); C-158
+  registered (ADR-122, 0.2.35-beta).
 - **Oracle defect log: nothing open.** H-28–H-32 all fixed 2026-09-16
   (H-32, the key's site in an unevaluated operand, opened RC-11).
   RC-2 gained its sixth sighting and closed with H-31 (macro-carried
@@ -474,9 +507,9 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.35-beta: 1,673 pytest (0.2.34-beta's 1,655 and
-  `test_indexcache.py`'s 18; collected 2026-09-17), and Go 390
-  (389 pass, 1 skip) against the rebuilt image (2026-09-16); 87 scip node
+- **Suites** at 0.2.38-beta: 1,709 pytest collected (all pass on the
+  host, `lane_b` 7 of them; 2026-09-17), Go `./...` all ok (2026-09-17;
+  last counted 390, 389 pass / 1 skip, 2026-09-16); 87 scip node
   (2026-09-16);
   oracle-lane Go 116 with subtests, 104 pass / 12 skip on this host,
   which has no clang++ or cmake (the five C++ fixture tests run and
@@ -489,10 +522,11 @@ min each.
 ## NEXT (in order; no API spend)
 
 1. **Keep dispatching named no-spend work through the harness,** one
-   unit per brief, toward 40 (three to go): lane A's file cache,
-   measured with the timing block (lane B's index cache is done, item
-   0), then the rest of the review's list in item 3's order; ADR-120
-   §7's expansion once Max decides it (item 2);
+   unit per brief (the validating 40 are done; the harness stays the way
+   work is done): the concurrent-ingest lock (START HERE 00); lane A's
+   file cache, measured with the timing block; then the rest of the
+   review's list in the 2026-09-16 item 3's order; ADR-126's surface once
+   Max decides it;
    C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
