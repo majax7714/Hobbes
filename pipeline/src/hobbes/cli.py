@@ -96,6 +96,42 @@ def _print_implements(counts: dict | None) -> None:
         print("    implements not drawn: " + "; ".join(parts))
 
 
+def _print_minted(counts: dict | None) -> None:
+    """The definitions lane A's parse lost and lane B's index gave back
+    (ADR-129 §5): how many became symbols, in how many files, and how many
+    rows the rule refused, by reason — printed under the graph line, where
+    a reader meets the numbers minting moved.
+
+    A minted symbol is a target, not a scope (ADR-129 §3), and the line
+    says so rather than letting the count read as recovered parsing: a
+    call written *inside* a lost definition still keeps the caller it had.
+    Nothing is printed where the key is absent — no indexer, or no C or
+    C++, is the floor exactly as it was (P6) — or where the rule neither
+    minted nor refused anything.
+    """
+    if not counts:
+        return
+    refused = counts.get("refused") or {}
+    if not counts.get("symbols") and not any(refused.values()):
+        return
+    print(
+        f"    read from the index: {counts.get('symbols', 0)} definition(s) in "
+        f"{counts.get('files', 0)} file(s) lane A parsed with errors "
+        "(C-145; targets only — calls written inside them keep their caller)"
+    )
+    from hobbes.extract.minted import REFUSALS
+
+    # The reasons in the order `minted.py` declares them, so the block
+    # reads the same way on every repo; a reason that did not fire is left
+    # out rather than printed as 0. A reason this Hobbes does not know —
+    # an artifact from another version — is named after them rather than
+    # dropped: an unlisted refusal would read as a row that was minted.
+    order = [*REFUSALS, *sorted(key for key in refused if key not in REFUSALS)]
+    parts = [f"{refused[key]} {key}" for key in order if refused.get(key)]
+    if parts:
+        print("    not minted: " + ", ".join(parts))
+
+
 def _print_containment(record: dict | None) -> None:
     """Where lane B ran (ADR-092), and what a contained step that ran repo
     code could still write (ADR-128 §2).
@@ -221,6 +257,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
         + (f", {other} other symbol edges" if other else "")
     )
     _print_implements(graph.get("implements"))
+    _print_minted(graph.get("minted"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

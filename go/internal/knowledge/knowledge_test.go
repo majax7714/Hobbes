@@ -282,6 +282,80 @@ func TestWhoCallsWithoutTemplatePatternsRendersUnchanged(t *testing.T) {
 	}
 }
 
+// ADR-129 §5: a symbol lane B declared is a definition lane A's parse
+// lost, minted from the index so calls into it draw at all. who_calls says
+// so before it lists anyone — the node is a target and not a scope, so the
+// symbol's own outgoing calls are attributed to whatever lane A parsed
+// around them, and a reader who is not told would count that silence as
+// "it calls nothing" (P8, C-145).
+func TestWhoCallsMarksASymbolLaneBDeclared(t *testing.T) {
+	const note = "definition read from the index"
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "src/fmt.h.fmt::detail::write", "module": "src/fmt.h",
+			"kind": "function", "line": 120, "end_line": 120, "declared_by": "scip"})
+	doc["symbol_edges"] = append(doc["symbol_edges"].([]any),
+		map[string]any{"from": "app.api.handler", "to": "src/fmt.h.fmt::detail::write",
+			"type": "calls", "tier": "semantic",
+			"evidence": []map[string]any{{"path": "src/app/api.py", "line": 11, "lane": "scip"}}})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	s := Open(repo)
+	got, err := s.WhoCalls("src/fmt.h.fmt::detail::write")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got, note) || !strings.Contains(got, "C-145") {
+		t.Errorf("a symbol lane B declared is presented as one lane A parsed:\n%s", got)
+	}
+	if !strings.Contains(got, "attributed to the enclosing symbol or the module") {
+		t.Errorf("the note does not say what the minted node costs a reader:\n%s", got)
+	}
+	// Before the callers, and after the header: it qualifies every line
+	// under it, and the header stays the first thing read.
+	marked, listed, found := strings.Cut(got, "callers of src/fmt.h.fmt::detail::write:")
+	if !found || !strings.Contains(marked, note) || strings.Contains(listed, note) {
+		t.Errorf("want the note under the header and above the callers:\n%s", got)
+	}
+	if !strings.Contains(listed, "app.api.handler") {
+		t.Errorf("the caller is missing:\n%s", got)
+	}
+
+	// A symbol lane A parsed carries nothing, in the same graph: the note
+	// names which symbols are new, so claiming it everywhere says nothing.
+	laneA, err := s.WhoCalls("app.core.run")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(laneA, note) || strings.Contains(laneA, "C-145") {
+		t.Errorf("a lane A symbol was marked as read from the index:\n%s", laneA)
+	}
+}
+
+// An artifact built before ADR-129 carries no `declared_by`, and neither
+// does a repo without C or C++ — both must render exactly as they did.
+func TestWhoCallsWithoutDeclaredByRendersUnchanged(t *testing.T) {
+	got, err := Open(fixtureRepo(t)).WhoCalls("app.api.handler")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(got, "C-145") || strings.Contains(got, "read from the index") {
+		t.Errorf("a graph without declared_by gained a note:\n%s", got)
+	}
+	if !strings.Contains(got, "no recorded callers") {
+		t.Errorf("the unchanged answer moved:\n%s", got)
+	}
+}
+
 func TestWhoCallsKnownSymbolWithoutCallers(t *testing.T) {
 	s := Open(fixtureRepo(t))
 	out, err := s.WhoCalls("app.api.handler")
