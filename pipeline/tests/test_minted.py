@@ -238,6 +238,47 @@ class TestWhatIsRefused:
         )
         assert symbols == [] and counts["refused"]["declaration"] == 1
 
+    def test_an_unnamed_struct_mints_nothing(self, tmp_path):
+        # scip-clang invents a name for it; the source has none to give the
+        # symbol. cJSON's and sqlite-vector's whole mint was this shape.
+        symbols, counts = mint(
+            tmp_path,
+            {"a.c": "typedef struct {\n    int n;\n} hooks;\n"},
+            [row("a.c", 1, "type", "cxx . . $ $anonymous_type_9456a0145d41eb51_0#")],
+        )
+        assert symbols == [] and counts["refused"]["anonymous"] == 1
+
+    def test_a_member_of_an_unnamed_struct_mints_nothing(self, tmp_path):
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": "struct { int get() { return 1; } } one;\n"},
+            [row("a.h", 1, "method", "cxx . . $ $anonymous_type_11#get(1a).")],
+        )
+        assert symbols == [] and counts["refused"]["anonymous"] == 1
+
+    def test_a_type_lane_a_already_names_at_another_line_mints_nothing(self, tmp_path):
+        # `typedef struct cJSON {…} cJSON;`: lane A names the typedef at the
+        # closing line, lane B the tag's. Lane A did not lose this type.
+        typedef = {**lane_a("a.h", "cJSON", 9), "kind": "type"}
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": "typedef struct cJSON\n{\n" + "    int n;\n" * 6 + "} cJSON;\n"},
+            [row("a.h", 1, "type", "cxx . . $ cJSON#")],
+            symbols=[typedef],
+        )
+        assert symbols == [] and counts["refused"]["lane-a-has-type"] == 1
+
+    def test_a_function_lane_a_names_at_another_line_is_an_overload_and_still_mints(
+        self, tmp_path
+    ):
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": "int f(int x) { return x; }\n\n\n\n\nint f(long x) { return 1; }\n"},
+            [row("a.h", 6, "method", "cxx . . $ ns/f(2b).")],
+            symbols=[lane_a("a.h", "f", 1)],
+        )
+        assert [s["line"] for s in symbols] == [6] and counts["refused"]["lane-a-has-type"] == 0
+
     def test_a_moniker_the_reader_cannot_spell_mints_nothing(self, tmp_path):
         symbols, counts = mint(
             tmp_path,

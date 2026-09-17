@@ -58,6 +58,23 @@ confirmed. The refusals, with what the measurement said:
     a block-scope ``using``, and every ``= default;`` and ``= delete;``.
     308 on fmt. Lane A's own rule, kept: symbols come from definitions
     only, never a declaration.
+``anonymous``
+    A descriptor in the chain is one scip-clang invented for an unnamed
+    struct, union or enum (``$anonymous_type_9456…_0``). There is no name
+    in the source to give the symbol, and lane A names such a type by its
+    ``typedef`` where it has one. Found by the built rule's first regrade,
+    not by the probe — which only saw definitions some call targets: every
+    symbol the C cells minted was of this shape or the next (cJSON 11,
+    sqlite-vector 10), and 21 on fmt.
+``lane-a-has-type``
+    The row is a ``type`` and lane A already holds a ``type`` of the same
+    terminal name in the module, at another line: ``typedef struct cJSON
+    {…} cJSON;`` (lane A names the typedef, lane B the tag's line), or the
+    two arms of an ``#if`` (fmt's ``using day = std::chrono::day;`` and
+    its fallback ``class day``). Lane A did not lose that type, and its
+    one-symbol-per-name rule for types already chose. Same regrade: 11 on
+    fmt. Functions are not refused this way — two bodies of one name are
+    overloads, and the second takes ``~b2``.
 ``unreadable``
     The moniker is not a descriptor chain this module can spell, so
     there is no name to give the symbol. Not in the ADR's tally: the
@@ -102,8 +119,14 @@ REFUSALS = (
     "several-monikers",
     "lane-a-symbol-near",
     "declaration",
+    "anonymous",
+    "lane-a-has-type",
     "unreadable",
 )
+
+#: scip-clang's spelling for a struct, union or enum the source does not
+#: name. A chain holding one has no source name to give the symbol.
+_ANONYMOUS = "$anonymous"
 
 #: The descriptor suffixes SCIP spells, by what they denote. A method's is
 #: not here: it is ``(<disambiguator>).``, read by :func:`read_moniker`.
@@ -150,6 +173,7 @@ def mint(
 
     lane_a_lines: dict[str, set[int]] = {}
     lane_a_named: dict[tuple[str, str], list[int]] = {}
+    lane_a_types: set[tuple[str, str]] = set()
     taken = {symbol["id"] for symbol in symbols}
     for symbol in symbols:
         module = symbol.get("module")
@@ -157,6 +181,8 @@ def mint(
             continue  # a module node, not a symbol
         lane_a_lines.setdefault(module, set()).add(symbol["line"])
         lane_a_named.setdefault((module, symbol["name"]), []).append(symbol["line"])
+        if symbol.get("kind") == "type":
+            lane_a_types.add((module, symbol["name"]))
 
     minted: list[dict] = []
     files: set[str] = set()
@@ -180,6 +206,9 @@ def mint(
         if any(suffix == "method" for _, suffix in chain[:-1]):
             refused["local-to-function"] += 1
             continue
+        if any(part.startswith(_ANONYMOUS) for part, _ in chain):
+            refused["anonymous"] += 1
+            continue
         if len(monikers_at[(file, line)]) > 1:
             refused["several-monikers"] += 1
             continue
@@ -189,6 +218,9 @@ def mint(
             continue
         if not shows_body(repo_root, file, line, sources):
             refused["declaration"] += 1
+            continue
+        if kind == "type" and (module, name) in lane_a_types:
+            refused["lane-a-has-type"] += 1
             continue
         qualname = "::".join(part for part, _ in chain)
         minted.append(
