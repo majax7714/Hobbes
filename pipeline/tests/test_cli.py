@@ -258,6 +258,94 @@ class TestLanes:
         assert "syntactic -> src/miniapp/util.py:6" in out
         assert "semantic  -> src/miniapp/other.py:2" in out
 
+    @staticmethod
+    def _disagreement(name, shape="__unset__", **over):
+        """One site-disagreement row, shaped unless told otherwise."""
+        row = {
+            "file": "src/miniapp/core.py",
+            "line": 16,
+            "name": name,
+            "syntactic": "src/miniapp/util.py:6",
+            "semantic": "src/miniapp/other.py:2",
+        }
+        if shape != "__unset__":
+            row["shape"] = shape
+        row.update(over)
+        return row
+
+    def _with_rows(self, git_fixture, rows):
+        """Ingest, then put *rows* in the graph's lane-agreement report."""
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        graph_path = git_fixture / ".hobbes" / "derived" / "graph.json"
+        graph = json.loads(graph_path.read_text())
+        graph["lane_agreement"]["site_disagreements"] = rows
+        graph["lane_agreement"]["cpp_sites_compared"] = 40
+        graph["lane_agreement"]["cpp_guess_drawn"] = 7
+        graph_path.write_text(json.dumps(graph))
+        return graph_path
+
+    def test_every_row_shaped_exits_three(self, git_fixture, capsys):
+        """ADR-123 §2: a check red on registered limits stops being read,
+        so all-shaped is its own status — the rows are still listed."""
+        self._with_rows(
+            git_fixture,
+            [
+                self._disagreement("normalize", "same-line-pair"),
+                self._disagreement("close", "cpp-withheld"),
+            ],
+        )
+        capsys.readouterr()
+
+        assert cli.main(["lanes", "--repo", str(git_fixture)]) == 3
+        out = capsys.readouterr().out
+        assert (
+            "2 disagree — 0 unexplained, 1 same-line-pair (C-70), "
+            "1 cpp-withheld (C-152)"
+        ) in out
+        assert "src/miniapp/core.py:16 normalize() [same-line-pair]" in out
+        assert "every disagreement is a registered shape (exit 3, ADR-123)" in out
+        assert (
+            "lane A's C++ guess disagreed with lane B at 1 of the 40 C++ sites "
+            "compared; the same guess is drawn at syntactic tier at 7 site(s) "
+            "in C++ files lane B did not index (C-152)"
+        ) in out
+
+    def test_one_unexplained_row_exits_one_and_is_printed_first(
+        self, git_fixture, capsys
+    ):
+        self._with_rows(
+            git_fixture,
+            [
+                self._disagreement("normalize", "cpp-withheld"),
+                self._disagreement("mystery", None),
+            ],
+        )
+        capsys.readouterr()
+
+        assert cli.main(["lanes", "--repo", str(git_fixture)]) == 1
+        out = capsys.readouterr().out
+        assert "2 disagree — 1 unexplained, 1 cpp-withheld (C-152)" in out
+        assert out.index("mystery()") < out.index("normalize() [cpp-withheld]")
+        assert "every disagreement is a registered shape" not in out
+
+    def test_a_row_from_before_the_shapes_still_exits_one(self, git_fixture, capsys):
+        """An older graph carries no `shape` key: nothing checked the row,
+        so the check fails rather than passing on an absence."""
+        self._with_rows(git_fixture, [self._disagreement("normalize")])
+        capsys.readouterr()
+
+        assert cli.main(["lanes", "--repo", str(git_fixture)]) == 1
+        assert "1 disagree — 1 unexplained" in capsys.readouterr().out
+
+    def test_json_exits_three_when_every_row_is_shaped(self, git_fixture, capsys):
+        self._with_rows(git_fixture, [self._disagreement("normalize", "cpp-withheld")])
+        capsys.readouterr()
+
+        assert cli.main(["lanes", "--repo", str(git_fixture), "--json"]) == 3
+        assert json.loads(capsys.readouterr().out)["site_disagreements"][0][
+            "shape"
+        ] == "cpp-withheld"
+
     def test_module_edge_differences_alone_do_not_fail(self, git_fixture, capsys):
         """Lane B following a re-export past the package is not a bug.
 

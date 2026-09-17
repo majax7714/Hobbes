@@ -441,8 +441,18 @@ def _cmd_diff(args: argparse.Namespace) -> int:
     return 1 if has_changes(delta) else 0
 
 
+#: The registered limit behind each disagreement shape (ADR-123 §1), in
+#: the order the summary prints them.
+_SHAPE_CONSTRAINTS = {"same-line-pair": "C-70", "cpp-withheld": "C-152"}
+
+
 def _cmd_lanes(args: argparse.Namespace) -> int:
-    """Report where the two extraction lanes disagree (§3.4)."""
+    """Report where the two extraction lanes disagree (§3.4).
+
+    Exit 0 no disagreement, 1 at least one a rule cannot explain, 3 every
+    row a registered shape (ADR-123 §2), 2 no report to read. Nothing is
+    hidden by the shapes: every row is still listed and counted.
+    """
     from hobbes.artifacts import ArtifactError, load_graph
 
     repo_root = _repo_root_from(args)
@@ -460,23 +470,51 @@ def _cmd_lanes(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
+    status = _lanes_exit(report)
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
-        return 1 if _has_disagreement(report) else 0
+        return status
 
     sites = report["sites_compared"]
     site_bad = report["site_disagreements"]
+    # ADR-123 §3: the split beside the count, and the rows a rule does not
+    # explain first — they are the ones a reader must look at.
+    unexplained = [row for row in site_bad if not row.get("shape")]
+    shaped = [row for row in site_bad if row.get("shape")]
+    counts = Counter(row["shape"] for row in shaped)
+    split = ""
+    if site_bad:
+        parts = [f"{len(unexplained)} unexplained"] + [
+            f"{counts[shape]} {shape} ({constraint})"
+            for shape, constraint in _SHAPE_CONSTRAINTS.items()
+            if counts[shape]
+        ]
+        split = " — " + ", ".join(parts)
     print(f"lane agreement @ {graph['sha'][:12]}")
     print(
         f"  call sites both lanes resolved: {sites}"
-        f" — {len(site_bad)} disagree"
+        f" — {len(site_bad)} disagree{split}"
     )
-    for row in site_bad[:20]:
-        print(f"    {row['file']}:{row['line']} {row['name']}()")
+    for row in (unexplained + shaped)[:20]:
+        shape = f" [{row['shape']}]" if row.get("shape") else ""
+        print(f"    {row['file']}:{row['line']} {row['name']}(){shape}")
         print(f"      syntactic -> {row['syntactic']}")
         print(f"      semantic  -> {row['semantic']}")
     if len(site_bad) > 20:
         print(f"    ... and {len(site_bad) - 20} more")
+
+    # The C++ rows are evidence about the guesses that *are* drawn, so the
+    # rate is printed with both its denominator and its drawn counterpart
+    # (ADR-123 §3, C-152 with C-135's C++ face).
+    if counts["cpp-withheld"]:
+        print(
+            "  lane A's C++ guess disagreed with lane B at "
+            f"{counts['cpp-withheld']} of the "
+            f"{report.get('cpp_sites_compared', 0)} C++ sites compared; the "
+            "same guess is drawn at syntactic tier at "
+            f"{report.get('cpp_guess_drawn', 0)} site(s) in C++ files lane B "
+            "did not index (C-152)"
+        )
 
     only_a = report["module_edges_lane_a_only"]
     only_b = report["module_edges_lane_b_only"]
@@ -514,7 +552,17 @@ def _cmd_lanes(args: argparse.Namespace) -> int:
 
     if not _has_disagreement(report):
         print("  the lanes agree wherever both can answer")
-    return 1 if _has_disagreement(report) else 0
+    elif not _has_unexplained(report):
+        print("  every disagreement is a registered shape (exit 3, ADR-123)")
+    return status
+
+
+def _lanes_exit(report: dict) -> int:
+    """`hobbes lanes`' exit status (ADR-123 §2): 0 no disagreement, 1 one
+    a rule cannot explain, 3 every row a registered shape."""
+    if not _has_disagreement(report):
+        return 0
+    return 1 if _has_unexplained(report) else 3
 
 
 def _has_disagreement(report: dict) -> bool:
@@ -526,6 +574,16 @@ def _has_disagreement(report: dict) -> bool:
     so it is reported and does not fail the check.
     """
     return bool(report["site_disagreements"])
+
+
+def _has_unexplained(report: dict) -> bool:
+    """Whether any site disagreement is *not* a registered shape (ADR-123).
+
+    A row with no ``shape`` key at all is a graph built before the shapes
+    existed: unexplained, because nothing checked it — the check fails
+    rather than passing on an absence.
+    """
+    return any(not row.get("shape") for row in report["site_disagreements"])
 
 
 def _cmd_narrate(args: argparse.Namespace) -> int:
