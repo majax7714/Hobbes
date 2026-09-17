@@ -892,15 +892,6 @@ repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import 
 </g>
 <text x="789.7" y="744.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
 <g>
-<title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 3,269/3,269 = 100.0% · strict 3,269/3,278 (99.7%)
-recall 7,333/50,524 = 14.5% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 21,908, static→function 10,317, static→constructor 8,205, macro→function 1,621, macro→method 1,140
-chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted</title>
-<circle cx="783.5" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="791.5" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
-<g>
 <title>args — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
 precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)
 recall 831/3,561 = 23.3% over every resolved site (resolution oracle: no roots)
@@ -910,14 +901,23 @@ repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import
 </g>
 <text x="817.9" y="533.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args ·rw</text>
 <g>
-<title>args — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 1,995/1,995 = 100.0%
-recall 2,010/3,561 = 56.4% over every resolved site (resolution oracle: no roots)
-misses by class: static→constructor 889, static→method 612, static→function 50
-random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)</title>
-<circle cx="909.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
+precision-against-oracle 6,510/6,510 = 100.0% · strict 6,510/6,537 (99.6%)
+recall 14,679/50,524 = 29.1% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 19,906, static→constructor 8,117, static→function 5,061, macro→function 1,621, macro→method 1,140
+chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted</title>
+<circle cx="827.3" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="917.2" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args</text>
+<text x="835.3" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
+<g>
+<title>args — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
+precision-against-oracle 2,062/2,062 = 100.0%
+recall 2,086/3,561 = 58.6% over every resolved site (resolution oracle: no roots)
+misses by class: static→constructor 889, static→method 540, static→function 46
+random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)</title>
+<circle cx="915.8" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="923.8" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args</text>
 <text x="60" y="844" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — py-trace (trace-graded)</text>
 <rect x="60" y="854" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="60.0" y1="854" x2="60.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
@@ -980,7 +980,7 @@ trace-graded under its own suite (dogfood)</title>
 <text x="305.8" y="939.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
 <line x1="24" y1="1236" x2="1066" y2="1236" stroke="#d9d8d2"/>
 <text x="24" y="1258" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The compiler contradicts almost nothing we draw, and each contradiction is read in its record; here is how much we do not draw, and what it is.</text>
-<text x="24" y="1276" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 14.5–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
+<text x="24" y="1276" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 29.1–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
 <text x="24" y="1292" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are registered by class: C-58 (closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables),</text>
 <text x="24" y="1308" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >and in C++ the classes each record tables: constructions, the member calls and overload sets lane B leaves unsettled, and macro-heavy parses (C-143, C-145, C-151).</text>
 <text x="24" y="1324" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>

@@ -54,17 +54,24 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong).
-   C++'s fmt reached 100% (3,269/3,269) at 0.2.37-beta. Its last four
+   C++'s fmt reached 100% at 0.2.37-beta (3,269/3,269) and holds it at
+   0.2.41-beta on twice the edges (6,510/6,510). Its last four
    contradictions were scip-clang naming a wrong specialisation that
    Hobbes drew (C-153); where the qualifier written at the call
    contradicts the index, Hobbes now draws nothing (ADR-125, 8 edges
-   withheld, 0 right ones). The call once drawn inside an unevaluated
+   withheld, 0 right ones); and where the call is written with more
+   arguments than the index's target can take, the same (ADR-130: 40
+   rows withheld on fmt, none of them confirmed — 35 of them edges that
+   reading lost definitions from the index, ADR-129, would otherwise
+   have drawn). The call once drawn inside an unevaluated
    `decltype` operand (C-155) is lifted (ADR-121), and the oracle's own
    defects on this cell, H-28–H-32, are fixed. **The 100% is still a
    lower bound with a lower companion, and the record says so:** H-30's
-   silence rule leaves 9 rows unjudged, two of them C-153's wrong
-   `format_as` edges. Counted as contradicted — the strict figure printed
-   beside every precision (ADR-124) — fmt is **99.73%** (3,269/3,278).
+   silence rule leaves 27 rows unjudged, three of them known C-153 wrong
+   edges (the two `format_as` rows and `format.h:2387`'s `write`), 18
+   of the 19 newest read by hand as right. Counted as contradicted — the
+   strict figure printed beside every precision (ADR-124) — fmt is
+   **99.59%** (6,510/6,537).
    Both are in `tables.md`.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
@@ -85,7 +92,7 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    0 falsely confirmed, with N and K beside it and the cells not in the
    sum named.
 3. **Here is how much Hobbes does not draw, and what it is.** Recall
-   runs from 14.5% (C++'s fmt, over every resolved site) to 100.0% (the best of dagger's
+   runs from 29.1% (C++'s fmt, over every resolved site; 14.5% before ADR-129) to 100.0% (the best of dagger's
    nineteen Go modules, each its own cell with its own root count, and
    C's sqlite-vector over its 1,091 resolved sites) across the
    compiler-graded cells, stated as a range and never averaged: each
@@ -142,9 +149,10 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    - **repowise:** fmt 2,410/5,024 (**48.0%**, was 45.2%; strict
      2,410/5,343, 45.1%), recall 13.9%; args 815/904 (**90.2%**, was
      87.0%; strict 815/937, 87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,269/3,269 (**100%**; strict
-     3,269/3,278, 99.73%, at 0.2.37-beta), recall 14.5%; args
-     1,995/1,995, recall 56.4%.
+   - **Hobbes, same keys:** fmt 6,510/6,510 (**100%**; strict
+     6,510/6,537, 99.59%, at 0.2.41-beta), recall 29.1%; args
+     2,062/2,062, recall 58.6%. (At 0.2.37-beta: fmt 3,269/3,269,
+     strict 99.73%, recall 14.5%; args 1,995/1,995, 56.4%.)
 
    **Why every tool's number rose on 2026-09-16, and Hobbes' barely
    moved.** The oracle's own H-30 defect was fixed that day: a line the

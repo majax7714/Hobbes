@@ -11,9 +11,63 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.40-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.41-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.41-beta — 2026-09-17 (a C/C++ definition lane A's parse lost is read from the index; R-arity; ADR-129, ADR-130)
+
+**Patch: what the layer draws and refuses** — a constraint's fix, and
+structural: for the first time a graph symbol can be declared by lane B.
+
+- **Measured first, nothing drawn.** C++ had the lowest recall of any
+  language (fmt 14.5%). C-145 named the largest cause: tree-sitter-cpp
+  cannot parse a declaration spelled through macros, lane A keeps no
+  symbol, and every call scip-clang resolved there fell `below-floor`. A
+  scratch probe graded the rule's export against clang's key before any
+  of it was built; a naive rule read 98.2%, and each refusal below
+  removed measured wrong edges. args was held out, its predictions
+  written before its probe ran (`oracle-grading.md` §10.13).
+- **The mint (`extract/minted.py`).** In a C or C++ file whose lane A
+  parse had ERROR nodes, lane B's own definition row becomes the symbol
+  (`declared_by: "scip"`), after the join and before the projection.
+  Only a function, method or type; only with a body the file's text
+  shows; never a definition inside a function, an unnamed struct's
+  invented name, a line with several monikers, a name lane A has within
+  three lines, or a type lane A already names elsewhere. **A target, not
+  a scope:** calls written inside a lost definition keep their caller.
+  Nothing lane A decides sees a minted symbol; with no lane B nothing is
+  minted (P6). `graph.json` gains a `minted` block (schema v4, additive).
+- **R-arity (ADR-130).** Reading the rows the mint left unjudged found 35
+  wrong edges it would have surfaced: `copy<Char>(begin, end, out)` drawn
+  to the two-parameter `copy` (scip-clang's one candidate at a dependent
+  call, C-153). A C++ call lane B answered, written with **more
+  arguments than the target's declarator can take**, now draws nothing
+  and is tailed `arity-mismatch`. Only "too many" (defaults live on
+  declarations elsewhere), only where both counts were read. It also
+  removes 5 wrong edges that were standing. Lane A's C++ file cache
+  format moved (`lanea-cpp v2`): its first ingest misses.
+- **Graded against the stored keys:** fmt **3,269 → 6,510 confirmed call
+  edges at 0 contradicted, recall 14.5% → 29.1%**, strict precision
+  99.73% → 99.59% (27 rows the key cannot judge; 18 of the 19 new ones
+  read by hand as right, one as a same-arity wrong candidate, named in
+  C-153). args 1,995 → 2,062 at 0 contradicted, recall 56.4% → 58.6%.
+  cJSON and sqlite-vector do not move. R-arity withheld exactly the 40
+  rows named before it was built, none of them confirmed.
+- **Two predictions missed and are recorded as misses** (P79, P80): the
+  probe counted only lost definitions some call targets, the rule mints
+  every one, and the first regrade found unnamed structs and
+  already-named types among them on the C cells — two refusals added
+  before the version moved.
+- **Where a user meets it:** the ingest summary prints the symbols read
+  from the index and every refusal by reason; `who_calls` says which
+  symbols lane B declared and that their own calls are not scoped;
+  `list_blind_spots` explains `arity-mismatch`. **C-145 and C-153
+  narrowed**; no entry added.
+- Dispatched as `S-20260917T172122Z-77da` (the mint; two refusals added
+  by the developer after the regrade), `S-20260917T174302Z-4048`
+  (R-arity) and `S-20260917T180521Z-b597` (the surfaces), all merged
+  no-ff.
 
 ## 0.2.40-beta — 2026-09-17 (C++ lane A exact-faster, then cached per file; the trusted stores read-only in every container; ADR-128)
 

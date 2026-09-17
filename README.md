@@ -161,20 +161,24 @@ figure below it:
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 100% (3,269/3,269), **strict 99.73%** (3,269/3,278)
-  with the 9 rows the grader could not judge counted against it (ADR-124).
-  Its last four contradictions were scip-clang naming the wrong
-  specialisation; where the written qualifier contradicts the index
-  Hobbes now draws nothing (ADR-125). Two rows of that provider error
-  (C-153) remain, unjudged rather than fixed, and a provider's error in
+- **fmt** (C++) reads 100% (6,510/6,510), **strict 99.59%** (6,510/6,537)
+  with the 27 rows the grader could not judge counted against it (ADR-124).
+  scip-clang can name the wrong declaration at a call in a template
+  (C-153); where the source text contradicts the index — the written
+  specialisation (ADR-125), or more arguments than the target can take
+  (ADR-130) — Hobbes draws nothing. Three known rows of that provider
+  error remain, unjudged rather than fixed, and a provider's error in
   the graph is Hobbes' own, so it is registered.
 
 C's sqlite-vector once read 99.6%, from three syntactic edges Hobbes
 got wrong (C-138). The external veto (ADR-111) removed them, and it
 reads 851/851. The misses are registered by class (closures, function
 values, interface dispatch) in `oracle-misses.md`. C++'s two cells are
-not tabled there yet; the abstentions behind part of their recall (fmt
-14.5%, args 56.4%) are registered (C-148, C-151, C-152).
+not tabled there yet. fmt's recall doubled at 0.2.41-beta (14.5% →
+29.1%, at no contradiction) when the definitions lane A's parse loses to
+macros began to be read from the index (ADR-129, C-145); the abstentions
+behind part of what is left (fmt 29.1%, args 58.6%) are registered
+(C-146, C-148, C-151, C-152).
 
 Deeper: architecture §3;
 [`docs/extraction-evidence.md`](docs/extraction-evidence.md) (every repo
@@ -217,11 +221,11 @@ A comparison is only as honest as its reading rules, so here they are:
   Hobbes' none). Hobbes is at 100% precision-against-oracle on every
   compiler-graded row but one. quic-go reads 3,766/3,781, a 99.6% lower
   bound whose 15 contradictions all triage to the oracle's grain. fmt
-  reads 3,269/3,269 (100%; strict 99.73%, ADR-124): scip-clang's
-  wrong-specialisation edges are withheld where the source contradicts
-  them (ADR-125), and two C-153 rows remain unjudged.
-  Its recall lead within a row runs from none (sqlite-vector), half a
-  point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
+  reads 6,510/6,510 (100%; strict 99.59%, ADR-124): scip-clang's
+  wrong-candidate edges are withheld where the source contradicts
+  them (ADR-125, ADR-130), and three C-153 rows remain unjudged.
+  Its recall lead within a row runs from none (sqlite-vector) and half a
+  point (cJSON) to 35 points (zod); fmt's is 15 points.
 - **Precision is a lower bound for every tool alike.** Contradictions
   mostly triage to the oracle's grain. A 40-row hand triage of the other
   tools' contradictions found 39 tool-wrong, 1 oracle-grain and 0
@@ -348,7 +352,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.40-beta** (2026-09-17). The Hobbes layer is versioned from here
+**Hobbes 0.2.41-beta** (2026-09-17). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -388,7 +392,7 @@ compiler-graded, Python trace-graded, Rust MIR-graded, Java
 javac-graded, C and C++ clang-graded — with every compiler-graded cell
 at 100% after ADR-090 and ADR-111 but one: quic-go at 99.6% (every
 contradiction the oracle's grain). C++'s fmt reads 100% with a strict
-99.73% beside it (ADR-124; two C-153 rows unjudged, ADR-125). The
+99.59% beside it (ADR-124; three C-153 rows unjudged, ADR-125, ADR-130). The
 misses are registered by class.
 
 **The derivation programme is built and under test.** The latest run (the
@@ -425,7 +429,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and forty-four session logs stand. The
+dispatched on 2026-09-12, and forty-seven session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -435,7 +439,9 @@ oracle, the external veto (ADR-111), a session's records written by
 a sidecar container the doer cannot reach (ADR-112), and C++ from its
 lane A to the fixes its first graded cells asked for, and C++ lane A
 made exact-faster and cached per file (ADR-128: ScummVM's lane A 261 s →
-154 s, 39.5 s warm, byte-identical).
+154 s, 39.5 s warm, byte-identical), and the definitions a macro parse
+loses read from the index (ADR-129, with ADR-130's arity rule: fmt's
+recall 14.5% → 29.1% at no contradiction).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 
@@ -450,7 +456,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-128 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-130 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

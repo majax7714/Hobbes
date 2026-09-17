@@ -1353,6 +1353,38 @@ A miss on P74, P77 or P79 is a finding against the rule and is fixed
 before the version moves. A miss in the flattering direction is recorded
 as a miss.
 
+**Results (2026-09-17, 0.2.41-beta; the cell records carry the blocks).**
+- **P74 — missed on the count, met on the contradictions.** 6,510
+  confirmed at 0 contradicted, under the 6,518–6,548 band. The built
+  rule first read 6,527; the regrade then found two shapes the probe
+  could not see (below), and the `anonymous` refusal gave up 17 confirmed
+  edges onto members of unnamed structs. The unflattering direction, by
+  a rule added after the prediction.
+- **P75 — met.** 29.1% (14,679/50,524); collapsed 24.8%.
+- **P76 — not graded as written** (§10.14 replaced it before anything
+  was built). For the record, the mint alone read 62 rows and 99.06%,
+  inside the band.
+- **P77 — met.** 0 standing confirmed rows lost, on every cell.
+- **P78 — met.** args 2,062 confirmed, 0 contradicted, 58.6%.
+- **P79 — missed on the symbols, met on the exports.** The first built
+  rule minted 11 symbols on cJSON and 10 on sqlite-vector where 0 were
+  predicted; both exports were identical to the standing ones. **The
+  cause is the probe's, and it is the finding:** it counted only lost
+  definitions that some below-floor *call* targets, and the rule mints
+  every lost definition. Reading the 21 found every one to be either an
+  unnamed struct under scip-clang's invented name
+  (`$anonymous_type_9456…_0`) or a type lane A already names at another
+  line (`typedef struct cJSON {…} cJSON;`) — invisible to a call-edge
+  grade, and wrong as nodes. Two refusals (`anonymous`,
+  `lane-a-has-type`) were added with tests before the version moved, as
+  this section required; cJSON then mints 1 named enum and sqlite-vector
+  3 named structs, each read as a real lost definition.
+- **P80 — missed.** 1,690 symbols, not 622 ± 10 — the same cause; the
+  second half met (5,661 `uses` onto minted types, 0 `calls`). A seeded
+  sample of 25 minted symbols on fmt read as real definitions with
+  bodies, all 25.
+- **P81 — met** on all four cells.
+
 ### 10.14 R-arity — written 2026-09-17, before either rule is built
 
 ADR-130. ADR-129 §6's hand read of the 53 rows its mint leaves unjudged
@@ -1376,6 +1408,21 @@ amendment gave up inside its band. Every other §10.13 row stands.
 
 A miss on P82 is a finding against the rule and is fixed before the
 version moves.
+
+**Results (2026-09-17, 0.2.41-beta).**
+- **P82 — met.** fmt: the rule withholds 40 graded rows; in the grade of
+  the same tree with the rule disabled they are 35 `line-unresolved` and
+  5 `no-targets`, **0 confirmed**. args: nothing withheld.
+- **P83 — met.** `line-unresolved` 27; strict 99.59% (6,510/6,537).
+- **P84 — met.** All 40 named rows withheld, none missed.
+- **P85 — met.** R-arity fires nowhere on args, cJSON or sqlite-vector.
+- **P86 — met.** One site beyond the 40, below row grain:
+  `chrono.h:330`, where the join paired `std::begin(out.buf)` with fmt's
+  zero-parameter `begin` on a line that also holds `in.begin()` (C-70's
+  shape). A wrong pairing, rightly withheld; no row moved.
+- **What neither rule reaches, found by the read:** of the 19 unjudged
+  rows the mint leaves, one is wrong at the right arity
+  (`format.h:2387`, `write` drawn to itself) — C-153's entry names it.
 
 ## 11. Evidence, claims, and register updates
 

@@ -1,6 +1,6 @@
 # ADR-130 — R-arity: a C++ call written with more arguments than lane B's target can take draws nothing
 
-**Date:** 2026-09-17 · **Status:** accepted (measured; built with ADR-129, which does not ship without it) · **Owner:** Max · **Source:** ADR-129 §6's hand read of the rows its mint leaves unjudged; Max's standing direction of 2026-09-17 — honesty and accuracy before a recall number; rules fail toward drawing less. ADR-125's family: the source text contradicts the index.
+**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.41-beta with ADR-129 (results in `oracle-grading.md` §10.14: the 40 named rows withheld, 0 confirmed among them) · **Owner:** Max · **Source:** ADR-129 §6's hand read of the rows its mint leaves unjudged; Max's standing direction of 2026-09-17 — honesty and accuracy before a recall number; rules fail toward drawing less. ADR-125's family: the source text contradicts the index.
 
 Narrows **C-153** a second time. Pre-registered in `oracle-grading.md`
 §10.14. Patch, in the same version as ADR-129.

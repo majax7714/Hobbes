@@ -62,8 +62,8 @@
    "draw": "random",
    "label": "args",
    "note": "random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)",
-   "edges": 2000,
-   "confirmed": 1995,
+   "edges": 2067,
+   "confirmed": 2062,
    "contradicted": 0,
    "abstract": 0,
    "silent": 5,
@@ -74,26 +74,26 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 1995,
-    "den": 1995
+    "num": 2062,
+    "den": 2062
    },
    "recall": {
-    "pct": 56.4,
-    "hits": 2010,
+    "pct": 58.6,
+    "hits": 2086,
     "pairs": 3561,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "static→constructor": 889,
-    "static→function": 50,
-    "static→method": 612
+    "static→function": 46,
+    "static→method": 540
    },
    "poison": {
     "passed": true,
-    "seeded": 2000,
-    "refused": 1938,
-    "unjudged": 62,
+    "seeded": 2067,
+    "refused": 2002,
+    "unjudged": 65,
     "falsely": 0
    }
   },
@@ -2162,27 +2162,27 @@
    "draw": "picked",
    "label": "fmt",
    "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted",
-   "edges": 3491,
-   "confirmed": 3269,
+   "edges": 6939,
+   "confirmed": 6510,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 222,
+   "silent": 429,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "line-unresolved": 9,
-    "no-targets": 117,
+    "line-unresolved": 27,
+    "no-targets": 305,
     "not-loaded": 54,
-    "unreachable": 42
+    "unreachable": 43
    },
    "precision": {
     "pct": 100.0,
-    "num": 3269,
-    "den": 3269
+    "num": 6510,
+    "den": 6510
    },
    "recall": {
-    "pct": 14.5,
-    "hits": 7333,
+    "pct": 29.1,
+    "hits": 14679,
     "pairs": 50524,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2190,22 +2190,22 @@
    "misses": {
     "macro→function": 1621,
     "macro→method": 1140,
-    "static→constructor": 8205,
-    "static→function": 10317,
-    "static→method": 21908
+    "static→constructor": 8117,
+    "static→function": 5061,
+    "static→method": 19906
    },
    "poison": {
     "passed": true,
-    "seeded": 3491,
-    "refused": 2638,
-    "unjudged": 853,
+    "seeded": 6939,
+    "refused": 5422,
+    "unjudged": 1517,
     "falsely": 0
    },
    "precision_strict": {
-    "pct": 99.7,
-    "num": 3269,
-    "den": 3278,
-    "line_unresolved": 9
+    "pct": 99.6,
+    "num": 6510,
+    "den": 6537,
+    "line_unresolved": 27
    }
   },
   {

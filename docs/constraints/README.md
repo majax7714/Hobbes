@@ -167,6 +167,22 @@ The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-145 and C-153 narrowed, 2026-09-17 (ADR-129 and ADR-130, 0.2.41-beta):
+- **C-145 narrowed (still surfaced):** a C or C++ function, method or
+  type definition lane A's parse lost to a macro is read from lane B's
+  own definition row and becomes a graph symbol (`declared_by: "scip"`),
+  a target and not a scope. fmt 3,269 → 6,510 confirmed call edges at 0
+  contradicted, recall 14.5% → 29.1%; args 56.4% → 58.6%; the C cells do
+  not move. The ingest summary counts the symbols and every refusal by
+  reason; `who_calls` says which symbols they are.
+- **C-153 narrowed a second time (still partial):** R-arity — a C++ call
+  written with more arguments than lane B's target can take draws
+  nothing (`arity-mismatch`). It withholds the 35 wrong `copy` edges the
+  mint would have surfaced on fmt and 5 that were standing, and no
+  confirmed edge. One same-arity wrong edge is known and named in the
+  entry. No entry added: 161 entries, 117 active, 91 surfaced, 22
+  partial, 3 unsurfaced.
+
 C-160 and C-161 registered, 2026-09-17 (ADR-128, 0.2.40-beta):
 - **C-160 registered (surfaced)**, in `extraction-cpp.md`: lane A's C++
   file cache keys on the extraction code's bytes and the grammar's

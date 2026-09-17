@@ -12202,3 +12202,94 @@ whose root carries the version. Re-ingested at `e976ba5` under the
 miss per bump is the key being true.
 
 **Suites:** as above. Tracker unchanged (44 of 40).
+
+
+## 2026-09-17 (night) — C++ recall: a lost definition read from the index, and R-arity (ADR-129, ADR-130, 0.2.41-beta)
+
+Max asked for a survey of the docs, then a way to raise recall, system-wide
+or one language's, as a plan; he approved it the same session ("good to go
+with route a, we can reopen ts if you believe beneficial if not then no,
+patch number stands").
+
+**The survey's reading.** The cross-language hole is C-58 and it is
+decided: dispatch expansion was rejected the same morning (ADR-126), the
+symbol floor is C-9's. TS's floor shapes are off the table (2026-09-10)
+and small (6.2% of one cell); not reopened. **C++ was the lowest cell in
+the system (fmt 14.5%) and its largest cause was on the honest side of
+the line:** C-145, "lane B names the callee, and the graph has no symbol
+to draw it to" — 6,905 call facts scip-clang had already resolved,
+dropped at `scipsource.project` because `starting_at` had no lane A
+symbol for a definition a macro parse lost.
+
+**Step 0, nothing drawn** (`~/.hobbes/bench/c145-recovery/`). `probe.py`
+wraps `read_facts` and `project`; `analyze.py` writes the export a rule
+would produce; the real grader judges it. A naive rule read 98.2% (123
+contradicted): 98 were constructions my export had wrongly drawn as
+calls (the called-type guard already makes them `uses`), 17 landed on
+declarations scip-clang gives the definition role, 5 on call-spelled
+data members. With lane A's own two rules: 6,533 / 0, recall 29.1%. The
+rule was fitted on fmt, so args was held out: frozen by hash, P70–P73
+written first, 67 added and 67 confirmed. C cells: nothing moved.
+
+**The hand read that changed the plan.** ADR-129 §6 required the 53 rows
+the key could not judge to be read before shipping. 34 were wrong (a
+35th among the no-targets rows): `copy<Char>(begin, end, out)` onto the
+two-parameter `copy` at `format.h:549` — scip-clang's single candidate at
+a dependent call, invisible until the mint gave line 549 a node. I first
+told Max 38; the count was 34 + 1, corrected in the same turn. A
+two-sided arity rule flagged 152 confirmed edges (defaults live on
+declarations); the "too many" half flagged the 35, 5 standing wrong edges
+(`holds_alternative`/`any_cast` onto gmock's ADL stubs, `scan.h:466`) and
+no confirmed edge once the regex reader's own failures were read out.
+ADR-130, §10.14 (P76 replaced *before* anything was built, said so).
+
+**Built through the harness, three units, merged no-ff:** `77da` the
+mint (95 turns, $8.92), `4048` R-arity (125 turns, $12.26), `b597` the
+surfaces (40 turns, $1.90); all gate right-clear, verify pass; `lane_b`
+9 of 9 on the host before each merge.
+
+**What the first regrade of the built mint found (P79, P80 missed).** The
+probe saw only lost definitions a call targets; the rule mints every
+one. 1,722 symbols on fmt, not 622; 11 and 10 on the C cells, not 0 —
+every call-edge grade as predicted. Read: unnamed structs under
+scip-clang's `$anonymous_type_…` names, and types lane A already names
+at another line (`typedef struct cJSON {…} cJSON;`). Two refusals added
+by the developer on top (`3c31b50`), four tests; cost 17 confirmed edges
+on fmt (P74's count missed by 8). **Grade the nodes a rule adds, not
+only its edges.**
+
+**Final, 0.2.41-beta, stored keys, contained:** fmt 6,510/6,510, 0
+contradicted, strict 99.59% (27 unjudged), recall 29.1% (collapsed
+24.8%), 1,690 symbols minted in 26 files; args 2,062/2,062, 58.6%; cJSON
+and sqlite-vector identical exports (1 and 3 named types minted). R-arity:
+41 sites — the 40 named rows, 0 confirmed among them under the rule-off
+wrapper, and `chrono.h:330`, a C-70 mis-pairing below row grain. Of the
+19 new unjudged rows 18 read right and one wrong at the right arity
+(`format.h:2387`, `write` to itself): named in C-153, not fixed. A seeded
+30 of the 192 new no-targets rows read right, all 30.
+
+**Docs:** ADR-129 (with its amendment), ADR-130; §10.13, §10.14 with
+results; C-145 and C-153 narrowed (no entry added; 161); architecture
+§3.4, §3.7, §3.8, §8 (and its stale "fmt at 99.1%" oracle row); both
+cell records; `cells.json`, `tables.md`, three graphics re-rendered
+(`render.py check` and `go test ./report/` green); README; the claim
+page; CHANGELOG; CLAUDE.md; the handoff.
+
+**Found by use:**
+- **The recorded mistake a third time:** `( … ) && … && setsid nohup … &`
+  backgrounded the whole and-list, so the dispatch launched only after
+  the ingest finished and printed nothing. Then `pgrep -f "hobbes
+  ingest"` matched my own waiting shell, as the handoff warns. Nothing
+  was duplicated. Launch on its own line; wait on a log line.
+- `regrade.sh` overwrites its output directory; the mint-only export was
+  gone when P82 needed it, and the rule-off wrapper had to regenerate
+  it. It takes `OUT=` now.
+- The rule-off wrapper leaves a clone's `.hobbes/derived/` in the
+  rule-off state until the next ingest; the final regrade re-ingested
+  all four.
+
+**Suites at 0.2.41-beta, host:** pytest 1,837 (`lane_b` 9), Go `./...`
+395 with subtests (394 pass, 1 skip), scip 87, tsextract 36, vitest 52,
+`report/` ok. Tracker **47 of 40**. Binaries, static proxy and image
+rebuilt; **restart the knowledge server** (C-65). Spend: three
+dispatches on the subscription, $23.08 reported; no API or Modal spend.

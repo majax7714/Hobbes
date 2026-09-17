@@ -192,9 +192,9 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-17, 0.2.40-beta; oracle-lane Go
-counted 2026-09-16): 1,752 pytest (8 `lane_b`) / 392 Go with subtests
-(391 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
+Suite sizes at the last check (2026-09-17, 0.2.41-beta; oracle-lane Go
+counted 2026-09-16): 1,837 pytest (9 `lane_b`) / 395 Go with subtests
+(394 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -266,7 +266,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-17) — Hobbes 0.2.40-beta
+## Status (2026-09-17) — Hobbes 0.2.41-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -280,29 +280,33 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   accuracy come before a recall number** — weigh every extraction
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
-  (99.6%, all 15 the oracle's grain). fmt reached **100%** at 0.2.37-beta
-  (3,269/3,269), **strict 99.73%** — every quoted precision now carries
+  (99.6%, all 15 the oracle's grain). fmt reads **100%** (6,510/6,510
+  at 0.2.41-beta), **strict 99.59%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 161 entries; 117 active (91
-  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 27 lifted — C-153 narrowed
-  and partial (ADR-125), C-152 amended and C-70 settled (ADR-123).
+  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 27 lifted — C-145 narrowed
+  (ADR-129), C-153 narrowed twice and partial (ADR-125, ADR-130).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **44 of 40**
+  drift test; re-render after filling a review block) reads **47 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.36–0.2.40-beta (ADR-123–128).** The review's decisions
-  (lanes exit 3; R-qual; C-153 marked; dispatch reach measured, not
-  drawn), then **one ingest of a repo at a time** (ADR-127), then
-  **ADR-128: C++ lane A made exact-faster and cached per file** —
-  ScummVM lane A 261 s → 154 s on every ingest, 39.5 s warm, every step
-  byte-identical — and the index and lane A stores read-only in every
-  contained step (C-160, C-161). **Next:** the review's remaining items
-  (pytest fixtures as edges, C-4; the compile database's `-I` path at
-  lane A; the docs restructure); lane B's fetch passes skipped on an
-  index-cache hit, if their seconds warrant it.
+- **Latest — 0.2.41-beta (ADR-129, ADR-130): C++ recall.** Measured
+  first: where lane A's parse loses a C/C++ definition to a macro, lane
+  B's own definition row becomes the symbol (`declared_by: "scip"`, a
+  target not a scope; `extract/minted.py`), and a C++ call written with
+  more arguments than the index's target takes draws nothing
+  (`arity-mismatch`) — the rule the mint needed, found by reading the
+  rows no key can judge. fmt **3,269 → 6,510 confirmed at 0
+  contradicted, recall 14.5% → 29.1%**; args 56.4% → 58.6%; C unmoved.
+  **Next on C++ recall, each measured first:** operators as sites where
+  lane B has an occurrence at the operator token (C-146; 8,627 key sites
+  on fmt), constructions (8,117 misses), a lost definition's extent
+  (C-145's residual: callers inside it), the 15 line-convention rows.
+  Then the review's remaining items (pytest fixtures as edges, C-4; the
+  compile database's `-I` path at lane A; the docs restructure).
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

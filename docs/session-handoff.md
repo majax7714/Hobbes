@@ -1,90 +1,86 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-17; Hobbes 0.2.40-beta on `main`.** ADR-114's base
+**Reviewed 2026-09-17; Hobbes 0.2.41-beta on `main`.** ADR-114's base
 rule runs first on the next push: check the graph job's "base ref" step
 says it reviewed from the last green run. The knowledge server serves
 the image it started from until it is restarted (C-65): **restart it**
-— the image was rebuilt at 0.2.40-beta at the end of this session.
+— the image was rebuilt at 0.2.41-beta at the end of this session.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.40-beta are untagged. Tags stay Max's call each time.
+  0.2.41-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
   reaches "supported"; a structural change bumps minor (ask); **a
-  constraint's fix is a patch even when structural** (Max, 2026-09-13).
+  constraint's fix is a patch even when structural** (Max, 2026-09-13;
+  confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-17 "Top-level docs drift and
-two found-by-use items" BUILDLOG entry (no version move). Before it, the
-same day: "Top-level docs reviewed at 0.2.38-beta; one ingest of a repo at
-a time" (ADR-127, 0.2.39-beta, and its later section, ADR-128,
-0.2.40-beta), and "Top-level docs reviewed at 0.2.35-beta" (ADR-123–126,
-0.2.36–0.2.38-beta). Earlier sessions' detail lives in their own BUILDLOG
-entries; this file keeps only what the next session needs.
+The latest session's record is the 2026-09-17 "C++ recall" BUILDLOG
+entry (ADR-129, ADR-130, 0.2.41-beta). Before it, the same day: "Top-level
+docs drift and two found-by-use items" (no version move) and the
+ADR-123–128 entries (0.2.36–0.2.40-beta). Earlier sessions' detail lives
+in their own BUILDLOG entries; this file keeps only what the next session
+needs.
 
 ## ⇢ START HERE NEXT SESSION (2026-09-17)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
-against them first. **Next** is NEXT item 1.
+against them first. Max asked (2026-09-17) for a recall increase, survey
+first; the survey chose C++ (fmt 14.5%, the lowest cell in the system)
+and he approved Route A. **Next** is the C++ recall list below, each item
+measured before it is designed.
 
-### What landed on 2026-09-17 (all merged no-ff; tracker 44 of 40)
+### What landed on 2026-09-17, last session (all merged no-ff; tracker 47 of 40)
 
-- **0.2.36-beta, ADR-123:** `hobbes lanes` shapes a disagreement
-  `same-line-pair` (C-70) or `cpp-withheld` (C-152) and exits 3 when
-  every row is shaped (quic-go 17/17, fmt 316/316); CI passes on 3.
-- **ADR-124 (bench):** strict precision beside every grade and every
-  quoted figure, for every tool; "like-for-like" retired.
-- **0.2.37-beta, ADR-125 R-qual:** a C++ call whose written
-  specialisation contradicts lane B's `template <>` owner draws nothing
-  (`qualifier-mismatch`). fmt **100%** (3,269/3,269), strict 99.73%,
-  recall unchanged; args identical.
-- **0.2.38-beta, ADR-125 §4:** `who_calls` marks semantic C++ calls from
-  a template pattern; one `cpp-template-sites` record. C-153 unsurfaced
-  → partial.
-- **ADR-126 measured, nothing drawn:** the override set is javac's
-  (97.4% CHA recall), but 106 of jsoup's 2,944 expanded pairs (3.6%) sit
-  at calls that do not dispatch (`super.`, private, final).
-- **0.2.39-beta, ADR-127:** a second ingest of a repo is refused while
-  one runs (`flock` on `.hobbes/derived/.ingest.lock`, `IngestBusy`,
-  exit 1, before anything is staged); artifacts written through a
-  temporary and a rename, keeping their mode. Dispatched as `d238`
-  (gate right-clear); the mode fix is the developer's. **C-159
-  registered (surfaced).**
-- **0.2.40-beta, ADR-128 (C++ lane A measured, made exact-faster, cached
-  per file; the trusted stores read-only):** measured first — lane A
-  passes 2 s on no timed repo but ScummVM (C++ 242 s of 258 s, Python
-  around the parse, not tree-sitter). Three units, merged no-ff: `9943`
-  (the index and lane A stores ride read-only in every contained step, a
-  NOTE when repo code ran; C-161), `1ef9` (iterative walk,
-  `HeaderIndex`, string-test pre-filter), `6956` (the JSON per-file
-  cache, `HOBBES_LANEA_CACHE`; C-160). ScummVM lane A 261 s → 154 s
-  every ingest, 39.5 s warm, **each step byte-identical by `cmp`**
-  (217 MB); store 318 MB. All three gate right-clear; **`9943`'s verify
-  read fail** (2 regressions): both tests sat outside its partition
-  (`test_indexcache.py`, `test_harness.py` asserted the old mount set),
-  the doer named them and the one-line fixes, applied on top (`230102e`).
-- **Housekeeping:** the duplicate dispatch branch
-  `hobbes/S-20260917T132013Z-e1c6` and its session directory deleted.
+- **ADR-129, the mint (`extract/minted.py`):** where lane A's parse of a
+  C/C++ file had ERROR nodes and lost a definition (C-145), lane B's own
+  definition row becomes the symbol — `declared_by: "scip"`, a target
+  and not a scope, minted under lane A's own contract (nine counted
+  refusals). Measured first with a scratch probe; fitted on fmt, args
+  held out (§10.13).
+- **ADR-130, R-arity:** a C++ call lane B answered, written with more
+  arguments than the target can take, draws nothing (`arity-mismatch`).
+  It exists because ADR-129 §6's hand read of the unjudged rows found 35
+  wrong `copy` edges the mint would have surfaced (C-153); only "too
+  many" fires, only on counts both read (§10.14).
+- **The grades, stored keys, 0.2.41-beta:** fmt **3,269 → 6,510
+  confirmed, 0 contradicted, recall 14.5% → 29.1%, strict 99.73% →
+  99.59%**; args 1,995 → 2,062, 56.4% → 58.6%; cJSON and sqlite-vector
+  unmoved. R-arity withheld exactly the 40 named rows, none confirmed.
+- **Recorded misses:** P74 (count, by 8, after two refusals were added),
+  P79 and P80 (the probe counted only lost definitions a call targets;
+  the rule mints every one — which is how the regrade found unnamed
+  structs and already-named types minted on the C cells, fixed by the
+  developer on top of `77da` before the version moved).
+- **Known and named, not fixed:** `format.h:2387`'s `write` drawn to
+  itself, a same-arity wrong candidate (C-153's third known row on fmt).
+- Units: `77da` (the mint, $8.92), `4048` (R-arity, $12.26), `b597` (the
+  surfaces, $1.90), all gate right-clear, verify pass.
 
-### Closed by the last session (no version move)
+### C++ recall — what is next, in order, each measured first
 
-- **The top-level docs' drift:** README's status (0.2.35 → 0.2.40, ADRs
-  to 128, the register and tracker counts), this file's tracker count,
-  and the 2026-09-15/16 resume points folded to a paths list below.
-- **The suite no longer writes the developer's timings log:**
-  `tests/conftest.py` sends `hobbes.extract.timings`' log to the run's
-  basetemp unless a test sets `HOBBES_CACHE_DIR` itself;
-  `test_timings.py` holds it.
-- **"The index key includes the mounts" was a misreading, corrected, not
-  built:** the key's `ro` is the caller's list; ADR-128 §1's trusted
-  stores are added in `containment.plan`, outside it. This repo's timings
-  log shows the whole-miss ingests (19 of 19) only at a version bump,
-  0.2.39 and 0.2.40 alike: a bump rebuilds the image (C-65), and the
-  image id is in the key (ADR-122, by design), as is the helper's
-  lockfile, whose root carries the version. One miss per bump is the
-  key being true, not a defect.
+1. **Operators as sites (C-146):** 8,627 operator sites in fmt's key.
+   Lane A would record a site at an operator token only where lane B has
+   an occurrence there (a built-in operator has none). The unknown:
+   whether scip-clang emits those occurrences. A probe over the stored
+   index answers it before any design.
+2. **Constructions:** 8,117 misses on fmt, 889 on args (60% of what is
+   left there). Read which the key confirms at the constructor and which
+   at the class line before touching `constructorOverClass` or the
+   implicit-construction guard.
+3. **A lost definition's extent (C-145's residual):** calls written
+   inside a minted symbol keep the enclosing caller. Count them first;
+   Route B (blanking known-empty macros) is the candidate, and it is
+   lane A guessing at the preprocessor, so it needs its own ADR.
+4. **The 15 `lane-a-symbol-near` rows on fmt:** a line-convention
+   disagreement, its own small item.
+5. **ScummVM as a scale read** (no key): symbols minted, edges gained,
+   the mint's seconds — cost and sanity only.
+6. TS's floor shapes stay off the table (Max, 2026-09-10); Claude's read
+   on 2026-09-17 was not to reopen them before C++ is done
+   (class-property functions are 6.2% of one cell).
 
 ## Where earlier sessions' drivers are (their records are the BUILDLOG's)
 
@@ -92,6 +88,11 @@ The 2026-09-15 and 2026-09-16 resume points were folded into their
 BUILDLOG entries on 2026-09-17; only the paths a next session reaches for
 stay here.
 
+- **C++ recall (ADR-129, ADR-130):** `~/.hobbes/bench/c145-recovery/`
+  (`probe.py`, `analyze.py`, `arity.py` the step-0 probes; `PREREG-args.md`;
+  `regrade.sh` with `OUT=`/`ROOT=`; `ingest_no_arity.py` the rule-off
+  wrapper; `p84-named-rows.json`; `final/` the 0.2.41-beta grades;
+  `units/` the three briefs; `wt/` a worktree, removable).
 - **Lane A's C++ cache (ADR-128):** `~/.hobbes/bench/laneA-cache/`
   (`equiv.py`, `split.py`, `cacheproto.py`, `scummvm-tree.json` the
   reference output, `units/` the briefs).
@@ -173,7 +174,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 44 of 40, 4
+   - **The validating 40 are done:** the tracker reads 47 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -241,7 +242,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Forty-four log files under `docs/calvin/sessions/`; the tracker reads 44 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Forty-seven log files under `docs/calvin/sessions/`; the tracker reads 47 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -249,7 +250,8 @@ min each.
   deployed and idle): held.
 - **Register:** 161 entries: 117 active (91 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 27 lifted, 11 superseded, 6
-  folded. Latest: C-160 and C-161 registered (ADR-128, 0.2.40-beta);
+  folded. Latest: C-145 narrowed and C-153 narrowed a second time
+  (ADR-129, ADR-130, 0.2.41-beta; no entry added); C-160 and C-161 registered (ADR-128, 0.2.40-beta);
   C-159 registered (ADR-127, 0.2.39-beta); C-153 narrowed then partial (ADR-125, 0.2.37/0.2.38-beta);
   C-152 amended and C-70 settled (ADR-123, 0.2.36-beta); C-158
   registered (ADR-122, 0.2.35-beta).
@@ -260,9 +262,9 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.40-beta (2026-09-17, all pass on the host): 1,752
-  pytest (`lane_b` 8 of them, run at 0.2.40-beta), Go `./...` 392 with
-  subtests (391 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
+- **Suites** at 0.2.41-beta (2026-09-17, all pass on the host): 1,837
+  pytest (`lane_b` 9 of them, run at 0.2.41-beta), Go `./...` 395 with
+  subtests (394 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-16).
@@ -274,8 +276,8 @@ min each.
 
 1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief (the validating 40 are done; the harness stays the way
-   work is done): the rest of the
-   review's list in the 2026-09-16 item 3's order; ADR-126's surface once
+   work is done): **the C++ recall list under START HERE first**; then
+   the rest of the review's list in the 2026-09-16 item 3's order; ADR-126's surface once
    Max decides it;
    C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,

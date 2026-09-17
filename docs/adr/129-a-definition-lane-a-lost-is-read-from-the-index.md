@@ -1,6 +1,6 @@
 # ADR-129 — A definition lane A lost to a macro parse is read from the index
 
-**Date:** 2026-09-17 · **Status:** accepted (Route A; measured first, nothing built yet) · **Owner:** Max · **Source:** Max, 2026-09-17 ("good to go with route a … patch number stands"), on the recall survey of that day — honesty and accuracy first on the extraction lane.
+**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.41-beta (results in `oracle-grading.md` §10.13; two refusals, `anonymous` and `lane-a-has-type`, added after the first regrade — § Amendment below) · **Owner:** Max · **Source:** Max, 2026-09-17 ("good to go with route a … patch number stands"), on the recall survey of that day — honesty and accuracy first on the extraction lane.
 
 Narrows **C-145** and amends architecture **§3.4** (a symbol may be
 declared by lane B, in one named case). Pre-registered in
@@ -133,7 +133,9 @@ overload suffix.
 **3. A minted symbol is a target, not a scope.** `end_line` is its line.
 Finding a body's end through unexpanded macros is a guess this change
 does not make, so calls written *inside* a lost definition keep the
-caller they have today. Registered as C-145's residual, with the count.
+caller they have today. Registered as C-145's residual. **Its size is
+not measured** — the next item on the C++ recall list, counted before
+anything is designed for it.
 
 **4. Nothing lane A decides changes.** Minting runs after lane A's
 fallback and the veto sets are built: no fallback rank, tie, abstention
@@ -196,3 +198,28 @@ hand before the cell record is written.
   header functions it could not before. `tests_guarding` answers change.
 - Symbols are no longer lane A's alone. P6 holds — with no indexer,
   nothing is minted and the floor is what it was.
+
+## Amendment, 2026-09-17 — what the first regrade of the built rule found
+
+The step-0 probe looked only at lost definitions that some below-floor
+*call* targets; the rule mints every lost definition. The first regrade
+therefore minted 1,722 symbols on fmt where 622 were predicted (P80,
+missed), and 11 and 10 on cJSON and sqlite-vector where none were (P79,
+missed) — with every call-edge grade exactly as predicted, because the
+extra symbols are nodes no graded call reaches. Read: every C mint was
+an unnamed struct under scip-clang's invented name
+(`$anonymous_type_9456…_0`) or a type lane A already names at another
+line (`typedef struct cJSON {…} cJSON;`; on fmt, the `#if` arms of
+`day`). Two refusals were added before the version moved:
+
+- **`anonymous`:** a descriptor in the chain is scip-clang's name for an
+  unnamed struct, union or enum. The source has no name to give it.
+- **`lane-a-has-type`:** a `type` row whose terminal name lane A already
+  holds as a `type` in the module. Lane A did not lose it. Functions are
+  not refused this way: two bodies of one name are overloads.
+
+The cost was 17 confirmed edges on fmt (members of unnamed structs),
+which put P74's count 8 under its band — recorded as a miss. What
+remains on the C cells is 1 named enum and 3 named structs, each read
+as a real lost definition. **The lesson for the next probe:** grade the
+nodes a rule adds, not only the edges.

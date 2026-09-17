@@ -54,7 +54,39 @@ headers parsed with tree-sitter ERROR nodes.
   a gap C's tail shares, left as is so a C++ unit moves no C number.
 - **Source:** ADR-113 §1; the doer's deviation list (`3d56`).
 
-### C-145 — Macro-heavy C++ parses with error nodes: the preprocessor never runs (C-131's C++ face)
+### C-145 — Macro-heavy C++ parses with error nodes: the preprocessor never runs (C-131's C++ face) — *narrowed 2026-09-17 (ADR-129, 0.2.41-beta): a lost definition is read from the index, as a target*
+
+- **Narrowed (0.2.41-beta, ADR-129).** Where lane B ran, a function,
+  method or type definition this parse lost becomes a graph symbol read
+  from scip-clang's own definition row (`declared_by: "scip"`), so the
+  calls lane B already resolved there draw instead of falling
+  `below-floor`. fmt: 1,690 symbols in 26 files, **3,269 → 6,510 confirmed
+  call edges at 0 contradicted, recall 14.5% → 29.1%**; args 1,995 →
+  2,062, recall 56.4% → 58.6%; cJSON and sqlite-vector mint 1 and 3
+  named types and their exports do not move (§10.13). The rule refuses —
+  and counts, in `graph.json`'s `minted.refused` and on the ingest
+  summary — a file that parsed clean, a `term`/`macro`/`namespace` row,
+  a definition inside a function body, a line with several monikers, a
+  lane A symbol of the same name within three lines, a declaration (no
+  `{` before a `;` in the file's own text), an unnamed struct's invented
+  name, and a type lane A already names at another line. **What stays
+  conceded:**
+  - **A minted symbol is a target, not a scope** (`end_line` is its
+    line). A call written *inside* a lost definition keeps the caller it
+    had — the enclosing symbol lane A did parse, or the module. Finding a
+    body's end through unexpanded macros is a guess not made. `who_calls`
+    says so on every minted symbol.
+  - **Its name is the compiler's spelling**, so an inline namespace
+    appears (`fmt::v12::detail::write`) where lane A's neighbours in the
+    same file may lack the namespace a macro opened; a constructor of a
+    class template is spelled with its parameters (`typed_node<T>`); and
+    an id collision takes `~b2`, `~b3`, never lane A's `~2`.
+  - **A lost macro is still lost** (2,554 below-floor facts on fmt), and
+    with no lane B nothing is minted (P6): everything below still
+    describes a root with no compile database.
+  - **It draws what the index says**, so C-153's wrong candidates at a
+    call in a template draw too. ADR-130's R-arity withholds the ones the
+    source text contradicts; C-153 carries the rest.
 
 - **Cannot tell you:** the declarations inside a region tree-sitter-cpp
   could not parse. A declaration spelled through macros (`FMT_API`,
@@ -197,6 +229,24 @@ headers parsed with tree-sitter ERROR nodes.
   - an explicit specialisation's member for the primary template's:
     `test_format<20>::format` drawn to `test_format<0>` (4);
   - one overload of two (2).
+- **Narrowed again 2026-09-17 (ADR-130, 0.2.41-beta): R-arity.** A C++
+  call lane B answered, written with **more arguments than the target's
+  declarator can take**, draws no edge; the site is tailed
+  `arity-mismatch`. Only "too many" (a default argument lives on a
+  declaration elsewhere, so "too few" proves nothing — it would have
+  withheld 152 confirmed edges on fmt), and only where both counts were
+  read: a pack expansion, a braced initialiser, a variadic or
+  macro-spelled parameter list, an ERROR node read *unknown* and the edge
+  is drawn. Found by ADR-129's hand read: its mint gave `format.h:549`'s
+  two-parameter `copy` a node and 35 `copy<Char>(begin, end, out)` calls
+  drew onto it, none of which the key can judge. On fmt the rule
+  withholds exactly those 35 and 5 edges that were already standing
+  (`holds_alternative<T>(value)` ×2 and `any_cast<T>(value)` ×2 onto
+  gmock's zero-parameter ADL stubs, `scan.h:466`'s three-argument `read`
+  onto the two-parameter one), and **no confirmed edge** (§10.14); args
+  none. **Its residual:** a wrong candidate of the same or greater arity.
+  One is known: `format.h:2387`'s `write<Char>(out, unsigned, specs, loc)`
+  drawn to the enclosing `Char` overload itself, unjudged under H-30.
 - **Narrowed 2026-09-17 (ADR-125, 0.2.37-beta): R-qual.** A call written
   through one specialisation (`X<A>::f`) that lane B resolved to a
   member of a *different* explicit full specialisation (`template <>`,
@@ -210,23 +260,28 @@ headers parsed with tree-sitter ERROR nodes.
   `<20>`) would withhold a right edge (measured 0 on fmt and args); a
   wrong answer at an owner that is a primary template or a partial
   specialisation is not caught.
-- **Bites at:** fmt 2 of its judged semantic edges since 0.2.37-beta —
-  the `format_as` rows at `std.h:714` and `:726` — both unjudged under
-  H-30 rather than fixed; 10 before ADR-125. args none. fmt reads 100%
-  (3,269/3,269) where the strict figure (ADR-124), counting its 9
-  line-unresolved rows as contradicted, is 99.73% (3,269/3,278); both
-  are in `tables.md`.
+- **Bites at:** fmt, 3 known wrong edges since 0.2.41-beta — the
+  `format_as` rows at `std.h:714` and `:726` and `format.h:2387`'s
+  `write` — all unjudged under H-30 rather than fixed; 10 before
+  ADR-125. args none. fmt reads 100% (6,510/6,510) where the strict
+  figure (ADR-124), counting its 27 line-unresolved rows as
+  contradicted, is 99.59% (6,510/6,537); both are in `tables.md`. Of the
+  19 unjudged rows the mint added, 18 read as right by hand and the
+  `write` row as wrong; of its 192 rows at sites the key holds no
+  targets for, a seeded sample of 30 read as right, all 30.
 - **You find out:** **partial** (since 0.2.38-beta, ADR-125 §4) —
   `who_calls` marks each semantic C++ call edge that starts in a
   template pattern (a function template, or a member of a class
   template or partial specialisation), and one `cpp-template-sites`
-  record in `list_blind_spots` counts them (fmt: 596 of 2,811, both
-  remaining `format_as` rows among them). It marks the region, not the
+  record in `list_blind_spots` counts them (fmt: 854 of 4,423 at
+  0.2.41-beta, 596 of 2,811 before ADR-129; the remaining `format_as`
+  rows among them). It marks the region, not the
   wrong edge: nothing at the site tells a wrong answer from a right one.
   Not marked: a pattern whose `template <…>` a macro parse lost (C-145),
   and a method of a class nested in a class body (no lane A symbol). The
-  strict figure (ADR-124) counts the two unjudged rows again. What R-qual
-  withholds is tailed `qualifier-mismatch`.
+  strict figure (ADR-124) counts the unjudged rows again. What R-qual
+  withholds is tailed `qualifier-mismatch`, what R-arity withholds
+  `arity-mismatch`.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 
