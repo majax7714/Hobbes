@@ -878,6 +878,25 @@ temporary beside it and renamed over, so a reader never sees half a
 file. An older build takes no lock, and a filesystem without `flock`
 runs unlocked with a warning: C-159.
 
+**C++ lane A: exact first, then cached per file (ADR-128, 0.2.40-beta).**
+Measured before building: lane A passes 2 s on no timed repo but
+ScummVM, where C++ took 242 s of 258 s. Three changes that alter no byte
+of the extraction (checked with `cmp` on ScummVM's 217 MB) took it to
+135 s: `csource._walk` as an explicit stack, the include suffix step
+through a `HeaderIndex` by basename, and the string-test scan skipped
+when no macro name is in the file's bytes. Then `cppsource._parse_file`,
+a pure function of the path, the bytes and the extraction code, reads an
+unchanged file from `<cache>/lanea/cpp/` — JSON with tuples and sets
+tagged, never pickle — keyed on those and the grammar's installed
+version; `HOBBES_LANEA_CACHE=0` parses afresh, the summary prints hits
+and misses, the residue is C-160. Only C++: no other language's lane A
+has a cost to buy back. Built, on ScummVM: C++ lane A 144 s cold and
+21.7 s warm, lane A 261 s → 39.5 s, both byte-identical, 318 MB. **Both stores a later ingest reads as an answer
+— `<cache>/index` and `<cache>/lanea` — ride read-only in every contained
+step** (ADR-128 §1): before, repo code in a container could write lane
+B's index store. The tool caches and the stage stay writable by design,
+and the ingest says so whenever repo code ran (C-161).
+
 ### 3.7 Adding a language — the checklist
 1. Register the **indexer** (resolution): command, version pin, and how its
    per-repo config is derived. **It must be a pinned batch program with
@@ -1776,7 +1795,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.39-beta** (2026-09-17, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.39-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.40-beta** (2026-09-17, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.40-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

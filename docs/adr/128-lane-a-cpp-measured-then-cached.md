@@ -118,6 +118,28 @@ step; a `TEST_CASE` that must still be found).
 - ADR-122's store stops being writable by repo code; the tool caches'
   exposure is written down and said at the run.
 
+## Built and measured (2026-09-17, 0.2.40-beta)
+
+Three dispatched units, merged no-ff: `9943` (§1–2; its verify failed on
+two tests outside the partition the developer drew too narrow, fixed on
+top), `1ef9` (§3), `6956` (§4). Measured on the merged tree with lane B
+off, each output compared with `cmp` to the pre-ADR tree's extraction
+of ScummVM (217 MB):
+
+| | C++ lane A | lane A |
+|---|---|---|
+| before | 242 s | 261 s |
+| §3 | 135 s | 154 s |
+| §4, cold | 144 s | 163 s |
+| §4, warm | **21.7 s** | **39.5 s** |
+
+All four byte-identical. The store: 19,948 records, 318 MB. Through
+`hobbes ingest` on fmt twice: 72 misses then 72 hits, `graph.json` and
+`tests.json` sha256-identical. The live test shows a write into
+`<cache>/index` failing inside the image while the stage write succeeds.
+Found on the way: the index cache's key includes the mounts, so its
+first ingest after §1 misses everywhere.
+
 ## Alternatives considered
 
 - **Only the cache.** Rejected: it hides a quadratic include resolution

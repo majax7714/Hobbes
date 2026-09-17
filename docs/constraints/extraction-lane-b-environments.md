@@ -303,6 +303,33 @@
 - **Source:** ADR-127; found by use 2026-09-17 (the duplicate dispatch
   in that day's BUILDLOG entry).
 
+### C-161 — Repo code in a contained step can write the tool caches and the stage that later ingests read
+
+- **Cannot tell you:** that the dependency sources, module caches or
+  build outputs a lane B step read were not written by another repo's
+  code in an earlier ingest on the same box — so an edge into a
+  dependency, or the resolution a later index made, can rest on files
+  an untrusted repo's build placed there.
+- **Because:** the steps that execute repo code (rust-analyzer's
+  export, Java's resolve and index passes, C and C++'s compile-database
+  derivation, the venv listing) run with the Hobbes cache root mounted
+  read-write, and the cargo, Go, Maven, Gradle and npm caches and the
+  stage directory live under it: the fetch and index passes write them
+  by design, and one shared copy is what makes a second ingest cheap.
+  The two stores a later ingest reads back as an *answer* — lane B's
+  index cache and lane A's file cache — ride read-only in every step
+  since ADR-128 §1; before it, the index store was writable too.
+- **Bites at:** a box that ingests an untrusted repo and then a trusted
+  one; a planted file in a shared module cache under a path a later
+  resolve trusts.
+- **You find out:** **surfaced** — every ingest in which a step that
+  executes repo code ran contained prints one `NOTE: containment: repo
+  code ran in <n> lane B step(s) (…) with write access to the Hobbes tool
+  caches … (C-161)`. Clearing the tool caches under the cache root
+  removes what any earlier run left.
+- **Source:** ADR-128 §1–2 (found 2026-09-17 while placing the lane A
+  store); ADR-092 §3's mounts.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

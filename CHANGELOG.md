@@ -11,9 +11,44 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.39-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.40-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.40-beta — 2026-09-17 (C++ lane A exact-faster, then cached per file; the trusted stores read-only in every container; ADR-128)
+
+**Patch: what the layer says, and where it lets repo code write.** The
+artifacts are unchanged: every change below was checked byte for byte on
+ScummVM's lane A extraction (217 MB of JSON, `cmp`).
+
+- **Measured first.** Lane A passes 2 s on no timed repo but ScummVM,
+  where C++ took 242 s of 258 s. The time was Python around the parse,
+  not tree-sitter (about 21 s).
+- **Three exact changes** (C and C++): `csource._walk` is an explicit
+  stack in the same pre-order (the recursive generator made 2.06 billion
+  calls); the include suffix step goes through a `HeaderIndex` by
+  basename instead of an `endswith` scan of every header per include;
+  the string-test scan is skipped when no macro name is in the file's
+  bytes. ScummVM C++ lane A 242 s → 135 s.
+- **A per-file cache for C++ lane A.** `cppsource._parse_file`'s result
+  is kept under `<cache>/lanea/cpp/`, keyed on the extraction code's
+  bytes, the grammar's installed version, the path and the file's bytes;
+  JSON with tuples and sets tagged, never pickle; every record checked to
+  decode back equal before it is kept. ScummVM: 144 s cold, **21.7 s
+  warm** (lane A 261 s → 39.5 s), 318 MB. The summary prints hits and
+  misses; `HOBBES_LANEA_CACHE=0` parses afresh. **C-160 registered
+  (surfaced).**
+- **The index and lane A stores ride read-only in every contained step.**
+  The whole cache root was mounted read-write, so repo code in a step
+  that executes it could write lane B's index store (ADR-122), which a
+  later ingest reads back as an answer. The tool caches and the stage
+  stay writable by design; the ingest now prints a `NOTE:` whenever repo
+  code ran. **C-161 registered (surfaced).** The index cache's key
+  includes the mounts, so its first ingest after this version misses.
+- Dispatched as `S-20260917T153835Z-9943` (containment; two tests
+  outside its partition fixed by the developer), `S-20260917T154724Z-1ef9`
+  (the exact changes) and `S-20260917T155937Z-6956` (the cache), all
+  merged no-ff.
 
 ## 0.2.39-beta — 2026-09-17 (one ingest of a repo at a time; ADR-127)
 

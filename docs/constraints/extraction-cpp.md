@@ -230,6 +230,30 @@ headers parsed with tree-sitter ERROR nodes.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 
+### C-160 — Lane A's C++ file cache fingerprints the extraction code and the grammar's version, not the grammar's build
+
+- **Cannot tell you:** that a C++ file's lane A facts read from the file
+  cache (ADR-128) are what this box's parser would produce now, when the
+  native `tree-sitter` or `tree-sitter-cpp` library was rebuilt or
+  swapped at the same installed version, or when code outside
+  `hobbes/extract/` that the per-file walk comes to reach changes (the
+  walk reaches none today).
+- **Because:** the key is a format tag, the name and bytes of every
+  `hobbes/extract/*.py`, the two distributions' installed versions, the
+  repo-relative path and the file's bytes. Hashing the compiled grammar
+  itself would cost every lookup a read of the shared library for a
+  case a version bump already covers; a missing version turns the cache
+  off for the process rather than guessing.
+- **Bites at:** an editable or locally built grammar at an unchanged
+  version number; a checkout whose extraction imports a helper from
+  outside `hobbes/extract/` into the per-file walk.
+- **You find out:** **surfaced** — every ingest that read a C++ file
+  prints `lane A C++ file cache: <hits> hit, <misses> miss (…;
+  HOBBES_LANEA_CACHE=0 to parse afresh; C-160)` under the timings, and
+  the timings log line carries the counts. The artifact carries nothing:
+  a hit is byte-identical to a parse (measured on ScummVM, 217 MB).
+- **Source:** ADR-128; the measurement of 2026-09-17.
+
 ## Lifted constraints in this segment
 
 A lift keeps its number, the limit as it stood, the technique that
