@@ -9,7 +9,9 @@ is also what makes M2's graph diff a plain file diff.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 #: Where derived artifacts live, relative to the repo root. Gitignored —
@@ -65,13 +67,25 @@ def write_artifacts(repo_root: Path, documents: dict[str, dict]) -> list[Path]:
     """Write *documents* (filename → body) into ``.hobbes/derived/``.
 
     Output is deterministic: sorted keys, 2-space indent, trailing newline.
+    Each file is written to a sibling temporary and renamed over its target,
+    so a reader — the knowledge server, ``hobbes review`` — sees the old
+    bytes or the new ones, never part of either (ADR-127).
     """
     derived = Path(repo_root) / DERIVED_DIR
     derived.mkdir(parents=True, exist_ok=True)
     written = []
     for filename, document in sorted(documents.items()):
         path = derived / filename
-        path.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
+        tmp = tempfile.NamedTemporaryFile(
+            "w", dir=derived, prefix=f".{filename}.", suffix=".tmp", delete=False
+        )
+        try:
+            with tmp:
+                tmp.write(json.dumps(document, indent=2, sort_keys=True) + "\n")
+            os.replace(tmp.name, path)
+        except BaseException:
+            Path(tmp.name).unlink(missing_ok=True)
+            raise
         written.append(path)
     return written
 

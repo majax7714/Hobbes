@@ -119,6 +119,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     """Run the extractors and write the derived artifacts."""
     from hobbes.extract import ingest
     from hobbes.extract.emit import StampError
+    from hobbes.extract.ingestlock import IngestBusy
     from hobbes.extract.packs import PackRefusal
     from hobbes.extract.terraform import PlanError
 
@@ -154,8 +155,10 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
         )
     # PackRefusal is how a pack declines user-supplied input (ADR-035); it
     # reaches here rather than degrading, so `--tf-plan some.tfstate` still
-    # exits 1 rather than warning and ingesting (I-1).
-    except (StampError, PlanError, PackRefusal) as exc:
+    # exits 1 rather than warning and ingesting (I-1). IngestBusy is the
+    # second ingest of one repo, refused before anything is staged or
+    # written (ADR-127).
+    except (StampError, PlanError, PackRefusal, IngestBusy) as exc:
         print(f"hobbes ingest: {exc}", file=sys.stderr)
         return 1
     docs = {p.name: json.loads(p.read_text()) for p in paths}
