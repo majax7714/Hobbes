@@ -179,6 +179,76 @@ class TestLaneACppCache:
         assert "lane A C++ file cache" not in capsys.readouterr().out
 
 
+class TestMintedLine:
+    """ADR-129 §5: a symbol lane A never parsed is a new thing in Hobbes,
+    so the ingest summary says how many were read from the index and how
+    many rows were refused, by reason (P8)."""
+
+    @staticmethod
+    def counts(symbols=0, files=0, **refused):
+        from hobbes.extract.minted import REFUSALS
+
+        return {
+            "symbols": symbols,
+            "files": files,
+            "refused": {**dict.fromkeys(REFUSALS, 0), **refused},
+        }
+
+    def test_a_mint_prints_what_was_read_and_what_it_is_not(self, capsys):
+        cli._print_minted(self.counts(symbols=42, files=7))
+        out = capsys.readouterr().out
+        assert "read from the index: 42 definition(s) in 7 file(s)" in out
+        assert "lane A parsed with errors" in out
+        # The line must not read as a closed parse gap: the symbols are
+        # targets, and a call inside one still belongs to its old caller.
+        assert "C-145" in out and "targets only" in out
+        assert "keep their caller" in out
+        assert "not minted" not in out  # nothing was refused
+
+    def test_refusals_are_listed_in_the_declared_order(self, capsys):
+        from hobbes.extract.minted import REFUSALS
+
+        cli._print_minted(self.counts(symbols=1, files=1, declaration=308, kind=74))
+        lines = capsys.readouterr().out.splitlines()
+        assert len(lines) == 2
+        assert lines[1].strip() == "not minted: 74 kind, 308 declaration"
+        # The order is the module's, not the counts' — so the block has the
+        # same shape on every repo.
+        assert REFUSALS.index("kind") < REFUSALS.index("declaration")
+
+    def test_a_reason_that_did_not_fire_is_left_out(self, capsys):
+        cli._print_minted(self.counts(symbols=3, files=1, unreadable=2))
+        line = capsys.readouterr().out.splitlines()[1]
+        assert line.strip() == "not minted: 2 unreadable"
+
+    def test_a_reason_this_hobbes_does_not_know_is_still_named(self, capsys):
+        # An artifact from another version: an unlisted refusal would read
+        # as a row that was minted, which is the one thing it is not.
+        cli._print_minted(self.counts(symbols=1, files=1, kind=2, **{"some-later-rule": 5}))
+        line = capsys.readouterr().out.splitlines()[1]
+        assert line.strip() == "not minted: 2 kind, 5 some-later-rule"
+
+    def test_refusals_alone_still_print(self, capsys):
+        # Nothing was minted, but rows were read and declined: why the
+        # count is zero is exactly what a reader is owed here.
+        cli._print_minted(self.counts(declaration=4))
+        out = capsys.readouterr().out
+        assert "read from the index: 0 definition(s) in 0 file(s)" in out
+        assert "not minted: 4 declaration" in out
+
+    def test_silent_without_the_key_or_with_nothing_read(self, capsys):
+        # P6: no indexer, or no C or C++, writes no block at all — and the
+        # floor is exactly what it was, so the summary says nothing.
+        cli._print_minted(None)
+        cli._print_minted({})
+        cli._print_minted(self.counts())
+        assert capsys.readouterr().out == ""
+
+    def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        assert "read from the index" not in capsys.readouterr().out
+
+
 class TestContainmentNote:
     """What containment does *not* take away (ADR-128 §2): a contained step
     that ran repo code wrote the tool caches and the stage, and a later

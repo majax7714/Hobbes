@@ -79,6 +79,22 @@ type graphIndex struct {
 	symbolTo    map[string][]int
 	// C-153's region as a set, so marking a caller costs one lookup.
 	cppPattern map[string]bool
+	// The symbols lane B declared (ADR-129), the same way. Empty on every
+	// graph built before minting and on every repo without C or C++.
+	laneBDeclared map[string]bool
+}
+
+// mintedNote marks a symbol whose definition lane A never parsed: lane B's
+// index gave the file, line and kind, so the node exists and calls resolve
+// to it, but it is a target and not a scope (ADR-129 §3). What that costs a
+// reader of who_calls is the symbol's own outgoing calls, which are still
+// attributed to whatever lane A did parse around them — said here rather
+// than left to be discovered (P8, C-145).
+func (idx *graphIndex) mintedNote(symbolID string) string {
+	if !idx.laneBDeclared[symbolID] {
+		return ""
+	}
+	return "  (definition read from the index: lane A's parse lost it to a macro, C-145 — its own calls are attributed to the enclosing symbol or the module)\n"
 }
 
 // templateNote marks a caller whose edge starts in a C++ template pattern
@@ -104,6 +120,8 @@ func indexGraph(g *graphDoc) *graphIndex {
 		moduleTo:    map[string][]int{},
 		symbolTo:    map[string][]int{},
 		cppPattern:  make(map[string]bool, len(g.CppTemplatePatterns)),
+
+		laneBDeclared: map[string]bool{},
 	}
 	for _, id := range g.CppTemplatePatterns {
 		idx.cppPattern[id] = true
@@ -115,6 +133,9 @@ func indexGraph(g *graphDoc) *graphIndex {
 	for i := range g.Symbols {
 		idx.symbolIDs[i] = g.Symbols[i].ID
 		idx.symbolKnown[g.Symbols[i].ID] = true
+		if g.Symbols[i].DeclaredBy == "scip" {
+			idx.laneBDeclared[g.Symbols[i].ID] = true
+		}
 	}
 	for i := range g.ModuleEdges {
 		e := &g.ModuleEdges[i]
@@ -236,6 +257,11 @@ type symbol struct {
 	Module string `json:"module"`
 	Kind   string `json:"kind"`
 	Line   int    `json:"line"`
+	// Which lane spelled this definition (ADR-129). Empty on every lane A
+	// symbol and on every artifact written before minting existed;
+	// "scip" on a definition lane A's parse lost and lane B's index gave
+	// back, which who_calls says out loud.
+	DeclaredBy string `json:"declared_by"`
 }
 
 // builtBy is the pipeline's provenance stamp (ADR-094): which checkout
@@ -503,6 +529,9 @@ func (s *Store) WhoCalls(symbolID string) (string, error) {
 	}
 	var b strings.Builder
 	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
+	// Before any caller: what the symbol itself is (ADR-129 §5). It
+	// qualifies every line below it, including "no recorded callers".
+	b.WriteString(idx.mintedNote(symbolID))
 
 	callers, users, implementors := 0, 0, 0
 	var uses, implemented strings.Builder
