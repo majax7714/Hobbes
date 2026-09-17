@@ -1313,6 +1313,46 @@ of all pairs. Any surface built on this measurement names the exclusion
 and its measured share, and says that the key can confirm the set but
 never the reach.
 
+### 10.13 A definition lane A lost, read from the index — written 2026-09-17, before the rule is built
+
+ADR-129. **What was and was not pre-registered, plainly.** The mint rule
+was *fitted on fmt*: a scratch probe graded a naive rule's export against
+the standing key (98.2%, 123 contradicted), the rows were read, and two
+of lane A's own symbol rules were added (definitions only; no `term`).
+fmt's probe figures are therefore measurements, never predictions met.
+**args was held out:** the rule was frozen and P70–P73 written to
+`~/.hobbes/bench/c145-recovery/PREREG-args.md` before the args probe ran.
+
+| # | Cell | Prediction (before the args probe) | Result |
+|---|---|---|---|
+| P70 | args | minted call edges: 0 contradicted | **met** — 67 added, 67 confirmed |
+| P71 | args | recall 56.4% → between 56.4% and 66% | **met** — 58.6% (2,086/3,561) |
+| P72 | args | no standing confirmed edge lost | **met** — 1,995 → 2,062 |
+| P73 | args | strict precision ≥ 99.5% | **met** — 100%, no unjudged row |
+
+The probe's exports were synthetic: standing export rows plus one row per
+mintable fact. The predictions below are for the **built** rule, a fresh
+contained ingest of each cell at the change, exported and graded with
+`oracle grade --poison` against the stored keys (fmt and args:
+`~/.hobbes/bench/uneval-drivers/keys/`; cJSON and sqlite-vector:
+`~/.hobbes/bench/oracle/<cell>/oracle.json`). Written before any of it is
+built.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P74 | fmt | contradicted 0; confirmed 6,533 ± 15 | per the report; every contradicted row read and named hobbes-wrong, provider (C-153) or oracle-grain |
+| P75 | fmt | recall 29.1% ± 0.2 points; collapsed 24.9% ± 0.3 | per the report |
+| P76 | fmt | strict precision between 98.9% and 99.2% (62 ± 8 line-unresolved rows); every new unjudged row read by hand, and any that is C-153's shape counted in the cell record | per the report and the read |
+| P77 | fmt | no standing confirmed edge lost: the standing export's confirmed rows are a subset of the fresh one's | set comparison, as `grade-cell.sh` does |
+| P78 | args | 2,062 ± 3 confirmed, 0 contradicted, recall 58.6% ± 0.1 | per the report |
+| P79 | cJSON, sqlite-vector | 0 symbols minted; both exports identical to the standing ones as sets | set comparison |
+| P80 | fmt | symbols minted 622 ± 10; `uses` edges gained from minted types > 0 and no `calls` edge to a minted type | read from `graph.json` |
+| P81 | every cell | poison PASS, 0 falsely confirmed | per the report |
+
+A miss on P74, P77 or P79 is a finding against the rule and is fixed
+before the version moves. A miss in the flattering direction is recorded
+as a miss.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
