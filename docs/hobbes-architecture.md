@@ -894,8 +894,8 @@ proof, and it touched exactly those.
 **Step 2 was "optional" until V2.M5, and it was wrong (ADR-037).** The
 correction is worth stating in full, because it is the cost of P7 and it
 does not go away: **no SCIP indexer populates `syntax_kind`.**
-`scip-python` leaves it unset for 0 of 8,575 occurrences and `scip-go` for
-0 of 18,682, and rust-analyzer for 0 of 169 (ADR-040) — three
+`scip-python` sets it for 0 of 8,575 occurrences, `scip-go` for 0 of
+18,682, and rust-analyzer for 0 of 169 (ADR-040) — three
 independent implementations, same omission; the field is optional in
 SCIP and no producer fills it. That field is the one
 that separates a call from a type annotation from a plain mention.

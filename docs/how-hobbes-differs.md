@@ -58,7 +58,7 @@ flowchart LR
   ORA --> O3[Python: the interpreter,<br/>sys.monitoring under the repo's suite]
   ORA --> O4[Rust: rustc MIR, a rustc_driver walker]
   ORA --> O5[Java: javac + CHA]
-  ORA --> O6[C: clang's own front end]
+  ORA --> O6[C and C++: clang's own front end]
   FOREIGN["another tool's graph<br/>oracle import (ADR-101)"] --> ORA
 ```
 

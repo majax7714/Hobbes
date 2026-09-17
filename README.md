@@ -135,8 +135,8 @@ flowchart TB
 
 Both halves are needed, and that was measured rather than assumed: no
 SCIP indexer records what a reference syntactically *was* (`scip-python`
-leaves the field unset for 0 of 8,575 occurrences, `scip-go` for 0 of
-18,682, `rust-analyzer` for 0 of 169). Without the syntax lane a
+sets the field for 0 of 8,575 occurrences, `scip-go` for 0 of 18,682,
+`rust-analyzer` for 0 of 169). Without the syntax lane a
 language gets references and no call graph at all. That is why adding a
 language means a grammar *and* an indexer — and why, once both exist, a
 language is configuration: Rust arrived with zero new lines in the graph
@@ -160,16 +160,16 @@ cell to prove the grader can say no. Every compiler-graded cell is at
 
 - **quic-go** (Go) reads 99.6%, a lower bound whose 15 contradictions
   all triage to the oracle's own grain, with none Hobbes'.
-- **fmt** (C++) reads 99.88% (3,269/3,273), 99.69% judged like-for-like
-  after the oracle's own four defects (H-28–H-31) were fixed on
-  2026-09-16 and C-155 was lifted the same day (ADR-121: no call site
-  in an unevaluated operand). Every contradiction left is a wrong edge
+- **fmt** (C++) reads 99.88% (3,269/3,273), 99.69% judged like-for-like,
+  with the oracle's own defects on it (H-28–H-31) fixed and C-155
+  lifted (ADR-121: no call site in an unevaluated operand). Every
+  contradiction left is a wrong edge
   drawn where scip-clang itself names the wrong candidate (C-153, 4
   judged and 6 more of that shape unjudged rather than fixed). A
   provider's error in the graph is Hobbes' own, so it is registered.
 
-C's sqlite-vector read 99.6% until 0.2.8-beta, from three syntactic edges
-Hobbes got wrong (C-138). The external veto (ADR-111) removed them, and it
+C's sqlite-vector once read 99.6%, from three syntactic edges Hobbes
+got wrong (C-138). The external veto (ADR-111) removed them, and it
 reads 851/851. The misses are registered by class (closures, function
 values, interface dispatch) in `oracle-misses.md`. C++'s two cells are
 not tabled there yet; the abstentions behind part of their recall (fmt
@@ -218,7 +218,7 @@ A comparison is only as honest as its reading rules, so here they are:
   bound whose 15 contradictions all triage to the oracle's grain. fmt
   reads 3,269/3,273 (99.88%; 99.69% like-for-like): all 4 contradictions
   are scip-clang's wrong candidate (C-153); the unevaluated-operand
-  edge (C-155) was lifted at 0.2.33-beta.
+  edge (C-155) is lifted (ADR-121).
   Its recall lead within a row runs from none (sqlite-vector), half a
   point (cJSON) and 0.6 of a point (fmt) to 35 points (zod).
 - **Precision is a lower bound for every tool alike.** Contradictions
@@ -347,7 +347,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.29-beta** (2026-09-16). The Hobbes layer is versioned from here
+**Hobbes 0.2.35-beta** (2026-09-16). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -355,9 +355,8 @@ every knowledge answer states the version and commit that built it.
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
 Semantic edges for **Python, TypeScript/JavaScript, Go, Rust, Java, C and
 C++** (plus Terraform/HCL structure). C and C++, the newest, are
-scip-clang over a compile database the ingest derives: C compiler-graded
-on two repos since 0.2.5-beta, C++ on two since 0.2.23-beta
-(ADR-108/109/110/113). The layer carries graph schema v4 with tiers
+scip-clang over a compile database the ingest derives, each
+compiler-graded on two repos (ADR-108/109/110/113). The layer carries graph schema v4 with tiers
 and evidence
 lanes, framework knowledge in removable enrichment packs, a tier-aware
 invariant checker, and a lane-agreement self-test — 3,085 call sites on
@@ -370,8 +369,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and fifty-seven entries (one
-hundred and fourteen active, twenty-six lifted, eleven superseded, six
+The constraint register holds one hundred and fifty-eight entries (one
+hundred and fourteen active, twenty-seven lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -411,9 +410,9 @@ only as a safety property, never as a helper. One shape held. A
 frontier agent does the work, and `hobbes gate` judges its finished
 diff: it blocks real errors, with no false block on gold.
 
-**From 0.1.21-beta, Calvin is a harness**
+**Calvin is now a harness**
 ([`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md),
-ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
+ADR-107):
 - `hobbes dispatch` hands one task to Claude Code inside
   `hobbes-session`.
 - The session's only route off the box is an egress allowlist naming
@@ -425,15 +424,15 @@ ADR-107), and 0.2.0-beta marks it as the layer's first minor bump:
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and thirty-one session logs stand through
-0.2.28-beta. The tracker at the end of
+dispatched on 2026-09-12, and thirty-seven session logs stand. The
+tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13). The work built through it includes C's lane A and its
-oracle, the external veto (0.2.8-beta), a session's records written by
-a sidecar container the doer cannot reach (0.2.14-beta, ADR-112), and
-C++ from its lane A to the fixes its first graded cells asked for
-(0.2.18-beta to 0.2.22-beta). [`CHANGELOG.md`](CHANGELOG.md) has every
+oracle, the external veto (ADR-111), a session's records written by
+a sidecar container the doer cannot reach (ADR-112), and C++ from its
+lane A to the fixes its first graded cells asked for.
+[`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 
 Current detail lives in [`docs/session-handoff.md`](docs/session-handoff.md)
@@ -447,7 +446,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-121 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-122 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

@@ -3,20 +3,20 @@
 <rect width="1090" height="1348" fill="#fcfcfb"/>
 <text x="24" y="30" font-size="15" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One dot per cell: precision-against-oracle (y, a lower bound) against recall (x), never pooled</text>
 <g>
-<title>Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.33-beta / 0.2.4-beta / 0.2.8-beta</title>
+<title>Hobbes</title>
 <circle cx="30" cy="46" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes 0.1.10-beta / 0.2.28-beta / 0.2.33-beta / 0.2.4-beta / 0.2.8-beta</text>
+<text x="40" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hobbes</text>
 <g>
 <title>CodeGraphContext 0.6.13</title>
-<rect x="494.2" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="91.6" y="41" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="509.2" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
+<text x="106.6" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >CodeGraphContext 0.6.13</text>
 <g>
 <title>repowise 0.49.0</title>
-<polygon points="669.5,39.5 676.0,46 669.5,52.5 663.0,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="266.9,39.5 273.4,46 266.9,52.5 260.4,46" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="679.5" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
+<text x="276.9" y="50" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >repowise 0.49.0</text>
 <text x="24" y="66" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >One colour per tool, as in same-key.svg; the foreign graphs (·cgc, ·rw) graded by the same key (ADR-101).</text>
 <text x="24" y="80" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Hover a dot for its miss classes with counts. Language is the panel, not a colour; the y axis of each panel starts where its lowest cell sits and says so.</text>
 <text x="60" y="96" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Go — go-rta (compiler-graded)</text>
@@ -494,7 +494,7 @@ codegraphcontext on a draw of repowise's, graded by our key (ADR-101); host-run 
 precision-against-oracle 2,628/2,628 = 100.0%
 recall 2,667/5,910 = 45.1% over every resolved site (resolution oracle: no roots)
 misses by class: static→function 1,972, func-value→local-binding 1,070, static→closure 173, static→anonymous-signature 12, static→type-member 6, static→class 5, static→method 5
-44 abstract: calls through const x = factory(..) (H-18); regraded 2026-09-10 at 0.1.7-beta — the callee-shape bucket (oracle-misses.md), C-100</title>
+44 abstract: calls through const x = factory(..) (H-18); regraded 2026-09-10 — the callee-shape bucket (oracle-misses.md), C-100</title>
 <circle cx="535.3" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="543.3" y="170.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cheerio</text>
@@ -709,7 +709,7 @@ codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host
 precision-against-oracle 29,793/29,793 = 100.0%
 recall 33,143/54,520 = 60.8% over every resolved site (resolution oracle: no roots)
 misses by class: interface→method 20,092, static→constructor 1,207, interface→anonymous-member 78
-random draw; lane B ran from 0.1.10-beta through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; until then it failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured</title>
+random draw; lane B runs through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; before it, lane B failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured</title>
 <circle cx="242.4" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="250.4" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains</text>
@@ -896,7 +896,7 @@ repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import 
 precision-against-oracle 3,269/3,273 = 99.9%
 recall 7,334/50,525 = 14.5% over every resolved site (resolution oracle: no roots)
 misses by class: static→method 21,908, static→function 10,317, static→constructor 8,205, macro→function 1,621, macro→method 1,140
-chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; of the 28 contradicted at 0.2.22-beta, 10 were scip-clang's own single wrong candidate, Hobbes' by P9 (C-153), and 18 the oracle's grain (H-28–H-31) — all four of those oracle defects were fixed on 2026-09-16, after which the cell reads 3,269/3,274 (99.85%, and 99.66% judged as the earlier grade judged) with 5 contradictions left, every one Hobbes' own: C-153's four and C-155's one</title>
+chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; all 4 contradictions are scip-clang's own single wrong candidate, drawn by Hobbes and owned by P9 (C-153), and 6 more of that shape are unjudged, not fixed: judged like-for-like it reads 99.69% (3,269/3,279); the oracle's own defects on this cell (H-28–H-31) are fixed, and C-155 is lifted</title>
 <circle cx="783.5" cy="480.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="791.5" y="494.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
@@ -914,7 +914,7 @@ repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import
 precision-against-oracle 1,995/1,995 = 100.0%
 recall 2,010/3,561 = 56.4% over every resolved site (resolution oracle: no roots)
 misses by class: static→constructor 889, static→method 612, static→function 50
-random draw (seed 20260914); the 4 contradicted at 0.2.21-beta were the overload collapse, abstained since 0.2.22-beta (C-151)</title>
+random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)</title>
 <circle cx="909.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="917.2" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args</text>
@@ -984,5 +984,5 @@ trace-graded under its own suite (dogfood)</title>
 <text x="24" y="1292" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are registered by class: C-58 (closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables),</text>
 <text x="24" y="1308" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >and in C++ the classes each record tables: constructions, the member calls and overload sets lane B leaves unsettled, and macro-heavy parses (C-143, C-145, C-151).</text>
 <text x="24" y="1324" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>
-<text x="24" y="1340" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102). The Hobbes cells' standing grades are by Hobbes 0.1.10-beta, 0.2.28-beta, 0.2.33-beta, 0.2.4-beta, 0.2.8-beta (ADR-103; per cell in tables.md).</text>
+<text x="24" y="1340" font-size="10" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rendered from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102).</text>
 </svg>

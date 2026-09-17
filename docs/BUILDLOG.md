@@ -11864,3 +11864,29 @@ in the ingest.
 the bump. The static proxy and the image rebuilt at 0.2.35-beta
 (C-65); this repo re-ingested at HEAD — the first ingest after the
 rebuild misses everywhere, by design.
+
+## 2026-09-16 — the public docs name one version; drift swept
+
+**Direction (Max).** The comparative pages and the Hobbes-facing docs list
+the current version only; the graphics printing each cell's grading build
+("Hobbes 0.1.10-beta / 0.2.28-beta / …") was noise, since only the
+current Hobbes matters to how they read.
+
+**Done.** `render.py` no longer parses a record's grading version: the
+tables drop the per-cell Hobbes column, the legends say "Hobbes", and the
+version footers are gone (the record keeps its build and commit, so no
+provenance is lost; `render.py check` green, the report Go test green).
+Graphics, `tables.md` and `cells.json` re-rendered. Three `cells.meta.json`
+notes lost their version references. `docs/comparative/README.md` states
+0.2.35-beta once, in place of the three version-history paragraphs.
+
+**Drift fixed along the way.** The fmt note on `one-number.svg` and the
+comparative claim still read 3,269/3,274 (99.85%, like-for-like 99.66%)
+with C-155 open; now 3,269/3,273 (99.88%, like-for-like 99.69%), C-155
+lifted, H-32 named. README: status 0.2.29 → 0.2.35-beta, register 157 →
+158 (27 lifted), ADR range to 122, 37 session logs; its version history
+removed from the prose. `field.md`'s Hobbes row 0.2.28 → 0.2.35-beta, 154/111
+→ 158/114. `how-hobbes-differs.md`'s oracle diagram said clang for C only.
+README and architecture §3.7 said scip-python "leaves `syntax_kind` unset
+for 0 of 8,575" — the reverse of ADR-029's measurement ("populates it for
+0"); now "sets it for 0". No version bump: docs and `bench/` only.

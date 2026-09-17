@@ -29,43 +29,23 @@ Everything numeric renders from the records by
 `bench/oracle/report/render.py`; `render.py check` (run by the oracle
 lane's Go suite) fails when a picture drifts from its cells.
 
-**The versioned baseline (2026-09-10, Max's direction).** Every Hobbes
-cell on this page was re-ingested on one build — **Hobbes 0.1.10-beta**
-(ADR-103; first at 0.1.8-beta the same day, then again at 0.1.10-beta
-after the Gradle attach route landed, every cell holding to the digit
-but Severed-Chains, which gained its semantic lane) — and regraded
-against its standing key, contained (the dagger modules, kbet and toml
-for the first time at 0.1.8-beta); the foreign cells were not
-regraded, since the tools did not change. The renderer reads
-the version from each record's last regrade heading and prints it in
-`tables.md` and on the graphics, so the page can say which Hobbes it
-describes. The records distinguish changes from growth or refreshed keys
-(this repo's two dogfood cells and click) from changed silent-edge
-counts (hono, memchr and quic-go); each record's 2026-09-10 block
-says what moved and why. One cell,
-spring-data-elasticsearch, failed its first run under ADR-097's two
-passes and exposed C-101 (the Java resolve stage held Kotlin sources;
-the Maven wrapper's distribution was not cached for the offline pass),
-fixed the same session and regraded 16,050/16,050.
-
-**Since the baseline (2026-09-12).** C joined as the sixth
-compiler-graded language at 0.2.4/0.2.5-beta (ADR-109/110): cJSON,
-sqlite-vector and the minic fixture, graded against clang's own front
-end. At 0.2.8-beta, ADR-111's acceptance regrade re-ingested every
-cell with a stored key, 44 of them, contained, and graded each against
-its standing key. A pre-veto pass reproduced every stored number first,
-and afterwards no confirmed count moved anywhere. Only sqlite-vector's
-grade changed (851/854 → 851/851), so only its record carries a
-0.2.8-beta block, and the others' standing grades still read their
-earlier version. That is why the graphics name several versions.
-
-**C++, 2026-09-15.** C++ joined as the seventh compiler-graded language
-(ADR-113, O10): fmt (chosen for shape) and Taywee/args (drawn at
-random), graded against clang's front end at 0.2.21-beta and regraded at
-0.2.22-beta after ADR-113 §2's third amendment, so their standing grades
-name a fourth version. Both tools were graded on them the same day,
-pre-registered first (`oracle-grading.md` §10.7), so each is a row of
-`same-key.svg` (item 4 below).
+**Hobbes 0.2.35-beta.** This page, its tables and its graphics describe
+the current Hobbes and name no other version. Every number is a cell's
+standing grade: the last block of its record under
+`docs/oracle/cells/`, which names the commit and the build that graded
+it. The last whole-lane regrade (ADR-111's acceptance, 2026-09-12)
+re-ingested all 44 cells with a stored key, contained, reproduced every
+stored number first, and afterwards moved only sqlite-vector's grade
+(851/854 → 851/851). The cells graded since carry their own regrade
+blocks: C (cJSON, sqlite-vector, the minic fixture; ADR-109/110) and
+C++ (fmt, chosen for shape, and Taywee/args, drawn at random; ADR-113),
+fmt and args last regraded 2026-09-16. Both tools were graded on the C
+and C++ cells too, pre-registered first for C++ (`oracle-grading.md`
+§10.7), so each is a row of `same-key.svg` (item 4 below). One cell,
+spring-data-elasticsearch, failed its first versioned run under
+ADR-097's two passes and exposed C-101 (the Java resolve stage held
+Kotlin sources; the Maven wrapper's distribution was not cached for the
+offline pass), fixed the same session and regraded 16,050/16,050.
 
 ## The claim, in the words the evidence licenses
 
@@ -74,18 +54,18 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
    compiler-graded semantic cell is at 100% precision-against-oracle
    except quic-go (3,766/3,781, a 99.6% lower bound; all
    fifteen are the test build's shadowing methods, 0 hobbes-wrong) and
-   C++'s fmt (3,269/3,274, **99.85%** after the 2026-09-16 regrades) —
-   and on that cell the exception is now entirely ours: **0 rows are the
-   oracle's grain**, 4 are scip-clang naming a single wrong candidate
-   that Hobbes draws (a provider's error owned as Hobbes' own, C-153)
-   and 1 is a call Hobbes draws inside an unevaluated `decltype` operand
-   that the compiler never calls (C-155). All four defects of the oracle
-   itself — H-28, H-29, H-30, H-31 — were found by triaging this cell
-   and fixed the same day. **The 99.85% is still flattered by one of
-   them, and the record says so:** H-30's silence rule withdrew
+   C++'s fmt (3,269/3,273, **99.88%**) — and on that cell the exception
+   is entirely ours: **0 rows are the oracle's grain**, and all 4 are
+   scip-clang naming a single wrong candidate that Hobbes draws (a
+   provider's error owned as Hobbes' own, C-153). The call Hobbes once
+   drew inside an unevaluated `decltype` operand (C-155) is lifted
+   (ADR-121). All four defects of the oracle itself that this cell's
+   triage found — H-28, H-29, H-30, H-31 — are fixed, and so is H-32,
+   C-155's oracle half. **The 99.88% is still flattered by one of those
+   fixes, and the record says so:** H-30's silence rule withdrew
    judgement from 6 further C-153 rows, which are wrong and now simply
-   unjudged. Judging the rows the previous grade judged, fmt is
-   **99.66%** (3,269/3,280). Both numbers are in the cell record.
+   unjudged. Judged like-for-like, fmt is **99.69%** (3,269/3,279).
+   Both numbers are in the cell record.
    The two TypeScript cells that were exceptions closed by fixes, not
    by re-grading: ajv's three rows and six of hono's seven were one
    member call on a union-typed receiver drawn to the first member's
@@ -111,8 +91,8 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
    compiler-graded cells, stated as a range and never averaged: each
    cell's denominator is its own roots or its resolved sites (C-62).
    The syntactic floor alone was measured once — Severed-Chains at
-   23.5%, no semantic lane — and that cell reads 60.8% since
-   0.1.10-beta, when the Gradle attach route gave it one.
+   23.5%, no semantic lane — and that cell reads 60.8% since the
+   Gradle attach route gave it one.
    The misses are one register entry, C-58 — closures, interface
    dispatch, function values, code macros and derives wrote — tabled
    per cell in `docs/oracle/oracle-misses.md`. C++'s are tabled in its
@@ -161,8 +141,8 @@ pre-registered first (`oracle-grading.md` §10.7), so each is a row of
      first run on 2026-09-15.
    - **repowise:** fmt 2,410/5,025 (**48.0%**, was 45.2%), recall 13.9%;
      args 815/904 (**90.2%**, was 87.0%), recall 23.3%.
-   - **Hobbes, same keys:** fmt 3,269/3,274 (**99.85%**; 99.66% judging
-     the rows the previous grade judged), recall 14.5%; args
+   - **Hobbes, same keys:** fmt 3,269/3,273 (**99.88%**; 99.69% judged
+     like-for-like), recall 14.5%; args
      1,995/1,995, recall 56.4%.
 
    **Why every tool's number rose on 2026-09-16, and Hobbes' barely
