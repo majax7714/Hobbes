@@ -11,9 +11,31 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.37-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.38-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.38-beta — 2026-09-17 (C-153's region is marked where a user meets it; ADR-125 §4)
+
+**Patch: what the layer says.** The edges are unchanged.
+
+- `who_calls` marks a caller line whose semantic C++ `calls` edge starts
+  in a **template pattern**: a function template, including an out-of-line
+  member under a non-empty `template <…>`, or a member of a class template
+  or partial specialisation, at any depth. The note: *"C-153: from a C++
+  template pattern — scip-clang's one answer there can name another
+  specialisation's declaration"*. An explicit full specialisation is not a
+  pattern.
+- `graph.json` gains `cpp_template_patterns` (the pattern symbols that call
+  something semantically; present when the C++ layer ran), and the ingest
+  writes one `cpp-template-sites` degradation record with the edge count,
+  which `list_blind_spots` shows.
+- It marks the region, not the wrong edges. On fmt that is 596 of 2,811
+  semantic call edges, including both `format_as` rows R-qual leaves.
+  **C-153: unsurfaced → partial.** Not marked: a pattern whose header a
+  macro parse lost (C-145), and a method of a class nested in a class body
+  (no lane A symbol).
+- Dispatched as `S-20260917T134335Z-b0ed` (merged no-ff).
 
 ## 0.2.37-beta — 2026-09-17 (a C++ call the written specialisation contradicts draws nothing; ADR-125)
 

@@ -216,12 +216,17 @@ headers parsed with tree-sitter ERROR nodes.
   (3,269/3,269) where the strict figure (ADR-124), counting its 9
   line-unresolved rows as contradicted, is 99.73% (3,269/3,278); both
   are in `tables.md`.
-- **You find out:** **unsurfaced** for what R-qual does not reach —
-  nothing at the site says so, and the two rows left do not read as
-  contradictions in the cell's own grade; the strict figure beside it
-  (ADR-124) counts them again. What R-qual withholds is surfaced: the
-  `qualifier-mismatch` class in the tail and `list_blind_spots`. The
-  surfacing of the rest is ADR-125 §4, not built yet.
+- **You find out:** **partial** (since 0.2.38-beta, ADR-125 §4) —
+  `who_calls` marks each semantic C++ call edge that starts in a
+  template pattern (a function template, or a member of a class
+  template or partial specialisation), and one `cpp-template-sites`
+  record in `list_blind_spots` counts them (fmt: 596 of 2,811, both
+  remaining `format_as` rows among them). It marks the region, not the
+  wrong edge: nothing at the site tells a wrong answer from a right one.
+  Not marked: a pattern whose `template <…>` a macro parse lost (C-145),
+  and a method of a class nested in a class body (no lane A symbol). The
+  strict figure (ADR-124) counts the two unjudged rows again. What R-qual
+  withholds is tailed `qualifier-mismatch`.
 - **Provider (P9):** scip-clang **0.4.0**.
 - **Source:** fmt's cell, 2026-09-15.
 

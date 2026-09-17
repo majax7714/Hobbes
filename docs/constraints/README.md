@@ -156,8 +156,8 @@ their segment, in that order, and are marked in the heading.
 | Status | Count | Entries |
 |---|---|---|
 | active — surfaced | 88 | every active entry not listed below |
-| active — *partial* | 21 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150 |
-| active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-153 |
+| active — *partial* | 22 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153 |
+| active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 27 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
@@ -166,6 +166,15 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-153 surfaced as partial, 2026-09-17 (ADR-125 §4, 0.2.38-beta):
+- **C-153 unsurfaced → partial.** `who_calls` marks every semantic C++
+  call edge that starts in a template pattern (a function template, or a
+  member of a class template or partial specialisation), and one
+  `cpp-template-sites` record counts them. The note marks the region
+  where the error can occur, not the wrong edges: on fmt, 596 of 2,811
+  semantic call edges, including both `format_as` rows R-qual leaves.
+  158 entries, 114 active, 88 surfaced, 22 partial, 3 unsurfaced.
 
 C-153 narrowed, C-152 amended, C-70 settled, 2026-09-17 (ADR-125, 0.2.37-beta; ADR-123, 0.2.36-beta):
 - **C-153 narrowed, still unsurfaced:** a C++ call written through one
