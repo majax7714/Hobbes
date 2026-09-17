@@ -17,7 +17,6 @@ at all the run proceeds unlocked with a warning — the residual is C-159.
 
 from __future__ import annotations
 
-import errno
 import fcntl
 import os
 import sys

@@ -130,7 +130,7 @@ information appears in both, and the entries cross-reference.
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-156, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-80, C-3 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
-| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-150, C-158, C-74, C-85, C-79, C-16, C-33, C-34 |
+| [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-150, C-158, C-159, C-74, C-85, C-79, C-16, C-33, C-34 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
 | [`extraction-rust.md`](extraction-rust.md) | Extraction — Rust | C-28, C-29, C-30, C-157, C-72 |
 | [`extraction-java.md`](extraction-java.md) | Extraction — Java | C-66, C-67, C-68, C-69, C-101 |
@@ -151,11 +151,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and fifty-eight entries: one hundred and fourteen active, twenty-seven lifted, eleven superseded, six folded**
+**One hundred and fifty-nine entries: one hundred and fifteen active, twenty-seven lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 88 | every active entry not listed below |
+| active — surfaced | 89 | every active entry not listed below |
 | active — *partial* | 22 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
@@ -166,6 +166,14 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-159 registered, 2026-09-17 (ADR-127, 0.2.39-beta):
+- **C-159 registered (surfaced)**, in `extraction-lane-b-environments.md`:
+  a second ingest of a repo is refused while one runs (an exclusive
+  `flock` on `.hobbes/derived/.ingest.lock`), and the artifacts are
+  written atomically. The residuals: a build before 0.2.39-beta takes no
+  lock, and a filesystem without `flock` runs unlocked with a warning.
+  159 entries, 115 active, 89 surfaced, 22 partial, 3 unsurfaced.
 
 C-153 surfaced as partial, 2026-09-17 (ADR-125 §4, 0.2.38-beta):
 - **C-153 unsurfaced → partial.** `who_calls` marks every semantic C++

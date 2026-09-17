@@ -11,9 +11,32 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.38-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.39-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.39-beta — 2026-09-17 (one ingest of a repo at a time; ADR-127)
+
+**Patch: what the layer refuses.** The graph is unchanged.
+
+- A second `hobbes ingest` of a repo whose ingest is running is refused
+  before it stages anything: `hobbes ingest: another hobbes ingest of
+  <root> is running (pid N)`, exit 1 (`IngestBusy`). Two ingests of one
+  repo used to share every lane B stage path and delete each other's
+  trees, so units failed with "wrote no facts file" and the graph was
+  written anyway (found by use, 2026-09-17).
+- The guard is an exclusive `flock` on `.hobbes/derived/.ingest.lock`,
+  taken first in `ingest()`, so `hobbes up` and the bench's arm get it
+  too. The kernel drops it with the process; nothing goes stale.
+- `graph.json`, `tests.json` and `interfaces.json` are each written to a
+  temporary beside them and renamed over, with the mode a plain write
+  gave; a reader sees the old file or the new one. The bytes are
+  unchanged.
+- **C-159 registered (surfaced):** a build before this one takes no
+  lock, and a filesystem where `flock` fails runs unlocked, with a
+  warning naming C-159.
+- Dispatched as `S-20260917T142335Z-d238` (merged no-ff); the artifact
+  mode kept by the developer on top.
 
 ## 0.2.38-beta — 2026-09-17 (C-153's region is marked where a user meets it; ADR-125 §4)
 

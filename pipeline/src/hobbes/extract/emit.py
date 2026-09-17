@@ -73,6 +73,12 @@ def write_artifacts(repo_root: Path, documents: dict[str, dict]) -> list[Path]:
     """
     derived = Path(repo_root) / DERIVED_DIR
     derived.mkdir(parents=True, exist_ok=True)
+    # A temporary is created 0600; the artifact keeps the mode a plain
+    # write gave it (0666 less the umask), which a reader under another
+    # uid may rely on.
+    umask = os.umask(0)
+    os.umask(umask)
+    mode = 0o666 & ~umask
     written = []
     for filename, document in sorted(documents.items()):
         path = derived / filename
@@ -82,6 +88,7 @@ def write_artifacts(repo_root: Path, documents: dict[str, dict]) -> list[Path]:
         try:
             with tmp:
                 tmp.write(json.dumps(document, indent=2, sort_keys=True) + "\n")
+            os.chmod(tmp.name, mode)
             os.replace(tmp.name, path)
         except BaseException:
             Path(tmp.name).unlink(missing_ok=True)

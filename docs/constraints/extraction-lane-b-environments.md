@@ -276,6 +276,33 @@
 - **Source:** ADR-122; the measurement of 2026-09-16 (54.0 s → 8.9 s
   on this repo, artifacts byte-identical).
 
+### C-159 — One ingest of a repo at a time is held by an advisory lock, which an older build and a filesystem without `flock` do not take
+
+- **Cannot tell you:** that a graph was not written while another
+  ingest of the same repo ran, when one of the two was a Hobbes build
+  before 0.2.39-beta, or when the repo sits on a filesystem where
+  `flock` fails. Two ingests of one repo at one commit share every
+  lane B stage path and delete each other's trees, so units fail with
+  "wrote no facts file" (recorded in `extraction_errors`) and the graph
+  is written with less than lane B could see.
+- **Because:** the guard (ADR-127) is an exclusive `flock` on
+  `.hobbes/derived/.ingest.lock`, taken first in `ingest()`. An advisory
+  lock binds only the processes that take it, and a filesystem that
+  refuses `flock` gives no lock to take; the run goes on rather than
+  refusing every ingest there. The stage path stays derived, not
+  per-process, because ADR-027's idempotent removal relies on it.
+- **Bites at:** a pre-0.2.39-beta `hobbes` on `PATH` (the 2026-08-28
+  incident's shape, ADR-094) ingesting beside this checkout's; a repo on
+  a network or FUSE mount without lock support.
+- **You find out:** **surfaced** — between two current builds, the
+  second ingest refuses before it stages anything: `hobbes ingest:
+  another hobbes ingest of <root> is running (pid N)`, exit 1. Where the
+  lock cannot be taken, the ingest prints a warning naming C-159 and
+  that it runs unlocked. An older build's run is not detectable; its
+  `graph.json` names the build that wrote it (`built_by`, ADR-094).
+- **Source:** ADR-127; found by use 2026-09-17 (the duplicate dispatch
+  in that day's BUILDLOG entry).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

@@ -192,8 +192,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-17, 0.2.38-beta; the last three
-carried from 0.2.8-beta; Go counted 2026-09-16, all ok 2026-09-17): 1,709 pytest (7 `lane_b`) / 390 Go (389 pass,
+Suite sizes at the last check (2026-09-17, 0.2.39-beta; the last three
+carried from 0.2.8-beta; Go counted 2026-09-16, all ok 2026-09-17): 1,721 pytest (7 `lane_b`) / 390 Go (389 pass,
 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip on a host
 without clang++ or cmake; the C++ ones pass in the image) / 52 vitest /
 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -212,7 +212,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 126;
+  architecture doesn't already make. Number sequentially (last: 127;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -266,7 +266,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-17) — Hobbes 0.2.38-beta
+## Status (2026-09-17) — Hobbes 0.2.39-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -283,35 +283,32 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reached **100%** at 0.2.37-beta
   (3,269/3,269), **strict 99.73%** — every quoted precision now carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 158 entries; 114 active (88
+  contradicted (ADR-124). **Register:** 159 entries; 115 active (89
   surfaced, 22 partial, 3 unsurfaced, 1 n/a), 27 lifted — C-153 narrowed
   and partial (ADR-125), C-152 amended and C-70 settled (ADR-123).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **40 of 40**
+  drift test; re-render after filling a review block) reads **41 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.36–0.2.38-beta (ADR-123–126), the review's decisions,
-  written up first and built in Max's order.** `hobbes lanes` names a
-  registered disagreement (`same-line-pair`, `cpp-withheld`) and exits 3
-  when that is all there is. A C++ call whose written specialisation
-  contradicts lane B's `template <>` owner draws nothing
-  (`qualifier-mismatch`; fmt: 8 wrong edges withheld, 0 right). `who_calls`
-  marks semantic C++ calls from a template pattern (C-153's region).
-  Reach through dispatch was measured and **not drawn** (ADR-126): the
-  override set is javac's, but 3.6% of jsoup's expanded pairs sit at
-  calls that do not dispatch. **Next:** a lock (or a constraint) for
-  concurrent ingests of one repo, which break each other (found by use);
-  lane A's file cache, measured with the timing block; then the review's
-  remaining items (pytest fixtures as edges, C-4; the compile database's
-  `-I` path at lane A; the docs restructure).
+- **Latest — 0.2.36–0.2.39-beta (ADR-123–127).** The review's decisions,
+  built in Max's order: `hobbes lanes` exits 3 when every disagreement is
+  a registered shape; a C++ call whose written specialisation contradicts
+  lane B's `template <>` owner draws nothing; `who_calls` marks semantic
+  C++ calls from a template pattern (C-153 partial); reach through
+  dispatch measured and **not drawn** (ADR-126). Then **0.2.39-beta
+  (ADR-127): one ingest of a repo at a time** — a second is refused
+  before it stages anything, artifacts are written atomically, C-159 the
+  residuals (found by use). **Next:** lane A's file cache, measured with
+  the timing block; then the review's remaining items (pytest fixtures
+  as edges, C-4; the compile database's `-I` path at lane A; the docs
+  restructure).
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
-  exclusion for non-dispatched calls); a duplicate dispatch branch to
-  delete (`hobbes/S-20260917T132013Z-e1c6`, never merged); C-150's
-  remainder (parked, Max: "fine for now").
+  exclusion for non-dispatched calls); C-150's remainder (parked, Max:
+  "fine for now").
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

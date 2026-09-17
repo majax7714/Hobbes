@@ -68,6 +68,16 @@ class TestWriteArtifacts:
         derived = tmp_path / ".hobbes" / "derived"
         assert sorted(p.name for p in derived.iterdir()) == ["graph.json", "tests.json"]
 
+    def test_the_rename_keeps_the_mode_a_plain_write_gave(self, tmp_path):
+        # A temporary is created 0600; the artifact must not narrow to it.
+        import os
+        umask = os.umask(0o022)
+        try:
+            (path,) = write_artifacts(tmp_path, {"graph.json": {}})
+        finally:
+            os.umask(umask)
+        assert path.stat().st_mode & 0o777 == 0o644
+
     def test_a_failed_write_leaves_the_previous_bytes_and_no_temporary(
         self, tmp_path, monkeypatch
     ):
