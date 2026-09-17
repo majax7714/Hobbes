@@ -108,6 +108,28 @@ literal operator, a conversion operator, ``new``/``delete``, the comma or
 a named cast. An operator called by name (``ns::operator<<(a, b)``) is a
 call site already and stays one.
 
+**Construction tokens** (ADR-132) are the same technique one shape over.
+``T x(args)``, ``T x{..}``, ``T x;``, a member initialiser ``m_(args)``,
+a braced argument ``{a, b}``, ``T{..}``, ``new T(..)`` and a defaulted
+parameter ``T p = {}`` each call a constructor, and none of them has a
+callee this walk records: the written name is a variable, a member, a
+brace or a type. scip-clang puts its constructor reference on that token,
+so the walk records the token — its line, its column, which of
+:data:`CONSTRUCTION_KINDS` it is, and whether it sits under a
+``template_declaration`` — packed by :func:`pack_construction` in the
+operator tokens' own layout, and never as a ``Site`` for their reason:
+``int x(3);`` is the same token and no call, and lane A cannot tell. Only
+the join reads them, and only where lane B names a **constructor** at
+exactly one of them (``minted.constructor_lines``) — a type reference at
+a declared name is not a construction. A ``decl-*`` token's declaration
+must have a type and sit directly in a block, a ``case``, a ``for``
+header, a condition or namespace or file scope, never under a
+``labeled_statement``: a macro-broken class head parses ``public:`` as a
+label and a constructor's own declaration as a local. Nothing inside an
+unevaluated operand, nothing under an ERROR node; a base-class
+initialiser (``Base<T>(1)``) and a default member initialiser in a class
+body are not recorded.
+
 **The fallback** (:func:`_call_fallback`, the syntactic floor) resolves a
 plain call by name in C's three ranks (``csource._resolve_fallback``
 itself: same-file function or macro; a macro in a directly included
@@ -315,6 +337,102 @@ _OPERATOR_NODES = frozenset({
 })
 
 
+# --------------------------------------------------- construction tokens
+#
+# ADR-132, the operator tokens' technique one shape over. A construction
+# calls a constructor and names no callee — `T x(1)` writes the variable's
+# name, `m_(a)` the member's, `{a, b}` a brace — so what is recorded is
+# the *token* the index puts its constructor reference on, and nothing
+# else: `int x(3);` is that token and no call, and this walk cannot tell.
+# Never `Site`s, for the operator tokens' reason, and in their packing.
+
+#: The construction shapes a token can carry. A token's index into this
+#: tuple rides in its packed integer, so the order is the encoding's:
+#: append, never reorder (:data:`OPERATOR_SPELLINGS`' rule, for its
+#: reason — the lane A cache keys on this module's bytes).
+CONSTRUCTION_KINDS = (
+    "decl-init",
+    "decl-paren",
+    "decl-default",
+    "member-init",
+    "braced",
+    "default-arg",
+    "compound-literal",
+    "new",
+)
+
+_KIND_INDEX = {kind: i for i, kind in enumerate(CONSTRUCTION_KINDS)}
+
+
+def pack_construction(line: int, column: int, kind: str, in_template: bool) -> int:
+    """One construction token as ``line << 32 | column << 12 | kind << 1 |
+    in_template`` — :func:`pack_operator`'s layout with the kind where the
+    spelling's index rides. Two tables, one encoding: the arrays are per
+    file and per rule, and never mixed."""
+    return (
+        line << 32
+        | column << 12
+        | _KIND_INDEX[kind] << 1
+        | int(in_template)
+    )
+
+
+def unpack_construction(packed: int) -> tuple[int, int, str, bool]:
+    """:func:`pack_construction`'s inverse: ``(line, column, kind,
+    in_template)``."""
+    return (
+        packed >> 32,
+        (packed >> 12) & _COLUMN_MASK,
+        # The same 11-bit index field the spellings ride in.
+        CONSTRUCTION_KINDS[(packed >> 1) & _SPELLING_MASK],
+        bool(packed & 1),
+    )
+
+
+def construction_token(packed: array, line: int, column: int) -> bool | None:
+    """Whether the file wrote a construction of **any** kind at exactly
+    (*line*, *column*), and if so whether that token sits inside a
+    template — ADR-132's whole question, answered off one file's sorted
+    array.
+
+    Any kind, unlike :func:`operator_token`'s spelling: lane B's reference
+    names the constructor, not the shape it was written in, so there is
+    nothing for the kind to agree with. ``None`` is "no such token here",
+    which is every case the join leaves as the ``uses`` reference it draws
+    today — a position one column off, a shape this walk does not record.
+    The search is the operator lookup's binary one, for its reason.
+    """
+    if not 0 <= column < COLUMN_LIMIT:
+        return None
+    prefix = line << 32 | column << 12
+    at = bisect.bisect_left(packed, prefix)
+    if at < len(packed) and packed[at] < prefix + (1 << 12):
+        return bool(packed[at] & 1)
+    return None
+
+
+#: Where a ``decl-*`` token's ``declaration`` may sit: a block, a ``case``
+#: arm, a ``for`` header, a condition, or namespace and file scope —
+#: including a preprocessor block's, which is file scope with an ``#if``
+#: around it. Never a ``labeled_statement``: a macro-broken class head
+#: (``class GTEST_API_ X { public: explicit X(int); };``) parses as a
+#: function whose body holds ``public:`` as a label and the constructor's
+#: own declaration as a local, and that declaration constructs nothing
+#: (ADR-132's measurement found exactly those rows and they were wrong).
+_DECLARATION_HOLDERS = frozenset({
+    "compound_statement",
+    "case_statement",
+    "for_statement",
+    "condition_clause",
+    "translation_unit",
+    "declaration_list",
+    "preproc_if",
+    "preproc_ifdef",
+    "preproc_else",
+    "preproc_elif",
+})
+
+
 @dataclass
 class CppFile:
     """One parsed C++ file, in the shape the join consumes — ``csource.CFile``
@@ -356,6 +474,11 @@ class CppFile:
     #: and read by nothing but the join: an empty array is the ordinary
     #: case for a file that writes only calls.
     operators: array = field(default_factory=lambda: array("Q"))
+    #: Every construction this file writes, packed by
+    #: :func:`pack_construction` and sorted by position (ADR-132). Not
+    #: sites either, and read by nothing but the join — which draws a call
+    #: only where lane B names a constructor at one of these positions.
+    constructions: array = field(default_factory=lambda: array("Q"))
     #: Count of ``TEST_CASE``/``SCENARIO`` bodies this file has: tests the
     #: walk names but can attach no symbol to, tallied for the file's
     #: ``cpp-tests`` degradation record.
@@ -646,6 +769,7 @@ def _parse_file(rel: str, source: bytes) -> tuple[CppFile, bool, list[str]]:
     duplicated = _dedupe_symbols(parsed)
     parsed.calls = _calls(root, parsed.symbols)
     parsed.operators = _operator_tokens(root)
+    parsed.constructions = _construction_tokens(root)
     return parsed, root.has_error, duplicated
 
 
@@ -1301,6 +1425,146 @@ def _in_template(node: Node) -> bool:
     return False
 
 
+def _construction_tokens(root: Node) -> array:
+    """Every construction this file writes, packed and sorted (ADR-132) —
+    the module docstring's eight shapes, one token each.
+
+    Dropped in the same direction the operator walk drops: a token inside
+    an unevaluated operand (``sizeof(T{1})`` constructs nothing, ADR-121's
+    test reused), one whose node sits directly under an ERROR node, and
+    one written past :data:`COLUMN_LIMIT`.
+    """
+    packed: set[int] = set()
+    for node in _walk(root):
+        found = _constructions_of(node)
+        if not found:
+            continue
+        parent = node.parent
+        if parent is not None and parent.type == "ERROR":
+            continue
+        if _unevaluated(node):
+            continue
+        in_template = _in_template(node)
+        for token, kind in found:
+            column = token.start_point.column
+            if column >= COLUMN_LIMIT:
+                continue
+            packed.add(
+                pack_construction(
+                    token.start_point.row + 1, column, kind, in_template
+                )
+            )
+    return array("Q", sorted(packed))
+
+
+def _constructions_of(node: Node) -> list[tuple[Node, str]]:
+    """The construction tokens *node* itself carries, as ``(token, kind)``.
+
+    Usually none. A ``declaration`` can carry more than one — ``T a, b;``
+    declares two — and every other shape carries at most one. The three
+    ``decl-*`` kinds are read from the declarator rather than from the
+    type, because that is where scip-clang puts the constructor reference:
+    at the name being declared.
+    """
+    if node.type == "init_declarator":
+        # `T x(1)` and `T x{1}`; `T x = T(1)` is a call expression and a
+        # call site already, and a pointer declarator constructs nothing.
+        value = node.child_by_field_name("value")
+        declarator = node.child_by_field_name("declarator")
+        if (
+            value is not None
+            and value.type in ("argument_list", "initializer_list")
+            and declarator is not None
+            and declarator.type == "identifier"
+            and _declares_in_place(node.parent)
+        ):
+            return [(declarator, "decl-init")]
+        return []
+    if node.type == "function_declarator":
+        # `T x(arg);` in a body: the grammar reads a construction from a
+        # named argument as a function declaration. At namespace or file
+        # scope it really is one, so a block must be somewhere above.
+        declarator = node.child_by_field_name("declarator")
+        if (
+            declarator is not None
+            and declarator.type == "identifier"
+            and _declares_in_place(node.parent)
+            and _inside_a_body(node)
+        ):
+            return [(declarator, "decl-paren")]
+        return []
+    if node.type == "declaration":
+        # `T x;` — the default constructor, with no initialiser to read.
+        if not _declares_in_place(node):
+            return []
+        return [
+            (child, "decl-default")
+            for i, child in enumerate(node.children)
+            if child.type == "identifier"
+            and node.field_name_for_child(i) == "declarator"
+        ]
+    if node.type == "field_initializer":
+        # `m_(a)`, `n_{2}`. A base-class initialiser (`Base<T>(1)`, whose
+        # first child is a `template_method` or a qualified name) is not
+        # recorded: ADR-132 measured no row of that shape.
+        first = node.child(0)
+        if first is not None and first.type == "field_identifier":
+            return [(first, "member-init")]
+        return []
+    if node.type == "initializer_list":
+        # `f({1, 2})` and `return {1, 2};` — the two holders where a brace
+        # constructs the parameter's or the return's type. Under an
+        # `init_declarator` the declarator is the token instead, and no
+        # other holder is recorded.
+        parent = node.parent
+        if parent is not None and parent.type in ("argument_list", "return_statement"):
+            brace = node.child(0)
+            if brace is not None and brace.type == "{":
+                return [(brace, "braced")]
+        return []
+    if node.type == "optional_parameter_declaration":
+        # `void f(T p = {})`: the index names the constructor at the `=`.
+        for child in node.children:
+            if child.type == "=":
+                return [(child, "default-arg")]
+        return []
+    if node.type in ("compound_literal_expression", "new_expression"):
+        # `ns::T{1}` and `new T(1)`, at the type's own start — whatever
+        # node kind the type is, so `args::Foo{1}` is recorded at `args`.
+        # A zero-width type is the grammar's placeholder inside `= {}`
+        # rather than something written, and is no token.
+        type_node = node.child_by_field_name("type")
+        if type_node is None or type_node.start_byte == type_node.end_byte:
+            return []
+        kind = "new" if node.type == "new_expression" else "compound-literal"
+        return [(type_node, kind)]
+    return []
+
+
+def _declares_in_place(declaration: Node | None) -> bool:
+    """Whether *declaration* is one a ``decl-*`` token may be read from: a
+    declaration with a type, sitting directly in one of
+    :data:`_DECLARATION_HOLDERS`."""
+    if declaration is None or declaration.type != "declaration":
+        return False
+    if declaration.child_by_field_name("type") is None:
+        return False
+    parent = declaration.parent
+    return parent is not None and parent.type in _DECLARATION_HOLDERS
+
+
+def _inside_a_body(node: Node) -> bool:
+    """Whether any ancestor of *node* is a ``compound_statement`` — what
+    tells ``T x(arg);`` constructing a local from the same tokens spelling
+    a prototype at namespace scope."""
+    parent = node.parent
+    while parent is not None:
+        if parent.type == "compound_statement":
+            return True
+        parent = parent.parent
+    return False
+
+
 def _construction_sites(node: Node, symbols: list[dict]) -> list[dict]:
     """``A a(x)`` — a declaration whose declarator carries an argument
     list is a constructor call, named by the type's terminal."""
@@ -1578,6 +1842,13 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
         #: that wrote none is absent rather than empty.
         "operators": {
             parsed.path: parsed.operators for parsed in files if parsed.operators
+        },
+        #: The construction tokens each file writes (ADR-132), packed.
+        #: Read by the join alone, to draw a call where lane B names a
+        #: constructor at exactly one of these positions; a file that
+        #: wrote none is absent rather than empty.
+        "constructions": {
+            parsed.path: parsed.constructions for parsed in files if parsed.constructions
         },
         "files": files,
         "tests": sorted(

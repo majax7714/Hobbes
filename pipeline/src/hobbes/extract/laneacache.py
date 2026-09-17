@@ -19,7 +19,7 @@ directory other processes can reach, so it holds data and not code — an
 unpickle is a call into whatever wrote the file. The cost is that JSON
 has no tuple, no set and no ``array``, which ``_parse_file``'s result
 uses (a symbol's ``qualifiers``, a file's ``duplicate_names``, its packed
-``operators``); the first prototype's
+``operators`` and ``constructions``); the first prototype's
 plain JSON turned a ``qualifiers`` tuple into a list, so
 :func:`encode` tags both and every record written is decoded back and
 compared to the object it came from before it is kept.
@@ -67,8 +67,10 @@ KEEP_DAYS = 30
 #: count (ADR-130), and an entry written without them would read back as
 #: a parse that never counted. v3: a file carries its operator tokens
 #: (ADR-131), and an entry written without them would read back as a
-#: parse that saw no operator at all.
-FORMAT = "lanea-cpp v3"
+#: parse that saw no operator at all. v4: a file carries its construction
+#: tokens too (ADR-132), and an entry written without them would read back
+#: as a parse that saw no construction.
+FORMAT = "lanea-cpp v4"
 
 #: The tags the encoding gives the three types JSON has not. None can
 #: collide with a field name: a NUL is not in any identifier, and the
@@ -296,8 +298,9 @@ def encode(value):
     if isinstance(value, (set, frozenset)):
         return {SET_TAG: [encode(item) for item in sorted(value)]}
     if isinstance(value, array):
-        # ADR-131's operator tokens: the typecode rides with them, so the
-        # array read back is the one that was packed.
+        # ADR-131's operator tokens and ADR-132's construction ones: the
+        # typecode rides with them, so the array read back is the one that
+        # was packed.
         return {ARRAY_TAG: [value.typecode, list(value)]}
     if isinstance(value, list):
         return [encode(item) for item in value]

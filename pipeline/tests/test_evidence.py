@@ -339,6 +339,134 @@ class TestAnOperatorAppliedBySymbol:
         assert counts == {"drawn": 0, "in_template": 0}
 
 
+class TestAConstruction:
+    """ADR-132: lane B names a constructor at a construction token, no
+    call site claims it, and the join draws the call — outside a template,
+    at exactly the token lane A recorded, onto a definition the index
+    itself calls a constructor, and nowhere else."""
+
+    #: The constructor `A a{1};` calls, defined at `lib.h:2`.
+    CONSTRUCTORS = frozenset({("lib.h", 2)})
+
+    @staticmethod
+    def tokens(*written):
+        from array import array
+
+        from hobbes.extract.cppsource import pack_construction
+
+        return {"a.cc": array("Q", sorted(pack_construction(*one) for one in written))}
+
+    @staticmethod
+    def reference(col=6, def_line=2):
+        return resolution("a.cc", 10, "A", "lib.h", def_line, col=col)
+
+    def counted(self, semantic, constructions, constructors=None, syntax=()):
+        counts: dict = {"drawn": 0, "in_template": 0}
+        out = ev.join(
+            list(syntax),
+            list(semantic),
+            constructions=constructions,
+            constructors=self.CONSTRUCTORS if constructors is None else constructors,
+            construction_counts=counts,
+        )
+        return out, counts
+
+    def test_outside_a_template_it_is_a_call_and_not_a_reference(self):
+        out, counts = self.counted(
+            [self.reference()], self.tokens((10, 6, "decl-init", False))
+        )
+        assert [fact.kind for fact in out] == ["calls"]
+        [fact] = out
+        assert fact.tier == SEMANTIC
+        assert fact.lanes == (ev.TREE_SITTER, ev.SCIP)
+        # No scope of its own, as the operator rule's fact has none:
+        # `project` names the caller by the enclosing symbol.
+        assert fact.scope == ""
+        # Nothing for R-qual or R-arity to read: a construction writes no
+        # callee at all.
+        assert (fact.qualifier, fact.argc) == ("", None)
+        assert (fact.def_file, fact.def_line) == ("lib.h", 2)
+        assert counts == {"drawn": 1, "in_template": 0}
+
+    def test_inside_a_template_it_stays_a_use_and_is_counted(self):
+        # Not ADR-131's amendment: a dependent type's construction gets no
+        # reference at all, so what the index does emit in a template is a
+        # non-dependent type's, and every such row measured read right.
+        out, counts = self.counted(
+            [self.reference()], self.tokens((10, 6, "decl-init", True))
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 1}
+
+    def test_a_target_that_is_not_a_constructor_is_not_a_construction(self):
+        # The type reference `A` written at the declared name's line —
+        # here onto the class itself. A token alone cannot tell a
+        # construction from a type reference, which is why the rule needs
+        # the index's own word on what the target is.
+        out, counts = self.counted(
+            [self.reference(def_line=1)], self.tokens((10, 6, "decl-init", False))
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 0}
+
+    def test_one_column_off_is_not_the_token(self):
+        out, counts = self.counted(
+            [self.reference(col=7)], self.tokens((10, 6, "decl-init", False))
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "in_template": 0}
+
+    def test_a_reference_with_no_column_is_not_the_token_either(self):
+        out, _ = self.counted(
+            [resolution("a.cc", 10, "A", "lib.h", 2, col=-1)],
+            self.tokens((10, 6, "decl-init", False)),
+        )
+        assert [fact.kind for fact in out] == ["uses"]
+
+    def test_one_argument_without_the_other_reads_neither(self):
+        # Both or nothing: the tokens say a construction was written and
+        # the set says what was constructed, and one without the other is
+        # the output this join had before the rule existed.
+        reference = [self.reference()]
+        packed = self.tokens((10, 6, "decl-init", False))
+        assert [f.kind for f in ev.join([], reference, constructions=packed)] == ["uses"]
+        assert [
+            f.kind
+            for f in ev.join([], reference, constructors=self.CONSTRUCTORS)
+        ] == ["uses"]
+
+    def test_the_operator_rule_answers_first_for_its_own_token(self):
+        # An `operator=` reference at an `=` that is also a default
+        # argument's construction token: the operator rule's answer stands,
+        # and inside a template that answer is to withhold the row
+        # entirely (ADR-131's amendment), construction token or not.
+        from array import array
+
+        from hobbes.extract.cppsource import pack_construction, pack_operator
+
+        operators = {"a.cc": array("Q", [pack_operator(10, 6, "=", True)])}
+        constructions = {"a.cc": array("Q", [pack_construction(10, 6, "default-arg", False)])}
+        counts: dict = {"drawn": 0, "in_template": 0}
+        built: dict = {"drawn": 0, "in_template": 0}
+        out = ev.join(
+            [],
+            [resolution("a.cc", 10, "operator=", "lib.h", 2, col=6)],
+            operators=operators,
+            counts=counts,
+            constructions=constructions,
+            constructors=self.CONSTRUCTORS,
+            construction_counts=built,
+        )
+        assert out == []
+        assert counts == {"drawn": 0, "in_template": 1}
+        assert built == {"drawn": 0, "in_template": 0}
+
+    def test_without_the_new_arguments_the_join_is_what_it_was(self):
+        # P6: with lane B off, or on a repo with no C++, nothing reads
+        # either of them and the same reference is the same `uses` fact.
+        assert [fact.kind for fact in ev.join([], [self.reference()])] == ["uses"]
+
+
 class TestCoverage:
     """The denominator: what the semantic provider could not account for."""
 

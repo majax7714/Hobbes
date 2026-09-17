@@ -188,6 +188,36 @@ def _operator_call(hit: Site, operators: Mapping) -> bool | None:
     return operator_token(packed, hit.line, hit.col, hit.name[len("operator"):].strip())
 
 
+def _construction_call(
+    hit: Site, constructions: Mapping, constructors: frozenset[tuple[str, int]]
+) -> bool | None:
+    """Whether *hit* is a C++ construction — a reference onto a
+    constructor, at a construction token lane A recorded — and if so
+    whether that token sits inside a template (ADR-132). ``None`` wherever
+    any part of that does not hold, which is the ``uses`` fact the
+    reference is today.
+
+    Two conditions, and both are needed. **Exact position**, as the
+    operator rule is exact: scip-clang puts the reference on the variable's
+    name, the member's name, the ``{``, the ``=`` or the type's start, so
+    the token is the whole of what says a construction was written there —
+    one column off, or a reference with no column, is another occurrence
+    on the same line. **The constructor set**, because the token alone
+    cannot say what was constructed: ``T x;`` writes a type reference at
+    the declaration too, and drawing a call from every reference at a
+    declared name was 95 contradicted rows on fmt. The target's own
+    definition row has to be a constructor's.
+    """
+    if hit.col < 0 or (hit.def_file, hit.def_line) not in constructors:
+        return None
+    packed = constructions.get(hit.file)
+    if not packed:
+        return None
+    from hobbes.extract.cppsource import construction_token
+
+    return construction_token(packed, hit.line, hit.col)
+
+
 def join(
     syntax: list[Site],
     semantic: list[Site],
@@ -196,6 +226,9 @@ def join(
     withhold: frozenset[str] = frozenset(),
     operators: Mapping[str, array] | None = None,
     counts: dict | None = None,
+    constructions: Mapping[str, array] | None = None,
+    constructors: frozenset[tuple[str, int]] | None = None,
+    construction_counts: dict | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -250,6 +283,26 @@ def join(
     — added into the dict the caller passes, so the return type is what
     every existing caller already reads. Left ``None``, nothing is counted
     and the withholding is the same: it is the rule, not the tally.
+
+    *constructions* is lane A's packed construction tokens per C++ file
+    (ADR-132, :func:`~hobbes.extract.cppsource.pack_construction`) and
+    *constructors* the ``(file, line)`` of every definition lane B's
+    moniker names a constructor (:func:`~hobbes.extract.minted.
+    constructor_lines`). A resolution no call site claimed, onto one of
+    those definitions, at exactly one of those positions and **outside a
+    template**, is a ``calls`` fact rather than the ``uses`` reference it
+    would otherwise be: ``T x(1);`` calls a constructor and names no
+    callee lane A can record, so this edge too belongs to neither lane
+    alone. Both arguments are needed for either to be read — the operator
+    rule is tried first, and answers for its own tokens.
+
+    **Inside a template the reference stays the ``uses`` fact it is**, and
+    is counted rather than withheld. That is not ADR-131's amendment, and
+    deliberately so: a dependent type's construction gets no reference at
+    all, so what scip-clang does emit inside a template is a
+    non-dependent type's, and all 45 such rows across the two measured
+    cells read right. *construction_counts* takes ``drawn`` and
+    ``in_template`` as *counts* does.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -367,6 +420,46 @@ def join(
                 if counts is not None:
                     counts["in_template"] = counts.get("in_template", 0) + 1
                 continue
+            built = (
+                _construction_call(hit, constructions, constructors)
+                if constructions and constructors
+                else None
+            )
+            if built is False:
+                # ADR-132: a construction outside a template. `T x(1);`,
+                # `m_(a)`, `{a, b}` — each calls the constructor lane B
+                # named here and none of them writes a callee lane A could
+                # record, so the edge is the join's own, unscoped as the
+                # operator rule's is.
+                if construction_counts is not None:
+                    construction_counts["drawn"] = (
+                        construction_counts.get("drawn", 0) + 1
+                    )
+                out.append(
+                    Resolved(
+                        kind="calls",
+                        source_file=file,
+                        line=line,
+                        scope="",
+                        def_file=hit.def_file,
+                        def_line=hit.def_line,
+                        tier=SEMANTIC,
+                        lanes=(TREE_SITTER, SCIP),
+                        evidence=[{"path": file, "line": line}],
+                        qualifier="",
+                        argc=None,
+                    )
+                )
+                continue
+            if built is True:
+                # Inside a template the reference is the `uses` edge it
+                # was, and true: a dependent type's construction is not
+                # indexed at all, so this one's type is not dependent.
+                # Counted so the rows not drawn as calls are a number.
+                if construction_counts is not None:
+                    construction_counts["in_template"] = (
+                        construction_counts.get("in_template", 0) + 1
+                    )
             out.append(
                 Resolved(
                     kind="uses",

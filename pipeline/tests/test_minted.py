@@ -600,6 +600,54 @@ def test_the_refusal_block_names_every_reason_whether_or_not_it_fired(tmp_path):
     }
 
 
+class TestTheConstructorLines:
+    """ADR-132's second half: which definition rows are a constructor's, so
+    the join can tell a construction's reference from a type's at the same
+    declared name. It mints nothing — it reads the mint's own rows."""
+
+    CTOR = "cxx . . $ ns/T#T(1a2b)."
+
+    def lines(self, *rows):
+        return minted.constructor_lines(rows)
+
+    def test_a_type_then_a_method_of_the_same_name_is_a_constructor(self):
+        assert self.lines(row("a.cc", 7, "method", self.CTOR)) == frozenset(
+            {("a.cc", 7)}
+        )
+
+    @pytest.mark.parametrize(
+        "moniker",
+        [
+            # A destructor is the class's name with a `~`, and it is not
+            # the class's name.
+            "cxx . . $ ns/T#`~T`(1a2b).",
+            # An operator is spelled as written, never as the type.
+            "cxx . . $ ns/T#`operator=`(1a2b).",
+            # A free function has no type in front of it at all.
+            "cxx . . $ ns/make(1a2b).",
+            # A local is a moniker the reader refuses outright.
+            "local 12",
+        ],
+    )
+    def test_what_is_not_a_constructor(self, moniker):
+        assert self.lines(row("a.cc", 7, "method", moniker)) == frozenset()
+
+    def test_a_line_with_two_distinct_monikers_is_left_out(self):
+        # The mint's `several-monikers` reason, for its reason: which
+        # definition the reference lands on would be a guess, and a wrong
+        # one here draws a call that is not there.
+        assert self.lines(
+            row("a.cc", 7, "method", self.CTOR),
+            row("a.cc", 7, "method", "cxx . . $ ns/T#other(3c4d)."),
+        ) == frozenset()
+
+    def test_the_same_moniker_twice_at_one_line_is_still_one(self):
+        assert self.lines(
+            row("a.cc", 7, "method", self.CTOR),
+            row("a.cc", 7, "method", self.CTOR),
+        ) == frozenset({("a.cc", 7)})
+
+
 @pytest.mark.parametrize(
     "moniker, expected",
     [
