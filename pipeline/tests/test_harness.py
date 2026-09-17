@@ -602,7 +602,7 @@ def test_go_verify_regenerates_guards_and_builds(gorepo, monkeypatch):
     cand = [list(p.command[:3]) for p in fake.plans[:6]]
     assert cand == [["go", "generate", "./cmd/gen/"], ["go", "list", "-deps"], ["go", "build", "./..."], ["go", "vet", "./..."], ["go", "test", "-list"], ["go", "test", "-json"]]
     cache = os.environ["HOBBES_CACHE_DIR"]
-    assert all(p.ro_cache == (f"{cache}/go/mod",) for p in fake.plans), "the module cache rides read-only on every step (C-92)"
+    assert all(p.ro_cache == (f"{cache}/go/mod", f"{cache}/index", f"{cache}/lanea") for p in fake.plans), "the module cache rides read-only on every step (C-92), beside the trusted stores (ADR-128 §1)"
     # a diff that does not compile is build-fail, not a test failure
     broke = diff_for(root, {"calc/calc.go": GO_CALC.replace("a + b + Base - 1 }", "a + b + Base - 1 } // BROKEN")})
     rec = H.verify(root, sha, broke, L, root)

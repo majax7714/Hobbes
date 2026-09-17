@@ -241,7 +241,9 @@ class TestNothingUnsafeIsKept:
         index(repo)
         index(repo)
         assert helper.runs == 2
-        assert not (cache / "index").exists()
+        # The store directory exists (containment.plan creates it to lay it
+        # read-only, ADR-128 §1); nothing was stored in it.
+        assert not any((cache / "index").iterdir())
         assert hits() == [False, False]
 
     def test_no_image_means_no_cache(self, cache, repo, monkeypatch):
