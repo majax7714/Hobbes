@@ -938,7 +938,7 @@ class TestAnOperatorEdgeThroughTheIngest:
             if any(site["path"] == "src/use.cpp" for site in edge["evidence"])
         }
 
-    def test_the_plain_function_calls_the_operator_and_the_template_uses_it(
+    def test_the_plain_function_calls_the_operator_and_the_template_draws_nothing(
         self, tmp_path, monkeypatch
     ):
         graph, edges = self._built(tmp_path, monkeypatch, lane_b=True)
@@ -946,12 +946,25 @@ class TestAnOperatorEdgeThroughTheIngest:
         # carries no scope of its own.
         assert edges[("src/use.plain", "calls")]["to"] == "src/lib.h.operator=="
         assert edges[("src/use.plain", "calls")]["tier"] == "semantic"
-        # Inside the template the same reference is the `uses` edge it is
-        # today, from the module: the fact is unscoped and `tpl`'s body is
-        # not where the projection looks for a use.
+        # Inside the template the same reference is withheld outright
+        # (ADR-131's amendment): no `calls` edge, no `uses` edge from the
+        # module it sits in, no edge of any type at all — so nothing in
+        # the graph stands on line 6.
         assert ("src/use.tpl", "calls") not in edges
-        uses = [edge for (_, kind), edge in edges.items() if kind == "uses"]
-        assert [edge["evidence"][0]["line"] for edge in uses] == [6]
+        assert [key[1] for key in edges] == ["calls"]
+        assert not [
+            edge
+            for edge in graph["symbol_edges"] + graph["module_edges"]
+            if any(
+                site["path"] == "src/use.cpp" and site["line"] == 6
+                for site in edge["evidence"]
+            )
+        ]
+        # `src/use → src/lib.h` survives on the `#include` and the call at
+        # line 3, which is why it is here rather than gone: a module edge
+        # only goes where the withheld reference was all of it (ADR-131's
+        # amendment, measured on fmt and args).
+        assert [edge["type"] for edge in graph["module_edges"]] == ["imports"]
         assert graph["operators"] == {"drawn": 1, "in_template": 1}
 
     def test_with_no_lane_b_there_is_no_block_and_no_operator_edge(

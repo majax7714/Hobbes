@@ -251,15 +251,17 @@ class TestMintedLine:
 
 class TestOperatorLine:
     """ADR-131 §5: an operator applied by symbol drawn as a call is a new
-    edge in the graph, and the one inside a template that was not drawn is
-    its price — both in the one line, under the graph line."""
+    edge in the graph, and the one inside a template — withheld now,
+    neither a call nor a ``uses`` — is its price; both in the one line,
+    under the graph line."""
 
-    def test_the_line_says_what_was_drawn_and_what_was_left(self, capsys):
+    def test_the_line_says_what_was_drawn_and_what_was_withheld(self, capsys):
         cli._print_operators({"drawn": 393, "in_template": 175})
         line = capsys.readouterr().out.strip()
         assert line.startswith("operators: 393 drawn as calls where the index names one")
-        assert "175 inside a template left as uses" in line
-        assert "(ADR-131, C-146)" in line
+        assert "175 inside a template withheld, neither a call nor a uses" in line
+        assert "left as uses" not in line
+        assert "(ADR-131, C-153)" in line
 
     def test_nothing_is_said_where_the_block_is_absent(self, capsys):
         # P6: no indexer, or no C++, writes no block — and the floor is

@@ -134,23 +134,26 @@ def _print_minted(counts: dict | None) -> None:
 
 def _print_operators(counts: dict | None) -> None:
     """The C++ operators applied by symbol that became call edges, and the
-    ones inside a template that did not (ADR-131) — printed under the
-    graph line, beside the minted block, where a reader meets the numbers
-    the rule moved.
+    ones inside a template that became no edge at all (ADR-131) — printed
+    under the graph line, beside the minted block, where a reader meets
+    the numbers the rule moved.
 
-    Both halves in one line, because the second is the first's price: a
-    reference at an operator token inside a template stays a ``uses``
-    edge, since the index answers a dependent operator with its single
-    by-name candidate and the source contradicts none of it (C-146,
-    C-153). Nothing is printed where the block is absent — no indexer, or
-    no C++, is the floor exactly as it was (P6).
+    Both halves in one line, because the second is the first's price:
+    a reference at an operator token inside a template is withheld
+    entirely, neither a call nor a ``uses``, since the index answers a
+    dependent operator with its single by-name candidate and no key
+    grades the ``uses`` that candidate would otherwise stand as (C-146,
+    C-153). Saying *withheld* rather than a count alone is the point of
+    the line: those references used to be edges. Nothing is printed where
+    the block is absent — no indexer, or no C++, is the floor exactly as
+    it was (P6).
     """
     if not counts:
         return
     print(
         f"    operators: {counts.get('drawn', 0)} drawn as calls where the index "
         f"names one at the token; {counts.get('in_template', 0)} inside a template "
-        "left as uses (ADR-131, C-146)"
+        "withheld, neither a call nor a uses (ADR-131, C-153)"
     )
 
 
