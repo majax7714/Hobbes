@@ -49,6 +49,14 @@ def _calls(layer, path):
     ][0].calls
 
 
+def _operators(layer, path):
+    """One file's operator tokens (ADR-131), unpacked — ``(line, column,
+    spelling, in_template)`` each, in position order."""
+    from hobbes.extract.cppsource import unpack_operator
+
+    return [unpack_operator(packed) for packed in layer["operators"].get(path, ())]
+
+
 def _call_at(layer, path, line, name):
     hits = [c for c in _calls(layer, path) if c["line"] == line and c["name"] == name]
     assert len(hits) == 1, (path, line, name, hits)
@@ -721,6 +729,287 @@ class TestTheDeclaredParameterCount:
         layer = extract_cpp(tmp_path)
         assert "a.S<int>" in layer["full_specializations"]
         assert "a.S<U*>" not in layer["full_specializations"]
+
+
+class TestOperatorTokens:
+    """ADR-131: an operator applied by symbol names no callee, so it is no
+    call site — but the token is where scip-clang puts its ``operator…``
+    reference, and the join draws a call only if lane A can say the
+    spelling was written at exactly that position. This walk records the
+    token and nothing else."""
+
+    SOURCE = (
+        "struct A { int operator[](int i); int m; };\n"
+        "void g(A& a, A* r, int* p, int i, int j) {\n"
+        "    int x = i + j;\n"
+        "    i << j << x;\n"
+        "    int y = *p;\n"
+        "    int* q = &i;\n"
+        "    bool z = !i;\n"
+        "    ++i;\n"
+        "    i++;\n"
+        "    i = j;\n"
+        "    i += j;\n"
+        "    a[i];\n"
+        "    r->m;\n"
+        "    a.m;\n"
+        "    g(a, r, p, i, j);\n"
+        "    int k = sizeof(i + j);\n"
+        "    using D = decltype(i == j);\n"
+        "    int c = static_cast<int>(i);\n"
+        '    auto s = "s"_a;\n'
+        "}\n"
+    )
+
+    @pytest.fixture
+    def tokens(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return _operators(extract_cpp(tmp_path), "a.cpp")
+
+    def _at(self, line: int, needle: str) -> int:
+        """The 0-based column *needle* is written at on *line* — the same
+        position `_site` gives a call, read off the fixture's own text."""
+        return self.SOURCE.splitlines()[line - 1].index(needle)
+
+    def test_every_shape_the_walk_records_is_at_its_own_token(self, tokens):
+        assert [(line, column, spelling) for line, column, spelling, _ in tokens] == [
+            (3, self._at(3, "+"), "+"),
+            # Two on one line, each at its own column: `i << j << x` is
+            # `(i << j) << x`, and the index names an overload at each.
+            (4, self._at(4, "<<"), "<<"),
+            (4, self.SOURCE.splitlines()[3].rindex("<<"), "<<"),
+            (5, self._at(5, "*p"), "*"),
+            (6, self._at(6, "&i"), "&"),
+            (7, self._at(7, "!"), "!"),
+            (8, self._at(8, "++"), "++"),
+            # Postfix is the same operator at the token it was written at.
+            (9, self._at(9, "++"), "++"),
+            (10, self._at(10, "="), "="),
+            (11, self._at(11, "+="), "+="),
+            # The subscript's own token is its `[`, spelled as a
+            # declaration spells it.
+            (12, self._at(12, "["), "[]"),
+            (13, self._at(13, "->"), "->"),
+        ]
+
+    def test_what_is_never_a_token(self, tokens):
+        # A `.` is not an overloadable operator; a call is a site already;
+        # an unevaluated operand applies nothing (ADR-121's test, reused);
+        # a named cast and a literal operator are neither of the shapes
+        # this walk reads. None of them appears in the list above, and the
+        # lines they sit on hold nothing at all.
+        assert not [line for line, *_ in tokens if line >= 14]
+
+    def test_a_c_file_records_none(self, tmp_path):
+        # C has no operator functions, so the C layer never asks the
+        # question and a `.c` file is in no C++ file's answer.
+        from hobbes.extract.csource import extract_c
+
+        _write(tmp_path, {
+            "a.c": "int g(int i, int j) { return i + j; }\n",
+            "b.cpp": "int h(int i, int j) { return i + j; }\n",
+        })
+        assert "operators" not in extract_c(tmp_path)
+        assert set(extract_cpp(tmp_path)["operators"]) == {"b.cpp"}
+
+    def test_a_file_that_applies_no_operator_is_absent_rather_than_empty(self, tmp_path):
+        _write(tmp_path, {"a.cpp": "int f();\nint g() { return f(); }\n"})
+        assert extract_cpp(tmp_path)["operators"] == {}
+
+
+class TestTheOperatorTemplateFlag:
+    """The one flag a token carries (ADR-131): inside a template the join
+    draws no call, because scip-clang answers a dependent operator with
+    its single by-name candidate at the same arity and nothing in the
+    source contradicts it (C-153)."""
+
+    SOURCE = (
+        "template <typename T> T h(T t) { return t + t; }\n"
+        "template <typename T> struct S {\n"
+        "    T m(T t) { return t * t; }\n"
+        "    auto f() { return [](int q) { return q - 1; }; }\n"
+        "};\n"
+        "struct P { int m(int q) { return q / 2; } };\n"
+        "int plain(int q) { return q % 3; }\n"
+    )
+
+    @pytest.fixture
+    def flags(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        return {
+            spelling: in_template
+            for _, _, spelling, in_template in _operators(extract_cpp(tmp_path), "a.cpp")
+        }
+
+    def test_a_function_template_a_class_template_and_a_lambda_inside_one(self, flags):
+        # The walk to the root is unbounded: a member is inside the header
+        # written above its class, and a lambda body inside the member.
+        assert flags["+"] is True
+        assert flags["*"] is True
+        assert flags["-"] is True
+
+    def test_a_plain_function_and_a_plain_class_s_method_are_not(self, flags):
+        assert flags["/"] is False
+        assert flags["%"] is False
+
+
+class TestAnOperatorCalledByName:
+    """An operator applied through its name is a call site already
+    (``operator_name``), and stays exactly what it was: ADR-131 adds a
+    token beside the sites, never in place of one."""
+
+    def test_a_qualified_operator_call_is_still_a_site_and_no_token(self, tmp_path):
+        _write(tmp_path, {"a.cpp": (
+            "namespace ns { struct A {}; int operator<<(A a, int i) { return 0; } }\n"
+            "int g(ns::A a) {\n"
+            "    return ns::operator<<(a, 1);\n"
+            "}\n"
+        )})
+        layer = extract_cpp(tmp_path)
+        assert [(c["line"], c["name"], c["shape"]) for c in _calls(layer, "a.cpp")] == [
+            (3, "operator<<", "qualified"),
+        ]
+        # The definition's own `operator<<` is a symbol, not a token, and
+        # the call names it: nothing here was written as `a << 1`.
+        assert _operators(layer, "a.cpp") == []
+
+    def test_a_member_operator_call_records_no_token_either(self, tmp_path):
+        # The pinned grammar does not parse `a.operator=(b)` — the callee
+        # lands in an ERROR node — so the site it leaves is what it always
+        # was; what matters to this rule is that the `=` written inside
+        # `operator=` is no token, and it is not.
+        _write(tmp_path, {"a.cpp": (
+            "struct A { A& operator=(const A& o); };\n"
+            "void g(A a, A b) {\n"
+            "    a.operator=(b);\n"
+            "}\n"
+        )})
+        assert _operators(extract_cpp(tmp_path), "a.cpp") == []
+
+
+class TestAnOperatorEdgeThroughTheIngest:
+    """ADR-131 end to end, on the shape it was measured on: the same
+    ``a == b`` written in a plain function and in a template, resolved by
+    the index to the same ``operator==``. Lane B is hand-built here, as in
+    :class:`TestTheWithheldFallback`."""
+
+    LIB = (
+        "struct A { int v; };\n"
+        "bool operator==(A a, A b) { return true; }\n"
+    )
+    USE = (
+        '#include "lib.h"\n'
+        "bool plain(A a, A b) {\n"
+        "    return a == b;\n"
+        "}\n"
+        "template <typename T> bool tpl(T a, T b) {\n"
+        "    return a == b;\n"
+        "}\n"
+    )
+
+    def _built(self, tmp_path, monkeypatch, lane_b: bool):
+        from hobbes.extract import evidence as ev, extract_repo
+        import hobbes.extract as extract
+
+        _write(tmp_path, {"src/lib.h": self.LIB, "src/use.cpp": self.USE})
+        lines = self.USE.splitlines()
+        references = [
+            ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION,
+                file="src/use.cpp", line=number, col=lines[number - 1].index("=="),
+                name="operator==", def_file="src/lib.h", def_line=2,
+            )
+            for number in (3, 6)
+        ]
+        facts = [{
+            "language": "cpp",
+            "definitions": [],
+            "references": references,
+            "external_refs": [],
+            "degraded": [],
+        }]
+        monkeypatch.setattr(
+            extract, "_lane_b_facts", lambda *a, **k: iter(facts if lane_b else [])
+        )
+        graph = extract_repo(tmp_path).graph
+        return graph, {
+            (edge["from"], edge["type"]): edge
+            for edge in graph["symbol_edges"]
+            if any(site["path"] == "src/use.cpp" for site in edge["evidence"])
+        }
+
+    def test_the_plain_function_calls_the_operator_and_the_template_uses_it(
+        self, tmp_path, monkeypatch
+    ):
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=True)
+        # The caller is named by the enclosing symbol, since the fact
+        # carries no scope of its own.
+        assert edges[("src/use.plain", "calls")]["to"] == "src/lib.h.operator=="
+        assert edges[("src/use.plain", "calls")]["tier"] == "semantic"
+        # Inside the template the same reference is the `uses` edge it is
+        # today, from the module: the fact is unscoped and `tpl`'s body is
+        # not where the projection looks for a use.
+        assert ("src/use.tpl", "calls") not in edges
+        uses = [edge for (_, kind), edge in edges.items() if kind == "uses"]
+        assert [edge["evidence"][0]["line"] for edge in uses] == [6]
+        assert graph["operators"] == {"drawn": 1, "in_template": 1}
+
+    def test_with_no_lane_b_there_is_no_block_and_no_operator_edge(
+        self, tmp_path, monkeypatch
+    ):
+        # P6: the tokens are read by nothing, so the graph is what it was
+        # before this rule existed.
+        graph, edges = self._built(tmp_path, monkeypatch, lane_b=False)
+        assert "operators" not in graph
+        assert edges == {}
+
+
+class TestThePacking:
+    """One integer per token (ADR-131): ScummVM has about 3.2 million of
+    them beside its 1.53 million call sites, so a `Site` each is the cost
+    the packing exists to avoid."""
+
+    def test_it_round_trips_line_column_spelling_and_flag_at_their_extremes(self):
+        from hobbes.extract.cppsource import (
+            COLUMN_LIMIT, OPERATOR_SPELLINGS, pack_operator, unpack_operator,
+        )
+
+        for spelling in (OPERATOR_SPELLINGS[0], OPERATOR_SPELLINGS[-1], "<=>"):
+            for line, column in ((1, 0), (999_999, COLUMN_LIMIT - 1)):
+                for flag in (False, True):
+                    packed = pack_operator(line, column, spelling, flag)
+                    assert unpack_operator(packed) == (line, column, spelling, flag)
+
+    def test_the_packing_sorts_by_position(self):
+        from hobbes.extract.cppsource import pack_operator
+
+        assert pack_operator(2, 0, "+", True) > pack_operator(1, 4000, "+", False)
+        assert pack_operator(1, 5, "+", False) > pack_operator(1, 4, "[]", True)
+
+    def test_a_column_past_the_bound_is_dropped_rather_than_misplaced(self, tmp_path):
+        # No source line is a megabyte wide; one that were would carry its
+        # column into the line field, and a token at a position it was not
+        # written at is the one thing this rule must never hold.
+        from hobbes.extract.cppsource import COLUMN_LIMIT
+
+        _write(tmp_path, {"a.cpp": (
+            "int g(int i, int j) {\n"
+            "    return " + " " * COLUMN_LIMIT + "i + j;\n"
+            "}\n"
+        )})
+        assert extract_cpp(tmp_path)["operators"] == {}
+
+    def test_a_lookup_answers_only_at_the_exact_token(self, tmp_path):
+        from hobbes.extract.cppsource import operator_token
+
+        _write(tmp_path, {"a.cpp": "int g(int i, int j) { return i + j; }\n"})
+        packed = extract_cpp(tmp_path)["operators"]["a.cpp"]
+        column = "int g(int i, int j) { return i + j; }".index("+")
+        assert operator_token(packed, 1, column, "+") is False
+        assert operator_token(packed, 1, column + 1, "+") is None
+        assert operator_token(packed, 1, column, "-") is None
+        assert operator_token(packed, 1, column, "()") is None
+        assert operator_token(packed, 2, column, "+") is None
 
 
 class TestTheTemplatePattern:

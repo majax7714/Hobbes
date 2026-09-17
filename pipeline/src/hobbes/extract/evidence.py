@@ -21,7 +21,9 @@ neither lane alone.
 
 from __future__ import annotations
 
+from array import array
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 
 #: Providers. Values double as the ``lane`` on emitted evidence, so the
@@ -158,12 +160,36 @@ def _veto_set(external: list[dict] | None) -> set[tuple[str, int, str]]:
     }
 
 
+def _operator_call(hit: Site, operators: Mapping) -> bool | None:
+    """Whether *hit* is a C++ operator the source applied **by symbol** at
+    a token lane A recorded, and if so whether that token sits inside a
+    template (ADR-131). ``None`` wherever any part of that does not hold.
+
+    scip-clang names such a reference ``operator<<`` and puts it at the
+    operator token's own column, which no call site claims — so this is
+    the whole of what tells that reference apart from every other
+    unclaimed one, and it is deliberately exact: one column off, another
+    spelling at that position, or a reference with no column at all is
+    ``None`` and stays the ``uses`` fact it is today.
+    """
+    if hit.col < 0 or not hit.name.startswith("operator"):
+        return None
+    packed = operators.get(hit.file)
+    if not packed:
+        return None
+    from hobbes.extract.cppsource import operator_token
+
+    return operator_token(packed, hit.line, hit.col, hit.name[len("operator"):].strip())
+
+
 def join(
     syntax: list[Site],
     semantic: list[Site],
     fallback: dict[tuple[str, int, str], tuple[str, int]] | None = None,
     external: list[dict] | None = None,
     withhold: frozenset[str] = frozenset(),
+    operators: Mapping[str, array] | None = None,
+    counts: dict | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -197,6 +223,23 @@ def join(
     the repo is never also counted withheld. Import sites are untouched:
     a C++ include is lane A's fact about the source, which lane B neither
     contradicts nor replaces.
+
+    *operators* is lane A's packed operator tokens per C++ file (ADR-131,
+    :func:`~hobbes.extract.cppsource.pack_operator`). A resolution no call
+    site claimed, named ``operator`` + a spelling, at exactly one of those
+    positions and **outside a template**, is a ``calls`` fact rather than
+    the ``uses`` reference it would otherwise be: the index names the
+    overload and lane A proves the operator was written there. Inside a
+    template it stays ``uses`` — scip-clang answers a dependent operator
+    with its single by-name candidate, at the same arity, and nothing in
+    the source contradicts it (C-153) — and every other reference is
+    untouched. The fact carries no ``qualifier`` and no ``argc``: there is
+    no written callee for R-qual or R-arity to read.
+
+    *counts* is an out-parameter for the two numbers that rule produces —
+    ``drawn`` and ``in_template`` — added into the dict the caller passes,
+    so the return type is what every existing caller already reads. Left
+    ``None``, nothing is counted and nothing else changes.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -276,6 +319,36 @@ def join(
         for hit in sites:
             if (hit.file, hit.line, hit.name) in claimed:
                 continue
+            in_template = _operator_call(hit, operators) if operators else None
+            if in_template is False:
+                # ADR-131: an operator applied by symbol, outside a
+                # template. No syntax site could claim it — `a + b` names
+                # no callee — so the edge belongs to neither lane alone,
+                # which is the join's own case. No scope: `project` names
+                # the caller by the enclosing symbol, as it does for every
+                # unscoped fact.
+                if counts is not None:
+                    counts["drawn"] = counts.get("drawn", 0) + 1
+                out.append(
+                    Resolved(
+                        kind="calls",
+                        source_file=file,
+                        line=line,
+                        scope="",
+                        def_file=hit.def_file,
+                        def_line=hit.def_line,
+                        tier=SEMANTIC,
+                        lanes=(TREE_SITTER, SCIP),
+                        evidence=[{"path": file, "line": line}],
+                        qualifier="",
+                        argc=None,
+                    )
+                )
+                continue
+            if in_template is True and counts is not None:
+                # Given up on purpose, and counted so the cost is a
+                # number rather than a silence (C-146, C-153).
+                counts["in_template"] = counts.get("in_template", 0) + 1
             out.append(
                 Resolved(
                     kind="uses",

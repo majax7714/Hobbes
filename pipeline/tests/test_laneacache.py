@@ -136,6 +136,45 @@ def test_the_two_counts_the_arity_rule_reads_survive_the_round_trip(cache):
     assert [s["max_params"] for s in unknown.symbols] == [None]
 
 
+def test_the_operator_tokens_the_join_reads_survive_as_an_array(cache):
+    # ADR-131: the join binary-searches a packed `array`, so a record read
+    # back as a list would be a parse whose tokens the join cannot search
+    # — and one read back empty would be a file that applied no operator.
+    from array import array
+
+    result = cppsource._parse_file("src/box.cpp", BOX.encode())
+    text = json.dumps(laneacache.encode_record(result), sort_keys=True)
+    decoded = laneacache.decode_record(json.loads(text))
+
+    assert decoded == result
+    operators = decoded[0].operators
+    assert isinstance(operators, array) and operators.typecode == "Q"
+    assert list(operators) == list(result[0].operators)
+    # `n * 2`, `w * h`, `value + value`, `v * 2`, `2 * (w + h)`, `w + h`,
+    # `(w + h) << 1` and `++n`: the file applies operators, so an empty
+    # array here would be an assertion that passes by saying nothing.
+    assert len(operators) > 1
+
+
+def test_the_format_tag_moved_so_a_v2_entry_is_never_read_back(cache, repo, monkeypatch):
+    # An entry written before the tokens existed would read back as a file
+    # that applied no operator, and the join would draw nothing there. The
+    # tag is hashed into the key, so the v2 entry is not a decode failure
+    # per file: it is a key this Hobbes never looks up.
+    assert laneacache.FORMAT == "lanea-cpp v3"
+    source = (repo / "src" / "box.cpp").read_bytes()
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v2")
+    extract_cpp(repo)
+    stale = laneacache.entry_path(laneacache.key("src/box.cpp", source))
+    assert stale.is_file()
+
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v3")
+    laneacache.reset_ledger()
+    extract_cpp(repo)
+    assert laneacache.summary()["hits"] == 0
+    assert laneacache.entry_path(laneacache.key("src/box.cpp", source)) != stale
+
+
 def test_a_second_extraction_is_all_hits_and_the_same_bundle(cache, repo):
     first = extract_cpp(repo)
     cold = laneacache.summary()
