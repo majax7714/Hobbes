@@ -12357,7 +12357,10 @@ contradicted, strict 99.61% (27 unjudged, none new), recall 30.1%
 (collapsed 26.1%); 551 tokens drawn, 437 references inside templates
 left as `uses`. args 2,198/2,198, 62.5%; 140 and 40. cJSON and
 sqlite-vector identical exports. The built export is the probe's minus
-one row under an ERROR node. P92–P97 met.
+one row under an ERROR node. P92–P97 met. The first regrade ran the
+branch in a worktree before the bump; it was run again from `main` at
+`5e7fbd0` under the rebuilt image, and all four exports were identical,
+row for row (`final/` holds that run).
 
 **Found and put to Max, not built:** the wrong candidates stand in the
 graph as `uses` edges, as they did before today; no key grades `uses`.
