@@ -12428,3 +12428,41 @@ Calvin paragraph, a stray line break at "schema v4 with tiers".
   caught this at `d1feba1`. Put to Max, not built.
 
 No spend.
+
+## 2026-09-17 (after the gofmt fix) — the two found-by-use items built: the Go cache path and a pre-commit gofmt (no version move)
+
+Max: "apply those two fixes as well worth doing." Both are the items the
+entry above put to him.
+
+**The cache.** Both `actions/setup-go` uses in `ci.yml` now carry
+`cache-dependency-path`: the go job names `go/go.sum` and
+`bench/oracle/go.sum` (it tests both modules), the graph job `go/go.sum`
+(it builds the proxy only). The default looks for a `go.sum` at the
+root, where there is none, so every run has warned and restored
+nothing. The YAML parses; **whether the cache restores is unproven until
+a push** — the first run can only save it, the second is the one to read.
+
+**The hook.** `.githooks/pre-commit`, versioned, enabled per clone by
+`git config core.hooksPath .githooks` (set in this checkout; CLAUDE.md's
+one-time line names it). It runs gofmt over the **staged** content of
+each staged `.go` file under `go/` and `bench/oracle/` — CI's two trees
+— and refuses the commit with the fix command. Run by hand, four cases:
+an unformatted staged file is refused; the same file fixed in the
+working tree but not re-staged is still refused (the staged blob is what
+CI will see); fixed and staged passes; with no gofmt on PATH it says the
+check was skipped and lets the commit through. That last is deliberate:
+CI stays the gate, and a doer in a session without Go must not be
+blocked by a convenience. The scratch file was removed; nothing of the
+test is in the tree.
+
+**Not done, and why:** no ADR — this is ADR-095's gofmt step moved
+earlier, not a new decision; no automated test for the hook — a pytest
+case would shell out to git and gofmt for a twelve-line script, and the
+CI step it mirrors is its backstop. Say if either should exist.
+
+**Found by use:** this box has a distro gofmt (go1.25.12) at `/usr/bin`
+behind the user-local 1.26.5. Both agree on today's tree, but the hook
+runs whichever is first on PATH; the PATH order Build & test already
+asks for is what keeps it CI's gofmt.
+
+No spend.

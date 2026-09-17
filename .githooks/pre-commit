@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — CI's gofmt step, at the commit instead of the push.
+#
+# The go job's first step is `gofmt -l go bench/oracle`, and a red first
+# step hides both Go suites and the static proxy build behind it
+# (2026-09-17: one unformatted struct, four pushes with no Go test on CI).
+# This refuses a commit that stages an unformatted .go file under those
+# two trees. It reads the *staged* content, not the working tree, so a
+# fix that was made but not `git add`ed does not pass by accident.
+#
+# Enable once per clone:   git config core.hooksPath .githooks
+#
+# Without gofmt on PATH it says so and lets the commit through: CI is the
+# gate, this is the early warning. `git commit --no-verify` skips it.
+set -uo pipefail
+
+if ! command -v gofmt >/dev/null 2>&1; then
+  echo "pre-commit: gofmt not on PATH; format check skipped (CI will run it)" >&2
+  exit 0
+fi
+
+bad=()
+while IFS= read -r -d '' f; do
+  case "$f" in *.go) ;; *) continue ;; esac
+  if [ -n "$(git show ":$f" | gofmt -l 2>&1)" ]; then
+    bad+=("$f")
+  fi
+done < <(git diff --cached --name-only -z --diff-filter=ACMR -- go bench/oracle)
+
+if [ "${#bad[@]}" -gt 0 ]; then
+  echo "pre-commit: staged Go files are not gofmt-clean (CI's go job would stop here):" >&2
+  printf '  %s\n' "${bad[@]}" >&2
+  echo "fix: gofmt -w ${bad[*]} && git add ${bad[*]}" >&2
+  exit 1
+fi

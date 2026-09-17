@@ -23,6 +23,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
+          # two modules, neither at the root: without this the cache is never restored
+          cache-dependency-path: |
+            go/go.sum
+            bench/oracle/go.sum
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -89,6 +93,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum   # this job builds the proxy only
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-node@v4
         with:

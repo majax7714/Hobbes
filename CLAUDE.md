@@ -163,7 +163,9 @@ Go ≥ 1.26, uv, Node. If a distro Go is older, a user-local Go must come
 first on `PATH` or `go build` fails on the toolchain line. One-time:
 `cd tsextract && npm install`, `cd web && npm install`, `cd scip && npm
 install`, and `cd bench/oracle/ts && npm install` for the oracle lane's
-`tsc` (its Go tests run it wherever node is).
+`tsc` (its Go tests run it wherever node is). And `git config
+core.hooksPath .githooks`: the pre-commit hook is CI's gofmt step on the
+staged Go files, because a red gofmt step hides both Go suites behind it.
 
 ```sh
 # Go
