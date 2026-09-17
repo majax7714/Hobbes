@@ -11890,3 +11890,25 @@ removed from the prose. `field.md`'s Hobbes row 0.2.28 → 0.2.35-beta, 154/111
 README and architecture §3.7 said scip-python "leaves `syntax_kind` unset
 for 0 of 8,575" — the reverse of ADR-029's measurement ("populates it for
 0"); now "sets it for 0". No version bump: docs and `bench/` only.
+
+## 2026-09-17 — Top-level docs reviewed at 0.2.35-beta; drift fixed
+
+**Direction (Max).** Review the top-level documentation and report the
+standing; fix the drift found; then recommend a route on each open
+decision, honesty and accuracy first where the extraction lane is
+concerned (the recommendations were given in the session, not decided —
+they stay Max's calls in the handoff's "Open for Max").
+
+**Drift fixed.** `CHANGELOG.md`'s header named 0.2.34-beta as the last
+untagged version. The handoff's "WHERE THINGS STAND" had the register
+before C-158 (157 / 113 / 87 surfaced → 158 / 114 / 88) and the suites at
+0.2.34-beta (1,655 pytest → 1,673, collected); its NEXT still listed
+lane B's index cache as to do; three cross-references pointed at the
+wrong items ("item 00", "item 5", "see item 1" for the rebuilt image);
+the open-decision line and item 6 read fmt at 99.85% / 99.66% and H-31
+as open. C-153's entry (present tense) read 99.85% / 99.66% with C-155
+still counted among fmt's contradictions (ratio 5 : 0 → 4 : 0).
+`workstreams.md`'s sequencing gained point 10 (0.2.23–0.2.35-beta).
+The register index's dated 2026-09-16 note keeps its numbers: it was
+true when written. AGENTS.md is the same file as CLAUDE.md. No version
+bump: docs only.

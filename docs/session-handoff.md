@@ -207,7 +207,8 @@ session needs.
      verify-pass, merged not squashed. Tracker **33 of 40**.
    - Each cause was **probed in the image before the ADR was written**,
      which overturned two wrong hypotheses. H-31's `os.cc` half never
-     reproduced, so it stays open by design.
+     reproduced there, so it was left open — then traced on the cell's key
+     and fixed the same day (item 5).
    - **The regrade (§10.8, P36–P45):** fmt 99.1% → **99.7%**, args
      unmoved, **38 own cells unmoved**, **13 of 44 foreign cells moved**
      (all contradicted → silent). The four foreign C++ cells were
@@ -288,7 +289,8 @@ session needs.
    - **Then 0.2.27-beta:** a C or Java unit's own record sits at its
      root, not `root/root` (the caller re-roots first, then appends, as
      the TS zone did); two tests, each red on 0.2.26-beta's code.
-   - The binaries, the static proxy and the image were at 0.2.29-beta; see item 1.
+   - The binaries, the static proxy and the image are now at
+     0.2.35-beta; see item 0.
 9. **C++ is closed out (2026-09-15): supported, 0.2.23-beta.** ADR-113's
    units are complete.
    - **The cells** (records in `docs/oracle/cells/`, host-run and
@@ -332,13 +334,13 @@ session needs.
 11. **Open for Max (no spend):**
    - **Nothing in the oracle's defect log is open.** H-28–H-32 were all
      fixed on 2026-09-16; what is left on fmt is C-153 alone.
-   - **ADR-121 §2's choice** (item 00): lane B's occurrence at an
+   - **ADR-121 §2's choice** (item 1): lane B's occurrence at an
      unevaluated site stands as a `uses` edge and there is no tail
      class; the review had sketched claiming it and a class
      `unevaluated`. Yours to keep or reverse.
    - **The reporting call H-30's fix forces:** the rule silences 6 of
      C-153's 10 rows, where Hobbes' edge is genuinely wrong, lifting fmt
-     from 99.66% like-for-like to a reported 99.85%. Whether the lane
+     from 99.69% like-for-like to a reported 99.88%. Whether the lane
      should print a "judged-as-before" companion number on any cell with
      `line-unresolved > 0` is yours, not a regrade's to settle.
    - **C-153 is unsurfaced** (debt): scip-clang's single answer at a
@@ -405,7 +407,7 @@ session needs.
      and H-23; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** the two SQLite tools in `field.md`
      (converters first); syft's keys on a bigger box. The foreign C++
-     cells are done (item 5).
+     cells are done (item 7).
    - **C's residue:** C-134's remainder, C-135's autotools, Meson and
      Bazel roots, C-133's unit 2 and its macro half; the macro gap is
      parked (C-131).
@@ -460,10 +462,11 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 157 entries: 113 active (87 surfaced, 21 partial, 4
+- **Register:** 158 entries: 114 active (88 surfaced, 21 partial, 4
   unsurfaced — C-19, C-20, C-112, C-153 — 1 n/a), 27 lifted, 11
-  superseded, 6 folded. Latest: C-155 lifted (ADR-121, 0.2.33-beta);
-  C-157 registered and surfaced, C-58 narrowed (0.2.32-beta, ADR-120).
+  superseded, 6 folded. Latest: C-158 registered and surfaced (ADR-122,
+  0.2.35-beta); C-155 lifted (ADR-121, 0.2.33-beta); C-157 registered
+  and surfaced, C-58 narrowed (0.2.32-beta, ADR-120).
 - **Oracle defect log: nothing open.** H-28–H-32 all fixed 2026-09-16
   (H-32, the key's site in an unevaluated operand, opened RC-11).
   RC-2 gained its sixth sighting and closed with H-31 (macro-carried
@@ -471,7 +474,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.34-beta: 1,655 pytest, 0 warnings, and Go 390
+- **Suites** at 0.2.35-beta: 1,673 pytest (0.2.34-beta's 1,655 and
+  `test_indexcache.py`'s 18; collected 2026-09-17), and Go 390
   (389 pass, 1 skip) against the rebuilt image (2026-09-16); 87 scip node
   (2026-09-16);
   oracle-lane Go 116 with subtests, 104 pass / 12 skip on this host,
@@ -485,10 +489,10 @@ min each.
 ## NEXT (in order; no API spend)
 
 1. **Keep dispatching named no-spend work through the harness,** one
-   unit per brief, toward 40 (three to go): the review's index cache
-   (item 1: lane B by stage key, then lane A's file cache, measured with
-   the timing block); ADR-120 §7's expansion once Max decides it
-   (item 0);
+   unit per brief, toward 40 (three to go): lane A's file cache,
+   measured with the timing block (lane B's index cache is done, item
+   0), then the rest of the review's list in item 3's order; ADR-120
+   §7's expansion once Max decides it (item 2);
    C's residue (W1); W1/W3's no-spend items
    (the decorated-declaration line convention, the C-15 namespacing ADR,
    `fetch-java` on the egress proxy); the comparative queue's next tools
