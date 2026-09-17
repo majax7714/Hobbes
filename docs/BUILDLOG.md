@@ -12018,3 +12018,68 @@ grade and report ok.
 Binaries, static proxy and image rebuilt at 0.2.38-beta; this repo
 re-ingested at `8bda3ec` (all 19 units a cache miss after the image
 change, lanes exit 0). **Restart the knowledge server** (C-65).
+
+## 2026-09-17 (later) — Top-level docs reviewed at 0.2.38-beta; one ingest of a repo at a time (ADR-127, 0.2.39-beta)
+
+**Direction (Max).** Review the top-level docs and report the standing;
+then "fix the doc drift and delete the duplicate branch. also handle the
+two ingests of one repo issue, or if no solution doc as a constraint".
+
+**Drift fixed (`ca1f2fd`).**
+- The handoff's item 3 still listed the distinct `hobbes lanes` exit as
+  not started (it is ADR-123, 0.2.36-beta).
+- Item 8 read the binaries and image at 0.2.35-beta.
+- Item 12 read the tracker at 37 of 40.
+- `workstreams.md`'s header and sequencing point 10 stopped at 0.2.35-beta.
+- Not fixed: the 2026-09-16 BUILDLOG heading still says "(night, latest)".
+  The log is append-only.
+
+**The duplicate branch.** `hobbes/S-20260917T132013Z-e1c6` (`b4d8b38`) was
+read before deletion: one commit, a second run of `145d`'s brief, with
+`145d` already merged. Deleted with `git branch -D`, and
+`~/.hobbes/sessions/S-20260917T132013Z-e1c6` removed. No container or
+network of it remained.
+
+**Two ingests of one repo: the mechanism, read from the tree.**
+- `staging.stage_path` is derived from the resolved root, the SHA and
+  the files' stats (ADR-027's idempotent removal). Two ingests stage
+  every unit at the same path.
+- `build_stage` removes the `.partial` and the final tree first, and
+  each run removes its stage after indexing. Each run deletes the other's
+  tree, hence "wrote no facts file".
+- `write_artifacts` wrote in place, so writers interleave and a reader
+  can see half a file.
+
+**Decided first (ADR-127, `77752dc`), then dispatched as `d238`** (34
+turns, $1.57, gate right-clear, verify pass, merged no-ff `eef46dc`).
+- An exclusive non-blocking `flock` on `.hobbes/derived/.ingest.lock`,
+  taken first in `ingest()`. It sits in the repo, not under the cache
+  root, because two processes may set `HOBBES_CACHE_DIR` differently.
+- Contention raises `IngestBusy` (P10). The CLI prints it and exits 1
+  before anything is staged.
+- A filesystem without `flock` runs unlocked with a warning (C-159).
+- Each artifact is written through a temporary and `os.replace`.
+- **On top, the developer's (`0c1707a`):**
+  - `NamedTemporaryFile` creates 0600, which would have narrowed every
+    artifact from 0644. The rename now sets 0666 less the umask first,
+    and a test holds it (red on the merged code).
+  - An unused `errno` import dropped.
+- **Live, this repo, image rebuilt (so lane B's 19 units all missed the
+  cache):**
+  - A second ingest started 4 s after the first exited 1:
+    `another hobbes ingest of /home/mmarrujo/hobbes_public is running
+    (pid 1958583)`.
+  - The first finished with 0 "facts file" or "did not run" lines and
+    the usual 27 degradation records.
+  - The lock file holds the pid and stays after the run.
+- **C-159 registered (surfaced)** in `extraction-lane-b-environments.md`:
+  a pre-0.2.39-beta build takes no lock, and a filesystem without
+  `flock` runs unlocked. Architecture §3.6 amended. 159 entries, 115
+  active, 89 surfaced.
+
+**Suites:** pytest 1,721 passed on the host (the tracker's drift test
+red until d238's review block was filled), `lane_b` 7 passed, Go
+`./...` all ok. Tracker **41 of 40** (4 areas, 1 false block, 0 missed).
+
+Binaries, static proxy and image rebuilt at 0.2.39-beta; this repo
+re-ingested at HEAD. **Restart the knowledge server** (C-65).
