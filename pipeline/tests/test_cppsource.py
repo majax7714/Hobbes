@@ -480,6 +480,56 @@ class TestCallSites:
         assert (at_site[0]["from"], at_site[0]["to"]) == ("src/use.use", "src/lib.h.f")
 
 
+class TestTheWrittenSpecialisation:
+    """ADR-125: the projection abstains where a call is written through
+    one explicit specialisation and lane B answers with another's member.
+    This walk records the two facts that rule reads, and nothing else —
+    the qualifier as written, and which classes are ``template <>``."""
+
+    SOURCE = (
+        "namespace ns {\n"
+        "template <typename T> struct S { void format() {} };\n"
+        "template <> struct S<0> { void format() {} };\n"
+        "template <typename T> struct S<std::vector<T>> { void format() {} };\n"
+        "}\n"
+        "template <typename T> T ident(T t) { return t; }\n"
+        "void g() {\n"
+        "    ns::S<20>::format();\n"
+        "    ns::f();\n"
+        "    ident<int>(1);\n"
+        "}\n"
+    )
+
+    @pytest.fixture
+    def built(self, tmp_path):
+        _write(tmp_path, {"a.cpp": self.SOURCE})
+        layer = extract_cpp(tmp_path)
+        return layer, {(s.line, s.name): s for s in layer["call_sites"]}
+
+    def test_a_qualifier_carrying_template_arguments_is_recorded_as_written(self, built):
+        _, sites = built
+        # The immediate qualifier, not the chain: `ns::S<20>::format()`.
+        assert sites[(8, "format")].qualifier == "S<20>"
+
+    def test_a_namespace_qualifier_and_a_template_callee_record_none(self, built):
+        _, sites = built
+        # `ns::` carries no arguments, and `ident<int>`'s are the
+        # callee's own — neither names a class the index could contradict.
+        assert sites[(9, "f")].qualifier == ""
+        assert sites[(10, "ident")].qualifier == ""
+
+    def test_only_an_explicit_full_specialisation_is_recorded_as_one(self, built):
+        layer, _ = built
+        # The primary and the partial both spell parameters rather than
+        # concrete arguments, so a resolution differing from the written
+        # text is right there — ADR-125's amendment, the two cases the
+        # measurement never met.
+        assert {s["id"] for s in layer["symbols"] if s["kind"] == "type"} == {
+            "a.ns::S", "a.ns::S<0>", "a.ns::S<std::vector<T>>",
+        }
+        assert layer["full_specializations"] == frozenset({"a.ns::S<0>"})
+
+
 class TestTheFallback:
     def test_the_unique_free_function_repo_wide_resolves(self, layer):
         assert layer["call_fallback"][("src/main.cpp", 9, "scale")] == ("src/util.cpp", 3)

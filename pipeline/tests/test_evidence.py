@@ -164,6 +164,19 @@ class TestProviderSeparation:
         out = ev.join([ambiguous], [resolution("a.ts", 10, "helper", "c.ts", 2, col=20)])
         assert [(r.kind, r.def_file) for r in out] == [("uses", "c.ts")]
 
+    def test_a_written_qualifier_rides_only_on_the_semantic_hit(self):
+        # ADR-125: the projection compares the qualifier the source spells
+        # against the owner lane B resolved. A fallback edge has no index
+        # answer to contradict, so the fact carries nothing there.
+        site = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 10, "format", 4, "a.g",
+            qualifier="S<20>",
+        )
+        [hit] = ev.join([site], [resolution("a.cc", 10, "format", "b.h", 5)])
+        assert (hit.tier, hit.qualifier) == (SEMANTIC, "S<20>")
+        [guess] = ev.join([site], [], fallback={("a.cc", 10, "format"): ("b.h", 5)})
+        assert (guess.tier, guess.qualifier) == (SYNTACTIC, "")
+
     def test_definitions_are_not_edges(self):
         out = ev.join([ev.Site(ev.TREE_SITTER, ev.DEFINITION, "a.py", 1, "f")], [])
         assert out == []

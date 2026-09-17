@@ -13,6 +13,7 @@ from hobbes import cli
 from hobbes.derive import gate as gt
 from hobbes.derive import ground as G
 from hobbes.derive import template as T
+from hobbes.extract import tail
 
 APP = """// Package app is the app.
 package app
@@ -486,6 +487,15 @@ def test_derive_map_reads_capture_from_the_parent_graph_by_wp17s_rule(repo):
                            "detail": gt._TAIL_REASON["attr-call"][1]}]  # builtin-name is language machinery, not a blind spot
     assert str(root) not in json.dumps(m)  # the graph is named by its SHA, never a path of this machine
     assert gt.derive_map(g, list(reversed(files)), root, sha) == m
+
+
+def test_every_tail_class_has_a_map_reason_or_is_deliberately_omitted():
+    # The map's vocabulary is the tail's (ADR-045), so a class added there
+    # and not here would reach a doer as the bare `tail <class>` default
+    # rather than as a named blind spot — `qualifier-mismatch` (ADR-125)
+    # is lane B's own wrong answer, so it routes `laneb-miss`.
+    assert set(tail.ALL_CLASSES) - gt._TAIL_OMIT == set(gt._TAIL_REASON)
+    assert gt._TAIL_REASON["qualifier-mismatch"][0] == "laneb-miss"
 
 
 def test_derive_map_without_a_contained_lane_b_reads_every_file_uncaptured(repo):

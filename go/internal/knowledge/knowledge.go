@@ -948,6 +948,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"inherited-member", "a bare Java call in a type with supertypes and no fitting declaration of its own — the callee is inherited, which only lane B's hierarchy can name (ADR-096)"},
 	{"build-tag-set", "a Go name declared more than once in its package under build constraints the caller's configuration does not single out; lane A abstained rather than pick a file (ADR-098, C-71) — the semantic index answers for one configuration only"},
 	{"unclassified", "no observation applies — genuinely unknown; read this code yourself"},
+	{"qualifier-mismatch", "a C++ call written through one specialisation (X<A>::f) that the index resolved to a different explicit specialisation's member (X<B>::f); the source text contradicts the index, so no edge is drawn (ADR-125, C-153) — read the call's qualifier to see the target"},
 	// Last, as in tail.py's ALL_CLASSES: not an unresolved site but a
 	// resolved one lane A keeps no symbol for (an interface method, a
 	// closure, a nested function below C-9's floor) — the call graph's
