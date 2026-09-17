@@ -682,7 +682,12 @@ module-level edge they must agree, and — sharper — wherever both resolved
 the same call *site*, they must resolve it to the same place. It is a
 command built for CI (`hobbes lanes`, exit 1 on disagreement; since
 ADR-095 it runs on every push in `scripts/ci-graph.sh`), which makes it
-a free extractor-bug detector rather than a report nobody opens. Consumers
+a free extractor-bug detector rather than a report nobody opens. Since
+ADR-123 each disagreement carries a **shape** when a registered limit
+explains it by a rule the report checks — `same-line-pair` (C-70) or
+`cpp-withheld` (C-152) — and the command exits **3** when every row is
+shaped: listed and counted, not failed on. A row no rule explains still
+exits 1. Consumers
 treat tier as trust: an invariant violation proven on semantic edges is a
 finding; on syntactic edges it is a suspicion, and the reviewer flow says
 which.
@@ -1753,7 +1758,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.35-beta** (2026-09-16, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.35-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.36-beta** (2026-09-17, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.36-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

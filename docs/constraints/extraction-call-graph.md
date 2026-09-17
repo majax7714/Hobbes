@@ -355,7 +355,12 @@
   `scripts/ci-graph.sh` with it — exits 1 on a registered limit
   wherever a repo writes `f(x.f())` on one line (quic-go: 17 of 6,743
   dual-resolved sites, 0.25%, `jsontext.String(x.String())` ×15);
-  whether CI should fail on it is open.
+  whether CI should fail on it is open. **Settled 2026-09-17 (ADR-123,
+  0.2.36-beta):** a row is shaped `same-line-pair` when the line holds two
+  or more sites of that name and lane A's one guess is lane B's answer at
+  another of them; a line of only such rows (with any other registered
+  shape) exits 3 and CI passes. A same-named line whose guess matches no
+  sibling's answer stays unexplained and still exits 1.
 - **Source:** measured 2026-08-29 on the O8 Java cells (ADR-096); the
   key is ADR-029's.
 

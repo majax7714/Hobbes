@@ -507,9 +507,11 @@ def _cmd_lanes(args: argparse.Namespace) -> int:
     # rate is printed with both its denominator and its drawn counterpart
     # (ADR-123 §3, C-152 with C-135's C++ face).
     if counts["cpp-withheld"]:
+        # Every C++ row, whatever its shape: a same-line pair in a C++
+        # file is still lane A's C++ guess disagreeing.
         print(
             "  lane A's C++ guess disagreed with lane B at "
-            f"{counts['cpp-withheld']} of the "
+            f"{report.get('cpp_disagreements', counts['cpp-withheld'])} of the "
             f"{report.get('cpp_sites_compared', 0)} C++ sites compared; the "
             "same guess is drawn at syntactic tier at "
             f"{report.get('cpp_guess_drawn', 0)} site(s) in C++ files lane B "

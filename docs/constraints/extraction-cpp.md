@@ -171,7 +171,17 @@ headers parsed with tree-sitter ERROR nodes.
   the sites, with examples, and one `cpp-fallback` degradation record
   per ingest names the count. A C++ file lane B did not index keeps its
   fallback (C-135's C++ face).
-- **Source:** fmt's cell, 2026-09-15; ADR-113 §2's third amendment.
+- **Amended 2026-09-17 (ADR-123, 0.2.36-beta): a disagreement in a
+  compiled C++ file no longer fails `hobbes lanes`.** Such a row carries
+  the shape `cpp-withheld` and, when every row is shaped, the command
+  exits 3, not 1. The residual is owned here: in these files the self-test
+  can no longer fail on a row where *lane B* is the wrong lane (C-153's
+  kind of error lives in exactly these files). The row is still listed
+  and counted, and the report prints lane A's C++ disagreement rate with
+  the number of the same guesses drawn in C++ files lane B did not index
+  (`cpp_disagreements`, `cpp_sites_compared`, `cpp_guess_drawn`).
+- **Source:** fmt's cell, 2026-09-15; ADR-113 §2's third amendment;
+  ADR-123.
 
 ### C-153 — scip-clang's one answer at a call in a template can name the wrong declaration
 - **Cannot tell you:** that a semantic C++ edge from a call in a

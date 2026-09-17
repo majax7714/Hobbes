@@ -280,6 +280,9 @@ class TestLanes:
         graph = json.loads(graph_path.read_text())
         graph["lane_agreement"]["site_disagreements"] = rows
         graph["lane_agreement"]["cpp_sites_compared"] = 40
+        # Every C++ row, whatever its shape — so not the one cpp-withheld
+        # row the tests put in; the printed numerator must be this count.
+        graph["lane_agreement"]["cpp_disagreements"] = 3
         graph["lane_agreement"]["cpp_guess_drawn"] = 7
         graph_path.write_text(json.dumps(graph))
         return graph_path
@@ -305,7 +308,7 @@ class TestLanes:
         assert "src/miniapp/core.py:16 normalize() [same-line-pair]" in out
         assert "every disagreement is a registered shape (exit 3, ADR-123)" in out
         assert (
-            "lane A's C++ guess disagreed with lane B at 1 of the 40 C++ sites "
+            "lane A's C++ guess disagreed with lane B at 3 of the 40 C++ sites "
             "compared; the same guess is drawn at syntactic tier at 7 site(s) "
             "in C++ files lane B did not index (C-152)"
         ) in out

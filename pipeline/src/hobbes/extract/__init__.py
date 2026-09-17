@@ -703,7 +703,7 @@ def _lane_agreement(
         syntax, resolutions, fallback, disagreements, withhold
     )
     cpp_compared, cpp_guess_drawn = _cpp_site_counts(
-        syntax, resolutions, fallback, withhold, cpp_site_files or set()
+        syntax, resolutions, fallback, withhold, cpp_site_files or set(), external
     )
     vetoes = sorted(
         ev.external_vetoes(syntax, resolutions, fallback, external), key=by_site
@@ -778,6 +778,9 @@ def _lane_agreement(
         # §3): the C++ call sites both lanes answered, and the guesses of
         # the same kind lane A does draw, where lane B never compiled.
         "cpp_sites_compared": cpp_compared,
+        "cpp_disagreements": sum(
+            1 for d in disagreements if d.file in (cpp_site_files or set())
+        ),
         "cpp_guess_drawn": cpp_guess_drawn,
     }
 
@@ -788,6 +791,7 @@ def _cpp_site_counts(
     fallback,
     withhold: frozenset[str],
     cpp_site_files: set[str],
+    external: list[dict] | None = None,
 ) -> tuple[int, int]:
     """``(C++ sites compared, C++ guesses drawn)`` for ADR-123 §3.
 
@@ -796,11 +800,13 @@ def _cpp_site_counts(
     are a share of. The second is the guess the join *does* draw: a C++ call
     site lane B never compiled (so not in *withhold*), with no in-repo
     resolution and a fallback answer, drawn at syntactic tier (C-135's C++
-    face). Zero when the C++ layer did not run.
+    face). A site the external veto dropped (ADR-111) draws nothing and is
+    not counted. Zero when the C++ layer did not run.
     """
     if not cpp_site_files:
         return 0, 0
     buckets = ev.index_resolutions(resolutions)
+    vetoed = ev._veto_set(external)
     compared = drawn = 0
     for site in syntax:
         if site.kind != ev.CALL_SITE or site.ambiguous:
@@ -811,7 +817,10 @@ def _cpp_site_counts(
             continue
         if ev.match_resolution(site, buckets) is not None:
             compared += 1
-        elif site.file not in withhold:
+        elif (
+            site.file not in withhold
+            and (site.file, site.line, site.name) not in vetoed
+        ):
             drawn += 1
     return compared, drawn
 

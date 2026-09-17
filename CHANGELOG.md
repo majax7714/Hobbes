@@ -11,9 +11,34 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.35-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.36-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.36-beta — 2026-09-17 (`hobbes lanes` names a registered disagreement and exits 3; ADR-123)
+
+**Patch: what the layer says.** The graph is unchanged; the lane-agreement
+report and the command's exit status are not.
+
+- Every site disagreement carries a `shape` when a registered limit
+  explains it by a rule the report checks: `same-line-pair` (C-70) when
+  the line holds two or more sites of that name and lane A's one guess is
+  lane B's answer at another of them; `cpp-withheld` (C-152) when the file
+  is a C++ file lane B compiled, where lane A's guess draws nothing. A row
+  neither rule explains has none. Nothing is removed and `sites_compared`
+  does not move.
+- `hobbes lanes` exits **3** when every disagreement is shaped, 1 when any
+  is not (or a graph predates the shapes), 0 and 2 as before; it prints
+  the split per shape, the unexplained rows first, and — where C++ rows
+  exist — lane A's C++ disagreement rate beside the number of the same
+  guesses drawn in C++ files lane B did not index. `scripts/ci-graph.sh`
+  passes on 3.
+- **C-152 amended:** in a compiled C++ file the check no longer fails on a
+  row where lane B is the wrong lane; listed and counted, not failed on.
+  **C-70's open question settled** by the rule above.
+- Dispatched as `S-20260917T130613Z-4338` (merged no-ff); the developer's
+  follow-up counts every C++ row in the rate and leaves vetoed sites
+  (ADR-111) out of the drawn count.
 
 ## 0.2.35-beta — 2026-09-16 (lane B reads an unchanged unit from its index cache; ADR-122)
 

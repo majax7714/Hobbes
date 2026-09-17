@@ -1200,6 +1200,51 @@ class TestCppGuessDrawn:
         assert report["cpp_sites_compared"] == 0
         assert report["sites_compared"] == 0
 
+    def test_a_guess_the_external_veto_dropped_is_not_counted_as_drawn(self):
+        # ADR-111: lane B placed the callee outside the repo, so the join
+        # draws nothing there even in a file lane B never compiled.
+        from hobbes.extract import _lane_agreement
+
+        site = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "skipped.cc", 2, "run", 4)
+        report = _lane_agreement(
+            [site], [], {("skipped.cc", 2, "run"): ("b.h", 2)}, [], [],
+            external=[{"file": "skipped.cc", "line": 2, "name": "run"}],
+            cpp_site_files={"skipped.cc"},
+        )
+        assert report["cpp_guess_drawn"] == 0
+
+    def test_every_cpp_row_counts_toward_the_cpp_disagreements_whatever_its_shape(self):
+        # A C++ same-line pair is still lane A's C++ guess disagreeing, so
+        # the printed rate's numerator is every C++ row, not only the
+        # `cpp-withheld` ones; a row outside the C++ files is not counted.
+        from hobbes.extract import _lane_agreement
+
+        sites = [
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 1, "run", 4),
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 1, "run", 20),
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "b.cc", 3, "go", 4),
+            ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "c.py", 5, "go", 4),
+        ]
+        resolutions = [
+            ev.Site(ev.SCIP, ev.RESOLUTION, "a.cc", 1, "run", 4, def_file="x.h", def_line=1),
+            ev.Site(ev.SCIP, ev.RESOLUTION, "a.cc", 1, "run", 20, def_file="y.h", def_line=2),
+            ev.Site(ev.SCIP, ev.RESOLUTION, "b.cc", 3, "go", 4, def_file="z.h", def_line=3),
+            ev.Site(ev.SCIP, ev.RESOLUTION, "c.py", 5, "go", 4, def_file="z.py", def_line=3),
+        ]
+        fallback = {
+            ("a.cc", 1, "run"): ("x.h", 1),
+            ("b.cc", 3, "go"): ("q.h", 9),
+            ("c.py", 5, "go"): ("q.py", 9),
+        }
+        report = _lane_agreement(
+            sites, resolutions, fallback, [], [],
+            withhold=frozenset({"b.cc"}),
+            cpp_site_files={"a.cc", "b.cc"},
+        )
+        shapes = sorted(str(r["shape"]) for r in report["site_disagreements"])
+        assert shapes == ["None", "cpp-withheld", "same-line-pair"]
+        assert report["cpp_disagreements"] == 2
+
 
 class TestCoverageGapRecord:
     """C-79 (lifted): the environment check that had nothing to check
