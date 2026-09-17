@@ -142,6 +142,47 @@ class TestIngest:
         assert "state" in capsys.readouterr().err
 
 
+class TestContainmentNote:
+    """What containment does *not* take away (ADR-128 §2): a contained step
+    that ran repo code wrote the tool caches and the stage, and a later
+    ingest of another repo reads them."""
+
+    def test_a_contained_executing_step_names_itself_and_c_161(self, capsys):
+        cli._print_containment(
+            {"steps": [{"step": "index-rust", "contained": True}],
+             "all_contained": True, "escape_hatch": False}
+        )
+        err = capsys.readouterr().err
+        assert "NOTE: containment: repo code ran in 1 lane B step(s) (index-rust)" in err
+        assert "C-161" in err and "ADR-128" in err
+        assert "WARNING" not in err  # every step contained: nothing to warn about
+
+    def test_a_step_that_runs_no_repo_code_prints_nothing(self, capsys):
+        cli._print_containment(
+            {"steps": [{"step": "index-python", "contained": True}],
+             "all_contained": True, "escape_hatch": False}
+        )
+        assert capsys.readouterr().err == ""
+
+    def test_an_ingest_with_no_lane_b_step_prints_nothing(self, capsys):
+        # the suite's default: HOBBES_SCIP=0, so nothing ran to disclose
+        cli._print_containment({"steps": [], "all_contained": True, "escape_hatch": False})
+        assert capsys.readouterr().err == ""
+        cli._print_containment(None)
+        assert capsys.readouterr().err == ""
+
+    def test_a_host_run_executing_step_warns_and_earns_no_note(self, capsys):
+        # C-64's warning is unchanged, and the note is about *contained*
+        # steps: a host-run one has the run of the box, not of two stores.
+        cli._print_containment(
+            {"steps": [{"step": "index-rust", "contained": False, "reason": "podman is not installed"}],
+             "all_contained": False, "escape_hatch": False}
+        )
+        err = capsys.readouterr().err
+        assert "WARNING: containment: 1 of 1 lane B step(s) ran on this host" in err
+        assert "C-64" in err and "NOTE" not in err
+
+
 class TestDirectoryView:
     @staticmethod
     def row(file, sites, unresolved, tail=None):
