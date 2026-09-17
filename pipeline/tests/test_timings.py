@@ -89,3 +89,19 @@ def test_cli_prints_the_block_and_appends_one_log_line(repo, capsys):
     assert [s["step"] for s in row["steps"]][-1] == "write"
     assert cli.main(["ingest", "--repo", str(repo)]) == 0
     assert len(log.read_text().splitlines()) == 2
+
+
+def test_a_test_ingest_never_logs_to_the_real_cache(tmp_path, monkeypatch):
+    # conftest: without HOBBES_CACHE_DIR, the suite's timings log lands under
+    # the run's basetemp, never the developer's ~/.hobbes/cache/timings/.
+    monkeypatch.delenv("HOBBES_CACHE_DIR", raising=False)
+    root = tmp_path / "miniapp"
+    shutil.copytree(FIXTURES / "miniapp", root)
+    git = ["git", "-C", str(root), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run([*git, "init", "-q"], check=True)
+    subprocess.run([*git, "add", "."], check=True)
+    subprocess.run([*git, "commit", "-qm", "fixture"], check=True)
+    real = Path.home() / ".hobbes" / "cache" / "timings"
+    path = record(root, "0" * 40, None, Timings())
+    assert not path.is_relative_to(real)
+    assert path.exists()

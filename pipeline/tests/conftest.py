@@ -13,6 +13,8 @@ import subprocess
 
 import pytest
 
+from hobbes.extract import staging
+
 
 def pytest_configure(config):
     """`lanea_cache` is registered here rather than in `pyproject.toml`
@@ -25,7 +27,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def _lane_a_only(monkeypatch, request):
+def _lane_a_only(monkeypatch, request, tmp_path_factory):
     """Run the extractor lane-A-only unless a test opts in.
 
     Lane B shells out to a SCIP indexer, which makes the suite slow (48s
@@ -42,6 +44,17 @@ def _lane_a_only(monkeypatch, request):
     # `lanea_cache` marker and points HOBBES_CACHE_DIR at a tmp_path.
     if request.node.get_closest_marker("lanea_cache") is None:
         monkeypatch.setenv("HOBBES_LANEA_CACHE", "0")
+    # The same for the ingest's timings log (ADR-119): every in-process
+    # `hobbes ingest` appends a line under the cache, and before this the
+    # suite's tmp repos left one file each in the developer's real
+    # `~/.hobbes/cache/timings/`. A test that points HOBBES_CACHE_DIR at
+    # its own directory keeps it; any other writes under the run's basetemp.
+    basetemp = tmp_path_factory.getbasetemp()
+    monkeypatch.setattr(
+        "hobbes.extract.timings.cache_root",
+        lambda: staging.cache_root() if os.environ.get("HOBBES_CACHE_DIR")
+        else basetemp / "hobbes-cache",
+    )
     # Every test starts contained: the escape hatch (ADR-092) is on only in
     # a test that sets it itself. A test that ran `hobbes ingest
     # --uncontained` in-process once leaked it into the rest of a full
