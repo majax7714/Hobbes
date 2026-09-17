@@ -133,6 +133,7 @@ language.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -563,9 +564,15 @@ def _collect_bindings(func_node: Node, declarator: Node, parsed: CFile) -> None:
 
 
 def _walk(node: Node):
-    yield node
-    for child in node.children:
-        yield from _walk(child)
+    """*node* and everything under it in pre-order — the node, then its
+    children left to right, depth first. An explicit stack rather than a
+    recursive generator: that spelling re-yielded every node once through
+    each of its ancestors, 2.06 billion calls on ScummVM (ADR-128)."""
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        yield current
+        stack.extend(reversed(current.children))
 
 
 def _enclosing(symbols: list[dict], line: int) -> str | None:
@@ -777,22 +784,51 @@ class _IncludeResolution:
     ambiguous: bool
 
 
+class HeaderIndex:
+    """The repo's headers grouped by basename, for :func:`_resolve_include`'s
+    third step.
+
+    The step used to scan every repo header with ``endswith`` on every
+    include — 262,159 includes × ~10k headers on ScummVM (ADR-128). Every
+    path ending in ``/p`` has ``p``'s last component as its basename, so
+    that bucket holds every candidate the scan could find, and the same
+    ``endswith`` filters it: the same set of matches, hence the same
+    ambiguity. Built once where a caller's header set is built.
+    """
+
+    def __init__(self, headers: Iterable[str]) -> None:
+        self.by_name: dict[str, list[str]] = {}
+        for path in sorted(headers):
+            self.by_name.setdefault(path.rsplit("/", 1)[-1], []).append(path)
+
+    def suffix_matches(self, spec: str) -> list[str]:
+        """Every indexed header whose path ends with ``/spec``. A spec
+        ending in ``/`` has basename ``""``, and no path does, so both
+        this and the scan find nothing for it."""
+        suffix = "/" + spec
+        bucket = self.by_name.get(spec.rsplit("/", 1)[-1], ())
+        return [f for f in bucket if f.endswith(suffix)]
+
+
 def _resolve_include(
-    including_path: str, spec: str, known_files: set[str], headers: set[str]
+    including_path: str, spec: str, known_files: set[str], headers: set[str] | HeaderIndex
 ) -> _IncludeResolution:
     """Decision 4's three steps, shared by ``"p"`` and (when tried first)
     ``<p>``: relative to the including file's directory; relative to the
     repo root; the unique repo header whose path ends with ``/p``. Reports
     which one matched, and — when none did — whether the suffix step
-    found more than one header (ambiguous) or none (unmatched)."""
+    found more than one header (ambiguous) or none (unmatched).
+
+    *headers* is a :class:`HeaderIndex` from a caller that resolves more
+    than one include against the same set; a plain set is indexed here."""
     candidate = _normalize(PurePosixPath(including_path).parent, spec)
     if candidate is not None and candidate in known_files:
         return _IncludeResolution(candidate, False)
     candidate = _normalize(PurePosixPath("."), spec)
     if candidate is not None and candidate in known_files:
         return _IncludeResolution(candidate, False)
-    suffix = "/" + spec
-    matches = [f for f in headers if f.endswith(suffix)]
+    index = headers if isinstance(headers, HeaderIndex) else HeaderIndex(headers)
+    matches = index.suffix_matches(spec)
     if len(matches) == 1:
         return _IncludeResolution(matches[0], False)
     return _IncludeResolution(None, len(matches) > 1)
@@ -804,7 +840,7 @@ def _join(files: list[CFile]) -> dict:
     module_edges: dict[tuple, list] = defaultdict(list)
     symbols: list[dict] = []
     known_files = {parsed.path for parsed in files}
-    headers = {p for p in known_files if p.endswith(".h")}
+    headers = HeaderIndex(p for p in known_files if p.endswith(".h"))
     #: Per directory, the quoted specs an unmatched include named and the
     #: specs (either spelling) an ambiguous include named — the
     #: amendment's C-133 report, deduped and in path order of first sight.
@@ -970,7 +1006,7 @@ def _resolve_fallback(
 
 
 def _call_fallback(
-    files: list[CFile], known_files: set[str], headers: set[str]
+    files: list[CFile], known_files: set[str], headers: HeaderIndex
 ) -> dict[tuple[str, int, str], tuple[str, int]]:
     """Lane A's own resolutions, keyed by call site — the syntactic floor
     this unit's whole graph rests on, since there is no semantic lane to
