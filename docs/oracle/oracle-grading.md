@@ -1129,6 +1129,59 @@ prediction that carried them was wrong by a factor of six on sites and
 twenty-six on edges, in the direction that made the change look
 smaller than it was.
 
+### 10.11 C-153's rule measured — written 2026-09-17, before any rule is run
+
+ADR-125. Two candidate rules over C++ semantic `calls` edges, read on the
+**standing** exports against the **standing** keys, no ingest and no key
+re-run: fmt `~/.hobbes/bench/uneval-drivers/regrade/fmt/hobbes.json`
+against `keys/fmt/oracle.json`; args `regrade/args/hobbes.json` against
+`keys/args/oracle.json` (the same directory). *R-qual*: the callee is written with a
+qualifier carrying template arguments and the resolved declaration's
+owner carries different ones (or none where the text names a
+specialisation). *R-self*: the edge's target is its own caller. What was
+known before writing: C-153's ten fmt rows by site (the four
+`test_format<0>::format` contradictions at `format-test.cc:689/690/692/696`;
+six `line-unresolved` rows at `compile-test.cc:37`, `:62`,
+`format-test.cc:1910`, `std.h:698`, `:714`, `:726`). No rule has been run
+over any export.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P57 | fmt | R-qual matches the four `test_format<0>` rows and the four self rows (`compile-test.cc:37`, `:62`, `format-test.cc:1910`, `std.h:698`), and not the two `format_as` rows | met if all eight and neither `format_as` row; each miss read against the source |
+| P58 | fmt, args | R-qual's cost: ≤ 5 confirmed edges on fmt, 0 on args | met per the rows; every matched confirmed edge read |
+| P59 | fmt | R-self matches the four self rows **and** at least one confirmed edge (a real recursion), so R-self is not safe alone | met if both |
+| P60 | args | neither rule matches a contradicted or `line-unresolved` row (args has none of C-153's) | met per the rows |
+
+**Decision rule (ADR-125 §3, fixed here):** R-qual is built as an
+abstention only if, on each cell, its matched confirmed edges ≤ its
+matched wrong edges (contradicted, plus the `line-unresolved` rows among
+C-153's ten). Matched edges in any other silent bucket are read and
+reported, and count on neither side. The surfacing of ADR-125 §4 is built
+whatever this reads.
+
+### 10.12 Reach through dispatch, measured — written 2026-09-17, before anything is expanded
+
+ADR-126. For each Hobbes `calls` edge whose target has `implements`
+edges into it, the pairs (call site → each override, `implements`
+followed transitively). Nothing is drawn; the pairs are computed from
+`graph.json`. jsoup is re-ingested at the current version, contained
+(the stored graphs predate ADR-120), and read against the standing jsoup
+javac key; click's pairs against the standing click trace; args' stored
+graph (0.2.32-beta or later, 178 `implements` edges) as the control.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P61 | jsoup | set precision: ≥ 95% of expanded pairs are in the key's CHA target set at the site | met per the pairs; every pair outside the set read to at least a sample of 20 (seeded) |
+| P62 | jsoup | set recall: the expanded pairs cover ≥ 80% of the CHA targets at the sites that have a Hobbes base edge | met per the pairs |
+| P63 | jsoup | fan-out: median overrides per expanded call ≥ 2, maximum > 20 | recorded |
+| P64 | click | observed share: ≤ 30% of expanded pairs appear in the trace; none is counted as a contradiction | met per the pairs; fewer than 20 pairs is reported as too small to read |
+| P65 | args | every expanded pair is unjudged by construction (the key names the declared method only) and is reported, not graded | met if the script grades none |
+
+Go, TS and Rust are recorded as not measurable (ADR-126's table). The
+measurement decides the wording of any surface and whether it is worth
+building; it cannot make a pair a proven edge, and a CHA confirmation is
+reported as agreement with the hierarchy, never as reach.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
