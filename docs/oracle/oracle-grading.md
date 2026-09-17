@@ -1217,6 +1217,34 @@ stands unchanged.
 | P67 | args | export identical as a set (2,000 rows), 0 `qualifier-mismatch` | met per the diff |
 | P68 | this repo | 0 `qualifier-mismatch`; `graph.json` identical to the pre-merge ingest apart from its stamp | met per the diff |
 
+**Graded 2026-09-17** (`~/.hobbes/bench/c153-rule/regrade/`, ingest at
+`c53dc5d`, the standing re-run keys):
+
+- **P66 — MISSED on the count, met on the direction.** fmt's export went
+  3,499 → **3,493**. Six rows were removed, none added, and every removed
+  row is one of the eight: `format-test.cc:689/690/692/696`,
+  `format-test.cc:1910` and `std.h:698`. Results:
+  - contradicted 4 → **0**, confirmed 3,269, precision **100%**
+    (3,269/3,269);
+  - `line-unresolved` 13 → **11**, strict **99.7%** (3,269/3,280);
+  - `qualifier-mismatch` **6**, poison PASS (2,638 refused / 855
+    unjudged, 0 falsely confirmed).
+  
+  **`compile-test.cc:37` and `:62` still draw.** Both specialisations
+  are written after `FMT_BEGIN_NAMESPACE`, a macro tree-sitter cannot
+  read (C-145). The parse puts `template <>` into an ERROR node before a
+  bare `struct formatter<X> : formatter<Y> {..}`, so lane A never saw a
+  `template_declaration` and did not record the full specialisation. The
+  rule fired less than predicted, never more.
+- **P67 — met.** args is identical as a set (2,000 rows), 1,995/1,995,
+  `qualifier-mismatch` 0.
+
+**P69, predicted before the fix:**
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P69 | fmt, args | lane A also records a class as an explicit full specialisation when its name carries arguments and the node before it is an ERROR node ending in exactly the tokens `template` `<` `>` (the header the macro parse lost). fmt's export then loses the remaining two rows (3,493 → **3,491**), `line-unresolved` 11 → **9**, strict **99.73%** (3,269/3,278), `qualifier-mismatch` **8**; args is unchanged | met if exactly those two rows go, as a set |
+
 ### 10.12 Reach through dispatch, measured — written 2026-09-17, before anything is expanded
 
 ADR-126. For each Hobbes `calls` edge whose target has `implements`
