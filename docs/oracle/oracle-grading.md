@@ -1480,6 +1480,26 @@ the rule and is fixed before the version moves.
 - Signed direction of fix: fmt confirmed +391, contradicted ±0,
   unjudged-line ±0, recall +1.0 point; args confirmed +136, recall +3.9.
 
+### 10.16 A dependent operator's reference draws nothing — written 2026-09-17, before the unit is dispatched
+
+ADR-131's amendment. `uses` is graded by no key, and both C++ cells were
+read by the scratch wrapper that measured the route
+(`~/.hobbes/bench/c153-operator-uses/`), so nothing here is held out:
+P98 and P99 say the graded export must not move, P100 and P101 that the
+build equals the probe. The exports had not been run on the probe's
+graphs when this was written.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P98 | fmt, args | exports identical to 0.2.42-beta's, row for row: 6,901/6,901 and 2,198/2,198, 0 contradicted, `line-unresolved` 27 on fmt | stored key, `--poison`; the exports compared as sets |
+| P99 | cJSON, sqlite-vector | exports identical, row for row; no `operators` block | the export compared as a set |
+| P100 | fmt, args | symbol edges: fmt −156, args −24, every one a `uses`, none added; module edges: exactly `test/scan.h → include/fmt/format.h` and `args.hxx → test/test_common.hxx` go; nodes and symbols unmoved | the built graph against the probe's and against 0.2.42-beta's |
+| P101 | fmt, args | `operators` reads `drawn` 551 / 140 and `in_template` 437 / 40, as before — the second now the number withheld | the ingest's block |
+
+A `calls` row that moves, or an edge lost that is not a `uses` at an
+operator token inside a template, is a finding against the build and is
+fixed before the version moves.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

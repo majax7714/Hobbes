@@ -1,6 +1,6 @@
 # ADR-131 — A C++ operator is a call where the index names it at the token, outside a template
 
-**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.42-beta (unit `d1b9`; `oracle-grading.md` §10.15, P92–P97 all met: fmt 6,901/6,901 at 0 contradicted, recall 30.1%; args 2,198/2,198, 62.5%; the C cells identical) · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its first item; his standing direction of the same day — honesty and accuracy before a recall number; rules fail toward drawing less.
+**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.42-beta (unit `d1b9`; `oracle-grading.md` §10.15, P92–P97 all met: fmt 6,901/6,901 at 0 contradicted, recall 30.1%; args 2,198/2,198, 62.5%; the C cells identical); **amended the same day — inside a template the reference draws nothing, not a `uses` either** · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its first item; his standing direction of the same day — honesty and accuracy before a recall number; rules fail toward drawing less.
 
 Narrows **C-146**. Extends **C-153**'s entry (what the read found).
 Follows ADR-129 and ADR-130. Patch: a constraint's fix.
@@ -97,7 +97,48 @@ Over fmt's cached index and the stored key:
   operator, and the named casts.
 - **C-153, found by the read and not fixed here:** the wrong candidates
   above stand in today's graph as `uses` edges, as every unclaimed
-  reference does. No key grades `uses`. Put to Max as a route, not built.
+  reference does. No key grades `uses`. Put to Max as a route, not built
+  — **decided 2026-09-17, the amendment below: withheld.**
+
+## Amended 2026-09-17 (Max: "route a approved") — inside a template the reference draws nothing
+
+The open item above, decided. Decision 4 becomes: **a lane B reference
+named `operator…` at exactly a recorded token inside a template draws no
+`calls` fact and no `uses` fact.** It is still counted
+(`operators.in_template`, now the number withheld), and the ingest line
+says so. Everything else about the join is as decided: a reference that
+is not exactly at a token — one column off, another spelling, no column,
+a macro invocation's name — stays the `uses` edge it was.
+
+**Why.** A `uses` edge is read as a true dependency (ADR-029), and at a
+dependent operator it is scip-clang's single by-name candidate (C-153).
+No key grades `uses`, so nothing would ever contradict it. Rules fail
+toward drawing less.
+
+**Measured first** (`~/.hobbes/bench/c153-operator-uses/`, a scratch
+wrapper over 0.2.42-beta, no product seam): fmt loses 156 `uses` symbol
+edges (437 references, 344 distinct by line and target; 340 `uses`
+evidence rows in all, the rest on edges that stand on other references),
+args 24 (40 references, 27 evidence rows). Nothing is
+added; nodes and symbols do not move. **One module edge goes on each
+cell, and both were wrong:** `test/scan.h → include/fmt/format.h` stood
+only on integer `n * 10` and `prev * 10ull` read as `fp`'s `operator*`;
+`args.hxx → test/test_common.hxx` — a library header depending on its
+own test header — stood only on `ss >> destination` read as the test's
+`operator>>` for a tuple. The "module edges do not move" line under
+Consequences was about decision 3 and stays true of it; it is not true
+of this amendment, which is the point of it.
+
+**The price, owned:** the right candidates go with the wrong ones. On
+fmt the key confirms 175 of the in-template rows as calls; those were
+true `uses` dependencies and are no longer drawn (C-146's in-template
+residual already gave them up as calls). The largest targets withheld
+on fmt are gtest's `MatchResultListener::operator<<` (31 edges) and
+`internal::operator==`/`!=` (53), and `fp`'s `operator*` (28).
+
+**Not held out.** Both C++ cells were read for the measurement, and no
+key judges `uses`; §10.16's predictions check that the build equals the
+probe and that the graded export does not move.
 
 ## Alternatives considered
 
