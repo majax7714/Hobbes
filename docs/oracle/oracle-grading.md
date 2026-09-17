@@ -1424,6 +1424,44 @@ version moves.
   rows the mint leaves, one is wrong at the right arity
   (`format.h:2387`, `write` drawn to itself) — C-153's entry names it.
 
+### 10.15 Operators at the token, outside a template — written 2026-09-17, before the rule is built
+
+ADR-131. Step 0 (`~/.hobbes/bench/c146-operators/`) wrote the export the
+rule would produce from fmt's cached index and graded it against the
+stored key; nothing was drawn. The rule was fitted on fmt, so **args was
+held out**: its predictions were written to `PREREG-args.md` before any
+script read its facts, key or clone, with `simulate.py` frozen by hash.
+That scratch file numbered them P85–P89, numbers §10.14 had already
+used; they are P87–P91 here, unchanged in wording.
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P87 | args (held out, probe) | 0 contradicted among the added rows | the probe export, graded |
+| P88 | args (held out, probe) | 0 new `line-unresolved` rows | per the report |
+| P89 | args (held out, probe) | at most 2 added rows in any silent bucket | per the report |
+| P90 | args (held out, probe) | 5–120 added edges; recall up by less than 3 points | per the report |
+| P91 | args (held out, probe) | the operator-arity check fires on 0 rows outside a template | the probe's count |
+
+**Held-out results (2026-09-17, run once).** P87, P88, P89, P91 met: +136
+edges, 136 confirmed, 0 contradicted, 0 silent, 0 arity rows. **P90
+missed**: 136 edges, not ≤ 120; recall 58.6% → 62.5%, +3.9 points, not
+< 3 — args' tests compare and dereference its flag types by operator
+more than I guessed.
+
+For the built rule, written before the unit is dispatched:
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P92 | fmt | confirmed 6,510 → 6,901 ± 5, **0 contradicted**; recall 30.1% | stored key, `--poison` |
+| P93 | fmt | `line-unresolved` stays 27; strict 99.6% (not below 99.59%) | per the report |
+| P94 | args | confirmed 2,062 → 2,198 ± 3, 0 contradicted; recall 62.5% | stored key |
+| P95 | cJSON, sqlite-vector | exports identical, row for row | the export compared as a set |
+| P96 | fmt, args | every added row is one the probe's `token-plain` export holds; any other is read by hand and named | the two exports compared as sets |
+| P97 | fmt | no `calls` edge added from a token inside a template: `operators.in_template` counts them and the export holds none | the ingest's block against the export |
+
+A contradicted row, or a new `line-unresolved` one, is a finding against
+the rule and is fixed before the version moves.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
