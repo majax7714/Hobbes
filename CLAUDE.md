@@ -182,7 +182,7 @@ cd pipeline && uv sync && uv run pytest   # HOBBES_SCIP=0 by default; `lane_b`-m
 
 # Everyday commands
 uv run hobbes up                      # init → ingest → serve → block on decisions
-uv run hobbes lanes                   # lane agreement; exit 1 on disagreement
+uv run hobbes lanes                   # lane agreement; exit 1 on an unexplained disagreement, 3 when every row is a registered shape
 uv run hobbes invariants check|compile
 uv run hobbes review main..my-branch  # exit 1 if it needs attention
 uv run hobbes plan "proposal" --seed some.module
