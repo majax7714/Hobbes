@@ -74,6 +74,14 @@ checkable fact about the site:
   (ADR-096). Constructors are never inherited and are excepted.
 - ``unclassified`` — none of the above observations applies. This is the
   residue that stays honestly unknown.
+- ``qualifier-mismatch`` — a C++ call written through one explicit
+  specialisation's name (``test_format<20>::format(..)``) that lane B
+  resolved to a **different** explicit full specialisation's member
+  (``test_format<0>::format``): scip-clang indexes a template's pattern
+  once, and the program text contradicts the answer it gives here, so no
+  edge is drawn (ADR-125, C-153). Like ``below-floor`` it is not a
+  :func:`classify` verdict — the projection decides it, from the written
+  qualifier and the owner's own declaration.
 
 The classes roll up into the two statements the ingest summary prints
 (architecture §3.4): *seen and not modelled by design* (local-binding,
@@ -121,6 +129,11 @@ INHERITED = "inherited-member"
 #: A abstained rather than pick a file (ADR-098, C-71).
 BUILD_TAG = "build-tag-set"
 UNCLASSIFIED = "unclassified"
+#: A C++ call whose written qualifier names one explicit specialisation
+#: and whose lane B answer is a different explicit full specialisation's
+#: member (ADR-125, C-153); the projection abstains and the site is
+#: counted here. Not a :func:`classify` verdict, like ``below-floor``.
+QUALIFIER_MISMATCH = "qualifier-mismatch"
 #: The semantic lane resolved the site to a declaration lane A keeps no
 #: symbol for — an interface method, a closure, a nested function (C-9's
 #: floor) — so the site counts as resolved and draws no edge (C-58).
@@ -338,22 +351,29 @@ CLASSES_AVAILABLE: dict[str, frozenset[str]] = {
     # no checker to see an import binding, an overload set, or an
     # expression callee.
     "c": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, UNCLASSIFIED, BELOW_FLOOR}),
-    # C's five, plus the one class C++ needs and C cannot have: a name
+    # C's five, plus the two classes C++ needs and C cannot have: a name
     # defined more than once is an overload set, and lane A abstains on
-    # it (ADR-113 §1). `path-call` is not here — C++ spells `::`, but a
-    # qualified site is either the standard library (`builtin-name`, by
-    # its first qualifier) or a name this lane could not place.
+    # it (ADR-113 §1); and a call written through one explicit
+    # specialisation that the index resolved to another's member is a
+    # `qualifier-mismatch`, which needs template arguments C has no
+    # grammar for (ADR-125). `path-call` is not here — C++ spells `::`,
+    # but a qualified site is either the standard library
+    # (`builtin-name`, by its first qualifier) or a name this lane could
+    # not place.
     "cpp": frozenset({FALLBACK, LOCAL, BUILTIN, ATTR, OVERLOAD, UNCLASSIFIED,
-                      BELOW_FLOOR}),
+                      QUALIFIER_MISMATCH, BELOW_FLOOR}),
 }
 
 #: Every class, in decision order — the vocabulary the table draws from.
-#: ``below-floor`` is last and is not a :func:`classify` verdict: it is
-#: counted from the projection (a resolved site with no symbol to land
-#: on) and added to the tail beside the unresolved classes.
+#: The last two are not :func:`classify` verdicts: both are counted from
+#: the projection and added to the tail beside the unresolved classes —
+#: ``qualifier-mismatch`` a resolved site the written qualifier
+#: contradicted (ADR-125), ``below-floor``, last, a resolved site with no
+#: symbol to land on.
 ALL_CLASSES = (FALLBACK, LOCAL, NESTED, EXTERNAL_ORIGIN, IMPORT_BINDING,
                BUILTIN, ATTR, EXPR_CALLEE, UNION_MEMBER, PATH_CALL, OVERLOAD,
-               INHERITED, BUILD_TAG, UNCLASSIFIED, BELOW_FLOOR)
+               INHERITED, BUILD_TAG, UNCLASSIFIED, QUALIFIER_MISMATCH,
+               BELOW_FLOOR)
 
 
 def classes_available(coverage_rows: list[dict]) -> dict[str, list[str]]:

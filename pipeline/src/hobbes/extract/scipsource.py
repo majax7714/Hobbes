@@ -729,7 +729,94 @@ class _SymbolIndex:
 _CALLS_TO_TYPE_GUARDED = (".go", ".rs", ".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h")
 
 
-def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
+def _split_template_name(text: str) -> tuple[str, str]:
+    """``S<V<T>, int>`` → ``("S", "V<T>,int")``; a name written without a
+    trailing argument list → ``(name, "")``.
+
+    Whitespace is removed first, and the list is found by bracket depth:
+    a regex over ``<...>`` cannot see where a nested list's own brackets
+    close, and ``S<V<T>>`` is exactly the shape that matters here.
+    """
+    stripped = "".join(text.split())
+    start = stripped.find("<")
+    if start < 0 or not stripped.endswith(">"):
+        return stripped, ""
+    depth = 0
+    for i, char in enumerate(stripped[start:], start):
+        if char == "<":
+            depth += 1
+        elif char == ">":
+            depth -= 1
+            if depth == 0:
+                # Anything after the list closes is not a template name
+                # this rule can read, so it reads none.
+                if i != len(stripped) - 1:
+                    return stripped, ""
+                return stripped[:start], stripped[start + 1 : i]
+    return stripped, ""
+
+
+def _owner_component(owner_id: str) -> str:
+    """The class name at the end of a symbol id — its last ``::``
+    component, with the module prefix off the front of a class no
+    namespace encloses (``src/fmt.h.test_format<0>`` is
+    ``test_format<0>``). A C++ name holds no ``.`` before its argument
+    list, so what precedes the last one there belongs to the module.
+
+    The ``::`` is found at bracket depth 0 only: an argument list spells
+    its own (``P<std::vector<U>>``), and cutting at one of those would
+    read ``vector<U>>`` as the class."""
+    depth = 0
+    cut = 0
+    i = 0
+    while i < len(owner_id):
+        char = owner_id[i]
+        if char == "<":
+            depth += 1
+        elif char == ">":
+            depth -= 1
+        elif char == ":" and depth == 0 and owner_id[i + 1 : i + 2] == ":":
+            i += 2
+            cut = i
+            continue
+        i += 1
+    head, bracket, arguments = owner_id[cut:].partition("<")
+    return head.rpartition(".")[2] + bracket + arguments
+
+
+def _qualifier_contradicts(written: str, owner_id: str) -> bool:
+    """Does the qualifier *written* at a C++ call site contradict the
+    explicit full specialisation lane B resolved it to (ADR-125, as
+    amended 2026-09-17)?
+
+    True when both name the same class template and their argument lists,
+    whitespace removed, differ — ``test_format<20>::format(..)`` answered
+    with ``test_format<0>::format``. The caller has already established
+    that *owner_id* is an explicit full specialisation, so its arguments
+    are concrete and a difference is a disagreement rather than the
+    parameters a primary or partial declaration spells.
+
+    The comparison is over both texts, which is the residual the
+    amendment names and keeps: a written argument that is an alias or an
+    expression of the owner's (``<string_view>`` for
+    ``<basic_string_view<char>>``, ``<2*10>`` for ``<20>``) reads as a
+    difference and the rule fires. Measured 0 such on fmt and args. Where
+    either list cannot be read the rule does not fire — the accuracy side
+    (ADR-125 §1: when in doubt, draw the edge).
+    """
+    written_base, written_arguments = _split_template_name(written)
+    owner_base, owner_arguments = _split_template_name(_owner_component(owner_id))
+    if not written_arguments or not owner_arguments:
+        return False
+    return written_base == owner_base and written_arguments != owner_arguments
+
+
+def project(
+    resolved: list,
+    nodes: list[dict],
+    symbols: list[dict],
+    full_specializations: frozenset[str] = frozenset(),
+) -> dict:
     """Project semantic-IR facts onto lane A's module and symbol ids.
 
     The IR speaks in files and lines because that is what both providers
@@ -737,6 +824,13 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     vocabularies meet, and it resolves ends the same way for every fact
     kind — the source is whatever symbol encloses the site, the target is
     whatever symbol the definition starts.
+
+    *full_specializations* is the C++ layer's explicit full
+    specialisations by symbol id (ADR-125): where a fact's callee is
+    written through one specialisation's name and lane B answered with a
+    different one's member, the source text contradicts the index, and
+    the edge is not drawn — the site is returned in ``qualifier_mismatch``
+    for the tail to name, exactly as ``below_floor`` is.
     """
     index = _SymbolIndex(nodes, symbols)
     module_evidence: dict[tuple, list] = {}
@@ -746,6 +840,12 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
     # below C-9's floor. The site counts as resolved and draws no edge
     # (C-58); returned so the tail view can name it `below-floor`.
     below_floor: list[tuple[str, int]] = []
+    # Call sites ADR-125's R-qual abstains on: the callee is written
+    # through one explicit specialisation's name and lane B resolved it
+    # to another's member, so the two disagree about which class is meant
+    # and no edge is drawn (C-153). Returned so the tail can name it
+    # `qualifier-mismatch` — the recall cost is a number, not a silence.
+    qualifier_mismatch: list[tuple[str, int]] = []
     # `implements` facts (ADR-120) whose either end lane A keeps no symbol
     # for: a Go interface's method spec, which lane A does not declare, so
     # the method-level pair has no node to land on. Counted, never guessed.
@@ -782,6 +882,18 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
             if fact.kind == "calls" and SCIP_LANE in fact.lanes:
                 below_floor.append((fact.source_file, fact.line))
             continue
+        if fact.kind == "calls" and fact.qualifier and SCIP_LANE in fact.lanes:
+            # ADR-125. The owner has to be a `template <>` declaration,
+            # whose arguments are concrete; then, where they are not the
+            # ones the call was written through, lane B indexed the
+            # pattern once and answered with the wrong specialisation's
+            # member. The source text says so, so nothing is drawn here.
+            owner = callee.rpartition("::")[0]
+            if owner in full_specializations and _qualifier_contradicts(
+                fact.qualifier, owner
+            ):
+                qualifier_mismatch.append((fact.source_file, fact.line))
+                continue
         if caller == callee and fact.kind != "calls":
             continue  # a type naming itself is not an edge; a function calling itself is
         edge_type = fact.kind
@@ -814,6 +926,7 @@ def project(resolved: list, nodes: list[dict], symbols: list[dict]) -> dict:
         "module_edges": _edges(module_evidence),
         "symbol_edges": _edges(symbol_evidence),
         "below_floor": below_floor,
+        "qualifier_mismatch": qualifier_mismatch,
         "implements_below_floor": implements_below_floor,
     }
 

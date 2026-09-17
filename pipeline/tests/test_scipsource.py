@@ -993,6 +993,121 @@ class TestBelowFloor:
         assert out["below_floor"] == []
 
 
+class TestQualifierMismatch:
+    """ADR-125's R-qual, as amended 2026-09-17. scip-clang indexes a
+    template's pattern once, so a call written `test_format<20>::format()`
+    comes back resolved to `test_format<0>::format` — the source text
+    contradicts the index (C-153), and nothing is drawn. Measured on fmt:
+    8 wrong edges removed, 0 right ones. Accuracy first, so every test
+    below that draws the edge is the rule declining to fire.
+    """
+
+    NODES = [{"id": "src/fmt", "kind": "module", "path": "src/fmt.cc"}]
+    SYMBOLS = [
+        {"id": "src/fmt.g", "module": "src/fmt", "kind": "function", "line": 20, "end_line": 30, "name": "g", "qualname": "g"},
+        # `template <> struct S<0>` in `namespace ns`, and the same shape
+        # at file scope, whose id carries the module prefix instead.
+        {"id": "src/fmt.ns::S<0>", "module": "src/fmt", "kind": "type", "line": 3, "end_line": 5, "name": "S<0>", "qualname": "ns::S<0>"},
+        {"id": "src/fmt.ns::S<0>::format", "module": "src/fmt", "kind": "method", "line": 4, "end_line": 4, "name": "format", "qualname": "ns::S<0>::format"},
+        {"id": "src/fmt.T<0>", "module": "src/fmt", "kind": "type", "line": 7, "end_line": 9, "name": "T<0>", "qualname": "T<0>"},
+        {"id": "src/fmt.T<0>::format", "module": "src/fmt", "kind": "method", "line": 8, "end_line": 8, "name": "format", "qualname": "T<0>::format"},
+        # `template <typename U> struct P<std::vector<U>>` — a partial
+        # specialisation, whose own parameters differ from any written
+        # argument by construction.
+        {"id": "src/fmt.ns::P<std::vector<U>>", "module": "src/fmt", "kind": "type", "line": 11, "end_line": 13, "name": "P<std::vector<U>>", "qualname": "ns::P<std::vector<U>>"},
+        {"id": "src/fmt.ns::P<std::vector<U>>::format", "module": "src/fmt", "kind": "method", "line": 12, "end_line": 12, "name": "format", "qualname": "ns::P<std::vector<U>>::format"},
+        # `template <> struct formatter<Answer> : formatter<int>` — the
+        # four self rows' shape, where the base's member is written and
+        # the derived specialisation's comes back.
+        {"id": "src/fmt.ns::formatter<Answer>", "module": "src/fmt", "kind": "type", "line": 15, "end_line": 17, "name": "formatter<Answer>", "qualname": "ns::formatter<Answer>"},
+        {"id": "src/fmt.ns::formatter<Answer>::format", "module": "src/fmt", "kind": "method", "line": 16, "end_line": 16, "name": "format", "qualname": "ns::formatter<Answer>::format"},
+    ]
+    FULL = frozenset({"src/fmt.ns::S<0>", "src/fmt.T<0>", "src/fmt.ns::formatter<Answer>"})
+
+    def _fact(self, qualifier, def_line=4, line=21, tier=SEMANTIC, lanes=(ev.TREE_SITTER, ev.SCIP)):
+        return ev.Resolved(
+            kind="calls", source_file="src/fmt.cc", line=line, scope="src/fmt.g",
+            def_file="src/fmt.cc", def_line=def_line, tier=tier, lanes=lanes,
+            qualifier=qualifier,
+        )
+
+    def _project(self, fact, full=None):
+        return scipsource.project(
+            [fact], self.NODES, self.SYMBOLS,
+            full_specializations=self.FULL if full is None else full,
+        )
+
+    def test_a_written_specialisation_contradicting_the_owner_draws_nothing(self):
+        out = self._project(self._fact("S<20>"))
+        assert out["symbol_edges"] == []
+        assert out["qualifier_mismatch"] == [("src/fmt.cc", 21)]
+
+    def test_the_same_shape_at_file_scope_fires_through_the_module_prefix(self):
+        # `src/fmt.T<0>` has no namespace between the module id and the
+        # class, so the owner's last `::` component is the whole id.
+        out = self._project(self._fact("T<20>", def_line=8))
+        assert out["symbol_edges"] == []
+        assert out["qualifier_mismatch"] == [("src/fmt.cc", 21)]
+
+    def test_a_qualified_base_call_inside_a_specialisation_fires(self):
+        # `template <> struct formatter<Answer> : formatter<int>` calling
+        # `formatter<int>::format(..)`: scip-clang answers with the
+        # derived specialisation's own member — four of fmt's eight.
+        out = self._project(self._fact("formatter<int>", def_line=16))
+        assert out["symbol_edges"] == []
+        assert out["qualifier_mismatch"] == [("src/fmt.cc", 21)]
+
+    def test_an_owner_that_is_not_an_explicit_full_specialisation_keeps_its_edge(self):
+        # ADR-125's amendment: a partial specialisation spells its own
+        # parameters, so a right resolution differs from the written text
+        # too. The rule must not fire — this is the accuracy case.
+        out = self._project(self._fact("P<std::vector<int>>", def_line=12))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::P<std::vector<U>>::format"]
+        assert out["qualifier_mismatch"] == []
+
+    def test_the_same_owner_declared_a_full_specialisation_would_have_fired(self):
+        # The one difference between this and the test above is the set,
+        # so what the rule reads is the declaration and nothing else.
+        out = self._project(
+            self._fact("P<std::vector<int>>", def_line=12),
+            full=self.FULL | {"src/fmt.ns::P<std::vector<U>>"},
+        )
+        assert out["symbol_edges"] == []
+
+    def test_the_specialisation_the_call_names_keeps_its_edge(self):
+        out = self._project(self._fact("S<0>"))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+        assert out["qualifier_mismatch"] == []
+
+    def test_whitespace_is_not_a_difference(self):
+        out = self._project(self._fact("S< 0 >"))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+
+    def test_a_different_base_name_is_no_contradiction(self):
+        # `Base<int>::f()` answered by `Derived<X>::f` is the hierarchy,
+        # not the wrong specialisation: the two name different templates.
+        out = self._project(self._fact("Base<int>"))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+        assert out["qualifier_mismatch"] == []
+
+    def test_a_site_with_no_written_qualifier_keeps_its_edge(self):
+        out = self._project(self._fact(""))
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+
+    def test_a_syntactic_tier_fact_is_never_read_against_the_index(self):
+        # Lane A's own guess: there is no index answer for the source
+        # text to contradict (the join carries no qualifier onto one).
+        out = self._project(
+            self._fact("S<20>", tier=SYNTACTIC, lanes=(ev.TREE_SITTER,))
+        )
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+        assert out["qualifier_mismatch"] == []
+
+    def test_no_cpp_layer_means_no_rule(self):
+        out = self._project(self._fact("S<20>"), full=frozenset())
+        assert [e["to"] for e in out["symbol_edges"]] == ["src/fmt.ns::S<0>::format"]
+
+
 class TestJavaUnits:
     """Java's indexing unit is the build root (ADR-096, decision 7)."""
 

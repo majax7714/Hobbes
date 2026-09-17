@@ -394,7 +394,15 @@ def _build_symbol_layer(
             syntax, resolutions, fallback=fallback, external=external, withhold=withhold
         )
     with timings.step("project"):
-        projected = scipsource.project(resolved, graph["nodes"], graph["symbols"])
+        projected = scipsource.project(
+            resolved,
+            graph["nodes"],
+            graph["symbols"],
+            # ADR-125: the classes C++ declares `template <>`, the one
+            # owner shape whose arguments are concrete enough for a
+            # written qualifier to contradict. No C++ layer, no rule.
+            full_specializations=cpp["full_specializations"] if cpp else frozenset(),
+        )
     # What the override set could not draw (ADR-120), so the summary says
     # how far the `implements` edges reach: pairs to a declaration outside
     # the repo (a stdlib interface), pairs whose source is no graph
@@ -525,6 +533,13 @@ def _build_symbol_layer(
     floored = Counter(file for file, _ in projected.get("below_floor", []))
     for file, n in floored.items():
         tails.setdefault(file, Counter())[tail.BELOW_FLOOR] += n
+    # ADR-125's abstention, counted the same way: lane B answered at these
+    # sites and the written specialisation contradicted it, so the site is
+    # resolved, draws no edge, and the tail says which rule removed it.
+    for file, n in Counter(
+        file for file, _ in projected.get("qualifier_mismatch", [])
+    ).items():
+        tails.setdefault(file, Counter())[tail.QUALIFIER_MISMATCH] += n
     graph["resolution_coverage"] = [
         {
             "file": row.file,

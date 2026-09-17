@@ -204,6 +204,12 @@ class CppFile:
     #: :func:`_settle_member_kinds` reads to tell a member definition from
     #: a namespace-qualified free function.
     namespaces: set[str] = field(default_factory=set)
+    #: The qualnames of the classes this file declares as **explicit full
+    #: specialisations** — ``template <> struct S<0> {..}`` (ADR-125's
+    #: third condition). A primary template and a partial specialisation
+    #: both spell parameters rather than concrete arguments, so neither
+    #: is here and neither can make the projection abstain.
+    full_specializations: list[str] = field(default_factory=list)
     #: Count of ``TEST_CASE``/``SCENARIO`` bodies this file has: tests the
     #: walk names but can attach no symbol to, tallied for the file's
     #: ``cpp-tests`` degradation record.
@@ -572,6 +578,7 @@ def _declaration(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...
             _walk_declarations(body, parsed, inner)
     elif node.type == "template_declaration":
         # The entity it declares, once, at the entity's own line.
+        _record_full_specialisation(node, parsed, scope)
         for child in node.children:
             if child.is_named and child.type != "template_parameter_list":
                 _declaration(child, parsed, scope)
@@ -618,6 +625,39 @@ def _symbol(name: str, qualname: str, kind: str, ident: Node, extent: Node) -> d
 
 def _qualname(scope: tuple[tuple[str, bool], ...], *names: str) -> str:
     return "::".join([name for name, _ in scope] + [n for n in names if n])
+
+
+def _record_full_specialisation(
+    node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]
+) -> None:
+    """Note a ``template <> struct S<0> {..}`` — ADR-125's third condition.
+
+    The shape is read off the declaration and nothing else: an **empty**
+    template parameter list, on a class or struct whose name is a
+    ``template_type`` (a name written with arguments). A primary template
+    (``template <typename T> struct S``) and a partial specialisation
+    (``template <typename T> struct S<std::vector<T>>``) both carry
+    parameters in that list, so neither is recorded — the amendment's own
+    two cases, where an argument list differing from the written one is a
+    *right* resolution rather than a contradiction.
+
+    The qualname recorded is the one :func:`_declaration` gives the class
+    itself, arguments included, so the projection's owner lookup and this
+    set speak the same ids.
+    """
+    parameters = node.child_by_field_name("parameters")
+    if parameters is None or parameters.named_child_count:
+        return
+    for child in node.children:
+        if child.type not in ("class_specifier", "struct_specifier"):
+            continue
+        name = child.child_by_field_name("name")
+        if (
+            name is not None
+            and name.type == "template_type"
+            and child.child_by_field_name("body") is not None
+        ):
+            parsed.full_specializations.append(_qualname(scope, _text(name)))
 
 
 def _function_definition(node: Node, parsed: CppFile, scope: tuple[tuple[str, bool], ...]) -> None:
@@ -1106,6 +1146,16 @@ def _join(files: list[CppFile], claim: _HeaderClaim) -> dict:
         #: read `std::` as the standard library it is (a namespace, not a
         #: pinned list).
         "qualified_sites": _qualified_sites(files),
+        #: The symbol ids of the classes declared as explicit full
+        #: specialisations (ADR-125's third condition) — the projection's
+        #: whole answer to "is this owner's argument list concrete?".
+        #: Nothing in `symbols` changes: this is a set over ids it
+        #: already holds.
+        "full_specializations": frozenset(
+            f"{module_id(parsed.path)}.{qualname}"
+            for parsed in files
+            for qualname in parsed.full_specializations
+        ),
         "local_bindings": {
             parsed.path: tuple(parsed.local_bindings) for parsed in files if parsed.local_bindings
         },
@@ -1136,10 +1186,24 @@ def _call_sites(files: list[CppFile]) -> list:
                 if call["scope"]
                 else module_id(parsed.path)
             ),
+            qualifier=_written_qualifier(call),
         )
         for parsed in files
         for call in parsed.calls
     ]
+
+
+def _written_qualifier(call: dict) -> str:
+    """The qualifier a call names its class through, where it carries
+    template arguments (ADR-125) — the **immediate** one, ``test_format<20>``
+    in ``ns::test_format<20>::format(..)``. Empty for every other site: a
+    plain or member call has no qualifier, ``ns::f()`` names a namespace,
+    and ``f<int>()`` is a template argument on the callee rather than on
+    a class. Nothing but the projection reads it."""
+    if call["shape"] != "qualified" or not call["qualifiers"]:
+        return ""
+    immediate = call["qualifiers"][-1]
+    return immediate if "<" in immediate else ""
 
 
 def _qualified_sites(files: list[CppFile]) -> dict[tuple[str, int, str], str]:

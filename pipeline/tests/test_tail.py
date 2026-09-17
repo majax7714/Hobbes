@@ -406,14 +406,25 @@ class TestClassesAvailable:
         rows = [{"file": "src/a.h", "language": "cpp"}]
         assert list(tail.classes_available(rows)) == ["cpp"]
 
-    def test_cpp_class_list_is_exactly_the_seven_it_can_produce(self):
-        # C's five, plus overload-set (a tie at a fallback rank) and
-        # below-floor. No path-call: a qualified C++ site is either the
-        # standard library or a name this lane could not place.
+    def test_cpp_class_list_is_exactly_the_eight_it_can_produce(self):
+        # C's five, plus overload-set (a tie at a fallback rank),
+        # qualifier-mismatch (ADR-125) and below-floor. No path-call: a
+        # qualified C++ site is either the standard library or a name
+        # this lane could not place.
         assert tail.CLASSES_AVAILABLE["cpp"] == frozenset({
             tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.OVERLOAD,
-            tail.UNCLASSIFIED, tail.BELOW_FLOOR,
+            tail.UNCLASSIFIED, tail.QUALIFIER_MISMATCH, tail.BELOW_FLOOR,
         })
+
+    def test_qualifier_mismatch_is_available_to_cpp_alone(self):
+        # ADR-125's rule reads a written template argument list against an
+        # explicit full specialisation's; no other language's lane A has
+        # either to offer.
+        with_class = {l for l, c in tail.CLASSES_AVAILABLE.items()
+                      if tail.QUALIFIER_MISMATCH in c}
+        assert with_class == {"cpp"}
+        # Beside below-floor at the end: neither is a `classify` verdict.
+        assert tail.ALL_CLASSES[-2:] == (tail.QUALIFIER_MISMATCH, tail.BELOW_FLOOR)
 
     def test_a_std_qualified_site_is_a_builtin_name(self, tmp_path):
         # C++'s standard library is a namespace, not a list: the site's
@@ -450,7 +461,8 @@ class TestCaptureLineNamesMissingClasses:
         cli._print_tail_view(rows, tail.classes_available(rows))
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
-                "import-binding, expr-callee, union-member, path-call, overload-set, inherited-member (C-32)") in out
+                "import-binding, expr-callee, union-member, path-call, overload-set, "
+                "inherited-member, qualifier-mismatch (C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli

@@ -76,6 +76,13 @@ class Site:
     #: presented as the resolved one, so the join draws nothing here
     #: from either lane and the tail names the site.
     ambiguous: str = ""
+    #: Syntax provider only: the qualifier the callee was **written**
+    #: through, where it carries template arguments (ADR-125) — C++'s
+    #: ``test_format<20>`` in ``test_format<20>::format(..)``, the
+    #: immediate one, never the whole chain. Empty everywhere else: it
+    #: exists so the projection can read the source's own claim about
+    #: which class is meant against the one lane B resolved (C-153).
+    qualifier: str = ""
 
 
 @dataclass
@@ -91,6 +98,11 @@ class Resolved:
     tier: str
     lanes: tuple[str, ...]
     evidence: list[dict] = field(default_factory=list)
+    #: The site's written qualifier (:attr:`Site.qualifier`, ADR-125),
+    #: carried onto the fact **only** where lane B answered — a fallback
+    #: edge is lane A's own guess, and there is no index answer for the
+    #: source text to contradict.
+    qualifier: str = ""
 
 
 def index_resolutions(sites: list[Site]) -> dict[tuple[str, int], list[Site]]:
@@ -210,6 +222,10 @@ def join(
                     tier=SEMANTIC,
                     lanes=(TREE_SITTER, SCIP),
                     evidence=[{"path": site.file, "line": site.line}],
+                    # Only here (ADR-125): the projection compares the
+                    # written qualifier against what lane B resolved, and
+                    # the fallback branch below has no such answer.
+                    qualifier=site.qualifier,
                 )
             )
             continue
