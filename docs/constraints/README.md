@@ -167,6 +167,18 @@ The table is the register's current state (2026-09-17), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-146 narrowed, 2026-09-17 (ADR-131, 0.2.42-beta):
+- **C-146 narrowed (still surfaced):** a C++ operator applied by symbol
+  draws a `calls` edge where lane B names an `operator…` at exactly the
+  token lane A's parse shows, outside a template. fmt +392 call edges,
+  391 confirmed, 0 contradicted, recall 29.1% → 30.1%; args +136, all
+  confirmed, 58.6% → 62.5%. Inside a template nothing is drawn as a
+  call: every row a naive rule adds that the key cannot judge is there,
+  and about 100 of 161 read wrong (C-153 at the same arity). C-153's
+  entry records that those references stand as `uses` edges, as they did
+  before. No entry added: 161 entries, 117 active, 91 surfaced, 22
+  partial, 3 unsurfaced.
+
 C-145 and C-153 narrowed, 2026-09-17 (ADR-129 and ADR-130, 0.2.41-beta):
 - **C-145 narrowed (still surfaced):** a C or C++ function, method or
   type definition lane A's parse lost to a macro is read from lane B's

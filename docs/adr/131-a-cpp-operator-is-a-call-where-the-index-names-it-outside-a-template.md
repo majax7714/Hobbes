@@ -1,6 +1,6 @@
 # ADR-131 — A C++ operator is a call where the index names it at the token, outside a template
 
-**Date:** 2026-09-17 · **Status:** accepted; to be built and graded at 0.2.42-beta (pre-registered in `oracle-grading.md` §10.15) · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its first item; his standing direction of the same day — honesty and accuracy before a recall number; rules fail toward drawing less.
+**Date:** 2026-09-17 · **Status:** accepted; built and graded at 0.2.42-beta (unit `d1b9`; `oracle-grading.md` §10.15, P92–P97 all met: fmt 6,901/6,901 at 0 contradicted, recall 30.1%; args 2,198/2,198, 62.5%; the C cells identical) · **Owner:** Max · **Source:** the C++ recall list Max approved on 2026-09-17 (Route A), its first item; his standing direction of the same day — honesty and accuracy before a recall number; rules fail toward drawing less.
 
 Narrows **C-146**. Extends **C-153**'s entry (what the read found).
 Follows ADR-129 and ADR-130. Patch: a constraint's fix.

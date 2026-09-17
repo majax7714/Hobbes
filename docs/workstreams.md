@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.38-beta patches, the top-level review's items and its decisions (ADR-123–126) 2026-09-17.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -67,10 +67,20 @@ item opens when Max names it. Sequencing context is
    source contradicts and surfaced as partial (ADR-125); reach through
    dispatch measured, not drawn (ADR-126). The oracle's defect log is
    empty (H-28–H-32 fixed).
+   Then one ingest of a repo at a time (ADR-127, C-159, 0.2.39-beta),
+   lane A's C++ parse measured then cached per file (ADR-128, C-160,
+   C-161, 0.2.40-beta), and **C++ recall** (Max's Route A, 2026-09-17):
+   a definition lane A's parse lost read from the index, with R-arity
+   (ADR-129, ADR-130, 0.2.41-beta: fmt 14.5% → 29.1% at 0 contradicted),
+   then operators as calls where the index names one at the token,
+   outside a template (ADR-131, C-146 narrowed, 0.2.42-beta: fmt 30.1%,
+   args 58.6% → 62.5%).
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
-   oracle's grain); fmt reached 100% at 0.2.37-beta (strict 99.73%, ADR-124/125).
-   The review's remaining items, in order, are in `session-handoff.md`
-   item 3; W1 carries the extraction ones.
+   oracle's grain); fmt reads 100% with a strict 99.61% beside it
+   (ADR-124) at 0.2.42-beta.
+   The C++ recall list and the review's remaining items, in order, are
+   in `session-handoff.md` under START HERE; W1 carries the extraction
+   ones.
 
 ---
 

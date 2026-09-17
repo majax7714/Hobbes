@@ -12293,3 +12293,94 @@ page; CHANGELOG; CLAUDE.md; the handoff.
 `report/` ok. Tracker **47 of 40**. Binaries, static proxy and image
 rebuilt; **restart the knowledge server** (C-65). Spend: three
 dispatches on the subscription, $23.08 reported; no API or Modal spend.
+
+
+## 2026-09-17 (late night) — C++ recall: operators at the token, outside a template (ADR-131, 0.2.42-beta)
+
+Max asked for a review of the top-level docs, then the next C++ recall
+step.
+
+**Review, against the tree.** `VERSION`, `CHANGELOG.md`, architecture §8,
+README and `CLAUDE.md` (`AGENTS.md` is its link) agreed on 0.2.41-beta;
+130 ADR files, 161 register entries, 47 session logs and the tracker at
+47 of 40. One drift: `workstreams.md` item 10 stopped at 0.2.38-beta and
+pointed at the handoff's "item 3", which the evening's rewrite had
+removed; the handoff's NEXT repeated the pointer. Both fixed.
+
+**Step 0, nothing drawn** (`~/.hobbes/bench/c146-operators/`). The
+handoff's unknown was whether scip-clang emits an occurrence at an
+operator token. It does — 4,017 references named `operator…` in fmt's
+cached facts, the column the key's minus one. Three reads changed the
+item:
+- **3,011 of 4,015 are not at a token** but at a macro invocation's name
+  (`EXPECT_EQ`'s `operator=`). The key's "8,627 operator sites" is mostly
+  that. The macro class, not C-146; drawn they would read 73
+  contradicted.
+- **At the token the key flatters.** 740 edges: 489 confirmed, 4
+  contradicted (all `"x"_a`, a literal operator — a true call the key
+  does not record), 148 unjudged. Read by hand, about 100 of the 148 are
+  wrong: scip-clang's single by-name candidate at a dependent operator
+  (`wday == 0` → `basic_fp`'s `operator==`), at the same arity. C-153
+  again, where neither R-qual nor R-arity can see it.
+- **Every unjudged row is inside a template** (45 of 45
+  `line-unresolved`, 116 of 117 `no-targets`). Outside: +393, 391
+  confirmed, 0 contradicted. An exact operator-arity rule (free =
+  operands, member = operands − 1, membership from lane B's moniker
+  because a macro-broken parse loses the class) caught 104 rows — all in
+  templates, so it was not built.
+
+My first member test read lane A's parse and flagged 613 rows wrongly
+(gtest's `Message` class is lost to a macro); the moniker fixed it
+before any number was quoted. args was held out: five predictions
+written to a scratch file, the script frozen by hash, run once — +136,
+all confirmed; **the count prediction missed** (≤ 120, < 3 points; it
+was 136, +3.9). The scratch file reused P85–P89, which §10.14 holds;
+§10.15 renumbers them P87–P91 and says so.
+
+**The design question was cost, and it was measured too.** Operator
+tokens per call expression: fmt 0.41, args 0.51, ScummVM 2.09 (600-file
+sample) — 3.2 million beside its 1.53 million call sites. So tokens are
+not `Site`s: one packed integer each in an `array` per file, read only
+by the join, matched exactly (the ordinary name-and-nearest-column match
+would pair a built-in `<<` with a macro-carried `operator<<` on its
+line), never counted, guessed, vetoed or tailed.
+
+**Built through the harness, one unit:** `d1b9` (92 turns, $8.63), gate
+right-clear, verify pass, 28 tests; `lane_b` 9 of 9 and the whole suite
+on the host in a worktree before the merge; merged no-ff. The doer's
+three deviations draw less or follow the pinned grammar
+(`a.operator=(b)` does not parse; an `init_declarator`'s `=` is not an
+assignment; a token under an ERROR node is dropped).
+
+**Final, 0.2.42-beta, stored keys, contained:** fmt 6,901/6,901, 0
+contradicted, strict 99.61% (27 unjudged, none new), recall 30.1%
+(collapsed 26.1%); 551 tokens drawn, 437 references inside templates
+left as `uses`. args 2,198/2,198, 62.5%; 140 and 40. cJSON and
+sqlite-vector identical exports. The built export is the probe's minus
+one row under an ERROR node. P92–P97 met.
+
+**Found and put to Max, not built:** the wrong candidates stand in the
+graph as `uses` edges, as they did before today; no key grades `uses`.
+C-153's entry names it; the handoff carries the routes.
+
+**Docs:** ADR-131; §10.15 with both result blocks; C-146 rewritten as
+narrowed, C-153 extended (no entry added; 161); architecture §3 (the
+operator paragraph), §3.8, §8; both cell records; `cells.json`,
+`tables.md`, three graphics re-rendered (`render.py check` and `go test
+./report/` green); README; the claim page; CHANGELOG; CLAUDE.md;
+`workstreams.md`; the handoff.
+
+**Found by use:**
+- `count_tokens.py` filtered `.hobbes` out of the path's parts and found
+  no files: every clone lives under `~/.hobbes`. Filter on the path
+  relative to the clone.
+- `regrade.sh | tee out/all.txt` fails when `out/` is made by the script
+  it pipes from; the summary was rebuilt from the reports.
+- The facts stream's trailer row carries `definitions` as a count, not a
+  list; a reader of every row must check the type.
+
+**Suites at 0.2.42-beta, host:** pytest 1,865 (`lane_b` 9), Go `./...`
+395 with subtests (394 pass, 1 skip), scip 87, tsextract 36, vitest 52,
+`report/` ok. Tracker **48 of 40**. Binaries, static proxy and image
+rebuilt; **restart the knowledge server** (C-65). Spend: one dispatch on
+the subscription, $8.63 reported; no API or Modal spend.

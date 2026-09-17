@@ -112,21 +112,53 @@ headers parsed with tree-sitter ERROR nodes.
 - **Source:** the fmt read, 2026-09-14; the below-floor diagnostic after
   `be34`'s merge, the same day.
 
-### C-146 — An operator applied by symbol and a named cast are not sites
+### C-146 — An operator applied by symbol is a call only outside a template, where the index names it at the token; a named cast is not a site
 
-- **Cannot tell you:** that `a + b` calls `operator+`, or that
-  `static_cast<T>(x)` is not a call. The walk records no site for an
-  operator applied by symbol (the provider sees no call, C-63's face),
-  and the four named casts parse as calls of a template function and
-  are recorded as no site.
-- **Because:** an operator call has no callee identifier at the site;
-  the named casts are keywords the grammar reads as templates.
-- **Bites at:** operator-heavy code (fmt's iterators and buffers). The
-  oracle records an operator call as its own mode (`operator`, O10),
-  so the cell reads these as recall, never precision.
-- **You find out:** **surfaced** — in this entry and O10's coverage
-  buckets; nothing at the site.
-- **Source:** ADR-113 §1 and §3.
+- **Cannot tell you:** that `a + b` calls `operator+` where the
+  expression sits **inside a template**, inside a macro's expansion, or
+  where scip-clang emits no reference at the operator token; that
+  `f(x)` on an object calls its `operator()`; that `"x"_a` calls a
+  literal operator; or that `static_cast<T>(x)` is not a call (the four
+  named casts parse as calls of a template function and are recorded as
+  no site).
+- **Because:** an operator call has no callee identifier at the site,
+  and a built-in operator is no call at all — lane A cannot tell the two
+  apart, so an operator is never a site of its own. The named casts are
+  keywords the grammar reads as templates.
+- **Narrowed 2026-09-17 (ADR-131, 0.2.42-beta).** Lane A records each
+  operator **token** (binary, unary, pointer, update, assignment and
+  compound assignment, subscript, `->`), packed and never as a site, and
+  the join draws a semantic `calls` edge where lane B's reference named
+  `operator…` sits at exactly that token's line and column with the same
+  spelling, **outside any `template_declaration`** and outside an
+  unevaluated operand. Measured before it was built
+  (`oracle-grading.md` §10.15): fmt +392 call edges, 391 confirmed, 0
+  contradicted, no new row the key cannot judge, recall 29.1% → 30.1%;
+  args, held out, +136, all confirmed, 58.6% → 62.5%; C untouched.
+- **Why not inside a template:** scip-clang answers a dependent operator
+  with its single by-name candidate (C-153) — `wday == 0` onto
+  `basic_fp`'s `operator==`, `it != c.end()` onto gtest's `faketype`
+  stub — at the same arity, so nothing in the source contradicts it. On
+  fmt every one of the 45 `line-unresolved` and 116 of the 117
+  `no-targets` rows a naive rule adds is inside a template, and about
+  100 of them read wrong by hand. The price is the 175 rows the key
+  confirms there (4 on args). Such a reference stays the `uses` edge it
+  was.
+- **Residuals:** a `template <…>` header a macro parse lost (C-145)
+  leaves its tokens flagged plain — the measurement was made with the
+  same blind spot, and found none on either cell; a reference positioned
+  at a macro invocation's name (3,011 of fmt's 4,015 operator
+  references: gtest's `operator=` and `operator<<` inside `EXPECT_EQ`)
+  is the macro class (C-131), not drawn; a token directly under an ERROR
+  node is not recorded.
+- **Bites at:** operator-heavy template code (fmt's iterators and
+  buffers). The oracle records an operator call as its own mode
+  (`operator`, O10), so the cell reads these as recall, never precision.
+- **You find out:** **surfaced** — the ingest summary's `operators:`
+  line and `graph.json`'s `operators` block count the tokens drawn and
+  the references inside a template left as `uses` (fmt: 551 and 437;
+  args: 140 and 40); O10's coverage buckets; nothing at the site.
+- **Source:** ADR-113 §1 and §3; ADR-131.
 
 ### C-147 — A test body the parse leaves in an error node is counted, not read
 
@@ -260,6 +292,15 @@ headers parsed with tree-sitter ERROR nodes.
   `<20>`) would withhold a right edge (measured 0 on fmt and args); a
   wrong answer at an owner that is a primary template or a partial
   specialisation is not caught.
+- **Found 2026-09-17 by ADR-131's read, not fixed: the same shape on
+  `uses` edges.** A lane B reference no call site claims is drawn as a
+  `uses` edge (ADR-029), and at a dependent operator in a template that
+  reference is scip-clang's single by-name candidate: on fmt about 100
+  of the 437 operator references ADR-131 leaves as `uses` name the wrong
+  declaration (`wday == 0` → `basic_fp`'s `operator==`;
+  `it != c.end()` → gtest's `faketype` stub). They were in the graph
+  before ADR-131 and no key grades `uses`. ADR-131 refuses to draw them
+  as calls; whether to withhold the `uses` edge too is put to Max.
 - **Bites at:** fmt, 3 known wrong edges since 0.2.41-beta — the
   `format_as` rows at `std.h:714` and `:726` and `format.h:2387`'s
   `write` — all unjudged under H-30 rather than fixed; 10 before

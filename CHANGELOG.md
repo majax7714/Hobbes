@@ -11,9 +11,54 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.41-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.42-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.42-beta — 2026-09-17 (a C++ operator applied by symbol is a call where the index names it at the token, outside a template; ADR-131)
+
+**Patch: what the layer draws** — a constraint's fix (C-146 narrowed).
+
+- **Measured first, nothing drawn.** The open question was whether
+  scip-clang emits an occurrence at an operator token. It does: 4,017 on
+  fmt. 3,011 of them sit at a macro invocation's name (gtest's
+  `operator=` inside `EXPECT_EQ`) and are the macro class, not this one.
+  At the token, a naive rule read 99.9% by the key and was wrong
+  underneath it: of the 148 rows the key could not judge, about 100 read
+  wrong by hand — `wday == 0` drawn to `basic_fp`'s `operator==`,
+  scip-clang's single by-name candidate at a dependent expression
+  (C-153), at the same arity, so R-arity cannot see it. **Every one of
+  those rows was inside a template.** args was held out, its predictions
+  written before its probe ran; one of the five missed, on the count
+  (`oracle-grading.md` §10.15).
+- **The rule.** Lane A's C++ walk records every operator *token* —
+  binary, unary, pointer, update, assignment, subscript, `->` — with its
+  line, column, spelling and whether it sits under a
+  `template_declaration`, packed one integer each and never as a call
+  site: a built-in operator is no call, so a token is never counted,
+  guessed at, vetoed or tailed. The join draws a semantic `calls` edge
+  where lane B's reference named `operator…` sits at **exactly** that
+  position with that spelling, outside a template and outside an
+  unevaluated operand; its caller is the enclosing symbol. Inside a
+  template the reference stays the `uses` edge it was. With no lane B
+  nothing changes (P6). `graph.json` gains an `operators` block (schema
+  v4, additive) and the ingest summary one line: tokens drawn,
+  references inside a template left as `uses`. Lane A's C++ file cache
+  format moved (`lanea-cpp v3`): its first ingest misses.
+- **Graded against the stored keys:** fmt **6,510 → 6,901 confirmed call
+  edges at 0 contradicted**, recall 29.1% → 30.1%, strict precision
+  99.59% → 99.61% (the same 27 unjudged rows, none added). args 2,062 →
+  2,198 at 0 contradicted, recall 58.6% → 62.5%. cJSON and sqlite-vector
+  identical, row for row. The built export is the measured one minus a
+  single row under an ERROR node.
+- **The price, counted:** 437 operator references inside templates on
+  fmt are not drawn as calls (175 of them rows the key would confirm);
+  40 on args.
+- **Found and not fixed:** those same wrong candidates stand in the
+  graph as `uses` edges, as they did before this version — no key grades
+  `uses`. Named in C-153; whether to withhold them is Max's call.
+- Built through the harness: `d1b9` ($8.63, gate right-clear, verify
+  pass), merged not squashed.
 
 ## 0.2.41-beta — 2026-09-17 (a C/C++ definition lane A's parse lost is read from the index; R-arity; ADR-129, ADR-130)
 

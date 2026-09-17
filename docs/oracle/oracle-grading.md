@@ -1462,6 +1462,24 @@ For the built rule, written before the unit is dispatched:
 A contradicted row, or a new `line-unresolved` one, is a finding against
 the rule and is fixed before the version moves.
 
+**Results (2026-09-17, 0.2.42-beta; unit `d1b9`, stored keys, contained).**
+- **P92 — met.** fmt 6,901/6,901, 0 contradicted; recall 30.1%
+  (15,228/50,524), collapsed 24.8% → 26.1%.
+- **P93 — met.** `line-unresolved` 27; strict 99.61% (6,901/6,928).
+- **P94 — met.** args 2,198/2,198, 0 contradicted; recall 62.5%
+  (2,226/3,561), collapsed 69.5%.
+- **P95 — met.** cJSON 1,713 rows and sqlite-vector 19,744, identical;
+  neither graph has an `operators` block.
+- **P96 — met.** No row outside the probe's export on either cell. One
+  probe row is not drawn: `gtest.h:11685`, an `operator=` declaration
+  inside an ERROR node, which the built rule does not record (the probe
+  had it `unreachable`, never confirmed).
+- **P97 — met.** fmt: 551 tokens drawn (392 new export rows once a
+  line's repeats fold), 437 references inside a template left as `uses`;
+  args 140 and 40.
+- Signed direction of fix: fmt confirmed +391, contradicted ±0,
+  unjudged-line ±0, recall +1.0 point; args confirmed +136, recall +3.9.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
