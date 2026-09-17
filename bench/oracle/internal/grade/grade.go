@@ -115,25 +115,25 @@ type Report struct {
 	// so the report says "no roots exist" as its own line (A-1).
 	State string `json:"state,omitempty"`
 	// Containment is where an executing oracle ran (edges.OracleExport).
-	Containment    string                `json:"containment,omitempty"`
-	Tags           []string              `json:"tags"`
-	HobbesEdges    int                   `json:"hobbes_edges"`
-	Total          TierCounts            `json:"total"`
-	ByTier         map[string]TierCounts `json:"by_tier"`
-	SilentBy       map[string]int        `json:"silent_by"`
-	Precision      *float64              `json:"precision_against_oracle"`
+	Containment string                `json:"containment,omitempty"`
+	Tags        []string              `json:"tags"`
+	HobbesEdges int                   `json:"hobbes_edges"`
+	Total       TierCounts            `json:"total"`
+	ByTier      map[string]TierCounts `json:"by_tier"`
+	SilentBy    map[string]int        `json:"silent_by"`
+	Precision   *float64              `json:"precision_against_oracle"`
 	// PrecisionStrict counts the rows H-30's rule declined to judge
 	// (silent, line-unresolved) as contradicted (ADR-124): a lower bound
 	// under the lower bound, recomputable from any one report, set only
 	// when there are such rows. StrictGraded is its denominator.
-	PrecisionStrict *float64 `json:"precision_strict,omitempty"`
-	StrictGraded    int      `json:"precision_strict_graded,omitempty"`
-	OraclePairs    int                   `json:"oracle_pairs_in_repo"`
-	OracleExternal int                   `json:"oracle_pairs_external"`
-	RecallHits     int                   `json:"recall_confirmed"`
-	Recall         *float64              `json:"recall"`
-	RecallBy       map[string]Fraction   `json:"recall_by_class"`
-	MissBy         map[string]int        `json:"miss_by"`
+	PrecisionStrict *float64            `json:"precision_strict,omitempty"`
+	StrictGraded    int                 `json:"precision_strict_graded,omitempty"`
+	OraclePairs     int                 `json:"oracle_pairs_in_repo"`
+	OracleExternal  int                 `json:"oracle_pairs_external"`
+	RecallHits      int                 `json:"recall_confirmed"`
+	Recall          *float64            `json:"recall"`
+	RecallBy        map[string]Fraction `json:"recall_by_class"`
+	MissBy          map[string]int      `json:"miss_by"`
 	// The collapsed recall (Max's decision of 2026-09-10; ADR-089
 	// amended): one pair per (site path, site line, target file, target
 	// name as the key spells it). A tsc key lists every overload
