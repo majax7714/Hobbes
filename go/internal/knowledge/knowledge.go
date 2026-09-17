@@ -975,6 +975,7 @@ var tailMeanings = []struct{ class, meaning string }{
 	{"build-tag-set", "a Go name declared more than once in its package under build constraints the caller's configuration does not single out; lane A abstained rather than pick a file (ADR-098, C-71) — the semantic index answers for one configuration only"},
 	{"unclassified", "no observation applies — genuinely unknown; read this code yourself"},
 	{"qualifier-mismatch", "a C++ call written through one specialisation (X<A>::f) that the index resolved to a different explicit specialisation's member (X<B>::f); the source text contradicts the index, so no edge is drawn (ADR-125, C-153) — read the call's qualifier to see the target"},
+	{"arity-mismatch", "a C++ call written with more arguments than the declaration the index resolved it to can take — scip-clang's one answer at a call in a template can be the wrong overload (C-153), so no edge is drawn (ADR-130)"},
 	// Last, as in tail.py's ALL_CLASSES: not an unresolved site but a
 	// resolved one lane A keeps no symbol for (an interface method, a
 	// closure, a nested function below C-9's floor) — the call graph's

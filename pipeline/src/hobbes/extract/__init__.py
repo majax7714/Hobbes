@@ -591,6 +591,12 @@ def _build_symbol_layer(
         file for file, _ in projected.get("qualifier_mismatch", [])
     ).items():
         tails.setdefault(file, Counter())[tail.QUALIFIER_MISMATCH] += n
+    # ADR-130's abstention, beside it: lane B answered, and the call was
+    # written with more arguments than that answer can take.
+    for file, n in Counter(
+        file for file, _ in projected.get("arity_mismatch", [])
+    ).items():
+        tails.setdefault(file, Counter())[tail.ARITY_MISMATCH] += n
     graph["resolution_coverage"] = [
         {
             "file": row.file,

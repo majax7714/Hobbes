@@ -83,6 +83,14 @@ class Site:
     #: exists so the projection can read the source's own claim about
     #: which class is meant against the one lane B resolved (C-153).
     qualifier: str = ""
+    #: Syntax provider only: how many arguments the call was **written**
+    #: with (ADR-130) — C++'s ``copy<Char>(begin, end, out)`` is 3.
+    #: ``None`` everywhere else and wherever the parse could not count
+    #: them (a pack expansion, a braced initialiser, an ERROR node): it
+    #: exists so the projection can read the source's own count against
+    #: what the declaration lane B resolved to can take (C-153), and an
+    #: unknown count draws the edge.
+    argc: int | None = None
 
 
 @dataclass
@@ -103,6 +111,10 @@ class Resolved:
     #: edge is lane A's own guess, and there is no index answer for the
     #: source text to contradict.
     qualifier: str = ""
+    #: The site's written argument count (:attr:`Site.argc`, ADR-130),
+    #: carried onto the fact on the same condition and for the same
+    #: reason: only lane B's answer can be contradicted.
+    argc: int | None = None
 
 
 def index_resolutions(sites: list[Site]) -> dict[tuple[str, int], list[Site]]:
@@ -222,10 +234,12 @@ def join(
                     tier=SEMANTIC,
                     lanes=(TREE_SITTER, SCIP),
                     evidence=[{"path": site.file, "line": site.line}],
-                    # Only here (ADR-125): the projection compares the
-                    # written qualifier against what lane B resolved, and
-                    # the fallback branch below has no such answer.
+                    # Only here (ADR-125, ADR-130): the projection compares
+                    # the written qualifier and the written argument count
+                    # against what lane B resolved, and the fallback branch
+                    # below has no such answer.
                     qualifier=site.qualifier,
+                    argc=site.argc,
                 )
             )
             continue

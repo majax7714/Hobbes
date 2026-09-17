@@ -117,6 +117,8 @@ class TestWhatMints:
                 # ADR-129 §3: a target, not a scope.
                 "end_line": 2,
                 "declared_by": "scip",
+                # ADR-130: what the definition's own list can take.
+                "max_params": 1,
             }
         ]
         assert counts["symbols"] == 1 and counts["files"] == 1
@@ -329,6 +331,65 @@ class TestTheBodyRead:
         assert [(s["id"], s["kind"], s["line"]) for s in symbols] == [
             ("a.h.A::A", "method", 5)
         ]
+
+
+class TestTheParameterRead:
+    """ADR-130's other end on a minted symbol: the same token read, one
+    question over. A minted definition is one lane A's parse lost, so the
+    count comes from the file's own tokens or from nothing — and nothing,
+    here as everywhere, draws the edge."""
+
+    def only(self, tmp_path, source: str, moniker: str = "cxx . . $ ns/f(1a)."):
+        symbols, _ = mint(tmp_path, {"a.h": source}, [row("a.h", 1, "method", moniker)])
+        assert len(symbols) == 1, symbols
+        return symbols[0]["max_params"]
+
+    @pytest.mark.parametrize(
+        "source,expected",
+        [
+            ("void f() {\n}\n", 0),
+            ("void f(void) {\n}\n", 0),
+            ("void f(int a, int b = 2) {\n}\n", 2),
+            # A C ellipsis and a parameter pack: any number at all.
+            ("void f(int a, ...) {\n}\n", None),
+            ("template <typename... A> void f(A&&... args) {\n}\n", None),
+            # A comma inside a nested list belongs to that list.
+            ("void f(map<int, int> m, int b) {\n}\n", 2),
+            ("void f(const char* s = \"a, b\", int n = 1) {\n}\n", 2),
+            # The list broken over three lines is one list.
+            ("void f(int a,\n       int b,\n       int c) {\n}\n", 3),
+            # A default argument holding a call with commas of its own.
+            ("void f(int a = g(1, 2), int b = 3) {\n}\n", 2),
+            # A macro: what it expands to is not in this file's tokens.
+            ("void f(int a, FMT_API(x) b) {\n}\n", None),
+            # A bracket the read cannot balance: a `>` written as a
+            # comparison closes no template list, and no count follows.
+            ("void f(int a = b > c) {\n}\n", None),
+            ("void f(vector<int a) {\n}\n", None),
+        ],
+    )
+    def test_the_token_read_counts_a_list_or_says_nothing(self, tmp_path, source, expected):
+        assert self.only(tmp_path, source) == expected
+
+    def test_a_method_defined_out_of_line_is_read_at_its_own_line(self, tmp_path):
+        symbols, _ = mint(
+            tmp_path,
+            {"a.h": "struct A {\n    A(int n, int m);\n    int v;\n};\n"
+                    "A::A(int n, int m)\n    : v(n)\n{\n}\n"},
+            [row("a.h", 5, "method", "cxx . . $ A#A(2b).")],
+        )
+        assert [(s["id"], s["max_params"]) for s in symbols] == [("a.h.A::A", 2)]
+
+    def test_a_minted_type_carries_no_count(self, tmp_path):
+        # A type takes no arguments in this sense: a construction's target
+        # is its constructor, and the rule never reads a type anyway.
+        symbols, _ = mint(
+            tmp_path,
+            {"a.h": "struct FilePath { int n; };\n"},
+            [row("a.h", 1, "type", "cxx . . $ testing/internal/FilePath#")],
+        )
+        assert [s["kind"] for s in symbols] == ["type"]
+        assert "max_params" not in symbols[0]
 
 
 class TestTheIds:

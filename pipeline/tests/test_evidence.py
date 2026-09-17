@@ -177,6 +177,19 @@ class TestProviderSeparation:
         [guess] = ev.join([site], [], fallback={("a.cc", 10, "format"): ("b.h", 5)})
         assert (guess.tier, guess.qualifier) == (SYNTACTIC, "")
 
+    def test_a_written_argument_count_rides_only_on_the_semantic_hit(self):
+        # ADR-130, on R-qual's condition and for its reason: the
+        # projection reads the count the source spells against what the
+        # declaration lane B resolved to takes, and a fallback edge is
+        # lane A's own guess with no index answer to contradict.
+        site = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 10, "copy", 4, "a.g", argc=3,
+        )
+        [hit] = ev.join([site], [resolution("a.cc", 10, "copy", "b.h", 5)])
+        assert (hit.tier, hit.argc) == (SEMANTIC, 3)
+        [guess] = ev.join([site], [], fallback={("a.cc", 10, "copy"): ("b.h", 5)})
+        assert (guess.tier, guess.argc) == (SYNTACTIC, None)
+
     def test_definitions_are_not_edges(self):
         out = ev.join([ev.Site(ev.TREE_SITTER, ev.DEFINITION, "a.py", 1, "f")], [])
         assert out == []

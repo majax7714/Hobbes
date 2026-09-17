@@ -325,6 +325,41 @@ class TestArtifact:
             else:
                 assert "tail" not in row
 
+    def test_an_abstained_site_is_counted_and_the_sum_holds_with_it(
+        self, tmp_path, monkeypatch
+    ):
+        """ADR-130's class through the artifact. The projection's
+        abstention is a number in the tail, never a silence, so the per
+        file sum is ``unresolved + floored`` plus the sites the projection
+        withheld — the extension R-qual made, one class over. Lane B is
+        hand-built here, as ``test_cppsource`` builds it."""
+        import hobbes.extract as extract
+
+        write(tmp_path, "a.h", "int f(int a) { return a; }\n")
+        write(tmp_path, "a.cpp", '#include "a.h"\nint g() { return f(1, 2); }\n')
+        facts = {
+            "language": "cpp",
+            "definitions": [],
+            # Two arguments written onto a declaration that takes one.
+            "references": [ev.Site(
+                provider=ev.SCIP, kind=ev.RESOLUTION, file="a.cpp", line=2,
+                col=17, name="f", def_file="a.h", def_line=1,
+            )],
+            "external_refs": [],
+            "degraded": [],
+        }
+        monkeypatch.setattr(extract, "_lane_b_facts", lambda *a, **k: iter([facts]))
+        graph = extract_repo(tmp_path).graph
+        [row] = [r for r in graph["resolution_coverage"] if r["file"] == "a.cpp"]
+        assert row["tail"][tail.ARITY_MISMATCH] == 1
+        withheld = sum(
+            row["tail"].get(cls, 0)
+            for cls in (tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH)
+        )
+        assert sum(row["tail"].values()) == (
+            row["unresolved"] + row.get("floored", 0) + withheld
+        )
+
     def test_the_fixture_tail_names_its_builtins(self):
         # miniapp's Python calls include builtin-named sites; with no
         # semantic lane the tail must still say so (pinned list, not
@@ -406,25 +441,29 @@ class TestClassesAvailable:
         rows = [{"file": "src/a.h", "language": "cpp"}]
         assert list(tail.classes_available(rows)) == ["cpp"]
 
-    def test_cpp_class_list_is_exactly_the_eight_it_can_produce(self):
+    def test_cpp_class_list_is_exactly_the_nine_it_can_produce(self):
         # C's five, plus overload-set (a tie at a fallback rank),
-        # qualifier-mismatch (ADR-125) and below-floor. No path-call: a
-        # qualified C++ site is either the standard library or a name
-        # this lane could not place.
+        # qualifier-mismatch (ADR-125), arity-mismatch (ADR-130) and
+        # below-floor. No path-call: a qualified C++ site is either the
+        # standard library or a name this lane could not place.
         assert tail.CLASSES_AVAILABLE["cpp"] == frozenset({
             tail.FALLBACK, tail.LOCAL, tail.BUILTIN, tail.ATTR, tail.OVERLOAD,
-            tail.UNCLASSIFIED, tail.QUALIFIER_MISMATCH, tail.BELOW_FLOOR,
+            tail.UNCLASSIFIED, tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH,
+            tail.BELOW_FLOOR,
         })
 
-    def test_qualifier_mismatch_is_available_to_cpp_alone(self):
+    def test_the_two_mismatch_classes_are_available_to_cpp_alone(self):
         # ADR-125's rule reads a written template argument list against an
-        # explicit full specialisation's; no other language's lane A has
-        # either to offer.
-        with_class = {l for l, c in tail.CLASSES_AVAILABLE.items()
-                      if tail.QUALIFIER_MISMATCH in c}
-        assert with_class == {"cpp"}
-        # Beside below-floor at the end: neither is a `classify` verdict.
-        assert tail.ALL_CLASSES[-2:] == (tail.QUALIFIER_MISMATCH, tail.BELOW_FLOOR)
+        # explicit full specialisation's, and ADR-130's a written argument
+        # count against an overload's parameter list; no other language's
+        # lane A has either to offer.
+        for cls in (tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH):
+            assert {l for l, c in tail.CLASSES_AVAILABLE.items() if cls in c} == {"cpp"}
+        # Beside below-floor at the end: none of the three is a `classify`
+        # verdict — the projection decides each one.
+        assert tail.ALL_CLASSES[-3:] == (
+            tail.QUALIFIER_MISMATCH, tail.ARITY_MISMATCH, tail.BELOW_FLOOR,
+        )
 
     def test_a_std_qualified_site_is_a_builtin_name(self, tmp_path):
         # C++'s standard library is a namespace, not a list: the site's
@@ -462,7 +501,7 @@ class TestCaptureLineNamesMissingClasses:
         out = capsys.readouterr().out
         assert ("classes this lane cannot report: nested-decl, external-origin, "
                 "import-binding, expr-callee, union-member, path-call, overload-set, "
-                "inherited-member, qualifier-mismatch (C-32)") in out
+                "inherited-member, qualifier-mismatch, arity-mismatch (C-32)") in out
 
     def test_an_older_artifact_without_the_field_prints_no_note(self, capsys):
         from hobbes import cli

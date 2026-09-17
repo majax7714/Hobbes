@@ -833,6 +833,39 @@ func TestBlindSpotsNameAnUncontainedArtifact(t *testing.T) {
 	}
 }
 
+// TestBlindSpotsNameAnArityMismatch: ADR-130's abstention is a counted
+// class like every other, so the view names the file it happened in and
+// glosses what it means — a site that draws no edge, with the rule that
+// removed it, rather than a silence (C-153).
+func TestBlindSpotsNameAnArityMismatch(t *testing.T) {
+	repo := blindSpotRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	raw, _ := os.ReadFile(path)
+	var g map[string]any
+	if err := json.Unmarshal(raw, &g); err != nil {
+		t.Fatal(err)
+	}
+	g["resolution_coverage"] = append(g["resolution_coverage"].([]any), map[string]any{
+		"file": "src/fmt.cc", "sites": 6, "resolved": 5, "external": 0,
+		"unresolved": 1, "tail": map[string]int{"arity-mismatch": 1},
+	})
+	data, _ := json.Marshal(g)
+	os.WriteFile(path, data, 0o644)
+	out, err := Open(repo).ListBlindSpots(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"src/fmt.cc — 1 of 6 sites unresolved (arity-mismatch 1)",
+		"arity-mismatch — a C++ call written with more arguments than the declaration the index resolved it to can take",
+		"(C-153), so no edge is drawn (ADR-130)",
+	} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("missing %q in:\n%s", want, out)
+		}
+	}
+}
+
 func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 	s := Open(blindSpotRepo(t))
 	out, err := s.ListBlindSpots(".")
@@ -862,10 +895,11 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"union-member — a member call on a union-typed receiver",
 		"unclassified — no observation applies",
 		// C-32: what the lane could not have said, beside what it did say:
-		// `qualifier-mismatch` (ADR-125) closes both lists: C++ alone can
-		// report it, so every other lane names it as absent.
-		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch (C-32)",
-		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch (C-32)",
+		// `qualifier-mismatch` (ADR-125) and `arity-mismatch` (ADR-130)
+		// close both lists: C++ alone can report either, so every other
+		// lane names both as absent.
+		"classes this lane cannot report: nested-decl, external-origin, union-member, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch (C-32)",
+		"classes this lane cannot report: import-binding, builtin-name, path-call, overload-set, inherited-member, build-tag-set, qualifier-mismatch, arity-mismatch (C-32)",
 		// C-31: the verification base, stated before any percentage:
 		"verification base — a sample, not the language (C-31",
 		"go: verified on 1 repo: one repo — this one",

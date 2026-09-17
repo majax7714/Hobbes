@@ -112,6 +112,30 @@ def test_a_record_round_trips_through_json_with_its_tuples_and_sets_intact(cache
     assert parsed.unattached_tests == 1
 
 
+def test_the_two_counts_the_arity_rule_reads_survive_the_round_trip(cache):
+    # ADR-130: a call's written argument count and a symbol's parameter
+    # count decide whether an edge is drawn, so an entry read back without
+    # them would be a parse that never counted. The format tag moved to v2
+    # with them, and an entry a v1 store holds is never read.
+    def through(rel: str, source: bytes):
+        result = cppsource._parse_file(rel, source)
+        text = json.dumps(laneacache.encode_record(result), sort_keys=True)
+        assert laneacache.decode_record(json.loads(text)) == result
+        return laneacache.decode_record(json.loads(text))[0]
+
+    parsed = through("src/box.cpp", BOX.encode())
+    assert {c["name"]: c["argc"] for c in parsed.calls}["scale"] == 1
+    assert {s["name"]: s.get("max_params") for s in parsed.symbols}["twice"] == 1
+
+    # Unknown is a value the record has to keep as itself: a null read
+    # back as 0 would withhold an edge nothing contradicted.
+    unknown = through(
+        "src/u.cpp", b"template <typename... A> void f(A... a) { g(a...); }\n"
+    )
+    assert [c["argc"] for c in unknown.calls] == [None]
+    assert [s["max_params"] for s in unknown.symbols] == [None]
+
+
 def test_a_second_extraction_is_all_hits_and_the_same_bundle(cache, repo):
     first = extract_cpp(repo)
     cold = laneacache.summary()

@@ -496,6 +496,9 @@ def test_every_tail_class_has_a_map_reason_or_is_deliberately_omitted():
     # is lane B's own wrong answer, so it routes `laneb-miss`.
     assert set(tail.ALL_CLASSES) - gt._TAIL_OMIT == set(gt._TAIL_REASON)
     assert gt._TAIL_REASON["qualifier-mismatch"][0] == "laneb-miss"
+    # `arity-mismatch` (ADR-130) is lane B's wrong answer too: the call
+    # cannot land on the declaration the index named.
+    assert gt._TAIL_REASON["arity-mismatch"][0] == "laneb-miss"
 
 
 def test_derive_map_without_a_contained_lane_b_reads_every_file_uncaptured(repo):

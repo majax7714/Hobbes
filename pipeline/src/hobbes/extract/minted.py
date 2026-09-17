@@ -84,6 +84,14 @@ confirmed. The refusals, with what the measurement said:
 A row whose line already starts a lane A symbol is the normal case — the
 two lanes meeting — and is counted under no reason at all.
 
+A minted function or method also carries **how many parameters its
+declaration spells** (``max_params``, ADR-130), read from the same tokens
+:func:`shows_body` reads: the rule that draws no edge where a call is
+written with more arguments than its target takes cannot fire on a symbol
+lane A never parsed unless something reads the count, and these symbols
+are precisely the ones the wrong edges land on. The read is *unknown*
+wherever it is not clean, and an unknown draws the edge.
+
 **P6.** With no indexer there are no ``definitions`` rows, so nothing is
 minted and the floor is exactly what it was; the caller writes no
 ``minted`` block into the graph either.
@@ -91,6 +99,7 @@ minted and the floor is exactly what it was; the caller writes no
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
@@ -223,24 +232,31 @@ def mint(
             refused["lane-a-has-type"] += 1
             continue
         qualname = "::".join(part for part, _ in chain)
-        minted.append(
-            {
-                "id": _free_id(f"{module}.{qualname}", taken),
-                "module": module,
-                "name": name,
-                "qualname": qualname,
-                # A type row is a type; a function row is a `method` when a
-                # class owns it (`…Foo#bar(hash).`) and a `function`
-                # otherwise — a namespace owner, or none at all.
-                "kind": "type"
-                if kind == "type"
-                else ("method" if len(chain) > 1 and chain[-2][1] == "type" else "function"),
-                "line": line,
-                # ADR-129 §3: a target, not a scope.
-                "end_line": line,
-                "declared_by": "scip",
-            }
+        # A type row is a type; a function row is a `method` when a class
+        # owns it (`…Foo#bar(hash).`) and a `function` otherwise — a
+        # namespace owner, or none at all.
+        symbol_kind = (
+            "type"
+            if kind == "type"
+            else ("method" if len(chain) > 1 and chain[-2][1] == "type" else "function")
         )
+        symbol = {
+            "id": _free_id(f"{module}.{qualname}", taken),
+            "module": module,
+            "name": name,
+            "qualname": qualname,
+            "kind": symbol_kind,
+            "line": line,
+            # ADR-129 §3: a target, not a scope.
+            "end_line": line,
+            "declared_by": "scip",
+        }
+        if symbol_kind != "type":
+            # ADR-130: what the definition's own parameter list can take,
+            # read from its tokens. A type takes no arguments in this
+            # sense — a construction's target is its constructor.
+            symbol["max_params"] = read_max_params(repo_root, file, line, name, sources)
+        minted.append(symbol)
         files.add(file)
 
     return minted, {"symbols": len(minted), "files": len(files), "refused": refused}
@@ -340,14 +356,7 @@ def shows_body(
     *sources* caches each file's lines across a run; a file holds many
     rows and the read is the only impure thing here.
     """
-    lines = sources.get(file, _UNREAD)
-    if lines is _UNREAD:
-        try:
-            text = (Path(repo_root) / file).read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            text = None
-        lines = text.splitlines() if text is not None else None
-        sources[file] = lines
+    lines = _lines(repo_root, file, sources)
     if lines is None:
         return False
     depth = 0
@@ -363,6 +372,172 @@ def shows_body(
                 if char == ";":
                     return False
     return False
+
+
+def _lines(
+    repo_root: Path, file: str, sources: dict[str, list[str] | None]
+) -> list[str] | None:
+    """The file's own lines, read once per run, or ``None`` where it will
+    not read. Shared by this module's two token reads."""
+    lines = sources.get(file, _UNREAD)
+    if lines is _UNREAD:
+        try:
+            text = (Path(repo_root) / file).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            text = None
+        lines = text.splitlines() if text is not None else None
+        sources[file] = lines
+    return lines  # type: ignore[return-value]
+
+
+#: An ALL_CAPS identifier directly followed by ``(`` inside a parameter
+#: list is a macro, and what it expands to is not in this file's tokens.
+_MACRO_CALL = re.compile(r"(?<![A-Za-z0-9_])[A-Z][A-Z0-9_]*\(")
+
+
+def read_max_params(
+    repo_root: Path,
+    file: str,
+    line: int,
+    name: str,
+    sources: dict[str, list[str] | None],
+) -> int | None:
+    """How many parameters the definition at *line* spells (ADR-130), or
+    ``None`` where the read is not clean.
+
+    :func:`shows_body`'s read, one question over: from the definition
+    line, at most :data:`BODY_WINDOW` lines on and with ``//`` comments
+    dropped, the first parenthesised list after the terminal *name* at
+    bracket depth 0, split on depth-0 commas. ``()`` and ``(void)`` are 0.
+    String and character literals are blanked first, so a comma or a
+    bracket inside one is text rather than structure.
+
+    ``None`` — unknown, and an unknown draws the edge — wherever the read
+    is not one this module can stand behind: no list found, an unbalanced
+    bracket, a ``...`` (a C ellipsis or a parameter pack), an empty part
+    between two commas, or a macro in the list, whose expansion is not
+    here to count. Nothing is parsed: these are the definitions the
+    grammar could not read, which is why they are minted at all.
+    """
+    lines = _lines(repo_root, file, sources)
+    if lines is None:
+        return None
+    start = max(line - 1, 0)
+    text = _blank_literals(
+        " ".join(source.split("//", 1)[0] for source in lines[start : start + BODY_WINDOW])
+    )
+    found = re.search(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])", text)
+    if found is None:
+        return None
+    opened = _list_start(text, found.end())
+    if opened < 0:
+        return None
+    inside = _list_body(text, opened)
+    if inside is None or "..." in inside or _MACRO_CALL.search(inside):
+        return None
+    parts = _split_parameters(inside)
+    if parts is None:
+        return None
+    if not parts or (len(parts) == 1 and parts[0] == "void"):
+        return 0
+    if any(not part for part in parts):
+        return None  # a part between two commas that holds nothing
+    return len(parts)
+
+
+def _blank_literals(text: str) -> str:
+    """*text* with every string and character literal's contents replaced
+    by spaces, the length kept so indices still line up. An unterminated
+    literal blanks to the end of the window, which reads as no list."""
+    out: list[str] = []
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if char not in "\"'":
+            out.append(char)
+            i += 1
+            continue
+        quote, i = char, i + 1
+        out.append(" ")
+        while i < len(text):
+            if text[i] == "\\" and i + 1 < len(text):
+                out.append("  ")
+                i += 2
+                continue
+            closed = text[i] == quote
+            out.append(" " if not closed else quote)
+            i += 1
+            if closed:
+                break
+    return "".join(out)
+
+
+def _list_start(text: str, at: int) -> int:
+    """Where the first parenthesised list at bracket depth 0 opens after
+    *at*, or -1: a ``<`` or ``[`` before it is a template argument list or
+    an attribute, and a ``;`` or ``{`` reached first means there is no
+    parameter list to read here."""
+    depth = 0
+    for i in range(at, len(text)):
+        char = text[i]
+        if char in "<[":
+            depth += 1
+        elif char in ">]":
+            depth -= 1
+            if depth < 0:
+                return -1
+        elif depth == 0:
+            if char == "(":
+                return i
+            if char in ";{":
+                return -1
+    return -1
+
+
+def _list_body(text: str, opened: int) -> str | None:
+    """What the list opened at *opened* holds, or ``None`` when it does
+    not close inside the window — including when what closes it is not a
+    ``)``, which is a ``>`` written as a comparison rather than as a
+    template bracket, and a read this module does not stand behind."""
+    depth = 0
+    for i in range(opened, len(text)):
+        char = text[i]
+        if char in "([{<":
+            depth += 1
+        elif char in ")]}>":
+            depth -= 1
+            if depth == 0:
+                return text[opened + 1 : i] if char == ")" else None
+            if depth < 0:
+                return None
+    return None
+
+
+def _split_parameters(inside: str) -> list[str] | None:
+    """The list's parts, split on its own commas — a comma inside a
+    nested list (``map<int, int> m``, a default argument's call) belongs
+    to that list. ``None`` on an unbalanced bracket."""
+    parts: list[str] = []
+    depth = 0
+    current: list[str] = []
+    for char in inside:
+        if char in "([{<":
+            depth += 1
+        elif char in ")]}>":
+            depth -= 1
+            if depth < 0:
+                return None
+        elif char == "," and depth == 0:
+            parts.append("".join(current).strip())
+            current = []
+            continue
+        current.append(char)
+    if depth != 0:
+        return None
+    last = "".join(current).strip()
+    if last or parts:
+        parts.append(last)
+    return parts
 
 
 def _free_id(wanted: str, taken: set[str]) -> str:
