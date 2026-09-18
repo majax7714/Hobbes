@@ -1,6 +1,6 @@
 # ADR-136 — A line R1 vacated is not a clean file's: the mint reads the definition there
 
-**Date:** 2026-09-18 · **Status:** proposed — routes for Max below; nothing built, no version move.
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — the brief's premises checked against the code first (*Accepted*, below); not yet built.
 
 Follows ADR-135 (R1: a lane A C++ function or method whose own name
 token the index reads as a reference is removed) and the C++ recall
@@ -96,3 +96,33 @@ The rest of a clean file's rows stay refused.
 - No key judges a caller or a node, so as ADR-134 and ADR-135 this is
   checked, not graded: the four graded cells row-identical, ScummVM's
   260 read by sample against the source.
+
+## Accepted — route (a), and the premises read before the brief (2026-09-18)
+
+Max: "go with the recommended". Read in the tree before the brief, as
+ADR-134 taught:
+
+- **`contradicted` does not hand out the vacated positions** — the
+  *Decision* above said it "already knows" them, and it does, but only
+  inside: `refused` maps a symbol's id to its module and the function
+  returns `(symbols, facts, counts)`. It gains a fourth return, the
+  frozenset of `(file, line)` R1 vacated (R2 vacates nothing). Not a key
+  in `counts`: that dict is written to `graph.json` as it is.
+- **The mint's first test is the line, not the file:** `line in
+  lane_a_lines[module]` is read from the symbols it is handed, which are
+  already R1's output, so a vacated line reads as lost with no change.
+  `clean-file` is the next test, and the only one lifted.
+- **The facts are already where `rehome` looks:** R1 gives a removed
+  symbol's facts the module's id as scope, and `rehome` moves a
+  module-scoped fact into a minted extent covering it.
+- **`minted.files` means "files lane A parsed with errors"** in the
+  ingest summary's sentence. A vacated-line mint in a clean file is
+  counted apart — `minted.vacated = {"symbols": n, "files": n}`, present
+  whenever the block is — and the summary says so in its own clause.
+  `minted.symbols` stays the whole count.
+- **The proxy's note needs no change:** `who_calls` says of a minted
+  symbol that lane A's parse lost it to a macro (C-145), which is what
+  happened on a vacated line too.
+
+Predictions: `docs/oracle/oracle-grading.md` §10.21, written before the
+unit.
