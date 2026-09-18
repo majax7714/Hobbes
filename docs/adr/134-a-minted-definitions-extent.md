@@ -231,3 +231,17 @@ than step 1), 23 lambda, 19 unjudged, the same 30 spellings, none
 wrong**; args is unchanged (66 extents, 16 rows). §5's estimate becomes
 lost 1,436 → about 165. The predictions are `oracle-grading.md` §10.19.
 
+## Built (2026-09-18, 0.2.46-beta)
+
+Unit `368a`, then the developer's fix on top of it, because the brief's
+premise was wrong: a lane A C or C++ site at file scope carries **the
+module's id** as its scope, not an empty one, and the projection reads a
+truthy scope as the caller — so §3 also re-homes a fact whose scope is
+the module. And since `end_line == line` is both a body of one line and
+a refusal, the mint marks a read extent on the symbol (`extent:
+"braces"`); re-homing and `who_calls` read the mark. Checked as §5 says
+(`oracle-grading.md` §10.19): every graded number ±0 on the four C and
+C++ cells; fmt 1,346 extents, 34 + 19 refused, 1,290 `calls` rows
+re-homed, agreeing 6,392 → 7,610, lost 1,436 → 188, no right row moved,
+test reach pairs 3,183 → 6,131; args lost 15 → 0.
+

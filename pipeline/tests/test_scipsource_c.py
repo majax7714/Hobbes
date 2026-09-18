@@ -462,3 +462,93 @@ def test_a_definition_the_cpp_parse_lost_is_minted_and_its_call_draws(tmp_path):
     # And the site is no longer in the below-floor tail.
     row = next(r for r in graph["resolution_coverage"] if r["file"] == "src/main.cpp")
     assert "floored" not in row, row
+
+
+#: The same loss, with bodies that hold calls (ADR-134): `outer`'s body is
+#: plain braces, `gated`'s has a preprocessor conditional in it.
+LOST_BODIES_HEADER = """#ifndef MINICPP_LOST_BODIES_H
+#define MINICPP_LOST_BODIES_H
+#define BEGIN_BODIES_NS namespace bodies_ns { inline namespace v1 {
+
+BEGIN_BODIES_NS
+
+template <typename T> struct Keeper { T v; };
+
+int helper(int x) { return x + 1; }
+
+int outer(int x) {
+  int y = x;
+  y = helper(y);
+  return y;
+}
+
+int gated(int x) {
+#if defined(MINICPP_NEVER)
+  return x;
+#else
+  return helper(x);
+#endif
+}
+
+} }
+
+#endif
+"""
+
+
+@pytest.mark.lane_b
+def test_a_call_written_inside_a_minted_definition_is_drawn_from_it(tmp_path):
+    """ADR-134 end to end, against the real scip-clang: a lost function
+    whose body the file's braces delimit is the caller of what is written
+    inside it, and one with a preprocessor conditional in its body stays a
+    target — its call is drawn, from the module, as before."""
+    import shutil
+
+    from hobbes.extract import containment, extract_repo
+
+    why = containment.unavailable_reason()
+    if why is not None:
+        pytest.skip(f"containment unavailable here: {why}")
+    repo = tmp_path / "minicpp"
+    shutil.copytree(MINICPP, repo)
+    write(repo, "include/minicpp/lost_bodies.h", LOST_BODIES_HEADER)
+    main = (repo / "src" / "main.cpp").read_text()
+    write(
+        repo,
+        "src/main.cpp",
+        main.replace(
+            '#include "minicpp/shapes.h"',
+            '#include "minicpp/shapes.h"\n#include "minicpp/lost_bodies.h"',
+        ).replace(
+            "    return 0;",
+            "    return bodies_ns::outer(biggest) - bodies_ns::gated(biggest);",
+        ),
+    )
+    lines = LOST_BODIES_HEADER.splitlines()
+    module = "include/minicpp/lost_bodies.h"
+
+    graph = extract_repo(repo).graph
+    why = [e for e in graph.get("extraction_errors", []) if e["stage"].startswith("scip")]
+    minted = {
+        s["name"]: s for s in graph["symbols"]
+        if s.get("declared_by") == "scip" and s["module"] == module
+    }
+    assert set(minted) >= {"helper", "outer", "gated"}, why
+    outer_line = lines.index("int outer(int x) {") + 1
+    gated_line = lines.index("int gated(int x) {") + 1
+    assert (minted["outer"]["line"], minted["outer"]["end_line"]) == (outer_line, outer_line + 4)
+    assert (minted["gated"]["line"], minted["gated"]["end_line"]) == (gated_line, gated_line)
+    extents = graph["minted"]["extents"]
+    assert extents["refused"]["conditional-inside"] == 1, extents
+    assert extents["rehomed"] >= 1, extents
+
+    into_helper = {
+        e["from"]: [site["line"] for site in e["evidence"]]
+        for e in graph["symbol_edges"]
+        if e["to"] == minted["helper"]["id"]
+    }
+    assert into_helper.get(minted["outer"]["id"]) == [lines.index("  y = helper(y);") + 1], into_helper
+    # The refused body's call is still drawn — from the module, the coarser
+    # truth, and never from the function the rule declined to delimit.
+    assert minted["gated"]["id"] not in into_helper, into_helper
+    assert into_helper.get(module) == [lines.index("  return helper(x);") + 1], into_helper

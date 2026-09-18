@@ -12784,3 +12784,67 @@ missing.
 measurement (164 entries, 119 active, 4 unsurfaced); the register index;
 README's four figures; CLAUDE.md's status; the handoff. No code moved,
 no suite run, no version move, no dispatch, no spend.
+
+## 2026-09-18 (night) — a lost definition's extent built (ADR-134 accepted, route a; 0.2.46-beta); the top-level drift fixed first
+
+**Asked:** fix the doc drift the review found, then proceed with route
+(a) for ADR-134.
+
+**The drift (`1f10357`).** The handoff said CI was green on `dbef0af`
+and everything since unpushed; `origin/main` was at `c34b98c`, green
+(run 35360468231). The workstreams header stopped at 2026-09-17 while
+its body carried 0.2.43–0.2.45. Both corrected.
+
+**Measured before the brief — and the ADR was wrong.** ADR-134 §2's
+third refusal (an extent containing another definition's line) carried
+the sentence "not seen on either cell", which nothing had measured.
+`simulate_r3.py`: it fires on **19 of fmt's 1,365 extents**. 13 are
+macro-generated methods — `GTEST_REPEATER_METHOD_(OnTestStart, TestInfo)`
+is a method to clang and a line with no brace in the text, so the match
+ran into `OnTestIterationStart`'s body thirty lines below. Step 1 had
+not seen it because no `calls` row moved wrongly; the *node* would have
+been wrong. The other 6 are right extents holding a C-164 symbol,
+refused all the same. The ADR was amended to accepted with this
+(`fe05ca0`), §10.19's predictions written (P114–P120), then one unit.
+
+**Unit `368a`** (Opus 5, 59 of 120 turns, $5.88 on the subscription, 15
+min; gate clear, verify pass): the blanking over a whole file, the brace
+match and its four refusals in two passes, `minted.rehome`, the summary
+lines, 27 tests. Five deviations listed, each toward drawing less.
+
+**Plan beside outcome — the brief's premise was wrong.** It said a
+file-scope site has an empty scope and re-homes by itself once
+`end_line` is real. Lane A's C and C++ sites carry **the module's id**
+as scope, truthy, so `project` never asks `enclosing`. The first real
+ingest of args moved 2 rows of 16. The hand-fed ingest test could not
+show it (its re-homed fact is lane B's alone, scopeless); the real cell
+did, which is what running the check before the merge is for. Fixed in
+the developer's commit after the no-ff merge: a module-id scope is the
+module. A second run left 56 fmt rows on a one-line body's own line:
+`end_line == line` is a read extent and a refusal both, so the mint now
+marks a read one (`extent: "braces"`), and `rehome` and the proxy's
+`who_calls` note read the mark. My own `lane_b` end-to-end header also
+failed first — lane A recovered its `inline` functions — and was changed
+until lane A really lost them.
+
+**The check (§10.19; `~/.hobbes/bench/c145-extent/regrade.sh`), not a
+grade:** every graded number ±0 and every export row-identical on fmt,
+args, cJSON, sqlite-vector; click identical. fmt: 1,346 / 34 / 19
+(P115 exact), 1,290 `calls` rows re-homed (the simulation's number),
+agreeing 6,392 → 7,610 (predicted), wrong class 75 → 105 (predicted),
+**lost 1,436 → 188 where 165 ± 5 was predicted** — the prediction
+subtracted 23 lambda and 19 unjudged rows that the probe never classed
+as lost; recorded as a miss of the arithmetic. No right row moved. 760
+`uses` rows re-homed (92 from a class to its own method, eight read).
+Two self-edges vanish on fmt and two non-self-edges appear on args, not
+predicted. fmt's test reach 3,183 → 6,131 pairs, none lost.
+
+**Records:** ADR-134 (accepted, *Accepted* and *Built* sections);
+§10.19; C-145 rewritten (no entry added; 164 / 119 / 4 unsurfaced
+unmoved); the register index; architecture §3 (the extent paragraph,
+§3.8's row, §8's version); CHANGELOG 0.2.46-beta; the fmt cell record (a
+note, headed *not a regrade*); session `368a`'s review block and the
+tracker (52 of 40); README, CLAUDE.md's status, the handoff, workstreams.
+Suites on the host: 1,942 pytest, `lane_b` 10 of 10, Go 396 with
+subtests (395 pass, 1 skip), the report drift test. Proxy and image
+rebuilt at 0.2.46-beta; the repo re-ingested. No API or Modal spend.

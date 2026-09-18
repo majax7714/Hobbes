@@ -194,9 +194,9 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-18, 0.2.45-beta; oracle-lane Go
-counted 2026-09-16): 1,910 pytest (9 `lane_b`) / 395 Go with subtests
-(394 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
+Suite sizes at the last check (2026-09-18, 0.2.46-beta; oracle-lane Go
+counted 2026-09-16): 1,942 pytest (10 `lane_b`) / 396 Go with subtests
+(395 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-18) — Hobbes 0.2.45-beta
+## Status (2026-09-18) — Hobbes 0.2.46-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -283,51 +283,51 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
-  at 0.2.45-beta), **strict 99.62%** — every quoted precision carries
+  at 0.2.46-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 164 entries; 119 active (92
-  surfaced, 22 partial, 4 unsurfaced, 1 n/a), 28 lifted — C-164
-  registered unsurfaced (ADR-134, proposed); C-163
-  registered and lifted, C-162 narrowed (ADR-133); C-145 narrowed
-  (ADR-129), C-153 narrowed three times and partial (ADR-125, ADR-130,
-  ADR-131 amended), C-146 narrowed (ADR-131).
+  surfaced, 22 partial, 4 unsurfaced, 1 n/a), 28 lifted — C-145
+  narrowed again (ADR-134, no entry added); C-164 registered unsurfaced;
+  C-163 registered and lifted, C-162 narrowed (ADR-133); C-153 narrowed
+  three times and partial (ADR-125, ADR-130, ADR-131 amended), C-146
+  narrowed (ADR-131).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **51 of 40**
+  drift test; re-render after filling a review block) reads **52 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.45-beta (ADR-133): the join claims a lane B
-  resolution by position, not by name.** Measured first: the
-  by-`(file, line, name)` claim hid 7,308 resolutions on the 25 graded
-  clones — true `uses` facts in every language (a Java declaration's
-  type beside its `new`, a Go return type beside a method call) and the
-  19 fmt constructions ADR-132's P102 missed — in no register entry. The
-  key is now the matched resolution's `(file, line, name, col)`; the
-  matched occurrence's own column stays hidden (ADR-104), and a
-  columnless site keeps the by-name claim. 44 stored-key cells regraded
-  before and after on the same clones: **fmt 6,993 → 7,012 at 0
-  contradicted, 30.4%, strict 99.62%; the other 43 row-identical**;
-  1,785 `uses` + 11 `calls` symbol edges added, none removed.
-  **Next on C++ recall, each measured first:** a lost definition's
-  extent is measured and simulated, nothing built (ADR-134, proposed:
-  1,436 of fmt's 8,123 `calls` rows are drawn from the module where
-  clang names a function; a brace-matched extent read 1,303 of them,
-  none wrong; no graded number moves, the keys never read a caller);
-  then C-164's wrong callers (73 rows on fmt, lane A symbols named by a
-  macro), the 15 line-convention rows, ScummVM as a scale read (now also the operator and construction
-  walks' cost). Operators and constructions at a macro's name belong to
-  the macro class (C-131, parked).
+- **Latest — 0.2.46-beta (ADR-134, Max: route a): a lost C++
+  definition's extent is read from the file's braces, and the facts
+  written inside it are drawn from it.** A minted function or method
+  gets `end_line` from a brace match on the file's text and says
+  `extent: "braces"`; refused (counted) where a preprocessor conditional
+  sits in the body or another function starts inside the match — that
+  refusal was measured before the build and fired 19 times on fmt, 13 of
+  them macro-generated methods whose match would have borrowed the next
+  function's body. **No graded number moves — no key reads a caller**;
+  the check is the key's caller names read by a driver (§10.19): fmt
+  1,290 call rows re-homed, agreeing with clang 6,392 → 7,610, lost
+  1,436 → 188, none wrong, no right row moved; args lost 15 → 0; fmt's
+  test reach 3,183 → 6,131 pairs. The unit's brief was wrong about a
+  file-scope site's scope (the module's id, not none); the fix is the
+  developer's commit after the merge.
+  **Next on C++, each measured first:** C-164's wrong callers (73 rows
+  on fmt, lane A symbols named by a macro — count the shapes across the
+  C and C++ clones; can the index's definition row refuse or rename
+  them), the 15 line-convention rows, ScummVM as a scale read (now also
+  the operator and construction walks' and the extent read's cost).
+  Operators and constructions at a macro's name belong to the macro
+  class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** **ADR-134's route** (a: build the extent,
-  conditionals refused — recommended; b: conditionals allowed; c:
-  register and leave); ADR-126 §3 — whether to build a
+- **Open for Max:** ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:
-  constructions inside a template stay `uses`; the join's claim built.
+  constructions inside a template stay `uses`; the join's claim built;
+  ADR-134's route (a), built.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

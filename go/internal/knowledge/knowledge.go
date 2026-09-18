@@ -82,19 +82,29 @@ type graphIndex struct {
 	// The symbols lane B declared (ADR-129), the same way. Empty on every
 	// graph built before minting and on every repo without C or C++.
 	laneBDeclared map[string]bool
+	// Those among them whose extent was read (ADR-134): `extent: "braces"`.
+	laneBExtent map[string]bool
 }
 
 // mintedNote marks a symbol whose definition lane A never parsed: lane B's
 // index gave the file, line and kind, so the node exists and calls resolve
-// to it, but it is a target and not a scope (ADR-129 §3). What that costs a
-// reader of who_calls is the symbol's own outgoing calls, which are still
-// attributed to whatever lane A did parse around them — said here rather
-// than left to be discovered (P8, C-145).
+// to it (ADR-129). Whether it is also a scope depends on ADR-134: where the
+// body's extent could be read from the file's own braces the symbol's
+// outgoing calls are drawn from it, and where that read was refused (a
+// preprocessor conditional in the body, another definition's line inside
+// it) the node stays a target, its own calls attributed to whatever lane A
+// did parse around them. A reader of who_calls is told which — said here
+// rather than left to be discovered (P8, C-145). The mint marks a read
+// extent on the symbol (`extent: "braces"`), because end_line alone cannot
+// tell a body of one line from a refusal.
 func (idx *graphIndex) mintedNote(symbolID string) string {
 	if !idx.laneBDeclared[symbolID] {
 		return ""
 	}
-	return "  (definition read from the index: lane A's parse lost it to a macro, C-145 — its own calls are attributed to the enclosing symbol or the module)\n"
+	if idx.laneBExtent[symbolID] {
+		return "  (definition read from the index: lane A's parse lost it to a macro, C-145 — its body's extent was read from the file's braces, ADR-134, so the calls written inside it are drawn from it; no key grades a C++ caller)\n"
+	}
+	return "  (definition read from the index: lane A's parse lost it to a macro, C-145 — a target only: its own calls are attributed to the enclosing symbol or the module)\n"
 }
 
 // templateNote marks a caller whose edge starts in a C++ template pattern
@@ -122,6 +132,7 @@ func indexGraph(g *graphDoc) *graphIndex {
 		cppPattern:  make(map[string]bool, len(g.CppTemplatePatterns)),
 
 		laneBDeclared: map[string]bool{},
+		laneBExtent:   map[string]bool{},
 	}
 	for _, id := range g.CppTemplatePatterns {
 		idx.cppPattern[id] = true
@@ -135,6 +146,9 @@ func indexGraph(g *graphDoc) *graphIndex {
 		idx.symbolKnown[g.Symbols[i].ID] = true
 		if g.Symbols[i].DeclaredBy == "scip" {
 			idx.laneBDeclared[g.Symbols[i].ID] = true
+			if g.Symbols[i].Extent == "braces" {
+				idx.laneBExtent[g.Symbols[i].ID] = true
+			}
 		}
 	}
 	for i := range g.ModuleEdges {
@@ -257,6 +271,10 @@ type symbol struct {
 	Module string `json:"module"`
 	Kind   string `json:"kind"`
 	Line   int    `json:"line"`
+	// "braces" on a symbol lane B declared whose body's extent the mint
+	// read from the file's own text (ADR-134); empty on every other symbol
+	// and on every artifact written before it.
+	Extent string `json:"extent"`
 	// Which lane spelled this definition (ADR-129). Empty on every lane A
 	// symbol and on every artifact written before minting existed;
 	// "scip" on a definition lane A's parse lost and lane B's index gave

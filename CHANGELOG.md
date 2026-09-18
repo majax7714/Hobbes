@@ -11,9 +11,51 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.45-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.46-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.46-beta — 2026-09-18 (a lost C++ definition's extent is read from the file's braces, and what is written inside it is drawn from it; ADR-134)
+
+**Patch: what the layer draws and says** — a constraint's fix (C-145,
+narrowed again; no entry added).
+
+- **Measured first, nothing drawn.** ADR-129's minted symbol was a
+  target, never a scope, so a call written inside a lost definition kept
+  the module as its caller: 1,436 of fmt's 8,123 call rows (17.7%). No
+  grade saw it — every C and C++ key judges `(site, target)` and never a
+  caller — so it was read off the key's own caller names. scip-clang's
+  index carries no extent. A brace match on the file's text was
+  simulated: 1,303 rows moved, none wrong. Before the build the third
+  refusal was run too and **fired 19 times on fmt**: 13 macro-generated
+  methods (`GTEST_REPEATER_METHOD_(OnTestStart, TestInfo)` has no brace
+  of its own, and the match borrowed the next function's body — a wrong
+  node no moved row would have shown), 6 true bodies holding a symbol
+  lane A named after a macro (C-164).
+- **The rule.** A minted function or method gets `end_line` from the
+  first `{` at parenthesis depth 0 matched to its `}`, on the file's text
+  with comments, strings, raw strings and character literals blanked,
+  and says `extent: "braces"`. Refused, counted in `graph.json`'s
+  `minted.extents` and on the ingest summary: a preprocessor conditional
+  in the body, a match that runs off the file, any other function or
+  method starting inside it. A minted type stays a line. A `calls` or
+  `uses` fact written inside a read extent is re-homed to it when its
+  scope is the module or a lane A symbol that starts before the extent.
+  `who_calls` says which kind of minted symbol it is showing.
+- **Checked, not graded (`oracle-grading.md` §10.19).** Every graded
+  number ±0 and every export row-identical on fmt, args, cJSON and
+  sqlite-vector; click identical. fmt: 1,346 extents (34 + 19 refused),
+  **1,290 call rows re-homed; the caller agrees with clang's on 6,392 →
+  7,610 rows, lost 1,436 → 188, no row that was right moved**; the 30
+  rows that land in the probe's wrong class are one function in two
+  spellings. args: lost 15 → 0. fmt's test reach 3,183 → 6,131 pairs,
+  no test lost a symbol. One prediction's arithmetic missed (lost 188,
+  not 165), recorded.
+- Unit `368a` (59 turns, $5.88 on the subscription), gate right-clear,
+  verify pass; then the developer's fix, because the brief was wrong
+  about what scope a file-level C++ site carries (the module's id, not
+  none) — the first real ingest moved 2 rows of 16. 1,942 pytest,
+  `lane_b` 10 of 10 on the host.
 
 ## 0.2.45-beta — 2026-09-18 (the join claims a lane B resolution by position, not by name; ADR-133)
 

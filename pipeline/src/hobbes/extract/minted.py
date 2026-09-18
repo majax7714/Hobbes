@@ -174,6 +174,11 @@ REFUSALS = (
 #: same way on every repo.
 EXTENT_REFUSALS = ("no-body", "runs-off", "conditional-inside", "holds-a-definition")
 
+#: What a minted symbol's ``extent`` field says where its body was read: the
+#: file's own braces, matched (ADR-134). Absent on every other symbol — a
+#: lane A extent is the parse's, and needs no name.
+EXTENT_BRACES = "braces"
+
 #: The symbol kinds whose body an extent stands for, and whose line inside
 #: another's extent says the brace match or the parse is wrong.
 _DEFINITION_KINDS = ("function", "method")
@@ -351,15 +356,26 @@ def rehome(
     too. The count is what moved in the graph, not what this function
     rewrote.
 
+    **A scope that is the module's own id is the module speaking**, not a
+    symbol: lane A's C and C++ sites at file scope carry it, and since it
+    is truthy the projection never reaches ``enclosing`` for them. They
+    are the rule's main case — args' first check through the real ingest
+    moved 2 rows of 16 until this was read — and they take the extent on
+    the same condition as a scopeless fact.
+
     Only ``calls`` and ``uses``: an ``implements`` fact's ends are both
-    definitions, read by ``starting_at`` and not by a scope. An extent of
-    one line (``end_line == line``) moves nothing, because it cannot be
-    told from a refusal and ``enclosing`` already answers for that line.
+    definitions, read by ``starting_at`` and not by a scope. Only a symbol
+    whose extent **was read** (``extent: "braces"``) takes facts — a body
+    of one line too, since ``int f() { return g(); }`` holds a call whose
+    module-scoped site would otherwise stay the module's (56 rows on fmt).
+    A refused symbol takes none, its own line included: ``end_line ==
+    line`` alone cannot tell the two apart, which is why the mint marks
+    the read.
     Pure: it reads no file and writes no symbol.
     """
     extents: dict[str, list[tuple[int, int, str]]] = {}
     for symbol in minted_symbols:
-        if symbol["kind"] in _DEFINITION_KINDS and symbol["end_line"] > symbol["line"]:
+        if symbol["kind"] in _DEFINITION_KINDS and symbol.get("extent") == EXTENT_BRACES:
             extents.setdefault(symbol["module"], []).append(
                 (symbol["line"], symbol["end_line"], symbol["id"])
             )
@@ -404,16 +420,25 @@ def rehome(
             out.append(fact)
             continue
         start, _, symbol_id = holder
-        if not fact.scope:
-            # What `enclosing` will answer: this extent, unless something
-            # starting inside it holds the line too.
+        if not fact.scope or fact.scope == module:
+            # The caller is the module, said one of two ways: the join's
+            # own facts carry no scope and `enclosing` answers for them,
+            # while a lane A site at file scope carries **the module's id**
+            # (`cppsource`, `csource`) — truthy, so `project` never asks
+            # `enclosing` and the fact would stay the module's for ever.
+            # Both mean the same thing here, and both go to this extent
+            # unless something starting inside it holds the line too (a
+            # local type lane A did parse): that one is the caller already
+            # for a scopeless fact, and the nearer truth for a scoped one.
             lines = at_symbol.get(module, [])
             inside = ranges[module][
                 bisect_right(lines, start) : bisect_right(lines, fact.line)
             ]
-            if not any(fact.line <= end for _, end in inside):
-                moved += 1
-            out.append(fact)
+            if any(fact.line <= end for _, end in inside):
+                out.append(fact)
+                continue
+            moved += 1
+            out.append(dataclasses.replace(fact, scope=symbol_id) if fact.scope else fact)
             continue
         scope = starts.get(fact.scope)
         if scope is None or scope[0] != module or scope[1] >= start:
@@ -489,6 +514,10 @@ def _read_extents(
             refused["holds-a-definition"] += 1
             continue
         symbol["end_line"] = end
+        # Said on the symbol, because `end_line == line` is both a body of
+        # one line and a refusal, and `rehome` and `who_calls` each need to
+        # know which.
+        symbol["extent"] = EXTENT_BRACES
         read += 1
     return {"read": read, "refused": refused}
 

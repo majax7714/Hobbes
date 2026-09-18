@@ -341,6 +341,42 @@ func TestWhoCallsMarksASymbolLaneBDeclared(t *testing.T) {
 	}
 }
 
+// ADR-134: where the mint read the body's extent from the file's braces
+// (the symbol says `extent: "braces"`) the symbol is a scope too, and who_calls stops
+// saying its calls are attributed elsewhere — that sentence would now be
+// false. It says instead what the extent rests on, and that no key grades
+// a caller. A minted symbol whose extent was refused keeps the old wording,
+// which the test above holds.
+func TestWhoCallsSaysAMintedSymbolWithAnExtentIsAScope(t *testing.T) {
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "graph.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc["symbols"] = append(doc["symbols"].([]any),
+		map[string]any{"id": "src/fmt.h.fmt::detail::write", "module": "src/fmt.h",
+			"kind": "function", "line": 120, "end_line": 134, "declared_by": "scip", "extent": "braces"})
+	out, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, out, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := Open(repo).WhoCalls("src/fmt.h.fmt::detail::write")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"definition read from the index", "C-145", "ADR-134", "no key grades a C++ caller"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("want %q in the note of a minted symbol with an extent:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "a target only") || strings.Contains(got, "attributed to the enclosing symbol") {
+		t.Errorf("a symbol whose extent was read is still called a target only:\n%s", got)
+	}
+}
+
 // An artifact built before ADR-129 carries no `declared_by`, and neither
 // does a repo without C or C++ — both must render exactly as they did.
 func TestWhoCallsWithoutDeclaredByRendersUnchanged(t *testing.T) {

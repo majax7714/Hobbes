@@ -54,7 +54,7 @@ headers parsed with tree-sitter ERROR nodes.
   a gap C's tail shares, left as is so a C++ unit moves no C number.
 - **Source:** ADR-113 §1; the doer's deviation list (`3d56`).
 
-### C-145 — Macro-heavy C++ parses with error nodes: the preprocessor never runs (C-131's C++ face) — *narrowed 2026-09-17 (ADR-129, 0.2.41-beta): a lost definition is read from the index, as a target*
+### C-145 — Macro-heavy C++ parses with error nodes: the preprocessor never runs (C-131's C++ face) — *narrowed 2026-09-17 (ADR-129, 0.2.41-beta): a lost definition is read from the index; narrowed again 2026-09-18 (ADR-134, 0.2.46-beta): a lost function's extent is read from the file's braces, and what is written inside it is drawn from it*
 
 - **Narrowed (0.2.41-beta, ADR-129).** Where lane B ran, a function,
   method or type definition this parse lost becomes a graph symbol read
@@ -71,17 +71,35 @@ headers parsed with tree-sitter ERROR nodes.
   `{` before a `;` in the file's own text), an unnamed struct's invented
   name, and a type lane A already names at another line. **What stays
   conceded:**
-  - **A minted symbol is a target, not a scope** (`end_line` is its
-    line). A call written *inside* a lost definition keeps the caller it
-    had — the enclosing symbol lane A did parse, or the module. Finding a
-    body's end through unexpanded macros is a guess not made. `who_calls`
-    says so on every minted symbol. **Measured 2026-09-18 (ADR-134,
-    proposed):** 1,436 of fmt's 8,123 `calls` evidence rows (17.7%) are
-    drawn from the module where clang names a function, 1,329 of them
-    under a minted definition; args 15 of 2,567. No graded number sees
-    it: the keys never read a caller. A brace-matched extent was
-    simulated and read 1,303 rows with none wrong; nothing is built
-    until Max takes a route.
+  - **A minted function or method is a scope only where its braces could
+    be read (ADR-134, 0.2.46-beta).** scip-clang's index carries no
+    extent, so `end_line` is the closing brace matched in the file's own
+    text (comments and literals blanked), the symbol says `extent:
+    "braces"`, and a `calls` or `uses` fact written inside is drawn from
+    it. fmt: 1,346 extents, **1,290 of the 1,436 `calls` rows that were
+    drawn from the module now name a function — 1,218 the one clang
+    names, 30 the same function in another spelling, 23 a lambda's
+    encloser, 19 where the key has no site; none wrong, and no row that
+    was right moved**; args 15 of 15. **No grade says so**: every C and
+    C++ key judges `(site, target)` and never a caller, so the check is
+    the key's caller names read by a driver, not a grade
+    (`oracle-grading.md` §10.19). **What stays conceded — the node is a
+    target only, and a call inside it keeps the module or the enclosing
+    lane A symbol as its caller — where the extent is refused**, counted
+    in `graph.json`'s `minted.extents` and on the ingest summary, and
+    said by `who_calls` on the symbol:
+    - a preprocessor conditional inside the body (34 on fmt): either
+      branch may hold the brace the compiler saw;
+    - another function's line inside the match (19 on fmt): 13
+      macro-generated methods (`GTEST_REPEATER_METHOD_(OnTestStart,
+      TestInfo)` has no `{` in the text, and the match ran into the next
+      function written out), 6 true bodies holding a C-164 symbol;
+    - a minted **type**, always (its members are symbols of their own);
+    - and a definition nothing names at all — the mint's own refusals —
+      which has no node to be a scope. On fmt 188 `calls` rows still say
+      the module where clang names a function: 111 under a refused
+      extent, 63 under no symbol, 11 where lane A parsed the function and
+      lost its end, 3 lambdas.
   - **Its name is the compiler's spelling**, so an inline namespace
     appears (`fmt::v12::detail::write`) where lane A's neighbours in the
     same file may lack the namespace a macro opened; a constructor of a

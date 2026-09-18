@@ -192,7 +192,12 @@ where 80% of the missed constructions sit inside gtest's macros. At
 (ADR-133): a call no longer hides the line's other references of its
 name — 1,785 true `uses` edges across the graded clones, and the 19
 fmt constructions a using-declaration had hidden (30.4%), with every
-other graded number unmoved. The
+other graded number unmoved. At 0.2.46-beta a lost definition is a scope
+where the file's own braces delimit it (ADR-134): 1,290 of fmt's call
+rows now name the function they are written in rather than the file,
+agreeing with clang's own caller on 7,610 rows of 8,123 where 6,392 did
+— checked against the key's caller names, **not graded**, because no key
+reads a caller, and so no graded number moved. The
 abstentions behind part of what is left are registered (C-146, C-148,
 C-151, C-152).
 
@@ -368,7 +373,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.45-beta** (2026-09-18). The Hobbes layer is versioned from here
+**Hobbes 0.2.46-beta** (2026-09-18). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -445,7 +450,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and fifty-one session logs stand. The
+dispatched on 2026-09-12, and fifty-two session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -460,7 +465,9 @@ loses read from the index (ADR-129, with ADR-130's arity rule: fmt's
 recall 14.5% → 29.1% at no contradiction), and operators as calls
 outside templates (ADR-131: 30.1%, args 58.6% → 62.5%), then
 constructions at the token (ADR-132: fmt 30.3%, args 72.9%), then
-the join's claim by position (ADR-133: fmt 30.4%).
+the join's claim by position (ADR-133: fmt 30.4%), then a lost
+definition's extent from the file's braces (ADR-134: no graded number
+moves; fmt's callers agree with clang's on 7,610 rows where 6,392 did).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 

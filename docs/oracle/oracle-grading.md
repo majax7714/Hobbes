@@ -1601,7 +1601,7 @@ at an old sha, is gone. The simulation before the build
   99.62% → 99.62% (7,012/7,039), recall +0.1 point (30.3% → 30.4%);
   every other cell ±0.
 
-### 10.19 A minted definition's extent — written 2026-09-18, before the unit is dispatched
+### 10.19 A minted definition's extent — written 2026-09-18, before the unit is dispatched (unit `368a`; results below)
 
 ADR-134, route (a). **This section is not a grade.** Every C and C++ key
 is a resolution key — it judges `(site, target)` and never reads an
@@ -1642,6 +1642,60 @@ below come from.
 - **P120 (direction only).** On fmt, no symbol's test reach shrinks, and
   the tests reaching through a minted function grow; the count is
   recorded, not predicted.
+
+**Results (2026-09-18; unit `368a` merged, then the developer's fix on
+it; `~/.hobbes/bench/c145-extent/regrade.sh`, `compare.py`, `regrade/`).**
+Before is each clone's graph as ADR-133's code built it (`83cde1b`);
+after is the same clone ingested by the branch with the fix. The first
+run through the real ingest moved **2 rows of 16 on args**: the brief
+said a file-scope site carries an empty scope, and lane A's C and C++
+sites carry the module's id, which the projection reads as the caller.
+The fix reads a module-id scope as the module; a second run found 56 fmt
+rows on a one-line body's own line (`int f() { return g(); }`) unmoved,
+and the mint now marks a read extent on the symbol (`extent: "braces"`)
+so a body of one line re-homes and a refusal does not. The numbers below
+are the third run's.
+
+- **P114 — met.** fmt 7,012/7,012, 0 contradicted, strict 99.62%
+  (7,012/7,039), 30.4%; args 2,567/2,567, 72.9%; cJSON 1,188/1,188,
+  62.0%; sqlite-vector 851/851, 100.0%. Every export row-identical
+  (removed 0, added 0); poison passes on each, both arms.
+- **P115 — met exactly.** fmt 1,346 read; 34 `conditional-inside`, 19
+  `holds-a-definition`, 0 `runs-off`, 0 `no-body`. args 66 read, none
+  refused.
+- **P116 — met on three counts, missed on two, and the misses are the
+  prediction's arithmetic.** fmt agreeing **6,392 → 7,610** (predicted
+  7,610) and the wrong-caller class **75 → 105** (predicted 105: the 30
+  spellings; C-164's 73 unmoved); `calls` rows moved from a module
+  **1,290**, the simulation's number. **Lost 1,436 → 188, not 165**, and
+  lambda 97 → 97, not 120: the simulation's 23 lambda rows and 19
+  unjudged rows were never in the probe's lost class (it classes a bare
+  `operator()` as lambda and a line without a key site as such, whatever
+  Hobbes says), so they could not leave it — 1,436 − 1,218 − 30 = 188.
+  The 188: 111 under a refused extent, 63 under a definition nothing
+  names, 11 where lane A lost a function's end, 3 lambdas. args: lost
+  **15 → 0**, agreeing 2,476 → 2,489, wrong-class 4 → 6 — as predicted.
+- **P117 — met.** No row that agreed with the key before is lost or
+  wrong after, on either cell.
+- **P118 — met but for four rows.** Nodes, module edges and symbol
+  counts unmoved on all five clones; the only symbols that differ are
+  minted functions and methods (fmt 1,346, args 66), in `end_line` and
+  the `extent` mark — the mark is this build's, not in the prediction.
+  Every changed `from` is a minted symbol's: fmt 1,290 `calls` and 668
+  `uses` from a module, 92 `uses` from a lane A type that starts before
+  the extent (a class → its own method; eight read by hand). **Not
+  predicted:** two `uses` rows on fmt vanish (`NativeArray::InitCopy`
+  and `InitRef` referenced on their own definition's line — a self-edge
+  now, dropped as every self-edge is) and two appear on args
+  (`Command::SelectedCommand` → `Command`, a self-edge of the class
+  before).
+- **P119 — met.** cJSON, sqlite-vector and click: symbols, edges,
+  evidence rows and test reach identical.
+- **P120 — met.** fmt: no test lost a symbol; 208 of 649 tests gained,
+  reach pairs **3,183 → 6,131**.
+- What no key judges: the 760 re-homed `uses` rows and the 19 + 23 rows
+  the key cannot speak to stand on the extents the 1,218 judged rows
+  share with them, not on a grade of their own.
 
 ## 11. Evidence, claims, and register updates
 

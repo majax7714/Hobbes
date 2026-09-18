@@ -151,11 +151,13 @@ class TestWhatMints:
                 "qualname": "ns::Foo::bar",
                 "kind": "method",
                 "line": 2,
-                # ADR-129 §3: a target, not a scope.
+                # ADR-134: the body's closing brace is on the same line,
+                # and the mark says the extent was read rather than refused.
                 "end_line": 2,
                 "declared_by": "scip",
                 # ADR-130: what the definition's own list can take.
                 "max_params": 1,
+                "extent": "braces",
             }
         ]
         assert counts["symbols"] == 1 and counts["files"] == 1
@@ -403,7 +405,7 @@ class TestTheExtent:
     def test_a_one_line_body_is_an_extent_of_one_line(self, tmp_path):
         symbol, extents = self.one(tmp_path, "int f() { return 1; }\n")
         assert symbol["end_line"] == symbol["line"] == 1
-        assert extents["read"] == 1
+        assert extents["read"] == 1 and symbol["extent"] == "braces"
 
     def test_a_brace_inside_a_literal_or_a_comment_does_not_close_the_body(self, tmp_path):
         symbol, extents = self.one(
@@ -540,7 +542,7 @@ class TestTheRehoming:
         )
 
     @staticmethod
-    def lost(line=10, end_line=20, name="lost"):
+    def lost(line=10, end_line=20, name="lost", read=True):
         return {
             "id": f"a.{name}",
             "module": "a",
@@ -550,6 +552,7 @@ class TestTheRehoming:
             "line": line,
             "end_line": end_line,
             "declared_by": "scip",
+            **({"extent": "braces"} if read else {}),
         }
 
     def rehome(self, facts, minted_symbols, symbols=()):
@@ -568,6 +571,35 @@ class TestTheRehoming:
             [self.fact(scope="a.inner")], [self.lost()], [lane_a("a", "inner", 11, 19)]
         )
         assert [f.scope for f in out] == ["a.inner"] and moved == 0
+
+    def test_a_scope_that_is_the_modules_own_id_is_the_module_and_takes_the_extent(self):
+        # Lane A's C and C++ sites at file scope carry the module's id, not
+        # an empty scope, and `project` reads a truthy scope as the caller —
+        # so without this the rule's main case would never move (args'
+        # first real ingest: 2 rows of 16).
+        out, moved = self.rehome([self.fact(scope="a")], [self.lost()])
+        assert [f.scope for f in out] == ["a.lost"] and moved == 1
+
+    def test_a_module_scoped_fact_a_lane_a_type_inside_the_extent_holds_is_left_alone(self):
+        local = {**lane_a("a", "Local", 11, 14), "kind": "type"}
+        out, moved = self.rehome([self.fact(scope="a", line=12)], [self.lost()], [local])
+        assert [f.scope for f in out] == ["a"] and moved == 0
+
+    def test_a_body_of_one_line_takes_the_call_written_on_it(self):
+        # `int f() { return g(); }`: the site is module-scoped, the extent is
+        # its own line, and the mark says it was read (56 rows on fmt).
+        out, moved = self.rehome(
+            [self.fact(scope="a", line=10)], [self.lost(line=10, end_line=10)]
+        )
+        assert [f.scope for f in out] == ["a.lost"] and moved == 1
+
+    def test_a_refused_symbols_own_line_takes_nothing(self):
+        # The same line and the same `end_line`, without the mark: the
+        # extent was refused, and a refusal re-homes nothing at all.
+        out, moved = self.rehome(
+            [self.fact(scope="a", line=10)], [self.lost(line=10, end_line=10, read=False)]
+        )
+        assert [f.scope for f in out] == ["a"] and moved == 0
 
     def test_a_scope_naming_nothing_this_graph_holds_is_left_alone(self):
         out, moved = self.rehome([self.fact(scope="a.gone")], [self.lost()])

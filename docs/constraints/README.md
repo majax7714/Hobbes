@@ -167,6 +167,19 @@ The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-145 narrowed again, 2026-09-18 (ADR-134 accepted and built, 0.2.46-beta):
+- **C-145 narrowed (still surfaced; no entry added):** a minted function
+  or method whose body the file's own braces delimit is a scope, not only
+  a target — `end_line` is the closing brace, the symbol says `extent:
+  "braces"`, and the facts written inside it are drawn from it. fmt: 1,290
+  of 1,436 lost callers re-homed, 1,218 to the caller clang names, none
+  wrong, none that was right moved; args 15 of 15. No graded number
+  moves, because no key reads a caller; the check is a driver over the
+  key's caller names (§10.19), not a grade. Refused and counted: a
+  preprocessor conditional in the body (34 on fmt), another function's
+  line inside the match (19), a type, always. 164 entries, 119 active, 92
+  surfaced, 22 partial, 4 unsurfaced, 28 lifted — unmoved.
+
 C-164 registered, C-145's residual measured, 2026-09-18 (ADR-134 proposed; nothing built, no version move):
 - **C-164 registered (unsurfaced)**, in `extraction-cpp.md`: a lane A C++
   symbol from an error-recovered parse can carry a macro's name

@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 proposed and C-164 registered 2026-09-18.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta) and C-164 registered 2026-09-18.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -81,13 +81,15 @@ item opens when Max names it. Sequencing context is
    registered and narrowed, 0.2.44-beta: args 62.5% → 72.9%, fmt 30.3%),
    then the join's claim by position (ADR-133, C-163 registered and
    lifted, 0.2.45-beta: fmt 30.4%, 43 other cells ±0, 1,785 `uses`
-   edges no longer hidden). A lost definition's extent is measured and
-   simulated, nothing built (ADR-134, proposed), and C-164 is registered
-   unsurfaced beside it (lane A C++ symbols named by a macro: 73
-   wrong-caller rows on fmt).
+   edges no longer hidden), then a lost definition's extent read from
+   the file's braces and the facts inside it re-homed (ADR-134, C-145
+   narrowed again, 0.2.46-beta: no graded number moves — no key reads a
+   caller; fmt's lost callers 1,436 → 188, none wrong). C-164 is
+   registered unsurfaced beside it (lane A C++ symbols named by a macro:
+   73 wrong-caller rows on fmt) and is next.
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
    oracle's grain); fmt reads 100% with a strict 99.62% beside it
-   (ADR-124) at 0.2.45-beta.
+   (ADR-124) at 0.2.46-beta.
    The C++ recall list and the review's remaining items, in order, are
    in `session-handoff.md` under START HERE; W1 carries the extraction
    ones.
