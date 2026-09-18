@@ -463,8 +463,12 @@ def _build_symbol_layer(
     # touches lane A's **symbols**: a C++ function or method whose own name
     # token the index reads as a reference, or whose extent holds a
     # definition, is refused or clipped here, so the mint meets the line as
-    # lost. Nothing else lane A decided sees any of it — the fallback
-    # tables, `withhold`, the lane agreement inputs and
+    # lost. ADR-136 carries the positions it emptied over: a line R1 vacated
+    # is read by the mint even in a file that parsed clean, since the
+    # removal is evidence against the premise `clean-file` rests on — a
+    # generator macro parses without an ERROR node and lane A names the
+    # function after it. Nothing else lane A decided sees any of it — the
+    # fallback tables, `withhold`, the lane agreement inputs and
     # `full_specializations` are all settled above, and a fallback naming a
     # refused symbol finds nothing at the projection and draws nothing —
     # and `project` needs no change: the called-type guard, R-qual and the
@@ -473,7 +477,7 @@ def _build_symbol_layer(
     if lane_a_c_files and lane_b_ran:
         module_of_path = {n["path"]: n["id"] for n in graph["nodes"] if n.get("path")}
         with timings.step("contradicted"):
-            graph["symbols"], resolved, contradictions = minted.contradicted(
+            graph["symbols"], resolved, contradictions, vacated = minted.contradicted(
                 repo_root,
                 graph["symbols"],
                 resolved,
@@ -492,6 +496,7 @@ def _build_symbol_layer(
                 lossy_files,
                 graph["symbols"],
                 module_of_path,
+                vacated=vacated,
             )
         if minted_symbols:
             graph["symbols"] = sorted(

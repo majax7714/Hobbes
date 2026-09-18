@@ -56,7 +56,10 @@ confirmed. The refusals, with what the measurement said:
 ``clean-file``
     The file's lane A parse had no ERROR nodes. There a missing symbol is
     lane A's floor speaking by decision — a lambda, a local class (C-9) —
-    not a loss. 1 fact of that shape on fmt.
+    not a loss. 1 fact of that shape on fmt. **Except at a line R1
+    vacated** (ADR-136, below): that removal is evidence against this
+    premise at exactly one line, and the row there is read as a lossy
+    file's is.
 ``kind``
     The row's descriptor kind is not ``method`` (scip-clang's suffix for
     every function, member or free) or ``type``. Never ``term``: 74 on
@@ -170,6 +173,23 @@ there are no references and no definition rows, so neither can fire and
 the graph is what it was; ``name_col`` is the only difference such a
 graph shows.
 
+**A line R1 vacated is not a clean file's** (ADR-136). A function-like
+macro that *generates* a definition — ``DECLARE_COMMAND_OPCODE(location)
+{ … }`` — parses with no ERROR node, so the file is clean, lane A names
+the function after the macro, and R1 removes it on the index's word;
+``clean-file`` would then refuse the true definition the index holds on
+the same line, and the line would carry no symbol at all. So :func:`mint`
+takes the ``(file, line)`` pairs R1 vacated beside *lossy_files*, and
+refuses a row at neither. Nothing else is lifted: every other refusal
+runs on such a row in its own order, and the rest of a clean file's rows
+are refused as they were. ScummVM: 401 removals, 260 of them in 19 clean
+files, each line holding exactly one definition row with a body and none
+minted before this — against the lossy half's 137 of 137 minted under the
+same rules, the same macros. fmt meets none of it: all 18 of its removals
+are in lossy files, so no graded number moves. The mints are counted
+apart (``vacated``), because ``files`` means the files lane A parsed with
+errors and these are not among them.
+
 :func:`constructor_lines` reads the same rows for a different question
 (ADR-132): which lines a **constructor** is defined at, so the join can
 tell a construction's reference from a type's at a declared name. It
@@ -269,15 +289,18 @@ def mint(
     lossy_files: frozenset[str],
     symbols: Sequence[Mapping],
     module_of_path: Mapping[str, str],
+    vacated: frozenset[tuple[str, int]] = frozenset(),
 ) -> tuple[list[dict], dict]:
     """The symbols lane B's ``definitions`` rows mint, and the counts.
 
     *definitions* are the rows of every C or C++ file lane A walked;
     *lossy_files* the repo-relative paths whose parse had ERROR nodes;
-    *symbols* lane A's, as ``graph["symbols"]`` holds them; and
-    *module_of_path* the graph's file-to-module map. Pure but for reading
-    each file's own text, which is rule 6's whole evidence and the
-    extent's (ADR-134).
+    *symbols* lane A's, as ``graph["symbols"]`` holds them;
+    *module_of_path* the graph's file-to-module map; and *vacated* the
+    ``(file, line)`` pairs :func:`contradicted`'s R1 emptied, where
+    ``clean-file`` does not apply (ADR-136). Pure but for reading each
+    file's own text, which is rule 6's whole evidence and the extent's
+    (ADR-134).
 
     Deterministic: the rows are deduplicated and read in
     ``(file, line, moniker)`` order, so the ids a collision hands out
@@ -313,6 +336,11 @@ def mint(
     minted: list[dict] = []
     minted_files: list[str] = []
     files: set[str] = set()
+    # ADR-136's own count, kept apart from *files*: a clean file holding
+    # nothing but vacated-line mints is not a file lane A parsed with
+    # errors, and the summary's sentence says which is which.
+    vacated_files: set[str] = set()
+    vacated_symbols = 0
     sources: dict[str, list[str] | None] = {}
     blanked: dict[str, list[str] | None] = {}
     for file, line, moniker, kind in rows:
@@ -321,7 +349,9 @@ def mint(
             continue  # a file lane A never discovered; not ours to name
         if line in lane_a_lines.get(module, ()):
             continue  # the lanes meet here: the normal case, not a refusal
-        if file not in lossy_files:
+        if file not in lossy_files and (file, line) not in vacated:
+            # ADR-136: a clean parse is the premise this refusal rests on,
+            # and R1's removal is evidence against it at this one line.
             refused["clean-file"] += 1
             continue
         if kind not in MINTABLE_KINDS:
@@ -378,7 +408,11 @@ def mint(
             symbol["max_params"] = read_max_params(repo_root, file, line, name, sources)
         minted.append(symbol)
         minted_files.append(file)
-        files.add(file)
+        if file in lossy_files:
+            files.add(file)
+        else:
+            vacated_symbols += 1
+            vacated_files.add(file)
 
     # ADR-134, a second pass because its last refusal is a property of the
     # whole minted list: the symbols are settled first, then each function's
@@ -387,6 +421,7 @@ def mint(
     return minted, {
         "symbols": len(minted),
         "files": len(files),
+        "vacated": {"symbols": vacated_symbols, "files": len(vacated_files)},
         "refused": refused,
         "extents": extents,
     }
@@ -399,9 +434,10 @@ def contradicted(
     resolutions: Iterable,
     definitions: Iterable[Mapping],
     module_of_path: Mapping[str, str],
-) -> tuple[list[dict], list, dict]:
+) -> tuple[list[dict], list, dict, frozenset[tuple[str, int]]]:
     """ADR-135's two rules over the joined facts: the symbols the index
-    contradicts, the facts they no longer speak for, and the counts.
+    contradicts, the facts they no longer speak for, the counts, and the
+    ``(file, line)`` R1 vacated.
 
     *symbols* are lane A's as ``graph["symbols"]`` holds them, *facts* the
     join's output, *resolutions* lane B's sites (``file``, ``line``,
@@ -414,6 +450,12 @@ def contradicted(
     functions and methods, and no minted or C symbol — and a symbol
     nothing contradicts is returned exactly as it came. Returns new lists:
     no dict this is handed is written to.
+
+    The fourth return is the positions **R1** emptied — a symbol's file
+    and its own line, one pair per symbol removed — which :func:`mint`
+    reads as ADR-136's exception to ``clean-file``. R2 vacates nothing: it
+    clips an extent and the symbol keeps its line. Not a key in *counts*,
+    which is written to the graph as it is.
 
     Deterministic: the symbols are read in id order, and the resolutions
     in one pass over the positions wanted, which is also what makes this
@@ -440,7 +482,7 @@ def contradicted(
         if file is not None:
             candidates.append((symbol, file))
     if not candidates:
-        return list(symbols), list(facts), counts
+        return list(symbols), list(facts), counts, frozenset()
 
     rows_at: dict[tuple[str, int], list[Mapping]] = {}
     held: dict[str, list[int]] = {}
@@ -468,11 +510,15 @@ def contradicted(
                 )
 
     refused: dict[str, str] = {}
-    for symbol, _ in candidates:
+    vacated: set[tuple[str, int]] = set()
+    for symbol, file in candidates:
         reason = _contradiction(symbol, resolved_to.get(symbol["id"], ()), rows_at)
         if reason is not None:
             counts["refused"][reason] += 1
             refused[symbol["id"]] = symbol["module"]
+            # Where the symbol stood: the mint reads this line even in a
+            # file that parsed clean (ADR-136).
+            vacated.add((file, symbol["line"]))
 
     # R2, on what R1 left: an extent holding a definition the index places
     # at file or class scope says the parse ran on over it, so the file's
@@ -503,7 +549,7 @@ def contradicted(
             clipped[symbol["id"]] = (symbol["module"], read)
 
     if not refused and not clipped:
-        return list(symbols), list(facts), counts
+        return list(symbols), list(facts), counts, frozenset()
     out_symbols = [
         {**symbol, "end_line": clipped[symbol["id"]][1]}
         if symbol.get("id") in clipped
@@ -526,7 +572,7 @@ def contradicted(
             continue
         out_facts.append(dataclasses.replace(fact, scope=module))
         counts["facts_rescoped"] += 1
-    return out_symbols, out_facts, counts
+    return out_symbols, out_facts, counts, frozenset(vacated)
 
 
 def contradicted_fired(counts: Mapping) -> bool:

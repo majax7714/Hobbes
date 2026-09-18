@@ -118,6 +118,33 @@ struct Holder3 {
 #endif
 """
 
+#: ADR-136's shape, in two files written beside the others (the line
+#: numbers above stay where they are). ``GEN`` is a **generator** macro —
+#: ScummVM's ``DECLARE_COMMAND_OPCODE(location) { … }`` — defined in a
+#: header of its own, as ScummVM's is, so nothing in ``lost4.h`` tells the
+#: grammar what it is: the file parses with no ERROR node, lane A names
+#: the function ``GEN`` at line 7, and the index names the definition
+#: ``generated`` at the same line and reads line 7's token as a reference
+#: to the macro. The call at line 8 is written inside the body.
+LOST_GENERATOR_MACRO = """#ifndef GEN_H
+#define GEN_H
+#define GEN(n) int n()
+#endif
+"""
+
+LOST_GENERATOR_HEADER = """#ifndef LOST4_H
+#define LOST4_H
+#include "gen.h"
+
+int helper4(int x) { return x + 1; }
+
+GEN(generated) {
+    return helper4(1);
+}
+
+#endif
+"""
+
 LOST_MONIKER = "cxx . . $ lib/v1/lost(9ab1c0d2e3f40506)."
 LOST_TYPE_MONIKER = "cxx . . $ lib/v1/Lost#"
 DECLARED_ONLY_MONIKER = "cxx . . $ lib/v1/declared_only(77cc88dd99ee00ff)."
@@ -126,6 +153,8 @@ CALLER_MONIKER = "cxx . . $ lib/v1/caller(55ee66ff77001122)."
 GUARDED_MONIKER = "cxx . . $ lib/v1/guarded(3344556677889900)."
 LOCKED_MONIKER = "cxx . . $ LOCKED_!"
 INNER_MONIKER = "cxx . . $ lib/v1/inner(99aa88bb77cc66dd)."
+GEN_MONIKER = "cxx . . $ GEN!"
+GENERATED_MONIKER = "cxx . . $ lib/generated(aabbccdd11223344)."
 ANNOTATED_MONIKER = "cxx . . $ lib/v1/Holder3#annotated(1122334455667788)."
 
 
@@ -147,12 +176,13 @@ def lane_a(module: str, name: str, line: int, end_line: int | None = None) -> di
     }
 
 
-def mint(tmp_path: Path, sources: dict[str, str], rows, *, clean=(), symbols=()):
+def mint(tmp_path: Path, sources: dict[str, str], rows, *, clean=(), symbols=(), vacated=()):
     """Write *sources* under *tmp_path* and mint over *rows*.
 
     Every written file is a lossy one unless *clean* names it, since the
     lossy set is rule 1's whole input and each refusal wants exactly one
-    thing wrong with it.
+    thing wrong with it. *vacated* is ADR-135's R1 output, the ``(file,
+    line)`` pairs rule 1 does not apply at (ADR-136).
     """
     for rel, text in sources.items():
         path = tmp_path / rel
@@ -164,6 +194,7 @@ def mint(tmp_path: Path, sources: dict[str, str], rows, *, clean=(), symbols=())
         frozenset(rel for rel in sources if rel not in clean),
         list(symbols),
         {rel: rel for rel in sources},
+        vacated=frozenset(vacated),
     )
 
 
@@ -373,6 +404,120 @@ class TestWhatIsRefused:
             symbols=[lane_a("a.h", "f", 1)],
         )
         assert symbols == [] and set(counts["refused"].values()) == {0}
+
+
+class TestTheVacatedLine:
+    """ADR-136: ``clean-file`` does not refuse a row at a line ADR-135's R1
+    emptied. A generator macro parses with no ERROR node, so the file is
+    clean and lane A names the function after the macro — and R1's removal
+    is evidence against that premise at exactly that line. 260 of ScummVM's
+    401 removals are this shape."""
+
+    #: ``GEN(op_look) { … }``: lane A named the function after the macro,
+    #: R1 removed it, and the index holds the true definition at line 3.
+    #: The file parses clean, which is the whole of the difficulty.
+    GENERATED = (
+        "// gen.h defines GEN(n)\n"
+        "\n"
+        "GEN(op_look) {\n"
+        "    return help();\n"
+        "}\n"
+        "\n"
+        "int other() { return 0; }\n"
+    )
+
+    def test_a_row_at_a_vacated_line_in_a_clean_file_is_minted(self, tmp_path):
+        symbols, counts = mint(
+            tmp_path,
+            {"a.cc": self.GENERATED},
+            [row("a.cc", 3, "method", "cxx . . $ ns/op_look(1a).")],
+            clean=("a.cc",),
+            vacated=[("a.cc", 3)],
+        )
+        assert [(s["id"], s["line"], s["end_line"], s.get("extent")) for s in symbols] == [
+            ("a.cc.ns::op_look", 3, 5, "braces")
+        ]
+        # `files` means the files lane A parsed with errors, and this is
+        # not one of them: the mint is counted apart.
+        assert counts["symbols"] == 1 and counts["files"] == 0
+        assert counts["vacated"] == {"symbols": 1, "files": 1}
+        assert set(counts["refused"].values()) == {0}
+
+    def test_the_same_files_other_rows_are_refused_as_they_were(self, tmp_path):
+        # The exception is the line's, not the file's: one removal does not
+        # open every unmatched row in a clean file (ADR-136's route (b),
+        # not taken).
+        symbols, counts = mint(
+            tmp_path,
+            {"a.cc": self.GENERATED},
+            [
+                row("a.cc", 3, "method", "cxx . . $ ns/op_look(1a)."),
+                row("a.cc", 7, "method", "cxx . . $ ns/other(2b)."),
+            ],
+            clean=("a.cc",),
+            vacated=[("a.cc", 3)],
+        )
+        assert [s["line"] for s in symbols] == [3]
+        assert counts["refused"]["clean-file"] == 1
+        assert counts["vacated"] == {"symbols": 1, "files": 1}
+
+    @pytest.mark.parametrize(
+        "rows, reason, fired",
+        [
+            ([row("a.cc", 1, "macro", "cxx . . $ GEN!")], "kind", 1),
+            ([row("a.cc", 1, "method", "cxx . . $ ns/decl(1a).")], "declaration", 1),
+            (
+                [
+                    row("a.cc", 1, "method", "cxx . . $ ns/f(1a)."),
+                    row("a.cc", 1, "method", "cxx . . $ ns/g(2b)."),
+                ],
+                "several-monikers",
+                2,
+            ),
+        ],
+        ids=["a macro row", "a line that shows no body", "two monikers at the line"],
+    )
+    def test_a_vacated_line_still_meets_every_other_refusal(
+        self, tmp_path, rows, reason, fired
+    ):
+        # Only `clean-file` is lifted; the chain below it runs on such a row
+        # in its own order, as it does on any lossy file's.
+        symbols, counts = mint(
+            tmp_path,
+            {"a.cc": "int decl(int x);\n"},
+            rows,
+            clean=("a.cc",),
+            vacated=[("a.cc", 1)],
+        )
+        assert symbols == [] and counts["refused"][reason] == fired
+        assert counts["vacated"] == {"symbols": 0, "files": 0}
+
+    def test_a_vacated_line_in_a_lossy_file_mints_as_it_did(self, tmp_path):
+        # What fmt's 18 removals all were: rule 1 never reached them, so
+        # nothing here is ADR-136's and the count says so.
+        symbols, counts = mint(
+            tmp_path,
+            {"a.cc": self.GENERATED},
+            [row("a.cc", 3, "method", "cxx . . $ ns/op_look(1a).")],
+            vacated=[("a.cc", 3)],
+        )
+        assert [s["line"] for s in symbols] == [3]
+        assert counts["files"] == 1
+        assert counts["vacated"] == {"symbols": 0, "files": 0}
+
+    def test_with_no_vacated_set_the_rule_is_what_it_was(self, tmp_path):
+        # The default, which is what every caller but the C and C++ ingest
+        # passes: a clean file's row is refused and the block reads zeros.
+        (tmp_path / "a.cc").write_text(self.GENERATED)
+        symbols, counts = minted.mint(
+            tmp_path,
+            [row("a.cc", 3, "method", "cxx . . $ ns/op_look(1a).")],
+            frozenset(),
+            [],
+            {"a.cc": "a.cc"},
+        )
+        assert symbols == [] and counts["refused"]["clean-file"] == 1
+        assert counts["vacated"] == {"symbols": 0, "files": 0}
 
 
 class TestTheBodyRead:
@@ -761,7 +906,7 @@ class TestTheContradiction:
         # `void UnitTest::AddTestPartResult(..) GTEST_LOCK_EXCLUDED_(mutex_)
         # {` is a function called `GTEST_LOCK_EXCLUDED_` to lane A. 13 on
         # fmt, all 13 misnamed.
-        symbols, facts, counts = self.run(
+        symbols, facts, counts, _ = self.run(
             tmp_path,
             [self.symbol()],
             facts=[self.fact()],
@@ -776,11 +921,22 @@ class TestTheContradiction:
         assert [f.scope for f in facts] == ["a"]
         assert counts["facts_rescoped"] == 1
 
+    def test_r1_hands_out_the_file_and_line_it_emptied(self, tmp_path):
+        """ADR-136: the mint reads the row at that line even where the file
+        parsed clean, and this is how it learns which line."""
+        _, _, _, vacated = self.run(
+            tmp_path,
+            [self.symbol()],
+            resolutions=[self.site()],
+            definitions=[row("m.h", 3, "macro", "cxx . . $ GTEST_LOCK_EXCLUDED_!")],
+        )
+        assert vacated == frozenset({("a.cc", 10)})
+
     def test_a_term_row_of_the_symbols_own_name_is_refused(self, tmp_path):
         # `FMT_CONSTEVAL basic_fstring(const S& s) : str_(s) {` is a
         # constructor lane A named after its first member initialiser. 5 on
         # fmt, the register's "2 symbols" being what one key's rows showed.
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol(name="str_")],
             resolutions=[self.site(name="str_")],
@@ -792,7 +948,7 @@ class TestTheContradiction:
     def test_a_term_row_of_another_name_is_kept(self, tmp_path):
         # The index reading the token as a member of some *other* name is
         # not this shape, and a symbol nothing contradicts does not move.
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol(name="str_")],
             resolutions=[self.site(name="str_")],
@@ -810,7 +966,7 @@ class TestTheContradiction:
         """The position has to be exact: read loosely, the rule flags
         *right* symbols — args' `Base::KickOut`, whose body uses the
         enumerator `Options::KickOut`, is four such on the measured cells."""
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol(name="KickOut", end_line=20)],
             resolutions=[self.site(name="KickOut", **where)],
@@ -830,7 +986,7 @@ class TestTheContradiction:
     def test_anything_but_a_macro_or_a_term_leaves_the_symbol_alone(
         self, tmp_path, definitions
     ):
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol()],
             resolutions=[self.site()],
@@ -843,7 +999,7 @@ class TestTheContradiction:
         # A C symbol, or a minted one: neither carries the column, and
         # neither is a parse ADR-135 has anything to say about.
         plain = {k: v for k, v in self.symbol(line=1, end_line=6).items() if k != "name_col"}
-        symbols, facts, counts = self.run(
+        symbols, facts, counts, _ = self.run(
             tmp_path,
             [plain],
             facts=[self.fact(line=5)],
@@ -866,7 +1022,7 @@ class TestTheContradiction:
     def test_an_extent_holding_a_file_scope_definition_is_read_from_the_braces(
         self, tmp_path
     ):
-        symbols, facts, counts = self.run(
+        symbols, facts, counts, _ = self.run(
             tmp_path,
             [self.symbol(line=1, end_line=7)],
             facts=[self.fact(line=2), self.fact(line=6)],
@@ -882,11 +1038,22 @@ class TestTheContradiction:
         # Nothing says `braces` on a lane A symbol: that field says *minted*.
         assert "extent" not in symbols[0]
 
+    def test_a_re_read_extent_empties_no_line(self, tmp_path):
+        """R2 clips an extent and the symbol keeps its own line, so there is
+        nothing there for the mint to read (ADR-136)."""
+        _, _, counts, vacated = self.run(
+            tmp_path,
+            [self.symbol(line=1, end_line=7)],
+            definitions=[row("a.cc", 5, "method", "cxx . . $ ns/next_one(2b).")],
+            source=self.SWALLOWED,
+        )
+        assert counts["extents"]["read"] == 1 and vacated == frozenset()
+
     def test_a_definition_local_to_a_function_is_inside_by_right(self, tmp_path):
         # A lambda's or a local class's method (C-9, the mint's
         # `local-to-function`): its moniker's chain holds a method before
         # the last, and it contradicts no extent at all.
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol(line=1, end_line=7)],
             definitions=[row("a.cc", 5, "method", "cxx . . $ ns/f(1a).local#run(2b).")],
@@ -898,7 +1065,7 @@ class TestTheContradiction:
     def test_braces_that_agree_with_the_parse_leave_the_symbol_alone(self, tmp_path):
         # The held row is something this rule does not understand, and an
         # end at or past the parse's is no evidence against it.
-        symbols, _, counts = self.run(
+        symbols, _, counts, _vacated = self.run(
             tmp_path,
             [self.symbol(line=1, end_line=3)],
             definitions=[row("a.cc", 2, "method", "cxx . . $ ns/inner(2b).")],
@@ -910,7 +1077,7 @@ class TestTheContradiction:
     def test_a_conditional_in_the_body_refuses_and_leaves_a_line(self, tmp_path):
         # ADR-134's refusal, kept: either branch may hold the brace the
         # compiler saw, so the symbol keeps its own line and nothing else.
-        symbols, facts, counts = self.run(
+        symbols, facts, counts, _ = self.run(
             tmp_path,
             [self.symbol(line=1, end_line=6)],
             facts=[self.fact(line=3)],
@@ -925,10 +1092,12 @@ class TestTheContradiction:
         assert [f.scope for f in facts] == ["a"] and counts["facts_rescoped"] == 1
 
     def test_nothing_fired_says_so_and_the_caller_writes_no_block(self, tmp_path):
-        symbols, facts, counts = self.run(
+        symbols, facts, counts, vacated = self.run(
             tmp_path, [self.symbol()], facts=[self.fact()]
         )
         assert [s["id"] for s in symbols] == ["a.f"] and [f.scope for f in facts] == ["a.f"]
+        # Nothing was removed, so the mint is handed no line (ADR-136).
+        assert vacated == frozenset()
         assert counts == {
             "refused": dict.fromkeys(minted.CONTRADICTIONS, 0),
             "extents": {
@@ -1135,6 +1304,8 @@ class TestThroughTheIngest:
         assert graph["minted"] == {
             "symbols": 0,
             "files": 0,
+            # ADR-136: present whenever the block is, zeros included.
+            "vacated": {"symbols": 0, "files": 0},
             "refused": dict.fromkeys(minted.REFUSALS, 0),
             # ADR-134: nothing minted is nothing to read an extent from,
             # and no fact to re-home.
@@ -1334,6 +1505,74 @@ class TestThroughTheIngest:
         )
         assert edge["from"] == "src/lost3.h.Holder3::LOCKED_"
 
+    #: ADR-136's own repo: the generator macro, in a file that parses clean.
+    @staticmethod
+    def repo_with_a_generator(tmp_path: Path) -> Path:
+        repo = TestThroughTheIngest.repo(tmp_path)
+        (repo / "src" / "gen.h").write_text(LOST_GENERATOR_MACRO)
+        (repo / "src" / "lost4.h").write_text(LOST_GENERATOR_HEADER)
+        return repo
+
+    DEFINITIONS_4 = [
+        row("src/gen.h", 3, "macro", GEN_MONIKER),
+        row("src/lost4.h", 7, "method", GENERATED_MONIKER),
+    ]
+    #: The index's reference at exactly the token lane A took as the
+    #: function's name — R1's evidence, here in a file with no ERROR node.
+    GENERATOR_REFERENCE = {
+        "file": "src/lost4.h", "line": 7, "col": 0, "name": "GEN",
+        "def_file": "src/gen.h", "def_line": 3,
+    }
+    #: `helper4(1)` at lost4.h:8, written inside the generated body.
+    GENERATED_CALL = {
+        "file": "src/lost4.h", "line": 8, "col": 11, "name": "helper4",
+        "def_file": "src/lost4.h", "def_line": 5,
+    }
+
+    def test_the_generator_header_really_parses_clean(self, tmp_path):
+        """The premise, checked with the parser rather than assumed: the
+        file is in no parse-error set, so nothing below can pass through
+        the lossy route — and lane A does name the function after the
+        macro. If a grammar release starts reading the shape, this file
+        stops testing ADR-136's and says so."""
+        from hobbes.extract.cppsource import extract_cpp
+
+        layer = extract_cpp(self.repo_with_a_generator(tmp_path))
+        assert "src/lost4.h" not in layer["lossy_files"]
+        named = next(s for s in layer["symbols"] if s["id"] == "src/lost4.h.GEN")
+        assert (named["kind"], named["line"], named["name_col"]) == ("function", 7, 0)
+        assert not [s for s in layer["symbols"] if s["name"] == "generated"]
+
+    def test_a_definition_at_a_vacated_line_in_a_clean_file_is_minted(
+        self, tmp_path, monkeypatch
+    ):
+        """ADR-136 end to end: R1 removes the function lane A named after
+        the generator macro, and the mint reads the definition the index
+        holds on the same line although the file parsed clean — so the call
+        written in the body is drawn from it."""
+        graph = self.graph(
+            monkeypatch,
+            self.repo_with_a_generator(tmp_path),
+            self.facts(
+                self.DEFINITIONS_4, [self.GENERATOR_REFERENCE, self.GENERATED_CALL]
+            ),
+        )
+        assert not [s for s in graph["symbols"] if s["id"] == "src/lost4.h.GEN"]
+        generated = next(
+            s for s in graph["symbols"] if s["id"] == "src/lost4.h.lib::generated"
+        )
+        assert (generated["line"], generated["end_line"]) == (7, 9)
+        assert generated["extent"] == "braces" and generated["declared_by"] == "scip"
+        # Counted apart from `files`, which means the files lane A parsed
+        # with errors — and this one is not among them.
+        assert graph["minted"]["vacated"] == {"symbols": 1, "files": 1}
+        assert graph["minted"]["symbols"] == 1 and graph["minted"]["files"] == 0
+        edge = next(
+            e for e in graph["symbol_edges"]
+            if e["to"] == "src/lost4.h.helper4" and e["type"] == "calls"
+        )
+        assert edge["from"] == "src/lost4.h.lib::generated"
+
     def test_no_lane_b_facts_mint_nothing_and_write_no_block(self, tmp_path, monkeypatch):
         """P6: with no indexer the floor is exactly what it was."""
         import hobbes.extract as extract
@@ -1380,6 +1619,8 @@ def test_the_refusal_block_names_every_reason_whether_or_not_it_fired(tmp_path):
     assert counts == {
         "symbols": 0,
         "files": 0,
+        # ADR-136's own count, beside the rest and zero where it never fired.
+        "vacated": {"symbols": 0, "files": 0},
         "refused": dict.fromkeys(minted.REFUSALS, 0),
         # `rehomed` is the caller's, counted where the facts are.
         "extents": {"read": 0, "refused": dict.fromkeys(minted.EXTENT_REFUSALS, 0)},

@@ -138,6 +138,12 @@ def _print_minted(counts: dict | None) -> None:
     artifact with no ``extents`` block is an older Hobbes': every minted
     symbol there is a target, and the line reads as it did.
 
+    Where the mint read a line ADR-135's R1 vacated in a file that parsed
+    *clean* (ADR-136, C-164), those definitions get a clause of their own:
+    ``files`` counts the files lane A parsed with errors, which these are
+    not, so the sentence would otherwise put them somewhere they are not.
+    An artifact without the key, or with none of them, reads as it did.
+
     Nothing is printed where the key is absent — no indexer, or no C or
     C++, is the floor exactly as it was (P6) — or where the rule neither
     minted nor refused anything.
@@ -148,8 +154,18 @@ def _print_minted(counts: dict | None) -> None:
     if not counts.get("symbols") and not any(refused.values()):
         return
     extents = counts.get("extents")
-    read = f"    read from the index: {counts.get('symbols', 0)} definition(s) in "
-    read += f"{counts.get('files', 0)} file(s) lane A parsed with errors (C-145; "
+    read = f"    read from the index: {counts.get('symbols', 0)} definition(s)"
+    vacated = counts.get("vacated") or {}
+    if vacated.get("symbols"):
+        # ADR-136: these are in files that parsed clean, so `files` — the
+        # lossy ones — does not hold them, and the sentence must not say it
+        # does. A clause of their own, where a reader meets the exception.
+        read += (
+            f", {vacated['symbols']} of them in {vacated.get('files', 0)} file(s) that "
+            "parsed clean, each at a line where a lane A symbol was refused (ADR-136, "
+            "C-164), and the rest"
+        )
+    read += f" in {counts.get('files', 0)} file(s) lane A parsed with errors (C-145; "
     if extents is None:
         read += "targets only — calls written inside them keep their caller)"
     else:
