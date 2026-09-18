@@ -232,6 +232,20 @@ def join(
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
+    A matched site claims the resolution it matched **by position** —
+    ``(file, line, name, col)`` (ADR-133) — so every other resolution of
+    that name on the line still reaches the unclaimed loop below. Claiming
+    by name alone withheld them all, and they are true facts: the declared
+    type in ``Element el = new Element("div")``, hidden by the
+    constructor's claim; the return type in ``func (r *body) StreamID()
+    quic.StreamID``, hidden by the method call's. A resolution at the
+    matched hit's **own** column stays hidden, and that is wanted — the
+    index puts a declaration and its override at one position, and
+    ADR-104's abstention claims its resolution precisely so the alternates
+    do not resurface. A **site** without a column keeps the by-name claim:
+    :func:`match_resolution` took the first resolution of the name there,
+    so which one it matched is not known, and an unsure claim draws less.
+
     *fallback* is lane A's own resolution for a site, keyed by
     ``(file, line, name)`` — used only where SCIP resolved nothing, and
     marked ``syntactic`` when it is. Sites nothing resolves are dropped:
@@ -310,7 +324,11 @@ def join(
     fallback = fallback or {}
     vetoed = _veto_set(external)
     out: list[Resolved] = []
-    claimed: set[tuple[str, int, str]] = set()
+    claimed: set[tuple[str, int, str, int]] = set()
+    #: The by-name claims of the sites lane A recorded no column for
+    #: (ADR-133): there the whole name on the line is hidden, as it was
+    #: everywhere before the column entered the key.
+    claimed_by_name: set[tuple[str, int, str]] = set()
 
     for site in syntax:
         if site.kind not in (CALL_SITE, IMPORT_SITE):
@@ -323,12 +341,26 @@ def join(
             # single static target, and lane B's occurrence there is the
             # first member's — one possible dispatch. Its resolution is
             # claimed so it does not resurface as a `uses` reference,
-            # and no edge is drawn; the site is counted in the tail.
+            # and no edge is drawn; the site is counted in the tail. The
+            # claim is the one below, by position: it takes the alternates
+            # the index states at that same occurrence with it, and leaves
+            # the line's other references alone.
             if hit is not None:
-                claimed.add((hit.file, hit.line, hit.name))
+                claimed.add((hit.file, hit.line, hit.name, hit.col))
+                if site.col < 0:
+                    claimed_by_name.add((hit.file, hit.line, hit.name))
             continue
         if hit is not None:
-            claimed.add((hit.file, hit.line, hit.name))
+            # By position (ADR-133): the column keeps the abstention and
+            # the same-reference alternates hidden — the index states
+            # both a declaration and its override at one occurrence — and
+            # releases the line's other references, which are their own
+            # facts. Where lane A recorded no column the match was the
+            # first resolution of the name, and which one that was is not
+            # known, so there the claim is the by-name one it always was.
+            claimed.add((hit.file, hit.line, hit.name, hit.col))
+            if site.col < 0:
+                claimed_by_name.add((hit.file, hit.line, hit.name))
             out.append(
                 Resolved(
                     kind=kind,
@@ -380,8 +412,10 @@ def join(
     # once a consumer filters on it.
     for (file, line), sites in sorted(buckets.items()):
         for hit in sites:
-            if (hit.file, hit.line, hit.name) in claimed:
+            if (hit.file, hit.line, hit.name, hit.col) in claimed:
                 continue
+            if (hit.file, hit.line, hit.name) in claimed_by_name:
+                continue  # a columnless site claimed the name here
             in_template = _operator_call(hit, operators) if operators else None
             if in_template is False:
                 # ADR-131: an operator applied by symbol, outside a

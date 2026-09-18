@@ -139,6 +139,102 @@ class TestDisambiguation:
         assert kinds == ["calls", "uses"]
 
 
+class TestTheClaimIsByPosition:
+    """ADR-133: a matched site claims ``(file, line, name, col)``, so one
+    reference no longer hides every other of its name on the line. What
+    stays hidden is what the column says is the same occurrence — the
+    index's own alternates — and every resolution on a line whose site
+    lane A recorded no column for."""
+
+    def test_the_same_name_at_another_column_is_a_reference(self):
+        # `Element el = new Element("div")`: the constructor call claims
+        # its own column, and the declared type — another column, another
+        # definition — is the `uses` fact the by-name claim withheld.
+        out = ev.join(
+            [call("a.java", 10, "Element", col=22)],
+            [
+                resolution("a.java", 10, "Element", "ctor.java", 7, col=22),
+                resolution("a.java", 10, "Element", "type.java", 3, col=0),
+            ],
+        )
+        assert [(r.kind, r.def_file) for r in out] == [
+            ("calls", "ctor.java"),
+            ("uses", "type.java"),
+        ]
+        use = out[1]
+        assert (use.tier, use.lanes, use.scope) == (SEMANTIC, (ev.SCIP,), "")
+
+    def test_the_same_name_at_the_matched_column_stays_hidden(self):
+        # `nodes[i].optimizeNodes()`: the index states the declaration and
+        # an override at one occurrence, and only one of them is the
+        # reference. Both sit at the claimed column, so neither resurfaces.
+        out = ev.join(
+            [call("a.ts", 10, "optimizeNodes", col=22)],
+            [
+                resolution("a.ts", 10, "optimizeNodes", "decl.ts", 7, col=22),
+                resolution("a.ts", 10, "optimizeNodes", "impl.ts", 3, col=22),
+            ],
+        )
+        assert [(r.kind, r.def_file) for r in out] == [("calls", "decl.ts")]
+
+    def test_the_same_definition_at_another_column_is_a_reference_too(self):
+        # The join states what the index states: two occurrences of one
+        # name onto one definition are two references, and deduplication
+        # is no business of this layer.
+        out = ev.join(
+            [call("a.go", 10, "StreamID", col=40)],
+            [
+                resolution("a.go", 10, "StreamID", "b.go", 5, col=40),
+                resolution("a.go", 10, "StreamID", "b.go", 5, col=20),
+            ],
+        )
+        assert [(r.kind, r.def_file, r.def_line) for r in out] == [
+            ("calls", "b.go", 5),
+            ("uses", "b.go", 5),
+        ]
+
+    def test_an_ambiguous_site_hides_its_own_column_and_no_other(self):
+        # ADR-104's abstention keeps everything it had — its resolution
+        # and the alternates at that occurrence — and gives up what it
+        # never had a reason to hide: the same name elsewhere on the line.
+        ambiguous = ev.Site(
+            ev.TREE_SITTER, ev.CALL_SITE, "a.ts", 10, "render", 4, "a.draw",
+            ambiguous="union-member",
+        )
+        out = ev.join(
+            [ambiguous],
+            [
+                resolution("a.ts", 10, "render", "b.ts", 5, col=4),
+                resolution("a.ts", 10, "render", "c.ts", 9, col=4),
+                resolution("a.ts", 10, "render", "d.ts", 2, col=30),
+            ],
+        )
+        assert [(r.kind, r.def_file) for r in out] == [("uses", "d.ts")]
+
+    def test_a_site_with_no_column_claims_the_whole_name_on_its_line(self):
+        # Lane A recorded no column, so `match_resolution` took the first
+        # resolution of the name and which one it matched is not known.
+        # Draw less when unsure: the line's others stay hidden, as they
+        # were before the column entered the key.
+        out = ev.join(
+            [call("a.py", 10, "run", col=-1)],
+            [
+                resolution("a.py", 10, "run", "b.py", 5, col=4),
+                resolution("a.py", 10, "run", "c.py", 2, col=20),
+            ],
+        )
+        assert [(r.kind, r.def_file) for r in out] == [("calls", "b.py")]
+
+    def test_a_resolution_with_no_column_a_site_claimed_is_not_also_a_use(self):
+        # The resolution's own missing column needs nothing special: it
+        # carries `-1` into the key like any other value.
+        out = ev.join(
+            [call("a.py", 10, "run")],
+            [resolution("a.py", 10, "run", "b.py", 5, col=-1)],
+        )
+        assert [r.kind for r in out] == ["calls"]
+
+
 class TestProviderSeparation:
     def test_an_ambiguous_site_draws_nothing_and_vetoes_the_resolution(self):
         # ADR-104 / C-97: lane A abstained on a union receiver whose
@@ -325,6 +421,40 @@ class TestAnOperatorAppliedBySymbol:
         assert out[0].scope == "a.g"
         assert counts == {"drawn": 0, "in_template": 0}
 
+    def test_a_call_of_the_name_elsewhere_on_the_line_no_longer_hides_it(self):
+        # ADR-133: `ns::operator+(a, 1)` claims its own column only, so
+        # the `a + b` beside it — another column, the token lane A
+        # recorded — reaches this rule and is the call it is.
+        site = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 10, "operator+", 0, "a.g")
+        out, counts = self.counted(
+            [
+                resolution("a.cc", 10, "operator+", "fmt.h", 9, col=0),
+                self.reference(name="operator+"),
+            ],
+            self.tokens((10, 3, "+", False)),
+            syntax=[site],
+        )
+        assert [(fact.kind, fact.def_line, fact.scope) for fact in out] == [
+            ("calls", 9, "a.g"),
+            ("calls", 5, ""),
+        ]
+        assert counts == {"drawn": 1, "in_template": 0}
+
+    def test_released_inside_a_template_it_is_withheld_as_any_other(self):
+        # The release is only into this rule: the amendment answers for
+        # the freed reference as it does for one nothing claimed.
+        site = ev.Site(ev.TREE_SITTER, ev.CALL_SITE, "a.cc", 10, "operator+", 0, "a.g")
+        out, counts = self.counted(
+            [
+                resolution("a.cc", 10, "operator+", "fmt.h", 9, col=0),
+                self.reference(name="operator+"),
+            ],
+            self.tokens((10, 3, "+", True)),
+            syntax=[site],
+        )
+        assert [(fact.kind, fact.def_line) for fact in out] == [("calls", 9)]
+        assert counts == {"drawn": 0, "in_template": 1}
+
     def test_without_the_tokens_the_join_is_what_it_was(self):
         # P6: with lane B off, or on a repo with no C++, nothing reads the
         # tokens and the same reference is the same `uses` fact.
@@ -460,6 +590,42 @@ class TestAConstruction:
         assert out == []
         assert counts == {"drawn": 0, "in_template": 1}
         assert built == {"drawn": 0, "in_template": 0}
+
+    def test_a_call_of_the_name_elsewhere_on_the_line_no_longer_hides_it(self):
+        # The shape ADR-132's P102 missed on, 19 rows of fmt: a site named
+        # `A` claims its own column, and the construction token's
+        # resolution — same name, another column, onto the constructor —
+        # is released into this rule by the by-position claim (ADR-133).
+        out, counts = self.counted(
+            [
+                resolution("a.cc", 10, "A", "lib.h", 9, col=0),
+                self.reference(),
+            ],
+            self.tokens((10, 6, "decl-init", False)),
+            syntax=[call("a.cc", 10, "A", scope="a.g", col=0)],
+        )
+        assert [(fact.kind, fact.def_line, fact.scope) for fact in out] == [
+            ("calls", 9, "a.g"),
+            ("calls", 2, ""),
+        ]
+        assert counts == {"drawn": 1, "in_template": 0}
+
+    def test_released_inside_a_template_it_stays_a_use_as_any_other(self):
+        # The release is only into this rule: inside a template the freed
+        # reference is the `uses` it is for an unclaimed one, and counted.
+        out, counts = self.counted(
+            [
+                resolution("a.cc", 10, "A", "lib.h", 9, col=0),
+                self.reference(),
+            ],
+            self.tokens((10, 6, "decl-init", True)),
+            syntax=[call("a.cc", 10, "A", scope="a.g", col=0)],
+        )
+        assert [(fact.kind, fact.def_line) for fact in out] == [
+            ("calls", 9),
+            ("uses", 2),
+        ]
+        assert counts == {"drawn": 0, "in_template": 1}
 
     def test_without_the_new_arguments_the_join_is_what_it_was(self):
         # P6: with lane B off, or on a repo with no C++, nothing reads
