@@ -1601,6 +1601,48 @@ at an old sha, is gone. The simulation before the build
   99.62% → 99.62% (7,012/7,039), recall +0.1 point (30.3% → 30.4%);
   every other cell ±0.
 
+### 10.19 A minted definition's extent — written 2026-09-18, before the unit is dispatched
+
+ADR-134, route (a). **This section is not a grade.** Every C and C++ key
+is a resolution key — it judges `(site, target)` and never reads an
+edge's `from` — so no graded number can move, and the first prediction
+is that none does. The check on the rule is the key's own caller names
+(`sites[].caller`, clang's enclosing function), read by a driver
+(`~/.hobbes/bench/c145-extent/probe.py`) before and after on the same
+clones, with its three naming equivalences. The simulation
+(`simulate_r3.py`: `simulate.py` with refusal 3) is where the numbers
+below come from.
+
+- **P114.** Every graded number on the four C and C++ cells ±0, the
+  export identical in `(site, target)`: fmt 7,012 confirmed, 0
+  contradicted, strict 99.62%, 30.4%; args 2,567, 0, 72.9%; cJSON and
+  sqlite-vector as stored. Poison passes on each.
+- **P115.** Extents on fmt: **1,346 read; refused 34
+  `conditional-inside`, 19 `holds-a-definition`, 0 `runs-off`.** args:
+  66 read, none refused.
+- **P116.** The probe on fmt (8,123 `calls` evidence rows in key files):
+  lost callers **1,436 → 165 ± 5**; agreeing **6,392 → 7,610 ± 5**;
+  lambda-inside 97 → 120; the "wrong caller" class 75 → 105, the 30
+  added being the spellings ADR-134 read by hand (24 friend functions
+  defined in a class, 5 methods of a nested specialisation and 1 lambda's
+  class-qualified `operator()`, less what refusal 3 removed; the probe
+  does not know these spellings) — C-164's 73 stay 73.
+  args: lost **15 → 0**, agreeing 2,476 → 2,489, wrong-class 4 → 6 (two
+  lambdas the probe's lambda test misses).
+- **P117.** No row whose caller agreed with the key before differs from
+  it after, on either cell.
+- **P118.** On fmt and args: node, module-edge and symbol counts
+  unmoved; no symbol differs but a minted function's or method's
+  `end_line`; `calls` and `uses` symbol edges change only in `from`
+  (module → a minted symbol, or a lane A symbol that starts before the
+  extent → the minted one).
+- **P119.** cJSON and sqlite-vector mint no function with a lost
+  caller: their symbol edges are identical. A non-C clone (click) is
+  byte-identical but for the version stamp.
+- **P120 (direction only).** On fmt, no symbol's test reach shrinks, and
+  the tests reaching through a minted function grow; the count is
+  recorded, not predicted.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

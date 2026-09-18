@@ -1,6 +1,6 @@
 # ADR-134 — A minted definition's extent: the caller of a call written inside a lost definition
 
-**Date:** 2026-09-18 · **Status:** proposed — measured and simulated, **nothing built**; the routes below wait on Max. Registers **C-164** (what the measurement found beside its own question).
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — conditionals refused; refusal 3 measured before the build and corrected below (*Accepted*). Registers **C-164** (what the measurement found beside its own question).
 
 Follows ADR-129 §3 ("a minted symbol is a target, not a scope … its size
 is not measured — the next item on the C++ recall list, counted before
@@ -192,3 +192,42 @@ or rename them.
   the key's caller names read as a probe, kept as a driver and re-run at
   each regrade; it is not a grade, and the cell records must not call it
   one.
+
+## Accepted — route (a), and refusal 3 measured before the build (2026-09-18)
+
+Max took route (a). Before the unit was written, §2's third refusal was
+run over both cells (`simulate_r3.py` beside `simulate.py`), because the
+sentence above — "not seen on either cell" — had not been measured. **It
+was wrong: the refusal fires on 19 of fmt's 1,365 extents**, and it is
+what keeps a wrong `end_line` out of the graph:
+
+- **13 are macro-generated methods.** `GTEST_REPEATER_METHOD_(OnTestStart,
+  TestInfo)` (`gmock-gtest-all.cc` 5326–5344) is a whole method
+  definition to clang and a line with no `{` and no `;` in the text, so
+  the brace match ran on to the body of the next function written out,
+  `TestEventRepeater::OnTestIterationStart` at 5349. Step 1 could not see
+  it: no `calls` row moved wrongly, because lane A's symbol for 5349
+  starts later and keeps its calls. The **node** would have been wrong —
+  an extent of thirty lines over a one-line definition — and
+  `tests_guarding` and the gate read nodes. (The same lesson as ADR-129's:
+  grade what a rule adds to the nodes, not only to the edges.)
+- **6 hold a C-164 symbol**: a true body whose next line lane A read as
+  a function named by the annotation macro (five:
+  `GTEST_EXCLUSIVE_LOCK_REQUIRED_` at 14078 inside
+  `Mock::VerifyAndClearExpectationsLocked` at 14077) or by a member
+  initialiser (one: `size` at `scan.h` 348 inside `scan_args` at 347).
+  The extent is right and is refused all the same: the rule cannot tell
+  this from the first class, and C-164's item is where those symbols are
+  dealt with.
+
+So refusal 3 is built in its simplest form, which draws less: **an
+extent is refused where any other function or method symbol — lane A's
+or minted — starts inside it** (`holds-a-definition`). A definition
+lexically inside a function body is below the symbol floor by decision
+(C-9; the mint's `local-to-function`), so a symbol found there says the
+brace match or the parse is wrong. With it, fmt reads **1,346 extents,
+34 + 19 refused, 1,290 rows moved: 1,218 to the key's caller (13 fewer
+than step 1), 23 lambda, 19 unjudged, the same 30 spellings, none
+wrong**; args is unchanged (66 extents, 16 rows). §5's estimate becomes
+lost 1,436 → about 165. The predictions are `oracle-grading.md` §10.19.
+
