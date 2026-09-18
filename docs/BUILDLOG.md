@@ -13071,3 +13071,46 @@ them); the check would be that they do not, and a sample read of the
 
 No dispatch, no API or Modal spend. 102 `test_minted` cases green after
 the docstring change; nothing else in the layer moved.
+
+## 2026-09-18 (late night, fifth) — the mint at a line R1 vacated, built (ADR-136 accepted, route a; 0.2.48-beta)
+
+**Max: "go with the recommended."** Before the brief, the premises were
+read in the tree (ADR-136, *Accepted*), and one of the ADR's own
+sentences was wrong: `contradicted` does not hand out the positions R1
+vacated — `refused` is internal, id to module — so the unit adds a
+fourth return rather than reading something that was there. The rest
+held: the mint's line test already reads R1's output, R1's facts already
+carry the scope `rehome` looks for, and `minted.files` means lossy
+files, so the new mints are counted apart. §10.21's P128–P133 committed
+(`d00f646`) before the dispatch.
+
+**Unit `e78d`** (77 turns of 80, $6.60, Opus 5; launched detached,
+dry-run first: `--settings`, the model and `--max-turns 80` in the
+argv). Gate clear, verify pass, five files, no deviation. Two
+escalations, both the doer writing a scratch fixture under `/tmp` by
+heredoc; they expired and it used `tmp_path`.
+
+**On the host, from a worktree of the branch:** 1,977 pytest, `lane_b`
+10 of 10. **Then the real cells, before the merge:** fmt, args, cJSON,
+sqlite-vector and click row-identical, `minted.vacated` zero on each
+(P128). ScummVM on the branch's code, warm: **260 symbols in 19 clean
+files, 4,770 minted, `clean-file` 185,278 — P129 exact.** 255 of the 260
+took a brace extent (P130 said 245 ± 8: missed by two, the lossy half's
+rate was the wrong proxy); `rehomed` 49,207 → 51,981. **P131 was worded
+wrongly**: 289 symbol edges of the before graph are absent, each the
+same evidence under a new `from` (278 from a module, 11 from the class
+around an in-class generator macro); no evidence row left, 589 arrived,
+1,639 edges added. 30 of 30 sampled names right (P132); the second
+ingest byte-identical (P133).
+
+**Merged no-ff**; review block filled, tracker re-rendered (54 of 40).
+**0.2.48-beta:** VERSION and its copies, the CHANGELOG, architecture §3
+and §8's header, README, C-164 narrowed again (still partial; register
+counts unmoved), ADR-136's *Built*, §10.21's results, workstreams, the
+handoff, CLAUDE.md's status. Go `./...` green, proxy and image rebuilt,
+1,977 pytest on `main`, the repo re-ingested. No API or Modal spend; one
+dispatch on the subscription.
+
+**A lesson for the next prediction:** say what a re-home does to an
+edge's `from` before predicting "no edge absent" — compare evidence
+rows, as `compare.py` already does for the graded cells.

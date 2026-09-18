@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-18, 0.2.47-beta; oracle-lane Go
-counted 2026-09-16): 1,964 pytest (10 `lane_b`) / 396 Go with subtests
+Suite sizes at the last check (2026-09-18, 0.2.48-beta; oracle-lane Go
+counted 2026-09-16): 1,977 pytest (10 `lane_b`) / 396 Go with subtests
 (395 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 136, proposed;
+  architecture doesn't already make. Number sequentially (last: 136;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-18) — Hobbes 0.2.47-beta
+## Status (2026-09-18) — Hobbes 0.2.48-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -283,7 +283,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
-  at 0.2.47-beta), **strict 99.62%** — every quoted precision carries
+  at 0.2.48-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 164 entries; 119 active (92
   surfaced, 23 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
@@ -295,43 +295,34 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **53 of 40**
+  drift test; re-render after filling a review block) reads **54 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.47-beta (ADR-135, Max: route a): a lane A C++ symbol
-  the index contradicts is refused, or its extent re-read.** C-164's
-  rows were wrong, not missing: tree-sitter-cpp's recovery names a
-  function for a trailing annotation macro (`GTEST_LOCK_EXCLUDED_`) or a
-  member initialiser (`str_`), or lets one `TEST` swallow ten. Counted
-  key-free first: 18 symbols and 2 extents, all on fmt; the index's
-  definition row does not separate them, a lane B **reference at exactly
-  the symbol's name token** (to a macro or a data member of that name)
-  does — 18 of 18, no false flag, and read loosely it flags right
-  symbols. Lane A records `name_col` (`lanea-cpp v5`); R1 removes the
-  symbol before the mint, R2 re-reads a swallowing extent from the
-  braces; `graph.json`'s `lane_a_contradicted`. **No graded number
-  moves** (§10.20): fmt wrong-caller rows 105 → 32 (the 32 the driver's
-  naming grain), 18 right, 55 lost, no right row moved; nothing fires on
-  args, cJSON, sqlite-vector. The brief's premises were read in the tree
-  first, and the first real ingest matched.
-  **Since, nothing built:** the `lane-a-symbol-near` rows read (no
-  line-convention class; the rule stands) and ScummVM's scale read (cold
-  9 min 04 s, warm 2 min 20 s, byte-identical; R1's 401 removals read,
-  no false flag) — which found that 260 of them sit in files that parsed
-  clean, where `clean-file` keeps the mint from naming the true
-  definition (**ADR-136 proposed**, C-164 amended). Operators and
-  constructions at a macro's name, and the swallowed tests, belong to
-  the macro class (C-131, parked).
-  Then the review's remaining items (pytest fixtures as edges, C-4; the
+- **Latest — 0.2.48-beta (ADR-136, Max: route a): the mint reads a
+  definition row at a line ADR-135's R1 vacated, even in a file that
+  parsed clean.** Found by ScummVM's scale read (cold 9 min 04 s, warm
+  2 min 20 s, byte-identical), not by a cell: R1 removed 401 lane A
+  symbols there — 27 names, each read against the source, no false flag
+  — but 260 sit in 19 *clean* files (a generator macro,
+  `DECLARE_COMMAND_OPCODE(x) { … }`, parses with no ERROR node), where
+  `clean-file` kept the true definition out: wrong before 0.2.47-beta,
+  absent after it. `contradicted` now hands the mint the vacated
+  positions; every other refusal still runs; `minted.vacated` counts
+  them apart. **No graded number moves** (§10.21): the four C and C++
+  cells and click row-identical; ScummVM 260 named exactly as predicted,
+  255 with an extent, 30 of 30 sampled names right. The same day the
+  `lane-a-symbol-near` rows were read (no line-convention class; the
+  rule stands). The C++ recall list is done but for the macro class
+  (C-131, parked): operators and constructions at a macro's name, the
+  swallowed tests.
+  **Next:** the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** **ADR-136** — the mint reads a definition row at a
-  line R1 vacated (route a recommended; no graded cell can move);
-  ADR-126 §3 — whether to build a
+- **Open for Max:** ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:
   constructions inside a template stay `uses`; the join's claim built;
-  ADR-134's route (a), built; ADR-135's route (a), built.
+  ADR-134's, ADR-135's and ADR-136's route (a), each built.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

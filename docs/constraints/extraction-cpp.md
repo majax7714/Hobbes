@@ -544,6 +544,15 @@ headers parsed with tree-sitter ERROR nodes.
   files: 137 minted, 131 with an extent). The index holds one definition
   row with a body at every one of the 260 lines. Absent, not wrong; and
   nothing but `lane_a_contradicted`'s count says so.
+- **Narrowed 2026-09-18 (ADR-136, 0.2.48-beta):** the mint reads a
+  definition row at a line R1 vacated even in a file that parsed clean,
+  every other refusal kept; `minted.vacated` and a clause of the ingest
+  summary count them. ScummVM: all 260 named, 255 with a brace extent, a
+  30-row sample right; no graded cell moves (fmt's removals are all in
+  lossy files). **Still left of the scale read's remainder:** a vacated
+  line whose row another mint refusal stops (4 of ScummVM's 401: 2 with
+  no row, 2 with several monikers), and the 5 of the 260 whose body
+  holds a preprocessor conditional — named, but targets only.
 - **Source:** ADR-134's step 0 (`~/.hobbes/bench/c145-extent/probe.py`),
   every row read against the source; ADR-135's
   (`~/.hobbes/bench/c164-wrong-callers/`); the scale read's

@@ -167,6 +167,12 @@ The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-164 narrowed again, 2026-09-18 (ADR-136 accepted and built, 0.2.48-beta):
+- **C-164 narrowed (still partial; no entry added):** the mint reads a
+  definition row at a line R1 vacated even in a file that parsed clean —
+  ScummVM's 260 are named, `minted.vacated` counts them, no graded cell
+  moves.
+
 C-164 read at scale, 2026-09-18 (ADR-136 proposed; nothing built, no version move):
 - **C-164 amended (no entry added, no status change):** ScummVM's first
   ingest with R1 — 401 removals, none a false flag by the hand read, and

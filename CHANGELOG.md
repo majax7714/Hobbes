@@ -11,9 +11,41 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.47-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.48-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.48-beta — 2026-09-18 (the mint reads a definition row at a line ADR-135's R1 vacated, even in a file that parsed clean; ADR-136)
+
+**Patch: what the layer draws and says** — a constraint's fix (C-164,
+narrowed; still partial).
+
+- **Found by a scale read, not a cell.** ScummVM's first ingest with
+  ADR-135 (19,948 C++ files; cold 9 min 04 s, warm 2 min 20 s,
+  byte-identical): R1 removed 401 lane A symbols, 27 names, each read
+  against the source and none the function's — generator macros
+  (`DECLARE_COMMAND_OPCODE(location) { … }` 59 times), object-like
+  renames (`#define yyparse HYPNO_ARC_parse`), one member initialiser.
+  But 260 of them are in 19 files that parsed *clean* — such a macro
+  reads as a function definition with no ERROR node — and there the
+  mint's `clean-file` refusal kept out the true definition the index
+  holds on the same line. Wrong before 0.2.47-beta, absent after it.
+- **The rule.** `contradicted` hands the mint the `(file, line)` pairs
+  R1 vacated; a definition row at one is read even in a clean file.
+  Every other refusal still runs, the extent and the re-homing are
+  ADR-134's, and the rest of a clean file's rows stay refused.
+  `graph.json`'s `minted.vacated` counts these symbols and their files
+  apart (`minted.files` still means files lane A parsed with errors),
+  and the ingest summary's line gives them a clause of their own.
+- **Checked, not graded** (`oracle-grading.md` §10.21): fmt, args, cJSON
+  and sqlite-vector row-identical with `vacated` at zero (fmt's 18
+  removals are all in lossy files); click identical. ScummVM: 260
+  symbols in 19 files as predicted, 255 with a brace extent, 2,774 more
+  facts re-homed, 1,639 symbol edges added; the 289 that left are the
+  same evidence under a new `from` (no evidence row gone); a 30-row
+  sample read against the source, all right.
+- The `lane-a-symbol-near` refusal was read row by row the same day (19
+  rows on four cells) and stands: no row is a definition lane A lost.
 
 ## 0.2.47-beta — 2026-09-18 (a lane A C++ symbol the index contradicts is refused, or its extent re-read from the file's braces; ADR-135)
 

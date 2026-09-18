@@ -1,6 +1,6 @@
 # ADR-136 — A line R1 vacated is not a clean file's: the mint reads the definition there
 
-**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — the brief's premises checked against the code first (*Accepted*, below); not yet built.
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) and built (0.2.48-beta) — the brief's premises checked against the code first (*Accepted*, below).
 
 Follows ADR-135 (R1: a lane A C++ function or method whose own name
 token the index reads as a reference is removed) and the C++ recall
@@ -126,3 +126,17 @@ ADR-134 taught:
 
 Predictions: `docs/oracle/oracle-grading.md` §10.21, written before the
 unit.
+
+## Built (2026-09-18, 0.2.48-beta)
+
+Unit `e78d` (77 turns, $6.60, Opus 5), gate clear, verify pass, five
+files, no deviation: `contradicted`'s fourth return, `mint(…,
+vacated=)`, `minted.vacated` counted apart from `files`, the summary's
+own clause. On the host from a worktree of the branch: 1,977 pytest,
+`lane_b` 10 of 10. Then the real cells before the merge (§10.21): the
+four graded cells and click row-identical; ScummVM 260 symbols in 19
+clean files exactly as predicted, 255 with an extent (P130 predicted
+245 ± 8 of them and missed by two), 30 of 30 sampled names right, the
+second ingest byte-identical. P131 was worded wrongly — a re-homed fact
+changes its edge's `from`, so 289 edges "left" while no evidence row
+did — and is recorded as missed.

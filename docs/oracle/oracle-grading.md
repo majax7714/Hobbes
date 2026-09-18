@@ -1793,6 +1793,41 @@ vacated line but did not run the extent's second pass.
   function the source defines on that line. One wrong name fails it.
 - **P133.** The second ScummVM ingest is byte-identical to the first.
 
+**Results (2026-09-18; unit `e78d`, the branch's code before the merge;
+`~/.hobbes/bench/c164-wrong-callers/regrade.sh` with
+`OUT=~/.hobbes/bench/scummvm-scale/regrade`, and ScummVM's ingests
+beside it).**
+
+- **P128 — met.** fmt 7,012/7,012, strict 99.62%, 30.4%; args
+  2,567/2,567, 72.9%; cJSON 1,188/1,188; sqlite-vector 851/851; every
+  export row-identical, no symbol, edge, evidence row or test reach
+  differing, poison passing on both arms; `minted.vacated` 0 and 0 on
+  each. click identical.
+- **P129 — met exactly.** 260 symbols in 19 files; `minted.symbols`
+  4,770; `clean-file` 185,278; `lane_a_contradicted` unchanged; no other
+  refusal count moved.
+- **P130 — missed by two.** Extents read **3,339**, not 3,329 ± 8: 255
+  of the 260 took a brace extent (the other 5 `conditional-inside`,
+  103 → 108), a better rate than the lossy half's 131 of 137 the
+  prediction borrowed. `rehomed` 49,207 → 51,981.
+- **P131 — met for symbols, and missed as written for edges.** No symbol
+  gone, 260 new. **289 symbol edges of the before graph are absent** —
+  the prediction forgot that a re-homed fact changes its edge's `from`:
+  278 ran from a module and 11 from the class enclosing an in-class
+  generator macro (`EffectDisplayPrototype`), and each one's evidence is
+  now under the minted definition written around it. At the evidence
+  level nothing left: 1,901,620 rows → 1,902,209, **gone 0**, new 589.
+  1,639 symbol edges added (1,200 `uses`, 439 `calls`): 1,123 out of a
+  new symbol, 520 into one, none touching neither. Module edges
+  unmoved.
+- **P132 — met.** 30 of 30 (`sample.py`, stride 8 over the sorted 260):
+  `DECLARE_COMMAND_OPCODE(drop)` is
+  `Parallaction::CommandExec_br::cmdOp_drop`, `APPFUNCV(AutoMap::
+  cmdAutoMapHome)` is `Saga2::AutoMap::cmdAutoMapHome`,
+  `SPECIALSPELL(DeathSpell)` is `Saga2::DeathSpell`, `void strlib_open()`
+  under `#define strlib_open lua_strlibopen` is `Grim::lua_strlibopen`.
+- **P133 — met.** Byte-identical.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

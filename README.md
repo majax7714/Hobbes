@@ -198,7 +198,10 @@ rows now name the function they are written in rather than the file,
 agreeing with clang's own caller on 7,610 rows of 8,123 where 6,392 did
 — and at 0.2.47-beta a lane A symbol the index contradicts is refused
 (ADR-135: 18 on fmt named for a macro or a member initialiser; the
-wrong-caller rows 105 → 32, the 32 a naming grain)
+wrong-caller rows 105 → 32, the 32 a naming grain), and at 0.2.48-beta
+the true definition is read from the index on a line such a refusal
+vacated even where the file parsed clean (ADR-136: 260 definitions in 19
+files on ScummVM, none on a graded cell)
 — checked against the key's caller names, **not graded**, because no key
 reads a caller, and so no graded number moved. The
 abstentions behind part of what is left are registered (C-146, C-148,
@@ -376,7 +379,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.47-beta** (2026-09-18). The Hobbes layer is versioned from here
+**Hobbes 0.2.48-beta** (2026-09-18). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -487,7 +490,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-135 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-136 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

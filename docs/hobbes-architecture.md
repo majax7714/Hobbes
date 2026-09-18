@@ -794,6 +794,24 @@ wrong-caller rows 105 → 32 (the 32 the driver's naming grain), no right
 row moved, every graded number ±0; nothing fires on args, cJSON or
 sqlite-vector.
 
+**A line R1 vacated is not a clean file's (ADR-136, 0.2.48-beta).** A
+function-like macro that *generates* a definition
+(`DECLARE_COMMAND_OPCODE(location) { … }`) parses with no ERROR node: the
+file is clean, lane A names the function after the macro, R1 removes it,
+and the mint's `clean-file` refusal would keep the true definition the
+index holds on that line from being named at all. So `contradicted`
+hands the mint the `(file, line)` pairs R1 vacated, and a definition row
+at one of them is read even in a file that parsed clean; every other
+refusal still runs, the extent and the re-homing are ADR-134's, and the
+rest of a clean file's rows are refused as before. Counted apart in
+`graph.json`'s `minted.vacated` (`symbols`, `files` — `minted.files`
+still means files lane A parsed with errors) and in a clause of the
+ingest summary's line. Found by ScummVM's scale read, not by a cell:
+260 of R1's 401 removals there are in 19 clean files, and all 260 are
+now named (255 with a brace extent), a 30-row sample read against the
+source; fmt's 18 removals are all in lossy files, so on the four graded
+C and C++ cells nothing moves (`oracle-grading.md` §10.21).
+
 **The tail view (ADR-045).** Resolution coverage counts the detected call
 sites with no known destination (C-2); the tail view says what that
 remainder *is* — per file, in `resolution_coverage.tail` — **by
@@ -1923,7 +1941,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.47-beta** (2026-09-18, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.47-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.48-beta** (2026-09-18, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.48-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

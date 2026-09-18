@@ -1,15 +1,15 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-18; Hobbes 0.2.47-beta on `main`.** CI is green on
-`d1f52a1` (0.2.47-beta, pushed 2026-09-18; run 35377779488); the
-docs commits since (the handoff's line, the `lane-a-symbol-near` read,
-ADR-136 proposed) are unpushed and move no code. The proxy and
-the image were rebuilt at 0.2.47-beta and the repo re-ingested at the end
+**Reviewed 2026-09-18; Hobbes 0.2.48-beta on `main`.** CI is green on
+`d1f52a1` (0.2.47-beta, pushed 2026-09-18; run 35377779488); everything
+since — the `lane-a-symbol-near` read, ScummVM's scale read, ADR-136,
+unit `e78d`, 0.2.48-beta — is unpushed. The proxy and
+the image were rebuilt at 0.2.48-beta and the repo re-ingested at the end
 of this session; the knowledge server serves the image it started from
 until it is restarted (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.47-beta are untagged. Tags stay Max's call each time.
+  0.2.48-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -18,10 +18,10 @@ until it is restarted (C-65): **restart it.**
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the four 2026-09-18 (late night) BUILDLOG
-entries — the third ("the `lane-a-symbol-near` rows read") and the fourth
-("ScummVM as a scale read", ADR-136 proposed) built nothing — and before
-them: "C-164's wrong callers counted key-free and simulated" (ADR-135
+The latest session's records are the five 2026-09-18 (late night) BUILDLOG
+entries — the third ("the `lane-a-symbol-near` rows read"), the fourth
+("ScummVM as a scale read", ADR-136 proposed) and the fifth (ADR-136
+built, 0.2.48-beta) — and before them: "C-164's wrong callers counted key-free and simulated" (ADR-135
 proposed) and "a lane A symbol the index contradicts, built" (ADR-135
 accepted, 0.2.47-beta). Before them, the four 2026-09-18 entries (ADR-133
 proposed and built, ADR-134 proposed and built), and 2026-09-17's.
@@ -35,16 +35,17 @@ number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed.
 
-**ADR-136 waits on Max (routes in the ADR; nothing built):** ScummVM's
-scale read found that 260 of R1's 401 removals there are in files that
-parsed *clean*, where `clean-file` keeps the mint from naming the true
-definition the index holds on the same line — so it has no node.
-Route (a), recommended: the mint reads a definition row at a line R1
-vacated, every other refusal kept. No graded cell can move (R1 removes
-nothing in a clean file on any of them). On his word: read the brief's
-premises in the tree first (`contradicted` returns the removals; `mint`
-takes `lossy_files`), write the predictions, one unit, then the four
-cells row-identical and ScummVM's 260 read by sample.
+**ADR-136 is built (0.2.48-beta, Max: route a):** the mint reads a
+definition row at a line R1 vacated even in a file that parsed clean.
+ScummVM: 260 symbols in 19 files exactly as predicted, 255 with an
+extent, 30 of 30 sampled names right, byte-identical twice; the four
+graded cells and click row-identical. Unit `e78d` (77 turns, $6.60),
+gate right-clear, verify pass; tracker 54 of 40. P130 missed by two and
+P131 was worded wrongly (a re-home changes an edge's `from`; compare
+evidence rows). Records: §10.21, ADR-136's *Built*, the fifth late-night
+BUILDLOG entry. Drivers: `~/.hobbes/bench/scummvm-scale/` (`vacated.py`,
+`sample.py`, `regrade/` the five cells, `units/` the brief and log,
+`wt/` the branch's worktree, removable).
 
 **Not waiting on Max:** the review's remaining items (pytest fixtures as
 edges, C-4; the compile database's `-I` path at lane A; the docs
@@ -224,7 +225,7 @@ the lines other tests pin).
    (2026-09-18): no line-convention class; each row is refused by the
    next rule anyway.
 4. **ScummVM as a scale read: done** (2026-09-18, BUILDLOG; it found
-   ADR-136's remainder — START HERE). As the item was written: symbols minted, edges gained,
+   ADR-136's remainder, built at 0.2.48-beta). As the item was written: symbols minted, edges gained,
    the mint's seconds, **and the operator walk's cost** —
    `_unevaluated` and `_in_template` each climb to the root per token,
    about 3.2 million tokens there (a 600-file sample: 2.09 tokens per
@@ -307,7 +308,8 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **Settled 2026-09-18:** ADR-135's route (a) — built (0.2.47-beta);
+   - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
+     ADR-135's route (a) — built (0.2.47-beta);
      ADR-134's route (a) — built (0.2.46-beta);
      the join's claim by position — built (ADR-133, 0.2.45-beta);
      constructions inside a template stay `uses`.
@@ -319,7 +321,6 @@ stay here.
      companion (ADR-124: strict precision instead); C-153 (ADR-125:
      withheld where the source contradicts, the rest surfaced as
      partial); `hobbes lanes` on fmt (ADR-123: exit 3).
-   - **New, ADR-136:** the mint at a line R1 vacated (START HERE).
    - **ADR-126 §3:** whether to build the "may reach through
      dispatch (not traced)" section in `tests_guarding` and `hobbes
      review` on §10.12's numbers. It would need a syntax exclusion for
@@ -367,7 +368,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 53 of 40, 4
+   - **The validating 40 are done:** the tracker reads 54 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -435,7 +436,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-three log files under `docs/calvin/sessions/`; the tracker reads 53 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-four log files under `docs/calvin/sessions/`; the tracker reads 54 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -443,7 +444,8 @@ min each.
   deployed and idle): held.
 - **Register:** 164 entries: 119 active (92 surfaced, 23 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
+  folded. Latest: C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
+  C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
   added); C-164 registered unsurfaced (2026-09-18); C-163 registered and lifted, C-162 narrowed (ADR-133,
   0.2.45-beta); C-162 registered and narrowed (ADR-132, 0.2.44-beta);
@@ -461,8 +463,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.47-beta (2026-09-18, all pass on the host): 1,964
-  pytest (`lane_b` 10 of them, run at 0.2.47-beta), Go `./...` 396 with
+- **Suites** at 0.2.48-beta (2026-09-18, all pass on the host): 1,977
+  pytest (`lane_b` 10 of them, run at 0.2.48-beta), Go `./...` 396 with
   subtests (395 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
