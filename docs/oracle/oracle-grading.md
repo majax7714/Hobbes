@@ -1765,6 +1765,34 @@ ingested by the branch.
   re-placed (1 removed, 1 added). 393 evidence rows changed `from`: 317
   the swallowed tests' (to the module), the rest R1's.
 
+### 10.21 The mint at a line R1 vacated — written 2026-09-18, before the unit is dispatched
+
+ADR-136, route (a). **Not a grade**, for §10.19's reason, and on the
+graded cells not even a change: R1 removes nothing in a clean file on
+any of them. The numbers are `~/.hobbes/bench/scummvm-scale/vacated.py`'s,
+which walked the mint's refusals other than `clean-file` at each
+vacated line but did not run the extent's second pass.
+
+- **P128.** fmt, args, cJSON, sqlite-vector: every graded number ±0, the
+  export row-identical, and the graph identical but for the version
+  stamp and `minted.vacated`, which reads 0 symbols in 0 files on each
+  (fmt's 18 removals are all in lossy files). click byte-identical but
+  for the stamp.
+- **P129.** ScummVM (`c54b79a6`, warm caches): `minted.vacated` reads
+  **260 symbols in 19 files**; `minted.symbols` 4,510 → **4,770**;
+  `clean-file` 185,538 → **185,278**; `lane_a_contradicted` unchanged
+  (401 refused, 2 extents read, 7,548 facts re-scoped). No other mint
+  refusal count moves.
+- **P130.** Extents read 3,084 → **3,329 ± 8** (the lossy half's rate,
+  131 of 137); `rehomed` rises from 49,207 (direction only).
+- **P131.** No symbol of the before graph is absent after, and no symbol
+  edge of the before graph is absent after; edges are only added (calls
+  into the 260, and calls out of their bodies).
+- **P132.** A sample of 30 of the 260, drawn by a fixed stride over the
+  sorted list, read against the source: each minted qualname is the
+  function the source defines on that line. One wrong name fails it.
+- **P133.** The second ScummVM ingest is byte-identical to the first.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
@@ -1899,32 +1927,3 @@ What the search found, so the scope claims above carry their sources:
   extractors, but the tracer protocol and corpus are directly reusable as
   external cells later, and it is the precedent that execution-verification
   scales without manual ground-truth authoring.
-
-### 10.21 The mint at a line R1 vacated — written 2026-09-18, before the unit is dispatched
-
-ADR-136, route (a). **Not a grade**, for §10.19's reason, and on the
-graded cells not even a change: R1 removes nothing in a clean file on
-any of them. The numbers are `~/.hobbes/bench/scummvm-scale/vacated.py`'s,
-which walked the mint's refusals other than `clean-file` at each
-vacated line but did not run the extent's second pass.
-
-- **P128.** fmt, args, cJSON, sqlite-vector: every graded number ±0, the
-  export row-identical, and the graph identical but for the version
-  stamp and `minted.vacated`, which reads 0 symbols in 0 files on each
-  (fmt's 18 removals are all in lossy files). click byte-identical but
-  for the stamp.
-- **P129.** ScummVM (`c54b79a6`, warm caches): `minted.vacated` reads
-  **260 symbols in 19 files**; `minted.symbols` 4,510 → **4,770**;
-  `clean-file` 185,538 → **185,278**; `lane_a_contradicted` unchanged
-  (401 refused, 2 extents read, 7,548 facts re-scoped). No other mint
-  refusal count moves.
-- **P130.** Extents read 3,084 → **3,329 ± 8** (the lossy half's rate,
-  131 of 137); `rehomed` rises from 49,207 (direction only).
-- **P131.** No symbol of the before graph is absent after, and no symbol
-  edge of the before graph is absent after; edges are only added (calls
-  into the 260, and calls out of their bodies).
-- **P132.** A sample of 30 of the 260, drawn by a fixed stride over the
-  sorted list, read against the source: each minted qualname is the
-  function the source defines on that line. One wrong name fails it.
-- **P133.** The second ScummVM ingest is byte-identical to the first.
-
