@@ -1,8 +1,9 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-09-18; Hobbes 0.2.47-beta on `main`.** CI is green on
-`d1f52a1` (0.2.47-beta, pushed 2026-09-18; run 35377779488); nothing
-is unpushed at this review. The proxy and
+`d1f52a1` (0.2.47-beta, pushed 2026-09-18; run 35377779488); the
+docs commits since (the handoff's line, the `lane-a-symbol-near` read,
+ADR-136 proposed) are unpushed and move no code. The proxy and
 the image were rebuilt at 0.2.47-beta and the repo re-ingested at the end
 of this session; the knowledge server serves the image it started from
 until it is restarted (C-65): **restart it.**
