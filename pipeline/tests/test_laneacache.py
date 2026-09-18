@@ -176,20 +176,20 @@ def test_the_construction_tokens_the_join_reads_survive_as_an_array(cache):
     assert len(constructions) > 0
 
 
-def test_the_format_tag_moved_so_a_v3_entry_is_never_read_back(cache, repo, monkeypatch):
-    # An entry written before the tokens existed would read back as a file
-    # that applied no operator and constructed nothing, and the join would
-    # draw nothing there. The tag is hashed into the key, so the v3 entry
-    # is not a decode failure per file: it is a key this Hobbes never
-    # looks up.
-    assert laneacache.FORMAT == "lanea-cpp v4"
+def test_the_format_tag_moved_so_a_v4_entry_is_never_read_back(cache, repo, monkeypatch):
+    # An entry written before the name column existed (ADR-135) would read
+    # back as a parse whose functions no contradiction rule can see, and
+    # the two rules would fire on nothing in that file. The tag is hashed
+    # into the key, so the v4 entry is not a decode failure per file: it is
+    # a key this Hobbes never looks up.
+    assert laneacache.FORMAT == "lanea-cpp v5"
     source = (repo / "src" / "box.cpp").read_bytes()
-    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v3")
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v4")
     extract_cpp(repo)
     stale = laneacache.entry_path(laneacache.key("src/box.cpp", source))
     assert stale.is_file()
 
-    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v4")
+    monkeypatch.setattr(laneacache, "FORMAT", "lanea-cpp v5")
     laneacache.reset_ledger()
     extract_cpp(repo)
     assert laneacache.summary()["hits"] == 0

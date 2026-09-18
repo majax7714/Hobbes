@@ -69,8 +69,11 @@ KEEP_DAYS = 30
 #: (ADR-131), and an entry written without them would read back as a
 #: parse that saw no operator at all. v4: a file carries its construction
 #: tokens too (ADR-132), and an entry written without them would read back
-#: as a parse that saw no construction.
-FORMAT = "lanea-cpp v4"
+#: as a parse that saw no construction. v5: a function or method carries
+#: the column of the token the parse took as its name (ADR-135), and an
+#: entry written without it would read back as a parse the contradiction
+#: rules cannot read at all.
+FORMAT = "lanea-cpp v5"
 
 #: The tags the encoding gives the three types JSON has not. None can
 #: collide with a field name: a NUL is not in any identifier, and the

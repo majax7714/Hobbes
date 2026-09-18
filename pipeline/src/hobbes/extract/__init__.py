@@ -459,14 +459,32 @@ def _build_symbol_layer(
     # `below-floor`. ADR-134 reads such a definition's extent from the
     # file's own braces and re-homes the facts written inside it, which is
     # the one thing here that touches a fact the join settled — and it
-    # touches only its caller. Nothing lane A decided sees any of it — the
-    # fallback tables, `withhold`, the lane agreement inputs and
-    # `full_specializations` are all settled above — and `project` needs no
-    # change: the called-type guard, R-qual and the macro handling apply to
-    # a minted target as to any other, and `enclosing` answers with a
-    # minted extent as with a parsed one.
+    # touches only its caller. ADR-135 runs first, and is the one rule that
+    # touches lane A's **symbols**: a C++ function or method whose own name
+    # token the index reads as a reference, or whose extent holds a
+    # definition, is refused or clipped here, so the mint meets the line as
+    # lost. Nothing else lane A decided sees any of it — the fallback
+    # tables, `withhold`, the lane agreement inputs and
+    # `full_specializations` are all settled above, and a fallback naming a
+    # refused symbol finds nothing at the projection and draws nothing —
+    # and `project` needs no change: the called-type guard, R-qual and the
+    # macro handling apply to a minted target as to any other, and
+    # `enclosing` answers with a minted extent as with a parsed one.
     if lane_a_c_files and lane_b_ran:
         module_of_path = {n["path"]: n["id"] for n in graph["nodes"] if n.get("path")}
+        with timings.step("contradicted"):
+            graph["symbols"], resolved, contradictions = minted.contradicted(
+                repo_root,
+                graph["symbols"],
+                resolved,
+                resolutions,
+                lane_b_definitions,
+                module_of_path,
+            )
+        if minted.contradicted_fired(contradictions):
+            # Additive, and absent where neither rule fired, as `operators`
+            # and `constructions` are.
+            graph["lane_a_contradicted"] = contradictions
         with timings.step("mint"):
             minted_symbols, graph["minted"] = minted.mint(
                 repo_root,

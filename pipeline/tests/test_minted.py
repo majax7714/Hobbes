@@ -90,12 +90,43 @@ int guarded(int x) {
 #endif
 """
 
+#: A third lost header, written beside the other two for the same reason
+#: (the line numbers above stay where they are): C-164's own shape, which
+#: ADR-135 is about. The annotation macro on line 12 is what lane A names
+#: the method after — ``Holder3::LOCKED_``, a method at 12 — while the
+#: index names the definition ``annotated`` at 11 and reads line 12's token
+#: as a *reference* to the macro defined at line 4. The call at 13 is
+#: written inside the body and lane A scopes it to the misnamed symbol.
+LOST_ANNOTATED_HEADER = """#ifndef LOST3_H
+#define LOST3_H
+#define BEGIN_NS3 namespace lib { inline namespace v1 {
+#define LOCKED_(x)
+
+BEGIN_NS3
+
+int inner(int x) { return x + 1; }
+
+struct Holder3 {
+    int annotated(int x)
+        LOCKED_(mu) {
+        return inner(x);
+    }
+};
+
+} }
+
+#endif
+"""
+
 LOST_MONIKER = "cxx . . $ lib/v1/lost(9ab1c0d2e3f40506)."
 LOST_TYPE_MONIKER = "cxx . . $ lib/v1/Lost#"
 DECLARED_ONLY_MONIKER = "cxx . . $ lib/v1/declared_only(77cc88dd99ee00ff)."
 HELPER_MONIKER = "cxx . . $ lib/v1/helper(11aa22bb33cc44dd)."
 CALLER_MONIKER = "cxx . . $ lib/v1/caller(55ee66ff77001122)."
 GUARDED_MONIKER = "cxx . . $ lib/v1/guarded(3344556677889900)."
+LOCKED_MONIKER = "cxx . . $ LOCKED_!"
+INNER_MONIKER = "cxx . . $ lib/v1/inner(99aa88bb77cc66dd)."
+ANNOTATED_MONIKER = "cxx . . $ lib/v1/Holder3#annotated(1122334455667788)."
 
 
 def row(file: str, line: int, kind: str, moniker: str) -> dict:
@@ -657,6 +688,259 @@ class TestTheRehoming:
         assert moved == 2
 
 
+class TestTheContradiction:
+    """ADR-135's two rules, the pure half. R1 removes a lane A C++ symbol
+    whose own name token the index reads as a *reference* — a definition's
+    name never is one — and R2 re-reads the extent of one holding a
+    definition the index places at file or class scope. Both fail toward
+    leaving lane A's symbol exactly as it is."""
+
+    MODULES = {"a.cc": "a"}
+
+    @staticmethod
+    def symbol(name="f", line=10, end_line=10, col=4, **extra):
+        """One lane A C++ function, as ``graph["symbols"]`` holds it: the
+        name's 0-based column is the whole of what R1 reads."""
+        return {
+            "id": f"a.{name}",
+            "module": "a",
+            "name": name,
+            "qualname": name,
+            "kind": "function",
+            "line": line,
+            "end_line": end_line,
+            "name_col": col,
+            **extra,
+        }
+
+    @staticmethod
+    def site(line=10, name="f", col=4, def_file="m.h", def_line=3):
+        from hobbes.extract import evidence as ev
+
+        return ev.Site(
+            provider=ev.SCIP,
+            kind=ev.RESOLUTION,
+            file="a.cc",
+            line=line,
+            name=name,
+            col=col,
+            def_file=def_file,
+            def_line=def_line,
+        )
+
+    @staticmethod
+    def fact(scope="a.f", line=11):
+        from hobbes.extract import evidence as ev
+
+        return ev.Resolved(
+            kind="calls",
+            source_file="a.cc",
+            line=line,
+            scope=scope,
+            def_file="b.h",
+            def_line=1,
+            tier="semantic",
+            lanes=("scip",),
+        )
+
+    def run(self, tmp_path, symbols, *, facts=(), resolutions=(), definitions=(), source=None):
+        if source is not None:
+            (tmp_path / "a.cc").write_text(source)
+        return minted.contradicted(
+            tmp_path,
+            list(symbols),
+            list(facts),
+            list(resolutions),
+            list(definitions),
+            self.MODULES,
+        )
+
+    # ------------------------------------------------------------ R1
+
+    def test_a_name_token_the_index_reads_as_a_macro_reference_is_refused(self, tmp_path):
+        # `void UnitTest::AddTestPartResult(..) GTEST_LOCK_EXCLUDED_(mutex_)
+        # {` is a function called `GTEST_LOCK_EXCLUDED_` to lane A. 13 on
+        # fmt, all 13 misnamed.
+        symbols, facts, counts = self.run(
+            tmp_path,
+            [self.symbol()],
+            facts=[self.fact()],
+            resolutions=[self.site()],
+            definitions=[row("m.h", 3, "macro", "cxx . . $ GTEST_LOCK_EXCLUDED_!")],
+        )
+        assert symbols == []
+        assert counts["refused"] == {"macro": 1, "term": 0}
+        # The module's id, which is the scope lane A gives a file-level C++
+        # site — so the mint and `rehome`, which run next, draw the fact
+        # from the true definition where the index has one.
+        assert [f.scope for f in facts] == ["a"]
+        assert counts["facts_rescoped"] == 1
+
+    def test_a_term_row_of_the_symbols_own_name_is_refused(self, tmp_path):
+        # `FMT_CONSTEVAL basic_fstring(const S& s) : str_(s) {` is a
+        # constructor lane A named after its first member initialiser. 5 on
+        # fmt, the register's "2 symbols" being what one key's rows showed.
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol(name="str_")],
+            resolutions=[self.site(name="str_")],
+            definitions=[row("m.h", 3, "term", "cxx . . $ fmt/basic_fstring#str_.")],
+        )
+        assert symbols == []
+        assert counts["refused"] == {"macro": 0, "term": 1}
+
+    def test_a_term_row_of_another_name_is_kept(self, tmp_path):
+        # The index reading the token as a member of some *other* name is
+        # not this shape, and a symbol nothing contradicts does not move.
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol(name="str_")],
+            resolutions=[self.site(name="str_")],
+            definitions=[row("m.h", 3, "term", "cxx . . $ fmt/basic_fstring#other_.")],
+        )
+        assert [s["id"] for s in symbols] == ["a.str_"]
+        assert counts["refused"] == {"macro": 0, "term": 0}
+
+    @pytest.mark.parametrize(
+        "where",
+        [{"col": 5}, {"line": 12}, {"col": -1}],
+        ids=["one column off", "another line of the body", "no column at all"],
+    )
+    def test_a_same_named_reference_that_is_not_at_the_token_is_kept(self, tmp_path, where):
+        """The position has to be exact: read loosely, the rule flags
+        *right* symbols — args' `Base::KickOut`, whose body uses the
+        enumerator `Options::KickOut`, is four such on the measured cells."""
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol(name="KickOut", end_line=20)],
+            resolutions=[self.site(name="KickOut", **where)],
+            definitions=[row("m.h", 3, "term", "cxx . . $ ns/Options#KickOut.")],
+        )
+        assert [s["id"] for s in symbols] == ["a.KickOut"]
+        assert set(counts["refused"].values()) == {0}
+
+    @pytest.mark.parametrize(
+        "definitions",
+        [
+            [row("m.h", 3, "method", "cxx . . $ ns/f(1a).")],
+            [row("other.h", 9, "method", "cxx . . $ ns/f(1a).")],
+        ],
+        ids=["the index agrees with the name", "a def_file with no rows at all"],
+    )
+    def test_anything_but_a_macro_or_a_term_leaves_the_symbol_alone(
+        self, tmp_path, definitions
+    ):
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol()],
+            resolutions=[self.site()],
+            definitions=definitions,
+        )
+        assert [s["id"] for s in symbols] == ["a.f"]
+        assert set(counts["refused"].values()) == {0}
+
+    def test_a_symbol_with_no_name_col_is_never_refused_and_never_re_read(self, tmp_path):
+        # A C symbol, or a minted one: neither carries the column, and
+        # neither is a parse ADR-135 has anything to say about.
+        plain = {k: v for k, v in self.symbol(line=1, end_line=6).items() if k != "name_col"}
+        symbols, facts, counts = self.run(
+            tmp_path,
+            [plain],
+            facts=[self.fact(line=5)],
+            resolutions=[self.site(line=1)],
+            definitions=[
+                row("m.h", 3, "macro", "cxx . . $ FMT_API!"),
+                row("a.cc", 5, "method", "cxx . . $ ns/next_one(2b)."),
+            ],
+            source="void f() {\n    g();\n}\n\nvoid next_one() {\n}\n",
+        )
+        assert symbols == [plain] and [f.scope for f in facts] == ["a.f"]
+        assert not minted.contradicted_fired(counts)
+
+    # ------------------------------------------------------------ R2
+
+    #: A parse that ran on: `f` closes at line 3, and the index has a
+    #: file-scope definition of its own at line 5.
+    SWALLOWED = "void f() {\n    g();\n}\n\nvoid next_one() {\n    g();\n}\n"
+
+    def test_an_extent_holding_a_file_scope_definition_is_read_from_the_braces(
+        self, tmp_path
+    ):
+        symbols, facts, counts = self.run(
+            tmp_path,
+            [self.symbol(line=1, end_line=7)],
+            facts=[self.fact(line=2), self.fact(line=6)],
+            definitions=[row("a.cc", 5, "method", "cxx . . $ ns/next_one(2b).")],
+            source=self.SWALLOWED,
+        )
+        assert [(s["id"], s["end_line"]) for s in symbols] == [("a.f", 3)]
+        assert counts["extents"]["read"] == 1 and counts["extents"]["kept"] == 0
+        # The call inside the real body keeps its caller; the one past it —
+        # written in the definition the parse swallowed — takes the module.
+        assert [f.scope for f in facts] == ["a.f", "a"]
+        assert counts["facts_rescoped"] == 1
+        # Nothing says `braces` on a lane A symbol: that field says *minted*.
+        assert "extent" not in symbols[0]
+
+    def test_a_definition_local_to_a_function_is_inside_by_right(self, tmp_path):
+        # A lambda's or a local class's method (C-9, the mint's
+        # `local-to-function`): its moniker's chain holds a method before
+        # the last, and it contradicts no extent at all.
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol(line=1, end_line=7)],
+            definitions=[row("a.cc", 5, "method", "cxx . . $ ns/f(1a).local#run(2b).")],
+            source=self.SWALLOWED,
+        )
+        assert [(s["id"], s["end_line"]) for s in symbols] == [("a.f", 7)]
+        assert not minted.contradicted_fired(counts)
+
+    def test_braces_that_agree_with_the_parse_leave_the_symbol_alone(self, tmp_path):
+        # The held row is something this rule does not understand, and an
+        # end at or past the parse's is no evidence against it.
+        symbols, _, counts = self.run(
+            tmp_path,
+            [self.symbol(line=1, end_line=3)],
+            definitions=[row("a.cc", 2, "method", "cxx . . $ ns/inner(2b).")],
+            source=self.SWALLOWED,
+        )
+        assert [(s["id"], s["end_line"]) for s in symbols] == [("a.f", 3)]
+        assert counts["extents"]["kept"] == 1 and counts["extents"]["read"] == 0
+
+    def test_a_conditional_in_the_body_refuses_and_leaves_a_line(self, tmp_path):
+        # ADR-134's refusal, kept: either branch may hold the brace the
+        # compiler saw, so the symbol keeps its own line and nothing else.
+        symbols, facts, counts = self.run(
+            tmp_path,
+            [self.symbol(line=1, end_line=6)],
+            facts=[self.fact(line=3)],
+            definitions=[row("a.cc", 6, "method", "cxx . . $ ns/next_one(2b).")],
+            source="void f() {\n#if GUARD\n    g();\n#endif\n}\nvoid next_one() {}\n",
+        )
+        assert [(s["id"], s["end_line"]) for s in symbols] == [("a.f", 1)]
+        assert counts["extents"]["refused"] == {
+            **dict.fromkeys(minted.READ_REFUSALS, 0),
+            "conditional-inside": 1,
+        }
+        assert [f.scope for f in facts] == ["a"] and counts["facts_rescoped"] == 1
+
+    def test_nothing_fired_says_so_and_the_caller_writes_no_block(self, tmp_path):
+        symbols, facts, counts = self.run(
+            tmp_path, [self.symbol()], facts=[self.fact()]
+        )
+        assert [s["id"] for s in symbols] == ["a.f"] and [f.scope for f in facts] == ["a.f"]
+        assert counts == {
+            "refused": dict.fromkeys(minted.CONTRADICTIONS, 0),
+            "extents": {
+                "read": 0,
+                "kept": 0,
+                "refused": dict.fromkeys(minted.READ_REFUSALS, 0),
+            },
+            "facts_rescoped": 0,
+        }
+        assert not minted.contradicted_fired(counts)
+
+
 class TestTheParameterRead:
     """ADR-130's other end on a minted symbol: the same token read, one
     question over. A minted definition is one lane A's parse lost, so the
@@ -957,6 +1241,98 @@ class TestThroughTheIngest:
         ]
         assert onto == [("src/lost2.h", "uses")]
         assert graph["minted"]["extents"]["rehomed"] == 0
+
+    #: ADR-135's own repo, C-164's shape end to end.
+    @staticmethod
+    def repo_with_an_annotation(tmp_path: Path) -> Path:
+        repo = TestThroughTheIngest.repo(tmp_path)
+        (repo / "src" / "lost3.h").write_text(LOST_ANNOTATED_HEADER)
+        return repo
+
+    DEFINITIONS_3 = [
+        row("src/lost3.h", 4, "macro", LOCKED_MONIKER),
+        row("src/lost3.h", 8, "method", INNER_MONIKER),
+        row("src/lost3.h", 11, "method", ANNOTATED_MONIKER),
+    ]
+    #: The index's reference at exactly the token lane A took as the
+    #: method's name — R1's whole evidence.
+    MACRO_REFERENCE = {
+        "file": "src/lost3.h", "line": 12, "col": 8, "name": "LOCKED_",
+        "def_file": "src/lost3.h", "def_line": 4,
+    }
+    #: `inner(x)` at lost3.h:13, written inside the annotated body.
+    ANNOTATED_CALL = {
+        "file": "src/lost3.h", "line": 13, "col": 15, "name": "inner",
+        "def_file": "src/lost3.h", "def_line": 8,
+    }
+
+    def test_the_header_really_names_the_method_after_the_macro(self, tmp_path):
+        """The premise, checked with the parser rather than assumed: if a
+        grammar release starts reading the annotation, this file stops
+        testing C-164's shape and says so."""
+        from hobbes.extract.cppsource import extract_cpp
+
+        layer = extract_cpp(self.repo_with_an_annotation(tmp_path))
+        misnamed = next(
+            s for s in layer["symbols"] if s["id"] == "src/lost3.h.Holder3::LOCKED_"
+        )
+        assert (misnamed["kind"], misnamed["line"], misnamed["name_col"]) == ("method", 12, 8)
+        assert not [s for s in layer["symbols"] if s["name"] == "annotated"]
+
+    def test_a_symbol_the_index_reads_as_a_macro_reference_gives_up_its_calls(
+        self, tmp_path, monkeypatch
+    ):
+        """R1 end to end: the misnamed symbol is gone, the definition the
+        index names is minted with its own extent, and the call written
+        inside the body is drawn from that definition instead."""
+        graph = self.graph(
+            monkeypatch,
+            self.repo_with_an_annotation(tmp_path),
+            self.facts(
+                [*self.DEFINITIONS, *self.DEFINITIONS_3],
+                [self.MACRO_REFERENCE, self.ANNOTATED_CALL],
+            ),
+        )
+        assert graph["lane_a_contradicted"] == {
+            "refused": {"macro": 1, "term": 0},
+            "extents": {
+                "read": 0,
+                "kept": 0,
+                "refused": dict.fromkeys(minted.READ_REFUSALS, 0),
+            },
+            # The call the misnamed symbol was drawing.
+            "facts_rescoped": 1,
+        }
+        assert not [s for s in graph["symbols"] if s["name"] == "LOCKED_" and s["line"] == 12]
+        annotated = next(
+            s for s in graph["symbols"]
+            if s["id"] == "src/lost3.h.lib::v1::Holder3::annotated"
+        )
+        assert (annotated["line"], annotated["end_line"]) == (11, 14)
+        assert annotated["extent"] == "braces" and annotated["declared_by"] == "scip"
+        edge = next(
+            e for e in graph["symbol_edges"]
+            if e["to"] == "src/lost3.h.inner" and e["type"] == "calls"
+        )
+        assert edge["from"] == "src/lost3.h.lib::v1::Holder3::annotated"
+
+    def test_without_the_macro_reference_the_misnamed_symbol_keeps_its_call(
+        self, tmp_path, monkeypatch
+    ):
+        """The other side of the same repo: nothing but the reference at
+        the token removes a lane A symbol, and with no reference there the
+        graph is what it was — the wrong caller included (C-164)."""
+        graph = self.graph(
+            monkeypatch,
+            self.repo_with_an_annotation(tmp_path),
+            self.facts([*self.DEFINITIONS, *self.DEFINITIONS_3], [self.ANNOTATED_CALL]),
+        )
+        assert "lane_a_contradicted" not in graph
+        edge = next(
+            e for e in graph["symbol_edges"]
+            if e["to"] == "src/lost3.h.inner" and e["type"] == "calls"
+        )
+        assert edge["from"] == "src/lost3.h.Holder3::LOCKED_"
 
     def test_no_lane_b_facts_mint_nothing_and_write_no_block(self, tmp_path, monkeypatch):
         """P6: with no indexer the floor is exactly what it was."""

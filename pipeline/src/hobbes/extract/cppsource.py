@@ -991,10 +991,25 @@ def _declaration(
 
 
 def _symbol(name: str, qualname: str, kind: str, ident: Node, extent: Node) -> dict:
-    """C's symbol dict (:func:`csource._symbol`) with C++'s one difference:
+    """C's symbol dict (:func:`csource._symbol`) with C++'s two differences:
     *qualname* is the ``::``-joined path to the definition, not the bare
-    name."""
-    return csource._symbol(name, kind, ident, extent) | {"qualname": qualname}
+    name, and a function or method carries ``name_col`` — the 0-based
+    column of the token this parse took as the symbol's terminal name
+    (ADR-135).
+
+    0-based is lane B's own convention, shared by its ``col`` and by the
+    operator and construction tokens, so the join can ask whether the index
+    reads *that exact token* as a reference — which a definition's own name
+    never is (:func:`hobbes.extract.minted.contradicted`). *ident* is the
+    terminal's node at every call site that spells a function or a method:
+    an out-of-line ``Foo::bar`` passes ``bar``'s, not ``Foo``'s. A gtest
+    ``TEST``'s synthetic ``suite.name`` has no token of its own and takes
+    the macro's column, which no reference is spelled that name at.
+    """
+    symbol = csource._symbol(name, kind, ident, extent) | {"qualname": qualname}
+    if kind in ("function", "method"):
+        symbol["name_col"] = ident.start_point.column
+    return symbol
 
 
 def _qualname(scope: tuple[tuple[str, bool], ...], *names: str) -> str:
