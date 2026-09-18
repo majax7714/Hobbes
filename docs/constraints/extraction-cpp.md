@@ -75,7 +75,13 @@ headers parsed with tree-sitter ERROR nodes.
     line). A call written *inside* a lost definition keeps the caller it
     had — the enclosing symbol lane A did parse, or the module. Finding a
     body's end through unexpanded macros is a guess not made. `who_calls`
-    says so on every minted symbol.
+    says so on every minted symbol. **Measured 2026-09-18 (ADR-134,
+    proposed):** 1,436 of fmt's 8,123 `calls` evidence rows (17.7%) are
+    drawn from the module where clang names a function, 1,329 of them
+    under a minted definition; args 15 of 2,567. No graded number sees
+    it: the keys never read a caller. A brace-matched extent was
+    simulated and read 1,303 rows with none wrong; nothing is built
+    until Max takes a route.
   - **Its name is the compiler's spelling**, so an inline namespace
     appears (`fmt::v12::detail::write`) where lane A's neighbours in the
     same file may lack the namespace a macro opened; a constructor of a
@@ -438,6 +444,43 @@ headers parsed with tree-sitter ERROR nodes.
   a reference for).
 - **Source:** ADR-113 §2 (the concession); ADR-132 (the measurement and
   the narrowing).
+
+### C-164 — A lane A C++ symbol from an error-recovered parse can carry a macro's name or another definition's body
+
+- **Cannot tell you:** that a function's name or extent is right where
+  tree-sitter-cpp recovered from a macro it could not read. Three shapes,
+  all on fmt:
+  - a **trailing annotation macro names the function** — `void
+    UnitTest::AddTestPartResult(…) GTEST_LOCK_EXCLUDED_(mutex_) {` is a
+    function called `GTEST_LOCK_EXCLUDED_`. 14 symbols
+    (`GTEST_LOCK_EXCLUDED_` 5, `FMT_CATCH` 4,
+    `GTEST_EXCLUSIVE_LOCK_REQUIRED_` 4, one more), 28 `calls` edges drawn
+    from them, none into them;
+  - a **macro-prefixed constructor takes its first member initialiser's
+    name** — `FMT_CONSTEVAL FMT_ALWAYS_INLINE basic_fstring(const S& s) :
+    str_(s) {` is `basic_fstring::str_` (2 symbols);
+  - a **body swallows the definitions after it** —
+    `gtest-extra-test.cc`'s `TEST` at line 201 ends at 292, so ten tests'
+    calls are drawn from the first, and their test reach is its.
+- **Because:** the preprocessor never runs at lane A (C-131, C-145), and
+  the grammar's recovery reads the macro call as the declarator. The
+  mint (ADR-129) can name the true definition beside such a symbol (29
+  of the 73 rows sit under one), but a minted symbol has no extent, so
+  the misnamed lane A symbol stays the caller.
+- **Bites at:** `who_calls` and `tests_guarding` on macro-annotated C++.
+  Measured against the key's caller names (ADR-134, 2026-09-18): **73 of
+  fmt's 8,123 `calls` evidence rows name a wrong caller** (0.9%), 1 of
+  args's 2,567. The key grades `(site, target)` and never reads a
+  caller, so no cell's precision sees this.
+- **You find out:** **unsurfaced.** The files carry a `parse`
+  degradation record (C-145), which says symbols may be *lost*; nothing
+  says a symbol that is present may be misnamed. Debt, with its own item
+  next on the C++ list (ADR-134): counted across the C and C++ clones
+  first, then whether the index's definition row at that line can refuse
+  or rename the symbol.
+- **Provider (P9):** tree-sitter-cpp **0.23.4**.
+- **Source:** ADR-134's step 0 (`~/.hobbes/bench/c145-extent/probe.py`),
+  every row read against the source.
 
 ## Lifted constraints in this segment
 

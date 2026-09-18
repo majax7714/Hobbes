@@ -17,23 +17,60 @@ session.
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the two 2026-09-18 BUILDLOG entries:
-"the join's by-name claim measured and simulated" and "the join claims
-by position" (ADR-133, 0.2.45-beta). Before them, 2026-09-17: the
+The latest session's records are the three 2026-09-18 BUILDLOG entries:
+"the join's by-name claim measured and simulated", "the join claims
+by position" (ADR-133, 0.2.45-beta) and "a lost definition's extent
+measured and simulated" (ADR-134 proposed). Before them, 2026-09-17: the
 ADR-131 amendment (0.2.43-beta) and "constructions at the token"
 (ADR-132, 0.2.44-beta), "C++ recall: operators" (ADR-131), the two CI
 entries, "C++ recall" (ADR-129, ADR-130), and the ADR-123–128 entries.
 Earlier sessions' detail lives in their own BUILDLOG entries; this file
 keeps only what the next session needs.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-18)
+## ⇢ START HERE NEXT SESSION (written 2026-09-18, evening)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
-its list is below, each item measured before it is designed. **Next is
-the lost definition's extent** (item 2): count first, nothing drawn.
-Nothing new waits on Max.
+its list is below, each item measured before it is designed.
+
+**One thing waits on Max: ADR-134's route** (the lost definition's
+extent — measured and simulated on 2026-09-18, nothing built):
+- **(a) recommended:** a minted function or method gets an extent by
+  brace matching on the file's text, refused where a preprocessor
+  conditional sits in the body; facts inside re-home to it. fmt: about
+  1,280 of 1,436 lost callers get the caller clang names, none wrong in
+  1,303 moved rows; args 16 of 16. **No graded number moves** — the keys
+  never read a caller; `who_calls`, `tests_guarding` and the gate do.
+- **(b)** the same with conditionals allowed (+61 rows, none wrong
+  measured, a guess); **(c)** register and leave.
+- On (a): amend ADR-134 to accepted, write §10.19's predictions first
+  (the probe's before/after counts are the record; it is not a grade),
+  then one unit — `extract/minted.py`, the re-homing beside the mint's
+  call, `minicpp` gaining a lost definition with a call inside it and
+  one with `#if` in its body — then the proxy's `who_calls` wording.
+  Patch: a constraint's fix.
+
+**Then C-164, measured first** (registered unsurfaced this session):
+lane A C++ symbols named by a macro or swallowing the definitions after
+them — 73 wrong-caller rows on fmt. Count the shapes across the C and
+C++ clones; ask whether the index's definition row at the line can
+refuse or rename the symbol. It goes ahead of the 15 line-convention
+rows: its rows are wrong, not missing.
+
+### What landed on 2026-09-18, evening (no code, no version move)
+
+- The top-level documentation read; four drifted figures in the
+  README's Status corrected, and the register index's headline.
+- **ADR-134 proposed** and **C-164 registered**; drivers in
+  `~/.hobbes/bench/c145-extent/` (`probe.py` step 0 — Hobbes' caller
+  beside the key's, with the three naming equivalences; `simulate.py`
+  step 1, a sixth argument `1` allows conditionals; `fmt.json`,
+  `args.json`, `fmt-sim.json`, `fmt-sim-cond.json`, `args-sim.json`).
+  Run as `python3 probe.py <graph.json> <oracle.json> <out.json>`; the
+  keys are `~/.hobbes/bench/uneval-drivers/keys/{fmt,args}/oracle.json`,
+  the clones `cpp-cells/fmt` and `cpp-cells/draw-args`.
+- scip-clang 0.4.0 emits no `enclosing_range` (checked in the image).
 
 ### What landed on 2026-09-18 (merged no-ff; tracker 51 of 40)
 
@@ -106,10 +143,12 @@ Nothing new waits on Max.
    C-162: the macro class, templates, untokened conversions and
    references the index does not emit. The using-declaration claim
    closed with ADR-133.
-2. **A lost definition's extent (C-145's residual):** calls written
-   inside a minted symbol keep the enclosing caller. Count them first;
-   Route B (blanking known-empty macros) is the candidate, and it is
-   lane A guessing at the preprocessor, so it needs its own ADR.
+2. **A lost definition's extent (C-145's residual): measured and
+   simulated, ADR-134 proposed — Max's route.** Route B (blanking
+   macros) turned out not to be needed for the extent; it stays the
+   candidate for C-164.
+2a. **C-164's wrong callers** (macro-named lane A symbols, a swallowing
+   body): count across the C and C++ clones first.
 3. **The 15 `lane-a-symbol-near` rows on fmt:** a line-convention
    disagreement, its own small item.
 4. **ScummVM as a scale read** (no key): symbols minted, edges gained,
@@ -195,6 +234,7 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **Open, new: ADR-134's route** (START HERE).
    - **Settled 2026-09-18:** the join's claim by position — built
      (ADR-133, 0.2.45-beta); constructions inside a template stay
      `uses`.
@@ -327,9 +367,10 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 163 entries: 118 active (92 surfaced, 22 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-163 registered and lifted, C-162 narrowed (ADR-133,
+- **Register:** 164 entries: 119 active (92 surfaced, 22 partial, 4
+  unsurfaced — C-19, C-20, C-112, C-164 — 1 n/a), 28 lifted, 11 superseded, 6
+  folded. Latest: C-164 registered unsurfaced and C-145's residual
+  measured (ADR-134 proposed, no version move); C-163 registered and lifted, C-162 narrowed (ADR-133,
   0.2.45-beta); C-162 registered and narrowed (ADR-132, 0.2.44-beta);
   C-153 narrowed a third time (ADR-131 amended,
   0.2.43-beta; no entry added); C-146 narrowed (ADR-131, 0.2.42-beta; no entry added);

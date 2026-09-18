@@ -12718,3 +12718,69 @@ server** (C-65). Suites green: 1,910 pytest (9 `lane_b`), Go, 87 scip,
 36 tsextract, 52 vitest. Worktrees `join-claim/wt` and `wt-pre` removed.
 
 No spend beyond the subscription's $1.78.
+
+## 2026-09-18 (evening) — a lost definition's extent measured and simulated (ADR-134 proposed; C-164 registered; nothing built, no version move)
+
+Max: review the top-level documentation, then continue from the resume
+point with the lost definition's extent.
+
+**The documentation read** (README, CLAUDE.md — `AGENTS.md` is its
+symlink — CHANGELOG's head, the handoff, the register's index). Four
+figures in the README's Status section had drifted from the records and
+are corrected: the register's count (161/117/27 → the register's own),
+fmt's strict figure in the oracle paragraph (99.61% where every other
+place says 99.62%), the session logs standing (48 → 51, the directory's
+count), and the ADR range in the design-docs table (131 → 134). The
+register index's "Debt summary" headline read 162 entries and 27 lifted
+above a table that said 28; it reads the table's numbers now. Not
+changed, noted for the docs restructure: the README's extraction section
+carries a version-by-version C++ history (0.2.41 to 0.2.45) that is the
+CHANGELOG's job, and the Status section's Calvin paragraph repeats it.
+
+**Step 0** (`~/.hobbes/bench/c145-extent/probe.py`). The C and C++ keys
+grade `(site, target)` and never read an edge's `from`, so no cell has
+judged a C++ caller; the key does name clang's caller at every site, so
+the probe reads it beside Hobbes'. The first two passes were wrong and
+the hand read caught both: gtest's `<suite>_<name>_Test::TestBody` is
+lane A's `<suite>.<name>` (3,000 rows scored "wrong" at first), and
+`~2`/`~b2` are id devices. After: fmt 8,123 `calls` evidence rows, 6,392
+agree, **1,436 lost** (module where clang names a function; 1,329 under a
+minted definition), **75 wrong**, 97 lambda, 96 no key site; args 2,567
+rows, 15 lost, 4 wrong.
+
+**What the wrong rows are** — not this item's question, and registered
+as **C-164** (unsurfaced, debt): lane A symbols *named by a macro*
+(`… ) GTEST_LOCK_EXCLUDED_(mutex_) {` is a function called
+`GTEST_LOCK_EXCLUDED_`; 14 symbols on fmt, 28 `calls` edges out), a
+constructor named by its first member initialiser (`str_`, 2), and one
+`TEST` body whose recovery swallowed the ten tests after it (39 rows,
+and their test reach). 73 of 75 wrong by hand, 2 the key's grain.
+
+**The index has no extent.** scip-clang 0.4.0 run on a ten-line file in
+the image, its output walked by field number: occurrences carry fields
+1, 2, 3 and 5, never 7 (`enclosing_range`).
+
+**Step 1** (`simulate.py`, the graph read and never written): a minted
+function's extent by brace matching on the file's text with comments,
+strings and character literals blanked, refused where a preprocessor
+conditional sits in the body. fmt: 1,365 extents, 34 refused; 1,303 rows
+move, 1,231 to the key's caller, 23 lambda, 19 the key cannot judge, 30
+differing — all 30 read, none wrong (24 friend functions the key files
+under the lexical class and the index under the namespace, 5 methods of
+a nested specialisation the key's name elides, the rest lambdas the key
+class-qualifies). args 16 rows, 3 differing, none wrong. **No row whose
+caller was right would move.** Allowing conditionals: +61 rows, none
+wrong, and a guess.
+
+**ADR-134 proposed**, routes for Max: (a) build it with conditionals
+refused — recommended; (b) conditionals allowed; (c) register and leave.
+It says plainly that no graded number moves — what moves is `who_calls`,
+`tests_guarding` and the gate's reading — and that the key's caller
+names are a probe re-run at the regrade, not a grade. C-164's own item
+goes ahead of the 15 line-convention rows: those rows are wrong, not
+missing.
+
+**Records:** ADR-134; C-164 registered, C-145's residual carries its
+measurement (164 entries, 119 active, 4 unsurfaced); the register index;
+README's four figures; CLAUDE.md's status; the handoff. No code moved,
+no suite run, no version move, no dispatch, no spend.

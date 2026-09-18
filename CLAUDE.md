@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 133;
+  architecture doesn't already make. Number sequentially (last: 134;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -285,8 +285,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.45-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 163 entries; 118 active (92
-  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-163
+  contradicted (ADR-124). **Register:** 164 entries; 119 active (92
+  surfaced, 22 partial, 4 unsurfaced, 1 n/a), 28 lifted — C-164
+  registered unsurfaced (ADR-134, proposed); C-163
   registered and lifted, C-162 narrowed (ADR-133); C-145 narrowed
   (ADR-129), C-153 narrowed three times and partial (ADR-125, ADR-130,
   ADR-131 amended), C-146 narrowed (ADR-131).
@@ -310,13 +311,19 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   contradicted, 30.4%, strict 99.62%; the other 43 row-identical**;
   1,785 `uses` + 11 `calls` symbol edges added, none removed.
   **Next on C++ recall, each measured first:** a lost definition's
-  extent (C-145's residual: callers inside it), the 15 line-convention
-  rows, ScummVM as a scale read (now also the operator and construction
+  extent is measured and simulated, nothing built (ADR-134, proposed:
+  1,436 of fmt's 8,123 `calls` rows are drawn from the module where
+  clang names a function; a brace-matched extent read 1,303 of them,
+  none wrong; no graded number moves, the keys never read a caller);
+  then C-164's wrong callers (73 rows on fmt, lane A symbols named by a
+  macro), the 15 line-convention rows, ScummVM as a scale read (now also the operator and construction
   walks' cost). Operators and constructions at a macro's name belong to
   the macro class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** ADR-126 §3 — whether to build a
+- **Open for Max:** **ADR-134's route** (a: build the extent,
+  conditionals refused — recommended; b: conditionals allowed; c:
+  register and leave); ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:
