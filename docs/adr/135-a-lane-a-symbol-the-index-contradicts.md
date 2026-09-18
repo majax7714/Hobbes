@@ -1,6 +1,6 @@
 # ADR-135 — A lane A C++ symbol the index contradicts: refused where its own name is a reference, clipped where its extent holds a definition
 
-**Date:** 2026-09-18 · **Status:** proposed — measured and simulated, nothing built, no version move. Routes for Max below.
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — the brief's premises checked against the code first (*Accepted*, below).
 
 Follows ADR-134 ("C-164's wrong callers — next, counted across the C and
 C++ clones first, then whether the index's definition row at that line
@@ -196,3 +196,38 @@ into `probe.py`, so the next caller read starts from 0 known-grain rows.
   to the one position where a reference cannot be a definition.
 - Lost rows on fmt rise 188 → 246. Each was wrong before.
 - Lane A's C++ cache is rewritten once (v5).
+
+## Accepted — route (a), and the premises read before the brief (2026-09-18)
+
+Max: route (a). ADR-134's brief mis-stated a site's scope and the unit
+shipped green on it, so each fact this ADR's build rests on was read in
+the tree before the brief was written:
+
+- **The name's column is already in hand.** `cppsource._symbol` takes the
+  identifier node; the column is `ident.start_point.column`, 0-based, the
+  convention lane B's `col` and the operator tokens already share
+  (`xchar.h:98`: `str_` at lane B's col 62, the text's column 62). The
+  cache stores symbols, so `laneacache.FORMAT` moves to `lanea-cpp v5`.
+- **The references are resolution `Site`s** (`file`, `line`, `name`,
+  `col`, `def_file`, `def_line`) in `_build_symbol_layer`'s
+  `resolutions`; the definition rows, macro and `term` rows among them,
+  are `lane_b_definitions`, already filtered to lane A's C and C++ files.
+  A macro defined in a file lane A did not walk has no row there, and R1
+  does not fire on it: the symbol stays, which is the state today.
+- **Where the rules run:** after the join and before the mint, on the
+  joined facts. A refused symbol's facts take the module's id as their
+  scope — the scope lane A gives a file-level site — so ADR-134's
+  `rehome` moves them as it moves any other. The join has already read
+  lane A's symbols; nothing runs into the 18 on fmt, and a fallback
+  target that names a refused symbol's line finds no symbol at the
+  projection and draws nothing.
+- **§2 amended — counted in the graph, not in the `parse` record.** The
+  file's `parse` record is lane A's, written before the index is read.
+  The counts go in a `graph.json` block of their own
+  (`lane_a_contradicted`: refused by kind, extents re-read and refused by
+  reason) and on the ingest summary, as the mint's do.
+- **R1 requires the reference to be spelled as the symbol's name.** A
+  gtest `TEST`'s lane A name is `suite.name`; whatever sits at its
+  column is not spelled that, and R1 cannot fire on a test.
+
+§10.20's predictions were written before the unit.

@@ -1697,6 +1697,42 @@ are the third run's.
   the key cannot speak to stand on the extents the 1,218 judged rows
   share with them, not on a grade of their own.
 
+### 10.20 A lane A symbol the index contradicts — written 2026-09-18, before the unit is dispatched
+
+ADR-135, route (a). **Not a grade**, for §10.19's reason: no key reads a
+caller. On fmt no edge runs *into* any of the 18 symbols R1 refuses
+(read off the 0.2.46-beta graph: 37 `calls`, 38 `uses` and 1
+`implements` evidence rows run out of them, none in), so no `(site,
+target)` row can move. The check is §10.19's probe, before and after on
+the same clones; the numbers are `~/.hobbes/bench/c164-wrong-callers/
+simulate.py`'s, which took the first whole-word spelling of the name on
+the symbol's line where the built rule reads lane A's own column.
+
+- **P121.** Every graded number on the four C and C++ cells ±0, the
+  export row-identical: fmt 7,012 confirmed, 0 contradicted, strict
+  99.62%, 30.4%; args 2,567, 72.9%; cJSON 1,188; sqlite-vector 851.
+  Poison passes on each.
+- **P122.** fmt: R1 refuses **18** symbols (13 at a macro reference, 5 at
+  a `term`'s); R2 re-reads **1** extent (`gtest-extra-test.cc:201`, 292 →
+  210; the `GMOCK_DEFINE…` symbol is R1's first). args, cJSON,
+  sqlite-vector: 0 and 0.
+- **P123.** The probe on fmt (8,123 rows): wrong-caller **105 → 32**,
+  agreeing **7,610 → 7,625 ± 2**, lost **188 → 246 ± 2**. args unmoved
+  (2,489 / 6 / 72).
+- **P124.** No row whose caller agreed with the key before differs from
+  it after, on either cell.
+- **P125.** fmt's minted extents: `holds-a-definition` **19 → 13**, read
+  1,346 → 1,352. Symbols newly minted on a line a refused symbol
+  vacated: recorded, not predicted (the mint's own refusals decide; 0 to
+  3 expected).
+- **P126.** args, cJSON and sqlite-vector: no symbol added or removed, no
+  edge differs; a C++ symbol gains its name column and nothing else. A
+  non-C clone (click) is byte-identical but for the version stamp.
+- **P127 (direction only).** On fmt one test's reach shrinks
+  (`gtest_extra_test.expect_throw_no_unreachable_code_warning`, to its
+  own body's) and no other test loses a symbol; the one `implements` row
+  out of a refused symbol is recorded, not predicted.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
