@@ -1,6 +1,6 @@
 # ADR-133 — The join's claim is by position, not by name
 
-**Date:** 2026-09-18 · **Status:** proposed — measured and simulated, nothing built; the build is Max's word (routes at the end)
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — measured and simulated; the build is one dispatched unit, the grades land here
 
 Follows ADR-132, whose P102 missed by 19 rows on this. Max, 2026-09-18:
 measure it as its own item before touching a rule every language shares.
@@ -20,8 +20,9 @@ true `uses` edges withheld in every language — is in no register entry.
 ## The measurement (`~/.hobbes/bench/join-claim/`, nothing drawn)
 
 **Step 0, what the claim hides** (`probe.py` wraps `join` and replays
-its matching; 24 graded clones, `out/`; dagger's pass had not finished
-when this was written). The probe's model is checked against a known
+its matching; 24 graded clones, `out/`; dagger, the 25th, finished after
+the first writing: 734 hidden, 704 `new-uses`, 30 same-target, none at
+the matched column — beside the 24's figures below, not in them). The probe's model is checked against a known
 number: fmt reads `ctor-outside` 19, ADR-132's P102 rows exactly.
 
 - **6,574 resolutions hidden.** Java carries most (Severed-Chains 2,875,
@@ -74,14 +75,16 @@ read and their shape — each is a reference the index placed at its own
 column, of the kind the unclaimed loop already draws whenever no call of
 the same name shares the line.
 
-## Decision (proposed)
+## Decision
 
 Claim by `(file, line, name, col)`. A resolution at another column on a
 claimed line goes through the unclaimed loop as any other; one at the
 matched hit's own column stays hidden, so ADR-104's abstention and the
 same-reference alternates hold. A resolution without a column (`col <
 0`) shares the key `-1` with its line's others, which is today's
-behaviour among them. Three lines of `join`; no schema change, no new
+behaviour among them; a **site** without a column keeps the by-name
+claim, since which resolution it matched is not known (no contested
+site on the 25 clones was columnless, so the simulation's numbers stand). Three lines of `join`; no schema change, no new
 fact kind.
 
 On the build: register the general concession as **C-163** and lift it
@@ -92,7 +95,7 @@ number ±0 but fmt's +19.
 
 ## Routes for Max
 
-- **(a, recommended) build it**, one dispatched unit, then the full
+- **(a, recommended; taken) build it**, one dispatched unit, then the full
   stored-key regrade. It is an accuracy fix before it is a recall one:
   the graph withholds true dependencies today and says so nowhere. The
   graded effect is fmt +19 confirmed at 0 contradicted; everywhere else
