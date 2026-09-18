@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 132;
+  architecture doesn't already make. Number sequentially (last: 133, proposed;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-17) — Hobbes 0.2.44-beta
+## Status (2026-09-18) — Hobbes 0.2.44-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -314,12 +314,15 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the macro class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** **constructions inside a template read right** (44
-  on fmt, 1 on args, none wrong) — leave them `uses` (recommended) or
-  draw them after a third C++ cell; **the join's claim is by `(file,
-  line, name)`** and hid 19 confirmed constructor rows behind a
-  using-declaration — measure it across the graded cells as its own item
-  (recommended) or leave it registered; ADR-126 §3 — whether to build a
+- **Open for Max:** **ADR-133 (proposed, 2026-09-18): the join's claim
+  by position.** The by-`(file, line, name)` claim hides 6,574 lane B
+  resolutions across 24 graded clones, 4,193 of them true `uses`
+  dependencies in no register entry; simulated by `(file, line, name,
+  col)` on eight cells every prediction met (fmt 6,993 → 7,012 at 0
+  contradicted, the rest graded ±0, 1,262 `uses` edges added, nothing
+  removed) — build it (recommended) or register and leave it.
+  Constructions inside a template stay `uses` (settled 2026-09-18);
+  ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now").

@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-17; Hobbes 0.2.44-beta on `main`.** CI was green on
+**Reviewed 2026-09-18; Hobbes 0.2.44-beta on `main`.** CI was green on
 `dbef0af` (ADR-114's base rule read on it: the graph job reviewed from
 the last green run); everything since is unpushed. The knowledge server
 serves the image it started from until it is restarted (C-65):
@@ -27,38 +27,30 @@ ADR-123–128 entries (0.2.36–0.2.40-beta). Earlier sessions' detail lives
 in their own BUILDLOG entries; this file keeps only what the next session
 needs.
 
-## ⇢ START HERE NEXT SESSION (2026-09-17)
+## ⇢ START HERE NEXT SESSION (written 2026-09-18)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed. **Next is
-the lost definition's extent** (item 2), unless Max takes one of the two
-small things below first.
+ADR-133's route, then the lost definition's extent** (item 2).
 
-### Two things for Max first
+### One thing for Max first
 
-1. **Constructions inside a template read right — draw them?** ADR-132
-   draws outside a template only. The same rule inside one would add 44
-   rows on fmt (42 confirmed, 2 `MutexLock` rows the key cannot judge,
-   read right) and 1 on args (confirmed); none reads wrong, unlike
-   operators. The likely reason: a dependent type's construction gets no
-   reference at all (690 rows on fmt), so what the index emits in a
-   template is a non-dependent type's. Routes: **(a, recommended) leave
-   it** — 45 rows is evidence, not a mechanism proved, the gain is 0.1
-   point on fmt, and they are true `uses` edges today; **(b)** draw them,
-   one flag's change in `evidence._construction_call`, with a third C++
-   cell graded first as the held-out check.
-2. **The join's claim is by `(file, line, name)`** and it cost ADR-132
-   19 confirmed rows on fmt: `using fmt::detail::bigint;` then
-   `bigint n1(42);` gives two references named `bigint` on the line;
-   lane A's existing construct site takes the nearer (the
-   using-declaration, below the floor) and the claim swallows the
-   constructor's. Routes: **(a, recommended) measure it as its own small
-   item** — across all graded cells and languages, how many unclaimed-
-   by-position references a by-name claim hides, and what a by-hit claim
-   would draw, graded — before touching a rule every language shares;
-   **(b)** leave it registered in C-162.
+**ADR-133 (proposed, 2026-09-18): the join's claim by position.** Max
+took both recommended routes on 2026-09-18 — constructions inside a
+template stay `uses` (closed, nothing built), and the by-name claim was
+measured (`~/.hobbes/bench/join-claim/`). It hides 6,574 lane B
+resolutions across 24 graded clones; 4,193 are true `uses` dependencies
+at another column (Java's declared type beside its `new`, a TS interface
+beside its function, a Go return type beside a method call), and the
+general case is in no register entry. Simulated as `(file, line, name,
+col)` on eight cells, every prediction met: fmt 6,993 → 7,012 at 0
+contradicted, the other seven graded ±0, 1,262 `uses` edges added,
+nothing removed. Routes: **(a, recommended) build it** — one unit, C-163
+registered and lifted, C-162 narrowed, then the full stored-key regrade;
+**(b)** register it and leave the rule. dagger's step-0 pass was still
+running at the close (`run-all.log`).
 
 ### What landed on 2026-09-17, last session (merged no-ff; tracker 50 of 40)
 
@@ -129,6 +121,11 @@ The 2026-09-15 and 2026-09-16 resume points were folded into their
 BUILDLOG entries on 2026-09-17; only the paths a next session reaches for
 stay here.
 
+- **The join's claim (ADR-133):** `~/.hobbes/bench/join-claim/`
+  (`probe.py` step 0, `run-all.sh` and `out/` the 24 clones;
+  `ingest_bypos.py` the in-memory rule, `sim.sh` + `sim-cells.tsv` +
+  `diff.py`, `PREREG-sim.md`, `sim/` the stock and by-position graphs,
+  exports and reports).
 - **Constructions (ADR-132):** `~/.hobbes/bench/cpp-constructions/`
   (step 0: `probe.py` the per-pair read, `classes.py` the six classes,
   `PREREG-args.md`, `fmt-out/`, `args-out/`; step 1: `simulate.py` the
@@ -187,8 +184,9 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **New, from ADR-132:** constructions inside a template, and the
-     join's by-name claim — see START HERE.
+   - **New, ADR-133 (proposed):** the join's claim by position — see
+     START HERE. Constructions inside a template: settled 2026-09-18,
+     they stay `uses`.
    - **Settled 2026-09-17 (Max: "go with recommended"):** constructions —
      the token rule (ADR-132, 0.2.44-beta); C-162 registered.
    - **Settled 2026-09-17 (Max: route a):** the wrong `uses` edges at

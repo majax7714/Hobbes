@@ -12640,3 +12640,42 @@ Merged no-ff (`112e738`); tracker 50 of 40. Image rebuilt at
 0.2.44-beta — **restart the knowledge server** (C-65).
 
 No spend beyond the subscription's $8.57.
+
+## 2026-09-18 — the join's by-name claim measured and simulated (ADR-133 proposed; nothing built, no version move)
+
+Max took both recommended routes from the handoff: constructions inside
+a template stay `uses` (nothing to build), and the join's claim is
+measured as its own item.
+
+**Step 0** (`~/.hobbes/bench/join-claim/probe.py`, 24 graded clones; it
+wraps `join`, replays the matching and classes every resolution a
+matched site's `(file, line, name)` claim hides; no artifact written).
+The model was checked first against a known number: fmt reads 19
+constructors hidden outside a template, ADR-132's P102 rows exactly.
+6,574 hidden in all, Java and TS carrying most; 1,158 at the matched
+hit's own column (alternates of one reference, which ADR-104 wants
+hidden), 4,193 at another column onto a definition the line's matched
+hits do not name, 1,204 onto the same one. The hand read of the 4,193:
+true dependencies — a Java declaration's type beside its `new`, a TS
+interface beside the function of its name, a Go return type beside a
+method call. The matching is not the defect: all but 2 contested sites
+took the hit at their exact column. The general case was in no register
+entry (C-162 holds only the using-declaration shape).
+
+**Step 1** (`ingest_bypos.py`, `sim.sh`, `diff.py`; `PREREG-sim.md`
+written first): the claim keyed `(file, line, name, col)`, simulated in
+memory, eight cells ingested stock and by-position on the same tree and
+graded against stored keys. P-j1–P-j6 all met: fmt 6,993 → 7,012
+confirmed at 0 contradicted (the number ADR-132 predicted); args, jsoup,
+Severed-Chains, zod, ajv, quic-go and memchr graded ±0; 1,262 `uses`
+symbol edges added across them, nothing removed, one module edge
+(quic-go `http3/body → interface`, a true return-type dependency);
+poison passes both arms. Each clone was re-ingested stock afterwards.
+
+**Not done:** dagger's step-0 pass was still running at the close (its
+line lands in `run-all.log`; `out/dagger.json`). No `uses` edge is
+graded by any key — the ADR says so.
+
+ADR-133 written as *proposed*: route (a) build it in one unit with C-163
+registered and lifted and C-162 narrowed, then the full stored-key
+regrade; route (b) register and leave. No spend.
