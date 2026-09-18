@@ -121,6 +121,49 @@ lane A never parsed unless something reads the count, and these symbols
 are precisely the ones the wrong edges land on. The read is *unknown*
 wherever it is not clean, and an unknown draws the edge.
 
+**The index also contradicts symbols lane A did keep** (ADR-135), and
+:func:`contradicted` refuses those before anything is minted. Where
+tree-sitter-cpp recovers from a macro it cannot read it keeps a function
+named for the wrong token — ``void UnitTest::AddTestPartResult(..)
+GTEST_LOCK_EXCLUDED_(mutex_) {`` is a function called
+``GTEST_LOCK_EXCLUDED_``, and ``FMT_CONSTEVAL basic_fstring(const S& s) :
+str_(s) {`` is ``basic_fstring::str_`` — or one whose extent runs on over
+the definitions written after it. Those rows are *wrong* rather than
+missing (C-164), and the calls inside are drawn from them.
+
+``R1``
+    A function's or method's own name at its definition is a definition
+    occurrence, never a reference. Where lane B holds a **reference** at
+    exactly the token lane A took as the name (``name_col``,
+    :func:`hobbes.extract.cppsource._symbol`), resolved to a ``macro`` row
+    or to a ``term`` row of that same name, the parse took the wrong
+    token: the symbol is dropped and its facts take the module's id as
+    their scope, which is the scope lane A gives a file-level site — so
+    the mint sees the line as lost, mints the true definition where the
+    index has one, and :func:`rehome` moves the facts onto it. 13
+    ``macro`` and 5 ``term`` on fmt, every one of the 18 misnamed by a
+    hand read, none of the 3,769 right ones flagged; 0 on args, cJSON and
+    sqlite-vector. Six of ADR-134's ``holds-a-definition`` refusals were a
+    minted extent holding one of these symbols, and unblock with it.
+    **The position has to be exact:** read loosely — a same-named
+    reference anywhere in the head or the body — the same rule flags
+    *right* symbols, args' ``Base::KickOut`` beside the enumerator
+    ``Options::KickOut`` among them.
+``R2``
+    A function or method whose extent holds a file- or class-scope
+    definition row has that extent re-read from the file's braces by
+    :func:`_extent`, the reader ADR-134 already mints with: a nearer end
+    is taken, an end at or past the parse's is left alone (the braces
+    agree, and the held row is something this rule does not understand),
+    and a refusal leaves the symbol its own line. Facts written past the
+    new end take the module's id. 1 on fmt after R1, 0 elsewhere.
+
+Neither rule renames anything, and neither marks a lane A extent
+``extent: "braces"`` — that field says *minted*. **P6:** with no index
+there are no references and no definition rows, so neither can fire and
+the graph is what it was; ``name_col`` is the only difference such a
+graph shows.
+
 :func:`constructor_lines` reads the same rows for a different question
 (ADR-132): which lines a **constructor** is defined at, so the join can
 tell a construction's reference from a type's at a declared name. It
@@ -173,6 +216,19 @@ REFUSALS = (
 #: read meets them. Fixed for :data:`REFUSALS`' reason: the block reads the
 #: same way on every repo.
 EXTENT_REFUSALS = ("no-body", "runs-off", "conditional-inside", "holds-a-definition")
+
+#: What the index contradicts a lane A C++ definition's name with (ADR-135,
+#: R1), in the order :func:`contradicted` reads them: a reference at the
+#: symbol's own name token resolving to a macro's definition, or to a data
+#: member of that same name. Fixed for :data:`REFUSALS`' reason — the block
+#: reads the same way on every repo.
+CONTRADICTIONS = ("macro", "term")
+
+#: Every reason R2's re-read of a **lane A** extent can refuse, which is
+#: :data:`EXTENT_REFUSALS` without ``holds-a-definition``: that one belongs
+#: to the mint's second pass, and here a held definition is the rule's
+#: condition rather than a refusal.
+READ_REFUSALS = ("no-body", "runs-off", "conditional-inside")
 
 #: What a minted symbol's ``extent`` field says where its body was read: the
 #: file's own braces, matched (ADR-134). Absent on every other symbol — a
@@ -328,6 +384,206 @@ def mint(
         "refused": refused,
         "extents": extents,
     }
+
+
+def contradicted(
+    repo_root: Path,
+    symbols: Sequence[Mapping],
+    facts: Sequence,
+    resolutions: Iterable,
+    definitions: Iterable[Mapping],
+    module_of_path: Mapping[str, str],
+) -> tuple[list[dict], list, dict]:
+    """ADR-135's two rules over the joined facts: the symbols the index
+    contradicts, the facts they no longer speak for, and the counts.
+
+    *symbols* are lane A's as ``graph["symbols"]`` holds them, *facts* the
+    join's output, *resolutions* lane B's sites (``file``, ``line``,
+    ``name``, ``col``, ``def_file``, ``def_line``), *definitions* the rows
+    of every C or C++ file lane A walked, and *module_of_path* the graph's
+    file-to-module map. Runs **before** :func:`mint`, so a symbol R1
+    removes leaves a line the mint reads as lost.
+
+    Only a symbol carrying ``name_col`` is looked at — lane A's C++
+    functions and methods, and no minted or C symbol — and a symbol
+    nothing contradicts is returned exactly as it came. Returns new lists:
+    no dict this is handed is written to.
+
+    Deterministic: the symbols are read in id order, and the resolutions
+    in one pass over the positions wanted, which is also what makes this
+    affordable — a large repo holds millions of them and only a few
+    thousand positions are asked about.
+    """
+    counts = {
+        "refused": dict.fromkeys(CONTRADICTIONS, 0),
+        "extents": {"read": 0, "kept": 0, "refused": dict.fromkeys(READ_REFUSALS, 0)},
+        "facts_rescoped": 0,
+    }
+    # Both rules ask the index about the symbol's own **file**, so a module
+    # two paths share (a `.cpp` beside a `.c` of one stem, C-15) is left
+    # out: which file a symbol of it was written in is not known here, and
+    # neither rule fires on a position it cannot place.
+    path_of_module: dict[str, str | None] = {}
+    for path, module in module_of_path.items():
+        path_of_module[module] = None if module in path_of_module else path
+    candidates: list[tuple[Mapping, str]] = []
+    for symbol in sorted(
+        (s for s in symbols if s.get("name_col") is not None), key=lambda s: s["id"]
+    ):
+        file = path_of_module.get(symbol.get("module"))
+        if file is not None:
+            candidates.append((symbol, file))
+    if not candidates:
+        return list(symbols), list(facts), counts
+
+    rows_at: dict[tuple[str, int], list[Mapping]] = {}
+    held: dict[str, list[int]] = {}
+    for row in definitions:
+        rows_at.setdefault((row["file"], row["line"]), []).append(row)
+        if _at_outer_scope(row):
+            held.setdefault(row["file"], []).append(row["line"])
+    for lines in held.values():
+        lines.sort()
+
+    # R1. The positions are known before the resolutions are read, so each
+    # one is looked at once and dropped: on a repo the size of fmt this is
+    # a few thousand keys against 1.8 million sites.
+    wanted: dict[tuple[str, int, int], list[Mapping]] = {}
+    for symbol, file in candidates:
+        wanted.setdefault((file, symbol["line"], symbol["name_col"]), []).append(symbol)
+    resolved_to: dict[str, set[tuple[str, int]]] = {}
+    for site in resolutions:
+        if site.col < 0:
+            continue
+        for symbol in wanted.get((site.file, site.line, site.col), ()):
+            if site.name == symbol["name"]:
+                resolved_to.setdefault(symbol["id"], set()).add(
+                    (site.def_file, site.def_line)
+                )
+
+    refused: dict[str, str] = {}
+    for symbol, _ in candidates:
+        reason = _contradiction(symbol, resolved_to.get(symbol["id"], ()), rows_at)
+        if reason is not None:
+            counts["refused"][reason] += 1
+            refused[symbol["id"]] = symbol["module"]
+
+    # R2, on what R1 left: an extent holding a definition the index places
+    # at file or class scope says the parse ran on over it, so the file's
+    # own braces are asked where the definition really ends.
+    sources: dict[str, list[str] | None] = {}
+    blanked: dict[str, list[str] | None] = {}
+    clipped: dict[str, tuple[str, int]] = {}
+    for symbol, file in candidates:
+        if symbol["id"] in refused:
+            continue
+        end = symbol.get("end_line") or symbol["line"]
+        lines = held.get(file, ())
+        inside = bisect_right(lines, symbol["line"])
+        if inside >= len(lines) or lines[inside] > end:
+            continue
+        text = _blanked_lines(repo_root, file, sources, blanked)
+        # A file that will not read shows no body, as it does at the mint.
+        read, reason = _extent(text, symbol["line"]) if text is not None else (None, "no-body")
+        if read is None:
+            counts["extents"]["refused"][reason] += 1
+            clipped[symbol["id"]] = (symbol["module"], symbol["line"])
+        elif read >= end:
+            # The braces agree with the parse: whatever the held row is,
+            # this rule does not understand it, and leaves the symbol alone.
+            counts["extents"]["kept"] += 1
+        else:
+            counts["extents"]["read"] += 1
+            clipped[symbol["id"]] = (symbol["module"], read)
+
+    if not refused and not clipped:
+        return list(symbols), list(facts), counts
+    out_symbols = [
+        {**symbol, "end_line": clipped[symbol["id"]][1]}
+        if symbol.get("id") in clipped
+        else symbol
+        for symbol in symbols
+        if symbol.get("id") not in refused
+    ]
+    out_facts: list = []
+    for fact in facts:
+        # The module's id is what lane A gives a file-level C++ site, and
+        # `rehome` reads it as the module speaking — so a fact freed here
+        # is re-homed onto the minted definition covering it, if there is
+        # one, and belongs to the module if there is not.
+        module = refused.get(fact.scope)
+        if module is None:
+            moved = clipped.get(fact.scope)
+            module = moved[0] if moved is not None and fact.line > moved[1] else None
+        if module is None:
+            out_facts.append(fact)
+            continue
+        out_facts.append(dataclasses.replace(fact, scope=module))
+        counts["facts_rescoped"] += 1
+    return out_symbols, out_facts, counts
+
+
+def contradicted_fired(counts: Mapping) -> bool:
+    """Whether :func:`contradicted` did anything at all — the condition its
+    caller writes the graph block on, as ``operators`` and ``constructions``
+    are written only where they have something to say."""
+    extents = counts["extents"]
+    return bool(
+        any(counts["refused"].values())
+        or extents["read"]
+        or extents["kept"]
+        or any(extents["refused"].values())
+    )
+
+
+def _contradiction(
+    symbol: Mapping,
+    resolved_to: Iterable[tuple[str, int]],
+    rows_at: Mapping[tuple[str, int], list[Mapping]],
+) -> str | None:
+    """Which of :data:`CONTRADICTIONS` the index reads *symbol*'s own name
+    token as, or ``None``.
+
+    A reference at that token resolving to a ``macro`` definition, or to a
+    ``term`` — a data member — **spelled as the symbol is**: the first is
+    an annotation macro the parse took for the declarator, the second a
+    member initialiser it took for one. Anything else leaves the symbol as
+    it is: no reference at the token at all, a reference to a ``method`` or
+    a ``type`` row (the index agreeing with lane A), a ``def_file`` the
+    rows do not cover, a ``term`` of another name (a field a rightly named
+    function shares a line with), or a moniker this module cannot spell.
+    """
+    found = None
+    for where in sorted(resolved_to):
+        for row in rows_at.get(where, ()):
+            if row.get("kind") == "macro":
+                return "macro"
+            if row.get("kind") == "term" and _terminal_name(row) == symbol["name"]:
+                found = "term"
+    return found
+
+
+def _at_outer_scope(row: Mapping) -> bool:
+    """Is *row* a function definition the index places at file or class
+    scope — the shape whose presence inside a lane A extent says the parse
+    swallowed it (ADR-135, R2)?
+
+    :func:`mint`'s ``local-to-function`` question, asked of a row rather
+    than of a mint: a moniker whose chain holds a ``method`` before its
+    last describes a lambda's or a local class's method, which is inside a
+    body by right (C-9) and contradicts nothing.
+    """
+    if row.get("kind") != "method":
+        return False
+    chain = read_moniker(row.get("moniker") or "")
+    return chain is not None and not any(suffix == "method" for _, suffix in chain[:-1])
+
+
+def _terminal_name(row: Mapping) -> str | None:
+    """The last descriptor's name in *row*'s moniker, or ``None`` where it
+    is not one :func:`read_moniker` can spell."""
+    chain = read_moniker(row.get("moniker") or "")
+    return chain[-1][0] if chain else None
 
 
 def rehome(

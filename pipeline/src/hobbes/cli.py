@@ -96,6 +96,35 @@ def _print_implements(counts: dict | None) -> None:
         print("    implements not drawn: " + "; ".join(parts))
 
 
+def _print_contradicted(counts: dict | None) -> None:
+    """The lane A C++ definitions the index contradicts (ADR-135), on one
+    line above the minted block, because the mint reads what this left.
+
+    A symbol *removed* on the index's word is the first of its kind, so the
+    line says what the index read at the name token to remove it, and the
+    other half beside it: the extents re-read from the file's own braces
+    because they held another definition, how many of those re-reads the
+    reader refused — leaving the symbol its own line — and how many facts
+    took the module as their scope, the calls that were being drawn from a
+    wrong caller (C-164). Nothing is printed where the block is absent: no
+    indexer, or no C++, is the graph exactly as it was (P6).
+    """
+    if not counts:
+        return
+    refused = counts.get("refused") or {}
+    extents = counts.get("extents") or {}
+    declined = (extents.get("refused") or {}).values()
+    print(
+        f"    lane A contradicted: {sum(refused.values())} C++ symbol(s) refused, the "
+        f"index reading their own name as a reference ({refused.get('macro', 0)} to a "
+        f"macro, {refused.get('term', 0)} to a data member); {extents.get('read', 0)} "
+        "extent(s) re-read from the file's own braces where one held another "
+        f"definition ({sum(declined)} re-read(s) refused, left a line); "
+        f"{counts.get('facts_rescoped', 0)} fact(s) took the module as their scope "
+        "(ADR-135, C-164)"
+    )
+
+
 def _print_minted(counts: dict | None) -> None:
     """The definitions lane A's parse lost and lane B's index gave back
     (ADR-129 §5): how many became symbols, in how many files, and how many
@@ -325,6 +354,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
         + (f", {other} other symbol edges" if other else "")
     )
     _print_implements(graph.get("implements"))
+    _print_contradicted(graph.get("lane_a_contradicted"))
     _print_minted(graph.get("minted"))
     _print_operators(graph.get("operators"))
     _print_constructions(graph.get("constructions"))

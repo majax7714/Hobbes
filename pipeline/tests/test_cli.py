@@ -179,6 +179,60 @@ class TestLaneACppCache:
         assert "lane A C++ file cache" not in capsys.readouterr().out
 
 
+class TestContradictedLine:
+    """ADR-135 §3: a lane A symbol *removed* on the index's word is the
+    first of its kind, so the summary says what the index read to remove
+    it, what the braces said where an extent held another definition, and
+    how many facts stopped being drawn from a wrong caller (C-164)."""
+
+    @staticmethod
+    def counts(macro=0, term=0, read=0, kept=0, facts_rescoped=0, **refused):
+        from hobbes.extract.minted import READ_REFUSALS
+
+        return {
+            "refused": {"macro": macro, "term": term},
+            "extents": {
+                "read": read,
+                "kept": kept,
+                "refused": {**dict.fromkeys(READ_REFUSALS, 0), **refused},
+            },
+            "facts_rescoped": facts_rescoped,
+        }
+
+    def test_the_line_says_what_was_refused_re_read_and_re_scoped(self, capsys):
+        # ADR-135's own numbers on fmt: 13 annotation macros and 5 member
+        # initialisers, one extent re-read after them.
+        cli._print_contradicted(
+            self.counts(macro=13, term=5, read=1, facts_rescoped=73)
+        )
+        line = capsys.readouterr().out.strip()
+        assert line.startswith("lane A contradicted: 18 C++ symbol(s) refused")
+        assert "13 to a macro, 5 to a data member" in line
+        assert "1 extent(s) re-read from the file's own braces" in line
+        assert "0 re-read(s) refused" in line
+        assert "73 fact(s) took the module as their scope" in line
+        assert "(ADR-135, C-164)" in line
+
+    def test_a_refused_re_read_is_counted_where_a_reader_meets_it(self, capsys):
+        # A refused re-read leaves the symbol its own line, which draws
+        # less rather than wrong — and is not silent.
+        cli._print_contradicted(self.counts(read=2, **{"conditional-inside": 1}))
+        line = capsys.readouterr().out
+        assert "2 extent(s) re-read" in line
+        assert "1 re-read(s) refused, left a line" in line
+
+    def test_nothing_is_said_where_the_block_is_absent(self, capsys):
+        # P6: no indexer, or no C++, is the graph exactly as it was — and
+        # an artifact an older Hobbes wrote carries no block either.
+        cli._print_contradicted(None)
+        cli._print_contradicted({})
+        assert capsys.readouterr().out == ""
+
+    def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
+        assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
+        assert "lane A contradicted" not in capsys.readouterr().out
+
+
 class TestMintedLine:
     """ADR-129 §5: a symbol lane A never parsed is a new thing in Hobbes,
     so the ingest summary says how many were read from the index and how

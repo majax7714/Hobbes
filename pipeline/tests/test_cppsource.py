@@ -242,6 +242,27 @@ class TestSymbols:
         assert by_id["a.ns::Vec::size"]["kind"] == "method"
         assert by_id["a.ns::free_one"]["kind"] == "function"
 
+    def test_a_function_and_a_method_carry_the_column_of_their_own_name(self, tmp_path):
+        # ADR-135: the token this parse took as the terminal name, 0-based
+        # as lane B's `col` is — so the join can ask whether the index reads
+        # that exact token as a *reference*, which a name never is. An
+        # out-of-line `Foo::bar` is asked about `bar`, not `Foo`.
+        _write(tmp_path, {"a.cpp": (
+            "struct Foo {\n"
+            "    int bar() const;\n"
+            "    int inline_one() { return 1; }\n"
+            "};\n"
+            "int Foo::bar() const { return 2; }\n"
+            "void free_one() {}\n"
+        )})
+        by_id = _symbols(extract_cpp(tmp_path))
+        assert by_id["a.free_one"]["name_col"] == len("void ")
+        assert by_id["a.Foo::inline_one"]["name_col"] == len("    int ")
+        assert by_id["a.Foo::bar"]["name_col"] == len("int Foo::")
+        # A type is not a definition an extent or a reference rule reads,
+        # and carries no column at all.
+        assert "name_col" not in by_id["a.Foo"]
+
     def test_the_type_kinds_are_the_five_that_declare_one(self, tmp_path):
         _write(tmp_path, {"a.cpp": (
             "typedef int Integer;\n"
