@@ -44,8 +44,8 @@ gate right-clear, verify pass; tracker 54 of 40. P130 missed by two and
 P131 was worded wrongly (a re-home changes an edge's `from`; compare
 evidence rows). Records: §10.21, ADR-136's *Built*, the fifth late-night
 BUILDLOG entry. Drivers: `~/.hobbes/bench/scummvm-scale/` (`vacated.py`,
-`sample.py`, `regrade/` the five cells, `units/` the brief and log,
-`wt/` the branch's worktree, removable).
+`sample.py`, `regrade/` the five cells, `units/` the brief and log; its worktree
+was removed).
 
 **Not waiting on Max:** the review's remaining items (pytest fixtures as
 edges, C-4; the compile database's `-I` path at lane A; the docs
