@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta) and C-164 registered 2026-09-18.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered and ADR-135 proposed 2026-09-18.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -86,7 +86,8 @@ item opens when Max names it. Sequencing context is
    narrowed again, 0.2.46-beta: no graded number moves — no key reads a
    caller; fmt's lost callers 1,436 → 188, none wrong). C-164 is
    registered unsurfaced beside it (lane A C++ symbols named by a macro:
-   73 wrong-caller rows on fmt) and is next.
+   73 wrong-caller rows on fmt); it is measured and simulated, and
+   ADR-135 (proposed, 2026-09-18) waits on Max's route.
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
    oracle's grain); fmt reads 100% with a strict 99.62% beside it
    (ADR-124) at 0.2.46-beta.

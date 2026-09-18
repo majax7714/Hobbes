@@ -12848,3 +12848,51 @@ tracker (52 of 40); README, CLAUDE.md's status, the handoff, workstreams.
 Suites on the host: 1,942 pytest, `lane_b` 10 of 10, Go 396 with
 subtests (395 pass, 1 skip), the report drift test. Proxy and image
 rebuilt at 0.2.46-beta; the repo re-ingested. No API or Modal spend.
+
+## 2026-09-18 (late night) — C-164's wrong callers counted key-free and simulated (ADR-135 proposed; nothing built, no version move)
+
+**Asked:** review the top-level documentation and report; then (Max: CI
+is green, he pushed after the session closed) remove the merged unit's
+worktree, restart the knowledge server if needed, and proceed with
+C-164.
+
+**The review.** `VERSION`, README, CHANGELOG, CLAUDE.md/AGENTS.md
+(identical), the handoff, the workstreams header, ADR 134 and 52 session
+logs agree. One drift: the handoff said everything since `c34b98c` was
+unpushed; `origin/main` is `0c6c34e`, run 35370791824 green. Corrected.
+
+**Housekeeping.** `c145-extent/wt` removed with `--force` after
+checking its three modified files were byte-identical to `main`'s (the
+developer's fix, `0c6c34e`). The knowledge server's container was
+started after the 0.2.46-beta image was built; no restart needed.
+
+**Step 0, key-free** (`~/.hobbes/bench/c164-wrong-callers/`:
+`findstream.py`, `shapes.py`, `nameref.py`). On the four cells with an
+index: 18 misnamed lane A symbols, all on fmt (13 a macro's name, 5 a
+member initialiser's — the register said 2) and 2 swallowing extents; 0
+on args, cJSON, sqlite-vector. **The index's definition row at the line
+does not separate them** (332 of fmt's lane A functions have none, and
+the read is preprocessor-inactive code parsed right), and neither does
+"the name is a macro's" (cJSON's `internal_malloc`). A **reference at
+exactly the symbol's own name token**, to a macro or a `term` of that
+name, does: 18 flagged, 18 misnamed by hand read, 0 flagged among the
+3,769 symbols whose name the index agrees with. Read loosely (anywhere
+in the head or body) it flags four right symbols — `Base::KickOut`
+beside `Options::KickOut` — so the built rule needs lane A's name column.
+
+**Step 1, simulated** (`simulate.py`, `PREREG-sim.md` first): R1 refuses
+the misnamed symbol, R2 re-reads a swallowing extent from the braces.
+fmt wrong-caller **105 → 32**, agree 7,610 → 7,625, lost 188 → 246; 15
+rows right, 58 lost, **no agreeing row moved**; six of ADR-134's
+`holds-a-definition` extents unblock. The 32 left are the probe's naming
+grain (25 in-class `friend` definitions, 5 a nested class, 2 others),
+not C-164. P-3 and P-5 met; **P-1 missed by one** (18, not 19: one
+symbol counted at two references) and **P-4 missed** (agree +15 where
++29–34 was predicted: the prediction did not read the minted
+definitions' own extent refusals first — `AddTestPartResult`'s 14 rows
+sit under a `conditional-inside`).
+
+**Written:** ADR-135 (proposed, routes a–d; (a) recommended: R1 + R2,
+one unit, lane A's cache to v5); C-164 amended with the counts; the
+register's dated note; the handoff and CLAUDE.md's status. No suite
+run — no code changed. No API, Modal or dispatch spend.

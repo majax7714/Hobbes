@@ -497,8 +497,29 @@ headers parsed with tree-sitter ERROR nodes.
   first, then whether the index's definition row at that line can refuse
   or rename the symbol.
 - **Provider (P9):** tree-sitter-cpp **0.23.4**.
+- **Counted key-free, 2026-09-18 (ADR-135 proposed; nothing built):**
+  on the four cells with an index, **18 misnamed symbols, all on fmt** —
+  13 named for a macro (9 `GTEST_…LOCK…_`, 3 `FMT_CATCH`, 1
+  `GMOCK_DEFINE_DEFAULT_ACTION_FOR_RETURN_TYPE_`) and **5** for a member
+  initialiser (`char_value`, `str_` twice, `type_`, `size`; the "2"
+  above was what the key's rows showed) — and **2 swallowing extents**
+  (the `TEST` at 201, 42 definition rows inside; the `GMOCK_DEFINE…`
+  symbol, 19). 0 on args, cJSON and sqlite-vector. The index tells them
+  apart by one read only: it holds a *reference* — to a macro, or to a
+  data member of that name — at exactly the token lane A took as the
+  name. The definition row at the line does not (332 of fmt's lane A
+  functions have none, and the hand read is preprocessor-inactive code,
+  parsed right), nor does the name being a macro's (cJSON's
+  `internal_malloc` is a function in one `#if` arm). After ADR-134's
+  build the probe reads 105 wrong-caller rows on fmt; 73 are this
+  entry's, and the other 32 are the probe's naming grain (25 `friend`
+  functions defined in a class, 5 a nested class, 2 others). Simulated:
+  105 → 32, 15 rows right and 58 lost, no agreeing row moved.
+  `src/os.cc:160`'s `FMT_CATCH` is in uncompiled code and out of the
+  index's reach.
 - **Source:** ADR-134's step 0 (`~/.hobbes/bench/c145-extent/probe.py`),
-  every row read against the source.
+  every row read against the source; ADR-135's
+  (`~/.hobbes/bench/c164-wrong-callers/`).
 
 ## Lifted constraints in this segment
 

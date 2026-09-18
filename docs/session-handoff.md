@@ -1,11 +1,10 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-09-18; Hobbes 0.2.46-beta on `main`.** CI is green on
-`c34b98c` (0.2.45-beta, pushed 2026-09-18; run 35360468231); everything
-since is unpushed. The knowledge server
-serves the image it started from until it is restarted (C-65):
-**restart it** — the image was rebuilt at 0.2.46-beta at the end of this
-session.
+`0c6c34e` (0.2.46-beta, pushed 2026-09-18; run 35370791824); the ADR-135
+commit after it is unpushed. The knowledge server serves the image it
+started from until it is restarted (C-65); it was checked on 2026-09-18
+and is running the 0.2.46-beta image.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
   0.2.46-beta are untagged. Tags stay Max's call each time.
@@ -17,7 +16,9 @@ session.
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the four 2026-09-18 BUILDLOG entries:
+The latest session's record is the 2026-09-18 (late night) BUILDLOG
+entry, "C-164's wrong callers counted key-free and simulated" (ADR-135
+proposed). Before it, the four 2026-09-18 entries:
 "the join's by-name claim measured and simulated", "the join claims
 by position" (ADR-133, 0.2.45-beta), "a lost definition's extent
 measured and simulated" (ADR-134 proposed) and "a lost definition's
@@ -35,17 +36,32 @@ number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed.
 
-**Nothing waits on Max for the next item. C-164 first, measured first**
-(registered unsurfaced; its rows are *wrong*, not missing): lane A C++
-symbols named by a macro (`GTEST_LOCK_EXCLUDED_`, 14 on fmt), by a
-member initialiser (`str_`, `size`), or swallowing the definitions after
-them (one `TEST` body, ten tests) — 73 wrong-caller rows on fmt. Count
-the shapes across the C and C++ clones; ask whether the index's
-definition row at the line can refuse or rename the symbol (the mint
-already reads those rows; Route B, blanking known-empty macros, is the
-other candidate). Its fix also gives back the 6 extents ADR-134 refuses
-for holding such a symbol. `probe.py` reads the wrong-caller class
-directly (`wrong_from_kind`, `rows`).
+**ADR-135 waits on Max's route** (proposed 2026-09-18; (a) recommended).
+C-164 was counted key-free and simulated, nothing built:
+
+- 18 misnamed lane A symbols, all on fmt (13 a macro's name, 5 a member
+  initialiser's), and 2 swallowing extents; 0 on args, cJSON,
+  sqlite-vector. ScummVM has no index on disk and was not counted.
+- The index's definition row at the line does **not** separate them, nor
+  does the name being a macro's (cJSON's `internal_malloc`). A lane B
+  **reference at exactly the symbol's name token**, to a macro or a
+  `term` of that name, does: 18 of 18 by hand read, 0 false flags. Read
+  loosely it flags right symbols (`Base::KickOut` beside
+  `Options::KickOut`), so lane A must record the name's column
+  (`lanea-cpp v5`).
+- Simulated R1 (refuse the symbol; the mint and ADR-134 then name the
+  true one) + R2 (a swallowing extent re-read from the braces): fmt
+  wrong-caller 105 → 32, 15 right, 58 lost, no agreeing row moved. The
+  32 left are the probe's grain (in-class `friend` definitions, a nested
+  class) — fold them into `probe.py`'s equivalences, no spend.
+- On Max's word: write the brief from ADR-135 §Decision, **verify its
+  premises against the code first** (what lane A's symbol dict carries,
+  where the join has the references' `col`, where `parse` records are
+  counted), write §10.20's predictions, dispatch one unit.
+- Drivers: `~/.hobbes/bench/c164-wrong-callers/` (`findstream.py` a
+  clone's cached facts stream; `shapes.py`, `nameref.py` step 0;
+  `simulate.py` + `PREREG-sim.md` step 1; `inspect_r1.py`; run with
+  `uv run --project pipeline python`).
 
 ### What landed on 2026-09-18, night (merged no-ff; tracker 52 of 40)
 
@@ -81,8 +97,8 @@ directly (`wrong_from_kind`, `rows`).
 - Drivers: `~/.hobbes/bench/c145-extent/` (`probe.py`, `simulate.py`,
   `simulate_r3.py`, `regrade.sh` with `ROOT=`/`OUT=` — before/after on
   the same clones, grades, probe and `compare.py`; `regrade/` the five
-  cells; `units/` the brief, the log and `u1-fix.patch`; `wt/` a
-  worktree, removable; `oracle` the binary built from this tree).
+  cells; `units/` the brief, the log and `u1-fix.patch`; `oracle` the binary
+  built from this tree; its worktree was removed 2026-09-18).
 - scip-clang 0.4.0 emits no `enclosing_range` (checked in the image).
 
 ### What landed on 2026-09-18 (merged no-ff; tracker 51 of 40)
@@ -159,7 +175,7 @@ directly (`wrong_from_kind`, `rows`).
 2. **A lost definition's extent: built (ADR-134, 0.2.46-beta).** What
    is left is in C-145: the refused extents (34 conditionals, 19 holding
    a definition on fmt) and definitions nothing names.
-2a. **C-164's wrong callers — next** (START HERE).
+2a. **C-164's wrong callers — measured, ADR-135 proposed** (START HERE).
 3. **The 15 `lane-a-symbol-near` rows on fmt:** a line-convention
    disagreement, its own small item.
 4. **ScummVM as a scale read** (no key): symbols minted, edges gained,
@@ -245,6 +261,8 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **New, ADR-135's route** (C-164): (a) R1 + R2, recommended; (b) R1
+     only; (c) rename; (d) surface only.
    - **Settled 2026-09-18:** ADR-134's route (a) — built (0.2.46-beta);
      the join's claim by position — built (ADR-133, 0.2.45-beta);
      constructions inside a template stay `uses`.

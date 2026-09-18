@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 134;
+  architecture doesn't already make. Number sequentially (last: 135;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -313,16 +313,20 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   test reach 3,183 → 6,131 pairs. The unit's brief was wrong about a
   file-scope site's scope (the module's id, not none); the fix is the
   developer's commit after the merge.
-  **Next on C++, each measured first:** C-164's wrong callers (73 rows
-  on fmt, lane A symbols named by a macro — count the shapes across the
-  C and C++ clones; can the index's definition row refuse or rename
-  them), the 15 line-convention rows, ScummVM as a scale read (now also
-  the operator and construction walks' and the extent read's cost).
+  **Next on C++:** C-164's wrong callers are measured and **ADR-135 is
+  proposed, waiting on Max's route** (18 misnamed symbols and 2
+  swallowing extents, all on fmt; a lane B reference at exactly the
+  symbol's name token separates them, 18 of 18, no false flag;
+  simulated wrong-caller 105 → 32, the 32 the probe's grain, no agreeing
+  row moved). Then, each measured first: the 15 line-convention rows,
+  ScummVM as a scale read (now also the operator and construction
+  walks' and the extent read's cost).
   Operators and constructions at a macro's name belong to the macro
   class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** ADR-126 §3 — whether to build a
+- **Open for Max:** **ADR-135's route** (C-164; (a) recommended);
+  ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:

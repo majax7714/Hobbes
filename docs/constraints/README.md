@@ -167,6 +167,16 @@ The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-164 counted key-free, 2026-09-18 (ADR-135 proposed; nothing built, no version move):
+- **C-164 amended (still unsurfaced; no entry added):** 18 misnamed lane A
+  symbols on fmt (13 a macro's name, 5 a member initialiser's) and 2
+  swallowing extents; 0 on args, cJSON and sqlite-vector. The index
+  separates them by a reference at exactly the symbol's name token, not
+  by its definition row and not by the name being a macro's. Simulated:
+  fmt's wrong-caller rows 105 → 32 (the 32 are the probe's naming
+  grain), 15 right and 58 lost, no agreeing row moved. 164 entries, 119
+  active, 92 surfaced, 22 partial, 4 unsurfaced, 28 lifted — unmoved.
+
 C-145 narrowed again, 2026-09-18 (ADR-134 accepted and built, 0.2.46-beta):
 - **C-145 narrowed (still surfaced; no entry added):** a minted function
   or method whose body the file's own braces delimit is a scope, not only
