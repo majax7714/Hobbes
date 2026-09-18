@@ -490,12 +490,27 @@ headers parsed with tree-sitter ERROR nodes.
   fmt's 8,123 `calls` evidence rows name a wrong caller** (0.9%), 1 of
   args's 2,567. The key grades `(site, target)` and never reads a
   caller, so no cell's precision sees this.
-- **You find out:** **unsurfaced.** The files carry a `parse`
-  degradation record (C-145), which says symbols may be *lost*; nothing
-  says a symbol that is present may be misnamed. Debt, with its own item
-  next on the C++ list (ADR-134): counted across the C and C++ clones
-  first, then whether the index's definition row at that line can refuse
-  or rename the symbol.
+- **Narrowed 2026-09-18 (ADR-135, 0.2.47-beta):** where lane B indexed
+  the file, a function or method whose own name token the index reads as
+  a *reference* — spelled as the symbol, to a macro or to a data member
+  of that name — is **removed** (R1), its facts drawn from the true
+  definition where the mint can name it (ADR-129, ADR-134) and from the
+  module where it cannot; a function whose extent holds a file- or
+  class-scope definition row has its extent re-read from the file's
+  braces (R2). fmt: 18 removed, 1 extent re-read, the wrong-caller rows
+  105 → 32 — 18 right, 55 lost — and the 32 left are the driver's naming
+  grain, not this entry. **What is left:** no index (P6: nothing fires,
+  the symbol stays misnamed), code the configuration never compiles
+  (`src/os.cc:160`'s `FMT_CATCH`), a macro defined in a file lane A did
+  not walk, a non-ASCII byte before the name on its line (lane A's
+  column is bytes), any recovery shape these two reads do not see — and
+  the calls R1 and R2 leave with the module, which are lost, not right
+  (the ten swallowed tests are still not symbols).
+- **You find out:** **partial** (since 0.2.47-beta) — `graph.json`'s
+  `lane_a_contradicted` block and one ingest summary line count what was
+  removed and re-read, and are absent where nothing fired. Nothing tells
+  you about the remainder above: a misnamed symbol in an unindexed or
+  uncompiled file looks like any other.
 - **Provider (P9):** tree-sitter-cpp **0.23.4**.
 - **Counted key-free, 2026-09-18 (ADR-135 proposed; nothing built):**
   on the four cells with an index, **18 misnamed symbols, all on fmt** —

@@ -769,6 +769,31 @@ not a grade: the key's own caller names, read before and after by a
 driver (`oracle-grading.md` §10.19) — fmt 1,290 of 1,436 lost callers
 re-homed, none wrong, no right row moved, every graded number ±0.
 
+**A lane A symbol the index contradicts (ADR-135, 0.2.47-beta).** Where
+tree-sitter-cpp recovers from a macro it cannot read, lane A can keep a
+function named for the wrong token — a trailing annotation macro
+(`GTEST_LOCK_EXCLUDED_`), a constructor's first member initialiser
+(`str_`) — or one whose extent runs on over the definitions after it
+(C-164). After the join and before the mint, two reads of the index,
+both on C++ functions and methods only (lane A records their name
+token's 0-based column, `name_col`): **R1** removes a symbol where a lane
+B reference sits at exactly its name token, is spelled as it is, and
+resolves to a `macro` row or to a `term` row of that name — a
+definition's own name is never a reference — and its facts take the
+module's id as their scope, so the mint and the re-homing above name the
+true definition where the index has one; **R2** re-reads, with the
+extent reader above and its refusals, the extent of a symbol that holds a
+function definition row the index places at file or class scope, and a
+fact past the new end takes the module as its scope. The position is
+exact because a right function may share its name with an enumerator or
+a field it uses. Counts are `graph.json`'s `lane_a_contradicted`, written
+only where something fired, and one line on the ingest summary; with no
+index neither rule runs (P6). Checked as ADR-134 was, not graded
+(`oracle-grading.md` §10.20): fmt 18 symbols refused, 1 extent re-read,
+wrong-caller rows 105 → 32 (the 32 the driver's naming grain), no right
+row moved, every graded number ±0; nothing fires on args, cJSON or
+sqlite-vector.
+
 **The tail view (ADR-045).** Resolution coverage counts the detected call
 sites with no known destination (C-2); the tail view says what that
 remainder *is* — per file, in `resolution_coverage.tail` — **by
@@ -1898,7 +1923,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.46-beta** (2026-09-18, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.46-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.47-beta** (2026-09-18, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.47-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

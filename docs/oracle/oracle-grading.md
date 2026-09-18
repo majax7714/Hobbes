@@ -1733,6 +1733,38 @@ the symbol's line where the built rule reads lane A's own column.
   own body's) and no other test loses a symbol; the one `implements` row
   out of a refused symbol is recorded, not predicted.
 
+**Results (2026-09-18; unit `c2cc`, the branch's code before the merge;
+`~/.hobbes/bench/c164-wrong-callers/regrade.sh`, `regrade/`).** Before is
+each clone's graph at 0.2.46-beta's code; after is the same clone
+ingested by the branch.
+
+- **P121 — met.** fmt 7,012/7,012, 0 contradicted, strict 99.62%, 30.4%;
+  args 2,567/2,567, 72.9%; cJSON 1,188/1,188; sqlite-vector 851/851.
+  Every export row-identical (removed 0, added 0); poison passes on
+  each, both arms.
+- **P122 — met exactly.** fmt 18 refused (13 `macro`, 5 `term`), 1
+  extent re-read (292 → 210), none refused or kept; the block is absent
+  on args, cJSON, sqlite-vector and click.
+- **P123 — wrong-caller met exactly (105 → 32); agree and lost each
+  missed by one row beyond ± 2:** agree 7,628 (7,625 ± 2), lost 243
+  (246 ± 2). With the misnamed symbol gone the mint named two true
+  definitions on the vacated lines, which the simulation did not model;
+  they carry 3 rows. 18 wrong rows now right, 55 lost. args unmoved.
+- **P124 — met.** No row bad after that was not bad before, either cell.
+- **P125 — `holds-a-definition` met (19 → 13); read 1,354, not 1,352** —
+  the two new mints (`FunctionMocker::~FunctionMocker`, gmock.h:9705;
+  `basic_scan_arg::basic_scan_arg~b10`, scan.h:292), each with a brace
+  extent. Recorded as predicted-to-be-recorded: 2, inside 0 to 3.
+- **P126 — met.** args: 566 symbols differ, each in `name_col` alone; no
+  id gone or new, no edge differs. cJSON, sqlite-vector: no symbol
+  differs. click identical but the stamp.
+- **P127 — met.** One test lost symbols —
+  `gtest_extra_test.expect_throw_no_unreachable_code_warning`, three
+  (`basic_format_arg::visit`, `data`, `detail::to_unsigned`), reach
+  pairs 6,131 → 6,101 — and none other. The `implements` row was
+  re-placed (1 removed, 1 added). 393 evidence rows changed `from`: 317
+  the swallowed tests' (to the module), the rest R1's.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

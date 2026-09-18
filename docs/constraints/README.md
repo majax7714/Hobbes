@@ -156,8 +156,8 @@ their segment, in that order, and are marked in the heading.
 | Status | Count | Entries |
 |---|---|---|
 | active — surfaced | 92 | every active entry not listed below |
-| active — *partial* | 22 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153 |
-| active — **unsurfaced** (debt) | 4 | C-19, C-20, C-112, C-164 |
+| active — *partial* | 23 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164 |
+| active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 28 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
@@ -166,6 +166,17 @@ their segment, in that order, and are marked in the heading.
 The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-164 narrowed and partial, 2026-09-18 (ADR-135 accepted and built, 0.2.47-beta):
+- **C-164 narrowed (unsurfaced → partial; no entry added):** a lane A C++
+  function or method whose own name token the index reads as a reference
+  to a macro or a data member is removed, and one whose extent holds
+  another definition's row is re-read from the file's braces; counted in
+  `graph.json`'s `lane_a_contradicted` and on the ingest summary. fmt 18
+  removed, 1 re-read, wrong-caller rows 105 → 32 (the 32 the driver's
+  grain), no right row moved, every graded number ±0 (§10.20). Left: no
+  index, uncompiled code, shapes the two reads do not see. 164 entries,
+  119 active, 92 surfaced, 23 partial, 3 unsurfaced, 28 lifted.
 
 C-164 counted key-free, 2026-09-18 (ADR-135 proposed; nothing built, no version move):
 - **C-164 amended (still unsurfaced; no entry added):** 18 misnamed lane A

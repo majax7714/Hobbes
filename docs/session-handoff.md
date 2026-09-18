@@ -1,13 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-18; Hobbes 0.2.46-beta on `main`.** CI is green on
-`0c6c34e` (0.2.46-beta, pushed 2026-09-18; run 35370791824); the ADR-135
-commit after it is unpushed. The knowledge server serves the image it
-started from until it is restarted (C-65); it was checked on 2026-09-18
-and is running the 0.2.46-beta image.
+**Reviewed 2026-09-18; Hobbes 0.2.47-beta on `main`.** CI is green on
+`0c6c34e` (0.2.46-beta, pushed 2026-09-18; run 35370791824); everything
+since — ADR-135, unit `c2cc`, 0.2.47-beta — is unpushed. The proxy and
+the image were rebuilt at 0.2.47-beta and the repo re-ingested at the end
+of this session; the knowledge server serves the image it started from
+until it is restarted (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.46-beta are untagged. Tags stay Max's call each time.
+  0.2.47-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -16,16 +17,11 @@ and is running the 0.2.46-beta image.
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-18 (late night) BUILDLOG
-entry, "C-164's wrong callers counted key-free and simulated" (ADR-135
-proposed). Before it, the four 2026-09-18 entries:
-"the join's by-name claim measured and simulated", "the join claims
-by position" (ADR-133, 0.2.45-beta), "a lost definition's extent
-measured and simulated" (ADR-134 proposed) and "a lost definition's
-extent built" (ADR-134 accepted, 0.2.46-beta). Before them, 2026-09-17: the
-ADR-131 amendment (0.2.43-beta) and "constructions at the token"
-(ADR-132, 0.2.44-beta), "C++ recall: operators" (ADR-131), the two CI
-entries, "C++ recall" (ADR-129, ADR-130), and the ADR-123–128 entries.
+The latest session's records are the two 2026-09-18 (late night) BUILDLOG
+entries: "C-164's wrong callers counted key-free and simulated" (ADR-135
+proposed) and "a lane A symbol the index contradicts, built" (ADR-135
+accepted, 0.2.47-beta). Before them, the four 2026-09-18 entries (ADR-133
+proposed and built, ADR-134 proposed and built), and 2026-09-17's.
 Earlier sessions' detail lives in their own BUILDLOG entries; this file
 keeps only what the next session needs.
 
@@ -36,34 +32,60 @@ number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed.
 
-**ADR-135 waits on Max's route** (proposed 2026-09-18; (a) recommended).
-C-164 was counted key-free and simulated, nothing built:
+**Nothing waits on Max for the next item. The 15 `lane-a-symbol-near`
+rows on fmt first, measured first** (item 3 below): the mint refuses a
+definition row where a lane A symbol of the same name starts within 3
+lines — the two lanes disagreeing about which line a definition is on.
+Read the 15 against the source, say which lane's line is the key's, and
+only then ask what (if anything) to change. Then ScummVM as a scale
+read.
 
-- 18 misnamed lane A symbols, all on fmt (13 a macro's name, 5 a member
-  initialiser's), and 2 swallowing extents; 0 on args, cJSON,
-  sqlite-vector. ScummVM has no index on disk and was not counted.
-- The index's definition row at the line does **not** separate them, nor
-  does the name being a macro's (cJSON's `internal_malloc`). A lane B
-  **reference at exactly the symbol's name token**, to a macro or a
-  `term` of that name, does: 18 of 18 by hand read, 0 false flags. Read
-  loosely it flags right symbols (`Base::KickOut` beside
-  `Options::KickOut`), so lane A must record the name's column
-  (`lanea-cpp v5`).
-- Simulated R1 (refuse the symbol; the mint and ADR-134 then name the
-  true one) + R2 (a swallowing extent re-read from the braces): fmt
-  wrong-caller 105 → 32, 15 right, 58 lost, no agreeing row moved. The
-  32 left are the probe's grain (in-class `friend` definitions, a nested
-  class) — fold them into `probe.py`'s equivalences, no spend.
-- On Max's word: write the brief from ADR-135 §Decision, **verify its
-  premises against the code first** (what lane A's symbol dict carries,
-  where the join has the references' `col`, where `parse` records are
-  counted), write §10.20's predictions, dispatch one unit.
+Small and no-spend, any time: fold the `friend`-in-class and
+nested-class equivalences into `~/.hobbes/bench/c145-extent/probe.py`
+(the 32 rows left in its wrong-caller class on fmt are all naming
+grain; ADR-135 read them by hand), so the next caller read starts from
+zero. Optional: a `lane_b` end-to-end case for ADR-135 (the unit's
+ingest test feeds lane B's facts by hand; it needs a fixture
+tree-sitter-cpp misreads *and* scip-clang compiles — an annotation macro
+after a declarator, in `minicpp` or a fixture of its own, without moving
+the lines other tests pin).
+
+### What landed on 2026-09-18, late night (merged no-ff; tracker 53 of 40)
+
+- **The doc review first:** one drift (the handoff's push line),
+  corrected; `c145-extent/wt` removed after checking its three modified
+  files were `main`'s.
+- **C-164 counted key-free, then Max: route (a) for ADR-135.** 18
+  misnamed lane A symbols and 2 swallowing extents, all on fmt; the
+  index's definition row does **not** separate them, a lane B reference
+  at exactly the symbol's name token does (18 of 18, no false flag; read
+  loosely it flags `Base::KickOut` beside `Options::KickOut`).
+- **ADR-135 built (C-164 unsurfaced → partial, 0.2.47-beta):**
+  `name_col` on lane A's C++ functions and methods (`lanea-cpp v5`);
+  `minted.contradicted` before the mint — R1 removes the symbol and its
+  facts take the module's scope, R2 re-reads a swallowing extent from
+  the braces; `graph.json`'s `lane_a_contradicted` and one summary line.
+- **The brief's premises were read in the tree first** (ADR-135,
+  *Accepted*: the identifier node's column, 0-based as lane B's; where
+  the resolutions and definition rows are; the counts in a graph block,
+  not the `parse` record) — and the first real ingest matched.
+- **Checked, not graded (§10.20):** every graded number ±0 on fmt, args,
+  cJSON, sqlite-vector; click identical. fmt 18 refused (13 + 5), 1
+  extent re-read, **wrong-caller 105 → 32, 18 right, 55 lost, no right
+  row moved**; `holds-a-definition` 19 → 13; two definitions newly
+  minted on vacated lines (the simulation did not model them: agree and
+  lost each missed by one row beyond ± 2). One test's borrowed reach
+  returned.
+- Unit `c2cc` (68 turns, $6.61), gate right-clear, verify pass.
 - Drivers: `~/.hobbes/bench/c164-wrong-callers/` (`findstream.py` a
   clone's cached facts stream; `shapes.py`, `nameref.py` step 0;
-  `simulate.py` + `PREREG-sim.md` step 1; `inspect_r1.py`; run with
-  `uv run --project pipeline python`).
+  `simulate.py` + `PREREG-sim.md`; `inspect_r1.py`; `regrade.sh` with
+  `ROOT=`/`OUT=`, which borrows `c145-extent`'s `oracle`, `probe.py` and
+  `compare.py`; `regrade/` the five cells; `units/` the brief and log;
+  `wt/` a worktree, removable). Run the probes with `uv run --project
+  pipeline python`.
 
-### What landed on 2026-09-18, night (merged no-ff; tracker 52 of 40)
+### What landed on 2026-09-18, night (tracker 52 of 40)
 
 - **Top-level drift fixed first** (`1f10357`): the handoff's CI line and
   the workstreams header.
@@ -175,9 +197,12 @@ C-164 was counted key-free and simulated, nothing built:
 2. **A lost definition's extent: built (ADR-134, 0.2.46-beta).** What
    is left is in C-145: the refused extents (34 conditionals, 19 holding
    a definition on fmt) and definitions nothing names.
-2a. **C-164's wrong callers — measured, ADR-135 proposed** (START HERE).
-3. **The 15 `lane-a-symbol-near` rows on fmt:** a line-convention
-   disagreement, its own small item.
+2a. **C-164's wrong callers: built (ADR-135, 0.2.47-beta).** What is
+   left is in C-164: no index, uncompiled code, other recovery shapes,
+   and the swallowed tests, which are still not symbols (Route B,
+   blanking known-empty macros, is the macro class's — C-131, parked).
+3. **The 15 `lane-a-symbol-near` rows on fmt — next** (START HERE): a
+   line-convention disagreement, its own small item.
 4. **ScummVM as a scale read** (no key): symbols minted, edges gained,
    the mint's seconds, **and the operator walk's cost** —
    `_unevaluated` and `_in_template` each climb to the root per token,
@@ -261,9 +286,8 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **New, ADR-135's route** (C-164): (a) R1 + R2, recommended; (b) R1
-     only; (c) rename; (d) surface only.
-   - **Settled 2026-09-18:** ADR-134's route (a) — built (0.2.46-beta);
+   - **Settled 2026-09-18:** ADR-135's route (a) — built (0.2.47-beta);
+     ADR-134's route (a) — built (0.2.46-beta);
      the join's claim by position — built (ADR-133, 0.2.45-beta);
      constructions inside a template stay `uses`.
    - **Settled 2026-09-17 (Max: "go with recommended"):** constructions —
@@ -321,7 +345,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 52 of 40, 4
+   - **The validating 40 are done:** the tracker reads 53 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -389,15 +413,16 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-two log files under `docs/calvin/sessions/`; the tracker reads 52 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-three log files under `docs/calvin/sessions/`; the tracker reads 53 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 164 entries: 119 active (92 surfaced, 22 partial, 4
-  unsurfaced — C-19, C-20, C-112, C-164 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
+- **Register:** 164 entries: 119 active (92 surfaced, 23 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
+  folded. Latest: C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
+  entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
   added); C-164 registered unsurfaced (2026-09-18); C-163 registered and lifted, C-162 narrowed (ADR-133,
   0.2.45-beta); C-162 registered and narrowed (ADR-132, 0.2.44-beta);
   C-153 narrowed a third time (ADR-131 amended,
@@ -414,8 +439,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.46-beta (2026-09-18, all pass on the host): 1,942
-  pytest (`lane_b` 10 of them, run at 0.2.46-beta), Go `./...` 396 with
+- **Suites** at 0.2.47-beta (2026-09-18, all pass on the host): 1,964
+  pytest (`lane_b` 10 of them, run at 0.2.47-beta), Go `./...` 396 with
   subtests (395 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests

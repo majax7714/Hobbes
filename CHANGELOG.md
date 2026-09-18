@@ -11,9 +11,56 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.46-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.47-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.47-beta — 2026-09-18 (a lane A C++ symbol the index contradicts is refused, or its extent re-read from the file's braces; ADR-135)
+
+**Patch: what the layer draws, refuses and says** — a constraint's fix
+(C-164, unsurfaced → partial).
+
+- **Measured first, key-free.** C-164's rows are wrong, not missing:
+  where tree-sitter-cpp recovers from a macro it cannot read, lane A
+  keeps a function named for the wrong token, or one whose extent runs
+  over the definitions after it. On the four cells with an index: 18
+  misnamed symbols, all on fmt (13 a macro's name —
+  `GTEST_LOCK_EXCLUDED_`, `FMT_CATCH` — and 5 a constructor's first
+  member initialiser's), 2 swallowing extents, none on args, cJSON or
+  sqlite-vector. The index's definition row at the line does not
+  separate them (332 of fmt's lane A functions have none: inactive
+  code, parsed right), nor does the name being a macro's (cJSON's
+  `internal_malloc` is a function in one `#if` arm). A lane B
+  **reference at exactly the symbol's own name token** does: 18 of 18 by
+  hand read, none flagged among 3,769 right symbols. Read loosely it
+  flags right ones (`Base::KickOut` beside `Options::KickOut`).
+- **The rule.** Lane A records a C++ function's or method's name column
+  (`name_col`; the lane A cache is `lanea-cpp v5` and re-parses once).
+  After the join and before the mint: **R1** removes a symbol whose name
+  token the index reads as a reference, spelled as the symbol, to a
+  `macro` or to a `term` of that name; its facts take the module as
+  their scope, and the mint and ADR-134's re-homing name the true
+  definition where the index has one. **R2** re-reads from the file's
+  braces the extent of a symbol holding a file- or class-scope function
+  definition row. Counted in `graph.json`'s `lane_a_contradicted`
+  (absent where nothing fired) and on one ingest summary line. No index,
+  no rule (P6).
+- **Checked, not graded (`oracle-grading.md` §10.20).** Every graded
+  number ±0 and every export row-identical on fmt, args, cJSON and
+  sqlite-vector; click identical. fmt: 18 refused (13 + 5), 1 extent
+  re-read (`gtest-extra-test.cc:201`, 292 → 210), **wrong-caller rows
+  105 → 32, 18 now right and 55 lost, no row that was right moved**;
+  the 32 left are the driver's naming grain (25 in-class `friend`
+  definitions, 5 a nested class, 2 others). Six of ADR-134's
+  `holds-a-definition` extents unblock (19 → 13) and two true
+  definitions are minted on lines a refused symbol vacated. One test's
+  reach returns to its own body's (three borrowed symbols gone). The
+  simulation's agree and lost counts each missed by one row beyond
+  their ± 2 (it did not model the two new mints), recorded.
+- Unit `c2cc` (68 turns, $6.61 on the subscription), gate right-clear,
+  verify pass; the brief's premises were read in the tree before it was
+  written, and the first real ingest matched. 1,964 pytest, `lane_b` 10
+  of 10 on the host.
 
 ## 0.2.46-beta — 2026-09-18 (a lost C++ definition's extent is read from the file's braces, and what is written inside it is drawn from it; ADR-134)
 

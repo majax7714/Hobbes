@@ -12896,3 +12896,58 @@ sit under a `conditional-inside`).
 one unit, lane A's cache to v5); C-164 amended with the counts; the
 register's dated note; the handoff and CLAUDE.md's status. No suite
 run — no code changed. No API, Modal or dispatch spend.
+
+## 2026-09-18 (late night, second) — a lane A symbol the index contradicts, built (ADR-135 accepted, route a; 0.2.47-beta)
+
+**Asked:** Max: proceed with the recommended route.
+
+**Premises before the brief** (ADR-134's lesson, [the brief mis-stated a
+site's scope and the unit shipped green on it]). Read in the tree:
+`cppsource._symbol` already holds the identifier node, whose column is
+0-based as lane B's `col` is (`xchar.h:98`, `str_` at 62 in both); the
+lane A cache stores symbols, so `laneacache.FORMAT` must move; the
+resolutions are `Site`s with `def_file`/`def_line` and the definition
+rows (macro and `term` among them) are `lane_b_definitions`;
+`rehome` reads a module-id scope as the module, so a refused symbol's
+facts can simply take it; nothing runs into any of fmt's 18 (37 `calls`,
+38 `uses`, 1 `implements` evidence rows run out). One thing in the ADR
+changed on that reading: the counts go in a graph block, not the
+`parse` record, which is lane A's and written before the index is read.
+ADR-135 accepted with these written in; §10.20's P121–P127 committed
+(`2ad6232`) before the dispatch.
+
+**Unit `c2cc`** (68 turns, $6.61, Opus 5; launched detached, dry-run
+first: `--settings`, the model and `--max-turns 80` in the argv). Gate
+clear, verify pass, nine files. `name_col` on a C++ function or method;
+`lanea-cpp v5`; `minted.contradicted` — the wanted `(file, line, col)`
+keys built first and one pass over the resolutions — run before the
+mint; `lane_a_contradicted` written only where something fired; one
+summary line. Two deviations, both toward leaving the symbol alone.
+
+**On the host, from a worktree of the branch:** `lane_b` 10 of 10, the
+whole suite 1,964. **Then the real cells, before the merge**
+(`c164-wrong-callers/regrade.sh`): every graded number ±0 and every
+export row-identical on fmt, args, cJSON, sqlite-vector; click
+identical. fmt: 18 refused (13 `macro`, 5 `term`), 1 extent re-read
+(292 → 210), wrong-caller **105 → 32**, agree 7,610 → 7,628, lost 188 →
+243, no agreeing row moved, `holds-a-definition` 19 → 13, one test's
+reach 3 symbols smaller, none other. **Missed by one row each beyond
+± 2:** agree (7,625 predicted) and lost (246) — with the misnamed symbol
+gone the mint named two true definitions on the vacated lines
+(`~FunctionMocker`, a `basic_scan_arg` constructor), which the
+simulation did not model. 393 evidence rows changed `from` against 87
+re-scoped facts, read before merging: 317 are the swallowed tests'
+sites, most carrying no scope — their caller was `enclosing`'s answer,
+and clipping the extent moved them.
+
+**Merged no-ff** (`e41a687`); review block filled, tracker re-rendered
+(53 of 40). **0.2.47-beta:** VERSION and its copies, the CHANGELOG,
+architecture §3 and §8's header, README, C-164 unsurfaced → partial
+(register 92 / 23 / 3), ADR-135's *Built*, §10.20's results, the fmt
+cell page, the handoff, workstreams, CLAUDE.md's status. Proxy and image
+rebuilt; on `main` 1,964 pytest, `lane_b` 10 of 10, Go `./...` and the
+report drift test green; the repo re-ingested. No API or Modal spend;
+one dispatch on the subscription.
+
+**Not done, written in the handoff:** a `lane_b` end-to-end case for
+ADR-135; the friend and nested-class equivalences in `probe.py`.

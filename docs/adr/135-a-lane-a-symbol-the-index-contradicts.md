@@ -1,6 +1,6 @@
 # ADR-135 — A lane A C++ symbol the index contradicts: refused where its own name is a reference, clipped where its extent holds a definition
 
-**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — the brief's premises checked against the code first (*Accepted*, below).
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) and built (0.2.47-beta) — the brief's premises checked against the code first (*Accepted*, below).
 
 Follows ADR-134 ("C-164's wrong callers — next, counted across the C and
 C++ clones first, then whether the index's definition row at that line
@@ -231,3 +231,30 @@ the tree before the brief was written:
   column is not spelled that, and R1 cannot fire on a test.
 
 §10.20's predictions were written before the unit.
+
+## Built (2026-09-18, 0.2.47-beta)
+
+Unit `c2cc` (68 turns, $6.61), gate right-clear, verify pass, merged
+no-ff after the whole suite and `lane_b` on the host and after the
+five-cell regrade on the branch's code. `cppsource._symbol` gives a
+function or method `name_col`; `minted.contradicted` is the one pure
+function, run in `_build_symbol_layer` before the mint; the block is
+`graph.json`'s `lane_a_contradicted`. Two deviations, both toward
+leaving lane A's symbol alone: a module two paths share (C-15) is not a
+candidate, and a file that will not read at R2 is `no-body`.
+
+The first real ingest matched the simulation (§10.20): fmt 18 refused
+(13 `macro`, 5 `term`), 1 extent re-read, wrong-caller 105 → 32, no
+agreeing row moved, every graded number ±0, nothing on args, cJSON,
+sqlite-vector or click. Agree read 7,628 and lost 243 where 7,625 ± 2
+and 246 ± 2 were predicted: with the misnamed symbol gone the mint named
+two true definitions on the vacated lines (`~FunctionMocker`, a
+`basic_scan_arg` constructor), which the simulation did not model. One
+thing the rows showed that the ADR had not said: most of the swallowed
+`TEST`'s 317 evidence rows carried no scope at all — their caller was
+the projection's `enclosing` answer — so clipping the extent moved them
+without re-scoping a fact (87 facts were re-scoped in all).
+
+Not built here: a `lane_b` end-to-end case (the unit's ingest test feeds
+lane B's facts by hand; the real cells are the end-to-end evidence), and
+the friend and nested-class equivalences in `probe.py`.
