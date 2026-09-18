@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-18; Hobbes 0.2.45-beta on `main`.** CI was green on
-`dbef0af` (ADR-114's base rule read on it: the graph job reviewed from
-the last green run); everything since is unpushed. The knowledge server
+**Reviewed 2026-09-18; Hobbes 0.2.45-beta on `main`.** CI is green on
+`c34b98c` (0.2.45-beta, pushed 2026-09-18; run 35360468231); everything
+since is unpushed. The knowledge server
 serves the image it started from until it is restarted (C-65):
 **restart it** — the image was rebuilt at 0.2.45-beta at the end of this
 session.
