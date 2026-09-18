@@ -76,9 +76,15 @@ confirmed. The refusals, with what the measurement said:
     which one the node would be is a guess. 28 lines on fmt.
 ``lane-a-symbol-near``
     A lane A symbol of the same terminal name starts within
-    :data:`NEAR_LINES` of the row. That is the two lanes disagreeing
-    about which line a definition is on, not a definition lane A lost —
-    counted here and fixed as its own item. 20 on fmt.
+    :data:`NEAR_LINES` of the row. Written as the two lanes disagreeing
+    about which line a definition is on; read row by row on 2026-09-18
+    (19 rows on four cells, 15 of them fmt's), one is that
+    (``typedef struct sqlite3_snapshot { … } sqlite3_snapshot;``, the
+    struct's line against the typedef's). The rest are a defaulted or
+    deleted constructor beside an overload or its class, and the other
+    arm of an ``#if`` lane A read the first arm of — each of which
+    ``declaration`` or ``lane-a-has-type`` refuses next. Nothing the
+    rule refuses is a definition lane A lost, so it stands as it is.
 ``declaration``
     :func:`shows_body` finds no body at the line. scip-clang gives a
     declaration the definition role, so the rows include gtest's forward

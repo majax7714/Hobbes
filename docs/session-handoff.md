@@ -17,8 +17,9 @@ until it is restarted (C-65): **restart it.**
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the two 2026-09-18 (late night) BUILDLOG
-entries: "C-164's wrong callers counted key-free and simulated" (ADR-135
+The latest session's records are the three 2026-09-18 (late night) BUILDLOG
+entries — the third, "the `lane-a-symbol-near` rows read", built nothing —
+and before it: "C-164's wrong callers counted key-free and simulated" (ADR-135
 proposed) and "a lane A symbol the index contradicts, built" (ADR-135
 accepted, 0.2.47-beta). Before them, the four 2026-09-18 entries (ADR-133
 proposed and built, ADR-134 proposed and built), and 2026-09-17's.
@@ -32,13 +33,19 @@ number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed.
 
-**Nothing waits on Max for the next item. The 15 `lane-a-symbol-near`
-rows on fmt first, measured first** (item 3 below): the mint refuses a
-definition row where a lane A symbol of the same name starts within 3
-lines — the two lanes disagreeing about which line a definition is on.
-Read the 15 against the source, say which lane's line is the key's, and
-only then ask what (if anything) to change. Then ScummVM as a scale
-read.
+**Nothing waits on Max for the next item. ScummVM as a scale read**
+(item 4 below; no key, no spend — an ingest of the large clone at
+`~/.hobbes/bench/cpp-cells/scummvm-cost`): symbols minted, edges gained,
+the mint's seconds, and the operator, construction, extent and
+contradiction reads' cost.
+
+The `lane-a-symbol-near` item closed on 2026-09-18 with nothing built:
+the 19 rows on four cells (15 fmt's) are defaulted or deleted
+constructors beside an overload (10), the other arm of an `#if` (8) and
+one `typedef struct` line convention; every one is refused by
+`declaration` or `lane-a-has-type` next, so the rule stands. Driver:
+`~/.hobbes/bench/lane-a-symbol-near/probe.py` (run with `uv run
+--project pipeline python probe.py <clone> <facts.ndjson> <out.json>`).
 
 Small and no-spend, any time: fold the `friend`-in-class and
 nested-class equivalences into `~/.hobbes/bench/c145-extent/probe.py`
@@ -201,9 +208,10 @@ the lines other tests pin).
    left is in C-164: no index, uncompiled code, other recovery shapes,
    and the swallowed tests, which are still not symbols (Route B,
    blanking known-empty macros, is the macro class's — C-131, parked).
-3. **The 15 `lane-a-symbol-near` rows on fmt — next** (START HERE): a
-   line-convention disagreement, its own small item.
-4. **ScummVM as a scale read** (no key): symbols minted, edges gained,
+3. **The `lane-a-symbol-near` rows: read, nothing to build**
+   (2026-09-18): no line-convention class; each row is refused by the
+   next rule anyway.
+4. **ScummVM as a scale read — next** (START HERE; no key): symbols minted, edges gained,
    the mint's seconds, **and the operator walk's cost** —
    `_unevaluated` and `_in_template` each climb to the root per token,
    about 3.2 million tokens there (a 600-file sample: 2.09 tokens per

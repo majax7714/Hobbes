@@ -12951,3 +12951,50 @@ one dispatch on the subscription.
 
 **Not done, written in the handoff:** a `lane_b` end-to-end case for
 ADR-135; the friend and nested-class equivalences in `probe.py`.
+
+## 2026-09-18 (late night, third) — the `lane-a-symbol-near` rows read: no line-convention class, nothing to change (no version move)
+
+**The doc review first:** one drift again, the handoff's push line (CI
+was green on `d1f52a1`, run 35377779488, and nothing was unpushed);
+corrected (`c8bf6a2`).
+
+**The item** (the C++ recall list's third): the mint refuses a
+definition row where a lane A symbol of the same name starts within 3
+lines, and its docstring called that the two lanes disagreeing about a
+definition's line. Measured first, key-free:
+`~/.hobbes/bench/lane-a-symbol-near/probe.py` re-walks the mint's
+refusal chain up to the near check on a clone's own graph and its cached
+facts stream and prints each row beside the lane A symbol and the
+source. It reproduces each graph's count: fmt 15, cJSON 2,
+sqlite-vector 2, args 0 (the probe does not know the lossy-file set, and
+says so: its one args row is in a clean file, which the mint refuses
+earlier).
+
+**Read against the source, all 19:**
+
+- **10 on fmt are a defaulted or deleted constructor** (`weekday() =
+  default;`, `buffered_file(const buffered_file&) = delete;`) beside an
+  overload with a body, or beside its own class — a constructor's
+  terminal name is the class's. Both lanes have the right line; they are
+  two definitions.
+- **8 are the other arm of an `#if`** (5 fmt, 2 cJSON, 1 sqlite-vector):
+  `using utc_clock = std::chrono::utc_clock;` / `#else` / `struct
+  utc_clock {`. Lane A names the first arm, the index the compiled one.
+  Again two definitions, each on its true line.
+- **1 is a line convention:** `typedef struct sqlite3_snapshot { … }
+  sqlite3_snapshot;` — the index's row at the struct's line, lane A's
+  symbol at the typedef's name. One entity, and refusing the second node
+  is right.
+
+**What the next rules would say** (`shows_body` and the type check run
+on each): every one of the 19 is refused anyway — `declaration` for the
+constructors and the body-less aliases, `lane-a-has-type` for the
+rest. The near rule hides no definition lane A lost and no mintable
+row; removing it would move only the refusal counts.
+
+**Decision: no rule change, no ADR, no version move.** The docstring in
+`minted.py` now says what the rows are. What the rows do show is
+already registered elsewhere: a defaulted constructor is not a symbol
+(lane A's definitions-only rule, kept in ADR-129), and lane A reads an
+`#if`'s first arm where the index reads the compiled one (C-133's
+family). Neither is this item's.

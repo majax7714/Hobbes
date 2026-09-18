@@ -314,8 +314,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   naming grain), 18 right, 55 lost, no right row moved; nothing fires on
   args, cJSON, sqlite-vector. The brief's premises were read in the tree
   first, and the first real ingest matched.
-  **Next on C++, each measured first:** the 15 line-convention rows
-  (`lane-a-symbol-near`), ScummVM as a scale read (now also the operator
+  **Next on C++, each measured first:** ScummVM as a scale read (the
+  `lane-a-symbol-near` rows were read 2026-09-18: no line-convention
+  class, nothing to build; now also the operator
   and construction walks', the extent read's and the contradiction
   read's cost). Operators and constructions at a macro's name, and the
   swallowed tests, belong to the macro class (C-131, parked).
