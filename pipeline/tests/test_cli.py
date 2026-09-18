@@ -239,7 +239,7 @@ class TestMintedLine:
     many rows were refused, by reason (P8)."""
 
     @staticmethod
-    def counts(symbols=0, files=0, extents=None, **refused):
+    def counts(symbols=0, files=0, extents=None, vacated=None, **refused):
         from hobbes.extract.minted import REFUSALS
 
         out = {
@@ -247,6 +247,9 @@ class TestMintedLine:
             "files": files,
             "refused": {**dict.fromkeys(REFUSALS, 0), **refused},
         }
+        if vacated is not None:
+            # ADR-136's block, absent on an artifact an older Hobbes wrote.
+            out["vacated"] = vacated
         if extents is not None:
             # Absent on an artifact an older Hobbes wrote, where every
             # minted symbol is a target (ADR-134 §4).
@@ -363,6 +366,34 @@ class TestMintedLine:
         assert "C-145; targets only — calls written inside them keep their caller" in out
         assert "no extent" not in out
         assert "not minted: 4 declaration" in out
+
+    def test_the_line_says_which_were_read_in_a_file_that_parsed_clean(self, capsys):
+        # ADR-136: a definition at a line R1 vacated. `files` counts the
+        # lossy ones, so the sentence must put these somewhere else —
+        # ScummVM's numbers, where 260 of 401 removals are this shape.
+        cli._print_minted(
+            self.counts(
+                symbols=397, files=19, vacated={"symbols": 260, "files": 19}
+            )
+        )
+        out = capsys.readouterr().out
+        assert "read from the index: 397 definition(s)" in out
+        assert "260 of them in 19 file(s) that parsed clean" in out
+        assert "a line where a lane A symbol was refused (ADR-136, C-164)" in out
+        # The old clause stays true, and stays about the lossy files alone.
+        assert "and the rest in 19 file(s) lane A parsed with errors" in out
+
+    def test_an_artifact_with_none_of_them_or_without_the_key_reads_as_it_did(
+        self, capsys
+    ):
+        cli._print_minted(
+            self.counts(symbols=42, files=7, vacated={"symbols": 0, "files": 0})
+        )
+        cli._print_minted(self.counts(symbols=42, files=7))
+        with_zeros, without = capsys.readouterr().out.splitlines()
+        assert with_zeros == without
+        assert "42 definition(s) in 7 file(s) lane A parsed with errors" in without
+        assert "ADR-136" not in without
 
     def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
         assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0
