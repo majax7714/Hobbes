@@ -102,9 +102,13 @@ def _print_minted(counts: dict | None) -> None:
     rows the rule refused, by reason — printed under the graph line, where
     a reader meets the numbers minting moved.
 
-    A minted symbol is a target, not a scope (ADR-129 §3), and the line
-    says so rather than letting the count read as recovered parsing: a
-    call written *inside* a lost definition still keeps the caller it had.
+    The first line says what became of them (ADR-134 §4): how many of the
+    functions among them carry an extent matched in the file's own braces
+    and how many facts that re-homed, and that the rest are targets still —
+    a call written inside one of those keeps the caller it had. An
+    artifact with no ``extents`` block is an older Hobbes': every minted
+    symbol there is a target, and the line reads as it did.
+
     Nothing is printed where the key is absent — no indexer, or no C or
     C++, is the floor exactly as it was (P6) — or where the rule neither
     minted nor refused anything.
@@ -114,12 +118,20 @@ def _print_minted(counts: dict | None) -> None:
     refused = counts.get("refused") or {}
     if not counts.get("symbols") and not any(refused.values()):
         return
-    print(
-        f"    read from the index: {counts.get('symbols', 0)} definition(s) in "
-        f"{counts.get('files', 0)} file(s) lane A parsed with errors "
-        "(C-145; targets only — calls written inside them keep their caller)"
-    )
-    from hobbes.extract.minted import REFUSALS
+    extents = counts.get("extents")
+    read = f"    read from the index: {counts.get('symbols', 0)} definition(s) in "
+    read += f"{counts.get('files', 0)} file(s) lane A parsed with errors (C-145; "
+    if extents is None:
+        read += "targets only — calls written inside them keep their caller)"
+    else:
+        read += (
+            f"{extents.get('read', 0)} of the functions among them take an extent "
+            f"from the file's own braces, re-homing {extents.get('rehomed', 0)} "
+            "fact(s); the rest are targets, and a call written inside one of "
+            "those keeps its caller)"
+        )
+    print(read)
+    from hobbes.extract.minted import EXTENT_REFUSALS, REFUSALS
 
     # The reasons in the order `minted.py` declares them, so the block
     # reads the same way on every repo; a reason that did not fire is left
@@ -130,6 +142,17 @@ def _print_minted(counts: dict | None) -> None:
     parts = [f"{refused[key]} {key}" for key in order if refused.get(key)]
     if parts:
         print("    not minted: " + ", ".join(parts))
+    # The same block for the extent, where a reader meets the other half:
+    # a refusal here leaves a minted symbol a target, which is what it was
+    # before ADR-134 and is never wrong, only coarser.
+    declined = (extents or {}).get("refused") or {}
+    order = [
+        *EXTENT_REFUSALS,
+        *sorted(key for key in declined if key not in EXTENT_REFUSALS),
+    ]
+    parts = [f"{declined[key]} {key}" for key in order if declined.get(key)]
+    if parts:
+        print("    no extent: " + ", ".join(parts))
 
 
 def _print_operators(counts: dict | None) -> None:
