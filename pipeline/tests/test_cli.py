@@ -185,13 +185,28 @@ class TestMintedLine:
     many rows were refused, by reason (P8)."""
 
     @staticmethod
-    def counts(symbols=0, files=0, **refused):
+    def counts(symbols=0, files=0, extents=None, **refused):
         from hobbes.extract.minted import REFUSALS
 
-        return {
+        out = {
             "symbols": symbols,
             "files": files,
             "refused": {**dict.fromkeys(REFUSALS, 0), **refused},
+        }
+        if extents is not None:
+            # Absent on an artifact an older Hobbes wrote, where every
+            # minted symbol is a target (ADR-134 §4).
+            out["extents"] = extents
+        return out
+
+    @staticmethod
+    def extents(read=0, rehomed=0, **refused):
+        from hobbes.extract.minted import EXTENT_REFUSALS
+
+        return {
+            "read": read,
+            "refused": {**dict.fromkeys(EXTENT_REFUSALS, 0), **refused},
+            "rehomed": rehomed,
         }
 
     def test_a_mint_prints_what_was_read_and_what_it_is_not(self, capsys):
@@ -243,6 +258,57 @@ class TestMintedLine:
         cli._print_minted({})
         cli._print_minted(self.counts())
         assert capsys.readouterr().out == ""
+
+    def test_the_line_says_how_many_took_an_extent_and_what_moved(self, capsys):
+        # ADR-134's own numbers on fmt: the definitions read, how many of
+        # the functions among them the file's braces gave a body's end, and
+        # the facts that re-homed onto them.
+        cli._print_minted(
+            self.counts(
+                symbols=1399, files=61, extents=self.extents(read=1346, rehomed=1290)
+            )
+        )
+        out = capsys.readouterr().out
+        assert "read from the index: 1399 definition(s) in 61 file(s)" in out
+        assert "1346 of the functions among them take an extent" in out
+        assert "re-homing 1290 fact(s)" in out
+        # The rest are what they were, and the line still says so.
+        assert "the rest are targets" in out and "keeps its caller" in out
+        assert "targets only" not in out
+
+    def test_the_extent_refusals_are_listed_in_the_declared_order(self, capsys):
+        cli._print_minted(
+            self.counts(
+                symbols=1399,
+                files=61,
+                extents=self.extents(
+                    read=1346, **{"conditional-inside": 34, "holds-a-definition": 19}
+                ),
+            )
+        )
+        lines = capsys.readouterr().out.splitlines()
+        assert len(lines) == 2
+        assert lines[1].strip() == "no extent: 34 conditional-inside, 19 holds-a-definition"
+
+    def test_an_extent_reason_this_hobbes_does_not_know_is_still_named(self, capsys):
+        cli._print_minted(
+            self.counts(
+                symbols=1,
+                files=1,
+                extents=self.extents(read=0, **{"runs-off": 1, "some-later-rule": 5}),
+            )
+        )
+        line = capsys.readouterr().out.splitlines()[1]
+        assert line.strip() == "no extent: 1 runs-off, 5 some-later-rule"
+
+    def test_an_artifact_without_extents_reads_as_it_did(self, capsys):
+        # An older Hobbes': every minted symbol is a target, and the line
+        # must not claim an extent nothing read.
+        cli._print_minted(self.counts(symbols=42, files=7, declaration=4))
+        out = capsys.readouterr().out
+        assert "C-145; targets only — calls written inside them keep their caller" in out
+        assert "no extent" not in out
+        assert "not minted: 4 declaration" in out
 
     def test_a_python_only_ingest_prints_nothing(self, git_fixture, capsys):
         assert cli.main(["ingest", "--repo", str(git_fixture)]) == 0

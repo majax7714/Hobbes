@@ -12,10 +12,39 @@ What is missing is a node, so this module mints one, and the symbol says
 who declared it (``declared_by: "scip"``; every lane A symbol lacks the
 field).
 
-**A minted symbol is a target, not a scope** — ``end_line`` is its line.
-Finding a body's end through unexpanded macros is a guess this change
-does not make, so a call written *inside* a lost definition keeps the
-caller it has today (ADR-129 §3).
+**A minted function or method also gets an extent** (ADR-134):
+``end_line`` becomes the line its body's closing brace is on, matched in
+the file's own text — the only evidence there is, since scip-clang's
+index carries no ``enclosing_range`` to read one from. A ``calls`` or
+``uses`` fact written inside such a body is then drawn from it rather
+than from the module (:func:`rehome`): 1,290 of fmt's call rows, read
+against the key's own caller names and none of them wrong. A minted
+**type** stays a line as every mint did (ADR-129 §3) — its members are
+symbols of their own, and a class head is where macros bite hardest.
+
+The extent is refused four ways, each leaving ``end_line`` at the line:
+
+``no-body``
+    No ``{`` at parenthesis depth 0 before a ``;`` or the end of the
+    file. :func:`shows_body` should have made this impossible; the read
+    refuses rather than assume it did.
+``runs-off``
+    The opening brace never closes. Unseen on either measured cell.
+``conditional-inside``
+    A ``#if``/``#ifdef``/``#else``/``#elif``/``#endif`` line between the
+    braces: either branch may hold the brace the compiler saw, and a
+    rule here fails toward drawing less. 34 on fmt. A ``#define`` or an
+    ``#include`` inside a body refuses nothing.
+``holds-a-definition``
+    Another function or method — lane A's or minted — starts inside the
+    extent. A definition lexically inside a function body is below the
+    symbol floor by decision (C-9, the ``local-to-function`` refusal), so
+    a symbol found there says the brace match or the parse is wrong. 19
+    on fmt: 13 macro-generated methods
+    (``GTEST_REPEATER_METHOD_(OnTestStart, TestInfo)`` is a whole method
+    to clang and a line with no ``{`` in the text, so the match ran on
+    into the next function written out) and 6 true bodies holding a
+    symbol lane A named after an annotation macro (C-164).
 
 **When in doubt, mint nothing.** A naive rule — mint wherever lane B
 defines and lane A does not — graded 98.2% on fmt with 123 contradicted
@@ -104,7 +133,9 @@ minted and the floor is exactly what it was; the caller writes no
 
 from __future__ import annotations
 
+import dataclasses
 import re
+from bisect import bisect_right
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
@@ -138,6 +169,19 @@ REFUSALS = (
     "unreadable",
 )
 
+#: Every reason a minted function's extent was refused, in the order the
+#: read meets them. Fixed for :data:`REFUSALS`' reason: the block reads the
+#: same way on every repo.
+EXTENT_REFUSALS = ("no-body", "runs-off", "conditional-inside", "holds-a-definition")
+
+#: The symbol kinds whose body an extent stands for, and whose line inside
+#: another's extent says the brace match or the parse is wrong.
+_DEFINITION_KINDS = ("function", "method")
+
+#: A preprocessor conditional line (ADR-134 §2). Read on the blanked text,
+#: so a ``#if`` written inside a comment or a string is not one.
+_CONDITIONAL = re.compile(r"^[ \t]*#[ \t]*(if|ifdef|ifndef|else|elif|endif)\b")
+
 #: scip-clang's spelling for a struct, union or enum the source does not
 #: name. A chain holding one has no source name to give the symbol.
 _ANONYMOUS = "$anonymous"
@@ -165,7 +209,8 @@ def mint(
     *lossy_files* the repo-relative paths whose parse had ERROR nodes;
     *symbols* lane A's, as ``graph["symbols"]`` holds them; and
     *module_of_path* the graph's file-to-module map. Pure but for reading
-    each file's own text, which is rule 6's whole evidence.
+    each file's own text, which is rule 6's whole evidence and the
+    extent's (ADR-134).
 
     Deterministic: the rows are deduplicated and read in
     ``(file, line, moniker)`` order, so the ids a collision hands out
@@ -199,8 +244,10 @@ def mint(
             lane_a_types.add((module, symbol["name"]))
 
     minted: list[dict] = []
+    minted_files: list[str] = []
     files: set[str] = set()
     sources: dict[str, list[str] | None] = {}
+    blanked: dict[str, list[str] | None] = {}
     for file, line, moniker, kind in rows:
         module = module_of_path.get(file)
         if module is None:
@@ -252,7 +299,8 @@ def mint(
             "qualname": qualname,
             "kind": symbol_kind,
             "line": line,
-            # ADR-129 §3: a target, not a scope.
+            # ADR-129 §3's line; the extent read below moves it to the
+            # closing brace's where the file's own braces give one.
             "end_line": line,
             "declared_by": "scip",
         }
@@ -262,9 +310,227 @@ def mint(
             # sense — a construction's target is its constructor.
             symbol["max_params"] = read_max_params(repo_root, file, line, name, sources)
         minted.append(symbol)
+        minted_files.append(file)
         files.add(file)
 
-    return minted, {"symbols": len(minted), "files": len(files), "refused": refused}
+    # ADR-134, a second pass because its last refusal is a property of the
+    # whole minted list: the symbols are settled first, then each function's
+    # body is matched in the file's text and `end_line` moved onto it.
+    extents = _read_extents(repo_root, minted, minted_files, symbols, sources, blanked)
+    return minted, {
+        "symbols": len(minted),
+        "files": len(files),
+        "refused": refused,
+        "extents": extents,
+    }
+
+
+def rehome(
+    facts: Sequence,
+    minted_symbols: Sequence[Mapping],
+    symbols: Iterable[Mapping],
+    module_of_path: Mapping[str, str],
+) -> tuple[list, int]:
+    """The facts, with each one written inside a minted body drawn from it
+    (ADR-134 §3), and how many moved.
+
+    :func:`hobbes.extract.scipsource.project` reads a fact's caller as
+    ``fact.scope or index.enclosing(module, line) or module``, so a fact
+    with **no scope** re-homes by itself the moment ``end_line`` is real —
+    ``enclosing`` takes the innermost symbol holding the line, and the
+    minted one now holds it. This is the other half: a fact whose scope
+    names a symbol that starts *before* the extent — the module-scope
+    definition lane A's recovery gave it, or the class above — belongs to
+    the definition it is written in. A scope starting at or inside the
+    extent is left alone, and so is a scope naming nothing this graph
+    knows: drawing less where the answer is not certain.
+
+    The scopeless facts are not touched and **are** counted, once for each
+    one ``enclosing`` will now answer with the minted symbol — that is,
+    where no symbol of the module starting after the extent holds the line
+    too. The count is what moved in the graph, not what this function
+    rewrote.
+
+    Only ``calls`` and ``uses``: an ``implements`` fact's ends are both
+    definitions, read by ``starting_at`` and not by a scope. An extent of
+    one line (``end_line == line``) moves nothing, because it cannot be
+    told from a refusal and ``enclosing`` already answers for that line.
+    Pure: it reads no file and writes no symbol.
+    """
+    extents: dict[str, list[tuple[int, int, str]]] = {}
+    for symbol in minted_symbols:
+        if symbol["kind"] in _DEFINITION_KINDS and symbol["end_line"] > symbol["line"]:
+            extents.setdefault(symbol["module"], []).append(
+                (symbol["line"], symbol["end_line"], symbol["id"])
+            )
+    if not extents:
+        return list(facts), 0
+    for rows in extents.values():
+        rows.sort()
+
+    # Every symbol the graph holds, twice over: where a scope starts, and
+    # what each module's lines are spoken for by. *symbols* may already hold
+    # the minted ones — the caller merges them before the projection — so
+    # the id map settles a duplicate and the ranges do not mind one. Both
+    # are read once per fact, so each carries its own list of starts to
+    # bisect rather than a scan over the module.
+    starts: dict[str, tuple[str, int]] = {}
+    ranges: dict[str, list[tuple[int, int]]] = {}
+    for symbol in [*symbols, *minted_symbols]:
+        module = symbol.get("module")
+        if module is None:
+            continue  # a module node, not a symbol
+        starts[symbol["id"]] = (module, symbol["line"])
+        ranges.setdefault(module, []).append(
+            (symbol["line"], symbol.get("end_line") or symbol["line"])
+        )
+    for rows in ranges.values():
+        rows.sort()
+    at_extent = {module: [row[0] for row in rows] for module, rows in extents.items()}
+    at_symbol = {module: [row[0] for row in rows] for module, rows in ranges.items()}
+
+    out: list = []
+    moved = 0
+    for fact in facts:
+        module = (
+            module_of_path.get(fact.source_file) if fact.kind in ("calls", "uses") else None
+        )
+        holder = (
+            _holding(extents.get(module), at_extent.get(module), fact.line)
+            if module
+            else None
+        )
+        if holder is None:
+            out.append(fact)
+            continue
+        start, _, symbol_id = holder
+        if not fact.scope:
+            # What `enclosing` will answer: this extent, unless something
+            # starting inside it holds the line too.
+            lines = at_symbol.get(module, [])
+            inside = ranges[module][
+                bisect_right(lines, start) : bisect_right(lines, fact.line)
+            ]
+            if not any(fact.line <= end for _, end in inside):
+                moved += 1
+            out.append(fact)
+            continue
+        scope = starts.get(fact.scope)
+        if scope is None or scope[0] != module or scope[1] >= start:
+            out.append(fact)
+            continue
+        out.append(dataclasses.replace(fact, scope=symbol_id))
+        moved += 1
+    return out, moved
+
+
+def _holding(
+    rows: Sequence[tuple[int, int, str]] | None,
+    at: Sequence[int] | None,
+    line: int,
+) -> tuple[int, int, str] | None:
+    """The extent holding *line*, or ``None``. A module's extents are
+    disjoint — ``holds-a-definition`` refuses one that starts inside
+    another — so the last one starting at or before the line is the only
+    candidate there is."""
+    if not rows:
+        return None
+    index = bisect_right(at, line) - 1
+    if index < 0:
+        return None
+    return rows[index] if line <= rows[index][1] else None
+
+
+def _read_extents(
+    repo_root: Path,
+    minted_symbols: Sequence[dict],
+    minted_files: Sequence[str],
+    symbols: Sequence[Mapping],
+    sources: dict[str, list[str] | None],
+    blanked: dict[str, list[str] | None],
+) -> dict:
+    """Move each minted function's ``end_line`` onto its body's closing
+    brace (ADR-134 §1), and the counts that says what happened.
+
+    Two passes, because ``holds-a-definition`` asks about the other minted
+    symbols: every extent is matched first, then each is refused where a
+    function or method of the same module — lane A's or minted — starts
+    inside it. The second pass reads the first's answers and not its
+    refusals, so a row's fate never depends on the order they are read in:
+    two macro-generated rows whose matches both run into a written-out
+    body are both refused, and what survives is disjoint.
+    """
+    refused = dict.fromkeys(EXTENT_REFUSALS, 0)
+    matched: list[tuple[int, int]] = []
+    for index, symbol in enumerate(minted_symbols):
+        if symbol["kind"] not in _DEFINITION_KINDS:
+            continue  # a type stays a line, and is counted nowhere here
+        lines = _blanked_lines(repo_root, minted_files[index], sources, blanked)
+        if lines is None:
+            refused["no-body"] += 1  # a file that will not read shows no body
+            continue
+        end, reason = _extent(lines, symbol["line"])
+        if end is None:
+            refused[reason] += 1
+        else:
+            matched.append((index, end))
+
+    starts: dict[str, set[int]] = {}
+    for symbol in [*symbols, *minted_symbols]:
+        module = symbol.get("module")
+        if module is not None and symbol.get("kind") in _DEFINITION_KINDS:
+            starts.setdefault(module, set()).add(symbol["line"])
+
+    read = 0
+    for index, end in matched:
+        symbol = minted_symbols[index]
+        line = symbol["line"]
+        if any(line < at <= end for at in starts.get(symbol["module"], ())):
+            refused["holds-a-definition"] += 1
+            continue
+        symbol["end_line"] = end
+        read += 1
+    return {"read": read, "refused": refused}
+
+
+def _extent(lines: Sequence[str], line: int) -> tuple[int | None, str]:
+    """Where the definition at *line* closes, or ``(None, reason)``.
+
+    *lines* are the file's own, comments and literals blanked, so a brace
+    inside either is text rather than structure. From the definition's line:
+    the first ``{`` at parenthesis depth 0 — a ``;`` before it, or no brace
+    at all, is ``no-body`` — matched to its ``}`` by brace depth. Nothing is
+    parsed, for the reason nothing is parsed anywhere in this module: these
+    are the definitions the grammar could not read.
+    """
+    depth = 0
+    braces = 0
+    opened = None
+    for index in range(max(line - 1, 0), len(lines)):
+        for char in lines[index]:
+            if opened is None:
+                if char in "([":
+                    depth += 1
+                elif char in ")]":
+                    depth -= 1
+                elif depth == 0:
+                    if char == "{":
+                        opened, braces = index, 1
+                    elif char == ";":
+                        return None, "no-body"
+            elif char == "{":
+                braces += 1
+            elif char == "}":
+                braces -= 1
+                if braces == 0:
+                    # Either branch of an `#if` may hold the brace the
+                    # compiler saw, so a conditional anywhere between the
+                    # braces makes this match a guess.
+                    for source in lines[opened : index + 1]:
+                        if _CONDITIONAL.match(source):
+                            return None, "conditional-inside"
+                    return index + 1, ""
+    return (None, "runs-off") if opened is not None else (None, "no-body")
 
 
 def constructor_lines(definitions: Iterable[Mapping]) -> frozenset[tuple[str, int]]:
@@ -427,6 +693,110 @@ def _lines(
         lines = text.splitlines() if text is not None else None
         sources[file] = lines
     return lines  # type: ignore[return-value]
+
+
+def _blanked_lines(
+    repo_root: Path,
+    file: str,
+    sources: dict[str, list[str] | None],
+    blanked: dict[str, list[str] | None],
+) -> list[str] | None:
+    """The file's lines with :func:`_blank_source` over them, read and
+    blanked once per file per run — the extent read asks for a whole file
+    and a file holds many rows. ``None`` where the file will not read."""
+    lines = blanked.get(file, _UNREAD)
+    if lines is _UNREAD:
+        source = _lines(repo_root, file, sources)
+        lines = None if source is None else _blank_source("\n".join(source)).split("\n")
+        blanked[file] = lines
+    return lines  # type: ignore[return-value]
+
+
+def _blank_source(text: str) -> str:
+    """*text* with every comment, string, raw string and character literal
+    blanked to spaces — the length and the newlines kept, so a line still
+    numbers as it did.
+
+    :func:`_blank_literals`' question over a whole file rather than a
+    window, and two more shapes with it, because a brace match reads far
+    enough to meet them: a ``//`` or ``/* */`` comment, and a raw string
+    (``R"x(})x"``), whose delimiter is what closes it and whose backslash
+    escapes nothing. A ``'`` between two alphanumerics is C++14's digit
+    separator (``1'000``), not a literal. An unterminated literal blanks to
+    the end of the file, which reads as no body: blanking more here refuses
+    an extent, and refusing is this rule's failure direction.
+    """
+    out = list(text)
+    end = len(text)
+
+    def blank(start: int, stop: int) -> None:
+        for at in range(start, min(stop, end)):
+            if out[at] != "\n":
+                out[at] = " "
+
+    i = 0
+    while i < end:
+        char = text[i]
+        if char == "/" and text[i + 1 : i + 2] in ("/", "*"):
+            closer = "\n" if text[i + 1] == "/" else "*/"
+            at = text.find(closer, i + 2)
+            stop = end if at < 0 else at + (0 if closer == "\n" else 2)
+            blank(i, stop)
+            i = stop
+            continue
+        if char == '"' and text[i - 1 : i] == "R":
+            # `R"delim(` … `)delim"`: the delimiter is the only thing that
+            # closes it. No delimiter, or no close, and the rest of the file
+            # is inside the literal as far as this read is concerned.
+            at = text.find("(", i + 1)
+            if at < 0:
+                blank(i, end)
+                break
+            closer = ")" + text[i + 1 : at] + '"'
+            close = text.find(closer, at + 1)
+            if close < 0:
+                blank(i + 1, end)
+                break
+            blank(i + 1, close + len(closer) - 1)
+            i = close + len(closer)
+            continue
+        if char in "\"'":
+            if char == "'" and _digit_separator(text, i):
+                i += 1  # part of a number, and a number is not a literal
+                continue
+            at = i + 1
+            while at < end:
+                if text[at] == "\\":
+                    at += 2
+                    continue
+                if text[at] == char:
+                    break
+                at += 1
+            blank(i + 1, at)
+            i = min(at + 1, end)
+            continue
+        i += 1
+    return "".join(out)
+
+
+def _digit_separator(text: str, i: int) -> bool:
+    """Is the ``'`` at *i* C++14's digit separator (``1'000``, ``0xFF'FF``)
+    rather than a character literal?
+
+    It is, where it sits between two alphanumerics **and** the token it
+    continues starts with a digit. The second half is what tells a number
+    from a wide literal: ``L'a'`` and ``u8'x'`` are literals whose ``'``
+    also follows an alphanumeric, and reading one as a number would leave
+    its closing quote to open a literal that blanks whatever follows —
+    including a brace, which is the one direction this read must not fail
+    in.
+    """
+    if not text[i + 1 : i + 2].isalnum():
+        return False
+    start = i
+    while start and (text[start - 1].isalnum() or text[start - 1] in "_'"):
+        start -= 1
+    return start < i and text[start].isdigit()
 
 
 #: An ALL_CAPS identifier directly followed by ``(`` inside a parameter

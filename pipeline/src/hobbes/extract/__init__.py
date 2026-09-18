@@ -456,23 +456,32 @@ def _build_symbol_layer(
     # parse lost a C or C++ definition, lane B's definition row becomes the
     # symbol, so `starting_at` answers for the lost line and the calls
     # scip-clang already resolved there draw instead of falling
-    # `below-floor`. Nothing lane A decided sees these — the fallback
-    # tables, `withhold`, the lane agreement inputs and
+    # `below-floor`. ADR-134 reads such a definition's extent from the
+    # file's own braces and re-homes the facts written inside it, which is
+    # the one thing here that touches a fact the join settled — and it
+    # touches only its caller. Nothing lane A decided sees any of it — the
+    # fallback tables, `withhold`, the lane agreement inputs and
     # `full_specializations` are all settled above — and `project` needs no
     # change: the called-type guard, R-qual and the macro handling apply to
-    # a minted target as to any other.
+    # a minted target as to any other, and `enclosing` answers with a
+    # minted extent as with a parsed one.
     if lane_a_c_files and lane_b_ran:
+        module_of_path = {n["path"]: n["id"] for n in graph["nodes"] if n.get("path")}
         with timings.step("mint"):
             minted_symbols, graph["minted"] = minted.mint(
                 repo_root,
                 lane_b_definitions,
                 lossy_files,
                 graph["symbols"],
-                {n["path"]: n["id"] for n in graph["nodes"] if n.get("path")},
+                module_of_path,
             )
         if minted_symbols:
             graph["symbols"] = sorted(
                 graph["symbols"] + minted_symbols, key=lambda s: s["id"]
+            )
+        with timings.step("rehome"):
+            resolved, graph["minted"]["extents"]["rehomed"] = minted.rehome(
+                resolved, minted_symbols, graph["symbols"], module_of_path
             )
     with timings.step("project"):
         projected = scipsource.project(

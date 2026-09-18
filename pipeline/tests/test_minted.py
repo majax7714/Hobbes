@@ -56,9 +56,46 @@ int main() {
 #: The monikers scip-clang spells for the three, in its own grammar:
 #: `<scheme> <manager> <package> <version> <descriptors>`, an inline
 #: namespace and all.
+#: A second lost header, written beside :data:`LOST_HEADER` rather than
+#: into it so the line numbers the cases above pin stay where they are.
+#: ``caller`` at 11 writes a call *inside* its own lost body — ADR-134's
+#: whole question — and ``guarded`` at 16 writes one inside an ``#if``,
+#: the extent refusal that fires on a measured cell.
+LOST_CALLER_HEADER = """#ifndef LOST2_H
+#define LOST2_H
+#define BEGIN_NS2 namespace lib { inline namespace v1 {
+
+BEGIN_NS2
+
+template <typename T> struct Holder2 { T v; };
+
+int helper(int x) { return x + 1; }
+
+int caller(int x) {
+    return helper(x) + 1;
+}
+
+#if GUARD
+int guarded(int x) {
+#if OTHER
+    return helper(x);
+#else
+    return 0;
+#endif
+}
+#endif
+
+} }
+
+#endif
+"""
+
 LOST_MONIKER = "cxx . . $ lib/v1/lost(9ab1c0d2e3f40506)."
 LOST_TYPE_MONIKER = "cxx . . $ lib/v1/Lost#"
 DECLARED_ONLY_MONIKER = "cxx . . $ lib/v1/declared_only(77cc88dd99ee00ff)."
+HELPER_MONIKER = "cxx . . $ lib/v1/helper(11aa22bb33cc44dd)."
+CALLER_MONIKER = "cxx . . $ lib/v1/caller(55ee66ff77001122)."
+GUARDED_MONIKER = "cxx . . $ lib/v1/guarded(3344556677889900)."
 
 
 def row(file: str, line: int, kind: str, moniker: str) -> dict:
@@ -333,6 +370,261 @@ class TestTheBodyRead:
         ]
 
 
+class TestTheExtent:
+    """ADR-134 §1: a minted function's ``end_line`` becomes its body's
+    closing brace, matched in the file's own text — the only evidence
+    there is, since scip-clang's index carries no ``enclosing_range``.
+    Every refusal leaves the symbol the target ADR-129 §3 made it, which
+    is never wrong, only coarser."""
+
+    def one(self, tmp_path, source, *, at=1, kind="method", moniker="cxx . . $ ns/f(1a)."):
+        symbols, counts = mint(tmp_path, {"a.h": source}, [row("a.h", at, kind, moniker)])
+        assert len(symbols) == 1, symbols
+        return symbols[0], counts["extents"]
+
+    def test_a_body_over_several_lines_ends_at_its_closing_brace(self, tmp_path):
+        symbol, extents = self.one(
+            tmp_path, "int f(int x) {\n    int y = x;\n    return y;\n}\n"
+        )
+        assert (symbol["line"], symbol["end_line"]) == (1, 4)
+        assert extents["read"] == 1 and set(extents["refused"].values()) == {0}
+
+    def test_a_body_opening_below_the_name_ends_at_its_closing_brace(self, tmp_path):
+        symbol, extents = self.one(
+            tmp_path,
+            "struct A {\n    A(int n);\n    int v;\n};\n"
+            "A::A(int n)\n    : v(n)\n{\n    v = n;\n}\n",
+            at=5,
+            moniker="cxx . . $ A#A(2b).",
+        )
+        assert (symbol["line"], symbol["end_line"]) == (5, 9)
+        assert extents["read"] == 1
+
+    def test_a_one_line_body_is_an_extent_of_one_line(self, tmp_path):
+        symbol, extents = self.one(tmp_path, "int f() { return 1; }\n")
+        assert symbol["end_line"] == symbol["line"] == 1
+        assert extents["read"] == 1
+
+    def test_a_brace_inside_a_literal_or_a_comment_does_not_close_the_body(self, tmp_path):
+        symbol, extents = self.one(
+            tmp_path,
+            "int f() {\n"
+            '    const char* s = "}";\n'
+            "    char c = '}';\n"
+            "    // }\n"
+            "    /* } */\n"
+            '    const char* r = R"x(})x";\n'
+            # A `'` between two alphanumerics is a digit separator: read as
+            # a literal it would blank the rest of the file, and the extent
+            # would run off.
+            "    int n = 1'000;\n"
+            # A wide literal's quote follows an alphanumeric too, and it is
+            # a literal: read as a number, its closing quote would open one
+            # and blank the brace below.
+            "    wchar_t w = L'}';\n"
+            "    return n + c + w + s[0] + r[0];\n"
+            "}\n",
+        )
+        assert symbol["end_line"] == 10
+        assert extents["read"] == 1 and set(extents["refused"].values()) == {0}
+
+    def test_a_conditional_inside_the_body_refuses(self, tmp_path):
+        # Either branch may hold the brace the compiler saw. 34 on fmt.
+        symbol, extents = self.one(
+            tmp_path,
+            "int f(int x) {\n#if FOO\n    return x;\n#else\n    return 0;\n#endif\n}\n",
+        )
+        assert symbol["end_line"] == symbol["line"] == 1
+        assert extents["read"] == 0 and extents["refused"]["conditional-inside"] == 1
+
+    def test_a_define_or_an_include_inside_the_body_refuses_nothing(self, tmp_path):
+        symbol, extents = self.one(
+            tmp_path,
+            'int f() {\n#define LOCAL 1\n#include "other.h"\n    return LOCAL;\n}\n',
+        )
+        assert symbol["end_line"] == 5
+        assert extents["read"] == 1 and extents["refused"]["conditional-inside"] == 0
+
+    def test_a_body_that_never_closes_refuses(self, tmp_path):
+        symbol, extents = self.one(tmp_path, "int f() {\n    return 1;\n")
+        assert symbol["end_line"] == symbol["line"] == 1
+        assert extents["read"] == 0 and extents["refused"]["runs-off"] == 1
+
+    def test_a_line_with_no_body_at_all_refuses(self, tmp_path):
+        # `shows_body` should have made this unreachable through `mint`;
+        # the read refuses rather than assume it did.
+        assert minted._extent(["int f(int x);"], 1) == (None, "no-body")
+
+    #: `GTEST_REPEATER_METHOD_(OnTestStart, TestInfo)`: a whole method to
+    #: clang, a line with no `{` and no `;` in the text, so the brace match
+    #: runs on into the next function written out. 13 of fmt's 19.
+    SWALLOWED = (
+        "MAKE_METHOD(OnTestStart, TestInfo)\n"
+        "\n"
+        "int written(int v) {\n"
+        "    return v;\n"
+        "}\n"
+    )
+
+    def test_a_match_running_into_a_lane_a_function_refuses(self, tmp_path):
+        symbols, counts = mint(
+            tmp_path,
+            {"a.h": self.SWALLOWED},
+            [row("a.h", 1, "method", "cxx . . $ ns/OnTestStart(1a).")],
+            symbols=[lane_a("a.h", "written", 3, 5)],
+        )
+        assert [(s["line"], s["end_line"]) for s in symbols] == [(1, 1)]
+        assert counts["extents"] == {
+            "read": 0,
+            "refused": {**dict.fromkeys(minted.EXTENT_REFUSALS, 0), "holds-a-definition": 1},
+        }
+
+    def test_two_macro_generated_rows_over_one_written_body_are_both_refused(
+        self, tmp_path
+    ):
+        # The symbol below is another minted one, and the pass is over the
+        # whole minted list: each row whose match swallows a definition is
+        # refused, the one that swallows nothing keeps its extent.
+        symbols, counts = mint(
+            tmp_path,
+            {
+                "a.h": "MAKE_A(x)\n\nMAKE_B(y)\n\n"
+                       "int written(int v) {\n    return v;\n}\n"
+            },
+            [
+                row("a.h", 1, "method", "cxx . . $ ns/A(1a)."),
+                row("a.h", 3, "method", "cxx . . $ ns/B(2b)."),
+                row("a.h", 5, "method", "cxx . . $ ns/written(3c)."),
+            ],
+        )
+        assert [(s["line"], s["end_line"]) for s in symbols] == [(1, 1), (3, 3), (5, 7)]
+        assert counts["extents"]["refused"]["holds-a-definition"] == 2
+        assert counts["extents"]["read"] == 1
+
+    def test_a_minted_type_stays_a_line_and_is_counted_nowhere(self, tmp_path):
+        symbol, extents = self.one(
+            tmp_path,
+            "struct FilePath {\n    int n;\n};\n",
+            kind="type",
+            moniker="cxx . . $ testing/internal/FilePath#",
+        )
+        assert symbol["end_line"] == symbol["line"] == 1
+        assert extents == {"read": 0, "refused": dict.fromkeys(minted.EXTENT_REFUSALS, 0)}
+
+    def test_the_extent_block_names_every_reason_whether_or_not_it_fired(self, tmp_path):
+        _, extents = self.one(tmp_path, "int f() { return 1; }\n")
+        assert list(extents["refused"]) == list(minted.EXTENT_REFUSALS)
+
+
+class TestTheRehoming:
+    """ADR-134 §3, the pure half. ``project`` reads a caller as
+    ``fact.scope or enclosing(module, line) or module``, so a scopeless
+    fact re-homes by itself once ``end_line`` is real; what this function
+    does is the other half, and what it counts is what moves either way."""
+
+    MODULES = {"a.cc": "a"}
+
+    @staticmethod
+    def fact(kind="calls", line=12, scope="", file="a.cc"):
+        from hobbes.extract import evidence as ev
+
+        return ev.Resolved(
+            kind=kind,
+            source_file=file,
+            line=line,
+            scope=scope,
+            def_file="b.h",
+            def_line=1,
+            tier="semantic",
+            lanes=("scip",),
+        )
+
+    @staticmethod
+    def lost(line=10, end_line=20, name="lost"):
+        return {
+            "id": f"a.{name}",
+            "module": "a",
+            "name": name,
+            "qualname": name,
+            "kind": "function",
+            "line": line,
+            "end_line": end_line,
+            "declared_by": "scip",
+        }
+
+    def rehome(self, facts, minted_symbols, symbols=()):
+        return minted.rehome(facts, minted_symbols, list(symbols), self.MODULES)
+
+    def test_a_scope_starting_before_the_extent_becomes_the_minted_symbol(self):
+        out, moved = self.rehome(
+            [self.fact(scope="a.outer")], [self.lost()], [lane_a("a", "outer", 1, 30)]
+        )
+        assert [f.scope for f in out] == ["a.lost"] and moved == 1
+
+    def test_a_scope_starting_inside_the_extent_is_left_alone(self):
+        # The extent is not the innermost thing holding the line: whatever
+        # lane A parsed in there knows better than the brace match.
+        out, moved = self.rehome(
+            [self.fact(scope="a.inner")], [self.lost()], [lane_a("a", "inner", 11, 19)]
+        )
+        assert [f.scope for f in out] == ["a.inner"] and moved == 0
+
+    def test_a_scope_naming_nothing_this_graph_holds_is_left_alone(self):
+        out, moved = self.rehome([self.fact(scope="a.gone")], [self.lost()])
+        assert [f.scope for f in out] == ["a.gone"] and moved == 0
+
+    def test_a_scopeless_fact_is_untouched_and_counted(self):
+        # `enclosing` will answer with the minted symbol, so the edge moves
+        # without this function rewriting anything.
+        out, moved = self.rehome([self.fact()], [self.lost()])
+        assert [f.scope for f in out] == [""] and moved == 1
+
+    def test_a_scopeless_fact_a_nearer_symbol_holds_is_not_counted(self):
+        inner = {**lane_a("a", "Inner", 11, 19), "kind": "type"}
+        out, moved = self.rehome([self.fact()], [self.lost()], [inner])
+        assert [f.scope for f in out] == [""] and moved == 0
+
+    def test_a_fact_outside_every_extent_is_left_alone(self):
+        out, moved = self.rehome(
+            [self.fact(line=25, scope="a.outer")], [self.lost()], [lane_a("a", "outer", 1, 30)]
+        )
+        assert [f.scope for f in out] == ["a.outer"] and moved == 0
+
+    def test_an_implements_fact_is_left_alone(self):
+        # Both its ends are definitions, read by `starting_at` and not by
+        # a scope.
+        out, moved = self.rehome(
+            [self.fact(kind="implements", scope="a.outer")],
+            [self.lost()],
+            [lane_a("a", "outer", 1, 30)],
+        )
+        assert [f.scope for f in out] == ["a.outer"] and moved == 0
+
+    def test_a_refused_symbols_would_be_body_moves_nothing(self):
+        out, moved = self.rehome(
+            [self.fact(scope="a.outer")],
+            [self.lost(line=10, end_line=10)],
+            [lane_a("a", "outer", 1, 30)],
+        )
+        assert [f.scope for f in out] == ["a.outer"] and moved == 0
+
+    def test_two_extents_in_one_file_each_take_their_own_facts(self):
+        # Nested extents cannot exist — `holds-a-definition` refuses them —
+        # so two in a file are two bodies, side by side.
+        facts = [
+            self.fact(line=12, scope="a.outer"),
+            self.fact(line=32, scope="a.outer"),
+            self.fact(line=25, scope="a.outer"),
+        ]
+        out, moved = self.rehome(
+            facts,
+            [self.lost(10, 20, "first"), self.lost(30, 40, "second")],
+            [lane_a("a", "outer", 1, 50)],
+        )
+        assert [f.scope for f in out] == ["a.first", "a.second", "a.outer"]
+        assert moved == 2
+
+
 class TestTheParameterRead:
     """ADR-130's other end on a minted symbol: the same token read, one
     question over. A minted definition is one lane A's parse lost, so the
@@ -528,6 +820,13 @@ class TestThroughTheIngest:
             "symbols": 0,
             "files": 0,
             "refused": dict.fromkeys(minted.REFUSALS, 0),
+            # ADR-134: nothing minted is nothing to read an extent from,
+            # and no fact to re-home.
+            "extents": {
+                "read": 0,
+                "refused": dict.fromkeys(minted.EXTENT_REFUSALS, 0),
+                "rehomed": 0,
+            },
         }
         assert not [s for s in graph["symbols"] if s.get("declared_by")]
         row_ = next(r for r in graph["resolution_coverage"] if r["file"] == "src/main.cpp")
@@ -549,6 +848,83 @@ class TestThroughTheIngest:
             if e["to"] == "src/lost.h.lib::v1::Lost"
         ]
         assert onto == [("uses", "semantic")]
+
+    #: ADR-134's own repo: `caller`'s body writes a call to `helper`, and
+    #: `guarded`'s — inside an `#if` — writes the same one.
+    @staticmethod
+    def repo_with_a_caller(tmp_path: Path) -> Path:
+        repo = TestThroughTheIngest.repo(tmp_path)
+        (repo / "src" / "lost2.h").write_text(LOST_CALLER_HEADER)
+        return repo
+
+    DEFINITIONS_2 = [
+        *DEFINITIONS,
+        row("src/lost2.h", 9, "method", HELPER_MONIKER),
+        row("src/lost2.h", 11, "method", CALLER_MONIKER),
+        row("src/lost2.h", 16, "method", GUARDED_MONIKER),
+    ]
+    #: `helper(x)` at lost2.h:12, inside `caller`'s lost body.
+    INNER_CALL = {
+        "file": "src/lost2.h", "line": 12, "col": 12, "name": "helper",
+        "def_file": "src/lost2.h", "def_line": 9,
+    }
+    #: The same call at lost2.h:18, inside `guarded`'s refused body.
+    GUARDED_CALL = {
+        "file": "src/lost2.h", "line": 18, "col": 12, "name": "helper",
+        "def_file": "src/lost2.h", "def_line": 9,
+    }
+
+    def test_a_call_written_inside_a_lost_body_is_drawn_from_it(
+        self, tmp_path, monkeypatch
+    ):
+        graph = self.graph(
+            monkeypatch,
+            self.repo_with_a_caller(tmp_path),
+            self.facts(self.DEFINITIONS_2, [self.INNER_CALL, self.GUARDED_CALL]),
+        )
+        assert graph["minted"]["extents"] == {
+            # `lost` and `helper` a line each, `caller` three; the type is
+            # counted nowhere, and the prototype never reached the read.
+            "read": 3,
+            "refused": {
+                **dict.fromkeys(minted.EXTENT_REFUSALS, 0),
+                "conditional-inside": 1,
+            },
+            "rehomed": 1,
+        }
+        caller = next(
+            s for s in graph["symbols"] if s["id"] == "src/lost2.h.lib::v1::caller"
+        )
+        assert (caller["line"], caller["end_line"]) == (11, 13)
+        # A `uses` rather than a `calls`: lane A read no call site in a file
+        # it lost whole, so the reference is lane B's alone. The re-homing
+        # reads both kinds, and what is under test is the edge's `from`.
+        onto = [
+            (e["from"], e["type"]) for e in graph["symbol_edges"]
+            if e["to"] == "src/lost2.h.lib::v1::helper"
+        ]
+        assert ("src/lost2.h.lib::v1::caller", "uses") in onto
+
+    def test_a_call_inside_a_refused_body_is_still_the_modules(
+        self, tmp_path, monkeypatch
+    ):
+        """The `#if` refusal, end to end: `guarded` stays a target, so the
+        call written in it keeps the caller it had — the module."""
+        graph = self.graph(
+            monkeypatch,
+            self.repo_with_a_caller(tmp_path),
+            self.facts(self.DEFINITIONS_2, [self.GUARDED_CALL]),
+        )
+        guarded = next(
+            s for s in graph["symbols"] if s["id"] == "src/lost2.h.lib::v1::guarded"
+        )
+        assert guarded["end_line"] == guarded["line"] == 16
+        onto = [
+            (e["from"], e["type"]) for e in graph["symbol_edges"]
+            if e["to"] == "src/lost2.h.lib::v1::helper"
+        ]
+        assert onto == [("src/lost2.h", "uses")]
+        assert graph["minted"]["extents"]["rehomed"] == 0
 
     def test_no_lane_b_facts_mint_nothing_and_write_no_block(self, tmp_path, monkeypatch):
         """P6: with no indexer the floor is exactly what it was."""
@@ -597,6 +973,8 @@ def test_the_refusal_block_names_every_reason_whether_or_not_it_fired(tmp_path):
         "symbols": 0,
         "files": 0,
         "refused": dict.fromkeys(minted.REFUSALS, 0),
+        # `rehomed` is the caller's, counted where the facts are.
+        "extents": {"read": 0, "refused": dict.fromkeys(minted.EXTENT_REFUSALS, 0)},
     }
 
 
