@@ -464,6 +464,41 @@ new active entry and the two cross-reference. Field key: `README.md`,
 - **Source:** registered and lifted 2026-08-25 (oracle lane O4 finding;
   W1 fix). `scipsource.project`, `graph.py`.
 
+### C-163 — A matched call hid every other reference of its name on the line — *lifted 2026-09-18, the day it was registered (ADR-133, 0.2.45-beta)*
+- **Was:** `evidence.join` claimed a lane B resolution by `(file, line,
+  name)`, so one matched call or import site hid **every** resolution of
+  that name on the line, not only the one it matched. None of the others
+  reached the unclaimed loop, so none became a `uses` fact, an operator
+  call (ADR-131) or a construction call (ADR-132). Measured on the 25
+  graded clones (`~/.hobbes/bench/join-claim/`): 7,308 resolutions
+  hidden, 1,158 of them alternates at the matched occurrence's own
+  column and the rest true facts at another — the declared type in
+  Java's `Element el = new Element("div")`, a TS interface beside the
+  function of its name, the return type in Go's `func (r *body)
+  StreamID() quic.StreamID { return r.str.StreamID() }`, and fmt's 19
+  constructions typed through a using-declaration (ADR-132's P102
+  miss). True since ADR-029 and in no register entry until ADR-132's
+  grade met one shape of it.
+- **Lifted by — the technique:** the claim's key is the matched
+  resolution's own position, `(file, line, name, col)`. It is the
+  *resolution's* column, so the providers need not agree on columns
+  (C-70's reason the match itself is still by name and nearest column
+  stands). Regraded on 44 stored-key cells (`oracle-grading.md` §10.18):
+  fmt 6,993 → 7,012 confirmed at 0 contradicted, every other cell ±0;
+  1,785 `uses` and 11 `calls` symbol edges added, two module edges
+  (both read true), nothing removed.
+- **Residual edge cases, by design:** a resolution at the matched
+  occurrence's **own column** stays hidden — the index places a
+  declaration and its override at one position, and ADR-104's
+  abstention claims its resolution so the alternates do not resurface.
+  A **site lane A recorded no column for** keeps the by-name claim:
+  the match took the first resolution of the name, which one is not
+  known, and an unsure claim draws less (no contested site on the 25
+  clones was columnless). No key judges a `uses` edge: the 1,785 rest
+  on the hand read, not a grade.
+- **Source:** registered and lifted 2026-09-18 (ADR-133; unit `3569`).
+  `evidence.join`.
+
 ### C-80 — A Python call whose receiver was itself a call, a subscript, or `super()` was not a call site — and `who_calls` said it was not a call — *lifted 2026-09-03*
 - **Was:** `pysource.Call` was "a call site whose callee is a plain
   name/attribute chain", so `super().m(..)`, `f().m(..)` and

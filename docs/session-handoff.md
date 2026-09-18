@@ -1,14 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-18; Hobbes 0.2.44-beta on `main`.** CI was green on
+**Reviewed 2026-09-18; Hobbes 0.2.45-beta on `main`.** CI was green on
 `dbef0af` (ADR-114's base rule read on it: the graph job reviewed from
 the last green run); everything since is unpushed. The knowledge server
 serves the image it started from until it is restarted (C-65):
-**restart it** — the image was rebuilt at 0.2.44-beta at the end of this
+**restart it** — the image was rebuilt at 0.2.45-beta at the end of this
 session.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.44-beta are untagged. Tags stay Max's call each time.
+  0.2.45-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -17,15 +17,14 @@ session.
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the two 2026-09-17 evening BUILDLOG
-entries: "a dependent operator's reference draws nothing …
-constructions measured" (ADR-131 amended, 0.2.43-beta) and
-"constructions at the token" (ADR-132, 0.2.44-beta). Before them, the
-same day: "C++ recall: operators" (ADR-131, 0.2.42-beta), the two CI
-entries, "C++ recall" (ADR-129, ADR-130, 0.2.41-beta), and the
-ADR-123–128 entries (0.2.36–0.2.40-beta). Earlier sessions' detail lives
-in their own BUILDLOG entries; this file keeps only what the next session
-needs.
+The latest session's records are the two 2026-09-18 BUILDLOG entries:
+"the join's by-name claim measured and simulated" and "the join claims
+by position" (ADR-133, 0.2.45-beta). Before them, 2026-09-17: the
+ADR-131 amendment (0.2.43-beta) and "constructions at the token"
+(ADR-132, 0.2.44-beta), "C++ recall: operators" (ADR-131), the two CI
+entries, "C++ recall" (ADR-129, ADR-130), and the ADR-123–128 entries.
+Earlier sessions' detail lives in their own BUILDLOG entries; this file
+keeps only what the next session needs.
 
 ## ⇢ START HERE NEXT SESSION (written 2026-09-18)
 
@@ -33,26 +32,35 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed. **Next is
-ADR-133's route, then the lost definition's extent** (item 2).
+the lost definition's extent** (item 2): count first, nothing drawn.
+Nothing new waits on Max.
 
-### One thing for Max first
+### What landed on 2026-09-18 (merged no-ff; tracker 51 of 40)
 
-**ADR-133 (proposed, 2026-09-18): the join's claim by position.** Max
-took both recommended routes on 2026-09-18 — constructions inside a
-template stay `uses` (closed, nothing built), and the by-name claim was
-measured (`~/.hobbes/bench/join-claim/`). It hides 6,574 lane B
-resolutions across 24 graded clones; 4,193 are true `uses` dependencies
-at another column (Java's declared type beside its `new`, a TS interface
-beside its function, a Go return type beside a method call), and the
-general case is in no register entry. Simulated as `(file, line, name,
-col)` on eight cells, every prediction met: fmt 6,993 → 7,012 at 0
-contradicted, the other seven graded ±0, 1,262 `uses` edges added,
-nothing removed. Routes: **(a, recommended) build it** — one unit, C-163
-registered and lifted, C-162 narrowed, then the full stored-key regrade;
-**(b)** register it and leave the rule. dagger's step-0 pass was still
-running at the close (`run-all.log`).
+- **Max's two calls:** constructions inside a template stay `uses`
+  (closed); the join's by-name claim measured, then built (route a).
+- **ADR-133, the join claims by position (C-163 registered and lifted,
+  C-162 narrowed, 0.2.45-beta):** the claim's key is the matched
+  resolution's `(file, line, name, col)`. Another column's resolution
+  goes through the unclaimed loop (operator rule, construction rule,
+  else `uses`); the matched occurrence's own column stays hidden
+  (ADR-104, an override's alternate); a columnless **site** keeps the
+  by-name claim.
+- **Measured first** (`~/.hobbes/bench/join-claim/`): 7,308 resolutions
+  hidden on 25 clones, 1,158 at the matched column, the rest true facts —
+  Java's declared type beside `new`, a TS interface beside its function,
+  a Go return type beside a method call, fmt's 19 constructions.
+- **The grades, 44 stored-key cells, before and after on the same
+  clones (§10.18, P108–P113 met):** fmt **6,993 → 7,012, 0 contradicted,
+  strict 99.62%, 30.3% → 30.4%**; 43 cells row-identical; 1,785 `uses` +
+  11 `calls` symbol edges added, none removed; two module edges, both
+  read true. No key judges a `uses` edge.
+- Unit `3569` (26 turns, $1.78), gate right-clear, verify pass.
+- The hobbes-py and hobbes-go cells could not be regraded: their clone
+  (`adr111-before/hobbes-wt`) is gone. A next full regrade needs a
+  worktree at the key's sha or fresh keys.
 
-### What landed on 2026-09-17, last session (merged no-ff; tracker 50 of 40)
+### What landed on 2026-09-17 (merged no-ff; tracker 50 of 40)
 
 - **ADR-132, constructions (C-162 registered and narrowed):** lane A's
   C++ walk records construction *tokens* (the declared name of
@@ -95,8 +103,9 @@ running at the close (`run-all.log`).
 ### C++ recall — what is next, in order, each measured first
 
 1. **Constructions: built (ADR-132).** What is left is registered in
-   C-162: the macro class, templates, untokened conversions, references
-   the index does not emit, and the using-declaration claim.
+   C-162: the macro class, templates, untokened conversions and
+   references the index does not emit. The using-declaration claim
+   closed with ADR-133.
 2. **A lost definition's extent (C-145's residual):** calls written
    inside a minted symbol keep the enclosing caller. Count them first;
    Route B (blanking known-empty macros) is the candidate, and it is
@@ -125,7 +134,9 @@ stay here.
   (`probe.py` step 0, `run-all.sh` and `out/` the 24 clones;
   `ingest_bypos.py` the in-memory rule, `sim.sh` + `sim-cells.tsv` +
   `diff.py`, `PREREG-sim.md`, `sim/` the stock and by-position graphs,
-  exports and reports).
+  exports and reports; `regrade.sh` + `regrade-cells.tsv` +
+  `compare.py`, `PREREG-regrade.md`, `regrade/` the 44 cells before and
+  after, `final/fmt-cpp/`; `units/` the brief).
 - **Constructions (ADR-132):** `~/.hobbes/bench/cpp-constructions/`
   (step 0: `probe.py` the per-pair read, `classes.py` the six classes,
   `PREREG-args.md`, `fmt-out/`, `args-out/`; step 1: `simulate.py` the
@@ -184,9 +195,9 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **New, ADR-133 (proposed):** the join's claim by position — see
-     START HERE. Constructions inside a template: settled 2026-09-18,
-     they stay `uses`.
+   - **Settled 2026-09-18:** the join's claim by position — built
+     (ADR-133, 0.2.45-beta); constructions inside a template stay
+     `uses`.
    - **Settled 2026-09-17 (Max: "go with recommended"):** constructions —
      the token rule (ADR-132, 0.2.44-beta); C-162 registered.
    - **Settled 2026-09-17 (Max: route a):** the wrong `uses` edges at
@@ -242,7 +253,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 50 of 40, 4
+   - **The validating 40 are done:** the tracker reads 51 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -303,22 +314,23 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-17)
+## WHERE THINGS STAND (2026-09-18)
 
 - **Languages:** Python, TS/JS, Go, Rust, Java, C and C++ supported, each
   as far as its §3.8 row (P11); Terraform/HCL structure.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty log files under `docs/calvin/sessions/`; the tracker reads 50 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-one log files under `docs/calvin/sessions/`; the tracker reads 51 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 162 entries: 118 active (92 surfaced, 22 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 27 lifted, 11 superseded, 6
-  folded. Latest: C-162 registered and narrowed (ADR-132, 0.2.44-beta);
+- **Register:** 163 entries: 118 active (92 surfaced, 22 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
+  folded. Latest: C-163 registered and lifted, C-162 narrowed (ADR-133,
+  0.2.45-beta); C-162 registered and narrowed (ADR-132, 0.2.44-beta);
   C-153 narrowed a third time (ADR-131 amended,
   0.2.43-beta; no entry added); C-146 narrowed (ADR-131, 0.2.42-beta; no entry added);
   C-145 narrowed and C-153 narrowed a second time
@@ -333,8 +345,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.44-beta (2026-09-17, all pass on the host): 1,900
-  pytest (`lane_b` 9 of them, run at 0.2.44-beta), Go `./...` 395 with
+- **Suites** at 0.2.45-beta (2026-09-18, all pass on the host): 1,910
+  pytest (`lane_b` 9 of them, run at 0.2.45-beta), Go `./...` 395 with
   subtests (394 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests

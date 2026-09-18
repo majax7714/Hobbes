@@ -2162,8 +2162,8 @@
    "draw": "picked",
    "label": "fmt",
    "note": "chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted",
-   "edges": 7447,
-   "confirmed": 6993,
+   "edges": 7466,
+   "confirmed": 7012,
    "contradicted": 0,
    "abstract": 0,
    "silent": 454,
@@ -2177,12 +2177,12 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 6993,
-    "den": 6993
+    "num": 7012,
+    "den": 7012
    },
    "recall": {
-    "pct": 30.3,
-    "hits": 15320,
+    "pct": 30.4,
+    "hits": 15339,
     "pairs": 50524,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2190,21 +2190,21 @@
    "misses": {
     "macro→function": 1621,
     "macro→method": 1140,
-    "static→constructor": 8025,
+    "static→constructor": 8006,
     "static→function": 5042,
     "static→method": 19376
    },
    "poison": {
     "passed": true,
-    "seeded": 7447,
-    "refused": 5905,
+    "seeded": 7466,
+    "refused": 5924,
     "unjudged": 1542,
     "falsely": 0
    },
    "precision_strict": {
     "pct": 99.6,
-    "num": 6993,
-    "den": 7020,
+    "num": 7012,
+    "den": 7039,
     "line_unresolved": 27
    }
   },

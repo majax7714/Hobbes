@@ -127,7 +127,7 @@ information appears in both, and the entries cross-reference.
 
 | File | Segment | Entries |
 |---|---|---|
-| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-156, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-80, C-3 |
+| [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-156, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-163, C-80, C-3 |
 | [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-150, C-158, C-159, C-161, C-74, C-85, C-79, C-16, C-33, C-34 |
@@ -159,13 +159,25 @@ their segment, in that order, and are marked in the heading.
 | active — *partial* | 22 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
-| lifted | 27 | at the bottom of each segment |
+| lifted | 28 | at the bottom of each segment |
 | superseded | 11 | C-55, C-56, C-104–C-108, C-114–C-116, C-124 |
 | folded | 6 | C-34 → C-23, C-97 → C-58, C-119 → C-118, C-130 → C-135, C-137 → C-28, C-120 → C-112 |
 
-The table is the register's current state (2026-09-17), read from each
+The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
+
+C-163 registered and lifted, C-162 narrowed, 2026-09-18 (ADR-133, 0.2.45-beta):
+- **C-163 registered and lifted the same day**, in
+  `extraction-call-graph.md`: the join's claim was by `(file, line,
+  name)`, so a matched call hid every other reference of its name on the
+  line — true `uses` facts in every language, and fmt's 19 constructions
+  behind a using-declaration. True since ADR-029, unregistered until
+  measured (7,308 hidden on 25 clones). The claim is by the matched
+  resolution's position now; 44 cells regraded, fmt +19 confirmed at 0
+  contradicted, the rest ±0. **C-162 narrowed:** its using-declaration
+  residual is closed. 163 entries, 118 active, 92 surfaced, 22 partial,
+  3 unsurfaced, 28 lifted.
 
 C-162 registered and narrowed, 2026-09-17 (ADR-132, 0.2.44-beta):
 - **C-162 registered (surfaced)**, in `extraction-cpp.md`: a C++

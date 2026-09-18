@@ -11,9 +11,40 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.44-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.45-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.45-beta — 2026-09-18 (the join claims a lane B resolution by position, not by name; ADR-133)
+
+**Patch: what the layer draws** — a constraint's fix (C-163, registered
+and lifted in the same commit; C-162 narrowed).
+
+- **Measured first, nothing drawn.** A matched call or import site
+  claimed its resolution by `(file, line, name)`, which hid every other
+  resolution of that name on the line. On the 25 graded clones that was
+  7,308 resolutions: 1,158 alternates at the matched occurrence's own
+  column, and the rest true facts at another — a Java declaration's type
+  beside its `new`, a TS interface beside the function of its name, a Go
+  return type beside a method call, and the 19 fmt constructions ADR-132
+  predicted and did not get. It was in no register entry.
+- **The rule.** The claim's key is the matched resolution's position,
+  `(file, line, name, col)`. A resolution at another column goes through
+  the unclaimed loop as any other: the operator rule (ADR-131), the
+  construction rule (ADR-132), else a `uses` edge. One at the matched
+  occurrence's own column stays hidden (ADR-104's abstention and an
+  override's alternate); a site lane A recorded no column for keeps the
+  by-name claim, since which resolution it matched is not known.
+- **Graded, stored keys, 44 cells, before and after on the same clones
+  (`oracle-grading.md` §10.18; P108–P113 all met):** fmt **6,993 → 7,012
+  confirmed, 0 contradicted**, strict 99.62%, recall 30.3% → 30.4%;
+  every other cell's export row-identical and every graded number ±0.
+  In the graphs: **1,785 `uses` and 11 `calls` symbol edges added, none
+  removed**; two module edges added, both read by hand and true
+  (quic-go's `quic.StreamID` return type, dagger's `introspection.Query`
+  constant). No key judges a `uses` edge; the ADR says so.
+- Unit `3569` (26 turns, $1.78 on the subscription), gate right-clear,
+  verify pass; 1,910 pytest and `lane_b` 9 of 9 on the host.
 
 ## 0.2.44-beta — 2026-09-17 (a C++ construction is a call where the index names the constructor at the token, outside a template; ADR-132)
 

@@ -377,8 +377,7 @@ headers parsed with tree-sitter ERROR nodes.
   reference at all (a dependent type's construction; the literals inside
   a braced list — 484 `EitherFlag` rows on args); at a base-class or
   delegating initialiser (`Base<T>(args)`); at a default member
-  initialiser in a class body; at a declaration under a label; or where
-  **the type is named through a using-declaration** (below).
+  initialiser in a class body; or at a declaration under a label.
 - **Because:** `T x(args);`, `T x{…};`, `T x;`, `m_(args)`, a braced
   argument, `T{…}`, `new T(…)` and `T p = {}` have no callee identifier —
   the written name is a variable, a member, a brace or a type — and
@@ -407,7 +406,10 @@ headers parsed with tree-sitter ERROR nodes.
   a template is a non-dependent type's — and that is 45 rows, not a
   proof. They stay the `uses` edges they were, which is a true statement
   either way. Put to Max.
-- **The using-declaration residual, found by the build's grade:** where a
+- **The using-declaration residual, found by the build's grade —
+  closed at 0.2.45-beta (ADR-133, C-163):** the join now claims by
+  position, and the 19 rows below are drawn and confirmed (fmt 6,993 →
+  7,012). As it stood: where a
   file says `using fmt::detail::bigint;` and then `bigint n(0);`, lane B
   gives two references named `bigint` on the line — the using-declaration
   at the type, the constructor at `n`. Lane A's existing construct site

@@ -78,10 +78,13 @@ item opens when Max names it. Sequencing context is
    a `uses` either (ADR-131 amended, C-153 narrowed, 0.2.43-beta: no
    graded row moved), then constructions as calls where the index names
    the constructor at the token, outside a template (ADR-132, C-162
-   registered and narrowed, 0.2.44-beta: args 62.5% → 72.9%, fmt 30.3%).
+   registered and narrowed, 0.2.44-beta: args 62.5% → 72.9%, fmt 30.3%),
+   then the join's claim by position (ADR-133, C-163 registered and
+   lifted, 0.2.45-beta: fmt 30.4%, 43 other cells ±0, 1,785 `uses`
+   edges no longer hidden).
    Every compiler-graded cell is at 100% but quic-go (99.6%, the
    oracle's grain); fmt reads 100% with a strict 99.62% beside it
-   (ADR-124) at 0.2.44-beta.
+   (ADR-124) at 0.2.45-beta.
    The C++ recall list and the review's remaining items, in order, are
    in `session-handoff.md` under START HERE; W1 carries the extraction
    ones.

@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-17, 0.2.44-beta; oracle-lane Go
-counted 2026-09-16): 1,900 pytest (9 `lane_b`) / 395 Go with subtests
+Suite sizes at the last check (2026-09-18, 0.2.45-beta; oracle-lane Go
+counted 2026-09-16): 1,910 pytest (9 `lane_b`) / 395 Go with subtests
 (394 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 133, proposed;
+  architecture doesn't already make. Number sequentially (last: 133;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-18) — Hobbes 0.2.44-beta
+## Status (2026-09-18) — Hobbes 0.2.45-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -282,31 +282,33 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   accuracy come before a recall number** — weigh every extraction
   decision against them first.
 - **Grading:** every compiler-graded cell at 100% precision but quic-go
-  (99.6%, all 15 the oracle's grain). fmt reads **100%** (6,993/6,993
-  at 0.2.44-beta), **strict 99.62%** — every quoted precision carries
+  (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
+  at 0.2.45-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 162 entries; 118 active (92
-  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 27 lifted — C-162
-  registered and narrowed (ADR-132), C-145 narrowed
+  contradicted (ADR-124). **Register:** 163 entries; 118 active (92
+  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-163
+  registered and lifted, C-162 narrowed (ADR-133); C-145 narrowed
   (ADR-129), C-153 narrowed three times and partial (ADR-125, ADR-130,
   ADR-131 amended), C-146 narrowed (ADR-131).
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **50 of 40**
+  drift test; re-render after filling a review block) reads **51 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.44-beta (ADR-132): constructions, the C++ recall
-  list's second item.** Measured first: fmt's 8,047 missed constructions
-  are 80% the macro class (C-131), 10% references scip-clang does not
-  emit, and 152 drawable; drawn naively they read 95 contradicted. So
-  lane A records construction *tokens* (packed, never sites) and the
-  join draws a call where lane B names a **constructor** at exactly the
-  token, **outside a template**; inside one it stays `uses`. args, held
-  out, **2,198 → 2,567 confirmed at 0 contradicted, recall 62.5% →
-  72.9%**; fmt 6,901 → 6,993, 30.1% → 30.3%, strict 99.62%; C unmoved.
-  P102 missed on the count (19 rows: the join's by-name claim, C-162).
+- **Latest — 0.2.45-beta (ADR-133): the join claims a lane B
+  resolution by position, not by name.** Measured first: the
+  by-`(file, line, name)` claim hid 7,308 resolutions on the 25 graded
+  clones — true `uses` facts in every language (a Java declaration's
+  type beside its `new`, a Go return type beside a method call) and the
+  19 fmt constructions ADR-132's P102 missed — in no register entry. The
+  key is now the matched resolution's `(file, line, name, col)`; the
+  matched occurrence's own column stays hidden (ADR-104), and a
+  columnless site keeps the by-name claim. 44 stored-key cells regraded
+  before and after on the same clones: **fmt 6,993 → 7,012 at 0
+  contradicted, 30.4%, strict 99.62%; the other 43 row-identical**;
+  1,785 `uses` + 11 `calls` symbol edges added, none removed.
   **Next on C++ recall, each measured first:** a lost definition's
   extent (C-145's residual: callers inside it), the 15 line-convention
   rows, ScummVM as a scale read (now also the operator and construction
@@ -314,18 +316,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   the macro class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** **ADR-133 (proposed, 2026-09-18): the join's claim
-  by position.** The by-`(file, line, name)` claim hides 6,574 lane B
-  resolutions across 24 graded clones, 4,193 of them true `uses`
-  dependencies in no register entry; simulated by `(file, line, name,
-  col)` on eight cells every prediction met (fmt 6,993 → 7,012 at 0
-  contradicted, the rest graded ±0, 1,262 `uses` edges added, nothing
-  removed) — build it (recommended) or register and leave it.
-  Constructions inside a template stay `uses` (settled 2026-09-18);
-  ADR-126 §3 — whether to build a
+- **Open for Max:** ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
-  remainder (parked, Max: "fine for now").
+  remainder (parked, Max: "fine for now"). Settled 2026-09-18:
+  constructions inside a template stay `uses`; the join's claim built.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

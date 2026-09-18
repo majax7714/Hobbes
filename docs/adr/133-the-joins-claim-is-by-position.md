@@ -1,6 +1,6 @@
 # ADR-133 — The join's claim is by position, not by name
 
-**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a) — measured and simulated; the build is one dispatched unit, the grades land here
+**Date:** 2026-09-18 · **Status:** accepted (Max, 2026-09-18: route a); built and graded at 0.2.45-beta (unit `3569`; `oracle-grading.md` §10.18: fmt 6,993 → 7,012 at 0 contradicted, 43 other stored-key cells ±0, 1,785 `uses` + 11 `calls` symbol edges added, none removed; P108–P113 met). Registers and lifts **C-163**; narrows C-162.
 
 Follows ADR-132, whose P102 missed by 19 rows on this. Max, 2026-09-18:
 measure it as its own item before touching a rule every language shares.

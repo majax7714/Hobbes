@@ -1566,6 +1566,41 @@ the rule and is fixed before the version moves.
   unjudged-line ±0, `unreachable` +24 (read right), recall +0.2 points;
   args confirmed +369, recall +10.4 points.
 
+### 10.18 The join's claim by position — written 2026-09-18, before the regrade ran (unit `3569` merged at `83cde1b`)
+
+ADR-133. Every language shares the rule, so every stored-key cell is
+regraded: 44 cells over 25 clones, each clone ingested by the tree before
+the unit (`8738fc2`) and by main, graded against the stored key
+(`~/.hobbes/bench/join-claim/regrade.sh`, `PREREG-regrade.md`,
+`compare.py`). The two hobbes cells are left out: their clone, a worktree
+at an old sha, is gone. The simulation before the build
+(`PREREG-sim.md`, eight cells, P-j1–P-j6) met all six.
+
+- **P108 — met.** fmt 6,993 → **7,012** confirmed, 0 contradicted; the
+  export gains 19 rows and loses none. The number is ADR-132's P102.
+- **P109 — met.** Every other cell: the export row-identical, every
+  graded number ±0 (43 cells).
+- **P110 — met.** No symbol or module edge removed on any clone; nodes
+  and symbols unmoved.
+- **P111 — met.** 1,796 symbol edges added across the 25 clones: 1,785
+  `uses` and fmt's 11 `calls` (Severed-Chains 634, spring-data-
+  elasticsearch 411, jsoup 363, zod 244, kbet 51, dagger 32, spring-
+  petclinic 23, fmt 20, quic-go 9, click 6, memchr 3; none on the other
+  fourteen).
+- **P112 — met.** Poison passes on every cell, both arms.
+- **P113 — met.** Two module edges added, none on a Java clone, both read
+  by hand and true: quic-go `http3/body → interface` (`func (r *body)
+  StreamID() quic.StreamID { return r.str.StreamID() }` — the return
+  type, hidden by the method call's claim) and dagger `core/schema/util →
+  dagql/introspection/query` (`dag.Query(ctx, introspection.Query, nil)`
+  — the constant, hidden by the call's).
+- What no key judges: a `uses` edge is not exported, so the 1,785 are
+  held by the hand read of step 0's sample and by their shape, not by a
+  grade.
+- Signed direction of fix: fmt confirmed +19, contradicted ±0, strict
+  99.62% → 99.62% (7,012/7,039), recall +0.1 point (30.3% → 30.4%);
+  every other cell ±0.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

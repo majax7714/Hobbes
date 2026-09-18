@@ -12679,3 +12679,42 @@ graded by any key — the ADR says so.
 ADR-133 written as *proposed*: route (a) build it in one unit with C-163
 registered and lifted and C-162 narrowed, then the full stored-key
 regrade; route (b) register and leave. No spend.
+
+## 2026-09-18 (later) — the join claims by position (ADR-133 built and graded, 0.2.45-beta)
+
+Max read the measurement and took route (a). ADR-133 accepted, with one
+addition the simulation had not carried: a **site** lane A recorded no
+column for keeps the by-name claim, since which resolution it matched is
+not known (no contested site on the 25 clones was columnless). dagger's
+step-0 pass finished: 734 hidden, 704 of them new `uses`; 7,308 on the 25
+clones.
+
+**The unit** (`3569`, brief and partition in
+`~/.hobbes/bench/join-claim/units/`): two files, 26 turns of 80, $1.78
+on the subscription, gate clear, verify pass, no deviation, no existing
+assertion moved. Read, run on the host from a worktree (1,910 pytest,
+`lane_b` 9 of 9), merged no-ff (`83cde1b`); tracker 51 of 40.
+
+**The regrade** (`regrade.sh`, `PREREG-regrade.md`, `compare.py`;
+§10.18, P108–P113 written first, all met): 44 stored-key cells over 25
+clones, each clone ingested by a worktree at `8738fc2` and then by main,
+so the before and after share a clone, a key and a day. fmt 6,993 →
+7,012 confirmed at 0 contradicted — the number ADR-132's P102 predicted —
+strict 99.62%, recall 30.4%; the other 43 cells row-identical. 1,785
+`uses` and 11 `calls` symbol edges added, none removed; two module edges,
+both read by hand and true (quic-go's `quic.StreamID` return type,
+dagger's `introspection.Query`). The two hobbes cells were left out:
+their clone, a worktree at an old sha, is gone. An ingest that reads 0 s
+in the log is the lane B index cache answering, not a skipped ingest —
+checked on `built_by` in both arms' graphs.
+
+**Records:** C-163 registered and lifted, C-162's using-declaration
+residual closed (163 entries, 118 active, 28 lifted); architecture §3.4's
+edge list and the C++ passages, §3.8's row, README, CHANGELOG,
+comparative README, tables and graphics re-rendered from fmt's cell
+record (`render.py check` green, the report drift test green),
+workstreams. Image rebuilt at 0.2.45-beta — **restart the knowledge
+server** (C-65). Suites green: 1,910 pytest (9 `lane_b`), Go, 87 scip,
+36 tsextract, 52 vitest. Worktrees `join-claim/wt` and `wt-pre` removed.
+
+No spend beyond the subscription's $1.78.

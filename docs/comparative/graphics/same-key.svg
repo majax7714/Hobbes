@@ -453,21 +453,21 @@
 <rect x="532.1" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — hobbes: precision-against-oracle 6,993/6,993 = 100.0% · strict 6,993/7,020 (99.6%)</title>
+<title>fmt — hobbes: precision-against-oracle 7,012/7,012 = 100.0% · strict 7,012/7,039 (99.6%)</title>
 <circle cx="550.0" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>fmt — repowise: precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)</title>
 <polygon points="394.0,583.5 400.5,590 394.0,596.5 387.5,590" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<line x1="645.4" y1="590" x2="700.9" y2="590" stroke="#d9d8d2" stroke-width="2"/>
+<line x1="645.4" y1="590" x2="701.2" y2="590" stroke="#d9d8d2" stroke-width="2"/>
 <g>
 <title>fmt — codegraphcontext: recall 5,955/50,524 = 11.8% over every resolved site (resolution oracle: no roots)</title>
 <rect x="640.4" y="585" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
-<title>fmt — hobbes: recall 15,320/50,524 = 30.3% over every resolved site (resolution oracle: no roots)</title>
-<circle cx="700.9" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>fmt — hobbes: recall 15,339/50,524 = 30.4% over every resolved site (resolution oracle: no roots)</title>
+<circle cx="701.2" cy="590" r="5.5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
 <g>
 <title>fmt — repowise: recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)</title>
@@ -639,7 +639,7 @@
 </g>
 <line x1="24" y1="792" x2="926" y2="792" stroke="#d9d8d2"/>
 <text x="24" y="812" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Read across a row, never down a column: each cell's recall is over its own roots or resolved sites (C-62), and a precision is a lower bound (contradictions mostly triage to</text>
-<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (6,993/6,993, a 100.0% lower bound; strict 6,993/7,020, 99.6%), quic-go</text>
+<text x="24" y="826" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >the oracle's grain, A-8). Every Hobbes marker on the precision axis sits at 100% except fmt (7,012/7,012, a 100.0% lower bound; strict 7,012/7,039, 99.6%), quic-go</text>
 <text x="24" y="840" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >(3,766/3,781, a 99.6% lower bound), triaged in its record. The tools' contradictions are a lower bound on their precision exactly as ours is on ours; a 40-row random sample</text>
 <text x="24" y="854" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >read by hand found tool-wrong 39, oracle-grain 1 after the converters' Java annotation-line defect (C-94) was repaired and the Java cells regraded, and the C++ cells' 60-row</text>
 <text x="24" y="868" font-size="10.5" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sample tool-wrong 56, oracle-grain 4 after converter@4 read a spaced #define and a split declaration head. On repowise-bench's draws the key is ours, at site grain — not</text>
