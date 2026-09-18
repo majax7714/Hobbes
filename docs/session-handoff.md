@@ -82,7 +82,7 @@ the lines other tests pin).
   `simulate.py` + `PREREG-sim.md`; `inspect_r1.py`; `regrade.sh` with
   `ROOT=`/`OUT=`, which borrows `c145-extent`'s `oracle`, `probe.py` and
   `compare.py`; `regrade/` the five cells; `units/` the brief and log;
-  `wt/` a worktree, removable). Run the probes with `uv run --project
+  its worktree was removed). Run the probes with `uv run --project
   pipeline python`.
 
 ### What landed on 2026-09-18, night (tracker 52 of 40)
