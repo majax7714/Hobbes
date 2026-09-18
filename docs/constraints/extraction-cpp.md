@@ -532,9 +532,22 @@ headers parsed with tree-sitter ERROR nodes.
   105 → 32, 15 rows right and 58 lost, no agreeing row moved.
   `src/os.cc:160`'s `FMT_CATCH` is in uncompiled code and out of the
   index's reach.
+- **Read at scale, 2026-09-18 (ScummVM, key-free; ADR-136 proposed,
+  nothing built):** R1 fired **401** times (400 `macro`, 1 `term`), 27
+  names, each read against the source and none the function's:
+  generator macros (`DECLARE_COMMAND_OPCODE(x) { … }` 59 times),
+  object-like renames (`#define yyparse HYPNO_ARC_parse`), one member
+  initialiser. **A new remainder:** 260 of the 401 are in files that
+  parsed *clean* — a generator macro reads as a function definition with
+  no ERROR node — and there the mint's `clean-file` refusal keeps the
+  true definition out, so it has **no node at all** (the 141 in lossy
+  files: 137 minted, 131 with an extent). The index holds one definition
+  row with a body at every one of the 260 lines. Absent, not wrong; and
+  nothing but `lane_a_contradicted`'s count says so.
 - **Source:** ADR-134's step 0 (`~/.hobbes/bench/c145-extent/probe.py`),
   every row read against the source; ADR-135's
-  (`~/.hobbes/bench/c164-wrong-callers/`).
+  (`~/.hobbes/bench/c164-wrong-callers/`); the scale read's
+  (`~/.hobbes/bench/scummvm-scale/vacated.py`).
 
 ## Lifted constraints in this segment
 

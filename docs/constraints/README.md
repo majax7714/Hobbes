@@ -167,6 +167,14 @@ The table is the register's current state (2026-09-18), read from each
 active entry's **You find out** field. The dated notes below are the
 history: a count inside them is as of its date.
 
+C-164 read at scale, 2026-09-18 (ADR-136 proposed; nothing built, no version move):
+- **C-164 amended (no entry added, no status change):** ScummVM's first
+  ingest with R1 — 401 removals, none a false flag by the hand read, and
+  a remainder the entry did not name: 260 of them are in files that
+  parsed clean, where `clean-file` keeps the mint from naming the true
+  definition, so it has no node. ADR-136 proposes the mint read a
+  vacated line.
+
 C-164 narrowed and partial, 2026-09-18 (ADR-135 accepted and built, 0.2.47-beta):
 - **C-164 narrowed (unsurfaced → partial; no entry added):** a lane A C++
   function or method whose own name token the index reads as a reference

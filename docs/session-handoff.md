@@ -17,9 +17,10 @@ until it is restarted (C-65): **restart it.**
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the three 2026-09-18 (late night) BUILDLOG
-entries — the third, "the `lane-a-symbol-near` rows read", built nothing —
-and before it: "C-164's wrong callers counted key-free and simulated" (ADR-135
+The latest session's records are the four 2026-09-18 (late night) BUILDLOG
+entries — the third ("the `lane-a-symbol-near` rows read") and the fourth
+("ScummVM as a scale read", ADR-136 proposed) built nothing — and before
+them: "C-164's wrong callers counted key-free and simulated" (ADR-135
 proposed) and "a lane A symbol the index contradicts, built" (ADR-135
 accepted, 0.2.47-beta). Before them, the four 2026-09-18 entries (ADR-133
 proposed and built, ADR-134 proposed and built), and 2026-09-17's.
@@ -33,25 +34,35 @@ number on the extraction lane** — weigh every extraction decision
 against them first. Max approved Route A (C++ recall) on 2026-09-17;
 its list is below, each item measured before it is designed.
 
-**Nothing waits on Max for the next item. ScummVM as a scale read**
-(item 4 below; no key, no spend — an ingest of the large clone at
-`~/.hobbes/bench/cpp-cells/scummvm-cost`): symbols minted, edges gained,
-the mint's seconds, and the operator, construction, extent and
-contradiction reads' cost.
+**ADR-136 waits on Max (routes in the ADR; nothing built):** ScummVM's
+scale read found that 260 of R1's 401 removals there are in files that
+parsed *clean*, where `clean-file` keeps the mint from naming the true
+definition the index holds on the same line — so it has no node.
+Route (a), recommended: the mint reads a definition row at a line R1
+vacated, every other refusal kept. No graded cell can move (R1 removes
+nothing in a clean file on any of them). On his word: read the brief's
+premises in the tree first (`contradicted` returns the removals; `mint`
+takes `lossy_files`), write the predictions, one unit, then the four
+cells row-identical and ScummVM's 260 read by sample.
 
-The `lane-a-symbol-near` item closed on 2026-09-18 with nothing built:
-the 19 rows on four cells (15 fmt's) are defaulted or deleted
-constructors beside an overload (10), the other arm of an `#if` (8) and
-one `typedef struct` line convention; every one is refused by
-`declaration` or `lane-a-has-type` next, so the rule stands. Driver:
-`~/.hobbes/bench/lane-a-symbol-near/probe.py` (run with `uv run
---project pipeline python probe.py <clone> <facts.ndjson> <out.json>`).
+**Not waiting on Max:** the review's remaining items (pytest fixtures as
+edges, C-4; the compile database's `-I` path at lane A; the docs
+restructure), each measured first.
 
-Small and no-spend, any time: fold the `friend`-in-class and
-nested-class equivalences into `~/.hobbes/bench/c145-extent/probe.py`
-(the 32 rows left in its wrong-caller class on fmt are all naming
-grain; ADR-135 read them by hand), so the next caller read starts from
-zero. Optional: a `lane_b` end-to-end case for ADR-135 (the unit's
+Closed on 2026-09-18 with nothing built: the `lane-a-symbol-near` item
+(19 rows on four cells: 10 defaulted or deleted constructors beside an
+overload, 8 the other arm of an `#if`, 1 `typedef struct` line
+convention; every one refused by the next rule anyway — driver
+`~/.hobbes/bench/lane-a-symbol-near/probe.py`); **ScummVM's scale read**
+(`~/.hobbes/bench/scummvm-scale/`: cold 9 min 04 s, warm 2 min 20 s and
+byte-identical; `contradicted` 3.7 s, mint 1.9 s, rehome 0.8 s; lane A's
+cold C++ walk 228 s against 135 s at ADR-128, 23.6 s warm; R1's 401
+names read, no false flag; `vacated.py` the finding); and the caller
+probe's naming grain (`c145-extent/probe.py`: `agree-friend`,
+`agree-nested`; fmt wrong-caller 32 → 3, the old probe kept as
+`probe-v1.py`).
+
+Small and no-spend, any time, optional: a `lane_b` end-to-end case for ADR-135 (the unit's
 ingest test feeds lane B's facts by hand; it needs a fixture
 tree-sitter-cpp misreads *and* scip-clang compiles — an annotation macro
 after a declarator, in `minicpp` or a fixture of its own, without moving
@@ -211,7 +222,8 @@ the lines other tests pin).
 3. **The `lane-a-symbol-near` rows: read, nothing to build**
    (2026-09-18): no line-convention class; each row is refused by the
    next rule anyway.
-4. **ScummVM as a scale read — next** (START HERE; no key): symbols minted, edges gained,
+4. **ScummVM as a scale read: done** (2026-09-18, BUILDLOG; it found
+   ADR-136's remainder — START HERE). As the item was written: symbols minted, edges gained,
    the mint's seconds, **and the operator walk's cost** —
    `_unevaluated` and `_in_template` each climb to the root per token,
    about 3.2 million tokens there (a 600-file sample: 2.09 tokens per
@@ -306,7 +318,8 @@ stay here.
      companion (ADR-124: strict precision instead); C-153 (ADR-125:
      withheld where the source contradicts, the rest surfaced as
      partial); `hobbes lanes` on fmt (ADR-123: exit 3).
-   - **New, ADR-126 §3:** whether to build the "may reach through
+   - **New, ADR-136:** the mint at a line R1 vacated (START HERE).
+   - **ADR-126 §3:** whether to build the "may reach through
      dispatch (not traced)" section in `tests_guarding` and `hobbes
      review` on §10.12's numbers. It would need a syntax exclusion for
      every non-dispatched call (Java `super.`/private/static/final,

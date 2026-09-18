@@ -12998,3 +12998,76 @@ already registered elsewhere: a defaulted constructor is not a symbol
 (lane A's definitions-only rule, kept in ADR-129), and lane A reads an
 `#if`'s first arm where the index reads the compiled one (C-133's
 family). Neither is this item's.
+
+## 2026-09-18 (late night, fourth) — ScummVM as a scale read; R1's clean-file remainder found (ADR-136 proposed; nothing built, no version move)
+
+**The caller probe's naming grain folded first**
+(`~/.hobbes/bench/c145-extent/probe.py`; the old one kept as
+`probe-v1.py`): `agree-friend` (the key puts a friend defined in a class
+under the class; Hobbes names it at namespace scope — the class's line
+range where lane A has it, the preceding same-scope class where the
+type is minted and has no extent), `agree-nested` (the key drops a
+nested class), and inner whitespace not compared (`operator char *`).
+Shown as their own classes, never folded into `agree`. fmt at
+0.2.47-beta: wrong-caller **32 → 3** (23 friend, 5 nested, 1 spelling);
+args 6 → 4. The 7 left on the two cells are one local-to-function
+definition (C-9's floor) and six lambdas the key qualifies with the
+enclosing class (`Command::operator()`), which the probe's `lambda`
+class matches by the bare name only.
+
+**ScummVM, end to end at 0.2.47-beta**
+(`~/.hobbes/bench/scummvm-scale/`; clone `c54b79a6`, 19,948 C++ files,
+5,958 units; the 0.2.26-beta graph kept as `before/`). Launched
+detached. Cold, both caches missing (`lanea-cpp v5`): **exit 0 in 9 min
+04 s**, 8.1 GB peak — 0.2.26-beta's was 8 min 57 s. Warm: **2 min 20
+s**, and the graph **byte-identical** to the cold one.
+
+| step | cold | warm |
+|------|-----:|-----:|
+| lane A [cpp] | 228.5 s | 23.6 s |
+| lane B [c] (index + decode) | 192.3 s | 19.9 s |
+| join | 15.0 s | 14.7 s |
+| contradicted (ADR-135) | 3.7 s | 3.6 s |
+| mint + extents (ADR-129/134) | 1.9 s | 2.0 s |
+| rehome | 0.8 s | 0.7 s |
+| project | 17.6 s | 17.9 s |
+| write | 19.1 s | 18.5 s |
+
+Lane A's cold C++ walk was 135 s at ADR-128; the operator, construction
+and name-column walks since are in the 228 s, once per file, and the
+cache returns them in 7.2 s of reads. The handoff's worry (the operator
+walk climbing to the root per token) is a cold-run cost of about a
+minute and a half on the largest clone held, and nothing warm.
+
+**What the rules drew there (no key; counts, and a hand read where a
+rule removes):** 4,510 symbols minted in 487 lossy files, 3,084 brace
+extents (refused: 448 `holds-a-definition`, 103 `conditional-inside`, 7
+`runs-off`), 49,207 facts re-homed; 67,707 operator calls (254 in a
+template withheld); 12,612 construction calls (24 in a template left
+`uses`); `calls` semantic symbol edges 428,671 → 470,357 against
+0.2.26-beta, `implements` 30,510, module edges 222,604 → 225,257.
+`lane-a-symbol-near` 21.
+
+**R1 at scale: 401 removals (400 `macro`, 1 `term`), 27 names, every
+name read against the source, no false flag** — 22 generator macros
+(`DECLARE_COMMAND_OPCODE(location) { … }` 59 times, `APPFUNC`,
+`TERMINATOR`, the `SPELL…` family), 4 object-like renames (`#define
+yyparse HYPNO_ARC_parse`), one member initialiser. R2: 2 extents
+re-read, 19 refused.
+
+**The finding** (`vacated.py`): 141 of the 401 are in lossy files and
+the mint named 137 of them (131 with an extent). **260 are in 19 files
+that parsed clean** — a generator macro reads as a function definition
+with no ERROR node — and `clean-file` keeps the mint out, though the
+index holds exactly one definition row with a body at every one of the
+260 lines. Those definitions (`…::cmdOp_location`,
+`Grim::lua_strlibopen`) have no node: wrong before 0.2.47-beta, absent
+now. fmt never showed it (18 of 18 lossy). Registered in C-164 as a
+remainder; **ADR-136 proposed**, route (a) recommended: the mint reads a
+definition row at a line R1 vacated, every other refusal kept. No
+graded cell can move (R1 removes nothing in a clean file on any of
+them); the check would be that they do not, and a sample read of the
+260.
+
+No dispatch, no API or Modal spend. 102 `test_minted` cases green after
+the docstring change; nothing else in the layer moved.

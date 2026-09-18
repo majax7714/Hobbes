@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 135;
+  architecture doesn't already make. Number sequentially (last: 136, proposed;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -314,15 +314,19 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   naming grain), 18 right, 55 lost, no right row moved; nothing fires on
   args, cJSON, sqlite-vector. The brief's premises were read in the tree
   first, and the first real ingest matched.
-  **Next on C++, each measured first:** ScummVM as a scale read (the
-  `lane-a-symbol-near` rows were read 2026-09-18: no line-convention
-  class, nothing to build; now also the operator
-  and construction walks', the extent read's and the contradiction
-  read's cost). Operators and constructions at a macro's name, and the
-  swallowed tests, belong to the macro class (C-131, parked).
+  **Since, nothing built:** the `lane-a-symbol-near` rows read (no
+  line-convention class; the rule stands) and ScummVM's scale read (cold
+  9 min 04 s, warm 2 min 20 s, byte-identical; R1's 401 removals read,
+  no false flag) — which found that 260 of them sit in files that parsed
+  clean, where `clean-file` keeps the mint from naming the true
+  definition (**ADR-136 proposed**, C-164 amended). Operators and
+  constructions at a macro's name, and the swallowed tests, belong to
+  the macro class (C-131, parked).
   Then the review's remaining items (pytest fixtures as edges, C-4; the
   compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** ADR-126 §3 — whether to build a
+- **Open for Max:** **ADR-136** — the mint reads a definition row at a
+  line R1 vacated (route a recommended; no graded cell can move);
+  ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:
