@@ -1,6 +1,6 @@
 # ADR-138 — A `.h` is claimed through the headers that include it; the `-I` path measured beside it
 
-**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a), with the rule's C side corrected before the brief (*Accepted*, below). Not yet built.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a), with the rule's C side corrected before the brief (*Accepted*), and built (0.2.50-beta; *Built*, below).
 
 Follows ADR-113 §1 (a `.h` is C++'s when a C++ source includes it and no
 `.c` source does), ADR-108's 2026-09-14 amendment (C-133's first unit:
@@ -178,3 +178,42 @@ Premises, read in the tree:
   *Consequences*' "the cache key moves" named the wrong reason: the key
   carries a fingerprint of `hobbes/extract/*.py`, so the first ingest
   after any change there is cold, this one included.
+
+## Built (2026-09-19, 0.2.50-beta)
+
+Unit `286a` (61 turns of 100, $4.55, Opus 5), gate clear, verify pass,
+five files, merged no-ff. One judgement call, kept because it claims
+less: `_call_fallback` is given the widened file set too, so an include
+resolves one way everywhere, and a rank-2 macro lookup abstains where a
+C++-owned header makes its include ambiguous.
+
+**Checked on the branch's code, before the merge:**
+
+- 2,046 pytest and `lane_b` 10 of 10 on the host.
+- fmt, args, cJSON, sqlite-vector: identical in every export row,
+  symbol, module edge, symbol edge and test reach. click: export
+  row-identical (its 316 new `uses` edges are ADR-137's).
+- **ScummVM, cold, 547 s:**
+
+| | 0.2.48-beta | the branch |
+|---|---:|---:|
+| `.h` read as C++ | 9,468 | **9,824** (356 through a claimed header) |
+| `.h` read as C | 629 | **273** |
+| unmatched includes (`c-includes`) | 395 | **43** |
+| … of the specs named, files at the repo root | 122 of 277 | **0 of 33** |
+| ambiguous includes | 167 | 170 |
+| lane A + minted symbols | 265,116 | 266,529 |
+| definitions minted from the index | 4,770 | 3,748 |
+| `imports` edges | 225,226 | 225,582 |
+
+**The prediction missed by 35.** `claim.py` said 9,859 claimed (386
+through a header); the ingest says 9,824 (356). The probe reads every
+`#include` by regex, either arm of an `#if` and whatever a macro
+wraps; the walk's `_includes_of` reads the top level's. The miss is
+toward claiming less. *Consequences*' figures (9,84x and 25x) were
+written for the symmetric rule and are superseded by this table.
+
+The three new ambiguous includes are a C++-owned header now competing
+in a suffix match, which is what the compiler would see. 1,022 fewer
+definitions are minted because lane A, reading those headers as C++,
+has the symbol itself.

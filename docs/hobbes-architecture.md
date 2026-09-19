@@ -812,6 +812,28 @@ now named (255 with a brace extent), a 30-row sample read against the
 source; fmt's 18 removals are all in lossy files, so on the four graded
 C and C++ cells nothing moves (`oracle-grading.md` §10.21).
 
+**A `.h` is claimed through the headers C++ has claimed (ADR-138,
+0.2.50-beta).** ADR-113 §1 claims a `.h` for C++ when a C++ *source*
+includes it and no `.c` source does. A header reached only through
+another header has no such includer, so a mixed repo read it with the C
+grammar: 629 of ScummVM's 10,097 `.h`, in a repo with two `.c` files
+(of the 624 the probe read, 535 spell `class`, `namespace` or
+`template` at a line start). The claim now
+grows to a fixed point — a `.h` that a *claimed* header includes, and
+that no `.c` source includes, is claimed — while **the C side stays
+direct**: letting it follow headers too was measured and moved 12
+headers C++ claims today to "shared", 10 of them C++. And the C walk is
+handed the files C++ owns as known paths (never parsed, never a node of
+its own), so an include of one draws its `imports` edge to the owning
+walk's module id instead of a `c-includes` miss. ScummVM: 9,468 → 9,824
+claimed (356 through a header, said in the `cpp-headers` record), 629 →
+273 left to C; unmatched includes 395 → 43, none of them a file at the
+repo root (122 of the 277 named were); +1,413 lane A symbols and 1,022
+fewer definitions minted from the index. fmt, args, cJSON, sqlite-vector
+and click row-identical. The build's `-I` path was measured beside it
+and **not built**: nothing to place on a graded cell, 116 includes of
+95,510 on ScummVM (C-133 unmoved).
+
 **A pytest fixture injection is an edge, and test reach follows it
 (ADR-137, 0.2.49-beta).** Injection is dynamic; pytest's *lookup* of a
 parameter name is syntax — the requester's class chain, its file (an
@@ -1967,7 +1989,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.49-beta** (2026-09-19, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.49-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.50-beta** (2026-09-19, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.50-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

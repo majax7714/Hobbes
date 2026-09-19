@@ -105,10 +105,11 @@ its authorship is what keeps it out of any training unit.
 | 53 | [c2cc](S-20260918T173627Z-c2cc.md) | 2026-09-18 | extraction | 68/80 | 13 min | $6.61 | clear | pass | right-clear | merged |
 | 54 | [e78d](S-20260918T230941Z-e78d.md) | 2026-09-18 | extraction | 77/80 | 10 min | $6.60 | clear | pass | right-clear | merged |
 | 55 | [5393](S-20260919T151056Z-5393.md) | 2026-09-19 | extraction | 89/100 | 14 min | $7.70 | clear | pass | right-clear | merged |
+| 56 | [286a](S-20260919T154713Z-286a.md) | 2026-09-19 | extraction | 61/100 | 8 min | $4.55 | clear | pass | right-clear | merged |
 
-55 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 1 · missed 0
-refusals: egress 66, policy escalations 140, denies 0 (each read in its session's notes, §4)
-reported cost $227.29 over 54 of 55 sessions (the envelope's figure, on the subscription) · turns 3201 · wall 565 min
+56 of 40 sessions · areas: extraction, knowledge tools, oracle lane, harness and sandbox (4; at least 3) · false blocks 1 · missed 0
+refusals: egress 67, policy escalations 142, denies 0 (each read in its session's notes, §4)
+reported cost $231.84 over 55 of 56 sessions (the envelope's figure, on the subscription) · turns 3262 · wall 574 min
 This block is rendered by `pipeline/scripts/calvin_tracker.py render` from the logs and is not edited by hand.
 
 <!-- tracker:end -->

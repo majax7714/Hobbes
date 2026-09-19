@@ -11,9 +11,41 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.49-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.50-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.50-beta — 2026-09-19 (a `.h` is claimed by C++ through the headers C++ has claimed, and the C walk knows the files C++ owns; ADR-138)
+
+**Patch: what the layer draws and says** — a constraint's fix (C-142,
+narrowed; still partial). C-133 measured and unmoved.
+
+- **Found by measuring the `-I` item, not by a cell.** Reading the
+  compile database's include path at lane A would place nothing on any
+  graded cell and 116 includes of 95,510 on ScummVM; it is not built.
+  Beside it: 629 of ScummVM's `.h` were read by the **C** grammar in a
+  repo with two `.c` files — of the 624 a probe read, 535 spell `class`,
+  `namespace` or `template` — because ADR-113 §1 asks for a C++ *source* includer
+  and a header reached only through a header has none.
+- **The rule.** The claim grows to a fixed point: a `.h` that a claimed
+  header includes, and that no `.c` source includes, is claimed. The C
+  side stays a `.c` source's own includes — following headers there was
+  measured and would have turned 10 C++ headers into C. The
+  `cpp-headers` record says how many were claimed through a header, and
+  reads exactly as before where none was.
+- **The C walk knows what C++ owns.** An include in a C-read file that
+  lands on a C++-owned file draws its `imports` edge (to the C++ walk's
+  module id) instead of a "matched no repo file" record; a C++-owned
+  header can also make a suffix match ambiguous, as the compiler would
+  see it.
+- **Checked** (ScummVM, cold 547 s): 9,468 → 9,824 `.h` read as C++
+  (356 through a header), 629 → 273 as C; unmatched includes 395 → 43,
+  none of the named ones a file at the repo root (122 of 277 were);
+  ambiguous 167 → 170; +1,413 lane A symbols, +356 `imports` edges,
+  1,022 fewer definitions minted from the index. fmt, args, cJSON and
+  sqlite-vector identical in every row, symbol and edge; click's export
+  row-identical. The probe predicted 9,859 claimed: 35 short, toward
+  claiming less.
 
 ## 0.2.49-beta — 2026-09-19 (a pytest fixture injection is a `uses` edge, and test reach follows it; ADR-137)
 

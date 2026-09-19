@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-142 narrowed, 2026-09-19 (ADR-138 accepted and built, 0.2.50-beta):
+- **C-142 narrowed (still partial; no entry added):** a header C++ has
+  claimed passes the claim on; the C walk knows the files C++ owns.
+  ScummVM 629 → 273 `.h` read as C. **C-133 measured, unmoved:** the
+  `-I` step is not built. Counts unmoved: 164 entries, 119 active, 93
+  surfaced, 22 partial, 3 unsurfaced, 1 n/a; 28 lifted.
+
 C-4 narrowed and surfaced, 2026-09-19 (ADR-137 accepted and built, 0.2.49-beta):
 - **C-4 narrowed (partial → surfaced; no entry added):** a fixture a
   parameter names is a syntactic `uses` edge and test reach follows it;

@@ -13,27 +13,42 @@ walk's first host read, fmtlib/fmt at `3a0661d7` (2026-09-14): 26
 headers claimed, 25 to C++ and 1 to C, and every one of its 21 library
 headers parsed with tree-sitter ERROR nodes.
 
-### C-142 — A `.h` is claimed by its includers, never by the build
+### C-142 — A `.h` is claimed by its includers, never by the build — *narrowed 2026-09-19 (ADR-138, 0.2.50-beta): a claimed header passes the claim on*
 
+- **Narrowed (0.2.50-beta, ADR-138).** The claim grows to a fixed
+  point: a `.h` that a header C++ has claimed includes, and that no `.c`
+  source includes, is claimed. ScummVM: 9,468 → 9,824 `.h` read as C++,
+  629 → 273 as C. The C side stays direct (a `.c` source's own
+  includes): following headers there was measured and turned 10 C++
+  headers into C. The C walk also knows the files C++ owns, so a C-read
+  file's include of one is an edge, not a `c-includes` miss.
 - **Cannot tell you:** which language a `.h` is written in. A repo
   with C++ sources and no `.c` reads every `.h` as C++; a mixed repo
-  reads a `.h` as C++ only when a C++ source includes it (by C's three
-  include steps, C-133) and no `.c` does. A header both languages
-  include stays C; so does one no source includes at all in a mixed
-  repo.
+  reads a `.h` as C++ only when a C++ file, or a header C++ has claimed,
+  includes it (by C's three include steps, C-133) and no `.c` source
+  does. A header both languages include stays C. So does **one nothing
+  includes** in a mixed repo — a generator's template, a platform port
+  outside the default build — and whatever only such a header includes:
+  273 on ScummVM, and of the 238 a probe read, 208 spell `class`,
+  `namespace` or `template`. Reading a header's own text was a route
+  (ADR-138, b) and was not taken.
 - **Because:** the build's own `-I` and `-x` flags, which would settle
-  it, are not read at lane A (C-133). The include graph is the only
+  it, are not read at lane A (C-133; measured in ADR-138: the path would
+  move 12 more of ScummVM's headers). The include graph is the only
   evidence the walk has.
-- **Bites at:** a mixed repo whose C++-only headers are reached through
-  a C-included umbrella; a header-only C++ library with a C shim header
-  (fmt's `fmt-c.h`, included from both, left to C: its declarations
-  parse as C's).
+- **Bites at:** a mixed repo's headers that no file includes; a
+  header-only C++ library with a C shim header (fmt's `fmt-c.h`,
+  included from both, left to C: its declarations parse as C's). A C++
+  header read as C loses its classes, methods and templates as lane A
+  symbols; where lane B compiled it, the mint reads some back (C-145).
 - **You find out:** **partial** — a mixed repo draws one `cpp-headers`
-  degradation record naming the counts and every header left to C by
-  the both-languages rule; a pure repo draws none, and nothing says
-  "every `.h` was read as C++".
+  degradation record naming the counts, how many were claimed through a
+  header, and every header left to C by the both-languages rule; it
+  does not name the headers nothing includes; a pure repo draws none,
+  and nothing says "every `.h` was read as C++".
 - **Provider (P9):** none; the rule is Hobbes's own.
-- **Source:** ADR-113 §1; measured on fmt (25 to C++, 1 to C).
+- **Source:** ADR-113 §1; measured on fmt (25 to C++, 1 to C); narrowed
+  by ADR-138, measured on ScummVM.
 
 ### C-143 — Lane A abstains on every overload set and never resolves a member call
 

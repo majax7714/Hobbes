@@ -1,7 +1,7 @@
 {
   "name": "hobbes-web",
   "private": true,
-  "version": "0.2.49-beta",
+  "version": "0.2.50-beta",
   "type": "module",
   "description": "Hobbes human surface (M7): Graph, Tests, Docs, Diff, Sessions over the derived knowledge layer.",
   "scripts": {

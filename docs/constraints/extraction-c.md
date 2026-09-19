@@ -106,8 +106,13 @@
   cJSON, 6 records (the vendored Unity examples' `"ProductionCode.h"`
   ambiguous in four directories; `"Types.h"` and six mock headers
   unmatched); on sqlite-vector, 1 (`libs`' six platform and generated
-  headers). Reading the `-I` path from the derived compile database is
-  the second unit, not yet decided.
+  headers). Reading the `-I` path from the derived compile database was
+  **measured on 2026-09-19 and not built** (ADR-138): nothing to place
+  on cJSON, sqlite-vector, fmt or args — every record there names a
+  header outside the repo or outside the build — and 116 includes of
+  95,510 on ScummVM, whose database has one non-root directory. Since
+  0.2.50-beta a C-read file's include of a file the C++ walk owns is an
+  edge rather than an unmatched record (ScummVM 395 → 43 unmatched).
 - **Cannot tell you:** which header a `#include` reaches when the
   build's include path decides it. Hobbes tries three steps: the
   including file's directory, the repo root, then a unique path suffix.
