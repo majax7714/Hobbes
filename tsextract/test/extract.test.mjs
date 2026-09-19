@@ -938,6 +938,109 @@ test("origins: unresolved callees say where their declarations live (v4)", () =>
   assert.equal(by("makePair").callee, "makePair");
 });
 
+// ADR-141 / C-167: a CommonJS re-export is followed, so a call through
+// a root `index.js` that is one line of `module.exports = require(…)`
+// gets the required module's own export as its callee.
+const REEXPORT_LIB = [
+  "'use strict';",
+  "",
+  "exports = module.exports = createApplication;",
+  "",
+  "function createApplication() {",
+  "  return {};",
+  "}",
+  "",
+].join("\n");
+
+// the `require(..)` binding is a call site of its own; these cases are
+// about the one through it
+const calledAs = (facts, rel, name) =>
+  byPath(facts, rel).calls.find((c) => c.name === name);
+
+test("a CommonJS re-export is followed to the required module's export (ADR-141)", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    "lib/app.js": REEXPORT_LIB,
+    "index.js": "'use strict';\n\nmodule.exports = require('./lib/app');\n",
+    "test/through.js": "var app = require('..');\n\napp();\n",
+  });
+  const call = calledAs(extractRepo(root), "test/through.js", "app");
+  // before the rule: callee null, origin `nested` — the declaration is
+  // index.js's `module.exports = require(…)`, which declQualname declines
+  assert.equal(call.callee, "createApplication");
+  assert.equal(call.callee_path, "lib/app.js");
+  assert.equal(call.origin, null);
+});
+
+test("a re-export of a re-export is followed too (two hops)", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    "lib/app.js": REEXPORT_LIB,
+    "index.js": "'use strict';\n\nmodule.exports = require('./lib/app');\n",
+    "index2.js": "'use strict';\n\nmodule.exports = require('./index');\n",
+    "test/twohop.js": "var app = require('../index2');\n\napp();\n",
+  });
+  const call = calledAs(extractRepo(root), "test/twohop.js", "app");
+  assert.equal(call.callee, "createApplication");
+  assert.equal(call.callee_path, "lib/app.js");
+  assert.equal(call.origin, null);
+});
+
+test("a direct require and an identifier re-export resolve as they always did", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    "lib/app.js": REEXPORT_LIB,
+    // TypeScript aliases an identifier on that right side, so this shape
+    // resolved before the rule and still does
+    "byname.js": "'use strict';\n\nvar lib = require('./lib/app');\nmodule.exports = lib;\n",
+    "test/direct.js": "var app = require('../lib/app');\n\napp();\n",
+    "test/byname.js": "var app = require('../byname');\n\napp();\n",
+  });
+  const facts = extractRepo(root);
+  for (const file of ["test/direct.js", "test/byname.js"]) {
+    const call = calledAs(facts, file, "app");
+    assert.equal(call.callee, "createApplication", file);
+    assert.equal(call.callee_path, "lib/app.js", file);
+  }
+});
+
+test("a re-export cycle terminates and resolves nothing", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    "a.js": "module.exports = require('./b');\n",
+    "b.js": "module.exports = require('./a');\n",
+    // bound to a name, so the walk really enters the cycle: the hop bound
+    // is what makes this finish at all
+    "test/cycle.js": "var a = require('../a');\n\na();\n",
+  });
+  const call = calledAs(extractRepo(root), "test/cycle.js", "a");
+  assert.equal(call.callee, null);
+});
+
+test("a computed require specifier stops the walk", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    "lib/app.js": REEXPORT_LIB,
+    "index.js": "const p = './lib/app';\nmodule.exports = require(p);\n",
+    "test/computed.js": "var app = require('../index');\n\napp();\n",
+  });
+  const call = calledAs(extractRepo(root), "test/computed.js", "app");
+  assert.equal(call.callee, null);
+});
+
+test("a chain onto a property assignment stays at the symbol floor (C-9)", () => {
+  const root = makeRepo({
+    "package.json": '{"name":"minicjs","private":true}\n',
+    // the required module exports by property, which declQualname does not
+    // model — the walk arrives, and there is still nothing to name
+    "lib/x.js": "exports.helper = function helper() {};\n",
+    "index.js": "module.exports = require('./lib/x');\n",
+    "test/prop.js": "require('..').helper();\n",
+  });
+  const call = calledAs(extractRepo(root), "test/prop.js", "helper");
+  assert.equal(call.callee, null);
+});
+
 test("origins: a binding below the modelled vocabulary is `local`", () => {
   const root = makeRepo({
     "src/lib.ts": [

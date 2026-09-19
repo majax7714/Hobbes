@@ -478,6 +478,49 @@ function extractSymbols(sourceFile) {
   return symbols.sort((a, b) => a.line - b.line || a.qualname.localeCompare(b.qualname));
 }
 
+/** Follow a CommonJS re-export to the module that actually exports the
+ * value (ADR-141, C-167). `getAliasedSymbol()` stops at a re-exporting
+ * file's `export=` symbol, because TypeScript does not treat a `require`
+ * call on the right of `module.exports = …` as an alias — so a call
+ * through `require('..')` into a root `index.js` that is one line of
+ * re-export had no callee at all. Given the alias-resolved symbol, this
+ * returns the symbol to resolve declarations from.
+ *
+ * It acts only on the written shape: an `export=` symbol whose single
+ * declaration is a binary expression whose right side (through any
+ * further `=`, for `exports = module.exports = require(…)`) is
+ * `require("<literal>")`. The specifier's own symbol is the *compiler's*
+ * module resolution — never a type — and the walk continues from that
+ * module's `export=`, at most eight hops so a cycle (`a.js` ↔ `b.js`)
+ * terminates. Anything else — a module that does not resolve, a template
+ * literal or computed specifier, a conditional — stops the walk and
+ * returns the symbol we have, which resolves no more than before.
+ *
+ * No `.ts` file is affected: there `export =` is an ExportAssignment,
+ * not a binary expression, so the first gate declines it. */
+function pierceRequireReexport(symbol) {
+  for (let hop = 0; hop < 8 && symbol && symbol.getName() === "export="; hop++) {
+    const decls = symbol.getDeclarations();
+    if (decls.length !== 1 || !Node.isBinaryExpression(decls[0])) return symbol;
+    let rhs = decls[0].getRight();
+    while (
+      Node.isBinaryExpression(rhs) &&
+      rhs.getOperatorToken().getKind() === ts.SyntaxKind.EqualsToken
+    ) {
+      rhs = rhs.getRight();
+    }
+    if (!Node.isCallExpression(rhs) || rhs.getExpression().getText() !== "require") {
+      return symbol;
+    }
+    const arg = rhs.getArguments()[0];
+    if (!arg || !Node.isStringLiteral(arg)) return symbol;
+    const next = arg.getSymbol()?.getExport("export=");
+    if (!next) return symbol;
+    symbol = next.getAliasedSymbol() ?? next;
+  }
+  return symbol;
+}
+
 /** Resolve an identifier/property expression to a repo symbol via the
  * checker, piercing import aliases. {path, qualname} or null. */
 function resolveExpressionTarget(expr, repoRoot, fileSet) {
@@ -488,6 +531,7 @@ function resolveExpressionTarget(expr, repoRoot, fileSet) {
   if (!symbol) return null;
   const aliased = symbol.getAliasedSymbol();
   if (aliased) symbol = aliased;
+  symbol = pierceRequireReexport(symbol);
   for (const decl of symbol.getDeclarations()) {
     const declFile = decl.getSourceFile();
     const target = relPath(repoRoot, declFile);
@@ -548,6 +592,7 @@ function calleeOrigin(expr, repoRoot, fileSet, sourceFile) {
   if (!symbol) return null;
   const aliased = symbol.getAliasedSymbol();
   if (aliased) symbol = aliased;
+  symbol = pierceRequireReexport(symbol);
   const decls = symbol.getDeclarations();
   if (!decls.length) return null;
   const here = relPath(repoRoot, sourceFile);
