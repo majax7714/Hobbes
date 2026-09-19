@@ -13431,3 +13431,25 @@ neither lane reads, changes 120 of 22,804 sites' resolution. A scratch
 ingest of `minijs` showed the prior that shapes Express's prediction: a
 function assigned to a property is not a lane A symbol. §10.22 written
 (P134–P142) and committed before any cell is ingested; nothing graded.
+
+**ADR-140 finished (Max: "approved cells and predictions … good to do
+the patch and note", then "proceed with recommended route").** C-166 at
+0.2.54-beta: the TS/JS helper records one `jsconfig-ignored` degradation
+per `jsconfig.json` nothing reads (37 tsextract). The cells, ingested
+contained and graded with the oracle in the image: `minijs` exactly as
+P139 said; Express 340/340, recall 22.4%, 652 of its misses one callee
+through a CommonJS re-export (C-167, untraced); xmpp.js 552/552, 66.4%
+(its own lockfile refused by `npm ci`); **Preact's first pass read
+1,223 contradicted — all the oracle's**: H-34 (1,220, an in-repo `.d.ts`
+keyed external with an absolute path) and H-35 (3, a JSDoc `@type` keyed
+as the annotation). Unit `S-20260919T202902Z-5587` (37 turns, $1.82)
+fixed both; the doer narrowed my brief's H-35 wording, which would have
+caught a `@param` callback and undone H-33's row. Regraded with no
+re-ingest: Preact 2,446/2,446; every other JS and TS cell row-identical
+(hono +5 in-repo pairs). P137 missed on Preact (28.6%: test-file
+closures, interface members of its own `.d.ts`, hook setters). Step 5 at
+0.2.55-beta: the `javascript` row names the three repos "graded without
+a dependency tree" (C-165 narrowed), C-167 and C-168 (`new F()` drawn
+`uses` in TS and JS, 570 on Preact) registered; 168 entries. Tracker 60
+of 40. The cells are not in `docs/oracle/cells/`: that feeds the
+comparative graphics, Max's call.

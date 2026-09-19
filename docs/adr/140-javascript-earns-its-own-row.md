@@ -1,6 +1,6 @@
 # ADR-140 — JavaScript earns its own row: the claim corrected first, then graded cells
 
-**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "route a is good", and the §3.8 row split within the architecture: "if you mean split within architecture then yes"). Step 1 built (0.2.53-beta); steps 2 done (the measurement below); steps 3–5 open.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "route a is good", and the §3.8 row split within the architecture: "if you mean split within architecture then yes"). All five steps done: 1 built (0.2.53-beta), 2 measured (below), 3 built (unit `a25f`), 4 graded (`oracle-grading.md` §10.22, after H-33–H-35), 5 built (0.2.55-beta); see *Done*, at the end.
 
 Asked in the 2026-09-19 top-level review: *could we add JavaScript as a
 usable language?* A step-1 build is a patch: a change to what the layer
@@ -92,3 +92,14 @@ zone with no `tsconfig.json`.
   `tsc-oracle.mjs`), which read "4 repos" until 0.2.53-beta.
 - Steps 3–5 spend no API or Modal money; a dispatched unit spends the
   subscription.
+
+## Done (2026-09-19)
+
+Three JavaScript cells graded (`oracle-grading.md` §10.22): Express
+340/340, Preact 2,446/2,446, xmpp.js 552/552 — 100% precision each,
+recall 22.4%, 28.6%, 66.4%, none with its dependencies installed. On the
+way the oracle's own defects H-33 (a parameter labelled `closure`), H-34
+(an in-repo `.d.ts` keyed external) and H-35 (a JSDoc `@type` keyed as
+the annotation) were found and fixed. Registered: C-165 narrowed to the
+missing dependency trees, C-166 (`jsconfig.json` not read), C-167 (a
+CommonJS re-export draws nothing), C-168 (`new F()` drawn `uses`).

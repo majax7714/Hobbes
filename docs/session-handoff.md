@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.54-beta on `main`.**
+**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.55-beta on `main`.**
 Max pushed `0854855` (0.2.52-beta, with ADR-137, ADR-138 and ADR-139
 built) on 2026-09-19; its CI run is 35461769081 (the one before, on
 `a930ba1`, green). This session's commits (the top-level drift fix,
@@ -10,7 +10,7 @@ knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.54-beta are untagged. Tags stay Max's call each time.
+  0.2.55-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -31,22 +31,24 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Nothing is waiting on Max but ADR-126 §3. ADR-140's step 3 is built
-and H-33 fixed (Max: "proceed with recommended"); step 4 is next.**
-
-**ADR-140 step 4 — pre-registered, waiting on Max's review before
-anything is ingested or graded** (`oracle-grading.md` §10.22, P134–P142).
-Cells: Express @ `9a34acf03cb8` (CommonJS, named), Preact @ `8101ff821690`
-(ESM + JSDoc + JSX + a `jsconfig.json` with `paths`, named; the oracle
-over the ingest's root zone, a copy without its three `tsconfig.json`
-subtrees), xmpp.js @ `9cce6c14a7f1` (the draw: `DRAW-RULE.md` written
-first, seed 20260919, five passed over). Clones and drivers:
-`~/.hobbes/bench/js-cells/` (`repos/`, `pool.json`, `draw.py`,
-`draw-log.md`, `jsconfig-probe/` with `compare.py`). Measured, key only:
-Preact's `jsconfig.json`, which neither lane reads, changes 120 of
-22,804 sites' resolution (99.5% identical). Prior from a scratch ingest
-of `minijs`: a function assigned to a property is not a lane A symbol,
-so calls into it draw nothing — Express's main shape.
+**ADR-140 is done (all five steps; 0.2.53–0.2.55-beta).** JavaScript's
+row names three graded repos (`oracle-grading.md` §10.22, results final):
+Express 340/340, Preact 2,446/2,446, xmpp.js 552/552 — 100% precision
+each, strict 100%, poison PASS; recall 22.4%, 28.6%, 66.4%. No cell had
+its dependencies installed (C-165 narrowed to that). Preact's first pass
+read 1,223 contradicted, all the oracle's: H-34 (an in-repo `.d.ts` keyed
+external) and H-35 (a JSDoc `@type` keyed as the annotation), fixed by
+unit `5587` and regraded; every other JS and TS cell row-identical.
+Registered: C-166 (jsconfig not read, surfaced, 0.2.54-beta), C-167 (a
+CommonJS re-export draws nothing — Express's `express()`, 652 misses,
+**untraced**), C-168 (`new F()` drawn `uses`; `who_calls` words it as no
+call site). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
+`regrade.sh`, `cells/`, `regrade/h34/`, `oracle-trees/preact`), and
+`~/.hobbes/bench/h33-regrade/` for the TS cells (`h34/`).
+**Open for Max:** whether the JS cells enter `docs/oracle/cells/` (and so
+the comparative graphics, ADR-102). **Candidates, each measured first:**
+C-167's trace; C-168's construction rule for TS/JS; a JS cell with its
+dependencies provisioned (lifts C-165).
 
 **H-33 — fixed** (unit `S-20260919T193208Z-9e00`, 35 turns, $1.71,
 right-clear, merged `b15a443`; tracker 59 of 40): the TS oracle's
@@ -508,7 +510,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 59 of 40, 4
+   - **The validating 40 are done:** the tracker reads 60 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -578,15 +580,15 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-nine log files under `docs/calvin/sessions/`; the tracker reads 59 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty log files under `docs/calvin/sessions/`; the tracker reads 60 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 166 entries: 121 active (95 surfaced, 22 partial, 3
+- **Register:** 168 entries: 123 active (95 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  folded. Latest: C-165 narrowed, C-167 and C-168 registered (0.2.55-beta); C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
@@ -607,7 +609,7 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.54-beta (2026-09-19; pytest and Go `./...` re-run
+- **Suites** at 0.2.55-beta (2026-09-19; pytest and Go `./...` re-run
   and green, the rest as counted at 0.2.50-beta): 2,093
   pytest (`lane_b` 10 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 87 scip node, 37 tsextract, 52 vitest,

@@ -1880,6 +1880,38 @@ it, with the environment lane B had.
 | P141 | the JS lane | at least one defect of the oracle-at-another-grain class is found in the first triage before any number is quoted (P14's habit; H-33 was found before this section, by the fixture) | recorded regardless |
 | P142 | O3-JS-2 (Preact) | graded under the generated program only; the jsconfig difference above is stated beside the cell, never mixed into its numbers | met if the cell record keeps them apart |
 
+**Results, final (2026-09-19, after H-34 and H-35's fix; merged
+`d715849`; regraded contained with no re-ingest,
+`~/.hobbes/bench/js-cells/regrade/h34/`).**
+
+| Cell | Precision | Strict | Recall (in-repo) | Poison |
+|---|---|---|---|---|
+| `minijs` | 7/7 | 100% | 63.6% (7/11) | PASS |
+| O3-JS-1 Express | **340/340** | 100% | 22.4% (340/1,520) | PASS, 0 falsely confirmed |
+| O3-JS-2 Preact | **2,446/2,446** | 100% | 28.6% (2,632/9,211) | PASS (2,206 refused, 528 unjudged) |
+| O3-JS-3 xmpp.js | **552/552** | 100% | 66.4% (558/840) | PASS |
+
+- **P134 — met** on every cell: 100%, 0 hobbes-wrong; no strict gap
+  (no line-unresolved row). **P135 — undecidable** (0 contradictions).
+- **P136 — half-met** (Express): recall ≤ 35% held; the largest miss
+  class is not property-assigned functions but one CommonJS re-export
+  (652 of 1,180), registered as C-167.
+- **P137 — met on xmpp.js (66.4%), missed on Preact (28.6%).** About
+  6,300 of Preact's 6,579 misses sit in test files: in-body closures
+  (`static→closure` 2,028), calls through the interface members its own
+  `.d.ts` declares (`interface→type-member` 1,792, in-repo pairs only
+  since H-34), hook setters in locals (`func-value→local-binding`
+  1,557) and constructions (`static→class` 570, C-168).
+- **P138 — met ("neither").** **P139 — met exactly.** **P140 — met.**
+  **P141 — met**: H-34 and H-35 in Preact's first triage (and H-33
+  before this section). **P142 — met**: the jsconfig difference is
+  stated beside the cell (C-166), not in its numbers.
+- The TS cells re-run with the same fix: kbet, ajv, cheerio, zod and
+  hono row-identical; hono's in-repo pairs 1,403 → 1,408.
+- **The cells are not yet in `docs/oracle/cells/`**, so the comparative
+  graphics (ADR-102) do not include them; adding them is the lead's
+  call.
+
 **What the row rests on.** The JavaScript row of §3.8 names only the
 cells graded here. A mechanism triage charges to Hobbes on the semantic
 tier is registered in the same commit as its cell; whether it is fixed
