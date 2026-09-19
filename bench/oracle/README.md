@@ -360,7 +360,12 @@ parameter, a local binding, or a variable with no function literal
 behind it, `static` otherwise. Targets carry a **kind** — function,
 method, class, variable, property, parameter, type-member, closure,
 local-binding, anonymous-function — and the miss record groups by
-mode × kind.
+mode × kind. Until H-33's fix (2026-09-19) the kind test asked whether
+the declaration sat inside a function before it asked whether it was a
+parameter, and every parameter does, so every parameter read `closure`
+and its site stayed `static`: the `static→closure` counts of the TS
+cells graded before that date include an unmeasured share of calls
+through parameters.
 
 `--no-tsconfig` grades a zone the repo gives **no** config for — a plain
 JavaScript tree (ADR-140 step 3). The program is built from the zone's

@@ -264,7 +264,11 @@ function isClosure(decl) {
 // What the declaration is, for the miss classes: what a call reaches.
 function isClosureScope(decl) { return isClosure(decl); }
 
+// A parameter is asked for first (H-33): every parameter has a
+// function above it, so `isClosure` is true of all of them and the
+// parameter branch below was unreachable.
 function declKind(decl) {
+  if (ts.isParameter(decl)) return "parameter";
   if (ts.isVariableDeclaration(decl) || ts.isBindingElement(decl)) {
     // handled below: closure vs local-binding vs variable
   } else if (isClosure(decl)) return "closure";
@@ -287,7 +291,6 @@ function declKind(decl) {
     if (isClosureScope(decl)) return isFn ? "closure" : "local-binding";
     return "variable";
   }
-  if (ts.isParameter(decl)) return "parameter";
   if (ts.isPropertySignature(decl) || ts.isMethodSignature(decl)) return "type-member";
   if (ts.isPropertyAssignment(decl) || ts.isPropertyDeclaration(decl) || ts.isShorthandPropertyAssignment(decl)) return "property";
   if (ts.isFunctionTypeNode(decl) || ts.isCallSignatureDeclaration(decl) || ts.isConstructSignatureDeclaration(decl)) return "anonymous-signature";
