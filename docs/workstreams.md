@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta), and ADR-140 accepted with its step 1 built (0.2.53-beta: JavaScript's verification base corrected to zero, C-165) 2026-09-19.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta), and ADR-140 accepted with its step 1 built (0.2.53-beta: JavaScript's verification base corrected to zero, C-165) and its step 3 built (unit `a25f`; H-33 open) 2026-09-19.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -65,8 +65,9 @@ item opens when Max names it. Sequencing context is
    `hobbes lanes` exits 3 on registered shapes only (ADR-123); strict
    precision beside every grade (ADR-124); C-153 withheld where the
    source contradicts and surfaced as partial (ADR-125); reach through
-   dispatch measured, not drawn (ADR-126). The oracle's defect log is
-   empty (H-28–H-32 fixed).
+   dispatch measured, not drawn (ADR-126). The oracle's defect log was
+   empty (H-28–H-32 fixed) until H-33 (2026-09-19, open: the TS
+   oracle's `parameter` kind is unreachable).
    Then one ingest of a repo at a time (ADR-127, C-159, 0.2.39-beta),
    lane A's C++ parse measured then cached per file (ADR-128, C-160,
    C-161, 0.2.40-beta), and **C++ recall** (Max's Route A, 2026-09-17):
