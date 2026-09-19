@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-18, 0.2.48-beta; oracle-lane Go
-counted 2026-09-16): 1,977 pytest (10 `lane_b`) / 396 Go with subtests
+Suite sizes at the last check (2026-09-19, 0.2.48-beta; oracle-lane Go
+counted 2026-09-16): 1,980 pytest (10 `lane_b`) / 396 Go with subtests
 (395 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 136;
+  architecture doesn't already make. Number sequentially (last: 138;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-18) — Hobbes 0.2.48-beta
+## Status (2026-09-19) — Hobbes 0.2.48-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -315,9 +315,16 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   rule stands). The C++ recall list is done but for the macro class
   (C-131, parked): operators and constructions at a macro's name, the
   swallowed tests.
-  **Next:** the review's remaining items (pytest fixtures as edges, C-4; the
-  compile database's `-I` path at lane A; the docs restructure).
-- **Open for Max:** ADR-126 §3 — whether to build a
+  **Next (2026-09-19):** the review's remaining items are measured and
+  wait on a route — ADR-137 (C-4: pytest's fixture lookup is syntax;
+  1,004 of 1,004 pairs right against `--fixtures-per-test`, 233 tests
+  stop reading empty) and ADR-138 (the `-I` path buys 116 includes on
+  ScummVM; beside it 624 `.h` are read as C, 535 spelling C++, and a
+  claim through claimed headers takes 374). The docs restructure's first
+  half is in: the register tally is held by a test, its dated notes are
+  `docs/constraints/HISTORY.md`.
+- **Open for Max:** ADR-137's and ADR-138's routes; §3.8 as
+  per-language pages; ADR-126 §3 — whether to build a
   "may reach through dispatch (not traced)" section on §10.12's numbers
   (it needs a syntax exclusion for non-dispatched calls); C-150's
   remainder (parked, Max: "fine for now"). Settled 2026-09-18:

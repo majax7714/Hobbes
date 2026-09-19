@@ -174,36 +174,20 @@ C's sqlite-vector once read 99.6%, from three syntactic edges Hobbes
 got wrong (C-138). The external veto (ADR-111) removed them, and it
 reads 851/851. The misses are registered by class (closures, function
 values, interface dispatch) in `oracle-misses.md`. C++'s two cells are
-not tabled there yet. fmt's recall doubled at 0.2.41-beta (14.5% →
-29.1%, at no contradiction) when the definitions lane A's parse loses to
-macros began to be read from the index (ADR-129, C-145). At 0.2.42-beta
-an operator applied by symbol is a call where the index names it at the
-token — outside a template only, because inside one the key goes silent
-and about 100 of the 161 rows it could not judge read wrong by hand
-(ADR-131, C-146): fmt 30.1%, args 62.5%, still at no contradiction. At
-0.2.43-beta such a reference inside a template draws no `uses` edge
-either: no key grades `uses`, and the one module edge it cost each cell
-was wrong. At 0.2.44-beta a construction (`T x(args);`, a member
-initialiser, a braced argument) is a call where the index names the
-constructor at exactly the token, outside a template (ADR-132, C-162):
-args, held out, 62.5% → 72.9% with every added row confirmed; fmt 30.3%,
-where 80% of the missed constructions sit inside gtest's macros. At
-0.2.45-beta the join claims a resolution by position, not by name
-(ADR-133): a call no longer hides the line's other references of its
-name — 1,785 true `uses` edges across the graded clones, and the 19
-fmt constructions a using-declaration had hidden (30.4%), with every
-other graded number unmoved. At 0.2.46-beta a lost definition is a scope
-where the file's own braces delimit it (ADR-134): 1,290 of fmt's call
-rows now name the function they are written in rather than the file,
-agreeing with clang's own caller on 7,610 rows of 8,123 where 6,392 did
-— and at 0.2.47-beta a lane A symbol the index contradicts is refused
-(ADR-135: 18 on fmt named for a macro or a member initialiser; the
-wrong-caller rows 105 → 32, the 32 a naming grain), and at 0.2.48-beta
-the true definition is read from the index on a line such a refusal
-vacated even where the file parsed clean (ADR-136: 260 definitions in 19
-files on ScummVM, none on a graded cell)
-— checked against the key's caller names, **not graded**, because no key
-reads a caller, and so no graded number moved. The
+not tabled there yet. Their recall is where the C++ work has gone: fmt
+reads 30.4% and args 72.9% against clang's own call pairs, each at no
+contradiction, and every step is a rule that draws only where the
+source text and the index agree — a definition lane A's parse loses to
+macros is read from the index and scoped by the file's own braces
+(ADR-129, ADR-134, ADR-136; C-145), a lane A symbol the index
+contradicts is refused (ADR-135, C-164), an operator or a construction
+is a call where the index names it at exactly the token and outside a
+template (ADR-131, ADR-132; C-146, C-162), and the join claims a
+resolution by position, not by name (ADR-133). Most of what fmt still
+misses is the macro class (C-131, parked). The caller a call is
+written in is checked against the key's caller names, **not graded**,
+because no key reads a caller. The version-by-version record, with each
+step's before and after, is [`CHANGELOG.md`](CHANGELOG.md). The
 abstentions behind part of what is left are registered (C-146, C-148,
 C-151, C-152).
 
@@ -490,7 +474,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-136 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-138 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

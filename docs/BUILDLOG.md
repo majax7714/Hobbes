@@ -13114,3 +13114,60 @@ dispatch on the subscription.
 **A lesson for the next prediction:** say what a re-home does to an
 edge's `from` before predicting "no edge absent" — compare evidence
 rows, as `compare.py` already does for the graded cells.
+
+## 2026-09-19 — the review's three remaining items: C-4 and the `-I` path measured (ADR-137, ADR-138 proposed), the docs restructure's first half (no version move)
+
+**The doc review first.** Two drifts, fixed (`2b66c73`): the handoff
+still said everything since `d1f52a1` was unpushed (`a930ba1` is pushed
+and CI-green, run 35412968495), and `pyproject.toml`'s comment named
+VERSION 0.2.44-beta beside `0.2.48b0`. **The knowledge server needed no
+restart:** its container was started with this session from image
+`a56b92b0e11b`, the 0.2.48-beta build, and the ingest is at `a930ba1`.
+
+**C-4, pytest fixtures as edges — measured, ADR-137 proposed.**
+`~/.hobbes/bench/c4-fixtures/` (`probe.py`, `probe-v1.py` its first
+form, `compare.py`). pytest's fixture lookup is all syntax (class, file
+and its imported names, the conftest chain), and pytest itself is the
+key: `--fixtures-per-test`, collection only. On this repo **1,004
+test–fixture pairs, 1,004 right, 0 wrong, 0 missed**; the first form
+(no class scope, no imports) read 902 / 0 / 102. 317 tests' reached
+modules grow and 233 stop reading `reaches: []`; **no module is newly
+guarded**, here or on click, where the one fixture buys `CliRunner` and
+the real loss is `runner.invoke(…)`, a typing question. No trace key
+judges a test→fixture edge (the fixture's caller is pytest's frame).
+Routes: (a) a `uses` edge and a labelled reach step, (b) a new edge
+type, (c) surface only.
+
+**The `-I` path at lane A — measured, and it found C-142 instead;
+ADR-138 proposed.** `~/.hobbes/bench/c133-include-path/` (`place.py`,
+`claim.py`). The graded cells have nothing for `-I` to place: every
+`c-includes` record on cJSON, sqlite-vector, fmt and args names a header
+outside the repo or outside the build. ScummVM's database has one
+non-root directory (`engines`): 116 includes of 95,510, 12 headers'
+language. Beside it: **624 of ScummVM's `.h` are read as C in a repo
+with two `.c` files, 535 of them spelling `class`/`namespace`/`template`**
+— ADR-113 §1 asks for a C++ *source* includer, and a header reached only
+through headers has none. A claim that follows claimed headers takes
+374 of them. The same misread is why 122 of the 277 "unmatched" specs in
+ScummVM's warnings are files at the repo root: the C walk does not know
+the headers C++ claimed. Routes: (a) the transitive claim and the C walk
+knowing claimed headers, (b) plus a content read for headers nothing
+includes, (c) plus `-I`, (d) nothing. A first attempt at the record
+count globbed all of `~/.hobbes/bench` and was stopped at five minutes;
+the counts are from the five named clones and ScummVM's ingest log.
+
+**The docs restructure, the half that needs no call.**
+- `pipeline/tests/test_register_tally.py`: the register's tally is read
+  from the segment files (a heading's *lifted*/*superseded*/*folded*,
+  else **You find out**'s first word — it reproduces 92/23/3/1, 28, 11,
+  6 exactly) and the index's table and headline, README's sentence,
+  CLAUDE.md's and the handoff's lines are held to it. 1,980 pytest.
+- The register index's 680 lines of dated notes moved to
+  `docs/constraints/HISTORY.md` (newest first, append at the top); the
+  index is 171 lines.
+- README's extraction section states where C++ recall stands and points
+  at the CHANGELOG, instead of retelling 0.2.41 to 0.2.48.
+- **Left for Max's word:** §3.8's paragraph cells to per-language pages
+  — it restructures the source-of-truth file.
+
+No API or Modal spend; no dispatch.
