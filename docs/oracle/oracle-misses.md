@@ -321,6 +321,17 @@ calls (2%), 40 inflated `func()` pairs.**
 And the cells' 40 contradictions are all one product defect, **a type
 conversion drawn as a call**, which is a lie rather than a silence.
 
+**H-33, 2026-09-19 — the TS `static→closure` counts above include
+calls through parameters.** The TS oracle never labelled a target
+`parameter` (`declKind` asked `isClosure` first). Fixed and regraded on
+stored exports, contained, the same day: on every cell the totals and
+every graded row are identical, and 383 of the five cells' 1,095
+`static→closure` pairs are `func-value→parameter` — kbet 195 → 157 (+38),
+ajv 174 → 151 (+23), cheerio 173 → 108 (+65), zod 324 → 207 (+117), hono
+229 → 89 (+140). The closure counts in the per-cell tables are as graded
+then; read each less its parameter share. Driver and reports:
+`~/.hobbes/bench/h33-regrade/`.
+
 **Better classification wanted (open):** `static→closure` conflates a
 closure called in the function that made it (the test helper shape)
 with one stored and called later; `func-value→local-binding` conflates

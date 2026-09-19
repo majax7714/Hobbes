@@ -13401,3 +13401,21 @@ untouched; the miss attribution in `oracle-misses.md` and C-58's reading
 are not. Logged open, root RC-7 (its patch's parameter shape never
 fired). Proposed to Max: fix it before step 4. 2,093 pytest, the oracle
 module and `report` green.
+
+**Then H-33 (Max: "good to proceed with recommended").** One unit,
+`S-20260919T193208Z-9e00` (35 turns, $1.71, 3 min): `declKind` asks
+`isParameter` before `isClosure`; the minijs row reads the hand's
+`func-value→parameter`; a minits case asserts every parameter binding is
+`dynamic` (minits has none — the unit measured before asserting). Gate
+clear, verify pass; on the host the six TS tests RUN and PASS. Merged
+no-ff (`b15a443`); tracker 59 of 40. **Regrade, contained** (the oracle
+in the image with no network: the zone's own `typescript` is code from
+the repo's tree, and O3 had run on the host): the before pass on the
+five TS cells' clones reproduced every stored grade exactly; after the
+fix, totals and every graded row are identical on all five, and 383 of
+1,095 `static→closure` pairs move to `func-value→parameter` (kbet 38,
+ajv 23, cheerio 65, zod 117, hono 140). H-33 closed with those numbers;
+RC-7's tally and `oracle-misses.md` note it. The unit named a smaller
+neighbour, left as it is: a destructured parameter's name reads
+`func-value→local-binding` — the mode is right, the kind names a local.
+**Next:** ADR-140's step 4.

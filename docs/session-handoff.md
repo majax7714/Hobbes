@@ -31,8 +31,20 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Nothing is waiting on Max but ADR-126 §3 and H-33's order (below).
-ADR-140's step 3 is built (unit `a25f`, merged); steps 4–5 are next.**
+**Nothing is waiting on Max but ADR-126 §3. ADR-140's step 3 is built
+and H-33 fixed (Max: "proceed with recommended"); step 4 is next.**
+
+**H-33 — fixed** (unit `S-20260919T193208Z-9e00`, 35 turns, $1.71,
+right-clear, merged `b15a443`; tracker 59 of 40): the TS oracle's
+`declKind` asks `isParameter` first. Regraded contained on the five TS
+cells' stored exports (`~/.hobbes/bench/h33-regrade/`: `regrade.sh
+<label> <tsc-oracle.mjs> <oracle>` runs the oracle in the image,
+`before/` reproduced every stored grade exactly, `after/`,
+`compare.txt`): totals and every graded row identical; 383 of 1,095
+`static→closure` pairs were parameters, now `func-value→parameter`.
+`oracle-misses.md` carries the note. Left as it is: a destructured
+parameter's name reads `func-value→local-binding` (mode right, the kind
+names a local).
 
 **ADR-140 step 3 — built** (unit `S-20260919T191744Z-a25f`, 56 turns,
 $3.15, gate right-clear, verify pass, merged no-ff; tracker 58 of 40):
@@ -44,14 +56,7 @@ export; without the flag the minits export is byte-identical (install
 path normalised). Fixture `pipeline/tests/fixtures/minijs/` (CommonJS,
 prototype, destructured `require`, JSDoc callback, ESM, JSX); test
 `bench/oracle/internal/grade/minijs_test.go`, hand-keyed before the run.
-tsc resolves every CommonJS shape. **It surfaced H-33 (open):** the TS
-oracle's `declKind` never returns `parameter` (`isClosure` is tested
-first), so every call through a parameter reads `static→closure` on
-every TS cell — precision unaffected, miss attribution wrong. **Proposed
-order:** fix H-33 first (one small unit: the ordering, the minijs row,
-a regrade of the five TS cells' miss classes), because step 4 reads a
-JavaScript cell's misses by class and callbacks are JavaScript's common
-shape; then step 4.
+tsc resolves every CommonJS shape. It surfaced H-33, fixed next (above).
 
 **ADR-140, 0.2.53-beta (Max: route a) — JavaScript earns its own row.**
 Step 1 built: `verification.py`'s `javascript` row had been a verbatim
@@ -447,10 +452,8 @@ stay here.
      every non-dispatched call (Java `super.`/private/static/final,
      Python `super()`, C++ class-qualified) and would say no key confirms
      reach. Nothing is drawn until then.
-   - **H-33 is open** (2026-09-19, found by unit `a25f`): the TS oracle's
-     `declKind` never labels a target `parameter`, so every call through a
-     parameter reads `static→closure` on every TS cell — precision
-     unaffected, miss attribution wrong. H-28–H-32 were all
+   - **Nothing in the oracle's defect log is open.** H-33 (the TS
+     oracle's `parameter` kind) was found and fixed 2026-09-19. H-28–H-32 were all
      fixed on 2026-09-16; fmt has no contradiction left.
    - **ADR-121 §2's choice — kept** (Max approved the routes 2026-09-17):
      lane B's occurrence at an unevaluated site stays a `uses` edge, a
@@ -491,7 +494,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 58 of 40, 4
+   - **The validating 40 are done:** the tracker reads 59 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -561,7 +564,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-eight log files under `docs/calvin/sessions/`; the tracker reads 58 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-nine log files under `docs/calvin/sessions/`; the tracker reads 59 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -582,8 +585,8 @@ min each.
   C-159 registered (ADR-127, 0.2.39-beta); C-153 narrowed then partial (ADR-125, 0.2.37/0.2.38-beta);
   C-152 amended and C-70 settled (ADR-123, 0.2.36-beta); C-158
   registered (ADR-122, 0.2.35-beta).
-- **Oracle defect log: H-33 open** (the TS oracle's parameter kind is
-  unreachable; see Standing items). H-28–H-32 all fixed 2026-09-16
+- **Oracle defect log: nothing open.** H-33 found and fixed 2026-09-19
+  (383 of the TS cells' `static→closure` pairs were parameters). H-28–H-32 all fixed 2026-09-16
   (H-32, the key's site in an unevaluated operand, opened RC-11).
   RC-2 gained its sixth sighting and closed with H-31 (macro-carried
   code keeps getting the wrong position); RC-3 and RC-8 closed-policy
