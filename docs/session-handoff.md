@@ -1,13 +1,11 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.55-beta on `main`.**
-Max pushed `0854855` (0.2.52-beta, with ADR-137, ADR-138 and ADR-139
-built) on 2026-09-19; its CI run is 35461769081 (the one before, on
-`a930ba1`, green). This session's commits (the top-level drift fix,
-ADR-140, 0.2.53-beta) are unpushed. The proxy and the image were rebuilt
-at 0.2.53-beta and the repo re-ingested at the end of the session; the
-knowledge server serves the image it started from until it is restarted
-(C-65): **restart it.**
+**Reviewed 2026-09-19 (sixth session); Hobbes 0.2.55-beta on `main`.**
+Max pushed the fifth session's work through `13ff9d5` (the close-out);
+its CI run is 35468332243 (the one before, 35461769081, green). The
+image and the proxy are at 0.2.55-beta and the knowledge server serves
+them (restarted after the fifth session); the ingest is at `ddd87ea`,
+and the commits since are docs only.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
   0.2.55-beta are untagged. Tags stay Max's call each time.
@@ -19,46 +17,37 @@ knowledge server serves the image it started from until it is restarted
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the fifth 2026-09-19 BUILDLOG entry (the
-top-level review's drift, ADR-140 and 0.2.53-beta); the four before it
-are the same day's. Earlier sessions' detail lives
-in their own BUILDLOG entries; this file keeps only what the next
-session needs.
+The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
+0.2.42–0.2.55-beta) is in those days' BUILDLOG entries and the
+CHANGELOG; this file keeps only what the next session needs, and the
+drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-19, night)
+## ⇢ START HERE NEXT SESSION (written 2026-09-19, sixth session)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**ADR-140 is done (all five steps; 0.2.53–0.2.55-beta).** JavaScript's
-row names three graded repos (`oracle-grading.md` §10.22, results final):
-Express 340/340, Preact 2,446/2,446, xmpp.js 552/552 — 100% precision
-each, strict 100%, poison PASS; recall 22.4%, 28.6%, 66.4%. No cell had
-its dependencies installed (C-165 narrowed to that). Preact's first pass
-read 1,223 contradicted, all the oracle's: H-34 (an in-repo `.d.ts` keyed
-external) and H-35 (a JSDoc `@type` keyed as the annotation), fixed by
-unit `5587` and regraded; every other JS and TS cell row-identical.
-Registered: C-166 (jsconfig not read, surfaced, 0.2.54-beta), C-167 (a
-CommonJS re-export draws nothing — Express's `express()`, 652 misses,
-**untraced**), C-168 (`new F()` drawn `uses`; `who_calls` words it as no
-call site). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
-`regrade.sh`, `cells/`, `regrade/h34/`, `oracle-trees/preact`), and
-`~/.hobbes/bench/h33-regrade/` for the TS cells (`h34/`).
-The cells are recorded (Max: "the cells get recorded"):
-`docs/oracle/cells/{express,preact,xmpp}-js-2026-09-19.md`, in the
-comparative data (93 cells; JavaScript a panel in the scatter, `render.py
-check` green).
+**Where JavaScript stands (ADR-140 done, 0.2.53–0.2.55-beta).** Its
+row names three graded repos (`oracle-grading.md` §10.22): Express
+340/340, Preact 2,446/2,446, xmpp.js 552/552 — 100% precision each,
+strict 100%, poison PASS; recall 22.4%, 28.6%, 66.4%. No cell had its
+dependencies installed (C-165). Registered: C-166 (jsconfig not read,
+surfaced), C-167 (a CommonJS re-export draws nothing), C-168 (`new F()`
+drawn `uses`). The cells are in `docs/oracle/cells/` and the comparative
+data (93 cells). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
+`regrade.sh`, `cells/`, `regrade/h34/`, `oracle-trees/preact`; the
+Express clone at `repos/expressjs__express`, ingested at 0.2.54-beta).
 
-**NEXT SESSION — the JavaScript constraints (Max: "we will tackle
-constraints from js next session").** In the order to measure them:
+**The JavaScript constraints (Max: "we will tackle constraints from js
+next session"),** in the order to measure them:
 1. **C-167** — trace why `express()` draws nothing: the tests'
    `require('..')` → `index.js`'s `module.exports = require('./lib/express')`
    → `exports = module.exports = createApplication`. Read lane B's facts
    at `test/app.js:9` (does scip-typescript name `createApplication`, the
-   local `express`, or nothing?) and lane A's call record there, on the
-   clone at `~/.hobbes/bench/js-cells/repos/expressjs__express` (already
-   ingested at 0.2.54-beta). 652 of Express's misses.
+   local `express`, or nothing?) and lane A's call record there. 652 of
+   Express's misses. (Started in the sixth session — see its BUILDLOG
+   entry.)
 2. **C-168** — a construction rule for TS/JS (`new F()` drawn `calls`
    where lane B names the class or constructor function at the callee),
    the way ADR-132 did C++; measure on xmpp.js (104), Preact (570), ajv
@@ -67,120 +56,35 @@ constraints from js next session").** In the order to measure them:
 3. **C-165** — a JS cell graded with its dependencies provisioned (an
    npm lockfile in sync; Express's or Preact's shape re-drawn).
 4. Also measured, not yet a constraint: Preact's test-file misses
-   (closures in `it` bodies, calls through `.d.ts` interface members) —
-   C-58's shapes, only counted.
+   (closures in `it` bodies, calls through `.d.ts` interface members,
+   hook setters in locals) — C-58's shapes, only counted.
 
-**H-33 — fixed** (unit `S-20260919T193208Z-9e00`, 35 turns, $1.71,
-right-clear, merged `b15a443`; tracker 59 of 40): the TS oracle's
-`declKind` asks `isParameter` first. Regraded contained on the five TS
-cells' stored exports (`~/.hobbes/bench/h33-regrade/`: `regrade.sh
-<label> <tsc-oracle.mjs> <oracle>` runs the oracle in the image,
-`before/` reproduced every stored grade exactly, `after/`,
-`compare.txt`): totals and every graded row identical; 383 of 1,095
-`static→closure` pairs were parameters, now `func-value→parameter`.
-`oracle-misses.md` carries the note. Left as it is: a destructured
-parameter's name reads `func-value→local-binding` (mode right, the kind
-names a local).
+**Candidates after the JavaScript constraints, each measured first**
+(none started): C-4's last parts — the injected value's type is lane
+B's, and a module `pytestmark` needs a keyed repo that has one; C-142's
+remainder — the 273 headers nothing includes (ADR-138's route b, a
+content read, not taken); ADR-126 §3 once Max decides it; C's residue
+(W1). Small and no-spend, optional: a `lane_b` end-to-end case for
+ADR-135 (a fixture tree-sitter-cpp misreads *and* scip-clang compiles —
+an annotation macro after a declarator — without moving the lines other
+tests pin).
 
-**ADR-140 step 3 — built** (unit `S-20260919T191744Z-a25f`, 56 turns,
-$3.15, gate right-clear, verify pass, merged no-ff; tracker 58 of 40):
-`tsc-oracle.mjs --no-tsconfig` builds the program from the zone's walked
-sources under `_generated_tsconfig`'s eight options, refuses a zone with
-its own `tsconfig.json` (exit 1) and `--config` beside it (exit 2),
-lists an ignored `jsconfig.json`, and states `generated_config` in the
-export; without the flag the minits export is byte-identical (install
-path normalised). Fixture `pipeline/tests/fixtures/minijs/` (CommonJS,
-prototype, destructured `require`, JSDoc callback, ESM, JSX); test
-`bench/oracle/internal/grade/minijs_test.go`, hand-keyed before the run.
-tsc resolves every CommonJS shape. It surfaced H-33, fixed next (above).
+**What stays from C++ recall (Max's Route A, 2026-09-17; items 1–4
+built or closed, ADR-132 to ADR-136):** constructions' remainder is
+C-162 (the macro class, templates, untokened conversions); a lost
+definition's refused extents are C-145; C-164's remainder is its own
+entry; operators at a macro's name (3,011 references on fmt) are the
+macro class's (C-131, parked); TS's floor shapes stay off the table
+(Max, 2026-09-10). The 2026-09-16 review's list is done but for §3.8's
+paragraph cells as per-language pages (Max: "dont split for now").
 
-**ADR-140, 0.2.53-beta (Max: route a) — JavaScript earns its own row.**
-Step 1 built: `verification.py`'s `javascript` row had been a verbatim
-copy of TypeScript's ("4 repos"); measured on the five TS/JS cells'
-reports (`~/.hobbes/bench/v018/{kbet-ts,ajv-ts,cheerio-ts,zod,hono-build}/report.json`),
-none of 15,167 confirmed edges touches a `.js`/`.jsx`/`.mjs`/`.cjs`
-file, and the 27 drawn edges that do are all `silent`. Now 0 repos,
-`unverified`, and a zero row prints its reason; C-165 registered,
-surfaced; §3.8 split into TypeScript and JavaScript rows (Max: split
-within the architecture, yes; the paragraphs stay). This repo's own
-ingest shows it (`javascript 0 repos` — `scip/`, `tsextract/`, the
-oracle's `.mjs`). **Next, in order:** (3) done (above). (4) Pre-register in
-`oracle-grading.md` §10 (read the TS section first), then grade a
-CommonJS Node library, an ESM package with JSDoc types and one repo
-drawn at random, all contained. Expect CommonJS shapes (`exports.x =
-function`, `Foo.prototype.m = …`) to sit below lane A's symbol floor —
-an expectation, unmeasured. (5) Name them in `verification.py` and
-§3.8 in the same commit (§3.7 step 4).
-
-**ADR-139, 0.2.52-beta (Max: route a) — a `usefixtures` string and an
-`autouse=True` fixture's name are looked up as a parameter is; autouse
-reach is said once (C-4 narrowed again).** Same `uses` edge, each
-evidence row with `via`; one pair keeps the first of parameter,
-`usefixtures`, `autouse`. `tests.json`'s `through_autouse` (module →
-fixtures) holds what a test reaches no other way; `tests_guarding` lists
-the tests that reach a target by a call or a named fixture and says the
-rest in one line; `hobbes review` has `autouse_only`. Counted, not
-followed: a module `pytestmark` (no key row has judged one), a
-non-literal `autouse=`. `-v` key: this repo 4,971 pairs, flask 1,238,
-attrs 118, 0 missed, 0 wrong; the built edges are the probe's. This
-repo: 5,072 injections, 4,058 by autouse; `tests_guarding
-hobbes.extract.staging` lists 441 and says 1,588 once. Unit `6f84` (68
-turns, $5.70), right-clear, merged no-ff; tracker 57 of 40. No graded
-cell re-run (no key judges a `uses` edge).
-
-**A fixture key is collected with `-v`.** Without it pytest prints no
-fixture whose name starts with `_`; ADR-137's "1,004 of 1,004" was of
-the pairs that key printed (its note, C-4 and HISTORY say so). flask
-also needs `-p no:hypothesispytest` (the shared `deps/` carries attrs's
-plugin, which fails on a read-only mount), and the mounts need
-`--security-opt label=disable` on this box. Drivers:
-`~/.hobbes/bench/c4-remainder/` (`probe.py` the two rules in memory,
-`PREREG.md`, `compare.py`, `lookup.py`, `*-key-v.txt` the three verbose
-keys, `<repo>-{base,use,auto,both,built}.json`, `units/` the brief,
-partition and log; its worktree was removed).
-
-**0.2.51-beta (same session):** the doc review found the denominator
-statement still naming all fixture-injected reach; both copies now name
-C-4's remainder (rewritten again at 0.2.52-beta). **The architecture's
-§8 header is a seventh version copy no test holds** — it was missed at
-0.2.51-beta and caught at 0.2.52-beta; bump it by hand.
-
-**The 2026-09-16 review's list is done** but for one item Max has set
-aside: §3.8's paragraph cells as per-language pages ("dont split for
-now"). The C++ recall list is done but for the macro class (C-131,
-parked).
-
-**What landed on 2026-09-19 (both merged no-ff; tracker 56 of 40):**
-
-- **ADR-137, 0.2.49-beta — a pytest fixture injection is a `uses` edge,
-  and test reach follows it (C-4 partial → surfaced).** pytest's lookup
-  (class chain, file and imported names, conftest chain) is syntax;
-  `extract/fixtures.py` walks it; the edge is syntactic / `tree-sitter`,
-  never `calls`; `tests.json` records `through_fixtures`;
-  `tests_guarding` and `hobbes review` say a fixture-only reach.
-  Abstains on: not in the repo, two definitions, an unreadable
-  `parametrize`, a base class. Keyed by `pytest --fixtures-per-test`:
-  this repo 1,004 of 1,004; flask 504 and attrs 104 held out, in the
-  image, 0 wrong. Unit `5393` (89 turns, $7.70).
-- **ADR-138, 0.2.50-beta — a `.h` is claimed through the headers C++
-  has claimed; the C walk knows the files C++ owns (C-142 narrowed).**
-  The C side stays direct — the ADR's first wording did not, and the
-  probe caught it. ScummVM 629 → 273 `.h` read as C, unmatched includes
-  395 → 43; the five cells row-identical. **The `-I` step was measured
-  and not built** (C-133 unmoved). Unit `286a` (61 turns, $4.55).
-- **The docs restructure's first half:** `test_register_tally.py` holds
-  every copy of the register's tally to the segment files; the index's
-  dated notes are `docs/constraints/HISTORY.md` — **a new register note
-  goes there, at the top**; README's C++ paragraph points at the
-  CHANGELOG.
-- Drivers: `~/.hobbes/bench/c4-fixtures/` (`probe.py` and `probe-v1.py`
-  step 0; `compare.py` against pytest's list, `compare-v1.py` before the
-  two display conventions; `lookup.py` the lookup alone, in memory;
-  `heldout/` flask, attrs, `deps/` and their lists; `units/`) and
-  `~/.hobbes/bench/c133-include-path/` (`claim.py`, `place.py`,
-  `regrade/` the five cells, `scummvm-ingest.log`, `units/`). Run the
-  probes with `uv run --project pipeline python`. Both worktrees were
-  removed.
+**Lessons the last sessions paid for:**
+- **The architecture's §8 header is a seventh version copy no test
+  holds** — bump it by hand (missed at 0.2.51-beta).
+- **A fixture key is collected with `-v`:** without it pytest prints no
+  fixture whose name starts with `_`. flask also needs `-p
+  no:hypothesispytest`, and the mounts need `--security-opt
+  label=disable` on this box.
 - **Collecting a foreign Python suite in the image:** `uv pip install
   --target deps --python-version 3.12 --only-binary :all: pytest <its
   deps>` on the host, then `podman run --network none -v <clone>:/work:ro
@@ -188,218 +92,48 @@ parked).
   --fixtures-per-test -q tests`. pytest prints a test one line past its
   first line, a fixture at its first decorator line, and one row per
   fixture name.
-
-**Candidates for the next named work, each measured first** (none is
-started; ADR-140's steps are named, above): C-4's last parts — the injected value's type is lane B's, and
-a module `pytestmark` needs a keyed repo that has one; C-142's
-remainder — the 273 headers nothing
-includes (ADR-138's route b, a content read, not taken); ADR-126 §3 once
-Max decides it; C's residue (W1).
-
-**ADR-136 is built (0.2.48-beta, Max: route a):** the mint reads a
-definition row at a line R1 vacated even in a file that parsed clean.
-ScummVM: 260 symbols in 19 files exactly as predicted, 255 with an
-extent, 30 of 30 sampled names right, byte-identical twice; the four
-graded cells and click row-identical. Unit `e78d` (77 turns, $6.60),
-gate right-clear, verify pass; tracker 54 of 40. P130 missed by two and
-P131 was worded wrongly (a re-home changes an edge's `from`; compare
-evidence rows). Records: §10.21, ADR-136's *Built*, the fifth late-night
-BUILDLOG entry. Drivers: `~/.hobbes/bench/scummvm-scale/` (`vacated.py`,
-`sample.py`, `regrade/` the five cells, `units/` the brief and log; its worktree
-was removed).
-
-Closed on 2026-09-18 with nothing built: the `lane-a-symbol-near` item
-(19 rows on four cells: 10 defaulted or deleted constructors beside an
-overload, 8 the other arm of an `#if`, 1 `typedef struct` line
-convention; every one refused by the next rule anyway — driver
-`~/.hobbes/bench/lane-a-symbol-near/probe.py`); **ScummVM's scale read**
-(`~/.hobbes/bench/scummvm-scale/`: cold 9 min 04 s, warm 2 min 20 s and
-byte-identical; `contradicted` 3.7 s, mint 1.9 s, rehome 0.8 s; lane A's
-cold C++ walk 228 s against 135 s at ADR-128, 23.6 s warm; R1's 401
-names read, no false flag; `vacated.py` the finding); and the caller
-probe's naming grain (`c145-extent/probe.py`: `agree-friend`,
-`agree-nested`; fmt wrong-caller 32 → 3, the old probe kept as
-`probe-v1.py`).
-
-Small and no-spend, any time, optional: a `lane_b` end-to-end case for ADR-135 (the unit's
-ingest test feeds lane B's facts by hand; it needs a fixture
-tree-sitter-cpp misreads *and* scip-clang compiles — an annotation macro
-after a declarator, in `minicpp` or a fixture of its own, without moving
-the lines other tests pin).
-
-### What landed on 2026-09-18, late night (merged no-ff; tracker 53 of 40)
-
-- **The doc review first:** one drift (the handoff's push line),
-  corrected; `c145-extent/wt` removed after checking its three modified
-  files were `main`'s.
-- **C-164 counted key-free, then Max: route (a) for ADR-135.** 18
-  misnamed lane A symbols and 2 swallowing extents, all on fmt; the
-  index's definition row does **not** separate them, a lane B reference
-  at exactly the symbol's name token does (18 of 18, no false flag; read
-  loosely it flags `Base::KickOut` beside `Options::KickOut`).
-- **ADR-135 built (C-164 unsurfaced → partial, 0.2.47-beta):**
-  `name_col` on lane A's C++ functions and methods (`lanea-cpp v5`);
-  `minted.contradicted` before the mint — R1 removes the symbol and its
-  facts take the module's scope, R2 re-reads a swallowing extent from
-  the braces; `graph.json`'s `lane_a_contradicted` and one summary line.
-- **The brief's premises were read in the tree first** (ADR-135,
-  *Accepted*: the identifier node's column, 0-based as lane B's; where
-  the resolutions and definition rows are; the counts in a graph block,
-  not the `parse` record) — and the first real ingest matched.
-- **Checked, not graded (§10.20):** every graded number ±0 on fmt, args,
-  cJSON, sqlite-vector; click identical. fmt 18 refused (13 + 5), 1
-  extent re-read, **wrong-caller 105 → 32, 18 right, 55 lost, no right
-  row moved**; `holds-a-definition` 19 → 13; two definitions newly
-  minted on vacated lines (the simulation did not model them: agree and
-  lost each missed by one row beyond ± 2). One test's borrowed reach
-  returned.
-- Unit `c2cc` (68 turns, $6.61), gate right-clear, verify pass.
-- Drivers: `~/.hobbes/bench/c164-wrong-callers/` (`findstream.py` a
-  clone's cached facts stream; `shapes.py`, `nameref.py` step 0;
-  `simulate.py` + `PREREG-sim.md`; `inspect_r1.py`; `regrade.sh` with
-  `ROOT=`/`OUT=`, which borrows `c145-extent`'s `oracle`, `probe.py` and
-  `compare.py`; `regrade/` the five cells; `units/` the brief and log;
-  its worktree was removed). Run the probes with `uv run --project
-  pipeline python`.
-
-### What landed on 2026-09-18, night (tracker 52 of 40)
-
-- **Top-level drift fixed first** (`1f10357`): the handoff's CI line and
-  the workstreams header.
-- **Max: route (a) for ADR-134.** Before the brief, refusal 3 was
-  measured (`simulate_r3.py`) and **fired 19 times on fmt** where the
-  ADR said "not seen": 13 macro-generated methods whose brace match
-  borrowed the next function's body — a wrong *node* no moved row showed
-  — and 6 true bodies holding a C-164 symbol. Built in its simplest
-  form: refused where any other function or method starts inside.
-- **ADR-134 built (C-145 narrowed again, 0.2.46-beta):** a minted
-  function or method gets `end_line` from a brace match on the blanked
-  text and says `extent: "braces"`; refusals `no-body`, `runs-off`,
-  `conditional-inside`, `holds-a-definition` in `graph.json`'s
-  `minted.extents` with `read` and `rehomed`; `minted.rehome` after the
-  mint moves a `calls`/`uses` fact whose scope is the module's id, empty,
-  or a lane A symbol starting before the extent; the ingest summary and
-  `who_calls` say which minted symbols are scopes.
-- **The brief was wrong, and the real ingest said so:** it claimed a
-  file-scope site has an empty scope; lane A's C and C++ sites carry the
-  module's id. First run: 2 of 16 rows moved on args. The fix and the
-  `extent` mark (a one-line body re-homes, a refusal does not: 56 fmt
-  rows) are the developer's commit after the merge, with a `lane_b`
-  end-to-end case.
-- **Checked, not graded (§10.19):** every graded number ±0 on fmt, args,
-  cJSON, sqlite-vector; click identical. fmt 1,346 extents, 34 + 19
-  refused, 1,290 `calls` + 760 `uses` rows re-homed, agreeing 6,392 →
-  7,610, **lost 1,436 → 188, no right row moved**, reach pairs 3,183 →
-  6,131. args lost 15 → 0. P116's lost count missed (188, not 165: the
-  prediction's arithmetic).
-- Unit `368a` (59 turns, $5.88), gate right-clear, verify pass.
-- Drivers: `~/.hobbes/bench/c145-extent/` (`probe.py`, `simulate.py`,
-  `simulate_r3.py`, `regrade.sh` with `ROOT=`/`OUT=` — before/after on
-  the same clones, grades, probe and `compare.py`; `regrade/` the five
-  cells; `units/` the brief, the log and `u1-fix.patch`; `oracle` the binary
-  built from this tree; its worktree was removed 2026-09-18).
+- **Read a brief's premises in the tree before dispatch** (ADR-134's
+  brief was wrong about a site's scope), and run the real cell before
+  merging; a doer may narrow a brief's wording rightly (unit `5587`
+  kept H-33's row).
+- The hobbes-py and hobbes-go cells cannot be regraded on stored keys:
+  their clone (`adr111-before/hobbes-wt`) is gone; a full regrade needs
+  a worktree at the key's sha or fresh keys.
 - scip-clang 0.4.0 emits no `enclosing_range` (checked in the image).
-
-### What landed on 2026-09-18 (merged no-ff; tracker 51 of 40)
-
-- **Max's two calls:** constructions inside a template stay `uses`
-  (closed); the join's by-name claim measured, then built (route a).
-- **ADR-133, the join claims by position (C-163 registered and lifted,
-  C-162 narrowed, 0.2.45-beta):** the claim's key is the matched
-  resolution's `(file, line, name, col)`. Another column's resolution
-  goes through the unclaimed loop (operator rule, construction rule,
-  else `uses`); the matched occurrence's own column stays hidden
-  (ADR-104, an override's alternate); a columnless **site** keeps the
-  by-name claim.
-- **Measured first** (`~/.hobbes/bench/join-claim/`): 7,308 resolutions
-  hidden on 25 clones, 1,158 at the matched column, the rest true facts —
-  Java's declared type beside `new`, a TS interface beside its function,
-  a Go return type beside a method call, fmt's 19 constructions.
-- **The grades, 44 stored-key cells, before and after on the same
-  clones (§10.18, P108–P113 met):** fmt **6,993 → 7,012, 0 contradicted,
-  strict 99.62%, 30.3% → 30.4%**; 43 cells row-identical; 1,785 `uses` +
-  11 `calls` symbol edges added, none removed; two module edges, both
-  read true. No key judges a `uses` edge.
-- Unit `3569` (26 turns, $1.78), gate right-clear, verify pass.
-- The hobbes-py and hobbes-go cells could not be regraded: their clone
-  (`adr111-before/hobbes-wt`) is gone. A next full regrade needs a
-  worktree at the key's sha or fresh keys.
-
-### What landed on 2026-09-17 (merged no-ff; tracker 50 of 40)
-
-- **ADR-132, constructions (C-162 registered and narrowed):** lane A's
-  C++ walk records construction *tokens* (the declared name of
-  `T x(args)` / `T x{…}` / `T x;` in a declaration that names a type and
-  sits directly in a block or at namespace scope, a member initialiser's
-  name, the `{` of a braced argument or return, the `=` of a defaulted
-  parameter, the type's start in `T{…}` / `new T(…)`), packed beside the
-  operator tokens. The join draws a semantic `calls` fact where a lane B
-  reference **onto a constructor** (`minted.constructor_lines`: the
-  definition row's moniker ends `T#T(…)`) sits at exactly that token,
-  outside a template; inside one it stays `uses` and is counted
-  (`graph.json`'s `constructions` block, one line in the ingest summary).
-  Cache format `lanea-cpp v4`.
-- **Measured first** (`~/.hobbes/bench/cpp-constructions/`): fmt's 8,047
-  missed pairs are 80% the macro class (C-131), 7% gtest's
-  `new TestClass`, 10% no lane B reference, 152 drawable; args (held out)
-  383 of 889 drawable, 484 implicit `EitherFlag` conversions the index
-  does not emit. Drawn naively on fmt: 95 contradicted. One wrong class
-  found by the hand read and excluded before args ran (a constructor's
-  own declaration under a macro-broken class head).
-- **The grades, stored keys, 0.2.44-beta:** args **2,198 → 2,567
-  confirmed, 0 contradicted, 62.5% → 72.9%**, the probe's export row for
-  row; fmt **6,901 → 6,993, 0 contradicted, 30.1% → 30.3%, strict
-  99.62%**; cJSON and sqlite-vector identical. P103–P107 met.
-- **Recorded misses:** P102's count (fmt 6,993 where 7,012 ± 3 was
-  predicted — item 2 above); step 0's P-c1 and P-c3 on args; P-s5 by one
-  row.
-- **ADR-131 amended (Max: route a), C-153 narrowed a third time
-  (0.2.43-beta):** a lane B reference named `operator…` at exactly an
-  operator token inside a template draws nothing — no `calls`, no `uses`.
-  fmt −156 `uses` symbol edges, args −24, every graded number ±0; the one
-  module edge gone on each cell was wrong. The price: 175 key-confirmed
-  in-template rows on fmt were true dependencies.
-- Units: `4033` (36 turns, $1.78) and `4834` (84 turns, $8.57), both gate
-  right-clear, verify pass.
-- **Housekeeping:** seven merged worktrees removed (branches kept);
-  `ttt/hobbes-base` stays. `cpp-constructions/wt` is this session's,
-  removable.
-
-### C++ recall — what is next, in order, each measured first
-
-1. **Constructions: built (ADR-132).** What is left is registered in
-   C-162: the macro class, templates, untokened conversions and
-   references the index does not emit. The using-declaration claim
-   closed with ADR-133.
-2. **A lost definition's extent: built (ADR-134, 0.2.46-beta).** What
-   is left is in C-145: the refused extents (34 conditionals, 19 holding
-   a definition on fmt) and definitions nothing names.
-2a. **C-164's wrong callers: built (ADR-135, 0.2.47-beta).** What is
-   left is in C-164: no index, uncompiled code, other recovery shapes,
-   and the swallowed tests, which are still not symbols (Route B,
-   blanking known-empty macros, is the macro class's — C-131, parked).
-3. **The `lane-a-symbol-near` rows: read, nothing to build**
-   (2026-09-18): no line-convention class; each row is refused by the
-   next rule anyway.
-4. **ScummVM as a scale read: done** (2026-09-18, BUILDLOG; it found
-   ADR-136's remainder, built at 0.2.48-beta). As the item was written: symbols minted, edges gained,
-   the mint's seconds, **and the operator walk's cost** —
-   `_unevaluated` and `_in_template` each climb to the root per token,
-   about 3.2 million tokens there (a 600-file sample: 2.09 tokens per
-   call expression). The lane A cache pays it once per file.
-5. **Operators at a macro's name** (3,011 references on fmt) are the
-   macro class's question (C-131, parked): the position is the
-   invocation's, and the key contradicts 73 of them.
-6. TS's floor shapes stay off the table (Max, 2026-09-10); Claude's read
-   on 2026-09-17 was not to reopen them before C++ is done
-   (class-property functions are 6.2% of one cell).
 
 ## Where earlier sessions' drivers are (their records are the BUILDLOG's)
 
-The 2026-09-15 and 2026-09-16 resume points were folded into their
-BUILDLOG entries on 2026-09-17; only the paths a next session reaches for
-stay here.
+The resume points of 2026-09-15 to 2026-09-19 were folded into their
+BUILDLOG entries; only the paths a next session reaches for stay here.
+Run the probes with `uv run --project pipeline python`; every worktree
+named below was removed unless it says otherwise.
 
+- **JavaScript (ADR-140):** `~/.hobbes/bench/js-cells/` (above);
+  `~/.hobbes/bench/h33-regrade/` (`regrade.sh <label> <tsc-oracle.mjs>
+  <oracle>` runs the oracle in the image over the five TS cells' stored
+  exports; `before/`, `after/`, `compare.txt`, `h34/`); the five TS/JS
+  cells' reports at `~/.hobbes/bench/v018/{kbet-ts,ajv-ts,cheerio-ts,zod,hono-build}/report.json`.
+- **Fixture reach (ADR-137, ADR-139):** `~/.hobbes/bench/c4-fixtures/`
+  (`probe.py` and `probe-v1.py`, `compare.py`, `compare-v1.py`,
+  `lookup.py`, `heldout/` flask, attrs, `deps/` and their lists,
+  `units/`) and `~/.hobbes/bench/c4-remainder/` (`probe.py`,
+  `PREREG.md`, `compare.py`, `lookup.py`, `*-key-v.txt` the three
+  verbose keys, `<repo>-{base,use,auto,both,built}.json`, `units/`).
+- **Headers (ADR-138):** `~/.hobbes/bench/c133-include-path/`
+  (`claim.py`, `place.py`, `regrade/` the five cells,
+  `scummvm-ingest.log`, `units/`).
+- **ScummVM and the vacated line (ADR-136):**
+  `~/.hobbes/bench/scummvm-scale/` (`vacated.py`, `sample.py`,
+  `regrade/`, `units/`); `~/.hobbes/bench/lane-a-symbol-near/probe.py`.
+- **C-164's wrong callers (ADR-135):** `~/.hobbes/bench/c164-wrong-callers/`
+  (`findstream.py` a clone's cached facts stream; `shapes.py`,
+  `nameref.py`; `simulate.py` + `PREREG-sim.md`; `inspect_r1.py`;
+  `regrade.sh` with `ROOT=`/`OUT=`, which borrows `c145-extent`'s
+  `oracle`, `probe.py` and `compare.py`; `regrade/`; `units/`).
+- **A lost definition's extent (ADR-134):** `~/.hobbes/bench/c145-extent/`
+  (`probe.py` — `probe-v1.py` its first form — `simulate.py`,
+  `simulate_r3.py`, `regrade.sh` with `ROOT=`/`OUT=`, `regrade/`,
+  `units/` with `u1-fix.patch`; `oracle` the binary built from the tree).
 - **The join's claim (ADR-133):** `~/.hobbes/bench/join-claim/`
   (`probe.py` step 0, `run-all.sh` and `out/` the 24 clones;
   `ingest_bypos.py` the in-memory rule, `sim.sh` + `sim-cells.tsv` +
@@ -467,7 +201,8 @@ stay here.
 1. **Open for Max (no spend):**
    - **Settled 2026-09-19:** ADR-137's, ADR-138's and ADR-139's route
      (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); ADR-140's
-     route (a), step 1 built (0.2.53-beta); §3.8's paragraphs stay in
+     route (a), all five steps built (0.2.53–0.2.55-beta), and the cells
+     recorded in `docs/oracle/cells/`; §3.8's paragraphs stay in
      the architecture ("dont split for now"), its TS/JS row split.
    - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
      ADR-135's route (a) — built (0.2.47-beta);
@@ -595,8 +330,8 @@ min each.
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
-  is drawn through TypeScript's lanes and graded on nothing yet (C-165,
-  ADR-140).
+  is drawn through TypeScript's lanes and graded on three repos of its
+  own (ADR-140), none with its dependencies installed (C-165).
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
