@@ -1828,6 +1828,65 @@ beside it).**
   under `#define strlib_open lua_strlibopen` is `Grim::lua_strlibopen`.
 - **P133 — met.** Byte-identical.
 
+### 10.22 JavaScript — written 2026-09-19, before any JavaScript cell is ingested or graded (ADR-140 step 4)
+
+JavaScript has no graded edge (C-165): every TS/JS cell was a TypeScript
+program. ADR-140 step 3 gave the TS oracle `--no-tsconfig` (unit `a25f`),
+and H-33's fix (unit `9e00`) made a call through a parameter read
+`func-value→parameter`. Nothing below has been ingested.
+
+**Priors.**
+- `minijs` (the oracle's fixture): tsc resolves every CommonJS shape —
+  `exports.double = function`, `Counter.prototype.inc = function`, the
+  destructured `require` — and `new Greeter()` of a class with no
+  declared constructor is silent.
+- Hobbes on a scratch copy of `minijs` (0.2.53-beta, read by hand, not
+  graded): 7 `calls` edges, all semantic, each to the declaration tsc
+  names. Nothing is drawn for `math.double(2)`, `c.inc()` or `new
+  Counter(1)`: a function assigned to a property (`exports.x =`,
+  `X.prototype.y =`) is not a lane A symbol, so a call into it is below
+  the floor (C-9, C-58), and a call written inside such a function is
+  attributed to the module.
+- The shape counts (regex over non-test sources, a rough read): Express
+  defines about 81 of its ~153 library functions as `x.y = function`;
+  Preact and xmpp.js define theirs mostly as declarations and class
+  members (15 and 4 property-assigned).
+- **`jsconfig.json` is read by neither lane** (both key zones on
+  `tsconfig.json`). Measured on Preact's zone-less files, key only
+  (`~/.hobbes/bench/js-cells/jsconfig-probe/`): of 22,804 call sites,
+  22,682 resolve to the same in-repo targets under the ingest's generated
+  options and under Preact's `jsconfig.json` (which maps `preact` onto
+  the repo); 59 resolve only under the generated options, 17 only under
+  the jsconfig, 9 to different targets, and 35 exist in one program only.
+
+**The cells.** Each is graded against the program the ingest built for
+it, with the environment lane B had.
+
+| Cell | Repo @ sha | Why | Oracle's program | Environment (both sides) |
+|---|---|---|---|---|
+| O3-JS-1 | `expressjs/express` @ `9a34acf03cb8` | named: a CommonJS Node library (141 `.js`, no config of any kind) | `--no-tsconfig`, zone `.` | no lockfile: nothing provisioned (C-23) |
+| O3-JS-2 | `preactjs/preact` @ `8101ff821690` | named: ESM with JSDoc types and JSX, a `jsconfig.json` with `paths` | `--no-tsconfig` over the ingest's root zone — the tree without `demo/`, `test/ts/` and `compat/test/ts/`, the three `tsconfig.json` zones, which the flag refuses; Hobbes edges there read `silent`/`not-loaded` | pnpm: nothing provisioned (C-23) |
+| O3-JS-3 | `xmppjs/xmpp.js` @ `9cce6c14a7f1` | **the draw** (`~/.hobbes/bench/js-cells/DRAW-RULE.md`, written before it: `language:javascript stars:300..3000 pushed:>2026-03-01`, shuffled with `random.Random(20260919)`; five passed over, each with its reason in `draw-log.md`) — an ESM npm-workspaces monorepo, 171 files | `--no-tsconfig`, zone `.` | `package-lock.json`: the tree the ingest provisions, mounted for the oracle too |
+
+| # | Cell | Prediction | Grading rule |
+|---|---|---|---|
+| P134 | every JS cell | precision-against-oracle **100%**, 0 hobbes-wrong, with its strict companion (ADR-124) stated | met after match-defect triage |
+| P135 | every JS cell | any contradiction, if one appears, is on the syntactic tier (lane A's fallback where lane B is silent) | met if the tier split says so; undecidable at 0 contradictions |
+| P136 | O3-JS-1 (Express) | recall over in-repo pairs **≤ 35%**, and the largest miss class is a call into a function assigned to a property — the oracle's `static→anonymous-function` | met if both hold |
+| P137 | O3-JS-2, O3-JS-3 | recall over in-repo pairs **≥ 45%** (the TS cells' band, 45–72%) | met per cell |
+| P138 | O3-JS-3 (xmpp.js) | a call across workspace packages (`@xmpp/*`) is resolved in both programs or in neither; the grade names which | recorded; a one-sided resolution is a finding |
+| P139 | `minijs` | graded against a contained ingest of the fixture: 7 confirmed, 0 contradicted; recall 7 of 11 in-repo pairs; the misses `new Counter`, `c.inc()`, `math.double(2)` and `f("a")` (`func-value→parameter`) | met if the grade says exactly so |
+| P140 | every JS cell | poison check PASS, 0 falsely confirmed | met per cell |
+| P141 | the JS lane | at least one defect of the oracle-at-another-grain class is found in the first triage before any number is quoted (P14's habit; H-33 was found before this section, by the fixture) | recorded regardless |
+| P142 | O3-JS-2 (Preact) | graded under the generated program only; the jsconfig difference above is stated beside the cell, never mixed into its numbers | met if the cell record keeps them apart |
+
+**What the row rests on.** The JavaScript row of §3.8 names only the
+cells graded here. A mechanism triage charges to Hobbes on the semantic
+tier is registered in the same commit as its cell; whether it is fixed
+before the row lands is the lead's call. Ignoring `jsconfig.json` is a
+concession whichever way the cells come out: it is to be registered, and
+whether the lanes should read it is a separate decision.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

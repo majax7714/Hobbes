@@ -34,6 +34,20 @@ against them first.
 **Nothing is waiting on Max but ADR-126 §3. ADR-140's step 3 is built
 and H-33 fixed (Max: "proceed with recommended"); step 4 is next.**
 
+**ADR-140 step 4 — pre-registered, waiting on Max's review before
+anything is ingested or graded** (`oracle-grading.md` §10.22, P134–P142).
+Cells: Express @ `9a34acf03cb8` (CommonJS, named), Preact @ `8101ff821690`
+(ESM + JSDoc + JSX + a `jsconfig.json` with `paths`, named; the oracle
+over the ingest's root zone, a copy without its three `tsconfig.json`
+subtrees), xmpp.js @ `9cce6c14a7f1` (the draw: `DRAW-RULE.md` written
+first, seed 20260919, five passed over). Clones and drivers:
+`~/.hobbes/bench/js-cells/` (`repos/`, `pool.json`, `draw.py`,
+`draw-log.md`, `jsconfig-probe/` with `compare.py`). Measured, key only:
+Preact's `jsconfig.json`, which neither lane reads, changes 120 of
+22,804 sites' resolution (99.5% identical). Prior from a scratch ingest
+of `minijs`: a function assigned to a property is not a lane A symbol,
+so calls into it draw nothing — Express's main shape.
+
 **H-33 — fixed** (unit `S-20260919T193208Z-9e00`, 35 turns, $1.71,
 right-clear, merged `b15a443`; tracker 59 of 40): the TS oracle's
 `declKind` asks `isParameter` first. Regraded contained on the five TS

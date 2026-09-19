@@ -13419,3 +13419,15 @@ RC-7's tally and `oracle-misses.md` note it. The unit named a smaller
 neighbour, left as it is: a destructured parameter's name reads
 `func-value→local-binding` — the mode is right, the kind names a local.
 **Next:** ADR-140's step 4.
+
+**Then ADR-140 step 4's preparation (Max: "good to start … for me to
+review before grading").** The draw rule was written to
+`~/.hobbes/bench/js-cells/DRAW-RULE.md` before the pool was fetched; the
+pool (1,000 repos) shuffled with seed 20260919 gave xmppjs/xmpp.js as
+the sixth in order, five passed over with reasons. Express (CommonJS)
+and Preact (ESM, JSDoc, JSX, a `jsconfig.json` with `paths`) are the
+named cells. Measured on the key alone: Preact's `jsconfig.json`, which
+neither lane reads, changes 120 of 22,804 sites' resolution. A scratch
+ingest of `minijs` showed the prior that shapes Express's prediction: a
+function assigned to a property is not a lane A symbol. §10.22 written
+(P134–P142) and committed before any cell is ingested; nothing graded.
