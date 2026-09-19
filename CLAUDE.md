@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 140;
+  architecture doesn't already make. Number sequentially (last: 141;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -325,7 +325,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   **Next session (Max): the JavaScript constraints** — C-167's trace,
   C-168's construction rule for TS/JS, a JS cell with its dependencies
   provisioned (C-165); the order is in the handoff.
-- **Open for Max:** ADR-126 §3 — whether to build a "may reach through
+- **Open for Max:** ADR-141's route (C-167 traced: both lanes stop at a
+  `module.exports = require(…)` re-export; route (a), lane A follows it,
+  probed Express 340/340 → 992/992, recall 22.4% → 65.3%, the other JS
+  cells row-identical); ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and

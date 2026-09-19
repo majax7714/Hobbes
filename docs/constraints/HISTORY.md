@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-167 traced, 2026-09-19 (sixth session; ADR-141 proposed, no version move):
+- **C-167 (partial, unchanged in status):** its *Because* is traced —
+  both lanes stop at the re-exporting file's `export=`; scip-typescript
+  names the site with that file's document-local symbol (a `Provider`
+  line added). Its *You find out* corrected: the sites were counted
+  `nested-decl`, not `unclassified`. Counts unchanged.
+
 C-165 narrowed, C-167 and C-168 registered, 2026-09-19 (0.2.55-beta; ADR-140 step 5):
 - **C-165 narrowed (surfaced):** JavaScript is graded on three repos
   (§10.22), none with its dependencies installed — that is what is left.

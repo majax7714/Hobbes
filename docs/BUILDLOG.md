@@ -13464,3 +13464,48 @@ START HERE names next session's order: C-167's trace, C-168's
 construction rule, a JS cell with its dependencies provisioned (C-165).
 Everything this session is on `main`, unpushed. The knowledge server
 needs a restart to serve 0.2.55-beta (C-65).
+
+## 2026-09-19 (sixth) — the top-level review's drift (the handoff rewritten); C-167 traced and probed (ADR-141 proposed; no version move)
+
+**The review first (Max: "review top level documentation and report
+back").** Every version copy read 0.2.55-beta; the session-log, ADR,
+register and cell counts agreed (60 logs, ADR-140, 168 entries, 93 cells
+in `cells.json` — dagger's modules one each). One drift, the handoff:
+its header still said the fifth session's commits were unpushed and the
+knowledge server needed a restart (Max had pushed through `13ff9d5`,
+CI run 35468332243 in progress; the server served 0.2.55-beta), its
+ADR-140 section still listed steps 4–5 as next, and WHERE THINGS STAND
+said JavaScript was graded on nothing. It had also piled to 718 lines.
+Rewritten (`2b60953`, Max: "fix the drift"): the header current, the
+2026-09-17 to 19 landed notes folded to their BUILDLOG entries with
+every driver path kept, 452 lines.
+
+**C-167 traced (Max: "then proceed with c-167").** Express's tests
+`require('..')` the root `index.js`, one line: `module.exports =
+require('./lib/express')`. scip-typescript re-run in the image, on a
+copy of Express and on a five-file reproduction, names the call site
+`local N` — the re-exporting file's own document-local symbol, written
+into another document — and the helper drops every local, so lane B
+gives the join nothing. 652 `express(` occurrences carry one: exactly
+the 652 misses. Lane A's `getAliasedSymbol()` ends at `index.js`'s
+`export=` too (TypeScript does not alias a `require` call on that right
+side), so the site records `origin: nested` — the tail's `nested-decl`,
+not the `unclassified` C-167 was registered with (corrected, a
+`Provider` line added, HISTORY noted). `module.exports = lib` after a
+`require` resolves in both lanes; a direct require of the defining file
+too.
+
+**The rule probed, pre-registered first** (`~/.hobbes/bench/c167-reexport/`).
+In a scratch copy of `tsextract`: follow `module.exports =
+require("<literal>")` through the literal's module symbol to the
+required module's `export=`, at most eight hops. Copies ingested with
+`main` and with the probe, graded against the stored keys: **Express
+340/340 → 992/992, recall 22.4% → 65.3%, 0 contradicted, poison PASS** —
+P1 exactly; +100 syntactic `calls` edges (652 evidence rows) into
+`createApplication`, +92 module edges, nothing removed, no symbol or
+node changed. Preact, xmpp.js and `minijs` row-identical (P3, P4); the
+five TS cells' clones and this repo hold no such file. ADR-141 written
+as *proposed* with three routes, (a) recommended; nothing built, no
+version move. Also counted, not registered: a callee whose site name is
+not its definition's joins as `syntactic calls` beside a `semantic
+uses` (Express 2, Preact 5, xmpp.js 41) — the join matches by name.

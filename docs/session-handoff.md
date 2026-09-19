@@ -41,13 +41,29 @@ Express clone at `repos/expressjs__express`, ingested at 0.2.54-beta).
 
 **The JavaScript constraints (Max: "we will tackle constraints from js
 next session"),** in the order to measure them:
-1. **C-167** — trace why `express()` draws nothing: the tests'
-   `require('..')` → `index.js`'s `module.exports = require('./lib/express')`
-   → `exports = module.exports = createApplication`. Read lane B's facts
-   at `test/app.js:9` (does scip-typescript name `createApplication`, the
-   local `express`, or nothing?) and lane A's call record there. 652 of
-   Express's misses. (Started in the sixth session — see its BUILDLOG
-   entry.)
+1. **C-167 — traced and probed; ADR-141 proposed, waiting on Max's
+   route** (sixth session). Both lanes stop at `index.js`'s `export=`
+   (`module.exports = require('./lib/express')`): lane A's checker ends
+   there (`nested-decl`), and scip-typescript names the site with that
+   file's document-local `local N`, which the helper drops — 652
+   occurrences on Express, exactly its 652 misses. Route (a): lane A
+   follows `module.exports = require("<literal>")` through the module
+   symbol to the required module's `export=` (at most 8 hops), drawn as
+   the syntactic fallback. Probed on copies, stored keys: **Express
+   340/340 → 992/992, recall 22.4% → 65.3%, 0 contradicted, poison PASS**
+   (+100 `calls` edges, +92 module edges, 0 removed); Preact, xmpp.js,
+   `minijs` row-identical; the five TS cells and this repo hold no such
+   file. On Max's word: one dispatched unit (ADR-141 names the rule, the
+   fixture beside `minijs` and the `lane_b` case), then 0.2.56-beta with
+   §10.22's Express number and C-167 narrowed. Drivers:
+   `~/.hobbes/bench/c167-reexport/` (`PREREG.md`, `run.sh <label>
+   <checkout> <clone> <cell>` — copy, ingest, grade against
+   `js-cells/regrade/h34/<cell>/oracle.json`; `probe-lanea.patch`;
+   `trace/` the reproduction, `dump.mjs`, `inspect.mjs` and Express's
+   raw occurrence dump; `<cell>-{before,after}/`, `clones/`).
+   Also counted (not a constraint): a callee whose site name differs
+   from its definition's joins as `syntactic calls` + `semantic uses`
+   (Express 2, Preact 5, xmpp.js 41 `#` methods) — ADR-141's last section.
 2. **C-168** — a construction rule for TS/JS (`new F()` drawn `calls`
    where lane B names the class or constructor function at the callee),
    the way ADR-132 did C++; measure on xmpp.js (104), Preact (570), ajv

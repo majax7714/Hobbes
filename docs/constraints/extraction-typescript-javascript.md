@@ -151,19 +151,30 @@
   `index.js`, then `const express = require('..'); express()`). tsc
   resolves the call to the function (`createApplication`); Hobbes draws
   nothing at the site.
-- **Because:** not yet traced. On Express the ingest classes those sites
-  `unclassified` in the tail; the whole graph holds 3 `uses` and 2
-  syntactic `calls` edges into `createApplication`. Whether lane B's
-  index stops at the re-export or the join declines what it names is
-  the trace still to do. A direct `module.exports = F` required and
-  called by name is drawn (`minijs`), and so is a destructured
-  `require`.
+- **Because:** traced 2026-09-19 (ADR-141, proposed). Both lanes stop
+  at the re-exporting file's `export=`: TypeScript does not alias a
+  `require` call written on the right side of `module.exports =`, so
+  lane A's checker ends there (`origin: nested`, no callee), and
+  scip-typescript names the call site with that file's **document-local**
+  symbol (`local N`, defined in no document the site is in), which the
+  helper drops as it drops every local. On Express, 652 `express(`
+  occurrences carry such a local — exactly the 652 misses. A direct
+  `module.exports = F` required and called by name is drawn (`minijs`),
+  so is a destructured `require`, and so is `module.exports = lib` after
+  `var lib = require(…)`.
+- **Provider:** scip-typescript writes a document-local symbol into
+  another document at a call through `module.exports = require(…)`
+  (scip-typescript as pinned in `scip/`; reproduced in the image,
+  `~/.hobbes/bench/c167-reexport/trace/`).
 - **Bites at:** the CommonJS package pattern — a root `index.js` that
   re-exports `lib/`. Express: 652 of its 1,180 missed pairs, one callee
   (`oracle-grading.md` §10.22).
 - **You find out:** **partial** — the sites are counted in the ingest
-  summary's capture line and `list_blind_spots` as `unclassified`, never
-  named as this shape.
+  summary's capture line and `list_blind_spots` as `nested-decl`
+  (declared in another repo file below the modelled vocabulary), never
+  named as this shape. (Corrected 2026-09-19: registered as
+  `unclassified`; the trace read `nested-decl`, 706 on Express, 652 of
+  them this shape.)
 - **Source:** ADR-140 step 4, Express's first grade, 2026-09-19.
 
 ### C-168 — A construction (`new F()`) is drawn `uses`, not `calls`, in TypeScript and JavaScript — *registered 2026-09-19*
