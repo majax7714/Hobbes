@@ -167,10 +167,14 @@ Premises, read in the tree:
   already receives the claimed set. The C walk's include step needs
   that set (and the C++ sources and headers) as *known paths*, not as
   files it parses: an include that lands on one draws its `imports`
-  edge to that file's module id — the id rule is the same in both walks
-  — and is no longer a `c-includes` miss. `cppsource._join` already does
+  edge to that file's module id and is no longer a `c-includes` miss.
+  The id must be the **owning walk's**: the two `module_id` rules agree
+  on every header, but `csource.module_id` keeps a `.cpp`'s extension
+  where `cppsource.module_id` drops it, and ScummVM does `#include` a
+  `.cpp` (`devtools/create_titanic`). `cppsource._join` already does
   the mirror (`known_files = owned | c_sources | left_to_c`).
 - Lane A's C++ cache (ADR-128) keys a file's parse by content, not by
   who claimed it; the claimed set is recomputed every ingest.
-  *Consequences*' "the cache key moves" was wrong: nothing in the cache
-  changes.
+  *Consequences*' "the cache key moves" named the wrong reason: the key
+  carries a fingerprint of `hobbes/extract/*.py`, so the first ingest
+  after any change there is cold, this one included.
