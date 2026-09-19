@@ -228,9 +228,10 @@ the best on-ramp for a new contributor who should learn the codebase.*
 
 - **JavaScript's evidence (ADR-140, named by Max 2026-09-19; C-165).**
   Step 1 built at 0.2.53-beta: `javascript` claims 0 repos until
-  graded. Open, in order: (3) `tsc-oracle.mjs` grades a zone with no
-  tsconfig under the config lane B generates, with a `minijs` fixture
-  test (under `bench/`, no version); (4) two or three JavaScript repos
+  graded. (3) built 2026-09-19 (unit `a25f`: `tsc-oracle.mjs
+  --no-tsconfig`, the `minijs` fixture); it surfaced H-33 (the TS
+  oracle's `parameter` kind is unreachable), to fix before (4). Open:
+  (4) two or three JavaScript repos
   pre-registered in `oracle-grading.md` §10 — a CommonJS Node library,
   an ESM package with JSDoc types, one drawn at random — ingested
   contained and graded, misses read by class; (5) the row names them.

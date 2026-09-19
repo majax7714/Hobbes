@@ -296,7 +296,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **57 of 40**
+  drift test; re-render after filling a review block) reads **58 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
 - **Latest — 0.2.49-beta to 0.2.52-beta (2026-09-19).** ADR-137: *a
@@ -318,9 +318,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   measured, none of the TS/JS cells' 15,167 confirmed edges touches a
   JavaScript file. The row now reads 0 repos with its reason (C-165,
   surfaced) and §3.8 splits TypeScript and JavaScript.
-  **Next:** ADR-140's steps 3–5 — the oracle grades a zone with no
-  tsconfig, then two or three JavaScript repos are pre-registered and
-  graded. Other candidates, each measured first: C-142's headers nothing
+  Step 3 built (unit `a25f`): `tsc-oracle.mjs --no-tsconfig`, the
+  `minijs` fixture; it surfaced **H-33** (open): the TS oracle never
+  labels a target `parameter`, so parameter calls read `static→closure`.
+  **Next:** H-33's fix, then ADR-140's step 4 — two or three JavaScript
+  repos pre-registered and graded. Other candidates, each measured first: C-142's headers nothing
   includes, C's residue (W1), C-4's module `pytestmark` once a repo with
   one is keyed.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through

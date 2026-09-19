@@ -13374,3 +13374,30 @@ and the re-ingest now prints the zero row with its reason.
 Suites at 0.2.53-beta: 2,093 pytest, Go `./...` green. Binaries and
 image rebuilt, repo re-ingested. **Next:** ADR-140's step 3, the
 oracle's no-tsconfig zone.
+
+**Later the same session — ADR-140 step 3 dispatched (Max: "brief it as
+a dispatch unit").** Premises read in the tree before the brief: both
+lanes key zones on `tsconfig.json` alone (`_nearest_config_dir`,
+`nearestTsconfig`), a `jsconfig.json` is staged but its options never
+read (to measure at step 4), the oracle's `files` is exactly the
+in-repo non-declaration sources, `OracleExport` is plain
+`encoding/json`, and a session mounts `bench/oracle/ts/node_modules`
+read-only (unit `8d48` ran the TS oracle's tests in a session). Unit
+`S-20260919T191744Z-a25f` (56 turns, $3.15, 7 min): gate clear, verify
+pass, 11 files. Reviewed whole; on the host in a worktree the new tests
+RUN and PASS, the oracle module green, vet and gofmt clean; without the
+flag the minits export is byte-identical once the typescript install
+path is normalised. Merged no-ff (`bb7c685`); tracker 58 of 40.
+
+tsc resolves every CommonJS shape the fixture holds (`exports.double =
+function`, `Counter.prototype.inc`, the destructured `require`), so the
+key can judge the edges most in doubt. `new Greeter()` with no declared
+constructor is silent — the compiler's. **The unit surfaced H-33, an
+oracle defect it did not cause:** `declKind` tests `isClosure` before
+`isParameter`, and every parameter sits inside a function, so no TS
+target is ever `parameter` and every call through one reads
+`static→closure` on every TS cell (174–324 pairs a cell). Precision is
+untouched; the miss attribution in `oracle-misses.md` and C-58's reading
+are not. Logged open, root RC-7 (its patch's parameter shape never
+fired). Proposed to Max: fix it before step 4. 2,093 pytest, the oracle
+module and `report` green.
