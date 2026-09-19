@@ -1,6 +1,6 @@
 # ADR-137 — A pytest fixture injection is an edge the test's reach follows
 
-**Date:** 2026-09-19 · **Status:** proposed — measured, nothing built, no version move. The routes below are Max's.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a); the premises read in the tree before the brief (*Accepted*, below). Not yet built.
 
 Follows ADR-007 (test reach is the closure over `calls` edges; fixtures
 are dynamic injection and out of static scope) and the 2026-09-16
@@ -140,3 +140,43 @@ fixture, so `tests_guarding` and `hobbes review` can label the step.
 - `tests.json` grows a field; `hobbes review`'s coverage verdicts can
   move on a fixture-heavy repo (toward fewer "unguarded" lines), and the
   CHANGELOG says so.
+
+## Accepted — route (a), and the premises read before the brief (2026-09-19)
+
+Read in the tree, because a brief's premises have been wrong before
+(ADR-134):
+
+- **A Python `Symbol` carries no parameters.** `pysource.Symbol` is
+  qualname, name, kind, the two lines and its decorators. The unit adds
+  the parameter names (undefaulted, not `*args`/`**kwargs`) with their
+  lines. A `Decorator` keeps only string-literal arguments, so
+  `@pytest.fixture(name="x")` is readable as it stands and
+  `@pytest.mark.parametrize(["a", "b"], …)` is not: the walk records the
+  parametrized names itself, in either spelling, and a function whose
+  parametrize argument it cannot read abstains whole.
+- **`autouse=True` is not a string literal and is dropped by the walk.**
+  The *Decision* said autouse fixtures are "left out, counted". They are
+  left out and **not** counted; `usefixtures` marks are counted. C-4's
+  remainder names both.
+- **Imported names are already resolved**: `graph._NameEnv.bindings`
+  holds `("symbol", module, name)` for `from x import y`. It is private
+  to `graph.py`; the unit exposes the read rather than re-deriving it.
+- **The projection is the only producer of symbol edges (ADR-031)**,
+  keyed `(from, to, type, tier, lane)` and sorted. The injection edges
+  are appended inside `_build_symbol_layer`, after the projection, as
+  `uses` / `syntactic` / `tree-sitter` — a combination no edge has today
+  (every `uses` edge is lane B's) — and the list is re-sorted by the
+  same key, so ADR-031's sentence stays true.
+- **`conftest.py` is not a test file** to `testmap.is_test_file`, so a
+  conftest is a *source* module in `reaches_modules`. Following an
+  injection into a conftest fixture therefore lists the conftest as a
+  module the test reaches. That is true, and it is what a call into a
+  conftest helper already does; left as it is.
+- **Two definitions of one qualname keep the first symbol record**
+  (`graph._symbol_records`). A fixture name defined twice at one scope
+  has no id to point at: abstain (`two-definitions`).
+
+The unit is the pipeline's half: the walk, the lookup, the edges, the
+test map, the ingest summary. `tests_guarding`'s "through fixture" line
+(the Go proxy), `hobbes review`'s, the register, the version and the
+docs are the developer's, after the merge.
