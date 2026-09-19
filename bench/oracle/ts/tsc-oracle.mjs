@@ -297,13 +297,48 @@ function declKind(decl) {
   return "other";
 }
 
+// H-35: `/** @type {(n: number) => number} */` above `function twice(n)`
+// resolves to the function type node *inside the comment*, so the
+// signature's declaration is the annotation and `declKind` calls it a
+// closure on the comment's line. The callee is the declaration the tag
+// is attached to. Mapped: a `@type` tag whose host is a function-like
+// declaration (that function), and one whose host is a single variable
+// with a function literal behind it (the variable declaration, which is
+// what the binding path would name). Left as it is: every other JSDoc
+// shape — a `@param`'s function type (a parameter typed by a callback is
+// the binding path's, and must keep reading `func-value→parameter`,
+// H-33), a `@type` on a property, a `@callback`/`@typedef` used as a
+// type.
+function jsDocTypeHost(decl) {
+  const tag = ts.findAncestor(decl, ts.isJSDocTypeTag);
+  if (!tag || !tag.parent || !ts.isJSDoc(tag.parent)) return null;
+  const host = tag.parent.parent;
+  if (!host) return null;
+  if (ts.isFunctionLike(host) && !ts.isTypeNode(host)) return host;
+  const v = ts.isVariableStatement(host) && host.declarationList.declarations.length === 1
+    ? host.declarationList.declarations[0]
+    : ts.isVariableDeclaration(host) ? host : null;
+  if (v && v.initializer && (ts.isArrowFunction(v.initializer) || ts.isFunctionExpression(v.initializer))) return v;
+  return null;
+}
+
 function target(decl) {
   if (ts.isSourceFile(decl)) return null; // a dynamic import(): a module, not a callee declaration
   const sf = decl.getSourceFile && decl.getSourceFile();
   if (!sf) return null; // synthesized (JSX intrinsic, union apply): no declaration to grade against
   const nm = nameNode(decl);
   const file = sf.fileName;
-  const external = !inRepo(file) || sf.isDeclarationFile;
+  // H-34: a declaration file *inside* the repo is in-repo, whatever its
+  // extension — a repo that types its own JavaScript (Preact's
+  // `src/index.d.ts`) is called into from its own sources, and an
+  // absolute key there matches no Hobbes edge. `inRepo` already excludes
+  // node_modules, so a `.d.ts` under one, a `.d.ts` outside the repo and
+  // TypeScript's own `lib.*.d.ts` stay external. Such a target now
+  // counts as an in-repo pair for recall (the grader reads a
+  // non-external target as in-repo); the site walk still skips
+  // declaration files, so a `.d.ts` is never in `files` and contributes
+  // no sites of its own.
+  const external = !inRepo(file);
   return {
     pos: { path: external ? file : rel(file), line: line1(sf, nm.getStart(sf)) },
     name: (decl.symbol && checker.getFullyQualifiedName(decl.symbol)) || (nm.getText ? nm.getText(sf) : "?"),
@@ -382,7 +417,8 @@ for (const sf of program.getSourceFiles()) {
       }
       let sig;
       try { sig = checker.getResolvedSignature(node); } catch { sig = undefined; }
-      const decl = sig && sig.getDeclaration();
+      let decl = sig && sig.getDeclaration();
+      if (decl) decl = jsDocTypeHost(decl) ?? decl;
       // The callee's *binding* (D-O4): when the resolved signature is an
       // anonymous call signature — a type literal's or interface's
       // `(...): T`, the shape of every `const useX = create(...)` hook
