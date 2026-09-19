@@ -198,7 +198,7 @@ Suite sizes at the last check (2026-09-19, 0.2.54-beta; oracle-lane Go
 counted 2026-09-16): 2,093 pytest (10 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
-vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
+vitest / 37 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
