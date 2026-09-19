@@ -158,6 +158,142 @@ class TestTheHeaderClaim:
     def test_a_repo_of_one_language_gets_no_record(self, layer):
         assert [e for e in layer["errors"] if e["stage"] == "cpp-headers"] == []
 
+    def test_a_header_only_a_claimed_header_includes_is_claimed(self, tmp_path):
+        # ADR-138: `api.h` has a C++ source's include and `inner.h` has
+        # only `api.h`'s — the case (b) rule looked for a source includer
+        # and found none, so the C grammar read it.
+        _write(tmp_path, {
+            "src/main.cpp": '#include "api.h"\nint main() { return 0; }\n',
+            "src/api.h": '#include "inner.h"\n',
+            "src/inner.h": "class Widget {\npublic:\n    int w() { return 1; }\n};\n",
+            "src/b.c": "int g(void) { return 1; }\n",
+        })
+        layer = extract_cpp(tmp_path)
+        assert layer["claimed_headers"] == {"src/api.h", "src/inner.h"}
+        kinds = {s["qualname"]: s["kind"] for s in layer["symbols"]}
+        assert kinds["Widget"] == "type"
+        assert kinds["Widget::w"] == "method"
+
+        from hobbes.extract.csource import extract_c
+
+        c_layer = extract_c(tmp_path, claimed=layer["claimed_headers"])
+        assert {n["path"] for n in c_layer["nodes"] if n["kind"] == "module"} == {"src/b.c"}
+
+    def test_a_chain_of_headers_is_claimed_to_its_end(self, tmp_path):
+        _write(tmp_path, {
+            "main.cpp": '#include "one.h"\n',
+            "one.h": '#include "two.h"\n',
+            "two.h": '#include "three.h"\n',
+            "three.h": "class Deep {};\n",
+            "b.c": "int g(void) { return 1; }\n",
+        })
+        layer = extract_cpp(tmp_path)
+        assert layer["claimed_headers"] == {"one.h", "two.h", "three.h"}
+
+    def test_a_header_a_c_source_includes_too_is_not_taken_by_the_growth(self, tmp_path):
+        _write(tmp_path, {
+            "main.cpp": '#include "api.h"\n',
+            "api.h": '#include "types.h"\n',
+            "types.h": "typedef int Handle;\n",
+            "b.c": '#include "types.h"\nint g(void) { return 1; }\n',
+        })
+        assert extract_cpp(tmp_path)["claimed_headers"] == {"api.h"}
+
+    def test_the_c_side_does_not_follow_the_header_it_shares(self, tmp_path):
+        # The rule is one-sided on purpose (ADR-138's *Accepted*): had C
+        # followed `shared.h` into `inner.h`, `inner.h` would be shared —
+        # measured on ScummVM, that moved 12 headers C++ claims today to
+        # "shared", 10 of them C++.
+        _write(tmp_path, {
+            "main.cpp": '#include "shared.h"\n#include "api.h"\n',
+            "a.c": '#include "shared.h"\nint g(void) { return 1; }\n',
+            "shared.h": '#include "inner.h"\n',
+            "api.h": '#include "inner.h"\n',
+            "inner.h": "class Inner {};\n",
+        })
+        layer = extract_cpp(tmp_path)
+        assert layer["claimed_headers"] == {"api.h", "inner.h"}
+        [record] = [e for e in layer["errors"] if e["stage"] == "cpp-headers"]
+        assert "included from both languages and left to C (shared.h)" in record["message"]
+
+    def test_a_header_left_to_c_passes_nothing_on(self, tmp_path):
+        _write(tmp_path, {
+            "main.cpp": "int main() { return 0; }\n",
+            "orphan.h": '#include "deep.h"\n',
+            "deep.h": "int d(void);\n",
+            "b.c": "int g(void) { return 1; }\n",
+        })
+        assert extract_cpp(tmp_path)["claimed_headers"] == set()
+
+    def test_through_headers_counts_the_grown_part_and_the_record_says_it(self, tmp_path):
+        from hobbes.extract.cppsource import _claim_headers, _read_and_parse
+
+        _write(tmp_path, {
+            "main.cpp": '#include "api.h"\n#include "own.h"\n',
+            "api.h": '#include "inner.h"\n',
+            "inner.h": '#include "deeper.h"\n',
+            "deeper.h": "class Deep {};\n",
+            "own.h": "int o();\n",
+            "left.h": "int l(void);\n",
+            "b.c": "int g(void) { return 1; }\n",
+        })
+        [record] = [
+            e for e in extract_cpp(tmp_path)["errors"] if e["stage"] == "cpp-headers"
+        ]
+        assert record["message"] == (
+            "4 `.h` read as C++ (2 of them through a header C++ had claimed, "
+            "ADR-138) and 1 as C; a header's language is read from the includes "
+            "lane A can place, never from the build's own include path (ADR-113 §1)"
+        )
+        root = tmp_path.resolve()
+        files = []
+        _read_and_parse(root, "main.cpp", files)
+        # `api.h` and `own.h` are the source's own; `inner.h` and
+        # `deeper.h` are the growth's, and only those two are counted.
+        assert _claim_headers(root, files).through_headers == 2
+
+    def test_with_no_growth_the_record_is_the_sentence_it_always_was(self, tmp_path):
+        _write(tmp_path, {
+            "src/a.cpp": '#include "both.h"\n#include "mine.h"\n',
+            "src/b.c": '#include "both.h"\n',
+            "src/both.h": "int g(void);\n",
+            "src/mine.h": "int h();\n",
+        })
+        [record] = [
+            e for e in extract_cpp(tmp_path)["errors"] if e["stage"] == "cpp-headers"
+        ]
+        assert record["message"] == (
+            "1 `.h` read as C++ and 1 as C, 1 included from both languages and "
+            "left to C (src/both.h); a header's language is read from the includes "
+            "lane A can place, never from the build's own include path (ADR-113 §1)"
+        )
+
+    def test_a_repo_with_no_c_source_still_claims_every_header_and_says_nothing(
+        self, tmp_path
+    ):
+        _write(tmp_path, {
+            "main.cpp": '#include "a.h"\n',
+            "a.h": '#include "b.h"\n',
+            "b.h": "class B {};\n",
+            "nobody/includes.h": "int g();\n",
+        })
+        layer = extract_cpp(tmp_path)
+        assert layer["claimed_headers"] == {"a.h", "b.h", "nobody/includes.h"}
+        assert [e for e in layer["errors"] if e["stage"] == "cpp-headers"] == []
+
+    def test_the_grown_claim_is_the_same_claim_twice(self, tmp_path):
+        _write(tmp_path, {
+            "main.cpp": '#include "api.h"\n',
+            "api.h": '#include "one.h"\n#include "two.h"\n',
+            "one.h": '#include "three.h"\n',
+            "two.h": '#include "three.h"\n',
+            "three.h": "class Deep {};\n",
+            "b.c": "int g(void) { return 1; }\n",
+        })
+        first, second = extract_cpp(tmp_path), extract_cpp(tmp_path)
+        for key in ("claimed_headers", "nodes", "module_edges", "symbols", "errors"):
+            assert first[key] == second[key]
+
 
 class TestModuleIds:
     def test_a_source_drops_its_extension(self):

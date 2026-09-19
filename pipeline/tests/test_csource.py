@@ -404,6 +404,83 @@ class TestIncludeDegradations:
         assert any(r["path"] == "tests" and "C-133" in r["message"] for r in include_records)
 
 
+class TestTheFilesCppOwns:
+    """ADR-138: the C++ walk's sources and the headers it claimed are
+    known paths here — resolved against, never parsed, never given a
+    node, and named by the id that walk gave them."""
+
+    def _mixed(self, tmp_path) -> dict[str, str]:
+        """ScummVM's shape in miniature: a C header including a header at
+        the repo root that C++ claimed, which used to read "matched no
+        repo file". Returns the foreign map the C++ layer would hand over.
+        """
+        (tmp_path / "audio").mkdir()
+        (tmp_path / "common").mkdir()
+        (tmp_path / "common" / "sys.h").write_text("class Sys {};\n")
+        (tmp_path / "main.cpp").write_text('#include "common/sys.h"\nint main(){return 0;}\n')
+        (tmp_path / "audio" / "hmi.h").write_text('#include "common/sys.h"\nvoid hmi(void);\n')
+        (tmp_path / "audio" / "hmi.c").write_text('#include "hmi.h"\nvoid hmi(void) {}\n')
+        return {"common/sys.h": "common/sys.h", "main.cpp": "main"}
+
+    def test_an_include_of_a_cpp_owned_header_draws_its_edge_and_no_miss(self, tmp_path):
+        foreign = self._mixed(tmp_path)
+        layer = extract_c(tmp_path, claimed={"common/sys.h"}, foreign=foreign)
+        edges = {(e["from"], e["to"], e["type"]) for e in layer["module_edges"]}
+        assert ("audio/hmi.h", "common/sys.h", "imports") in edges
+        assert [e for e in layer["errors"] if e["stage"] == "c-includes"] == []
+
+    def test_without_foreign_the_same_tree_reports_the_miss_it_used_to(self, tmp_path):
+        self._mixed(tmp_path)
+        layer = extract_c(tmp_path, claimed={"common/sys.h"})
+        [record] = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        assert record["path"] == "audio"
+        assert '1 quoted include matched no repo file ("common/sys.h")' in record["message"]
+
+    def test_no_node_is_created_for_a_foreign_path(self, tmp_path):
+        foreign = self._mixed(tmp_path)
+        layer = extract_c(tmp_path, claimed={"common/sys.h"}, foreign=foreign)
+        # The C++ layer owns both of them, and merges its own nodes.
+        assert {n["id"] for n in layer["nodes"]} == {"audio/hmi", "audio/hmi.h"}
+
+    def test_an_include_of_a_foreign_cpp_source_takes_the_cpp_walks_id(self, tmp_path):
+        # The two id rules differ on exactly this suffix — and a `.c` file
+        # can include a `.cpp` (ScummVM's `devtools/create_titanic` does).
+        (tmp_path / "tools").mkdir()
+        (tmp_path / "tools" / "str.cpp").write_text("int s() { return 0; }\n")
+        (tmp_path / "gen.c").write_text(
+            '#include "tools/str.cpp"\nint gen(void) { return 0; }\n'
+        )
+        layer = extract_c(tmp_path, foreign={"tools/str.cpp": "tools/str"})
+        edges = {(e["from"], e["to"], e["type"]) for e in layer["module_edges"]}
+        assert edges == {("gen", "tools/str", "imports")}
+        assert module_id("tools/str.cpp") == "tools/str.cpp"  # this walk's own rule
+
+    def test_a_foreign_header_can_make_a_suffix_match_ambiguous(self, tmp_path):
+        # Two headers end in /util.h, one each language's: the compiler
+        # would see both, so the step abstains rather than keeping the
+        # edge it drew while the C++ one was invisible to it.
+        (tmp_path / "include" / "x").mkdir(parents=True)
+        (tmp_path / "cpp" / "y").mkdir(parents=True)
+        (tmp_path / "include" / "x" / "util.h").write_text("void f(void);\n")
+        (tmp_path / "cpp" / "y" / "util.h").write_text("class U {};\n")
+        (tmp_path / "src").mkdir()
+        (tmp_path / "src" / "b.c").write_text('#include "util.h"\nint b(void){return 0;}\n')
+        assert extract_c(tmp_path, claimed={"cpp/y/util.h"})["module_edges"]
+        layer = extract_c(
+            tmp_path, claimed={"cpp/y/util.h"}, foreign={"cpp/y/util.h": "cpp/y/util.h"}
+        )
+        assert layer["module_edges"] == []
+        [record] = [e for e in layer["errors"] if e["stage"] == "c-includes"]
+        assert record["path"] == "src"
+        assert '1 include matched more than one repo header ("util.h")' in record["message"]
+
+    def test_no_foreign_map_is_the_walk_that_was_there_before(self, layer):
+        for absent in (None, {}):
+            other = extract_c(FIXTURE, foreign=absent)
+            for key in ("nodes", "module_edges", "symbols", "errors"):
+                assert other[key] == layer[key], key
+
+
 class TestCallSites:
     def test_positions_are_the_terminal_identifier(self, layer):
         source = (FIXTURE / "src/main.c").read_text().splitlines()
@@ -837,6 +914,42 @@ class TestExtractRepo:
         by_id = {t["id"]: t for t in extraction.tests["tests"]}
         t = by_id["tests/test_util.c::test_add_sums"]
         assert "src/util.add" in t["reaches"] and "src/util.helper" in t["reaches"]
+
+
+@pytest.fixture(scope="class")
+def graph(tmp_path_factory):
+    """A mixed tree of ScummVM's shape, through the whole pipeline."""
+    from hobbes.extract import extract_repo
+
+    root = tmp_path_factory.mktemp("mixed")
+    (root / "common").mkdir()
+    (root / "audio").mkdir()
+    (root / "common" / "sys.h").write_text("class Sys {};\n")
+    (root / "main.cpp").write_text('#include "common/sys.h"\nint main(){return 0;}\n')
+    (root / "audio" / "hmi.h").write_text('#include "common/sys.h"\nvoid hmi(void);\n')
+    (root / "audio" / "hmi.c").write_text('#include "hmi.h"\nvoid hmi(void) {}\n')
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("HOBBES_SCIP", "0")
+        return extract_repo(root).graph
+
+
+class TestTheForeignEdgeThroughExtractRepo:
+    """ADR-138 across the two walks, through the whole pipeline (lane B
+    off, the only path C has): the C++ layer's nodes become the C walk's
+    foreign map, and the edge lands on the node that layer already made."""
+
+    def test_the_c_header_imports_the_header_cpp_owns(self, graph):
+        edges = {(e["from"], e["to"], e["type"]) for e in graph["module_edges"]}
+        assert ("audio/hmi.h", "common/sys.h", "imports") in edges
+
+    def test_the_target_node_is_there_exactly_once(self, graph):
+        assert [n["id"] for n in graph["nodes"]].count("common/sys.h") == 1
+
+    def test_no_c_includes_record_names_it(self, graph):
+        records = [
+            e for e in graph.get("extraction_errors", []) if e["stage"] == "c-includes"
+        ]
+        assert records == []
 
 
 class TestDegradation:

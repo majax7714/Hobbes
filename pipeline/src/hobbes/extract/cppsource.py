@@ -16,7 +16,15 @@ A's fallback, at ``syntactic`` tier: the join's normal degraded path
 **Discovery.** ``.cpp``, ``.cc``, ``.cxx``, ``.hpp``, ``.hh`` and
 ``.hxx`` are C++. A ``.h`` is **claimed** by C++ when the repo has C++
 files and either (a) it has no ``.c`` sources at all, or (b) some C++
-file includes it (by C's three include steps) and no ``.c`` file does.
+file includes it (by C's three include steps) and no ``.c`` file does —
+and then, to a fixed point, a ``.h`` that a **claimed** header includes
+and no ``.c`` source includes is claimed too (ADR-138). A header reached
+only through another header — an engine's internal types, included by
+the engine's public header — has no C++ *source* includer for (b) to
+look at: on ScummVM 624 such ``.h`` were read by the C grammar, 535 of
+them spelling ``class``, ``namespace`` or ``template``. The C side does
+not follow headers in return; letting it do so was measured, and moved
+12 headers C++ claims today to "shared", 10 of them C++.
 Every other ``.h`` stays C — including one both languages include, which
 no evidence in the tree can settle. :func:`hobbes.extract.csource.extract_c`
 is handed the claimed set and skips it, so one header is read by exactly
@@ -623,10 +631,13 @@ def _read_and_parse(
 class _HeaderClaim:
     """Which ``.h`` files C++ took, which C kept, and what the record says.
 
-    *shared* are the headers both languages include: no evidence in the
-    tree settles those, so they stay C. *mixed* is the repo shape the
+    *shared* are the headers both languages include (a C++ *source* on
+    one side, a ``.c`` source on the other): no evidence in the tree
+    settles those, so they stay C. *mixed* is the repo shape the
     ``cpp-headers`` record exists for — C++ files and ``.c`` sources in
-    one tree.
+    one tree. *through_headers* is how many of *claimed* ADR-138's growth
+    took, rather than a C++ source's own include; the record says it when
+    it is not zero.
     """
 
     claimed: frozenset[str]
@@ -634,18 +645,24 @@ class _HeaderClaim:
     shared: frozenset[str]
     c_sources: frozenset[str]
     mixed: bool
+    through_headers: int
 
 
 def _claim_headers(repo_root: Path, files: list[CppFile]) -> _HeaderClaim:
-    """ADR-113 §1's claim rule, on the includes lane A can place."""
+    """ADR-113 §1's claim rule, on the includes lane A can place, grown to
+    ADR-138's fixed point: a ``.h`` a **claimed** header includes, and no
+    ``.c`` source includes, is claimed too. A header left to C, shared or
+    included by nobody passes nothing on, and the C side stays a ``.c``
+    source's *own* includes — following headers there was measured, and
+    moves 12 headers C++ claims today to "shared", 10 of them C++."""
     c_paths = {p.relative_to(repo_root).as_posix() for p in csource.iter_c_files(repo_root)}
     headers = {p for p in c_paths if p.endswith(".h")}
     c_sources = frozenset(p for p in c_paths if p.endswith(".c"))
     if not headers:
-        return _HeaderClaim(frozenset(), frozenset(), frozenset(), c_sources, False)
+        return _HeaderClaim(frozenset(), frozenset(), frozenset(), c_sources, False, 0)
     if not c_sources:
         # (a) C++ and no C at all: every `.h` in the repo is C++'s.
-        return _HeaderClaim(frozenset(headers), frozenset(), frozenset(), c_sources, False)
+        return _HeaderClaim(frozenset(headers), frozenset(), frozenset(), c_sources, False, 0)
 
     known = {parsed.path for parsed in files} | c_paths
     candidates = csource.HeaderIndex(
@@ -659,13 +676,31 @@ def _claim_headers(repo_root: Path, files: list[CppFile]) -> _HeaderClaim:
         includes = _includes_of(repo_root / path)
         by_c |= _included_headers(path, includes, known, candidates, headers)
 
-    claimed = frozenset(by_cpp - by_c)
+    claimed = set(by_cpp - by_c)
+    direct = len(claimed)
+    # (b) grows through the headers it has already taken (ADR-138). The
+    # frontier is read with `_includes_of` because a claimed header is not
+    # parsed until `extract_cpp`'s second pass — this loop must not parse
+    # it a first time — and it is sorted, so the growth is the same growth
+    # twice. A header `by_c` holds passes nothing on: it is C's.
+    frontier = sorted(claimed)
+    while frontier:
+        reached: set[str] = set()
+        for path in frontier:
+            reached |= _included_headers(
+                path, _includes_of(repo_root / path), known, candidates, headers
+            )
+        frontier = sorted(reached - claimed - by_c)
+        claimed.update(frontier)
+
+    claimed = frozenset(claimed)
     return _HeaderClaim(
         claimed=claimed,
         left_to_c=frozenset(headers - claimed),
         shared=frozenset(by_cpp & by_c),
         c_sources=c_sources,
         mixed=True,
+        through_headers=len(claimed) - direct,
     )
 
 
@@ -688,9 +723,10 @@ def _included_headers(
 
 
 def _includes_of(absolute: Path) -> list[dict]:
-    """The includes of a file this layer does not otherwise parse (a
-    ``.c`` source, for the claim's other half). An include directive is
-    spelled the same in both languages, so the C++ grammar reads it."""
+    """The includes of a file this layer has not parsed yet (a ``.c``
+    source, for the claim's other half; a freshly claimed header, for its
+    growth). An include directive is spelled the same in both languages,
+    so the C++ grammar reads it."""
     try:
         source = absolute.read_bytes()
     except OSError:
@@ -705,11 +741,19 @@ def _includes_of(absolute: Path) -> list[dict]:
 
 def _header_degradation(claim: _HeaderClaim) -> list[dict]:
     """The ``cpp-headers`` record a mixed repo gets: how many headers went
-    each way, and the ones both languages include (left to C)."""
+    each way, how many of C++'s came through another claimed header, and
+    the ones both languages include (left to C)."""
     if not claim.mixed:
         return []
+    # The growth's share is named only where there is one, so a repo whose
+    # claim did not grow reads exactly as it read before ADR-138.
+    through = (
+        f" ({claim.through_headers} of them through a header C++ had claimed, ADR-138)"
+        if claim.through_headers
+        else ""
+    )
     parts = [
-        f"{len(claim.claimed)} `.h` read as C++ and {len(claim.left_to_c)} as C"
+        f"{len(claim.claimed)} `.h` read as C++{through} and {len(claim.left_to_c)} as C"
     ]
     if claim.shared:
         parts.append(
