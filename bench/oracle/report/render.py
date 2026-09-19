@@ -341,7 +341,7 @@ def render_one_number(cells: list[dict]) -> str:
     lines.append(("—", 14, GRID, "normal", 32))
     para("Precision-against-oracle is a lower bound: contradictions mostly triage to the oracle's own grain, and the triage ratio is quoted per cell (A-8).", 11, INK, "bold", width=125)
     para("Every number is read from docs/oracle/cells/ by bench/oracle/report/render.py (ADR-102); the answer keys are compilers Hobbes does not control (ADR-089): "
-         "x/tools RTA for Go, tsc for TypeScript, rustc's MIR for Rust, javac with CHA for Java, clang's front end for C and C++.", 10, INK2, width=140)
+         "x/tools RTA for Go, tsc for TypeScript and JavaScript, rustc's MIR for Rust, javac with CHA for Java, clang's front end for C and C++.", 10, INK2, width=140)
     H = 40 + sum(sz + 6 for _, sz, _, _, _ in lines) + 24
     o = svg_open(W, H, "Wrong edges seeded into the graph, falsely confirmed by the grader")
     y = 40
@@ -397,7 +397,7 @@ def tool_legend(o: list[str], y: float) -> None:
 def render_scatter(cells: list[dict]) -> str:
     comp = [c for c in cells if compiler_graded(c)]
     trace = [c for c in cells if c["kind"] == "trace"]
-    langs = ["Go", "TypeScript", "Rust", "Java", "C", "C++"]
+    langs = ["Go", "TypeScript", "JavaScript", "Rust", "Java", "C", "C++"]
     panels = [(l, [c for c in comp if c["lang"] == l]) for l in langs]
     PW, PH, GAP, L, T = 300, 300, 40, 60, 106
     cols = 3
@@ -658,7 +658,7 @@ def render_comparison(cells: list[dict]) -> str:
             continue
         by_label.setdefault(c["label"], {})[c.get("tool", "hobbes")] = c
     rows = [(lab, d) for lab, d in by_label.items() if any(t != "hobbes" for t in d) and "hobbes" in d]
-    order = ["Go", "TypeScript", "Rust", "Java", "C", "C++", "Python"]  # C since 2026-09-14, C++ since 2026-09-15
+    order = ["Go", "TypeScript", "JavaScript", "Rust", "Java", "C", "C++", "Python"]  # C since 2026-09-14, C++ since 2026-09-15, JavaScript since 2026-09-19
     bands = []
     for lang in order:
         loop = [(l, d) for l, d in rows if d["hobbes"]["lang"] == lang and "repowise-bench" not in d["hobbes"].get("draw", "")]

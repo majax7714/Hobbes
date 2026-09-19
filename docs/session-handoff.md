@@ -582,7 +582,7 @@ min each.
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
   is a tmpfs. Sixty log files under `docs/calvin/sessions/`; the tracker reads 60 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 90 cells (22 same-key rows, C++'s two among them); `render.py
+  from 93 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.

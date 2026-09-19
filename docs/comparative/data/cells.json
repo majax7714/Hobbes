@@ -2152,6 +2152,53 @@
    }
   },
   {
+   "stem": "express-js",
+   "record": "express-js-2026-09-19.md",
+   "date": "2026-09-19",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "contained",
+   "draw": "picked",
+   "label": "express (CommonJS)",
+   "note": "no dependency tree (C-165); 652 misses one callee through a CommonJS re-export (C-167)",
+   "edges": 340,
+   "confirmed": 340,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 340,
+    "den": 340
+   },
+   "recall": {
+    "pct": 22.4,
+    "hits": 340,
+    "pairs": 1520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 25,
+    "func-value→parameter": 352,
+    "func-value→variable": 73,
+    "static→anonymous-function": 46,
+    "static→closure": 27,
+    "static→function": 657
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 340,
+    "refused": 198,
+    "unjudged": 142,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "fmt-cpp",
    "record": "fmt-cpp-2026-09-15.md",
    "date": "2026-09-15",
@@ -2775,6 +2822,59 @@
     "seeded": 356,
     "refused": 356,
     "unjudged": 0,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "preact-js",
+   "record": "preact-js-2026-09-19.md",
+   "date": "2026-09-19",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "contained",
+   "draw": "picked",
+   "label": "preact (ESM, JSDoc, JSX)",
+   "note": "its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), regraded; no dependency tree (C-165); jsconfig not read (C-166)",
+   "edges": 2734,
+   "confirmed": 2446,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 288,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "not-loaded": 288
+   },
+   "precision": {
+    "pct": 100.0,
+    "num": 2446,
+    "den": 2446
+   },
+   "recall": {
+    "pct": 28.6,
+    "hits": 2632,
+    "pairs": 9211,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1588,
+    "func-value→parameter": 112,
+    "func-value→variable": 223,
+    "interface→type-member": 1796,
+    "static→anonymous-function": 1,
+    "static→class": 570,
+    "static→closure": 2038,
+    "static→function": 216,
+    "static→method": 2,
+    "static→type-member": 33
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 2734,
+    "refused": 2206,
+    "unjudged": 528,
     "falsely": 0
    }
   },
@@ -4184,6 +4284,54 @@
     "seeded": 1047,
     "refused": 1039,
     "unjudged": 8,
+    "falsely": 0
+   }
+  },
+  {
+   "stem": "xmpp-js",
+   "record": "xmpp-js-2026-09-19.md",
+   "date": "2026-09-19",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "contained",
+   "draw": "random",
+   "label": "xmpp.js",
+   "note": "its lockfile refused by npm ci: no dependency tree (C-165)",
+   "edges": 552,
+   "confirmed": 552,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 552,
+    "den": 552
+   },
+   "recall": {
+    "pct": 66.4,
+    "hits": 558,
+    "pairs": 840,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 18,
+    "func-value→parameter": 64,
+    "func-value→variable": 23,
+    "static→class": 104,
+    "static→closure": 42,
+    "static→function": 29,
+    "static→method": 2
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 552,
+    "refused": 361,
+    "unjudged": 191,
     "falsely": 0
    }
   },

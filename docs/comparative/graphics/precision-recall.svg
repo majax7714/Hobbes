@@ -543,7 +543,7 @@ regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three
 <circle cx="590.5" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
 <text x="598.5" y="170.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >ajv</text>
-<text x="740" y="96" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rust — rustc-mir (compiler-graded)</text>
+<text x="740" y="96" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >JavaScript — tsc (compiler-graded)</text>
 <rect x="740" y="106" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="740.0" y1="106" x2="740.0" y2="406" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="740.0" y="420" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
@@ -556,73 +556,45 @@ regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three
 <line x1="1040.0" y1="106" x2="1040.0" y2="406" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="1040.0" y="420" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <line x1="740" y1="406.0" x2="1040" y2="406.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="409.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
+<text x="734" y="409.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
 <line x1="740" y1="331.0" x2="1040" y2="331.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="334.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
+<text x="734" y="334.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >85</text>
 <line x1="740" y1="256.0" x2="1040" y2="256.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="259.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<text x="734" y="259.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
 <line x1="740" y1="181.0" x2="1040" y2="181.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="184.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<text x="734" y="184.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >95</text>
 <line x1="740" y1="106.0" x2="1040" y2="106.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="734" y="109.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <text x="890.0" y="436" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
-<text x="706" y="256.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 256.0)">precision vs oracle, %, axis from 60</text>
-<text x="746" y="398" font-size="9" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >not drawn (nothing graded): rust_proj (repowise)</text>
+<text x="706" y="256.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 256.0)">precision vs oracle, %, axis from 80</text>
 <g>
-<title>rust_proj — codegraphcontext — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
-precision-against-oracle 1/1 = 100.0%
-recall 1/21 = 4.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 16, macro→function 4
-codegraphcontext graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="749.4" y="101.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>express (CommonJS) — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
+precision-against-oracle 340/340 = 100.0%
+recall 340/1,520 = 22.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 657, func-value→parameter 352, func-value→variable 73, static→anonymous-function 46, static→closure 27, func-value→local-binding 25
+no dependency tree (C-165); 652 misses one callee through a CommonJS re-export (C-167)</title>
+<circle cx="807.2" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="762.4" y="120.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj ·cgc</text>
+<text x="815.2" y="130.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS)</text>
 <g>
-<title>memchr — codegraphcontext — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
-precision-against-oracle 275/439 = 62.6%
-recall 276/1,146 = 24.1% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 607, static→function 158, macro→function 57, macro→method 42, static→generated 5, static→closure 1
-codegraphcontext graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="807.3" y="381.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>preact (ESM, JSDoc, JSX) — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
+precision-against-oracle 2,446/2,446 = 100.0%
+recall 2,632/9,211 = 28.6% over every resolved site (resolution oracle: no roots)
+misses by class: static→closure 2,038, interface→type-member 1,796, func-value→local-binding 1,588, static→class 570, func-value→variable 223, static→function 216, func-value→parameter 112, static→type-member 33, static→method 2, static→anonymous-function 1
+its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), regraded; no dependency tree (C-165); jsconfig not read (C-166)</title>
+<circle cx="825.8" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="820.3" y="390.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·cgc</text>
+<text x="833.8" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX)</text>
 <g>
-<title>memchr — repowise — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
-precision-against-oracle 362/387 = 93.5% · strict 362/391 (92.6%)
-recall 365/1,146 = 31.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 525, static→function 151, macro→function 57, macro→method 42, static→generated 5, static→closure 1
-repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="835.4,148.75 841.4,154.75 835.4,160.75 829.4,154.75" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>xmpp.js — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
+precision-against-oracle 552/552 = 100.0%
+recall 558/840 = 66.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→class 104, func-value→parameter 64, static→closure 42, static→function 29, func-value→variable 23, func-value→local-binding 18, static→method 2
+its lockfile refused by npm ci: no dependency tree (C-165)</title>
+<circle cx="939.2" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="843.4" y="158.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·rw</text>
-<g>
-<title>memchr — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-27
-precision-against-oracle 921/921 = 100.0%
-recall 925/1,146 = 80.7% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 63, macro→function 57, static→function 53, macro→method 42, static→generated 5, static→closure 1
-misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)</title>
-<circle cx="982.1" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="990.1" y="120.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
-<g>
-<title>rust_proj — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-28
-precision-against-oracle 17/17 = 100.0%
-recall 17/21 = 81.0% over every resolved site (resolution oracle: no roots)
-misses by class: macro→function 4
-tiny crate; misses are criterion_group! bodies</title>
-<circle cx="983.0" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="991.0" y="140.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
-<g>
-<title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-25
-precision-against-oracle 3,592/3,592 = 100.0%
-recall 3,593/3,662 = 98.1% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 30, static→generated 25, static→function 14
-misses are code macros and derives wrote; contained from the 2026-09-10 regrade</title>
-<circle cx="1034.3" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="1026.3" y="160.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
-<text x="60" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java — javac (compiler-graded)</text>
+<text x="947.2" y="120.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
+<text x="60" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Rust — rustc-mir (compiler-graded)</text>
 <rect x="60" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="60.0" y1="480" x2="60.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="60.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
@@ -635,129 +607,73 @@ misses are code macros and derives wrote; contained from the 2026-09-10 regrade<
 <line x1="360.0" y1="480" x2="360.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="360.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <line x1="60" y1="780.0" x2="360" y2="780.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >40</text>
-<line x1="60" y1="730.0" x2="360" y2="730.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="733.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50</text>
-<line x1="60" y1="680.0" x2="360" y2="680.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="683.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
+<text x="54" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
+<line x1="60" y1="705.0" x2="360" y2="705.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="708.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
 <line x1="60" y1="630.0" x2="360" y2="630.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
-<line x1="60" y1="580.0" x2="360" y2="580.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="583.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
-<line x1="60" y1="530.0" x2="360" y2="530.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="533.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<text x="54" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<line x1="60" y1="555.0" x2="360" y2="555.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="558.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
 <line x1="60" y1="480.0" x2="360" y2="480.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="54" y="483.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <text x="210.0" y="810" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
-<text x="26" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 26 630.0)">precision vs oracle, %, axis from 40</text>
+<text x="26" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 26 630.0)">precision vs oracle, %, axis from 60</text>
+<text x="66" y="772" font-size="9" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >not drawn (nothing graded): rust_proj (repowise)</text>
 <g>
-<title>Severed-Chains — codegraphcontext — Java, javac 25.0.4.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 9,580/12,065 = 79.4%
-recall 9,726/54,520 = 17.8% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 29,650, static→constructor 11,504, static→method 3,562, interface→anonymous-member 78
-codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="108.4" y="578.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>rust_proj — codegraphcontext — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
+precision-against-oracle 1/1 = 100.0%
+recall 1/21 = 4.8% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 16, macro→function 4
+codegraphcontext graded by the same key as the Hobbes rust_proj cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="69.4" y="475.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="121.4" y="607.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains ·cgc</text>
+<text x="82.4" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj ·cgc</text>
 <g>
-<title>spring-data-elasticsearch — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 8,673/10,519 = 82.5%
-recall 8,743/24,452 = 35.8% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 11,061, static→constructor 2,554, static→method 1,580, interface→anonymous-member 510, static→anonymous-member 4
-codegraphcontext graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="162.4" y="562.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>memchr — codegraphcontext — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
+precision-against-oracle 275/439 = 62.6%
+recall 276/1,146 = 24.1% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 607, static→function 158, macro→function 57, macro→method 42, static→generated 5, static→closure 1
+codegraphcontext graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="127.30000000000001" y="755.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="175.4" y="571.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch ·cgc</text>
+<text x="140.3" y="764.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·cgc</text>
 <g>
-<title>Severed-Chains — repowise — Java, javac 25.0.4.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 19,160/32,608 = 58.8%
-recall 21,375/54,520 = 39.2% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 26,842, static→constructor 4,801, static→method 1,424, interface→anonymous-member 78
-repowise graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="177.6,680.0 183.6,686.0 177.6,692.0 171.6,686.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>memchr — repowise — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), host-run, 2026-09-09
+precision-against-oracle 362/387 = 93.5% · strict 362/391 (92.6%)
+recall 365/1,146 = 31.8% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 525, static→function 151, macro→function 57, macro→method 42, static→generated 5, static→closure 1
+repowise graded by the same key as the Hobbes memchr cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="155.4,522.75 161.4,528.75 155.4,534.75 149.4,528.75" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="185.6" y="710.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains ·rw</text>
+<text x="163.4" y="532.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr ·rw</text>
 <g>
-<title>jsoup — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 10,874/22,218 = 48.9%
-recall 10,945/24,630 = 44.4% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 10,286, static→method 2,296, static→constructor 669, interface→anonymous-member 407, static→anonymous-member 27
-repowise graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="193.2,729.5 199.2,735.5 193.2,741.5 187.2,735.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>memchr — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-27
+precision-against-oracle 921/921 = 100.0%
+recall 925/1,146 = 80.7% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 63, macro→function 57, static→function 53, macro→method 42, static→generated 5, static→closure 1
+misses are macro bodies (unsafe_ifunc!, define_*_quickcheck!)</title>
+<circle cx="302.1" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="201.2" y="739.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup ·rw</text>
+<text x="310.1" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >memchr</text>
 <g>
-<title>spring-data-elasticsearch — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 11,402/19,944 = 57.2%
-recall 11,537/24,452 = 47.2% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 10,384, static→constructor 1,172, static→method 844, interface→anonymous-member 510, static→anonymous-member 5
-repowise graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="201.6,688.0 207.6,694.0 201.6,700.0 195.6,694.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>rust_proj — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-28
+precision-against-oracle 17/17 = 100.0%
+recall 17/21 = 81.0% over every resolved site (resolution oracle: no roots)
+misses by class: macro→function 4
+tiny crate; misses are criterion_group! bodies</title>
+<circle cx="303.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="209.6" y="698.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch ·rw</text>
+<text x="311.0" y="514.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >rust_proj</text>
 <g>
-<title>jsoup — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 12,554/15,784 = 79.5%
-recall 12,619/24,630 = 51.2% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 8,215, static→method 2,193, static→constructor 1,169, interface→anonymous-member 406, static→anonymous-member 28
-codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="208.6" y="577.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>dagger sdk/rust — Rust, rustc-mir rustc 1.100.0-nightly (e7769602a 2026-08-24) (resolution), contained, 2026-08-25
+precision-against-oracle 3,592/3,592 = 100.0%
+recall 3,593/3,662 = 98.1% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 30, static→generated 25, static→function 14
+misses are code macros and derives wrote; contained from the 2026-09-10 regrade</title>
+<circle cx="354.3" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="221.6" y="586.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup ·cgc</text>
-<g>
-<title>Severed-Chains — Java, javac 25.0.4.1+1-LTS (resolution), contained, 2026-08-29
-precision-against-oracle 29,793/29,793 = 100.0%
-recall 33,143/54,520 = 60.8% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 20,092, static→constructor 1,207, interface→anonymous-member 78
-random draw; lane B runs through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; before it, lane B failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured</title>
-<circle cx="242.4" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="250.4" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains</text>
-<g>
-<title>spring-petclinic — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 236/237 = 99.6%
-recall 246/373 = 66.0% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 82, static→constructor 45
-codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="253.0" y="477.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="250.0" y="496.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·cgc</text>
-<g>
-<title>spring-data-elasticsearch — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
-precision-against-oracle 16,050/16,050 = 100.0%
-recall 16,238/24,452 = 66.4% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 7,469, interface→anonymous-member 513, static→constructor 227, static→anonymous-member 5
-random draw</title>
-<circle cx="259.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="251.2" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch</text>
-<g>
-<title>jsoup — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
-precision-against-oracle 18,627/18,627 = 100.0%
-recall 18,767/24,630 = 76.2% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 5,226, interface→anonymous-member 407, static→constructor 180, static→anonymous-member 45, static→method 5
-interface→method against the CHA override set is the majority miss</title>
-<circle cx="288.6" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="296.6" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup</text>
-<g>
-<title>spring-petclinic — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
-precision-against-oracle 331/365 = 90.7%
-recall 342/373 = 91.7% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 31
-repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="335.1,520.5 341.1,526.5 335.1,532.5 329.1,526.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
-</g>
-<text x="327.1" y="540.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·rw</text>
-<g>
-<title>spring-petclinic — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
-precision-against-oracle 356/356 = 100.0%
-recall 367/373 = 98.4% over every resolved site (resolution oracle: no roots)
-misses by class: interface→method 4, static→constructor 2</title>
-<circle cx="355.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
-</g>
-<text x="347.2" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic</text>
-<text x="400" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >C — clang (compiler-graded)</text>
+<text x="346.3" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >dagger sdk/rust</text>
+<text x="400" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Java — javac (compiler-graded)</text>
 <rect x="400" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="400.0" y1="480" x2="400.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="400.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
@@ -770,81 +686,129 @@ misses by class: interface→method 4, static→constructor 2</title>
 <line x1="700.0" y1="480" x2="700.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="700.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <line x1="400" y1="780.0" x2="700" y2="780.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="394" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
-<line x1="400" y1="705.0" x2="700" y2="705.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="394" y="708.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >85</text>
+<text x="394" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >40</text>
+<line x1="400" y1="730.0" x2="700" y2="730.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="733.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50</text>
+<line x1="400" y1="680.0" x2="700" y2="680.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="683.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
 <line x1="400" y1="630.0" x2="700" y2="630.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="394" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
-<line x1="400" y1="555.0" x2="700" y2="555.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="394" y="558.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >95</text>
+<text x="394" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
+<line x1="400" y1="580.0" x2="700" y2="580.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="583.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<line x1="400" y1="530.0" x2="700" y2="530.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="533.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
 <line x1="400" y1="480.0" x2="700" y2="480.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="394" y="483.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <text x="550.0" y="810" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
-<text x="366" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 366 630.0)">precision vs oracle, %, axis from 80</text>
+<text x="366" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 366 630.0)">precision vs oracle, %, axis from 40</text>
 <g>
-<title>cJSON — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 1,073/1,075 = 99.8%
-recall 1,074/1,918 = 56.0% over every resolved site (resolution oracle: no roots)
-misses by class: macro→function 728, static→function 116
-repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<polygon points="568.0,477.00000000000006 574.0,483.00000000000006 568.0,489.00000000000006 562.0,483.00000000000006" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>Severed-Chains — codegraphcontext — Java, javac 25.0.4.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 9,580/12,065 = 79.4%
+recall 9,726/54,520 = 17.8% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 29,650, static→constructor 11,504, static→method 3,562, interface→anonymous-member 78
+codegraphcontext graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="448.4" y="578.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="576.0" y="497.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·rw</text>
+<text x="461.4" y="607.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains ·cgc</text>
 <g>
-<title>cJSON — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 1,179/1,179 = 100.0%
-recall 1,180/1,918 = 61.5% over every resolved site (resolution oracle: no roots)
-misses by class: macro→function 728, static→function 10
-codegraphcontext graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<rect x="579.5" y="475.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>spring-data-elasticsearch — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 8,673/10,519 = 82.5%
+recall 8,743/24,452 = 35.8% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 11,061, static→constructor 2,554, static→method 1,580, interface→anonymous-member 510, static→anonymous-member 4
+codegraphcontext graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="502.4" y="562.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="592.5" y="514.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·cgc</text>
+<text x="515.4" y="571.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch ·cgc</text>
 <g>
-<title>cJSON — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
-precision-against-oracle 1,188/1,188 = 100.0%
-recall 1,190/1,918 = 62.0% over every resolved site (resolution oracle: no roots)
-misses by class: macro→function 728
-every miss is a call a macro's expansion makes, drawn to the macro: 723 into Unity, 5 through cJSON's own cJSON_SetNumberValue (C-131); the 525 syntactic edges sit in files CMake's defaults leave uncompiled</title>
-<circle cx="586.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>Severed-Chains — repowise — Java, javac 25.0.4.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 19,160/32,608 = 58.8%
+recall 21,375/54,520 = 39.2% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 26,842, static→constructor 4,801, static→method 1,424, interface→anonymous-member 78
+repowise graded by the same key as the Hobbes Severed-Chains cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="517.6,680.0 523.6,686.0 517.6,692.0 511.6,686.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="594.0" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON</text>
+<text x="525.6" y="710.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains ·rw</text>
 <g>
-<title>sqlite-vector — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 780/780 = 100.0%
-recall 1,018/1,091 = 93.3% over every resolved site (resolution oracle: no roots)
-misses by class: static→function 73
-repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<polygon points="679.9,474.0 685.9,480.0 679.9,486.0 673.9,480.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>jsoup — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 10,874/22,218 = 48.9%
+recall 10,945/24,630 = 44.4% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 10,286, static→method 2,296, static→constructor 669, interface→anonymous-member 407, static→anonymous-member 27
+repowise graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="533.2,729.5 539.2,735.5 533.2,741.5 527.2,735.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="671.9" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·rw</text>
+<text x="541.2" y="739.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup ·rw</text>
 <g>
-<title>sqlite-vector — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
-precision-against-oracle 851/855 = 99.5% · strict 851/863 (98.6%)
-recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)
-misses by class: none recorded
-codegraphcontext graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
-<rect x="695.0" y="482.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>spring-data-elasticsearch — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 11,402/19,944 = 57.2%
+recall 11,537/24,452 = 47.2% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 10,384, static→constructor 1,172, static→method 844, interface→anonymous-member 510, static→anonymous-member 5
+repowise graded by the same key as the Hobbes spring-data-elasticsearch cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="541.6,688.0 547.6,694.0 541.6,700.0 535.6,694.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="692.0" y="571.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·cgc</text>
+<text x="549.6" y="698.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch ·rw</text>
 <g>
-<title>minic (fixture) — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
-precision-against-oracle 5/5 = 100.0%
-recall 7/7 = 100.0% over every resolved site (resolution oracle: no roots)
-misses by class: none recorded
-the C lane's own fixture in this repo, graded as make's default target builds it</title>
-<circle cx="700.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>jsoup — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 12,554/15,784 = 79.5%
+recall 12,619/24,630 = 51.2% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 8,215, static→method 2,193, static→constructor 1,169, interface→anonymous-member 406, static→anonymous-member 28
+codegraphcontext graded by the same key as the Hobbes jsoup cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="548.6" y="577.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="692.0" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >minic (fixture)</text>
+<text x="561.6" y="586.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup ·cgc</text>
 <g>
-<title>sqlite-vector — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
-precision-against-oracle 851/851 = 100.0%
-recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)
-misses by class: none recorded
-random draw; the 3 contradicted are syntactic and hobbes-wrong, a strcasestr shim in a dead #if arm drawn over libc's (C-131, C-138); semantic 851/851</title>
-<circle cx="700.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>Severed-Chains — Java, javac 25.0.4.1+1-LTS (resolution), contained, 2026-08-29
+precision-against-oracle 29,793/29,793 = 100.0%
+recall 33,143/54,520 = 60.8% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 20,092, static→constructor 1,207, interface→anonymous-member 78
+random draw; lane B runs through the Gradle attach route (ADR-096 amended): 23.5% → 60.8% at 100% precision; before it, lane B failed on this Gradle build (C-67) and every edge was syntactic — C-8's floor measured</title>
+<circle cx="582.4" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="692.0" y="584.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector</text>
-<text x="740" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >C++ — clang (compiler-graded)</text>
+<text x="590.4" y="504.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Severed-Chains</text>
+<g>
+<title>spring-petclinic — codegraphcontext — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 236/237 = 99.6%
+recall 246/373 = 66.0% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 82, static→constructor 45
+codegraphcontext graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="593.0" y="477.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="590.0" y="496.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·cgc</text>
+<g>
+<title>spring-data-elasticsearch — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
+precision-against-oracle 16,050/16,050 = 100.0%
+recall 16,238/24,452 = 66.4% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 7,469, interface→anonymous-member 513, static→constructor 227, static→anonymous-member 5
+random draw</title>
+<circle cx="599.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="591.2" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-data-elasticsearch</text>
+<g>
+<title>jsoup — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
+precision-against-oracle 18,627/18,627 = 100.0%
+recall 18,767/24,630 = 76.2% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 5,226, interface→anonymous-member 407, static→constructor 180, static→anonymous-member 45, static→method 5
+interface→method against the CHA override set is the majority miss</title>
+<circle cx="628.6" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="636.6" y="524.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >jsoup</text>
+<g>
+<title>spring-petclinic — repowise — Java, javac 21.0.12.1+1-LTS (resolution), host-run, 2026-09-09
+precision-against-oracle 331/365 = 90.7%
+recall 342/373 = 91.7% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 31
+repowise graded by the same key as the Hobbes spring-petclinic cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="675.1,520.5 681.1,526.5 675.1,532.5 669.1,526.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="667.1" y="540.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic ·rw</text>
+<g>
+<title>spring-petclinic — Java, javac 21.0.12.1+1-LTS (resolution), contained, 2026-08-29
+precision-against-oracle 356/356 = 100.0%
+recall 367/373 = 98.4% over every resolved site (resolution oracle: no roots)
+misses by class: interface→method 4, static→constructor 2</title>
+<circle cx="695.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="687.2" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >spring-petclinic</text>
+<text x="740" y="470" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >C — clang (compiler-graded)</text>
 <rect x="740" y="480" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="740.0" y1="480" x2="740.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="740.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
@@ -857,68 +821,81 @@ random draw; the 3 contradicted are syntactic and hobbes-wrong, a strcasestr shi
 <line x1="1040.0" y1="480" x2="1040.0" y2="780" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="1040.0" y="794" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <line x1="740" y1="780.0" x2="1040" y2="780.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >40</text>
-<line x1="740" y1="730.0" x2="1040" y2="730.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="733.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50</text>
-<line x1="740" y1="680.0" x2="1040" y2="680.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="683.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
+<text x="734" y="783.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<line x1="740" y1="705.0" x2="1040" y2="705.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="734" y="708.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >85</text>
 <line x1="740" y1="630.0" x2="1040" y2="630.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
-<line x1="740" y1="580.0" x2="1040" y2="580.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="583.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
-<line x1="740" y1="530.0" x2="1040" y2="530.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="734" y="533.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<text x="734" y="633.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<line x1="740" y1="555.0" x2="1040" y2="555.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="734" y="558.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >95</text>
 <line x1="740" y1="480.0" x2="1040" y2="480.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="734" y="483.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <text x="890.0" y="810" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
-<text x="706" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 630.0)">precision vs oracle, %, axis from 40</text>
-<text x="746" y="772" font-size="9" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >not drawn (nothing graded): args (codegraphcontext)</text>
+<text x="706" y="630.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 706 630.0)">precision vs oracle, %, axis from 80</text>
 <g>
-<title>fmt — codegraphcontext — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 847/885 = 95.7% · strict 847/975 (86.9%)
-recall 5,955/50,524 = 11.8% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 22,814, static→function 10,674, static→constructor 8,310, macro→function 1,631, macro→method 1,140
-codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="770.4" y="496.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cJSON — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
+precision-against-oracle 1,073/1,075 = 99.8%
+recall 1,074/1,918 = 56.0% over every resolved site (resolution oracle: no roots)
+misses by class: macro→function 728, static→function 116
+repowise graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
+<polygon points="908.0,477.00000000000006 914.0,483.00000000000006 908.0,489.00000000000006 902.0,483.00000000000006" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="783.4" y="505.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·cgc</text>
+<text x="916.0" y="497.00000000000006" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·rw</text>
 <g>
-<title>fmt — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)
-recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 22,204, static→function 10,303, static→constructor 8,233, macro→function 1,631, macro→method 1,140
-repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="781.7,734.0 787.7,740.0 781.7,746.0 775.7,740.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cJSON — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
+precision-against-oracle 1,179/1,179 = 100.0%
+recall 1,180/1,918 = 61.5% over every resolved site (resolution oracle: no roots)
+misses by class: macro→function 728, static→function 10
+codegraphcontext graded by the same key as the Hobbes cJSON cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
+<rect x="919.5" y="475.0" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="789.7" y="744.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
+<text x="932.5" y="514.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON ·cgc</text>
 <g>
-<title>args — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
-precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)
-recall 831/3,561 = 23.3% over every resolved site (resolution oracle: no roots)
-misses by class: static→constructor 1,303, static→method 1,227, static→function 200
-repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="809.9,523.0 815.9,529.0 809.9,535.0 803.9,529.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<title>cJSON — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
+precision-against-oracle 1,188/1,188 = 100.0%
+recall 1,190/1,918 = 62.0% over every resolved site (resolution oracle: no roots)
+misses by class: macro→function 728
+every miss is a call a macro's expansion makes, drawn to the macro: 723 into Unity, 5 through cJSON's own cJSON_SetNumberValue (C-131); the 525 syntactic edges sit in files CMake's defaults leave uncompiled</title>
+<circle cx="926.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="817.9" y="533.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args ·rw</text>
+<text x="934.0" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cJSON</text>
 <g>
-<title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 7,012/7,012 = 100.0% · strict 7,012/7,039 (99.6%)
-recall 15,339/50,524 = 30.4% over every resolved site (resolution oracle: no roots)
-misses by class: static→method 19,376, static→constructor 8,006, static→function 5,042, macro→function 1,621, macro→method 1,140
-chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted</title>
-<circle cx="831.2" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>sqlite-vector — repowise — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
+precision-against-oracle 780/780 = 100.0%
+recall 1,018/1,091 = 93.3% over every resolved site (resolution oracle: no roots)
+misses by class: static→function 73
+repowise graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
+<polygon points="1019.9,474.0 1025.9,480.0 1019.9,486.0 1013.9,480.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="839.2" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
+<text x="1011.9" y="554.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·rw</text>
 <g>
-<title>args — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
-precision-against-oracle 2,567/2,567 = 100.0%
-recall 2,595/3,561 = 72.9% over every resolved site (resolution oracle: no roots)
-misses by class: static→constructor 520, static→method 430, static→function 16
-random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)</title>
-<circle cx="958.7" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<title>sqlite-vector — codegraphcontext — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-14
+precision-against-oracle 851/855 = 99.5% · strict 851/863 (98.6%)
+recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)
+misses by class: none recorded
+codegraphcontext graded by the same key as the Hobbes sqlite-vector cell (ADR-101; `oracle import --lang c` since 2026-09-14); host-run (C-96); tolerances tuned on Hobbes' output (C-95): the macro exclusion fires only on a `macro` kind the converter can state</title>
+<rect x="1035.0" y="482.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="966.7" y="494.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args</text>
-<text x="60" y="844" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — py-trace (trace-graded)</text>
+<text x="1032.0" y="571.5" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector ·cgc</text>
+<g>
+<title>minic (fixture) — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
+precision-against-oracle 5/5 = 100.0%
+recall 7/7 = 100.0% over every resolved site (resolution oracle: no roots)
+misses by class: none recorded
+the C lane's own fixture in this repo, graded as make's default target builds it</title>
+<circle cx="1040.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="1032.0" y="534.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >minic (fixture)</text>
+<g>
+<title>sqlite-vector — C, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-12
+precision-against-oracle 851/851 = 100.0%
+recall 1,091/1,091 = 100.0% over every resolved site (resolution oracle: no roots)
+misses by class: none recorded
+random draw; the 3 contradicted are syntactic and hobbes-wrong, a strcasestr shim in a dead #if arm drawn over libc's (C-131, C-138); semantic 851/851</title>
+<circle cx="1040.0" cy="480.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="1032.0" y="584.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >sqlite-vector</text>
+<text x="60" y="844" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >C++ — clang (compiler-graded)</text>
 <rect x="60" y="854" width="300" height="300" fill="none" stroke="#d9d8d2"/>
 <line x1="60.0" y1="854" x2="60.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="60.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
@@ -931,56 +908,130 @@ random draw (seed 20260914); the 4 contradicted at its first grade were the over
 <line x1="360.0" y1="854" x2="360.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="360.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
 <line x1="60" y1="1154.0" x2="360" y2="1154.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="1157.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
-<line x1="60" y1="1079.0" x2="360" y2="1079.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="1082.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
+<text x="54" y="1157.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >40</text>
+<line x1="60" y1="1104.0" x2="360" y2="1104.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="1107.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50</text>
+<line x1="60" y1="1054.0" x2="360" y2="1054.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="1057.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
 <line x1="60" y1="1004.0" x2="360" y2="1004.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="1007.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
-<line x1="60" y1="929.0" x2="360" y2="929.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
-<text x="54" y="932.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<text x="54" y="1007.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
+<line x1="60" y1="954.0" x2="360" y2="954.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="957.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<line x1="60" y1="904.0" x2="360" y2="904.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="54" y="907.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
 <line x1="60" y1="854.0" x2="360" y2="854.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
 <text x="54" y="857.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
-<text x="210.0" y="1184" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall-against-executed, % (coverage-limited)</text>
-<text x="26" y="1004.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 26 1004.0)">confirmation rate, % — not precision, axis from 60</text>
+<text x="210.0" y="1184" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall, % of in-repo oracle pairs at the cell's roots</text>
+<text x="26" y="1004.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 26 1004.0)">precision vs oracle, %, axis from 40</text>
+<text x="66" y="1146" font-size="9" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >not drawn (nothing graded): args (codegraphcontext)</text>
+<g>
+<title>fmt — codegraphcontext — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
+precision-against-oracle 847/885 = 95.7% · strict 847/975 (86.9%)
+recall 5,955/50,524 = 11.8% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 22,814, static→function 10,674, static→constructor 8,310, macro→function 1,631, macro→method 1,140
+codegraphcontext graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<rect x="90.4" y="870.5" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="103.4" y="879.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·cgc</text>
+<g>
+<title>fmt — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
+precision-against-oracle 2,410/5,024 = 48.0% · strict 2,410/5,343 (45.1%)
+recall 7,013/50,524 = 13.9% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 22,204, static→function 10,303, static→constructor 8,233, macro→function 1,631, macro→method 1,140
+repowise graded by the same key as the Hobbes fmt cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="101.7,1108.0 107.7,1114.0 101.7,1120.0 95.7,1114.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="109.7" y="1118.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt ·rw</text>
+<g>
+<title>args — repowise — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), host-run, 2026-09-15
+precision-against-oracle 815/904 = 90.2% · strict 815/937 (87.0%)
+recall 831/3,561 = 23.3% over every resolved site (resolution oracle: no roots)
+misses by class: static→constructor 1,303, static→method 1,227, static→function 200
+repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
+<polygon points="129.9,897.0 135.9,903.0 129.9,909.0 123.9,903.0" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+</g>
+<text x="137.9" y="907.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args ·rw</text>
+<g>
+<title>fmt — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
+precision-against-oracle 7,012/7,012 = 100.0% · strict 7,012/7,039 (99.6%)
+recall 15,339/50,524 = 30.4% over every resolved site (resolution oracle: no roots)
+misses by class: static→method 19,376, static→constructor 8,006, static→function 5,042, macro→function 1,621, macro→method 1,140
+chosen, not drawn (ADR-113 §4): header-heavy, the claim rule's hardest case; no contradiction left: scip-clang's eight wrong-specialisation edges are withheld where the written qualifier contradicts them (ADR-125, C-153 narrowed), and its two remaining C-153 rows sit unjudged on lines the key left unresolved, which the strict figure counts; the oracle's own defects (H-28–H-32) are fixed, and C-155 is lifted</title>
+<circle cx="151.2" cy="854.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="159.2" y="868.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >fmt</text>
+<g>
+<title>args — C++, Ubuntu clang version 18.1.3 (1ubuntu1) -ast-dump=json (resolution), contained, 2026-09-15
+precision-against-oracle 2,567/2,567 = 100.0%
+recall 2,595/3,561 = 72.9% over every resolved site (resolution oracle: no roots)
+misses by class: static→constructor 520, static→method 430, static→function 16
+random draw (seed 20260914); the 4 contradicted at its first grade were the overload collapse, abstained since (C-151)</title>
+<circle cx="278.7" cy="854.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+</g>
+<text x="286.7" y="868.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >args</text>
+<text x="400" y="844" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Python — py-trace (trace-graded)</text>
+<rect x="400" y="854" width="300" height="300" fill="none" stroke="#d9d8d2"/>
+<line x1="400.0" y1="854" x2="400.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="400.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >0</text>
+<line x1="475.0" y1="854" x2="475.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="475.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >25</text>
+<line x1="550.0" y1="854" x2="550.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="550.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >50</text>
+<line x1="625.0" y1="854" x2="625.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="625.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >75</text>
+<line x1="700.0" y1="854" x2="700.0" y2="1154" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="700.0" y="1168" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
+<line x1="400" y1="1154.0" x2="700" y2="1154.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="1157.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >60</text>
+<line x1="400" y1="1079.0" x2="700" y2="1079.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="1082.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >70</text>
+<line x1="400" y1="1004.0" x2="700" y2="1004.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="1007.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >80</text>
+<line x1="400" y1="929.0" x2="700" y2="929.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="932.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >90</text>
+<line x1="400" y1="854.0" x2="700" y2="854.0" stroke="#d9d8d2" stroke-dasharray="2 3"/>
+<text x="394" y="857.0" font-size="9" fill="#5a5a57" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >100</text>
+<text x="550.0" y="1184" font-size="10" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >recall-against-executed, % (coverage-limited)</text>
+<text x="366" y="1004.0" font-size="9" fill="#5a5a57" text-anchor="middle" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" transform="rotate(-90 366 1004.0)">confirmation rate, % — not precision, axis from 60</text>
 <g>
 <title>click — codegraphcontext — Python, py-trace 3.12.13 sys.monitoring (trace), host-run, 2026-09-09
 confirmation rate 1,298/1,958 = 66.3%
 recall 1,298/4,595 = 28.2% recall-against-executed (coverage-limited)
 misses by class: observed→closure 1,196, observed→method 897, observed→class 621, observed→function 502, observed→lambda 81
 codegraphcontext graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<rect x="139.6" y="1101.75" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
+<rect x="479.6" y="1101.75" width="10" height="10" fill="#eb6834" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="152.6" y="1110.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·cgc</text>
+<text x="492.6" y="1110.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·cgc</text>
 <g>
 <title>click — repowise — Python, py-trace 3.12.13 sys.monitoring (trace), host-run, 2026-09-09
 confirmation rate 1,703/2,426 = 70.2%
 recall 1,703/4,595 = 37.1% recall-against-executed (coverage-limited)
 misses by class: observed→closure 1,227, observed→method 894, observed→function 535, observed→class 155, observed→lambda 81
 repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-96); tolerances tuned on Hobbes' output (C-95)</title>
-<polygon points="171.3,1071.5 177.3,1077.5 171.3,1083.5 165.3,1077.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
+<polygon points="511.3,1071.5 517.3,1077.5 511.3,1083.5 505.3,1077.5" fill="#1baf7a" stroke="#fcfcfb" stroke-width="1.5"/>
 </g>
-<text x="179.3" y="1081.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
+<text x="519.3" y="1081.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
 <g>
 <title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
 confirmation rate 1,755/2,065 = 85.0%
 recall 1,755/4,595 = 38.2% recall-against-executed (coverage-limited)
 misses by class: observed→closure 1,195, observed→function 750, observed→method 665, observed→class 149, observed→lambda 81
 trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry</title>
-<circle cx="174.6" cy="966.5" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="514.6" cy="966.5" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
-<text x="182.6" y="970.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
+<text x="522.6" y="970.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
 <g>
 <title>hobbes pipeline/ — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-28
 confirmation rate 4,743/5,316 = 89.2%
 recall 4,743/5,608 = 84.6% recall-against-executed (coverage-limited)
 misses by class: observed→closure 642, observed→function 118, observed→lambda 96, observed→method 9
 trace-graded under its own suite (dogfood)</title>
-<circle cx="313.8" cy="935.0" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="653.8" cy="935.0" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
-<text x="305.8" y="939.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
+<text x="645.8" y="939.0" font-size="8.5" fill="#1a1a19" text-anchor="end" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >hobbes pipeline/</text>
 <line x1="24" y1="1236" x2="1066" y2="1236" stroke="#d9d8d2"/>
 <text x="24" y="1258" font-size="13" fill="#1a1a19" text-anchor="start" font-weight="bold" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The compiler contradicts almost nothing we draw, and each contradiction is read in its record; here is how much we do not draw, and what it is.</text>
-<text x="24" y="1276" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 30.4–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
+<text x="24" y="1276" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Recall across Hobbes' compiler-graded cells runs 22.4–100.0% — a range, never an average: each cell's denominator is its own roots or its resolved sites (C-62).</text>
 <text x="24" y="1292" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >The misses are registered by class: C-58 (closures, interface dispatch, function values, macro and derive bodies; docs/oracle/oracle-misses.md has the tables),</text>
 <text x="24" y="1308" font-size="11" fill="#5a5a57" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >and in C++ the classes each record tables: constructions, the member calls and overload sets lane B leaves unsettled, and macro-heavy parses (C-143, C-145, C-151).</text>
 <text x="24" y="1324" font-size="11" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >Precision-against-oracle is a lower bound (contradictions mostly triage to the oracle's grain, A-8). Trace cells confirm and never contradict, so they sit in their own panel.</text>

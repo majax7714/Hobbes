@@ -548,5 +548,26 @@
   "label": "args",
   "tool": "repowise",
   "note": "repowise graded by the same key as the Hobbes args cell (ADR-101; `oracle import --lang cpp`, pre-registered §10.7); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "express-js": {
+  "lang": "JavaScript",
+  "run": "contained",
+  "draw": "picked",
+  "label": "express (CommonJS)",
+  "note": "no dependency tree (C-165); 652 misses one callee through a CommonJS re-export (C-167)"
+ },
+ "preact-js": {
+  "lang": "JavaScript",
+  "run": "contained",
+  "draw": "picked",
+  "label": "preact (ESM, JSDoc, JSX)",
+  "note": "its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), regraded; no dependency tree (C-165); jsconfig not read (C-166)"
+ },
+ "xmpp-js": {
+  "lang": "JavaScript",
+  "run": "contained",
+  "draw": "random",
+  "label": "xmpp.js",
+  "note": "its lockfile refused by npm ci: no dependency tree (C-165)"
  }
 }
