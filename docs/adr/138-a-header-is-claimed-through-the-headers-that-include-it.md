@@ -1,6 +1,6 @@
 # ADR-138 — A `.h` is claimed through the headers that include it; the `-I` path measured beside it
 
-**Date:** 2026-09-19 · **Status:** proposed — measured, nothing built, no version move. The routes below are Max's.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a), with the rule's C side corrected before the brief (*Accepted*, below). Not yet built.
 
 Follows ADR-113 §1 (a `.h` is C++'s when a C++ source includes it and no
 `.c` source does), ADR-108's 2026-09-14 amendment (C-133's first unit:
@@ -131,3 +131,46 @@ The `-I` step is **not built** on these numbers.
   5 off the ingest's count today, so ± 10); no `c-includes` line names a
   file that exists at the repo root; the four C and C++ cells and click
   row-identical.
+
+## Accepted — route (a), the rule corrected, and the premises read before the brief (2026-09-19)
+
+**The *Decision* was worded wrongly in one clause, and the probe said
+so before anything was built.** It let the C side follow headers too
+("no `.c` source reaches it the same way through headers left to C").
+Measured on ScummVM, that moves **12 headers C++ claims today to
+"shared"** — cxxtest's, reached from `test/cxxtest/sample/SCons/src/stack.c`
+through a header both languages include — and 10 of the 12 spell C++.
+A rule meant to stop C++ being read as C would have caused it.
+
+**The rule as built:** the C side stays what it is today, a `.c`
+source's *own* includes. The claim starts as today's (`by_cpp − by_c`)
+and then grows to a fixed point: a `.h` that a **claimed** header
+includes, and that no `.c` source includes, is claimed. A header left
+to C passes nothing on. `claim.py`'s last line measures exactly this:
+ScummVM **9,473 → 9,859 claimed, 238 left to C, none of today's claims
+lost**; fmt 25 and 1, unchanged; args, cJSON and sqlite-vector are
+single-language and the rule never runs. (The table's "+ transitive"
+row, 9,847, was the symmetric rule.)
+
+Premises, read in the tree:
+
+- `cppsource.extract_cpp` parses the six C++ extensions, calls
+  `_claim_headers(repo_root, files)` once, then parses the claimed
+  headers. The claim reads `parsed.includes` of files already parsed,
+  so the fixed point is a loop there: parse the newly claimed, read
+  their includes, claim again, until nothing is added. Each header is
+  still parsed once.
+- `_claim_headers` returns early — every `.h` to C++ — when the repo has
+  no `.c` source. The loop is only the mixed branch's.
+- `csource._join`'s `known_files` is `{parsed.path for parsed in
+  files}`, the C walk's own files, and `extract_c(repo_root, claimed=…)`
+  already receives the claimed set. The C walk's include step needs
+  that set (and the C++ sources and headers) as *known paths*, not as
+  files it parses: an include that lands on one draws its `imports`
+  edge to that file's module id — the id rule is the same in both walks
+  — and is no longer a `c-includes` miss. `cppsource._join` already does
+  the mirror (`known_files = owned | c_sources | left_to_c`).
+- Lane A's C++ cache (ADR-128) keys a file's parse by content, not by
+  who claimed it; the claimed set is recomputed every ingest.
+  *Consequences*' "the cache key moves" was wrong: nothing in the cache
+  changes.
