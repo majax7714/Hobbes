@@ -362,6 +362,23 @@ method, class, variable, property, parameter, type-member, closure,
 local-binding, anonymous-function — and the miss record groups by
 mode × kind.
 
+`--no-tsconfig` grades a zone the repo gives **no** config for — a plain
+JavaScript tree (ADR-140 step 3). The program is built from the zone's
+own source set (`.ts .tsx .mts .cts .js .jsx .mjs .cjs`, skipping
+dot-directories and `node_modules`, `__pycache__`, `venv`, `dist`,
+`build`, `site-packages`, tsextract's list) under the eight options
+`scipsource._generated_tsconfig` writes for such files — `allowJs`,
+`checkJs` off, ESNext, Bundler resolution, ES2022, JSX preserved,
+`noEmit`, `skipLibCheck` — so the key and both product lanes see one
+program. It refuses (exit 1) when the walk meets a `tsconfig.json`,
+which the ingest would have split the tree at, and (exit 2) together
+with `--config`; a `jsconfig.json` is not a refusal, because neither
+lane reads its options, but every one met is listed on stderr. In this
+mode only, the export gains `generated_config` (the options, the skip
+list, the ignored configs) and the `oracle` string says `no tsconfig`;
+without the flag nothing changes. `internal/grade/minijs_test.go` holds
+it against the `minijs` fixture, site by hand-keyed site.
+
 ## The Python trace oracle (`py/trace_oracle.py`, D-O5)
 
 `oracle py-trace --repo <repo> --module <dir> --python "uv run --project
