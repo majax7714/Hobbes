@@ -117,6 +117,32 @@ def resolve_call_sites(
     return fallback
 
 
+def symbol_imports(
+    modules: list[ModuleInfo], parsed: dict[str, ParsedFile]
+) -> dict[str, dict[str, tuple[str, str]]]:
+    """Per module id, the names ``from x import y [as z]`` binds to a symbol
+    of a repo module: ``{bound name: (module id, original name)}``.
+
+    :class:`_NameEnv` resolves these already, for the call fallback; this is
+    that read exposed rather than derived a second time (ADR-137). pytest's
+    fixture lookup counts a name imported into a file as the file's own, and
+    the import rules it needs are exactly ADR-007's. A module that binds no
+    such name is left out.
+    """
+    index = _Index(modules)
+    out: dict[str, dict[str, tuple[str, str]]] = {}
+    for module in modules:
+        env = _NameEnv(module, parsed[module.id], index)
+        bound = {
+            name: (binding[1].id, binding[2])
+            for name, binding in env.bindings.items()
+            if binding[0] == "symbol"
+        }
+        if bound:
+            out[module.id] = bound
+    return out
+
+
 def _shadowed(path: str, line: int, name: str, target: tuple[str, int], bindings) -> bool:
     """A bare name bound in a scope that spans the call (a parameter, an
     assignment, a nested ``def`` — ADR-046's bindings) is *that* binding,

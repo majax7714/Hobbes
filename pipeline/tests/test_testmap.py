@@ -161,6 +161,82 @@ class TestReachFollowsCallsOnly:
         assert record["reaches"] == []
 
 
+class TestReachFollowsInjections:
+    """ADR-137: pytest calls the fixture on the test's behalf, so what the
+    fixture sets up is code the test exercises — and ``through_fixtures``
+    says which modules only that step reached."""
+
+    @staticmethod
+    def _repo(tmp_path):
+        (tmp_path / "lib.py").write_text(
+            "def build():\n    return 1\n\n\ndef direct():\n    return 2\n"
+        )
+        (tmp_path / "conftest.py").write_text(
+            "import pytest\n\n"
+            "from lib import build\n\n\n"
+            "@pytest.fixture\n"
+            "def repo():\n"
+            "    return build()\n"
+        )
+        (tmp_path / "test_x.py").write_text("def test_one(repo):\n    pass\n")
+        modules = discover_modules(tmp_path)
+        parsed = {
+            m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules
+        }
+        return modules, parsed
+
+    CALLS = [
+        {"from": "conftest.repo", "to": "lib.build", "type": "calls",
+         "tier": "syntactic", "evidence": []},
+    ]
+    INJECTION = {"from": "test_x.test_one", "to": "conftest.repo",
+                 "path": "test_x.py", "line": 1, "name": "repo"}
+
+    def test_a_test_reaches_what_only_its_fixture_calls(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        (record,) = collect_tests(
+            modules, parsed, self.CALLS, injections=[self.INJECTION]
+        )
+        assert record["reaches"] == ["conftest.repo", "lib.build"]
+        assert record["reaches_modules"] == ["conftest", "lib"]
+        assert record["through_fixtures"] == ["conftest", "lib"]
+
+    def test_a_module_also_called_directly_is_not_through_a_fixture(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        edges = [
+            *self.CALLS,
+            {"from": "test_x.test_one", "to": "lib.direct", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        (record,) = collect_tests(modules, parsed, edges, injections=[self.INJECTION])
+        assert record["reaches_modules"] == ["conftest", "lib"]
+        # `lib` is reached by a call the test wrote; only the conftest is
+        # the fixture's doing.
+        assert record["through_fixtures"] == ["conftest"]
+
+    def test_a_fixture_of_a_fixture_is_followed(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        injections = [
+            self.INJECTION,
+            {"from": "conftest.repo", "to": "conftest.root",
+             "path": "conftest.py", "line": 6, "name": "root"},
+        ]
+        edges = [
+            {"from": "conftest.root", "to": "lib.direct", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        (record,) = collect_tests(modules, parsed, edges, injections=injections)
+        assert record["reaches"] == ["conftest.repo", "conftest.root", "lib.direct"]
+        assert record["through_fixtures"] == ["conftest", "lib"]
+
+    def test_with_no_injections_the_record_is_what_it_was(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        (record,) = collect_tests(modules, parsed, self.CALLS)
+        assert record["reaches"] == []
+        assert record["reaches_modules"] == []
+        assert record["through_fixtures"] == []
+
+
 class TestValueOnlyModules:
     """C-156: a module no calls edge could reach, read from the graph."""
 
