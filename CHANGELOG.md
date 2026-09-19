@@ -11,9 +11,37 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.55-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.56-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.56-beta — 2026-09-19 (a call through a CommonJS re-export is drawn; C-167 narrowed; ADR-141)
+
+**Patch: what the layer draws** — a lane A resolution extended, a
+constraint narrowed. Built as unit `S-20260919T210207Z-9133`.
+
+- **Found by tracing C-167.** A package whose root `index.js` is one line,
+  `module.exports = require('./lib/express')`, stopped both lanes: the
+  TypeScript checker does not alias a `require` call on that right side,
+  so lane A's callee ended at the re-exporting file (`nested-decl`), and
+  scip-typescript names the call site with that file's document-local
+  symbol, which names nothing where it is written. On Express that was
+  652 call sites of `express()` — every miss of its largest class.
+- **Lane A follows the re-export:** from an `export=` whose one
+  declaration is `module.exports = require("<literal>")` (or `exports =
+  module.exports = require(…)`), through the literal's module symbol —
+  the compiler's module resolution, never a type — to that module's own
+  export, at most eight hops. The edge is lane A's fallback, drawn
+  `syntactic`: the index did not resolve the call, and the tier says so.
+- **Graded (`oracle-grading.md` §10.22, stored keys):** Express 340/340 →
+  992/992, recall 22.4% → 65.3%, 0 contradicted, poison PASS; Preact,
+  xmpp.js and `minijs` row-identical. No `.ts` file can move (`export =`
+  there is not a binary expression), and the five TS cells hold no such
+  JavaScript file.
+- **C-167 narrowed:** what is left is the tier (these edges stay
+  syntactic while scip-typescript writes a local at the site — a
+  `Provider` line) and a re-export through anything but a literal
+  `require`.
 
 ## 0.2.55-beta — 2026-09-19 (JavaScript's verification row names its own three graded repos; C-165 narrowed, C-167 and C-168 registered; ADR-140 step 5)
 

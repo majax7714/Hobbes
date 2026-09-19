@@ -6,6 +6,14 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-167 narrowed, 2026-09-19 (0.2.56-beta; ADR-141, route a):
+- **C-167 narrowed (partial):** lane A follows `module.exports =
+  require("<literal>")` to the required module's export, so a call
+  through a CommonJS re-export is drawn — `syntactic`, since
+  scip-typescript names the site with a leaked local. Left: that tier,
+  and a re-export through anything but a literal `require`. Express
+  recall 22.4% → 65.3%, 0 contradicted. Counts unchanged.
+
 C-167 traced, 2026-09-19 (sixth session; ADR-141 proposed, no version move):
 - **C-167 (partial, unchanged in status):** its *Because* is traced —
   both lanes stop at the re-exporting file's `export=`; scip-typescript

@@ -144,38 +144,42 @@
 - **Source:** ADR-140 step 4's preparation, 2026-09-19 (Max: register
   and note, route a).
 
-### C-167 — A function reached through a CommonJS re-export of `module.exports` draws no edge — *registered 2026-09-19*
-- **Cannot tell you:** who calls a function a module exports as its whole
-  `module.exports`, when the caller reaches it through another module
-  that re-exports it (`module.exports = require('./lib/express')` in
-  `index.js`, then `const express = require('..'); express()`). tsc
-  resolves the call to the function (`createApplication`); Hobbes draws
-  nothing at the site.
-- **Because:** traced 2026-09-19 (ADR-141, proposed). Both lanes stop
-  at the re-exporting file's `export=`: TypeScript does not alias a
-  `require` call written on the right side of `module.exports =`, so
-  lane A's checker ends there (`origin: nested`, no callee), and
-  scip-typescript names the call site with that file's **document-local**
-  symbol (`local N`, defined in no document the site is in), which the
-  helper drops as it drops every local. On Express, 652 `express(`
-  occurrences carry such a local — exactly the 652 misses. A direct
-  `module.exports = F` required and called by name is drawn (`minijs`),
-  so is a destructured `require`, and so is `module.exports = lib` after
-  `var lib = require(…)`.
+### C-167 — A call through a CommonJS re-export of `module.exports` is drawn only at the syntactic tier, and only through a literal `require` — *registered 2026-09-19; narrowed 2026-09-19 (ADR-141, 0.2.56-beta)*
+- **Cannot tell you:** (1) that the index agrees with a call reached
+  through a module that re-exports another as its whole `module.exports`
+  (`module.exports = require('./lib/express')` in `index.js`, then
+  `const express = require('..'); express()`): the edge is drawn, at the
+  `syntactic` tier, from lane A alone; (2) who calls through a re-export
+  whose right side is not a literal `require` — a computed or template
+  specifier, a conditional, a chain longer than eight hops — where
+  nothing is drawn.
+- **Because:** traced 2026-09-19 (ADR-141). TypeScript does not alias a
+  `require` call written on the right side of `module.exports =`, so the
+  checker ends at the re-exporting file's `export=`; since 0.2.56-beta
+  lane A follows that one written shape — the literal's module symbol, the
+  compiler's own module resolution, to that module's `export=` — and
+  draws the call as its fallback. scip-typescript names the same site
+  with the re-exporting file's **document-local** symbol (`local N`,
+  defined in no document the site is in), which the helper drops as it
+  drops every local, so lane B neither confirms the edge nor vetoes it.
+  A direct `module.exports = F` required and called by name is drawn
+  (`minijs`); `module.exports = lib` after `var lib = require(…)`
+  resolves in both lanes.
 - **Provider:** scip-typescript writes a document-local symbol into
   another document at a call through `module.exports = require(…)`
   (scip-typescript as pinned in `scip/`; reproduced in the image,
   `~/.hobbes/bench/c167-reexport/trace/`).
 - **Bites at:** the CommonJS package pattern — a root `index.js` that
-  re-exports `lib/`. Express: 652 of its 1,180 missed pairs, one callee
-  (`oracle-grading.md` §10.22).
-- **You find out:** **partial** — the sites are counted in the ingest
-  summary's capture line and `list_blind_spots` as `nested-decl`
-  (declared in another repo file below the modelled vocabulary), never
-  named as this shape. (Corrected 2026-09-19: registered as
-  `unclassified`; the trace read `nested-decl`, 706 on Express, 652 of
-  them this shape.)
-- **Source:** ADR-140 step 4, Express's first grade, 2026-09-19.
+  re-exports `lib/`. Express: 652 edges' worth of sites that were missing
+  are drawn at 0.2.56-beta, all syntactic (recall 22.4% → 65.3%,
+  `oracle-grading.md` §10.22).
+- **You find out:** **partial** — the edge carries `tier: syntactic` and
+  lane `tree-sitter`, and the site is counted `fallback-resolved`, so the
+  graph says the index did not prove it, but not why. A re-export the
+  rule does not follow stays `nested-decl` in the capture line and
+  `list_blind_spots`, never named as this shape.
+- **Source:** ADR-140 step 4, Express's first grade, 2026-09-19; traced
+  and narrowed by ADR-141 (unit `S-20260919T210207Z-9133`).
 
 ### C-168 — A construction (`new F()`) is drawn `uses`, not `calls`, in TypeScript and JavaScript — *registered 2026-09-19*
 - **Cannot tell you:** that `new F()` calls `F` — a class's constructor,
