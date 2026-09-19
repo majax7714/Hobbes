@@ -1,7 +1,8 @@
 # ADR-141 — A CommonJS re-export is followed by lane A: `module.exports = require("…")` to the required module's own export
 
-**Date:** 2026-09-19 · **Status:** proposed (C-167 traced and the rule
-probed; nothing built). Route (a) recommended, below.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "good with
+recommended" — route (a)). C-167 traced and the rule probed; see
+*Accepted*, at the end.
 
 Asked in the 2026-09-19 close-out (Max: "we will tackle constraints from
 js next session"; the sixth session, "proceed with c-167"). C-167: a
@@ -110,3 +111,30 @@ site. Nothing is wrong and nothing is missed; the tier understates what
 the index proved. Counted on the three JS cells: Express 2, Preact 5,
 xmpp.js 41 (its `#` methods). Not a constraint yet; a next step would
 measure it on the TS cells first.
+
+## Accepted (Max, 2026-09-19: route a)
+
+Built as one dispatched unit. The code facts the brief rests on, read in
+the tree and run before the dispatch:
+
+- `getAliasedSymbol()` is called in exactly two places in
+  `tsextract/extract.mjs` — `resolveExpressionTarget` (lane A's callee)
+  and `calleeOrigin` (the tail's origin when that returned null) — and
+  the rule goes after it in both, so a site that now resolves stops
+  being counted `nested-decl`.
+- The facts schema does not change (same fields, a callee where there
+  was null), so `HELPER_VERSION` stays 5, and `tssource.py`, which
+  refuses any other version, is untouched. There is no TS lane A cache.
+- The fixture `pipeline/tests/fixtures/minicjs/` (a root `index.js`
+  re-exporting `lib/app.js`, a second hop `index2.js`, callers through
+  `require('..')`, through `index2`, and direct), run through
+  `extract_repo` with lane B on `main` and with the probe: on `main`,
+  `test/through.js` and `test/twohop.js` draw nothing (`nested-decl`);
+  with the probe each draws `test/<file> → lib/app.createApplication`,
+  `calls`, `syntactic`, lane `tree-sitter`, tail `fallback-resolved`;
+  `test/direct.js` is the same before and after (its `syntactic` `calls`
+  beside the `semantic` `uses` — this ADR's last section). Lane B's one
+  degradation there is the missing lockfile (C-23), as on any zone
+  without one.
+- The version, the CHANGELOG, §10.22's Express number, C-167's
+  narrowing and the architecture are the developer's, after the merge.
