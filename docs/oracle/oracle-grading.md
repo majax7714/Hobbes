@@ -1887,6 +1887,50 @@ before the row lands is the lead's call. Ignoring `jsconfig.json` is a
 concession whichever way the cells come out: it is to be registered, and
 whether the lanes should read it is a separate decision.
 
+**Results, first pass (2026-09-19, 0.2.54-beta; every ingest with lane B
+contained, the oracle in the image with no network; drivers and reports
+`~/.hobbes/bench/js-cells/` — `grade.sh`, `cells/<cell>/`).** No cell
+had a dependency tree on either side: Express has no lockfile, Preact's
+is pnpm's, and xmpp.js's `npm ci` refused its own lockfile (out of sync
+with `package.json` — the ingest said so, C-23).
+
+- **P139 — met exactly.** `minijs`: 7/7 confirmed, 0 contradicted, recall
+  7/11, the four predicted misses; poison PASS.
+- **O3-JS-1 Express:** **340/340 (100%)**, 289 semantic and 51 syntactic,
+  0 contradicted; poison PASS (198 refused, 142 unjudged); recall 22.4%
+  (340/1,520). **P136 half-met:** recall ≤ 35% held, the class did not —
+  the largest miss class is `static→function` (657), and **652 of those
+  are one callee**: the tests' `express()`, which tsc resolves through
+  `require('../')` → `index.js`'s `module.exports =
+  require('./lib/express')` → `createApplication`. Hobbes draws nothing
+  at those sites (3 `uses` and 2 syntactic `calls` reach
+  `createApplication` in the whole graph); why lane B stops there is not
+  yet traced. Property-assigned functions miss 46 (`static→anonymous-function`).
+  `func-value→parameter` 352 (mocha's `done()` callbacks).
+- **O3-JS-3 xmpp.js (the draw):** **552/552 (100%)**, 0 contradicted;
+  poison PASS (361 refused, 191 unjudged); recall **66.4%** (558/840) —
+  **P137 met.** `static→class` 104: `new X()` is drawn as `uses`, as in
+  TS. **P138 met ("neither"):** without the workspace links no import of
+  `@xmpp/*` resolves in either program — 0 cross-package pairs, 0 edges.
+- **O3-JS-2 Preact: not quoted — two oracle defects found in its first
+  triage (P141 met).** The first pass read 1,201 confirmed and 1,223
+  contradicted. **1,220** are H-34 (the oracle keys an in-repo `.d.ts`
+  declaration as external with an absolute path; Hobbes' edge names the
+  same line of the same file) and **3** are H-35 (a JSDoc `@type` on a
+  function makes the key name the type annotation's line). No row is
+  charged to Hobbes. Poison PASS (2,206 refused, 0 falsely confirmed).
+  Preact is regraded after both are fixed; P134–P137 and P142 for it
+  wait on that.
+- **P134 so far:** met on Express, xmpp.js and `minijs`. **P135:**
+  undecidable there (0 contradictions). **P140:** met on every cell.
+- **C-166 fires where it should:** Preact's ingest prints its
+  `jsconfig.json` as not read, 241 files under the default options.
+- **Two recall findings for Hobbes, not yet registered** (the lead's
+  call): a function reached through a CommonJS re-export of
+  `module.exports` draws nothing (Express's 652); a construction of a
+  function (`new Counter()`) is drawn `uses`, as TS draws `new` of a
+  class.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**
