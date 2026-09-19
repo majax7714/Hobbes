@@ -1912,6 +1912,18 @@ it, with the environment lane B had.
   graphics (ADR-102) do not include them; adding them is the lead's
   call.
 
+**Regrade, 0.2.56-beta (ADR-141, C-167 narrowed; 2026-09-19).** Lane A
+follows `module.exports = require("<literal>")` to the required module's
+export; Express re-ingested contained at `c1d25fa` and graded against the
+standing key (`js-cells/regrade/h34/express/oracle.json`): **992/992,
+strict 100%, recall 65.3% (992/1,520)**, poison PASS — 289 semantic and
+703 syntactic, the 652 new rows all syntactic (scip-typescript names
+those sites with a leaked document-local, C-167's `Provider` line);
+every earlier confirmed row kept. Pre-registered as ADR-141's probe
+(`~/.hobbes/bench/c167-reexport/PREREG.md`, P1–P4 met): Preact, xmpp.js
+and `minijs` row-identical on copies. P136's largest class is closed;
+Express's misses are now calls through parameters (352 of 528).
+
 **What the row rests on.** The JavaScript row of §3.8 names only the
 cells graded here. A mechanism triage charges to Hobbes on the semantic
 tier is registered in the same commit as its cell; whether it is fixed

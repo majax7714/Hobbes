@@ -13509,3 +13509,26 @@ as *proposed* with three routes, (a) recommended; nothing built, no
 version move. Also counted, not registered: a callee whose site name is
 not its definition's joins as `syntactic calls` beside a `semantic
 uses` (Express 2, Preact 5, xmpp.js 41) — the join matches by name.
+
+**ADR-141 built (Max: "good with recommended" — route a; 0.2.56-beta).**
+The ADR's *Accepted* section records the brief's premises, each read or
+run first: the two `getAliasedSymbol()` calls, `HELPER_VERSION` unchanged,
+and the `minicjs` fixture through `extract_repo` on `main` and with the
+probe (lane B's one degradation there, no lockfile). Unit
+`S-20260919T210207Z-9133` (61 turns, $2.64): the probe's rule as
+written, six tsextract cases, the fixture, a `lane_b` case and its
+lane-B-off twin. Two deviations, both right (an immediately-called
+`require()` is an expression callee and never reaches the hop bound).
+Gate right-clear, verify pass; merged no-ff `9f1fb77`; tracker 61 of 40.
+On the host: tsextract 43, pytest 2,095 (the tracker's drift test red
+until the review block, as always), every `lane_b` test 11, Go `./...`
+green. Bumped at `c1d25fa`. The real cell, re-ingested contained at
+0.2.56-beta: **Express 992/992, strict 100%, recall 65.3%, poison PASS,
+289 semantic + 703 syntactic; 0 earlier confirmed rows lost, 652
+gained** — the probe exactly. The cell record carries the regrade block;
+§10.22, §3.8, C-167 (narrowed, partial: the tier and a non-literal
+re-export), HISTORY, the comparative data (93 cells, `render.py check`
+and the report test green) follow it. Proxy and image rebuilt at
+0.2.56-beta, this repo re-ingested; the knowledge server needs a restart
+(C-65). Everything is on `main`, unpushed. Next, the handoff's order:
+C-168's construction rule, then C-165.

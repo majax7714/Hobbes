@@ -2161,9 +2161,9 @@
    "run": "contained",
    "draw": "picked",
    "label": "express (CommonJS)",
-   "note": "no dependency tree (C-165); 652 misses one callee through a CommonJS re-export (C-167)",
-   "edges": 340,
-   "confirmed": 340,
+   "note": "no dependency tree (C-165); the tests' express() through a CommonJS re-export drawn since 0.2.56-beta, syntactic (ADR-141, C-167)",
+   "edges": 992,
+   "confirmed": 992,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -2172,12 +2172,12 @@
    "silent_by": {},
    "precision": {
     "pct": 100.0,
-    "num": 340,
-    "den": 340
+    "num": 992,
+    "den": 992
    },
    "recall": {
-    "pct": 22.4,
-    "hits": 340,
+    "pct": 65.3,
+    "hits": 992,
     "pairs": 1520,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2188,13 +2188,13 @@
     "func-value→variable": 73,
     "static→anonymous-function": 46,
     "static→closure": 27,
-    "static→function": 657
+    "static→function": 5
    },
    "poison": {
     "passed": true,
-    "seeded": 340,
-    "refused": 198,
-    "unjudged": 142,
+    "seeded": 992,
+    "refused": 848,
+    "unjudged": 144,
     "falsely": 0
    }
   },

@@ -194,11 +194,11 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-19, 0.2.55-beta; oracle-lane Go
-counted 2026-09-16): 2,093 pytest (10 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-19, 0.2.56-beta; oracle-lane Go
+counted 2026-09-16): 2,095 pytest (11 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
-vitest / 37 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
+vitest / 43 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-19) — Hobbes 0.2.55-beta
+## Status (2026-09-19) — Hobbes 0.2.56-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -297,7 +297,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **60 of 40**
+  drift test; re-render after filling a review block) reads **61 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
 - **Latest — 0.2.49-beta to 0.2.52-beta (2026-09-19).** ADR-137: *a
@@ -322,13 +322,15 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   2,446/2,446, xmpp.js 552/552 — 100% each, recall 22–66%. C-167 (a
   CommonJS re-export draws nothing) and C-168 (`new F()` drawn `uses`)
   registered; the cells recorded in `docs/oracle/cells/` (93 cells).
-  **Next session (Max): the JavaScript constraints** — C-167's trace,
-  C-168's construction rule for TS/JS, a JS cell with its dependencies
+  **0.2.56-beta — ADR-141 (Max: route a): a call through a CommonJS
+  re-export is drawn.** Traced: both lanes stopped at `module.exports =
+  require(…)` (scip-typescript leaks the re-exporter's document-local);
+  lane A now follows it (unit `9133`), drawn syntactic. Express 340/340 →
+  992/992, recall 22.4% → 65.3%; the other JS cells row-identical; C-167
+  narrowed. **Next (Max's JavaScript constraints, continued):** C-168's
+  construction rule for TS/JS, then a JS cell with its dependencies
   provisioned (C-165); the order is in the handoff.
-- **Open for Max:** ADR-141's route (C-167 traced: both lanes stop at a
-  `module.exports = require(…)` re-export; route (a), lane A follows it,
-  probed Express 340/340 → 992/992, recall 22.4% → 65.3%, the other JS
-  cells row-identical); ADR-126 §3 — whether to build a "may reach through
+- **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and

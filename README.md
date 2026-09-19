@@ -363,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.55-beta** (2026-09-19). The Hobbes layer is versioned from here
+**Hobbes 0.2.56-beta** (2026-09-19). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -443,7 +443,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and sixty session logs stand. The
+dispatched on 2026-09-12, and sixty-one session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -466,7 +466,9 @@ wrong-caller rows 105 → 32, no graded number moves), then a definition
 read at a line that refusal vacated (ADR-136: ScummVM 260 symbols), then
 a pytest fixture injection as a `uses` edge that test reach follows
 (ADR-137, ADR-139), and a `.h` claimed through the headers C++ has
-claimed (ADR-138: ScummVM 629 → 273 `.h` read as C).
+claimed (ADR-138: ScummVM 629 → 273 `.h` read as C), and a call through a
+CommonJS re-export followed by lane A (ADR-141: Express's recall 22.4% →
+65.3% at no contradiction).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 

@@ -1207,3 +1207,29 @@ poison check: PASS — 340 seeded wrong edges: 198 refused, 142 unjudged (oracle
 ## Triage
 
 0 contradicted. The misses: **652 of 1,180 are one callee**, the tests' `express()`, which tsc follows through `index.js`'s `module.exports = require('./lib/express')` to `createApplication` and Hobbes does not (C-167, not yet traced; the ingest classes those sites `unclassified`); 352 calls through parameters (mocha's `done`); 46 calls into functions assigned to a property, below the symbol floor (C-9, C-58).
+
+## Regrade, Hobbes 0.2.56-beta (C-167 narrowed — ADR-141: lane A follows a CommonJS re-export)
+
+**The Hobbes side moved; the key did not** (`~/.hobbes/bench/js-cells/regrade/h34/express/oracle.json`). Lane A now follows `module.exports = require("<literal>")` to the required module's own export, so the tests' `express()` through `require('..')` resolves to `createApplication`; scip-typescript still names that site with the re-exporting file's document-local symbol, so the edge is lane A's fallback, drawn `syntactic`. The clone re-ingested contained at `c1d25fa` (0.2.56-beta), exported, graded with `--poison`. Pre-registered in `~/.hobbes/bench/c167-reexport/PREREG.md` (P1: 992 ± 5 — met exactly, from the probe on a copy). Outputs in `~/.hobbes/bench/c167-reexport/final/express/`.
+
+Direction of fix: +652 confirmed, 0 contradicted, every earlier confirmed row kept; `static→function` misses 657 → 5; the graph gains 100 `calls` edges (652 evidence rows) into `lib/express.createApplication` and 92 module edges, and loses none.
+
+```
+cell .  oracle tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution)  sha 9a34acf0
+hobbes edges 992: confirmed 992  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (992/992)
+recall 65.3% (992/1520 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 494; misses map[func-value→local-binding:25 func-value→parameter:352 func-value→variable:73 static→anonymous-function:46 static→closure:27 static→function:5]
+recall-collapsed 65.3% (992/1520 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/25)  misses 25 = 4.7% of all misses
+  recall[func-value→parameter]   0.0% (0/352)  misses 352 = 66.7% of all misses
+  recall[func-value→variable]  14.1% (12/85)  misses 73 = 13.8% of all misses
+  recall[static→anonymous-function]   0.0% (0/46)  misses 46 = 8.7% of all misses
+  recall[static→closure    ]   0.0% (0/27)  misses 27 = 5.1% of all misses
+  recall[static→function   ]  99.5% (980/985)  misses 5 = 0.9% of all misses
+  tier semantic   confirmed 289  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 703  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 147 edge(s) (several oracle sites on one line)
+poison check: PASS — 992 seeded wrong edges: 848 refused, 144 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+The 528 `missed` rows are elided: the classes are the first block's, less the 652 (`func-value→parameter` 352, `func-value→variable` 73, `static→anonymous-function` 46, `static→closure` 27, `func-value→local-binding` 25, `static→function` 5).

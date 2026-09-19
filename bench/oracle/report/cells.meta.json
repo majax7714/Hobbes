@@ -554,7 +554,7 @@
   "run": "contained",
   "draw": "picked",
   "label": "express (CommonJS)",
-  "note": "no dependency tree (C-165); 652 misses one callee through a CommonJS re-export (C-167)"
+  "note": "no dependency tree (C-165); the tests' express() through a CommonJS re-export drawn since 0.2.56-beta, syntactic (ADR-141, C-167)"
  },
  "preact-js": {
   "lang": "JavaScript",
