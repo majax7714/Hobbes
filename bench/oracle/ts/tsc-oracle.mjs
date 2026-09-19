@@ -28,21 +28,35 @@
 // worker thread under a watchdog that prints the last position visited
 // and exits 3 when no site has been reached for --watchdog seconds
 // (default 120; 0 disables).
+//
+// A zone the repo gives no tsconfig.json for is graded under
+// --no-tsconfig (ADR-140 step 3): the program is the discovered source
+// set under the options the ingest generates for exactly those files,
+// so the key and both product lanes see one program.
 import { createRequire } from "node:module";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { Worker, isMainThread, workerData, parentPort } from "node:worker_threads";
 
 const args = isMainThread
   ? Object.fromEntries(
       process.argv.slice(2).reduce((acc, a, i, arr) => {
-        if (a.startsWith("--")) acc.push([a.slice(2), arr[i + 1]]);
+        // `--x value` for every valued flag; a bare `--x` — one followed
+        // by another `--` token or by nothing — reads true.
+        if (a.startsWith("--")) {
+          const next = arr[i + 1];
+          acc.push([a.slice(2), next === undefined || next.startsWith("--") ? true : next]);
+        }
         return acc;
       }, []),
     )
   : workerData.args;
 if (!args.repo || !args.zone) {
-  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--config <tsconfig file name>] [--out <file>] [--watchdog <seconds>]");
+  console.error("usage: tsc-oracle.mjs --repo <repo> --zone <dir> [--config <tsconfig file name> | --no-tsconfig] [--out <file>] [--watchdog <seconds>]");
+  process.exit(2);
+}
+if (args["no-tsconfig"] && args.config) {
+  console.error("usage: --no-tsconfig grades a zone that has no config; it cannot name one with --config");
   process.exit(2);
 }
 
@@ -85,22 +99,96 @@ try {
   ts = req("typescript");
 }
 
-// --config names the tsconfig file inside the zone (default tsconfig.json):
-// a solution-style root (`files: []`, `references`) builds an empty
-// program, so a cell there names the referenced config it grades
-// (hono's tsconfig.build.json, ADR-101's 1-1 cells).
-const configPath = ts.findConfigFile(zone, ts.sys.fileExists, args.config ?? "tsconfig.json");
-if (!configPath) {
-  console.error(`oracle: no ${args.config ?? "tsconfig.json"} at ${zone}`);
-  process.exit(1);
+// The options `_generated_tsconfig` writes for files the repo gave no
+// config for (pipeline/src/hobbes/extract/scipsource.py), itself a
+// mirror of tsextract's zone-less ts-morph project. Stated in the
+// export as the generated config spells them.
+const GENERATED_OPTIONS = {
+  allowJs: true,
+  checkJs: false,
+  module: "ESNext",
+  moduleResolution: "Bundler",
+  target: "ES2022",
+  jsx: "preserve",
+  noEmit: true,
+  skipLibCheck: true,
+};
+
+// tsextract's EXTENSIONS and SKIPPED_DIRS, copied rather than imported —
+// the oracle takes nothing from the product tree. Dot-directories are
+// pruned wholesale there too.
+const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
+const SKIPPED_DIRS = ["node_modules", "__pycache__", "venv", "dist", "build", "site-packages"];
+
+// The zone's source set, and the configs met on the way: a tsconfig.json
+// under a zone graded as one program is a refusal (the ingest would have
+// split the tree there), a jsconfig.json is only listed. A directory
+// symlink is not descended — an unwalked tree grades nothing rather than
+// grading a second copy of one.
+function discoverZone(root) {
+  const sources = [], tsconfigs = [], jsconfigs = [], stack = [root];
+  while (stack.length) {
+    let entries;
+    const dir = stack.pop();
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!entry.name.startsWith(".") && !SKIPPED_DIRS.includes(entry.name)) stack.push(full);
+      } else if (entry.name === "tsconfig.json") tsconfigs.push(full);
+      else if (entry.name === "jsconfig.json") jsconfigs.push(full);
+      else if (EXTENSIONS.has(path.extname(entry.name))) sources.push(full);
+    }
+  }
+  return { sources: sources.sort(), tsconfigs: tsconfigs.sort(), jsconfigs: jsconfigs.sort() };
 }
-const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
-if (cfg.error) {
-  console.error("oracle:", ts.flattenDiagnosticMessageText(cfg.error.messageText, "\n"));
-  process.exit(1);
+
+// The shared `rel` below is this same map; it is declared after the
+// program, and the refusals need it before.
+const repoRel = (file) => path.relative(repo, file).split(path.sep).join("/");
+
+let program, generatedConfig = null;
+if (args["no-tsconfig"]) {
+  const found = discoverZone(zone);
+  if (found.tsconfigs.length) {
+    // The ingest splits such a tree into zones; grading it as one
+    // program would resolve under options the repo never asked for.
+    console.error(`oracle: the zone has its own ${repoRel(found.tsconfigs[0])} — grade it without --no-tsconfig`);
+    process.exit(1);
+  }
+  for (const c of found.jsconfigs) console.error(`tsc-oracle: ignoring ${repoRel(c)} — neither lane reads a jsconfig's options`);
+  program = ts.createProgram({
+    rootNames: found.sources,
+    options: {
+      allowJs: true,
+      checkJs: false,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      target: ts.ScriptTarget.ES2022,
+      jsx: ts.JsxEmit.Preserve,
+      noEmit: true,
+      skipLibCheck: true,
+    },
+  });
+  generatedConfig = { options: GENERATED_OPTIONS, skipped_dirs: SKIPPED_DIRS, ignored_configs: found.jsconfigs.map(repoRel) };
+} else {
+  // --config names the tsconfig file inside the zone (default tsconfig.json):
+  // a solution-style root (`files: []`, `references`) builds an empty
+  // program, so a cell there names the referenced config it grades
+  // (hono's tsconfig.build.json, ADR-101's 1-1 cells).
+  const configPath = ts.findConfigFile(zone, ts.sys.fileExists, args.config ?? "tsconfig.json");
+  if (!configPath) {
+    console.error(`oracle: no ${args.config ?? "tsconfig.json"} at ${zone} (a zone with no tsconfig: --no-tsconfig)`);
+    process.exit(1);
+  }
+  const cfg = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (cfg.error) {
+    console.error("oracle:", ts.flattenDiagnosticMessageText(cfg.error.messageText, "\n"));
+    process.exit(1);
+  }
+  const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, path.dirname(configPath));
+  program = ts.createProgram({ rootNames: parsed.fileNames, options: { ...parsed.options, noEmit: true } });
 }
-const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, path.dirname(configPath));
-const program = ts.createProgram({ rootNames: parsed.fileNames, options: { ...parsed.options, noEmit: true } });
 const checker = program.getTypeChecker();
 
 const rel = (file) => path.relative(repo, file).split(path.sep).join("/");
@@ -351,7 +439,7 @@ for (const sf of program.getSourceFiles()) {
 files.sort();
 sites.sort((a, b) => a.pos.path.localeCompare(b.pos.path) || a.pos.line - b.pos.line || a.col - b.col);
 const out = {
-  oracle: `tsc ${ts.version} (${tsFrom.includes(zone) ? "the zone's own" : "harness"})`,
+  oracle: `tsc ${ts.version} (${tsFrom.includes(zone) ? "the zone's own" : "harness"}${generatedConfig ? "; no tsconfig — the ingest's generated options" : ""})`,
   kind: "resolution",
   module: zoneRel || ".",
   roots: [],
@@ -359,6 +447,9 @@ const out = {
   files,
   sites,
 };
+// Flag mode only: what the program was built from, since the repo says
+// nothing. Without the flag the export's bytes are unchanged.
+if (generatedConfig) out.generated_config = generatedConfig;
 const text = JSON.stringify(out, null, 2) + "\n";
 if (args.out) writeFileSync(args.out, text); else process.stdout.write(text);
 console.error(`tsc-oracle: ${files.length} files, ${sites.length} sites, typescript ${ts.version} from ${tsFrom}`);
