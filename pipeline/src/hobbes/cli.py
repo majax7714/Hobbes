@@ -254,20 +254,31 @@ def _print_fixtures(counts: dict | None) -> None:
     subject up through a fixture reached nothing, and now reaches it — so
     the line says the edges *and* that reach follows them, since the second
     is not deducible from the first (every other ``uses`` edge is not
-    followed). The parameters that name no repo fixture are said always,
+    followed). How many of the drawn were asked for by something other than
+    a parameter is said where there are any (ADR-139): a mark and an
+    autouse fixture are requests a reader of the test's signature does not
+    see. The parameters that name no repo fixture are said always,
     because they are the size of what pytest resolves and Hobbes cannot:
     ``tmp_path``, ``monkeypatch``, a plugin's. The rest is said only when
     there is some: an abstention that did not happen is not news, and a
-    repo with no ``usefixtures`` mark should not read as having ignored
-    one. Nothing is printed where the block is absent — no fixture defined
+    repo with no ``pytestmark`` should not read as having ignored one.
+    Nothing is printed where the block is absent — no fixture defined
     and no parameter looked up is silence, exactly as it was (P6).
     """
     if not counts:
         return
     abstained = counts.get("abstained", {})
+    via = counts.get("via", {})
+    asked = []
+    if via.get("usefixtures"):
+        asked.append(f"{via['usefixtures']} through a usefixtures mark")
+    if via.get("autouse"):
+        asked.append(f"{via['autouse']} applied by autouse")
     line = (
         f"    fixtures: {counts.get('drawn', 0)} injection(s) drawn as uses edges "
-        f"into {counts.get('fixtures', 0)} fixture(s), and test reach follows them "
+        f"into {counts.get('fixtures', 0)} fixture(s)"
+        + (f", of them {' and '.join(asked)} (ADR-139)" if asked else "")
+        + ", and test reach follows them "
         f"(ADR-137, C-4); {abstained.get('not-in-repo', 0)} parameter(s) name no "
         "repo fixture"
     )
@@ -284,8 +295,16 @@ def _print_fixtures(counts: dict | None) -> None:
             f"{abstained['base-class']} left undrawn in a class that names a base "
             "class, whose own fixture would win"
         )
-    if counts.get("usefixtures"):
-        rest.append(f"{counts['usefixtures']} usefixtures mark(s) not followed")
+    unread = counts.get("unread", {})
+    if unread.get("pytestmark"):
+        rest.append(
+            f"{unread['pytestmark']} usefixtures mark(s) in a module-level pytestmark "
+            "not followed"
+        )
+    if unread.get("autouse-value"):
+        rest.append(
+            f"{unread['autouse-value']} fixture(s) whose autouse= is not a literal"
+        )
     print(line + ("; " + ", ".join(rest) if rest else ""))
 
 

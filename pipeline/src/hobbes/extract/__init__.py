@@ -767,14 +767,15 @@ def _add_injection_edges(graph: dict, drawn: list[dict]) -> None:
 
     An injection onto an id the symbol layer does not carry is dropped
     rather than drawn to nothing; the abstention is already counted where
-    it was made.
+    it was made. Each evidence row says which request it saw — a parameter,
+    a ``usefixtures`` mark or an autouse fixture (ADR-139).
     """
     ids = {symbol["id"] for symbol in graph["symbols"]}
     sightings: dict[tuple[str, str], set] = defaultdict(set)
     for injection in drawn:
         if injection["from"] in ids and injection["to"] in ids:
             sightings[(injection["from"], injection["to"])].add(
-                (injection["path"], injection["line"])
+                (injection["path"], injection["line"], injection["via"])
             )
     if not sightings:
         return
@@ -785,7 +786,10 @@ def _add_injection_edges(graph: dict, drawn: list[dict]) -> None:
                 source,
                 target,
                 "uses",
-                [{"path": path, "line": line} for path, line in sorted(evidence)],
+                [
+                    {"path": path, "line": line, "via": via}
+                    for path, line, via in sorted(evidence)
+                ],
                 tier=SYNTACTIC,
                 lane=LANE_TREE_SITTER,
             )

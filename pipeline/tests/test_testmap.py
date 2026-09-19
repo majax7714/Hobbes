@@ -236,6 +236,133 @@ class TestReachFollowsInjections:
         assert record["reaches_modules"] == []
         assert record["through_fixtures"] == []
 
+    def test_a_record_with_no_autouse_injection_says_so_and_nothing_more(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        (record,) = collect_tests(
+            modules, parsed, self.CALLS, injections=[self.INJECTION]
+        )
+        assert record["through_autouse"] == {}
+
+
+class TestAutouseReachIsKeptApart:
+    """ADR-139: an autouse fixture's reach is true and is a blanket — every
+    test in the scope has it — so the modules only it reached are named
+    under the fixtures that got there, apart from ``through_fixtures``."""
+
+    @staticmethod
+    def _repo(tmp_path):
+        (tmp_path / "lib.py").write_text(
+            "def build():\n    return 1\n\n\ndef direct():\n    return 2\n"
+        )
+        (tmp_path / "staging.py").write_text("def cache():\n    return 3\n")
+        (tmp_path / "conftest.py").write_text(
+            "import pytest\n\n"
+            "from lib import build\n"
+            "from staging import cache\n\n\n"
+            "@pytest.fixture\n"
+            "def repo():\n"
+            "    return build()\n\n\n"
+            "@pytest.fixture(autouse=True)\n"
+            "def setup():\n"
+            "    return cache()\n\n\n"
+            "@pytest.fixture(autouse=True)\n"
+            "def other():\n"
+            "    return cache()\n\n\n"
+            "@pytest.fixture\n"
+            "def helper():\n"
+            "    return build()\n"
+        )
+        (tmp_path / "test_x.py").write_text("def test_one():\n    pass\n")
+        modules = discover_modules(tmp_path)
+        parsed = {
+            m.id: parse_source((tmp_path / m.path).read_bytes()) for m in modules
+        }
+        return modules, parsed
+
+    SETUP_CALLS = [
+        {"from": "conftest.setup", "to": "staging.cache", "type": "calls",
+         "tier": "syntactic", "evidence": []},
+    ]
+    AUTOUSE = {"from": "test_x.test_one", "to": "conftest.setup",
+               "path": "test_x.py", "line": 1, "name": "setup", "via": "autouse"}
+    NAMED = {"from": "test_x.test_one", "to": "conftest.repo",
+             "path": "test_x.py", "line": 1, "name": "repo", "via": "parameter"}
+
+    def test_a_module_only_an_autouse_fixture_reached_is_named_under_it(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        (record,) = collect_tests(
+            modules, parsed, self.SETUP_CALLS, injections=[self.AUTOUSE]
+        )
+        assert record["reaches_modules"] == ["conftest", "staging"]
+        assert record["through_fixtures"] == []
+        assert record["through_autouse"] == {
+            "conftest": ["conftest.setup"],
+            "staging": ["conftest.setup"],
+        }
+
+    def test_a_module_the_test_also_calls_is_in_neither(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        edges = [
+            {"from": "conftest.setup", "to": "lib.build", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+            {"from": "test_x.test_one", "to": "lib.direct", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        (record,) = collect_tests(modules, parsed, edges, injections=[self.AUTOUSE])
+        assert record["reaches_modules"] == ["conftest", "lib"]
+        assert record["through_fixtures"] == []
+        assert "lib" not in record["through_autouse"]
+
+    def test_a_module_a_named_fixture_also_reached_is_through_fixtures(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        edges = [
+            {"from": "conftest.setup", "to": "lib.build", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+            {"from": "conftest.repo", "to": "lib.build", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        (record,) = collect_tests(
+            modules, parsed, edges, injections=[self.AUTOUSE, self.NAMED]
+        )
+        assert record["through_fixtures"] == ["conftest", "lib"]
+        assert record["through_autouse"] == {}
+
+    def test_an_autouse_fixtures_own_fixture_carries_the_closure(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        edges = [
+            {"from": "conftest.helper", "to": "lib.build", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        injections = [
+            self.AUTOUSE,
+            {"from": "conftest.setup", "to": "conftest.helper",
+             "path": "conftest.py", "line": 12, "name": "helper", "via": "parameter"},
+        ]
+        (record,) = collect_tests(modules, parsed, edges, injections=injections)
+        assert record["reaches"] == ["conftest.helper", "conftest.setup", "lib.build"]
+        assert record["through_autouse"] == {
+            "conftest": ["conftest.setup"],
+            "lib": ["conftest.setup"],
+        }
+
+    def test_two_autouse_fixtures_reaching_one_module_are_both_listed(self, tmp_path):
+        modules, parsed = self._repo(tmp_path)
+        edges = [
+            *self.SETUP_CALLS,
+            {"from": "conftest.other", "to": "staging.cache", "type": "calls",
+             "tier": "syntactic", "evidence": []},
+        ]
+        injections = [
+            self.AUTOUSE,
+            {"from": "test_x.test_one", "to": "conftest.other",
+             "path": "test_x.py", "line": 1, "name": "other", "via": "autouse"},
+        ]
+        (record,) = collect_tests(modules, parsed, edges, injections=injections)
+        assert record["through_autouse"]["staging"] == [
+            "conftest.other",
+            "conftest.setup",
+        ]
+
 
 class TestValueOnlyModules:
     """C-156: a module no calls edge could reach, read from the graph."""

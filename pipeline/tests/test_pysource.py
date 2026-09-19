@@ -176,6 +176,71 @@ class TestParametrized:
         assert symbol.parametrized == ()
 
 
+class TestBooleanKeywords:
+    """What the walk keeps of a keyword that is not a string (ADR-139):
+    ``True`` by name, and the spellings it could not read at all."""
+
+    @staticmethod
+    def decorator(text: str):
+        p = parse(f"{text}\ndef repo():\n    return 1\n")
+        (symbol,) = p.symbols
+        return symbol.decorators[0]
+
+    def test_true_is_kept_by_name(self):
+        decorator = self.decorator("@pytest.fixture(autouse=True)")
+        assert decorator.true_kwargs == ("autouse",)
+        assert decorator.unread_kwargs == ()
+
+    def test_false_is_read_and_kept_nowhere(self):
+        decorator = self.decorator("@pytest.fixture(autouse=False)")
+        assert (decorator.true_kwargs, decorator.unread_kwargs) == ((), ())
+
+    def test_a_name_or_a_call_is_unread(self):
+        assert self.decorator("@pytest.fixture(autouse=FLAG)").unread_kwargs == (
+            "autouse",
+        )
+        assert self.decorator("@pytest.fixture(autouse=flag())").unread_kwargs == (
+            "autouse",
+        )
+
+    def test_a_string_keyword_is_still_a_string(self):
+        decorator = self.decorator('@pytest.fixture(name="alias")')
+        assert decorator.kwargs == {"name": "alias"}
+        assert (decorator.true_kwargs, decorator.unread_kwargs) == ((), ())
+
+
+class TestPytestmark:
+    """A module-level ``pytestmark`` applies its marks to every test in the
+    file; the walk counts its ``usefixtures`` calls, for the lookup to say
+    it did not follow them (ADR-139)."""
+
+    def test_one_call_counts_one(self):
+        p = parse('import pytest\n\npytestmark = pytest.mark.usefixtures("a")\n')
+        assert p.pytestmark_usefixtures == 1
+
+    def test_a_list_counts_each(self):
+        p = parse(
+            "pytestmark = [\n"
+            '    pytest.mark.usefixtures("a"),\n'
+            '    usefixtures("b"),\n'
+            "]\n"
+        )
+        assert p.pytestmark_usefixtures == 2
+
+    def test_another_mark_counts_nothing(self):
+        p = parse('pytestmark = pytest.mark.skipif(True, reason="x")\n')
+        assert p.pytestmark_usefixtures == 0
+
+    def test_below_module_level_is_not_the_modules_pytestmark(self):
+        p = parse(
+            "class TestOne:\n"
+            '    pytestmark = pytest.mark.usefixtures("a")\n\n\n'
+            "def build():\n"
+            '    pytestmark = pytest.mark.usefixtures("b")\n'
+        )
+        assert p.pytestmark_usefixtures == 0
+
+
 class TestCalls:
     def test_scopes(self):
         p = parse(

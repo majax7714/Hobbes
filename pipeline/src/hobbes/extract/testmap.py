@@ -8,6 +8,14 @@ named ``test*``. A test's ``reaches`` list is the transitive closure over
 on the test's behalf, so the code it sets up is code the test exercises.
 ``through_fixtures`` names the modules a test reaches only that way, so a
 reader can tell the step apart from a call the test wrote (C-4).
+
+An autouse fixture reaches the same way and is a blanket — every test in
+its scope requests it, without writing anything — so its reach is kept
+apart (ADR-139): ``through_autouse`` maps each module a test reaches
+*only* through an autouse fixture to the fixtures that got it there, and
+``through_fixtures`` keeps its meaning, computed without them. A module is
+in at most one of the two, and in neither when the test also reaches it by
+a call or a fixture it named.
 """
 
 from __future__ import annotations
@@ -139,8 +147,10 @@ def collect_tests(
     *injections* are :func:`hobbes.extract.fixtures.injections`' records.
     Each is followed from requester to fixture exactly as a call is, and
     from the fixture on its own calls and its own injections carry the
-    closure further. With none, every record is what it always was, plus an
-    empty ``through_fixtures``.
+    closure further. The ones a test never named — ``via`` ``autouse`` —
+    are followed too, and answered for separately in ``through_autouse``
+    (ADR-139). With none, every record is what it always was, plus an empty
+    ``through_fixtures`` and an empty ``through_autouse``.
     """
     test_modules = [m for m in modules if is_test_file(m.path)]
     test_module_ids = {m.id for m in test_modules}
@@ -181,13 +191,28 @@ def collect_tests(
         if edge["type"] != "calls":
             continue
         adjacency[edge["from"]].add(edge["to"])
+    # Three graphs, because the two labels below are differences between
+    # them: calls alone, calls plus the injections a test named, and those
+    # plus the autouse ones nothing on the test names.
+    named_adjacency = adjacency
     reach_adjacency = adjacency
+    autouse_targets = defaultdict(set)
     if injections:
+        named_adjacency = defaultdict(set, {k: set(v) for k, v in adjacency.items()})
         reach_adjacency = defaultdict(set, {k: set(v) for k, v in adjacency.items()})
         for injection in injections:
             reach_adjacency[injection["from"]].add(injection["to"])
+            # The via a fixture record carries (ADR-139); spelled here, not
+            # imported, because `hobbes.extract.fixtures` imports this module.
+            if injection.get("via") == "autouse":
+                autouse_targets[injection["from"]].add(injection["to"])
+            else:
+                named_adjacency[injection["from"]].add(injection["to"])
     test_symbol_ids = {sid for sid, _ in inventory}
     symbol_module = _symbol_module_map(modules, parsed)
+    # One autouse fixture is requested by every test in its scope, so its
+    # own reach is computed once and read by each of them.
+    fixture_modules: dict[str, set[str]] = {}
 
     records = []
     for symbol_id, record in inventory:
@@ -209,7 +234,34 @@ def collect_tests(
             if injections
             else record["reaches_modules"]
         )
-        record["through_fixtures"] = sorted(set(record["reaches_modules"]) - set(called))
+        named = (
+            _modules(
+                _closure(symbol_id, named_adjacency) - {symbol_id} - test_symbol_ids,
+                symbol_module,
+                test_module_ids,
+            )
+            if autouse_targets
+            else record["reaches_modules"]
+        )
+        record["through_fixtures"] = sorted(set(named) - set(called))
+        # What is left is the blanket's: each module only an autouse fixture
+        # reached, under the fixtures whose own reach gets there.
+        through_autouse = defaultdict(list)
+        for target in sorted(autouse_targets.get(symbol_id, ())):
+            if target not in fixture_modules:
+                fixture_modules[target] = set(
+                    _modules(
+                        _closure(target, named_adjacency) | {target},
+                        symbol_module,
+                        test_module_ids,
+                    )
+                )
+            for module in set(record["reaches_modules"]) - set(named):
+                if module in fixture_modules[target]:
+                    through_autouse[module].append(target)
+        record["through_autouse"] = {
+            module: sorted(targets) for module, targets in sorted(through_autouse.items())
+        }
         records.append(record)
     return sorted(records, key=lambda r: r["id"])
 
