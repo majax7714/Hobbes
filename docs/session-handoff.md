@@ -1,9 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-18; Hobbes 0.2.48-beta on `main`.** CI is green on
-`d1f52a1` (0.2.47-beta, pushed 2026-09-18; run 35377779488); everything
-since — the `lane-a-symbol-near` read, ScummVM's scale read, ADR-136,
-unit `e78d`, 0.2.48-beta — is unpushed. The proxy and
+**Reviewed 2026-09-19; Hobbes 0.2.48-beta on `main`.** CI is green on
+`a930ba1` (0.2.48-beta, pushed 2026-09-19; run 35412968495); nothing is
+unpushed. The proxy and
 the image were rebuilt at 0.2.48-beta and the repo re-ingested at the end
 of this session; the knowledge server serves the image it started from
 until it is restarted (C-65): **restart it.**
