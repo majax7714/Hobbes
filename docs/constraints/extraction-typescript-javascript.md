@@ -121,6 +121,39 @@
 - **Source:** the 2026-09-19 top-level review (Max: "could we look to
   add js as a usable language?"); measured the same day, ADR-140.
 
+### C-166 — A `jsconfig.json` is not read: its files are extracted under the nearest `tsconfig.json` or the default options — *registered and surfaced 2026-09-19*
+- **Cannot tell you:** what a call resolves to under the repo's own
+  `jsconfig.json` — its `paths` and `baseUrl` aliases, `jsx` factory,
+  `lib` and `target`. Both lanes key a zone on `tsconfig.json` alone
+  (`nearestTsconfig` in `tsextract`, `_nearest_config_dir` in
+  `scipsource`): lane B stages a `jsconfig.json` beside the files but
+  indexes under a `tsconfig.json`, the repo's or the generated one, and
+  lane A never opens it. Where the alias or option changes a resolution,
+  the edge follows the default reading, or is missing.
+- **Because:** TypeScript itself reads a `jsconfig.json` only as a
+  project file in its own right; the zone rule was written for
+  TypeScript repos, where `tsconfig.json` is the project file.
+- **Bites at:** a JavaScript repo that aliases its own package or
+  folders through `jsconfig.json` `paths` (Preact maps `preact` and
+  `preact/*` onto the repo), or sets `jsx`/`lib` away from the defaults.
+  **Measured 2026-09-19 on Preact, the key alone**
+  (`~/.hobbes/bench/js-cells/jsconfig-probe/`): of 22,804 call sites,
+  22,682 resolve to the same in-repo targets under the ingest's
+  generated options and under the jsconfig; 59 only under the generated
+  options, 17 only under the jsconfig, 9 to different targets, 35 in one
+  program only.
+- **You find out:** **surfaced** (0.2.54-beta) — one degradation record
+  per `jsconfig.json` that governs a discovered file and has no
+  `tsconfig.json` beside it (stage `jsconfig-ignored`, naming what its
+  files ran under): a `WARNING:` line in the ingest summary and a
+  `degraded:` line in `list_blind_spots` for the directory. §3.8's
+  JavaScript row states it.
+- **Lifting it** would mean reading a `jsconfig.json` as a zone where no
+  `tsconfig.json` claims its files, in both lanes — a change to what is
+  drawn, its own ADR, measured first.
+- **Source:** ADR-140 step 4's preparation, 2026-09-19 (Max: register
+  and note, route a).
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

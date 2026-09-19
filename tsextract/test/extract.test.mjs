@@ -762,6 +762,38 @@ test("a solution reached through another solution is followed inside the repo; c
   assert.deepEqual(facts.errors.map((e) => [e.stage, e.path]), [["tsconfig-unclaimed", "tsconfig.json"]]);
 });
 
+test("a jsconfig.json nothing reads is said once, with what its files ran under (C-166)", () => {
+  const root = makeRepo({
+    "jsconfig.json": JSON.stringify({ compilerOptions: { paths: { app: ["./src"] } } }),
+    "src/a.js": "export const a = 1;\n",
+    "web/tsconfig.json": JSON.stringify({ compilerOptions: { allowJs: true } }),
+    "web/jsconfig.json": JSON.stringify({ compilerOptions: {} }),
+    "web/b.js": "export const b = 1;\n",
+    "lib/jsconfig.json": JSON.stringify({ compilerOptions: {} }),
+    "lib/c.js": "export const c = 1;\n",
+    "empty/jsconfig.json": JSON.stringify({ compilerOptions: {} }),
+    "empty/README.md": "nothing to extract\n",
+  });
+  const facts = extractRepo(root);
+  // web/'s sits beside a tsconfig.json, which TypeScript reads instead;
+  // empty/'s governs no file; the other two are said, each once
+  assert.deepEqual(
+    facts.errors.filter((e) => e.stage === "jsconfig-ignored"),
+    [
+      {
+        message: "not read: its 3 file(s) are extracted under the default compiler options, not its compilerOptions (C-166)",
+        path: "jsconfig.json",
+        stage: "jsconfig-ignored",
+      },
+      {
+        message: "not read: its 1 file(s) are extracted under the default compiler options, not its compilerOptions (C-166)",
+        path: "lib/jsconfig.json",
+        stage: "jsconfig-ignored",
+      },
+    ]
+  );
+});
+
 test("unresolved alias specifiers never become external packages", () => {
   const root = makeRepo({
     "src/app.ts": 'import { x } from "@/nowhere";\nimport { y } from "~/also/nowhere";\n',

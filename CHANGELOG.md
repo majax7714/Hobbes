@@ -11,9 +11,26 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.53-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.54-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.54-beta — 2026-09-19 (a `jsconfig.json` nothing reads is said, once per file; C-166)
+
+**Patch: what the layer says** — a concession registered (C-166,
+surfaced). Nothing drawn changes.
+
+- **Found preparing ADR-140's JavaScript cells.** Both lanes key a zone
+  on `tsconfig.json` alone, so a `jsconfig.json`'s options — `paths`
+  aliases, `jsx`, `lib`, `target` — are never read. Measured on Preact
+  with the key alone: 120 of 22,804 call sites resolve differently under
+  its jsconfig than under the options the ingest generates.
+- **Said where it is met.** The TS/JS helper records one degradation per
+  `jsconfig.json` that governs a discovered file and has no
+  `tsconfig.json` beside it (stage `jsconfig-ignored`, naming the
+  `tsconfig.json` or the default options its files ran under): a
+  `WARNING:` line in the ingest summary and a `degraded:` line in
+  `list_blind_spots`. §3.8's JavaScript row states it.
 
 ## 0.2.53-beta — 2026-09-19 (JavaScript claims no graded repo until it has one; §3.8 splits TypeScript and JavaScript; ADR-140)
 

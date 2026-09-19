@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-166 registered and surfaced, 2026-09-19 (0.2.54-beta; ADR-140 step 4's preparation):
+- **C-166 registered, surfaced:** neither lane reads a `jsconfig.json`;
+  the ingest now says so once per such file (`jsconfig-ignored`).
+  Measured on Preact, key only: 120 of 22,804 sites resolve differently
+  under its jsconfig. Counts: 166 entries, 121 active, 95 surfaced, 22
+  partial, 3 unsurfaced, 1 n/a; 28 lifted.
+
 C-165 registered and surfaced, 2026-09-19 (ADR-140, 0.2.53-beta):
 - **C-165 registered, surfaced:** no JavaScript program has been graded;
   `verification.py` had pinned the `javascript` row as a copy of

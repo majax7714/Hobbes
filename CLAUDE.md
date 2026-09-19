@@ -194,7 +194,7 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-19, 0.2.53-beta; oracle-lane Go
+Suite sizes at the last check (2026-09-19, 0.2.54-beta; oracle-lane Go
 counted 2026-09-16): 2,093 pytest (10 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-19) — Hobbes 0.2.53-beta
+## Status (2026-09-19) — Hobbes 0.2.54-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -286,7 +286,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 165 entries; 120 active (94
+  contradicted (ADR-124). **Register:** 166 entries; 121 active (95
   surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
   narrowed and partial (ADR-135, no entry added); C-145 narrowed again
   (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);

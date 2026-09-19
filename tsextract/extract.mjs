@@ -129,6 +129,16 @@ function walkRepo(repoRoot, onFile) {
   }
 }
 
+/** Every `jsconfig.json` the walk reaches, repo-relative and sorted —
+ * found so the ingest can say it did not read them (C-166). */
+export function discoverJsconfigs(repoRoot) {
+  const found = [];
+  walkRepo(repoRoot, (full, name) => {
+    if (name === "jsconfig.json") found.push(path.relative(repoRoot, full).split(path.sep).join("/"));
+  });
+  return found.sort();
+}
+
 export function discoverFiles(repoRoot) {
   const found = [];
   walkRepo(repoRoot, (full, name) => {
@@ -1016,6 +1026,25 @@ export function extractRepo(repoRoot) {
         `${its.length > 4 ? ", …" : ""}) — extracted under the default compiler options`,
       path: solution,
       stage: "tsconfig-unclaimed",
+    });
+  }
+  // C-166: zones key on tsconfig.json alone, in both lanes, so a
+  // jsconfig.json's options (paths, baseUrl, jsx, lib, target) are never
+  // read. Said once per jsconfig that governs a discovered file and has
+  // no tsconfig.json beside it (where one does, TypeScript reads that
+  // instead, and so do we).
+  for (const jsconfig of discoverJsconfigs(root)) {
+    const dir = path.posix.dirname(jsconfig);
+    if (fs.existsSync(path.join(root, dir, "tsconfig.json"))) continue;
+    const under = files.filter((f) => dir === "." || f.startsWith(dir + "/"));
+    if (!under.length) continue;
+    const nearest = nearestTsconfig(root, dir === "." ? "x" : `${dir}/x`);
+    errors.push({
+      message:
+        `not read: its ${under.length} file(s) are extracted under ` +
+        `${nearest ? nearest : "the default compiler options"}, not its compilerOptions (C-166)`,
+      path: jsconfig,
+      stage: "jsconfig-ignored",
     });
   }
   for (const [zone, zoneFiles] of [...zones.entries()].sort()) {

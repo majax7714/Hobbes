@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.53-beta on `main`.**
+**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.54-beta on `main`.**
 Max pushed `0854855` (0.2.52-beta, with ADR-137, ADR-138 and ADR-139
 built) on 2026-09-19; its CI run is 35461769081 (the one before, on
 `a930ba1`, green). This session's commits (the top-level drift fix,
@@ -10,7 +10,7 @@ knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.53-beta are untagged. Tags stay Max's call each time.
+  0.2.54-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -584,9 +584,9 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 165 entries: 120 active (94 surfaced, 22 partial, 3
+- **Register:** 166 entries: 121 active (95 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  folded. Latest: C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
@@ -607,10 +607,10 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.53-beta (2026-09-19; pytest and Go `./...` re-run
+- **Suites** at 0.2.54-beta (2026-09-19; pytest and Go `./...` re-run
   and green, the rest as counted at 0.2.50-beta): 2,093
   pytest (`lane_b` 10 of them), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
+  subtests (398 pass / 1 skip), 87 scip node, 37 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-16).
