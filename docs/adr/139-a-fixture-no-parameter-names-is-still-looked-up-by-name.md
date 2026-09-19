@@ -1,6 +1,6 @@
 # ADR-139 — A fixture no parameter names is still looked up by name: `usefixtures` and `autouse`
 
-**Date:** 2026-09-19 · **Status:** proposed — measured, nothing built; the routes are Max's.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "good to go with recommended route" — route a); the premises read in the tree before the brief (*Accepted*, below).
 
 Follows ADR-137 (a parameter pytest's lookup resolves to one repo
 fixture is a syntactic `uses` edge, and test reach follows it), whose
@@ -112,3 +112,41 @@ and ADR-137's record a note that its key printed no `_`-named fixture.
   mark argument.
 - The denominator statement (0.2.51-beta) would drop "no parameter
   names (autouse, usefixtures)".
+
+## Accepted — route (a), and the premises read before the brief (2026-09-19)
+
+Read in the tree, not assumed:
+
+- `pysource._decorator` keeps string positionals in `args` and string or
+  list-of-string keywords in `kwargs`; `autouse=True` is dropped today.
+  `Decorator` is constructed only in `pysource.py`, positionally, so a
+  defaulted field added at the end breaks nothing.
+- `fixtures.injections` already walks every test with its scope chain,
+  its class chain and the `inherits` guard; a class's decorators are on
+  the class's own `Symbol`, reachable through the file's qualnames.
+- `_add_injection_edges` builds the edge with `schema.tiered_edge`, which
+  copies each evidence row's keys through and stamps the lane: a `via`
+  key on the row survives, and nothing validates a row's key set.
+- `collect_tests` computes reach over `calls` plus injections and
+  `through_fixtures` by subtracting the calls-only reach;
+  `review._fixture_only_modules` and the proxy's `tests_guarding` read
+  `through_fixtures` from each record.
+
+Two narrowings of the *Decision*, both toward drawing less:
+
+1. **A module-level `pytestmark` is counted, not followed.** The probe
+   read it, and none of the three repos has one: no key row has judged
+   it.
+2. **One pair, one `via`.** A test that also names an autouse fixture as
+   a parameter, or in a mark, is a parameter's (or a mark's) injection;
+   `autouse` is said only where nothing on the test names the fixture.
+
+**The record's shape.** `through_autouse` on a pytest test record is a
+map, module → the autouse fixtures whose own reach gets there, for the
+modules the test reaches *only* that way; `through_fixtures` keeps its
+meaning and the two never share a module. The proxy and `hobbes review`
+collapse it: one line naming the fixtures and the number of tests, not
+one line per test.
+
+The unit is the pipeline's half; the proxy, `review.py`, the register,
+the version and the records are the developer's.
