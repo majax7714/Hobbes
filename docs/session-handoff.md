@@ -1,10 +1,9 @@
 # Session handoff — the single resume point
 
 **Reviewed 2026-09-19 (third session); Hobbes 0.2.52-beta on `main`.**
-CI is green on `a930ba1` (0.2.48-beta, pushed 2026-09-19; run
-35412968495); everything since — ADR-137, ADR-138 and ADR-139 built
-(0.2.49-beta, 0.2.50-beta, 0.2.52-beta), the docs restructure's first
-half, 0.2.51-beta — is unpushed. The proxy and the image were rebuilt at
+Max pushed `0854855` (0.2.52-beta, with ADR-137, ADR-138 and ADR-139
+built) on 2026-09-19; its CI run is 35461769081 (the one before, on
+`a930ba1`, green). The proxy and the image were rebuilt at
 0.2.52-beta and the repo re-ingested at the end of the session; the
 knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
