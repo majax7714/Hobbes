@@ -245,6 +245,45 @@ def _print_constructions(counts: dict | None) -> None:
     )
 
 
+def _print_fixtures(counts: dict | None) -> None:
+    """The pytest fixture injections drawn as ``uses`` edges, and what the
+    lookup declined to draw (ADR-137) — beside the construction line, where
+    the reader meets the edges the rule added.
+
+    The first clause is the whole point of C-4's fix: a test that set its
+    subject up through a fixture reached nothing, and now reaches it — so
+    the line says the edges *and* that reach follows them, since the second
+    is not deducible from the first (every other ``uses`` edge is not
+    followed). The parameters that name no repo fixture are said always,
+    because they are the size of what pytest resolves and Hobbes cannot:
+    ``tmp_path``, ``monkeypatch``, a plugin's. The rest is said only when
+    there is some: an abstention that did not happen is not news, and a
+    repo with no ``usefixtures`` mark should not read as having ignored
+    one. Nothing is printed where the block is absent — no fixture defined
+    and no parameter looked up is silence, exactly as it was (P6).
+    """
+    if not counts:
+        return
+    abstained = counts.get("abstained", {})
+    line = (
+        f"    fixtures: {counts.get('drawn', 0)} injection(s) drawn as uses edges "
+        f"into {counts.get('fixtures', 0)} fixture(s), and test reach follows them "
+        f"(ADR-137, C-4); {abstained.get('not-in-repo', 0)} parameter(s) name no "
+        "repo fixture"
+    )
+    rest = []
+    if abstained.get("two-definitions"):
+        rest.append(f"{abstained['two-definitions']} defined twice at one scope")
+    if abstained.get("parametrize-unread"):
+        rest.append(
+            f"{abstained['parametrize-unread']} in a definition whose parametrize "
+            "is unreadable"
+        )
+    if counts.get("usefixtures"):
+        rest.append(f"{counts['usefixtures']} usefixtures mark(s) not followed")
+    print(line + ("; " + ", ".join(rest) if rest else ""))
+
+
 def _print_containment(record: dict | None) -> None:
     """Where lane B ran (ADR-092), and what a contained step that ran repo
     code could still write (ADR-128 §2).
@@ -374,6 +413,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     _print_minted(graph.get("minted"))
     _print_operators(graph.get("operators"))
     _print_constructions(graph.get("constructions"))
+    _print_fixtures(graph.get("fixtures"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

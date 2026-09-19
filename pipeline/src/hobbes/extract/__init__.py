@@ -30,6 +30,7 @@ from pathlib import Path, PurePosixPath
 from hobbes.extract import evidence as ev
 from hobbes.extract import (
     containment,
+    fixtures,
     indexcache,
     ingestlock,
     laneacache,
@@ -50,7 +51,13 @@ from hobbes.extract.packs import REGISTRY as PACK_REGISTRY
 from hobbes.extract.packs import Pack, PackContext, run_packs
 from hobbes.extract.pysource import FromImport, parse_source
 from hobbes.extract.rustsource import collect_rust_tests, extract_rust
-from hobbes.extract.schema import LANE_SCIP, SEMANTIC
+from hobbes.extract.schema import (
+    LANE_SCIP,
+    LANE_TREE_SITTER,
+    SEMANTIC,
+    SYNTACTIC,
+    tiered_edge,
+)
 from hobbes.extract.testmap import collect_tests, runner_excluded_trees
 from hobbes.extract.timings import Timings
 from hobbes.extract.tssource import collect_ts_tests, extract_ts
@@ -217,13 +224,29 @@ def extract_repo(
     degraded += _merge_layer(graph, enriched.nodes, enriched.module_edges)
     graph["packs"] = enriched.ran
 
+    # The pytest fixture injections the symbol layer drew (ADR-137), handed
+    # back here so the test map can follow them: they are edges in the
+    # graph, but *which* `uses` edges may widen reach is not a thing an edge
+    # says about itself.
+    injections: list[dict] = []
     degraded += _build_symbol_layer(
-        repo_root, graph, modules, parsed, ts, go, rust, java, c, cpp, timings=timings
+        repo_root,
+        graph,
+        modules,
+        parsed,
+        ts,
+        go,
+        rust,
+        java,
+        c,
+        cpp,
+        timings=timings,
+        injections=injections,
     )
 
     timings_tests = timings.step("tests")
     timings_tests.__enter__()
-    tests = collect_tests(modules, parsed, graph["symbol_edges"])
+    tests = collect_tests(modules, parsed, graph["symbol_edges"], injections=injections)
     if ts:
         tests += collect_ts_tests(ts["files"], ts["symbols"], graph["symbol_edges"])
     if go:
@@ -319,14 +342,21 @@ def _build_symbol_layer(
     c: dict | None = None,
     cpp: dict | None = None,
     timings: Timings | None = None,
+    injections: list[dict] | None = None,
 ) -> list[dict]:
     """Join every lane's evidence and project it onto the graph's ids.
 
-    **The only producer of symbol edges** (ADR-031), and it runs whether or
-    not lane B does: with no semantic resolutions every call site falls to
-    the fallback arm and the graph is lane A's, at ``syntactic`` tier. That
-    is P6 satisfied by construction rather than by a second code path — the
-    degraded case is the normal case with an empty input.
+    **The only producer of *joined* symbol edges** (ADR-031), and it runs
+    whether or not lane B does: with no semantic resolutions every call site
+    falls to the fallback arm and the graph is lane A's, at ``syntactic``
+    tier. That is P6 satisfied by construction rather than by a second code
+    path — the degraded case is the normal case with an empty input.
+
+    The one thing appended after the projection is the pytest fixture
+    injections (ADR-137): lane A facts with no call site for any occurrence
+    to claim, drawn ``uses`` / ``syntactic`` / ``tree-sitter`` and re-sorted
+    into the projection's own order. *injections* is the list they are
+    handed back on, for the test map to follow.
 
     Both languages' evidence is pooled before joining. They cannot collide:
     the join buckets by ``(file, line)`` and no file belongs to two
@@ -555,6 +585,24 @@ def _build_symbol_layer(
     )
     degraded += _cpp_fallback_records(graph["lane_agreement"])
     graph["symbol_edges"] = projected["symbol_edges"]
+    # ADR-137, after the projection and appended to it: pytest's fixture
+    # lookup is syntax — the parameter, the class, the file and the conftest
+    # chain are all in the tree lane A parses — and what it resolves is a
+    # lane A fact no lane B occurrence can claim, because the test wrote no
+    # call site there for the join to match. The edge is `uses`, never
+    # `calls` (a name-matched call from a fixture parameter was wrong six
+    # times of six at the oracle's first Python triage, graph._shadowed),
+    # and the list is re-sorted by the projection's own key, so the join
+    # stays the only producer of *joined* edges (ADR-031).
+    with timings.step("fixtures"):
+        drawn, fixture_counts = fixtures.injections(modules, parsed)
+    _add_injection_edges(graph, drawn)
+    if fixture_counts:
+        # Additive, and absent on a repo that defines no fixture and looks
+        # no parameter up, as `operators` and `constructions` are.
+        graph["fixtures"] = fixture_counts
+    if injections is not None:
+        injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
     # just settled: which of them start in a C++ template pattern.
     degraded += _cpp_template_pattern_records(graph, cpp)
@@ -693,6 +741,49 @@ def _build_symbol_layer(
             graph["resolution_coverage"], go.get("constrained_files", {})
         )
     return degraded
+
+
+def _edge_order(edge: dict) -> tuple:
+    """The projection's own sort key, ``(from, to, type, tier, lane)``
+    (:func:`hobbes.extract.scipsource._edges`). Every edge it produces
+    carries at least one piece of evidence and all of them share the edge's
+    lane, so the lane is read off the first."""
+    lane = edge["evidence"][0]["lane"] if edge["evidence"] else ""
+    return (edge["from"], edge["to"], edge["type"], edge["tier"], lane)
+
+
+def _add_injection_edges(graph: dict, drawn: list[dict]) -> None:
+    """Draw each fixture injection whose ends the graph knows as one
+    ``uses`` edge (ADR-137), evidence at every parameter that names it.
+
+    An injection onto an id the symbol layer does not carry is dropped
+    rather than drawn to nothing; the abstention is already counted where
+    it was made.
+    """
+    ids = {symbol["id"] for symbol in graph["symbols"]}
+    sightings: dict[tuple[str, str], set] = defaultdict(set)
+    for injection in drawn:
+        if injection["from"] in ids and injection["to"] in ids:
+            sightings[(injection["from"], injection["to"])].add(
+                (injection["path"], injection["line"])
+            )
+    if not sightings:
+        return
+    graph["symbol_edges"] = sorted(
+        graph["symbol_edges"]
+        + [
+            tiered_edge(
+                source,
+                target,
+                "uses",
+                [{"path": path, "line": line} for path, line in sorted(evidence)],
+                tier=SYNTACTIC,
+                lane=LANE_TREE_SITTER,
+            )
+            for (source, target), evidence in sorted(sightings.items())
+        ],
+        key=_edge_order,
+    )
 
 
 def _cpp_fallback_records(lane_agreement: dict) -> list[dict]:

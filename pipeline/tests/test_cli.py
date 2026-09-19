@@ -452,6 +452,55 @@ class TestConstructionLine:
         assert "constructions:" not in capsys.readouterr().out
 
 
+class TestFixtureLine:
+    """ADR-137: the injections drawn as ``uses`` edges, that reach follows
+    them, and the parameters the lookup declined — one line under the
+    construction one."""
+
+    COUNTS = {
+        "drawn": 1008,
+        "requesters": 862,
+        "fixtures": 84,
+        "abstained": {"not-in-repo": 994, "two-definitions": 0, "parametrize-unread": 0},
+        "usefixtures": 0,
+    }
+
+    def test_the_line_says_what_was_drawn_and_what_names_no_fixture(self, capsys):
+        cli._print_fixtures(self.COUNTS)
+        line = capsys.readouterr().out.strip()
+        assert line.startswith("fixtures: 1008 injection(s) drawn as uses edges into 84 fixture(s)")
+        assert "test reach follows them" in line
+        assert "(ADR-137, C-4)" in line
+        assert "994 parameter(s) name no repo fixture" in line
+
+    def test_the_optional_clauses_are_absent_at_zero(self, capsys):
+        cli._print_fixtures(self.COUNTS)
+        line = capsys.readouterr().out
+        assert "defined twice" not in line
+        assert "parametrize" not in line
+        assert "usefixtures" not in line
+
+    def test_each_optional_clause_is_said_when_there_is_some(self, capsys):
+        cli._print_fixtures(
+            {
+                **self.COUNTS,
+                "abstained": {"not-in-repo": 3, "two-definitions": 2, "parametrize-unread": 5},
+                "usefixtures": 7,
+            }
+        )
+        line = capsys.readouterr().out
+        assert "2 defined twice at one scope" in line
+        assert "5 in a definition whose parametrize is unreadable" in line
+        assert "7 usefixtures mark(s) not followed" in line
+
+    def test_nothing_is_said_where_the_block_is_absent(self, capsys):
+        # No fixture defined and no parameter looked up writes no block,
+        # and the summary says nothing (P6).
+        cli._print_fixtures(None)
+        cli._print_fixtures({})
+        assert capsys.readouterr().out == ""
+
+
 class TestContainmentNote:
     """What containment does *not* take away (ADR-128 §2): a contained step
     that ran repo code wrote the tool caches and the stage, and a later

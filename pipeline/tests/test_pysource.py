@@ -87,6 +87,95 @@ class TestSymbols:
         assert symbol.decorators[0].args == ()
 
 
+class TestParameters:
+    """What pytest's fixture lookup needs from the walk (ADR-137): the
+    parameters a fixture could fill, each with the line it is written on."""
+
+    def test_params_carry_their_names_and_lines(self):
+        p = parse("def f(\n    a,\n    b,\n):\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.params == (("a", 2), ("b", 3))
+
+    def test_defaults_and_splats_are_left_out(self):
+        p = parse("def f(a, b=1, *args, **kwargs):\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.params == (("a", 1),)
+
+    def test_keyword_only_positional_only_and_typed_are_kept(self):
+        p = parse("def f(a, /, b: int, *, c: str, d=2):\n    pass\n")
+        (symbol,) = p.symbols
+        # The `/` and `*` separators bind nothing; `d` has a default.
+        assert symbol.params == (("a", 1), ("b", 1), ("c", 1))
+
+    def test_a_typed_splat_is_still_a_splat(self):
+        p = parse("def f(a, *args: int, **kw: str):\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.params == (("a", 1),)
+
+    def test_self_is_recorded_like_any_other_parameter(self):
+        p = parse("class C:\n    def m(self, repo):\n        pass\n")
+        method = next(s for s in p.symbols if s.kind == "method")
+        assert method.params == (("self", 2), ("repo", 2))
+
+    def test_a_class_has_no_parameters(self):
+        p = parse("class C(Base):\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.params == ()
+
+
+class TestParametrized:
+    """The names a ``parametrize`` mark binds, in every spelling the walk
+    can read — and ``None`` where it cannot read one at all."""
+
+    def test_from_a_string(self):
+        p = parse(
+            '@pytest.mark.parametrize("a, b", [(1, 2)])\n'
+            "def test_x(a, b):\n    pass\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.parametrized == ("a", "b")
+
+    def test_from_a_list(self):
+        p = parse(
+            '@pytest.mark.parametrize(["a", "b"], [(1, 2)])\n'
+            "def test_x(a, b):\n    pass\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.parametrized == ("a", "b")
+
+    def test_from_a_tuple(self):
+        p = parse(
+            '@pytest.mark.parametrize(("path", "expected"), [(1, 2)])\n'
+            "def test_x(path, expected):\n    pass\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.parametrized == ("path", "expected")
+
+    def test_stacked_decorators_are_unioned(self):
+        p = parse(
+            '@pytest.mark.parametrize("a", [1])\n'
+            '@parametrize("b, c", [(1, 2)])\n'
+            "def test_x(a, b, c):\n    pass\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.parametrized == ("a", "b", "c")
+
+    def test_a_name_argument_is_unreadable(self):
+        # The names live in a constant defined elsewhere: the walk says so
+        # rather than guessing, and the lookup abstains on the whole test.
+        p = parse(
+            "@pytest.mark.parametrize(CASES, [1])\n"
+            "def test_x(a):\n    pass\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.parametrized is None
+
+    def test_an_undecorated_definition_binds_nothing(self):
+        p = parse("def test_x(repo):\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.parametrized == ()
+
+
 class TestCalls:
     def test_scopes(self):
         p = parse(

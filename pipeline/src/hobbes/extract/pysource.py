@@ -77,6 +77,17 @@ class Symbol:
     line: int
     end_line: int
     decorators: tuple[Decorator, ...]
+    #: Each parameter pytest could fill from a fixture, as (name, line):
+    #: no default, not ``*args``/``**kwargs``. ``self`` and ``cls`` are
+    #: recorded like any other — which names the lookup ignores is
+    #: :mod:`hobbes.extract.fixtures`' business, not the walk's (ADR-137).
+    params: tuple[tuple[str, int], ...] = ()
+    #: The argument names every ``parametrize`` decorator on the
+    #: definition binds, unioned; ``None`` when one of them spells its
+    #: first argument as something this walk cannot read (a name, a call).
+    #: A parametrized parameter is filled by the mark, not by a fixture,
+    #: and ``None`` makes the lookup abstain on the whole definition.
+    parametrized: tuple[str, ...] | None = ()
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -346,6 +357,65 @@ def _decorator(node: Node) -> Decorator:
     return Decorator(dotted, tuple(args), kwargs, _line(node))
 
 
+def _parameters(node: Node) -> tuple[tuple[str, int], ...]:
+    """A definition's parameters that a fixture could fill (ADR-137).
+
+    Positional-only, plain and keyword-only alike; a typed parameter counts,
+    by its name. A defaulted parameter and ``*args`` / ``**kwargs`` are
+    left out — pytest fills none of them — and so are the ``/`` and ``*``
+    separators, which bind nothing. A class definition has no parameters
+    field and yields nothing.
+    """
+    params = node.child_by_field_name("parameters")
+    out: list[tuple[str, int]] = []
+    for param in params.named_children if params else []:
+        # `x: int` wraps its name; `*args: int` wraps a splat, whose name
+        # is not a parameter a fixture can fill either way.
+        ident = param.named_children[0] if param.type == "typed_parameter" else param
+        if ident is not None and ident.type == "identifier":
+            out.append((_text(ident), _line(ident)))
+    return tuple(out)
+
+
+def _parametrize_names(node: Node) -> tuple[str, ...] | None:
+    """The argument names one ``parametrize`` decorator binds, in either
+    spelling — ``"a, b"`` or ``["a", "b"]`` / ``("a", "b")`` — or None when
+    its first argument is neither (a name, a call, a constant defined
+    elsewhere). :class:`Decorator` keeps string literals only, so the names
+    are read from the node here rather than from the digest.
+    """
+    expr = node.children[-1]  # after the "@"
+    if expr.type != "call":
+        return None
+    arguments = expr.child_by_field_name("arguments")
+    first = arguments.named_children[0] if arguments and arguments.named_children else None
+    if first is None:
+        return None
+    if first.type == "string":
+        literal = _string_literal(first)
+        return None if literal is None else tuple(n.strip() for n in literal.split(","))
+    if first.type in ("list", "tuple"):
+        items = [_string_literal(el) for el in first.named_children]
+        if items and all(i is not None for i in items):
+            return tuple(items)
+    return None
+
+
+def _parametrized(nodes: list[Node], digested: tuple[Decorator, ...]) -> tuple[str, ...] | None:
+    """Every ``parametrize`` decorator's names, unioned in written order;
+    None as soon as one of them is unreadable (the definition then abstains
+    whole, rather than looking a parametrized name up as a fixture)."""
+    names: list[str] = []
+    for node, decorator in zip(nodes, digested):
+        if (decorator.dotted or "").rpartition(".")[2] != "parametrize":
+            continue
+        read = _parametrize_names(node)
+        if read is None:
+            return None
+        names.extend(read)
+    return tuple(dict.fromkeys(names))
+
+
 def _scope_qualname(stack: list[tuple[str, str]]) -> str | None:
     return ".".join(name for name, _ in stack) or None
 
@@ -355,6 +425,7 @@ def _walk(
     stack: list[tuple[str, str]],
     parsed: ParsedFile,
     pending_decorators: tuple[Decorator, ...],
+    pending_parametrized: tuple[str, ...] | None = (),
 ) -> None:
     kind = node.type
 
@@ -403,14 +474,19 @@ def _walk(
         return
 
     if kind == "decorated_definition":
-        decorators = tuple(
-            _decorator(c) for c in node.children if c.type == "decorator"
-        )
+        decorator_nodes = [c for c in node.children if c.type == "decorator"]
+        decorators = tuple(_decorator(c) for c in decorator_nodes)
         definition = node.child_by_field_name("definition")
         if definition is not None:
             # Decorator expressions themselves are not walked: @app.get("/x")
             # is a call, but recording it would pollute the call graph.
-            _walk(definition, stack, parsed, decorators)
+            _walk(
+                definition,
+                stack,
+                parsed,
+                decorators,
+                _parametrized(decorator_nodes, decorators),
+            )
         return
 
     if kind in ("function_definition", "class_definition"):
@@ -430,6 +506,8 @@ def _walk(
                 line=_line(node),
                 end_line=node.end_point.row + 1,
                 decorators=pending_decorators,
+                params=_parameters(node),
+                parametrized=pending_parametrized,
             )
         )
         body = node.child_by_field_name("body")

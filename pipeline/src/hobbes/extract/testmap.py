@@ -3,8 +3,11 @@
 Collection mirrors pytest's defaults: files ``test_*.py`` / ``*_test.py``,
 top-level ``Test*`` classes without ``__init__``, functions and methods
 named ``test*``. A test's ``reaches`` list is the transitive closure over
-``calls`` edges from the test symbol — fixtures are dynamic injection and
-statically invisible (a documented M1 gap, ADR-007).
+``calls`` edges from the test symbol **and** over the fixture injections
+:mod:`hobbes.extract.fixtures` resolved (ADR-137): pytest calls the fixture
+on the test's behalf, so the code it sets up is code the test exercises.
+``through_fixtures`` names the modules a test reaches only that way, so a
+reader can tell the step apart from a call the test wrote (C-4).
 """
 
 from __future__ import annotations
@@ -129,8 +132,16 @@ def collect_tests(
     modules: list[ModuleInfo],
     parsed: dict[str, ParsedFile],
     symbol_edges: list[dict],
+    injections: list[dict] = (),
 ) -> list[dict]:
-    """The tests.json ``tests`` list: inventory plus static reach."""
+    """The tests.json ``tests`` list: inventory plus static reach.
+
+    *injections* are :func:`hobbes.extract.fixtures.injections`' records.
+    Each is followed from requester to fixture exactly as a call is, and
+    from the fixture on its own calls and its own injections carry the
+    closure further. With none, every record is what it always was, plus an
+    empty ``through_fixtures``.
+    """
     test_modules = [m for m in modules if is_test_file(m.path)]
     test_module_ids = {m.id for m in test_modules}
 
@@ -138,7 +149,7 @@ def collect_tests(
     for module in test_modules:
         quals = {s.qualname: s for s in parsed[module.id].symbols}
         for symbol in parsed[module.id].symbols:
-            if not _is_test_symbol(symbol, quals):
+            if not is_test_symbol(symbol, quals):
                 continue
             node_id = f"{module.path}::{symbol.qualname.replace('.', '::')}"
             inventory.append(
@@ -163,28 +174,56 @@ def collect_tests(
         # basis of "which tests guard this" — a claim that must not inflate.
         # ADR-007 defines reaches as the closure over call edges; this
         # keeps that contract now that it is no longer the only edge type.
+        # It holds for the injections below too: one of them is drawn as a
+        # `uses` edge and is followed here because it arrived as an
+        # injection — a fact about pytest's lookup — never because the edge
+        # in the graph says `uses` (ADR-137).
         if edge["type"] != "calls":
             continue
         adjacency[edge["from"]].add(edge["to"])
+    reach_adjacency = adjacency
+    if injections:
+        reach_adjacency = defaultdict(set, {k: set(v) for k, v in adjacency.items()})
+        for injection in injections:
+            reach_adjacency[injection["from"]].add(injection["to"])
     test_symbol_ids = {sid for sid, _ in inventory}
     symbol_module = _symbol_module_map(modules, parsed)
 
     records = []
     for symbol_id, record in inventory:
-        reached = _closure(symbol_id, adjacency) - {symbol_id} - test_symbol_ids
+        reached = _closure(symbol_id, reach_adjacency) - {symbol_id} - test_symbol_ids
         record["reaches"] = sorted(reached)
         # Which source modules the test guards: test-file modules (helpers
         # in the test file itself) are excluded from the projection.
-        record["reaches_modules"] = sorted(
-            {
-                symbol_module[s]
-                for s in reached
-                if symbol_module.get(s) not in test_module_ids
-                and symbol_module.get(s) is not None
-            }
+        record["reaches_modules"] = _modules(reached, symbol_module, test_module_ids)
+        # …and which of those only a fixture got it to: the same projection
+        # over calls alone, subtracted. A module the test also calls into
+        # directly is not in the list — the label is for the step a reader
+        # would otherwise not see, not for every module a fixture touches.
+        called = (
+            _modules(
+                _closure(symbol_id, adjacency) - {symbol_id} - test_symbol_ids,
+                symbol_module,
+                test_module_ids,
+            )
+            if injections
+            else record["reaches_modules"]
         )
+        record["through_fixtures"] = sorted(set(record["reaches_modules"]) - set(called))
         records.append(record)
     return sorted(records, key=lambda r: r["id"])
+
+
+def _modules(reached: set, symbol_module: dict, test_module_ids: set) -> list[str]:
+    """The source modules a reached symbol set lies in, sorted."""
+    return sorted(
+        {
+            symbol_module[s]
+            for s in reached
+            if symbol_module.get(s) not in test_module_ids
+            and symbol_module.get(s) is not None
+        }
+    )
 
 
 #: Symbol kinds a ``calls`` edge can target (a class or type is called to
@@ -221,9 +260,12 @@ def value_only_modules(graph: dict) -> set[str]:
     }
 
 
-def _is_test_symbol(symbol, quals: dict) -> bool:
+def is_test_symbol(symbol, quals: dict) -> bool:
     """Pytest defaults: test* functions, and test* methods on top-level
-    Test* classes that lack an ``__init__``."""
+    Test* classes that lack an ``__init__``.
+
+    Public since ADR-137: the fixture lookup needs the same rule, and two
+    spellings of "what pytest collects" would drift."""
     if symbol.kind == "function":
         return symbol.name.startswith("test") and symbol.qualname == symbol.name
     if symbol.kind == "method" and symbol.name.startswith("test"):
@@ -234,6 +276,10 @@ def _is_test_symbol(symbol, quals: dict) -> bool:
             and f"{class_name}.__init__" not in quals
         )
     return False
+
+
+#: The name the rule had while it was private.
+_is_test_symbol = is_test_symbol
 
 
 def _closure(start: str, adjacency: dict) -> set:
