@@ -108,6 +108,54 @@ class TestClassScope:
         assert counts["abstained"]["not-in-repo"] == 1
 
 
+class TestABaseClass:
+    """A base class's fixture is inherited and outranks the file's and the
+    conftest's. The walk does not resolve bases, so an edge found past the
+    class chain, from inside a class that names one, is left undrawn
+    (the developer's addition to ADR-137's unit)."""
+
+    SOURCE = (
+        "import pytest\n\n\n"
+        "@pytest.fixture\n"
+        "def repo():\n"
+        "    return 0\n\n\n"
+        "class Base:\n"
+        "    @pytest.fixture\n"
+        "    def repo(self):\n"
+        "        return 1\n\n\n"
+        "class TestChild(Base):\n"
+        "    @pytest.fixture\n"
+        "    def own(self):\n"
+        "        return 2\n\n"
+        "    def test_inherited(self, repo, tmp_path):\n"
+        "        pass\n\n"
+        "    def test_own(self, own):\n"
+        "        pass\n\n\n"
+        "class TestPlain:\n"
+        "    def test_file(self, repo):\n"
+        "        pass\n\n\n"
+        "class TestMeta(metaclass=type):\n"
+        "    def test_file(self, repo):\n"
+        "        pass\n"
+    )
+
+    def test_a_name_found_past_an_inheriting_class_is_not_drawn(self, tmp_path):
+        drawn, counts = resolve(tmp_path, {"test_x.py": self.SOURCE})
+        assert ("test_x.TestChild.test_inherited", "test_x.repo", "repo") not in pairs(drawn)
+        assert counts["abstained"]["base-class"] == 1
+        # `tmp_path` names no repo fixture, and is still counted as that.
+        assert counts["abstained"]["not-in-repo"] == 1
+
+    def test_the_classs_own_fixture_is_still_drawn(self, tmp_path):
+        drawn, _ = resolve(tmp_path, {"test_x.py": self.SOURCE})
+        assert ("test_x.TestChild.test_own", "test_x.TestChild.own", "own") in pairs(drawn)
+
+    def test_a_class_with_no_base_or_only_a_metaclass_reads_the_file(self, tmp_path):
+        drawn, _ = resolve(tmp_path, {"test_x.py": self.SOURCE})
+        assert ("test_x.TestPlain.test_file", "test_x.repo", "repo") in pairs(drawn)
+        assert ("test_x.TestMeta.test_file", "test_x.repo", "repo") in pairs(drawn)
+
+
 class TestNameAlias:
     SOURCE = (
         "import pytest\n\n\n"
@@ -278,6 +326,7 @@ class TestAbstentions:
             "not-in-repo": 0,
             "two-definitions": 0,
             "parametrize-unread": 0,
+            "base-class": 0,
         }
 
     def test_an_unreadable_parametrize_abstains_on_every_parameter(self, tmp_path):

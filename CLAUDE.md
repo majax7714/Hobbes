@@ -285,8 +285,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.48-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 164 entries; 119 active (92
-  surfaced, 23 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
+  contradicted (ADR-124). **Register:** 164 entries; 119 active (93
+  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
   narrowed and partial (ADR-135, no entry added); C-145 narrowed again
   (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);
   C-153 narrowed three times and partial (ADR-125, ADR-130, ADR-131

@@ -20,7 +20,12 @@ in exactly one definition it can name: a parameter no scope in the repo
 defines (``tmp_path``, ``monkeypatch``, a plugin's), a fixture name defined
 twice at the winning scope (duplicate qualnames collapse to one symbol
 record, so there is no id to trust), and every parameter of a definition
-whose ``parametrize`` mark the walk could not read. ``usefixtures`` marks
+whose ``parametrize`` mark the walk could not read. A requester in a class
+that names a base class abstains too, unless the class chain itself defines
+the name: a base class's fixture is inherited and outranks the file's and
+the conftest's, the walk does not resolve bases, and an edge drawn past
+an inherited fixture of the same name would be a wrong one, not a missing
+one. ``usefixtures`` marks
 are counted and not followed: they are not parameters, so no parameter's
 line names them. ``autouse`` fixtures are neither counted nor followed —
 ``autouse=True`` is not a string literal and the walk keeps none of it.
@@ -53,7 +58,8 @@ CONFTEST = "conftest.py"
 NOT_IN_REPO = "not-in-repo"
 TWO_DEFINITIONS = "two-definitions"
 PARAMETRIZE_UNREAD = "parametrize-unread"
-REASONS = (NOT_IN_REPO, TWO_DEFINITIONS, PARAMETRIZE_UNREAD)
+BASE_CLASS = "base-class"
+REASONS = (NOT_IN_REPO, TWO_DEFINITIONS, PARAMETRIZE_UNREAD, BASE_CLASS)
 
 
 def injections(
@@ -94,6 +100,8 @@ def injections(
                 continue
             requester_id = f"{module.id}.{symbol.qualname}"
             chain = scopes.chain(module, symbol, kinds)
+            own_classes = _class_scopes(symbol, kinds)
+            inherits = any(quals[c].bases for c in _class_chain(symbol, kinds) if c in quals)
             for name, line in symbol.params:
                 if name in SELF_NAMES:
                     continue
@@ -105,6 +113,15 @@ def injections(
                     abstained[PARAMETRIZE_UNREAD] += 1
                     continue
                 target, reason = _resolve(name, chain, requester_id)
+                if (
+                    target is not None
+                    and inherits
+                    and not _in_scopes(name, chain[:own_classes], requester_id)
+                ):
+                    # Found past the class chain, in a class that inherits: a
+                    # base class may define the name, and that definition
+                    # would win over the one found further out.
+                    target, reason = None, BASE_CLASS
                 if target is not None:
                     drawn.append(
                         {
@@ -147,6 +164,26 @@ def _resolve(
             return None, TWO_DEFINITIONS
         return found[0], ""
     return None, NOT_IN_REPO
+
+
+def _class_chain(symbol: Symbol, kinds: dict) -> list[str]:
+    """The qualnames of the classes around *symbol*, innermost outward."""
+    out = []
+    owner = symbol.qualname.rpartition(".")[0]
+    while owner:
+        if kinds.get(owner) == "class":
+            out.append(owner)
+        owner = owner.rpartition(".")[0]
+    return out
+
+
+def _class_scopes(symbol: Symbol, kinds: dict) -> int:
+    """How many of :meth:`_Scopes.chain`'s leading scopes are classes."""
+    return len(_class_chain(symbol, kinds))
+
+
+def _in_scopes(name: str, scopes: list[dict], requester_id: str) -> bool:
+    return any(t != requester_id for scope in scopes for t in scope.get(name, ()))
 
 
 class _Scopes:

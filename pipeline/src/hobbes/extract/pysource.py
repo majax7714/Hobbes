@@ -88,6 +88,12 @@ class Symbol:
     #: A parametrized parameter is filled by the mark, not by a fixture,
     #: and ``None`` makes the lookup abstain on the whole definition.
     parametrized: tuple[str, ...] | None = ()
+    #: For a class, how many base classes it names (keyword arguments such
+    #: as ``metaclass=`` are not bases). The walk does not resolve them; a
+    #: reader that needs a class's own namespace to be the whole story —
+    #: the fixture lookup, where a base class's fixture is inherited —
+    #: abstains when this is not zero (ADR-137).
+    bases: int = 0
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -420,6 +426,14 @@ def _scope_qualname(stack: list[tuple[str, str]]) -> str | None:
     return ".".join(name for name, _ in stack) or None
 
 
+def _base_count(node: Node) -> int:
+    """How many base classes a ``class_definition`` names."""
+    bases = node.child_by_field_name("superclasses")
+    if bases is None:
+        return 0
+    return sum(1 for child in bases.named_children if child.type != "keyword_argument")
+
+
 def _walk(
     node: Node,
     stack: list[tuple[str, str]],
@@ -508,6 +522,7 @@ def _walk(
                 decorators=pending_decorators,
                 params=_parameters(node),
                 parametrized=pending_parametrized,
+                bases=_base_count(node) if kind == "class_definition" else 0,
             )
         )
         body = node.child_by_field_name("body")

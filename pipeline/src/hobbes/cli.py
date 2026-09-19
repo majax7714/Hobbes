@@ -279,6 +279,11 @@ def _print_fixtures(counts: dict | None) -> None:
             f"{abstained['parametrize-unread']} in a definition whose parametrize "
             "is unreadable"
         )
+    if abstained.get("base-class"):
+        rest.append(
+            f"{abstained['base-class']} left undrawn in a class that names a base "
+            "class, whose own fixture would win"
+        )
     if counts.get("usefixtures"):
         rest.append(f"{counts['usefixtures']} usefixtures mark(s) not followed")
     print(line + ("; " + ", ".join(rest) if rest else ""))

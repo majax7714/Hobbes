@@ -251,6 +251,30 @@ class TestCoverageDelta:
         assert "      app.billing\n" in text
         assert review_to_dict(review)["coverage"]["value_only"] == ["app.settings"]
 
+    def test_new_code_reached_only_through_a_fixture_is_guarded_and_said(self, repo):
+        # ADR-137: pytest calls the fixture on the test's behalf, so the
+        # module it sets up is guarded — and the review says which kind of
+        # guard it is, beside a module a test calls.
+        write(repo, "src/app/store.py", "def open_store():\n    return {}\n")
+        write(repo, "src/app/billing.py", "def charge():\n    return 1\n")
+        write(
+            repo,
+            "tests/test_store.py",
+            "import pytest\nfrom app import billing, store\n\n\n"
+            "@pytest.fixture\ndef opened():\n    return store.open_store()\n\n\n"
+            "def test_charge(opened):\n    assert billing.charge() == 1\n",
+        )
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a store behind a fixture")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == []
+        assert review.coverage.fixture_only == ["app.store"]
+        assert not review.coverage.needs_attention
+        text = format_review(review)
+        assert "new code reached only through a pytest fixture (1; guarded, ADR-137):\n      app.store\n" in text
+        assert "      app.billing\n" not in text  # called by the test: no label
+        assert review_to_dict(review)["coverage"]["fixture_only"] == ["app.store"]
+
     def test_losing_every_guarding_test_is_reported(self, repo):
         (repo / "tests" / "test_core.py").unlink()
         git(repo, "add", "-A")

@@ -1,6 +1,6 @@
 # ADR-137 — A pytest fixture injection is an edge the test's reach follows
 
-**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a); the premises read in the tree before the brief (*Accepted*, below). Not yet built.
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "recommended route is good" — route a); the premises read in the tree before the brief (*Accepted*), and built (0.2.49-beta; *Built*, below).
 
 Follows ADR-007 (test reach is the closure over `calls` edges; fixtures
 are dynamic injection and out of static scope) and the 2026-09-16
@@ -180,3 +180,54 @@ The unit is the pipeline's half: the walk, the lookup, the edges, the
 test map, the ingest summary. `tests_guarding`'s "through fixture" line
 (the Go proxy), `hobbes review`'s, the register, the version and the
 docs are the developer's, after the merge.
+
+## Built (2026-09-19, 0.2.49-beta)
+
+Unit `5393` (89 turns of 100, $7.70, Opus 5), gate clear, verify pass,
+ten files, merged no-ff. One deviation that draws less: a fixture
+imported from a file that is neither a test file nor a `conftest.py`
+resolves to nothing.
+
+**The pre-registration, on the branch's own ingest:** 1,004 pairs
+against `pytest --fixtures-per-test`, **1,004 right, 0 wrong, 0 missed**
+— the figure exactly. 1,008 edges into 82 fixtures; 1,030 parameters
+name no repo fixture.
+
+**Held out, collected in the image, offline** (dependencies installed
+as wheels into a directory, no repo code run on the host):
+
+| repo | right | wrong | missed | what the misses are |
+|---|---:|---:|---:|---|
+| pallets/flask `d73fa1c` | 504 | 0 | 370 | one `autouse` fixture (364) and another (6) |
+| python-attrs/attrs `8f76777` | 104 | 0 | 8 | one `usefixtures` mark, 8 tests — and the ingest's own `usefixtures` count there is 8 |
+
+The first compare read 3 wrong pairs on flask and 5 on attrs. **Neither
+was an edge; both were how pytest prints its answer,** and `compare.py`
+now says so (`compare-v1.py` keeps the first form):
+
+- pytest prints a fixture at its **first decorator line** when the
+  decorator spans lines (attrs's `@pytest.fixture(name=…, params=…)`);
+  the graph's symbol is at the `def`.
+- pytest prints **one row per fixture name**. flask's
+  `def app(self, app)` overrides the conftest's `app` and requests it:
+  both run, only the inner one is printed. The edge to the outer one is
+  right, and counted apart as "not printed".
+
+**The developer's half, after the merge:**
+
+- **A base class.** A base class's fixture is inherited and outranks the
+  file's and the conftest's; the walk does not resolve bases. A class
+  `Symbol` now counts the bases it names (`metaclass=` is not one), and
+  an edge found past the class chain from inside a class that names a
+  base is left undrawn (`base-class`). It costs nothing on the three
+  repos (0 abstentions each) and closes the one shape where the rule
+  could draw a *wrong* edge rather than miss one.
+- `tests_guarding` marks a line "only through a pytest fixture
+  (ADR-137)" when every target module the test reaches is in its
+  `through_fixtures`; one module reached by a call drops the mark.
+- `hobbes review` lists new code guarded only through a fixture under
+  its own heading — guarded, so not a reason for attention —
+  and in `--json` as `coverage.fixture_only`.
+
+Suites: 2,034 pytest, `lane_b` 10 of 10, Go `./...` green. C-4 partial →
+surfaced, narrowed; the register's counts 93 surfaced, 22 partial.

@@ -379,6 +379,11 @@ type test struct {
 	Line           int      `json:"line"`
 	Reaches        []string `json:"reaches"`
 	ReachesModules []string `json:"reaches_modules"`
+	// ThroughFixtures are the reached modules a pytest test reaches only by
+	// way of a fixture injection (ADR-137): pytest calls the fixture on the
+	// test's behalf, so the step is real, and it is not a call the test
+	// wrote. Absent on other frameworks' records and on older artifacts.
+	ThroughFixtures []string `json:"through_fixtures"`
 }
 
 type testsDoc struct {
@@ -642,11 +647,17 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 
 	guarded := 0
 	for _, tc := range t.Tests {
-		hit := false
+		hit, direct := false, false
+		viaFixture := map[string]bool{}
+		for _, m := range tc.ThroughFixtures {
+			viaFixture[m] = true
+		}
 		for _, m := range tc.ReachesModules {
 			if modules[m] {
 				hit = true
-				break
+				if !viaFixture[m] {
+					direct = true
+				}
 			}
 		}
 		if !hit {
@@ -656,7 +667,15 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 			b.WriteString(fmt.Sprintf("tests statically reaching %s:\n", target))
 		}
 		guarded++
-		b.WriteString(fmt.Sprintf("  %s  [%s:%d]\n", tc.ID, tc.File, tc.Line))
+		// Said on the line, never folded away: a test that reaches the
+		// target only through a fixture still guards it, and a reader
+		// deciding which tests to run should know which kind of reach
+		// it is (ADR-137, C-4).
+		note := ""
+		if !direct {
+			note = "  — only through a pytest fixture (ADR-137)"
+		}
+		b.WriteString(fmt.Sprintf("  %s  [%s:%d]%s\n", tc.ID, tc.File, tc.Line, note))
 	}
 	if guarded == 0 {
 		b.WriteString(fmt.Sprintf("no tests statically reach %s — changes there are unguarded\n", target))

@@ -11,9 +11,44 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.48-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.49-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.49-beta — 2026-09-19 (a pytest fixture injection is a `uses` edge, and test reach follows it; ADR-137)
+
+**Patch: what the layer draws and says** — a constraint's fix (C-4,
+partial → surfaced, its remainder named).
+
+- **The rule.** pytest's lookup of a parameter name is all syntax: the
+  requester's class chain, its file (a name imported into it counts as
+  the file's), then `conftest.py` in its directory and each one above.
+  Lane A's Python walk records a definition's undefaulted parameters and
+  its `parametrize` names; `extract/fixtures.py` walks the order and
+  draws test→fixture and fixture→fixture as a `uses` edge, tier
+  `syntactic`, lane `tree-sitter`, evidence at the parameter. **Never a
+  `calls` edge**: the test wrote no call.
+- **Reach follows it, and says so.** `tests.json`'s pytest records gain
+  `through_fixtures`, the modules a test reaches only by way of a
+  fixture. `tests_guarding` marks such a line "only through a pytest
+  fixture (ADR-137)"; `hobbes review` lists new code guarded only that
+  way under its own heading (guarded, not a reason for attention;
+  `coverage.fixture_only` in `--json`). A fixture-heavy repo's review
+  can read fewer "new code no test reaches" lines than before.
+- **What it will not draw,** counted in `graph.json`'s `fixtures` block
+  and the ingest summary: a name no scope in the repo defines
+  (`tmp_path`, a plugin's), a name defined twice at one scope, a
+  definition whose `parametrize` argument it cannot read, and a name
+  found past the class chain from inside a class that names a base
+  class. Not followed: `usefixtures` marks (counted) and `autouse`
+  fixtures (not counted).
+- **Keyed by pytest itself** (`--fixtures-per-test`, collection only):
+  this repo 1,004 test–fixture pairs, 1,004 right, 0 wrong, 0 missed,
+  as pre-registered; held out and collected in the image, flask 504
+  right and attrs 104 right, 0 wrong on either, every miss an `autouse`
+  fixture (370) or a `usefixtures` mark (8). On this repo 1,008 edges
+  into 82 fixtures. No trace key judges the edge (a fixture's caller is
+  pytest's own frame): no graded number moves.
 
 ## 0.2.48-beta — 2026-09-18 (the mint reads a definition row at a line ADR-135's R1 vacated, even in a file that parsed clean; ADR-136)
 

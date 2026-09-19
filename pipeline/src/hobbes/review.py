@@ -70,6 +70,11 @@ class CoverageDelta:
     #: reach, so no test can be seen guarding them (C-156). Still listed:
     #: the review says why, it does not exempt them.
     value_only: list[str] = field(default_factory=list)
+    #: New modules whose every guarding test reaches them only by way of a
+    #: pytest fixture (ADR-137, C-4). Guarded, so not listed as unguarded and
+    #: not a reason for attention — said, because a fixture that sets code
+    #: up is a thinner guard than a test that calls it.
+    fixture_only: list[str] = field(default_factory=list)
 
     @property
     def needs_attention(self) -> bool:
@@ -191,6 +196,18 @@ def _guarded_modules(tests: dict) -> set[str]:
     }
 
 
+def _fixture_only_modules(tests: dict) -> set[str]:
+    """Modules every reaching test reaches only through a fixture: in some
+    test's ``through_fixtures`` and in no test's reach by calls alone."""
+    through: set[str] = set()
+    called: set[str] = set()
+    for test in tests.get("tests", []):
+        via = set(test.get("through_fixtures") or [])
+        through |= via
+        called |= set(test.get("reaches_modules") or []) - via
+    return through - called
+
+
 def _under(path: str, trees: list[str]) -> bool:
     return any(path == tree or path.startswith(tree + "/") for tree in trees)
 
@@ -257,6 +274,11 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         head_tests=len(head.tests.get("tests", [])),
         fixture_trees=_fixture_counts(head.graph, head.fixture_trees),
         value_only=sorted(value_only_modules(head.graph) & {*new_unguarded, *lost_guards}),
+        fixture_only=sorted(
+            module
+            for module in _fixture_only_modules(head.tests)
+            if module in head_modules and module not in base_modules
+        ),
     )
 
 
@@ -482,6 +504,13 @@ def format_review(review: Review) -> str:
         add(f"   lost every guarding test ({len(coverage.lost_guards)}):")
         for module in coverage.lost_guards:
             add(f"      {module}{_value_only_note(coverage, module)}")
+    if coverage.fixture_only:
+        add(
+            f"   new code reached only through a pytest fixture ({len(coverage.fixture_only)};"
+            " guarded, ADR-137):"
+        )
+        for module in coverage.fixture_only:
+            add(f"      {module}")
     for invariant_id, guards in sorted(coverage.broken_guards.items()):
         add(f"   {invariant_id} names {len(guards)} test(s) that no longer exist:")
         for guard in guards:
@@ -546,6 +575,7 @@ def review_to_dict(review: Review) -> dict:
             "broken_guards": review.coverage.broken_guards,
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,
+            "fixture_only": review.coverage.fixture_only,
         },
         "soft": review.soft,
     }

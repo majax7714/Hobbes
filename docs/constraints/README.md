@@ -155,8 +155,8 @@ their segment, in that order, and are marked in the heading.
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 92 | every active entry not listed below |
-| active — *partial* | 23 | C-1, C-4, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164 |
+| active — surfaced | 93 | every active entry not listed below |
+| active — *partial* | 22 | C-1, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |
 | lifted | 28 | at the bottom of each segment |

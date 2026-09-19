@@ -812,6 +812,32 @@ now named (255 with a brace extent), a 30-row sample read against the
 source; fmt's 18 removals are all in lossy files, so on the four graded
 C and C++ cells nothing moves (`oracle-grading.md` §10.21).
 
+**A pytest fixture injection is an edge, and test reach follows it
+(ADR-137, 0.2.49-beta).** Injection is dynamic; pytest's *lookup* of a
+parameter name is syntax — the requester's class chain, its file (an
+imported name counts as the file's), then `conftest.py` up the
+directories — and lane A's Python walk now records the parameters and
+the `parametrize` names that lookup needs. `extract/fixtures.py` walks
+that order and draws test→fixture (and fixture→fixture) as a `uses`
+edge at tier `syntactic`, lane `tree-sitter`, evidence at the
+parameter: **never `calls`**, because the test wrote no call and a
+name-matched `calls` edge from a fixture parameter was wrong six times
+of six (O6's first triage). The edges are appended after the projection
+(still the only producer of *joined* edges, ADR-031) and re-sorted into
+its order. It abstains and counts (`graph.json`'s `fixtures` block, one
+line in the ingest summary): a name no repo scope defines, a name
+defined twice at one scope, a definition whose `parametrize` it cannot
+read, and an edge found past the class chain from inside a class that
+names a base class (an inherited fixture would win, and bases are not
+resolved). The test map follows an injection like a call and records
+`through_fixtures` — the modules reached only that way — which
+`tests_guarding` and `hobbes review` say on the line. Keyed by pytest
+itself (`--fixtures-per-test`, collection only): this repo 1,004 pairs,
+1,004 right; flask 504 and attrs 104, held out and collected in the
+image, 0 wrong; every miss an `autouse` fixture or a `usefixtures` mark
+(C-4's remainder). No trace key judges the edge — a fixture's caller is
+pytest's frame — so no graded number moves.
+
 **The tail view (ADR-045).** Resolution coverage counts the detected call
 sites with no known destination (C-2); the tail view says what that
 remainder *is* — per file, in `resolution_coverage.tail` — **by
@@ -1941,7 +1967,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.48-beta** (2026-09-18, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.48-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.49-beta** (2026-09-19, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.49-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

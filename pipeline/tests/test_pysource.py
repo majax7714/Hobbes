@@ -383,3 +383,17 @@ class TestLocalBindings:
         assert "Helper" in names
         assert "ping" not in names  # a method is not a bare-callable local
         assert ("self", 3, 4) in got  # but its params bind in the method
+
+
+class TestClassBases:
+    """How many base classes a class names (ADR-137's base-class abstention)."""
+
+    def test_bases_are_counted_and_keywords_are_not(self):
+        parsed = parse_source(
+            b"class A: pass\nclass B(A): pass\nclass C(A, B, metaclass=type): pass\nclass D(): pass\n"
+        )
+        assert {s.name: s.bases for s in parsed.symbols} == {"A": 0, "B": 1, "C": 2, "D": 0}
+
+    def test_a_function_has_none(self):
+        parsed = parse_source(b"def f(a): pass\n")
+        assert parsed.symbols[0].bases == 0

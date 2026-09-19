@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-4 narrowed and surfaced, 2026-09-19 (ADR-137 accepted and built, 0.2.49-beta):
+- **C-4 narrowed (partial → surfaced; no entry added):** a fixture a
+  parameter names is a syntactic `uses` edge and test reach follows it;
+  what is left is `autouse`, `usefixtures`, the injected value's type, a
+  plugin's or an inherited fixture. 164 entries, 119 active, 93
+  surfaced, 22 partial, 3 unsurfaced, 1 n/a; 28 lifted.
+
 C-164 narrowed again, 2026-09-18 (ADR-136 accepted and built, 0.2.48-beta):
 - **C-164 narrowed (still partial; no entry added):** the mint reads a
   definition row at a line R1 vacated even in a file that parsed clean —

@@ -72,6 +72,12 @@ func fixtureRepo(t *testing.T) string {
 			{"id": "tests/test_api.py::test_handler", "file": "tests/test_api.py",
 				"line": 8, "reaches": []string{"app.api.handler"},
 				"reaches_modules": []string{"app.api"}},
+			// Reaches app.core by a call it wrote and app.api only by way
+			// of a fixture (ADR-137).
+			{"id": "tests/test_wiring.py::test_setup", "file": "tests/test_wiring.py",
+				"line": 20, "reaches": []string{"app.api.handler", "app.core.run"},
+				"reaches_modules":  []string{"app.api", "app.core"},
+				"through_fixtures": []string{"app.api"}},
 		},
 	}
 	derived := filepath.Join(repo, ".hobbes", "derived")
@@ -419,6 +425,38 @@ func TestTestsGuardingByModuleAndByPath(t *testing.T) {
 	}
 	if !strings.Contains(byPath, "test_run") || !strings.Contains(byPath, "test_handler") {
 		t.Errorf("path-prefix query should span both modules:\n%s", byPath)
+	}
+}
+
+func TestTestsGuardingSaysWhenReachIsOnlyThroughAFixture(t *testing.T) {
+	s := Open(fixtureRepo(t))
+	api, err := s.TestsGuarding("app.api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(api, "\n") {
+		switch {
+		case strings.Contains(line, "test_setup") && !strings.Contains(line, "only through a pytest fixture (ADR-137)"):
+			t.Errorf("a fixture-only reach must say so:\n%s", api)
+		case strings.Contains(line, "test_handler") && strings.Contains(line, "fixture"):
+			t.Errorf("a called module must not be labelled:\n%s", api)
+		}
+	}
+	// The same test reaches app.core by a call: no label there.
+	core, err := s.TestsGuarding("app.core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(core, "test_setup") || strings.Contains(core, "fixture") {
+		t.Errorf("a direct reach is not a fixture's:\n%s", core)
+	}
+	// A path spanning both: one direct module is enough to drop the label.
+	both, err := s.TestsGuarding("src/app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(both, "fixture") {
+		t.Errorf("reach with a direct part is not fixture-only:\n%s", both)
 	}
 }
 

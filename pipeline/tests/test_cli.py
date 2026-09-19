@@ -478,19 +478,26 @@ class TestFixtureLine:
         line = capsys.readouterr().out
         assert "defined twice" not in line
         assert "parametrize" not in line
+        assert "base class" not in line
         assert "usefixtures" not in line
 
     def test_each_optional_clause_is_said_when_there_is_some(self, capsys):
         cli._print_fixtures(
             {
                 **self.COUNTS,
-                "abstained": {"not-in-repo": 3, "two-definitions": 2, "parametrize-unread": 5},
+                "abstained": {
+                    "not-in-repo": 3,
+                    "two-definitions": 2,
+                    "parametrize-unread": 5,
+                    "base-class": 4,
+                },
                 "usefixtures": 7,
             }
         )
         line = capsys.readouterr().out
         assert "2 defined twice at one scope" in line
         assert "5 in a definition whose parametrize is unreadable" in line
+        assert "4 left undrawn in a class that names a base class" in line
         assert "7 usefixtures mark(s) not followed" in line
 
     def test_nothing_is_said_where_the_block_is_absent(self, capsys):
