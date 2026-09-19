@@ -365,7 +365,15 @@ the declaration sat inside a function before it asked whether it was a
 parameter, and every parameter does, so every parameter read `closure`
 and its site stayed `static`: the `static→closure` counts of the TS
 cells graded before that date include an unmeasured share of calls
-through parameters.
+through parameters. A target in a **declaration file inside the repo**
+is keyed repo-relative and counts as in-repo, whatever its extension
+(H-34, 2026-09-19; before, every `.d.ts` was external, so a repo that
+types its own JavaScript contradicted itself on every call into those
+types — a `.d.ts` under `node_modules` or outside the repo, and
+TypeScript's own `lib.*.d.ts`, stay external). A JSDoc `@type` function
+type on a function keys **the function**, not the annotation the
+signature resolves to (H-35); a `@param`'s function type still reads as
+the parameter's binding.
 
 `--no-tsconfig` grades a zone the repo gives **no** config for — a plain
 JavaScript tree (ADR-140 step 3). The program is built from the zone's
