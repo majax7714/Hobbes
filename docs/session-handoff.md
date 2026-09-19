@@ -1,14 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19; Hobbes 0.2.48-beta on `main`.** CI is green on
-`a930ba1` (0.2.48-beta, pushed 2026-09-19; run 35412968495); nothing is
-unpushed but 2026-09-19's commits (the drift fix, ADR-137, ADR-138, the
-docs restructure's first half). The knowledge server was checked on
-2026-09-19: its container runs image `a56b92b0e11b`, the 0.2.48-beta
-build; re-ingest at HEAD before a dispatch (the ingest is at `a930ba1`).
+**Reviewed 2026-09-19; Hobbes 0.2.50-beta on `main`.** CI is green on
+`a930ba1` (0.2.48-beta, pushed 2026-09-19; run 35412968495); everything
+since — the drift fix, ADR-137 and ADR-138 proposed, accepted and built,
+units `5393` and `286a`, 0.2.49-beta and 0.2.50-beta, the docs
+restructure's first half — is unpushed. The proxy and the image were
+rebuilt at 0.2.50-beta and the repo re-ingested at the end of the
+session; the knowledge server serves the image it started from until it
+is restarted (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.48-beta are untagged. Tags stay Max's call each time.
+  0.2.50-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -17,54 +19,68 @@ build; re-ingest at HEAD before a dispatch (the ingest is at `a930ba1`).
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's record is the 2026-09-19 BUILDLOG entry (the
-review's three remaining items). Before it, the five 2026-09-18 (late
-night) entries — ADR-135 proposed and built, the `lane-a-symbol-near`
-read, ScummVM's scale read, ADR-136 built — and the four 2026-09-18
-entries (ADR-133, ADR-134). Earlier sessions' detail lives in their own
-BUILDLOG entries; this file keeps only what the next session needs.
+The latest session's records are the two 2026-09-19 BUILDLOG entries
+(the review's items measured; ADR-137 and ADR-138 built). Before them,
+the five 2026-09-18 (late night) entries and the four 2026-09-18 ones.
+Earlier sessions' detail lives in their own BUILDLOG entries; this file
+keeps only what the next session needs.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-19)
+## ⇢ START HERE NEXT SESSION (written 2026-09-19, evening)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Two proposed ADRs wait on Max's route; nothing is built and no version
-moved.**
+**The 2026-09-16 review's list is done** but for one item Max has set
+aside: §3.8's paragraph cells as per-language pages ("dont split for
+now"). The C++ recall list is done but for the macro class (C-131,
+parked). Nothing is waiting on a build.
 
-1. **ADR-137 — a pytest fixture injection is an edge (C-4).** pytest's
-   lookup is syntax (class, file and its imported names, the conftest
-   chain) and pytest is its own key (`--fixtures-per-test`, collection
-   only): **1,004 of 1,004 pairs right, 0 wrong, 0 missed** on this
-   repo. 317 tests' reach grows, 233 stop reading `reaches: []`, no
-   module is newly guarded. Recommended route (a): a syntactic `uses`
-   edge, a `fixtures` block, a labelled reach step (`through_fixtures`)
-   in `tests.json`, `tests_guarding` and `hobbes review`. Drivers:
-   `~/.hobbes/bench/c4-fixtures/` (`probe.py <repo>`, `compare.py <repo>
-   <edges.json> <fixtures-per-test.txt> <prefix>`, both with `uv run
-   --project pipeline python`; pytest prints a test's line one past its
-   first line). Before a unit merges: a held-out Python repo with a real
-   fixture tree, collected in the image.
-2. **ADR-138 — a `.h` is claimed through the headers that include it
-   (C-142); the `-I` path measured beside it (C-133).** `-I` places
-   nothing on a graded cell and 116 includes of 95,510 on ScummVM. But
-   **624 of ScummVM's `.h` are read as C, 535 spelling
-   `class`/`namespace`/`template`**, because ADR-113 §1 wants a C++
-   *source* includer; a claim through claimed headers takes 374, and the
-   C walk not knowing claimed headers is why 122 of 277 "unmatched"
-   specs there are files at the repo root. Recommended route (a): the
-   transitive claim, and the C walk knows the claimed headers; `-I` not
-   built. Drivers: `~/.hobbes/bench/c133-include-path/` (`claim.py
-   <clone> -I . -I engines`, `place.py`). Read the premises in the tree
-   before the brief: `cppsource._claim_headers`, `csource._join`'s
-   `known_files`.
-3. **The docs restructure's second half, on Max's word:** §3.8's
-   paragraph cells to per-language pages. The first half is in
-   (`test_register_tally.py` holds every copy of the register's tally to
-   the segment files; the index's dated notes are
-   `docs/constraints/HISTORY.md` — **a new register note goes there,
-   at the top**; README's C++ paragraph points at the CHANGELOG).
+**What landed on 2026-09-19 (both merged no-ff; tracker 56 of 40):**
+
+- **ADR-137, 0.2.49-beta — a pytest fixture injection is a `uses` edge,
+  and test reach follows it (C-4 partial → surfaced).** pytest's lookup
+  (class chain, file and imported names, conftest chain) is syntax;
+  `extract/fixtures.py` walks it; the edge is syntactic / `tree-sitter`,
+  never `calls`; `tests.json` records `through_fixtures`;
+  `tests_guarding` and `hobbes review` say a fixture-only reach.
+  Abstains on: not in the repo, two definitions, an unreadable
+  `parametrize`, a base class. Keyed by `pytest --fixtures-per-test`:
+  this repo 1,004 of 1,004; flask 504 and attrs 104 held out, in the
+  image, 0 wrong. Unit `5393` (89 turns, $7.70).
+- **ADR-138, 0.2.50-beta — a `.h` is claimed through the headers C++
+  has claimed; the C walk knows the files C++ owns (C-142 narrowed).**
+  The C side stays direct — the ADR's first wording did not, and the
+  probe caught it. ScummVM 629 → 273 `.h` read as C, unmatched includes
+  395 → 43; the five cells row-identical. **The `-I` step was measured
+  and not built** (C-133 unmoved). Unit `286a` (61 turns, $4.55).
+- **The docs restructure's first half:** `test_register_tally.py` holds
+  every copy of the register's tally to the segment files; the index's
+  dated notes are `docs/constraints/HISTORY.md` — **a new register note
+  goes there, at the top**; README's C++ paragraph points at the
+  CHANGELOG.
+- Drivers: `~/.hobbes/bench/c4-fixtures/` (`probe.py` and `probe-v1.py`
+  step 0; `compare.py` against pytest's list, `compare-v1.py` before the
+  two display conventions; `lookup.py` the lookup alone, in memory;
+  `heldout/` flask, attrs, `deps/` and their lists; `units/`) and
+  `~/.hobbes/bench/c133-include-path/` (`claim.py`, `place.py`,
+  `regrade/` the five cells, `scummvm-ingest.log`, `units/`). Run the
+  probes with `uv run --project pipeline python`. Both worktrees were
+  removed.
+- **Collecting a foreign Python suite in the image:** `uv pip install
+  --target deps --python-version 3.12 --only-binary :all: pytest <its
+  deps>` on the host, then `podman run --network none -v <clone>:/work:ro
+  -v deps:/deps:ro --env PYTHONPATH=/deps:/work/src … python3 -m pytest
+  --fixtures-per-test -q tests`. pytest prints a test one line past its
+  first line, a fixture at its first decorator line, and one row per
+  fixture name.
+
+**Candidates for the next named work, each measured first** (none is
+started): C-4's remainder — `usefixtures` is a string literal the walk
+could read, `autouse` needs the walk to keep a boolean, and the injected
+value's type is lane B's; C-142's remainder — the 273 headers nothing
+includes (ADR-138's route b, a content read, not taken); ADR-126 §3 once
+Max decides it; C's residue (W1).
 
 **ADR-136 is built (0.2.48-beta, Max: route a):** the mint reads a
 definition row at a line R1 vacated even in a file that parsed clean.
@@ -335,8 +351,9 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **ADR-137's and ADR-138's routes** (2026-09-19, above); §3.8 as
-     per-language pages.
+   - **Settled 2026-09-19:** ADR-137's and ADR-138's route (a), each
+     built (0.2.49-beta, 0.2.50-beta); §3.8 stays unsplit ("dont split
+     for now").
    - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
      ADR-135's route (a) — built (0.2.47-beta);
      ADR-134's route (a) — built (0.2.46-beta);
@@ -397,7 +414,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 54 of 40, 4
+   - **The validating 40 are done:** the tracker reads 56 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -458,14 +475,14 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-18)
+## WHERE THINGS STAND (2026-09-19)
 
 - **Languages:** Python, TS/JS, Go, Rust, Java, C and C++ supported, each
   as far as its §3.8 row (P11); Terraform/HCL structure.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-four log files under `docs/calvin/sessions/`; the tracker reads 54 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-six log files under `docs/calvin/sessions/`; the tracker reads 56 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -473,7 +490,8 @@ min each.
   deployed and idle): held.
 - **Register:** 164 entries: 119 active (93 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
+  folded. Latest: C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
   added); C-164 registered unsurfaced (2026-09-18); C-163 registered and lifted, C-162 narrowed (ADR-133,
@@ -492,9 +510,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.48-beta (pytest 2026-09-19, the rest 2026-09-18, all
-  pass on the host): 1,980
-  pytest (`lane_b` 10 of them, run at 0.2.48-beta), Go `./...` 396 with
+- **Suites** at 0.2.50-beta (2026-09-19, all pass on the host): 2,052
+  pytest (`lane_b` 10 of them, run at 0.2.50-beta), Go `./...` 396 with
   subtests (395 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
@@ -507,7 +524,7 @@ min each.
 
 1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief (the validating 40 are done; the harness stays the way
-   work is done): **ADR-137 and ADR-138 once Max picks a route**;
+   work is done): **the candidates under START HERE once named**;
    ADR-126's surface once
    Max decides it;
    C's residue (W1); W1/W3's no-spend items

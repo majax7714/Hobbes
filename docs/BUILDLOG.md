@@ -13171,3 +13171,74 @@ the counts are from the five named clones and ScummVM's ingest log.
   — it restructures the source-of-truth file.
 
 No API or Modal spend; no dispatch.
+
+## 2026-09-19 (second) — ADR-137 and ADR-138 built on Max's word (route a, both): 0.2.49-beta and 0.2.50-beta; §3.8 stays as it is
+
+**Max: "recommended route is good, dont split for now."** Both ADRs
+accepted at route (a); §3.8's per-language split is left. The knowledge
+server was checked, not restarted: its container already ran the
+0.2.48-beta image.
+
+**The premises were read before each brief, and ADR-138's own rule was
+wrong.** Its *Decision* let the C side follow headers too. `claim.py`,
+run on that wording, moved 12 headers C++ claims today on ScummVM to
+"shared" — 10 of them C++ — so the rule that went to the doer keeps the
+C side direct, and only a claimed header passes the claim on. The ADR's
+*Accepted* section says so, with two smaller corrections (the owning
+walk's module id for an included `.cpp`; why the lane A cache is cold
+after). For ADR-137: a Python `Symbol` carried no parameters, a
+`Decorator` keeps only string literals (so `autouse=True` is invisible
+and is *not* counted), imported names were already resolved inside
+`graph._NameEnv`, and the projection is the only producer of joined
+edges.
+
+**Unit `5393` — ADR-137** (89 turns of 100, $7.70; gate clear, verify
+pass, ten files). On the host from a worktree: 2,028 pytest, `lane_b` 10
+of 10. The pre-registered check on the branch's own ingest: **1,004
+pairs, 1,004 right, 0 wrong, 0 missed**, the figure exactly. Then the
+held-out repos the ADR asked for, collected **in the image, offline**
+(their dependencies installed as wheels into a directory; no repo code
+run on the host): flask 504 right, attrs 104 right. **The first compare
+read 3 + 5 wrong pairs, and neither was an edge:** pytest prints a
+fixture at its first decorator line when the decorator spans lines, and
+prints one row per fixture *name*, so the conftest's `app` that
+`def app(self, app)` overrides and requests is run and not printed.
+`compare.py` now counts both apart. Every miss is the remainder: 370
+`autouse` on flask, 8 `usefixtures` on attrs — and the ingest's own
+`usefixtures` count on attrs is 8.
+
+**The developer's half of ADR-137, 0.2.49-beta (`2882fd2`):** a class
+that names a base class abstains on a name found past its own chain
+(`base-class`; an inherited fixture would win, and it is the one shape
+where the rule could draw a *wrong* edge) — 0 abstentions on all three
+repos; `tests_guarding` says "only through a pytest fixture (ADR-137)";
+`hobbes review` lists new code guarded only that way, guarded and not a
+reason for attention. C-4 partial → surfaced, narrowed. **The tally test
+written this morning caught nothing because the four copies were edited
+together — and then passed, which is what it is for.**
+
+**Unit `286a` — ADR-138** (61 turns of 100, $4.55; gate clear, verify
+pass, five files), launched once `5393` was merged and the ingest was at
+HEAD; the developer's Python and Go edits were made while it ran, with
+no `go/bin` build, image build or ingest until it had exited. On the
+host: 2,046 pytest, `lane_b` 10 of 10. Five cells on the branch's code
+(`c164-wrong-callers/regrade.sh`, `OUT=c133-include-path/regrade`): fmt,
+args, cJSON, sqlite-vector identical in every row, symbol and edge;
+click's export row-identical, its 316 new `uses` edges ADR-137's.
+**ScummVM, cold, 547 s:** 9,468 → 9,824 `.h` read as C++ (356 through a
+header), 629 → 273 as C; unmatched includes 395 → 43, none of the named
+ones at the repo root (122 of 277 were); ambiguous 167 → 170; +1,413
+symbols; 4,770 → 3,748 minted, lane A now holding those itself.
+**The probe's 9,859 missed by 35**, toward claiming less (its regex
+reads every `#include`, the walk the top level's). 0.2.50-beta
+(`15a2d0d`): C-142 narrowed, C-133 noted as measured and not built.
+
+**At the close:** 2,052 pytest, `lane_b` 10 of 10, Go `./...` green with
+the rebuilt image, proxy and image at 0.2.50-beta, tracker 56 of 40,
+both worktrees removed, the repo re-ingested at HEAD. No API or Modal
+spend; two dispatches on the subscription, $12.25 reported.
+
+**Lessons.** A probe is worth running on the rule *as worded* before the
+brief: ADR-138's was wrong in the ADR and right in the code only because
+of that. And a held-out key can be wrong about what it prints: read a
+"wrong" row against the source before believing either side.
