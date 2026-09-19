@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (third session); Hobbes 0.2.51-beta on `main`.**
+**Reviewed 2026-09-19 (third session); Hobbes 0.2.52-beta on `main`.**
 CI is green on `a930ba1` (0.2.48-beta, pushed 2026-09-19; run
-35412968495); everything since — ADR-137 and ADR-138 built (0.2.49-beta,
-0.2.50-beta), the docs restructure's first half, 0.2.51-beta and ADR-139
-proposed — is unpushed. The proxy and the image were rebuilt at
-0.2.51-beta and the repo re-ingested at the end of the session; the
+35412968495); everything since — ADR-137, ADR-138 and ADR-139 built
+(0.2.49-beta, 0.2.50-beta, 0.2.52-beta), the docs restructure's first
+half, 0.2.51-beta — is unpushed. The proxy and the image were rebuilt at
+0.2.52-beta and the repo re-ingested at the end of the session; the
 knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.51-beta are untagged. Tags stay Max's call each time.
+  0.2.52-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -31,16 +31,23 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Waiting on Max: ADR-139's route** (proposed, measured, nothing built).
-A `usefixtures` string and an `autouse=True` fixture's name are looked
-up exactly as ADR-137 looks a parameter up. On the `-v` key: this repo
-1,009 → 4,971 right pairs, flask 504 → 1,238, attrs 104 → 118; **0
-missed, 0 wrong on all three**, no abstention fired. Route (a),
-recommended: both rules, and autouse reach said once ("every test under
-`tests/` through the autouse fixture …") rather than listed — drawn
-plainly, all 1,981 tests here would guard `hobbes.extract.staging`.
-(b) `usefixtures` only (attrs +8). (c) both, listed. Once routed: read
-the brief's premises in the tree, then one unit through the harness.
+**Nothing is waiting on a build or on Max but ADR-126 §3.**
+
+**ADR-139, 0.2.52-beta (Max: route a) — a `usefixtures` string and an
+`autouse=True` fixture's name are looked up as a parameter is; autouse
+reach is said once (C-4 narrowed again).** Same `uses` edge, each
+evidence row with `via`; one pair keeps the first of parameter,
+`usefixtures`, `autouse`. `tests.json`'s `through_autouse` (module →
+fixtures) holds what a test reaches no other way; `tests_guarding` lists
+the tests that reach a target by a call or a named fixture and says the
+rest in one line; `hobbes review` has `autouse_only`. Counted, not
+followed: a module `pytestmark` (no key row has judged one), a
+non-literal `autouse=`. `-v` key: this repo 4,971 pairs, flask 1,238,
+attrs 118, 0 missed, 0 wrong; the built edges are the probe's. This
+repo: 5,072 injections, 4,058 by autouse; `tests_guarding
+hobbes.extract.staging` lists 441 and says 1,588 once. Unit `6f84` (68
+turns, $5.70), right-clear, merged no-ff; tracker 57 of 40. No graded
+cell re-run (no key judges a `uses` edge).
 
 **A fixture key is collected with `-v`.** Without it pytest prints no
 fixture whose name starts with `_`; ADR-137's "1,004 of 1,004" was of
@@ -49,12 +56,15 @@ also needs `-p no:hypothesispytest` (the shared `deps/` carries attrs's
 plugin, which fails on a read-only mount), and the mounts need
 `--security-opt label=disable` on this box. Drivers:
 `~/.hobbes/bench/c4-remainder/` (`probe.py` the two rules in memory,
-`PREREG.md`, `compare.py`, `*-key-v.txt` the three verbose keys,
-`<repo>-{base,use,auto,both}.json`).
+`PREREG.md`, `compare.py`, `lookup.py`, `*-key-v.txt` the three verbose
+keys, `<repo>-{base,use,auto,both,built}.json`, `units/` the brief,
+partition and log; its worktree was removed).
 
-**0.2.51-beta (this session):** the doc review found the denominator
-statement still naming all fixture-injected reach; `knowledge.go` and
-`derive/manifests.py` now name C-4's remainder. No edge or count moved.
+**0.2.51-beta (same session):** the doc review found the denominator
+statement still naming all fixture-injected reach; both copies now name
+C-4's remainder (rewritten again at 0.2.52-beta). **The architecture's
+§8 header is a seventh version copy no test holds** — it was missed at
+0.2.51-beta and caught at 0.2.52-beta; bump it by hand.
 
 **The 2026-09-16 review's list is done** but for one item Max has set
 aside: §3.8's paragraph cells as per-language pages ("dont split for
@@ -100,8 +110,9 @@ parked).
   first line, a fixture at its first decorator line, and one row per
   fixture name.
 
-**Candidates after ADR-139, each measured first** (none is started):
-C-4's last part — the injected value's type is lane B's; C-142's
+**Candidates for the next named work, each measured first** (none is
+started): C-4's last parts — the injected value's type is lane B's, and
+a module `pytestmark` needs a keyed repo that has one; C-142's
 remainder — the 273 headers nothing
 includes (ADR-138's route b, a content read, not taken); ADR-126 §3 once
 Max decides it; C's residue (W1).
@@ -375,9 +386,8 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **ADR-139's route** (a recommended; above).
-   - **Settled 2026-09-19:** ADR-137's and ADR-138's route (a), each
-     built (0.2.49-beta, 0.2.50-beta); §3.8 stays unsplit ("dont split
+   - **Settled 2026-09-19:** ADR-137's, ADR-138's and ADR-139's route
+     (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); §3.8 stays unsplit ("dont split
      for now").
    - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
      ADR-135's route (a) — built (0.2.47-beta);
@@ -439,7 +449,7 @@ stay here.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 56 of 40, 4
+   - **The validating 40 are done:** the tracker reads 57 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -507,7 +517,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Fifty-six log files under `docs/calvin/sessions/`; the tracker reads 56 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Fifty-seven log files under `docs/calvin/sessions/`; the tracker reads 57 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 90 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -515,7 +525,7 @@ min each.
   deployed and idle): held.
 - **Register:** 164 entries: 119 active (93 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  folded. Latest: C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
@@ -535,10 +545,10 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.51-beta (2026-09-19; pytest and Go `./...` re-run
-  and green at 0.2.51-beta, the rest as counted at 0.2.50-beta): 2,052
-  pytest (`lane_b` 10 of them, run at 0.2.50-beta), Go `./...` 396 with
-  subtests (395 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
+- **Suites** at 0.2.52-beta (2026-09-19; pytest, `lane_b` and Go
+  `./...` re-run and green, the rest as counted at 0.2.50-beta): 2,091
+  pytest (`lane_b` 10 of them), Go `./...` 399 with
+  subtests (398 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-16).

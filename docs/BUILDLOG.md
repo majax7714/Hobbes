@@ -13280,3 +13280,49 @@ and P-r3's counts were written against the quiet key (370 and 0).
 with autouse reach said once, not listed (route a); (b) `usefixtures`
 only; (c) both, listed. Nothing built. ADR-137 carries a note on its
 key; C-4's figures and a HISTORY note corrected; tally unmoved.
+
+## 2026-09-19 (fourth) — ADR-139 built on Max's word (route a): `usefixtures` and `autouse` looked up as a parameter is, autouse reach said once (0.2.52-beta)
+
+**Max: "good to go with recommended route."** ADR-139 accepted; the
+premises read in the tree first (`Decorator`'s one construction site,
+the class's decorators on its own `Symbol`, `tiered_edge` copying
+evidence keys through, where `through_fixtures` is read). Two narrowings
+toward drawing less before the brief: a module `pytestmark` is counted
+and not followed (the probe read it and no repo had one, so no key row
+judged it), and one pair keeps one `via`. **The brief had one wrong
+premise, caught before dispatch:** it asked for a nested class's tests
+to inherit the outer mark, and `is_test_symbol` collects no nested
+class's methods.
+
+**Unit `6f84`** (68 turns, $5.70, 12 min): gate clear, verify pass, nine
+files in the partition. Its four deviations each draw or say less and
+are kept. On the host, on a worktree of the branch: 2,090 pytest, the 10
+`lane_b` cases. **The real cell before the merge:** the branch's lookup
+against the three `-v` keys — this repo 4,971 right, flask 1,238, attrs
+118, 0 missed, 0 wrong — and its edges identical to the probe's. Merged
+no-ff; tracker 57 of 40.
+
+**The developer's half.** `tests_guarding` folds the tests that reach a
+target only through an autouse fixture into one line naming the
+fixtures, and no longer calls such a target unguarded; `hobbes review`
+has `autouse_only` beside `fixture_only` (`_reach_kinds` — a module a
+named fixture reaches is never autouse-only). One finding while testing
+it: a new `conftest.py` is itself "new code reached through its autouse
+fixture", because the test map treats a conftest as source, as it has
+since ADR-137; left as it is and noted in ADR-139's *Built*. The
+denominator statement rewritten to C-4's new remainder; C-4's entry
+rewritten, HISTORY note, architecture paragraph, CHANGELOG.
+
+**This repo's ingest:** 5,072 injections, 4,058 by autouse; 2,029 of
+2,773 records carry `through_autouse`; `tests_guarding
+hobbes.extract.staging` lists 441 tests and says 1,588 once. No graded
+cell re-run: no key judges a `uses` edge and the rule adds no node.
+
+**A drift of this session's own making, caught here:** the
+architecture's §8 header still read 0.2.50-beta — the 0.2.51-beta bump
+missed it, and no test holds that copy. Now 0.2.52-beta; the handoff
+says to bump it by hand.
+
+Suites at 0.2.52-beta: 2,091 pytest (10 `lane_b`, run), Go `./...` 399
+with subtests (398 pass, 1 skip). Binaries and image rebuilt, repo
+re-ingested.
