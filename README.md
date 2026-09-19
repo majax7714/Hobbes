@@ -363,16 +363,16 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.54-beta** (2026-09-19). The Hobbes layer is versioned from here
+**Hobbes 0.2.55-beta** (2026-09-19). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-Semantic edges for **Python, TypeScript, Go, Rust, Java, C and C++**
-(plus Terraform/HCL structure). JavaScript goes through TypeScript's two
-lanes and draws edges too, but no JavaScript program has been graded yet,
-so its verification base reads zero repos until one is (C-165, ADR-140).
+Semantic edges for **Python, TypeScript, JavaScript, Go, Rust, Java, C
+and C++** (plus Terraform/HCL structure). JavaScript goes through
+TypeScript's two lanes and is graded on three repos of its own (ADR-140),
+each without its dependencies installed (C-165).
 C and C++, the newest, are
 scip-clang over a compile database the ingest derives, each
 compiler-graded on two repos (ADR-108/109/110/113). The layer carries graph schema v4 with tiers
@@ -388,8 +388,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and sixty-six entries (one
-hundred and twenty-one active, twenty-eight lifted, eleven superseded, six
+The constraint register holds one hundred and sixty-eight entries (one
+hundred and twenty-three active, twenty-eight lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -443,7 +443,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and fifty-nine session logs stand. The
+dispatched on 2026-09-12, and sixty session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,

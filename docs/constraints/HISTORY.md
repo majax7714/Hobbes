@@ -6,6 +6,16 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-165 narrowed, C-167 and C-168 registered, 2026-09-19 (0.2.55-beta; ADR-140 step 5):
+- **C-165 narrowed (surfaced):** JavaScript is graded on three repos
+  (§10.22), none with its dependencies installed — that is what is left.
+- **C-167 registered, partial:** a function reached through a CommonJS
+  re-export of `module.exports` draws no edge (Express's 652; untraced).
+- **C-168 registered, partial:** `new F()` is drawn `uses`, not `calls`,
+  in TS and JS; `who_calls` words it as no call site.
+- Counts: 168 entries, 123 active, 95 surfaced, 24 partial, 3
+  unsurfaced, 1 n/a; 28 lifted.
+
 C-166 registered and surfaced, 2026-09-19 (0.2.54-beta; ADR-140 step 4's preparation):
 - **C-166 registered, surfaced:** neither lane reads a `jsconfig.json`;
   the ingest now says so once per such file (`jsconfig-ignored`).

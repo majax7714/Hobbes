@@ -1,8 +1,8 @@
 """The verification base: how thin "supported" is, per language (C-31).
 
 Architecture §3.8 is the sample behind every coverage claim (P11,
-ADR-044): Python and TypeScript were hand-verified across several repos
-of different shapes, and JavaScript on none of its own (C-165); **Go on this repo and 19 of dagger's modules**, both
+ADR-044): Python, TypeScript and JavaScript were verified across several
+repos of different shapes (JavaScript's without their dependencies, C-165); **Go on this repo and 19 of dagger's modules**, both
 compiler-graded by the oracle lane rather than hand-checked; **Rust on
 one small repo**. A table in a document is not a surfacing (the register's
 own rule), so this module pins that table and :func:`extract_repo`
@@ -43,13 +43,14 @@ VERIFICATION_BASE: dict[str, dict] = {
         "depth": "multi-repo",
     },
     "javascript": {
-        # Until 0.2.53-beta this row copied TypeScript's. Measured
-        # 2026-09-19 (ADR-140): every graded TS/JS cell is a TypeScript
-        # program, and no confirmed edge on any of them touches a
-        # JavaScript file, so JavaScript has no evidence of its own (C-165).
-        "repos": 0,
-        "on": "the TypeScript row's five graded cells are TypeScript programs, and none of their 15,167 confirmed edges touches a JavaScript file (C-165)",
-        "depth": "unverified",
+        # Until 0.2.53-beta this row copied TypeScript's; at 0.2.53-beta it
+        # read 0 (C-165: no TS/JS cell was a JavaScript program). Graded
+        # 2026-09-19 (ADR-140, oracle-grading.md §10.22): three JavaScript
+        # repos, every graded edge confirmed on each; none had its
+        # dependencies installed, which is what C-165 keeps.
+        "repos": 3,
+        "on": "expressjs/express (CommonJS); preactjs/preact (ESM, JSDoc, JSX; its root zone); xmppjs/xmpp.js — drawn at random (2026-09-19); all three graded without a dependency tree",
+        "depth": "multi-repo",
     },
     "go": {
         # Compiler-graded on both since the oracle lane (ADR-089, O2/O4,
@@ -111,13 +112,11 @@ def verification_base(languages: list[str]) -> dict[str, dict]:
     for lang in languages:
         row = dict(VERIFICATION_BASE.get(lang, UNVERIFIED))
         n = row["repos"]
-        if n:
-            row["note"] = f"verified on {n} repo{'' if n == 1 else 's'}: {row['on']}"
-        elif row["on"] != UNVERIFIED["on"]:
-            # A row the table pins at zero says why (C-165).
-            row["note"] = f"not verified on any repo — {row['on']}"
-        else:
-            row["note"] = "not verified on any repo"
+        row["note"] = (
+            f"verified on {n} repo{'' if n == 1 else 's'}: {row['on']}"
+            if n
+            else "not verified on any repo"
+        )
         out[lang] = row
     return out
 

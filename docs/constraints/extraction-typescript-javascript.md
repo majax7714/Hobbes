@@ -82,44 +82,34 @@
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17);
   surfaced 2026-09-05 with C-80's residual, ADR-045 amended.
 
-### C-165 — No JavaScript program has been graded; JavaScript's verification base borrowed TypeScript's — *registered and surfaced 2026-09-19*
-- **Cannot tell you:** whether an edge drawn in a JavaScript file (`.js`,
-  `.jsx`, `.mjs`, `.cjs`) is right. JavaScript goes through TypeScript's
-  two lanes under `allowJs` (`checkJs` off), with a generated config
-  mirroring lane A's default project where the repo gives none, so a
-  JavaScript repo ingests and draws edges at both tiers — but no key
-  has judged one. The shapes TypeScript never exercises are the untested
-  ones: CommonJS `require` and `module.exports` / `exports.x = …`,
-  `Foo.prototype.m = function…`, JSDoc-only types, a zone with no
-  config at all.
-- **Because:** every cell behind the old TS/JS row of §3.8 is a
-  TypeScript program. Measured 2026-09-19 on the five graded cells'
-  reports (kbet, ajv, cheerio, zod, hono; the 2026-09-09/10 regrades):
-  15,167 confirmed edges, **none** with a JavaScript file at either end;
-  the 27 drawn edges that touch one are all `silent`, outside the program
-  the zone's `tsc` loaded. And the oracle (`bench/oracle/ts/tsc-oracle.mjs`)
-  refuses a zone with no `tsconfig.json`, so a plain JavaScript repo
-  cannot be graded as it stands. Until 0.2.53-beta `verification.py`
-  pinned the `javascript` row as a verbatim copy of TypeScript's — "4
-  repos, multi-repo" — so every JavaScript ingest vouched for itself on
-  TypeScript's evidence (C-31's claim, overstated).
-- **Bites at:** any repo whose code is JavaScript: a Node library or
-  service in CommonJS, an ESM package with JSDoc types, a JSX app without
-  TypeScript, a build script tree. The edges may well be right — the
-  compiler that resolves them is the one graded on TypeScript — but that
-  is inference, not evidence (P11).
-- **You find out:** **surfaced** (0.2.53-beta) — the `javascript` row is
-  pinned at 0 repos, depth `unverified`, with its reason: the ingest
-  summary spells it out under the language list (`javascript: not
-  verified on any repo — …`), the surface badges it `javascript · 0
-  repos` apart from the verified languages, and `list_blind_spots`
-  prints the same note. §3.8 carries its own JavaScript row.
-- **Lifting it** is ADR-140's steps 3–5: the oracle grades a zone with
-  no tsconfig under the config lane B generates; two or three
-  JavaScript repos of different shapes are pre-registered, ingested
-  contained and graded; the row names them.
+### C-165 — JavaScript is graded without its dependencies installed; a call into a third-party package is ungraded — *registered 2026-09-19, narrowed the same day*
+- **Cannot tell you:** whether an edge from JavaScript into a third-party
+  package (`node_modules`) is right, or what such a call resolves to at
+  all. JavaScript goes through TypeScript's two lanes under `allowJs`;
+  its in-repo edges are graded (§3.8: Express, Preact, xmpp.js at 100%
+  precision), but no JavaScript cell had a dependency tree on either
+  side, so third-party resolution in JavaScript has never met a key.
+- **Because:** the three cells' environments (`oracle-grading.md`
+  §10.22): Express carries no lockfile, Preact's is pnpm's (not
+  provisioned, C-23), and xmpp.js's `package-lock.json` is out of sync
+  with its manifest, so `npm ci` refused it. **Was, until §10.22:** no
+  JavaScript program had been graded at all — every TS/JS cell was a
+  TypeScript program (0 of their 15,167 confirmed edges touched a
+  JavaScript file) — and until 0.2.53-beta `verification.py` pinned the
+  `javascript` row as a copy of TypeScript's.
+- **Bites at:** a JavaScript repo whose calls into its dependencies
+  matter — an Express app's `res.send`, a React component's hooks from
+  `react`. Those edges come from the same compiler graded on TypeScript
+  with its dependencies, but in JavaScript that is inference, not
+  evidence (P11).
+- **You find out:** **surfaced** — the `javascript` verification row
+  names its three repos and ends "all three graded without a dependency
+  tree", in the ingest summary's note, the surface's badge title and
+  `list_blind_spots`; §3.8's JavaScript row states it.
+- **Lifting it** is a JavaScript cell graded with its lockfile provisioned
+  on both sides.
 - **Source:** the 2026-09-19 top-level review (Max: "could we look to
-  add js as a usable language?"); measured the same day, ADR-140.
+  add js as a usable language?"); ADR-140; narrowed by §10.22's cells.
 
 ### C-166 — A `jsconfig.json` is not read: its files are extracted under the nearest `tsconfig.json` or the default options — *registered and surfaced 2026-09-19*
 - **Cannot tell you:** what a call resolves to under the repo's own
@@ -153,6 +143,44 @@
   drawn, its own ADR, measured first.
 - **Source:** ADR-140 step 4's preparation, 2026-09-19 (Max: register
   and note, route a).
+
+### C-167 — A function reached through a CommonJS re-export of `module.exports` draws no edge — *registered 2026-09-19*
+- **Cannot tell you:** who calls a function a module exports as its whole
+  `module.exports`, when the caller reaches it through another module
+  that re-exports it (`module.exports = require('./lib/express')` in
+  `index.js`, then `const express = require('..'); express()`). tsc
+  resolves the call to the function (`createApplication`); Hobbes draws
+  nothing at the site.
+- **Because:** not yet traced. On Express the ingest classes those sites
+  `unclassified` in the tail; the whole graph holds 3 `uses` and 2
+  syntactic `calls` edges into `createApplication`. Whether lane B's
+  index stops at the re-export or the join declines what it names is
+  the trace still to do. A direct `module.exports = F` required and
+  called by name is drawn (`minijs`), and so is a destructured
+  `require`.
+- **Bites at:** the CommonJS package pattern — a root `index.js` that
+  re-exports `lib/`. Express: 652 of its 1,180 missed pairs, one callee
+  (`oracle-grading.md` §10.22).
+- **You find out:** **partial** — the sites are counted in the ingest
+  summary's capture line and `list_blind_spots` as `unclassified`, never
+  named as this shape.
+- **Source:** ADR-140 step 4, Express's first grade, 2026-09-19.
+
+### C-168 — A construction (`new F()`) is drawn `uses`, not `calls`, in TypeScript and JavaScript — *registered 2026-09-19*
+- **Cannot tell you:** that `new F()` calls `F` — a class's constructor,
+  or a constructor function. The join draws a `uses` edge from the
+  caller to the class or function, and `who_calls F` lists it under
+  "references … where no call site was detected", which is wrong for a
+  construction: the site was detected.
+- **Because:** the TS/JS join has no construction rule (C++ has one,
+  ADR-132): a lane B reference at a `new` expression's callee is drawn
+  the way any reference no call site claimed is.
+- **Bites at:** every `new`: the key names the class or constructor
+  function as the callee. `static→class` misses: ajv 107, zod 110, hono
+  78, xmpp.js 104, Preact 570; `minijs`'s `new Counter(1)`.
+- **You find out:** **partial** — the `uses` edge is in the graph, and
+  `who_calls` lists the caller, but worded as no call site.
+- **Source:** ADR-140 step 4, §10.22's triage, 2026-09-19.
 
 ## Lifted constraints in this segment
 

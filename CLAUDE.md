@@ -194,7 +194,7 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-19, 0.2.54-beta; oracle-lane Go
+Suite sizes at the last check (2026-09-19, 0.2.55-beta; oracle-lane Go
 counted 2026-09-16): 2,093 pytest (10 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
@@ -268,14 +268,15 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-19) — Hobbes 0.2.54-beta
+## Status (2026-09-19) — Hobbes 0.2.55-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
 
 - **The layer:** v1 (M0–M8) and v2 extraction (V2.M0–M7) complete and
-  reviewed. Python, TypeScript, Go, Rust, Java, C and C++ (+ Terraform/HCL;
-  JavaScript drawn through TypeScript's lanes, 0 graded repos — C-165),
+  reviewed. Python, TS/JS, Go, Rust, Java, C and C++ (+ Terraform/HCL;
+  JavaScript graded on three repos of its own, none with its
+  dependencies installed — C-165),
   each a syntax provider plus a pinned batch indexer (P13, ADR-105)
   joined by one range join; artifacts at schema v4. Whatever executes
   repo code runs in the one image (ADR-092).
@@ -286,8 +287,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 166 entries; 121 active (95
-  surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
+  contradicted (ADR-124). **Register:** 168 entries; 123 active (95
+  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
   narrowed and partial (ADR-135, no entry added); C-145 narrowed again
   (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);
   C-153 narrowed three times and partial (ADR-125, ADR-130, ADR-131
@@ -296,7 +297,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **59 of 40**
+  drift test; re-render after filling a review block) reads **60 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
 - **Latest — 0.2.49-beta to 0.2.52-beta (2026-09-19).** ADR-137: *a
@@ -313,24 +314,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   wrong. The denominator statement names C-4's remainder. The register's
   tally is held by `test_register_tally.py`; its dated notes are
   `docs/constraints/HISTORY.md`.
-  **0.2.53-beta — ADR-140 (Max: route a): JavaScript earns its own
-  row.** `javascript` had borrowed TypeScript's verification base;
-  measured, none of the TS/JS cells' 15,167 confirmed edges touches a
-  JavaScript file. The row now reads 0 repos with its reason (C-165,
-  surfaced) and §3.8 splits TypeScript and JavaScript.
-  Step 3 built (unit `a25f`): `tsc-oracle.mjs --no-tsconfig`, the
-  `minijs` fixture; it surfaced **H-33**, fixed by unit `9e00`: the TS
-  oracle now labels a parameter a parameter (regraded: every row
-  identical, 383 of 1,095 `static→closure` pairs were parameters).
-  **Next:** ADR-140's step 4 — two or three JavaScript repos
-  pre-registered and graded. Other candidates, each measured first: C-142's headers nothing
-  includes, C's residue (W1), C-4's module `pytestmark` once a repo with
-  one is keyed.
+  **0.2.53–0.2.55-beta — ADR-140 (Max: route a): JavaScript earns its
+  own row.** The borrowed claim corrected to 0 (C-165); the TS oracle's
+  `--no-tsconfig` (unit `a25f`); H-33, H-34, H-35 found and fixed (units
+  `9e00`, `5587`); `jsconfig.json` said as not read (C-166); three JS
+  cells graded (`oracle-grading.md` §10.22): Express 340/340, Preact
+  2,446/2,446, xmpp.js 552/552 — 100% each, recall 22–66%. C-167 (a
+  CommonJS re-export draws nothing) and C-168 (`new F()` drawn `uses`)
+  registered. **Next:** candidates, each measured first — C-167's trace,
+  C-168's construction rule for TS/JS, a JS cell with its dependencies
+  installed; whether the JS cells enter `docs/oracle/cells/` and the
+  comparative graphics is Max's call; C-142's headers, C's residue (W1).
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and
-  ADR-139's route (a), each built; ADR-140's route (a), step 1 built;
+  ADR-139's route (a), each built; ADR-140's route (a), all five steps;
   §3.8's paragraphs stay in the architecture, its TS/JS row split.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.

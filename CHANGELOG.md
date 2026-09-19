@@ -11,9 +11,29 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.54-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.55-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.55-beta — 2026-09-19 (JavaScript's verification row names its own three graded repos; C-165 narrowed, C-167 and C-168 registered; ADR-140 step 5)
+
+**Patch: what the layer says** — a language's evidence extended (§3.7
+step 4) and two concessions registered. Nothing drawn changes.
+
+- **Graded (`oracle-grading.md` §10.22):** Express (CommonJS) 340/340,
+  Preact (ESM, JSDoc, JSX) 2,446/2,446, and xmpp.js (drawn at random)
+  552/552 — 100% precision on each, poison check PASS; recall 22.4%,
+  28.6% and 66.4%. The TS oracle's `--no-tsconfig` built the same program
+  the ingest does; Preact's first pass exposed two oracle defects (H-34,
+  H-35), fixed before its number was quoted.
+- **The row.** `javascript` in `verification.py` and §3.8 names the three
+  repos, "all three graded without a dependency tree": no cell had its
+  dependencies installed, which is what C-165 now says.
+- **C-167 (partial):** a function reached through a CommonJS re-export of
+  `module.exports` draws no edge — Express's `express()`, 652 of its
+  1,180 misses; not yet traced.
+- **C-168 (partial):** `new F()` is drawn `uses`, not `calls`, in
+  TypeScript and JavaScript, and `who_calls` words it as no call site.
 
 ## 0.2.54-beta — 2026-09-19 (a `jsconfig.json` nothing reads is said, once per file; C-166)
 
