@@ -59,12 +59,24 @@ class Decorator:
     name/attribute (subscripts, lambdas). ``args`` holds the positional
     *string-literal* arguments only; ``kwargs`` maps keyword names to a
     string or tuple of strings, dropping anything not statically literal.
+
+    A keyword whose value is a boolean is in neither — ``kwargs`` holds
+    strings — so ``true_kwargs`` names the ones written ``True``, which is
+    the only spelling of ``autouse=`` the fixture lookup reads (ADR-139),
+    and ``unread_kwargs`` names those whose value is none of the four
+    literals the walk can read at all.
     """
 
     dotted: str | None
     args: tuple[str, ...]
     kwargs: dict
     line: int
+    #: Keyword names whose value is the literal ``True``, in written order.
+    true_kwargs: tuple[str, ...] = ()
+    #: Keyword names whose value is neither a string, a list of strings,
+    #: ``True`` nor ``False``: a name, a call, an expression. ``autouse=FLAG``
+    #: is here; ``autouse=False`` is in neither tuple, having been read.
+    unread_kwargs: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -162,6 +174,9 @@ class ParsedFile:
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
+    #: How many ``usefixtures`` calls a module-level ``pytestmark`` holds
+    #: (ADR-139): a count, for the lookup to say it did not follow them.
+    pytestmark_usefixtures: int = 0
 
 
 def parse_source(source: bytes) -> ParsedFile:
@@ -169,6 +184,7 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed = ParsedFile()
     root = _PARSER.parse(source).root_node
     parsed.docstring = _module_docstring(root)
+    parsed.pytestmark_usefixtures = _pytestmark_usefixtures(root)
     _walk(root, [], parsed, ())
     parsed.local_bindings = _collect_local_bindings(root)
     return parsed
@@ -344,6 +360,8 @@ def _decorator(node: Node) -> Decorator:
     dotted = _dotted(expr.child_by_field_name("function"))
     args: list[str] = []
     kwargs: dict = {}
+    true_kwargs: list[str] = []
+    unread_kwargs: list[str] = []
     arguments = expr.child_by_field_name("arguments")
     for arg in arguments.named_children if arguments else []:
         if arg.type == "string":
@@ -354,13 +372,55 @@ def _decorator(node: Node) -> Decorator:
             key = _text(arg.child_by_field_name("name"))
             value = arg.child_by_field_name("value")
             literal = _string_literal(value)
+            items = (
+                [_string_literal(el) for el in value.named_children]
+                if value is not None and value.type == "list"
+                else []
+            )
             if literal is not None:
                 kwargs[key] = literal
-            elif value is not None and value.type == "list":
-                items = [_string_literal(el) for el in value.named_children]
-                if items and all(i is not None for i in items):
-                    kwargs[key] = tuple(items)
-    return Decorator(dotted, tuple(args), kwargs, _line(node))
+            elif items and all(i is not None for i in items):
+                kwargs[key] = tuple(items)
+            elif value is not None and value.type == "true":
+                true_kwargs.append(key)
+            elif value is None or value.type != "false":
+                # Read as nothing: a name, a call, an expression, a list the
+                # walk could not read whole. `False` is read, and says only
+                # that the keyword is off (ADR-139).
+                unread_kwargs.append(key)
+    return Decorator(
+        dotted, tuple(args), kwargs, _line(node), tuple(true_kwargs), tuple(unread_kwargs)
+    )
+
+
+def _pytestmark_usefixtures(root: Node) -> int:
+    """How many ``usefixtures`` calls a module-level ``pytestmark`` holds.
+
+    The mark applies to every test in the file, and the lookup counts it
+    rather than following it (ADR-139): no key row has judged the shape.
+    The value may be one call or a list or tuple of them; an assignment
+    inside a class or a function is not the module's ``pytestmark``.
+    """
+    total = 0
+    for statement in root.named_children:
+        if statement.type != "expression_statement":
+            continue
+        for node in statement.named_children:
+            if node.type != "assignment":
+                continue
+            left = node.child_by_field_name("left")
+            right = node.child_by_field_name("right")
+            if left is None or _text(left) != "pytestmark" or right is None:
+                continue
+            marks = right.named_children if right.type in ("list", "tuple") else [right]
+            total += sum(
+                1
+                for mark in marks
+                if mark.type == "call"
+                and (_dotted(mark.child_by_field_name("function")) or "").rpartition(".")[2]
+                == "usefixtures"
+            )
+    return total
 
 
 def _parameters(node: Node) -> tuple[tuple[str, int], ...]:

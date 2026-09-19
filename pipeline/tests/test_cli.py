@@ -455,7 +455,8 @@ class TestConstructionLine:
 class TestFixtureLine:
     """ADR-137: the injections drawn as ``uses`` edges, that reach follows
     them, and the parameters the lookup declined — one line under the
-    construction one."""
+    construction one. ADR-139 adds which requests were not parameters, and
+    what is left unfollowed."""
 
     COUNTS = {
         "drawn": 1008,
@@ -492,13 +493,36 @@ class TestFixtureLine:
                     "base-class": 4,
                 },
                 "usefixtures": 7,
+                "unread": {"pytestmark": 6, "autouse-value": 1},
             }
         )
         line = capsys.readouterr().out
         assert "2 defined twice at one scope" in line
         assert "5 in a definition whose parametrize is unreadable" in line
         assert "4 left undrawn in a class that names a base class" in line
-        assert "7 usefixtures mark(s) not followed" in line
+        # A mark on a test is followed now (ADR-139); what is left unfollowed
+        # is the module-level one and an autouse= the walk could not read.
+        assert "not followed" not in line.split("pytestmark")[0]
+        assert "6 usefixtures mark(s) in a module-level pytestmark not followed" in line
+        assert "1 fixture(s) whose autouse= is not a literal" in line
+
+    def test_the_via_clause_says_what_asked_for_the_drawn(self, capsys):
+        cli._print_fixtures(
+            {**self.COUNTS, "via": {"parameter": 990, "usefixtures": 6, "autouse": 12}}
+        )
+        line = capsys.readouterr().out
+        assert (
+            "of them 6 through a usefixtures mark and 12 applied by autouse (ADR-139)"
+            in line
+        )
+
+    def test_the_via_clause_is_absent_where_every_request_was_a_parameter(self, capsys):
+        cli._print_fixtures(
+            {**self.COUNTS, "via": {"parameter": 1008, "usefixtures": 0, "autouse": 0}}
+        )
+        line = capsys.readouterr().out
+        assert "ADR-139" not in line
+        assert "autouse" not in line
 
     def test_nothing_is_said_where_the_block_is_absent(self, capsys):
         # No fixture defined and no parameter looked up writes no block,
