@@ -75,6 +75,11 @@ class CoverageDelta:
     #: not a reason for attention — said, because a fixture that sets code
     #: up is a thinner guard than a test that calls it.
     fixture_only: list[str] = field(default_factory=list)
+    #: New modules reached only through an autouse fixture — one no test
+    #: names, which pytest runs before every test in its scope (ADR-139).
+    #: Reach, so not listed as unguarded; and the thinnest kind, so said
+    #: on its own line rather than folded into ``fixture_only``.
+    autouse_only: list[str] = field(default_factory=list)
 
     @property
     def needs_attention(self) -> bool:
@@ -199,13 +204,30 @@ def _guarded_modules(tests: dict) -> set[str]:
 def _fixture_only_modules(tests: dict) -> set[str]:
     """Modules every reaching test reaches only through a fixture: in some
     test's ``through_fixtures`` and in no test's reach by calls alone."""
+    return _reach_kinds(tests)[0]
+
+
+def _autouse_only_modules(tests: dict) -> set[str]:
+    """Modules every reaching test reaches only through an autouse fixture
+    (ADR-139): in some test's ``through_autouse``, and in no test's reach
+    by a call or by a fixture the test names."""
+    return _reach_kinds(tests)[1]
+
+
+def _reach_kinds(tests: dict) -> tuple[set[str], set[str]]:
+    """``(fixture-only, autouse-only)`` over the whole test map. A module
+    one test calls into is neither; one a named fixture reaches is not
+    autouse-only, whatever the autouse fixtures also touch."""
     through: set[str] = set()
+    autouse: set[str] = set()
     called: set[str] = set()
     for test in tests.get("tests", []):
         via = set(test.get("through_fixtures") or [])
+        blanket = set(test.get("through_autouse") or {})
         through |= via
-        called |= set(test.get("reaches_modules") or []) - via
-    return through - called
+        autouse |= blanket
+        called |= set(test.get("reaches_modules") or []) - via - blanket
+    return through - called, autouse - through - called
 
 
 def _under(path: str, trees: list[str]) -> bool:
@@ -277,6 +299,11 @@ def _coverage_delta(base, head, records: list[Invariant], head_tests: set[str]) 
         fixture_only=sorted(
             module
             for module in _fixture_only_modules(head.tests)
+            if module in head_modules and module not in base_modules
+        ),
+        autouse_only=sorted(
+            module
+            for module in _autouse_only_modules(head.tests)
             if module in head_modules and module not in base_modules
         ),
     )
@@ -511,6 +538,14 @@ def format_review(review: Review) -> str:
         )
         for module in coverage.fixture_only:
             add(f"      {module}")
+    if coverage.autouse_only:
+        add(
+            f"   new code reached only through an autouse fixture ({len(coverage.autouse_only)};"
+            " pytest runs it before every test in its scope — reach, not a test"
+            " written for this code, ADR-139):"
+        )
+        for module in coverage.autouse_only:
+            add(f"      {module}")
     for invariant_id, guards in sorted(coverage.broken_guards.items()):
         add(f"   {invariant_id} names {len(guards)} test(s) that no longer exist:")
         for guard in guards:
@@ -576,6 +611,7 @@ def review_to_dict(review: Review) -> dict:
             "fixture_trees": review.coverage.fixture_trees,
             "value_only": review.coverage.value_only,
             "fixture_only": review.coverage.fixture_only,
+            "autouse_only": review.coverage.autouse_only,
         },
         "soft": review.soft,
     }

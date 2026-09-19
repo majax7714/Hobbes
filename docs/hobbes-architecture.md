@@ -860,6 +860,25 @@ image, 0 wrong; every miss an `autouse` fixture or a `usefixtures` mark
 (C-4's remainder). No trace key judges the edge — a fixture's caller is
 pytest's frame — so no graded number moves.
 
+**A fixture no parameter names is looked up the same way, and autouse
+reach is said once (ADR-139, 0.2.52-beta).** That key was collected
+without `-v`, and pytest then prints no fixture named `_…`: the figures
+above are of the pairs it printed. On the `-v` key nothing drawn was
+wrong and the misses were 3,962 here, 734 on flask, 14 on attrs. Both
+missing shapes are still a lookup by name: a `usefixtures` string, on
+the test or its class, and the name of each fixture defined
+`autouse=True` (the literal; the walk now keeps which decorator keywords
+are) in any scope of the test's chain. They take the parameter's path
+and its abstentions and are the same `uses` edge, each evidence row
+saying `via`; one pair keeps the first of parameter, `usefixtures`,
+`autouse`. A module-level `pytestmark` and a non-literal `autouse=` are
+counted, not followed. Because an autouse fixture is a blanket, the test
+map keeps its reach apart — `through_autouse`, module → fixtures, for
+modules the test reaches no other way — and `tests_guarding` says those
+tests once, with the fixtures, instead of listing the suite;
+`hobbes review` gives such new code its own line. With both rules: this
+repo 4,971 right, flask 1,238, attrs 118, 0 missed, 0 wrong.
+
 **The tail view (ADR-045).** Resolution coverage counts the detected call
 sites with no known destination (C-2); the tail view says what that
 remainder *is* — per file, in `resolution_coverage.tail` — **by
@@ -1989,7 +2008,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.50-beta** (2026-09-19, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.50-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.52-beta** (2026-09-19, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.52-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

@@ -409,6 +409,106 @@ func TestWhoCallsKnownSymbolWithoutCallers(t *testing.T) {
 	}
 }
 
+// autouseRepo is fixtureRepo with two more pytest records: each reaches
+// app.api only through an autouse fixture (ADR-139), and one of them
+// reaches app.core by a call it wrote.
+func autouseRepo(t *testing.T) string {
+	t.Helper()
+	repo := fixtureRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "tests.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	blanket := map[string]any{"app.api": []string{"tests.conftest._reset"}}
+	doc["tests"] = append(doc["tests"].([]any),
+		map[string]any{"id": "tests/test_other.py::test_a", "file": "tests/test_other.py", "line": 3,
+			"reaches": []string{"app.api.handler"}, "reaches_modules": []string{"app.api"},
+			"through_fixtures": []string{}, "through_autouse": blanket},
+		map[string]any{"id": "tests/test_other.py::test_b", "file": "tests/test_other.py", "line": 9,
+			"reaches": []string{"app.api.handler", "app.core.run"}, "reaches_modules": []string{"app.api", "app.core"},
+			"through_fixtures": []string{}, "through_autouse": blanket},
+	)
+	if data, err = json.Marshal(doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return repo
+}
+
+func TestTestsGuardingSaysAutouseReachOnceNotPerTest(t *testing.T) {
+	s := Open(autouseRepo(t))
+	api, err := s.TestsGuarding("app.api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(api, "test_other.py::test_a") || strings.Contains(api, "test_other.py::test_b") {
+		t.Errorf("a test that reaches the target only through an autouse fixture is not listed:\n%s", api)
+	}
+	if !strings.Contains(api, "and 2 test(s) reach it only through an autouse fixture — tests.conftest._reset") ||
+		!strings.Contains(api, "(ADR-139)") {
+		t.Errorf("want the blanket said once, with its fixture:\n%s", api)
+	}
+	if !strings.Contains(api, "test_handler") {
+		t.Errorf("the tests that name the target stay listed:\n%s", api)
+	}
+	// test_b calls into app.core: listed there like any other test, and
+	// no blanket line, because nothing reaches app.core that way.
+	core, err := s.TestsGuarding("app.core")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(core, "test_other.py::test_b") || strings.Contains(core, "autouse") {
+		t.Errorf("a called module is a plain reach:\n%s", core)
+	}
+	// A path spanning both: test_b has a direct part and is listed;
+	// test_a has only the blanket and is counted.
+	both, err := s.TestsGuarding("src/app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(both, "test_other.py::test_b") || strings.Contains(both, "test_other.py::test_a") ||
+		!strings.Contains(both, "and 1 test(s) reach it only through an autouse fixture") {
+		t.Errorf("want test_b listed and test_a in the blanket:\n%s", both)
+	}
+}
+
+func TestTestsGuardingWithOnlyAutouseReachIsNotCalledUnguarded(t *testing.T) {
+	repo := autouseRepo(t)
+	path := filepath.Join(repo, ".hobbes", "derived", "tests.json")
+	data, _ := os.ReadFile(path)
+	var doc map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var kept []any
+	for _, record := range doc["tests"].([]any) {
+		if strings.Contains(record.(map[string]any)["id"].(string), "test_other.py::test_a") {
+			kept = append(kept, record)
+		}
+	}
+	doc["tests"] = kept
+	data, _ = json.Marshal(doc)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	api, err := Open(repo).TestsGuarding("app.api")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(api, "unguarded") ||
+		!strings.Contains(api, "no test reaches app.api by a call or a fixture it names.") ||
+		!strings.Contains(api, "1 test(s) reach it only through an autouse fixture") {
+		t.Errorf("autouse-only reach is said as what it is, not as nothing:\n%s", api)
+	}
+}
+
 func TestTestsGuardingByModuleAndByPath(t *testing.T) {
 	s := Open(fixtureRepo(t))
 	byModule, err := s.TestsGuarding("app.core")
@@ -1033,8 +1133,8 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"below-floor — resolved by the semantic lane to a declaration below the symbol floor",
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
-		// C-4 after ADR-137 (0.2.51-beta): only what is still not drawn.
-		"fixture no parameter names (autouse, usefixtures)",
+		// C-4 after ADR-137 and ADR-139: only what is still not drawn.
+		"a plugin's, a base class's, a module pytestmark (C-4)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a

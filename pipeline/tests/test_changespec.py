@@ -113,9 +113,10 @@ class TestComplement:
         assert any("zone degraded" in d for d in complement.degradations)
         assert not any("unrelated" in d for d in complement.degradations)
         assert "C-1" in complement.denominator
-        # C-4 after ADR-137 (0.2.51-beta): the statement names what is still
+        # C-4 after ADR-137 and ADR-139: the statement names what is still
         # not drawn, never all fixture-injected reach.
-        assert "autouse, usefixtures" in complement.denominator
+        assert "a module pytestmark (C-4)" in complement.denominator
+        assert "autouse" not in complement.denominator
         assert "fixture-injected" not in complement.denominator
 
     def test_blind_spot_heavy_unit_is_human_first(self, tmp_path):

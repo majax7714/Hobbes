@@ -275,6 +275,32 @@ class TestCoverageDelta:
         assert "      app.billing\n" not in text  # called by the test: no label
         assert review_to_dict(review)["coverage"]["fixture_only"] == ["app.store"]
 
+    def test_new_code_reached_only_through_an_autouse_fixture_is_said_apart(self, repo):
+        # ADR-139: an autouse fixture no test names still runs the code, so
+        # the module is not "unguarded" — and it is the thinnest reach there
+        # is, so it gets its own line, never the named-fixture one.
+        write(repo, "src/app/store.py", "def open_store():\n    return {}\n")
+        write(repo, "src/app/clock.py", "def reset():\n    return 0\n")
+        write(
+            repo,
+            "tests/test_store.py",
+            "import pytest\nfrom app import clock, store\n\n\n"
+            "@pytest.fixture(autouse=True)\ndef _clock():\n    clock.reset()\n\n\n"
+            "@pytest.fixture\ndef opened():\n    return store.open_store()\n\n\n"
+            "def test_open(opened):\n    assert opened == {}\n",
+        )
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "a clock behind an autouse fixture")
+        review = build_review(repo, "HEAD~1", "HEAD")
+        assert review.coverage.new_unguarded == []
+        assert review.coverage.fixture_only == ["app.store"]
+        assert review.coverage.autouse_only == ["app.clock"]
+        assert not review.coverage.needs_attention
+        text = format_review(review)
+        assert "new code reached only through an autouse fixture (1;" in text
+        assert "ADR-139):\n      app.clock\n" in text
+        assert review_to_dict(review)["coverage"]["autouse_only"] == ["app.clock"]
+
     def test_losing_every_guarding_test_is_reported(self, repo):
         (repo / "tests" / "test_core.py").unlink()
         git(repo, "add", "-A")

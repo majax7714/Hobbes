@@ -384,6 +384,10 @@ type test struct {
 	// test's behalf, so the step is real, and it is not a call the test
 	// wrote. Absent on other frameworks' records and on older artifacts.
 	ThroughFixtures []string `json:"through_fixtures"`
+	// ThroughAutouse maps each module the test reaches only through an
+	// autouse fixture — one nothing on the test names — to the fixtures
+	// that got it there (ADR-139). A module is never in both lists.
+	ThroughAutouse map[string][]string `json:"through_autouse"`
 }
 
 type testsDoc struct {
@@ -646,21 +650,43 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 	}
 
 	guarded := 0
+	// An autouse fixture runs before every test in its scope, so a module
+	// it reaches is "guarded" by all of them at once. That is true, and a
+	// list of every test in the suite answers no question a reader has:
+	// those tests are counted and said once, with the fixtures, below the
+	// list (ADR-139). A test that also reaches the target any other way
+	// is listed as it always was.
+	blanket := 0
+	blanketFixtures := map[string]bool{}
 	for _, tc := range t.Tests {
-		hit, direct := false, false
+		hit, direct, named := false, false, false
 		viaFixture := map[string]bool{}
 		for _, m := range tc.ThroughFixtures {
 			viaFixture[m] = true
 		}
+		var autouse []string
 		for _, m := range tc.ReachesModules {
-			if modules[m] {
-				hit = true
-				if !viaFixture[m] {
-					direct = true
-				}
+			if !modules[m] {
+				continue
+			}
+			hit = true
+			switch fixtures, only := tc.ThroughAutouse[m]; {
+			case only:
+				autouse = append(autouse, fixtures...)
+			case viaFixture[m]:
+				named = true
+			default:
+				direct = true
 			}
 		}
 		if !hit {
+			continue
+		}
+		if !direct && !named {
+			blanket++
+			for _, fixture := range autouse {
+				blanketFixtures[fixture] = true
+			}
 			continue
 		}
 		if guarded == 0 {
@@ -677,7 +703,23 @@ func (s *Store) TestsGuarding(target string) (string, error) {
 		}
 		b.WriteString(fmt.Sprintf("  %s  [%s:%d]%s\n", tc.ID, tc.File, tc.Line, note))
 	}
-	if guarded == 0 {
+	if blanket > 0 {
+		names := make([]string, 0, len(blanketFixtures))
+		for fixture := range blanketFixtures {
+			names = append(names, fixture)
+		}
+		sort.Strings(names)
+		lead := "and "
+		if guarded == 0 {
+			lead = ""
+			b.WriteString(fmt.Sprintf("no test reaches %s by a call or a fixture it names.\n", target))
+		}
+		b.WriteString(fmt.Sprintf(
+			"%s%d test(s) reach it only through an autouse fixture — %s — which pytest runs before every test in its scope; "+
+				"said once, not listed (ADR-139). It is reach, and it is not a test written for this code.\n",
+			lead, blanket, strings.Join(names, ", ")))
+	}
+	if guarded == 0 && blanket == 0 {
 		b.WriteString(fmt.Sprintf("no tests statically reach %s — changes there are unguarded\n", target))
 		for _, m := range valueOnly(g, modules) {
 			b.WriteString(fmt.Sprintf("  %s declares no function and no call targets it; reach follows calls only, so no test can be seen guarding it (C-156)\n", m))
@@ -1128,10 +1170,11 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 	fmt.Fprintf(&b, "what Hobbes cannot see under %s — the work to verify yourself:\n\n", scope)
 	b.WriteString("never in any count below, because it is not detected at all: dynamic\n" +
-		"dispatch and calls through values (C-1), test reach through a pytest\n" +
-		"fixture no parameter names (autouse, usefixtures) or through the value\n" +
-		"a fixture returns (C-4), computed route paths (C-5). Every percentage\n" +
-		"here is a floor over DETECTED call sites, not over the repo.\n")
+		"dispatch and calls through values (C-1), test reach through the value a\n" +
+		"pytest fixture returns or through a fixture its lookup by name cannot\n" +
+		"place — a plugin's, a base class's, a module pytestmark (C-4), computed\n" +
+		"route paths (C-5). Every percentage here is a floor over DETECTED call\n" +
+		"sites, not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket
 	// — the scoped verification line names only these (whole-repo scope
 	// names every language the artifact lists, call sites or not).

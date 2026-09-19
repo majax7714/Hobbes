@@ -6,6 +6,16 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-4 narrowed again, 2026-09-19 (ADR-139 accepted and built, 0.2.52-beta):
+- **C-4 narrowed (still surfaced; no entry added):** a `usefixtures`
+  string and an `autouse=True` fixture's name are looked up as a
+  parameter is; autouse reach is kept apart (`through_autouse`) and said
+  once. `-v` key: this repo 4,971, flask 1,238, attrs 118 pairs, 0
+  missed, 0 wrong. Left: the returned value's type, a module
+  `pytestmark`, a non-literal `autouse=`, and the abstentions. Counts
+  unmoved: 164 entries, 119 active, 93 surfaced, 22 partial, 3
+  unsurfaced, 1 n/a; 28 lifted.
+
 C-4's figures corrected, 2026-09-19 (0.2.51-beta; ADR-139 proposed):
 - **C-4 (no entry added, status unmoved):** the denominator statement
   names C-4's remainder instead of all fixture-injected reach

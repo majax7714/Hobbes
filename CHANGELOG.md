@@ -11,9 +11,46 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.51-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.52-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.52-beta — 2026-09-19 (a `usefixtures` string and an `autouse` fixture's name are looked up as a parameter is; autouse reach is said once; ADR-139)
+
+**Patch: what the layer draws and says** — a constraint's fix (C-4,
+narrowed again; still surfaced).
+
+- **Found by measuring C-4's remainder, and by reading the key.**
+  `pytest --fixtures-per-test` prints no fixture named `_…` without
+  `-v`; ADR-137's "1,004 of 1,004" was of the pairs that key printed. On
+  the `-v` key nothing it drew was wrong, and it missed 3,962 pairs on
+  this repo, 734 on flask and 14 on attrs — every one an `autouse`
+  fixture or a `usefixtures` mark.
+- **The rule.** A `usefixtures` string (on the test, or on its class)
+  and the name of every fixture defined `autouse=True` in a scope of the
+  test's chain go through the lookup a parameter goes through, with the
+  same abstentions, and are drawn as the same syntactic `uses` edge;
+  each evidence row says `via: parameter | usefixtures | autouse`. The
+  Python walk keeps which decorator keywords are the literal `True`.
+  Counted, not followed: a module-level `pytestmark` (no key row has
+  judged one) and an `autouse=` that is not a literal.
+- **Autouse reach is kept apart and said once.** `tests.json` records
+  `through_autouse` (module → the autouse fixtures that got the test
+  there) for modules a test reaches no other way. `tests_guarding` lists
+  the tests that reach a target by a call or a fixture they name, and
+  says the rest in one line with the fixtures; `hobbes review` lists new
+  code reached only that way on its own line, guarded and labelled.
+- **Checked against pytest's own list (`-v`), before the merge:** this
+  repo 4,971 pairs right, flask 1,238, attrs 118 (both held out, in the
+  image, no network); **0 missed, 0 wrong**, and the built edges are the
+  probe's, edge for edge. This repo's ingest: 5,072 injections, 4,058
+  by autouse; `tests_guarding hobbes.extract.staging` lists 441 tests
+  and says 1,588 once. No trace key judges a `uses` edge, so no graded
+  number moves; none was re-run.
+- The denominator statement names what is left of C-4: the value a
+  fixture returns, and a fixture the lookup cannot place.
+- Unit `6f84` (68 turns, $5.70), gate right-clear, verify pass; the
+  proxy and `review.py` are the developer's commit.
 
 ## 0.2.51-beta — 2026-09-19 (the denominator statement names what is left of C-4, not all fixture-injected reach)
 

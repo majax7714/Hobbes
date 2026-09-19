@@ -1,6 +1,6 @@
 # ADR-139 — A fixture no parameter names is still looked up by name: `usefixtures` and `autouse`
 
-**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "good to go with recommended route" — route a); the premises read in the tree before the brief (*Accepted*, below).
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: "good to go with recommended route" — route a); the premises read in the tree before the brief (*Accepted*), and built (0.2.52-beta; *Built*, below).
 
 Follows ADR-137 (a parameter pytest's lookup resolves to one repo
 fixture is a syntactic `uses` edge, and test reach follows it), whose
@@ -150,3 +150,30 @@ one line per test.
 
 The unit is the pipeline's half; the proxy, `review.py`, the register,
 the version and the records are the developer's.
+
+## Built (2026-09-19, 0.2.52-beta)
+
+Unit `6f84` (68 turns, $5.70; gate right-clear, verify pass) built the
+pipeline's half as briefed; the proxy's folded line, `review.py`'s
+`autouse_only`, the denominator statement, the register and the version
+are the developer's commit.
+
+- **The real cell before the merge.** The branch's lookup against the
+  three `-v` keys: this repo 4,971 right, flask 1,238, attrs 118 — 0
+  missed, 0 wrong — and its edges identical to the probe's on all three.
+  2,090 pytest and the 10 `lane_b` cases on a worktree of the branch, on
+  the host.
+- **This repo's ingest:** 5,072 injections into 85 fixtures, 4,058 by
+  autouse; 2,029 of 2,773 test records carry a `through_autouse`
+  (`tests.conftest` 1,958, `hobbes.extract.staging` 1,588).
+  `tests_guarding hobbes.extract.staging` lists 441 tests and says the
+  1,588 once, naming `tests.conftest._lane_a_only`.
+- **The doer's deviations, kept:** `pytestmark` counted only on a plain
+  module-level assignment; a list keyword the walk cannot read whole is
+  in `unread_kwargs`; `through_autouse` names the fixture's own module
+  (a `conftest.py` is a source module to the test map, as under
+  ADR-137).
+- **Not re-run:** no graded cell. No trace key judges a `uses` edge, and
+  the rule adds no node.
+- **Left in C-4:** the returned value's type, a module `pytestmark`, a
+  non-literal `autouse=`, and the abstentions.

@@ -57,50 +57,50 @@
   (ADR-045; their boundaries are C-32).
 - **Source:** ADR-029; tail classification added by ADR-045.
 
-### C-4 — A fixture pytest injects without a parameter, or whose value's type decides the call, is not in test reach — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta): a fixture a parameter names is an edge, and reach follows it*
-- **Narrowed (0.2.49-beta, ADR-137).** A test or fixture parameter that
+### C-4 — A test's reach through the value a fixture returns, or through a fixture pytest's lookup by name cannot place, is not drawn — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta: a fixture a parameter names is an edge, and reach follows it; ADR-139, 0.2.52-beta: so is one a `usefixtures` mark or `autouse` applies)*
+- **Narrowed (0.2.49-beta, ADR-137; 0.2.52-beta, ADR-139).** A name
   pytest's lookup order (class chain, file and its imported names, the
   conftest chain) resolves to one fixture definition in the repo is a
-  syntactic `uses` edge, and the test map follows it; `through_fixtures`
-  names the modules reached only that way. Keyed by
-  `pytest --fixtures-per-test`: this repo 1,004 of 1,004 pairs, flask
-  504 and attrs 104 held out, none wrong — **of the pairs that key
-  printed**: without `-v` pytest prints no fixture whose name starts
-  with `_` (found 2026-09-19, ADR-139). On the `-v` key nothing drawn is
-  wrong, and the missed pairs are this repo 3,962, flask 734, attrs 14.
+  syntactic `uses` edge, and the test map follows it — whether a
+  parameter names it, a `usefixtures` string on the test or its class
+  does, or the fixture is defined `autouse=True` in a scope of the
+  test's chain. Each evidence row says which (`via`). `through_fixtures`
+  names the modules reached only through a fixture the test names,
+  `through_autouse` the ones reached only through an autouse fixture.
+  Keyed by `pytest --fixtures-per-test -v` (without `-v` pytest prints
+  no fixture named `_…`, and ADR-137's first figures were of the pairs
+  that key printed): this repo 4,971 of 4,971 pairs, flask 1,238 and
+  attrs 118 held out, none missed, none wrong.
 - **Cannot tell you:** that a test exercises code it reaches
-  - through an **`autouse`** fixture or a **`usefixtures`** mark (neither
-    is a parameter; every missed pair above is one or the other — two
-    autouse fixtures here, three on flask, one on attrs, and attrs's one
-    mark. ADR-139, proposed, measures reading both: 0 missed, 0 wrong);
   - through a **method on the value a fixture returns**
     (`runner.invoke(cli)` on click): lane B does not type an unannotated
     parameter, so the call has no target — the larger loss on click,
     not counted;
+  - through a module-level **`pytestmark`**, an `autouse=` whose value
+    is not the literal `True`, or a `usefixtures` argument that is not a
+    string (the first two counted; no key row has judged a `pytestmark`);
   - through a fixture **a plugin or an installed package** defines, one
     **inherited from a base class**, one defined twice at a scope, or
     one requested by a definition whose `parametrize` argument is not a
     literal — each an abstention, not a guess.
-- **Because:** injection is dynamic; only the *lookup by parameter name*
-  is syntax. `autouse` and `usefixtures` name no parameter line to pin
-  evidence to, and a returned value's type is a type checker's.
+- **Because:** injection is dynamic; only the *lookup by name* is
+  syntax, and a returned value's type is a type checker's.
 - **Bites at:** `tests_guarding`, behavioural coverage and
-  `hobbes review`'s "new code no test reaches" on a suite whose setup
-  lives in autouse fixtures or whose tests drive code through a client
-  object a fixture hands them.
-- **You find out:** **surfaced** (was *partial*; *unsurfaced* until
-  2026-08-23): the ingest summary's `fixtures:` line and `graph.json`'s
-  `fixtures` block count what was drawn and every abstention by reason,
-  with the `usefixtures` marks not followed; `tests_guarding` says
-  "only through a pytest fixture (ADR-137)" on a line that is;
-  `hobbes review` lists new code guarded only that way; the denominator
-  statement in `list_blind_spots` and every derived context manifest
-  (ADR-047/051) names what is left — a fixture no parameter names, and
-  the value a fixture returns (0.2.51-beta; until then it still named
-  all fixture-injected reach).
-  `autouse` fixtures are not counted anywhere: the walk keeps no
-  non-string decorator argument.
-- **Source:** ADR-007; narrowed by ADR-137. See also
+  `hobbes review`'s "new code no test reaches" on a suite whose tests
+  drive code through a client object a fixture hands them. And the
+  other way: autouse reach is true and thin — a module only an autouse
+  fixture touches reads as reached, which is why it is labelled.
+- **You find out:** **surfaced**: the ingest summary's `fixtures:` line
+  and `graph.json`'s `fixtures` block count what was drawn, by `via`,
+  every abstention by reason, and the `pytestmark` marks and non-literal
+  `autouse=` values not followed; `tests_guarding` says "only through a
+  pytest fixture (ADR-137)" on a line that is, and says the tests that
+  reach a target only through an autouse fixture once, with the
+  fixtures (ADR-139); `hobbes review` lists new code guarded only by a
+  named fixture, and only by an autouse one, each on its own line; the
+  denominator statement in `list_blind_spots` and every derived context
+  manifest (ADR-047/051) names this remainder.
+- **Source:** ADR-007; narrowed by ADR-137 and ADR-139. See also
   `future_additions.md` → test-reach trimming.
 
 ### C-156 — A test that reads a value but calls nothing guards nothing
