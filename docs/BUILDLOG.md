@@ -13326,3 +13326,51 @@ says to bump it by hand.
 Suites at 0.2.52-beta: 2,091 pytest (10 `lane_b`, run), Go `./...` 399
 with subtests (398 pass, 1 skip). Binaries and image rebuilt, repo
 re-ingested.
+
+## 2026-09-19 (fifth) — the top-level review's drift fixed; ADR-140 accepted (Max: route a) and its step 1 built: JavaScript claims no graded repo until it has one (0.2.53-beta)
+
+**The review first (Max: "review top level documentation and report
+back").** Every version copy read 0.2.52-beta and every tally agreed.
+Four drifts: README's "fifty-two session logs" (57; stale since
+0.2.46-beta), its ADR range (to 138; 139 exists), its Calvin list
+stopping at ADR-135, and the handoff's "unpushed" line — Max had pushed
+`0854855` that afternoon (CI run 35461769081, in progress when read).
+Fixed in `9ce8e39`. `hobbes.cli`'s module doc reads stale; narrate on
+this repo stays held.
+
+**Then Max: "could we look to add js as a usable language?"** It is
+not a missing language but an ungraded one. Both lanes take `.js .jsx
+.mjs .cjs` under `allowJs`, with a generated config where the repo gives
+none; a JavaScript repo ingests and draws edges. But §3.8's row was
+"TypeScript / JavaScript" and `verification.py` pinned `javascript` as a
+verbatim copy of TypeScript's row, so every JavaScript ingest said "4
+repos, multi-repo". **Measured on the five graded cells' reports**
+(`~/.hobbes/bench/v018/`): 15,167 confirmed edges, none with a
+JavaScript file at either end; 27 drawn edges touch one, all `silent`.
+And the oracle refuses a zone with no `tsconfig.json`, so no plain
+JavaScript repo could have been graded. Nothing in the register named
+it.
+
+**Max: route (a)** — correct the claim first, then earn the row with
+graded cells — and the §3.8 row split within the architecture (his
+earlier "dont split for now" was about moving §3.8's paragraphs out to
+per-language pages, which stays declined). ADR-140 records five steps;
+step 2 is the measurement above.
+
+**Step 1 built (0.2.53-beta):** `javascript` is 0 repos, depth
+`unverified`; a zero row that names its reason prints it
+(`not verified on any repo — …`). No consumer changed — the ingest
+summary spells out rows at one repo or fewer, the surface badges
+`unverified` apart, `list_blind_spots` prints the note. §3.8 has a
+TypeScript row (unchanged) and a JavaScript row; `test_verification`
+maps each label to one language, and two cases hold the row and its
+printed line. C-165 registered, surfaced (165 entries, 120 active, 94
+surfaced). README, CLAUDE.md and the handoff say TypeScript where they
+said TS/JS. **One claim of my own was wrong and caught before the
+commit:** ADR-140's draft said this repo would not show the row; its
+ingest lists `javascript` (`scip/`, `tsextract/`, the oracle's `.mjs`),
+and the re-ingest now prints the zero row with its reason.
+
+Suites at 0.2.53-beta: 2,093 pytest, Go `./...` green. Binaries and
+image rebuilt, repo re-ingested. **Next:** ADR-140's step 3, the
+oracle's no-tsconfig zone.

@@ -1,15 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (third session); Hobbes 0.2.52-beta on `main`.**
+**Reviewed 2026-09-19 (fifth session); Hobbes 0.2.53-beta on `main`.**
 Max pushed `0854855` (0.2.52-beta, with ADR-137, ADR-138 and ADR-139
 built) on 2026-09-19; its CI run is 35461769081 (the one before, on
-`a930ba1`, green). The proxy and the image were rebuilt at
-0.2.52-beta and the repo re-ingested at the end of the session; the
+`a930ba1`, green). This session's commits (the top-level drift fix,
+ADR-140, 0.2.53-beta) are unpushed. The proxy and the image were rebuilt
+at 0.2.53-beta and the repo re-ingested at the end of the session; the
 knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.52-beta are untagged. Tags stay Max's call each time.
+  0.2.53-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -18,9 +19,9 @@ knowledge server serves the image it started from until it is restarted
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the three 2026-09-19 BUILDLOG entries
-(the review's items measured; ADR-137 and ADR-138 built; the doc review,
-0.2.51-beta and ADR-139's measurement). Earlier sessions' detail lives
+The latest session's record is the fifth 2026-09-19 BUILDLOG entry (the
+top-level review's drift, ADR-140 and 0.2.53-beta); the four before it
+are the same day's. Earlier sessions' detail lives
 in their own BUILDLOG entries; this file keeps only what the next
 session needs.
 
@@ -30,7 +31,31 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Nothing is waiting on a build or on Max but ADR-126 §3.**
+**Nothing is waiting on Max but ADR-126 §3. ADR-140's steps 3–5 are
+named work (Max: route a), ready to start.**
+
+**ADR-140, 0.2.53-beta (Max: route a) — JavaScript earns its own row.**
+Step 1 built: `verification.py`'s `javascript` row had been a verbatim
+copy of TypeScript's ("4 repos"); measured on the five TS/JS cells'
+reports (`~/.hobbes/bench/v018/{kbet-ts,ajv-ts,cheerio-ts,zod,hono-build}/report.json`),
+none of 15,167 confirmed edges touches a `.js`/`.jsx`/`.mjs`/`.cjs`
+file, and the 27 drawn edges that do are all `silent`. Now 0 repos,
+`unverified`, and a zero row prints its reason; C-165 registered,
+surfaced; §3.8 split into TypeScript and JavaScript rows (Max: split
+within the architecture, yes; the paragraphs stay). This repo's own
+ingest shows it (`javascript 0 repos` — `scip/`, `tsextract/`, the
+oracle's `.mjs`). **Next, in order:** (3) `bench/oracle/ts/tsc-oracle.mjs`
+refuses a zone with no `tsconfig.json` (line 92); give it an option that
+builds its program from the config `scipsource._generated_tsconfig`
+makes (same options, explicit file list = the discovered source set,
+stated in the cell record), with a `minijs` fixture test (CommonJS +
+ESM); a dispatch unit or by hand, no version bump. (4) Pre-register in
+`oracle-grading.md` §10 (read the TS section first), then grade a
+CommonJS Node library, an ESM package with JSDoc types and one repo
+drawn at random, all contained. Expect CommonJS shapes (`exports.x =
+function`, `Foo.prototype.m = …`) to sit below lane A's symbol floor —
+an expectation, unmeasured. (5) Name them in `verification.py` and
+§3.8 in the same commit (§3.7 step 4).
 
 **ADR-139, 0.2.52-beta (Max: route a) — a `usefixtures` string and an
 `autouse=True` fixture's name are looked up as a parameter is; autouse
@@ -110,7 +135,7 @@ parked).
   fixture name.
 
 **Candidates for the next named work, each measured first** (none is
-started): C-4's last parts — the injected value's type is lane B's, and
+started; ADR-140's steps are named, above): C-4's last parts — the injected value's type is lane B's, and
 a module `pytestmark` needs a keyed repo that has one; C-142's
 remainder — the 273 headers nothing
 includes (ADR-138's route b, a content read, not taken); ADR-126 §3 once
@@ -386,8 +411,9 @@ stay here.
 
 1. **Open for Max (no spend):**
    - **Settled 2026-09-19:** ADR-137's, ADR-138's and ADR-139's route
-     (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); §3.8 stays unsplit ("dont split
-     for now").
+     (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); ADR-140's
+     route (a), step 1 built (0.2.53-beta); §3.8's paragraphs stay in
+     the architecture ("dont split for now"), its TS/JS row split.
    - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
      ADR-135's route (a) — built (0.2.47-beta);
      ADR-134's route (a) — built (0.2.46-beta);
@@ -526,7 +552,7 @@ min each.
   deployed and idle): held.
 - **Register:** 165 entries: 120 active (94 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  folded. Latest: C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
@@ -546,8 +572,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.52-beta (2026-09-19; pytest, `lane_b` and Go
-  `./...` re-run and green, the rest as counted at 0.2.50-beta): 2,091
+- **Suites** at 0.2.53-beta (2026-09-19; pytest and Go `./...` re-run
+  and green, the rest as counted at 0.2.50-beta): 2,093
   pytest (`lane_b` 10 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on

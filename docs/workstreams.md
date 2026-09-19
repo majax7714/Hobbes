@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta) 2026-09-19.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta), and ADR-140 accepted with its step 1 built (0.2.53-beta: JavaScript's verification base corrected to zero, C-165) 2026-09-19.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -226,6 +226,15 @@ stays Max's call.
 *The stable subsystem. Self-contained items with measured targets —
 the best on-ramp for a new contributor who should learn the codebase.*
 
+- **JavaScript's evidence (ADR-140, named by Max 2026-09-19; C-165).**
+  Step 1 built at 0.2.53-beta: `javascript` claims 0 repos until
+  graded. Open, in order: (3) `tsc-oracle.mjs` grades a zone with no
+  tsconfig under the config lane B generates, with a `minijs` fixture
+  test (under `bench/`, no version); (4) two or three JavaScript repos
+  pre-registered in `oracle-grading.md` §10 — a CommonJS Node library,
+  an ESM package with JSDoc types, one drawn at random — ingested
+  contained and graded, misses read by class; (5) the row names them.
+  No API or Modal spend.
 - ~~**Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
   `gradle/` and `buildSrc/` bypass the source-suffix filter.~~ — **done
   2026-09-10 (later), 0.1.9-beta:** one walk, one rule; the notice

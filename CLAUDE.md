@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-19, 0.2.52-beta; oracle-lane Go
-counted 2026-09-16): 2,091 pytest (10 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-19, 0.2.53-beta; oracle-lane Go
+counted 2026-09-16): 2,093 pytest (10 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 36 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-19) — Hobbes 0.2.52-beta
+## Status (2026-09-19) — Hobbes 0.2.53-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -313,14 +313,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   wrong. The denominator statement names C-4's remainder. The register's
   tally is held by `test_register_tally.py`; its dated notes are
   `docs/constraints/HISTORY.md`.
-  **Next:** nothing is waiting on a build. Candidates, each measured
-  first: C-142's headers nothing includes, C's residue (W1), C-4's
-  module `pytestmark` once a repo with one is keyed.
+  **0.2.53-beta — ADR-140 (Max: route a): JavaScript earns its own
+  row.** `javascript` had borrowed TypeScript's verification base;
+  measured, none of the TS/JS cells' 15,167 confirmed edges touches a
+  JavaScript file. The row now reads 0 repos with its reason (C-165,
+  surfaced) and §3.8 splits TypeScript and JavaScript.
+  **Next:** ADR-140's steps 3–5 — the oracle grades a zone with no
+  tsconfig, then two or three JavaScript repos are pre-registered and
+  graded. Other candidates, each measured first: C-142's headers nothing
+  includes, C's residue (W1), C-4's module `pytestmark` once a repo with
+  one is keyed.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and
-  ADR-139's route (a), each built; §3.8 stays unsplit.
+  ADR-139's route (a), each built; ADR-140's route (a), step 1 built;
+  §3.8's paragraphs stay in the architecture, its TS/JS row split.
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 
