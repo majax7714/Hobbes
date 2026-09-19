@@ -59,23 +59,17 @@ func TestMinijsNoTsconfigResolvesTheJavaScriptShapes(t *testing.T) {
 	// One row per site, in the oracle's order (path, line, column):
 	// "<mode> <target path:line>…", or "<mode> —" for a silent site.
 	want := map[string][]string{
-		"index.js:2":     {"static —"},
-		"index.js:3":     {"static —"},
-		"index.js:4":     {"static —"},
-		"index.js:5":     {"static —"},
-		"index.js:8":     {"static lib/counter.js:3"},
-		"index.js:9":     {"static lib/counter.js:7"},
-		"index.js:10":    {"static lib/math.js:9"},
-		"index.js:11":    {"static lib/math.js:3"},
-		"index.js:12":    {"static lib/apply.js:4"},
-		"lib/math.js:10": {"static lib/math.js:3"},
-		// tsc's reading, not the hand's: the JSDoc signature is anonymous,
-		// so the site is the parameter's binding — but declKind walks up
-		// from the parameter into its own function and calls it a closure,
-		// and a closure is not one of the kinds that make a site dynamic.
-		// The hand read `dynamic lib/apply.js:4`. Only the program's
-		// construction is this option's to change.
-		"lib/apply.js:5":  {"static lib/apply.js:4"},
+		"index.js:2":      {"static —"},
+		"index.js:3":      {"static —"},
+		"index.js:4":      {"static —"},
+		"index.js:5":      {"static —"},
+		"index.js:8":      {"static lib/counter.js:3"},
+		"index.js:9":      {"static lib/counter.js:7"},
+		"index.js:10":     {"static lib/math.js:9"},
+		"index.js:11":     {"static lib/math.js:3"},
+		"index.js:12":     {"static lib/apply.js:4"},
+		"lib/math.js:10":  {"static lib/math.js:3"},
+		"lib/apply.js:5":  {"dynamic lib/apply.js:4"},
 		"esm/greet.mjs:7": {"static esm/greet.mjs:1"},
 		// tsc's reading, not the hand's: `Greeter` has no constructor, so
 		// the resolved construct signature is synthesized and has no
@@ -111,12 +105,20 @@ func TestMinijsNoTsconfigResolvesTheJavaScriptShapes(t *testing.T) {
 
 	// The shape the cell is most for, named again through the target:
 	// `f("a")` reaches the parameter, and reaches it as a binding rather
-	// than as a declaration of its own. (Its kind is the oracle's
-	// `closure`, as above, where the hand read `parameter`.)
+	// than as a declaration of its own — a `parameter`, not a `closure`
+	// (H-33), so the miss class a lost edge here would carry names the
+	// parameter.
 	for _, s := range o.Sites {
 		if s.Pos.Key() == "lib/apply.js:5" && len(s.Targets) == 1 {
-			if s.Targets[0].Via != "binding" || s.Targets[0].Name != "f" {
-				t.Errorf("f(\"a\") must resolve to the parameter's binding: %+v", s.Targets[0])
+			tg := s.Targets[0]
+			if tg.Via != "binding" || tg.Name != "f" {
+				t.Errorf("f(\"a\") must resolve to the parameter's binding: %+v", tg)
+			}
+			if tg.Kind != "parameter" || tg.Closure {
+				t.Errorf("the binding is a parameter, not a closure: kind %q closure %v", tg.Kind, tg.Closure)
+			}
+			if c := missClass(s, tg); c != "func-value→parameter" {
+				t.Errorf("miss class: %s", c)
 			}
 		}
 	}
@@ -188,6 +190,31 @@ func TestNoTsconfigRefusals(t *testing.T) {
 				t.Fatalf("the refusal must name %q:\n%s", tc.says, b)
 			}
 		})
+	}
+}
+
+// The same reading on TypeScript, where the TS cells are graded: a call
+// through a parameter is `func-value→parameter`, never `static→closure`
+// (H-33), so every site with a parameter binding is dynamic. minits
+// holds **0** of them — it has no call through a binding of any kind,
+// which is why the shape needed the JavaScript fixture above to be seen
+// — so the count is asserted as 0 rather than invented.
+func TestMinitsParameterBindingsAreDynamic(t *testing.T) {
+	o, _ := runJSOracle(t, "minits")
+	n := 0
+	for _, s := range o.Sites {
+		for _, tg := range s.Targets {
+			if tg.Via != "binding" || tg.Kind != "parameter" {
+				continue
+			}
+			n++
+			if s.Mode != "dynamic" {
+				t.Errorf("%s: a call through the parameter %s is %s, want dynamic", s.Pos.Key(), tg.Name, s.Mode)
+			}
+		}
+	}
+	if n != 0 {
+		t.Errorf("minits parameter-binding sites: %d, want 0 — the fixture gained the shape; say so and read the count again", n)
 	}
 }
 
