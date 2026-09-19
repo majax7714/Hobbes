@@ -13453,3 +13453,14 @@ a dependency tree" (C-165 narrowed), C-167 and C-168 (`new F()` drawn
 `uses` in TS and JS, 570 on Preact) registered; 168 entries. Tracker 60
 of 40. The cells are not in `docs/oracle/cells/`: that feeds the
 comparative graphics, Max's call.
+
+**Close-out.** Max: "the cells get recorded but we will tackle
+constraints from js next session." The three cells are in
+`docs/oracle/cells/` (`{express,preact,xmpp}-js-2026-09-19.md`, the
+regrade's report verbatim) and `cells.meta.json`; `render.py` gains
+JavaScript in its language lists and names tsc as the key for it; 93
+cells, `render.py check` and the report drift test green. The handoff's
+START HERE names next session's order: C-167's trace, C-168's
+construction rule, a JS cell with its dependencies provisioned (C-165).
+Everything this session is on `main`, unpushed. The knowledge server
+needs a restart to serve 0.2.55-beta (C-65).

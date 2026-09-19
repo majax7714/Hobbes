@@ -45,10 +45,30 @@ CommonJS re-export draws nothing — Express's `express()`, 652 misses,
 call site). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
 `regrade.sh`, `cells/`, `regrade/h34/`, `oracle-trees/preact`), and
 `~/.hobbes/bench/h33-regrade/` for the TS cells (`h34/`).
-**Open for Max:** whether the JS cells enter `docs/oracle/cells/` (and so
-the comparative graphics, ADR-102). **Candidates, each measured first:**
-C-167's trace; C-168's construction rule for TS/JS; a JS cell with its
-dependencies provisioned (lifts C-165).
+The cells are recorded (Max: "the cells get recorded"):
+`docs/oracle/cells/{express,preact,xmpp}-js-2026-09-19.md`, in the
+comparative data (93 cells; JavaScript a panel in the scatter, `render.py
+check` green).
+
+**NEXT SESSION — the JavaScript constraints (Max: "we will tackle
+constraints from js next session").** In the order to measure them:
+1. **C-167** — trace why `express()` draws nothing: the tests'
+   `require('..')` → `index.js`'s `module.exports = require('./lib/express')`
+   → `exports = module.exports = createApplication`. Read lane B's facts
+   at `test/app.js:9` (does scip-typescript name `createApplication`, the
+   local `express`, or nothing?) and lane A's call record there, on the
+   clone at `~/.hobbes/bench/js-cells/repos/expressjs__express` (already
+   ingested at 0.2.54-beta). 652 of Express's misses.
+2. **C-168** — a construction rule for TS/JS (`new F()` drawn `calls`
+   where lane B names the class or constructor function at the callee),
+   the way ADR-132 did C++; measure on xmpp.js (104), Preact (570), ajv
+   (107), zod (110), hono (78) first; and `who_calls`' wording either
+   way.
+3. **C-165** — a JS cell graded with its dependencies provisioned (an
+   npm lockfile in sync; Express's or Preact's shape re-drawn).
+4. Also measured, not yet a constraint: Preact's test-file misses
+   (closures in `it` bodies, calls through `.d.ts` interface members) —
+   C-58's shapes, only counted.
 
 **H-33 — fixed** (unit `S-20260919T193208Z-9e00`, 35 turns, $1.71,
 right-clear, merged `b15a443`; tracker 59 of 40): the TS oracle's

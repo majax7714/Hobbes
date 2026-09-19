@@ -321,10 +321,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   cells graded (`oracle-grading.md` §10.22): Express 340/340, Preact
   2,446/2,446, xmpp.js 552/552 — 100% each, recall 22–66%. C-167 (a
   CommonJS re-export draws nothing) and C-168 (`new F()` drawn `uses`)
-  registered. **Next:** candidates, each measured first — C-167's trace,
+  registered; the cells recorded in `docs/oracle/cells/` (93 cells).
+  **Next session (Max): the JavaScript constraints** — C-167's trace,
   C-168's construction rule for TS/JS, a JS cell with its dependencies
-  installed; whether the JS cells enter `docs/oracle/cells/` and the
-  comparative graphics is Max's call; C-142's headers, C's residue (W1).
+  provisioned (C-165); the order is in the handoff.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
