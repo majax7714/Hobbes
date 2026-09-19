@@ -82,6 +82,45 @@
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17);
   surfaced 2026-09-05 with C-80's residual, ADR-045 amended.
 
+### C-165 — No JavaScript program has been graded; JavaScript's verification base borrowed TypeScript's — *registered and surfaced 2026-09-19*
+- **Cannot tell you:** whether an edge drawn in a JavaScript file (`.js`,
+  `.jsx`, `.mjs`, `.cjs`) is right. JavaScript goes through TypeScript's
+  two lanes under `allowJs` (`checkJs` off), with a generated config
+  mirroring lane A's default project where the repo gives none, so a
+  JavaScript repo ingests and draws edges at both tiers — but no key
+  has judged one. The shapes TypeScript never exercises are the untested
+  ones: CommonJS `require` and `module.exports` / `exports.x = …`,
+  `Foo.prototype.m = function…`, JSDoc-only types, a zone with no
+  config at all.
+- **Because:** every cell behind the old TS/JS row of §3.8 is a
+  TypeScript program. Measured 2026-09-19 on the five graded cells'
+  reports (kbet, ajv, cheerio, zod, hono; the 2026-09-09/10 regrades):
+  15,167 confirmed edges, **none** with a JavaScript file at either end;
+  the 27 drawn edges that touch one are all `silent`, outside the program
+  the zone's `tsc` loaded. And the oracle (`bench/oracle/ts/tsc-oracle.mjs`)
+  refuses a zone with no `tsconfig.json`, so a plain JavaScript repo
+  cannot be graded as it stands. Until 0.2.53-beta `verification.py`
+  pinned the `javascript` row as a verbatim copy of TypeScript's — "4
+  repos, multi-repo" — so every JavaScript ingest vouched for itself on
+  TypeScript's evidence (C-31's claim, overstated).
+- **Bites at:** any repo whose code is JavaScript: a Node library or
+  service in CommonJS, an ESM package with JSDoc types, a JSX app without
+  TypeScript, a build script tree. The edges may well be right — the
+  compiler that resolves them is the one graded on TypeScript — but that
+  is inference, not evidence (P11).
+- **You find out:** **surfaced** (0.2.53-beta) — the `javascript` row is
+  pinned at 0 repos, depth `unverified`, with its reason: the ingest
+  summary spells it out under the language list (`javascript: not
+  verified on any repo — …`), the surface badges it `javascript · 0
+  repos` apart from the verified languages, and `list_blind_spots`
+  prints the same note. §3.8 carries its own JavaScript row.
+- **Lifting it** is ADR-140's steps 3–5: the oracle grades a zone with
+  no tsconfig under the config lane B generates; two or three
+  JavaScript repos of different shapes are pre-registered, ingested
+  contained and graded; the row names them.
+- **Source:** the 2026-09-19 top-level review (Max: "could we look to
+  add js as a usable language?"); measured the same day, ADR-140.
+
 ## Lifted constraints in this segment
 
 A lift is a technique, and the technique — not the celebration — is what

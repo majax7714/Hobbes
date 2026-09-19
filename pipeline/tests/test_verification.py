@@ -19,7 +19,10 @@ ARCH = Path(__file__).parents[2] / "docs" / "hobbes-architecture.md"
 #: §3.8's row label -> the artifact language names that row vouches for.
 ROW_LANGUAGES = {
     "Python": ["python"],
-    "TypeScript / JavaScript": ["typescript", "javascript"],
+    # One row until 0.2.53-beta, which borrowed TypeScript's evidence for
+    # JavaScript; split when that was measured to be none (C-165, ADR-140).
+    "TypeScript": ["typescript"],
+    "JavaScript": ["javascript"],
     "Go": ["go"],
     "Rust": ["rust"],
     "Java": ["java"],
@@ -79,6 +82,17 @@ class TestVerificationBase:
         assert base["cobol"]["depth"] == "unverified"
         assert base["cobol"]["note"] == "not verified on any repo"
 
+    def test_javascript_claims_no_repo_and_says_why(self):
+        # C-165: every TS/JS cell is a TypeScript program, so JavaScript's
+        # row is pinned at zero rather than copied from TypeScript's.
+        base = v.verification_base(["typescript", "javascript"])
+        assert base["typescript"]["repos"] == 4
+        js = base["javascript"]
+        assert js["repos"] == 0
+        assert js["depth"] == "unverified"
+        assert js["note"].startswith("not verified on any repo — the TypeScript row's")
+        assert "(C-165)" in js["note"]
+
     def test_summary_line_counts_per_language(self):
         base = v.verification_base(["rust", "python"])
         assert v.summary_line(base) == "rust 3 repos, python 8 repos"
@@ -97,6 +111,13 @@ class TestIngestSummary:
         # every language but a new one (rust joined them at O7)
         assert "    python:" not in out
         assert "    rust:" not in out
+
+    def test_javascript_is_spelled_out_with_its_reason(self, capsys):
+        cli._print_verification_base(v.verification_base(["typescript", "javascript"]))
+        out = capsys.readouterr().out
+        assert "verification base: typescript 4 repos, javascript 0 repos" in out
+        assert "    javascript: not verified on any repo — " in out
+        assert "    typescript:" not in out
 
     def test_the_artifact_carries_the_base(self):
         from hobbes.extract import extract_repo

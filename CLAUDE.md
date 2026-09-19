@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 139;
+  architecture doesn't already make. Number sequentially (last: 140;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -274,7 +274,8 @@ The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
 
 - **The layer:** v1 (M0–M8) and v2 extraction (V2.M0–M7) complete and
-  reviewed. Python, TS/JS, Go, Rust, Java, C and C++ (+ Terraform/HCL),
+  reviewed. Python, TypeScript, Go, Rust, Java, C and C++ (+ Terraform/HCL;
+  JavaScript drawn through TypeScript's lanes, 0 graded repos — C-165),
   each a syntax provider plus a pinned batch indexer (P13, ADR-105)
   joined by one range join; artifacts at schema v4. Whatever executes
   repo code runs in the one image (ADR-092).
@@ -285,7 +286,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 164 entries; 119 active (93
+  contradicted (ADR-124). **Register:** 165 entries; 120 active (94
   surfaced, 22 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
   narrowed and partial (ADR-135, no entry added); C-145 narrowed again
   (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);

@@ -6,6 +6,15 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-165 registered and surfaced, 2026-09-19 (ADR-140, 0.2.53-beta):
+- **C-165 registered, surfaced:** no JavaScript program has been graded;
+  `verification.py` had pinned the `javascript` row as a copy of
+  TypeScript's (4 repos). Measured: 0 of the five TS/JS cells' 15,167
+  confirmed edges touch a JavaScript file. The row is 0 repos,
+  `unverified`, with its reason; §3.8 splits TypeScript and JavaScript.
+  Counts: 165 entries, 120 active, 94 surfaced, 22 partial, 3
+  unsurfaced, 1 n/a; 28 lifted.
+
 C-4 narrowed again, 2026-09-19 (ADR-139 accepted and built, 0.2.52-beta):
 - **C-4 narrowed (still surfaced; no entry added):** a `usefixtures`
   string and an `autouse=True` fixture's name are looked up as a

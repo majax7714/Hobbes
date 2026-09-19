@@ -363,14 +363,17 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.52-beta** (2026-09-19). The Hobbes layer is versioned from here
+**Hobbes 0.2.53-beta** (2026-09-19). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
 
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
-Semantic edges for **Python, TypeScript/JavaScript, Go, Rust, Java, C and
-C++** (plus Terraform/HCL structure). C and C++, the newest, are
+Semantic edges for **Python, TypeScript, Go, Rust, Java, C and C++**
+(plus Terraform/HCL structure). JavaScript goes through TypeScript's two
+lanes and draws edges too, but no JavaScript program has been graded yet,
+so its verification base reads zero repos until one is (C-165, ADR-140).
+C and C++, the newest, are
 scip-clang over a compile database the ingest derives, each
 compiler-graded on two repos (ADR-108/109/110/113). The layer carries graph schema v4 with tiers
 and evidence
@@ -385,8 +388,8 @@ drawn per language, run through the knowledge tools by agents) found
 no semantic edge wrong and registered ten findings: C-71 fixed and
 surfaced the same day (ADR-098), the other nine lifted the next day
 ([`docs/extraction-evidence.md`](docs/extraction-evidence.md)).
-The constraint register holds one hundred and sixty-four entries (one
-hundred and nineteen active, twenty-eight lifted, eleven superseded, six
+The constraint register holds one hundred and sixty-five entries (one
+hundred and twenty active, twenty-eight lifted, eleven superseded, six
 folded), each naming where a user meets the limit.
 
 **Whatever executes repo-authored code runs in the sandbox image
@@ -478,7 +481,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-139 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-140 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

@@ -128,7 +128,7 @@ information appears in both, and the entries cross-reference.
 | File | Segment | Entries |
 |---|---|---|
 | [`extraction-call-graph.md`](extraction-call-graph.md) | Extraction — the call graph | C-1, C-2, C-4, C-156, C-5, C-6, C-7, C-8, C-9, C-10, C-58, C-70, C-32, C-59, C-163, C-80, C-3 |
-| [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
+| [`extraction-typescript-javascript.md`](extraction-typescript-javascript.md) | Extraction — TypeScript and JavaScript | C-12, C-13, C-63, C-165, C-98, C-99, C-100, C-90, C-89, C-11, C-24, C-97 |
 | [`extraction-cross-layer.md`](extraction-cross-layer.md) | Extraction — cross-layer | C-15, C-73 |
 | [`extraction-lane-b-environments.md`](extraction-lane-b-environments.md) | Extraction — lane B environments and staging | C-22, C-23, C-27, C-64, C-150, C-158, C-159, C-161, C-74, C-85, C-79, C-16, C-33, C-34 |
 | [`extraction-go.md`](extraction-go.md) | Extraction — Go | C-26, C-71, C-102, C-141, C-139 |
@@ -151,11 +151,11 @@ their segment, in that order, and are marked in the heading.
 
 ## Debt summary
 
-**One hundred and sixty-four entries: one hundred and nineteen active, twenty-eight lifted, eleven superseded, six folded**
+**One hundred and sixty-five entries: one hundred and twenty active, twenty-eight lifted, eleven superseded, six folded**
 
 | Status | Count | Entries |
 |---|---|---|
-| active — surfaced | 93 | every active entry not listed below |
+| active — surfaced | 94 | every active entry not listed below |
 | active — *partial* | 22 | C-1, C-9, C-25, C-58, C-68, C-83, C-88, C-102, C-117, C-125, C-131, C-132, C-133, C-134, C-135, C-138, C-141, C-142, C-149, C-150, C-153, C-164 |
 | active — **unsurfaced** (debt) | 3 | C-19, C-20, C-112 |
 | active — n/a (no user-visible effect yet) | 1 | C-10 |

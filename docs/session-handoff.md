@@ -511,8 +511,10 @@ min each.
 
 ## WHERE THINGS STAND (2026-09-19)
 
-- **Languages:** Python, TS/JS, Go, Rust, Java, C and C++ supported, each
-  as far as its §3.8 row (P11); Terraform/HCL structure.
+- **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
+  each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
+  is drawn through TypeScript's lanes and graded on nothing yet (C-165,
+  ADR-140).
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
@@ -522,7 +524,7 @@ min each.
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 164 entries: 119 active (93 surfaced, 22 partial, 3
+- **Register:** 165 entries: 120 active (94 surfaced, 22 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
   folded. Latest: C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);

@@ -11,9 +11,33 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.52-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.53-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.53-beta — 2026-09-19 (JavaScript claims no graded repo until it has one; §3.8 splits TypeScript and JavaScript; ADR-140)
+
+**Patch: what the layer says** — a concession registered (C-165,
+surfaced). Nothing drawn changes.
+
+- **Found by measuring the claim.** `verification.py` pinned the
+  `javascript` row as a copy of TypeScript's ("4 repos, multi-repo"),
+  so every JavaScript ingest vouched for itself on the TS/JS row's
+  cells. Those cells are TypeScript programs: on the five graded ones
+  (kbet, ajv, cheerio, zod, hono) none of 15,167 confirmed edges
+  touches a JavaScript file, and the 27 drawn edges that do are all
+  `silent`, outside the program the zone's `tsc` loaded.
+- **The row.** `javascript` is 0 repos, depth `unverified`, and a zero
+  row that names its reason prints it: the ingest summary's
+  `javascript: not verified on any repo — …`, the surface's
+  `javascript · 0 repos` badge, and `list_blind_spots`' note.
+  TypeScript's row is unchanged.
+- **§3.8 splits** its TS/JS row into TypeScript and JavaScript (Max),
+  and the test that pins the two tables together maps each label to
+  one language.
+- **Next (ADR-140, steps 3–5):** the oracle grades a zone with no
+  tsconfig; two or three JavaScript repos of different shapes are
+  pre-registered and graded; the row names them.
 
 ## 0.2.52-beta — 2026-09-19 (a `usefixtures` string and an `autouse` fixture's name are looked up as a parameter is; autouse reach is said once; ADR-139)
 
