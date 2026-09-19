@@ -231,3 +231,13 @@ now says so (`compare-v1.py` keeps the first form):
 
 Suites: 2,034 pytest, `lane_b` 10 of 10, Go `./...` green. C-4 partial →
 surfaced, narrowed; the register's counts 93 surfaced, 22 partial.
+
+## Note (2026-09-19, from ADR-139's measurement)
+
+The key this record was checked against was collected without `-v`, and
+pytest then prints no fixture whose name starts with `_`. "1,004 of
+1,004", flask's 504 and attrs's 104 are of the pairs that key printed.
+On the `-v` key nothing drawn is wrong on any of the three; the missed
+pairs are this repo 3,962, flask 734 and attrs 14 — every one an
+`autouse` fixture or a `usefixtures` mark (ADR-139). Collect a fixture
+key with `-v`.

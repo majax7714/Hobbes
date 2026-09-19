@@ -6,6 +6,16 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-4's figures corrected, 2026-09-19 (0.2.51-beta; ADR-139 proposed):
+- **C-4 (no entry added, status unmoved):** the denominator statement
+  names C-4's remainder instead of all fixture-injected reach
+  (0.2.51-beta). ADR-137's key printed no `_`-named fixture; on the `-v`
+  key nothing drawn is wrong and the missed pairs are this repo 3,962,
+  flask 734, attrs 14, all `autouse` or `usefixtures`. ADR-139 measures
+  reading both (0 missed, 0 wrong) and is proposed, not built. Counts
+  unmoved: 164 entries, 119 active, 93 surfaced, 22 partial, 3
+  unsurfaced, 1 n/a; 28 lifted.
+
 C-142 narrowed, 2026-09-19 (ADR-138 accepted and built, 0.2.50-beta):
 - **C-142 narrowed (still partial; no entry added):** a header C++ has
   claimed passes the claim on; the C walk knows the files C++ owns.

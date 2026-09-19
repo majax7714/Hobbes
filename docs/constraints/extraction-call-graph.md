@@ -64,11 +64,15 @@
   syntactic `uses` edge, and the test map follows it; `through_fixtures`
   names the modules reached only that way. Keyed by
   `pytest --fixtures-per-test`: this repo 1,004 of 1,004 pairs, flask
-  504 and attrs 104 held out, none wrong.
+  504 and attrs 104 held out, none wrong — **of the pairs that key
+  printed**: without `-v` pytest prints no fixture whose name starts
+  with `_` (found 2026-09-19, ADR-139). On the `-v` key nothing drawn is
+  wrong, and the missed pairs are this repo 3,962, flask 734, attrs 14.
 - **Cannot tell you:** that a test exercises code it reaches
   - through an **`autouse`** fixture or a **`usefixtures`** mark (neither
-    is a parameter; flask's 370 missed pairs are one autouse fixture,
-    attrs's 8 are one mark);
+    is a parameter; every missed pair above is one or the other — two
+    autouse fixtures here, three on flask, one on attrs, and attrs's one
+    mark. ADR-139, proposed, measures reading both: 0 missed, 0 wrong);
   - through a **method on the value a fixture returns**
     (`runner.invoke(cli)` on click): lane B does not type an unannotated
     parameter, so the call has no target — the larger loss on click,

@@ -13242,3 +13242,41 @@ spend; two dispatches on the subscription, $12.25 reported.
 brief: ADR-138's was wrong in the ADR and right in the code only because
 of that. And a held-out key can be wrong about what it prints: read a
 "wrong" row against the source before believing either side.
+
+## 2026-09-19 (third) — the top-level doc review, the denominator statement's C-4 wording (0.2.51-beta), and C-4's remainder measured (ADR-139 proposed)
+
+**The review.** The top-level documents agree with each other and the
+tree: VERSION and its copies, AGENTS.md byte-identical to CLAUDE.md,
+README, CHANGELOG, workstreams, the handoff, ADR 138 the last, 56
+session logs, the tally and tracker tests green, `main` 16 commits ahead
+of `origin/main` (`a930ba1`). Two drifts: the handoff's "restart it"
+(the server already answered from `c481c5f`), and one in the product —
+`list_blind_spots` and every derived manifest still opened with
+"fixture-injected test reach (C-4)" among the things never detected,
+two patches after ADR-137 drew the parameter case. The register had
+recorded that the statement "still names" it.
+
+**0.2.51-beta.** Both copies of the statement (`knowledge.go`,
+`derive/manifests.py`) name C-4's remainder: a fixture no parameter
+names (autouse, usefixtures) and the value a fixture returns. One
+assertion on each side. No edge, node or count moves. pytest 2,052 and
+Go `./...` green; binaries, image and ingest redone.
+
+**C-4's remainder, step 0** (`~/.hobbes/bench/c4-remainder/`,
+predictions first). `usefixtures` strings (test, enclosing class,
+module `pytestmark`) and `autouse=True` names, resolved with ADR-137's
+`_resolve` and abstentions, in memory. First comparison: `usefixtures`
+clean (attrs +8), `autouse` 4,332 pairs "wrong" — every one a fixture
+named `_…`, which pytest does not print without `-v`. **So ADR-137's key
+had hidden them too.** Keys re-collected with `-v` (flask and attrs in
+the image, no network; flask with `-p no:hypothesispytest`): today's
+missed pairs are 3,962 here, 734 flask, 14 attrs, nothing drawn wrong;
+with both rules 0 missed, 0 wrong on all three. Recorded misses: P-r1's
+and P-r3's counts were written against the quiet key (370 and 0).
+
+**The question the numbers raise is reach, not precision:** this repo's
+`_lane_a_only` calls `staging.cache_root`, so drawn plainly every one of
+1,981 tests guards `hobbes.extract.staging`. ADR-139 proposes both rules
+with autouse reach said once, not listed (route a); (b) `usefixtures`
+only; (c) both, listed. Nothing built. ADR-137 carries a note on its
+key; C-4's figures and a HISTORY note corrected; tally unmoved.

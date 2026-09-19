@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19; Hobbes 0.2.50-beta on `main`.** CI is green on
-`a930ba1` (0.2.48-beta, pushed 2026-09-19; run 35412968495); everything
-since — the drift fix, ADR-137 and ADR-138 proposed, accepted and built,
-units `5393` and `286a`, 0.2.49-beta and 0.2.50-beta, the docs
-restructure's first half — is unpushed. The proxy and the image were
-rebuilt at 0.2.50-beta and the repo re-ingested at the end of the
-session; the knowledge server serves the image it started from until it
-is restarted (C-65): **restart it.**
+**Reviewed 2026-09-19 (third session); Hobbes 0.2.51-beta on `main`.**
+CI is green on `a930ba1` (0.2.48-beta, pushed 2026-09-19; run
+35412968495); everything since — ADR-137 and ADR-138 built (0.2.49-beta,
+0.2.50-beta), the docs restructure's first half, 0.2.51-beta and ADR-139
+proposed — is unpushed. The proxy and the image were rebuilt at
+0.2.51-beta and the repo re-ingested at the end of the session; the
+knowledge server serves the image it started from until it is restarted
+(C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.50-beta are untagged. Tags stay Max's call each time.
+  0.2.51-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -19,22 +19,47 @@ is restarted (C-65): **restart it.**
   confirmed for ADR-129 on 2026-09-17).
 - **Where work happens:** on `main`; publishing belongs to Max.
 
-The latest session's records are the two 2026-09-19 BUILDLOG entries
-(the review's items measured; ADR-137 and ADR-138 built). Before them,
-the five 2026-09-18 (late night) entries and the four 2026-09-18 ones.
-Earlier sessions' detail lives in their own BUILDLOG entries; this file
-keeps only what the next session needs.
+The latest session's records are the three 2026-09-19 BUILDLOG entries
+(the review's items measured; ADR-137 and ADR-138 built; the doc review,
+0.2.51-beta and ADR-139's measurement). Earlier sessions' detail lives
+in their own BUILDLOG entries; this file keeps only what the next
+session needs.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-19, evening)
+## ⇢ START HERE NEXT SESSION (written 2026-09-19, night)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
+**Waiting on Max: ADR-139's route** (proposed, measured, nothing built).
+A `usefixtures` string and an `autouse=True` fixture's name are looked
+up exactly as ADR-137 looks a parameter up. On the `-v` key: this repo
+1,009 → 4,971 right pairs, flask 504 → 1,238, attrs 104 → 118; **0
+missed, 0 wrong on all three**, no abstention fired. Route (a),
+recommended: both rules, and autouse reach said once ("every test under
+`tests/` through the autouse fixture …") rather than listed — drawn
+plainly, all 1,981 tests here would guard `hobbes.extract.staging`.
+(b) `usefixtures` only (attrs +8). (c) both, listed. Once routed: read
+the brief's premises in the tree, then one unit through the harness.
+
+**A fixture key is collected with `-v`.** Without it pytest prints no
+fixture whose name starts with `_`; ADR-137's "1,004 of 1,004" was of
+the pairs that key printed (its note, C-4 and HISTORY say so). flask
+also needs `-p no:hypothesispytest` (the shared `deps/` carries attrs's
+plugin, which fails on a read-only mount), and the mounts need
+`--security-opt label=disable` on this box. Drivers:
+`~/.hobbes/bench/c4-remainder/` (`probe.py` the two rules in memory,
+`PREREG.md`, `compare.py`, `*-key-v.txt` the three verbose keys,
+`<repo>-{base,use,auto,both}.json`).
+
+**0.2.51-beta (this session):** the doc review found the denominator
+statement still naming all fixture-injected reach; `knowledge.go` and
+`derive/manifests.py` now name C-4's remainder. No edge or count moved.
+
 **The 2026-09-16 review's list is done** but for one item Max has set
 aside: §3.8's paragraph cells as per-language pages ("dont split for
 now"). The C++ recall list is done but for the macro class (C-131,
-parked). Nothing is waiting on a build.
+parked).
 
 **What landed on 2026-09-19 (both merged no-ff; tracker 56 of 40):**
 
@@ -75,10 +100,9 @@ parked). Nothing is waiting on a build.
   first line, a fixture at its first decorator line, and one row per
   fixture name.
 
-**Candidates for the next named work, each measured first** (none is
-started): C-4's remainder — `usefixtures` is a string literal the walk
-could read, `autouse` needs the walk to keep a boolean, and the injected
-value's type is lane B's; C-142's remainder — the 273 headers nothing
+**Candidates after ADR-139, each measured first** (none is started):
+C-4's last part — the injected value's type is lane B's; C-142's
+remainder — the 273 headers nothing
 includes (ADR-138's route b, a content read, not taken); ADR-126 §3 once
 Max decides it; C's residue (W1).
 
@@ -351,6 +375,7 @@ stay here.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **ADR-139's route** (a recommended; above).
    - **Settled 2026-09-19:** ADR-137's and ADR-138's route (a), each
      built (0.2.49-beta, 0.2.50-beta); §3.8 stays unsplit ("dont split
      for now").
@@ -510,7 +535,8 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.50-beta (2026-09-19, all pass on the host): 2,052
+- **Suites** at 0.2.51-beta (2026-09-19; pytest and Go `./...` re-run
+  and green at 0.2.51-beta, the rest as counted at 0.2.50-beta): 2,052
   pytest (`lane_b` 10 of them, run at 0.2.50-beta), Go `./...` 396 with
   subtests (395 pass / 1 skip), 87 scip node, 36 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
