@@ -196,7 +196,16 @@ def extract_repo(
     # this layer's fallback, at `syntactic` tier — the join's normal
     # degraded path (P6), not a special case.
     with timings.step("lane A [c]"):
-        c = extract_c(repo_root, claimed=cpp["claimed_headers"] if cpp else None)
+        c = extract_c(
+            repo_root,
+            claimed=cpp["claimed_headers"] if cpp else None,
+            # ADR-138: the files C++ owns are known paths to the C walk,
+            # so a C header's include of one draws its edge — to the id
+            # that walk gave it, which is why the map is its nodes'.
+            foreign=(
+                {n["path"]: n["id"] for n in cpp["nodes"] if n.get("path")} if cpp else None
+            ),
+        )
     if c:
         languages += c["languages"]
         degraded += list(c["errors"])

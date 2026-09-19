@@ -64,6 +64,20 @@ angle include whose suffix step matched more than one repo header),
 because it is the build's own ``-I`` path that would settle either and
 lane A never reads it (C-133).
 
+**The files C++ owns are known paths here** (ADR-138): its sources and
+the headers it claimed arrive in *foreign*, and the three steps resolve
+against them as against this walk's own files, so a C header's
+``#include "common/scummsys.h"`` of a header C++ took draws an edge
+instead of an "unmatched" line. The edge names the **owning walk's**
+module id, the one *foreign* carries: the two rules agree on every
+header, but this module keeps a ``.cpp``'s extension where
+:func:`hobbes.extract.cppsource.module_id` drops it, and a ``.c`` file
+can include a ``.cpp``. Those headers join the suffix step's index too,
+so a spec can now match one of them — or become *ambiguous* between one
+of them and a C header of the same basename, which is what the compiler
+would see. No node is created for a foreign path and none is parsed:
+the C++ layer holds them.
+
 **Call sites and their shapes.** A ``call_expression`` records a site at
 its terminal identifier: a plain identifier is a plain call (a
 function-like macro invocation parses identically — C's preprocessor
@@ -165,6 +179,11 @@ _PREPROC_CONTAINERS = {"preproc_ifdef", "preproc_if", "preproc_elif", "preproc_e
 #: and ``__alignof__`` alike. C has none of the other four contexts.
 _UNEVALUATED_OPERANDS = {"sizeof_expression", "alignof_expression"}
 
+#: The suffixes that make a foreign path a *header* for the suffix step's
+#: index (ADR-138) — C's own, and C++'s three. Spelled here rather than
+#: imported, since :mod:`hobbes.extract.cppsource` imports this module.
+_FOREIGN_HEADER_SUFFIXES = (".h", ".hpp", ".hh", ".hxx")
+
 
 @dataclass
 class CFile:
@@ -248,11 +267,18 @@ def module_id(path: str) -> str:
     return str(pure)
 
 
-def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
+def extract_c(
+    repo_root: Path,
+    claimed: set[str] | None = None,
+    foreign: dict[str, str] | None = None,
+) -> dict | None:
     """The C layer for *repo_root*, or ``None`` when it has no C.
 
     *claimed* names the ``.h`` paths the C++ walk took (ADR-113 §1), and
-    is the only thing C++ changes in this module.
+    *foreign* maps every path that walk owns — its sources and those
+    headers — to its module id there (ADR-138): the two things C++
+    changes in this module. With *foreign* left out, the walk answers
+    exactly what it answered before ADR-138.
 
     Never raises: a file that will not read or will not parse yields
     whatever the walk could see, and one degradation record names it
@@ -302,7 +328,7 @@ def extract_c(repo_root: Path, claimed: set[str] | None = None) -> dict | None:
         return None
     _resolve_registrations(files)
     errors.extend(_test_degradations(files))
-    bundle = _join(files)
+    bundle = _join(files, foreign)
     errors.extend(bundle.pop("include_errors"))
     bundle["errors"] = errors
     #: The files whose parse had ERROR nodes — ADR-129's first condition,
@@ -841,13 +867,22 @@ def _resolve_include(
     return _IncludeResolution(None, len(matches) > 1)
 
 
-def _join(files: list[CFile]) -> dict:
+def _join(files: list[CFile], foreign: dict[str, str] | None = None) -> dict:
     """Assemble the layer bundle — the `rustsource._join` contract."""
     nodes: dict[str, dict] = {}
     module_edges: dict[tuple, list] = defaultdict(list)
     symbols: list[dict] = []
-    known_files = {parsed.path for parsed in files}
-    headers = HeaderIndex(p for p in known_files if p.endswith(".h"))
+    foreign = foreign or {}
+    # Includes resolve against the files C++ owns as well as this walk's
+    # own (ADR-138, the mirror of `cppsource._join`'s `known_files`): a C
+    # header including one names a real module, and the C++ layer's node
+    # for it is merged just before this one's. Only a foreign *header*
+    # joins the suffix index — the step is a header rule.
+    known_files = {parsed.path for parsed in files} | set(foreign)
+    headers = HeaderIndex(
+        p for p in known_files
+        if PurePosixPath(p).suffix in _FOREIGN_HEADER_SUFFIXES
+    )
     #: Per directory, the quoted specs an unmatched include named and the
     #: specs (either spelling) an ambiguous include named — the
     #: amendment's C-133 report, deduped and in path order of first sight.
@@ -865,7 +900,9 @@ def _join(files: list[CFile]) -> dict:
         for inc in parsed.includes:
             resolution = _resolve_include(parsed.path, inc["spec"], known_files, headers)
             if resolution.path is not None:
-                target_mid = module_id(resolution.path)
+                # A foreign path's id is the C++ walk's, never this
+                # module's: the two rules differ on a `.cpp` (ADR-138).
+                target_mid = foreign.get(resolution.path) or module_id(resolution.path)
                 if target_mid != mid:
                     module_edges[(mid, target_mid, "imports")].append(
                         {"path": parsed.path, "line": inc["line"]}
@@ -899,6 +936,10 @@ def _join(files: list[CFile]) -> dict:
         "module_edges": _edge_list(module_edges),
         "symbols": sorted(symbols, key=lambda s: s["id"]),
         "call_sites": _call_sites(files),
+        # The fallback reads the widened set too, so one include resolves
+        # one way everywhere: a foreign path has no C definition to offer
+        # its rank 2, and where a foreign header makes a spec ambiguous it
+        # abstains — the abstention the edge above makes (ADR-138).
         "call_fallback": _call_fallback(files, known_files, headers),
         "local_bindings": {
             parsed.path: tuple(parsed.local_bindings) for parsed in files if parsed.local_bindings
