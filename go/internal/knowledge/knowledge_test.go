@@ -1033,6 +1033,8 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		"below-floor — resolved by the semantic lane to a declaration below the symbol floor",
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
+		// C-4 after ADR-137 (0.2.51-beta): only what is still not drawn.
+		"fixture no parameter names (autouse, usefixtures)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a

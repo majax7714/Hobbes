@@ -42,8 +42,10 @@ from hobbes.invariants.schema import Invariant, scope_matches
 #: count below, because it is not detected at all.
 DENOMINATOR = (
     "never in any count here, because it is not detected at all: dynamic "
-    "dispatch and calls through values (C-1), fixture-injected test reach "
-    "(C-4), computed route paths (C-5); every figure is over DETECTED "
+    "dispatch and calls through values (C-1), test reach through a pytest "
+    "fixture no parameter names (autouse, usefixtures) or through the value "
+    "a fixture returns (C-4), computed route paths (C-5); every figure is "
+    "over DETECTED "
     "call sites, not over the repo"
 )
 

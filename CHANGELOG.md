@@ -11,9 +11,24 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.50-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.51-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.51-beta — 2026-09-19 (the denominator statement names what is left of C-4, not all fixture-injected reach)
+
+**Patch: what the layer says** — no edge, node or count moves.
+
+- **Found by the top-level doc review.** `list_blind_spots` and every
+  derived context manifest opened with "fixture-injected test reach
+  (C-4)" among the things never detected. Since 0.2.49-beta (ADR-137) a
+  fixture a parameter names *is* drawn and test reach follows it; the
+  statement under-claimed, and the register recorded that it did.
+- **The wording now:** "test reach through a pytest fixture no parameter
+  names (autouse, usefixtures) or through the value a fixture returns
+  (C-4)" — C-4's own remainder. The Go and Python copies
+  (`knowledge.go`, `derive/manifests.py`) say the same thing.
+- C-4's *You find out* line updated; no entry added, the tally unmoved.
 
 ## 0.2.50-beta — 2026-09-19 (a `.h` is claimed by C++ through the headers C++ has claimed, and the C walk knows the files C++ owns; ADR-138)
 

@@ -1128,9 +1128,10 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	b.WriteString(s.header(g.SHA, g.Dirty, g.BuiltBy))
 	fmt.Fprintf(&b, "what Hobbes cannot see under %s — the work to verify yourself:\n\n", scope)
 	b.WriteString("never in any count below, because it is not detected at all: dynamic\n" +
-		"dispatch and calls through values (C-1), fixture-injected test reach\n" +
-		"(C-4), computed route paths (C-5). Every percentage here is a floor\n" +
-		"over DETECTED call sites, not over the repo.\n")
+		"dispatch and calls through values (C-1), test reach through a pytest\n" +
+		"fixture no parameter names (autouse, usefixtures) or through the value\n" +
+		"a fixture returns (C-4), computed route paths (C-5). Every percentage\n" +
+		"here is a floor over DETECTED call sites, not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket
 	// — the scoped verification line names only these (whole-repo scope
 	// names every language the artifact lists, call sites or not).

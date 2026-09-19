@@ -90,8 +90,10 @@
   with the `usefixtures` marks not followed; `tests_guarding` says
   "only through a pytest fixture (ADR-137)" on a line that is;
   `hobbes review` lists new code guarded only that way; the denominator
-  statement still names fixture-injected reach (C-4) in
-  `list_blind_spots` and every derived context manifest (ADR-047/051).
+  statement in `list_blind_spots` and every derived context manifest
+  (ADR-047/051) names what is left — a fixture no parameter names, and
+  the value a fixture returns (0.2.51-beta; until then it still named
+  all fixture-injected reach).
   `autouse` fixtures are not counted anywhere: the walk keeps no
   non-string decorator argument.
 - **Source:** ADR-007; narrowed by ADR-137. See also
