@@ -52,8 +52,7 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   **module** caller (the brief's fault — "exactly as ADR-145's"), counted and not drawn.
   Drivers `~/.hobbes/bench/py-nested-defs/` (`PREREG.md`, `probe.py`; `PREREG-b.md`,
   `probe_b.py` — ADR-147 as worded, `--show`; `RESULTS.md`; `u0/` `u0b/` simulated,
-  `real/click/` 0.2.65, `real147/click/` 0.2.66; `units/` u1, u2; `wt/` a worktree on
-  the last unit's branch, removable).
+  `real/click/` 0.2.65, `real147/click/` 0.2.66; `units/` u1, u2; its worktree was removed).
 - **Done (H-36, oracle lane, unit `de0e`, 51 turns, $2.76; Max: "go with h-36
   first"):** a comprehension's frame entry is dropped and counted at the py-trace
   extractor (`excluded: generated`), no site made for a line that held only that.
