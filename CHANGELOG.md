@@ -11,9 +11,36 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.59-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.60-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.60-beta — 2026-09-20 (a yarn-v1 install names `corepack` where it runs; the v1 `yarn.lock` branch had never provisioned on a contained box)
+
+**Patch: a defect fixed in what the layer provisions** — no rule, no ADR, no
+register entry. Built as unit `S-20260920T155830Z-d2de`.
+
+- **The defect.** For a v1 `yarn.lock` the install argv named the **host's**
+  absolute path to `corepack` (beside the host's resolved `node`), and the
+  fetch step ran that argv inside the sandbox image, where the path does not
+  exist: `crun: executable file … not found`. `npm ci` never had the problem —
+  `npm` is a name. So since lane B moved into the image (ADR-092) every
+  yarn-v1 zone on a contained box read "dependencies not provisioned", a
+  wording that put our defect on the repo. Seen in the stored ingest logs of
+  hono (2 zones) and dagger (its versioned-docs snippet zones).
+- **The fix.** Where the fetch runs contained — asked the way
+  `containment.run` asks it — the argv names `corepack`, which the image has
+  on its PATH, and the host's is not consulted (a host with no corepack still
+  provisions). On a host run (no image, or the escape hatch) it is the host's
+  path as before, and the same refusal when there is none.
+- **Measured on hono** (`97c6fe1`, the unit's code, the cache entry cleared
+  first): the tree provisions through the ingest's own path; the three
+  extraction errors on `benchmarks/jsx` are gone and none is new;
+  `dependency_coverage` reads 9 of 47 resolved where it read 0. **No edge
+  moved** — 2,811 symbol edges and 1,729 module edges, identical by
+  (from, to, type, tier) — as C-165 says it should be: a call into a package
+  is stated at module grain. No graded cell is touched; hono's graded zone is
+  `tsconfig.build.json`, not these.
 
 ## 0.2.59-beta — 2026-09-20 (a call whose site name is not its definition's is matched at its own column, where both lanes name one definition; ADR-143)
 

@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.59-beta on `main`.**
+**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.60-beta on `main`.**
 Max pushed through the eighth session's release commit (`9897399`); what
 the ninth session adds is on `main`, unpushed. The image and the proxy
-are at 0.2.59-beta and this repo is ingested at that release. A new
+are at 0.2.60-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.59-beta are untagged. Tags stay Max's call each time.
+  0.2.60-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -56,11 +56,14 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
   `PREREG-sim.md`, `ingest_rule.py`, `sim.sh`, `sim/`; `real.sh`, `real/`;
   `lang-cells.tsv`, `lang-regrade.sh`, `lang/` — a pre/post driver over
   one cell per language, reusable; `units/`; `wt/` a worktree, removable).
-- **hono's two yarn-v1 zones fail to provision in the image:** the ingest
-  hands the container the *host's* corepack path
-  (`~/.local/node/bin/corepack … not found`). Seen 2026-09-20; not
-  traced, not registered — read `provision_node_modules`' yarn branch
-  before deciding whether it is a defect or C-23's.
+- **Done (0.2.60-beta, unit `d2de`, 19 turns, $0.95):** hono's two
+  yarn-v1 zones failed to provision because the argv carried the *host's*
+  `corepack` path into the image — a defect, not C-23's. Contained, the
+  argv now names `corepack`. On hono: provisioned, three extraction
+  errors gone, dependency coverage 0 → 9 of 47, no edge moved. dagger's
+  docs snippet zones had the same failure and were **not** re-ingested.
+  Drivers `~/.hobbes/bench/corepack-path/` (`units/`, `hono/` the clone,
+  `hono-ingest-after.log`; `wt/` a worktree, removable).
 - Preact's test-file misses (closures in `it` bodies, calls through
   `.d.ts` interface members, hook setters in locals) — C-58's shapes.
   C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
@@ -271,7 +274,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 63 of 40, 4
+   - **The validating 40 are done:** the tracker reads 64 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -342,7 +345,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-three log files under `docs/calvin/sessions/`; the tracker reads 63 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty-four log files under `docs/calvin/sessions/`; the tracker reads 64 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 94 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -355,9 +358,9 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.59-beta (2026-09-20; pytest, Go `./...`, every `lane_b`
-  test and the report test re-run and green on the host, the rest as
-  counted at 0.2.50-beta): 2,139
+- **Suites** at 0.2.60-beta (2026-09-20; pytest and every `lane_b` test
+  re-run and green on the host, Go `./...` as at 0.2.59-beta, the rest as
+  counted at 0.2.50-beta): 2,144
   pytest (`lane_b` 12 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 87 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on

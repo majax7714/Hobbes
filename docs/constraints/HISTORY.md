@@ -6,6 +6,16 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-23's yarn branch, 2026-09-20 (0.2.60-beta; a defect, no entry added or moved):
+- **C-23 said more than the tree did.** Its ADR-050 narrowing reads "v1
+  `yarn.lock` → pinned classic yarn … provisioned". From ADR-092 (lane B in
+  the image) to 0.2.59-beta that branch could not run on a contained box: the
+  argv carried the host's `corepack` path into the container. It was
+  surfaced — an `extraction_errors` row and a WARNING per zone — but as
+  "dependencies not provisioned", which read as the repo's. Fixed at
+  0.2.60-beta (the image's `corepack`, by name); the entry's words are true
+  again and are left as written. Tally unmoved: 168 entries.
+
 C-165 corrected and narrowed, 2026-09-20 (0.2.58-beta; Max: route a; no entry added):
 - **C-165 corrected.** The entry said Hobbes could not tell you "whether
   an edge from JavaScript into a third-party package is right" and named

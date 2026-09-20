@@ -13721,7 +13721,7 @@ HEAD; restart the knowledge server (C-65).
 **Seen and not traced:** hono's two yarn-v1 zones fail to provision because
 the ingest hands the container the host's corepack path. In the handoff.
 
-## 2026-09-20 (ninth) — the top-level docs read against the tree; the knowledge server's restart made the closing session's step (docs only)
+## 2026-09-20 (ninth) — the top-level docs read against the tree; the knowledge server's restart made the closing session's step; the yarn-v1 `corepack` defect traced and fixed (0.2.60-beta)
 
 A read of the README, CLAUDE.md, the CHANGELOG head, the handoff, the
 workstreams header and the architecture's §8 header against the tree at
@@ -13744,3 +13744,30 @@ Now the restart is the last step of the session that rebuilt the image,
 and the handoff does not carry it — CLAUDE.md's closing paragraph and the
 handoff's practical note say so; the version that opens every answer is
 the next session's check. No code, no register entry, no version move.
+
+**Later the same session — the handoff's untraced item, traced (the docs
+paragraphs above were committed first, as `6c539af`, and their "no code, no
+version move" is theirs).** hono's two yarn-v1 zones: `_corepack()` returns
+the host's absolute path beside the host's `node`, `provision_node_modules`
+put it in the argv, and `_fetch` runs that argv in the image — `crun:
+executable file … not found`. `npm` is a name, so `npm ci` never met it. The
+stored ingest logs show it on every contained hono and dagger ingest; the
+WARNING said "dependencies not provisioned", which read as the repo's. A
+defect, not C-23's. **Probed before the routes were put:** with `_corepack`
+patched to the bare name, the fetch step provisioned `benchmarks/jsx` in 8 s
+(the probe's cache entry was removed before the dispatch). Max: route a.
+
+**Unit `d2de`:** 19 turns of 80, $0.95, two files at file grain, gate clear,
+verify pass, **right-clear**. One helper, `_yarn1_install_argv`: contained —
+asked as `containment.run` asks — the argv names `corepack` and the host's is
+not consulted; on a host run the host's path, and the old refusal without
+one. On the host, in a worktree: pytest 2,144, twelve `lane_b` green, and a
+hono ingest (`97c6fe1`) against the 0.2.59-beta graph of the same sha — three
+extraction errors gone, none new, dependency coverage 0 → 9 of 47, **2,811
+symbol edges and 1,729 module edges identical by (from, to, type, tier)**.
+That a provisioned tree moves no edge is C-165's statement met a second time.
+dagger's snippet zones were not re-ingested. Merged `--no-ff` (`242b767`);
+0.2.60-beta: the CHANGELOG, a dated note on C-23 in the register's HISTORY
+(the entry's words were untrue on a contained box from ADR-092 until now, and
+are left as written), the tracker at 64 of 40. Go `./...` and pytest green on
+`main`; binaries and image rebuilt at 0.2.60-beta, the repo re-ingested.
