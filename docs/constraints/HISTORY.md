@@ -6,6 +6,13 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-169 registered and lifted, 2026-09-20 (0.2.65-beta; ADR-146, Max: route a):
+- **C-169 added, lifted the same day.** Lane A's Python walk had never recorded a
+  decorator's call as a site — a first-milestone decision in a code comment and a
+  pinning test, in no entry. Found by a probe that set out to size something else
+  (nested defs, which turned out to be symbols already). 169 entries, 29 lifted.
+  `oracle-misses.md`'s `observed→closure` row corrected with it.
+
 C-165's second provisioned cell, 2026-09-20 (0.2.61-beta; Max: route a; no entry added):
 - **C-165 narrowed (surfaced), not moved.** Blueturboguy07/cue, drawn for
   size (`oracle-grading.md` §10.27): 881/881 with its 276-package tree on

@@ -81,6 +81,27 @@ class TestSymbols:
         assert route.kwargs == {"methods": ("GET", "POST")}
         assert prop.dotted == "property"
 
+    def test_a_trailing_comment_does_not_blind_the_digest(self):
+        # The comment is a child of the `decorator` node; read as the
+        # expression it left `dotted` None, so the fixture was no fixture.
+        p = parse(
+            "@pytest.fixture  # shared\n"
+            '@app.route("/x")  # type: ignore\n'
+            '@pytest.mark.parametrize("a", [1])  # one\n'
+            "def handler(a):\n"
+            "    pass\n"
+        )
+        (symbol,) = p.symbols
+        fixture, route, _ = symbol.decorators
+        assert fixture.dotted == "pytest.fixture"
+        assert (route.dotted, route.args) == ("app.route", ("/x",))
+        assert symbol.parametrized == ("a",)
+        assert [(c.callee, c.line) for c in p.calls] == [
+            ("pytest.fixture", 1),
+            ("app.route", 2),
+            ("pytest.mark.parametrize", 3),
+        ]
+
     def test_fstring_decorator_arg_is_skipped(self):
         p = parse('@app.get(f"/items/{prefix}")\ndef h():\n    pass\n')
         (symbol,) = p.symbols

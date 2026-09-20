@@ -116,7 +116,7 @@ box, against a repo on disk (architecture §10); the application mode in
   Fixture repos
   under `tests/fixtures/` (miniapp / minits / minigo / minirust /
   minijava / canary-rust / canary-java / goshapes / twomod / minic /
-  minicpp), excluded from collection.
+  minicpp / minifixval / minideco), excluded from collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B's helper, `index.mjs` (it owns the SCIP decode:
   scip-java's typed ranges, C's rules from ADR-109), and spike evidence;
@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-20, 0.2.64-beta; oracle-lane Go
-counted 2026-09-16): 2,204 pytest (14 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-20, 0.2.65-beta; oracle-lane Go
+counted 2026-09-16): 2,217 pytest (15 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 47 tsextract + 94 scip node / 84 atlas0. Keep them green. CI
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-20) — Hobbes 0.2.64-beta
+## Status (2026-09-20) — Hobbes 0.2.65-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -287,29 +287,28 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 168 entries; 123 active (95
-  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted; the tally is
+  contradicted (ADR-124). **Register:** 169 entries; 123 active (95
+  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **67 of 40**
+  drift test; re-render after filling a review block) reads **68 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.64-beta, C-4's last two parts** (Max, 2026-09-20).
-  **ADR-139 amended:** a module-level `pytestmark`'s `usefixtures` is
-  followed (unit `0bf3`) — MissyLabs/missy, drawn at random for it:
-  1,265 missed pairs → 0, 0 wrong of 35,770. Same day, **0.2.63-beta,
-  ADR-145 (route a):** a call on the value a fixture constructs is a
-  call on that class (unit `1527`, Python and pytest only, `syntactic`)
-  — click 1,755 → 2,136 confirmed (recall 38.2% → 46.5%), 0
-  contradicted, six other-language cells row-identical
-  (`oracle-grading.md` §10.29). C-4 keeps a fixture value that is not a
-  construction, an inherited method, a non-plain `pytestmark`, a
-  non-literal `autouse=` and the abstentions. **Next:** the candidates
-  in the handoff, each measured first.
+- **Latest — 0.2.65-beta, a decorator is a call of what it names**
+  (ADR-146, unit `f751`; Max, 2026-09-20: route a, extraction first).
+  A probe for Python's closure misses found nested defs are already
+  symbols and that lane A had never recorded a decorator's call as a
+  site (C-169, registered and lifted). click 2,136 → 3,052 confirmed
+  (recall 46.5% → 66.4%), the same 18 suspects, poison PASS; flask +166
+  and attrs +120 rows, all `semantic` (`oracle-grading.md` §10.30).
+  Fixed at the review: a trailing comment blinded the decorator digest.
+  **Next: ADR-147** — the decorator factory's inner def (`@f(…)` →
+  `f.<locals>.g`), strict wording (Max: whichever is more honest):
+  measured at 304 click rows, 0 contradicted; not yet written.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

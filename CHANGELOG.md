@@ -11,9 +11,36 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.64-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.65-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.65-beta — 2026-09-20 (a decorator is a call of what it names; ADR-146, C-169 registered and lifted)
+
+**Patch: what the layer draws** — lane A's Python walk. Built as unit
+`S-20260920T201508Z-f751`; one defect fixed at its review.
+
+- **What was found.** Looking for Python's closure misses, the probe found nested defs
+  are already symbols — and that Hobbes drew **no** call on any decorator line. The walk
+  had skipped decorator expressions since the first extraction milestone ("would pollute
+  the call graph"), pinned by a test, in no register entry. On click, 1,652 of 2,459
+  missed pairs sat on a decorator line: `@click.option(…)` is a direct call of a declared
+  function, and `who_calls` on it answered nobody.
+- **The rule.** A decorator's expression is walked as any expression is, scoped to the
+  **enclosing** definition or the module; a bare `@name` / `@a.b` records the application
+  the language defines, at the terminal identifier. Lane A adds sites and nothing else —
+  an edge appears only where the index names a repo symbol, so `@pytest.fixture` and an
+  untyped `@app.route` draw nothing. What a decorator *returns* is not followed.
+- **Measured.** click **2,136 → 3,052 confirmed of 4,595 (46.5% → 66.4%)**, 18 suspect
+  before and after (the same rows), poison PASS, 0 rows lost, lane disagreements
+  unchanged; flask +166 and attrs +120 rows, all `semantic`, none lost
+  (`oracle-grading.md` §10.30). A trace key confirms; it is not a precision.
+- **fix(extract): a trailing comment blinded the decorator digest.** `@pytest.fixture  #
+  shared` was read as its comment: no fixture, no route, no `parametrize`. One to three
+  such lines in each of click, flask, attrs and missy. The digest, the parametrize read
+  and the new walk take the first non-comment child.
+- `oracle-misses.md` corrected: a named nested `def` is a symbol; the closure misses are
+  a nested def reached as a value, lambdas, and `<genexpr>` frames.
 
 ## 0.2.64-beta — 2026-09-20 (a module-level `pytestmark`'s `usefixtures` is followed; ADR-139 amended, C-4 narrowed)
 

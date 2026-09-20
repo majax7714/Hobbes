@@ -13922,3 +13922,47 @@ architecture's ADR-139 paragraph and §8 header, CHANGELOG, README, the tracker 
 image rebuilt at 0.2.64-beta, this repo re-ingested. **Both of C-4's last parts are
 done**; what the entry keeps is a value that is not a construction, an inherited
 method, a non-plain `pytestmark`, a non-literal `autouse=` and the abstentions.
+
+## 2026-09-20 (eleventh session) — extraction first: a decorator is a call of what it names (ADR-146, 0.2.65-beta)
+
+**Max's direction:** the last sessions were constraint and error fixes; "id like to
+focus on extracation for now as its the most annoying work to do but the most important
+for hobbes." A top-level doc review came first (the docs agreed with each other; the
+handoff's "unpushed" line was stale — `origin/main` was at `0f45f6c` — fixed in
+`7edaa3d`). On the number line: a minor is for a **feature** added to Hobbes (the dev
+environment would be 0.3.0, not worked on now); an extraction change is a patch even
+when it moves structure.
+
+**The proposed route was wrong, and the probe said so.** Route 1 was "Python nested
+defs as symbols, then the decorator-factory rule", from `oracle-misses.md`'s "nested
+functions are not graph symbols". Step 0 (`~/.hobbes/bench/py-nested-defs/`, `PREREG.md`
+first): nested defs **are** symbols and a direct call to one is drawn `semantic`; the
+unit would have added 0 rows. What the rows were: **Hobbes drew no edge on any decorator
+line** — `pysource._walk` skipped decorator expressions since the first extraction
+milestone ("would pollute the call graph"), pinned by a test, in no register entry. click:
+0 of 2,447 edges on a decorator line, 1,652 of 2,459 misses there. And 590 of this repo's
+642 closure misses are `<genexpr>` frames, the key's grain.
+
+**Max: route a** (the walk first, the factory rule after it; strict or loose "whicever
+is more honest. we never sacrifice honesty for higher recall"). Strict chosen for
+ADR-147 — every return is `return g`, ADR-145's precedent — 304 click rows at 0
+contradicted; loose read 661 at 0 contradicted and is recorded, not proposed.
+
+**Measured before the ADR**, on a scratch worktree: the walk alone click 46.5% → 65.2%,
+with the bare application 66.4%, 18 suspects unchanged both times, lane disagreements
+unchanged, flask +166 and attrs +120 rows all `semantic`, no symbol moved; the pipeline
+suite failed one test, the pinning one. ADR-146 written on that (`13c7d13`).
+
+**Unit `f751`:** 45 turns of 80, $2.49, seven files, gate clear, verify pass,
+**right-clear**, merged `--no-ff` (`11bae01`). **The review found a defect the gate's
+classes do not cover:** the doer read the decorator's expression as `children[-1]` — the
+idiom `_decorator` and the parametrize read already used — and a trailing comment is the
+node's last child, so `@foo  # note` recorded nothing; worse, the *existing* digest had
+always read `@pytest.fixture  # shared` as no fixture. Fixed at all three sites
+(`_decorator_expr`, one test). The real cell on `main`: click **3,052 confirmed of 4,595,
+18 suspect (the same rows), poison PASS, row-identical to the simulation, 0 rows lost**
+(`oracle-grading.md` §10.30). C-169 registered and lifted (169 entries, 29 lifted);
+`oracle-misses.md`'s closure row corrected; the architecture's paragraph, §3.8's Python
+row and §8 header; CHANGELOG, README, the tracker at 68 of 40. On the host: pytest 2,217,
+15 `lane_b`. Binaries and the image rebuilt at 0.2.65-beta, this repo re-ingested.
+**Not done:** ADR-147 (next); the `<genexpr>` grain is not yet in the oracle defect log.

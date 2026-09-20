@@ -377,9 +377,21 @@ def _string_literal(node: Node) -> str | None:
     return "".join(parts)
 
 
+def _decorator_expr(node: Node) -> Node:
+    """The expression a ``decorator`` node applies: its first named child
+    that is not a comment. Not the last child — a trailing comment
+    (``@pytest.fixture  # shared``) is a child of the node too, and read
+    as the expression it left the digest with no name: the fixture was
+    no fixture, the route no route (found reviewing ADR-146's unit)."""
+    for child in node.named_children:
+        if child.type != "comment":
+            return child
+    return node.children[-1]
+
+
 def _decorator(node: Node) -> Decorator:
     """Digest one ``decorator`` node."""
-    expr = node.children[-1]  # after the "@"
+    expr = _decorator_expr(node)
     if expr.type != "call":
         return Decorator(_dotted(expr), (), {}, _line(node))
     return _call(expr, _line(node))
@@ -611,7 +623,7 @@ def _parametrize_names(node: Node) -> tuple[str, ...] | None:
     elsewhere). :class:`Decorator` keeps string literals only, so the names
     are read from the node here rather than from the digest.
     """
-    expr = node.children[-1]  # after the "@"
+    expr = _decorator_expr(node)
     if expr.type != "call":
         return None
     arguments = expr.child_by_field_name("arguments")
@@ -724,7 +736,7 @@ def _walk(
         # one. Any other bare expression (a subscript, a lambda) names
         # nothing to apply and records only the calls written in it.
         for decorator_node in decorator_nodes:
-            expr = decorator_node.children[-1]  # after the "@"
+            expr = _decorator_expr(decorator_node)
             _walk(expr, stack, parsed, ())
             dotted = _dotted(expr)
             terminal = _terminal(expr)

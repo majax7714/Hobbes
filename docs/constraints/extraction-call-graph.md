@@ -541,6 +541,48 @@ new active entry and the two cross-reference. Field key: `README.md`,
 - **Source:** registered and lifted 2026-09-18 (ADR-133; unit `3569`).
   `evidence.join`.
 
+### C-169 — A Python decorator was not a call site, and a commented one was not read at all — *lifted 2026-09-20, the day it was registered (ADR-146, 0.2.65-beta)*
+- **Was:** `pysource._walk` did not walk a decorator's expression — a
+  decision from the first extraction milestone ("recording it would
+  pollute the call graph"), pinned by a test and carried by no register
+  entry, no tool and no line of the architecture. So `@click.option("--x")`,
+  a direct call of a declared function, had no lane A site, the join had
+  nothing to pair the index's occurrence with, and no `calls` edge was
+  drawn: `who_calls` on a decorator answered *nobody* for every use of it
+  as one. On click (py-trace key, 0.2.64-beta) **0 of 2,447 edges sat on a
+  decorator line and 1,652 of 2,459 missed pairs did**; `oracle-misses.md`
+  had filed them under C-58 beside function values. Beside it, found
+  reviewing the unit: the decorator digest read the node's **last child**
+  as the expression, and a trailing comment is a child — `@pytest.fixture
+  # shared` digested to no name, so the fixture was no fixture, a route no
+  route, a `parametrize` unread (one to three such lines in each of click,
+  flask, attrs and missy).
+- **Lifted by — the technique:** a decorator is a call of what it names.
+  Its expression is walked as any expression is, scoped to the
+  **enclosing** definition (the decorated one does not exist yet); a bare
+  `@name` / `@a.b` is the application the language defines, one site at
+  the terminal identifier. Lane A only — what is drawn is the join's
+  business, so an edge appears exactly where the index names a repo
+  symbol. `_decorator_expr` reads the first named child that is not a
+  comment, at all three sites. click **2,136 → 3,052 confirmed of 4,595
+  (46.5% → 66.4%), 18 suspect before and after — the same rows — poison
+  PASS**; flask +166 and attrs +120 rows, all `semantic`, none lost; no
+  symbol, node or module edge moved (`oracle-grading.md` §10.30).
+- **Residual edge cases, by design:** a bare decorator that is not a name
+  chain (`@decos[0]`) applies nothing Hobbes can name; the calls written
+  in it are still sites. What a decorator **returns** is not followed —
+  `@click.command()` reaching `command.<locals>.decorator` is a function
+  value (C-58; ADR-147 measures the factory shape). Resolution coverage's
+  denominator now counts these sites; an unresolved one (`@app.route` on
+  an untyped `app`) is in the tail like any other. TypeScript's walk
+  takes every `CallExpression`, a decorator's among them (read in
+  `tsextract/extract.mjs`, not measured on a cell); a bare TS decorator
+  is not recorded and no cell has sized it. A Java annotation is not a
+  call.
+- **Source:** registered and lifted 2026-09-20 (ADR-146; unit `f751`,
+  the comment defect fixed at its review). `pysource._walk`,
+  `pysource._decorator_expr`.
+
 ### C-80 — A Python call whose receiver was itself a call, a subscript, or `super()` was not a call site — and `who_calls` said it was not a call — *lifted 2026-09-03*
 - **Was:** `pysource.Call` was "a call site whose callee is a plain
   name/attribute chain", so `super().m(..)`, `f().m(..)` and

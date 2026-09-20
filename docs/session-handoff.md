@@ -1,22 +1,25 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (tenth session); Hobbes 0.2.64-beta on `main`.**
+**Reviewed 2026-09-20 (eleventh session); Hobbes 0.2.65-beta on `main`.**
 Max pushed through the tenth session's release commit (`0f45f6c`,
-0.2.64-beta); `main` and `origin/main` agree. The image and the proxy
-are at 0.2.64-beta and this repo is ingested at that release. A new
+0.2.64-beta); what the eleventh session adds is on `main`, unpushed. The image and the proxy
+are at 0.2.65-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.64-beta are untagged. Tags stay Max's call each time.
+  0.2.65-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
   reaches "supported"; a structural change bumps minor (ask); **a
   constraint's fix is a patch even when structural** (Max, 2026-09-13;
-  confirmed for ADR-129 on 2026-09-17).
+  confirmed for ADR-129 on 2026-09-17). **A minor is for a feature added
+  to Hobbes** (Max, 2026-09-20): the harness earned 0.2.0, the dev
+  environment would earn 0.3.0 and is not being worked on; an extraction
+  change is a patch even when it moves the symbol floor.
 - **Where work happens:** on `main`; publishing belongs to Max.
 
 The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
@@ -24,9 +27,43 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-20, tenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-20, eleventh session)
 
-**C-4's last parts (Max, 2026-09-20: "lets look to tackle c-4s last parts").**
+**Max's direction (2026-09-20): extraction first — "the most annoying work to do but
+the most important for hobbes"; "we never sacrifice honesty for higher recall".**
+
+- **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
+  decorator is a call of what it names. The step-0 probe for Python's closure misses
+  found nested defs are **already symbols** (the docs said otherwise; corrected) and
+  that lane A had never walked a decorator's expression (C-169, registered and
+  lifted). click 2,136 → 3,052 confirmed (46.5% → 66.4%), 18 suspect unchanged,
+  poison PASS; flask +166, attrs +120 rows, all `semantic` (§10.30). The review found
+  and fixed a digest defect the doer had copied: `children[-1]` reads a trailing
+  comment as the decorator's expression.
+- **Next — ADR-147, not yet written: the decorator factory's inner def.** `@f(…)`
+  where the graph draws the decorator line → `f`, and **every** `return` in f's own
+  body is `return g`, g a nested def of f bound once → a `calls` edge to
+  `f.<locals>.g`, `syntactic`. **Strict wording** (Max: "whichever is more honest";
+  ADR-145's one-return precedent, a rule fails toward drawing less): **304 click rows,
+  0 contradicted**, measured over the real 0.2.65 export. Loose (one eligible `return
+  g`, other returns anything — click's `command` also has `return decorator(func)`)
+  reads 661 at 0 contradicted and is *not* proposed; count its sites as a refusal.
+  Overload stubs: the drawn target is the first `@t.overload` stub, the body is the
+  last same-name def in the scope (H-19's grain) — the rule must read the last.
+  Drivers `~/.hobbes/bench/py-nested-defs/` (`PREREG.md`, `probe.py` — `--loose`,
+  `--standin` — `RESULTS.md`, `u0/` `u0b/` the simulated cells, `real/click/` the
+  built one, `units/`; `wt/` a worktree on the unit's branch, removable).
+- **Then, from the same probe:** 590 of this repo's 642 closure misses are
+  `<genexpr>` frames — the key's grain (H-16's kind), a candidate for the oracle
+  defect log, not yet entered; click's left-over 215 method misses are unread.
+- **Other extraction candidates, each measured first:** C-4's fixture value through
+  a local (flask's 702 refused sites, `app = Flask(); return app` — ADR-145's
+  drivers; fix `simulate_real.py`'s `own_nodes` first); the TS symbol floor's
+  class-property functions (zod 1,029 collapsed pairs — off the table since
+  2026-09-10 "with the constructor grain settled before `new`", which ADR-142 since
+  settled: **re-ask Max**, do not start); the CJS literal member (cue 49, Express 46).
+
+**C-4's two parts (Max, earlier 2026-09-20), both done:**
 - **Done (ADR-145, 0.2.63-beta, unit `1527`, 81 turns, $6.73; Max: route a):** a
   call on the value a fixture constructs. `p.m(…)` on an injected parameter → `C.m`,
   `syntactic`, where the fixture's own body is one `return C(…)`, the index names
@@ -52,7 +89,7 @@ drivers' paths below.
   removable).
 - C-4 keeps: a fixture value that is not a construction, an inherited method, a
   non-literal `autouse=`, a class-body or annotated `pytestmark`, and the
-  abstentions. **Both of Max's C-4 parts are done.**
+  abstentions.
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
@@ -129,7 +166,7 @@ their tree: a thin one and cue (881 rows, identical without it). Drivers: `~/.ho
   `real.sh`, `lang-regrade.sh` + `lang-cells.tsv`, `sim/`, `real/`,
   `lang/`, `units/`; its worktree was removed).
 
-**Candidates after C-4, each measured first** (none started): C-142's
+**Older candidates, each measured first** (none started): C-142's
 remainder — the 273 headers nothing includes (ADR-138's route b, a
 content read, not taken); ADR-126 §3 once Max decides it; C's residue
 (W1). Small and no-spend, optional: a `lane_b` end-to-end case for
@@ -147,6 +184,12 @@ macro class's (C-131, parked); TS's floor shapes stay off the table
 paragraph cells as per-language pages (Max: "dont split for now").
 
 **Lessons the last sessions paid for:**
+- **A probe's premise can be the docs' error.** `oracle-misses.md` said Python nested
+  defs are not symbols; the export said otherwise in one grep for a nested name. Read
+  the export's `target_id`s before sizing a "missing symbol" rule.
+- **Read a doer's idiom against the grammar, not only its tests.** `children[-1]` passed
+  eleven cases and lost every commented decorator; a three-line parse on the host found
+  it, and the same line had been wrong in the digest since it was written.
 - **`-v -q` cancel.** A fixture key collected that way hides every `_…` fixture
   and the *built* lookup reads thousands "wrong" (missy: 26,474). `-v` alone.
 - **A code search's hit is not the repo's use.** `pytestmark = …usefixtures(` hits
@@ -339,7 +382,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 67 of 40, 4
+   - **The validating 40 are done:** the tracker reads 68 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -410,23 +453,23 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-seven log files under `docs/calvin/sessions/`; the tracker reads 67 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Sixty-eight log files under `docs/calvin/sessions/`; the tracker reads 68 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 168 entries: 123 active (95 surfaced, 24 partial, 3
-  unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
+- **Register:** 169 entries: 123 active (95 surfaced, 24 partial, 3
+  unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-33–H-35 fixed 2026-09-19,
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.64-beta (2026-09-20; pytest, every `lane_b` test and Go `./...`
+- **Suites** at 0.2.65-beta (2026-09-20; pytest, every `lane_b` test and Go `./...`
   re-run and green on the host, the scip node suite as at 0.2.62-beta, the rest as
-  counted at 0.2.50-beta): 2,204
-  pytest (`lane_b` 14 of them), Go `./...` 399 with
+  counted at 0.2.50-beta): 2,217
+  pytest (`lane_b` 15 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests

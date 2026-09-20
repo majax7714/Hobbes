@@ -2240,6 +2240,37 @@ key's confirmation rate is not a precision (§4): what it says here is that 381 
 sites ran and every one that ran reached the drawn target. The rule mints no symbol.
 Left in C-4: a fixture value that is not a construction, an inherited method.
 
+### 10.30 A decorator is a call of what it names — `PREREG.md` written 2026-09-20 before the first count; this section written after the regrade (ADR-146; unit `f751`)
+
+**Step 0** (`~/.hobbes/bench/py-nested-defs/`, `RESULTS.md`) set out to size Python's
+nested defs as symbols and found they already are: a direct call to one is drawn
+`semantic`. What the rows were instead: **0 of click's 2,447 edges sat on a decorator
+line and 1,652 of its 2,459 missed pairs did** — lane A's walk skipped decorator
+expressions, in no register entry (C-169). Of this repo's 642 closure misses, 590 are
+`<genexpr>` frames: the interpreter's grain, not a call anyone wrote.
+
+**Simulated first** on a scratch worktree (the walk alone, then the bare application),
+then **regraded with the unit's code** on `main` (stored key `click-py-r2`, `-poison`):
+
+| click | rows | confirmed / 4,595 | suspect | lane sites compared / disagreements |
+|---|---|---|---|---|
+| 0.2.64-beta | 2,447 | 2,136 (46.5%) | 18 | 830 / 2 |
+| simulated, call-form decorators walked | 3,463 | 2,995 (65.2%) | 18 | 859 / 2 |
+| simulated, + a bare decorator applied | 3,533 | 3,052 (66.4%) | 18 | 872 / 2 |
+| **0.2.65-beta, built** | **3,533** | **3,052 (66.4%)** | **18, the same rows** | 872 / 2, the same two |
+
+The built export is row-identical to the simulation's; 0 rows of 0.2.64-beta's lost;
+poison PASS, 0 falsely confirmed. By class: `observed→function` 750 → 15 missed,
+`observed→class` 149 → 37, `observed→method` 284 → 215; `observed→closure` 1,195
+unmoved — 728 of them the factory's inner def, which this rule does not claim. Held out,
+no trace key: flask 1,055 → 1,221 rows and attrs 1,637 → 1,757, every added row
+`semantic`, none lost, no symbol, node or module edge moved. Signed direction of fix:
+confirmed **+916**, suspect **±0**, rows lost **0**. A trace key's confirmation is not a
+precision (§4): 1,086 rows were added, 916 ran and reached the drawn target, 170 sit on
+lines the key never ran. Other languages were not regraded: the change is lane A's
+Python walk alone. The review also fixed a digest defect the unit had copied (a trailing
+comment read as the decorator's expression); no graded row moved on it.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

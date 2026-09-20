@@ -1,8 +1,8 @@
 # ADR-146 — A decorator is a call of what it names
 
-**Date:** 2026-09-20 · **Status:** accepted (Max, 2026-09-20: route a — the
+**Date:** 2026-09-20 · **Status:** accepted and **built** (0.2.65-beta, unit `f751`; Max, 2026-09-20: route a — the
 decorator walk first, the factory's inner def after it as its own ADR; "we never
-sacrifice honesty for higher recall"), to be built as one dispatched unit;
+sacrifice honesty for higher recall"), built as one dispatched unit;
 measured on a scratch worktree before anything was drawn · **Owner:** Max ·
 **Source:** the step-0 probe for C-58's Python face
 (`~/.hobbes/bench/py-nested-defs/`), which set out to make nested defs symbols
@@ -115,3 +115,15 @@ Read in the tree at `7edaa3d`:
   `identifier` / `attribute` node.
 - `pipeline/tests/test_pysource.py::TestCalls::test_decorator_expressions_do_not_pollute_calls`
   is the only test in the pipeline suite the change fails.
+
+## Built (0.2.65-beta)
+
+Unit `f751`, merged `--no-ff`. The built export on click is row-identical to the
+simulation's: 3,052 confirmed of 4,595, 18 suspect (the same rows), poison PASS, 0 rows
+lost (`oracle-grading.md` §10.30). **One defect fixed at the review:** the unit read the
+decorator's expression as the node's last child, as the digest beside it always had, and
+a trailing comment is a child — `@foo  # note` recorded nothing and `@pytest.fixture  #
+shared` had never been a fixture. `_decorator_expr` takes the first named child that is
+not a comment, at all three sites. C-169 is registered and lifted with the residuals this
+page's *What this leaves* names; the TypeScript walk takes every `CallExpression`, a
+decorator's among them (read, not measured).
