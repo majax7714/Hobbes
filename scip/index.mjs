@@ -877,6 +877,19 @@ export function packageOf(symbol) {
 const isDefinition = (occ) =>
   (occ.symbol_roles & scip.SymbolRole.Definition) !== 0
 
+/** Symbols scip-typescript wrote, which is the only scheme ADR-144's rule
+ * reads. */
+const TS_SCHEME = 'scip-typescript '
+
+/** `file` and an occurrence's range, as one key.
+ *
+ * SCIP writes a single-line range in a 3-element form (`[line, start,
+ * end]`); this spells it out, so two occurrences at one token key the same
+ * however the index wrote them. ADR-144 reads exactly that coincidence.
+ */
+const rangeKey = (file, r) =>
+  `${file}\u0000${r[0]},${r[1]},${r.length >= 4 ? r[2] : r[0]},${r.length >= 4 ? r[3] : r[2]}`
+
 /**
  * Decode an index into definitions, references, and the packages it
  * resolved against.
@@ -946,14 +959,50 @@ export function decode(index, opts = {}) {
   // order varies by run (see the doc comment above).
   const defsOf = new Map()
   const smallestLine = (a, b) => (a && a.line <= b.line ? a : b)
+  // ADR-144, scip-typescript only. `const m = require('./m'); m.f()` over
+  // `module.exports = { f }` — and `import server from './server.js';
+  // server.restart()` over `export default { start, restart }` — does not
+  // name the function at the member token. It names the *property of the
+  // exported object literal*, a `meta` descriptor no definition is kept
+  // for, so the site was filed under `external` and the function got no
+  // reference at all. The index tells the literals apart itself: another
+  // literal's `alpha` in the same file is `alpha0:`, the exported one
+  // `alpha1:`. And a shorthand is a property definition *and* a reference
+  // to the function at one range — that coincidence of exact ranges is
+  // what a shorthand is, and reading it is the whole of the rule.
+  //   `propertyDefs`: a property symbol -> a `rangeKey` per definition
+  //   occurrence of it. `refsAtRange`: a `rangeKey` -> the symbols
+  //   referenced at exactly that range.
+  // A value property (`delta: alpha`) carries its value reference at a
+  // *different* range, and a method written in the literal (`gamma() {…}`)
+  // is a `local` with no symbol at all. Neither is this rule's: refusing
+  // them is the rule, not a gap in it.
+  const propertyDefs = new Map()
+  const refsAtRange = new Map()
+  let shorthandRefs = 0
 
   for (const doc of documentsOf(index)) {
     if (!insideRepo(doc.relative_path)) continue
     for (const occ of doc.occurrences) {
       if (!occ.symbol || occ.symbol.startsWith('local ')) continue
-      if (!isDefinition(occ)) continue
+      const typescript = occ.symbol.startsWith(TS_SCHEME) // ADR-144
+      if (!isDefinition(occ)) {
+        if (typescript) {
+          const key = rangeKey(doc.relative_path, occ.range)
+          let here = refsAtRange.get(key)
+          if (!here) refsAtRange.set(key, (here = new Set()))
+          here.add(occ.symbol)
+        }
+        continue
+      }
       inRepoMonikers.add(occ.symbol)
       const kind = classify(occ.symbol)
+      if (typescript && kind === 'meta') {
+        const at = propertyDefs.get(occ.symbol)
+        const key = rangeKey(doc.relative_path, occ.range)
+        if (at) at.push(key)
+        else propertyDefs.set(occ.symbol, [key])
+      }
       if (!GRAPH_KINDS.has(kind)) continue
       const r = occ.range
       const here = {
@@ -994,6 +1043,24 @@ export function decode(index, opts = {}) {
     }
     definitions.set(symbol, def)
   }
+  // ADR-144, once `definitions` is settled: a property defined at exactly
+  // one range, where exactly one symbol that *has* a definition is
+  // referenced at that same range, is an alias of it. Two such symbols at
+  // the range, or two definition occurrences of the property, or a symbol
+  // nothing in this index defines — each of those is a shape the rule does
+  // not read, and each stays the in-repo external reference it is today.
+  const aliasOf = new Map() // a property symbol -> the symbol it names
+  for (const [symbol, ranges] of propertyDefs) {
+    if (ranges.length !== 1) continue
+    let named = null
+    let count = 0
+    for (const other of refsAtRange.get(ranges[0]) ?? []) {
+      if (!definitions.has(other)) continue
+      named = other
+      count += 1
+    }
+    if (count === 1) aliasOf.set(symbol, named)
+  }
   let tuSplit = 0
   // Sites where the references name more than one overload of one name
   // (`opts.abstainOverloadSites`, C++ only — ADR-113 §2, C-151). Every
@@ -1009,12 +1076,26 @@ export function decode(index, opts = {}) {
       if (pkgKey) packages.set(pkgKey, (packages.get(pkgKey) ?? 0) + 1)
       if (isDefinition(occ)) continue
       let target = definitions.get(occ.symbol)
+      // The moniker this occurrence is filed under. It is the occurrence's
+      // own everywhere but at a shorthand property, where ADR-144 files the
+      // reference under what the shorthand names.
+      let symbol = occ.symbol
       // C (ADR-109): file-statics of one signature in several files share
       // one scip-clang moniker. A reference from a file that defines it
       // means that file's own definition (C's static linkage); everywhere
       // else the moniker stays unattributed.
       if (!target && opts.ownFile && ambiguous.has(occ.symbol)) {
         target = byFile.get(`${occ.symbol}\u0000${doc.relative_path}`)
+      }
+      // ADR-144: a reference to a shorthand property is a reference to what
+      // the shorthand names — F's name, F's file and line, at this
+      // occurrence's own position. Both hops are the index's, by position,
+      // so what the join meets is an ordinary reference.
+      if (!target && aliasOf.has(occ.symbol)) {
+        const named = aliasOf.get(occ.symbol)
+        target = definitions.get(named)
+        symbol = named
+        shorthandRefs += 1
       }
       if (!target) {
         if (multiDefined.has(occ.symbol)) multiDefinedRefs += 1
@@ -1044,7 +1125,7 @@ export function decode(index, opts = {}) {
         // Column and name are what let the join tell two same-named
         // occurrences on one line apart (ADR-029).
         col: occ.range[1],
-        name: nameOf(occ.symbol),
+        name: nameOf(symbol),
         def_file: target.file,
         def_line: target.line,
       }
@@ -1144,6 +1225,9 @@ export function decode(index, opts = {}) {
   return {
     ...overrides,
     tu_split: tuSplit,
+    // What ADR-144's rule took: references filed under what a shorthand
+    // property names rather than under the property.
+    shorthand_refs: shorthandRefs,
     overload_sites: overloadSites.length,
     overload_examples: overloadSites.slice(0, 3),
     multi_defined: [...multiDefined].sort(),

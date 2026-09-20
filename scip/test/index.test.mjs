@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { test } from 'node:test'
+import { describe, it, test } from 'node:test'
 
 import { spawnSync } from 'node:child_process'
 import * as cfs from 'node:fs'
@@ -1613,4 +1613,184 @@ test('the helper prints nothing on stdout and refuses a config that names no fac
   } finally {
     cfs.rmSync(dir, { recursive: true, force: true })
   }
+})
+
+// --- ADR-144: a reference to a shorthand property ----------------------
+//
+// `const m = require('./m'); m.f()` over `module.exports = { f }`. At the
+// member token the index names the *property* of the exported literal, and
+// the property's one definition occurrence sits at the shorthand's token —
+// the same range that carries the reference to the function. Every shape
+// but that one stays what it is today.
+
+describe('a shorthand property is an alias of what it names (ADR-144)', () => {
+  // The fixture's shape, in scip-typescript's own moniker form: the second
+  // literal in the file is why the exported one is `alpha1:`.
+  const JS = 'scip-typescript npm minicjs 0.0.0 lib/`tools.js`/'
+  const ALPHA = `${JS}alpha().`
+  const BETA = `${JS}beta().`
+  const PROPERTY = `${JS}alpha1:`
+  const DEFINED_AT = [2, 9, 4, 1] // `function alpha() {…}`
+  const SHORTHAND = [8, 21, 8, 26] // `module.exports = { alpha }`
+  const USE = [3, 8, 3, 13] // `tools.alpha()` in test/use.js
+  const defined = { symbol: ALPHA, symbol_roles: DEF, range: DEFINED_AT }
+  const use = (symbol) => ({
+    relative_path: 'test/use.js',
+    occurrences: [{ symbol, symbol_roles: 0, range: USE }],
+  })
+
+  it('emits the reference onto the function, and no external row for it', () => {
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'lib/tools.js',
+        occurrences: [
+          defined,
+          // A shorthand is both of these, at one range.
+          { symbol: PROPERTY, symbol_roles: DEF, range: SHORTHAND },
+          { symbol: ALPHA, symbol_roles: 0, range: SHORTHAND },
+        ],
+      },
+      use(PROPERTY),
+    ]))
+    assert.deepEqual(out.references.find((r) => r.file === 'test/use.js'), {
+      file: 'test/use.js',
+      line: 4,
+      col: 8,
+      name: 'alpha', // the function's name, never the property's `alpha1`
+      def_file: 'lib/tools.js',
+      def_line: 3,
+    })
+    assert.deepEqual(out.external, [], 'nothing of this is external any more')
+    assert.equal(out.shorthand_refs, 1)
+  })
+
+  it('refuses a value property, whose value sits at another range', () => {
+    // `delta: alpha` — the reference to `alpha` is at the value token, not
+    // at the property's. Unmeasured, and so not taken (ADR-144).
+    const DELTA = `${JS}delta0:`
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'lib/tools.js',
+        occurrences: [
+          defined,
+          { symbol: DELTA, symbol_roles: DEF, range: [9, 2, 9, 7] },
+          { symbol: ALPHA, symbol_roles: 0, range: [9, 9, 9, 14] },
+        ],
+      },
+      use(DELTA),
+    ]))
+    assert.deepEqual(out.references.filter((r) => r.file === 'test/use.js'), [])
+    const [external] = out.external.filter((r) => r.file === 'test/use.js')
+    assert.deepEqual(external, {
+      file: 'test/use.js',
+      line: 4,
+      col: 8,
+      name: 'delta0',
+      package: 'npm:minicjs',
+      moniker: DELTA,
+      in_repo: true, // ADR-111: it vetoes no lane A fallback
+    })
+    assert.equal(out.shorthand_refs, 0)
+  })
+
+  it('refuses a range that names two symbols with definitions', () => {
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'lib/tools.js',
+        occurrences: [
+          defined,
+          { symbol: BETA, symbol_roles: DEF, range: [6, 9, 7, 1] },
+          { symbol: PROPERTY, symbol_roles: DEF, range: SHORTHAND },
+          { symbol: ALPHA, symbol_roles: 0, range: SHORTHAND },
+          { symbol: BETA, symbol_roles: 0, range: SHORTHAND },
+        ],
+      },
+      use(PROPERTY),
+    ]))
+    assert.deepEqual(out.references.filter((r) => r.file === 'test/use.js'), [])
+    assert.equal(out.external.filter((r) => r.file === 'test/use.js').length, 1)
+    assert.equal(out.shorthand_refs, 0)
+  })
+
+  it('refuses a property with more than one definition occurrence', () => {
+    const AGAIN = [11, 4, 11, 9]
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'lib/tools.js',
+        occurrences: [
+          defined,
+          { symbol: PROPERTY, symbol_roles: DEF, range: SHORTHAND },
+          { symbol: ALPHA, symbol_roles: 0, range: SHORTHAND },
+          { symbol: PROPERTY, symbol_roles: DEF, range: AGAIN },
+          { symbol: ALPHA, symbol_roles: 0, range: AGAIN },
+        ],
+      },
+      use(PROPERTY),
+    ]))
+    assert.deepEqual(out.references.filter((r) => r.file === 'test/use.js'), [])
+    assert.equal(out.external.filter((r) => r.file === 'test/use.js').length, 1)
+    assert.equal(out.shorthand_refs, 0)
+  })
+
+  it('refuses a shorthand naming something this index does not define', () => {
+    // `module.exports = { map }` over an imported `map`: the range's other
+    // symbol is a package's, with no definition here to point at.
+    const LODASH = 'scip-typescript npm lodash 4.17.21 `index.d.ts`/map().'
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'lib/tools.js',
+        occurrences: [
+          { symbol: PROPERTY, symbol_roles: DEF, range: SHORTHAND },
+          { symbol: LODASH, symbol_roles: 0, range: SHORTHAND },
+        ],
+      },
+      use(PROPERTY),
+    ]))
+    assert.deepEqual(out.references, [])
+    assert.equal(out.external.filter((r) => r.file === 'test/use.js').length, 1)
+    assert.equal(out.shorthand_refs, 0)
+  })
+
+  it('reads no scheme but scip-typescript, whatever the descriptor', () => {
+    // scip-python writes `:` descriptors too (`__init__:`). The rule was
+    // measured on scip-typescript's literals and reaches no further.
+    const out = decode(fakeIndex([
+      {
+        relative_path: 'src/a.py',
+        occurrences: [
+          { symbol: `${PY}/run().`, symbol_roles: DEF, range: [4, 0, 8, 0] },
+          { symbol: `${PY}/__init__:`, symbol_roles: DEF, range: [1, 0, 1, 3] },
+          { symbol: `${PY}/run().`, symbol_roles: 0, range: [1, 0, 1, 3] },
+        ],
+      },
+      {
+        relative_path: 'src/b.py',
+        occurrences: [{ symbol: `${PY}/__init__:`, symbol_roles: 0, range: [2, 4, 2, 7] }],
+      },
+    ]))
+    assert.deepEqual(out.references.filter((r) => r.file === 'src/b.py'), [])
+    assert.equal(out.external.filter((r) => r.file === 'src/b.py').length, 1)
+    assert.equal(out.shorthand_refs, 0)
+  })
+
+  it('leaves an ordinary reference and an ordinary external as they were', () => {
+    const REACT = 'scip-typescript npm react 18.2.0 `index.d.ts`/useState().'
+    const out = decode(fakeIndex([
+      { relative_path: 'lib/tools.js', occurrences: [defined] },
+      {
+        relative_path: 'test/use.js',
+        occurrences: [
+          { symbol: ALPHA, symbol_roles: 0, range: USE },
+          { symbol: REACT, symbol_roles: 0, range: [5, 2, 5, 10] },
+        ],
+      },
+    ]))
+    assert.deepEqual(out.references, [
+      { file: 'test/use.js', line: 4, col: 8, name: 'alpha', def_file: 'lib/tools.js', def_line: 3 },
+    ])
+    assert.equal(out.external.length, 1)
+    assert.equal(out.external[0].moniker, REACT)
+    assert.equal(out.external[0].in_repo, undefined)
+    assert.equal(out.shorthand_refs, 0)
+  })
 })
