@@ -106,6 +106,23 @@ class Symbol:
     #: the fixture lookup, where a base class's fixture is inherited —
     #: abstains when this is not zero (ADR-137).
     bases: int = 0
+    #: What a function or method constructs and hands back, as the written
+    #: name and the line it is written on, or ``None`` (ADR-145). Set only
+    #: where the definition's own body holds exactly one ``return`` /
+    #: ``yield`` carrying a value and that value is ``C(…)`` — a call on a
+    #: bare name. A construction fixes the runtime class exactly, which is
+    #: the whole of the claim a reader may make from it; ``return x``,
+    #: ``return a.b()``, ``yield from …`` and a second valued return are
+    #: each ``None``, and so is a bare ``return``, which carries no value.
+    value: tuple[str, int] | None = None
+    #: The parameter names the definition's own body binds again, sorted
+    #: (ADR-145): by assignment (plain, augmented, annotated with a value,
+    #: walrus), a ``for`` / ``with`` / ``except`` / ``import`` target,
+    #: ``del``, ``global`` or ``nonlocal``. A reader that takes a parameter
+    #: to still hold what was passed in — the fixture value rule — has to
+    #: know when it does not. Own body only: a nested ``def``'s assignment
+    #: binds in that def, not here.
+    rebound: tuple[str, ...] = ()
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -443,6 +460,123 @@ def _parameters(node: Node) -> tuple[tuple[str, int], ...]:
     return tuple(out)
 
 
+def _own_body(node: Node):
+    """Every node inside a definition's own body, stopping at a nested
+    ``def``, ``class`` or ``lambda`` (ADR-145).
+
+    What the definition itself runs, in other words: a ``return`` written
+    in a nested function is that function's, and an assignment written
+    there binds in that function's scope. The same containment question
+    :func:`_collect_local_bindings` answers per binding, asked once per
+    definition.
+    """
+    body = node.child_by_field_name("body")
+    if body is None:
+        return
+    stack = list(body.children)
+    while stack:
+        current = stack.pop()
+        if current.type in ("function_definition", "class_definition", "lambda"):
+            continue
+        yield current
+        stack.extend(current.children)
+
+
+def _returned_value(node: Node) -> tuple[str, int] | None:
+    """The class a definition constructs and hands back (ADR-145).
+
+    Exactly one ``return`` or ``yield`` in the own body may carry a value,
+    and that value must be a call on a bare name: ``return CliRunner()``
+    names ``CliRunner``. Anything else is None, because anything else
+    leaves the runtime class of what comes back open — ``return x`` says
+    nothing, ``return a.b()`` is a call on a value, ``yield from g()``
+    delegates, and two valued exits mean the fixture chooses.
+    """
+    values: list[Node | None] = []
+    for current in _own_body(node):
+        if current.type == "return_statement":
+            if current.named_children:
+                values.append(current.named_children[0])
+        elif current.type == "yield":
+            if any(child.type == "from" for child in current.children):
+                # `yield from g()` hands back what `g()` yields, never a
+                # `g`: a valued exit this rule cannot read.
+                values.append(None)
+            elif current.named_children:
+                values.append(current.named_children[0])
+    if len(values) != 1 or values[0] is None:
+        return None
+    value = values[0]
+    if value.type != "call":
+        return None
+    function = value.child_by_field_name("function")
+    if function is None or function.type != "identifier":
+        return None
+    return _text(function), _line(function)
+
+
+def _import_binding(node: Node) -> str | None:
+    """The bare name one import clause binds: the alias where it renames,
+    else the first component (``import a.b`` binds ``a``)."""
+    if node.type == "aliased_import":
+        alias = node.child_by_field_name("alias")
+        return _text(alias) if alias is not None else None
+    if node.type == "dotted_name" and node.named_children:
+        return _text(node.named_children[0])
+    return None
+
+
+def _rebound(node: Node, params: tuple[tuple[str, int], ...]) -> tuple[str, ...]:
+    """Which of *params* the definition's own body binds again (ADR-145).
+
+    Every form that rebinds a bare name: assignment and augmented
+    assignment, an annotation *with* a value (``x: int`` alone binds
+    nothing), a walrus, a ``for`` / ``with`` / ``except`` target, an
+    import, ``del``, ``global`` and ``nonlocal``. Attribute and subscript
+    targets bind no name, so ``p.x = 1`` is not a rebinding of ``p``.
+    """
+    names = {name for name, _ in params}
+    if not names:
+        return ()
+    bound: set[str] = set()
+
+    def take(target: Node) -> None:
+        for ident in _target_identifiers(target):
+            bound.add(_text(ident))
+
+    for current in _own_body(node):
+        kind = current.type
+        if kind == "assignment" and current.child_by_field_name("right") is None:
+            continue  # `x: int` declares a type and binds nothing
+        if kind in ("assignment", "augmented_assignment", "for_statement"):
+            left = current.child_by_field_name("left")
+            if left is not None:
+                take(left)
+        elif kind == "named_expression":
+            name = current.child_by_field_name("name")
+            if name is not None and name.type == "identifier":
+                bound.add(_text(name))
+        elif kind == "as_pattern":  # `with … as f`, `except E as e`
+            alias = current.child_by_field_name("alias")
+            if alias is not None:
+                take(alias)
+                if alias.type == "as_pattern_target":
+                    for child in alias.named_children:
+                        take(child)
+        elif kind in ("delete_statement", "global_statement", "nonlocal_statement"):
+            for child in current.named_children:
+                take(child)
+        elif kind in ("import_statement", "import_from_statement"):
+            clauses = (
+                current.named_children
+                if kind == "import_statement"
+                else current.children_by_field_name("name")
+            )
+            for clause in clauses:
+                bound.add(_import_binding(clause) or "")
+    return tuple(sorted(bound & names))
+
+
 def _parametrize_names(node: Node) -> tuple[str, ...] | None:
     """The argument names one ``parametrize`` decorator binds, in either
     spelling — ``"a, b"`` or ``["a", "b"]`` / ``("a", "b")`` — or None when
@@ -572,6 +706,8 @@ def _walk(
             symbol_kind = "method"
         else:
             symbol_kind = "function"
+        params = _parameters(node)
+        is_function = kind == "function_definition"
         parsed.symbols.append(
             Symbol(
                 qualname=qualname,
@@ -580,9 +716,13 @@ def _walk(
                 line=_line(node),
                 end_line=node.end_point.row + 1,
                 decorators=pending_decorators,
-                params=_parameters(node),
+                params=params,
                 parametrized=pending_parametrized,
                 bases=_base_count(node) if kind == "class_definition" else 0,
+                # A class body returns nothing and rebinds no parameter,
+                # having none: both facts are a function's (ADR-145).
+                value=_returned_value(node) if is_function else None,
+                rebound=_rebound(node, params) if is_function else (),
             )
         )
         body = node.child_by_field_name("body")

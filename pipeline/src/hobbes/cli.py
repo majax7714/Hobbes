@@ -276,6 +276,12 @@ def _print_fixtures(counts: dict | None) -> None:
     repo with no ``pytestmark`` should not read as having ignored one.
     Nothing is printed where the block is absent — no fixture defined
     and no parameter looked up is silence, exactly as it was (P6).
+
+    The calls drawn on the value a fixture constructs (ADR-145) are said
+    with the rest, and only where some ``p.m(…)`` on an injected
+    parameter was looked at: they are ``calls`` edges rather than
+    injections, and how many the rule declined is the size of what a
+    construction did not settle.
     """
     if not counts:
         return
@@ -306,6 +312,16 @@ def _print_fixtures(counts: dict | None) -> None:
         rest.append(
             f"{abstained['base-class']} left undrawn in a class that names a base "
             "class, whose own fixture would win"
+        )
+    value_calls = counts.get("value_calls")
+    if value_calls:
+        # ADR-145, said where a site was looked at: these are `calls`
+        # edges, not injections, so they belong beside the clause above
+        # rather than inside its count.
+        refused = sum(value_calls.get("refused", {}).values())
+        rest.append(
+            f"{value_calls.get('drawn', 0)} call(s) drawn on the value a fixture "
+            f"constructs and {refused} refused (ADR-145)"
         )
     unread = counts.get("unread", {})
     if unread.get("pytestmark"):

@@ -641,7 +641,27 @@ def _build_symbol_layer(
     # stays the only producer of *joined* edges (ADR-031).
     with timings.step("fixtures"):
         drawn, fixture_counts = fixtures.injections(modules, parsed)
-    _add_injection_edges(graph, drawn)
+        _add_injection_edges(graph, drawn)
+        # ADR-145, appended after the projection for the same reason and
+        # one more: where a fixture's body is a single `return C(…)`, a
+        # `p.m(…)` on the injected parameter is a call on `C.m` — but the
+        # index emits *nothing* at `m` (scip-python does not type an
+        # unannotated parameter), so there is no occurrence for the join
+        # to match and no joined edge to wait for. The two hops it does
+        # draw — the injection above and the `semantic` edge from the
+        # fixture to the class it constructs — are read off the settled
+        # graph here. A pair the graph already carries a `calls` edge for
+        # is left alone: the join's edge stands, and the rule counts its
+        # own abstention. Resolution coverage is deliberately not moved
+        # (ADR-145, *What this leaves*): the join did not resolve the
+        # site, the file's tail still counts it `attr-call`, and the
+        # percentage stays a floor.
+        value_rows, value_counts = fixtures.value_calls(
+            modules, parsed, drawn, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_value_call_edges(graph, value_rows)
+        if value_counts:
+            fixture_counts["value_calls"] = value_counts
     if fixture_counts:
         # Additive, and absent on a repo that defines no fixture and looks
         # no parameter up, as `operators` and `constructions` are.
@@ -829,6 +849,44 @@ def _add_injection_edges(graph: dict, drawn: list[dict]) -> None:
                 [
                     {"path": path, "line": line, "via": via}
                     for path, line, via in sorted(evidence)
+                ],
+                tier=SYNTACTIC,
+                lane=LANE_TREE_SITTER,
+            )
+            for (source, target), evidence in sorted(sightings.items())
+        ],
+        key=_edge_order,
+    )
+
+
+def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
+    """Draw each call on the value a fixture constructs as one ``calls``
+    edge (ADR-145), evidence at every site that made it.
+
+    The same shape as :func:`_add_injection_edges`: an end the symbol
+    layer does not carry is dropped rather than drawn to nothing, the
+    sightings merge per ``(from, to)``, and the list is re-sorted by the
+    projection's own key. The tier is ``syntactic`` — the chain is read
+    from the tree and from one semantic edge, which is not the same as
+    the index having answered at the call.
+    """
+    ids = {symbol["id"] for symbol in graph["symbols"]}
+    sightings: dict[tuple[str, str], set] = defaultdict(set)
+    for call in drawn:
+        if call["from"] in ids and call["to"] in ids:
+            sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
+    if not sightings:
+        return
+    graph["symbol_edges"] = sorted(
+        graph["symbol_edges"]
+        + [
+            tiered_edge(
+                source,
+                target,
+                "calls",
+                [
+                    {"path": path, "line": line, "via": fixtures.FIXTURE_VALUE}
+                    for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,
                 lane=LANE_TREE_SITTER,
