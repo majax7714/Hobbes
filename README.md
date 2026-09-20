@@ -363,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.61-beta** (2026-09-20). The Hobbes layer is versioned from here
+**Hobbes 0.2.62-beta** (2026-09-20). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -444,7 +444,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and sixty-four session logs stand. The
+dispatched on 2026-09-12, and sixty-five session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -473,7 +473,9 @@ CommonJS re-export followed by lane A (ADR-141: Express's recall 22.4% →
 where the index names the constructor (ADR-142: xmpp.js's recall 66.4% →
 81.2%), and a renamed callee matched at its own column where both lanes
 name one definition (ADR-143: 134 tiers raised on seven cells, no row
-moved).
+moved), and a reference to a shorthand property read as a reference to
+what the shorthand names (ADR-144: cue's recall 54.3% → 61.8%, xmpp.js's
+81.2% → 84.6%, at no contradiction).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 
@@ -488,7 +490,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-143 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-144 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.61-beta on `main`.**
+**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.62-beta on `main`.**
 Max pushed through the eighth session's release commit (`9897399`); what
 the ninth session adds is on `main`, unpushed. The image and the proxy
-are at 0.2.61-beta and this repo is ingested at that release. A new
+are at 0.2.62-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.61-beta are untagged. Tags stay Max's call each time.
+  0.2.62-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -30,11 +30,11 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Where JavaScript stands (ADR-140 to ADR-143; §10.27, 0.2.61-beta).**
-Five graded repos (`oracle-grading.md` §10.22–§10.27): Express
+**Where JavaScript stands (ADR-140 to ADR-144; §10.28, 0.2.62-beta).**
+Five graded repos (`oracle-grading.md` §10.22–§10.28): Express
 **998/998** (recall 65.7%), Preact **2,447/2,447** (28.6%), xmpp.js
-**676/676** (81.2%), cypress-io/github-action **154/154** (89.0%),
-Blueturboguy07/cue **881/881** (54.3%) — 100%
+**705/705** (84.6%), cypress-io/github-action **154/154** (89.0%),
+Blueturboguy07/cue **1,005/1,005** (61.8%) — 100%
 precision each, 0 contradicted, poison PASS. **Max's three JavaScript
 constraints are done:** C-167 (ADR-141), C-168 (ADR-142), and C-165 —
 the provisioned cell was drawn and graded with its tree and without, the
@@ -88,11 +88,18 @@ their tree: a thin one and cue (881 rows, identical without it). Drivers: `~/.ho
   lockfile-bearing candidates. Drivers: `c165/DRAW-RULE-2.md`,
   `walk2.sh` (resumes at `walk2.sh 41`), `RESULTS-2.md`, `withheld-cue/`,
   `../cells/cue-{provisioned,withheld}/`.
-- **Seen on cue, not traced — the next JavaScript recall read:** 176
-  misses are a call through `const m = require('../src/m')` to a member
-  of `module.exports = { a, b, c() {…} }`; 674 of 801 function pairs are
-  drawn, so find what separates the drawn from the missed before
-  anything is proposed (C-167's and C-9's neighbourhood).
+- **Done (ADR-144, 0.2.62-beta, unit `12ad`, 53 turns, $3.53):** cue's
+  untraced shape. `m.f()` on a namespace `require` over `module.exports =
+  { f }`: the index names the literal's *property* at the site and the
+  function at that property's one range, so the helper's decode files
+  the reference under the function. cue 1,005/1,005 (61.8%), xmpp.js
+  705/705 (84.6%), fourteen other cells row-identical (§10.28). Left,
+  refused and unmeasured: a value property (`delta: alpha`); no symbol
+  at all: a member written *in* a literal (cue 49, C-9/C-58). Drivers
+  `~/.hobbes/bench/cjs-namespace/` (`classify.py`, `inrepo_ext.py`,
+  `mini/` with a raw-SCIP `dump.mjs`, `PREREG-sim.md`, `sim.sh`,
+  `real.sh`, `lang-regrade.sh` + `lang-cells.tsv`, `sim/`, `real/`,
+  `lang/`, `units/`; its worktree was removed).
 
 **Candidates after the JavaScript constraints, each measured first**
 (none started): C-4's last parts — the injected value's type is lane
@@ -137,6 +144,9 @@ paragraph cells as per-language pages (Max: "dont split for now").
   the fault was the brief's. Spell a new fixture's files out, one path
   per line. `not-code` files (a `package.json`) pass on the `reach`
   rule; code files do not.
+- **An in-repo `external_ref` is the index speaking, not silence.** Its
+  moniker says what was named; ADR-144's whole shape sat there unread.
+  `inrepo_ext.py` groups them by descriptor — run it on a new cell.
 - **Ask what the index emits at a token before counting a shape as a
   rule's** — a ten-line fixture indexed in the image answered `super`
   and JSX in a minute (`c168-remainder/mini/`, with a `dump.mjs` over
@@ -295,7 +305,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 64 of 40, 4
+   - **The validating 40 are done:** the tracker reads 65 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -366,7 +376,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-four log files under `docs/calvin/sessions/`; the tracker reads 64 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty-five log files under `docs/calvin/sessions/`; the tracker reads 65 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -379,11 +389,11 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.61-beta (2026-09-20; pytest and every `lane_b` test
+- **Suites** at 0.2.62-beta (2026-09-20; pytest, the scip node suite and every `lane_b` test
   re-run and green on the host, Go `./...` as at 0.2.59-beta, the rest as
-  counted at 0.2.50-beta): 2,144
-  pytest (`lane_b` 12 of them), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 87 scip node, 47 tsextract, 52 vitest,
+  counted at 0.2.50-beta): 2,146
+  pytest (`lane_b` 13 of them), Go `./...` 399 with
+  subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-16).

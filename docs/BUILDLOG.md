@@ -13813,3 +13813,33 @@ HISTORY, the comparative data at 95 cells with its tables and graphics
 regenerated (`render.py check` green). **Seen, not traced:** 176 of cue's misses
 are a member of a `module.exports = { … }` literal called through `require`; in
 the handoff as the next JavaScript recall read.
+
+**cue's untraced shape, read, and ADR-144 (Max: "good to take the read"; then
+route a; then, on the tier, "yes go with semantic").** `classify.py` over the 176
+misses: 122 are `m.f()` on `const m = require('./m')` whose target *is* a function
+symbol; 49 are members written in a literal, no symbol; 5 others. The separator is
+the binding — the destructured form was drawn all along. The facts showed why:
+the site is an **in-repo `external_ref`** whose moniker is the exported literal's
+property (`loadBuildConfig0:`). Modelled as the rule fires, unfiltered by the key:
+cue 124 and xmpp.js 29 (`export default { … }`), all confirmed. The first framing
+had lane A read the exporting file, and Max kept it `syntactic` on that. **Then a
+fixture read raw in the image changed the premise:** the index tells a file's
+literals apart (`alpha0:`/`alpha1:`) and puts the property's one definition and a
+reference to the function at one exact range — both hops its own, lane A reading
+nothing. `PREREG-sim.md` first; a scratch worktree's helper, never merged; nine
+cells: cue +124, xmpp.js +29, seven unchanged, 0 contradicted, poison PASS, rows
+`semantic` of themselves. P5 was wrong about *where* the new `uses` sit (the
+destructuring `require` line, as an ESM import line's). The tier went back to Max
+with the changed premise: `semantic`. ADR-144 accepted with its code facts.
+
+**Unit `12ad`:** 53 turns of 140, $3.53, five files at file grain, gate clear,
+verify pass, **right-clear**. On the host: node 94, pytest 2,146, thirteen `lane_b`
+(the new `minicjs` case's first run); the nine cells regraded with the unit's
+code, **each row-identical to its simulation, tiers included**; `lang-regrade.sh`
+over cJSON, click, jsoup, memchr, fzf, fmt, args — row-identical pre/post, the
+index re-run (cache 0 hit, checked in the log, since the first timings looked like
+hits). Merged `--no-ff` (`9f8dff9`). **0.2.62-beta:** §10.28, the cue and xmpp.js
+records' regrade blocks, the architecture's paragraph and §3.8's row, the ADR's
+*Built*, README, CHANGELOG, the comparative data regenerated, the tracker at 65
+of 40. Nothing registered: the shape was never an entry, and what is left of it
+(a value property; a literal's own method) is refused or C-9/C-58's.

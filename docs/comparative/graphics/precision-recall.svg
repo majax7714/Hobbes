@@ -578,13 +578,13 @@ its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), reg
 <text x="833.8" y="130.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >preact (ESM, JSDoc, JSX)</text>
 <g>
 <title>cue — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-20
-precision-against-oracle 881/881 = 100.0%
-recall 892/1,644 = 54.3% over every resolved site (resolution oracle: no roots)
-misses by class: static→closure 521, static→function 127, static→method 49, func-value→local-binding 30, func-value→parameter 23, static→anonymous-function 2
-graded with its dependency tree (276 packages); its 881 rows are the same without it (C-165)</title>
-<circle cx="902.9" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+precision-against-oracle 1,005/1,005 = 100.0%
+recall 1,016/1,644 = 61.8% over every resolved site (resolution oracle: no roots)
+misses by class: static→closure 521, static→method 49, func-value→local-binding 30, func-value→parameter 23, static→function 3, static→anonymous-function 2
+graded with its dependency tree (276 packages); at 0.2.60-beta its 881 rows were the same without it (C-165)</title>
+<circle cx="925.4" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="910.9" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue</text>
+<text x="933.4" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >cue</text>
 <g>
 <title>express (CommonJS) — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
 precision-against-oracle 998/998 = 100.0%
@@ -596,13 +596,13 @@ no dependency tree (C-165); the tests' express() through a CommonJS re-export dr
 <text x="945.1" y="130.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >express (CommonJS)</text>
 <g>
 <title>xmpp.js — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-19
-precision-against-oracle 676/676 = 100.0%
-recall 682/840 = 81.2% over every resolved site (resolution oracle: no roots)
-misses by class: func-value→parameter 64, static→closure 42, static→function 29, func-value→local-binding 18, static→class 3, static→method 2
+precision-against-oracle 705/705 = 100.0%
+recall 711/840 = 84.6% over every resolved site (resolution oracle: no roots)
+misses by class: func-value→parameter 64, static→closure 42, func-value→local-binding 18, static→class 3, static→method 2
 its lockfile refused by npm ci: no dependency tree (C-165)</title>
-<circle cx="983.6" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
+<circle cx="993.8" cy="106.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"/>
 </g>
-<text x="991.6" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
+<text x="1001.8" y="150.0" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >xmpp.js</text>
 <g>
 <title>cypress github-action — JavaScript, tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution), contained, 2026-09-20
 precision-against-oracle 154/154 = 100.0%

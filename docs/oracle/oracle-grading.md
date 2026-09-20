@@ -2178,6 +2178,40 @@ eight lockfile-bearing JavaScript candidates the two walks met.
 (674 of the 801 function pairs *are* drawn, so the shape is met and not always).
 A recall read for a later session. Record: `cells/cue-js-2026-09-20.md`.
 
+### 10.28 A shorthand property names what it names — written 2026-09-20, before any cell was re-ingested (ADR-144; unit `12ad`)
+
+**Step 0** (`~/.hobbes/bench/cjs-namespace/`, `RESULTS.md`): §10.27's 176 untraced
+misses on cue. 122 are `m.f()` on `const m = require('./m')` over `module.exports
+= { f }`; what separates them from the drawn `const { f } = require(…); f()` is the
+binding. At the member token scip-typescript names the exported literal's
+**property** (`` src/`publik.js`/loadBuildConfig0: ``), a `meta` symbol the helper
+kept no definition for, so the site was an in-repo `external_ref` and the function
+got no reference. Modelled as the rule fires, unfiltered by the key: cue 124 and
+xmpp.js 29 (`export default { … }`), all confirmed.
+
+**The index, read raw in the image (`mini/`):** the literals are told apart
+(`alpha0:` / `alpha1:`), and the property's one definition occurrence shares its
+**exact range** with a reference to the function. A value property's reference is
+at another range; a literal's method is a `local`.
+
+**Simulated first** (`PREREG-sim.md`; a scratch worktree's helper, never merged),
+then **regraded with the unit's code — every cell row-identical to its
+simulation, tiers included:**
+
+| cell | rows | added | contradicted | lost / re-tiered | recall |
+|---|---|---|---|---|---|
+| cue | 881 → 1,005 | 124 confirmed, `semantic` | 0 | 0 / 0 | 54.3% → **61.8%** (1,016/1,644) |
+| xmpp.js | 676 → 705 | 29 confirmed, `semantic` | 0 | 0 / 0 | 81.2% → **84.6%** (711/840) |
+| Express, github-action, Preact, ajv, cheerio, hono, zod | unchanged | 0 | 0 | 0 / 0 | unchanged |
+
+Poison PASS on all nine. P1–P4 and P6 met. **P5 was wrong about where:** the new
+`uses` edges (cue 114, github-action 2) sit at the *destructuring* `require` line,
+whose pattern names the same properties — what an ESM import line already draws —
+not at a value passed. Other languages (`lang-regrade.sh`, pre/post, the index
+re-run: cache 0 hit): cJSON, click, jsoup, memchr, fzf, fmt, args **row-identical,
+no tier moved**. Left: a value property (`delta: alpha`), refused and unmeasured;
+a member written in a literal, no symbol (C-9/C-58; cue 49).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

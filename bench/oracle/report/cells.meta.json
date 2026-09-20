@@ -582,6 +582,6 @@
   "run": "contained",
   "draw": "random",
   "label": "cue",
-  "note": "graded with its dependency tree (276 packages); its 881 rows are the same without it (C-165)"
+  "note": "graded with its dependency tree (276 packages); at 0.2.60-beta its 881 rows were the same without it (C-165)"
  }
 }

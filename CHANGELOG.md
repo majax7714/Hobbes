@@ -11,9 +11,37 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.61-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.62-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.62-beta — 2026-09-20 (a reference to a shorthand property is a reference to what the shorthand names; ADR-144)
+
+**Patch: what the layer draws** — a rule in the helper's decode, scip-typescript
+only. Built as unit `S-20260920T180832Z-12ad`.
+
+- **The silence.** `const { f } = require('./m'); f()` was drawn; `const m =
+  require('./m'); m.f()` was not, and neither was `server.restart()` over
+  `export default { start, restart }`. At the member token the index names the
+  exported literal's *property*, a symbol the helper kept no definition for, so
+  the site was filed as an in-repo external reference and the function got no
+  reference at all. Found on the cue cell (§10.27): 124 of its misses.
+- **The rule.** The index tells a file's literals apart itself, and a shorthand
+  is a property definition and a reference to the function at **one exact
+  range**. A property with exactly one definition occurrence, at whose range
+  exactly one defined symbol is referenced, is an alias of it; a reference to
+  the property is filed as a reference to that symbol. Both hops are the
+  index's, so the edge is `semantic`. Refused: a value property (`delta:
+  alpha`), a method written in the literal, a property defined twice, a
+  shorthand naming something the index does not define.
+- **Regraded, stored keys, `-poison`** (`oracle-grading.md` §10.28), each cell
+  row-identical to the simulation run before the dispatch: **cue 881 → 1,005
+  confirmed, recall 54.3% → 61.8%; xmpp.js 676 → 705, 81.2% → 84.6%; 0
+  contradicted, no row lost, no tier moved.** Express, github-action, Preact,
+  ajv, cheerio, hono, zod: unchanged. cJSON, click, jsoup, memchr, fzf, fmt,
+  args: row-identical before and after.
+- New `uses` edges sit at a destructuring `require` line, whose pattern names
+  the same properties (cue 114) — what an ESM import line already draws.
 
 ## 0.2.61-beta — 2026-09-20 (a fifth JavaScript cell, the first of a size graded with its dependency tree; the `javascript` verification row reads five repos)
 

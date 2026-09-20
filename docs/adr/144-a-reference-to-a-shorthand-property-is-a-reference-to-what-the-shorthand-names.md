@@ -1,6 +1,6 @@
 # ADR-144 — A reference to a shorthand property is a reference to what the shorthand names
 
-**Date:** 2026-09-20 · **Status:** accepted (Max, 2026-09-20: the tier is
+**Date:** 2026-09-20 · **Status:** accepted and **built** (0.2.62-beta, unit `12ad`; Max, 2026-09-20: the tier is
 **`semantic`**, route (a) of *The open line*), to be built as one dispatched
 unit; measured, probed in the image and simulated on nine cells before anything
 was drawn · **Owner:** Max ·
@@ -99,3 +99,16 @@ a descriptor ending `:` as `meta`; the index cache keys on `index.mjs`'s content
 (`indexcache.py`), so a changed helper misses it and the facts schema — hence
 `HELPER_VERSION` — does not move; `minicjs` is read by
 `test_tsjs_reexport.py` alone.
+
+## Built (2026-09-20, 0.2.62-beta)
+
+Unit `S-20260920T180832Z-12ad`: 53 turns of 140, $3.53, five files, all the
+partition's; gate clear, verify pass. The rule is in `decode` alone, with a
+`rangeKey` that spells SCIP's three-element range out so two occurrences at one
+token key the same. `decode` returns `shorthand_refs`; it does not reach the
+facts header, which forwards an enumerated list — left so, the doer's call and
+the right one for a unit scoped to `decode`. On the host: node 94, pytest 2,146,
+thirteen `lane_b` (the new `minicjs` case against a real index). **Nine TS/JS
+cells regraded, each row-identical to its simulation, tiers included; seven
+other-language cells row-identical pre/post** (`oracle-grading.md` §10.28).
+

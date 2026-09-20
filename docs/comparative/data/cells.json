@@ -1437,9 +1437,9 @@
    "run": "contained",
    "draw": "random",
    "label": "cue",
-   "note": "graded with its dependency tree (276 packages); its 881 rows are the same without it (C-165)",
-   "edges": 881,
-   "confirmed": 881,
+   "note": "graded with its dependency tree (276 packages); at 0.2.60-beta its 881 rows were the same without it (C-165)",
+   "edges": 1005,
+   "confirmed": 1005,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -1448,12 +1448,12 @@
    "silent_by": {},
    "precision": {
     "pct": 100.0,
-    "num": 881,
-    "den": 881
+    "num": 1005,
+    "den": 1005
    },
    "recall": {
-    "pct": 54.3,
-    "hits": 892,
+    "pct": 61.8,
+    "hits": 1016,
     "pairs": 1644,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -1463,13 +1463,13 @@
     "func-value→parameter": 23,
     "static→anonymous-function": 2,
     "static→closure": 521,
-    "static→function": 127,
+    "static→function": 3,
     "static→method": 49
    },
    "poison": {
     "passed": true,
-    "seeded": 881,
-    "refused": 863,
+    "seeded": 1005,
+    "refused": 987,
     "unjudged": 18,
     "falsely": 0
    }
@@ -4393,8 +4393,8 @@
    "draw": "random",
    "label": "xmpp.js",
    "note": "its lockfile refused by npm ci: no dependency tree (C-165)",
-   "edges": 676,
-   "confirmed": 676,
+   "edges": 705,
+   "confirmed": 705,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -4403,12 +4403,12 @@
    "silent_by": {},
    "precision": {
     "pct": 100.0,
-    "num": 676,
-    "den": 676
+    "num": 705,
+    "den": 705
    },
    "recall": {
-    "pct": 81.2,
-    "hits": 682,
+    "pct": 84.6,
+    "hits": 711,
     "pairs": 840,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -4418,13 +4418,12 @@
     "func-value→parameter": 64,
     "static→class": 3,
     "static→closure": 42,
-    "static→function": 29,
     "static→method": 2
    },
    "poison": {
     "passed": true,
-    "seeded": 676,
-    "refused": 474,
+    "seeded": 705,
+    "refused": 503,
     "unjudged": 202,
     "falsely": 0
    }
