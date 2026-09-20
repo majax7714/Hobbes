@@ -177,3 +177,40 @@ are the developer's commit.
   the rule adds no node.
 - **Left in C-4:** the returned value's type, a module `pytestmark`, a
   non-literal `autouse=`, and the abstentions.
+
+## Amendment (2026-09-20, proposed) — a module-level `pytestmark` has a key row now
+
+Narrowing 1 of *Built* stood on one fact: none of the three repos had a module
+`pytestmark` with `usefixtures`, so no key row had judged it. A repo was drawn
+for it, the rule stated first (`~/.hobbes/bench/c4-pytestmark/`: `DRAW-RULE.md`,
+`DRAW-RULE-2.md` after the first walk ended empty, `draw-log.md`, `RESULTS.md`).
+
+- **The draw.** GitHub code search, 71 repos, shuffled by seed. Walk 1 took
+  none: the hits are pytest's own suite writing the line into a string (and 30
+  copies of it), GDAL's one real use (no binary wheel) and its vendored copies,
+  docstrings, rpm specs. Walk 2 read the clone with `ast` instead of the search's
+  first hit: **MissyLabs/missy @ `223dbe8`**, position 32 — 18 test files, each
+  `pytestmark = pytest.mark.usefixtures("deterministic_public_dns")`, the fixture
+  in the root `conftest.py`. Passed on the way: tractor (its fixtures are a
+  `pytest_plugins` module's, `not-in-repo`), cadrumo (706 marked files; needs
+  Python 3.13, the image has 3.12).
+- **The key.** `pytest --fixtures-per-test -v tests` in the image, no network,
+  the clone read-only: 23,480 tests, no collection error.
+- **The result** (`probe.py`'s rule: every test of the module requests the
+  mark's strings, looked up exactly as a `usefixtures` string is):
+
+  | | pairs right | wrong | missed, in-repo |
+  |---|---|---|---|
+  | 0.2.62-beta as built | 34,505 | 0 | 1,265 — all the `pytestmark`'s fixture |
+  | + the rule | 35,770 | 0 | 0 |
+
+  P1–P4 held. It is also a fourth held-out repo for ADR-137 and this ADR as
+  built: 0 wrong of 34,505.
+- **A mistake, caught:** the first collection passed `-v -q`, which cancel, and
+  pytest hid an autouse `_…` fixture — 26,474 pairs read "wrong". `-v` alone.
+- **Proposed:** lift narrowing 1. A plain module-level assignment of one mark or
+  a list/tuple of marks; its `usefixtures` string arguments are requested by
+  every test in the module, `via: usefixtures`, evidence at the mark's line,
+  after the test's own and its classes' marks (one pair, one via). A non-string
+  argument and a `pytestmark` that is not a plain assignment stay counted, not
+  followed. A class-body `pytestmark` is not read (no key row has one).
