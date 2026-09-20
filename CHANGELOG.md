@@ -11,9 +11,38 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.58-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.59-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.59-beta — 2026-09-20 (a call whose site name is not its definition's is matched at its own column, where both lanes name one definition; ADR-143)
+
+**Patch: what the layer says about an edge it already drew** — a rule added
+to the join, every language's. Built as unit `S-20260920T145034Z-061a`.
+
+- **The understatement.** The join pairs a call site with the index's
+  resolution by name. At a renamed binding (`import { id as xid }`, `var
+  express = require(…)`, Python's `import … as`) and at a `#private` method
+  call the names differ, so the site fell to lane A's fallback — a
+  `syntactic` call — while the index's proof of the same call became a
+  `semantic` `uses` beside it. Measured on seven TS/JS cells: 136 sites, 98
+  confirmed, 38 outside the graded zone, **0 contradicted**; about half of
+  hono's and four fifths of xmpp.js's lane-A-only call sites.
+- **The rule.** Where the by-name match misses, the site has a column, lane
+  A's fallback resolves it, and **every** resolution at the site's own column
+  names the fallback's definition, the site is matched there: `calls`,
+  `semantic`, both lanes, claimed by position. Anything less is what it was.
+  It cannot draw an edge that was not drawn; it raises a tier and removes the
+  duplicate `uses`. `who_calls`, `hobbes review` and the tail read the same
+  match, so such a site is never counted `fallback-resolved`.
+- **Regraded, stored keys, `-poison`** (`oracle-grading.md` §10.25): xmpp.js
+  38 tiers raised, hono 76, ajv 5, cheerio 8, Express 2, Preact 5, zod 0 —
+  **no row added or lost, every confirmed count unchanged, 0 contradicted,
+  poison PASS**, each cell row-identical to its simulation. cJSON, click,
+  jsoup, memchr, fzf, fmt and args: row-identical before and after, no tier
+  moved. What is left of the shape is xmpp.js's 3 namespace-member calls,
+  where the index's occurrence is the namespace's and the rule rightly
+  declines.
 
 ## 0.2.58-beta — 2026-09-20 (a JavaScript cell graded with its dependency tree; C-165 corrected and narrowed)
 

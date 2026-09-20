@@ -13686,3 +13686,37 @@ graded zone, 0 contradicted**. Two shapes carry it: a binding renamed at
 the site and a `#private` method call. The index proved every one and the
 graph labels the call `syntactic`. No code, no register entry, no version
 move; the routes are put to Max.
+
+**ADR-143 accepted (Max: route a), built and released — 0.2.59-beta.** The
+join matches a call site to the index's resolution by name
+(`evidence.match_resolution`), so where the written name is not the
+definition's the index's proof became a `uses` and the call kept lane A's
+tier. **Probed before anything was proposed as a rule** (`probe_join.py`,
+xmpp.js and hono): a resolution onto lane A's own target sits at exactly the
+site's column 38 and 76 times, 5 columns off 4 times (a namespace's
+occurrence, not the callee's), and never does the site's column name another
+definition. The rule is that agreement and nothing wider: a fallback, a
+resolution at the site's own column, every resolution there naming the
+fallback's definition. **Simulated in memory on seven cells with its
+predictions written first; all five held** — 134 tiers raised, no row added
+or lost, the counted shape down to xmpp.js's 3 namespace-member sites.
+
+**The code facts read before the brief:** `join` has one product caller;
+`match_resolution` is repeated in five mirrors and the C++ comparison, and
+`_dispositions` alone was not handed the fallback — named in the ADR as the
+unit's to settle. **Unit `061a`:** 71 turns of 140, $5.87, four files inside
+a seven-file partition spelled out at file grain (the last unit's lesson),
+gate clear, verify pass, **right-clear**. On the host: twelve `lane_b` tests
+green in a worktree of the branch; xmpp.js, hono, ajv, cheerio, zod, Express
+and Preact regraded with the unit's code, each **row-identical, tiers
+included, to its simulation**; and a pre/post driver over one cell per other
+language (`lang-regrade.sh`: cJSON, click, jsoup, memchr, fzf, fmt, args) —
+row-identical, no tier moved. Merged `--no-ff` (`599886f`); the tracker reads
+63 of 40. §10.25, the architecture's join paragraph, six cell records' regrade
+notes (prose: the verbatim heads did not move), the CHANGELOG. Nothing
+registered — no concession was made or lifted. pytest 2,139, Go `./...` and
+the report test green; binaries and image rebuilt, the repo re-ingested at
+HEAD; restart the knowledge server (C-65).
+
+**Seen and not traced:** hono's two yarn-v1 zones fail to provision because
+the ingest hands the container the host's corepack path. In the handoff.

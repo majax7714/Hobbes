@@ -257,3 +257,6 @@ poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracl
 
 The `missed` rows are elided; the classes are in the block above.
 
+## Regrade, Hobbes 0.2.59-beta (ADR-143: a renamed callee is matched at its own column where both lanes name one definition)
+
+Re-ingested contained with the unit's code, the stored key, `-poison` (`oracle-grading.md` §10.25; outputs in `~/.hobbes/bench/adr141-name-mismatch/real/`). **The head of the report is unchanged, line for line** — the same rows, the same confirmed, contradicted, abstract and silent counts, the same recall — so the block above stands as this cell's numbers. What moved is the tier of 8 call site(s): confirmed at `semantic` 2,620 → 2,628, at `syntactic` 8 → 0. Direction of the fix, signed: precision 0, recall 0, rows 0; tier `syntactic → semantic` +8. Poison PASS, 0 falsely confirmed. The export is row-identical, tiers included, to the simulation made before the unit was dispatched.

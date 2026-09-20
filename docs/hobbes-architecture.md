@@ -664,7 +664,11 @@ neither lane alone. Every edge records:
   claimed, ADR-029; the claim is by position — `(file, line, name,
   col)` of the matched resolution, ADR-133 — so a call hides the
   resolution it matched and that occurrence's alternates, never the
-  line's other references of the name) | `implements` (the override set the index states
+  line's other references of the name; where the name written at a call
+  site is not its definition's — a renamed binding, a `#private` method —
+  the site is matched at its own column instead, only where lane A's
+  fallback and every resolution at that column name one definition,
+  ADR-143, which raises that call's tier and draws nothing new) | `implements` (the override set the index states
   between two definitions, ADR-120) | the pack-promoted types (`http-call`, `db-read`,
   `db-write`, `queue`, `env-read`) | the Terraform layer's `references`,
   `env-set`, `packages`
@@ -2037,7 +2041,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.58-beta** (2026-09-20, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.58-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.59-beta** (2026-09-20, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.59-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

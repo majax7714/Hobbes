@@ -1,14 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (eighth session); Hobbes 0.2.58-beta on `main`.**
+**Reviewed 2026-09-20 (eighth session); Hobbes 0.2.59-beta on `main`.**
 Max pushed the sixth session's work through `e50ff2a`; the seventh and
 eighth sessions' commits are on `main`, **unpushed**. The image and the
-proxy were rebuilt at 0.2.58-beta and this repo re-ingested at HEAD; the
+proxy were rebuilt at 0.2.59-beta and this repo re-ingested at HEAD; the
 knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.58-beta are untagged. Tags stay Max's call each time.
+  0.2.59-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -45,17 +45,20 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
 `~/.hobbes/bench/c167-reexport/`, `~/.hobbes/bench/c168-construction/`.
 
 **Measured on JavaScript, not yet constraints or decisions:**
-- A callee whose site name is not its definition's joins as `syntactic
-  calls` + `semantic uses` (ADR-141's last section). **Measured on the
-  TS cells 2026-09-20** (`~/.hobbes/bench/adr141-name-mismatch/`,
-  `PREREG.md`, `count.py`, `RESULTS.md`): 136 sites on seven cells —
-  Express 2, Preact 5, xmpp.js 41, ajv 5, cheerio 8, zod 0, hono 75 —
-  **98 confirmed, 38 outside the graded zone, 0 contradicted**. Two
-  shapes: a binding renamed at the site (import alias, `require`
-  binding) and a `#private` method call. About half of hono's and four
-  fifths of xmpp.js's lane-A-only call sites; 0–6% of all call sites.
-  Not registered and nothing built: the routes are with Max. kbet's
-  clone is not on the box.
+- **Done (ADR-143, 0.2.59-beta, unit `061a`, 71 turns, $5.87):** a callee
+  whose site name is not its definition's is matched at its own column
+  where both lanes name one definition; 134 tiers raised on seven TS/JS
+  cells, nothing added or lost (§10.25). Left, and rightly: xmpp.js's 3
+  namespace-member sites. Drivers `~/.hobbes/bench/adr141-name-mismatch/`
+  (`PREREG.md`, `count.py`, `RESULTS.md`; `probe_join.py`;
+  `PREREG-sim.md`, `ingest_rule.py`, `sim.sh`, `sim/`; `real.sh`, `real/`;
+  `lang-cells.tsv`, `lang-regrade.sh`, `lang/` — a pre/post driver over
+  one cell per language, reusable; `units/`; `wt/` a worktree, removable).
+- **hono's two yarn-v1 zones fail to provision in the image:** the ingest
+  hands the container the *host's* corepack path
+  (`~/.local/node/bin/corepack … not found`). Seen 2026-09-20; not
+  traced, not registered — read `provision_node_modules`' yarn branch
+  before deciding whether it is a defect or C-23's.
 - Preact's test-file misses (closures in `it` bodies, calls through
   `.d.ts` interface members, hook setters in locals) — C-58's shapes.
   C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
@@ -266,7 +269,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 62 of 40, 4
+   - **The validating 40 are done:** the tracker reads 63 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -337,7 +340,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-two log files under `docs/calvin/sessions/`; the tracker reads 62 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty-three log files under `docs/calvin/sessions/`; the tracker reads 63 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 94 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -350,9 +353,9 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.58-beta (2026-09-20; pytest and the report test re-run
-  and green, Go `./...`, tsextract and `lane_b` at 0.2.57-beta, the rest as
-  counted at 0.2.50-beta): 2,122
+- **Suites** at 0.2.59-beta (2026-09-20; pytest, Go `./...`, every `lane_b`
+  test and the report test re-run and green on the host, the rest as
+  counted at 0.2.50-beta): 2,139
   pytest (`lane_b` 12 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 87 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on

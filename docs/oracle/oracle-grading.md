@@ -2056,6 +2056,45 @@ and is recorded as thin. Counted beside it: `npm ci` refused three of the
 four lockfile-bearing JavaScript repos the two draws met (C-23). Record:
 `docs/oracle/cells/github-action-js-2026-09-20.md`.
 
+### 10.25 A renamed callee matched at its own column — written 2026-09-20, before any cell was re-ingested (ADR-143)
+
+**Pre-registered** in `~/.hobbes/bench/adr141-name-mismatch/` (`PREREG.md`
+the count, `PREREG-sim.md` the rule) before any graded export; `RESULTS.md`
+carries the count. The counter had to reproduce ADR-141's JavaScript counts
+before a TypeScript number was read, and did once the match was by site and
+target (the lanes name different callers at some sites).
+
+**The count** (graphs of the 0.2.57-beta regrade): Express 2, Preact 5,
+xmpp.js 41, ajv 5, cheerio 8, zod 0, hono 75 — 136 sites, 98 confirmed, 38
+`not-loaded`, 0 contradicted. **The probe** (xmpp.js, hono): a resolution
+onto lane A's own target sits at exactly the site's column 38 and 76 times,
+5 columns off 4 times, and a resolution at the site's column never names
+another definition.
+
+**The rule, simulated then built** (P1–P5, all held), then each cell
+re-ingested contained with the unit's code, stored keys, `-poison`:
+
+| cell | tiers raised | rows | confirmed | semantic confirmed | syntactic confirmed | contradicted |
+|---|---|---|---|---|---|---|
+| xmpp.js | 38 | 676 → 676 | 676 → 676 | 624 → 662 | 52 → 14 | 0 |
+| hono | 76 | 5,420 → 5,420 | 833 → 833 | 792 → 833 | 41 → 0 | 0 |
+| ajv | 5 | 1,664 → 1,664 | 1,499 → 1,499 | 1,497 → 1,499 | 2 → 0 | 0 |
+| cheerio | 8 | 2,688 → 2,688 | 2,628 → 2,628 | 2,620 → 2,628 | 8 → 0 | 0 |
+| Express | 2 | 998 → 998 | 998 → 998 | 295 → 297 | 703 → 701 | 0 |
+| Preact | 5 | 2,738 → 2,738 | 2,447 → 2,447 | 2,442 → 2,447 | 5 → 0 | 0 |
+| zod | 0 | 9,921 → 9,921 | 9,872 → 9,872 | 8,815 | 1,057 | 0 |
+
+Direction of the fix, signed: precision **0**, recall **0**, confirmed rows
+**0** on every cell; tier `syntactic → semantic` **+134** rows in all (hono's
+76 include 35 outside its graded zone). Poison PASS on every cell. Each
+built export is row-identical, tiers included, to its simulation. **The
+other languages** — cJSON, click, jsoup, memchr, fzf, fmt, args — ingested by
+`main` and then by the unit: row-identical, no tier moved (the rule needs a
+fallback and a resolution at one column naming one definition; none of those
+cells holds the shape). The remainder is xmpp.js's 3 `time.date()` sites: the
+occurrence at the callee's column is absent and the namespace's is 5 columns
+away, so the rule declines, as it should.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

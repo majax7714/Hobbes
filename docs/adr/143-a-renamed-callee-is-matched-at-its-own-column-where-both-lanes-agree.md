@@ -116,3 +116,14 @@ tree before the dispatch:
   new contradicted, or the rule does not merge.
 - The version, the CHANGELOG, the architecture and the handoff are the
   developer's, after the merge.
+
+## Built (2026-09-20, 0.2.59-beta)
+
+Unit `S-20260920T145034Z-061a` (71 turns, gate clear, verify pass), merged
+`599886f`. One function, `evidence.match_at_own_column`, read by the join and
+by every mirror; `_dispositions` is handed the fallback its callers held. On
+the host all twelve `lane_b` tests pass. The seven TS/JS cells regraded with
+the unit's code are row-identical, tiers included, to the simulation above;
+cJSON, click, jsoup, memchr, fzf, fmt and args are row-identical before and
+after (`oracle-grading.md` §10.25). Nothing registered: no concession was
+made or lifted.
