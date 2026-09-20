@@ -13615,5 +13615,10 @@ xmpp.js 104 → 3, ajv 107 → 18, hono 78 → 13, zod 110 → 77. §10.23 carri
 read and the table, the seven cell records their regrade blocks, and the
 comparative data re-rendered (93 cells, `render.py check` and the report test
 green). C-168 corrected and narrowed in the register, with its note in
-HISTORY. Everything is on `main`, unpushed; the image and proxy need a rebuild
-at 0.2.57-beta and this repo a re-ingest (C-65).
+HISTORY. Beside them, two surfacing fixes the unit's partition had kept out of
+reach: the ingest prints the TS/JS counts on their own `constructions
+[ts/js]` line (an ingest that drew eight still said `0 drawn` — C++'s
+number, read as the whole answer), and `calvin_tracker`'s `GATE_RE`
+reads the partition clause. The proxy and image were rebuilt at
+0.2.57-beta and this repo re-ingested at `ae4fa51`; the knowledge server
+needs a restart (C-65). Everything is on `main`, unpushed.

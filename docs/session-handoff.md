@@ -3,9 +3,9 @@
 **Reviewed 2026-09-20 (seventh session); Hobbes 0.2.57-beta on `main`.**
 Max pushed the sixth session's work through `e50ff2a`; the seventh
 session's commits are on `main`, **unpushed**. The image and the proxy
-were last rebuilt at 0.2.56-beta, so **rebuild both at 0.2.57-beta,
-re-ingest this repo and restart the knowledge server** before trusting
-its answers (C-65).
+were rebuilt at 0.2.57-beta and this repo re-ingested at `ae4fa51`; the
+knowledge server serves the image it started from until it is restarted
+(C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
   0.2.57-beta are untagged. Tags stay Max's call each time.
