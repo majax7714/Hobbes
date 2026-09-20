@@ -182,3 +182,18 @@ constructor, a class without one, an ES5 constructor function, `new ns.X()`,
 `new this()`, a `new` inside a string or comment), the `minijs` fixture's new
 row, and a `lane_b` case with its lane-B-off twin (with no index nothing is
 drawn, P6).
+
+## Amendment — 2026-09-20: the remainder read (`oracle-grading.md` §10.26; Max: route a)
+
+Two lines of *What this leaves* were wrong or thin, and are corrected here
+rather than rewritten above. **The JSX line:** Hobbes *has* a symbol at the
+key's target (`src/index.d.Component`, class, line 144); the 377 tags name
+test-body local classes, for which the facts carry no reference, so lane B names
+nothing at the token. **The `super` line:** "unmeasured as a rule" — measured
+now. scip-typescript emits no occurrence at `super` and names the class, never
+`<constructor>`, at a JSX tag. A walk up the `extends` chain, each hop the
+index's reference at the token's own column, reads 104 rows at 0 contradicted
+(ajv 18, hono 8, xmpp.js 2, zod about 76) and none on Preact, where the index
+names the merged `interface Component` (line 119) and not the class. **Not
+built:** a chain of hops is a new kind of rule for under a point a cell, and a
+merged-declaration reading is a name match. C-168 carries the numbers.

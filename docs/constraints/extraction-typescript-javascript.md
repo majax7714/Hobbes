@@ -197,14 +197,18 @@
 - **Source:** ADR-140 step 4, Express's first grade, 2026-09-19; traced
   and narrowed by ADR-141 (unit `S-20260919T210207Z-9133`).
 
-### C-168 — A construction draws no call where the index does not name a constructor at the `new` token — *registered 2026-09-19, corrected and narrowed 2026-09-20 (ADR-142, 0.2.57-beta)*
+### C-168 — A construction draws no call where the index does not name a constructor at the `new` token — *registered 2026-09-19, corrected and narrowed 2026-09-20 (ADR-142, 0.2.57-beta); its remainder read and corrected again 2026-09-20 (`oracle-grading.md` §10.26)*
 - **Cannot tell you:** that a construction called what it constructed,
   in the four shapes the rule does not reach. **`super(…)`** in a
   subclass constructor: lane A treats a keyword callee as no site at
-  all, and the key names the base class (Preact 193, ajv 12, hono 4,
-  xmpp.js 2). **A JSX tag whose component declares no constructor**
-  (Preact 377): the key names the base class, in a `.d.ts` Hobbes keeps
-  no symbol for. **A class that declares no constructor** at a `new`:
+  all, **and the index emits no occurrence at a `super` token** (read in
+  the image, §10.26), so neither lane speaks; the key names the class
+  whose constructor runs (Preact 193, ajv 12, hono 4, xmpp.js 2).
+  **A JSX tag of a class component** (Preact 377): at a tag the index
+  names the *class*, never `<constructor>`, declared or not — and all
+  377 tags name a class declared inside a test body, a local the facts
+  carry no reference for, so lane B names nothing there at all (C-58's
+  floor, not a constructor's). **A class that declares no constructor** at a `new`:
   the index names the written class while the constructor that runs is
   a base's, so nothing is drawn — counted per ingest as `ts_named_class`
   (xmpp.js 21, ajv 6, hono 50, zod 192). **A token the index does not
@@ -228,6 +232,28 @@
   `ts_named_class` in `graph.json`), and the `uses` edge those
   references draw is in the graph; `super(…)` and a token the index does
   not resolve are silent.
+- **The second correction (2026-09-20, §10.26):** this entry said the
+  JSX rows' target sat "in a `.d.ts` Hobbes keeps no symbol for". It
+  does not: `src/index.d.Component` (class, line 144, which declares a
+  constructor) **is** a symbol, and 1,241 confirmed Preact rows land in
+  `.d.ts` symbols. All 570 Preact rows name that one class. What stands
+  between them and an edge is that at `extends Component` the index
+  names line 119 — the merged `interface Component` — not the class,
+  and that the subclasses are test-body locals.
+- **Measured and not built (Max, 2026-09-20: route a, honesty above
+  all):** a walk from the `new` or `extends` token up the `extends`
+  chain to the first class that declares a constructor, every hop the
+  index's own reference at the token's column, reads **104 rows, all
+  confirmed, 0 contradicted** (ajv 18, hono 8, xmpp.js 2, zod about 76)
+  and none on Preact; reading a merged interface+class as the class
+  would add Preact's 193 `super` rows by a same-file name match. Most
+  `ts_named_class` refusals end at an external base (xmpp.js 21 of 21,
+  `EventEmitter`) or an implicit constructor, where the key names
+  nothing either. Nothing is drawn; a chain of hops as a rule type is
+  undecided.
+- **Provider (P9):** `@sourcegraph/scip-typescript` **0.4.0** emits no
+  occurrence at `super` and names the class at a JSX tag and at a `new`
+  of a class with no own constructor. Inherited; owned as ours.
 - **What it was, and the correction (2026-09-20):** the entry as first
   written said the join drew a `uses` edge at every `new` and that
   `who_calls` worded it wrongly, and it counted "ajv 107, zod 110, hono

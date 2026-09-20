@@ -66,8 +66,15 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
   `hono-ingest-after.log`; its worktree was removed).
 - Preact's test-file misses (closures in `it` bodies, calls through
   `.d.ts` interface members, hook setters in locals) — C-58's shapes.
-  C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
-  declares no constructor (Preact 377).
+- **C-168's remainder: read, the entry corrected a second time, nothing
+  built** (Max: route a; `oracle-grading.md` §10.26). The index emits
+  nothing at `super` and names the class, never the constructor, at a
+  JSX tag. Preact's 570 rows are one `.d.ts` class that *is* a symbol;
+  the index names the merged interface beside it, and the 377 JSX tags
+  name test-body locals. **Measured, undecided:** an `extends`-chain
+  walk reads 104 rows at 0 contradicted (ajv 18, hono 8, xmpp.js 2, zod
+  about 76), 0 on Preact — a chain of lane B hops would be a new kind of
+  rule, for under a point a cell. Drivers `~/.hobbes/bench/c168-remainder/`.
 - **`npm ci` refused three of the four lockfile-bearing JS repos the
   draws met** (xmpp.js and tileserver-gl: lockfile out of sync with the
   manifest; hack-chat: a tarball unpublished). Counted under C-23 in
@@ -120,6 +127,10 @@ paragraph cells as per-language pages (Max: "dont split for now").
   the fault was the brief's. Spell a new fixture's files out, one path
   per line. `not-code` files (a `package.json`) pass on the `reach`
   rule; code files do not.
+- **Ask what the index emits at a token before counting a shape as a
+  rule's** — a ten-line fixture indexed in the image answered `super`
+  and JSX in a minute (`c168-remainder/mini/`, with a `dump.mjs` over
+  `streamDocuments`).
 - **Read a register entry's rows before building on it.** C-168 named
   the wrong shape *and* the wrong numbers, and a row-by-row read of the
   key (not the miss-class totals) was what caught it. C-165 named an

@@ -6,6 +6,19 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-168's remainder read, and the entry corrected a second time, 2026-09-20 (no version; Max: route a; no entry added):
+- **Two claims were wrong.** "A `.d.ts` Hobbes keeps no symbol for":
+  `src/index.d.Component` is a class symbol, and 1,241 confirmed Preact
+  rows land in `.d.ts` symbols. And the 377 JSX rows were filed as a
+  constructor's question; every one is a tag naming a test-body local
+  class, where the facts carry no reference (C-58's floor).
+- **Two facts were added, read in the image:** the index emits no
+  occurrence at `super`, and at a JSX tag it names the class, never
+  `<constructor>`. A `Provider` line (P9) now says so.
+- **A rule was measured and not built:** the `extends`-chain walk, 104
+  rows confirmed at 0 contradicted on four cells, 0 on Preact
+  (`oracle-grading.md` §10.26). Tally unmoved: 168 entries.
+
 C-23's yarn branch, 2026-09-20 (0.2.60-beta; a defect, no entry added or moved):
 - **C-23 said more than the tree did.** Its ADR-050 narrowing reads "v1
   `yarn.lock` → pinned classic yarn … provisioned". From ADR-092 (lane B in

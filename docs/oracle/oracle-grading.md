@@ -2095,6 +2095,50 @@ cells holds the shape). The remainder is xmpp.js's 3 `time.date()` sites: the
 occurrence at the callee's column is absent and the namespace's is 5 columns
 away, so the rule declines, as it should.
 
+### 10.26 C-168's remainder: `super(…)` and class-component JSX tags — a read, 2026-09-20; nothing drawn, nothing regraded
+
+**The predictions were written first** (`~/.hobbes/bench/c168-remainder/PREREG.md`);
+the graphs are the 0.2.59-beta code's, the keys the standing ones, the facts the
+cells' cached streams (zod's an older rebased one — indicative).
+
+**What the index says** (a fixture indexed in the image, `mini/`): scip-typescript
+emits **no occurrence at a `super` token**, and at a JSX tag it names the
+**class**, never `<constructor>`, whether the class declares one or not. So
+ADR-142's condition — the index names the constructor at the token — can hold at
+neither.
+
+**Preact's 570 `static→class` rows are one target**, `src/index.d.ts:144`,
+`abstract class Component`, which declares a constructor and is a Hobbes symbol
+(1,241 of the cell's confirmed rows land in `.d.ts` symbols). The 193 `super`
+rows: at `extends Component` the index names line **119**, the merged
+`interface Component`, and the subclass is a test-body local. The 377 JSX rows:
+the tag names such a local, and the facts carry no reference for one — lane B
+names nothing at the token.
+
+**A rule measured and not built — the walk.** From a `new` callee, or for
+`super(…)` the enclosing class's `extends` token, take the index's reference at
+the token's own column; a class that declares a constructor is the target; one
+that declares none hops to its own `extends` token; an unresolved hop, a
+non-class or a class with no base draws nothing.
+
+| cell | `new` at a class with no own constructor | `super(…)` | contradicted |
+|---|---|---|---|
+| ajv | 6 (one or two hops) | 12 (6 direct, 6 by hops) | 0 |
+| hono | 5 of 50 refused today | 3 | 0 |
+| xmpp.js | 0 of 21 (every chain ends at an external `EventEmitter`) | 2 | 0 |
+| zod | 76 of 192 | 0 | 0 |
+| Preact | 0 | 0 — 193 only if a merged interface+class of one name is read as the class | 0 |
+
+Every row the key judges is confirmed (P1, P2, P4 met). **P3 missed:** at least
+80% of the `ts_named_class` refusals were predicted to walk to a confirmed row;
+hono reads 5 of 50 and xmpp.js 0 of 21, because most chains end at an external
+base or at a class with an implicit constructor, where the key names nothing
+either. 107 of zod's `new` tokens name two definitions (v4's `interface X` beside
+`const X = $constructor(…)`) and are refused. Max: route a — the entry corrected,
+the walk not built. Drivers: `~/.hobbes/bench/c168-remainder/` (`classes.mjs`,
+`walk.py` with `--merge` and `FACTS=`, `super_facts.py`, `laneb_at.py`, `mini/`,
+`RESULTS.md`).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

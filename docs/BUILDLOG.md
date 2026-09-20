@@ -13771,3 +13771,23 @@ dagger's snippet zones were not re-ingested. Merged `--no-ff` (`242b767`);
 (the entry's words were untrue on a contained box from ADR-092 until now, and
 are left as written), the tracker at 64 of 40. Go `./...` and pytest green on
 `main`; binaries and image rebuilt at 0.2.60-beta, the repo re-ingested.
+
+**C-168's remainder, measured first (Max: "go with c-168 before the larger
+cell. good to measure first").** The entry's rows were read before anything
+else, and the entry was wrong again. "A `.d.ts` Hobbes keeps no symbol for":
+`src/index.d.Component` is a class symbol and 1,241 confirmed Preact rows land
+in `.d.ts` symbols; all 570 of Preact's `static→class` rows name that one class.
+A ten-line fixture indexed in the image settled the rest: scip-typescript emits
+**no occurrence at `super`**, and at a JSX tag names the **class**, never
+`<constructor>`. At `extends Component` it names the merged `interface` at line
+119, not the class at 144; the 377 JSX tags name test-body locals the facts
+carry no reference for. **A rule was pre-registered and measured, not built:**
+a walk up the `extends` chain, each hop the index's reference at the token's
+column — 104 rows, all confirmed, 0 contradicted (ajv 18, hono 8, xmpp.js 2,
+zod about 76), 0 on Preact; P3 missed (hono 5 of 50 refusals, xmpp.js 0 of 21:
+the chains end at external bases and implicit constructors). Routes put to
+Max; **route a: "honesty above all"** — correct the entry, build nothing. C-168
+corrected with a `Provider` line (P9) and the measured rule recorded as
+undecided; HISTORY's note; ADR-142 amended; the architecture's two sentences;
+`oracle-grading.md` §10.26; the handoff. No code, no version move, tally
+unmoved. Drivers `~/.hobbes/bench/c168-remainder/`.
