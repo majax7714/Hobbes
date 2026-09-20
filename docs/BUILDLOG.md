@@ -13622,3 +13622,55 @@ number, read as the whole answer), and `calvin_tracker`'s `GATE_RE`
 reads the partition clause. The proxy and image were rebuilt at
 0.2.57-beta and this repo re-ingested at `ae4fa51`; the knowledge server
 needs a restart (C-65). Everything is on `main`, unpushed.
+
+## 2026-09-20 (eighth) — the status block and the handoff cut to the headline; C-165's provisioned cell drawn and graded, the entry corrected (0.2.58-beta)
+
+**The docs first (Max: "we have a changelog and a build log for a reason").**
+A top-level review found the version copies in step (the §8 header
+included) and two files piling history the CHANGELOG, this log and
+`constraints/HISTORY.md` already hold: CLAUDE.md's Status block (a "Latest"
+bullet spanning 0.2.49 to 0.2.57, a register trail) and the handoff (five
+days of settled routes, a register trail sixteen lines long, the defect
+log's history). Both cut to the headline, 113 lines out, `3df2ed1`; §3.8
+stays as it is (Max). The suite count in both was three short: 2,122
+pytest collected, not 2,119.
+
+**C-165, and a premise read before the draw.** The entry asked for a
+JavaScript cell graded with its lockfile provisioned on both sides. Before
+drawing one I read the TypeScript cells that *have* a tree: cheerio, zod
+and hono hold 0 graded rows with a `node_modules` target — Hobbes exports
+no call edge into a package — so the pre-registration
+(`~/.hobbes/bench/js-cells/c165/DRAW-RULE.md`) said what the cell could
+and could not show, and that a provisioned arm with only in-repo rows
+would mean the entry is corrected, not only lifted. The cell is graded
+twice on one sha, with the tree and without.
+
+**The draw.** ADR-140's pool and seed, resumed at position 7, two criteria
+added (a lockfile `detect_installer` provisions from; a non-empty
+`dependencies`). The ingest's own `npm ci --ignore-scripts` refused two
+candidates — 9 hack-chat/main (`uwuify-1.0.1.tgz`, 404: unpublished) and
+11 maptiler/tileserver-gl (lockfile out of sync, xmpp.js's case) — and
+accepted 21, **cypress-io/github-action** @ `01e3b659a495`: 77 JS files,
+one zone, 177 packages. With xmpp.js that is three refusals in four
+lockfile-bearing JS repos; counted under C-23 in the entry, nothing
+proposed.
+
+**The result.** Provisioned 154/154, recall 89.0%, poison PASS; withheld
+(a copy with the lockfile removed) 154/154, 89.0%, PASS. **The rows are
+identical and so is the graph** — 76 `calls` + 42 `uses`, every target
+in-repo, the 77 `imports → ext:` module edges the same. The tree moved the
+key's external pairs 173 → 413 and `dependency_coverage` 0 → 14 of 22.
+The cell is thin and is recorded as thin.
+
+**Max: route (a), correct and narrow.** C-165 now says what the limit is:
+a third-party call is stated at module grain only and no key grades it,
+in JavaScript or TypeScript; one JS cell of four has its tree. The
+`javascript` verification row reads 4 repos, "one of four graded with its
+dependency tree" (its tests moved with it); §3.8's row, the README, §10.24
+and the cell record (`github-action-js-2026-09-20.md`) say the same; the
+comparative data re-rendered at 94 cells, `render.py check` and the report
+test green. No ADR: no rule was decided, a claim was corrected against a
+measurement. No dispatch either — the code change is one string and its
+three assertions. 0.2.58-beta; pytest 2,122 green; the proxy and image
+rebuilt and the repo re-ingested at HEAD; restart the knowledge server
+(C-65). Everything is on `main`, unpushed.

@@ -1,14 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (seventh session); Hobbes 0.2.57-beta on `main`.**
-Max pushed the sixth session's work through `e50ff2a`; the seventh
-session's commits are on `main`, **unpushed**. The image and the proxy
-were rebuilt at 0.2.57-beta and this repo re-ingested at `ae4fa51`; the
+**Reviewed 2026-09-20 (eighth session); Hobbes 0.2.58-beta on `main`.**
+Max pushed the sixth session's work through `e50ff2a`; the seventh and
+eighth sessions' commits are on `main`, **unpushed**. The image and the
+proxy were rebuilt at 0.2.58-beta and this repo re-ingested at HEAD; the
 knowledge server serves the image it started from until it is restarted
 (C-65): **restart it.**
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.57-beta are untagged. Tags stay Max's call each time.
+  0.2.58-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -22,43 +22,44 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-20, seventh session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-20, eighth session)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Where JavaScript stands (ADR-140, 0.2.53–0.2.55-beta; ADR-141,
-0.2.56-beta; ADR-142, 0.2.57-beta).** Its row names three graded repos
-(`oracle-grading.md` §10.22, §10.23): Express **998/998** (recall
-65.7%), Preact **2,447/2,447** (28.6%), xmpp.js **676/676** (**81.2%**)
-— 100% precision each, 0 contradicted, poison PASS. No cell has its
-dependencies installed (C-165). Registered: C-166 (jsconfig not read,
-surfaced), C-167 (narrowed by ADR-141), C-168 (corrected and narrowed by
-ADR-142). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`, `regrade.sh`,
-`cells/`, `regrade/h34/` the standing keys, `fixture/minijs`,
-`oracle-trees/preact`) and `~/.hobbes/bench/c168-construction/`.
+**Where JavaScript stands (ADR-140 to ADR-142; §10.24, 0.2.58-beta).**
+Four graded repos (`oracle-grading.md` §10.22–§10.24): Express
+**998/998** (recall 65.7%), Preact **2,447/2,447** (28.6%), xmpp.js
+**676/676** (81.2%), cypress-io/github-action **154/154** (89.0%) — 100%
+precision each, 0 contradicted, poison PASS. **Max's three JavaScript
+constraints are done:** C-167 (ADR-141), C-168 (ADR-142), and C-165 —
+the provisioned cell was drawn and graded with its tree and without, the
+rows and the graph identical, so the entry was **corrected**: Hobbes
+draws no symbol edge into a package (JS or TS), a third-party call is
+stated at module grain and no key grades it. One JS cell of four has its
+tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
+`regrade.sh`, `cells/`, `regrade/h34/` the standing keys,
+`fixture/minijs`, `oracle-trees/preact`; `c165/` — `DRAW-RULE.md`,
+`draw.py`, `walk.sh`, `draw-log.md`, `RESULTS.md`, `withheld-tree/`),
+`~/.hobbes/bench/c167-reexport/`, `~/.hobbes/bench/c168-construction/`.
 
-**The JavaScript constraints (Max: "we will tackle constraints from js
-next session"),** in the order set at the close of 2026-09-19:
-1. **C-167 — done (ADR-141, 0.2.56-beta).** Drivers
-   `~/.hobbes/bench/c167-reexport/`. Counted, not a constraint: a callee
-   whose site name is not its definition's joins as `syntactic calls` +
-   `semantic uses` (Express 2, Preact 5, xmpp.js 41) — ADR-141's last
-   section; measure it on the TS cells before deciding anything.
-2. **C-168 — done (ADR-142, route b, 0.2.57-beta);** the record is the
-   CHANGELOG's and §10.23's. Drivers
-   `~/.hobbes/bench/c168-construction/` (`PREREG.md`, `RESULTS.md`,
-   `probe.py`, `join.py`, `laneb.py`, `remainder.py`, `newtokens.mjs`,
-   `sim.py`, `run.sh`/`runb.sh`, `rebase_facts.py`, `regrade.sh`,
-   `mini/`, `final/`, `units/`).
-3. **C-165 — next: a JS cell graded with its dependencies provisioned**
-   (an npm lockfile in sync; Express's or Preact's shape re-drawn).
-4. Also measured, not yet a constraint: Preact's test-file misses
-   (closures in `it` bodies, calls through `.d.ts` interface members,
-   hook setters in locals) — C-58's shapes, only counted. And C-168's
-   own remainder, if Max wants it measured: `super(…)` (211 rows) and a
-   JSX tag whose component declares no constructor (Preact 377).
+**Measured on JavaScript, not yet constraints or decisions:**
+- A callee whose site name is not its definition's joins as `syntactic
+  calls` + `semantic uses` (Express 2, Preact 5, xmpp.js 41) — ADR-141's
+  last section; measure it on the TS cells before deciding anything.
+- Preact's test-file misses (closures in `it` bodies, calls through
+  `.d.ts` interface members, hook setters in locals) — C-58's shapes.
+  C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
+  declares no constructor (Preact 377).
+- **`npm ci` refused three of the four lockfile-bearing JS repos the
+  draws met** (xmpp.js and tileserver-gl: lockfile out of sync with the
+  manifest; hack-chat: a tarball unpublished). Counted under C-23 in
+  C-165's entry; whether "pinned or declined" should fall back to
+  anything is Max's, and nothing is proposed.
+- A larger provisioned JS cell whose in-repo calls go through
+  dependency-typed receivers would say more than this one did; the walk
+  resumes at position 22 (`c165/walk.sh 21`).
 
 **Candidates after the JavaScript constraints, each measured first**
 (none started): C-4's last parts — the injected value's type is lane
@@ -105,7 +106,9 @@ paragraph cells as per-language pages (Max: "dont split for now").
   rule; code files do not.
 - **Read a register entry's rows before building on it.** C-168 named
   the wrong shape *and* the wrong numbers, and a row-by-row read of the
-  key (not the miss-class totals) was what caught it.
+  key (not the miss-class totals) was what caught it. C-165 named an
+  edge that is never drawn; checking the TS cells' rows for a
+  `node_modules` target, before the draw, was what caught it.
 - The hobbes-py and hobbes-go cells cannot be regraded on stored keys:
   their clone (`adr111-before/hobbes-wt`) is gone; a full regrade needs
   a worktree at the key's sha or fresh keys.
@@ -320,15 +323,15 @@ min each.
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
-  is drawn through TypeScript's lanes and graded on three repos of its
-  own (ADR-140), none with its dependencies installed (C-165). A TS/JS
+  is drawn through TypeScript's lanes and graded on four repos of its
+  own (ADR-140), one with its dependencies installed (C-165). A TS/JS
   construction is drawn `calls` since 0.2.57-beta (ADR-142).
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
   is a tmpfs. Sixty-two log files under `docs/calvin/sessions/`; the tracker reads 62 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 93 cells (22 same-key rows, C++'s two among them); `render.py
+  from 94 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
@@ -339,9 +342,9 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.57-beta (2026-09-20; pytest, Go `./...`, tsextract and
-  every `lane_b` test re-run and green on the host, the rest as counted at
-  0.2.50-beta): 2,119
+- **Suites** at 0.2.58-beta (2026-09-20; pytest and the report test re-run
+  and green, Go `./...`, tsextract and `lane_b` at 0.2.57-beta, the rest as
+  counted at 0.2.50-beta): 2,122
   pytest (`lane_b` 12 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 87 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
@@ -355,8 +358,7 @@ min each.
 
 1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief (the validating 40 are done; the harness stays the way
-   work is done): **C-165's provisioned JS cell, then the candidates
-   under START HERE once named**;
+   work is done): **the candidates under START HERE once named**;
    ADR-126's surface once
    Max decides it;
    C's residue (W1); W1/W3's no-spend items

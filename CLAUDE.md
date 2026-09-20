@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-20, 0.2.57-beta; oracle-lane Go
-counted 2026-09-16): 2,119 pytest (12 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-20, 0.2.58-beta; oracle-lane Go
+counted 2026-09-16): 2,122 pytest (12 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 47 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
@@ -268,14 +268,14 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-20) — Hobbes 0.2.57-beta
+## Status (2026-09-20) — Hobbes 0.2.58-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
 
 - **The layer:** v1 (M0–M8) and v2 extraction (V2.M0–M7) complete and
   reviewed. Python, TS/JS, Go, Rust, Java, C and C++ (+ Terraform/HCL;
-  JavaScript graded on three repos of its own, none with its
+  JavaScript graded on four repos of its own, one with its
   dependencies installed — C-165),
   each a syntax provider plus a pinned batch indexer (P13, ADR-105)
   joined by one range join; artifacts at schema v4. Whatever executes
@@ -298,14 +298,13 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   drift test; re-render after filling a review block) reads **62 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.57-beta, ADR-142 (Max: route b): a TS/JS construction
-  is a call where the index names the constructor at the `new` token**
-  (unit `b444`); at a class that declares none the join draws nothing
-  and counts the refusal. Eight cells regraded, 100% precision and 0
-  contradicted on every one (xmpp.js recall 66.4% → **81.2%**); C-168
-  corrected and narrowed (`oracle-grading.md` §10.23). **Next (Max's
-  JavaScript constraints, continued):** a JS cell with its dependencies
-  provisioned (C-165); the order is in the handoff.
+- **Latest — 0.2.58-beta: a JavaScript cell graded with its dependency
+  tree, and C-165 corrected** (Max: route a). cypress-io/github-action,
+  drawn at random (`oracle-grading.md` §10.24): 154/154 with its tree
+  and the same 154/154 without, the graph identical. Hobbes draws no
+  symbol edge into a package, in JS or TS — a third-party call is stated
+  at module grain (`imports → ext:<pkg>`) and no key grades it; the entry
+  now says that. **Next:** the candidates in the handoff, each measured first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

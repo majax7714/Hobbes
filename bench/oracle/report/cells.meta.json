@@ -569,5 +569,12 @@
   "draw": "random",
   "label": "xmpp.js",
   "note": "its lockfile refused by npm ci: no dependency tree (C-165)"
+ },
+ "github-action-js": {
+  "lang": "JavaScript",
+  "run": "contained",
+  "draw": "random",
+  "label": "cypress github-action",
+  "note": "the one JavaScript cell graded with its dependency tree; its in-repo rows are the same without it (C-165)"
  }
 }

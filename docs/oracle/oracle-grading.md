@@ -2017,6 +2017,45 @@ its precision half held). The real cells at 0.2.57-beta, stored keys,
 `static→class` miss class falls xmpp.js 104 → 3, ajv 107 → 18, hono 78 → 13,
 zod 110 → 77; Preact's 570 do not move, which is what step 0 predicted.
 
+### 10.24 A JavaScript cell with its dependency tree — written 2026-09-20, before the draw was walked (C-165)
+
+**Pre-registered** in `~/.hobbes/bench/js-cells/c165/DRAW-RULE.md` before
+any repo was cloned; `RESULTS.md` beside it carries the run.
+
+**The draw.** §10.22's pool and order, resumed at position 7, with two
+criteria added: a lockfile `detect_installer` provisions from
+(`package-lock.json` or a v1 `yarn.lock`), and a non-empty `dependencies`.
+A candidate whose install the ingest refuses is recorded and the next
+taken. Walked 7–21: **9 hack-chat/main refused** (`uwuify-1.0.1.tgz` is
+404 on the registry), **11 maptiler/tileserver-gl refused** (lockfile out
+of sync with its manifest — xmpp.js's case), **21 cypress-io/github-action
+taken** at `01e3b659a495` (77 JavaScript files, one zone, 177 packages).
+
+**Stated first:** the cell is graded twice on one sha — *provisioned* (the
+ingest's tree on both sides) and *withheld* (no lockfile, no tree on
+either side) — and the arms are read beside each other. Known before the
+run from cheerio, zod and hono: Hobbes exports no call edge whose target
+is under `node_modules`, so no graded row can target a package; if the
+provisioned rows are all in-repo, C-165's wording is past what any cell
+can show and the entry is corrected, not only lifted.
+
+| arm | rows | confirmed | contradicted | abstract | silent | recall (in-repo) | external oracle pairs | poison |
+|---|---|---|---|---|---|---|---|---|
+| provisioned | 154 | 154 | 0 | 0 | 0 | 89.0% (154/173) | 413 | PASS (148 refused, 6 unjudged) |
+| withheld | 154 | 154 | 0 | 0 | 0 | 89.0% (154/173) | 173 | PASS (146 refused, 8 unjudged) |
+
+**Read.** 100% precision, strict 100% (nothing abstract or silent), on
+both arms; the rows are identical and so is the graph. The tree moved the
+key's external pairs (+240) and `dependency_coverage` (0 → 14 of 22), and
+no Hobbes edge: the 77 `imports → ext:<pkg>` module edges are the same in
+both arms and no symbol edge targets a package. The prediction held, so
+C-165 is corrected to the limit it is — a third-party call is stated at
+module grain and no key grades it — and narrowed: one JavaScript cell of
+four has met its tree. The cell is thin (76 `calls` edges at 154 sites)
+and is recorded as thin. Counted beside it: `npm ci` refused three of the
+four lockfile-bearing JavaScript repos the two draws met (C-23). Record:
+`docs/oracle/cells/github-action-js-2026-09-20.md`.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

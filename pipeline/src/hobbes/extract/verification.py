@@ -47,9 +47,11 @@ VERIFICATION_BASE: dict[str, dict] = {
         # read 0 (C-165: no TS/JS cell was a JavaScript program). Graded
         # 2026-09-19 (ADR-140, oracle-grading.md §10.22): three JavaScript
         # repos, every graded edge confirmed on each; none had its
-        # dependencies installed, which is what C-165 keeps.
-        "repos": 3,
-        "on": "expressjs/express (CommonJS); preactjs/preact (ESM, JSDoc, JSX; its root zone); xmppjs/xmpp.js — drawn at random (2026-09-19); all three graded without a dependency tree",
+        # dependencies installed. A fourth, drawn for C-165 (§10.24,
+        # 2026-09-20), was graded with its tree and again without: the
+        # same rows, so the row says how many cells met one, no more.
+        "repos": 4,
+        "on": "expressjs/express (CommonJS); preactjs/preact (ESM, JSDoc, JSX; its root zone); xmppjs/xmpp.js and cypress-io/github-action — drawn at random (2026-09-19/20); one of four graded with its dependency tree",
         "depth": "multi-repo",
     },
     "go": {

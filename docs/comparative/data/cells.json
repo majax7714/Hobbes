@@ -2305,6 +2305,51 @@
    }
   },
   {
+   "stem": "github-action-js",
+   "record": "github-action-js-2026-09-20.md",
+   "date": "2026-09-20",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "contained",
+   "draw": "random",
+   "label": "cypress github-action",
+   "note": "the one JavaScript cell graded with its dependency tree; its in-repo rows are the same without it (C-165)",
+   "edges": 154,
+   "confirmed": 154,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 154,
+    "den": 154
+   },
+   "recall": {
+    "pct": 89.0,
+    "hits": 154,
+    "pairs": 173,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 4,
+    "func-value→parameter": 3,
+    "static→closure": 4,
+    "static→variable": 8
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 154,
+    "refused": 148,
+    "unjudged": 6,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "gitleaks-notests-hobbes",
    "record": "gitleaks-notests-hobbes-2026-09-09.md",
    "date": "2026-09-09",

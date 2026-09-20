@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.57-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.58-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.58-beta — 2026-09-20 (a JavaScript cell graded with its dependency tree; C-165 corrected and narrowed)
+
+**Patch: what the layer says** — the `javascript` verification row and a
+register entry; nothing the layer draws moved.
+
+- **A fourth JavaScript cell, the first with its dependencies installed.**
+  cypress-io/github-action, drawn at random by a rule stated first
+  (`oracle-grading.md` §10.24): 154/154 confirmed, 0 contradicted, recall
+  89.0%, poison PASS — graded with its 177-package tree on both sides and
+  again with none. **The two arms' rows are identical, and so is the
+  graph.** The tree moved only the key's external pairs (173 → 413) and the
+  dependency-coverage number (0 → 14 of 22). A thin cell (76 `calls` edges)
+  and recorded as one.
+- **C-165 was worded past what any cell can show, and is corrected.** It
+  said Hobbes could not tell you whether an edge from JavaScript into a
+  third-party package is right. No such edge is drawn — in JavaScript or
+  TypeScript, with a tree or without: a package is stated once, as the
+  module-level `imports → ext:<pkg>` edge, and no key grades it. The entry
+  now says that, and that one JavaScript cell of four has met its tree.
+- **The `javascript` verification row** reads 4 repos and ends "one of four
+  graded with its dependency tree" (ingest summary, the surface's badge,
+  `list_blind_spots`); §3.8's row and the README say the same.
+- Counted, under C-23: `npm ci` refused three of the four lockfile-bearing
+  JavaScript repos the draws met (two lockfiles out of sync with their
+  manifests, one tarball unpublished from the registry).
 
 ## 0.2.57-beta — 2026-09-20 (a TS/JS construction is drawn as a call where the index names the constructor; C-168 narrowed and its claims corrected; ADR-142)
 

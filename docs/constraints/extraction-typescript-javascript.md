@@ -82,34 +82,50 @@
   (`bench/oracle/README.md` D-O4 element-access bullet; H-17);
   surfaced 2026-09-05 with C-80's residual, ADR-045 amended.
 
-### C-165 — JavaScript is graded without its dependencies installed; a call into a third-party package is ungraded — *registered 2026-09-19, narrowed the same day*
-- **Cannot tell you:** whether an edge from JavaScript into a third-party
-  package (`node_modules`) is right, or what such a call resolves to at
-  all. JavaScript goes through TypeScript's two lanes under `allowJs`;
-  its in-repo edges are graded (§3.8: Express, Preact, xmpp.js at 100%
-  precision), but no JavaScript cell had a dependency tree on either
-  side, so third-party resolution in JavaScript has never met a key.
-- **Because:** the three cells' environments (`oracle-grading.md`
-  §10.22): Express carries no lockfile, Preact's is pnpm's (not
-  provisioned, C-23), and xmpp.js's `package-lock.json` is out of sync
-  with its manifest, so `npm ci` refused it. **Was, until §10.22:** no
-  JavaScript program had been graded at all — every TS/JS cell was a
-  TypeScript program (0 of their 15,167 confirmed edges touched a
-  JavaScript file) — and until 0.2.53-beta `verification.py` pinned the
-  `javascript` row as a copy of TypeScript's.
-- **Bites at:** a JavaScript repo whose calls into its dependencies
-  matter — an Express app's `res.send`, a React component's hooks from
-  `react`. Those edges come from the same compiler graded on TypeScript
-  with its dependencies, but in JavaScript that is inference, not
-  evidence (P11).
+### C-165 — a call into a third-party package is stated at module grain only, and no key grades it; one JavaScript cell of four has its dependency tree — *registered 2026-09-19, narrowed the same day; corrected and narrowed 2026-09-20 (0.2.58-beta)*
+- **Cannot tell you:** what a call into a third-party package
+  (`node_modules`) resolves to. Hobbes states the dependency once, as the
+  module-level `imports → ext:<pkg>` edge; it draws no `calls` or `uses`
+  edge to a declaration inside a package, in JavaScript or TypeScript, so
+  the compiler's external pairs (413 on the provisioned JavaScript cell;
+  cheerio 5,180) have no Hobbes row to confirm or contradict, and the
+  `ext:` edge itself is graded by no key. And JavaScript's in-repo edges
+  have met a dependency tree on **one** cell, a thin one; Express, Preact
+  and xmpp.js stand graded without.
+- **Because:** the join draws symbol edges between the repo's own
+  symbols; a package is a node, not a set of symbols. **Was, until
+  0.2.58-beta:** the entry said Hobbes could not tell you "whether an
+  edge from JavaScript into a third-party package is right" and named a
+  provisioned cell as what would lift it. The cell was graded
+  (`oracle-grading.md` §10.24: cypress-io/github-action, drawn at random,
+  154/154 with the tree and the same 154/154 without, the graph
+  identical) and showed the entry named an edge that is never drawn —
+  on the TypeScript cells that have a tree as well (0 graded rows with a
+  `node_modules` target). What a tree *can* move is an in-repo site whose
+  receiver a dependency types; on this cell it moved none. **Was, until
+  §10.22:** no JavaScript program had been graded at all, and until
+  0.2.53-beta `verification.py` pinned the `javascript` row as a copy of
+  TypeScript's.
+- **Bites at:** a question about a dependency's surface — which of
+  Express's `res.send` overloads a handler reaches, which package function
+  a change to a wrapper touches. The graph answers "this module imports
+  that package" and no further. And at a JavaScript repo whose own calls
+  go through dependency-typed receivers: that shape has one thin cell
+  behind it (P11). Provisioning itself declines often on JavaScript: of
+  the four lockfile-bearing repos the draws met, `npm ci` refused three
+  (two lockfiles out of sync with their manifests, one unpublished
+  tarball — C-23).
 - **You find out:** **surfaced** — the `javascript` verification row
-  names its three repos and ends "all three graded without a dependency
+  names its four repos and ends "one of four graded with its dependency
   tree", in the ingest summary's note, the surface's badge title and
-  `list_blind_spots`; §3.8's JavaScript row states it.
-- **Lifting it** is a JavaScript cell graded with its lockfile provisioned
-  on both sides.
+  `list_blind_spots`; §3.8's JavaScript row states it; a zone whose
+  install was declined or refused says so at ingest (C-23, C-34).
+- **Lifting it** is not a cell: it is a decision to draw symbol edges
+  into packages (none is proposed), or, for the second half, JavaScript
+  cells with trees whose in-repo rows a dependency's types reach.
 - **Source:** the 2026-09-19 top-level review (Max: "could we look to
-  add js as a usable language?"); ADR-140; narrowed by §10.22's cells.
+  add js as a usable language?"); ADR-140; narrowed by §10.22's cells;
+  corrected by §10.24's (Max, 2026-09-20: route a).
 
 ### C-166 — A `jsconfig.json` is not read: its files are extracted under the nearest `tsconfig.json` or the default options — *registered and surfaced 2026-09-19*
 - **Cannot tell you:** what a call resolves to under the repo's own

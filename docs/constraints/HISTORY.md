@@ -6,6 +6,21 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-165 corrected and narrowed, 2026-09-20 (0.2.58-beta; Max: route a; no entry added):
+- **C-165 corrected.** The entry said Hobbes could not tell you "whether
+  an edge from JavaScript into a third-party package is right" and named
+  a provisioned cell as its lift. The cell was drawn and graded
+  (`oracle-grading.md` §10.24, cypress-io/github-action): 154/154 with
+  its 177-package tree on both sides and the same 154/154 without, the
+  graph identical. No `calls` or `uses` edge targets a package on any
+  TS/JS cell, so the edge the entry named is never drawn; the limit is
+  that a third-party call is stated at module grain (`imports →
+  ext:<pkg>`) and the key's external pairs (413 here) meet no Hobbes row.
+- **C-165 narrowed (surfaced).** One JavaScript cell of four now has its
+  dependency tree; the `javascript` verification row says so. Counted
+  beside it: `npm ci` refused three of the four lockfile-bearing
+  JavaScript repos the draws met (C-23). Tally unmoved: 168 entries.
+
 C-168 corrected and narrowed, 2026-09-20 (0.2.57-beta; ADR-142, route b):
 - **C-168 corrected.** The entry as registered on 2026-09-19 said the
   join drew a `uses` edge at every `new` and that `who_calls` worded it
