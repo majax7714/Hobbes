@@ -734,6 +734,77 @@ class _SymbolIndex:
         return matches[-1] if matches else None
 
 
+#: A TypeScript/JavaScript constructor's terminal descriptor (ADR-142):
+#: scip-typescript spells the class's own constructor ``Base#`<ctor>`().``
+#: — the class's moniker plus this one descriptor — and nothing else in
+#: the index is named that way. The disambiguator is the SCIP spec's, kept
+#: for the overloaded constructor that needs one, exactly as the helper's
+#: own `classify` keeps it when it reads a descriptor as a method.
+_TS_CONSTRUCTOR = re.compile(r"`<constructor>`\([\w+]*\)\.$")
+
+
+def ts_construction_targets(
+    definitions: list[dict],
+) -> dict[tuple[str, int], tuple[str, int] | None]:
+    """Where a construction at each TS/JS definition row draws, ADR-142.
+
+    Keyed by the ``(file, line)`` lane B resolves a reference *to*; the
+    value is what a ``calls`` fact at a construction token would point at:
+
+    - **a constructor** — the row's moniker ends in the constructor
+      descriptor — draws to **the class that declares it**, the row whose
+      moniker is that moniker minus that descriptor. The constructor's own
+      line starts no lane A symbol (C-58's floor), which is why nothing is
+      drawn at a `new` today and why the rule must name the class;
+    - **anything that is not a class** — an ES5 ``function User(…)``, or
+      the variable it is bound to; any row whose ``kind`` is not ``type``
+      — draws to that row itself;
+    - **a class** — ``kind: "type"`` — draws nothing, and says so with
+      ``None`` rather than by absence, because that refusal is counted.
+      This is the shape where the written class declares no constructor
+      and the index names it while the constructor that runs is a base's:
+      55 of 58 such rows read contradicted when it was measured, so the
+      reference stays the ``uses`` edge it is today.
+
+    A position carrying **more than one distinct moniker** is absent
+    altogether, for :func:`~hobbes.extract.minted.constructor_lines`'
+    reason: which row the reference lands on would be a guess. So is a
+    constructor whose class is defined at more than one place, or at none
+    this index has a row for.
+
+    This is scip-typescript's spelling alone. scip-clang's is read by
+    :func:`~hobbes.extract.minted.constructor_lines`, and the two never
+    meet: each is given only the rows of the files its own lane A walked.
+    """
+    monikers_at: dict[tuple[str, int], set[str]] = {}
+    kind_at: dict[tuple[str, int], str] = {}
+    #: moniker -> its one definition position, or None once a second is met
+    where_of: dict[str, tuple[str, int] | None] = {}
+    for row in definitions:
+        where = (row["file"], row["line"])
+        moniker = row.get("moniker") or ""
+        monikers_at.setdefault(where, set()).add(moniker)
+        kind_at[where] = row.get("kind") or ""
+        if moniker:
+            if moniker not in where_of:
+                where_of[moniker] = where
+            elif where_of[moniker] != where:
+                where_of[moniker] = None
+
+    targets: dict[tuple[str, int], tuple[str, int] | None] = {}
+    for where, monikers in monikers_at.items():
+        if len(monikers) > 1:
+            continue
+        moniker = next(iter(monikers))
+        if _TS_CONSTRUCTOR.search(moniker):
+            owner = where_of.get(_TS_CONSTRUCTOR.sub("", moniker))
+            if owner is not None:
+                targets[where] = owner
+            continue
+        targets[where] = None if kind_at[where] == "type" else where
+    return targets
+
+
 #: Definition files whose `calls` fact with a type at the other end is not
 #: a call: Go's conversions, Rust's tuple-struct constructors and C++'s
 #: constructions. A C `.h` is here for C++'s sake — a header the C++ layer

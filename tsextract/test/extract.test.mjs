@@ -1041,6 +1041,88 @@ test("a chain onto a property assignment stays at the symbol floor (C-9)", () =>
   assert.equal(call.callee, null);
 });
 
+// --- constructions (ADR-142) ------------------------------------------
+
+test("a construction records its callee's terminal identifier, whatever the class declares", () => {
+  const root = makeRepo({
+    "src/lib.ts": [
+      "export class WithCtor {",
+      "  constructor(n: number) { this.n = n; }",
+      "}",
+      "export class NoCtor {}",
+    ].join("\n"),
+    "src/main.ts": [
+      'import { WithCtor, NoCtor } from "./lib";',
+      "export function make() {",
+      "  return [new WithCtor(1), new NoCtor()];",
+      "}",
+    ].join("\n"),
+  });
+  // Lane A cannot tell the two apart — and does not try: the token says a
+  // construction was written, and the index says what was constructed.
+  assert.deepEqual(extractRepo(root).constructions["src/main.ts"], [
+    [3, 14],
+    [3, 31],
+  ]);
+});
+
+test("an ES5 constructor function and a namespaced `new` record their terminal too", () => {
+  const root = makeRepo({
+    "lib/user.js": "function User(name) { this.name = name; }\nmodule.exports = { User };\n",
+    "src/main.js": [
+      'const ns = require("../lib/user");',
+      "const a = new ns.User(\"a\");",
+      "const { User } = ns;",
+      "const b = new User(\"b\");",
+    ].join("\n"),
+  });
+  // `new ns.User()` is positioned on `User`, where SCIP puts its
+  // occurrence — the terminal identifier, exactly as a call site is.
+  assert.deepEqual(extractRepo(root).constructions["src/main.js"], [
+    [2, 17],
+    [4, 14],
+  ]);
+});
+
+test("a `new` with no terminal identifier, or written in a string or a comment, records nothing", () => {
+  const root = makeRepo({
+    "src/main.js": [
+      "const pick = () => Date;",
+      "class Registry {",
+      "  spawn() { return new this(); }",
+      "}",
+      "const d = new (pick())();",
+      'const s = "new Registry()";',
+      "// new Registry()",
+    ].join("\n"),
+  });
+  // `new this(…)` and a computed callee are dynamic (C-1): no token for
+  // the index to agree with, so lane A states nothing. A string and a
+  // comment are not code at all.
+  assert.equal(extractRepo(root).constructions["src/main.js"], undefined);
+});
+
+test("a construction is no call site: `calls` is what it was", () => {
+  const root = makeRepo({
+    "src/lib.ts": "export class Thing {\n  constructor() {}\n  run() {}\n}\n",
+    "src/main.ts": [
+      'import { Thing } from "./lib";',
+      "export function go() {",
+      "  const t = new Thing();",
+      "  return t.run();",
+      "}",
+    ].join("\n"),
+  });
+  const facts = extractRepo(root);
+  // Only `run` — the construction reaches no callee fallback, no veto,
+  // no coverage denominator and no tail class (ADR-142).
+  assert.deepEqual(
+    byPath(facts, "src/main.ts").calls.map((c) => [c.name, c.line]),
+    [["run", 4]]
+  );
+  assert.deepEqual(facts.constructions["src/main.ts"], [[3, 16]]);
+});
+
 test("origins: a binding below the modelled vocabulary is `local`", () => {
   const root = makeRepo({
     "src/lib.ts": [

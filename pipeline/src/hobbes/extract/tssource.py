@@ -40,7 +40,11 @@ TSEXTRACT_CMD_ENV = "HOBBES_TSEXTRACT_CMD"
 #: v4 (ADR-045): calls carry ``origin`` — where an *unresolved* callee's
 #: declarations live (``local`` | ``nested`` | ``external`` | null), the
 #: checker knowledge the tail view classifies instead of discarding.
-HELPER_VERSION = 5
+#: v6 (ADR-142): a top-level ``constructions`` map — per file, the
+#: ``[line, col]`` of every ``new`` expression's callee terminal
+#: identifier. Never a call site (:func:`_constructions`): the join reads
+#: it, and only where lane B ran.
+HELPER_VERSION = 6
 
 #: Extensions the helper extracts; used only for the cheap "does this repo
 #: have TS/JS at all" scan that decides whether the helper must run.
@@ -124,8 +128,8 @@ def join_facts(facts: dict) -> dict:
     """Join helper facts into graph/routes pieces (pure).
 
     Returns ``{"nodes", "module_edges", "symbols", "call_sites",
-    "call_fallback", "files", "routes", "languages", "errors"}`` — empty
-    when the repo has no TS/JS files.
+    "call_fallback", "constructions", "files", "routes", "languages",
+    "errors"}`` — empty when the repo has no TS/JS files.
 
     **No symbol edges (ADR-031).** ts-morph's checker resolutions are now
     the join's fallback rather than edges, symmetrically with Python's:
@@ -204,6 +208,7 @@ def join_facts(facts: dict) -> dict:
         "symbols": sorted_symbols,
         "call_sites": _call_sites(files),
         "call_fallback": _call_fallback(files, sorted_symbols),
+        "constructions": _constructions(facts),
         # The raw per-file facts, kept so tests can be collected once the
         # join has produced the symbol layer they measure reach over.
         "files": files,
@@ -246,6 +251,27 @@ def _call_sites(files: list[dict]) -> list:
         for f in files
         for call in f["calls"]
     ]
+
+
+def _constructions(facts: dict) -> dict[str, frozenset[tuple[int, int]]]:
+    """Lane A's construction tokens per file, as a position set (ADR-142).
+
+    Helper v6's ``constructions`` map, carried through as the join wants
+    to ask it: *is there a ``new`` token at exactly this line and column*.
+    A file that writes no ``new`` has no entry, here as in the facts.
+
+    Deliberately **not** in :func:`_call_sites`: at a ``new X()`` lane A
+    can say that a construction was written and not what was constructed
+    — the class named there may declare no constructor, and then it is a
+    base's that runs — so a construction is no call site, reaches no
+    fallback and no coverage denominator, and states one fact for the
+    join to meet lane B's resolution at.
+    """
+    return {
+        path: frozenset((line, col) for line, col in tokens)
+        for path, tokens in (facts.get("constructions") or {}).items()
+        if tokens
+    }
 
 
 def call_origins(files: list[dict]) -> dict[tuple[str, int, str], str]:

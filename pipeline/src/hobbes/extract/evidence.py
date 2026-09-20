@@ -218,6 +218,37 @@ def _construction_call(
     return construction_token(packed, hit.line, hit.col)
 
 
+def _ts_construction_call(
+    hit: Site, constructions: Mapping, targets: Mapping
+) -> tuple[str, int] | bool | None:
+    """What a TS/JS construction reference draws, ADR-142 — the sibling of
+    :func:`_construction_call`, read where lane B ran for TypeScript.
+
+    Three answers, as the C++ rule has three. The ``(file, line)`` to draw
+    a ``calls`` fact at; ``False`` where the index named a **class** at
+    the token, which draws nothing and is counted; and ``None`` wherever
+    any part of the rule does not hold — no token here, no reading of that
+    definition — which is the ``uses`` fact the reference is today.
+
+    **Exact position**, as both C++ rules are exact: lane A's token is the
+    `new` expression's callee terminal identifier, and the index puts its
+    occurrence on the same identifier, so one column off or a reference
+    with no column at all is another occurrence on the same line.
+    *targets* answers the other half — what was constructed — because the
+    token alone cannot: at a class that declares no constructor the index
+    names the class while the base's constructor is what runs.
+    """
+    if hit.col < 0:
+        return None
+    tokens = constructions.get(hit.file)
+    if not tokens or (hit.line, hit.col) not in tokens:
+        return None
+    where = (hit.def_file, hit.def_line)
+    if where not in targets:
+        return None
+    return targets[where] or False
+
+
 def join(
     syntax: list[Site],
     semantic: list[Site],
@@ -229,6 +260,9 @@ def join(
     constructions: Mapping[str, array] | None = None,
     constructors: frozenset[tuple[str, int]] | None = None,
     construction_counts: dict | None = None,
+    ts_constructions: Mapping[str, frozenset[tuple[int, int]]] | None = None,
+    ts_targets: Mapping[tuple[str, int], tuple[str, int] | None] | None = None,
+    ts_construction_counts: dict | None = None,
 ) -> list[Resolved]:
     """Join syntax sites against semantic resolutions (ADR-029's table).
 
@@ -317,6 +351,23 @@ def join(
     non-dependent type's, and all 45 such rows across the two measured
     cells read right. *construction_counts* takes ``drawn`` and
     ``in_template`` as *counts* does.
+
+    *ts_constructions* is lane A's ``new`` tokens per TS/JS file
+    (ADR-142, :func:`~hobbes.extract.tssource._constructions`) and
+    *ts_targets* what each of lane B's definitions would be constructed
+    as (:func:`~hobbes.extract.scipsource.ts_construction_targets`).
+    C++'s pair and this one answer for different files and neither can
+    reach the other's; both are read only where lane B ran for the
+    language they belong to. A resolution no call site claimed, at
+    exactly one of those tokens, onto a definition the index names a
+    **constructor**, is a ``calls`` fact to the class that declares it —
+    a constructor starts no symbol, so the reference falls below the
+    floor today and the edge is nobody's; onto anything that is not a
+    class it is a ``calls`` fact to that definition. Onto a **class** it
+    stays the ``uses`` reference it is, and is counted: there the written
+    class declares no constructor and the one that runs is a base's,
+    which is the shape the keys contradict. *ts_construction_counts*
+    takes ``drawn`` and ``named_class``.
     """
     from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -494,6 +545,48 @@ def join(
                     construction_counts["in_template"] = (
                         construction_counts.get("in_template", 0) + 1
                     )
+            made = (
+                _ts_construction_call(hit, ts_constructions, ts_targets)
+                if ts_constructions and ts_targets
+                else None
+            )
+            if made is False:
+                # ADR-142: the index named a class at the token, so the
+                # class declares no constructor and the one that runs is
+                # the base's the key names. The `uses` edge below is what
+                # this reference has always been and stays; counted, so
+                # the rows the rule refuses are a number rather than a
+                # silence (C-168).
+                if ts_construction_counts is not None:
+                    ts_construction_counts["named_class"] = (
+                        ts_construction_counts.get("named_class", 0) + 1
+                    )
+            elif made is not None:
+                # A construction both lanes agree on: lane A wrote the
+                # `new` and lane B named a constructor — or a constructor
+                # function — at exactly its token. Unscoped as the C++
+                # rules' facts are, and carrying neither qualifier nor
+                # argc: `new X(1)` writes no callee for either to read.
+                if ts_construction_counts is not None:
+                    ts_construction_counts["drawn"] = (
+                        ts_construction_counts.get("drawn", 0) + 1
+                    )
+                out.append(
+                    Resolved(
+                        kind="calls",
+                        source_file=file,
+                        line=line,
+                        scope="",
+                        def_file=made[0],
+                        def_line=made[1],
+                        tier=SEMANTIC,
+                        lanes=(TREE_SITTER, SCIP),
+                        evidence=[{"path": file, "line": line}],
+                        qualifier="",
+                        argc=None,
+                    )
+                )
+                continue
             out.append(
                 Resolved(
                     kind="uses",

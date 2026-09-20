@@ -633,6 +633,118 @@ class TestAConstruction:
         assert [fact.kind for fact in ev.join([], [self.reference()])] == ["uses"]
 
 
+class TestATsConstruction:
+    """ADR-142: lane A wrote a `new` at a token, lane B named a
+    constructor there, and the join draws the call — to the class that
+    declares it, at exactly that token, and never where the index names
+    the class itself."""
+
+    #: `new Base()` at src/main.ts:10, col 16. The index names
+    #: `Base#`<constructor>`()` at src/lib.ts:2; the class is at :1.
+    TOKENS = {"src/main.ts": frozenset({(10, 16)})}
+    TARGETS = {
+        ("src/lib.ts", 2): ("src/lib.ts", 1),  # a constructor -> its class
+        ("src/lib.ts", 1): None,               # the class -> refused
+        ("lib/user.js", 4): ("lib/user.js", 4),  # not a class -> itself
+    }
+
+    @staticmethod
+    def reference(col=16, def_file="src/lib.ts", def_line=2):
+        return resolution("src/main.ts", 10, "<constructor>", def_file, def_line, col=col)
+
+    def counted(self, semantic, tokens=None, targets=None, syntax=()):
+        counts: dict = {"drawn": 0, "named_class": 0}
+        out = ev.join(
+            list(syntax),
+            list(semantic),
+            ts_constructions=self.TOKENS if tokens is None else tokens,
+            ts_targets=self.TARGETS if targets is None else targets,
+            ts_construction_counts=counts,
+        )
+        return out, counts
+
+    def test_a_constructor_at_the_token_is_a_call_to_its_class(self):
+        out, counts = self.counted([self.reference()])
+        assert [fact.kind for fact in out] == ["calls"]
+        [fact] = out
+        assert fact.tier == SEMANTIC
+        assert fact.lanes == (ev.TREE_SITTER, ev.SCIP)
+        # The class, not the constructor's own line: that line starts no
+        # lane A symbol, which is why nothing is drawn there today.
+        assert (fact.def_file, fact.def_line) == ("src/lib.ts", 1)
+        # No scope, and nothing for R-qual or R-arity: `project` names the
+        # caller by the enclosing symbol, and `new Base()` writes no callee.
+        assert fact.scope == ""
+        assert (fact.qualifier, fact.argc) == ("", None)
+        assert counts == {"drawn": 1, "named_class": 0}
+
+    def test_a_constructor_function_is_drawn_to_itself(self):
+        # Express's shape: an ES5 `function User(..)`, or the variable it
+        # is bound to — the index names it, and it is what runs.
+        out, counts = self.counted(
+            [self.reference(def_file="lib/user.js", def_line=4)]
+        )
+        assert [(f.kind, f.def_file, f.def_line) for f in out] == [
+            ("calls", "lib/user.js", 4)
+        ]
+        assert counts == {"drawn": 1, "named_class": 0}
+
+    def test_a_class_at_the_token_stays_the_use_it_is_and_is_counted(self):
+        # The class declares no constructor and the key names the base
+        # whose constructor runs: 55 of 58 such rows read contradicted.
+        out, counts = self.counted([self.reference(def_line=1)])
+        assert [(f.kind, f.def_line) for f in out] == [("uses", 1)]
+        assert counts == {"drawn": 0, "named_class": 1}
+
+    def test_one_column_off_is_not_the_token(self):
+        out, counts = self.counted([self.reference(col=17)])
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "named_class": 0}
+
+    def test_a_reference_with_no_column_is_not_the_token_either(self):
+        out, counts = self.counted([self.reference(col=-1)])
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "named_class": 0}
+
+    def test_another_file_s_token_is_not_this_file_s(self):
+        out, _ = self.counted([self.reference()], tokens={"src/other.ts": frozenset({(10, 16)})})
+        assert [fact.kind for fact in out] == ["uses"]
+
+    def test_a_definition_the_reading_does_not_answer_for_is_untouched(self):
+        # A line carrying more than one moniker, or a class defined
+        # nowhere this index can point at: absent from the reading, so the
+        # reference is the `uses` fact it was — and not a refusal either.
+        out, counts = self.counted([self.reference(def_line=7)])
+        assert [fact.kind for fact in out] == ["uses"]
+        assert counts == {"drawn": 0, "named_class": 0}
+
+    def test_a_call_site_claimed_at_the_token_keeps_its_own_fact(self):
+        # A `new` is no call site, so this cannot arise from ADR-142's own
+        # tokens; the rule reads only what nothing claimed, as both C++
+        # rules do.
+        out, counts = self.counted(
+            [self.reference()],
+            syntax=[call("src/main.ts", 10, "<constructor>", scope="src/main.go", col=16)],
+        )
+        assert [(f.kind, f.def_line, f.scope) for f in out] == [
+            ("calls", 2, "src/main.go")
+        ]
+        assert counts == {"drawn": 0, "named_class": 0}
+
+    def test_one_argument_without_the_other_reads_neither(self):
+        # Both or nothing, as the C++ pair is: the tokens say a
+        # construction was written and the reading says what was
+        # constructed.
+        reference = [self.reference()]
+        assert [f.kind for f in ev.join([], reference, ts_constructions=self.TOKENS)] == ["uses"]
+        assert [f.kind for f in ev.join([], reference, ts_targets=self.TARGETS)] == ["uses"]
+
+    def test_without_the_tokens_the_join_is_what_it_was(self):
+        # P6: with lane B off nothing reads them, and with lane A's
+        # tokens alone there is no resolution to meet.
+        assert [fact.kind for fact in ev.join([], [self.reference()])] == ["uses"]
+
+
 class TestCoverage:
     """The denominator: what the semantic provider could not account for."""
 

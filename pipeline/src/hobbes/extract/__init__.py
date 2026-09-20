@@ -414,6 +414,14 @@ def _build_symbol_layer(
     lane_a_c_files = {parsed.path for layer in (c, cpp) if layer for parsed in layer["files"]}
     lossy_files = frozenset().union(*(layer["lossy_files"] for layer in (c, cpp) if layer))
     lane_b_definitions: list[dict] = []
+    # ADR-142, the same shape for TS/JS: the definition rows lane B raised
+    # in the files lane A walked as TS/JS, collected only where lane A
+    # recorded a `new` token at all — with no construction written there
+    # is nothing for the reading to answer, and no reason to keep a row.
+    ts_files = (
+        {f["path"] for f in ts["files"]} if ts and ts.get("constructions") else set()
+    )
+    ts_definitions: list[dict] = []
     lane_b_ran = False
 
     for facts in _lane_b_facts(
@@ -434,6 +442,10 @@ def _build_symbol_layer(
         if lane_a_c_files:
             lane_b_definitions += [
                 row for row in facts.get("definitions") or [] if row["file"] in lane_a_c_files
+            ]
+        if ts_files:
+            ts_definitions += [
+                row for row in facts.get("definitions") or [] if row["file"] in ts_files
             ]
         if cpp_site_files:
             indexed = {site.file for site in references}
@@ -468,6 +480,17 @@ def _build_symbol_layer(
     constructors = (
         minted.constructor_lines(lane_b_definitions) if cpp and lane_b_ran else None
     )
+    # ADR-142: lane A's `new` tokens and lane B's reading of what each
+    # definition would be constructed as — the TS/JS pair, read together
+    # or not at all, and only where lane B ran. With no index there is no
+    # reference to meet a token, so the tokens are read by nothing and the
+    # graph is what it was (P6), exactly as the C++ pair above.
+    ts_construction_counts: dict[str, int] = {"drawn": 0, "named_class": 0}
+    ts_targets = (
+        scipsource.ts_construction_targets(ts_definitions)
+        if ts_definitions and lane_b_ran
+        else None
+    )
     with timings.step("join"):
         resolved = ev.join(
             syntax,
@@ -480,6 +503,9 @@ def _build_symbol_layer(
             constructions=cpp["constructions"] if cpp and lane_b_ran else None,
             constructors=constructors,
             construction_counts=construction_counts,
+            ts_constructions=ts["constructions"] if ts_targets else None,
+            ts_targets=ts_targets,
+            ts_construction_counts=ts_construction_counts,
         )
     if operator_counts["drawn"] or operator_counts["in_template"]:
         # Additive, and absent on a repo with nothing to say — a C++
@@ -491,6 +517,16 @@ def _build_symbol_layer(
         # construction drawn as a call is a new edge, and the one inside a
         # template left as a `uses` is what the rule did not draw.
         graph["constructions"] = dict(construction_counts)
+    if ts_construction_counts["drawn"] or ts_construction_counts["named_class"]:
+        # ADR-142's two, in the same block and absent on the same terms —
+        # a repo with no TS/JS construction says nothing, as one with no
+        # C++ construction says nothing. Named apart from C++'s because
+        # they are different rules over different files, and a reader of
+        # one number must not read it as the other's.
+        graph.setdefault("constructions", {}).update(
+            ts_drawn=ts_construction_counts["drawn"],
+            ts_named_class=ts_construction_counts["named_class"],
+        )
     # ADR-129, after the join and before the projection: where lane A's
     # parse lost a C or C++ definition, lane B's definition row becomes the
     # symbol, so `starting_at` answers for the lost line and the calls
