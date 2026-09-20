@@ -148,6 +148,62 @@ def match_resolution(
     return min(named, key=lambda c: abs(c.col - site.col) if c.col >= 0 else 1 << 30)
 
 
+def match_at_own_column(
+    site: Site,
+    buckets: dict[tuple[str, int], list[Site]],
+    fallback: Mapping[tuple[str, int, str], tuple[str, int]],
+) -> Site | None:
+    """The resolution for a **call** *site* the by-name match missed because
+    the name written there is not the definition's, or None (ADR-143).
+
+    :func:`match_resolution` asks the two lanes to agree on a name. At a
+    renamed binding (``import { id as xid }``, ``var express =
+    require(..)``, ``from m import read_units as read_nll_units``) and at a
+    ``#private`` method call they cannot: lane A saw what was written and
+    lane B names the definition. So the site fell to lane A's fallback as a
+    ``syntactic`` call while lane B's unclaimed resolution became a
+    ``semantic`` ``uses`` to the same definition at the same token — one
+    call, two edges, the weaker tier on the one ``who_calls`` prints.
+
+    This is the second reading, tried only where the first missed. All
+    three conditions hold or it answers None:
+
+    1. lane A's *fallback* resolves the site;
+    2. a resolution sits at the site's **own** column on its line;
+    3. **every** resolution at that column names the fallback's
+       ``(def_file, def_line)``.
+
+    Deliberately exact, and it fails toward drawing less. The column is the
+    whole of what says the two lanes are looking at one token, so one
+    column off is another occurrence on the line (xmpp.js's
+    ``time.date()``, where the reference 5 columns away is the namespace's,
+    not the callee's); a second resolution at that column naming another
+    definition means the index says two things there and only one of them
+    is the fallback's; and a site with no column is one
+    :func:`match_resolution` would have claimed by name, so which
+    occurrence it meant is not known. *buckets* holds resolutions alone
+    (:func:`index_resolutions`), so an ``implements`` site — a pair between
+    two definitions, ADR-120 — is never read as one here.
+
+    The rule cannot draw an edge that is not drawn today: condition 1 is
+    lane A already answering, and the fact takes lane A's own target. What
+    it changes is the tier, and the duplicate ``uses`` the claim removes.
+    """
+    if site.kind != CALL_SITE or site.col < 0 or site.ambiguous:
+        return None
+    guess = fallback.get((site.file, site.line, site.name))
+    if guess is None:
+        return None
+    at_column = [c for c in buckets.get((site.file, site.line), []) if c.col == site.col]
+    if not at_column:
+        return None
+    if any((c.def_file, c.def_line) != guess for c in at_column):
+        return None
+    # Every one of them names that definition, so which is the hit does not
+    # change the fact; the first keeps the answer deterministic.
+    return at_column[0]
+
+
 def _veto_set(external: list[dict] | None) -> set[tuple[str, int, str]]:
     """Sites whose ``(file, line, name)`` lane B resolved outside the repo
     (ADR-111). A reference the helper or :func:`~hobbes.extract.scipsource.
@@ -285,6 +341,21 @@ def join(
     marked ``syntactic`` when it is. Sites nothing resolves are dropped:
     an unresolved call is not an edge, which is ADR-007's rule unchanged.
 
+    A call site the by-name match missed gets one more reading before that
+    fallback: :func:`match_at_own_column` (ADR-143). Where lane A's
+    fallback answered, a resolution sits at the site's own column, and every
+    resolution at that column names the fallback's definition, the site is
+    matched there — the two lanes named one definition at one token and
+    disagreed only about what the token is *called*, which is what a
+    renamed binding or a ``#private`` method makes of it. It is then the hit
+    the by-name match would have been: ``calls``, semantic, both lanes,
+    claimed by position, its qualifier and argc riding as on any semantic
+    hit. **It draws nothing new** — lane A already drew that call, at
+    ``syntactic`` tier, beside a ``uses`` to the same definition; the rule
+    raises the tier and the claim removes the duplicate. Anything less than
+    all three conditions is what it is today: the veto, the fallback, the
+    withhold, in that order.
+
     *external* is lane B's external references (ADR-111): a site whose
     key lane B resolved to a declaration outside the repo vetoes the
     fallback there — lane A's guess is dropped rather than drawn, because
@@ -386,6 +457,13 @@ def join(
             continue
         kind = "calls" if site.kind == CALL_SITE else "imports"
         hit = match_resolution(site, buckets)
+        if hit is None:
+            # ADR-143, the second reading: the name written at the site is
+            # not the definition's, and both lanes name one definition at
+            # the site's own column. Answers None for an import site, a
+            # columnless site and an abstention, so each of those is what it
+            # is below.
+            hit = match_at_own_column(site, buckets, fallback)
         if site.ambiguous:
             # Lane A saw the receiver's type and abstained (ADR-104): a
             # union whose members resolve the member differently has no
@@ -631,9 +709,10 @@ def external_vetoes(
     """The sites :func:`join` vetoed (ADR-111), each with lane A's guess.
 
     Same rule as the join's veto — a call or import site with no in-repo
-    semantic resolution, whose key lane B placed outside the repo, and for
-    which lane A's fallback had an answer — so this count and the edges
-    the join actually drops cannot drift apart. This is where
+    semantic resolution **by either reading** (the by-name match, and
+    ADR-143's at the site's own column), whose key lane B placed outside the
+    repo, and for which lane A's fallback had an answer — so this count and
+    the edges the join actually drops cannot drift apart. This is where
     ``hobbes lanes`` and the report meet the sites lane A would have drawn
     wrong.
     """
@@ -645,6 +724,8 @@ def external_vetoes(
             continue
         if match_resolution(site, buckets) is not None:
             continue
+        if match_at_own_column(site, buckets, fallback) is not None:
+            continue  # ADR-143: the join matched it, so it was never vetoed
         if (site.file, site.line, site.name) not in vetoed:
             continue
         guess = fallback.get((site.file, site.line, site.name))
@@ -664,7 +745,8 @@ def withheld_fallbacks(
     """The sites :func:`join` withheld (ADR-113 §2), each with lane A's guess.
 
     Same rule as the join's, by the same predicate — a call site in a file
-    lane B compiled, with no in-repo semantic resolution, not already
+    lane B compiled, with no in-repo semantic resolution by either reading
+    (the by-name match, and ADR-143's at the site's own column), not already
     vetoed as external, and for which lane A's fallback had an answer — so
     this count and the edges the join actually drops cannot drift apart.
     This is where ``lane_agreement`` and the ``cpp-fallback`` record meet
@@ -680,6 +762,8 @@ def withheld_fallbacks(
             continue
         if match_resolution(site, buckets) is not None:
             continue
+        if match_at_own_column(site, buckets, fallback) is not None:
+            continue  # ADR-143: the join matched it, so nothing was withheld
         if (site.file, site.line, site.name) in vetoed:
             continue
         guess = fallback.get((site.file, site.line, site.name))
@@ -715,6 +799,12 @@ def agreement(
     comparison cannot ask that — it has already lost which site produced
     which edge.
 
+    A site matched by either of the join's readings — by name, or at its own
+    column (ADR-143) — is a site lane B resolved, so both are read here and
+    the comparison is over exactly the sites the join drew semantic facts
+    for. The second reading's sites agree by construction: the rule takes a
+    column only where every resolution there names lane A's own answer.
+
     Returns ``(sites compared, disagreements)``. Sites only one lane
     resolved are not disagreements: that is the division of labour working
     (lane B resolves what lane A cannot, and the fallback covers the
@@ -734,6 +824,11 @@ def agreement(
         if guess is None:
             continue
         hit = match_resolution(site, buckets)
+        if hit is None:
+            # The join's second reading (ADR-143), so a site it matched is
+            # compared here too — and agrees by construction: the rule only
+            # takes a column where every resolution names *this* guess.
+            hit = match_at_own_column(site, buckets, fallback)
         if hit is None:
             continue
         compared += 1
@@ -805,7 +900,15 @@ def disagreement_shapes(
             # the disagreeing site itself — "another of those sites" holds
             # by construction.
             for sibling in siblings:
-                hit = match_resolution(sibling, buckets)
+                # The join's two readings, so this asks what it asked. The
+                # second cannot change an answer here — siblings share a
+                # name, so a resolution of that name on the line gives every
+                # one of them a by-name hit, and without one no sibling
+                # disagrees at all — and it is read anyway, because a mirror
+                # that carries a different predicate is how the two drift.
+                hit = match_resolution(sibling, buckets) or match_at_own_column(
+                    sibling, buckets, fallback
+                )
                 if hit is not None and (hit.def_file, hit.def_line) == guess:
                     shape = SAME_LINE_PAIR
                     break
@@ -848,12 +951,20 @@ def _dispositions(
     syntax: list[Site],
     semantic: list[Site],
     external: list[dict] | None,
+    fallback: Mapping[tuple[str, int, str], tuple[str, int]] | None = None,
 ):
     """Each call site with its fate: ``resolved`` | ``external`` |
     ``unresolved``. The one walk both :func:`coverage` and
     :func:`unresolved_sites` derive from, so the counted set and the
-    classified set (ADR-045's tail view) cannot drift apart."""
+    classified set (ADR-045's tail view) cannot drift apart.
+
+    *fallback* is lane A's guesses, read for ADR-143's match alone (the
+    join's second reading needs them): a site matched there is ``resolved``
+    here as a by-name match is, and never reaches the tail as
+    ``fallback-resolved``. Left out, the first reading is the only one — the
+    disposition of every other site is what it was."""
     buckets = index_resolutions(semantic)
+    fallback = fallback or {}
     outside = {
         (e["file"], e["line"], e.get("name", "")) for e in (external or [])
     }
@@ -866,6 +977,8 @@ def _dispositions(
             yield site, "unresolved"
         elif match_resolution(site, buckets) is not None:
             yield site, "resolved"
+        elif match_at_own_column(site, buckets, fallback) is not None:
+            yield site, "resolved"  # ADR-143: the join matched it too
         elif (site.file, site.line, site.name) in outside:
             yield site, "external"
         else:
@@ -876,11 +989,15 @@ def coverage(
     syntax: list[Site],
     semantic: list[Site],
     external: list[dict] | None = None,
+    fallback: Mapping[tuple[str, int, str], tuple[str, int]] | None = None,
 ) -> list[Coverage]:
-    """Per-file resolution coverage over the call sites in *syntax*."""
+    """Per-file resolution coverage over the call sites in *syntax*.
+
+    *fallback* is passed through to :func:`_dispositions` for ADR-143's
+    match, so a site the join matched by column counts ``resolved`` here."""
     counts: dict[str, list[int]] = defaultdict(lambda: [0, 0, 0])
     slot = {"resolved": 0, "external": 1, "unresolved": 2}
-    for site, fate in _dispositions(syntax, semantic, external):
+    for site, fate in _dispositions(syntax, semantic, external, fallback):
         counts[site.file][slot[fate]] += 1
     return [
         Coverage(file, resolved + ext + un, resolved, ext, un)
@@ -892,11 +1009,13 @@ def unresolved_sites(
     syntax: list[Site],
     semantic: list[Site],
     external: list[dict] | None = None,
+    fallback: Mapping[tuple[str, int, str], tuple[str, int]] | None = None,
 ) -> list[Site]:
     """The call sites :func:`coverage` counts as ``unresolved`` — the
-    tail view's input (ADR-045)."""
+    tail view's input (ADR-045). *fallback* is read for ADR-143's match
+    alone, as :func:`coverage` reads it, so the two walks stay one."""
     return [
         site
-        for site, fate in _dispositions(syntax, semantic, external)
+        for site, fate in _dispositions(syntax, semantic, external, fallback)
         if fate == "unresolved"
     ]

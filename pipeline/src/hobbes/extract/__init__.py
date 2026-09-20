@@ -722,7 +722,11 @@ def _build_symbol_layer(
     )
     with timings.step("tail"):
       tails = tail.classify(
-        ev.unresolved_sites(syntax, resolutions, external),
+        # The whole fallback, not `tail_fallback`: ADR-143's match reads it
+        # as the join does, and a site it matched is resolved rather than
+        # classified at all. What the tail *classifies* a site as still
+        # comes from `tail_fallback` below.
+        ev.unresolved_sites(syntax, resolutions, external, fallback),
         repo_root,
         origins=origins,
         fallback=tail_fallback,
@@ -773,7 +777,7 @@ def _build_symbol_layer(
                 else {}
             ),
         }
-        for row in ev.coverage(syntax, resolutions, external)
+        for row in ev.coverage(syntax, resolutions, external, fallback)
     ]
     # Which tail classes each present language's providers could have
     # reported (C-32): stated beside the counts, so an absent class reads
@@ -1138,7 +1142,12 @@ def _cpp_site_counts(
             continue
         if fallback.get((site.file, site.line, site.name)) is None:
             continue
-        if ev.match_resolution(site, buckets) is not None:
+        if (
+            ev.match_resolution(site, buckets) is not None
+            # The join's second reading (ADR-143): a site it matched there
+            # is compared, never drawn from lane A's guess alone.
+            or ev.match_at_own_column(site, buckets, fallback) is not None
+        ):
             compared += 1
         elif (
             site.file not in withhold

@@ -10,8 +10,10 @@ from hobbes.extract import evidence as ev
 from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
 
-def call(file, line, name, scope="", col=4):
-    return ev.Site(ev.TREE_SITTER, ev.CALL_SITE, file, line, name, col, scope)
+def call(file, line, name, scope="", col=4, **kw):
+    # **kw is the site's other syntax-only fields — `ambiguous` (ADR-104),
+    # `qualifier` (ADR-125), `argc` (ADR-130) — by name.
+    return ev.Site(ev.TREE_SITTER, ev.CALL_SITE, file, line, name, col, scope, **kw)
 
 
 def imported(file, line, name):
@@ -233,6 +235,219 @@ class TestTheClaimIsByPosition:
             [resolution("a.py", 10, "run", "b.py", 5, col=-1)],
         )
         assert [r.kind for r in out] == ["calls"]
+
+
+class TestARenamedCalleeAtItsOwnColumn:
+    """ADR-143: the site's name is what was *written* and the resolution's is
+    the *definition's*, so at ``import { id as xid }``, ``var express =
+    require(..)`` or a ``#private`` method call the by-name match misses —
+    one call drawn twice, ``syntactic`` from lane A's fallback and
+    ``semantic`` as a ``uses`` from lane B's unclaimed resolution.
+
+    Where lane A's fallback answered, a resolution sits at the site's own
+    column, and every resolution there names that answer, the two lanes
+    named one definition at one token: the hit the by-name match would have
+    been, and no ``uses`` beside it. Nothing new is drawn — lane A drew the
+    call already, at the weaker tier.
+    """
+
+    #: `use.js:7` — `xid(1)` at column 8, lane A resolving it to `id.js:3`.
+    FALLBACK = {("use.js", 7, "xid"): ("id.js", 3)}
+
+    def site(self, col=8, name="xid", **kw):
+        return call("use.js", 7, name, scope="use.run", col=col, **kw)
+
+    def joined(self, syntax, semantic, **kw):
+        return ev.join(syntax, semantic, fallback=self.FALLBACK, **kw)
+
+    def test_the_two_lanes_name_one_definition_at_one_token(self):
+        out = self.joined(
+            [self.site()], [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        )
+        assert len(out) == 1
+        got = out[0]
+        assert got.kind == "calls"
+        assert got.tier == SEMANTIC
+        assert got.lanes == (ev.TREE_SITTER, ev.SCIP)
+        assert (got.def_file, got.def_line) == ("id.js", 3)
+        assert got.scope == "use.run"
+        assert got.evidence == [{"path": "use.js", "line": 7}]
+        # and no `uses` beside it: the claim took the resolution with it
+        assert [r.kind for r in out] == ["calls"]
+
+    def test_a_require_binding_is_the_same_shape(self):
+        # `minicjs`'s `test/direct.js`: `var app = require('../lib/app');
+        # app();` — lane A writes `app`, the index names the definition
+        # `createApplication`. The end-to-end case of ADR-143, at the
+        # join's level so it runs without an indexer.
+        out = ev.join(
+            [call("test/direct.js", 3, "app", scope="test/direct", col=0)],
+            [resolution("test/direct.js", 3, "createApplication", "lib/app.js", 5, col=0)],
+            fallback={("test/direct.js", 3, "app"): ("lib/app.js", 5)},
+        )
+        assert [(r.kind, r.tier, r.def_line) for r in out] == [("calls", SEMANTIC, 5)]
+
+    def test_one_column_off_is_another_occurrence_and_draws_today_s_pair(self):
+        # xmpp.js's `time.date()`: the reference five columns away is the
+        # namespace's, not the callee's. Exactness is the whole rule.
+        out = self.joined(
+            [self.site()], [resolution("use.js", 7, "id", "id.js", 3, col=9)]
+        )
+        assert sorted((r.kind, r.tier) for r in out) == [
+            ("calls", SYNTACTIC),
+            ("uses", SEMANTIC),
+        ]
+
+    def test_a_resolution_onto_another_definition_draws_today_s_pair(self):
+        # The index answered something else at that token, so the lanes do
+        # not agree and there is nothing to say.
+        out = self.joined(
+            [self.site()], [resolution("use.js", 7, "id", "other.js", 9, col=8)]
+        )
+        assert sorted((r.kind, r.tier) for r in out) == [
+            ("calls", SYNTACTIC),
+            ("uses", SEMANTIC),
+        ]
+        assert next(r for r in out if r.kind == "calls").def_file == "id.js"
+
+    def test_one_agreeing_and_one_not_at_the_column_draws_today_s_pair(self):
+        # Two things stated at one position: only one of them is lane A's
+        # answer, and the rule fails toward drawing less.
+        out = self.joined(
+            [self.site()],
+            [
+                resolution("use.js", 7, "id", "id.js", 3, col=8),
+                resolution("use.js", 7, "Id", "other.js", 9, col=8),
+            ],
+        )
+        assert sorted((r.kind, r.tier) for r in out) == [
+            ("calls", SYNTACTIC),
+            ("uses", SEMANTIC),
+            ("uses", SEMANTIC),
+        ]
+
+    def test_without_a_fallback_the_resolution_is_the_use_it_was(self):
+        # Condition 1 is lane A already answering; with no answer there is
+        # no definition for the column to agree with.
+        out = ev.join(
+            [self.site()], [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        )
+        assert [(r.kind, r.tier) for r in out] == [("uses", SEMANTIC)]
+
+    def test_a_columnless_site_is_untouched(self):
+        # Which occurrence `match_resolution` would have meant is not known
+        # there, and an unsure claim draws less (ADR-133).
+        out = self.joined(
+            [self.site(col=-1)], [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        )
+        assert sorted((r.kind, r.tier) for r in out) == [
+            ("calls", SYNTACTIC),
+            ("uses", SEMANTIC),
+        ]
+
+    def test_an_ambiguous_site_draws_nothing_as_today(self):
+        # ADR-104: lane A abstained, so there is no call for either lane to
+        # agree about — and the rule may not turn an abstention into a hit.
+        out = self.joined(
+            [self.site(ambiguous="union-member")],
+            [resolution("use.js", 7, "id", "id.js", 3, col=8)],
+        )
+        assert [r.kind for r in out] == ["uses"]
+
+    def test_an_import_site_with_a_differing_name_is_untouched(self):
+        # The rule is a call's. An import whose name the index states
+        # differently is what it was: lane A's syntactic edge, and the
+        # resolution's own `uses`.
+        out = ev.join(
+            [imported("use.js", 1, "xid")],
+            [resolution("use.js", 1, "id", "id.js", 3, col=0)],
+            fallback={("use.js", 1, "xid"): ("id.js", 3)},
+        )
+        assert sorted((r.kind, r.tier) for r in out) == [
+            ("imports", SYNTACTIC),
+            ("uses", SEMANTIC),
+        ]
+
+    def test_the_written_qualifier_and_argument_count_ride_on_the_hit(self):
+        # ADR-125 and ADR-130: this is a semantic hit, so the projection
+        # gets the source's own claims to read against lane B's answer.
+        out = self.joined(
+            [self.site(qualifier="ns::T<2>", argc=3)],
+            [resolution("use.js", 7, "id", "id.js", 3, col=8)],
+        )
+        assert (out[0].qualifier, out[0].argc) == ("ns::T<2>", 3)
+
+    def test_the_match_itself_answers_none_where_a_condition_fails(self):
+        # The one function the join and every mirror read, asked directly.
+        buckets = ev.index_resolutions([resolution("use.js", 7, "id", "id.js", 3, col=8)])
+        hit = ev.match_at_own_column(self.site(), buckets, self.FALLBACK)
+        assert hit is not None and (hit.def_file, hit.def_line) == ("id.js", 3)
+        assert ev.match_at_own_column(self.site(col=9), buckets, self.FALLBACK) is None
+        assert ev.match_at_own_column(self.site(), buckets, {}) is None
+        assert ev.match_at_own_column(
+            imported("use.js", 7, "xid"), buckets, self.FALLBACK
+        ) is None
+
+    # The mirrors: each repeats the join's match, so a site the rule takes
+    # is counted matched everywhere (ADR-143) — never vetoed, never
+    # withheld, compared and agreeing, and `resolved` in the dispositions.
+
+    def test_the_veto_does_not_claim_a_site_the_rule_matched(self):
+        semantic = [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        external = [{"file": "use.js", "line": 7, "name": "xid"}]
+        out = self.joined([self.site()], semantic, external=external)
+        assert [(r.kind, r.tier) for r in out] == [("calls", SEMANTIC)]
+        assert ev.external_vetoes([self.site()], semantic, self.FALLBACK, external) == []
+
+    def test_nothing_is_withheld_where_the_rule_matched(self):
+        semantic = [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        withhold = frozenset({"use.js"})
+        out = self.joined([self.site()], semantic, withhold=withhold)
+        assert [(r.kind, r.tier) for r in out] == [("calls", SEMANTIC)]
+        assert ev.withheld_fallbacks(
+            [self.site()], semantic, self.FALLBACK, None, withhold
+        ) == []
+
+    def test_the_self_test_compares_the_site_and_finds_no_disagreement(self):
+        compared, bad = ev.agreement(
+            [self.site()],
+            [resolution("use.js", 7, "id", "id.js", 3, col=8)],
+            self.FALLBACK,
+        )
+        assert (compared, bad) == (1, [])
+
+    def test_there_is_no_disagreement_at_the_rule_s_site_to_shape(self):
+        # `disagreement_shapes` reads the same match as the join and
+        # `agreement` do, so the three cannot drift; a site the rule matched
+        # names the guess by construction, so it is never a row to shape.
+        sites = [self.site()]
+        semantic = [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        _, bad = ev.agreement(sites, semantic, self.FALLBACK)
+        assert bad == []
+        assert ev.disagreement_shapes(sites, semantic, self.FALLBACK, bad) == []
+
+    def test_the_dispositions_count_the_site_resolved(self):
+        semantic = [resolution("use.js", 7, "id", "id.js", 3, col=8)]
+        [row] = ev.coverage([self.site()], semantic, None, self.FALLBACK)
+        assert (row.sites, row.resolved, row.unresolved) == (1, 1, 0)
+        assert ev.unresolved_sites([self.site()], semantic, None, self.FALLBACK) == []
+        # without the fallback the walk is what it was: lane A answered
+        # nothing, so the site is unresolved and the tail names it
+        [today] = ev.coverage([self.site()], semantic)
+        assert (today.resolved, today.unresolved) == (0, 1)
+
+    def test_the_cpp_comparison_counts_it_compared_rather_than_drawn(self):
+        # The mirror in `extract`: ADR-123 §3's denominator and the guesses
+        # the join does draw. A site the rule matched is lane B's answer
+        # too, so it is compared and it is not a drawn guess.
+        from hobbes.extract import _cpp_site_counts
+
+        site = call("a.cc", 7, "xid", scope="a.g", col=8)
+        fallback = {("a.cc", 7, "xid"): ("id.h", 3)}
+        semantic = [resolution("a.cc", 7, "id", "id.h", 3, col=8)]
+        assert _cpp_site_counts(
+            [site], semantic, fallback, frozenset(), {"a.cc"}, None
+        ) == (1, 0)
 
 
 class TestProviderSeparation:
