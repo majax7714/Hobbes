@@ -110,14 +110,17 @@
   Express's `res.send` overloads a handler reaches, which package function
   a change to a wrapper touches. The graph answers "this module imports
   that package" and no further. And at a JavaScript repo whose own calls
-  go through dependency-typed receivers: that shape has one thin cell
-  behind it (P11). Provisioning itself declines often on JavaScript: of
-  the four lockfile-bearing repos the draws met, `npm ci` refused three
-  (two lockfiles out of sync with their manifests, one unpublished
-  tarball — C-23).
+  go through dependency-typed receivers: that shape has two cells behind
+  it (P11) — a thin one (§10.24) and Blueturboguy07/cue (§10.27: 881
+  rows, identical with its 276-package tree and without; the three key
+  pairs the tree moved are calls through a dependency-typed value, and
+  Hobbes draws nothing at any of them in either arm). Provisioning
+  itself declines often on JavaScript: of the eight lockfile-bearing
+  repos the draws met, `npm ci` refused four (two lockfiles out of sync
+  with their manifests, one unpublished tarball, one ERESOLVE — C-23).
 - **You find out:** **surfaced** — the `javascript` verification row
-  names its four repos and ends "one of four graded with its dependency
-  tree", in the ingest summary's note, the surface's badge title and
+  names its five repos and ends "two of five graded with their
+  dependency tree", in the ingest summary's note, the surface's badge title and
   `list_blind_spots`; §3.8's JavaScript row states it; a zone whose
   install was declined or refused says so at ingest (C-23, C-34).
 - **Lifting it** is not a cell: it is a decision to draw symbol edges

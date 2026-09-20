@@ -363,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.60-beta** (2026-09-20). The Hobbes layer is versioned from here
+**Hobbes 0.2.61-beta** (2026-09-20). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -371,8 +371,8 @@ every knowledge answer states the version and commit that built it.
 **v1 (M0–M8) and v2 extraction (V2.M0–M7) are complete and reviewed.**
 Semantic edges for **Python, TypeScript, JavaScript, Go, Rust, Java, C
 and C++** (plus Terraform/HCL structure). JavaScript goes through
-TypeScript's two lanes and is graded on four repos of its own (ADR-140),
-one of them with its dependencies installed; a call into a package is
+TypeScript's two lanes and is graded on five repos of its own (ADR-140),
+two of them with their dependencies installed; a call into a package is
 stated at module grain only (C-165).
 C and C++, the newest, are
 scip-clang over a compile database the ingest derives, each

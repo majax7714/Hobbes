@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.60-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.61-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.61-beta — 2026-09-20 (a fifth JavaScript cell, the first of a size graded with its dependency tree; the `javascript` verification row reads five repos)
+
+**Patch: what the layer says** — the `javascript` verification row; nothing the
+layer draws moved.
+
+- **Blueturboguy07/cue, drawn at random by a rule stated first**
+  (`oracle-grading.md` §10.27): the walk resumed at position 22 with one
+  criterion added because the last cell was thin — at least 300 `calls` edges
+  and half the declared packages resolved. **881/881 confirmed, 0 contradicted,
+  recall 54.3%, poison PASS**, graded with its 276-package tree on both sides
+  and again with none. **The two arms' rows are identical by site, target,
+  caller and tier, and so is the graph.** The tree moved the key's external
+  pairs (1,620 → 5,198), the dependency coverage (0 → 7 of 12) and the poison
+  check's unjudged seeds (163 → 18): it sharpens the key, not the graph.
+- **Three key pairs differ between the arms, none a Hobbes row:** calls through
+  a dependency-typed value (`OpenAI.toFile || require('openai/uploads').toFile`,
+  `newInstallId: randomUUID`), where Hobbes draws nothing with the tree or
+  without. C-165 as corrected at 0.2.58-beta, now on a cell of a size to say it.
+- **The `javascript` verification row** reads 5 repos and ends "two of five
+  graded with their dependency tree" (ingest summary, the surface's badge,
+  `list_blind_spots`); §3.8's row, C-165 and the README say the same.
+- Counted, under C-23: `npm ci` has refused four of the eight lockfile-bearing
+  JavaScript candidates the two walks met (the fourth: ERESOLVE).
+- Seen and not traced: 176 of the cell's misses are one shape, a member of a
+  `module.exports = { … }` literal called through `require`.
 
 ## 0.2.60-beta — 2026-09-20 (a yarn-v1 install names `corepack` where it runs; the v1 `yarn.lock` branch had never provisioned on a contained box)
 

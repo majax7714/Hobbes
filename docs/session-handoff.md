@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.60-beta on `main`.**
+**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.61-beta on `main`.**
 Max pushed through the eighth session's release commit (`9897399`); what
 the ninth session adds is on `main`, unpushed. The image and the proxy
-are at 0.2.60-beta and this repo is ingested at that release. A new
+are at 0.2.61-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.60-beta are untagged. Tags stay Max's call each time.
+  0.2.61-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -30,17 +30,18 @@ Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Where JavaScript stands (ADR-140 to ADR-142; §10.24, 0.2.58-beta).**
-Four graded repos (`oracle-grading.md` §10.22–§10.24): Express
+**Where JavaScript stands (ADR-140 to ADR-143; §10.27, 0.2.61-beta).**
+Five graded repos (`oracle-grading.md` §10.22–§10.27): Express
 **998/998** (recall 65.7%), Preact **2,447/2,447** (28.6%), xmpp.js
-**676/676** (81.2%), cypress-io/github-action **154/154** (89.0%) — 100%
+**676/676** (81.2%), cypress-io/github-action **154/154** (89.0%),
+Blueturboguy07/cue **881/881** (54.3%) — 100%
 precision each, 0 contradicted, poison PASS. **Max's three JavaScript
 constraints are done:** C-167 (ADR-141), C-168 (ADR-142), and C-165 —
 the provisioned cell was drawn and graded with its tree and without, the
 rows and the graph identical, so the entry was **corrected**: Hobbes
 draws no symbol edge into a package (JS or TS), a third-party call is
-stated at module grain and no key grades it. One JS cell of four has its
-tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
+stated at module grain and no key grades it. Two JS cells of five have
+their tree: a thin one and cue (881 rows, identical without it). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
 `regrade.sh`, `cells/`, `regrade/h34/` the standing keys,
 `fixture/minijs`, `oracle-trees/preact`; `c165/` — `DRAW-RULE.md`,
 `draw.py`, `walk.sh`, `draw-log.md`, `RESULTS.md`, `withheld-tree/`),
@@ -80,9 +81,18 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
   manifest; hack-chat: a tarball unpublished). Counted under C-23 in
   C-165's entry; whether "pinned or declined" should fall back to
   anything is Max's, and nothing is proposed.
-- A larger provisioned JS cell whose in-repo calls go through
-  dependency-typed receivers would say more than this one did; the walk
-  resumes at position 22 (`c165/walk.sh 21`).
+- **Done (0.2.61-beta, §10.27): the larger provisioned cell.**
+  Blueturboguy07/cue (position 41), 881/881, recall 54.3%, the same 881
+  rows with its 276-package tree and without. The `javascript` row reads
+  five repos, two with their tree. `npm ci` refused four of eight
+  lockfile-bearing candidates. Drivers: `c165/DRAW-RULE-2.md`,
+  `walk2.sh` (resumes at `walk2.sh 41`), `RESULTS-2.md`, `withheld-cue/`,
+  `../cells/cue-{provisioned,withheld}/`.
+- **Seen on cue, not traced — the next JavaScript recall read:** 176
+  misses are a call through `const m = require('../src/m')` to a member
+  of `module.exports = { a, b, c() {…} }`; 674 of 801 function pairs are
+  drawn, so find what separates the drawn from the missed before
+  anything is proposed (C-167's and C-9's neighbourhood).
 
 **Candidates after the JavaScript constraints, each measured first**
 (none started): C-4's last parts — the injected value's type is lane
@@ -358,7 +368,7 @@ min each.
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
   is a tmpfs. Sixty-four log files under `docs/calvin/sessions/`; the tracker reads 64 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 94 cells (22 same-key rows, C++'s two among them); `render.py
+  from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
@@ -369,7 +379,7 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.60-beta (2026-09-20; pytest and every `lane_b` test
+- **Suites** at 0.2.61-beta (2026-09-20; pytest and every `lane_b` test
   re-run and green on the host, Go `./...` as at 0.2.59-beta, the rest as
   counted at 0.2.50-beta): 2,144
   pytest (`lane_b` 12 of them), Go `./...` 399 with

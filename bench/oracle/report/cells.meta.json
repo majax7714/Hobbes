@@ -575,6 +575,13 @@
   "run": "contained",
   "draw": "random",
   "label": "cypress github-action",
-  "note": "the one JavaScript cell graded with its dependency tree; its in-repo rows are the same without it (C-165)"
+  "note": "graded with its dependency tree; its in-repo rows are the same without it (C-165)"
+ },
+ "cue-js": {
+  "lang": "JavaScript",
+  "run": "contained",
+  "draw": "random",
+  "label": "cue",
+  "note": "graded with its dependency tree (276 packages); its 881 rows are the same without it (C-165)"
  }
 }

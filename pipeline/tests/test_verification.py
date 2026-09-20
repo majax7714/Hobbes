@@ -86,13 +86,13 @@ class TestVerificationBase:
     def test_javascript_names_its_own_repos(self):
         # C-165: JavaScript's row was TypeScript's copy, then zero; since
         # §10.22 it names its own cells, and since §10.24 how many of them
-        # met a dependency tree.
+        # met a dependency tree (two of five since §10.27).
         base = v.verification_base(["typescript", "javascript"])
         assert base["typescript"]["repos"] == 4
         js = base["javascript"]
-        assert js["repos"] == 4 and js["depth"] == "multi-repo"
+        assert js["repos"] == 5 and js["depth"] == "multi-repo"
         assert "expressjs/express" in js["note"] and "kbet" not in js["note"]
-        assert js["note"].endswith("one of four graded with its dependency tree")
+        assert js["note"].endswith("two of five graded with their dependency tree")
 
     def test_summary_line_counts_per_language(self):
         base = v.verification_base(["rust", "python"])
@@ -116,7 +116,7 @@ class TestIngestSummary:
     def test_javascript_counts_its_own_repos(self, capsys):
         cli._print_verification_base(v.verification_base(["typescript", "javascript"]))
         out = capsys.readouterr().out
-        assert "verification base: typescript 4 repos, javascript 4 repos" in out
+        assert "verification base: typescript 4 repos, javascript 5 repos" in out
         assert "    javascript:" not in out
 
     def test_the_artifact_carries_the_base(self):

@@ -2139,6 +2139,45 @@ the walk not built. Drivers: `~/.hobbes/bench/c168-remainder/` (`classes.mjs`,
 `walk.py` with `--merge` and `FACTS=`, `super_facts.py`, `laneb_at.py`, `mini/`,
 `RESULTS.md`).
 
+### 10.27 A larger JavaScript cell with its dependency tree — written 2026-09-20, before the draw was resumed (C-165)
+
+**Pre-registered** in `~/.hobbes/bench/js-cells/c165/DRAW-RULE-2.md` before any
+candidate past position 21 was seen; `RESULTS-2.md` beside it carries the run.
+§10.24's cell was thin (76 `calls` edges), so one criterion was added and fixed
+first: a candidate the ingest provisions is taken only if its graph holds **at
+least 300 `calls` edges** and **at least half its declared packages resolve**.
+Stop at position 80. **Predicted:** the two arms' Hobbes rows identical; the tree
+moves only the key's external pairs and the dependency coverage.
+
+**The draw.** Walked 22–41: **22 brunosimon/folio-2025 refused** (`npm ci`:
+ERESOLVE); **26 lirantal/npq** provisioned and passed over (382 `calls`, 6 of 19
+packages resolved); **36 Kong/insomnia-mockbin** provisioned and passed over (20
+`calls`); **41 Blueturboguy07/cue taken** at `a27308ed2335` — 77 JavaScript
+files, one zone, 478 `calls` edges, 7 of 12 packages resolved, 276 packages
+installed. Hobbes 0.2.60-beta.
+
+| arm | Hobbes rows | confirmed | contradicted | recall (in-repo) | external oracle pairs | poison |
+|---|---|---|---|---|---|---|
+| provisioned (tree on both sides) | 881 | 881 | 0 | 54.3% (892/1,644) | 5,198 | PASS — 863 refused, 18 unjudged, 0 confirmed |
+| withheld (same sha, lockfile removed) | 881 | 881 | 0 | 54.2% (892/1,647) | 1,620 | PASS — 718 refused, 163 unjudged, 0 confirmed |
+
+**The prediction held.** The 881 rows are identical by site, target, caller and
+tier (all semantic), the graph is identical, and no row targets `node_modules`.
+The tree moved `dependency_coverage` 0 → 7 of 12, the ingest's errors 4 → 2, and
+the poison check's unjudged seeds 163 → 18: it sharpens the key, not the graph.
+**Three key pairs differ, read one by one, none a Hobbes row:** two `toFile(…)`
+calls bound from `OpenAI.toFile || require('openai/uploads').toFile`, and
+`publik.newInstallId()` where `newInstallId: randomUUID` — with the tree the key
+names the package's function, without it an in-repo binding; Hobbes draws
+nothing at any of the three in either arm. That is C-165 as corrected, now on a
+cell of a size to say it. Counted under C-23: `npm ci` has refused four of the
+eight lockfile-bearing JavaScript candidates the two walks met.
+
+**Seen, not traced:** 176 of the cell's 752 misses are one shape — a call through
+`const m = require('../src/m')` to a member of `module.exports = { a, b, c() {…} }`
+(674 of the 801 function pairs *are* drawn, so the shape is met and not always).
+A recall read for a later session. Record: `cells/cue-js-2026-09-20.md`.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

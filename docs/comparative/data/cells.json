@@ -1428,6 +1428,53 @@
    }
   },
   {
+   "stem": "cue-js",
+   "record": "cue-js-2026-09-20.md",
+   "date": "2026-09-20",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "contained",
+   "draw": "random",
+   "label": "cue",
+   "note": "graded with its dependency tree (276 packages); its 881 rows are the same without it (C-165)",
+   "edges": 881,
+   "confirmed": 881,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {},
+   "precision": {
+    "pct": 100.0,
+    "num": 881,
+    "den": 881
+   },
+   "recall": {
+    "pct": 54.3,
+    "hits": 892,
+    "pairs": 1644,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 30,
+    "func-value→parameter": 23,
+    "static→anonymous-function": 2,
+    "static→closure": 521,
+    "static→function": 127,
+    "static→method": 49
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 881,
+    "refused": 863,
+    "unjudged": 18,
+    "falsely": 0
+   }
+  },
+  {
    "stem": "dagger-go",
    "record": "dagger-go-2026-08-25.md",
    "date": "2026-08-25",
@@ -2314,7 +2361,7 @@
    "run": "contained",
    "draw": "random",
    "label": "cypress github-action",
-   "note": "the one JavaScript cell graded with its dependency tree; its in-repo rows are the same without it (C-165)",
+   "note": "graded with its dependency tree; its in-repo rows are the same without it (C-165)",
    "edges": 154,
    "confirmed": 154,
    "contradicted": 0,

@@ -6,6 +6,16 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-165's second provisioned cell, 2026-09-20 (0.2.61-beta; Max: route a; no entry added):
+- **C-165 narrowed (surfaced), not moved.** Blueturboguy07/cue, drawn for
+  size (`oracle-grading.md` §10.27): 881/881 with its 276-package tree on
+  both sides and the same 881 rows without, tiers included, the graph
+  identical. The three key pairs the tree moved are calls through a
+  dependency-typed value; Hobbes draws nothing there in either arm. The
+  `javascript` verification row reads "two of five graded with their
+  dependency tree". C-23's count beside it: `npm ci` refused four of the
+  eight lockfile-bearing candidates. Tally unmoved: 168 entries.
+
 C-168's remainder read, and the entry corrected a second time, 2026-09-20 (no version; Max: route a; no entry added):
 - **Two claims were wrong.** "A `.d.ts` Hobbes keeps no symbol for":
   `src/index.d.Component` is a class symbol, and 1,241 confirmed Preact

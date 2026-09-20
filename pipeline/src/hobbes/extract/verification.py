@@ -49,9 +49,11 @@ VERIFICATION_BASE: dict[str, dict] = {
         # repos, every graded edge confirmed on each; none had its
         # dependencies installed. A fourth, drawn for C-165 (§10.24,
         # 2026-09-20), was graded with its tree and again without: the
-        # same rows, so the row says how many cells met one, no more.
-        "repos": 4,
-        "on": "expressjs/express (CommonJS); preactjs/preact (ESM, JSDoc, JSX; its root zone); xmppjs/xmpp.js and cypress-io/github-action — drawn at random (2026-09-19/20); one of four graded with its dependency tree",
+        # same rows, so the row says how many cells met one, no more. A
+        # fifth (§10.27, 2026-09-20), drawn for size, read the same way:
+        # 881 rows identical with its tree and without.
+        "repos": 5,
+        "on": "expressjs/express (CommonJS); preactjs/preact (ESM, JSDoc, JSX; its root zone); xmppjs/xmpp.js, cypress-io/github-action and Blueturboguy07/cue — drawn at random (2026-09-19/20); two of five graded with their dependency tree",
         "depth": "multi-repo",
     },
     "go": {

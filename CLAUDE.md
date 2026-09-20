@@ -194,7 +194,7 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-20, 0.2.60-beta; oracle-lane Go
+Suite sizes at the last check (2026-09-20, 0.2.61-beta; oracle-lane Go
 counted 2026-09-16): 2,144 pytest (12 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
@@ -268,14 +268,14 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-20) — Hobbes 0.2.60-beta
+## Status (2026-09-20) — Hobbes 0.2.61-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
 
 - **The layer:** v1 (M0–M8) and v2 extraction (V2.M0–M7) complete and
   reviewed. Python, TS/JS, Go, Rust, Java, C and C++ (+ Terraform/HCL;
-  JavaScript graded on four repos of its own, one with its
+  JavaScript graded on five repos of its own, two with their
   dependencies installed — C-165),
   each a syntax provider plus a pinned batch indexer (P13, ADR-105)
   joined by one range join; artifacts at schema v4. Whatever executes
@@ -298,16 +298,17 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   drift test; re-render after filling a review block) reads **64 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.60-beta: a yarn-v1 install names `corepack` where it
-  runs** (unit `d2de`, a defect, no ADR). The argv carried the host's
-  `corepack` path into the image, so since ADR-092 no v1 `yarn.lock` zone
-  provisioned on a contained box, and the WARNING read as the repo's.
-  Measured on hono: the tree provisions, three extraction errors gone,
-  dependency coverage 0 → 9 of 47, **no edge moved** (as C-165 says).
-  Same day, 0.2.59-beta: ADR-143 — a renamed callee is matched at its own
-  column where both lanes name one definition (134 tiers raised on seven
-  TS/JS cells, no row moved; `oracle-grading.md` §10.25). **Next:** the
-  candidates in the handoff, each measured first.
+- **Latest — 0.2.61-beta: a fifth JavaScript cell, the first of a size
+  graded with its dependency tree** (Blueturboguy07/cue, drawn by a rule
+  stated first; `oracle-grading.md` §10.27): 881/881, recall 54.3%, and
+  the same 881 rows, tiers included, with its 276-package tree and
+  without — C-165 as corrected, on a cell that can say it. Same day:
+  0.2.60-beta, a yarn-v1 install names `corepack` where it runs (unit
+  `d2de`; the host's path had gone into the image since ADR-092);
+  C-168's remainder read and its entry corrected again, an
+  `extends`-chain walk measured (104 rows, 0 contradicted) and **not
+  built** (§10.26); 0.2.59-beta, ADR-143. **Next:** the candidates in
+  the handoff, each measured first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

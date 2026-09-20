@@ -13791,3 +13791,25 @@ corrected with a `Provider` line (P9) and the measured rule recorded as
 undecided; HISTORY's note; ADR-142 amended; the architecture's two sentences;
 `oracle-grading.md` §10.26; the handoff. No code, no version move, tally
 unmoved. Drivers `~/.hobbes/bench/c168-remainder/`.
+
+**The larger provisioned JavaScript cell (Max: "start the walk"; then route a).**
+`DRAW-RULE-2.md` was written before any candidate past 21 was seen: the pool,
+seed and order unchanged, one criterion added because §10.24's cell was thin — at
+least 300 `calls` edges and half the declared packages resolved — and a stop at
+80. Walked 22–41: folio-2025 refused (`npm ci`, ERESOLVE), npq and
+insomnia-mockbin provisioned and passed over on the stated numbers,
+**Blueturboguy07/cue taken** (`a27308ed2335`, 478 `calls`, 7 of 12 resolved, 276
+packages). Graded twice on one sha: **881/881 in both arms, 0 contradicted, poison
+PASS, the rows identical by site, target, caller and tier, the graph identical** —
+the prediction held. The tree moved the key: external pairs 1,620 → 5,198,
+unjudged poison seeds 163 → 18, and three in-repo pairs that become external
+(calls through a dependency-typed value; Hobbes draws nothing at any, either
+arm). The withheld arm first failed — an ingest needs a git repo — and was
+re-made as a same-sha clone with the lockfile removed. **0.2.61-beta:** the
+`javascript` verification row reads five repos, "two of five graded with their
+dependency tree" (`verification.py` and its test), the cell record, §10.27,
+§3.8's row, C-165 and its C-23 count (four of eight refused), README, CHANGELOG,
+HISTORY, the comparative data at 95 cells with its tables and graphics
+regenerated (`render.py check` green). **Seen, not traced:** 176 of cue's misses
+are a member of a `module.exports = { … }` literal called through `require`; in
+the handoff as the next JavaScript recall read.
