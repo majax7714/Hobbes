@@ -875,8 +875,12 @@ the test or its class, and the name of each fixture defined
 are) in any scope of the test's chain. They take the parameter's path
 and its abstentions and are the same `uses` edge, each evidence row
 saying `via`; one pair keeps the first of parameter, `usefixtures`,
-`autouse`. A module-level `pytestmark` and a non-literal `autouse=` are
-counted, not followed. Because an autouse fixture is a blanket, the test
+`autouse`. A module-level `pytestmark`'s `usefixtures` strings are
+requested by every test in the file, after the test's own and its
+classes' marks (the amendment, 0.2.64-beta: MissyLabs/missy, drawn at
+random for it — 1,265 missed pairs → 0, 0 wrong of 35,770); a module
+mark with no string argument and a non-literal `autouse=` are counted,
+not followed. Because an autouse fixture is a blanket, the test
 map keeps its reach apart — `through_autouse`, module → fixtures, for
 modules the test reaches no other way — and `tests_guarding` says those
 tests once, with the fixtures, instead of listing the suite;
@@ -2081,7 +2085,7 @@ maintained middle.
 
 ## 8. Build programme — status
 
-**Hobbes 0.2.63-beta** (2026-09-20, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.63-beta untagged; `CHANGELOG.md` is the
+**Hobbes 0.2.64-beta** (2026-09-20, ADR-103; beta: graded, not stable; the latest tag `v0.2.10-beta`, the one before it `v0.1.8-beta`; 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.64-beta untagged; `CHANGELOG.md` is the
 release-grain view, this section the programme's). The file-level plan, exit criteria, estimates and the reasoning behind every
 deviation live in the ADR each milestone cites and the **`BUILDLOG.md`**
 entries of its dates (the plan documents were removed 2026-09-09); this

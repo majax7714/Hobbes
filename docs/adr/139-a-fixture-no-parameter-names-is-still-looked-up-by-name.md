@@ -214,3 +214,10 @@ for it, the rule stated first (`~/.hobbes/bench/c4-pytestmark/`: `DRAW-RULE.md`,
   after the test's own and its classes' marks (one pair, one via). A non-string
   argument and a `pytestmark` that is not a plain assignment stay counted, not
   followed. A class-body `pytestmark` is not read (no key row has one).
+- **Built (2026-09-20, 0.2.64-beta).** Unit `0bf3` (39 turns of 140, $2.91; gate
+  right-clear, verify pass, 6 files). The real cell before the merge, with the
+  branch's lookup: missy 35,770 right, 0 wrong, 0 missed in the repo — the probe's
+  figures; flask 1,238 and attrs 118 unchanged; 2,204 pytest and 14 `lane_b` on the
+  host. Kept from the doer: an annotated `pytestmark: list = …` is no longer read
+  (the walk had read it; the brief said *plain*), and `_call` is split out of
+  `_decorator` so a mark is digested exactly as a decorator's call is.

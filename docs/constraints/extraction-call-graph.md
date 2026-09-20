@@ -57,20 +57,22 @@
   (ADR-045; their boundaries are C-32).
 - **Source:** ADR-029; tail classification added by ADR-045.
 
-### C-4 — A test's reach through a fixture's value that is not a construction, or through a fixture pytest's lookup by name cannot place, is not drawn — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta: a fixture a parameter names is an edge, and reach follows it; ADR-139, 0.2.52-beta: so is one a `usefixtures` mark or `autouse` applies) and 2026-09-20 (ADR-145, 0.2.63-beta: a call on the value a fixture constructs is drawn)*
+### C-4 — A test's reach through a fixture's value that is not a construction, or through a fixture pytest's lookup by name cannot place, is not drawn — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta: a fixture a parameter names is an edge, and reach follows it; ADR-139, 0.2.52-beta: so is one a `usefixtures` mark or `autouse` applies) and 2026-09-20 (ADR-145, 0.2.63-beta: a call on the value a fixture constructs is drawn; ADR-139 amended, 0.2.64-beta: a module `pytestmark`'s `usefixtures` is followed)*
 - **Narrowed (0.2.49-beta, ADR-137; 0.2.52-beta, ADR-139).** A name
   pytest's lookup order (class chain, file and its imported names, the
   conftest chain) resolves to one fixture definition in the repo is a
   syntactic `uses` edge, and the test map follows it — whether a
-  parameter names it, a `usefixtures` string on the test or its class
-  does, or the fixture is defined `autouse=True` in a scope of the
+  parameter names it, a `usefixtures` string on the test, its class or
+  the file's module-level `pytestmark` (0.2.64-beta) does, or the
+  fixture is defined `autouse=True` in a scope of the
   test's chain. Each evidence row says which (`via`). `through_fixtures`
   names the modules reached only through a fixture the test names,
   `through_autouse` the ones reached only through an autouse fixture.
   Keyed by `pytest --fixtures-per-test -v` (without `-v` pytest prints
   no fixture named `_…`, and ADR-137's first figures were of the pairs
   that key printed): this repo 4,971 of 4,971 pairs, flask 1,238 and
-  attrs 118 held out, none missed, none wrong.
+  attrs 118 held out, none missed, none wrong; MissyLabs/missy, drawn at
+  random for the `pytestmark`, 35,770 of 35,770 in-repo pairs.
 - **Narrowed (0.2.63-beta, ADR-145).** Where a fixture's own body is one
   `return C(…)` / `yield C(…)` and the index names `C` a repo class at
   that token, `p.m(…)` on the injected parameter is a `calls` edge to
@@ -83,9 +85,11 @@
     an **inherited** method of a constructed class (no base is walked),
     or a property: lane B does not type an unannotated parameter, and
     the rule reads a construction, not a type — each refusal counted;
-  - through a module-level **`pytestmark`**, an `autouse=` whose value
-    is not the literal `True`, or a `usefixtures` argument that is not a
-    string (the first two counted; no key row has judged a `pytestmark`);
+  - through a **`pytestmark`** that is not a plain module-level
+    assignment (a class body's, an annotated one) or whose `usefixtures`
+    has no string argument, an `autouse=` whose value is not the literal
+    `True`, or a `usefixtures` argument that is not a string (the module
+    mark and the `autouse=` counted);
   - through a fixture **a plugin or an installed package** defines, one
     **inherited from a base class**, one defined twice at a scope, or
     one requested by a definition whose `parametrize` argument is not a
@@ -100,7 +104,7 @@
 - **You find out:** **surfaced**: the ingest summary's `fixtures:` line
   and `graph.json`'s `fixtures` block count what was drawn, by `via`,
   every abstention by reason, the calls drawn on a constructed value and
-  each refusal by reason (`value_calls`, ADR-145), and the `pytestmark` marks and non-literal
+  each refusal by reason (`value_calls`, ADR-145), and the `pytestmark` marks with no string argument and non-literal
   `autouse=` values not followed; `tests_guarding` says "only through a
   pytest fixture (ADR-137)" on a line that is, and says the tests that
   reach a target only through an autouse fixture once, with the

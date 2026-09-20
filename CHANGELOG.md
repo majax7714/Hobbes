@@ -11,9 +11,34 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.63-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.64-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.64-beta — 2026-09-20 (a module-level `pytestmark`'s `usefixtures` is followed; ADR-139 amended, C-4 narrowed)
+
+**Patch: what the layer draws** — the fixture lookup, pytest only. Built as unit
+`S-20260920T193750Z-0bf3`.
+
+- **What was held back.** ADR-139 read a module `pytestmark` and only counted it:
+  none of its three keyed repos had one, so no key row had judged it.
+- **The key row.** A repo was drawn at random for it, the rule stated first (two
+  walks over 71 code-search hits — the first took none: pytest's own suite writes
+  the line into strings, GDAL has no binary wheel). **MissyLabs/missy**: 18 test
+  files under `pytestmark = pytest.mark.usefixtures("deterministic_public_dns")`.
+  Against `pytest --fixtures-per-test -v` in the image (23,480 tests): 0.2.63-beta
+  34,505 pairs right, 0 wrong, 1,265 missed — every one the pytestmark's fixture;
+  **0.2.64-beta 35,770 right, 0 wrong, 0 missed in the repo.** flask (1,238) and
+  attrs (118) unchanged, 0 wrong.
+- **The rule.** A plain module-level assignment of one mark or a list/tuple of
+  marks; each `usefixtures` string is requested by every **test** in the file, `via:
+  usefixtures`, evidence at the mark's line, after the test's own and its classes'
+  marks and before autouse — the same walk and the same abstentions. Still counted,
+  not followed: a module mark with no string argument. Not read: a `pytestmark` in a
+  class body, an annotated or augmented one.
+- The `fixtures:` line says "with no string argument" where it said "not followed";
+  the denominator statement (`list_blind_spots`, every derived manifest) no longer
+  names a module pytestmark. No graded cell moves: no trace key judges a `uses` edge.
 
 ## 0.2.63-beta — 2026-09-20 (a call on the value a fixture constructs is a call on that class; ADR-145, C-4 narrowed)
 

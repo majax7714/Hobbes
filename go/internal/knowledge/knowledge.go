@@ -1173,7 +1173,7 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 		"dispatch and calls through values (C-1), test reach through the value a\n" +
 		"pytest fixture returns unless the fixture constructs it (ADR-145), or\n" +
 		"through a fixture its lookup by name cannot\n" +
-		"place — a plugin's, a base class's, a module pytestmark (C-4), computed\n" +
+		"place — a plugin's or a base class's (C-4), computed\n" +
 		"route paths (C-5). Every percentage here is a floor over DETECTED call\n" +
 		"sites, not over the repo.\n")
 	// Languages with detected call sites under the scope, by tail bucket

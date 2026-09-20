@@ -13907,3 +13907,18 @@ click record's regrade block, the architecture's paragraph, §3.8's Python row a
 the §8 header, README, CHANGELOG, the comparative data regenerated (`render.py
 check` green). Go `./...` green; pytest 2,193; binaries and the image rebuilt, this
 repo re-ingested, the knowledge server restarted.
+
+**Later the same session — the `pytestmark` unit (Max: "good to dispatch the
+unit"), 0.2.64-beta.** ADR-139's amendment marked accepted first. Unit `0bf3`: 39
+turns of 140, $2.91, six files, gate clear, verify pass, **right-clear**. On the
+host: pytest 2,204, 14 `lane_b`. The real cell with the branch's lookup against the
+`-v` keys: missy **35,770 right, 0 wrong, 0 missed in the repo** — the probe's
+figures — flask 1,238 and attrs 118 unchanged. The doer narrowed the walk to a
+*plain* assignment (an annotated `pytestmark` had been read) and named every test
+it changed. Merged `--no-ff` (`5c179e5`). The denominator statement no longer names a
+module pytestmark (proxy, manifests, their two tests); C-4's entry, the
+architecture's ADR-139 paragraph and §8 header, CHANGELOG, README, the tracker at
+67 of 40. No graded cell moves: no trace key judges a `uses` edge. Binaries and the
+image rebuilt at 0.2.64-beta, this repo re-ingested. **Both of C-4's last parts are
+done**; what the entry keeps is a value that is not a construction, an inherited
+method, a non-plain `pytestmark`, a non-literal `autouse=` and the abstentions.

@@ -115,7 +115,7 @@ class TestComplement:
         assert "C-1" in complement.denominator
         # C-4 after ADR-137 and ADR-139: the statement names what is still
         # not drawn, never all fixture-injected reach.
-        assert "a module pytestmark (C-4)" in complement.denominator
+        assert "a plugin's or a base class's (C-4)" in complement.denominator
         assert "autouse" not in complement.denominator
         assert "fixture-injected" not in complement.denominator
 

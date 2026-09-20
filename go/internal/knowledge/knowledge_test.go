@@ -1134,7 +1134,7 @@ func TestBlindSpotsWholeRepoRollsUpPerLanguage(t *testing.T) {
 		// the always-on denominator honesty, C-1/C-4/C-5:
 		"not over the repo",
 		// C-4 after ADR-137 and ADR-139: only what is still not drawn.
-		"a plugin's, a base class's, a module pytestmark (C-4)",
+		"a plugin's or a base class's (C-4)",
 		// meanings appear only for classes present, with their C-refs:
 		"attr-call — an attribute call whose receiver no static provider could type",
 		// C-63 (surfaced 2026-09-05): a callee that is an expression is a
