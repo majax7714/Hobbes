@@ -205,43 +205,43 @@
    "draw": "picked",
    "label": "click",
    "note": "trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry",
-   "edges": 2447,
-   "confirmed": 2136,
+   "edges": 3901,
+   "confirmed": 3356,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
    "suspect": 18,
-   "unobserved": 293,
+   "unobserved": 527,
    "silent_by": {
     "line-mixed": 2,
-    "line-not-called": 122,
-    "not-loaded": 169
+    "line-not-called": 130,
+    "not-loaded": 395
    },
    "confirmation_rate": {
-    "pct": 87.3,
-    "num": 2136,
-    "den": 2447
+    "pct": 86.0,
+    "num": 3356,
+    "den": 3901
    },
    "recall": {
-    "pct": 46.5,
-    "hits": 2136,
-    "pairs": 4595,
+    "pct": 73.6,
+    "hits": 3356,
+    "pairs": 4561,
     "roots": null,
     "runs": 2,
     "basis": "recall-against-executed (coverage-limited)"
    },
    "misses": {
-    "observed→class": 149,
-    "observed→closure": 1195,
-    "observed→function": 750,
+    "observed→class": 37,
+    "observed→closure": 859,
+    "observed→function": 13,
     "observed→lambda": 81,
-    "observed→method": 284
+    "observed→method": 215
    },
    "poison": {
     "passed": true,
-    "seeded": 2447,
-    "refused": 1904,
-    "unjudged": 543,
+    "seeded": 3901,
+    "refused": 3113,
+    "unjudged": 788,
     "falsely": 0
    }
   },
@@ -515,17 +515,17 @@
     "den": 1958
    },
    "recall": {
-    "pct": 28.2,
+    "pct": 28.5,
     "hits": 1298,
-    "pairs": 4595,
+    "pairs": 4561,
     "roots": null,
     "runs": 2,
     "basis": "recall-against-executed (coverage-limited)"
    },
    "misses": {
     "observed→class": 621,
-    "observed→closure": 1196,
-    "observed→function": 502,
+    "observed→closure": 1164,
+    "observed→function": 500,
     "observed→lambda": 81,
     "observed→method": 897
    },
@@ -2549,42 +2549,43 @@
    "draw": "dogfood",
    "label": "hobbes pipeline/",
    "note": "trace-graded under its own suite (dogfood)",
-   "edges": 5316,
-   "confirmed": 4743,
+   "edges": 8921,
+   "confirmed": 8162,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
-   "suspect": 10,
-   "unobserved": 563,
+   "suspect": 26,
+   "unobserved": 733,
    "silent_by": {
-    "line-mixed": 5,
-    "line-not-called": 384,
-    "not-loaded": 174
+    "line-mixed": 11,
+    "line-not-called": 523,
+    "not-loaded": 199
    },
    "confirmation_rate": {
-    "pct": 89.2,
-    "num": 4743,
-    "den": 5316
+    "pct": 91.5,
+    "num": 8162,
+    "den": 8921
    },
    "recall": {
-    "pct": 84.6,
-    "hits": 4743,
-    "pairs": 5608,
+    "pct": 94.8,
+    "hits": 8162,
+    "pairs": 8612,
     "roots": null,
     "runs": 1,
     "basis": "recall-against-executed (coverage-limited)"
    },
    "misses": {
-    "observed→closure": 642,
-    "observed→function": 118,
-    "observed→lambda": 96,
-    "observed→method": 9
+    "observed→class": 3,
+    "observed→closure": 76,
+    "observed→function": 195,
+    "observed→lambda": 154,
+    "observed→method": 22
    },
    "poison": {
     "passed": true,
-    "seeded": 5316,
-    "refused": 4042,
-    "unjudged": 1274,
+    "seeded": 8921,
+    "refused": 6966,
+    "unjudged": 1955,
     "falsely": 0
    }
   },
@@ -3259,17 +3260,17 @@
     "den": 2426
    },
    "recall": {
-    "pct": 37.1,
+    "pct": 37.3,
     "hits": 1703,
-    "pairs": 4595,
+    "pairs": 4561,
     "roots": null,
     "runs": 2,
     "basis": "recall-against-executed (coverage-limited)"
    },
    "misses": {
     "observed→class": 155,
-    "observed→closure": 1227,
-    "observed→function": 535,
+    "observed→closure": 1195,
+    "observed→function": 533,
     "observed→lambda": 81,
     "observed→method": 894
    },

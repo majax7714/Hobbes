@@ -2297,6 +2297,25 @@ mints no symbol. Other languages not regraded: Python only, after the projection
 click's closure misses: 891 — a factory with another return path, a callback handed to a
 runner, and 34 `<genexpr>` frames that are the key's grain (H-36, open).
 
+### 10.32 H-36's regrade — a comprehension's frame entry is not a call (oracle side; 2026-09-20, unit `de0e`)
+
+The defect and its fix are H-36's row in `oracle-defects.md`. The regrade isolates the
+extractor: nothing about Hobbes differs between the arms.
+
+| cell | method | in-repo pairs | confirmed | suspect | recall-against-executed | excluded `generated` (call events) |
+|---|---|---|---|---|---|---|
+| click @ `36baa15`, Hobbes 0.2.66-beta | key regenerated, same recipe and suite exits (`click-py-r2` → `click-py-r3`) | 4,595 → **4,561** (−34, every one `<genexpr>`) | 3,356 ±0 | 18 ±0 | 73.0% → **73.6%** | 26,090 |
+| this repo `pipeline/` @ `2c915a8`, Hobbes 0.2.66-beta | one tree, one suite, traced by `oracle-pre` (`89b7f58`) and `oracle` | 9,535 → **8,612** (−923, every one `<genexpr>`; 0 added) | 8,162 ±0 | 26 ±0 | 85.6% → **94.8%** | 64,228 |
+| codegraphcontext / repowise on click | stored converted graphs, both keys, one binary | as click | 1,298 ±0 / 1,703 ±0 | 146 ±0 / 406 ±0 | 28.2% → 28.5% / 37.1% → 37.3% | — |
+
+Poison PASS on every arm. Signed direction of fix: **oracle-wrong 957 : hobbes-wrong 0**
+on the moved rows; no confirmed, suspect or unobserved row moved anywhere. This repo's
+cell is a fresh key (the 1c65190 clone is gone, §10's note), so its figures do not
+continue the 0.1.10-beta row's — the pre arm is the like-for-like. What is left of its
+450 misses: 195 functions (values in tables and records, C-58), 154 lambdas, 76 closures,
+22 methods, 3 classes. The comparative tables and graphics were re-derived from the cell
+records (`render.py cells`, `render`, `check`).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

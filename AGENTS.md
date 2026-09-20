@@ -194,9 +194,9 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-20, 0.2.66-beta; oracle-lane Go
-counted 2026-09-16): 2,257 pytest (16 `lane_b`) / 399 Go with subtests
-(398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
+Suite sizes at the last check (2026-09-20, 0.2.66-beta, the
+oracle lane with it): 2,257 pytest (16 `lane_b`) / 399 Go with subtests
+(398 pass, 1 skip) + 128 oracle-lane Go with subtests (116 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 47 tsextract + 94 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
@@ -295,7 +295,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **69 of 40**
+  drift test; re-render after filling a review block) reads **70 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
 - **Latest — 0.2.66-beta, extraction first** (Max, 2026-09-20: "the
@@ -309,10 +309,12 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   and lifted). Together click 2,136 → 3,356 confirmed (recall 46.5% →
   73.0%), the same 18 suspects, 0 contradicted, poison PASS
   (`oracle-grading.md` §10.30–§10.31). The probe also corrected the
-  record: Python nested defs were already symbols. **H-36 is open** in
-  the oracle defect log (`<genexpr>` frames keyed as calls: this repo's
-  Python recall reads 84.6% for 94.6%). **Next:** the candidates in the
-  handoff, each measured first.
+  record: Python nested defs were already symbols. **H-36 found and fixed** in
+  the oracle lane (unit `de0e`): a `<genexpr>` frame entry was keyed as
+  a call — this repo's Python recall read 85.6% where the fixed key
+  gives 94.8%, click 73.0% → 73.6%, no confirmed or suspect row moved
+  (§10.32). **Next:** the candidates in the handoff, each measured
+  first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

@@ -49,3 +49,25 @@ foreign cell . (edges.json): 0s
 
 **Direction of fix:** first grade of this tool on this cell — nothing to sign. **What the record does not say:** anything about the tool beyond this run on this box at this version; the matcher's tolerances were tuned on Hobbes' output (C-95); the conversion is Hobbes' and a misread would be Hobbes' defect (C-94).
 
+
+## Regrade 2026-09-20 (the key regenerated — H-36, the oracle's defect; the same stored converted graph, `-poison`)
+
+click's trace key keyed a generator expression's frame entry as a call pair (H-36, RC-2). Regenerated with the fixed extractor (`click-py-r3`: same sha, same recipe, same suite exits), it holds **4,561 in-repo pairs where `click-py-r2` held 4,595 — exactly the 34 `<genexpr>` rows**. This tool's stored graph was graded against both keys by one binary (`~/.hobbes/bench/oracle-defect-drivers/h36/foreign/`): confirmed, suspect and unobserved **±0**, poison unchanged; recall-against-executed 28.2% (1,298/4,595) → **28.5% (1,298/4,561)**, the denominator's doing alone. Regraded so the same-key row stays a same-key row: Hobbes' click cell moved to `click-py-r3` the same day.
+
+```
+cell   oracle py-trace 3.12.13 sys.monitoring (trace)  sha 36baa15f
+oracle ran contained (ADR-092)
+hobbes edges 1958: confirmed 1298  suspect 146  unobserved 514 map[line-mixed:168 line-not-called:118 not-loaded:228]
+confirmation rate 66.3% (1298/1958 hobbes edges; coverage-limited, not precision)
+suspect rate 10.1% (146/1444 executed hobbes edges; triage queue, never contradicted)
+recall-against-executed 28.5% (1298/4561 observed in-repo pairs) over 2 run(s) of [/home/mmarrujo/.hobbes/bench/oracle/repos/click/./.venv/bin/python -m pytest -q -p no:cacheprovider]; external python targets 1529; misses map[observed→class:621 observed→closure:1164 observed→function:500 observed→lambda:81 observed→method:897]
+coverage: hobbes sites observed 1585/1918 (82.6%); files loaded 51/79; declarations started 1402/1949; c-callee calls 518958; subprocesses traced 0
+  recall[observed→class    ]   0.0% (0/621)  misses 621 = 19.0% of all misses
+  recall[observed→closure  ]   2.6% (31/1195)  misses 1164 = 35.7% of all misses
+  recall[observed→function ]  66.2% (980/1480)  misses 500 = 15.3% of all misses
+  recall[observed→lambda   ]   0.0% (0/81)  misses 81 = 2.5% of all misses
+  recall[observed→method   ]  24.2% (287/1184)  misses 897 = 27.5% of all misses
+  tier codegraphcontext:EXTRACTED confirmed 539  suspect 96  unobserved 167
+  tier codegraphcontext:INFERRED confirmed 759  suspect 50  unobserved 347
+poison check: PASS — 1958 seeded wrong edges: 1282 refused, 676 unjudged (oracle silent there), 0 falsely confirmed
+```

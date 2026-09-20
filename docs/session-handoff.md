@@ -54,15 +54,22 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   `probe_b.py` — ADR-147 as worded, `--show`; `RESULTS.md`; `u0/` `u0b/` simulated,
   `real/click/` 0.2.65, `real147/click/` 0.2.66; `units/` u1, u2; `wt/` a worktree on
   the last unit's branch, removable).
-- **Open, oracle lane — H-36** (`oracle-defects.md`, RC-2): a `<genexpr>` frame entry is
-  keyed as a call pair. 592 of this repo's 642 closure misses, 34 of click's; this
-  repo's Python recall reads 84.6% where the written pairs give 94.6%. Fix at the
-  py-trace extractor (drop and count), regrade the two stored cells with a signed line
-  — hobbes-py needs a worktree at its key's sha (`1c65190`) or a fresh key. No-spend,
-  small, a good next unit.
-- **What click still misses after both** (2,459 → 1,239): 891 closures — a factory
+- **Done (H-36, oracle lane, unit `de0e`, 51 turns, $2.76; Max: "go with h-36
+  first"):** a comprehension's frame entry is dropped and counted at the py-trace
+  extractor (`excluded: generated`), no site made for a line that held only that.
+  Regraded, signed (§10.32): click's key regenerated as **`click-py-r3` — the standing
+  key now** (4,561 pairs; `click-py-r2` is history) — recall 73.0% → 73.6%; this repo
+  traced at `2c915a8` by the pre-fix and fixed extractor, 85.6% → **94.8%**
+  (8,162/8,612), all 923 moved rows `<genexpr>`, no confirmed or suspect row moved
+  anywhere. The two foreign click cells were regraded on r3 so the same-key rows stay
+  same-key; the comparative tables and graphics re-derived. Drivers
+  `~/.hobbes/bench/oracle-defect-drivers/h36/` (`u1.md`, `oracle-pre`, `oracle`,
+  `trace-hobbes-py.sh`, `hobbes-py/` both arms — **a usable fresh hobbes-py key**,
+  `post-oracle.json` @ `2c915a8` — `foreign/`).
+- **What click still misses after both** (2,459 → 1,205 on r3): 859 closures — a factory
   with another return path (`command`, `group`: 491 sites), callbacks a runner calls —
-  215 methods (unread), 81 lambdas, 37 classes, 15 functions.
+  215 methods (unread), 81 lambdas, 37 classes, 13 functions. This repo's 450: 195
+  functions (values in tables and records), 154 lambdas, 76 closures, 22 methods.
 - **Other extraction candidates, each measured first:** C-4's fixture value through
   a local (flask's 702 refused sites, `app = Flask(); return app` — ADR-145's
   drivers; fix `simulate_real.py`'s `own_nodes` first); the TS symbol floor's
@@ -244,7 +251,8 @@ paragraph cells as per-language pages (Max: "dont split for now").
   key (not the miss-class totals) was what caught it. C-165 named an
   edge that is never drawn; checking the TS cells' rows for a
   `node_modules` target, before the draw, was what caught it.
-- The hobbes-py and hobbes-go cells cannot be regraded on stored keys:
+- The hobbes-go cell cannot be regraded on its stored key, nor hobbes-py on its
+  old ones (a fresh hobbes-py key at `2c915a8` is in `oracle-defect-drivers/h36/`):
   their clone (`adr111-before/hobbes-wt`) is gone; a full regrade needs
   a worktree at the key's sha or fresh keys.
 - scip-clang 0.4.0 emits no `enclosing_range` (checked in the image).
@@ -393,7 +401,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 69 of 40, 4
+   - **The validating 40 are done:** the tracker reads 70 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -464,7 +472,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-nine log files under `docs/calvin/sessions/`; the tracker reads 69 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Seventy log files under `docs/calvin/sessions/`; the tracker reads 70 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -473,8 +481,8 @@ min each.
 - **Register:** 169 entries: 123 active (95 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
-- **Oracle defect log: H-36 open** (a `<genexpr>` frame keyed as a call, found
-  2026-09-20; H-33–H-35 fixed 2026-09-19,
+- **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
+  found and fixed 2026-09-20; H-33–H-35 fixed 2026-09-19,
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
@@ -483,9 +491,9 @@ min each.
   counted at 0.2.50-beta): 2,257
   pytest (`lane_b` 16 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
-  84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
+  84 atlas0; oracle-lane Go 128 with subtests, 116 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
-  run and pass in the image; counted 2026-09-16).
+  run and pass in the image; counted 2026-09-20).
 - **Disk:** `~/.hobbes` is about 50 GB plus the C++ cells (ScummVM's
   cost clone at `cpp-cells/scummvm-cost` is the large one; sweep it if
   space is needed).

@@ -136,7 +136,7 @@ roots. Maintained in the same commit as the log entry that changes it
 | — | Cosmetic | H-8, H-11 | 2 | — | H-11 → A-3. |
 | — | Environment limit (not a defect root) | H-9 | 1 | parked | A-9. |
 
-Coverage check: 36 of 36 entries mapped (updated 2026-09-20 for H-36 → RC-2, open; H-33–H-35 had each been mapped in their rows on 2026-09-19 while this line still read 32; 2026-09-16 for H-32 → RC-11; 2026-09-15 for H-28–H-31; the line had read 22 since H-22, while H-23–H-27 were each mapped in their rows).
+Coverage check: 36 of 36 entries mapped (updated 2026-09-20 for H-36 → RC-2, fixed the same day; H-33–H-35 had each been mapped in their rows on 2026-09-19 while this line still read 32; 2026-09-16 for H-32 → RC-11; 2026-09-15 for H-28–H-31; the line had read 22 since H-22, while H-23–H-27 were each mapped in their rows).
 
 **Promotion mechanics.** New defect → assign to an existing RC or open
 a new one at *provisional*. Assignment to an RC with n≥2 triggers the

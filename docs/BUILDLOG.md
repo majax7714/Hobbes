@@ -13988,3 +13988,22 @@ tracker at 69 of 40. **H-36 logged, open** (RC-2): a `<genexpr>` frame entry key
 call pair — 592 of this repo's 642 closure misses; its recall reads 84.6% for 94.6%. On
 the host: pytest 2,257, 16 `lane_b`. Binaries and the image rebuilt at 0.2.66-beta, this
 repo re-ingested. Two units today: $10.72 on the subscription, click 46.5% → 73.0%.
+
+**Later still — H-36 (Max: "go with h-36 first"), no version: the oracle lane is not the
+layer.** Read first: the "call" is real bytecode — a genexpr compiles to a hidden function
+and a compiler-written `CALL` of it — so the fix belongs at the extractor, RC-2's drop and
+count, in the `excluded` header Rust's and Java's keys already use. Unit `de0e`: 51 turns
+of 80, $2.76, six files, gate clear, verify pass, **right-clear**, nothing reworked; the
+doer chose to make no site for a line that held only the frame entry (an empty site would
+have bucketed a Hobbes edge there `suspect`) and corrected my brief (`tuple` is an
+external class target, not a C callee). On the host, in the image, both trace tests
+**pass**. Regraded, signed (`oracle-grading.md` §10.32): click's key regenerated
+(`click-py-r3`, same recipe, same suite exits) 4,595 → 4,561 pairs, exactly the 34 rows,
+confirmed and suspect ±0, 73.0% → 73.6%; this repo traced twice at `2c915a8` —
+`oracle-pre` from `89b7f58`, `oracle` from HEAD — 9,535 → 8,612 pairs, all 923 gone
+`<genexpr>`, 0 added, confirmed 8,162 and suspect 26 ±0, **85.6% → 94.8%**. The
+comparative graphics read the cell records, and the first re-derive put Hobbes' click row
+on r3 beside two foreign tools still on r2 — a same-key row on two keys; both foreign
+graphs regraded on r3 (only the denominator moved: 28.2 → 28.5, 37.1 → 37.3) and their
+records appended before the re-render. H-36 closed the day it was found; the defect log
+has nothing open; tracker 70 of 40. Three units today, $13.48 on the subscription.
