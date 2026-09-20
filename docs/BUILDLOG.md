@@ -13674,3 +13674,15 @@ measurement. No dispatch either — the code change is one string and its
 three assertions. 0.2.58-beta; pytest 2,122 green; the proxy and image
 rebuilt and the repo re-ingested at HEAD; restart the knowledge server
 (C-65). Everything is on `main`, unpushed.
+
+**ADR-141's last section, measured on the TS cells (Max: proceed).**
+Pre-registered (`~/.hobbes/bench/adr141-name-mismatch/PREREG.md`). The
+counter had to reproduce ADR-141's JS counts first and at first did not
+(Express 1, Preact 4): the lanes name different callers at some sites, so
+the match is by site and target, which gives 2 / 5 / 41. Then: ajv 5,
+cheerio 8, zod 0, hono 75 — 136 sites on seven cells, graded against the
+standing keys with the 0.2.57-beta exports: **98 confirmed, 38 outside the
+graded zone, 0 contradicted**. Two shapes carry it: a binding renamed at
+the site and a `#private` method call. The index proved every one and the
+graph labels the call `syntactic`. No code, no register entry, no version
+move; the routes are put to Max.

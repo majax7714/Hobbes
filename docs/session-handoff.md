@@ -46,8 +46,16 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
 
 **Measured on JavaScript, not yet constraints or decisions:**
 - A callee whose site name is not its definition's joins as `syntactic
-  calls` + `semantic uses` (Express 2, Preact 5, xmpp.js 41) — ADR-141's
-  last section; measure it on the TS cells before deciding anything.
+  calls` + `semantic uses` (ADR-141's last section). **Measured on the
+  TS cells 2026-09-20** (`~/.hobbes/bench/adr141-name-mismatch/`,
+  `PREREG.md`, `count.py`, `RESULTS.md`): 136 sites on seven cells —
+  Express 2, Preact 5, xmpp.js 41, ajv 5, cheerio 8, zod 0, hono 75 —
+  **98 confirmed, 38 outside the graded zone, 0 contradicted**. Two
+  shapes: a binding renamed at the site (import alias, `require`
+  binding) and a `#private` method call. About half of hono's and four
+  fifths of xmpp.js's lane-A-only call sites; 0–6% of all call sites.
+  Not registered and nothing built: the routes are with Max. kbet's
+  clone is not on the box.
 - Preact's test-file misses (closures in `it` bodies, calls through
   `.d.ts` interface members, hook setters in locals) — C-58's shapes.
   C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
