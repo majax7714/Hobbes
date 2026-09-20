@@ -183,3 +183,77 @@ recall-collapsed 68.7% (2628/3826 pairs at site-line × target-file × target-na
   line-grain tolerance used on 1887 edge(s) (several oracle sites on one line)
 poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+## Regrade, Hobbes 0.2.57-beta (unmoved — the index names nothing at any of its `new` tokens — ADR-142: a construction is a call where the index names the constructor at the `new` token)
+
+**The Hobbes side moved; the key did not** (the same stored key as the block above). Lane A now records every `new` expression's callee token and the join draws a `calls` edge where lane B resolves at exactly that token onto a constructor — to the class that declares it — or onto an ES5 constructor function, to that function. Where the index names a **class** at the token the class declares no constructor and the key names the base whose constructor runs, so nothing is drawn and the refusal is counted. The clone was re-ingested contained at 0.2.57-beta, exported and graded with `--poison`. Pre-registered in `~/.hobbes/bench/c168-construction/PREREG.md`; the run is `RESULTS.md` beside it, the outputs `~/.hobbes/bench/c168-construction/final/cheerio/`.
+
+Direction of fix: cheerio 2,628/2,628 (45.1%) → see below, **0 contradicted, every earlier confirmed row kept**.
+
+```
+cell .  oracle tsc 6.0.3 (the zone's own) (resolution)  sha 98c7d131
+hobbes edges 2688: confirmed 2628  contradicted 0  abstract 44  silent 16 map[not-loaded:16]
+precision-against-oracle 100.0% (2628/2628)
+recall 45.1% (2667/5910 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 5180; misses map[func-value→local-binding:1070 func-value→parameter:65 static→anonymous-signature:12 static→class:5 static→closure:108 static→function:1972 static→method:5 static→type-member:6]
+recall-collapsed 68.7% (2628/3826 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/1070)  misses 1070 = 33.0% of all misses
+  recall[func-value→parameter]   0.0% (0/65)  misses 65 = 2.0% of all misses
+  recall[func-value→variable] 100.0% (684/684)  misses 0 = 0.0% of all misses
+  recall[static→anonymous-signature]   0.0% (0/12)  misses 12 = 0.4% of all misses
+  recall[static→class      ]   0.0% (0/5)  misses 5 = 0.2% of all misses
+  recall[static→closure    ]   0.0% (0/108)  misses 108 = 3.3% of all misses
+  recall[static→function   ]  49.6% (1942/3914)  misses 1972 = 60.8% of all misses
+  recall[static→method     ]  89.1% (41/46)  misses 5 = 0.2% of all misses
+  recall[static→type-member]   0.0% (0/6)  misses 6 = 0.2% of all misses
+  tier semantic   confirmed 2620  contradicted 0  abstract 44  silent 0
+  tier syntactic  confirmed 8  contradicted 0  abstract 0  silent 16
+  line-grain tolerance used on 1887 edge(s) (several oracle sites on one line)
+  abstract     src/api/traversing.ts:242  hobbes src/api/traversing.ts:152 (src/api/traversing._singleMatcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/api/traversing.ts:268  hobbes src/api/traversing.ts:147 (src/api/traversing._matcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/api/traversing.ts:409  hobbes src/api/traversing.ts:152 (src/api/traversing._singleMatcher)  oracle src/api/traversing.ts:118 ((Anonymous function)), /home/mmarrujo/.hobbes/bench/oracle/repos/cheerio/node_modules/domutils/dist/traversal.d.ts:64 ("/home/mmarrujo/.hobbes/bench/oracle/repos/cheerio/node_modules/domutils/dist/traversal".nextElementSibling)
+  abstract     src/api/traversing.ts:432  hobbes src/api/traversing.ts:147 (src/api/traversing._matcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/api/traversing.ts:486  hobbes src/api/traversing.ts:152 (src/api/traversing._singleMatcher)  oracle src/api/traversing.ts:118 ((Anonymous function)), /home/mmarrujo/.hobbes/bench/oracle/repos/cheerio/node_modules/domutils/dist/traversal.d.ts:73 ("/home/mmarrujo/.hobbes/bench/oracle/repos/cheerio/node_modules/domutils/dist/traversal".prevElementSibling)
+  abstract     src/api/traversing.ts:510  hobbes src/api/traversing.ts:147 (src/api/traversing._matcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/api/traversing.ts:567  hobbes src/api/traversing.ts:147 (src/api/traversing._matcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/api/traversing.ts:594  hobbes src/api/traversing.ts:147 (src/api/traversing._matcher)  oracle src/api/traversing.ts:118 ((Anonymous function))
+  abstract     src/parse.spec.ts:107  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:113  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:121  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:128  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:134  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:143  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:149  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:163  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:177  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:188  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:195  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:204  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:211  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:218  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:225  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:232  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:239  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:240  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:248  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:288  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:305  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:323  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:331  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:351  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:360  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:386  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:393  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:400  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:407  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:416  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:433  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:64  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:71  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:81  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:89  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+  abstract     src/parse.spec.ts:97  hobbes src/parse.spec.ts:9 (src/parse.spec.parse)  oracle src/parse.ts:33 (parse)
+poison check: PASS — 2688 seeded wrong edges: 2672 refused, 16 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+The `missed` rows are elided; the classes are in the block above.
+

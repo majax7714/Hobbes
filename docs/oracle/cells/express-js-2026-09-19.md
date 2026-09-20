@@ -1233,3 +1233,30 @@ poison check: PASS — 992 seeded wrong edges: 848 refused, 144 unjudged (oracle
 ```
 
 The 528 `missed` rows are elided: the classes are the first block's, less the 652 (`func-value→parameter` 352, `func-value→variable` 73, `static→anonymous-function` 46, `static→closure` 27, `func-value→local-binding` 25, `static→function` 5).
+
+## Regrade, Hobbes 0.2.57-beta (C-168 narrowed — ADR-142: a construction is a call where the index names the constructor at the `new` token)
+
+**The Hobbes side moved; the key did not** (the same stored key as the block above). Lane A now records every `new` expression's callee token and the join draws a `calls` edge where lane B resolves at exactly that token onto a constructor — to the class that declares it — or onto an ES5 constructor function, to that function. Where the index names a **class** at the token the class declares no constructor and the key names the base whose constructor runs, so nothing is drawn and the refusal is counted. The clone was re-ingested contained at 0.2.57-beta, exported and graded with `--poison`. Pre-registered in `~/.hobbes/bench/c168-construction/PREREG.md`; the run is `RESULTS.md` beside it, the outputs `~/.hobbes/bench/c168-construction/final/express/`.
+
+Direction of fix: Express 992/992 (65.3%) → see below, **0 contradicted, every earlier confirmed row kept**.
+
+```
+cell .  oracle tsc 5.9.3 (harness; no tsconfig — the ingest's generated options) (resolution)  sha 9a34acf0
+hobbes edges 998: confirmed 998  contradicted 0  abstract 0  silent 0 map[]
+precision-against-oracle 100.0% (998/998)
+recall 65.7% (998/1520 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 494; misses map[func-value→local-binding:25 func-value→parameter:352 func-value→variable:72 static→anonymous-function:46 static→closure:27]
+recall-collapsed 65.7% (998/1520 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/25)  misses 25 = 4.8% of all misses
+  recall[func-value→parameter]   0.0% (0/352)  misses 352 = 67.4% of all misses
+  recall[func-value→variable]  15.3% (13/85)  misses 72 = 13.8% of all misses
+  recall[static→anonymous-function]   0.0% (0/46)  misses 46 = 8.8% of all misses
+  recall[static→closure    ]   0.0% (0/27)  misses 27 = 5.2% of all misses
+  recall[static→function   ] 100.0% (985/985)  misses 0 = 0.0% of all misses
+  tier semantic   confirmed 295  contradicted 0  abstract 0  silent 0
+  tier syntactic  confirmed 703  contradicted 0  abstract 0  silent 0
+  line-grain tolerance used on 152 edge(s) (several oracle sites on one line)
+poison check: PASS — 998 seeded wrong edges: 854 refused, 144 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+The `missed` rows are elided; the classes are in the block above.
+

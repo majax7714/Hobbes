@@ -238,11 +238,23 @@ def _print_constructions(counts: dict | None) -> None:
     """
     if not counts:
         return
-    print(
-        f"    constructions: {counts.get('drawn', 0)} drawn as calls where the index "
-        f"names a constructor at the token; {counts.get('in_template', 0)} inside a "
-        "template left as uses (ADR-132, C-162)"
-    )
+    if "drawn" in counts or "in_template" in counts:
+        print(
+            f"    constructions [c++]: {counts.get('drawn', 0)} drawn as calls where the index "
+            f"names a constructor at the token; {counts.get('in_template', 0)} inside a "
+            "template left as uses (ADR-132, C-162)"
+        )
+    if "ts_drawn" in counts or "ts_named_class" in counts:
+        # ADR-142's pair, printed apart from C++'s because they are
+        # different rules over different files and a reader must not read
+        # one number as the other's. The second half *is* the first's
+        # price here, unlike C++'s: at a class that declares no
+        # constructor the key names the base's and nothing is drawn.
+        print(
+            f"    constructions [ts/js]: {counts.get('ts_drawn', 0)} drawn as calls where the "
+            f"index names a constructor at the token; {counts.get('ts_named_class', 0)} left as "
+            "uses where it named a class that declares none (ADR-142, C-168)"
+        )
 
 
 def _print_fixtures(counts: dict | None) -> None:

@@ -181,21 +181,49 @@
 - **Source:** ADR-140 step 4, Express's first grade, 2026-09-19; traced
   and narrowed by ADR-141 (unit `S-20260919T210207Z-9133`).
 
-### C-168 — A construction (`new F()`) is drawn `uses`, not `calls`, in TypeScript and JavaScript — *registered 2026-09-19*
-- **Cannot tell you:** that `new F()` calls `F` — a class's constructor,
-  or a constructor function. The join draws a `uses` edge from the
-  caller to the class or function, and `who_calls F` lists it under
-  "references … where no call site was detected", which is wrong for a
-  construction: the site was detected.
-- **Because:** the TS/JS join has no construction rule (C++ has one,
-  ADR-132): a lane B reference at a `new` expression's callee is drawn
-  the way any reference no call site claimed is.
-- **Bites at:** every `new`: the key names the class or constructor
-  function as the callee. `static→class` misses: ajv 107, zod 110, hono
-  78, xmpp.js 104, Preact 570; `minijs`'s `new Counter(1)`.
-- **You find out:** **partial** — the `uses` edge is in the graph, and
-  `who_calls` lists the caller, but worded as no call site.
-- **Source:** ADR-140 step 4, §10.22's triage, 2026-09-19.
+### C-168 — A construction draws no call where the index does not name a constructor at the `new` token — *registered 2026-09-19, corrected and narrowed 2026-09-20 (ADR-142, 0.2.57-beta)*
+- **Cannot tell you:** that a construction called what it constructed,
+  in the four shapes the rule does not reach. **`super(…)`** in a
+  subclass constructor: lane A treats a keyword callee as no site at
+  all, and the key names the base class (Preact 193, ajv 12, hono 4,
+  xmpp.js 2). **A JSX tag whose component declares no constructor**
+  (Preact 377): the key names the base class, in a `.d.ts` Hobbes keeps
+  no symbol for. **A class that declares no constructor** at a `new`:
+  the index names the written class while the constructor that runs is
+  a base's, so nothing is drawn — counted per ingest as `ts_named_class`
+  (xmpp.js 21, ajv 6, hono 50, zod 192). **A token the index does not
+  resolve at all** — a cross-zone or unprovisioned dependency (C-23,
+  C-165), a local class, `new this(…)` or a computed callee (C-1), and
+  `new ns.X()` where the index names the module (zod 9).
+- **Because:** the rule is exact on both halves (ADR-142). Lane A records
+  the `new` token and can say only that a construction was written; what
+  was constructed is lane B's, and where lane B names a class rather
+  than a constructor the two disagree about which constructor runs. A
+  rule that drew the written class anyway read **55 contradicted rows of
+  58** when it was measured, so it draws nothing there.
+- **Bites at:** those four shapes. **Not at a construction the index
+  names a constructor for** — since 0.2.57-beta that is a `calls` edge
+  to the class that declares it, or to an ES5 constructor function
+  itself (xmpp.js 124 drawn, hono 996, ajv 319, zod 142, Express 75,
+  Preact 5, `minijs` 1).
+- **You find out:** **partial** — the ingest prints both halves on its
+  own `constructions [ts/js]` line (drawn, and left as `uses` at a class
+  that declares no constructor; `constructions.ts_drawn` and
+  `ts_named_class` in `graph.json`), and the `uses` edge those
+  references draw is in the graph; `super(…)` and a token the index does
+  not resolve are silent.
+- **What it was, and the correction (2026-09-20):** the entry as first
+  written said the join drew a `uses` edge at every `new` and that
+  `who_calls` worded it wrongly, and it counted "ajv 107, zod 110, hono
+  78, xmpp.js 104, Preact 570". Read row by row, those are each cell's
+  whole `static→class` miss class: **Preact's 570 hold no construction
+  at all**, and at a real construction the join drew **nothing** — the
+  index names `<constructor>` at the constructor's own line, which starts
+  no symbol, so the reference fell below the floor (C-58). The `uses`
+  edge it described sits at the *import* line. `docs/oracle/oracle-grading.md`
+  §10.23 carries the row-by-row read.
+- **Source:** ADR-140 step 4, §10.22's triage, 2026-09-19; corrected and
+  narrowed by ADR-142 and §10.23, 2026-09-20.
 
 ## Lifted constraints in this segment
 

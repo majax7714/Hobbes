@@ -13532,3 +13532,88 @@ and the report test green) follow it. Proxy and image rebuilt at
 0.2.56-beta, this repo re-ingested; the knowledge server needs a restart
 (C-65). Everything is on `main`, unpushed. Next, the handoff's order:
 C-168's construction rule, then C-165.
+
+## 2026-09-20 (seventh) — the handoff's drift fixed; C-168 measured, corrected and built (ADR-142, 0.2.57-beta); the tracker's gate line
+
+**The review first (Max: "review top level documentation and report back").**
+Every version copy read 0.2.56-beta and the counts agreed (61 session logs and
+the tracker's 61, ADR-141 the highest, 168 register entries, 93 cells). Two
+lines of the handoff's header had gone stale since it was written: it said the
+sixth session's commits were unpushed (Max pushed them — `origin/main` is at
+`e50ff2a` by `update by push`) and that the knowledge server needed its C-65
+restart (it answers `ingest @ e50ff2a, built by hobbes 0.2.56-beta`). Both
+fixed. The leftover `.hobbes/derived/.ingest.lock` holds a dead PID and blocks
+nothing — the lock is `flock`-based and `ingestlock.py` says so.
+
+**C-168 measured (Max: "then look to resolve c-168"), and its entry was wrong.**
+Drivers `~/.hobbes/bench/c168-construction/`. Read row by row, the entry's
+numbers are each cell's whole `static→class` miss class, not its constructions:
+**Preact's 570 hold no `new` at all** — 193 `super(…)` and 383 JSX tags (6
+drawn, the component declaring its own constructor) — and at a real
+construction the join drew **nothing**, not the `uses` edge the entry
+described: scip-typescript names `<constructor>` at the constructor's own
+declaration line, which starts no lane A symbol, so the reference fell below
+the floor (C-58). The `uses` edge it described sits at the *import* line. The
+mini reproduction under `mini/` shows the three answers the index gives at a
+`new`, and `laneb.py` reads them on the cells: a constructor (xmpp.js 101/102,
+ajv 89/95, hono 67/74), the class itself where the class declares none (ajv 6,
+hono 5, zod 43 — there the key names the **base** whose constructor runs), an
+ES5 constructor function (Express 6, xmpp.js 23), or nothing.
+
+**The naive rule refused on the evidence.** Promoting today's `uses` edges at a
+`new` would have drawn 3 confirmed and **55 contradicted** — the first loss of
+JavaScript's 100%. Not probed further.
+
+**Pre-registered, then simulated and graded** (`PREREG.md` written before any
+grade; `sim.py` builds the export a rule would produce, `oracle grade -poison`
+judges it against the stored keys). Route (a), the constructor alone, and route
+(b), constructor plus constructor function: 100% precision and 0 contradicted
+on all seven cells either way, (b) strictly larger. P1–P6 and P8 met; **P7
+missed on zod's count** (+33 against +58 ± 8 — 719 of its 946 `new` tokens
+carry no resolution at all, which reading the key's rows could not show), its
+precision half held. ADR-142 written with three routes, (b) recommended; Max:
+route (b).
+
+**Built (unit `S-20260920T012251Z-b444`, 128 turns, $13.44).** Its premises
+were read in the tree first — `extractCalls` never walks a `NewExpression`,
+lane A's facts version is held equal by `test_helper_contracts.py`, a TS
+reference reaches the join with its column, `index.starting_at` answers `None`
+at a constructor's line — and the `minijs` fixture was simulated before the
+brief went out (7/7 → 8/8; `new Counter(1)` drawn, `new Greeter()` refused,
+where tsc synthesises the construct signature and the key is silent). Lane A
+records the token (facts v6, `extractConstructions`), `ts_construction_targets`
+reads scip-typescript's own spelling, and the join draws to the class that
+declares the constructor, or to a non-class definition; at a class it draws
+nothing and counts the refusal. Two deviations, both right: the counts are
+`ts_drawn`/`ts_named_class` inside the existing `constructions` block, and the
+doer added two runnable cases to cover the `lane_b` case it could not run in
+the sandbox. **On the host that case runs and passes** — `lane_b` 11 → 12,
+pytest 2,095 → 2,119, tsextract 43 → 47, Go `./...` green.
+
+**The gate blocked on the partition, and the brief was at fault.** My partition
+named `pipeline/tests/fixtures/minicnew/` — a *directory* — and the check is a
+file list at file grain (C-122): its `package.json` passed as `not-code` and
+its four `.js`/`.mjs` files each became a `partition` row. The gate applied its
+own rule correctly, so the verdict is recorded **right-block**; re-gated at the
+same parent with the fixture's files spelled out it is **clear**. The lesson is
+the brief's: spell a new fixture's files out, one per line.
+
+**A tracker defect the block exposed.** `calvin_tracker.py`'s `GATE_RE` ended
+at `partition checked`, but the harness writes `; partition checked, outside:
+…` on a partition block (and `; partition not checked` when a unit gives no
+partition). So the tracker refused the harness's own output and **no session
+with a partition block could be recorded at all**. Regex extended, with a case
+of its own; the tracker reads 62 of 40.
+
+**Regraded at 0.2.57-beta**, each clone re-ingested contained, stored keys,
+`-poison`: xmpp.js 552 → **676/676** (recall 66.4% → **81.2%**), ajv 1,410 →
+**1,499** (67.5%), hono 768 → **833** (59.7%), zod 9,731 → **9,872** (45.8%),
+Express 992 → **998** (65.7%), Preact 2,446 → **2,447**, `minijs` 7 → **8/8**,
+cheerio unmoved — **100% precision, 0 contradicted, poison PASS on every one**,
+and every earlier confirmed row kept. The `static→class` miss class falls
+xmpp.js 104 → 3, ajv 107 → 18, hono 78 → 13, zod 110 → 77. §10.23 carries the
+read and the table, the seven cell records their regrade blocks, and the
+comparative data re-rendered (93 cells, `render.py check` and the report test
+green). C-168 corrected and narrowed in the register, with its note in
+HISTORY. Everything is on `main`, unpushed; the image and proxy need a rebuild
+at 0.2.57-beta and this repo a re-ingest (C-65).

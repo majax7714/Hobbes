@@ -1969,11 +1969,53 @@ with `package.json` — the ingest said so, C-23).
   undecidable there (0 contradictions). **P140:** met on every cell.
 - **C-166 fires where it should:** Preact's ingest prints its
   `jsconfig.json` as not read, 241 files under the default options.
-- **Two recall findings for Hobbes, not yet registered** (the lead's
-  call): a function reached through a CommonJS re-export of
-  `module.exports` draws nothing (Express's 652); a construction of a
-  function (`new Counter()`) is drawn `uses`, as TS draws `new` of a
-  class.
+- **Two recall findings for Hobbes, registered and since closed:** a
+  function reached through a CommonJS re-export of `module.exports` drew
+  nothing (Express's 652 — C-167, drawn at 0.2.56-beta, ADR-141); a
+  construction drew no call (C-168 — drawn at 0.2.57-beta, ADR-142, §10.23).
+  The second entry's *shape* was wrong as first written, and §10.23 says how.
+
+### 10.23 Constructions in TypeScript and JavaScript — written 2026-09-20, before any cell was re-ingested (ADR-142, C-168; unit `b444`)
+
+**Pre-registered** in `~/.hobbes/bench/c168-construction/PREREG.md` before
+any simulated export was graded; `RESULTS.md` beside it carries the run.
+
+**Step 0, the misses by shape.** C-168's numbers were each cell's whole
+`static→class` miss class, not the constructions in it. Read row by row:
+xmpp.js 102 `new` + 2 `super`; **Preact 0 `new`** — 193 `super(…)` and 383
+JSX tags (6 drawn); ajv 95 + 12; zod 101 + 9 dotted; hono 74 + 4; cheerio 5;
+kbet 8 JSX, all 8 drawn; Express 0.
+
+**What each lane says at a `new` token.** The index names `<constructor>`
+at the constructor's own declaration line — inside the class the key names,
+every time (xmpp.js 101/102, ajv 89/95, hono 67/74). Where the class
+declares **none** it names the class itself while the key names the **base**
+whose constructor runs (ajv 6, hono 5, zod 43). An ES5 constructor function
+it names directly (Express 6, xmpp.js 23). Nothing at all: cheerio's 5,
+`new this(…)`.
+
+**The naive rule was refused on the evidence:** promoting today's `uses`
+edges at a `new` would have drawn 3 confirmed and **55 contradicted**.
+
+**The rule, simulated then built** (P1–P8; P7 missed on zod's count, +33
+against +58 ± 8, because 719 of its 946 tokens carry no resolution at all —
+its precision half held). The real cells at 0.2.57-beta, stored keys,
+`-poison`:
+
+| cell | before | after | recall | `ts_drawn` / `ts_named_class` |
+|---|---|---|---|---|
+| xmpp.js | 552/552 | **676/676** | 66.4% → **81.2%** | 124 / 21 |
+| ajv | 1,410/1,410 | **1,499/1,499** | 63.5% → 67.5% | 319 / 6 |
+| hono | 768/768 | **833/833** | 55.0% → 59.7% | 996 / 50 |
+| zod | 9,731/9,731 | **9,872/9,872** | 45.1% → 45.8% | 142 / 192 |
+| Express | 992/992 | **998/998** | 65.3% → 65.7% | 75 / 0 |
+| Preact | 2,446/2,446 | **2,447/2,447** | 28.6% | 5 / 1 |
+| cheerio | 2,628/2,628 | 2,628/2,628 | 45.1% | — |
+| `minijs` | 7/7 | **8/8** | 63.6% → 72.7% | 1 / 1 |
+
+**100% precision, 0 contradicted and poison PASS on every cell.** The
+`static→class` miss class falls xmpp.js 104 → 3, ajv 107 → 18, hono 78 → 13,
+zod 110 → 77; Preact's 570 do not move, which is what step 0 predicted.
 
 ## 11. Evidence, claims, and register updates
 

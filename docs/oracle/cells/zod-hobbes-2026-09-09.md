@@ -141,3 +141,36 @@ recall-collapsed 58.5% (9731/16634 pairs at site-line × target-file × target-n
   line-grain tolerance used on 5642 edge(s) (several oracle sites on one line)
 poison check: PASS — 9780 seeded wrong edges: 9731 refused, 49 unjudged (oracle silent there), 0 falsely confirmed
 ```
+
+## Regrade, Hobbes 0.2.57-beta (C-168 narrowed — ADR-142: a construction is a call where the index names the constructor at the `new` token)
+
+**The Hobbes side moved; the key did not** (the same stored key as the block above). Lane A now records every `new` expression's callee token and the join draws a `calls` edge where lane B resolves at exactly that token onto a constructor — to the class that declares it — or onto an ES5 constructor function, to that function. Where the index names a **class** at the token the class declares no constructor and the key names the base whose constructor runs, so nothing is drawn and the refusal is counted. The clone was re-ingested contained at 0.2.57-beta, exported and graded with `--poison`. Pre-registered in `~/.hobbes/bench/c168-construction/PREREG.md`; the run is `RESULTS.md` beside it, the outputs `~/.hobbes/bench/c168-construction/final/zod/`.
+
+Direction of fix: zod 9,731/9,731 (45.1%) → see below, **0 contradicted, every earlier confirmed row kept**.
+
+```
+cell .  oracle tsc 5.9.3 (harness) (resolution)  sha bbc68f99
+hobbes edges 9921: confirmed 9872  contradicted 0  abstract 0  silent 49 map[not-loaded:49]
+precision-against-oracle 100.0% (9872/9872)
+recall 45.8% (10034/21931 in-repo oracle pairs) over every resolved site in the cell (resolution oracle: no roots); external oracle pairs 3239; misses map[func-value→local-binding:59 func-value→parameter:117 func-value→variable:118 interface→type-member:88 static→anonymous-signature:13 static→class:77 static→closure:207 static→function:4220 static→method:531 static→property:1274 static→type-member:4955 static→variable:238]
+recall-collapsed 59.3% (9872/16634 pairs at site-line × target-file × target-name grain: a symbol's overload signatures fold, and so do repeats of one callee on one line; the per-signature line above is the standing grade)
+  recall[func-value→local-binding]   0.0% (0/59)  misses 59 = 0.5% of all misses
+  recall[func-value→parameter]   0.0% (0/117)  misses 117 = 1.0% of all misses
+  recall[func-value→variable]  89.7% (1025/1143)  misses 118 = 1.0% of all misses
+  recall[interface→type-member]   0.0% (0/88)  misses 88 = 0.7% of all misses
+  recall[static→anonymous-signature]   0.0% (0/13)  misses 13 = 0.1% of all misses
+  recall[static→class      ]  30.0% (33/110)  misses 77 = 0.6% of all misses
+  recall[static→closure    ]   0.0% (0/207)  misses 207 = 1.7% of all misses
+  recall[static→function   ]  60.5% (6455/10675)  misses 4220 = 35.5% of all misses
+  recall[static→method     ]  81.1% (2275/2806)  misses 531 = 4.5% of all misses
+  recall[static→property   ]   0.0% (0/1274)  misses 1274 = 10.7% of all misses
+  recall[static→type-member]   0.0% (0/4955)  misses 4955 = 41.6% of all misses
+  recall[static→variable   ]  50.8% (246/484)  misses 238 = 2.0% of all misses
+  tier semantic   confirmed 8815  contradicted 0  abstract 0  silent 38
+  tier syntactic  confirmed 1057  contradicted 0  abstract 0  silent 11
+  line-grain tolerance used on 5655 edge(s) (several oracle sites on one line)
+poison check: PASS — 9921 seeded wrong edges: 8718 refused, 1203 unjudged (oracle silent there), 0 falsely confirmed
+```
+
+The `missed` rows are elided; the classes are in the block above.
+

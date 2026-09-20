@@ -6,6 +6,26 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-168 corrected and narrowed, 2026-09-20 (0.2.57-beta; ADR-142, route b):
+- **C-168 corrected.** The entry as registered on 2026-09-19 said the
+  join drew a `uses` edge at every `new` and that `who_calls` worded it
+  wrongly, and it counted ajv 107, zod 110, hono 78, xmpp.js 104 and
+  Preact 570. Those are each cell's whole `static→class` miss class, not
+  its constructions: read row by row, **Preact's 570 hold no `new` at
+  all** (193 `super(…)`, 377 JSX tags), and at a real construction the
+  join drew **nothing** — scip-typescript names `<constructor>` at the
+  constructor's own line, which starts no symbol, so the reference fell
+  below the floor (C-58). The `uses` edge described sits at the import
+  line. `oracle-grading.md` §10.23 carries the read.
+- **C-168 narrowed (partial).** A construction is drawn `calls` where
+  the index names a constructor at exactly the `new` token — to the
+  class that declares it, or to an ES5 constructor function itself.
+  Left: `super(…)`, a JSX tag whose component declares no constructor,
+  a class that declares none (counted per ingest as `ts_named_class`),
+  and a token the index does not resolve. xmpp.js recall 66.4% → 81.2%,
+  ajv 63.5% → 67.5%, hono 55.0% → 59.7%, zod 45.1% → 45.8%; 0
+  contradicted on every cell. Counts unchanged (no entry added).
+
 C-167 narrowed, 2026-09-19 (0.2.56-beta; ADR-141, route a):
 - **C-167 narrowed (partial):** lane A follows `module.exports =
   require("<literal>")` to the required module's export, so a call

@@ -12,8 +12,8 @@
    "draw": "picked",
    "label": "ajv",
    "note": "regraded 2026-09-09 after the union-member abstention (ADR-104, C-97): the three static→union-member rows are abstentions now, ten sites in the tail; contained on the regrade",
-   "edges": 1575,
-   "confirmed": 1410,
+   "edges": 1664,
+   "confirmed": 1499,
    "contradicted": 0,
    "abstract": 0,
    "silent": 165,
@@ -24,29 +24,30 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 1410,
-    "den": 1410
+    "num": 1499,
+    "den": 1499
    },
    "recall": {
-    "pct": 63.5,
-    "hits": 1417,
+    "pct": 67.5,
+    "hits": 1506,
     "pairs": 2232,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "func-value→local-binding": 13,
+    "func-value→parameter": 23,
     "interface→type-member": 12,
-    "static→class": 107,
-    "static→closure": 174,
+    "static→class": 18,
+    "static→closure": 151,
     "static→function": 456,
     "static→method": 36,
     "static→type-member": 17
    },
    "poison": {
     "passed": true,
-    "seeded": 1575,
-    "refused": 1410,
+    "seeded": 1664,
+    "refused": 1499,
     "unjudged": 165,
     "falsely": 0
    }
@@ -132,9 +133,10 @@
    },
    "misses": {
     "func-value→local-binding": 1070,
+    "func-value→parameter": 65,
     "static→anonymous-signature": 12,
     "static→class": 5,
-    "static→closure": 173,
+    "static→closure": 108,
     "static→function": 1972,
     "static→method": 5,
     "static→type-member": 6
@@ -2162,8 +2164,8 @@
    "draw": "picked",
    "label": "express (CommonJS)",
    "note": "no dependency tree (C-165); the tests' express() through a CommonJS re-export drawn since 0.2.56-beta, syntactic (ADR-141, C-167)",
-   "edges": 992,
-   "confirmed": 992,
+   "edges": 998,
+   "confirmed": 998,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -2172,12 +2174,12 @@
    "silent_by": {},
    "precision": {
     "pct": 100.0,
-    "num": 992,
-    "den": 992
+    "num": 998,
+    "den": 998
    },
    "recall": {
-    "pct": 65.3,
-    "hits": 992,
+    "pct": 65.7,
+    "hits": 998,
     "pairs": 1520,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2185,15 +2187,14 @@
    "misses": {
     "func-value→local-binding": 25,
     "func-value→parameter": 352,
-    "func-value→variable": 73,
+    "func-value→variable": 72,
     "static→anonymous-function": 46,
-    "static→closure": 27,
-    "static→function": 5
+    "static→closure": 27
    },
    "poison": {
     "passed": true,
-    "seeded": 992,
-    "refused": 848,
+    "seeded": 998,
+    "refused": 854,
     "unjudged": 144,
     "falsely": 0
    }
@@ -2506,36 +2507,38 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "hono (tsconfig.build.json)",
    "note": "a draw of repowise's G4 experiment on our key; 7 static→union-member rows before ADR-104, 1 after — a site lane A could not type under hono's solution-style root tsconfig (C-98) — and 0 once C-98 was lifted (2026-09-10, 768/768)",
-   "edges": 4489,
-   "confirmed": 768,
+   "edges": 5420,
+   "confirmed": 833,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 3721,
+   "silent": 4587,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 3721
+    "not-loaded": 4587
    },
    "precision": {
     "pct": 100.0,
-    "num": 768,
-    "den": 768
+    "num": 833,
+    "den": 833
    },
    "recall": {
-    "pct": 55.2,
-    "hits": 775,
-    "pairs": 1403,
+    "pct": 59.7,
+    "hits": 840,
+    "pairs": 1408,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "func-value→local-binding": 61,
+    "func-value→parameter": 140,
     "func-value→variable": 4,
     "interface→type-member": 30,
     "static→anonymous-function": 1,
     "static→anonymous-signature": 15,
-    "static→class": 78,
-    "static→closure": 229,
+    "static→class": 13,
+    "static→closure": 89,
+    "static→function": 5,
     "static→method": 90,
     "static→property": 93,
     "static→type-member": 20,
@@ -2543,9 +2546,9 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 4489,
-    "refused": 768,
-    "unjudged": 3721,
+    "seeded": 5420,
+    "refused": 830,
+    "unjudged": 4590,
     "falsely": 0
    }
   },
@@ -2836,24 +2839,24 @@
    "draw": "picked",
    "label": "preact (ESM, JSDoc, JSX)",
    "note": "its root zone; first pass 1,223 contradicted, all the oracle's (H-34, H-35), regraded; no dependency tree (C-165); jsconfig not read (C-166)",
-   "edges": 2734,
-   "confirmed": 2446,
+   "edges": 2738,
+   "confirmed": 2447,
    "contradicted": 0,
    "abstract": 0,
-   "silent": 288,
+   "silent": 291,
    "suspect": 0,
    "unobserved": 0,
    "silent_by": {
-    "not-loaded": 288
+    "not-loaded": 291
    },
    "precision": {
     "pct": 100.0,
-    "num": 2446,
-    "den": 2446
+    "num": 2447,
+    "den": 2447
    },
    "recall": {
     "pct": 28.6,
-    "hits": 2632,
+    "hits": 2633,
     "pairs": 9211,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -2866,15 +2869,15 @@
     "static→anonymous-function": 1,
     "static→class": 570,
     "static→closure": 2038,
-    "static→function": 216,
+    "static→function": 215,
     "static→method": 2,
     "static→type-member": 33
    },
    "poison": {
     "passed": true,
-    "seeded": 2734,
-    "refused": 2206,
-    "unjudged": 528,
+    "seeded": 2738,
+    "refused": 2207,
+    "unjudged": 531,
     "falsely": 0
    }
   },
@@ -4298,8 +4301,8 @@
    "draw": "random",
    "label": "xmpp.js",
    "note": "its lockfile refused by npm ci: no dependency tree (C-165)",
-   "edges": 552,
-   "confirmed": 552,
+   "edges": 676,
+   "confirmed": 676,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
@@ -4308,12 +4311,12 @@
    "silent_by": {},
    "precision": {
     "pct": 100.0,
-    "num": 552,
-    "den": 552
+    "num": 676,
+    "den": 676
    },
    "recall": {
-    "pct": 66.4,
-    "hits": 558,
+    "pct": 81.2,
+    "hits": 682,
     "pairs": 840,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
@@ -4321,17 +4324,16 @@
    "misses": {
     "func-value→local-binding": 18,
     "func-value→parameter": 64,
-    "func-value→variable": 23,
-    "static→class": 104,
+    "static→class": 3,
     "static→closure": 42,
     "static→function": 29,
     "static→method": 2
    },
    "poison": {
     "passed": true,
-    "seeded": 552,
-    "refused": 361,
-    "unjudged": 191,
+    "seeded": 676,
+    "refused": 474,
+    "unjudged": 202,
     "falsely": 0
    }
   },
@@ -4346,8 +4348,8 @@
    "draw": "repowise-bench's draw (its corpus.lock pin)",
    "label": "zod",
    "note": "a draw of repowise's G4 experiment, graded by our key at our grain; not comparable with repowise-bench's table (function-grain key)",
-   "edges": 9780,
-   "confirmed": 9731,
+   "edges": 9921,
+   "confirmed": 9872,
    "contradicted": 0,
    "abstract": 0,
    "silent": 49,
@@ -4358,23 +4360,24 @@
    },
    "precision": {
     "pct": 100.0,
-    "num": 9731,
-    "den": 9731
+    "num": 9872,
+    "den": 9872
    },
    "recall": {
-    "pct": 45.1,
-    "hits": 9893,
+    "pct": 45.8,
+    "hits": 10034,
     "pairs": 21931,
     "roots": null,
     "basis": "over every resolved site (resolution oracle: no roots)"
    },
    "misses": {
     "func-value→local-binding": 59,
-    "func-value→variable": 226,
+    "func-value→parameter": 117,
+    "func-value→variable": 118,
     "interface→type-member": 88,
     "static→anonymous-signature": 13,
-    "static→class": 110,
-    "static→closure": 324,
+    "static→class": 77,
+    "static→closure": 207,
     "static→function": 4220,
     "static→method": 531,
     "static→property": 1274,
@@ -4383,9 +4386,9 @@
    },
    "poison": {
     "passed": true,
-    "seeded": 9780,
-    "refused": 9731,
-    "unjudged": 49,
+    "seeded": 9921,
+    "refused": 8718,
+    "unjudged": 1203,
     "falsely": 0
    }
   }

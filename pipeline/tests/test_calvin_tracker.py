@@ -195,6 +195,33 @@ def test_a_gate_line_at_newer_rule_versions_parses(tmp_path):
     assert ct.parse_session(path)["gate"] == "clear"
 
 
+def test_a_gate_line_from_a_partition_block_parses(tmp_path):
+    """A partition block lists the files it found outside, and that line parses.
+
+    Found by use on 2026-09-20 (session `b444`, ADR-142's unit): the brief's
+    partition named a *directory*, the check is at file grain, and the harness
+    wrote `; partition checked, outside: a, b, c`. `GATE_RE` ended at
+    `partition checked`, so the tracker refused the harness's own output and no
+    session with a partition block could be recorded at all. The unchecked
+    clause is here for the same reason — a unit dispatched with no partition
+    writes it and no fixture had one.
+    """
+    sid = "S-20260101T000000Z-5b55"
+    _write_session(tmp_path, sid)
+    path = tmp_path / f"{sid}.md"
+    pinned = ("- **Gate:** **clear** at `deadbeef` (gate v2, grounder v3, record `cafef00d`); unknown 0; "
+              "map over 2 file(s), 0.0% of their lines uncaptured; partition checked")
+    blocked = ("- **Gate:** **blocked** at `deadbeef` (gate v2, grounder v4, record `cafef00d`) — blocking: partition; "
+               "unknown 0; map over 75 file(s), 1.9% of their lines uncaptured; partition checked, "
+               "outside: tests/fixtures/new/a.js, tests/fixtures/new/b.mjs")
+    path.write_text(path.read_text().replace(pinned, blocked))
+    assert ct.parse_session(path)["gate"] == "blocked"
+
+    unchecked = pinned.replace("partition checked", "partition not checked")
+    path.write_text(path.read_text().replace(blocked, unchecked))
+    assert ct.parse_session(path)["gate"] == "clear"
+
+
 def test_policy_line_with_the_stream_bracket_parses(tmp_path):
     """A Policy line carrying the sink's bracket (`; records: stream opened→closed`, ADR-112) parses, with and without an escalation clause before it; the kinds still count."""
     sid = "S-20260101T000000Z-beef"

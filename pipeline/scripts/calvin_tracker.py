@@ -92,7 +92,14 @@ FILE_RE = re.compile(r"`([^`]+)`")
 GATE_RE = re.compile(
     r"^- \*\*Gate:\*\* \*\*(?P<verdict>clear|blocked)\*\* at `[0-9a-f]+` "
     r"\(gate v\d+, grounder v\d+, record `[0-9a-f]+`\)(?: — blocking: [\w, -]+)?; unknown \d+; "
-    r"map over \d+ file\(s\), [\d.]+% of their lines uncaptured; partition checked$"
+    r"map over \d+ file\(s\), [\d.]+% of their lines uncaptured; "
+    # The harness writes the partition clause three ways (`dispatch.py`):
+    # unchecked when the unit gave no partition, checked, and checked with
+    # the files it found outside listed after it — which is exactly the
+    # line a partition block produces, and the one this regex could not
+    # read until 2026-09-20 (session `b444`, the first such block).
+    r"partition (?:not checked|checked(?:, outside: [^;]+)?)"
+    r"(?:; WARNING: the gate read the diff differently from `git apply`)?$"
 )
 
 VERIFY_RE = re.compile(

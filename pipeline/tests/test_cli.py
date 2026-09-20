@@ -435,10 +435,35 @@ class TestConstructionLine:
         cli._print_constructions({"drawn": 135, "in_template": 44})
         line = capsys.readouterr().out.strip()
         assert line.startswith(
-            "constructions: 135 drawn as calls where the index names a constructor"
+            "constructions [c++]: 135 drawn as calls where the index names a constructor"
         )
         assert "44 inside a template left as uses" in line
         assert "(ADR-132, C-162)" in line
+
+    def test_the_ts_js_halves_are_their_own_line(self, capsys):
+        """ADR-142's counts are printed apart from C++'s.
+
+        Written 2026-09-20, because for one version they were not printed at
+        all: the unit that built the rule had `cli.py` outside its write
+        partition, so an ingest that drew eight TS/JS constructions still
+        said `0 drawn` — C++'s number, read as if it were the whole answer.
+        Two rules over different files, two lines.
+        """
+        cli._print_constructions({"ts_drawn": 124, "ts_named_class": 21})
+        line = capsys.readouterr().out.strip()
+        assert line.startswith(
+            "constructions [ts/js]: 124 drawn as calls where the index names a constructor"
+        )
+        assert "21 left as uses where it named a class that declares none" in line
+        assert "(ADR-142, C-168)" in line
+
+    def test_both_rules_print_one_line_each(self, capsys):
+        cli._print_constructions(
+            {"drawn": 135, "in_template": 44, "ts_drawn": 8, "ts_named_class": 2}
+        )
+        out = capsys.readouterr().out.strip().splitlines()
+        assert len(out) == 2
+        assert "[c++]" in out[0] and "[ts/js]" in out[1]
 
     def test_nothing_is_said_where_the_block_is_absent(self, capsys):
         # P6: no indexer, or no C++, writes no block — and the floor is

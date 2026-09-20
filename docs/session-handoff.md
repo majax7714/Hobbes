@@ -1,17 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (sixth session); reviewed again 2026-09-19
-(seventh); Hobbes 0.2.56-beta on `main`.**
-Max pushed the sixth session's work through `e50ff2a` (the close-out);
-the fifth session's close-out was `13ff9d5`, CI run 35468332243 (the one
-before, 35461769081, green). The image and the proxy were rebuilt at
-0.2.56-beta and this repo re-ingested at the end of the sixth session;
-the knowledge server was restarted and answers `ingest @ e50ff2a, built
-by hobbes 0.2.56-beta` (C-65, satisfied — restart it again after the
-next image rebuild). `main` is level with `origin/main`.
+**Reviewed 2026-09-20 (seventh session); Hobbes 0.2.57-beta on `main`.**
+Max pushed the sixth session's work through `e50ff2a`; the seventh
+session's commits are on `main`, **unpushed**. The image and the proxy
+were last rebuilt at 0.2.56-beta, so **rebuild both at 0.2.57-beta,
+re-ingest this repo and restart the knowledge server** before trusting
+its answers (C-65).
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.56-beta are untagged. Tags stay Max's call each time.
+  0.2.57-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -25,50 +22,52 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-19, sixth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-20, seventh session)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
 against them first.
 
-**Where JavaScript stands (ADR-140 done, 0.2.53–0.2.55-beta; ADR-141,
-0.2.56-beta).** Its row names three graded repos (`oracle-grading.md`
-§10.22): Express 992/992 (340/340 before ADR-141), Preact 2,446/2,446,
-xmpp.js 552/552 — 100% precision each, strict 100%, poison PASS; recall
-65.3%, 28.6%, 66.4%. No cell had its
+**Where JavaScript stands (ADR-140, 0.2.53–0.2.55-beta; ADR-141,
+0.2.56-beta; ADR-142, 0.2.57-beta).** Its row names three graded repos
+(`oracle-grading.md` §10.22, §10.23): Express **998/998** (recall
+65.7%), Preact **2,447/2,447** (28.6%), xmpp.js **676/676** (**81.2%**)
+— 100% precision each, 0 contradicted, poison PASS. No cell has its
 dependencies installed (C-165). Registered: C-166 (jsconfig not read,
-surfaced), C-167 (a CommonJS re-export drew nothing; narrowed by
-ADR-141), C-168 (`new F()`
-drawn `uses`). The cells are in `docs/oracle/cells/` and the comparative
-data (93 cells). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
-`regrade.sh`, `cells/`, `regrade/h34/`, `oracle-trees/preact`; the
-Express clone at `repos/expressjs__express`, ingested at 0.2.54-beta).
+surfaced), C-167 (narrowed by ADR-141), C-168 (corrected and narrowed by
+ADR-142). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`, `regrade.sh`,
+`cells/`, `regrade/h34/` the standing keys, `fixture/minijs`,
+`oracle-trees/preact`) and `~/.hobbes/bench/c168-construction/`.
 
 **The JavaScript constraints (Max: "we will tackle constraints from js
-next session"),** in the order to measure them:
-1. **C-167 — done (ADR-141, 0.2.56-beta).** Lane A follows
-   `module.exports = require("<literal>")` to the required module's
-   export; unit `S-20260919T210207Z-9133` (61 turns, $2.64, right-clear,
-   merged `9f1fb77`; tracker 61 of 40). **Express 992/992, recall 65.3%**
-   (was 340/340, 22.4%), the 652 new rows syntactic; Preact, xmpp.js,
-   `minijs` row-identical. C-167 narrowed (partial): the tier (the index's
-   leaked local, a `Provider` line) and a non-literal re-export. Drivers:
-   `~/.hobbes/bench/c167-reexport/` (`PREREG.md`, `run.sh`,
-   `probe-lanea.patch`, `trace/`, `final/express/` the standing regrade,
-   `units/`). Counted, not a constraint: a callee whose site name is not
-   its definition's joins as `syntactic calls` + `semantic uses` (Express
-   2, Preact 5, xmpp.js 41 `#` methods) — ADR-141's last section; measure
-   it on the TS cells before deciding anything.
-2. **C-168** — a construction rule for TS/JS (`new F()` drawn `calls`
-   where lane B names the class or constructor function at the callee),
-   the way ADR-132 did C++; measure on xmpp.js (104), Preact (570), ajv
-   (107), zod (110), hono (78) first; and `who_calls`' wording either
-   way.
-3. **C-165** — a JS cell graded with its dependencies provisioned (an
-   npm lockfile in sync; Express's or Preact's shape re-drawn).
+next session"),** in the order set at the close of 2026-09-19:
+1. **C-167 — done (ADR-141, 0.2.56-beta),** unit `9133`. Express 340/340
+   → 992/992, recall 22.4% → 65.3%. Drivers
+   `~/.hobbes/bench/c167-reexport/`. Counted, not a constraint: a callee
+   whose site name is not its definition's joins as `syntactic calls` +
+   `semantic uses` (Express 2, Preact 5, xmpp.js 41) — ADR-141's last
+   section; measure it on the TS cells before deciding anything.
+2. **C-168 — done (ADR-142, route b, 0.2.57-beta),** unit `b444` (128
+   turns, $13.44, right-block on the brief's partition, merged
+   `e64d2cb`). Lane A records the `new` token (facts v6); the join draws
+   `calls` to the class that declares the constructor, or to an ES5
+   constructor function; at a class that declares none it draws nothing
+   and counts the refusal. **Its entry's registered shape was wrong and
+   is corrected** (§10.23, HISTORY). Eight cells regraded, 100%
+   precision and 0 contradicted on every one: xmpp.js 552 → 676 (66.4%
+   → 81.2%), ajv → 1,499, hono → 833, zod → 9,872, Express → 998,
+   `minijs` 7 → 8, Preact 2,446 → 2,447, cheerio unmoved. Drivers
+   `~/.hobbes/bench/c168-construction/` (`PREREG.md`, `RESULTS.md`,
+   `probe.py`, `join.py`, `laneb.py`, `remainder.py`, `newtokens.mjs`,
+   `sim.py`, `run.sh`/`runb.sh`, `rebase_facts.py`, `regrade.sh`,
+   `mini/`, `final/`, `units/`).
+3. **C-165 — next: a JS cell graded with its dependencies provisioned**
+   (an npm lockfile in sync; Express's or Preact's shape re-drawn).
 4. Also measured, not yet a constraint: Preact's test-file misses
    (closures in `it` bodies, calls through `.d.ts` interface members,
-   hook setters in locals) — C-58's shapes, only counted.
+   hook setters in locals) — C-58's shapes, only counted. And C-168's
+   own remainder, if Max wants it measured: `super(…)` (211 rows) and a
+   JSX tag whose component declares no constructor (Preact 377).
 
 **Candidates after the JavaScript constraints, each measured first**
 (none started): C-4's last parts — the injected value's type is lane
@@ -107,6 +106,15 @@ paragraph cells as per-language pages (Max: "dont split for now").
   brief was wrong about a site's scope), and run the real cell before
   merging; a doer may narrow a brief's wording rightly (unit `5587`
   kept H-33's row).
+- **A write partition is a file list, at file grain.** A directory entry
+  (`tests/fixtures/new/`) matches nothing and every code file created
+  under it is a `partition` row: unit `b444` was blocked that way and
+  the fault was the brief's. Spell a new fixture's files out, one path
+  per line. `not-code` files (a `package.json`) pass on the `reach`
+  rule; code files do not.
+- **Read a register entry's rows before building on it.** C-168 named
+  the wrong shape *and* the wrong numbers, and a row-by-row read of the
+  key (not the miss-class totals) was what caught it.
 - The hobbes-py and hobbes-go cells cannot be regraded on stored keys:
   their clone (`adr111-before/hobbes-wt`) is gone; a full regrade needs
   a worktree at the key's sha or fresh keys.
@@ -210,6 +218,7 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **Settled 2026-09-20:** ADR-142's route (b), built (0.2.57-beta).
    - **Settled 2026-09-19:** ADR-141's route (a), built (0.2.56-beta); ADR-137's, ADR-138's and ADR-139's route
      (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); ADR-140's
      route (a), all five steps built (0.2.53–0.2.55-beta), and the cells
@@ -276,7 +285,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 61 of 40, 4
+   - **The validating 40 are done:** the tracker reads 62 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -337,16 +346,17 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-19)
+## WHERE THINGS STAND (2026-09-20)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
   is drawn through TypeScript's lanes and graded on three repos of its
-  own (ADR-140), none with its dependencies installed (C-165).
+  own (ADR-140), none with its dependencies installed (C-165). A TS/JS
+  construction is drawn `calls` since 0.2.57-beta (ADR-142).
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-one log files under `docs/calvin/sessions/`; the tracker reads 61 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty-two log files under `docs/calvin/sessions/`; the tracker reads 62 of 40 (4 areas, 1 false block, 0 missed).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 93 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -354,7 +364,8 @@ min each.
   deployed and idle): held.
 - **Register:** 168 entries: 123 active (95 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-167 narrowed (ADR-141, 0.2.56-beta; no entry added); C-165 narrowed, C-167 and C-168 registered (0.2.55-beta); C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
+  folded. Latest: C-168 corrected and narrowed (ADR-142, 0.2.57-beta; no
+  entry added); C-167 narrowed (ADR-141, 0.2.56-beta; no entry added); C-165 narrowed, C-167 and C-168 registered (0.2.55-beta); C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
   surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
   C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
   entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
@@ -375,10 +386,11 @@ min each.
   (D-O4 gained the member-call bullet; the C reader's key is
   owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
   price — silencing is indiscriminate, and it hides 6 of C-153's rows.
-- **Suites** at 0.2.56-beta (2026-09-19; pytest, Go `./...`, tsextract and
-  every `lane_b` test re-run and green, the rest as counted at 0.2.50-beta): 2,095
-  pytest (`lane_b` 11 of them), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 87 scip node, 43 tsextract, 52 vitest,
+- **Suites** at 0.2.57-beta (2026-09-20; pytest, Go `./...`, tsextract and
+  every `lane_b` test re-run and green on the host, the rest as counted at
+  0.2.50-beta): 2,119
+  pytest (`lane_b` 12 of them), Go `./...` 399 with
+  subtests (398 pass / 1 skip), 87 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-16).
@@ -390,7 +402,8 @@ min each.
 
 1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief (the validating 40 are done; the harness stays the way
-   work is done): **the candidates under START HERE once named**;
+   work is done): **C-165's provisioned JS cell, then the candidates
+   under START HERE once named**;
    ADR-126's surface once
    Max decides it;
    C's residue (W1); W1/W3's no-spend items

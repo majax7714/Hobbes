@@ -11,9 +11,46 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.56-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.57-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.57-beta — 2026-09-20 (a TS/JS construction is drawn as a call where the index names the constructor; C-168 narrowed and its claims corrected; ADR-142)
+
+**Patch: what the layer draws** — a rule added on the TS/JS join, and a
+constraint narrowed and corrected. Built as unit `S-20260920T012251Z-b444`.
+
+- **C-168's entry was wrong about its own shape, and the measurement says so.**
+  It described a `uses` edge at a `new` and counted "ajv 107, zod 110, hono 78,
+  xmpp.js 104, Preact 570". Those are each cell's whole `static→class` miss
+  class: **Preact's 570 hold no construction at all** (193 `super(…)`, 377 JSX
+  tags of a component that declares no constructor), and at a real construction
+  the join drew **nothing** — scip-typescript names `<constructor>` at the
+  constructor's own line, which starts no symbol, so the reference fell below
+  the floor (C-58). The `uses` edge the entry described is at the *import* line.
+- **The rule.** Lane A records a `new` expression's callee terminal identifier
+  as a construction token — never a `Site`, so it reaches no fallback, veto,
+  coverage count or tail class (ADR-132's shape, a language later). The join
+  draws a `calls` edge where lane B resolves at **exactly** that token: onto a
+  constructor, to the class that declares it; onto anything that is not a class
+  — an ES5 `function User(…)` or the variable bound to it — to that definition.
+  Semantic tier, both lanes. Lane A facts v6.
+- **Onto a class, nothing is drawn.** There the written class declares no
+  constructor and the one that runs is a base's, which is what the key names:
+  the naive rule — promote today's `uses` edges — drew 3 confirmed and **55
+  contradicted** in the probe. The refusals are counted (`ts_named_class` beside
+  `ts_drawn` in the graph's `constructions` block), so the cost is a number.
+- **Graded (`oracle-grading.md` §10.22 and §10.11, stored keys, `-poison`):**
+  xmpp.js 552 → **676/676** (recall 66.4% → **81.2%**), ajv 1,410 → **1,499**
+  (63.5% → 67.5%), hono 768 → **833** (55.0% → 59.7%), zod 9,731 → **9,872**
+  (45.1% → 45.8%), Express 992 → **998** (65.3% → 65.7%), Preact 2,446 →
+  **2,447**, `minijs` 7 → **8/8** (63.6% → 72.7%); cheerio unmoved. **100%
+  precision and 0 contradicted on every cell**, poison PASS.
+- **C-168 narrowed (partial):** what is left is `super(…)` (211 rows across the
+  cells), a JSX tag whose component declares no constructor (Preact 377), a
+  class that declares none (ajv 6, hono 50, zod 192 refusals), `new this(…)`,
+  `new ns.X()` where the index names the module, and a `new` token the index
+  does not resolve at all.
 
 ## 0.2.56-beta — 2026-09-19 (a call through a CommonJS re-export is drawn; C-167 narrowed; ADR-141)
 

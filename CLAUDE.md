@@ -194,11 +194,11 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-19, 0.2.56-beta; oracle-lane Go
-counted 2026-09-16): 2,095 pytest (11 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-20, 0.2.57-beta; oracle-lane Go
+counted 2026-09-16): 2,119 pytest (12 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
-vitest / 43 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
+vitest / 47 tsextract + 87 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 141;
+  architecture doesn't already make. Number sequentially (last: 142;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-19) — Hobbes 0.2.56-beta
+## Status (2026-09-20) — Hobbes 0.2.57-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -288,7 +288,8 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 168 entries; 123 active (95
-  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-164
+  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-168
+  corrected and narrowed (ADR-142); C-167 narrowed (ADR-141); C-164
   narrowed and partial (ADR-135, no entry added); C-145 narrowed again
   (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);
   C-153 narrowed three times and partial (ADR-125, ADR-130, ADR-131
@@ -297,7 +298,7 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **61 of 40**
+  drift test; re-render after filling a review block) reads **62 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
 - **Latest — 0.2.49-beta to 0.2.52-beta (2026-09-19).** ADR-137: *a
@@ -327,15 +328,30 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   require(…)` (scip-typescript leaks the re-exporter's document-local);
   lane A now follows it (unit `9133`), drawn syntactic. Express 340/340 →
   992/992, recall 22.4% → 65.3%; the other JS cells row-identical; C-167
-  narrowed. **Next (Max's JavaScript constraints, continued):** C-168's
-  construction rule for TS/JS, then a JS cell with its dependencies
-  provisioned (C-165); the order is in the handoff.
+  narrowed.
+  **0.2.57-beta — ADR-142 (Max: route b): a TS/JS construction is a call
+  where the index names the constructor at the `new` token** (unit
+  `b444`). C-168's registered shape was **wrong** and the measurement
+  says so: its numbers were each cell's whole `static→class` miss class
+  (Preact's 570 hold no `new` at all — 193 `super(…)`, 377 JSX tags),
+  and at a construction the join drew *nothing*, not the `uses` edge the
+  entry described. Lane A records the token (facts v6), the join draws
+  to the class that declares the constructor, or to an ES5 constructor
+  function; at a class that declares none it draws nothing and counts
+  the refusal (the naive rule was 55 contradicted rows of 58). Eight
+  cells regraded, **100% precision and 0 contradicted on every one**:
+  xmpp.js 552 → 676 (recall 66.4% → **81.2%**), ajv → 1,499, hono → 833,
+  zod → 9,872, Express → 998, `minijs` 7 → 8; C-168 corrected and
+  narrowed (`oracle-grading.md` §10.23). **Next (Max's JavaScript
+  constraints, continued):** a JS cell with its dependencies provisioned
+  (C-165); the order is in the handoff.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and
   ADR-139's route (a), each built; ADR-140's route (a), all five steps;
   §3.8's paragraphs stay in the architecture, its TS/JS row split.
+  Settled 2026-09-20: ADR-142's route (b), built (0.2.57-beta).
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 
