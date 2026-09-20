@@ -585,6 +585,103 @@ class TestProvisionNodeModules:
         assert tree is None and "drift" in why
 
 
+class TestYarn1NamesCorepackWhereItRuns:
+    """A v1 yarn install resolves corepack where the argv will run: by
+    name on the image's PATH when contained, by the host's absolute path
+    only on a host run. The host path inside the container is a path that
+    does not exist, and every yarn-v1 zone on a contained box failed on
+    it ("executable file … not found")."""
+
+    def repo(self, tmp_path, monkeypatch):
+        (tmp_path / "package.json").write_text('{"name": "x"}')
+        (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+        monkeypatch.setenv("HOBBES_CACHE_DIR", str(tmp_path / "cache"))
+        return tmp_path
+
+    def _capture(self, monkeypatch):
+        """``containment.run`` captured; the install "succeeds" so the
+        argv is the only thing under test."""
+        seen = {}
+
+        def run(plan, *, timeout):
+            seen["plan"] = plan
+            (Path(plan.cwd) / "node_modules").mkdir(parents=True, exist_ok=True)
+            proc = subprocess.CompletedProcess(plan.command, 0, stdout="", stderr="")
+            return containment.Outcome(proc, True)
+
+        monkeypatch.setattr(containment, "run", run)
+        return seen
+
+    def _contained(self, monkeypatch):
+        monkeypatch.delenv(containment.UNCONTAINED_ENV, raising=False)
+        monkeypatch.setattr(containment, "unavailable_reason", lambda: None)
+
+    def _host(self, monkeypatch, reason="podman is not installed"):
+        monkeypatch.delenv(containment.UNCONTAINED_ENV, raising=False)
+        monkeypatch.setattr(containment, "unavailable_reason", lambda: reason)
+
+    def test_contained_names_corepack_by_name(self, tmp_path, monkeypatch):
+        repo = self.repo(tmp_path, monkeypatch)
+        self._contained(monkeypatch)
+        monkeypatch.setattr(scipsource, "_corepack", lambda: Path("/host/only/corepack"))
+        seen = self._capture(monkeypatch)
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert why is None and tree is not None
+        plan = seen["plan"]
+        assert plan.command[0] == "corepack"
+        assert f"yarn@{scipsource._YARN1_VERSION}" in plan.command
+        assert "--ignore-scripts" in plan.command
+        assert "--frozen-lockfile" in plan.command
+        assert plan.profile.step == "fetch-npm"
+
+    def test_contained_installs_with_no_corepack_on_the_host(
+        self, tmp_path, monkeypatch
+    ):
+        # The image has corepack whatever the host has: a host without it
+        # must not be refused.
+        repo = self.repo(tmp_path, monkeypatch)
+        self._contained(monkeypatch)
+        monkeypatch.setattr(scipsource, "_corepack", lambda: None)
+        seen = self._capture(monkeypatch)
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert why is None and tree is not None
+        assert seen["plan"].command[0] == "corepack"
+        assert f"yarn@{scipsource._YARN1_VERSION}" in seen["plan"].command
+
+    def test_a_host_run_names_the_hosts_path(self, tmp_path, monkeypatch):
+        repo = self.repo(tmp_path, monkeypatch)
+        self._host(monkeypatch)
+        monkeypatch.setattr(scipsource, "_corepack", lambda: Path("/host/bin/corepack"))
+        seen = self._capture(monkeypatch)
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert why is None and tree is not None
+        assert seen["plan"].command[0] == "/host/bin/corepack"
+
+    def test_a_host_run_without_corepack_refuses(self, tmp_path, monkeypatch):
+        repo = self.repo(tmp_path, monkeypatch)
+        self._host(monkeypatch)
+        monkeypatch.setattr(scipsource, "_corepack", lambda: None)
+        monkeypatch.setattr(
+            containment, "run",
+            lambda *a, **k: (_ for _ in ()).throw(AssertionError("installed")),
+        )
+        assert scipsource.provision_node_modules(repo, "") == (
+            None, "yarn.lock v1 but corepack is not installed"
+        )
+
+    def test_the_escape_hatch_is_a_host_run(self, tmp_path, monkeypatch):
+        # Image available, but HOBBES_UNCONTAINED sends the argv to the
+        # host — so it is the host's corepack that must be named.
+        repo = self.repo(tmp_path, monkeypatch)
+        monkeypatch.setenv(containment.UNCONTAINED_ENV, "1")
+        monkeypatch.setattr(containment, "unavailable_reason", lambda: None)
+        monkeypatch.setattr(scipsource, "_corepack", lambda: Path("/host/bin/corepack"))
+        seen = self._capture(monkeypatch)
+        tree, why = scipsource.provision_node_modules(repo, "")
+        assert why is None and tree is not None
+        assert seen["plan"].command[0] == "/host/bin/corepack"
+
+
 class TestLaneBCanBeTurnedOff:
     def test_disabled_returns_none(self, monkeypatch, tmp_path):
         monkeypatch.setenv(scipsource.SCIP_ENABLE_ENV, "0")

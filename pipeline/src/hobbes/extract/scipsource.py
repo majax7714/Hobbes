@@ -1254,8 +1254,12 @@ def detect_installer(manifest_dir: Path) -> tuple[str, str] | tuple[None, str]:
 
 
 def _corepack() -> Path | None:
-    """corepack, which ships beside the real node binary but rarely on
-    PATH through symlink farms."""
+    """corepack for a *host* run — it ships beside the real node binary
+    but rarely on PATH through symlink farms.
+
+    The host's only: a contained install never consults this, because
+    this path does not exist inside the image
+    (:func:`_yarn1_install_argv`)."""
     import shutil as _shutil
 
     node = _shutil.which("node")
@@ -1263,6 +1267,34 @@ def _corepack() -> Path | None:
         return None
     candidate = Path(node).resolve().parent / "corepack"
     return candidate if candidate.is_file() else None
+
+
+def _yarn1_install_argv() -> tuple[list[str] | None, str | None]:
+    """The classic-yarn install argv, or ``(None, why)``.
+
+    The two runs differ in *where argv[0] resolves*, so they name
+    corepack differently. Contained, it resolves on the image's PATH,
+    where corepack is installed beside node: the bare name is the
+    right one, and the host's :func:`_corepack` is not consulted — a
+    host path would simply be absent inside the container, and a host
+    with no corepack at all must still provision in the image. On the
+    host the name is rarely on PATH, so the resolved absolute path is
+    what runs, and a host without corepack cannot install.
+
+    Where the install will run is :func:`containment.run`'s own choice,
+    asked the same way it asks it.
+    """
+    if not containment.uncontained_requested() and containment.unavailable_reason() is None:
+        corepack = "corepack"
+    else:
+        host = _corepack()
+        if host is None:
+            return None, "yarn.lock v1 but corepack is not installed"
+        corepack = str(host)
+    return [
+        corepack, f"yarn@{_YARN1_VERSION}", "install",
+        "--ignore-scripts", "--frozen-lockfile", "--non-interactive",
+    ], None
 
 
 def provision_node_modules(
@@ -1303,13 +1335,9 @@ def provision_node_modules(
     if installer == "npm":
         argv = ["npm", "ci", "--ignore-scripts", "--no-audit", "--no-fund"]
     else:
-        corepack = _corepack()
-        if corepack is None:
-            return None, "yarn.lock v1 but corepack is not installed"
-        argv = [
-            str(corepack), f"yarn@{_YARN1_VERSION}", "install",
-            "--ignore-scripts", "--frozen-lockfile", "--non-interactive",
-        ]
+        argv, why = _yarn1_install_argv()
+        if argv is None:
+            return None, why
     # The install is a fetch step (ADR-092): network on, no repo code —
     # `--ignore-scripts` keeps it that way — in its own container.
     failure = _fetch("fetch-npm", argv, cache)
