@@ -1,8 +1,8 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.62-beta on `main`.**
-Max pushed through the eighth session's release commit (`9897399`); what
-the ninth session adds is on `main`, unpushed. The image and the proxy
+**Reviewed 2026-09-20 (tenth session); Hobbes 0.2.62-beta on `main`.**
+Max pushed through the ninth session's release commit (`95bb1dd`,
+0.2.62-beta); what the tenth session adds is on `main`, unpushed. The image and the proxy
 are at 0.2.62-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
@@ -24,7 +24,7 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-20, eighth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-20, ninth session)
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
@@ -260,7 +260,7 @@ named below was removed unless it says otherwise.
 
 1. **Open for Max (no spend):**
    - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
-     ADR-142) is built; each ADR carries his word. Standing from them:
+     ADR-144) is built; each ADR carries his word. Standing from them:
      constructions inside a template stay `uses`; §3.8's paragraphs stay
      in the architecture ("dont split for now", again 2026-09-20).
    - **ADR-126 §3:** whether to build the "may reach through
@@ -324,7 +324,7 @@ named below was removed unless it says otherwise.
      and H-23; ADR-105/P13; the C-98 residuals.
    - **The comparative queue:** the two SQLite tools in `field.md`
      (converters first); syft's keys on a bigger box. The foreign C++
-     cells are done (item 7).
+     cells are done.
    - **C's residue:** C-134's remainder, C-135's autotools, Meson and
      Bazel roots, C-133's unit 2 and its macro half; the macro gap is
      parked (C-131).
@@ -370,8 +370,8 @@ min each.
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
-  is drawn through TypeScript's lanes and graded on four repos of its
-  own (ADR-140), one with its dependencies installed (C-165). A TS/JS
+  is drawn through TypeScript's lanes and graded on five repos of its
+  own (ADR-140), two with their dependencies installed (C-165). A TS/JS
   construction is drawn `calls` since 0.2.57-beta (ADR-142).
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar

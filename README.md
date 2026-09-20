@@ -449,33 +449,16 @@ tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13); it passed that mark on 2026-09-17 with one false block
-(closed) and none missed, and it stays the way work is done. The work built through it includes C's lane A and its
-oracle, the external veto (ADR-111), a session's records written by
-a sidecar container the doer cannot reach (ADR-112), and C++ from its
-lane A to the fixes its first graded cells asked for, and C++ lane A
-made exact-faster and cached per file (ADR-128: ScummVM's lane A 261 s →
-154 s, 39.5 s warm, byte-identical), and the definitions a macro parse
-loses read from the index (ADR-129, with ADR-130's arity rule: fmt's
-recall 14.5% → 29.1% at no contradiction), and operators as calls
-outside templates (ADR-131: 30.1%, args 58.6% → 62.5%), then
-constructions at the token (ADR-132: fmt 30.3%, args 72.9%), then
-the join's claim by position (ADR-133: fmt 30.4%), then a lost
-definition's extent from the file's braces (ADR-134: no graded number
-moves; fmt's callers agree with clang's on 7,610 rows where 6,392 did),
-then a lane A symbol the index contradicts refused (ADR-135: fmt's
-wrong-caller rows 105 → 32, no graded number moves), then a definition
-read at a line that refusal vacated (ADR-136: ScummVM 260 symbols), then
-a pytest fixture injection as a `uses` edge that test reach follows
-(ADR-137, ADR-139), and a `.h` claimed through the headers C++ has
-claimed (ADR-138: ScummVM 629 → 273 `.h` read as C), and a call through a
-CommonJS re-export followed by lane A (ADR-141: Express's recall 22.4% →
-65.3% at no contradiction), and a TS/JS construction drawn as a call
-where the index names the constructor (ADR-142: xmpp.js's recall 66.4% →
-81.2%), and a renamed callee matched at its own column where both lanes
-name one definition (ADR-143: 134 tiers raised on seven cells, no row
-moved), and a reference to a shorthand property read as a reference to
-what the shorthand names (ADR-144: cue's recall 54.3% → 61.8%, xmpp.js's
-81.2% → 84.6%, at no contradiction).
+(closed) and none missed, and it stays the way work is done.
+
+The work built through it includes C's lane A and its oracle, the
+external veto (ADR-111), a session's records written by a sidecar
+container the doer cannot reach (ADR-112), C++ from its lane A to the
+recall rules its first graded cells asked for (ADR-128 to ADR-136: fmt's
+recall 14.5% → 30.4%, args 58.6% → 72.9%, at no contradiction), pytest
+fixture reach (ADR-137, ADR-139), and JavaScript's graded rules (ADR-141
+to ADR-144: Express's recall 22.4% → 65.7%, xmpp.js 66.4% → 84.6%, cue
+54.3% → 61.8%, at no contradiction).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 
