@@ -1,8 +1,8 @@
 # ADR-147 — A decorator factory's application is a call of the def it returns
 
-**Date:** 2026-09-20 · **Status:** accepted (Max, 2026-09-20: route a's second unit;
+**Date:** 2026-09-20 · **Status:** accepted and **built** (0.2.66-beta, unit `db45`; Max, 2026-09-20: route a's second unit;
 strict or loose "whicever is more honest. we never sacrifice honesty for higher recall";
-"yes proceed with the dispatch"), to be built as one dispatched unit; measured over the
+"yes proceed with the dispatch"), built as one dispatched unit; measured over the
 built 0.2.65-beta export before anything was drawn · **Owner:** Max · **Source:** ADR-146's
 *What this leaves*; the 728 click closure rows on decorator lines.
 
@@ -117,3 +117,22 @@ Read in the tree at `740459d`:
   decorator's line. `click.decorators.command` is drawn at its first `@t.overload` stub
   (line 138); its body is the third definition of the qualname.
 - `cli._print_fixtures` prints the `fixtures` block's line in the ingest summary.
+
+## Built (0.2.66-beta) — and one amendment
+
+Unit `db45`, merged `--no-ff`. click on `main`: **368 drawn, 304 confirmed, 0
+contradicted — the probe's figures exactly — 3,356 of 4,595 (73.0%), 18 suspect (the
+same rows), poison PASS, 0 rows lost** (`oracle-grading.md` §10.31).
+
+**Amended: when the counts block is written.** This page said "present only when at
+least one site reached condition 2". The doer wrote it where a site was *asked* —
+condition 1 named a factory — so a `two-targets` refusal, which fails condition 1's
+"exactly one", is visible rather than thrown away. Accepted: a refusal the reader cannot
+see is the worse reading. `returns_inner is None` is one reason, `no-returned-def`
+(async, generator, the return shapes, the binding shapes): telling them apart needs a
+second read of the body and nothing downstream asks.
+
+**Two defects fixed at the review, both found by the host's `lane_b` run** (it skips in
+the sandbox): the edge append kept symbol callers only, as ADR-145's does — the brief's
+wording — so a module-level `@factory("a")` was counted and not drawn; the caller may be
+a module node (ADR-007). And two test assertions matched the index's own direct edges.

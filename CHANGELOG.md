@@ -11,9 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.65-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.66-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.66-beta — 2026-09-20 (a decorator factory's application is a call of the def it returns; ADR-147, C-58 narrowed)
+
+**Patch: what the layer draws** — Python, after the projection. Built as unit
+`S-20260920T214123Z-db45`; two defects fixed at its review.
+
+- **The shape.** `@click.option("--x")` is two calls: `option(…)`, drawn since
+  0.2.65-beta, and the application of what it returned — a call of
+  `option.<locals>.decorator` that no token spells, so the index emits nothing for it.
+- **The rule, the strict wording** (Max: "whicever is more honest. we never sacrifice
+  honesty for higher recall"). Drawn `calls`, `syntactic`, `via: decorator-factory`, only
+  where the index names the factory at the line (`semantic`), the factory has one
+  undecorated, non-async, non-generator body (an `@overload` stub is looked past), and
+  **every** `return` in it is the one nested `def` bound once there. Then the claim holds
+  on every path.
+- **Measured.** click **3,052 → 3,356 confirmed of 4,595 (66.4% → 73.0%)**: 368 drawn,
+  304 confirmed, 0 contradicted, 64 on lines the key never ran; 18 suspect before and
+  after; poison PASS; 0 rows lost — the pre-registered probe's figures exactly
+  (`oracle-grading.md` §10.31). flask draws 1 (read by hand, right), attrs 0.
+- **Not taken, and counted where you can see it.** The loose wording (some `return g`)
+  read 661 click rows at 0 contradicted. click's `command` also has `return
+  decorator(func)`; on that path the site does not call `decorator`. Its 491 sites are
+  `no-returned-def` in the graph's new `decorators.factory_calls.refused` and on the
+  ingest's new `decorators:` line; flask's `Scaffold.route` (under `@setupmethod`) is 162
+  `decorated`.
+- **Fixed at the review, found by the host's `lane_b` run:** a module-level
+  `@factory("a")` was counted drawn and not in the graph — the edge append kept symbol
+  callers only; the caller may be the module node.
+- Oracle lane: **H-36 logged, open** — a `<genexpr>` frame entry keyed as a call pair;
+  this repo's Python recall reads 84.6% where the pairs anyone wrote give 94.6%.
 
 ## 0.2.65-beta — 2026-09-20 (a decorator is a call of what it names; ADR-146, C-169 registered and lifted)
 

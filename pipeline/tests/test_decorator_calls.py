@@ -78,10 +78,12 @@ def test_every_decorator_application_is_drawn_at_the_index_s_tier():
         "minideco.deco.factory",
         "minideco.deco.factory.decorator",
     ]
-    # ADR-146 resolved no site to an inner `decorator`; every edge that
-    # reaches one is the application ADR-147 draws a tier down.
+    # ADR-146 resolved no *decorator site* to an inner `decorator`; every
+    # edge that reaches one from `app` is the application ADR-147 draws a
+    # tier down. (`either`'s own body calls its `decorator` by name — a
+    # direct call in `deco`, which the index answers `semantic`.)
     for pair, e in drawn.items():
-        if pair[1].endswith(".decorator"):
+        if pair[1].endswith(".decorator") and pair[0].startswith(APP):
             assert e["tier"] == SYNTACTIC, pair
             assert {s.get("via") for s in e["evidence"]} == {DECORATOR_FACTORY}, pair
     assert [pair for pair in drawn if pair[0].startswith("minideco.app.one")] == []

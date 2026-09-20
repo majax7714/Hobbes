@@ -2271,6 +2271,32 @@ lines the key never ran. Other languages were not regraded: the change is lane A
 Python walk alone. The review also fixed a digest defect the unit had copied (a trailing
 comment read as the decorator's expression); no graded row moved on it.
 
+### 10.31 A decorator factory's application — `PREREG-b.md` written 2026-09-20 before `probe_b.py`'s first run; this section written after the regrade (ADR-147; unit `db45`)
+
+**Probed as worded** over the *built* 0.2.65-beta export (the join's real claim at the
+decorator line, no stand-in): click 368 drawn, **304 confirmed, 0 contradicted**, 64 on
+lines the key never ran; refused 491 (not every return one bare name — `command`,
+`group`), 3 (factory decorated). flask 1 drawn, read by hand, right; 162 refused
+(`Scaffold.route` under `@setupmethod`). attrs 0. P1–P3 held. The loose wording read 661
+at 0 contradicted and was not taken (ADR-147: on `command`'s other path the site does not
+call `decorator`).
+
+**Regraded with the unit's code** on `main` (stored key `click-py-r2`, `-poison`):
+
+| click | rows | confirmed / 4,595 | suspect | `observed→closure` |
+|---|---|---|---|---|
+| 0.2.65-beta | 3,533 | 3,052 (66.4%) | 18 | 32 / 1,227 |
+| **0.2.66-beta** | **3,901** | **3,356 (73.0%)** | **18, the same rows** | **336 / 1,227** |
+
+368 rows added, all `syntactic`, 0 lost, 0 re-tiered; poison PASS, 0 falsely confirmed.
+Signed direction of fix: confirmed **+304**, suspect **±0**, rows lost **0**. The built
+figures are the probe's exactly. A trace key's confirmation is not a precision (§4); what
+it says is that every drawn site that ran reached the drawn def. Two factories carry 301
+of the 304 rows (`option` 203, `argument` 98) — one repo's idiom, said plainly. The rule
+mints no symbol. Other languages not regraded: Python only, after the projection. Left in
+click's closure misses: 891 — a factory with another return path, a callback handed to a
+runner, and 34 `<genexpr>` frames that are the key's grain (H-36, open).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

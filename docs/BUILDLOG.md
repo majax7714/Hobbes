@@ -13966,3 +13966,25 @@ always read `@pytest.fixture  # shared` as no fixture. Fixed at all three sites
 row and §8 header; CHANGELOG, README, the tracker at 68 of 40. On the host: pytest 2,217,
 15 `lane_b`. Binaries and the image rebuilt at 0.2.65-beta, this repo re-ingested.
 **Not done:** ADR-147 (next); the `<genexpr>` grain is not yet in the oracle defect log.
+
+**Later the same session — ADR-147 (Max: "yes proceed with the dispatch"), 0.2.66-beta.**
+The wording was probed first as it would be briefed (`PREREG-b.md`, `probe_b.py`), over
+the *built* 0.2.65 export rather than a stand-in: click 368 drawn, 304 confirmed, 0
+contradicted; flask 1 (read by hand), attrs 0. Strict, not loose: on `command`'s `return
+decorator(func)` path the site does not call `decorator`, so loose's 661 rows at 0
+contradicted were recorded and not taken, and their sites are a counted refusal. Unit
+`db45`: 87 turns of 140, $8.23, nine files, gate clear, verify pass, **right-clear**,
+merged `--no-ff`. **The host's `lane_b` run found two things the sandbox skips past:**
+the edge append kept symbol callers only — my brief said "exactly as
+`_add_value_call_edges` does", and ADR-145's callers are never modules — so minideco
+counted 3 drawn and held 1; and two assertions matched the index's own direct edges
+(`either → either.decorator`). Both fixed on `main`, the first with a lane A test that
+needs no index. The doer's one stated divergence (the counts block is written where a
+site was *asked*, so `two-targets` is visible) accepted and the ADR amended. The real
+cell: click **3,356 confirmed of 4,595 (73.0%), 18 suspect — the same rows — poison PASS,
+0 rows lost, the probe's figures exactly** (§10.31). C-58 narrowed (a Python face bullet),
+HISTORY, the architecture's paragraph, §3.8 row and §8 header, CHANGELOG, README, the
+tracker at 69 of 40. **H-36 logged, open** (RC-2): a `<genexpr>` frame entry keyed as a
+call pair — 592 of this repo's 642 closure misses; its recall reads 84.6% for 94.6%. On
+the host: pytest 2,257, 16 `lane_b`. Binaries and the image rebuilt at 0.2.66-beta, this
+repo re-ingested. Two units today: $10.72 on the subscription, click 46.5% → 73.0%.

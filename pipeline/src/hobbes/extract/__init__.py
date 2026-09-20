@@ -920,17 +920,24 @@ def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
     """Draw each decorator-factory application as one ``calls`` edge
     (ADR-147), evidence at every decorator that made it.
 
-    The same shape as :func:`_add_value_call_edges`: an end the symbol
-    layer does not carry is dropped rather than drawn to nothing, the
-    sightings merge per ``(from, to)``, and the list is re-sorted by the
-    projection's own key. The tier is ``syntactic`` — the chain is read
+    The same shape as :func:`_add_value_call_edges`, but for the caller: a
+    target the symbol layer does not carry is dropped rather than drawn to
+    nothing, the sightings merge per ``(from, to)``, and the list is
+    re-sorted by the projection's own key. The tier is ``syntactic`` — the chain is read
     from the tree and from one semantic edge, which is not the same as the
     index having answered at the application, where it answered nothing.
     """
     ids = {symbol["id"] for symbol in graph["symbols"]}
+    # Unlike a fixture's requester, a decorator's caller is often the
+    # **module** — `@factory("a")` at the top level runs at import — and
+    # the projection draws a module-body call from the module node
+    # (ADR-007). The caller here is the `from` of an edge the graph
+    # already carries, so a node id is as good an end as a symbol's;
+    # dropping it left the block counting rows the graph did not hold.
+    callers = ids | {node["id"] for node in graph["nodes"]}
     sightings: dict[tuple[str, str], set] = defaultdict(set)
     for call in drawn:
-        if call["from"] in ids and call["to"] in ids:
+        if call["from"] in callers and call["to"] in ids:
             sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
     if not sightings:
         return

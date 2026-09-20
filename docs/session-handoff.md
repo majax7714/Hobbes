@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (eleventh session); Hobbes 0.2.65-beta on `main`.**
+**Reviewed 2026-09-20 (eleventh session); Hobbes 0.2.66-beta on `main`.**
 Max pushed through the tenth session's release commit (`0f45f6c`,
 0.2.64-beta); what the eleventh session adds is on `main`, unpushed. The image and the proxy
-are at 0.2.65-beta and this repo is ingested at that release. A new
+are at 0.2.66-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.65-beta are untagged. Tags stay Max's call each time.
+  0.2.66-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -40,22 +40,29 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   poison PASS; flask +166, attrs +120 rows, all `semantic` (§10.30). The review found
   and fixed a digest defect the doer had copied: `children[-1]` reads a trailing
   comment as the decorator's expression.
-- **Next — ADR-147, not yet written: the decorator factory's inner def.** `@f(…)`
-  where the graph draws the decorator line → `f`, and **every** `return` in f's own
-  body is `return g`, g a nested def of f bound once → a `calls` edge to
-  `f.<locals>.g`, `syntactic`. **Strict wording** (Max: "whichever is more honest";
-  ADR-145's one-return precedent, a rule fails toward drawing less): **304 click rows,
-  0 contradicted**, measured over the real 0.2.65 export. Loose (one eligible `return
-  g`, other returns anything — click's `command` also has `return decorator(func)`)
-  reads 661 at 0 contradicted and is *not* proposed; count its sites as a refusal.
-  Overload stubs: the drawn target is the first `@t.overload` stub, the body is the
-  last same-name def in the scope (H-19's grain) — the rule must read the last.
-  Drivers `~/.hobbes/bench/py-nested-defs/` (`PREREG.md`, `probe.py` — `--loose`,
-  `--standin` — `RESULTS.md`, `u0/` `u0b/` the simulated cells, `real/click/` the
-  built one, `units/`; `wt/` a worktree on the unit's branch, removable).
-- **Then, from the same probe:** 590 of this repo's 642 closure misses are
-  `<genexpr>` frames — the key's grain (H-16's kind), a candidate for the oracle
-  defect log, not yet entered; click's left-over 215 method misses are unread.
+- **Done (ADR-147, 0.2.66-beta, unit `db45`, 87 turns, $8.23; Max: "proceed with the
+  dispatch", the strict wording):** a decorator factory's application is a call of the
+  def it returns, `syntactic`, `via: decorator-factory`, where the index names the
+  factory at the line and **every** return of its one undecorated body is the one
+  nested def. click 368 drawn, 304 confirmed, 0 contradicted — the pre-registered
+  probe's figures exactly — 3,052 → 3,356 (66.4% → 73.0%), 18 suspect unchanged
+  (§10.31). Loose (661 rows at 0 contradicted) measured and **not taken**; its sites are
+  `no-returned-def` in `graph["decorators"]` and the ingest's `decorators:` line. The
+  host's `lane_b` run found what the sandbox could not: the edge append dropped a
+  **module** caller (the brief's fault — "exactly as ADR-145's"), counted and not drawn.
+  Drivers `~/.hobbes/bench/py-nested-defs/` (`PREREG.md`, `probe.py`; `PREREG-b.md`,
+  `probe_b.py` — ADR-147 as worded, `--show`; `RESULTS.md`; `u0/` `u0b/` simulated,
+  `real/click/` 0.2.65, `real147/click/` 0.2.66; `units/` u1, u2; `wt/` a worktree on
+  the last unit's branch, removable).
+- **Open, oracle lane — H-36** (`oracle-defects.md`, RC-2): a `<genexpr>` frame entry is
+  keyed as a call pair. 592 of this repo's 642 closure misses, 34 of click's; this
+  repo's Python recall reads 84.6% where the written pairs give 94.6%. Fix at the
+  py-trace extractor (drop and count), regrade the two stored cells with a signed line
+  — hobbes-py needs a worktree at its key's sha (`1c65190`) or a fresh key. No-spend,
+  small, a good next unit.
+- **What click still misses after both** (2,459 → 1,239): 891 closures — a factory
+  with another return path (`command`, `group`: 491 sites), callbacks a runner calls —
+  215 methods (unread), 81 lambdas, 37 classes, 15 functions.
 - **Other extraction candidates, each measured first:** C-4's fixture value through
   a local (flask's 702 refused sites, `app = Flask(); return app` — ADR-145's
   drivers; fix `simulate_real.py`'s `own_nodes` first); the TS symbol floor's
@@ -184,6 +191,10 @@ macro class's (C-131, parked); TS's floor shapes stay off the table
 paragraph cells as per-language pages (Max: "dont split for now").
 
 **Lessons the last sessions paid for:**
+- **"Exactly as X does" in a brief copies X's assumptions.** ADR-145's callers are
+  never modules; ADR-147's usually are. The hand-built-graph tests could not see it;
+  the host's `lane_b` run did. Name the caller kinds in the brief, and give the append
+  step its own lane A test.
 - **A probe's premise can be the docs' error.** `oracle-misses.md` said Python nested
   defs are not symbols; the export said otherwise in one grep for a nested name. Read
   the export's `target_id`s before sizing a "missing symbol" rule.
@@ -382,7 +393,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 68 of 40, 4
+   - **The validating 40 are done:** the tracker reads 69 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -453,7 +464,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-eight log files under `docs/calvin/sessions/`; the tracker reads 68 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Sixty-nine log files under `docs/calvin/sessions/`; the tracker reads 69 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -462,14 +473,15 @@ min each.
 - **Register:** 169 entries: 123 active (95 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
-- **Oracle defect log: nothing open** (H-33–H-35 fixed 2026-09-19,
+- **Oracle defect log: H-36 open** (a `<genexpr>` frame keyed as a call, found
+  2026-09-20; H-33–H-35 fixed 2026-09-19,
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.65-beta (2026-09-20; pytest, every `lane_b` test and Go `./...`
+- **Suites** at 0.2.66-beta (2026-09-20; pytest, every `lane_b` test and Go `./...`
   re-run and green on the host, the scip node suite as at 0.2.62-beta, the rest as
-  counted at 0.2.50-beta): 2,217
-  pytest (`lane_b` 15 of them), Go `./...` 399 with
+  counted at 0.2.50-beta): 2,257
+  pytest (`lane_b` 16 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests

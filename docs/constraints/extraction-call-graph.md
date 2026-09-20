@@ -264,7 +264,7 @@
   because it is a paid cost with a deferred bill.
 - **Source:** ADR-027, Decision 1.
 
-### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not*
+### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not; narrowed 2026-09-20 (ADR-147, 0.2.66-beta): a Python decorator factory's application is drawn where every return is the one nested def*
 - **Cannot tell you:** that `s.Get(key)` reaches `MemStore.Get`, that
   `run(query)` reaches the `Store` method the map handed it, that
   `defer cancel()` runs anything, or that `run("init")` in a test helper
@@ -296,6 +296,28 @@
   abstains and the join vetoes lane B there, the site counted in the
   tail as `union-member` (C-97). No edge to any member, as for every
   other face of this entry.
+- **Python face, one shape drawn (ADR-147, 2026-09-20, 0.2.66-beta):** a
+  decorator factory's application. `@click.option("--x")` calls `option`
+  (ADR-146) and then applies what it returned — a call of
+  `option.<locals>.decorator` that no token spells. It is drawn `calls`,
+  `syntactic`, `via: decorator-factory`, **only** where the index names the
+  factory at the line (`semantic`), the factory has one undecorated,
+  non-async, non-generator body, and **every** `return` in it is the one
+  nested `def` bound once there — so the claim holds on every path. click:
+  368 drawn, 304 confirmed by its trace key, 0 contradicted, recall 66.4% →
+  73.0% (`oracle-grading.md` §10.31). **Refused and counted** in the
+  graph's `decorators.factory_calls.refused` and the ingest's
+  `decorators:` line: a factory with any other return (click's `command`
+  and `group`, which also `return decorator(func)` — 491 sites; the loose
+  wording that would draw them read 661 rows at 0 contradicted and was not
+  taken, because on that path the site does not call `decorator`), a
+  decorated factory (flask's `Scaffold.route` under `@setupmethod`, 162
+  sites), two targets at a line, no symbol. Not asked: a bare decorator's
+  returned wrapper, a class-based or aliased factory, an untyped receiver.
+  Every other Python function value — a callback handed to a runner, a
+  lambda, a function in a table — still draws nothing. A named nested
+  `def` called by its name was never this entry: it is a symbol and the
+  index draws it (corrected 2026-09-20).
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

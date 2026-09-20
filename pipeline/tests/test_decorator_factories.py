@@ -399,9 +399,15 @@ def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
         assert [s.get("via") for s in found["evidence"]] == [DECORATOR_FACTORY] * len(
             found["evidence"]
         )
-    # Neither refused factory's inner def is reached.
-    assert [pair for pair in drawn if pair[1].startswith("minideco.deco.either")] == []
-    assert [pair for pair in drawn if pair[1].startswith("minideco.deco.wrapped")] == []
+    # Neither refused factory's inner def is reached from a decorator site.
+    # (`app` does call `either` and `wrapped` themselves — ADR-146 — and
+    # `either`'s body calls its own `decorator` by name; those stand.)
+    assert [
+        pair
+        for pair in drawn
+        if pair[0].startswith("minideco.app")
+        and pair[1].startswith(("minideco.deco.either.", "minideco.deco.wrapped."))
+    ] == []
     counts = graph["decorators"]["factory_calls"]
     assert counts["drawn"] == 3
     assert counts["refused"][NO_RETURNED_DEF] == 1  # either
@@ -417,3 +423,33 @@ def test_minideco_draws_nothing_without_the_index():
     graph = extract_repo(MINIDECO).graph
     assert [pair for pair in calls(graph) if pair[1].endswith(".decorator")] == []
     assert "decorators" not in graph
+
+
+def test_a_module_level_application_is_drawn_from_the_module_node():
+    """A top-level `@factory("a")` runs at import, and its caller is the
+    module *node*, not a symbol. The edge append once kept symbol callers
+    only, as ADR-145's does, and the block counted rows the graph did not
+    hold — caught on the host by the `lane_b` case above, pinned here
+    where no index is needed."""
+    from hobbes.extract import _add_factory_call_edges
+
+    graph = {
+        "nodes": [{"id": "pkg.app", "kind": "module"}],
+        "symbols": [{"id": "pkg.deco.factory.decorator", "kind": "function"}],
+        "symbol_edges": [],
+    }
+    row = {
+        "from": "pkg.app",
+        "to": "pkg.deco.factory.decorator",
+        "path": "src/pkg/app.py",
+        "line": 3,
+        "via": DECORATOR_FACTORY,
+        "factory": "pkg.deco.factory",
+    }
+    _add_factory_call_edges(graph, [row, {**row, "from": "pkg.nowhere"}])
+    (edge,) = graph["symbol_edges"]
+    assert (edge["from"], edge["to"], edge["tier"]) == (
+        "pkg.app",
+        "pkg.deco.factory.decorator",
+        SYNTACTIC,
+    )
