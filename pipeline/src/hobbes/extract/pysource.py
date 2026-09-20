@@ -191,8 +191,15 @@ class ParsedFile:
     #: The module docstring's literal, exactly as written, or None.
     #: This module extracts, it does not interpret.
     docstring: str | None = None
-    #: How many ``usefixtures`` calls a module-level ``pytestmark`` holds
-    #: (ADR-139): a count, for the lookup to say it did not follow them.
+    #: Every ``usefixtures`` call a module-level ``pytestmark`` holds, in
+    #: written order (ADR-139's amendment). The mark applies to every test
+    #: in the file and the lookup follows its string arguments, so the walk
+    #: records the calls themselves — read exactly as a decorator's call is,
+    #: so a non-string argument is simply not in ``args``.
+    pytestmark: tuple[Decorator, ...] = ()
+    #: How many of :attr:`pytestmark`'s calls the lookup does not follow:
+    #: the ones with no string argument at all, which name no fixture this
+    #: walk can read.
     pytestmark_usefixtures: int = 0
 
 
@@ -201,7 +208,8 @@ def parse_source(source: bytes) -> ParsedFile:
     parsed = ParsedFile()
     root = _PARSER.parse(source).root_node
     parsed.docstring = _module_docstring(root)
-    parsed.pytestmark_usefixtures = _pytestmark_usefixtures(root)
+    parsed.pytestmark = _pytestmark(root)
+    parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
     _walk(root, [], parsed, ())
     parsed.local_bindings = _collect_local_bindings(root)
     return parsed
@@ -374,6 +382,17 @@ def _decorator(node: Node) -> Decorator:
     expr = node.children[-1]  # after the "@"
     if expr.type != "call":
         return Decorator(_dotted(expr), (), {}, _line(node))
+    return _call(expr, _line(node))
+
+
+def _call(expr: Node, line: int) -> Decorator:
+    """Digest one ``call`` node written as a mark: its dotted name, its
+    string-literal positionals, and the keywords the walk can read.
+
+    Split out of :func:`_decorator` because a mark is the same expression
+    wherever it is written — after an ``@``, or as the value of a
+    module-level ``pytestmark`` (ADR-139's amendment).
+    """
     dotted = _dotted(expr.child_by_field_name("function"))
     args: list[str] = []
     kwargs: dict = {}
@@ -406,19 +425,25 @@ def _decorator(node: Node) -> Decorator:
                 # that the keyword is off (ADR-139).
                 unread_kwargs.append(key)
     return Decorator(
-        dotted, tuple(args), kwargs, _line(node), tuple(true_kwargs), tuple(unread_kwargs)
+        dotted, tuple(args), kwargs, line, tuple(true_kwargs), tuple(unread_kwargs)
     )
 
 
-def _pytestmark_usefixtures(root: Node) -> int:
-    """How many ``usefixtures`` calls a module-level ``pytestmark`` holds.
+def _pytestmark(root: Node) -> tuple[Decorator, ...]:
+    """The ``usefixtures`` calls a module-level ``pytestmark`` holds.
 
-    The mark applies to every test in the file, and the lookup counts it
-    rather than following it (ADR-139): no key row has judged the shape.
-    The value may be one call or a list or tuple of them; an assignment
-    inside a class or a function is not the module's ``pytestmark``.
+    The mark applies to every test in the file, and the lookup follows the
+    string arguments of each of these (ADR-139's amendment). Each call is
+    digested as a decorator's is, at its own line, so a mark written in a
+    list is evidenced where it is written.
+
+    The scope is a **plain** module-level assignment: the value may be one
+    call or a list or tuple of them, but an assignment inside a class or a
+    function is not the module's ``pytestmark``, and neither is an
+    annotated (``pytestmark: list = …``) or augmented (``pytestmark += …``)
+    one — the walk reads what a name is bound to, not what is added to it.
     """
-    total = 0
+    out: list[Decorator] = []
     for statement in root.named_children:
         if statement.type != "expression_statement":
             continue
@@ -429,15 +454,17 @@ def _pytestmark_usefixtures(root: Node) -> int:
             right = node.child_by_field_name("right")
             if left is None or _text(left) != "pytestmark" or right is None:
                 continue
+            if node.child_by_field_name("type") is not None:
+                continue
             marks = right.named_children if right.type in ("list", "tuple") else [right]
-            total += sum(
-                1
+            out.extend(
+                _call(mark, _line(mark))
                 for mark in marks
                 if mark.type == "call"
                 and (_dotted(mark.child_by_field_name("function")) or "").rpartition(".")[2]
                 == "usefixtures"
             )
-    return total
+    return tuple(out)
 
 
 def _parameters(node: Node) -> tuple[tuple[str, int], ...]:

@@ -273,7 +273,8 @@ def _print_fixtures(counts: dict | None) -> None:
     because they are the size of what pytest resolves and Hobbes cannot:
     ``tmp_path``, ``monkeypatch``, a plugin's. The rest is said only when
     there is some: an abstention that did not happen is not news, and a
-    repo with no ``pytestmark`` should not read as having ignored one.
+    repo whose module-level ``pytestmark`` marks were all followed should
+    not read as having ignored one.
     Nothing is printed where the block is absent — no fixture defined
     and no parameter looked up is silence, exactly as it was (P6).
 
@@ -327,7 +328,7 @@ def _print_fixtures(counts: dict | None) -> None:
     if unread.get("pytestmark"):
         rest.append(
             f"{unread['pytestmark']} usefixtures mark(s) in a module-level pytestmark "
-            "not followed"
+            "with no string argument"
         )
     if unread.get("autouse-value"):
         rest.append(
