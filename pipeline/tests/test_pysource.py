@@ -331,25 +331,52 @@ class TestBooleanKeywords:
 
 class TestPytestmark:
     """A module-level ``pytestmark`` applies its marks to every test in the
-    file; the walk counts its ``usefixtures`` calls, for the lookup to say
-    it did not follow them (ADR-139)."""
+    file; the walk records its ``usefixtures`` calls for the lookup to
+    follow (ADR-139's amendment), and counts the ones it cannot — those
+    with no string argument at all."""
 
-    def test_one_call_counts_one(self):
+    @staticmethod
+    def marks(p):
+        return [(m.dotted, m.args, m.line) for m in p.pytestmark]
+
+    def test_one_call_is_recorded_with_its_names_and_line(self):
         p = parse('import pytest\n\npytestmark = pytest.mark.usefixtures("a")\n')
-        assert p.pytestmark_usefixtures == 1
+        assert self.marks(p) == [("pytest.mark.usefixtures", ("a",), 3)]
+        assert p.pytestmark_usefixtures == 0
 
-    def test_a_list_counts_each(self):
+    def test_a_list_records_each_at_its_own_line(self):
         p = parse(
             "pytestmark = [\n"
             '    pytest.mark.usefixtures("a"),\n'
-            '    usefixtures("b"),\n'
+            '    usefixtures("b", "c"),\n'
             "]\n"
         )
-        assert p.pytestmark_usefixtures == 2
-
-    def test_another_mark_counts_nothing(self):
-        p = parse('pytestmark = pytest.mark.skipif(True, reason="x")\n')
+        assert self.marks(p) == [
+            ("pytest.mark.usefixtures", ("a",), 2),
+            ("usefixtures", ("b", "c"), 3),
+        ]
         assert p.pytestmark_usefixtures == 0
+
+    def test_a_tuple_is_read_like_a_list(self):
+        p = parse(
+            "pytestmark = (\n"
+            '    pytest.mark.usefixtures("a"),\n'
+            '    pytest.mark.usefixtures("b"),\n'
+            ")\n"
+        )
+        assert self.marks(p) == [
+            ("pytest.mark.usefixtures", ("a",), 2),
+            ("pytest.mark.usefixtures", ("b",), 3),
+        ]
+
+    def test_a_mark_with_no_string_argument_is_counted_not_followed(self):
+        p = parse("pytestmark = pytest.mark.usefixtures(*names)\n")
+        assert self.marks(p) == [("pytest.mark.usefixtures", (), 1)]
+        assert p.pytestmark_usefixtures == 1
+
+    def test_another_mark_is_not_recorded(self):
+        p = parse('pytestmark = pytest.mark.skipif(True, reason="x")\n')
+        assert p.pytestmark == () and p.pytestmark_usefixtures == 0
 
     def test_below_module_level_is_not_the_modules_pytestmark(self):
         p = parse(
@@ -358,7 +385,16 @@ class TestPytestmark:
             "def build():\n"
             '    pytestmark = pytest.mark.usefixtures("b")\n'
         )
-        assert p.pytestmark_usefixtures == 0
+        assert p.pytestmark == () and p.pytestmark_usefixtures == 0
+
+    def test_an_annotated_or_augmented_assignment_is_not_read(self):
+        # Neither binds the name plainly: one carries an annotation the walk
+        # does not read, the other adds to whatever was already there.
+        p = parse(
+            'pytestmark: list = [pytest.mark.usefixtures("a")]\n'
+            'pytestmark += [pytest.mark.usefixtures("b")]\n'
+        )
+        assert p.pytestmark == () and p.pytestmark_usefixtures == 0
 
 
 class TestCalls:

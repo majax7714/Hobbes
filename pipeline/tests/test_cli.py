@@ -525,10 +525,14 @@ class TestFixtureLine:
         assert "2 defined twice at one scope" in line
         assert "5 in a definition whose parametrize is unreadable" in line
         assert "4 left undrawn in a class that names a base class" in line
-        # A mark on a test is followed now (ADR-139); what is left unfollowed
-        # is the module-level one and an autouse= the walk could not read.
-        assert "not followed" not in line.split("pytestmark")[0]
-        assert "6 usefixtures mark(s) in a module-level pytestmark not followed" in line
+        # A mark is followed wherever it is written now (ADR-139 and its
+        # amendment); what is left is a module mark naming nothing the walk
+        # can read, and an autouse= it could not read either.
+        assert "not followed" not in line
+        assert (
+            "6 usefixtures mark(s) in a module-level pytestmark with no string argument"
+            in line
+        )
         assert "1 fixture(s) whose autouse= is not a literal" in line
 
     def test_the_via_clause_says_what_asked_for_the_drawn(self, capsys):

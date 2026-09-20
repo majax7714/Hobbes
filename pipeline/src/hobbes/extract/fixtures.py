@@ -29,14 +29,18 @@ one.
 
 A fixture no parameter names is still looked up by name (ADR-139), and
 two shapes are followed through the same order, drawn as the same ``uses``
-edge and marked with which they are: a ``usefixtures`` mark's string, on
-the test or on a class around it, and the name of a fixture defined
-``autouse=True`` in any scope of the test's chain, which pytest adds to
-the test's request. A mark's evidence is the mark's line; autouse's is the
-test's own, because nothing on the test names the fixture. Only a test
-gets either — pytest ignores a mark on a fixture, and autouse names are
-added to tests. Where a pair is seen twice, the first of parameter,
-``usefixtures``, ``autouse`` is the one drawn.
+edge and marked with which they are: a ``usefixtures`` mark's string — on
+the test, on a class around it, or in the file's module-level
+``pytestmark``, which pytest applies to every test in the file (ADR-139's
+amendment) — and the name of a fixture defined ``autouse=True`` in any
+scope of the test's chain, which pytest adds to the test's request. A
+mark's evidence is the mark's line; autouse's is the test's own, because
+nothing on the test names the fixture. Only a test gets either — pytest
+ignores a mark on a fixture, and autouse names are added to tests. Where
+a pair is seen twice, the first of parameter, ``usefixtures``, ``autouse``
+is the one drawn, and the three are asked in that order: the test's own
+mark before its classes', those before the module's, the module's before
+autouse.
 
 One thing the injected value's *type* does say is followed (ADR-145):
 where a fixture's body is a single ``return C(…)``, the construction
@@ -52,11 +56,13 @@ class's own body does not define exactly once.
 What is still C-4's remainder: a fixture value that is not a
 construction (``return app``, ``return app.test_client()`` — a value's
 type, which the rule above does not read) and an **inherited** method
-(the rule walks no base classes), a module-level ``pytestmark`` (counted,
-not followed — no key row has judged it), an ``autouse=`` whose value is
-not the literal ``True`` or ``False`` (counted), a ``usefixtures``
-argument that is not a string literal (the walk keeps no such argument,
-so it cannot be counted either), and every abstention above.
+(the rule walks no base classes), a ``pytestmark`` that is not a plain
+module-level assignment — one written in a class body, or annotated, or
+added to — and a module mark with no string argument at all (counted), an
+``autouse=`` whose value is not the literal ``True`` or ``False``
+(counted), a ``usefixtures`` argument that is not a string literal (the
+walk keeps no such argument, so it cannot be counted either), and every
+abstention above.
 """
 
 from __future__ import annotations
@@ -150,6 +156,11 @@ def injections(
     looked_up = 0
     for module in files:
         facts = parsed[module.id]
+        # The file's own ``pytestmark``, applying to every test below: the
+        # marks that name something are followed, and counted with the
+        # marks written on a test or a class.
+        module_marks = [mark for mark in facts.pytestmark if mark.args]
+        usefixtures += len(module_marks)
         quals = {s.qualname: s for s in facts.symbols}
         kinds = {}
         for symbol in facts.symbols:
@@ -222,6 +233,11 @@ def injections(
             for decorator in _usefixtures_decorators(symbol, quals, kinds):
                 for name in decorator.args:
                     request(name, decorator.line, USEFIXTURES)
+            for mark in module_marks:
+                # After what is written on the test and its classes: where
+                # both name the fixture, the nearer mark is the evidence.
+                for name in mark.args:
+                    request(name, mark.line, USEFIXTURES)
             for name in _autouse_names(chain, scopes.autouse):
                 request(name, symbol.line, AUTOUSE)
 

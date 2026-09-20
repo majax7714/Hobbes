@@ -501,6 +501,146 @@ class TestUsefixturesMarks:
         assert counts["abstained"]["two-definitions"] == 1
 
 
+class TestAModulePytestmark:
+    """ADR-139's amendment: a plain module-level ``pytestmark`` applies to
+    every test in the file, and its ``usefixtures`` strings are requested by
+    each of them — the same walk, the same abstentions, the mark's line."""
+
+    CONFTEST = "import pytest\n\n\n@pytest.fixture\ndef repo():\n    return 1\n"
+
+    def test_every_test_in_the_module_gets_it(self, tmp_path):
+        drawn, _ = resolve(
+            tmp_path,
+            {
+                "conftest.py": self.CONFTEST,
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    "def test_one():\n    pass\n\n\n"
+                    "class TestTwo:\n"
+                    "    def test_a(self):\n        pass\n"
+                ),
+            },
+        )
+        # A plain function and a method alike, both evidenced at the mark.
+        assert sightings(drawn) == [
+            ("test_x.TestTwo.test_a", "conftest.repo", "repo", "usefixtures", 4),
+            ("test_x.test_one", "conftest.repo", "repo", "usefixtures", 4),
+        ]
+
+    def test_a_fixture_definition_in_the_module_does_not(self, tmp_path):
+        drawn, _ = resolve(
+            tmp_path,
+            {
+                "conftest.py": self.CONFTEST,
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    "@pytest.fixture\ndef other():\n    return 1\n\n\n"
+                    "def test_one(other):\n    pass\n"
+                ),
+            },
+        )
+        # `other` asks through its parameters only; pytest applies the mark
+        # to the tests it collects, not to the fixtures they run.
+        assert pairs(drawn) == [
+            ("test_x.test_one", "conftest.repo", "repo"),
+            ("test_x.test_one", "test_x.other", "other"),
+        ]
+
+    def test_a_name_the_chain_does_not_define_abstains(self, tmp_path):
+        drawn, counts = resolve(
+            tmp_path,
+            {
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("plugins_own")\n\n\n'
+                    "@pytest.fixture\ndef repo():\n    return 1\n\n\n"
+                    "def test_one():\n    pass\n"
+                )
+            },
+        )
+        assert drawn == []
+        assert counts["abstained"]["not-in-repo"] == 1
+
+    def test_a_test_that_names_it_too_is_drawn_once_by_parameter(self, tmp_path):
+        drawn, _ = resolve(
+            tmp_path,
+            {
+                "conftest.py": self.CONFTEST,
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    "def test_one(repo):\n    pass\n"
+                ),
+            },
+        )
+        assert sightings(drawn) == [
+            ("test_x.test_one", "conftest.repo", "repo", "parameter", 7)
+        ]
+
+    def test_the_tests_own_mark_keeps_its_line(self, tmp_path):
+        drawn, _ = resolve(
+            tmp_path,
+            {
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    "@pytest.fixture\ndef repo():\n    return 1\n\n\n"
+                    '@pytest.mark.usefixtures("repo")\n'
+                    "def test_one():\n    pass\n"
+                )
+            },
+        )
+        # One pair, one via: the nearer mark is what the reader is shown.
+        assert sightings(drawn) == [
+            ("test_x.test_one", "test_x.repo", "repo", "usefixtures", 12)
+        ]
+
+    def test_a_class_that_names_a_base_abstains_on_it(self, tmp_path):
+        drawn, counts = resolve(
+            tmp_path,
+            {
+                "conftest.py": self.CONFTEST,
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    "class Base:\n    pass\n\n\n"
+                    "class TestChild(Base):\n"
+                    "    def test_one(self):\n        pass\n"
+                ),
+            },
+        )
+        # ADR-137's abstention, whichever of the three asked: a base class
+        # may define `repo` itself, and its definition would win.
+        assert drawn == []
+        assert counts["abstained"]["base-class"] == 1
+
+    def test_the_counts_hold_the_module_mark_with_the_others(self, tmp_path):
+        drawn, counts = resolve(
+            tmp_path,
+            {
+                "conftest.py": (
+                    "import pytest\n\n\n"
+                    "@pytest.fixture\ndef repo():\n    return 1\n\n\n"
+                    "@pytest.fixture\ndef db():\n    return 2\n"
+                ),
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    'pytestmark = pytest.mark.usefixtures("repo")\n\n\n'
+                    '@pytest.mark.usefixtures("db")\n'
+                    "def test_one():\n    pass\n\n\n"
+                    "def test_two():\n    pass\n"
+                ),
+            },
+        )
+        assert len(drawn) == 3
+        assert counts["via"] == {"parameter": 0, "usefixtures": 3, "autouse": 0}
+        # Two marks written: the module's and the test's own.
+        assert counts["usefixtures"] == 2
+        assert counts["unread"]["pytestmark"] == 0
+
+
 class TestAutouse:
     """ADR-139: an ``autouse=True`` fixture is added to every test in its
     scope, and the name is then resolved like any other. Nothing on the
@@ -714,7 +854,9 @@ class TestViaCounts:
         _, counts = resolve(tmp_path, self.SOURCE)
         assert counts["autouse_fixtures"] == 1
 
-    def test_a_module_level_pytestmark_is_counted_and_draws_nothing(self, tmp_path):
+    def test_a_module_level_pytestmark_is_followed_and_counted_with_the_marks(
+        self, tmp_path
+    ):
         drawn, counts = resolve(
             tmp_path,
             {
@@ -726,7 +868,24 @@ class TestViaCounts:
                 )
             },
         )
+        assert pairs(drawn) == [("test_x.test_one", "test_x.repo", "repo")]
+        assert counts["usefixtures"] == 1
+        assert counts["unread"]["pytestmark"] == 0
+
+    def test_a_module_mark_with_no_string_argument_stays_unread(self, tmp_path):
+        drawn, counts = resolve(
+            tmp_path,
+            {
+                "test_x.py": (
+                    "import pytest\n\n\n"
+                    "pytestmark = pytest.mark.usefixtures(*NAMES)\n\n\n"
+                    "@pytest.fixture\ndef repo():\n    return 1\n\n\n"
+                    "def test_one():\n    pass\n"
+                )
+            },
+        )
         assert drawn == []
+        assert counts["usefixtures"] == 0
         assert counts["unread"]["pytestmark"] == 1
 
 
