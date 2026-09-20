@@ -288,12 +288,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). **Register:** 168 entries; 123 active (95
-  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted — C-168
-  corrected and narrowed (ADR-142); C-167 narrowed (ADR-141); C-164
-  narrowed and partial (ADR-135, no entry added); C-145 narrowed again
-  (ADR-134); C-163 registered and lifted, C-162 narrowed (ADR-133);
-  C-153 narrowed three times and partial (ADR-125, ADR-130, ADR-131
-  amended), C-146 narrowed (ADR-131).
+  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 28 lifted; the tally is
+  held by `test_register_tally.py`, its dated notes are
+  `docs/constraints/HISTORY.md`.
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
@@ -301,57 +298,18 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   drift test; re-render after filling a review block) reads **62 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.49-beta to 0.2.52-beta (2026-09-19).** ADR-137: *a
-  pytest fixture injection is a syntactic `uses` edge and test reach
-  follows it* (C-4 surfaced). ADR-138: *a `.h` is claimed through the
-  headers C++ has claimed* (C-142 narrowed; ScummVM 629 → 273 `.h` read
-  as C, every graded cell row-identical). ADR-139 (Max: route a): *a
-  `usefixtures` string and an `autouse` fixture's name are looked up as
-  a parameter is, and autouse reach is said once* — `through_autouse` in
-  `tests.json`, one folded line in `tests_guarding`, its own line in
-  `hobbes review`. Keyed by `pytest --fixtures-per-test -v` (without
-  `-v` pytest hides `_`-named fixtures, and ADR-137's first key did):
-  this repo 4,971 pairs, flask 1,238 and attrs 118 held out, 0 missed, 0
-  wrong. The denominator statement names C-4's remainder. The register's
-  tally is held by `test_register_tally.py`; its dated notes are
-  `docs/constraints/HISTORY.md`.
-  **0.2.53–0.2.55-beta — ADR-140 (Max: route a): JavaScript earns its
-  own row.** The borrowed claim corrected to 0 (C-165); the TS oracle's
-  `--no-tsconfig` (unit `a25f`); H-33, H-34, H-35 found and fixed (units
-  `9e00`, `5587`); `jsconfig.json` said as not read (C-166); three JS
-  cells graded (`oracle-grading.md` §10.22): Express 340/340, Preact
-  2,446/2,446, xmpp.js 552/552 — 100% each, recall 22–66%. C-167 (a
-  CommonJS re-export draws nothing) and C-168 (`new F()` drawn `uses`)
-  registered; the cells recorded in `docs/oracle/cells/` (93 cells).
-  **0.2.56-beta — ADR-141 (Max: route a): a call through a CommonJS
-  re-export is drawn.** Traced: both lanes stopped at `module.exports =
-  require(…)` (scip-typescript leaks the re-exporter's document-local);
-  lane A now follows it (unit `9133`), drawn syntactic. Express 340/340 →
-  992/992, recall 22.4% → 65.3%; the other JS cells row-identical; C-167
-  narrowed.
-  **0.2.57-beta — ADR-142 (Max: route b): a TS/JS construction is a call
-  where the index names the constructor at the `new` token** (unit
-  `b444`). C-168's registered shape was **wrong** and the measurement
-  says so: its numbers were each cell's whole `static→class` miss class
-  (Preact's 570 hold no `new` at all — 193 `super(…)`, 377 JSX tags),
-  and at a construction the join drew *nothing*, not the `uses` edge the
-  entry described. Lane A records the token (facts v6), the join draws
-  to the class that declares the constructor, or to an ES5 constructor
-  function; at a class that declares none it draws nothing and counts
-  the refusal (the naive rule was 55 contradicted rows of 58). Eight
-  cells regraded, **100% precision and 0 contradicted on every one**:
-  xmpp.js 552 → 676 (recall 66.4% → **81.2%**), ajv → 1,499, hono → 833,
-  zod → 9,872, Express → 998, `minijs` 7 → 8; C-168 corrected and
-  narrowed (`oracle-grading.md` §10.23). **Next (Max's JavaScript
-  constraints, continued):** a JS cell with its dependencies provisioned
-  (C-165); the order is in the handoff.
+- **Latest — 0.2.57-beta, ADR-142 (Max: route b): a TS/JS construction
+  is a call where the index names the constructor at the `new` token**
+  (unit `b444`); at a class that declares none the join draws nothing
+  and counts the refusal. Eight cells regraded, 100% precision and 0
+  contradicted on every one (xmpp.js recall 66.4% → **81.2%**); C-168
+  corrected and narrowed (`oracle-grading.md` §10.23). **Next (Max's
+  JavaScript constraints, continued):** a JS cell with its dependencies
+  provisioned (C-165); the order is in the handoff.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
-  "fine for now"). Settled 2026-09-19: ADR-137's, ADR-138's and
-  ADR-139's route (a), each built; ADR-140's route (a), all five steps;
-  §3.8's paragraphs stay in the architecture, its TS/JS row split.
-  Settled 2026-09-20: ADR-142's route (b), built (0.2.57-beta).
+  "fine for now").
 - **Spend:** API and Modal spend only when Max names a run and its
   ceiling; a dispatch spends the owner's Claude Code subscription.
 

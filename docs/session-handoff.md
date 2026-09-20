@@ -41,22 +41,13 @@ ADR-142). Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`, `regrade.sh`,
 
 **The JavaScript constraints (Max: "we will tackle constraints from js
 next session"),** in the order set at the close of 2026-09-19:
-1. **C-167 — done (ADR-141, 0.2.56-beta),** unit `9133`. Express 340/340
-   → 992/992, recall 22.4% → 65.3%. Drivers
+1. **C-167 — done (ADR-141, 0.2.56-beta).** Drivers
    `~/.hobbes/bench/c167-reexport/`. Counted, not a constraint: a callee
    whose site name is not its definition's joins as `syntactic calls` +
    `semantic uses` (Express 2, Preact 5, xmpp.js 41) — ADR-141's last
    section; measure it on the TS cells before deciding anything.
-2. **C-168 — done (ADR-142, route b, 0.2.57-beta),** unit `b444` (128
-   turns, $13.44, right-block on the brief's partition, merged
-   `e64d2cb`). Lane A records the `new` token (facts v6); the join draws
-   `calls` to the class that declares the constructor, or to an ES5
-   constructor function; at a class that declares none it draws nothing
-   and counts the refusal. **Its entry's registered shape was wrong and
-   is corrected** (§10.23, HISTORY). Eight cells regraded, 100%
-   precision and 0 contradicted on every one: xmpp.js 552 → 676 (66.4%
-   → 81.2%), ajv → 1,499, hono → 833, zod → 9,872, Express → 998,
-   `minijs` 7 → 8, Preact 2,446 → 2,447, cheerio unmoved. Drivers
+2. **C-168 — done (ADR-142, route b, 0.2.57-beta);** the record is the
+   CHANGELOG's and §10.23's. Drivers
    `~/.hobbes/bench/c168-construction/` (`PREREG.md`, `RESULTS.md`,
    `probe.py`, `join.py`, `laneb.py`, `remainder.py`, `newtokens.mjs`,
    `sim.py`, `run.sh`/`runb.sh`, `rebase_facts.py`, `regrade.sh`,
@@ -218,37 +209,16 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
-   - **Settled 2026-09-20:** ADR-142's route (b), built (0.2.57-beta).
-   - **Settled 2026-09-19:** ADR-141's route (a), built (0.2.56-beta); ADR-137's, ADR-138's and ADR-139's route
-     (a), each built (0.2.49-beta, 0.2.50-beta, 0.2.52-beta); ADR-140's
-     route (a), all five steps built (0.2.53–0.2.55-beta), and the cells
-     recorded in `docs/oracle/cells/`; §3.8's paragraphs stay in
-     the architecture ("dont split for now"), its TS/JS row split.
-   - **Settled 2026-09-18:** ADR-136's route (a) — built (0.2.48-beta);
-     ADR-135's route (a) — built (0.2.47-beta);
-     ADR-134's route (a) — built (0.2.46-beta);
-     the join's claim by position — built (ADR-133, 0.2.45-beta);
-     constructions inside a template stay `uses`.
-   - **Settled 2026-09-17 (Max: "go with recommended"):** constructions —
-     the token rule (ADR-132, 0.2.44-beta); C-162 registered.
-   - **Settled 2026-09-17 (Max: route a):** the wrong `uses` edges at
-     dependent operators — withheld (ADR-131 amended, 0.2.43-beta).
-   - **Settled 2026-09-17 (routes Max approved):** the judged-as-before
-     companion (ADR-124: strict precision instead); C-153 (ADR-125:
-     withheld where the source contradicts, the rest surfaced as
-     partial); `hobbes lanes` on fmt (ADR-123: exit 3).
+   - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
+     ADR-142) is built; each ADR carries his word. Standing from them:
+     constructions inside a template stay `uses`; §3.8's paragraphs stay
+     in the architecture ("dont split for now", again 2026-09-20).
    - **ADR-126 §3:** whether to build the "may reach through
      dispatch (not traced)" section in `tests_guarding` and `hobbes
      review` on §10.12's numbers. It would need a syntax exclusion for
      every non-dispatched call (Java `super.`/private/static/final,
      Python `super()`, C++ class-qualified) and would say no key confirms
      reach. Nothing is drawn until then.
-   - **Nothing in the oracle's defect log is open.** H-33 (the TS
-     oracle's `parameter` kind) was found and fixed 2026-09-19. H-28–H-32 were all
-     fixed on 2026-09-16; fmt has no contradiction left.
-   - **ADR-121 §2's choice — kept** (Max approved the routes 2026-09-17):
-     lane B's occurrence at an unevaluated site stays a `uses` edge, a
-     true dependency; nothing to build.
    - **C-150's remainder** (large repos, every language): the join's
      output and the graph built from it, after ADR-115 and ADR-116 took
      the decode's and the read's share. Parked (Max: "fine for now").
@@ -364,28 +334,11 @@ min each.
   deployed and idle): held.
 - **Register:** 168 entries: 123 active (95 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 28 lifted, 11 superseded, 6
-  folded. Latest: C-168 corrected and narrowed (ADR-142, 0.2.57-beta; no
-  entry added); C-167 narrowed (ADR-141, 0.2.56-beta; no entry added); C-165 narrowed, C-167 and C-168 registered (0.2.55-beta); C-166 registered and surfaced (0.2.54-beta); C-165 registered and surfaced (ADR-140, 0.2.53-beta); C-4 narrowed again (ADR-139, 0.2.52-beta; no entry added); C-142 narrowed (ADR-138, 0.2.50-beta) and C-4 narrowed and
-  surfaced (ADR-137, 0.2.49-beta), no entry added; C-164 narrowed again (ADR-136, 0.2.48-beta; no entry added);
-  C-164 narrowed and partial (ADR-135, 0.2.47-beta; no
-  entry added); C-145 narrowed again (ADR-134, 0.2.46-beta; no entry
-  added); C-164 registered unsurfaced (2026-09-18); C-163 registered and lifted, C-162 narrowed (ADR-133,
-  0.2.45-beta); C-162 registered and narrowed (ADR-132, 0.2.44-beta);
-  C-153 narrowed a third time (ADR-131 amended,
-  0.2.43-beta; no entry added); C-146 narrowed (ADR-131, 0.2.42-beta; no entry added);
-  C-145 narrowed and C-153 narrowed a second time
-  (ADR-129, ADR-130, 0.2.41-beta; no entry added); C-160 and C-161 registered (ADR-128, 0.2.40-beta);
-  C-159 registered (ADR-127, 0.2.39-beta); C-153 narrowed then partial (ADR-125, 0.2.37/0.2.38-beta);
-  C-152 amended and C-70 settled (ADR-123, 0.2.36-beta); C-158
-  registered (ADR-122, 0.2.35-beta).
-- **Oracle defect log: nothing open.** H-33 found and fixed 2026-09-19
-  (383 of the TS cells' `static→closure` pairs were parameters). H-28–H-32 all fixed 2026-09-16
-  (H-32, the key's site in an unevaluated operand, opened RC-11).
-  RC-2 gained its sixth sighting and closed with H-31 (macro-carried
-  code keeps getting the wrong position); RC-3 and RC-8 closed-policy
-  (D-O4 gained the member-call bullet; the C reader's key is
-  owner-qualified as javac's is); RC-4 closed for H-30 and carrying its
-  price — silencing is indiscriminate, and it hides 6 of C-153's rows.
+  folded. Its dated notes are `docs/constraints/HISTORY.md`.
+- **Oracle defect log: nothing open** (H-33–H-35 fixed 2026-09-19,
+  H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
+  carries its price: silencing is indiscriminate, and it hides 6 of
+  C-153's rows.
 - **Suites** at 0.2.57-beta (2026-09-20; pytest, Go `./...`, tsextract and
   every `lane_b` test re-run and green on the host, the rest as counted at
   0.2.50-beta): 2,119
