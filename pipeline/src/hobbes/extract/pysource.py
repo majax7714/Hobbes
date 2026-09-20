@@ -711,10 +711,34 @@ def _walk(
     if kind == "decorated_definition":
         decorator_nodes = [c for c in node.children if c.type == "decorator"]
         decorators = tuple(_decorator(c) for c in decorator_nodes)
+        # A decorator is a call of what it names (ADR-146). Each
+        # expression is walked as any expression is, so `@app.get("/x")`
+        # records the `app.get` site its `call` node already is; and a
+        # *bare* `@name` or `@a.b`, which the language defines as
+        # `name(fn)`, records the application the source does not spell,
+        # on the terminal identifier where the semantic lane puts its
+        # occurrence. The scope is the **enclosing** definition — the
+        # decorator runs where it is written, at the module or in the
+        # body that holds it, before the definition it wraps exists — so
+        # `stack` is passed unchanged and no decorator is pending inside
+        # one. Any other bare expression (a subscript, a lambda) names
+        # nothing to apply and records only the calls written in it.
+        for decorator_node in decorator_nodes:
+            expr = decorator_node.children[-1]  # after the "@"
+            _walk(expr, stack, parsed, ())
+            dotted = _dotted(expr)
+            terminal = _terminal(expr)
+            if dotted is not None and terminal is not None:
+                parsed.calls.append(
+                    Call(
+                        _scope_qualname(stack),
+                        dotted,
+                        terminal.start_point.row + 1,
+                        terminal.start_point.column,
+                    )
+                )
         definition = node.child_by_field_name("definition")
         if definition is not None:
-            # Decorator expressions themselves are not walked: @app.get("/x")
-            # is a call, but recording it would pollute the call graph.
             _walk(
                 definition,
                 stack,
