@@ -474,9 +474,126 @@ class TestCalls:
         ]
         assert all(c.scope == "go" for c in p.calls)
 
-    def test_decorator_expressions_do_not_pollute_calls(self):
+    def test_a_decorator_call_is_a_site_on_its_callee(self):
+        """ADR-146, part 1: `@app.get("/x")` is the call it is written as.
+        Until 0.2.65-beta the expression was not walked at all — on click,
+        1,652 of 2,459 missed pairs sat on a decorator line."""
         p = parse('@app.get("/x")\ndef h():\n    pass\n')
-        assert p.calls == []
+        assert [(c.scope, c.callee, c.line, c.col) for c in p.calls] == [
+            (None, "app.get", 1, 5)  # on `get`, not on `app`
+        ]
+
+    def test_a_decorators_scope_is_the_enclosing_definition(self):
+        """The decorated def is not running yet: the call belongs to
+        whatever holds the `@`."""
+        p = parse(
+            "def outer():\n"
+            '    @register("x")\n'
+            "    def inner():\n"
+            "        pass\n"
+        )
+        assert [(c.scope, c.callee) for c in p.calls] == [("outer", "register")]
+
+    def test_a_decorated_method_takes_the_class_body_scope(self):
+        """`_scope_qualname` gives a class body its own qualname, as it
+        does for any call written there."""
+        p = parse(
+            "class C:\n"
+            '    @register("x")\n'
+            "    def m(self):\n"
+            "        pass\n"
+        )
+        assert [(c.scope, c.callee) for c in p.calls] == [("C", "register")]
+
+    def test_a_bare_decorator_is_an_application_of_what_it_names(self):
+        """ADR-146, part 2: `@pass_context` is `pass_context(h)` by the
+        language's own definition, recorded at the name."""
+        p = parse("@pass_context\ndef h():\n    pass\n")
+        assert [(c.scope, c.callee, c.line, c.col) for c in p.calls] == [
+            (None, "pass_context", 1, 1)
+        ]
+
+    def test_a_bare_dotted_decorator_sits_on_its_terminal_identifier(self):
+        p = parse("@a.b.c\ndef h():\n    pass\n")
+        assert [(c.callee, c.line, c.col) for c in p.calls] == [("a.b.c", 1, 5)]
+
+    def test_a_call_in_a_decorators_arguments_is_a_site_too(self):
+        p = parse("@f(g(1))\ndef h():\n    pass\n")
+        assert sorted((c.callee, c.col) for c in p.calls) == [("f", 1), ("g", 3)]
+
+    def test_an_expression_decorator_applies_no_name(self):
+        """A subscript and a lambda name nothing to apply, so part 2
+        records nothing for them — the calls written inside them are
+        still walked, as anywhere else."""
+        p = parse(
+            "@decos[0]\n"
+            "def h():\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "@(lambda f: f)\n"
+            "def i():\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "@decos[pick()]\n"
+            "def j():\n"
+            "    pass\n"
+        )
+        assert [(c.scope, c.callee, c.line) for c in p.calls] == [(None, "pick", 11)]
+
+    def test_a_decorated_class_is_the_same_rule(self):
+        """The grammar's `decorated_definition` holds both, and so does
+        the rule."""
+        p = parse('@register("x")\nclass C:\n    pass\n')
+        assert [(c.scope, c.callee, c.line) for c in p.calls] == [
+            (None, "register", 1)
+        ]
+
+    def test_stacked_decorators_are_one_site_each_in_written_order(self):
+        p = parse(
+            "@first\n"
+            '@second("x")\n'
+            "@third.fourth\n"
+            "def h():\n"
+            "    pass\n"
+        )
+        assert [(c.callee, c.line) for c in p.calls] == [
+            ("first", 1),
+            ("second", 2),
+            ("third.fourth", 3),
+        ]
+
+    def test_the_digest_and_a_parametrize_reading_are_unchanged(self):
+        """The walk adds call sites and nothing else: what the route and
+        test packs read off a symbol is the same digest as before."""
+        p = parse(
+            "import pytest\n"
+            "\n"
+            "\n"
+            '@pytest.mark.parametrize("a, b", [("x", "y")])\n'
+            '@app.get("/x")\n'
+            "def test_h(a, b):\n"
+            "    pass\n"
+        )
+        (symbol,) = [s for s in p.symbols if s.qualname == "test_h"]
+        assert [(d.dotted, d.args, d.line) for d in symbol.decorators] == [
+            ("pytest.mark.parametrize", ("a, b",), 4),
+            ("app.get", ("/x",), 5),
+        ]
+        assert symbol.parametrized == ("a", "b")
+        assert [c.callee for c in p.calls] == ["pytest.mark.parametrize", "app.get"]
+
+    def test_an_env_read_in_a_decorators_arguments_is_recorded(self):
+        """A decorator's arguments are ordinary code: an `os.environ.get`
+        written there is the env read it is anywhere else."""
+        p = parse(
+            '@app.get(os.environ.get("ROUTE_PREFIX"))\n'
+            "def h():\n"
+            "    pass\n"
+        )
+        assert [(e.var, e.line) for e in p.env_reads] == [("ROUTE_PREFIX", 1)]
+        assert [c.callee for c in p.calls] == ["app.get", "os.environ.get"]
 
     def test_wrapped_chain_is_positioned_on_the_callee(self):
         """A site's line must be the callee's, not the expression's.
