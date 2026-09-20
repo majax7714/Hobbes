@@ -178,7 +178,7 @@ are the developer's commit.
 - **Left in C-4:** the returned value's type, a module `pytestmark`, a
   non-literal `autouse=`, and the abstentions.
 
-## Amendment (2026-09-20, proposed) — a module-level `pytestmark` has a key row now
+## Amendment (2026-09-20, accepted — Max: "good to dispatch the unit") — a module-level `pytestmark` has a key row now
 
 Narrowing 1 of *Built* stood on one fact: none of the three repos had a module
 `pytestmark` with `usefixtures`, so no key row had judged it. A repo was drawn
@@ -208,7 +208,7 @@ for it, the rule stated first (`~/.hobbes/bench/c4-pytestmark/`: `DRAW-RULE.md`,
   built: 0 wrong of 34,505.
 - **A mistake, caught:** the first collection passed `-v -q`, which cancel, and
   pytest hid an autouse `_…` fixture — 26,474 pairs read "wrong". `-v` alone.
-- **Proposed:** lift narrowing 1. A plain module-level assignment of one mark or
+- **Decided:** lift narrowing 1. A plain module-level assignment of one mark or
   a list/tuple of marks; its `usefixtures` string arguments are requested by
   every test in the module, `via: usefixtures`, evidence at the mark's line,
   after the test's own and its classes' marks (one pair, one via). A non-string
