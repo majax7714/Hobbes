@@ -11,12 +11,13 @@ from pathlib import Path
 
 import pytest
 
-from hobbes.extract.schema import LANE_TREE_SITTER, SEMANTIC, SYNTACTIC
+from hobbes.extract.schema import LANE_SCIP, LANE_TREE_SITTER, SEMANTIC, SYNTACTIC
 
 MINICJS = Path(__file__).parent / "fixtures" / "minicjs"
 
 THROUGH = ("test/through", "lib/app.createApplication")
 TWOHOP = ("test/twohop", "lib/app.createApplication")
+DIRECT = ("test/direct", "lib/app.createApplication")
 
 
 def calls(graph):
@@ -24,12 +25,23 @@ def calls(graph):
     return {(e["from"], e["to"]): e for e in graph["symbol_edges"] if e["type"] == "calls"}
 
 
+def uses(graph):
+    """Every ``uses`` edge, keyed by its (from, to) pair."""
+    return {(e["from"], e["to"]): e for e in graph["symbol_edges"] if e["type"] == "uses"}
+
+
 @pytest.mark.lane_b
 def test_the_reexported_call_is_drawn_syntactic_with_nothing_vetoed():
     """With the index running: scip-typescript names the site a document-local
     of the *re-exporting* file, so it resolves nothing there and vetoes
     nothing. The edge is lane A's fallback, at the syntactic tier — the
-    honest one, because the index did not prove it."""
+    honest one, because the index did not prove it.
+
+    The direct caller is the other half, and ADR-143's end-to-end case:
+    ``var app = require('../lib/app'); app()`` writes ``app`` where the
+    index names ``createApplication``, at one column, so both lanes named one
+    definition at one token and the call is ``semantic``, with no ``uses``
+    beside it."""
     from hobbes.extract import containment, extract_repo
 
     why = containment.unavailable_reason()
@@ -48,8 +60,16 @@ def test_the_reexported_call_is_drawn_syntactic_with_nothing_vetoed():
         p for p, e in drawn.items() if p[0] in (THROUGH[0], TWOHOP[0]) and e["tier"] == SEMANTIC
     ]
     assert semantic == []
-    # the direct require never needed the rule, and still resolves
-    assert ("test/direct", "lib/app.createApplication") in drawn
+    # the direct require never needed the rule, and still resolves — and
+    # under ADR-143 the index's own answer is on it: one semantic `calls`
+    # edge at the call's line, lane B's evidence, and the duplicate `uses`
+    # to the same definition at that line is gone.
+    direct = drawn.get(DIRECT)
+    assert direct is not None, why
+    assert direct["tier"] == SEMANTIC, why
+    assert [(s["line"], s["lane"]) for s in direct["evidence"]] == [(3, LANE_SCIP)]
+    stale = uses(graph).get(DIRECT)
+    assert stale is None or 3 not in [s["line"] for s in stale["evidence"]], stale
 
     rows = {r["file"]: r for r in graph["resolution_coverage"]}
     for rel in ("test/through.js", "test/twohop.js"):
@@ -70,3 +90,9 @@ def test_lane_a_draws_it_without_the_index():
         edge = drawn.get(pair)
         assert edge is not None, pair
         assert edge["tier"] == SYNTACTIC
+    # The direct caller too: with no index there is no resolution for
+    # ADR-143's rule to read, so lane A's own answer is the edge and it
+    # says `syntactic` (P6 — the graph is what it was without lane B).
+    direct = drawn.get(DIRECT)
+    assert direct is not None
+    assert direct["tier"] == SYNTACTIC
