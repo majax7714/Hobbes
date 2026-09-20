@@ -38,12 +38,25 @@ gets either — pytest ignores a mark on a fixture, and autouse names are
 added to tests. Where a pair is seen twice, the first of parameter,
 ``usefixtures``, ``autouse`` is the one drawn.
 
-What is still C-4's remainder: the injected value's type, a module-level
-``pytestmark`` (counted, not followed — no key row has judged it), an
-``autouse=`` whose value is not the literal ``True`` or ``False``
-(counted), a ``usefixtures`` argument that is not a string literal (the
-walk keeps no such argument, so it cannot be counted either), and every
-abstention above.
+One thing the injected value's *type* does say is followed (ADR-145):
+where a fixture's body is a single ``return C(…)``, the construction
+fixes the runtime class exactly, so ``p.m(…)`` written on that parameter
+is a call on ``C.m``. :func:`value_calls` draws it — a ``calls`` edge at
+the ``syntactic`` tier, over the two hops the graph already carries (the
+``uses`` injection above, and the ``semantic`` edge the index drew from
+the fixture to the class it constructs). It refuses, and counts, wherever
+the construction is not the whole story: a rebound parameter, a value
+that is not a construction, no class edge at that line, and a method the
+class's own body does not define exactly once.
+
+What is still C-4's remainder: a fixture value that is not a
+construction (``return app``, ``return app.test_client()`` — a value's
+type, which the rule above does not read) and an **inherited** method
+(the rule walks no base classes), a module-level ``pytestmark`` (counted,
+not followed — no key row has judged it), an ``autouse=`` whose value is
+not the literal ``True`` or ``False`` (counted), a ``usefixtures``
+argument that is not a string literal (the walk keeps no such argument,
+so it cannot be counted either), and every abstention above.
 """
 
 from __future__ import annotations
@@ -54,6 +67,7 @@ from pathlib import PurePosixPath
 from hobbes.extract.discover import ModuleInfo
 from hobbes.extract.graph import symbol_imports
 from hobbes.extract.pysource import ParsedFile, Symbol
+from hobbes.extract.schema import SEMANTIC
 from hobbes.extract.testmap import is_test_file, is_test_symbol
 
 #: The decorators that define a fixture, by their dotted name's last
@@ -82,6 +96,32 @@ TWO_DEFINITIONS = "two-definitions"
 PARAMETRIZE_UNREAD = "parametrize-unread"
 BASE_CLASS = "base-class"
 REASONS = (NOT_IN_REPO, TWO_DEFINITIONS, PARAMETRIZE_UNREAD, BASE_CLASS)
+
+#: What an edge drawn on the value a fixture constructs is evidenced as
+#: (ADR-145), on the row and on the evidence entry it becomes.
+FIXTURE_VALUE = "fixture-value"
+
+#: The decorators that make ``C.m`` something other than a method to call.
+PROPERTY_DECORATORS = frozenset({"property", "cached_property"})
+
+#: Why a ``p.m(…)`` on an injected parameter drew nothing (ADR-145), in
+#: the order the conditions are asked. Each is a place the rule chose to
+#: draw less rather than guess, so each is counted at the call site it
+#: was refused at.
+REBOUND = "rebound"
+NO_CONSTRUCTION = "no-construction"
+NO_CLASS_EDGE = "no-class-edge"
+NO_METHOD = "no-method"
+PROPERTY = "property"
+ALREADY_DRAWN = "already-drawn"
+VALUE_REASONS = (
+    REBOUND,
+    NO_CONSTRUCTION,
+    NO_CLASS_EDGE,
+    NO_METHOD,
+    PROPERTY,
+    ALREADY_DRAWN,
+)
 
 
 def injections(
@@ -201,6 +241,189 @@ def injections(
             "pytestmark": sum(parsed[m.id].pytestmark_usefixtures for m in modules),
         },
     }
+
+
+def value_calls(
+    modules: list[ModuleInfo],
+    parsed: dict[str, ParsedFile],
+    injected: list[dict],
+    symbols: list[dict],
+    symbol_edges: list[dict],
+) -> tuple[list[dict], dict]:
+    """Every ``p.m(…)`` on an injected parameter whose fixture constructs
+    the class ``m`` is defined on (ADR-145).
+
+    *injected* is what :func:`injections` drew; *symbols* and
+    *symbol_edges* are the graph's, settled — the class of condition 3 is
+    an edge the index put there, and this rule only reads it.
+
+    Returns ``(calls, counts)``. A call is ``{"from", "to", "path",
+    "line", "via", "fixture"}`` — the requester's symbol id, the method's,
+    the requester's file and the call's line, :data:`FIXTURE_VALUE`, and
+    the fixture whose value the chain went through — sorted by ``(from,
+    to, path, line)``, one row per call site. *counts* is ``{"drawn",
+    "refused"}`` with every one of :data:`VALUE_REASONS`, or ``{}`` where
+    no such call site exists at all: nothing was asked there, and a block
+    of zeroes would say otherwise.
+
+    The four conditions are asked in the ADR's order and the first that
+    fails is the one counted, so a refusal reads as the earliest reason
+    the rule had. A pair the graph already carries a ``calls`` edge for is
+    refused last: the join's answer stands, and this rule never restates
+    it.
+    """
+    by_id = {symbol["id"]: symbol for symbol in symbols}
+    module_by_path = {module.path: module for module in modules}
+    already = {
+        (edge["from"], edge["to"]) for edge in symbol_edges if edge["type"] == "calls"
+    }
+    constructed: dict[str, list[dict]] = defaultdict(list)
+    for edge in symbol_edges:
+        if edge["type"] == "calls" and edge["tier"] == SEMANTIC:
+            constructed[edge["from"]].append(edge)
+
+    drawn: list[dict] = []
+    refused: Counter = Counter()
+    looked = 0
+    for injection in injected:
+        if injection["via"] != PARAMETER:
+            # A mark and an autouse fixture bind no name in the body, so
+            # there is no `p` to have written a call on (ADR-139).
+            continue
+        module = module_by_path.get(injection["path"])
+        requester = by_id.get(injection["from"])
+        if module is None or requester is None:
+            continue
+        prefix = f"{injection['name']}."
+        sites = [
+            call
+            for call in parsed[module.id].calls
+            # The requester's *own* body: a nested def's calls carry that
+            # def's qualname as their scope, and `p` is not its parameter.
+            if call.scope == requester["qualname"]
+            and call.callee.startswith(prefix)
+            and call.callee.count(".") == 1
+        ]
+        if not sites:
+            continue
+        looked += len(sites)
+
+        reason, fixture_value = _fixture_value(injection, parsed, by_id)
+        if reason is not None:
+            refused[reason] += len(sites)
+            continue
+        klass, line = fixture_value
+        found = [
+            edge
+            for edge in constructed.get(injection["to"], ())
+            if _is_class_named(by_id.get(edge["to"]), klass)
+            and any(row.get("line") == line for row in edge["evidence"])
+        ]
+        if len(found) != 1:
+            refused[NO_CLASS_EDGE] += len(sites)
+            continue
+        class_id = found[0]["to"]
+        for call in sites:
+            method_reason, method_id = _class_method(
+                class_id, call.callee.partition(".")[2], parsed, by_id
+            )
+            if method_reason is not None:
+                refused[method_reason] += 1
+                continue
+            if (injection["from"], method_id) in already:
+                refused[ALREADY_DRAWN] += 1
+                continue
+            drawn.append(
+                {
+                    "from": injection["from"],
+                    "to": method_id,
+                    "path": injection["path"],
+                    "line": call.line,
+                    "via": FIXTURE_VALUE,
+                    "fixture": injection["to"],
+                }
+            )
+
+    drawn.sort(key=lambda c: (c["from"], c["to"], c["path"], c["line"]))
+    if not looked:
+        return drawn, {}
+    return drawn, {
+        "drawn": len(drawn),
+        "refused": {reason: refused[reason] for reason in VALUE_REASONS},
+    }
+
+
+def _fixture_value(
+    injection: dict, parsed: dict[str, ParsedFile], by_id: dict
+) -> tuple[str | None, tuple[str, int] | None]:
+    """Conditions 1 and 2 of ADR-145: the parameter still holds what was
+    injected, and the fixture's body is one construction.
+
+    Returns ``(reason, value)`` — a reason and no value, or no reason and
+    the written class name with its line. A fixture whose qualname is
+    written twice in its file reads as no construction: the graph keeps
+    the first record of the two
+    (:func:`hobbes.extract.graph._symbol_records`), so there is no single
+    body that can be said to have returned anything.
+    """
+    requester = _definitions(by_id[injection["from"]], parsed)
+    if any(injection["name"] in definition.rebound for definition in requester):
+        return REBOUND, None
+    fixture = by_id.get(injection["to"])
+    if fixture is None:
+        return NO_CONSTRUCTION, None
+    definitions = _definitions(fixture, parsed)
+    if len(definitions) != 1 or definitions[0].value is None:
+        return NO_CONSTRUCTION, None
+    return None, definitions[0].value
+
+
+def _class_method(
+    class_id: str, method: str, parsed: dict[str, ParsedFile], by_id: dict
+) -> tuple[str | None, str | None]:
+    """Conditions 4 and 5 of ADR-145: ``m`` is one ``def`` in the class's
+    **own** body and not a property.
+
+    No base is walked: an inherited method is refused (the simulation met
+    none, and a rule ships as far as it was probed). The definitions are
+    counted in the class's own module record rather than in the graph's
+    symbols, because duplicate qualnames collapse to one record there and
+    a method defined twice would read as one clean answer.
+    """
+    klass = by_id.get(class_id)
+    facts = parsed.get(klass["module"]) if klass is not None else None
+    if klass is None or facts is None:
+        return NO_METHOD, None
+    qualname = f"{klass['qualname']}.{method}"
+    found = [
+        symbol
+        for symbol in facts.symbols
+        if symbol.qualname == qualname and symbol.kind in ("method", "function")
+    ]
+    method_id = f"{klass['module']}.{qualname}"
+    if len(found) != 1 or method_id not in by_id:
+        return NO_METHOD, None
+    if any(_last(d.dotted) in PROPERTY_DECORATORS for d in found[0].decorators):
+        # An attribute read written as a call is not this rule's business,
+        # and `C.name()` would be a call on whatever the property returned.
+        return PROPERTY, None
+    return None, method_id
+
+
+def _is_class_named(record: dict | None, name: str) -> bool:
+    """Whether a graph symbol is a class written under *name* — the name
+    as the fixture spelled it, so an alias (``import Runner as R``) is
+    not this class and is refused."""
+    return record is not None and record["kind"] == "class" and record["name"] == name
+
+
+def _definitions(record: dict, parsed: dict[str, ParsedFile]) -> list[Symbol]:
+    """Every definition in the module record behind one graph symbol —
+    more than one where a qualname is written twice."""
+    facts = parsed.get(record["module"])
+    if facts is None:
+        return []
+    return [symbol for symbol in facts.symbols if symbol.qualname == record["qualname"]]
 
 
 def _usefixtures_decorators(symbol: Symbol, quals: dict, kinds: dict) -> list:

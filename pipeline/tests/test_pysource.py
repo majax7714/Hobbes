@@ -123,6 +123,126 @@ class TestParameters:
         assert symbol.params == ()
 
 
+class TestReturnedValue:
+    """What a definition constructs and hands back (ADR-145): one valued
+    exit, and that value a call on a bare name. Everything else is None,
+    because everything else leaves the runtime class open."""
+
+    def test_one_return_of_a_construction(self):
+        p = parse("def f():\n    return C()\n")
+        (symbol,) = p.symbols
+        assert symbol.value == ("C", 2)
+
+    def test_one_yield_of_a_construction(self):
+        p = parse("def f():\n    yield C()\n")
+        (symbol,) = p.symbols
+        assert symbol.value == ("C", 2)
+
+    def test_two_valued_returns_settle_nothing(self):
+        p = parse("def f(flag):\n    if flag:\n        return C()\n    return D()\n")
+        (symbol,) = p.symbols
+        assert symbol.value is None
+
+    def test_a_yield_from_is_a_delegation_not_a_construction(self):
+        p = parse("def f():\n    yield from C()\n")
+        (symbol,) = p.symbols
+        assert symbol.value is None
+
+    def test_returning_a_name_says_nothing(self):
+        p = parse("def f():\n    app = C()\n    return app\n")
+        (symbol,) = p.symbols
+        assert symbol.value is None
+
+    def test_returning_a_call_on_a_value_says_nothing(self):
+        p = parse("def f():\n    return a.b()\n")
+        (symbol,) = p.symbols
+        assert symbol.value is None
+
+    def test_a_nested_defs_return_is_that_defs(self):
+        p = parse(
+            "def f():\n"
+            "    def g():\n"
+            "        return C()\n"
+            "    return D()\n"
+        )
+        outer = next(s for s in p.symbols if s.qualname == "f")
+        inner = next(s for s in p.symbols if s.qualname == "f.g")
+        assert outer.value == ("D", 4)
+        assert inner.value == ("C", 3)
+
+    def test_a_bare_return_carries_no_value_and_is_not_a_second(self):
+        p = parse("def f(flag):\n    if flag:\n        return\n    return C()\n")
+        (symbol,) = p.symbols
+        assert symbol.value == ("C", 4)
+
+    def test_a_class_has_no_value(self):
+        p = parse("class C:\n    pass\n")
+        (symbol,) = p.symbols
+        assert symbol.value is None
+
+
+class TestRebound:
+    """Which parameters the definition's own body binds again (ADR-145):
+    a reader that takes a parameter to still hold what was passed in has
+    to know when it does not."""
+
+    def _rebound(self, body: str) -> tuple[str, ...]:
+        p = parse(f"def f(p):\n{body}")
+        return next(s for s in p.symbols if s.qualname == "f").rebound
+
+    def test_a_plain_assignment(self):
+        assert self._rebound("    p = 1\n") == ("p",)
+
+    def test_an_augmented_assignment(self):
+        assert self._rebound("    p += 1\n") == ("p",)
+
+    def test_an_annotated_assignment_with_a_value(self):
+        assert self._rebound("    p: int = 1\n") == ("p",)
+
+    def test_an_annotation_without_a_value_binds_nothing(self):
+        assert self._rebound("    p: int\n") == ()
+
+    def test_a_walrus(self):
+        assert self._rebound("    if (p := 1):\n        pass\n") == ("p",)
+
+    def test_a_for_target(self):
+        assert self._rebound("    for p in xs:\n        pass\n") == ("p",)
+
+    def test_a_with_target(self):
+        assert self._rebound("    with open(x) as p:\n        pass\n") == ("p",)
+
+    def test_an_except_target(self):
+        assert self._rebound(
+            "    try:\n        pass\n    except E as p:\n        pass\n"
+        ) == ("p",)
+
+    def test_an_import(self):
+        assert self._rebound("    import p\n") == ("p",)
+
+    def test_an_import_alias(self):
+        assert self._rebound("    from m import thing as p\n") == ("p",)
+
+    def test_a_del(self):
+        assert self._rebound("    del p\n") == ("p",)
+
+    def test_a_global(self):
+        assert self._rebound("    global p\n") == ("p",)
+
+    def test_a_nonlocal(self):
+        assert self._rebound("    nonlocal p\n") == ("p",)
+
+    def test_an_attribute_target_binds_no_name(self):
+        assert self._rebound("    p.x = 1\n") == ()
+
+    def test_a_nested_defs_assignment_binds_in_that_def(self):
+        p = parse("def f(p):\n    def g():\n        p = 1\n    return C()\n")
+        assert next(s for s in p.symbols if s.qualname == "f").rebound == ()
+
+    def test_only_parameters_are_reported(self):
+        p = parse("def f(p):\n    other = 1\n")
+        assert next(s for s in p.symbols if s.qualname == "f").rebound == ()
+
+
 class TestParametrized:
     """The names a ``parametrize`` mark binds, in every spelling the walk
     can read — and ``None`` where it cannot read one at all."""
