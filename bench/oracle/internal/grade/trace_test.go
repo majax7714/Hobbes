@@ -97,6 +97,72 @@ func TestMiniappTrace(t *testing.T) {
 	}
 }
 
+// H-36 (root RC-2): a comprehension's frame entry is a call the compiler
+// wrote at the expression's own line — dropped and counted, never a
+// target. On testdata/pygen, hand truth on CPython 3.12+: core.py:21 and
+// core.py:25 each make one dropped `<genexpr>` entry; the calls written
+// inside a comprehension (`double` from total's genexpr body at 21, from
+// squares' inlined listcomp at 29) survive; `firsts` at 25 keeps its site
+// through `tuple` (an external callee) but names no in-repo target; and the
+// lambda `apply` binds is a function value someone does call, so it is
+// still a target at 34. Run exactly as TestMiniappTrace is.
+func TestComprehensionFramesAreExcluded(t *testing.T) {
+	if why := contain.UnavailableReason(); why != "" && !contain.Uncontained() {
+		t.Skip("containment unavailable: " + why)
+	}
+	pipeline, _ := filepath.Abs("../../../../pipeline")
+	python := filepath.Join(pipeline, ".venv", "bin", "python")
+	if _, err := os.Stat(python); err != nil {
+		t.Skip("pipeline venv not built (uv sync)")
+	}
+	out := filepath.Join(t.TempDir(), "oracle.json")
+	o, err := pytrace.Run(pytrace.Options{
+		Repo: "../../testdata/pygen", Module: ".", Runs: 1, SysPath: []string{"src"}, Out: out,
+		Python: []string{python},
+		Pytest: []string{"-q", "-p", "no:cacheprovider", "-c", "pyproject.toml", "--rootdir", ".", "--import-mode=importlib", "tests"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if o.Excluded["generated"] <= 0 {
+		t.Errorf("the dropped comprehension frames must be counted: excluded %v", o.Excluded)
+	}
+	pairs := map[string]bool{}
+	for _, s := range o.Sites {
+		for _, tg := range s.Targets {
+			for _, gen := range []string{"<genexpr>", "<listcomp>", "<setcomp>", "<dictcomp>"} {
+				if strings.HasSuffix(tg.Name, gen) {
+					t.Errorf("a comprehension is not a callee: %s -> %s (%s)", s.Pos.Key(), tg.Name, tg.Pos.Key())
+				}
+			}
+			if !tg.External {
+				pairs[s.Pos.Key()+" -> "+tg.Pos.Key()] = true
+			}
+			if s.Pos.Line == 34 && strings.HasSuffix(tg.Name, "<lambda>") {
+				if !tg.Closure || tg.Pos.Line != 33 {
+					t.Errorf("apply's lambda: closure %v at %s, want closure at core.py:33", tg.Closure, tg.Pos.Key())
+				}
+			}
+		}
+		if s.Pos.Path == "src/pygen/core.py" && s.Pos.Line == 25 {
+			for _, tg := range s.Targets {
+				if !tg.External {
+					t.Errorf("firsts' line names an in-repo target: %s (%s)", tg.Name, tg.Pos.Key())
+				}
+			}
+		}
+	}
+	for _, w := range []string{
+		"src/pygen/core.py:21 -> src/pygen/core.py:16", // total's genexpr body calls double
+		"src/pygen/core.py:29 -> src/pygen/core.py:16", // squares' comprehension calls double
+		"src/pygen/core.py:34 -> src/pygen/core.py:33", // apply calls the lambda
+	} {
+		if !pairs[w] {
+			t.Errorf("missing observed pair %s (have %v)", w, pairs)
+		}
+	}
+}
+
 // The §3.1 buckets on synthetic data: a wrong target on a line whose
 // only observed callees are in-repo is suspect; the same on a line that
 // also called C is line-mixed (charged to nobody); a line that never

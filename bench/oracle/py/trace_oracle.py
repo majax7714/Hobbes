@@ -39,6 +39,13 @@ Conventions (the harness README, D-O4), as the tracer meets them:
   Python declaration; they are counted per site as ``c_callees`` and
   *not* listed as targets. Python callees outside the repo are listed
   ``external: true`` (out of the in-repo recall denominator, D-O3).
+- **Comprehension frames are the compiler's own call** (H-36, root RC-2):
+  a generator expression is its own code object and the compiler writes
+  the ``CALL`` of it at the expression's own line. Nobody wrote that call
+  and there is no callee a graph could name, so it is dropped and counted
+  — ``excluded: {"generated": n}``, the header field the Rust and Java
+  keys already use. A ``lambda`` is not this: it is a function value
+  someone does call, and it stays.
 - **Callers outside the cell** — pytest itself, site-packages, the
   interpreter's import machinery — are disabled at the first event from
   each of their call sites, which is also what keeps the overhead low.
@@ -63,6 +70,13 @@ from collections import defaultdict
 from pathlib import Path
 
 SKIP_DIRS = {".venv", "venv", "site-packages", "node_modules", "__pycache__", ".hobbes", ".git"}
+
+# The code objects the compiler makes for a comprehension (H-36). On
+# CPython 3.12+ only ``<genexpr>`` still reaches us — list/set/dict
+# comprehensions are inlined into the enclosing frame (PEP 709) and make
+# no call at all — but an older interpreter calls all four, so all four
+# are named here rather than leaving the rule interpreter-dependent.
+GENERATED_FRAME_NAMES = frozenset({"<genexpr>", "<listcomp>", "<setcomp>", "<dictcomp>"})
 
 
 # ---------------------------------------------------------------- ast index
@@ -168,6 +182,7 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
     code_rel: dict = {}
     positions: dict = {}
     guard = [False]
+    generated = [0]  # call *events* dropped by the H-36 rule, as c_callees counts events
 
     def rel_of(code):
         try:
@@ -210,6 +225,17 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
         elif "." in qual:
             kind = "method"
         return r, line, qual, kind, False
+
+    def is_generated_frame(callable_obj):
+        """Whether the callee's code object is a comprehension's (H-36,
+        root RC-2: code nobody wrote attributed to a source line). The
+        compiler both makes the function and writes the ``CALL`` of it, at
+        the expression's own line. Read off the object directly rather
+        than through ``resolve``: none of resolve's unwindings (partial,
+        ``__wrapped__``, bound method, ``__call__``) can stand between a
+        caller and a comprehension, which no source token can name."""
+        fcode = getattr(callable_obj, "__code__", None)
+        return fcode is not None and fcode.co_name in GENERATED_FRAME_NAMES
 
     def resolve(callable_obj):
         """Return (target dict or None, via) — None means a C callee."""
@@ -267,6 +293,21 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
             return mon.DISABLE
         guard[0] = True
         try:
+            # H-36 / RC-2: record no target for a comprehension's frame
+            # entry, and count it. The site is not created here either —
+            # an empty site would read as *observed* in the grader's
+            # coverage line and would bucket a Hobbes edge on that line
+            # as `suspect` (traceRow's default branch: targets seen, none
+            # of them Hobbes'), charging Hobbes for a call nobody wrote.
+            # Not created is `line-not-called`, charged to nobody. Every
+            # other site is untouched: `sum(f(x) for x in xs)` still
+            # makes its site from `sum`, a C callee at the same line,
+            # and a call written in the comprehension's *body* is a call
+            # someone wrote — its caller frame is the `<genexpr>` code
+            # object, whose file and line are the body's own.
+            if is_generated_frame(callable_obj):
+                generated[0] += 1
+                return None
             line, col = site_line(code, offset)
             key = (r, line)
             site = sites.get(key)
@@ -319,6 +360,7 @@ def run_once(repo: Path, module: str, pytest_args: list[str], raw_out: Path, ext
     raw_out.write_text(json.dumps({
         "exit": int(rc), "sites": out_sites, "loaded": sorted(loaded),
         "started": sorted(f"{r}::{q}" for r, q in started),
+        "generated": generated[0],
     }))
     return int(rc)
 
@@ -365,6 +407,7 @@ def main(argv=None) -> int:
     loaded: set[str] = set()
     started: set[str] = set()
     exits = []
+    generated = 0  # summed over the runs, as hits and c_callees are
     for i in range(args.runs):
         raw = out.with_suffix(f".run{i + 1}.json")
         cmd = [sys.executable, os.path.abspath(__file__), "--repo", str(repo), "--module", module or ".",
@@ -377,6 +420,7 @@ def main(argv=None) -> int:
         data = json.loads(raw.read_text())
         loaded.update(data["loaded"])
         started.update(data["started"])
+        generated += data.get("generated", 0)
         for s in data["sites"]:
             key = (s["pos"]["path"], s["pos"]["line"])
             u = union.get(key)
@@ -421,9 +465,14 @@ def main(argv=None) -> int:
         },
         "sites": [union[k] for k in sorted(union)],
     }
+    # Dropped by rule, never silently (H-36 / RC-2): omitted when none
+    # were seen, so a key from a repo without a comprehension is unchanged.
+    if generated:
+        export["excluded"] = {"generated": generated}
     out.write_text(json.dumps(export, indent=1) + "\n")
     print(f"trace: {len(export['sites'])} sites, {sum(len(s['targets']) for s in export['sites'])} targets, "
           f"{len(loaded)}/{len(files)} module files loaded, {len(started)}/{declared} declarations started, "
+          f"{generated} generated calls excluded, "
           f"runs {args.runs}, suite exits {exits}", file=sys.stderr)
     return 0
 
