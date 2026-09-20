@@ -1,7 +1,8 @@
 # ADR-142 — A TypeScript/JavaScript construction is a call where the index names the constructor at the `new` token
 
-**Date:** 2026-09-19 · **Status:** proposed — three routes below, **(b)
-recommended**; measured and simulated first, nothing drawn · **Owner:** Max ·
+**Date:** 2026-09-19 · **Status:** accepted (Max, 2026-09-19: route **(b)**),
+built as one dispatched unit; see *Accepted*, at the end. Measured and simulated
+before anything was drawn · **Owner:** Max ·
 **Source:** the JavaScript constraint order Max set at the 2026-09-19 close-out
 ("we will tackle constraints from js next session"), its second item; his
 standing direction — honesty and accuracy before a recall number, and a rule
@@ -137,3 +138,47 @@ suite. A row that is drawn today as `uses` at an import line is untouched, and
 no module edge moves. A patch (what the layer draws), built as one dispatched
 unit; C++ and Java are untouched, each having its own rule already
 (ADR-132, ADR-096).
+
+
+## Accepted (Max, 2026-09-19: route b)
+
+Built as one dispatched unit. The code facts the brief rests on, each read in
+the tree or run before the dispatch:
+
+- **`new` is no site today.** `extractCalls` (`tsextract/extract.mjs`) walks
+  `CallExpression` and the two JSX element nodes and nothing else; a
+  `NewExpression` is never visited, so lane A records no site and no name there.
+- **Lane A's facts version is `HELPER_VERSION = 5`,** declared in
+  `tsextract/extract.mjs` and `pipeline/src/hobbes/extract/tssource.py` and held
+  equal by `pipeline/tests/test_helper_contracts.py`. A new facts key bumps
+  both, in one commit. Lane A's TS facts are not cached (the index cache is lane
+  B's), so no cache format moves with it — unlike ADR-132's `lanea-cpp v4`.
+- **A TS reference reaches the join carrying its column** (`scipsource.py`, the
+  `Site(… col=ref["col"] …)` the merge builds), which is what an exact-position
+  rule needs.
+- **The join already takes `constructions` and `constructors`,** passed from
+  `extract/__init__.py` for C++ alone. A TS reading is their sibling and moves
+  nothing C++ does.
+- **A constructor starts no symbol.** `index.starting_at(target_module,
+  def_line)` answers `None` at a TS `<constructor>`'s line, so the reference
+  falls `below_floor` and is dropped — which is why nothing is drawn there
+  today, and why the rule must name the class instead. Lane B's own definition
+  rows give it: the constructor's moniker is the class's moniker plus one
+  descriptor (`…/Base#` and ``…/Base#`<constructor>`().``), and a class's row
+  carries `kind: "type"` where the constructor's carries `kind: "method"`.
+  `minted.constructor_lines` reads scip-clang's spelling (`…/T#T(hash).`), not
+  this one, so the TS reading is its own.
+- **The fixture already holds both halves, and was simulated:** `minijs`'s
+  `index.js:8` `new Counter(1)` is an ES5 constructor function the key resolves
+  to `lib/counter.js:3` — drawn under (b) — and `esm/main.mjs:3` `new Greeter()`
+  is a class that declares no constructor, where tsc synthesises the construct
+  signature and the key is **silent** — refused. Simulated on the cell:
+  **7/7 → 8/8, recall 63.6% → 72.7%**, 0 contradicted, poison PASS.
+
+The unit: the token in `tsextract/extract.mjs` beside `extractCalls`, the
+constructor reading and the rule on the TS path, the two counts in the graph's
+additive `constructions` block, tsextract cases for the shapes (a class with a
+constructor, a class without one, an ES5 constructor function, `new ns.X()`,
+`new this()`, a `new` inside a string or comment), the `minijs` fixture's new
+row, and a `lane_b` case with its lane-B-off twin (with no index nothing is
+drawn, P6).
