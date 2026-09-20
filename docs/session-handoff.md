@@ -1,12 +1,14 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-19 (sixth session); Hobbes 0.2.56-beta on `main`.**
-Max pushed the fifth session's work through `13ff9d5` (the close-out);
-its CI run is 35468332243 (the one before, 35461769081, green). The
-image and the proxy were rebuilt at 0.2.56-beta and this repo re-ingested
-at the end of the sixth session; the knowledge server serves the image it
-started from until it is restarted (C-65): **restart it.** The sixth
-session's commits are on `main`, unpushed.
+**Reviewed 2026-09-19 (sixth session); reviewed again 2026-09-19
+(seventh); Hobbes 0.2.56-beta on `main`.**
+Max pushed the sixth session's work through `e50ff2a` (the close-out);
+the fifth session's close-out was `13ff9d5`, CI run 35468332243 (the one
+before, 35461769081, green). The image and the proxy were rebuilt at
+0.2.56-beta and this repo re-ingested at the end of the sixth session;
+the knowledge server was restarted and answers `ingest @ e50ff2a, built
+by hobbes 0.2.56-beta` (C-65, satisfied — restart it again after the
+next image rebuild). `main` is level with `origin/main`.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
   0.2.56-beta are untagged. Tags stay Max's call each time.
