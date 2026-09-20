@@ -318,7 +318,10 @@ def summarize_flight(path: Path) -> dict:
         out["events"] += 1
         dec = str(ev.get("decision") or "none")
         out["by_decision"][dec] = out["by_decision"].get(dec, 0) + 1
-        cmd = " ".join(ev.get("argv") or [])[:160]
+        # One line, whatever the doer wrote: a `python -c "…"` argument carries
+        # newlines, and the session log's Policy entry is one line the tracker
+        # parses (session `1527`'s was split over three).
+        cmd = " ".join(" ".join(ev.get("argv") or []).split())[:160]
         if dec == "deny" and len(out["denied"]) < 10:
             out["denied"].append(cmd)
         if dec == "escalate" and len(out["escalated"]) < 10:

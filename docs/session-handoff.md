@@ -1,16 +1,16 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (tenth session); Hobbes 0.2.62-beta on `main`.**
+**Reviewed 2026-09-20 (tenth session); Hobbes 0.2.63-beta on `main`.**
 Max pushed through the ninth session's release commit (`95bb1dd`,
 0.2.62-beta); what the tenth session adds is on `main`, unpushed. The image and the proxy
-are at 0.2.62-beta and this repo is ingested at that release. A new
+are at 0.2.63-beta and this repo is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.62-beta are untagged. Tags stay Max's call each time.
+  0.2.63-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -24,7 +24,36 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-20, ninth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-20, tenth session)
+
+**C-4's last parts (Max, 2026-09-20: "lets look to tackle c-4s last parts").**
+- **Done (ADR-145, 0.2.63-beta, unit `1527`, 81 turns, $6.73; Max: route a):** a
+  call on the value a fixture constructs. `p.m(…)` on an injected parameter → `C.m`,
+  `syntactic`, where the fixture's own body is one `return C(…)`, the index names
+  `C` a repo class there, `p` is never rebound and `m` is one `def` on `C` itself.
+  click 1,755 → 2,136 confirmed (recall 38.2% → 46.5%), 0 contradicted, six
+  other-language cells row-identical (§10.29). Refused and counted
+  (`fixtures.value_calls.refused`): a value that is not a construction (flask: 702
+  sites, `return app`, `return app.test_client()`), an inherited method
+  (unmeasured — no cell has one), a property, a rebound parameter. Drivers
+  `~/.hobbes/bench/c4-returned-value/` (`count.py`, `PREREG.md`, `simulate.py` the
+  stand-in, `simulate_real.py` through `fixtures.injections`, `RESULTS.md`,
+  `lang-regrade.sh` + `lang-cells.tsv`, `lang/`, `units/`; `wt/` a worktree,
+  removable). `simulate_real.py`'s `own_nodes` enters a nested def written at a
+  body's top level — fix it before reusing it.
+- **Measured, its amendment proposed, NOT built — needs Max's word:** a
+  module-level `pytestmark`'s `usefixtures`. MissyLabs/missy @ `223dbe8` drawn at
+  random (two walks; `draw-log.md`): as built 34,505 pairs right, 0 wrong, 1,265
+  missed — all the pytestmark's; with the rule 35,770 / 0 / 0. ADR-139's *Amendment
+  (2026-09-20, proposed)* has it; the unit is briefed and its premises checked
+  (`~/.hobbes/bench/c4-pytestmark/units/u1.md`, `partition.txt` — `test_cli.py`
+  pins the summary clause, `test_fixtures.py:717` and `test_pysource.py:213` the old
+  behaviour). A patch (0.2.64-beta) when built: `--dry-run`, then detached. Drivers
+  `~/.hobbes/bench/c4-pytestmark/` (`DRAW-RULE.md`, `DRAW-RULE-2.md`, `pool.json`,
+  `scan.py`, `probe.py`, `compare.py`, `missy/` the clone, `missy-deps/`,
+  `missy-key-v.txt`, `RESULTS.md`; `try/` fifteen shallow clones, removable).
+- After both, C-4 keeps: a fixture value that is not a construction, an inherited
+  method, a non-literal `autouse=`, a class-body `pytestmark`, and the abstentions.
 
 Max's standing direction: **honesty and accuracy come before a recall
 number on the extraction lane** — weigh every extraction decision
@@ -101,9 +130,7 @@ their tree: a thin one and cue (881 rows, identical without it). Drivers: `~/.ho
   `real.sh`, `lang-regrade.sh` + `lang-cells.tsv`, `sim/`, `real/`,
   `lang/`, `units/`; its worktree was removed).
 
-**Candidates after the JavaScript constraints, each measured first**
-(none started): C-4's last parts — the injected value's type is lane
-B's, and a module `pytestmark` needs a keyed repo that has one; C-142's
+**Candidates after C-4, each measured first** (none started): C-142's
 remainder — the 273 headers nothing includes (ADR-138's route b, a
 content read, not taken); ADR-126 §3 once Max decides it; C's residue
 (W1). Small and no-spend, optional: a `lane_b` end-to-end case for
@@ -121,6 +148,14 @@ macro class's (C-131, parked); TS's floor shapes stay off the table
 paragraph cells as per-language pages (Max: "dont split for now").
 
 **Lessons the last sessions paid for:**
+- **`-v -q` cancel.** A fixture key collected that way hides every `_…` fixture
+  and the *built* lookup reads thousands "wrong" (missy: 26,474). `-v` alone.
+- **A code search's hit is not the repo's use.** `pytestmark = …usefixtures(` hits
+  are mostly strings pytest's own suite writes, and docstrings; read the clone
+  with `ast` (`c4-pytestmark/scan.py`) before judging a candidate.
+- **A deny in a session log was new** (unit `1527`): a multi-line command split
+  the Policy line and the tracker had no `denied` clause. Both fixed; if the
+  tracker refuses a log again, read the log's line before the parser.
 - **The architecture's §8 header is a seventh version copy no test
   holds** — bump it by hand (missed at 0.2.51-beta).
 - **A fixture key is collected with `-v`:** without it pytest prints no
@@ -305,7 +340,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 65 of 40, 4
+   - **The validating 40 are done:** the tracker reads 66 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -376,7 +411,7 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Sixty-five log files under `docs/calvin/sessions/`; the tracker reads 65 of 40 (4 areas, 1 false block, 0 missed).
+  is a tmpfs. Sixty-six log files under `docs/calvin/sessions/`; the tracker reads 66 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 95 cells (22 same-key rows, C++'s two among them); `render.py
   check` green.
@@ -389,10 +424,10 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.62-beta (2026-09-20; pytest, the scip node suite and every `lane_b` test
-  re-run and green on the host, Go `./...` as at 0.2.59-beta, the rest as
-  counted at 0.2.50-beta): 2,146
-  pytest (`lane_b` 13 of them), Go `./...` 399 with
+- **Suites** at 0.2.63-beta (2026-09-20; pytest, every `lane_b` test and Go `./...`
+  re-run and green on the host, the scip node suite as at 0.2.62-beta, the rest as
+  counted at 0.2.50-beta): 2,193
+  pytest (`lane_b` 14 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 116 with subtests, 104 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
@@ -405,7 +440,7 @@ min each.
 
 1. **Keep dispatching named no-spend work through the harness,** one
    unit per brief (the validating 40 are done; the harness stays the way
-   work is done): **the candidates under START HERE once named**;
+   work is done): **the `pytestmark` unit on Max's word, then the candidates under START HERE once named**;
    ADR-126's surface once
    Max decides it;
    C's residue (W1); W1/W3's no-spend items

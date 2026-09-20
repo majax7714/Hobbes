@@ -2212,6 +2212,34 @@ re-run: cache 0 hit): cJSON, click, jsoup, memchr, fzf, fmt, args **row-identica
 no tier moved**. Left: a value property (`delta: alpha`), refused and unmeasured;
 a member written in a literal, no symbol (C-9/C-58; cue 49).
 
+### 10.29 A call on the value a fixture constructs — `PREREG.md` written 2026-09-20 before the first simulation; this section written after the regrade (ADR-145; unit `1527`)
+
+**Step 0** (`~/.hobbes/bench/c4-returned-value/`, `RESULTS.md`): of click's 665 missed
+`observed→method` pairs, 419 sit at `p.m(…)` on a parameter in a test file and 381 are
+`runner.*`. The index names the *parameter* at `runner`, emits nothing at `invoke`, and
+names `CliRunner` at the fixture's `return CliRunner()` — a `semantic` edge the graph
+already carries.
+
+**Simulated first** (`simulate_real.py`: the fixture from ADR-137's own `injections`, the
+class from the cell's cached index facts; in memory): click 383 drawn, **381 confirmed, 0
+contradicted**, 2 on lines the key never ran; flask (held out, no trace key) 11 drawn,
+read by hand, 11 right, 702 refused as not a construction; attrs and this repo 0 drawn.
+P1–P4 held.
+
+**Regraded with the unit's code** (`lang-regrade.sh`, pre/post, stored keys, `-poison`):
+
+| cell | rows | added | contradicted / suspect | lost / re-tiered | recall |
+|---|---|---|---|---|---|
+| click | 2,065 → 2,447 | 382 `syntactic`: 381 confirmed, 1 unobserved | 0 / 0 new | 0 / 0 | 38.2% → **46.5%** (2,136/4,595) |
+| cJSON, jsoup, memchr, fzf, fmt, args | unchanged | 0 | 0 | 0 / 0 | unchanged |
+
+Poison PASS on all seven. The build draws one site fewer than the simulation: a
+`runner.invoke` written inside a nested `def` of a click test (never run), which the rule
+refuses and the probe's walk entered — the probe's defect, the build's refusal. A trace
+key's confirmation rate is not a precision (§4): what it says here is that 381 of the 382
+sites ran and every one that ran reached the drawn target. The rule mints no symbol.
+Left in C-4: a fixture value that is not a construction, an inherited method.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

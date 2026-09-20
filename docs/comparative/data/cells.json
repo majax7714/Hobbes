@@ -205,26 +205,26 @@
    "draw": "picked",
    "label": "click",
    "note": "trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry",
-   "edges": 2065,
-   "confirmed": 1755,
+   "edges": 2447,
+   "confirmed": 2136,
    "contradicted": 0,
    "abstract": 0,
    "silent": 0,
    "suspect": 18,
-   "unobserved": 292,
+   "unobserved": 293,
    "silent_by": {
     "line-mixed": 2,
-    "line-not-called": 121,
+    "line-not-called": 122,
     "not-loaded": 169
    },
    "confirmation_rate": {
-    "pct": 85.0,
-    "num": 1755,
-    "den": 2065
+    "pct": 87.3,
+    "num": 2136,
+    "den": 2447
    },
    "recall": {
-    "pct": 38.2,
-    "hits": 1755,
+    "pct": 46.5,
+    "hits": 2136,
     "pairs": 4595,
     "roots": null,
     "runs": 2,
@@ -235,13 +235,13 @@
     "observed→closure": 1195,
     "observed→function": 750,
     "observed→lambda": 81,
-    "observed→method": 665
+    "observed→method": 284
    },
    "poison": {
     "passed": true,
-    "seeded": 2065,
-    "refused": 1547,
-    "unjudged": 518,
+    "seeded": 2447,
+    "refused": 1904,
+    "unjudged": 543,
     "falsely": 0
    }
   },

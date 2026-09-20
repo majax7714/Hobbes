@@ -296,6 +296,20 @@ def test_summarize_flight_separates_edit_lines_from_exec_decisions(tmp_path):
     assert out["stream"] == {"listening": True, "opened": True, "closed": True, "refused": 1}
 
 
+def test_summarize_flight_keeps_a_multi_line_command_on_one_line(tmp_path):
+    """A denied `python -c` with newlines in it must not split the session
+    log's one-line Policy entry (session `1527`; the tracker parses it)."""
+    path = tmp_path / "flight.jsonl"
+    lines = [
+        {"tool": "exec", "argv": ["/bin/sh", "-c", 'python -c "\nimport x\nprint(x)"'], "decision": "deny"},
+        {"tool": "exec", "argv": ["sh", "-c", "a &&\n  b"], "decision": "escalate", "escalation": {"resolution": "timeout"}},
+    ]
+    path.write_text("".join(json.dumps(l) + "\n" for l in lines))
+    out = dp.summarize_flight(path)
+    assert out["denied"] == ['/bin/sh -c python -c " import x print(x)"']
+    assert out["escalated"] == ["sh -c a && b → timeout"]
+
+
 def test_summarize_flight_with_no_stream_ever_opened(tmp_path):
     path = tmp_path / "flight.jsonl"
     path.write_text(json.dumps({"tool": "sink", "argv": [], "decision": "listening"}) + "\n")

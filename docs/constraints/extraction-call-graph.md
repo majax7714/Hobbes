@@ -57,7 +57,7 @@
   (ADR-045; their boundaries are C-32).
 - **Source:** ADR-029; tail classification added by ADR-045.
 
-### C-4 — A test's reach through the value a fixture returns, or through a fixture pytest's lookup by name cannot place, is not drawn — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta: a fixture a parameter names is an edge, and reach follows it; ADR-139, 0.2.52-beta: so is one a `usefixtures` mark or `autouse` applies)*
+### C-4 — A test's reach through a fixture's value that is not a construction, or through a fixture pytest's lookup by name cannot place, is not drawn — *narrowed 2026-09-19 (ADR-137, 0.2.49-beta: a fixture a parameter names is an edge, and reach follows it; ADR-139, 0.2.52-beta: so is one a `usefixtures` mark or `autouse` applies) and 2026-09-20 (ADR-145, 0.2.63-beta: a call on the value a fixture constructs is drawn)*
 - **Narrowed (0.2.49-beta, ADR-137; 0.2.52-beta, ADR-139).** A name
   pytest's lookup order (class chain, file and its imported names, the
   conftest chain) resolves to one fixture definition in the repo is a
@@ -71,11 +71,18 @@
   no fixture named `_…`, and ADR-137's first figures were of the pairs
   that key printed): this repo 4,971 of 4,971 pairs, flask 1,238 and
   attrs 118 held out, none missed, none wrong.
+- **Narrowed (0.2.63-beta, ADR-145).** Where a fixture's own body is one
+  `return C(…)` / `yield C(…)` and the index names `C` a repo class at
+  that token, `p.m(…)` on the injected parameter is a `calls` edge to
+  `C.m` — `syntactic`, evidence `via: fixture-value` — when `m` is one
+  `def` in `C`'s own body and `p` is never rebound. click: 382 drawn,
+  381 confirmed by its trace key, 0 contradicted (recall 38.2% → 46.5%).
 - **Cannot tell you:** that a test exercises code it reaches
-  - through a **method on the value a fixture returns**
-    (`runner.invoke(cli)` on click): lane B does not type an unannotated
-    parameter, so the call has no target — the larger loss on click,
-    not counted;
+  - through a **method on a fixture's value that is not a construction**
+    (`return app`, `return app.test_client()` — flask's 702 sites), or
+    an **inherited** method of a constructed class (no base is walked),
+    or a property: lane B does not type an unannotated parameter, and
+    the rule reads a construction, not a type — each refusal counted;
   - through a module-level **`pytestmark`**, an `autouse=` whose value
     is not the literal `True`, or a `usefixtures` argument that is not a
     string (the first two counted; no key row has judged a `pytestmark`);
@@ -92,7 +99,8 @@
   fixture touches reads as reached, which is why it is labelled.
 - **You find out:** **surfaced**: the ingest summary's `fixtures:` line
   and `graph.json`'s `fixtures` block count what was drawn, by `via`,
-  every abstention by reason, and the `pytestmark` marks and non-literal
+  every abstention by reason, the calls drawn on a constructed value and
+  each refusal by reason (`value_calls`, ADR-145), and the `pytestmark` marks and non-literal
   `autouse=` values not followed; `tests_guarding` says "only through a
   pytest fixture (ADR-137)" on a line that is, and says the tests that
   reach a target only through an autouse fixture once, with the
@@ -100,7 +108,7 @@
   named fixture, and only by an autouse one, each on its own line; the
   denominator statement in `list_blind_spots` and every derived context
   manifest (ADR-047/051) names this remainder.
-- **Source:** ADR-007; narrowed by ADR-137 and ADR-139. See also
+- **Source:** ADR-007; narrowed by ADR-137, ADR-139 and ADR-145. See also
   `future_additions.md` → test-reach trimming.
 
 ### C-156 — A test that reads a value but calls nothing guards nothing

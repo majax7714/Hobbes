@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-20, 0.2.62-beta; oracle-lane Go
-counted 2026-09-16): 2,146 pytest (13 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-20, 0.2.63-beta; oracle-lane Go
+counted 2026-09-16): 2,193 pytest (14 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 116 oracle-lane Go with subtests (104 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 47 tsextract + 94 scip node / 84 atlas0. Keep them green. CI
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 144;
+  architecture doesn't already make. Number sequentially (last: 145;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-20) — Hobbes 0.2.62-beta
+## Status (2026-09-20) — Hobbes 0.2.63-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -295,23 +295,22 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **65 of 40**
+  drift test; re-render after filling a review block) reads **66 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.62-beta, ADR-144 (Max: `semantic`): a reference to a
-  shorthand property is a reference to what the shorthand names** (unit
-  `12ad`, in the helper's decode). `const m = require('./m'); m.f()` over
-  `module.exports = { f }` was a silence: the index names the literal's
-  property, and at that property's one range it names the function —
-  both hops its own. cue 881 → 1,005 confirmed (recall 54.3% → 61.8%),
-  xmpp.js 676 → 705 (84.6%), 0 contradicted, fourteen other cells
-  row-identical (`oracle-grading.md` §10.28). Same day: 0.2.61-beta, the
-  cue cell itself — five JavaScript repos, two graded with their
-  dependency tree, the same rows without it (§10.27); 0.2.60-beta, the
-  yarn-v1 `corepack` defect; C-168's remainder read, its entry
-  corrected, an `extends`-chain walk measured and **not built**
-  (§10.26); 0.2.59-beta, ADR-143. **Next:** the candidates in the
-  handoff, each measured first.
+- **Latest — 0.2.63-beta, ADR-145 (Max: route a): a call on the value a
+  fixture constructs is a call on that class** (unit `1527`, Python and
+  pytest only, `syntactic`). `runner.invoke(cli)` on an injected
+  parameter was a silence — the index types no unannotated parameter —
+  but the injection and the fixture's `return CliRunner()` were both in
+  the graph. click 1,755 → 2,136 confirmed (recall 38.2% → 46.5%), 0
+  contradicted, six other-language cells row-identical
+  (`oracle-grading.md` §10.29); a value that is not a construction and
+  an inherited method are refused and stay C-4's. Same day: ADR-139's
+  amendment **proposed** — a module `pytestmark` now has a key row
+  (MissyLabs/missy, drawn at random: 1,265 missed → 0, 0 wrong), its
+  unit briefed and waiting on Max's word. **Next:** that unit, then the
+  candidates in the handoff, each measured first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

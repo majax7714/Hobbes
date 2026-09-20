@@ -1,6 +1,6 @@
 # ADR-145 — A call on the value a fixture constructs is a call on that class
 
-**Date:** 2026-09-20 · **Status:** accepted (Max, 2026-09-20: route (a) — as
+**Date:** 2026-09-20 · **Status:** accepted and **built** (0.2.63-beta, unit `1527`; Max, 2026-09-20: route (a) — as
 worded, `syntactic`, through ADR-137's own lookup before a dispatch), to be
 built as one dispatched unit; measured and simulated before anything was drawn ·
 **Owner:** Max ·
@@ -125,3 +125,26 @@ Read in the tree at `ff92e07`:
   is recorded today — the walk gains both.
 - A module-level `pytestmark` is a count today (`ParsedFile.pytestmark_usefixtures`);
   that is ADR-139's amendment, a separate unit.
+
+## Built (2026-09-20, 0.2.63-beta)
+
+Unit `1527` (81 turns of 140, $6.73; gate right-clear, verify pass, 11 files at file
+grain) built the pipeline's half as briefed: `Symbol.value` and `Symbol.rebound` in
+the Python walk, `fixtures.value_calls`, `_add_value_call_edges` after the
+injections (before `collect_tests`, so reach follows), one clause on the ingest's
+`fixtures:` line, the `minifixval` fixture and its `lane_b` case. The denominator
+statement (the proxy's and the manifests'), the register, the version and the
+records are the developer's commit.
+
+- **On the host before the merge**, in a worktree of the branch: 2,191 pytest, all 14
+  `lane_b` (the new case's first contained run).
+- **The real cell:** click **1,755 → 2,136 confirmed, 0 contradicted or newly
+  suspect, recall 38.2% → 46.5%**; 382 rows, all `syntactic`, no row lost, no tier
+  moved. Six other-language cells row-identical (`oracle-grading.md` §10.29).
+- **The build is stricter than the probe, rightly:** the simulation's 383rd site is a
+  `runner.invoke` inside a nested `def` of a click test; the probe's walk entered
+  it, the rule's *own body* condition refuses it.
+- **Kept from the doer:** the conditions asked in the ADR's order, the first failure
+  the one counted; a `yield from` reads as a valued exit the rule cannot read; a
+  method counted in the class's own module record, because duplicate qualnames
+  collapse in the graph's symbols; this repo 24 sites, 0 drawn, as measured.

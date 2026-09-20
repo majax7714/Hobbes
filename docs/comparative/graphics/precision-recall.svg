@@ -1031,13 +1031,13 @@ repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-
 <text x="519.3" y="1081.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
 <g>
 <title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
-confirmation rate 1,755/2,065 = 85.0%
-recall 1,755/4,595 = 38.2% recall-against-executed (coverage-limited)
-misses by class: observed→closure 1,195, observed→function 750, observed→method 665, observed→class 149, observed→lambda 81
+confirmation rate 2,136/2,447 = 87.3%
+recall 2,136/4,595 = 46.5% recall-against-executed (coverage-limited)
+misses by class: observed→closure 1,195, observed→function 750, observed→method 284, observed→class 149, observed→lambda 81
 trace-graded under its own suite; 16 of 18 suspects are C-60's override/monkeypatch asymmetry</title>
-<circle cx="514.6" cy="966.5" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+<circle cx="539.5" cy="949.25" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
 </g>
-<text x="522.6" y="970.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
+<text x="547.5" y="953.25" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click</text>
 <g>
 <title>hobbes pipeline/ — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-28
 confirmation rate 4,743/5,316 = 89.2%

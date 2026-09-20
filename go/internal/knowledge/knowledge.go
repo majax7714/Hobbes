@@ -1171,7 +1171,8 @@ func (s *Store) ListBlindSpots(scope string) (string, error) {
 	fmt.Fprintf(&b, "what Hobbes cannot see under %s — the work to verify yourself:\n\n", scope)
 	b.WriteString("never in any count below, because it is not detected at all: dynamic\n" +
 		"dispatch and calls through values (C-1), test reach through the value a\n" +
-		"pytest fixture returns or through a fixture its lookup by name cannot\n" +
+		"pytest fixture returns unless the fixture constructs it (ADR-145), or\n" +
+		"through a fixture its lookup by name cannot\n" +
 		"place — a plugin's, a base class's, a module pytestmark (C-4), computed\n" +
 		"route paths (C-5). Every percentage here is a floor over DETECTED call\n" +
 		"sites, not over the repo.\n")

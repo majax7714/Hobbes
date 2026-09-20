@@ -43,7 +43,8 @@ from hobbes.invariants.schema import Invariant, scope_matches
 DENOMINATOR = (
     "never in any count here, because it is not detected at all: dynamic "
     "dispatch and calls through values (C-1), test reach through the value a "
-    "pytest fixture returns or through a fixture its lookup by name cannot "
+    "pytest fixture returns unless the fixture constructs it (ADR-145), or "
+    "through a fixture its lookup by name cannot "
     "place — a plugin's, a base class's, a module pytestmark (C-4), computed "
     "route paths (C-5); every figure is over DETECTED "
     "call sites, not over the repo"

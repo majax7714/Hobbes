@@ -11,9 +11,42 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.62-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.63-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.63-beta — 2026-09-20 (a call on the value a fixture constructs is a call on that class; ADR-145, C-4 narrowed)
+
+**Patch: what the layer draws** — a Python rule beside the fixture lookup, pytest
+only. Built as unit `S-20260920T191040Z-1527`.
+
+- **The silence.** `def test_x(runner): runner.invoke(cli)` drew nothing at
+  `invoke`. The index names the *parameter* at `runner` and emits nothing at the
+  member — scip-python does not type an unannotated parameter. On click that one
+  shape was 381 of 665 missed method pairs.
+- **The rule.** Both hops around the silence were already in the graph: the `uses`
+  injection (ADR-137) and the `semantic` `calls` edge from the fixture to the class
+  at its `return CliRunner()`. Where a fixture's own body is exactly one valued
+  `return`/`yield` of `C(…)` on a bare name, the index names `C` a repo class at
+  that line, the parameter is never rebound, and `m` is one `def` in `C`'s own body
+  (not a property), `p.m(…)` is a `calls` edge to `C.m` — **`syntactic`**, evidence
+  `via: fixture-value`. A construction fixes the runtime class exactly; a return
+  annotation would not, and is not read. Refused and counted in the `fixtures`
+  block (`value_calls.refused`): a rebound parameter, a value that is not a
+  construction (`return app`, `return app.test_client()`), no semantic class edge
+  (so nothing without lane B), an inherited method, a property, a pair the join
+  already drew. The ingest summary's `fixtures:` line says both numbers.
+- **Test reach follows the edge** like any `calls` edge: a click test now reaches
+  `CliRunner.invoke` and what it calls. Resolution coverage is not moved — the join
+  did not resolve the site.
+- **Regraded, stored keys, `-poison`** (`oracle-grading.md` §10.29): **click 1,755 →
+  2,136 confirmed, recall 38.2% → 46.5%; 382 rows added, 381 confirmed, 1 on a line
+  the suite never runs, 0 suspect, no row lost, no tier moved.** cJSON, jsoup,
+  memchr, fzf, fmt, args: row-identical. The simulation before the dispatch drew one
+  site more — a call inside a nested `def`, which the build rightly refuses. Held
+  out, no trace key: flask 11 drawn, read by hand, right; 702 refused.
+- `list_blind_spots` and every derived manifest's denominator statement now say
+  "unless the fixture constructs it (ADR-145)". C-4 narrowed; nothing new registered.
 
 ## 0.2.62-beta — 2026-09-20 (a reference to a shorthand property is a reference to what the shorthand names; ADR-144)
 

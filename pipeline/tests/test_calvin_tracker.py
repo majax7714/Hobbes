@@ -235,3 +235,15 @@ def test_policy_line_with_the_stream_bracket_parses(tmp_path):
     )
     rec2 = ct.parse_session(tmp_path / f"{sid2}.md")
     assert rec2["policy_escalate"] == 1
+
+
+def test_policy_line_with_a_denied_clause_parses(tmp_path):
+    """`; denied: …` (dispatch.py writes it before `; escalated: …`) parses, alone and with an escalation after it; session `1527` was the first to carry one and the tracker could not render."""
+    sid = "S-20260101T000002Z-d00d"
+    _write_session(tmp_path, sid, policy="44 exec decision(s) — `allow`×43, `deny`×1; denied: `/bin/sh -c env | grep x ; python -c \" print(1)`; records: stream opened→closed")
+    rec = ct.parse_session(tmp_path / f"{sid}.md")
+    assert (rec["policy_escalate"], rec["policy_deny"]) == (0, 1)
+    sid2 = "S-20260101T000003Z-f00d"
+    _write_session(tmp_path, sid2, policy="3 exec decision(s) — `allow`×1, `deny`×1, `escalate`×1; denied: `git push`; escalated: `git rm x` → timeout; records: stream opened→closed")
+    rec2 = ct.parse_session(tmp_path / f"{sid2}.md")
+    assert (rec2["policy_escalate"], rec2["policy_deny"]) == (1, 1)

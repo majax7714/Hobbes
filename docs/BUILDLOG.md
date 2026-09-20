@@ -13843,3 +13843,67 @@ records' regrade blocks, the architecture's paragraph and §3.8's row, the ADR's
 *Built*, README, CHANGELOG, the comparative data regenerated, the tracker at 65
 of 40. Nothing registered: the shape was never an entry, and what is left of it
 (a value property; a literal's own method) is refused or C-9/C-58's.
+
+## 2026-09-20 (tenth) — the top-level docs read again; C-4's last two parts measured; ADR-145 built (0.2.63-beta); a module `pytestmark` drawn a key row, its amendment proposed
+
+**The docs first (Max: "review top level documentation and report back").** The
+README, CLAUDE.md, the CHANGELOG's head and the handoff read against the tree:
+consistent at 0.2.62-beta but for five handoff lines (JavaScript still "four repos …
+one with its dependencies"; "unpushed" though `origin/main` was at HEAD; the START
+HERE block dated to the eighth session; "ADR-123 to ADR-142 is built"; a dangling
+"item 7"). Fixed, and the README's harness paragraph — 27 lines of "and … then …"
+from ADR-128 to ADR-144 — cut to nine with the ranges and end-to-end figures
+(`ff92e07`).
+
+**C-4, part 1 — the value a fixture returns (Max: route a).** `count.py` on click's
+post-ADR-144 report: 419 of 665 missed `observed→method` pairs sit at `p.m(…)` on a
+parameter in a test file, 381 of them `runner.*`. The facts said why and what is
+there: the index names the *parameter* at `runner`, emits nothing at `invoke`, and
+names `CliRunner` at the fixture's `return CliRunner()` — an edge the graph already
+carries. `PREREG.md` first; `simulate.py` with a stand-in lookup, then
+`simulate_real.py` through `fixtures.injections` itself: click 383 drawn, 381
+confirmed, 0 contradicted; flask 11 by hand, right, 702 refused as not a
+construction; attrs and this repo 0. No node minted. Three routes to Max (build as
+worded / key a second Python repo first / not at all — it is a three-hop inference
+as the `extends` walk was); **route a**. ADR-145 accepted with its code facts.
+
+**Unit `1527`:** 81 turns of 140, $6.73, 11 files at file grain, gate clear, verify
+pass, **right-clear**. On the host: pytest 2,191, all 14 `lane_b` (the new
+`minifixval` case's first contained run). `lang-regrade.sh` pre/post: click **1,755
+→ 2,136 confirmed, recall 38.2% → 46.5%, 0 contradicted, 382 rows all `syntactic`**;
+cJSON, jsoup, memchr, fzf, fmt, args row-identical. **The build drew one site fewer
+than the simulation**: a `runner.invoke` inside a nested `def` of a click test. The
+probe's `own_nodes` pushed a top-level nested def's children; the rule's *own body*
+condition refuses it. The probe's defect, the build's refusal. Merged `--no-ff`
+(`87da32f`).
+
+**The session's one deny found two defects of the record's own.** The doer's `env |
+grep …; python -c "…"` was denied — the first deny any session log carried. Its
+newlines split the log's one-line Policy entry (`dispatch.summarize_flight` now
+collapses whitespace before clipping; a test), and the tracker's Policy pattern had
+no `; denied: …` clause at all (added; a test). This log's line was joined by hand
+and the review says so. Tracker 66 of 40, denies 1.
+
+**C-4, part 2 — a module `pytestmark` (Max: "good to run the draw").**
+`DRAW-RULE.md` first: GitHub code search, 71 repos, seed 20260920. **Walk 1 took
+none** — the hits are pytest's own suite writing the line into a string (and thirty
+copies), GDAL's one real use (no binary wheel) and its vendored copies, docstrings,
+rpm specs. `DRAW-RULE-2.md`, stated before walk 2: read the *clone* with `ast`, not
+the search's first hit. Passed on the way: pytest-houdini (strings again; `grep
+^pytestmark` had matched inside one), tractor (`pytest_plugins` fixtures,
+`not-in-repo`), cadrumo (706 marked files; Python ≥3.13, the image has 3.12).
+**MissyLabs/missy @ `223dbe8`**, position 32: 18 marked files, the fixture in the
+root conftest. Key in the image, no network: 23,480 tests. As built: 34,505 right, 0
+wrong, 1,265 missed — all the pytestmark's. With the rule: 35,770, 0, 0. **A mistake
+made and caught:** the first collection passed `-v -q`, which cancel; pytest hid an
+autouse `_…` fixture and the base arm read 26,474 "wrong". `-v` alone. ADR-139's
+amendment is written as **proposed**; its unit is briefed
+(`~/.hobbes/bench/c4-pytestmark/units/`) and not dispatched — it touches the same
+files as `1527` and waits on Max's word.
+
+**0.2.63-beta:** the denominator statement (proxy and manifests) says "unless the
+fixture constructs it (ADR-145)"; C-4 narrowed, nothing registered; §10.29, the
+click record's regrade block, the architecture's paragraph, §3.8's Python row and
+the §8 header, README, CHANGELOG, the comparative data regenerated (`render.py
+check` green). Go `./...` green; pytest 2,193; binaries and the image rebuilt, this
+repo re-ingested, the knowledge server restarted.
