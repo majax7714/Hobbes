@@ -13720,3 +13720,27 @@ HEAD; restart the knowledge server (C-65).
 
 **Seen and not traced:** hono's two yarn-v1 zones fail to provision because
 the ingest hands the container the host's corepack path. In the handoff.
+
+## 2026-09-20 (ninth) — the top-level docs read against the tree; the knowledge server's restart made the closing session's step (docs only)
+
+A read of the README, CLAUDE.md, the CHANGELOG head, the handoff, the
+workstreams header and the architecture's §8 header against the tree at
+`9897399`. The version copies agree (0.2.59-beta everywhere, §8
+included). **Drift found and fixed:** the README's ADR range read
+"ADR-001 to ADR-141" (the tree has 143) and "sixty-one session logs" (63
+on disk, the tracker's number); its list of what the harness built stopped
+at ADR-141, so ADR-142 and ADR-143 were added with their measured effect;
+the workstreams header stopped at 0.2.57-beta; the handoff said the
+seventh and eighth sessions' commits were unpushed when `origin/main` is
+at `9897399`.
+
+**The restart line (Max).** Every handoff since C-65 has ended "restart
+the knowledge server", and every next session read it after the server
+had already restarted: `sandbox/knowledge-serve` is `podman run --rm`
+under `.mcp.json`, so a new session's server is a new container from the
+current image (checked: this session's container was created after the
+release commit). The instruction was stale by construction when read.
+Now the restart is the last step of the session that rebuilt the image,
+and the handoff does not carry it — CLAUDE.md's closing paragraph and the
+handoff's practical note say so; the version that opens every answer is
+the next session's check. No code, no register entry, no version move.

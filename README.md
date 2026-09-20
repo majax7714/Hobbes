@@ -444,7 +444,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and sixty-one session logs stand. The
+dispatched on 2026-09-12, and sixty-three session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -469,7 +469,11 @@ a pytest fixture injection as a `uses` edge that test reach follows
 (ADR-137, ADR-139), and a `.h` claimed through the headers C++ has
 claimed (ADR-138: ScummVM 629 → 273 `.h` read as C), and a call through a
 CommonJS re-export followed by lane A (ADR-141: Express's recall 22.4% →
-65.3% at no contradiction).
+65.3% at no contradiction), and a TS/JS construction drawn as a call
+where the index names the constructor (ADR-142: xmpp.js's recall 66.4% →
+81.2%), and a renamed callee matched at its own column where both lanes
+name one definition (ADR-143: 134 tiers raised on seven cells, no row
+moved).
 [`CHANGELOG.md`](CHANGELOG.md) has every
 version, and names the session that built it where one did.
 
@@ -484,7 +488,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-141 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-143 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |

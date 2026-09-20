@@ -1,11 +1,13 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-20 (eighth session); Hobbes 0.2.59-beta on `main`.**
-Max pushed the sixth session's work through `e50ff2a`; the seventh and
-eighth sessions' commits are on `main`, **unpushed**. The image and the
-proxy were rebuilt at 0.2.59-beta and this repo re-ingested at HEAD; the
-knowledge server serves the image it started from until it is restarted
-(C-65): **restart it.**
+**Reviewed 2026-09-20 (ninth session); Hobbes 0.2.59-beta on `main`.**
+Max pushed through the eighth session's release commit (`9897399`); what
+the ninth session adds is on `main`, unpushed. The image and the proxy
+are at 0.2.59-beta and this repo is ingested at that release. A new
+session's knowledge server is a new container from the current image
+(`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
+the restart after a rebuild is the closing session's last step, never a
+line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
   0.2.59-beta are untagged. Tags stay Max's call each time.
@@ -414,7 +416,11 @@ held.
   go/bin/hobbes-session start --repo <a tiny repo> --role implementer
   --egress api.anthropic.com --task "Reply ok." --max-turns 1`: expect a
   401, tunnels to `api.anthropic.com:443`, no refusals.
-- **After an image rebuild, restart the knowledge server** (C-65).
+- **After an image rebuild, restart the knowledge server** (C-65) —
+  inside the session that rebuilt it, as its last step (`/mcp`
+  reconnect, or stop the server's container). Do not hand it on: the
+  next session starts its own container from the current image, and
+  the version that opens every answer is the check.
 - **The comparative graphics** are rendered by
   `bench/oracle/report/render.py` (`cells`, `render`, `check`); a
   caption that names cells reads them from `cells.json`.

@@ -318,5 +318,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
 
 When you finish a session: append to `docs/BUILDLOG.md`, rewrite
 `docs/session-handoff.md` if the resume point moved, and **replace**
-this block's lines when the headline changes. Never add a "before it"
-entry: the history belongs in the CHANGELOG and the BUILDLOG.
+this block's lines when the headline changes. If the image was rebuilt,
+restart the knowledge server as the session's last step (C-65) and do
+not write "restart it" into the handoff: a new session starts its own
+server from the current image, so the line is stale when it is read.
+Never add a "before it" entry: the history belongs in the CHANGELOG and
+the BUILDLOG.
