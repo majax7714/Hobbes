@@ -1,8 +1,9 @@
 # ADR-144 — A reference to a shorthand property is a reference to what the shorthand names
 
-**Date:** 2026-09-20 · **Status:** proposed — measured, probed in the image and
-simulated on nine cells before anything was drawn; **one line is open for Max,
-the tier** (see *The open line*) · **Owner:** Max ·
+**Date:** 2026-09-20 · **Status:** accepted (Max, 2026-09-20: the tier is
+**`semantic`**, route (a) of *The open line*), to be built as one dispatched
+unit; measured, probed in the image and simulated on nine cells before anything
+was drawn · **Owner:** Max ·
 **Source:** the cell of `oracle-grading.md` §10.27 (Blueturboguy07/cue), where
 176 misses were one untraced shape; his standing direction — honesty and
 accuracy before a recall number, and a rule fails toward drawing less.
@@ -86,3 +87,15 @@ because the join meets an ordinary lane B reference.
 The 49 cue misses whose target is a member *written in* a literal
 (`getSettings() {…}`, `MODES.say.buildSystem`) — no symbol, C-9/C-58's floor.
 A value property (`delta: alpha`) — refused; unmeasured.
+
+## Accepted (Max, 2026-09-20: `semantic`)
+
+"Yes go with semantic." The rule is the helper's and the rows are what the join
+makes of an ordinary reference. **The code facts the unit's brief rests on, read
+in the tree:** `decode` (`scip/index.mjs`) collects definitions in a first pass
+that skips every non-`GRAPH_KINDS` kind after adding it to `inRepoMonikers`, and
+files a reference with no `definitions` entry under `external`; `classify` reads
+a descriptor ending `:` as `meta`; the index cache keys on `index.mjs`'s content
+(`indexcache.py`), so a changed helper misses it and the facts schema — hence
+`HELPER_VERSION` — does not move; `minicjs` is read by
+`test_tsjs_reexport.py` alone.
