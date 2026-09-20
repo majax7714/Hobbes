@@ -30,6 +30,7 @@ from pathlib import Path, PurePosixPath
 from hobbes.extract import evidence as ev
 from hobbes.extract import (
     containment,
+    decorators,
     fixtures,
     indexcache,
     ingestlock,
@@ -666,6 +667,24 @@ def _build_symbol_layer(
         # Additive, and absent on a repo that defines no fixture and looks
         # no parameter up, as `operators` and `constructions` are.
         graph["fixtures"] = fixture_counts
+    # ADR-147, appended after the projection for the same reason as the two
+    # above: `@f(…)` is two calls, and the index names only the first.
+    # Applying what `f(…)` returned is written nowhere — there is no token
+    # for the index to name — so no occurrence exists for the join to match
+    # and no joined edge to wait for. What the rule reads is the settled
+    # graph's own answer at the decorator's line (the `semantic` edge
+    # ADR-146 put there) plus the factory's written shape, so it runs here,
+    # after the projection and before the test map, whose reach follows
+    # these edges as it follows any `calls` edge. Resolution coverage is
+    # deliberately not moved (ADR-147, *What this leaves*): there is no
+    # site to count, so the percentage stays the floor it was.
+    with timings.step("decorators"):
+        factory_rows, factory_counts = decorators.factory_calls(
+            modules, parsed, graph["symbols"], graph["symbol_edges"]
+        )
+        _add_factory_call_edges(graph, factory_rows)
+        if factory_counts:
+            graph["decorators"] = {"factory_calls": factory_counts}
     if injections is not None:
         injections.extend(drawn)
     # C-153's surfacing (ADR-125 §4), read off the edges the projection has
@@ -886,6 +905,44 @@ def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
                 "calls",
                 [
                     {"path": path, "line": line, "via": fixtures.FIXTURE_VALUE}
+                    for path, line in sorted(evidence)
+                ],
+                tier=SYNTACTIC,
+                lane=LANE_TREE_SITTER,
+            )
+            for (source, target), evidence in sorted(sightings.items())
+        ],
+        key=_edge_order,
+    )
+
+
+def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
+    """Draw each decorator-factory application as one ``calls`` edge
+    (ADR-147), evidence at every decorator that made it.
+
+    The same shape as :func:`_add_value_call_edges`: an end the symbol
+    layer does not carry is dropped rather than drawn to nothing, the
+    sightings merge per ``(from, to)``, and the list is re-sorted by the
+    projection's own key. The tier is ``syntactic`` — the chain is read
+    from the tree and from one semantic edge, which is not the same as the
+    index having answered at the application, where it answered nothing.
+    """
+    ids = {symbol["id"] for symbol in graph["symbols"]}
+    sightings: dict[tuple[str, str], set] = defaultdict(set)
+    for call in drawn:
+        if call["from"] in ids and call["to"] in ids:
+            sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
+    if not sightings:
+        return
+    graph["symbol_edges"] = sorted(
+        graph["symbol_edges"]
+        + [
+            tiered_edge(
+                source,
+                target,
+                "calls",
+                [
+                    {"path": path, "line": line, "via": decorators.DECORATOR_FACTORY}
                     for path, line in sorted(evidence)
                 ],
                 tier=SYNTACTIC,
