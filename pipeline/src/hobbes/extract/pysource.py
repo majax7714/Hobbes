@@ -77,6 +77,18 @@ class Decorator:
     #: ``True`` nor ``False``: a name, a call, an expression. ``autouse=FLAG``
     #: is here; ``autouse=False`` is in neither tuple, having been read.
     unread_kwargs: tuple[str, ...] = ()
+    #: Whether the decorator is written **call-form** — ``@f(…)`` rather
+    #: than a bare ``@f`` (ADR-147). The two digest identically otherwise
+    #: (a bare ``@f`` has no arguments, and neither does ``@f()``), and
+    #: they are different applications: ``@f`` applies ``f`` itself, while
+    #: ``@f(…)`` applies what ``f(…)`` returned.
+    called: bool = False
+    #: The line of the callee's terminal identifier for a call-form
+    #: decorator whose callee is a name chain — the line the semantic lane
+    #: puts its occurrence on, and therefore the one a rule asking what the
+    #: index resolved there has to match (ADR-147). ``None`` for a bare
+    #: decorator and for a callee :func:`_dotted` cannot name (``@decos[0]()``).
+    callee_line: int | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +135,18 @@ class Symbol:
     #: know when it does not. Own body only: a nested ``def``'s assignment
     #: binds in that def, not here.
     rebound: tuple[str, ...] = ()
+    #: The name a **decorator factory** hands back, or ``None`` (ADR-147).
+    #: Set on a function or method only, and only where every path returns
+    #: one and the same nested ``def``: the definition is not ``async``, its
+    #: own body holds no ``yield``, it holds at least one ``return``, every
+    #: one of them is ``return g`` for the same bare name ``g``, ``g`` is
+    #: not a parameter, and the own body binds ``g`` exactly once — by a
+    #: plain nested ``def`` carrying no decorator. Under that shape
+    #: whatever ``f(…)`` returns *is* ``g``, on every path, which is the
+    #: whole of the claim a reader may make from it; ``return g(x)``,
+    #: ``return a.g``, a bare ``return``, two names, a re-assigned or
+    #: decorated or class-shaped ``g`` are each ``None``.
+    returns_inner: str | None = None
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -390,7 +414,12 @@ def _decorator_expr(node: Node) -> Node:
 
 
 def _decorator(node: Node) -> Decorator:
-    """Digest one ``decorator`` node."""
+    """Digest one ``decorator`` node.
+
+    Which of the two forms it was is kept (ADR-147): a bare ``@f`` applies
+    ``f``, a call-form ``@f(…)`` applies what ``f(…)`` returned, and the
+    digest of ``@f`` and ``@f()`` is otherwise the same record.
+    """
     expr = _decorator_expr(node)
     if expr.type != "call":
         return Decorator(_dotted(expr), (), {}, _line(node))
@@ -404,8 +433,15 @@ def _call(expr: Node, line: int) -> Decorator:
     Split out of :func:`_decorator` because a mark is the same expression
     wherever it is written — after an ``@``, or as the value of a
     module-level ``pytestmark`` (ADR-139's amendment).
+
+    Everything digested here is call-form, so ``called`` is True and
+    ``callee_line`` is the callee's terminal identifier — where the
+    semantic lane puts its occurrence, which is not *line* whenever the
+    chain wraps (ADR-147).
     """
-    dotted = _dotted(expr.child_by_field_name("function"))
+    function = expr.child_by_field_name("function")
+    dotted = _dotted(function) if function is not None else None
+    terminal = _terminal(function) if function is not None else None
     args: list[str] = []
     kwargs: dict = {}
     true_kwargs: list[str] = []
@@ -437,7 +473,16 @@ def _call(expr: Node, line: int) -> Decorator:
                 # that the keyword is off (ADR-139).
                 unread_kwargs.append(key)
     return Decorator(
-        dotted, tuple(args), kwargs, line, tuple(true_kwargs), tuple(unread_kwargs)
+        dotted,
+        tuple(args),
+        kwargs,
+        line,
+        tuple(true_kwargs),
+        tuple(unread_kwargs),
+        called=True,
+        callee_line=(
+            _line(terminal) if dotted is not None and terminal is not None else None
+        ),
     )
 
 
@@ -616,6 +661,118 @@ def _rebound(node: Node, params: tuple[tuple[str, int], ...]) -> tuple[str, ...]
     return tuple(sorted(bound & names))
 
 
+def _own_definitions(node: Node):
+    """Every ``def`` and ``class`` written in a definition's own body, as
+    ``(definition node, decorated?)`` (ADR-147).
+
+    The companion of :func:`_own_body`, which stops *at* these nodes and so
+    never yields them: what a definition's own scope binds by writing a
+    nested definition is exactly what that walk leaves out. A decorated
+    nested def is its ``decorated_definition``'s child, and whether it
+    carried a decorator is the fact the rule needs — a decorated ``g`` is
+    not the ``g`` the ``def`` wrote. The descent stops at each one: a
+    definition written inside another binds in *that* one's scope.
+    """
+    body = node.child_by_field_name("body")
+    if body is None:
+        return
+    stack = list(body.children)
+    while stack:
+        current = stack.pop()
+        kind = current.type
+        if kind == "decorated_definition":
+            definition = current.child_by_field_name("definition")
+            if definition is not None:
+                yield definition, True
+            continue
+        if kind in ("function_definition", "class_definition"):
+            yield current, False
+            continue
+        if kind == "lambda":
+            continue
+        stack.extend(current.children)
+
+
+def _parameter_names(node: Node) -> frozenset[str]:
+    """Every name a definition's parameter list binds, of any kind.
+
+    Wider than :func:`_parameters`, which keeps the ones pytest could fill:
+    a defaulted parameter, ``*args`` and ``**kwargs`` bind names too, and a
+    rule asking whether a returned name is the definition's own (ADR-147)
+    has to see all of them.
+    """
+    params = node.child_by_field_name("parameters")
+    out: set[str] = set()
+    for param in params.named_children if params else []:
+        # `y=1` and `z: int = 2` name themselves; `x: int` wraps its name;
+        # `*args` and `**kw` wrap theirs under a splat pattern.
+        target = param.child_by_field_name("name") or param
+        if target.type == "typed_parameter" and target.named_children:
+            target = target.named_children[0]
+        if (
+            target.type in ("list_splat_pattern", "dictionary_splat_pattern")
+            and target.named_children
+        ):
+            target = target.named_children[0]
+        if target.type == "identifier":
+            out.add(_text(target))
+    return frozenset(out)
+
+
+def _returns_inner(node: Node) -> str | None:
+    """The nested ``def`` a decorator factory hands back (ADR-147).
+
+    The strict wording: *every* return in the definition's own body is
+    ``return g`` for one bare name, and that name is one plain,
+    undecorated nested ``def``. Then whatever ``f(…)`` returns is ``g`` on
+    every path, and a reader may say so exactly; the loose reading (some
+    return is ``g``, another is anything) would claim it where click's
+    ``command`` — ``return decorator(func)`` beside ``return decorator`` —
+    does not call ``decorator`` at all.
+
+    Everything else is None, and the refusals are the shape of the claim:
+    an ``async`` def or a generator never returns the def itself, a bare
+    ``return`` is a path returning ``None``, and a ``g`` that is also
+    assigned, imported, declared ``global``, defined twice or written as a
+    ``class`` is not the def the rule read.
+    """
+    if any(child.type == "async" for child in node.children):
+        return None
+    name: str | None = None
+    for current in _own_body(node):
+        if current.type == "yield":
+            return None  # a generator hands back values, never itself
+        if current.type != "return_statement":
+            continue
+        value = current.named_children[0] if current.named_children else None
+        if value is None or value.type != "identifier":
+            return None
+        written = _text(value)
+        if name is not None and written != name:
+            return None
+        name = written
+    if name is None or name in _parameter_names(node):
+        return None
+    # Bound exactly once, and by the nested `def`. The assignment forms are
+    # :func:`_rebound`'s walk, asked about this one name; the definitions
+    # are the walk that one deliberately does not do.
+    if _rebound(node, ((name, 0),)):
+        return None
+    definitions = [
+        (definition, decorated)
+        for definition, decorated in _own_definitions(node)
+        if _text(definition.child_by_field_name("name") or definition) == name
+    ]
+    if len(definitions) != 1:
+        return None
+    definition, decorated = definitions[0]
+    if decorated or definition.type != "function_definition":
+        return None
+    if any(child.type == "async" for child in definition.children):
+        return None
+    return name
+
+
 def _parametrize_names(node: Node) -> tuple[str, ...] | None:
     """The argument names one ``parametrize`` decorator binds, in either
     spelling — ``"a, b"`` or ``["a", "b"]`` / ``("a", "b")`` — or None when
@@ -786,6 +943,9 @@ def _walk(
                 # having none: both facts are a function's (ADR-145).
                 value=_returned_value(node) if is_function else None,
                 rebound=_rebound(node, params) if is_function else (),
+                # A class is no decorator factory under this rule either:
+                # ADR-147 reads a `def` that returns a `def`.
+                returns_inner=_returns_inner(node) if is_function else None,
             )
         )
         body = node.child_by_field_name("body")

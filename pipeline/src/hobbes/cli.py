@@ -337,6 +337,35 @@ def _print_fixtures(counts: dict | None) -> None:
     print(line + ("; " + ", ".join(rest) if rest else ""))
 
 
+def _print_decorators(counts: dict | None) -> None:
+    """The decorator factories whose application was drawn as a call of the
+    def they return (ADR-147) — beside the fixture line, where the reader
+    meets the other edges appended after the join.
+
+    ``@f(…)`` is two calls and the index names only the first, so this line
+    says how many second halves the rule could claim exactly and how many
+    it declined; the largest reasons are named, because a refusal this rule
+    counts is the size of what a factory's shape did not settle. Nothing is
+    printed where the block is absent — a repo whose decorators resolved to
+    nothing in-repo was never asked (P6).
+    """
+    factory = (counts or {}).get("factory_calls")
+    if not factory:
+        return
+    refused = factory.get("refused", {})
+    largest = [
+        f"{n} {reason}"
+        for reason, n in sorted(refused.items(), key=lambda pair: (-pair[1], pair[0]))
+        if n
+    ][:2]
+    print(
+        f"    decorators: {factory.get('drawn', 0)} decorator-factory "
+        "application(s) drawn as calls of the def the factory returns "
+        f"(ADR-147); {sum(refused.values())} refused"
+        + (f", the largest {', '.join(largest)}" if largest else "")
+    )
+
+
 def _print_containment(record: dict | None) -> None:
     """Where lane B ran (ADR-092), and what a contained step that ran repo
     code could still write (ADR-128 §2).
@@ -467,6 +496,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     _print_operators(graph.get("operators"))
     _print_constructions(graph.get("constructions"))
     _print_fixtures(graph.get("fixtures"))
+    _print_decorators(graph.get("decorators"))
     print(f"  tests.json:      {len(tests['tests'])} tests")
     print(
         f"  interfaces.json: {len(interfaces['routes'])} routes, "

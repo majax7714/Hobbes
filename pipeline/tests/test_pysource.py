@@ -108,6 +108,41 @@ class TestSymbols:
         assert symbol.decorators[0].args == ()
 
 
+class TestCallForm:
+    """Which of the two applications a decorator is (ADR-147): ``@f``
+    applies ``f``, ``@f(…)`` applies what ``f(…)`` returned. The digests
+    are otherwise identical, and ``callee_line`` is where the semantic
+    lane puts its occurrence — not always the ``@``'s own line."""
+
+    def decorators(self, text: str):
+        (symbol,) = parse(text + "def h():\n    pass\n").symbols
+        return symbol.decorators
+
+    def test_a_bare_decorator_is_not_call_form(self):
+        (bare,) = self.decorators("@f\n")
+        assert (bare.called, bare.callee_line) == (False, None)
+
+    def test_a_call_with_no_arguments_is_call_form(self):
+        (called,) = self.decorators("@f()\n")
+        assert (called.dotted, called.called, called.callee_line) == ("f", True, 1)
+
+    def test_a_dotted_callee_sits_on_its_terminal_identifier(self):
+        (called,) = self.decorators('@a.b("x")\n')
+        assert (called.dotted, called.called, called.callee_line) == ("a.b", True, 1)
+
+    def test_a_callee_the_walk_cannot_name_has_no_line(self):
+        # A subscript names no chain, so there is nothing for the index to
+        # have resolved and nothing to match against.
+        (called,) = self.decorators("@decos[0]()\n")
+        assert (called.dotted, called.called, called.callee_line) == (None, True, None)
+
+    def test_a_chain_wrapped_across_lines_keeps_the_callees_line(self):
+        # The `@` is on line 1 and `b` on line 2; ADR-147 does not ask
+        # about a site whose callee is not where the decorator is.
+        (called,) = self.decorators('@a.\\\n    b("x")\n')
+        assert (called.dotted, called.line, called.callee_line) == ("a.b", 1, 2)
+
+
 class TestParameters:
     """What pytest's fixture lookup needs from the walk (ADR-137): the
     parameters a fixture could fill, each with the line it is written on."""
@@ -262,6 +297,155 @@ class TestRebound:
     def test_only_parameters_are_reported(self):
         p = parse("def f(p):\n    other = 1\n")
         assert next(s for s in p.symbols if s.qualname == "f").rebound == ()
+
+
+class TestReturnsInner:
+    """The nested ``def`` a decorator factory hands back (ADR-147), under
+    the strict wording: every return is ``return g``, and ``g`` is one
+    plain undecorated nested ``def``. Anything else is None — on a path
+    the rule cannot read, ``f(…)`` does not return ``g`` and the
+    decorator below it does not call ``g``."""
+
+    def inner(self, text: str, qualname: str = "f"):
+        return next(s for s in parse(text).symbols if s.qualname == qualname).returns_inner
+
+    FACTORY = (
+        "def f(label):\n"
+        "    def g(fn):\n"
+        "        return fn\n"
+        "\n"
+        "    return g\n"
+    )
+
+    def test_the_plain_factory(self):
+        assert self.inner(self.FACTORY) == "g"
+
+    def test_a_method_factory(self):
+        text = (
+            "class R:\n"
+            "    def register(self, name):\n"
+            "        def g(fn):\n"
+            "            return fn\n"
+            "\n"
+            "        return g\n"
+        )
+        assert self.inner(text, "R.register") == "g"
+
+    def test_two_returns_of_the_same_name(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if label:\n"
+            "        return g\n"
+            "    return g\n"
+        )
+        assert self.inner(text) == "g"
+
+    def test_a_return_of_the_applied_name_beside_it_settles_nothing(self):
+        # click's `command`: on that path the site does not call `g` — `f`
+        # does. The loose wording would claim it; the strict one does not.
+        text = (
+            "def f(func):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if func:\n"
+            "        return g(func)\n"
+            "    return g\n"
+        )
+        assert self.inner(text) is None
+
+    def test_a_bare_return_beside_it_is_a_path_that_returns_none(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if label:\n"
+            "        return\n"
+            "    return g\n"
+        )
+        assert self.inner(text) is None
+
+    def test_no_return_at_all(self):
+        assert self.inner("def f(label):\n    def g(fn):\n        return fn\n") is None
+
+    def test_a_reassigned_name(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    g = wrap(g)\n"
+            "    return g\n"
+        )
+        assert self.inner(text) is None
+
+    def test_a_parameter_is_not_the_defs_own(self):
+        assert self.inner("def f(g):\n    return g\n") is None
+
+    def test_a_parameter_with_a_default_is_a_parameter_too(self):
+        assert self.inner("def f(g=None):\n    return g\n") is None
+
+    def test_a_decorator_on_the_returned_def(self):
+        text = (
+            "def f(label):\n"
+            "    @wraps(label)\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    return g\n"
+        )
+        assert self.inner(text) is None
+
+    def test_a_decorator_inside_the_returned_def_is_fine(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        @wraps(fn)\n"
+            "        def inner(*a):\n"
+            "            return fn(*a)\n"
+            "\n"
+            "        return inner\n"
+            "\n"
+            "    return g\n"
+        )
+        assert self.inner(text) == "g"
+
+    def test_an_async_factory(self):
+        assert self.inner("async " + self.FACTORY) is None
+
+    def test_a_generator(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    yield g\n"
+        )
+        assert self.inner(text) is None
+
+    def test_a_nested_class_of_that_name(self):
+        text = "def f(label):\n    class g:\n        pass\n\n    return g\n"
+        assert self.inner(text) is None
+
+    def test_a_return_inside_the_nested_def_is_that_defs(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return other\n"
+            "\n"
+            "    return g\n"
+        )
+        assert self.inner(text) == "g"
+
+    def test_a_returned_lambda_is_no_def(self):
+        assert self.inner("def f(label):\n    return lambda fn: fn\n") is None
+
+    def test_a_class_has_no_returned_def(self):
+        assert self.inner("class f:\n    pass\n") is None
 
 
 class TestParametrized:
