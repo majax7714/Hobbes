@@ -366,6 +366,32 @@ class TestJoinFacts:
         assert record["reaches_modules"] == ["src/store"]
 
 
+class TestConstructionTokens:
+    """ADR-142: helper v6's `new` tokens reach the join as a position set
+    per file, and reach the call sites not at all."""
+
+    def joined(self, constructions):
+        return join_facts(
+            {**facts([file_facts("src/main.ts")]), "constructions": constructions}
+        )
+
+    def test_the_tokens_arrive_as_a_position_set_per_file(self):
+        joined = self.joined({"src/main.ts": [[3, 16], [7, 4]]})
+        assert joined["constructions"] == {"src/main.ts": frozenset({(3, 16), (7, 4)})}
+        # and no site of any kind came with them: a construction writes no
+        # callee lane A could resolve, so it is nobody's denominator.
+        assert joined["call_sites"] == []
+
+    def test_a_file_that_writes_no_new_has_no_entry(self):
+        assert self.joined({"src/main.ts": []})["constructions"] == {}
+        assert self.joined({})["constructions"] == {}
+
+    def test_facts_without_the_key_read_as_no_tokens(self):
+        # The lane-A-only path and every canned-facts caller: absent is
+        # empty, never an error.
+        assert join_facts(facts([file_facts("src/main.ts")]))["constructions"] == {}
+
+
 class TestPerCaseReach:
     """C-11: a JS case reaches what *it* calls, not what its file calls.
 

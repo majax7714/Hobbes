@@ -26,7 +26,7 @@ import { Node, Project, ts } from "ts-morph";
 // v3 (C-5 surfacing): every file carries `routes_declined` — route
 // registrations seen and declined because their path is computed, so the
 // http-ts pack can report the absence instead of leaving it silent.
-export const HELPER_VERSION = 5;
+export const HELPER_VERSION = 6;
 // v4, since 2026-09-05 (C-63 surfaced): a call whose callee is itself an
 // expression — an element access, a call's result, a parenthesised
 // value — is a `calls` record named `<expr>` alone, with callee and
@@ -42,6 +42,12 @@ export const EXPR_CALLEE_NAME = "<expr>";
 // pick at that site. The oracle lane found the shape on ajv (3 rows) and
 // hono (7 rows) drawn at semantic certainty.
 export const UNION_MEMBER = "union-member";
+// v6, since 2026-09-20 (ADR-142): a top-level `constructions` map — per
+// file, the 1-based line and 0-based column of every `new` expression's
+// callee terminal identifier. Recorded beside `calls` and deliberately
+// not in it (`extractConstructions`): lane A can say a construction was
+// written, never what was constructed, so the join reads the token and
+// lane B names the constructor. No `calls` record changed.
 
 const EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
@@ -729,6 +735,40 @@ function extractCalls(sourceFile, repoRoot, fileSet) {
   );
 }
 
+/**
+ * Every construction token in the file (ADR-142): the 1-based line and
+ * 0-based column of each `new` expression's callee terminal identifier,
+ * sorted.
+ *
+ * The same `terminalIdentifier` `extractCalls` uses, positioned the same
+ * way, because the whole question the join asks of these is whether lane
+ * B put a resolution at *exactly* this token.
+ *
+ * **Not a call site**, and that is ADR-132's reason a language later: at
+ * a `new X()` lane A cannot tell what was constructed, only that a
+ * construction was written. The checker's answer there is the class,
+ * while the constructor that runs may be a base's — 55 of 58 such rows
+ * read contradicted when the shape was measured — so a construction
+ * reaches no `calls` record, no callee fallback, no veto, no
+ * resolution-coverage denominator and no tail class. What lane A states
+ * here is one fact: a construction was written at this token.
+ *
+ * A callee with no terminal identifier records nothing: `new this(…)`
+ * and `new (pick())()` name no symbol either lane could agree on (C-1),
+ * and there is no token for the index to meet.
+ */
+function extractConstructions(sourceFile) {
+  const tokens = [];
+  sourceFile.forEachDescendant((node) => {
+    if (!Node.isNewExpression(node)) return;
+    const terminal = terminalIdentifier(node.getExpression());
+    if (!terminal) return;
+    const { line, column } = sourceFile.getLineAndColumnAtPos(terminal.getStart());
+    tokens.push([line, column - 1]);
+  });
+  return tokens.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+}
+
 function extractEnvReads(sourceFile) {
   const reads = [];
   sourceFile.forEachDescendant((node) => {
@@ -1061,6 +1101,10 @@ export function extractRepo(repoRoot) {
 
   const out = [];
   const errors = [];
+  // ADR-142's tokens, kept out of the per-file records because they are
+  // not facts about a call: one entry per file that writes a `new`, and
+  // none at all for a file that does not.
+  const constructions = new Map();
   for (const [solution, its] of [...unclaimed.entries()].sort()) {
     // Visible, not silent (P1): the files a solution config's projects
     // leave unclaimed ran under the default options, not the repo's.
@@ -1149,6 +1193,10 @@ export function extractRepo(repoRoot) {
       const routeFacts = attempt("routes", { routes: [], declined: [] }, () =>
         extractRoutes(sourceFile, root, fileSet)
       );
+      const tokens = attempt("constructions", [], () =>
+        extractConstructions(sourceFile)
+      );
+      if (tokens.length) constructions.set(file, tokens);
       out.push({
         calls: attempt("calls", [], () => extractCalls(sourceFile, root, fileSet)),
         env_reads: attempt("env_reads", [], () => extractEnvReads(sourceFile)),
@@ -1165,6 +1213,9 @@ export function extractRepo(repoRoot) {
   out.sort((a, b) => a.path.localeCompare(b.path));
   errors.sort((a, b) => a.path.localeCompare(b.path) || a.stage.localeCompare(b.stage));
   return {
+    constructions: Object.fromEntries(
+      [...constructions].sort((a, b) => a[0].localeCompare(b[0]))
+    ),
     errors,
     files: out,
     helper_version: HELPER_VERSION,

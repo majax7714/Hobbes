@@ -830,6 +830,88 @@ class TestDeclaredDependencies:
         assert scipsource.declared_dependencies(tmp_path) == []
 
 
+class TestTsConstructionTargets:
+    """ADR-142: what the index says was constructed, read off its own
+    definition rows — a constructor draws to the class that declares it,
+    anything that is not a class draws to itself, and a class draws
+    nothing at all."""
+
+    PREFIX = "scip-typescript npm app 1.0.0 "
+
+    def rows(self, *rows):
+        return [
+            {"file": file, "line": line, "kind": kind, "moniker": self.PREFIX + desc}
+            for file, line, kind, desc in rows
+        ]
+
+    def targets(self, *rows):
+        from hobbes.extract.scipsource import ts_construction_targets
+
+        return ts_construction_targets(self.rows(*rows))
+
+    def test_a_constructor_draws_to_the_class_that_declares_it(self):
+        # `Base#` and ``Base#`<constructor>`().`` — the class's moniker
+        # plus one descriptor. The constructor's own line starts no lane A
+        # symbol (C-58), which is why the class is the end of the edge.
+        got = self.targets(
+            ("src/lib.ts", 1, "type", "`src/lib.ts`/Base#"),
+            ("src/lib.ts", 2, "method", "`src/lib.ts`/Base#`<constructor>`()."),
+        )
+        assert got[("src/lib.ts", 2)] == ("src/lib.ts", 1)
+
+    def test_an_overloaded_constructor_is_read_the_same_way(self):
+        got = self.targets(
+            ("src/lib.ts", 1, "type", "`src/lib.ts`/Base#"),
+            ("src/lib.ts", 4, "method", "`src/lib.ts`/Base#`<constructor>`(+1)."),
+        )
+        assert got[("src/lib.ts", 4)] == ("src/lib.ts", 1)
+
+    def test_a_class_draws_nothing_and_says_so(self):
+        # The shape the keys contradict: the class declares no constructor,
+        # the index names the class, and the constructor that runs is the
+        # base's. `None` rather than absence, because the refusal is counted.
+        got = self.targets(("src/lib.ts", 1, "type", "`src/lib.ts`/Bare#"))
+        assert got[("src/lib.ts", 1)] is None
+
+    def test_anything_that_is_not_a_class_draws_to_itself(self):
+        # An ES5 `function User(..)`, and the variable a constructor
+        # function is bound to: both are what the source calls, so the
+        # edge ends where the index says.
+        got = self.targets(
+            ("lib/user.js", 1, "method", "`lib/user.js`/User()."),
+            ("lib/user.js", 9, "term", "`lib/user.js`/Bound."),
+        )
+        assert got[("lib/user.js", 1)] == ("lib/user.js", 1)
+        assert got[("lib/user.js", 9)] == ("lib/user.js", 9)
+
+    def test_a_line_with_more_than_one_moniker_is_read_by_nothing(self):
+        # `class Base { constructor() {} }` on one line: which row the
+        # reference lands on would be a guess, and a wrong one here draws
+        # a call that is not there (`minted.constructor_lines`' reason).
+        got = self.targets(
+            ("src/lib.ts", 1, "type", "`src/lib.ts`/Base#"),
+            ("src/lib.ts", 1, "method", "`src/lib.ts`/Base#`<constructor>`()."),
+        )
+        assert ("src/lib.ts", 1) not in got
+
+    def test_a_constructor_whose_class_is_not_one_row_draws_nothing(self):
+        # No class row at all, and a class two files define: neither
+        # names one place to point at, so neither is drawn.
+        got = self.targets(
+            ("src/lib.ts", 2, "method", "`src/lib.ts`/Base#`<constructor>`()."),
+            ("src/a.ts", 1, "type", "`src/x`/Twice#"),
+            ("src/b.ts", 1, "type", "`src/x`/Twice#"),
+            ("src/b.ts", 3, "method", "`src/x`/Twice#`<constructor>`()."),
+        )
+        assert ("src/lib.ts", 2) not in got
+        assert ("src/b.ts", 3) not in got
+
+    def test_no_rows_is_no_reading(self):
+        from hobbes.extract.scipsource import ts_construction_targets
+
+        assert ts_construction_targets([]) == {}
+
+
 class TestProjectionKeepsRecursionAndRefusesCallsToTypes:
     """O4 (oracle lane, 2026-08-25): a function's call to itself is an
     edge — C-59 lifted — and a Go `calls` fact whose target is a type is
