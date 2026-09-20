@@ -63,7 +63,7 @@ tree, a thin one. Drivers: `~/.hobbes/bench/js-cells/` (`grade.sh`,
   errors gone, dependency coverage 0 → 9 of 47, no edge moved. dagger's
   docs snippet zones had the same failure and were **not** re-ingested.
   Drivers `~/.hobbes/bench/corepack-path/` (`units/`, `hono/` the clone,
-  `hono-ingest-after.log`; `wt/` a worktree, removable).
+  `hono-ingest-after.log`; its worktree was removed).
 - Preact's test-file misses (closures in `it` bodies, calls through
   `.d.ts` interface members, hook setters in locals) — C-58's shapes.
   C-168's remainder: `super(…)` (211 rows) and a JSX tag whose component
