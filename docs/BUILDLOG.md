@@ -14007,3 +14007,51 @@ on r3 beside two foreign tools still on r2 — a same-key row on two keys; both 
 graphs regraded on r3 (only the denominator moved: 28.2 → 28.5, 37.1 → 37.3) and their
 records appended before the re-render. H-36 closed the day it was found; the defect log
 has nothing open; tracker 70 of 40. Three units today, $13.48 on the subscription.
+
+## 2026-09-21 (twelfth session) — the top-level docs read against the tree; click's misses sorted; ADR-148 built (0.2.67-beta)
+
+**The docs first (Max: "review top level documentation").** Four places had drifted from
+the tree: the README's session count (67 for 70), `workstreams.md` refreshed only through
+0.2.59-beta, the 0.2.66-beta CHANGELOG entry still reading H-36 "open" at 84.6%/94.6%,
+and the eleventh BUILDLOG entry's title naming only ADR-146 (left, append-only). The
+first three fixed in one commit (`0331329`; the CHANGELOG with a dated note, not an
+edit of the figures). CLAUDE.md and AGENTS.md are one text; the architecture's §8 header
+and VERSION agreed.
+
+**Then click's misses (Max: "proceed to clicks misses").** The 1,205 on `click-py-r3`,
+bucketed by site syntax: 423 closure rows on decorator lines — `@click.command()` and
+`@group.command()`, the optional-parentheses idiom ADR-147's strict wording refuses —
+401 callbacks reached through attributes and parameters (values, C-58), 79 methods a
+subclass overrides (ADR-126 §3), 90 duck-typed receivers and test doubles, 81 lambdas.
+An `ast` scan over the local Python clones put the idiom in click (441 no-argument
+sites) and attrs (72), not flask (decorated factories). Pre-registered (`PREREG.md`) and
+probed: fold the factory's own guards over the site's literal arguments, three-valued,
+and draw only where every reachable return is `return g`. The new edges written into a
+copy of the export and graded by the real grader, which reproduced §10.32 exactly on the
+base: 397 drawn, **347 confirmed**, 0 base rows moved, recall 73.6% → 81.2%, poison PASS
+— and **P1 failed on 3 rows**, read before anything was proposed: `pytest.raises` tests
+where a lower decorator raises before `command()`'s `decorator` is applied; a trace
+buckets them `suspect`. A `method-positional` refusal (lane A cannot tell `@obj.f(x)`
+from `@Cls.f(x)`) re-measured and found to move nothing. Three routes put to Max; route
+a (own the three rows) over b (a `pytest.raises` exception in an extraction rule) and c
+(build nothing).
+
+**ADR-148 (Max: "route a good to proceed with dispatch"), 0.2.67-beta.** ADR accepted
+first (`ea4978d`), this repo ingested at HEAD, the argv checked (`--settings`, the
+model), launched detached with `--max-turns 140`. Unit `b4d4`: 131 turns, $15.98, nine
+files, gate clear, verify pass, **right-clear**. The brief's premises were checked
+against the tree before dispatch (the pinned lane A list in `test_decorator_calls.py`,
+the every-`.decorator`-edge via assertion — both named in the brief as edits, not
+loosenings). **The real click cell on the unit's tree folded nothing**: `*args: T` /
+`**kwargs: T` is a `typed_parameter` wrapping the splat, and the signature reader
+dropped every annotated factory — click annotates all of them; the unit's tests were
+untyped and its own check fed hand-built digests to the fold. One `parse_source` over
+the real file found it; fixed with a test on the branch (`39815c0`), merged `--no-ff`
+(`78a2166`). The cell rebuilt: **397 folded, 347 confirmed, 3,703 of 4,561 (81.2%), 21
+suspect (the 18 and the 3), poison PASS, 0 rows lost — the probe's rows, 4,298 of
+4,298** (§10.33); attrs 18, flask 0. C-58 narrowed (its heading first read `folded`,
+which the tally parser takes as a status — reworded), HISTORY, the architecture's
+paragraph, §3.8 row and §8 header, CHANGELOG, README, CLAUDE.md/AGENTS.md, workstreams,
+the tracker at 71 of 40. On the host: pytest 2,317, 16 `lane_b`. Image and binaries
+rebuilt at 0.2.67-beta, this repo re-ingested. One unit today, $15.98 on the
+subscription; click 73.6% → 81.2%.

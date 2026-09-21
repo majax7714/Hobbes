@@ -1,7 +1,7 @@
 # ADR-148 — A decorator factory's guards, folded over the site's own arguments
 
-**Date:** 2026-09-21 · **Status:** accepted (Max, 2026-09-21: "route a good to proceed with
-dispatch") · **Owner:** Max · **Source:** ADR-147's *What this leaves* (a factory with any
+**Date:** 2026-09-21 · **Status:** accepted and **built** (0.2.67-beta, unit `b4d4`; Max, 2026-09-21: "route a good
+to proceed with dispatch") · **Owner:** Max · **Source:** ADR-147's *What this leaves* (a factory with any
 other return); click's 423 closure misses on decorator lines, `no-returned-def` 491 sites.
 
 Narrows C-58's function-value face for one more shape. Registers nothing new: what the rule
@@ -96,3 +96,24 @@ exception in an extraction rule (route b).
   `return command(…)`), a factory with two nested defs (attrs' `define`), a guard the fold
   cannot read, a non-literal positional, and every other function value.
 - Resolution coverage is not moved: there is no site — no token — to count.
+
+## Built (0.2.67-beta)
+
+Unit `b4d4` (131 turns of 140, $15.98 on the subscription), merged `--no-ff`; one defect
+fixed at the review. click on the unit's code: **397 folded, 347 confirmed, 21 suspect
+(the 18 and the 3 read above), 3,703 of 4,561 (81.2%), poison PASS, 0 rows lost — the
+probe's rows exactly, 4,298 of 4,298** (`oracle-grading.md` §10.33). attrs 18, flask 0.
+
+- **Found at the review:** the first build folded nothing on click. `*args: T` /
+  `**kwargs: T` is a `typed_parameter` wrapping the splat, and the signature reader took
+  it for an unnameable parameter and dropped the factory; click annotates every factory,
+  and the unit's tests wrote untyped ones. The doer's own check fed hand-built digests to
+  the fold, which could not see it. Fixed with a test (`39815c0`). What the brief did
+  not ask: a factory read from **its real source**, not a trimmed one.
+- **Accepted as built, beyond the brief's wording:** a chained assignment (`x = y = 1`)
+  makes its targets unknown (the binding walk ADR-145 uses does not see the outer
+  target); a statement is read as opaque off *whether it holds a return*, so a block kind
+  the walk does not name keeps its returns; the module's `callable` is checked over the
+  whole file, any binding form; `@either("d")` in the fixture moved from
+  `no-returned-def` to `guard-unknown`, the factory's shape now read before the site's
+  arguments.

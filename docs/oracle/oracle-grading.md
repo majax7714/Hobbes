@@ -2316,6 +2316,45 @@ continue the 0.1.10-beta row's — the pre arm is the like-for-like. What is lef
 22 methods, 3 classes. The comparative tables and graphics were re-derived from the cell
 records (`render.py cells`, `render`, `check`).
 
+### 10.33 An optional-parentheses factory's guards, folded over the site's own arguments — `PREREG.md` written 2026-09-21 before `probe.py`'s first run; this section written after the regrade (ADR-148; unit `b4d4`)
+
+**Probed as worded** over the built 0.2.66-beta export (`~/.hobbes/bench/py-optparens/`),
+the new edges written into a copy of the export and graded by `oracle grade --poison` on
+the standing key `click-py-r3`: 397 drawn (`command` 315, `Group.command` 75,
+`Group.group` 7), **347 confirmed**, 47 on lines the key never ran, **3 suspect**; the
+base regrade reproduced §10.32 exactly and no base row moved. The `method-positional`
+refusal moved nothing (its 27 sites pass non-literal positionals, already `guard-unknown`).
+attrs 18 drawn (`@attr.s(…)`, keyword-only; read by hand, right), flask 0 (decorated).
+**P1 failed as pre-registered, and the 3 rows were read before anything was proposed:**
+`tests/test_arguments.py:61`, `:614`, `tests/test_options.py:110` are `pytest.raises`
+tests where the `@click.argument/option(…)` *below* `@click.command()` raises during its
+own application, so `command()` ran (the key has it) and its `decorator` never did. The
+edge is the code as written; the run never reached the application; a trace key buckets
+it `suspect` (it cannot contradict). Max: route a, own the three rows (ADR-148).
+
+**Regraded with the unit's code** (merged `78a2166`; click ingested from the unit's tree
+with the review's fix, stored key `click-py-r3`, `--poison`):
+
+| click | rows | confirmed / 4,561 | suspect | `observed→closure` |
+|---|---|---|---|---|
+| 0.2.66-beta | 3,901 | 3,356 (73.6%) | 18 | 336 / 1,195 |
+| **0.2.67-beta** | **4,298** | **3,703 (81.2%)** | **21** (the 18, and the 3 read above) | **683 / 1,195** |
+
+397 rows added, all `syntactic`, `via: decorator-factory-folded`, 0 lost, 0 re-tiered;
+poison PASS (4,298 seeded, 0 falsely confirmed). Signed direction of fix: confirmed
+**+347**, suspect **+3** (read, the code as written), rows lost **0**. **The built rows are
+the probe's, row for row** (4,298 of 4,298 by site, target and bucket). The ingest's
+block: 765 drawn, 397 folded; refused 67 `no-returned-def`, 27 `method-positional`,
+3 `decorated`, 0 `guard-unknown`. Three factories carry every row — one repo's idiom,
+said plainly; attrs' 18 are the second repo's. **Found at the review, before the
+regrade:** the unit's first build folded nothing on click — a typed `*args: T` /
+`**kwargs: T` is a `typed_parameter` wrapping the splat, read as an unnameable parameter,
+and click annotates every factory; the unit's tests used untyped signatures. Fixed and
+tested (`39815c0`). The rule mints no symbol. Other languages not regraded: Python only,
+after the projection. Left in click's closure misses: 512 — callbacks reached through
+attributes and parameters (values, C-58), `group()`'s `return command(…)`, a decorator
+held in a variable, `make_pass_decorator` applied bare.
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

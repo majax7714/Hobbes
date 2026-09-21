@@ -264,7 +264,7 @@
   because it is a paid cost with a deferred bill.
 - **Source:** ADR-027, Decision 1.
 
-### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not; narrowed 2026-09-20 (ADR-147, 0.2.66-beta): a Python decorator factory's application is drawn where every return is the one nested def*
+### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not; narrowed 2026-09-20 (ADR-147, 0.2.66-beta): a Python decorator factory's application is drawn where every return is the one nested def; narrowed 2026-09-21 (ADR-148, 0.2.67-beta): and where the factory's guards, evaluated over the site's own arguments, leave that return the only one reachable*
 - **Cannot tell you:** that `s.Get(key)` reaches `MemStore.Get`, that
   `run(query)` reaches the `Store` method the map handed it, that
   `defer cancel()` runs anything, or that `run("init")` in a test helper
@@ -318,6 +318,23 @@
   lambda, a function in a table — still draws nothing. A named nested
   `def` called by its name was never this entry: it is a symbol and the
   index draws it (corrected 2026-09-20).
+- **Python face, the optional-parentheses factory (ADR-148, 2026-09-21,
+  0.2.67-beta):** where ADR-147's every-return clause fails, the factory's
+  own guards are folded over the arguments the site writes — `@command()`
+  leaves `name` at `None`, `callable(None)` is false, and `return
+  decorator` is the only return reached. Drawn `calls`, `syntactic`, `via:
+  decorator-factory-folded`, only where every reachable return is the one
+  nested `def`; the fold is three-valued and an unread test takes both arms.
+  click: 397 drawn, 347 confirmed, 3 suspect (a lower decorator raised
+  before the application ran), recall 73.6% → 81.2% on `click-py-r3`
+  (`oracle-grading.md` §10.33); attrs 18. **Refused and counted** beside
+  ADR-147's reasons: `method-positional` (a method factory at a site
+  passing a positional — lane A cannot tell `@obj.f(x)` from `@Cls.f(x)`;
+  click 27) and `guard-unknown` (a reachable other return). Still not
+  drawn: a factory returning another factory's call (click's `group()`,
+  `return command(…)`), a factory with two nested defs (attrs' `define`),
+  a decorator held in a variable, and every callback reached through an
+  attribute or a parameter.
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

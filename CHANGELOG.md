@@ -11,9 +11,39 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.66-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.67-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.67-beta — 2026-09-21 (a decorator factory's guards, folded over the site's own arguments; ADR-148, C-58 narrowed)
+
+**Patch: what the layer draws** — Python, after the projection. Built as unit
+`S-20260921T131857Z-b4d4`; one defect fixed at its review.
+
+- **The shape.** click's `command` is the optional-parentheses idiom: a bare `@command`
+  returns `decorator(func)`, while `@command()` returns `decorator`. ADR-147's strict wording
+  refused the factory whole (491 click sites, `no-returned-def`). But the arguments the
+  site writes decide the path: at `@command()`, `name` is `None`, `callable(None)` is
+  false, and `return decorator` is the only return reached.
+- **The rule.** Lane A digests each call-form decorator's literal arguments and, for a
+  factory ADR-147 cannot settle, its signature and own body as a small program. The fold
+  binds the site's arguments and evaluates the factory's guards three-valued (`is None`,
+  `is not None`, `callable()` on a literal, `not`, `and`/`or`; an unread test takes both
+  arms). It draws `calls`, `syntactic`, `via: decorator-factory-folded`, only where every
+  reachable return is the one nested `def`. It refuses `method-positional` (a method
+  factory at a site passing a positional: lane A cannot tell `@obj.f(x)` from
+  `@Cls.f(x)`) and `guard-unknown`, each counted in `graph["decorators"]` and on the
+  ingest's `decorators:` line, which now says how many were folded.
+- **Measured.** click **3,356 → 3,703 confirmed of 4,561 (73.6% → 81.2%)** on
+  `click-py-r3`: 397 drawn, 347 confirmed, 47 on lines the key never ran; poison PASS;
+  0 rows lost. The built rows match the pre-registered probe's row for row
+  (`oracle-grading.md` §10.33). attrs draws 18 (`@attr.s(…)`), flask 0.
+- **Three new suspects, read and owned** (Max: route a). In three `pytest.raises` tests,
+  the decorator *below* `@click.command()` raises during its own application, so
+  `command()`'s `decorator` is never applied. The edge is the code as written; the run
+  never reached it.
+- **Fixed at the review:** a typed `*args: T` / `**kwargs: T` was read as an unnameable
+  parameter, which left every annotated factory unfolded (click's all).
 
 ## 0.2.66-beta — 2026-09-20 (a decorator factory's application is a call of the def it returns; ADR-147, C-58 narrowed)
 
