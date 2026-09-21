@@ -44,6 +44,11 @@ close of 2026-09-13).
   callers only; the caller may be the module node.
 - Oracle lane: **H-36 logged, open** — a `<genexpr>` frame entry keyed as a call pair;
   this repo's Python recall reads 84.6% where the pairs anyone wrote give 94.6%.
+  *Later the same day (no version — the oracle lane is not the layer):* H-36 fixed at
+  the py-trace extractor (unit `de0e`) and closed; regraded, this repo's Python recall
+  reads 85.6% → 94.8% at `2c915a8` (the figures above were the first estimate), click
+  73.0% → 73.6% on the regenerated key `click-py-r3`, no confirmed or suspect row
+  moved (`oracle-grading.md` §10.32).
 
 ## 0.2.65-beta — 2026-09-20 (a decorator is a call of what it names; ADR-146, C-169 registered and lifted)
 

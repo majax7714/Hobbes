@@ -1,6 +1,6 @@
 # Workstreams — the backlog grouped for assignment
 
-**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta), and ADR-140 accepted with its step 1 built (0.2.53-beta: JavaScript's verification base corrected to zero, C-165) and built through step 5 (0.2.55-beta: three JS cells graded; H-33–H-35 fixed; C-166–C-168), and C-167 traced and narrowed (ADR-141, 0.2.56-beta) 2026-09-19; C-168 measured, its registered shape corrected and the rule built (ADR-142, 0.2.57-beta), C-165 corrected (0.2.58-beta) and ADR-143 built (0.2.59-beta) 2026-09-20.** Hobbes is now a group project, and this file is
+**Written 2026-08-24; sequencing and W0 refreshed 2026-08-28; W1's Java follow-ups added 2026-08-29; sequencing refreshed 2026-09-03, 2026-09-04, 2026-09-05 and 2026-09-07; the Calvin harness and the egress items 2026-09-12 (ADR-107); the 0.2.6–0.2.13-beta patches reflected 2026-09-13; 0.2.14–0.2.16-beta and the foreign C cells 2026-09-14; the graph job's review base closed (ADR-114, 0.2.24-beta) and the foreign C++ cells 2026-09-15; the 0.2.29–0.2.42-beta patches, the top-level review's items and its decisions (ADR-123–126), and the C++ recall list (ADR-129–131) 2026-09-17; the 0.2.43–0.2.45-beta patches (ADR-131 amended, ADR-132, ADR-133), ADR-134 built (0.2.46-beta), C-164 registered, ADR-135 built (0.2.47-beta), ScummVM's scale read and ADR-136 built (0.2.48-beta) 2026-09-18; the review's remaining items measured and built (ADR-137, 0.2.49-beta; ADR-138, 0.2.50-beta), the denominator statement's C-4 wording (0.2.51-beta) and ADR-139 measured, accepted and built (0.2.52-beta), and ADR-140 accepted with its step 1 built (0.2.53-beta: JavaScript's verification base corrected to zero, C-165) and built through step 5 (0.2.55-beta: three JS cells graded; H-33–H-35 fixed; C-166–C-168), and C-167 traced and narrowed (ADR-141, 0.2.56-beta) 2026-09-19; C-168 measured, its registered shape corrected and the rule built (ADR-142, 0.2.57-beta), C-165 corrected (0.2.58-beta) and ADR-143 built (0.2.59-beta), the yarn-v1 `corepack` path fixed (0.2.60-beta), a provisioned JS cell graded (0.2.61-beta), ADR-144 built (0.2.62-beta), C-4's two parts built (ADR-145, 0.2.63-beta; ADR-139 amended, 0.2.64-beta), a decorator's calls built (ADR-146, 0.2.65-beta; ADR-147, 0.2.66-beta) and H-36 fixed in the oracle lane 2026-09-20.** Hobbes is now a group project, and this file is
 the lead's assignment map: the parked backlog
 ([`future_additions.md`](future_additions.md)) and the open register debt
 ([`constraints/README.md`](constraints/README.md)) grouped into workstreams a person
@@ -230,7 +230,17 @@ the best on-ramp for a new contributor who should learn the codebase.*
   **done 2026-09-19 (0.2.53–0.2.55-beta):** three JS cells graded at
   100% (§10.22); H-33–H-35 fixed on the way. Open from it: C-167's trace
   (a CommonJS re-export draws nothing), C-168 (a TS/JS construction rule),
-  a JS cell with its dependencies provisioned (C-165).
+  a JS cell with its dependencies provisioned (C-165) — all three done
+  2026-09-19/20 (ADR-141, ADR-142, C-165 corrected; ADR-144 for cue's
+  namespace `require`), five JS cells at 100% (§10.28).
+- ~~**Python's decorator and fixture-value calls (Max, 2026-09-20:
+  extraction first).**~~ — **done 2026-09-20 (0.2.63–0.2.66-beta):**
+  ADR-145, ADR-139 amended, ADR-146, ADR-147; click's recall 38.2% →
+  73.0% at 0 contradicted (§10.29–§10.31; 73.6% on `click-py-r3`,
+  §10.32). Open from it: click's 1,205 remaining misses (closures,
+  most of them `command`/`group` sites whose factory has another return
+  path), C-4's fixture value through a local, each measured first
+  (`session-handoff.md`).
 - ~~**Java resolve staging (review 2026-09-10, C-66):** `.mvn/`,
   `gradle/` and `buildSrc/` bypass the source-suffix filter.~~ — **done
   2026-09-10 (later), 0.1.9-beta:** one walk, one rule; the notice

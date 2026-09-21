@@ -444,7 +444,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and sixty-seven session logs stand. The
+dispatched on 2026-09-12, and seventy session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
