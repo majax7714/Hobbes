@@ -50,6 +50,63 @@ class FromImport:
     line: int
 
 
+class _Unknown:
+    """The single inhabitant of :data:`UNKNOWN`."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "UNKNOWN"
+
+
+#: The one value ADR-148's fold could not read: a name the site passed, an
+#: argument behind a ``*`` or ``**``, a default the walk cannot spell, a
+#: value two branches disagree about. It is a value like any other in the
+#: digest — hashable, and equal only to itself — so a rule that meets it
+#: abstains rather than guessing what it stood for.
+UNKNOWN = _Unknown()
+
+
+class _NoDefault:
+    """The single inhabitant of :data:`NO_DEFAULT`."""
+
+    __slots__ = ()
+
+    def __repr__(self) -> str:
+        return "NO_DEFAULT"
+
+
+#: A parameter written with no default at all — which is not the same
+#: fact as a default the walk could not read (:data:`UNKNOWN`), and the
+#: fold binds the two differently only in what it says about them.
+NO_DEFAULT = _NoDefault()
+
+
+@dataclass(frozen=True)
+class Bound:
+    """The arguments one call-form decorator writes, for ADR-148's fold.
+
+    ``args`` holds the positional arguments as **values**, in written
+    order, each one a literal (``None``, ``True``, ``False``, an int, a
+    float, a plain string, the empty tuple) or :data:`UNKNOWN`; ``kwargs``
+    holds the keyword arguments as ``(name, value)`` pairs in written
+    order, read the same way; ``splat`` says a ``*x`` or ``**x`` appears,
+    which makes the whole binding unknown (ADR-148 step 2) because the
+    walk cannot say which parameter it fills.
+
+    Deliberately beside :attr:`Decorator.args` and
+    :attr:`Decorator.kwargs` rather than inside them: those two are the
+    route and fixture digest, which keeps string literals and silently
+    drops everything else, and a fold that could not tell a dropped
+    argument from an argument that was never written would read a site
+    the source does not hold.
+    """
+
+    args: tuple = ()
+    kwargs: tuple[tuple[str, object], ...] = ()
+    splat: bool = False
+
+
 @dataclass(frozen=True)
 class Decorator:
     """One decorator site, pre-digested for route/test detection.
@@ -89,6 +146,168 @@ class Decorator:
     #: index resolved there has to match (ADR-147). ``None`` for a bare
     #: decorator and for a callee :func:`_dotted` cannot name (``@decos[0]()``).
     callee_line: int | None = None
+    #: What this site writes between its parentheses, for ADR-148's fold,
+    #: or ``None`` — for a bare ``@f``, which writes no arguments and
+    #: whose application is ADR-146's rather than a factory's, and for a
+    #: mark digested out of a module's ``pytestmark``, which is not a
+    #: decorator site and is never folded over.
+    bound: Bound | None = None
+
+
+# ADR-148 reads a decorator factory's own body as a small program and
+# folds it over the site's arguments. The records below are the **whole**
+# language that fold understands: an expression it cannot read is
+# :data:`UNKNOWN`, and a statement it cannot read is kept as the names it
+# binds and nothing more — so the fold meets what the walk could not read
+# as an unknown rather than as silence.
+
+
+@dataclass(frozen=True)
+class Literal:
+    """A value written in the source: ``None``, a bool, a number, a plain
+    string, or the empty tuple."""
+
+    value: object
+
+
+@dataclass(frozen=True)
+class NameRef:
+    """A bare name, read from the fold's environment."""
+
+    name: str
+
+
+@dataclass(frozen=True)
+class Not:
+    """``not x``."""
+
+    operand: object
+
+
+@dataclass(frozen=True)
+class BoolOp:
+    """``x and y`` / ``x or y``, short-circuit as Python's (ADR-148 step 4:
+    a known operand settles the test even beside an unknown one)."""
+
+    op: str  # "and" | "or"
+    left: object
+    right: object
+
+
+@dataclass(frozen=True)
+class IsNone:
+    """``x is None``, or ``x is not None`` when *negated*."""
+
+    operand: object
+    negated: bool = False
+
+
+@dataclass(frozen=True)
+class IsCallable:
+    """``callable(x)`` with one positional argument — the builtin, read
+    only where the module binds no ``callable`` of its own
+    (:attr:`InnerFold.shadows_callable`)."""
+
+    operand: object
+
+
+@dataclass(frozen=True)
+class Assign:
+    """``x = <literal>`` or ``x = y``: the only assignment the fold reads
+    as a value. Every other one is a :class:`Binds`."""
+
+    name: str
+    value: object
+
+
+@dataclass(frozen=True)
+class Return:
+    """A ``return`` in the factory's own body. *inner* says it is
+    ``return g`` — the only return ADR-148 may draw a call from."""
+
+    inner: bool
+
+
+@dataclass(frozen=True)
+class Raise:
+    """A ``raise``: the path ends here and reaches no return at all."""
+
+
+@dataclass(frozen=True)
+class Binds:
+    """Any other statement, kept as the names it binds — each made
+    unknown, because what it bound them to was not read."""
+
+    names: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Opaque:
+    """A statement that holds a ``return`` and is not an ``if``: a
+    ``for``, ``while``, ``with``, ``try`` or ``match``. The names bound
+    anywhere inside it are made unknown and every ``return`` written
+    inside it stays reachable — whether the block runs, and how often, is
+    exactly what the walk does not read."""
+
+    names: tuple[str, ...] = ()
+    returns: tuple[bool, ...] = ()
+
+
+@dataclass(frozen=True)
+class Branch:
+    """One arm of an ``if`` / ``elif`` / ``else``. *test* is ``None`` for
+    the ``else``; *unknown* names what the test itself bound — a walrus,
+    which makes the test unreadable and the name with it."""
+
+    test: object
+    unknown: tuple[str, ...]
+    body: tuple
+
+
+@dataclass(frozen=True)
+class If:
+    """An ``if`` with its ``elif`` and ``else`` arms, in written order."""
+
+    branches: tuple[Branch, ...]
+
+
+@dataclass(frozen=True)
+class Param:
+    """One parameter of a factory: its name, and its default — a literal,
+    :data:`UNKNOWN` where the walk cannot read the default written, or
+    :data:`NO_DEFAULT` where none is written at all."""
+
+    name: str
+    default: object = NO_DEFAULT
+
+
+@dataclass(frozen=True)
+class InnerFold:
+    """A decorator factory ADR-147's strict wording does not settle, in
+    the shape ADR-148 folds over a site's own arguments (step 1).
+
+    Set on a function or method only, where :attr:`Symbol.returns_inner`
+    is ``None`` and the body is a factory all the same: not ``async``, no
+    ``yield`` of its own, exactly one nested definition — a plain,
+    undecorated, non-``async`` ``def`` named :attr:`inner`, not a
+    parameter and not bound again — and at least one ``return`` of it.
+
+    Everything the fold needs is here, so
+    :func:`hobbes.extract.decorators.fold_guards` reads no tree and opens
+    no file: *params*, *star*, *kwonly* and *double_star* are the
+    signature a site's arguments bind into, *shadows_callable* says the
+    **module** binds a ``callable`` of its own — and every ``callable(x)``
+    guard in it is then unreadable, being some other function — and
+    *body* is the own body's top-level statements as the program above.
+    """
+
+    inner: str
+    params: tuple[Param, ...] = ()
+    star: str | None = None
+    kwonly: tuple[Param, ...] = ()
+    double_star: str | None = None
+    shadows_callable: bool = False
+    body: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -147,6 +366,13 @@ class Symbol:
     #: ``return a.g``, a bare ``return``, two names, a re-assigned or
     #: decorated or class-shaped ``g`` are each ``None``.
     returns_inner: str | None = None
+    #: The same factory, digested for ADR-148's fold, where
+    #: :attr:`returns_inner` is ``None`` and step 1's shape holds all the
+    #: same — one nested ``def`` and a body that returns it on *some*
+    #: path. A factory ADR-147 settles carries no fold: it is drawn as
+    #: ADR-147 draws it and never re-folded. ``None`` everywhere else,
+    #: and on every class.
+    inner_fold: InnerFold | None = None
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -225,12 +451,19 @@ class ParsedFile:
     #: the ones with no string argument at all, which name no fixture this
     #: walk can read.
     pytestmark_usefixtures: int = 0
+    #: Whether the file binds the name ``callable`` anywhere (ADR-148).
+    #: A module fact, read once per file and copied onto every
+    #: :attr:`Symbol.inner_fold` the walk digests, because the fold must
+    #: carry it: a ``callable(x)`` guard is only the builtin's answer
+    #: where the module has not written a ``callable`` of its own.
+    shadows_callable: bool = False
 
 
 def parse_source(source: bytes) -> ParsedFile:
     """Walk one file's source and collect its raw facts."""
     parsed = ParsedFile()
     root = _PARSER.parse(source).root_node
+    parsed.shadows_callable = _binds_callable(root, source)
     parsed.docstring = _module_docstring(root)
     parsed.pytestmark = _pytestmark(root)
     parsed.pytestmark_usefixtures = sum(1 for m in parsed.pytestmark if not m.args)
@@ -426,7 +659,7 @@ def _decorator(node: Node) -> Decorator:
     return _call(expr, _line(node))
 
 
-def _call(expr: Node, line: int) -> Decorator:
+def _call(expr: Node, line: int, *, at_a_decorator: bool = True) -> Decorator:
     """Digest one ``call`` node written as a mark: its dotted name, its
     string-literal positionals, and the keywords the walk can read.
 
@@ -437,7 +670,11 @@ def _call(expr: Node, line: int) -> Decorator:
     Everything digested here is call-form, so ``called`` is True and
     ``callee_line`` is the callee's terminal identifier — where the
     semantic lane puts its occurrence, which is not *line* whenever the
-    chain wraps (ADR-147).
+    chain wraps (ADR-147). ``bound`` — the arguments ADR-148 folds a
+    factory's guards over — is read only where the call really is a
+    decorator site: a ``pytestmark`` entry applies to no definition here
+    and is never folded, so it is left ``None`` rather than digested
+    twice over.
     """
     function = expr.child_by_field_name("function")
     dotted = _dotted(function) if function is not None else None
@@ -483,6 +720,7 @@ def _call(expr: Node, line: int) -> Decorator:
         callee_line=(
             _line(terminal) if dotted is not None and terminal is not None else None
         ),
+        bound=_bound_arguments(arguments) if at_a_decorator else None,
     )
 
 
@@ -515,7 +753,7 @@ def _pytestmark(root: Node) -> tuple[Decorator, ...]:
                 continue
             marks = right.named_children if right.type in ("list", "tuple") else [right]
             out.extend(
-                _call(mark, _line(mark))
+                _call(mark, _line(mark), at_a_decorator=False)
                 for mark in marks
                 if mark.type == "call"
                 and (_dotted(mark.child_by_field_name("function")) or "").rpartition(".")[2]
@@ -566,6 +804,24 @@ def _own_body(node: Node):
         stack.extend(current.children)
 
 
+def _own_nodes(node: Node):
+    """*node* itself and every descendant written in the same scope.
+
+    :func:`_own_body`'s containment rule, asked about one statement
+    rather than about a whole body (ADR-148): the descent stops **at** a
+    nested ``def``, ``class`` or ``lambda`` but still yields it, because
+    what such a definition binds outside itself is its name — a fact
+    :func:`_bound_here` reads and a fold must not lose.
+    """
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        yield current
+        if current.type in ("function_definition", "class_definition", "lambda"):
+            continue
+        stack.extend(current.children)
+
+
 def _returned_value(node: Node) -> tuple[str, int] | None:
     """The class a definition constructs and hands back (ADR-145).
 
@@ -610,55 +866,107 @@ def _import_binding(node: Node) -> str | None:
     return None
 
 
-def _rebound(node: Node, params: tuple[tuple[str, int], ...]) -> tuple[str, ...]:
-    """Which of *params* the definition's own body binds again (ADR-145).
+#: The node kinds :func:`_bound_here` reads. Every other kind binds no
+#: bare name, and the check is worth writing out: the walks below ask
+#: this question of every node in a file.
+_BINDING_NODES = frozenset(
+    {
+        "assignment",
+        "augmented_assignment",
+        "for_statement",
+        "named_expression",
+        "as_pattern",
+        "delete_statement",
+        "global_statement",
+        "nonlocal_statement",
+        "import_statement",
+        "import_from_statement",
+        "function_definition",
+        "class_definition",
+    }
+)
 
-    Every form that rebinds a bare name: assignment and augmented
+
+def _bound_here(current: Node) -> set[str]:
+    """The bare names **one** node binds in the scope it is written in.
+
+    Every form that binds a bare name: assignment and augmented
     assignment, an annotation *with* a value (``x: int`` alone binds
     nothing), a walrus, a ``for`` / ``with`` / ``except`` target, an
-    import, ``del``, ``global`` and ``nonlocal``. Attribute and subscript
-    targets bind no name, so ``p.x = 1`` is not a rebinding of ``p``.
+    import, ``del``, ``global``, ``nonlocal``, and a nested ``def`` or
+    ``class``, which binds its own name outside itself. Attribute and
+    subscript targets bind no name, so ``p.x = 1`` is not a binding of
+    ``p``.
+
+    One node, so a caller chooses the walk: :func:`_rebound` asks it over
+    a definition's own body (ADR-145), :func:`_statement_binds` over one
+    statement (ADR-148), :func:`_binds_callable` over a whole file.
     """
-    names = {name for name, _ in params}
-    if not names:
-        return ()
+    kind = current.type
+    if kind not in _BINDING_NODES:
+        return set()
     bound: set[str] = set()
 
     def take(target: Node) -> None:
         for ident in _target_identifiers(target):
             bound.add(_text(ident))
 
-    for current in _own_body(node):
-        kind = current.type
-        if kind == "assignment" and current.child_by_field_name("right") is None:
-            continue  # `x: int` declares a type and binds nothing
-        if kind in ("assignment", "augmented_assignment", "for_statement"):
-            left = current.child_by_field_name("left")
-            if left is not None:
-                take(left)
-        elif kind == "named_expression":
-            name = current.child_by_field_name("name")
-            if name is not None and name.type == "identifier":
-                bound.add(_text(name))
-        elif kind == "as_pattern":  # `with … as f`, `except E as e`
-            alias = current.child_by_field_name("alias")
-            if alias is not None:
-                take(alias)
-                if alias.type == "as_pattern_target":
-                    for child in alias.named_children:
-                        take(child)
-        elif kind in ("delete_statement", "global_statement", "nonlocal_statement"):
-            for child in current.named_children:
-                take(child)
-        elif kind in ("import_statement", "import_from_statement"):
-            clauses = (
-                current.named_children
-                if kind == "import_statement"
-                else current.children_by_field_name("name")
-            )
-            for clause in clauses:
-                bound.add(_import_binding(clause) or "")
-    return tuple(sorted(bound & names))
+    if kind == "assignment" and current.child_by_field_name("right") is None:
+        return bound  # `x: int` declares a type and binds nothing
+    if kind in ("assignment", "augmented_assignment", "for_statement"):
+        left = current.child_by_field_name("left")
+        if left is not None:
+            take(left)
+    elif kind == "named_expression":
+        name = current.child_by_field_name("name")
+        if name is not None and name.type == "identifier":
+            bound.add(_text(name))
+    elif kind == "as_pattern":  # `with … as f`, `except E as e`
+        alias = current.child_by_field_name("alias")
+        if alias is not None:
+            take(alias)
+            if alias.type == "as_pattern_target":
+                for child in alias.named_children:
+                    take(child)
+    elif kind in ("delete_statement", "global_statement", "nonlocal_statement"):
+        for child in current.named_children:
+            take(child)
+    elif kind in ("import_statement", "import_from_statement"):
+        clauses = (
+            current.named_children
+            if kind == "import_statement"
+            else current.children_by_field_name("name")
+        )
+        for clause in clauses:
+            bound.add(_import_binding(clause) or "")
+    elif kind in ("function_definition", "class_definition"):
+        name = current.child_by_field_name("name")
+        if name is not None:
+            bound.add(_text(name))
+    bound.discard("")
+    return bound
+
+
+def _bound_in(nodes) -> set[str]:
+    """Every bare name the given nodes bind, unioned."""
+    bound: set[str] = set()
+    for current in nodes:
+        bound |= _bound_here(current)
+    return bound
+
+
+def _rebound(node: Node, params: tuple[tuple[str, int], ...]) -> tuple[str, ...]:
+    """Which of *params* the definition's own body binds again (ADR-145).
+
+    :func:`_own_body` never yields a nested ``def`` or ``class``, so the
+    name one of those binds is not a rebinding here — a definition
+    written inside the body binds in that body, but the walk that reads
+    this fact deliberately does not descend to it.
+    """
+    names = {name for name, _ in params}
+    if not names:
+        return ()
+    return tuple(sorted(_bound_in(_own_body(node)) & names))
 
 
 def _own_definitions(node: Node):
@@ -771,6 +1079,411 @@ def _returns_inner(node: Node) -> str | None:
     if any(child.type == "async" for child in definition.children):
         return None
     return name
+
+
+#: The builtin ADR-148's fold reads a guard through, by name. A module
+#: that binds it means something else by it, and the guard is unreadable.
+CALLABLE = "callable"
+
+
+def _literal(node: Node | None) -> object:
+    """One argument, default or operand as a **value**, or :data:`UNKNOWN`
+    (ADR-148 step 2).
+
+    The literals the fold carries are exactly the ones every test it
+    reads is decidable on: ``None``, ``True``, ``False``, an integer, a
+    float, a plain string and the empty tuple. Everything else is the one
+    unknown — a name, a call, an f-string, a negated number, a non-empty
+    tuple — because a value the walk cannot name is a value no guard can
+    be folded over.
+    """
+    if node is None:
+        return UNKNOWN
+    kind = node.type
+    if kind == "parenthesized_expression":
+        children = node.named_children
+        return _literal(children[0]) if len(children) == 1 else UNKNOWN
+    if kind == "none":
+        return None
+    if kind == "true":
+        return True
+    if kind == "false":
+        return False
+    if kind in ("integer", "float"):
+        try:
+            return int(_text(node), 0) if kind == "integer" else float(_text(node))
+        except ValueError:
+            return UNKNOWN
+    if kind == "string":
+        literal = _string_literal(node)
+        return UNKNOWN if literal is None else literal
+    if kind == "tuple" and not node.named_children:
+        return ()
+    return UNKNOWN
+
+
+def _bound_arguments(arguments: Node | None) -> Bound:
+    """One call's arguments as ADR-148 step 2 reads them: the positionals
+    as values in order, the keywords as ``(name, value)`` pairs, and
+    whether a ``*x`` or ``**x`` was written — which makes the whole
+    binding unknown, the walk not being able to say what it fills."""
+    args: list[object] = []
+    kwargs: list[tuple[str, object]] = []
+    splat = False
+    for arg in arguments.named_children if arguments else []:
+        if arg.type in ("list_splat", "dictionary_splat"):
+            splat = True
+        elif arg.type == "keyword_argument":
+            name = arg.child_by_field_name("name")
+            if name is None:
+                splat = True  # `f(**{...})` in the grammar's other spelling
+            else:
+                kwargs.append((_text(name), _literal(arg.child_by_field_name("value"))))
+        elif arg.type != "comment":
+            args.append(_literal(arg))
+    return Bound(tuple(args), tuple(kwargs), splat)
+
+
+def _binds_callable(root: Node, source: bytes) -> bool:
+    """Whether a file binds the name ``callable`` anywhere (ADR-148).
+
+    Anywhere, and by any form — a module-level assignment, an import, a
+    ``def``, a parameter of some unrelated function. A narrower reading
+    would have to model scope to be right, and being wrong here is
+    reading someone else's ``callable`` as the builtin's answer: the
+    whole file is the honest unit, and it costs a fold in the rare file
+    that shadows the name somewhere else entirely.
+
+    The walk is the whole tree, so it is asked only of a file whose text
+    holds the word at all — a file that never writes ``callable`` cannot
+    bind it, and this question is asked of every file ingested.
+    """
+    if CALLABLE.encode() not in source:
+        return False
+    stack = [root]
+    while stack:
+        current = stack.pop()
+        if CALLABLE in _bound_here(current):
+            return True
+        if current.type == "function_definition" and CALLABLE in _parameter_names(current):
+            return True
+        stack.extend(current.children)
+    return False
+
+
+def _signature(node: Node) -> tuple | None:
+    """A definition's parameters as the fold binds into them (ADR-148
+    step 3): the positional ones in order, the ``*args`` name, the
+    keyword-only ones, and the ``**kwargs`` name.
+
+    ``None`` where a parameter cannot be named at all — the fold then has
+    nowhere to put an argument and the factory is not read.
+    """
+    params: list[Param] = []
+    kwonly: list[Param] = []
+    star: str | None = None
+    double_star: str | None = None
+    after_star = False
+    node_params = node.child_by_field_name("parameters")
+    for param in node_params.named_children if node_params else []:
+        kind = param.type
+        if kind == "typed_parameter" and param.named_children and param.named_children[
+            0
+        ].type in ("list_splat_pattern", "dictionary_splat_pattern"):
+            # `*args: T` / `**kwargs: T`: the grammar wraps the splat in a
+            # `typed_parameter`, and the annotation says nothing the fold
+            # binds — read it as the bare splat (click writes every one of
+            # its factories this way).
+            param = param.named_children[0]
+            kind = param.type
+        if kind == "positional_separator":
+            continue
+        if kind == "keyword_separator":  # a bare `*`
+            after_star = True
+            continue
+        if kind in ("list_splat_pattern", "dictionary_splat_pattern"):
+            children = param.named_children
+            if not children or children[0].type != "identifier":
+                return None
+            if kind == "list_splat_pattern":
+                star, after_star = _text(children[0]), True
+            else:
+                double_star = _text(children[0])
+            continue
+        if kind == "identifier":
+            entry = Param(_text(param))
+        elif kind == "typed_parameter":
+            children = param.named_children
+            if not children or children[0].type != "identifier":
+                return None
+            entry = Param(_text(children[0]))
+        elif kind in ("default_parameter", "typed_default_parameter"):
+            name = param.child_by_field_name("name")
+            if name is None or name.type != "identifier":
+                return None
+            entry = Param(_text(name), _literal(param.child_by_field_name("value")))
+        else:
+            return None
+        (kwonly if after_star else params).append(entry)
+    return tuple(params), star, tuple(kwonly), double_star
+
+
+def _statement_binds(node: Node) -> tuple[str, ...]:
+    """The names one statement binds, for ADR-148's program.
+
+    :func:`_bound_here`'s forms over the statement's own scope, with one
+    addition ADR-145's reader does not need: a **chained** assignment
+    (``x = y = 1``), which the grammar nests under the outer assignment's
+    ``type`` field, so the outer target is not one of the names that walk
+    sees. A fold that kept a stale value for ``x`` there would answer a
+    guard wrongly, so the chain's targets are taken; :func:`_rebound` is
+    left exactly as ADR-145 measured it.
+    """
+    names = _bound_in(_own_nodes(node))
+    for current in _own_nodes(node):
+        if current.type != "assignment" or current.child_by_field_name("right") is not None:
+            continue
+        nested = current.child_by_field_name("type")
+        left = current.child_by_field_name("left")
+        if nested is not None and nested.type == "assignment" and left is not None:
+            names |= {_text(ident) for ident in _target_identifiers(left)}
+    return tuple(sorted(names))
+
+
+def _operand(node: Node | None) -> object:
+    """One side of a guard: a literal, a bare name, or :data:`UNKNOWN`."""
+    if node is None:
+        return UNKNOWN
+    if node.type == "parenthesized_expression":
+        children = node.named_children
+        return _operand(children[0]) if len(children) == 1 else UNKNOWN
+    if node.type == "identifier":
+        return NameRef(_text(node))
+    value = _literal(node)
+    return UNKNOWN if value is UNKNOWN else Literal(value)
+
+
+def _test(node: Node | None) -> object:
+    """One ``if`` / ``elif`` test as the small expression tree ADR-148
+    step 1 keeps, or :data:`UNKNOWN`.
+
+    The whole grammar: a literal, a name, ``not``, ``and`` / ``or``,
+    ``x is None``, ``x is not None``, and ``callable(x)`` with one
+    positional argument. Anything else the fold meets as an unknown,
+    which takes both branches rather than the wrong one.
+    """
+    if node is None:
+        return UNKNOWN
+    kind = node.type
+    if kind == "parenthesized_expression":
+        children = node.named_children
+        return _test(children[0]) if len(children) == 1 else UNKNOWN
+    if kind == "identifier":
+        return NameRef(_text(node))
+    if kind == "not_operator":
+        return Not(_test(node.child_by_field_name("argument")))
+    if kind == "boolean_operator":
+        operator = node.child_by_field_name("operator")
+        if operator is None or _text(operator) not in ("and", "or"):
+            return UNKNOWN
+        return BoolOp(
+            _text(operator),
+            _test(node.child_by_field_name("left")),
+            _test(node.child_by_field_name("right")),
+        )
+    if kind == "comparison_operator":
+        operators = node.children_by_field_name("operators")
+        children = node.children
+        if len(operators) == 1 and len(children) == 3 and children[2].type == "none":
+            if operators[0].type == "is":
+                return IsNone(_operand(children[0]))
+            if operators[0].type == "is not":
+                return IsNone(_operand(children[0]), negated=True)
+        return UNKNOWN
+    if kind == "call":
+        function = node.child_by_field_name("function")
+        arguments = node.child_by_field_name("arguments")
+        positional = [
+            arg
+            for arg in (arguments.named_children if arguments else [])
+            if arg.type != "comment"
+        ]
+        if (
+            function is not None
+            and function.type == "identifier"
+            and _text(function) == CALLABLE
+            and len(positional) == 1
+            and positional[0].type
+            not in ("keyword_argument", "list_splat", "dictionary_splat")
+        ):
+            return IsCallable(_operand(positional[0]))
+        return UNKNOWN
+    value = _literal(node)
+    return UNKNOWN if value is UNKNOWN else Literal(value)
+
+
+def _branch(test: Node | None, block: Node | None, inner: str) -> Branch:
+    """One arm of an ``if``. A walrus anywhere in the test makes the test
+    unreadable **and** the name it binds unknown: the assignment ran, and
+    what it assigned is what the fold could not read."""
+    walrus = tuple(
+        sorted(
+            _text(name)
+            for current in (_own_nodes(test) if test is not None else ())
+            if current.type == "named_expression"
+            for name in [current.child_by_field_name("name")]
+            if name is not None and name.type == "identifier"
+        )
+    )
+    return Branch(
+        UNKNOWN if walrus else _test(test),
+        walrus,
+        _statements(block, inner),
+    )
+
+
+def _if_statement(node: Node, inner: str) -> If:
+    """An ``if`` with its arms in written order. ``elif`` is an
+    ``elif_clause`` of its own in this grammar, not a nested ``if``, and
+    ``else`` is an ``else_clause`` whose statements are under ``body``."""
+    branches = [
+        _branch(
+            node.child_by_field_name("condition"),
+            node.child_by_field_name("consequence"),
+            inner,
+        )
+    ]
+    for alternative in node.children_by_field_name("alternative"):
+        if alternative.type == "elif_clause":
+            branches.append(
+                _branch(
+                    alternative.child_by_field_name("condition"),
+                    alternative.child_by_field_name("consequence"),
+                    inner,
+                )
+            )
+        elif alternative.type == "else_clause":
+            branches.append(
+                Branch(None, (), _statements(alternative.child_by_field_name("body"), inner))
+            )
+    return If(tuple(branches))
+
+
+def _returns_in(node: Node, inner: str) -> tuple[bool, ...]:
+    """Every ``return`` written inside one statement, in the scope it is
+    written in: ``True`` for each ``return g``, ``False`` for each other.
+    """
+    return tuple(
+        bool(current.named_children)
+        and current.named_children[0].type == "identifier"
+        and _text(current.named_children[0]) == inner
+        for current in _own_nodes(node)
+        if current.type == "return_statement"
+    )
+
+
+def _statement(node: Node, inner: str) -> object | None:
+    """One top-level statement of a factory's own body, as ADR-148 step 1
+    records it, or ``None`` for one that neither binds, branches nor
+    returns (a ``pass``, a docstring, a comment).
+
+    The ``if`` is the one block read as branches. Every other statement
+    that holds a ``return`` — a ``for``, ``while``, ``with``, ``try`` or
+    ``match``, and anything else a grammar might call them — is an
+    :class:`Opaque`: whether it runs, and how often, is not read, so each
+    of its returns stays reachable and each name it binds goes unknown.
+    Reading that off the returns rather than off a list of block kinds is
+    the safe direction: a block this walk did not recognize keeps its
+    returns instead of dropping them.
+    """
+    kind = node.type
+    if kind in ("comment", "pass_statement"):
+        return None
+    if kind == "return_statement":
+        value = node.named_children[0] if node.named_children else None
+        return Return(value is not None and value.type == "identifier" and _text(value) == inner)
+    if kind == "raise_statement":
+        return Raise()
+    if kind == "if_statement":
+        return _if_statement(node, inner)
+    if kind == "expression_statement":
+        children = [child for child in node.named_children if child.type != "comment"]
+        if len(children) == 1 and children[0].type == "assignment":
+            left = children[0].child_by_field_name("left")
+            right = children[0].child_by_field_name("right")
+            if left is not None and left.type == "identifier" and right is not None:
+                value = _operand(right)
+                if value is not UNKNOWN:
+                    return Assign(_text(left), value)
+    returns = _returns_in(node, inner)
+    binds = _statement_binds(node)
+    if returns:
+        return Opaque(binds, returns)
+    return Binds(binds) if binds else None
+
+
+def _statements(block: Node | None, inner: str) -> tuple:
+    """A block's statements, in written order."""
+    out = []
+    for child in block.children if block is not None else ():
+        statement = _statement(child, inner)
+        if statement is not None:
+            out.append(statement)
+    return tuple(out)
+
+
+def _inner_fold(node: Node, shadows_callable: bool) -> InnerFold | None:
+    """A factory ADR-147 could not settle, digested for ADR-148's fold.
+
+    Step 1's shape, and nothing wider: not ``async``, no ``yield`` of its
+    own, **exactly one** nested definition — which must be a plain,
+    undecorated, non-``async`` ``def`` — that name neither a parameter
+    nor bound again, and at least one ``return`` of it. Two nested defs
+    (attrs' ``define``) are refused here rather than folded, because
+    which of them a return names is the whole question.
+    """
+    if any(child.type == "async" for child in node.children):
+        return None
+    definitions = list(_own_definitions(node))
+    if len(definitions) != 1:
+        return None
+    definition, decorated = definitions[0]
+    if decorated or definition.type != "function_definition":
+        return None
+    if any(child.type == "async" for child in definition.children):
+        return None
+    name = definition.child_by_field_name("name")
+    if name is None:
+        return None
+    inner = _text(name)
+    if inner in _parameter_names(node) or _rebound(node, ((inner, 0),)):
+        return None
+    returns_it = False
+    for current in _own_body(node):
+        if current.type == "yield":
+            return None  # a generator hands back values, never itself
+        if (
+            current.type == "return_statement"
+            and current.named_children
+            and current.named_children[0].type == "identifier"
+            and _text(current.named_children[0]) == inner
+        ):
+            returns_it = True
+    if not returns_it:
+        return None
+    signature = _signature(node)
+    if signature is None:
+        return None
+    params, star, kwonly, double_star = signature
+    return InnerFold(
+        inner=inner,
+        params=params,
+        star=star,
+        kwonly=kwonly,
+        double_star=double_star,
+        shadows_callable=shadows_callable,
+        body=_statements(node.child_by_field_name("body"), inner),
+    )
 
 
 def _parametrize_names(node: Node) -> tuple[str, ...] | None:
@@ -928,6 +1641,16 @@ def _walk(
             symbol_kind = "function"
         params = _parameters(node)
         is_function = kind == "function_definition"
+        # A class is no decorator factory under either rule: ADR-147 and
+        # ADR-148 both read a `def` that returns a `def`. The fold is the
+        # second question, asked only where the first settled nothing —
+        # a factory ADR-147 draws is never re-folded (ADR-148 step 5).
+        returns_inner = _returns_inner(node) if is_function else None
+        inner_fold = (
+            _inner_fold(node, parsed.shadows_callable)
+            if is_function and returns_inner is None
+            else None
+        )
         parsed.symbols.append(
             Symbol(
                 qualname=qualname,
@@ -943,9 +1666,8 @@ def _walk(
                 # having none: both facts are a function's (ADR-145).
                 value=_returned_value(node) if is_function else None,
                 rebound=_rebound(node, params) if is_function else (),
-                # A class is no decorator factory under this rule either:
-                # ADR-147 reads a `def` that returns a `def`.
-                returns_inner=_returns_inner(node) if is_function else None,
+                returns_inner=returns_inner,
+                inner_fold=inner_fold,
             )
         )
         body = node.child_by_field_name("body")

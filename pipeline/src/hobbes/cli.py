@@ -345,9 +345,13 @@ def _print_decorators(counts: dict | None) -> None:
     ``@f(…)`` is two calls and the index names only the first, so this line
     says how many second halves the rule could claim exactly and how many
     it declined; the largest reasons are named, because a refusal this rule
-    counts is the size of what a factory's shape did not settle. Nothing is
-    printed where the block is absent — a repo whose decorators resolved to
-    nothing in-repo was never asked (P6).
+    counts is the size of what a factory's shape did not settle. How many
+    of the drawn are ADR-148's is said where there are any: those rest on
+    the site's own arguments as well as on the factory's shape, and a
+    reader weighing the claim should not have to open the graph to see
+    which reading drew it. Nothing is printed where the block is absent —
+    a repo whose decorators resolved to nothing in-repo was never asked
+    (P6).
     """
     factory = (counts or {}).get("factory_calls")
     if not factory:
@@ -358,10 +362,18 @@ def _print_decorators(counts: dict | None) -> None:
         for reason, n in sorted(refused.items(), key=lambda pair: (-pair[1], pair[0]))
         if n
     ][:2]
+    folded = factory.get("folded", 0)
     print(
         f"    decorators: {factory.get('drawn', 0)} decorator-factory "
         "application(s) drawn as calls of the def the factory returns "
-        f"(ADR-147); {sum(refused.values())} refused"
+        "(ADR-147"
+        + (
+            f"; {folded} by folding the factory's guards over the site's "
+            "own arguments, ADR-148"
+            if folded
+            else ""
+        )
+        + f"); {sum(refused.values())} refused"
         + (f", the largest {', '.join(largest)}" if largest else "")
     )
 

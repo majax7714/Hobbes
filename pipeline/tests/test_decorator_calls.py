@@ -14,9 +14,11 @@ What a decorator *returns* was not claimed at all when this fixture was
 written; ADR-147 moved that boundary, and applying ``factory("a")``'s
 result is now drawn as a call of ``factory.<locals>.decorator`` — one
 tier down, ``syntactic`` and evidenced ``decorator-factory``, because the
-index answers nothing at an application the source does not spell. The
-assertion below says which of the two rules drew an edge, rather than
-that the second hop is absent; ADR-147's own cases are in
+index answers nothing at an application the source does not spell.
+ADR-148 moved it again for the factories whose returns only the site's
+own arguments settle, evidenced ``decorator-factory-folded``. The
+assertion below says which of the three rules drew each edge, rather than
+that the second hop is absent; ADR-147's and ADR-148's own cases are in
 ``test_decorator_factories.py``.
 
 The edges are the index's, so the end-to-end case needs lane B; the twin
@@ -27,7 +29,7 @@ from pathlib import Path
 
 import pytest
 
-from hobbes.extract.decorators import DECORATOR_FACTORY
+from hobbes.extract.decorators import DECORATOR_FACTORY, DECORATOR_FACTORY_FOLDED
 from hobbes.extract.pysource import parse_source
 from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -35,6 +37,7 @@ MINIDECO = Path(__file__).parent / "fixtures" / "minideco"
 
 APP = "minideco.app"
 OUTER = "minideco.app.outer"
+FOLDING = "minideco.app.folding"
 
 
 def calls(graph):
@@ -46,12 +49,13 @@ def calls(graph):
 
 @pytest.mark.lane_b
 def test_every_decorator_application_is_drawn_at_the_index_s_tier():
-    """With the index running: the four sites of this rule are ``calls``
-    edges, each ``semantic``. Three leave the module — the decorators
-    written at module level — and the fourth leaves ``outer``, whose body
-    holds the ``@``. What reaches ``factory``'s inner ``decorator`` is
-    ADR-147's edge beside them, ``syntactic`` and evidenced
-    ``decorator-factory``: no site here was resolved to it."""
+    """With the index running: the four sites this fixture was written
+    for are ``calls`` edges, each ``semantic``. Three leave the module —
+    the decorators written at module level — and the fourth leaves
+    ``outer``, whose body holds the ``@``. What reaches an inner
+    ``decorator`` is the second hop beside them, ``syntactic`` and
+    evidenced by the reading that drew it: no site here was resolved to
+    one."""
     from hobbes.extract import containment, extract_repo
 
     why = containment.unavailable_reason()
@@ -79,17 +83,28 @@ def test_every_decorator_application_is_drawn_at_the_index_s_tier():
         "minideco.deco.factory.decorator",
     ]
     # ADR-146 resolved no *decorator site* to an inner `decorator`; every
-    # edge that reaches one from `app` is the application ADR-147 draws a
-    # tier down. (`either`'s own body calls its `decorator` by name — a
+    # edge that reaches one from `app` is the application drawn a tier
+    # down, by the reading named here — ADR-147's three, from the
+    # factory's shape alone, and ADR-148's four, folded over what the
+    # site wrote. (`either`'s own body calls its `decorator` by name — a
     # direct call in `deco`, which the index answers `semantic`.)
+    via = {
+        (APP, "minideco.deco.factory.decorator"): {DECORATOR_FACTORY},
+        (APP, "minideco.deco.Registry.register.decorator"): {DECORATOR_FACTORY},
+        (OUTER, "minideco.deco.factory.decorator"): {DECORATOR_FACTORY},
+        (APP, "minideco.deco.optional.decorator"): {DECORATOR_FACTORY_FOLDED},
+        (APP, "minideco.deco.Registry.command.decorator"): {DECORATOR_FACTORY_FOLDED},
+        (APP, "minideco.deco.either.decorator"): {DECORATOR_FACTORY_FOLDED},
+        (FOLDING, "minideco.deco.optional.decorator"): {DECORATOR_FACTORY_FOLDED},
+    }
     for pair, e in drawn.items():
         if pair[1].endswith(".decorator") and pair[0].startswith(APP):
             assert e["tier"] == SYNTACTIC, pair
-            assert {s.get("via") for s in e["evidence"]} == {DECORATOR_FACTORY}, pair
+            assert {s.get("via") for s in e["evidence"]} == via[pair], pair
     assert [pair for pair in drawn if pair[0].startswith("minideco.app.one")] == []
 
 
-def test_lane_a_has_the_four_sites():
+def test_lane_a_has_the_four_sites():  # and the refusals written after them
     """Without the index the sites are still there — recording them is
     lane A's half of the rule, and what any lane resolves them to is the
     join's business as it is for a call in a body."""
@@ -103,4 +118,15 @@ def test_lane_a_has_the_four_sites():
         # ADR-147's two refusals, written after the four this rule pins.
         (None, "either", 37),
         (None, "wrapped", 42),
+        # ADR-148's sites, written after those: the same rule records
+        # each of them, whatever the fold later makes of its arguments —
+        # including the bare `@optional` on line 78, which applies
+        # `optional` itself and is no factory application at all.
+        (None, "optional", 63),
+        (None, "optional", 68),
+        (None, "optional", 73),
+        (None, "optional", 78),
+        (None, "registry.command", 83),
+        (None, "either", 88),
+        ("folding", "optional", 94),
     ]
