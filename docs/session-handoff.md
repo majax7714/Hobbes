@@ -78,7 +78,7 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   `~/.hobbes/bench/py-optparens/` (`PREREG.md`, `probe.py` — `--new-only --emit
   --method-positional`, `RESULTS.md`, `oracle`, `base/` `sim/` `sim2/` the simulated
   grades, `real/` attrs and flask at 0.2.66, `real148/click/` the built cell, `units/`;
-  `wt/` a worktree, removable).
+  its worktree was removed).
 - **What click still misses** (858 on r3): 512 closures — callbacks reached through
   attributes and parameters (`self.callback(…)`, `callback(*args)`, monkeypatched doubles:
   values, C-58, 401 rows), `group()`'s `return command(…)` (a chain through a second
