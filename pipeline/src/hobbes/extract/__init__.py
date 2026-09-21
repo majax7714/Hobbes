@@ -667,8 +667,9 @@ def _build_symbol_layer(
         # Additive, and absent on a repo that defines no fixture and looks
         # no parameter up, as `operators` and `constructions` are.
         graph["fixtures"] = fixture_counts
-    # ADR-147, appended after the projection for the same reason as the two
-    # above: `@f(…)` is two calls, and the index names only the first.
+    # ADR-147 and ADR-148, appended after the projection for the same
+    # reason as the two above: `@f(…)` is two calls, and the index names
+    # only the first.
     # Applying what `f(…)` returned is written nowhere — there is no token
     # for the index to name — so no occurrence exists for the join to match
     # and no joined edge to wait for. What the rule reads is the settled
@@ -918,7 +919,11 @@ def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
 
 def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
     """Draw each decorator-factory application as one ``calls`` edge
-    (ADR-147), evidence at every decorator that made it.
+    (ADR-147, ADR-148), evidence at every decorator that made it.
+
+    Each evidence row carries the ``via`` of the row that drew it, so a
+    pair reached by both readings — one site ADR-147 settles, another
+    ADR-148 folds — says at which line it was which.
 
     The same shape as :func:`_add_value_call_edges`, but for the caller: a
     target the symbol layer does not carry is dropped rather than drawn to
@@ -938,7 +943,9 @@ def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
     sightings: dict[tuple[str, str], set] = defaultdict(set)
     for call in drawn:
         if call["from"] in callers and call["to"] in ids:
-            sightings[(call["from"], call["to"])].add((call["path"], call["line"]))
+            sightings[(call["from"], call["to"])].add(
+                (call["path"], call["line"], call["via"])
+            )
     if not sightings:
         return
     graph["symbol_edges"] = sorted(
@@ -949,8 +956,8 @@ def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
                 target,
                 "calls",
                 [
-                    {"path": path, "line": line, "via": decorators.DECORATOR_FACTORY}
-                    for path, line in sorted(evidence)
+                    {"path": path, "line": line, "via": via}
+                    for path, line, via in sorted(evidence)
                 ],
                 tier=SYNTACTIC,
                 lane=LANE_TREE_SITTER,

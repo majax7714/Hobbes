@@ -1,8 +1,23 @@
 """Tests for hobbes.extract.pysource — the per-file tree-sitter walk."""
 
 from hobbes.extract.pysource import (
+    UNKNOWN,
+    Assign,
+    Binds,
+    BoolOp,
+    Bound,
+    Branch,
     FromImport,
+    If,
+    IsCallable,
+    IsNone,
+    Literal,
+    NameRef,
+    Opaque,
+    Param,
     PlainImport,
+    Raise,
+    Return,
     parse_source,
 )
 
@@ -141,6 +156,304 @@ class TestCallForm:
         # about a site whose callee is not where the decorator is.
         (called,) = self.decorators('@a.\\\n    b("x")\n')
         assert (called.dotted, called.line, called.callee_line) == ("a.b", 1, 2)
+
+
+class TestBoundArguments:
+    """What a call-form decorator writes at the site (ADR-148 step 2):
+    every argument as a value the fold can carry, or the one unknown. A
+    bare ``@f`` writes nothing to fold at all."""
+
+    def bound(self, text: str):
+        (symbol,) = parse(text + "def h():\n    pass\n").symbols
+        return symbol.decorators[0].bound
+
+    def test_a_bare_decorator_binds_nothing(self):
+        assert self.bound("@f\n") is None
+
+    def test_a_call_with_no_arguments(self):
+        assert self.bound("@f()\n") == Bound((), (), False)
+
+    def test_the_literals_the_fold_carries(self):
+        assert self.bound('@f("x", 1, None, k=True)\n') == Bound(
+            ("x", 1, None), (("k", True),), False
+        )
+
+    def test_a_name_is_the_one_unknown(self):
+        assert self.bound("@f(name)\n") == Bound((UNKNOWN,), (), False)
+
+    def test_a_positional_splat_makes_the_binding_unknown(self):
+        assert self.bound("@f(*a)\n") == Bound((), (), True)
+
+    def test_a_keyword_splat_makes_the_binding_unknown(self):
+        assert self.bound("@f(**k)\n") == Bound((), (), True)
+
+    def test_an_fstring_is_unknown(self):
+        # The digest's `args` drops it silently (it keeps plain strings);
+        # the fold has to see that *something* was written there.
+        assert self.bound('@f(f"x{y}")\n') == Bound((UNKNOWN,), (), False)
+
+    def test_the_empty_tuple_is_a_literal(self):
+        assert self.bound("@f(())\n") == Bound(((),), (), False)
+
+    def test_a_pytestmark_call_is_not_a_site_to_fold(self):
+        parsed = parse('pytestmark = [pytest.mark.usefixtures("db")]\n')
+        (mark,) = parsed.pytestmark
+        assert (mark.args, mark.bound) == (("db",), None)
+
+
+class TestInnerFold:
+    """The factory ADR-147 could not settle, digested for ADR-148's fold:
+    the signature a site's arguments bind into, and the own body as the
+    small program the guards are folded through. Set only where
+    ``returns_inner`` is None and step 1's shape holds all the same."""
+
+    def fold(self, text: str, qualname: str = "f"):
+        return next(s for s in parse(text).symbols if s.qualname == qualname).inner_fold
+
+    #: click's `command`, trimmed to the shape: the optional-parentheses
+    #: idiom, whose `return decorator(func)` ADR-147 refuses whole.
+    COMMAND = (
+        "def f(name=None, cls=None, **attrs):\n"
+        "    func = None\n"
+        "    if callable(name):\n"
+        "        func = name\n"
+        "\n"
+        "    def g(fn):\n"
+        "        return fn\n"
+        "\n"
+        "    if func is not None:\n"
+        "        return g(func)\n"
+        "    return g\n"
+    )
+
+    def test_clicks_command_shape(self):
+        fold = self.fold(self.COMMAND)
+        assert fold.inner == "g"
+        assert fold.params == (Param("name", None), Param("cls", None))
+        assert (fold.star, fold.double_star, fold.kwonly) == (None, "attrs", ())
+        assert fold.shadows_callable is False
+        assert fold.body == (
+            Assign("func", Literal(None)),
+            If(
+                (
+                    Branch(
+                        IsCallable(NameRef("name")),
+                        (),
+                        (Assign("func", NameRef("name")),),
+                    ),
+                )
+            ),
+            Binds(("g",)),
+            If((Branch(IsNone(NameRef("func"), negated=True), (), (Return(False),)),)),
+            Return(True),
+        )
+
+    def test_a_method_factorys_shape(self):
+        # click's `Group.command`: `self, *args, **kwargs`, guarded on
+        # whether the site passed a callable first positional.
+        text = (
+            "class R:\n"
+            "    def command(self, *args, **kwargs):\n"
+            "        func = None\n"
+            "        if args and callable(args[0]):\n"
+            "            (func,) = args\n"
+            "\n"
+            "        def g(fn):\n"
+            "            return fn\n"
+            "\n"
+            "        if func is not None:\n"
+            "            return g(func)\n"
+            "        return g\n"
+        )
+        fold = self.fold(text, "R.command")
+        assert fold.params == (Param("self"),)
+        assert (fold.star, fold.double_star) == ("args", "kwargs")
+        assert fold.body[1] == If(
+            (
+                Branch(
+                    BoolOp("and", NameRef("args"), IsCallable(UNKNOWN)),
+                    (),
+                    (Binds(("func",)),),
+                ),
+            )
+        )
+
+    def test_attrs_shape(self):
+        # `if maybe_cls is None: return wrap` / `return wrap(maybe_cls)`:
+        # the returns are the other way round, and the fold reads it the
+        # same way.
+        text = (
+            "def f(maybe_cls=None, these=None):\n"
+            "    def g(cls):\n"
+            "        return cls\n"
+            "\n"
+            "    if maybe_cls is None:\n"
+            "        return g\n"
+            "    return g(maybe_cls)\n"
+        )
+        fold = self.fold(text)
+        assert fold.params == (Param("maybe_cls", None), Param("these", None))
+        assert fold.body == (
+            Binds(("g",)),
+            If((Branch(IsNone(NameRef("maybe_cls")), (), (Return(True),)),)),
+            Return(False),
+        )
+
+    def test_a_factory_adr_147_settles_carries_no_fold(self):
+        # Drawn as ADR-147 draws it, and never re-folded (step 5).
+        text = "def f(label):\n    def g(fn):\n        return fn\n\n    return g\n"
+        symbol = next(s for s in parse(text).symbols if s.qualname == "f")
+        assert (symbol.returns_inner, symbol.inner_fold) == ("g", None)
+
+    def test_an_async_factory(self):
+        assert self.fold("async " + self.COMMAND) is None
+
+    def test_a_generator(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if label:\n"
+            "        yield g\n"
+            "    return g\n"
+        )
+        assert self.fold(text) is None
+
+    def test_two_nested_defs(self):
+        # attrs' `define`: which of them a return names is the whole
+        # question, so the shape is refused rather than folded.
+        text = (
+            "def f(maybe_cls=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    def other(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if maybe_cls is None:\n"
+            "        return g\n"
+            "    return g(maybe_cls)\n"
+        )
+        assert self.fold(text) is None
+
+    def test_a_decorated_inner_def(self):
+        text = (
+            "def f(label=None):\n"
+            "    @wraps(label)\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if label:\n"
+            "        return g(label)\n"
+            "    return g\n"
+        )
+        assert self.fold(text) is None
+
+    def test_an_inner_name_that_is_a_parameter(self):
+        text = (
+            "def f(g=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if g:\n"
+            "        return g(1)\n"
+            "    return g\n"
+        )
+        assert self.fold(text) is None
+
+    def test_a_reassigned_inner_name(self):
+        text = (
+            "def f(label=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    g = wrap(g)\n"
+            "    if label:\n"
+            "        return g(label)\n"
+            "    return g\n"
+        )
+        assert self.fold(text) is None
+
+    def test_an_elif_chain_is_read_as_its_arms(self):
+        text = (
+            "def f(a=None, b=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if a:\n"
+            "        return g(a)\n"
+            "    elif b is None:\n"
+            "        return g\n"
+            "    else:\n"
+            "        raise ValueError\n"
+        )
+        (block,) = self.fold(text).body[1:]
+        assert block == If(
+            (
+                Branch(NameRef("a"), (), (Return(False),)),
+                Branch(IsNone(NameRef("b")), (), (Return(True),)),
+                Branch(None, (), (Raise(),)),
+            )
+        )
+
+    def test_a_try_keeps_its_returns_reachable(self):
+        text = (
+            "def f(label=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    try:\n"
+            "        found = load(label)\n"
+            "        return g(found)\n"
+            "    except KeyError as err:\n"
+            "        pass\n"
+            "    return g\n"
+        )
+        assert self.fold(text).body[1] == Opaque(("err", "found"), (False,))
+
+    def test_a_block_read_off_its_returns_and_not_off_its_name(self):
+        # A `match` is an opaque block like the rest, and would be one
+        # under any name this walk did not know: what makes it opaque is
+        # that it holds a return, so a block the walk cannot name keeps
+        # its returns rather than dropping them.
+        text = (
+            "def f(kind=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    match kind:\n"
+            "        case None:\n"
+            "            return g(kind)\n"
+            "    return g\n"
+        )
+        assert self.fold(text).body[1] == Opaque((), (False,))
+
+    def test_a_walrus_in_a_test_makes_the_test_and_the_name_unknown(self):
+        text = (
+            "def f(label=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if (found := load(label)) is None:\n"
+            "        return g(found)\n"
+            "    return g\n"
+        )
+        assert self.fold(text).body[1] == If(
+            (Branch(UNKNOWN, ("found",), (Return(False),)),)
+        )
+
+    def test_a_module_that_binds_callable_is_flagged(self):
+        text = "from shims import callable\n\n\n" + self.COMMAND
+        assert self.fold(text).shadows_callable is True
+        parsed = parse(text)
+        assert parsed.shadows_callable is True
+
+    def test_a_module_that_does_not_bind_callable(self):
+        assert parse(self.COMMAND).shadows_callable is False
+
+    def test_a_class_has_no_fold(self):
+        assert self.fold("class f:\n    pass\n") is None
 
 
 class TestParameters:

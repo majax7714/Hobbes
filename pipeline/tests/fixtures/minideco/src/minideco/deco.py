@@ -1,15 +1,21 @@
-"""The decorators ``minideco.app`` applies (ADR-146, ADR-147).
+"""The decorators ``minideco.app`` applies (ADR-146, ADR-147, ADR-148).
 
 ``plain`` is applied by name. ``factory`` and ``Registry.register`` are
 called first and the ``decorator`` they return is applied to the
 definition — the second hop, which ADR-147 draws: every return in each
 body is that one nested ``def``.
 
-``either`` and ``wrapped`` are the refusals beside them. ``either``
-returns ``decorator`` on one path and ``decorator(label)`` on another, so
-on that path the decorator site does not call ``decorator`` — ``either``
-does. ``wrapped`` is itself decorated, so what it hands back is what
-``passthrough`` returned, which is not the ``def`` written inside it.
+``wrapped`` is the refusal beside them: it is itself decorated, so what
+it hands back is what ``passthrough`` returned, which is not the ``def``
+written inside it.
+
+``either``, ``optional`` and ``Registry.command`` each return
+``decorator`` on one path and ``decorator(…)`` on another, so ADR-147
+settles none of them. ADR-148 folds their guards over the arguments the
+site itself writes: ``@either("")``, ``@optional()`` and
+``@registry.command()`` can reach no return but ``return decorator``,
+while ``@either("d")`` reaches the other one and ``@optional(TAG)``
+passes a name the fold cannot read — both refused ``guard-unknown``.
 """
 
 
@@ -31,6 +37,18 @@ class Registry:
 
         return decorator
 
+    def command(self, *args, **kwargs):
+        func = None
+        if args and callable(args[0]):
+            (func,) = args
+
+        def decorator(fn):
+            return fn
+
+        if func is not None:
+            return decorator(func)
+        return decorator
+
 
 def either(label):
     def decorator(fn):
@@ -50,4 +68,17 @@ def wrapped(label):
     def decorator(fn):
         return fn
 
+    return decorator
+
+
+def optional(name=None, **attrs):
+    func = None
+    if callable(name):
+        func = name
+
+    def decorator(fn):
+        return fn
+
+    if func is not None:
+        return decorator(func)
     return decorator
