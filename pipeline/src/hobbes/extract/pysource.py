@@ -1187,6 +1187,15 @@ def _signature(node: Node) -> tuple | None:
     node_params = node.child_by_field_name("parameters")
     for param in node_params.named_children if node_params else []:
         kind = param.type
+        if kind == "typed_parameter" and param.named_children and param.named_children[
+            0
+        ].type in ("list_splat_pattern", "dictionary_splat_pattern"):
+            # `*args: T` / `**kwargs: T`: the grammar wraps the splat in a
+            # `typed_parameter`, and the annotation says nothing the fold
+            # binds — read it as the bare splat (click writes every one of
+            # its factories this way).
+            param = param.named_children[0]
+            kind = param.type
         if kind == "positional_separator":
             continue
         if kind == "keyword_separator":  # a bare `*`

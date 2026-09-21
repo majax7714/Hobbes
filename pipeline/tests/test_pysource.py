@@ -248,6 +248,25 @@ class TestInnerFold:
             Return(True),
         )
 
+    def test_typed_splats_are_read_as_splats(self):
+        # click's own signatures annotate the splats (`**attrs: t.Any`); the
+        # grammar wraps each in a `typed_parameter`, which read as an
+        # unnameable parameter left every typed factory unfolded (found at
+        # unit b4d4's review, on click).
+        text = (
+            "def f(name: str | None = None, *args: int, k: str = 'x', **attrs: t.Any):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if callable(name):\n"
+            "        return g(name)\n"
+            "    return g\n"
+        )
+        fold = self.fold(text)
+        assert fold.params == (Param("name", None),)
+        assert (fold.star, fold.double_star) == ("args", "attrs")
+        assert fold.kwonly == (Param("k", "x"),)
+
     def test_a_method_factorys_shape(self):
         # click's `Group.command`: `self, *args, **kwargs`, guarded on
         # whether the site passed a callable first positional.
