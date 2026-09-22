@@ -115,7 +115,7 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   (`64eadf0`). Drivers `~/.hobbes/bench/c4-local-value/` (`PREREG.md`,
   `simulate_local.py` — `own_nodes` fixed there, not in `c4-returned-value/`;
   `PREREG-worded.md`, `probe_worded.py` over a cell's own graph, reusable; `real/` the
-  built cells, `units/`, `wt/` a worktree, removable). The key and the clone:
+  built cells, `units/`; its worktree was removed). The key and the clone:
   `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its `.venv`
   from `uv sync --group tests --python 3.12`).
 - **First, and precision (found at flask's key, not fixed):** three `semantic` edges in
