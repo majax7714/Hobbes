@@ -6,6 +6,12 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-58 narrowed, 2026-09-22 (0.2.68-beta; ADR-149, Max: route a; no entry added):
+- **C-58 narrowed (still partial).** A Python decorator factory whose reachable
+  returns are all one second factory's call is drawn through to that factory's
+  nested def; `chain-guard-unknown`, `chain-unresolved` and `chain-inner` are
+  counted in the graph and the ingest summary. The tally does not move.
+
 C-58 narrowed, 2026-09-21 (0.2.67-beta; ADR-148, Max: route a; no entry added):
 - **C-58 narrowed (still partial).** A Python decorator factory's application is also
   drawn where the factory's guards, folded over the site's own arguments, leave the one

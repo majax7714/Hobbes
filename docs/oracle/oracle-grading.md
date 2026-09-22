@@ -2355,6 +2355,39 @@ after the projection. Left in click's closure misses: 512 — callbacks reached 
 attributes and parameters (values, C-58), `group()`'s `return command(…)`, a decorator
 held in a variable, `make_pass_decorator` applied bare.
 
+### 10.34 A factory that returns another factory's call — `PREREG.md` written 2026-09-21 before `probe_chain.py`'s first run; this section written after the regrade (ADR-149; unit `67cc`)
+
+**Probed as worded** over the built 0.2.67-beta export (`~/.hobbes/bench/py-factory-chain/`),
+the new edges written into a copy of the export and graded by `oracle grade --poison` on the
+standing key `click-py-r3`: 66 drawn (`group` → `command` 50, folded; `version_option` 7,
+`help_option` 3, `password_option` 2, `confirmation_option` 2, `custom_version_option` 2, each →
+`option`, settled), **51 confirmed**, 15 on lines the key never ran (`examples/`,
+`tests/typing/`; read by hand, each right), **0 contradicted, 0 new suspects**, no base row
+moved. P2 (44–50) was exceeded by one: `custom_version_option` chains to `option` too. attrs 0,
+flask 0, this repo at `2c915a8` 0.
+
+**Regraded with the unit's code** (merged; click ingested from the unit's tree, stored key
+`click-py-r3`, `--poison`):
+
+| click | rows | confirmed / 4,561 | suspect | `observed→closure` |
+|---|---|---|---|---|
+| 0.2.67-beta | 4,298 | 3,703 (81.2%) | 21 | 683 / 1,195 |
+| **0.2.68-beta** | **4,365** | **3,755 (82.3%)** | **21** | **735 / 1,195** |
+
+67 rows added, all `syntactic`, `via: decorator-factory-chained`, 0 lost, 0 re-tiered; poison
+PASS (4,365 seeded, 0 falsely confirmed). Signed direction of fix: confirmed **+52**, suspect
+**0**, rows lost **0**. **The built rows are the probe's plus one**, read: `@click.help_option(
+*name_specs, **option_attrs)` (`tests/test_options.py:1133`), confirmed. The probe refused a
+splat at the site; the rule as worded binds it as ADR-148 does (every parameter unknown), and
+`help_option` reaches `return option(…)` on every path whatever it was passed — the probe was
+stricter than the wording, and the wording is right. The ingest's block: 832 drawn, 397
+folded, 67 chained; refused 27 `method-positional`, 3 `decorated`. attrs 18 (unchanged; 54
+`chain-guard-unknown`), flask 1 (unchanged). The rule mints no symbol. Other languages not
+regraded: Python only, after the projection. Left on click's decorator lines: `@cli.command(
+"sdist")` 10 (`method-positional`), `@pass_foo` 7 (`make_pass_decorator` applied bare, a value),
+and decorators held in variables; 460 closure misses in all, most of them callbacks reached
+through attributes and parameters (C-58).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

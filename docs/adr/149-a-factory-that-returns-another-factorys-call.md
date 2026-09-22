@@ -1,6 +1,6 @@
 # ADR-149 — A decorator factory that returns another factory's call
 
-**Date:** 2026-09-21 · **Status:** accepted (Max, 2026-09-21: "good to go with route a") ·
+**Date:** 2026-09-21 · **Status:** accepted and **built** (0.2.68-beta, unit `67cc`; Max, 2026-09-21: "good to go with route a") ·
 **Owner:** Max · **Source:** ADR-148's *What this leaves* (a factory returning another
 factory's call); click's 44 `@click.group(…)` rows on `click-py-r3`, missed at 0.2.67-beta.
 
@@ -100,3 +100,20 @@ chains to `option` as well. attrs 0, flask 0, this repo (at `2c915a8`) 0.
   `@cli.command("sdist")`, 10 rows, `method-positional`), a decorator held in a variable,
   and every other function value.
 - Resolution coverage is not moved: there is no site — no token — to count.
+
+## Built (0.2.68-beta)
+
+Unit `67cc` (107 turns of 140, $13.04 on the subscription), merged `--no-ff`; no defect found
+at the review. click on the unit's code: **67 chained, 52 confirmed, 0 new suspects, 3,755 of
+4,561 (82.3%), poison PASS, 0 rows lost** (`oracle-grading.md` §10.34). attrs 18 and flask 1,
+both unchanged.
+
+- **One row beyond the probe, read and right:** `@click.help_option(*name_specs,
+  **option_attrs)`. The probe refused a splat at the site; step 2 binds it as ADR-148 does
+  (every parameter unknown), and `help_option` reaches `return option(…)` on every path.
+- **Accepted as built:** `Symbol.chain_fold` is a separate record (`ChainFold`), and a
+  return records its `Chain` only in a program built with no inner name, so ADR-148's digest is
+  unchanged; `_run` returns one `Exit` (inner, chain, environment) per reachable return, shared
+  by `fold_guards` and `_chained`; `G`'s condition 2 and condition 5 are ADR-147's own code
+  (`_one_body`, `_inner_symbol`), a refusal at `G` counted `chain-inner`; no `through` field
+  on the rows (no reader of it).

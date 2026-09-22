@@ -264,7 +264,7 @@
   because it is a paid cost with a deferred bill.
 - **Source:** ADR-027, Decision 1.
 
-### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not; narrowed 2026-09-20 (ADR-147, 0.2.66-beta): a Python decorator factory's application is drawn where every return is the one nested def; narrowed 2026-09-21 (ADR-148, 0.2.67-beta): and where the factory's guards, evaluated over the site's own arguments, leave that return the only one reachable*
+### C-58 — A call through an interface, a function value, or into a closure draws no edge — and the site still counts as resolved — *narrowed 2026-09-16 (ADR-120, 0.2.32-beta): the override set is drawn as `implements` edges; the dispatch itself is still not; narrowed 2026-09-20 (ADR-147, 0.2.66-beta): a Python decorator factory's application is drawn where every return is the one nested def; narrowed 2026-09-21 (ADR-148, 0.2.67-beta): and where the factory's guards, evaluated over the site's own arguments, leave that return the only one reachable; narrowed 2026-09-22 (ADR-149, 0.2.68-beta): and where the factory's reachable returns are all one second factory's call, whose own application reaches its nested def*
 - **Cannot tell you:** that `s.Get(key)` reaches `MemStore.Get`, that
   `run(query)` reaches the `Store` method the map handed it, that
   `defer cancel()` runs anything, or that `run("init")` in a test helper
@@ -331,10 +331,26 @@
   ADR-147's reasons: `method-positional` (a method factory at a site
   passing a positional — lane A cannot tell `@obj.f(x)` from `@Cls.f(x)`;
   click 27) and `guard-unknown` (a reachable other return). Still not
-  drawn: a factory returning another factory's call (click's `group()`,
-  `return command(…)`), a factory with two nested defs (attrs' `define`),
-  a decorator held in a variable, and every callback reached through an
-  attribute or a parameter.
+  drawn: a factory with two nested defs (attrs' `define`), a decorator
+  held in a variable, and every callback reached through an attribute or a
+  parameter.
+- **Python face, a factory returning another factory's call (ADR-149,
+  2026-09-22, 0.2.68-beta):** click's `group()` ends `return command(name,
+  cls, **attrs)`; where the outer factory's guards, folded over the site's
+  arguments, leave only returns of one second factory's call that the index
+  names at the return line, and that factory's application — settled
+  (ADR-147) or folded over the forwarded arguments (a `**x` leaves every
+  unbound parameter unknown, never its default) — reaches its one nested
+  def, the site is drawn `calls` to it, `syntactic`, `via:
+  decorator-factory-chained`, one level only. click: 67 drawn, 52
+  confirmed, 0 new suspects, recall 81.2% → 82.3% on `click-py-r3`
+  (`oracle-grading.md` §10.34). **Refused and counted:**
+  `chain-guard-unknown` (a reachable return that is no named call),
+  `chain-unresolved` (the index names no one second factory there, or two
+  returns name two), `chain-inner` (the second factory is no factory the
+  rule reads, a method given a positional, or itself only a chain). Still
+  not drawn: a chain of two or more hops; click's `@cli.command("sdist")`
+  (`method-positional`, 10 rows).
 - **Because:** two stacked mechanisms. The semantic lane resolves the
   interface call to the *interface method's* declaration, and interface
   methods and closures are outside the five graph-worthy descriptor

@@ -11,9 +11,34 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.67-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.68-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.68-beta — 2026-09-22 (a decorator factory that returns another factory's call; ADR-149, C-58 narrowed)
+
+**Patch: what the layer draws** — Python, after the projection. Built as unit
+`S-20260922T002232Z-67cc`; no defect found at its review.
+
+- **The shape.** click's `group()` holds no nested def and ends `return command(name, cls,
+  **attrs)`; `version_option()`, `help_option()` and their siblings end `return
+  option(*param_decls, **kwargs)`. At `@click.group()` the site applies what `command(None,
+  Group)` returned — `command.<locals>.decorator` — and neither ADR-147 nor ADR-148 read it.
+- **The rule.** Lane A digests such a body (`Symbol.chain_fold`): ADR-148's program, with
+  each `return <call>` recording its callee, its line and its arguments. The outer factory is
+  folded over the site's arguments; every reachable return must be a call the index names
+  from the factory at that line to one second factory `G`. `G` must then reach its one nested
+  def, either always (ADR-147) or folded over the arguments forwarded to it. A `**x` leaves
+  every parameter it might fill unknown, never its default. Drawn `calls`, `syntactic`, `via:
+  decorator-factory-chained`, one level only. Refused and counted: `chain-guard-unknown`,
+  `chain-unresolved`, `chain-inner`. The ingest's `decorators:` line says how many were
+  chained.
+- **Measured.** click **3,703 → 3,755 confirmed of 4,561 (81.2% → 82.3%)** on `click-py-r3`:
+  67 drawn, 52 confirmed, 15 on lines the key never ran, 0 new suspects, poison PASS, 0 rows
+  lost (`oracle-grading.md` §10.34). The pre-registered probe's 66 rows and one more, read:
+  a splat site (`@click.help_option(*name_specs, **option_attrs)`) the probe refused and the
+  rule's wording binds as unknown, reaching `option` on every path. attrs and flask
+  unchanged.
 
 ## 0.2.67-beta — 2026-09-21 (a decorator factory's guards, folded over the site's own arguments; ADR-148, C-58 narrowed)
 

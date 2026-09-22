@@ -14055,3 +14055,40 @@ paragraph, §3.8 row and §8 header, CHANGELOG, README, CLAUDE.md/AGENTS.md, wor
 the tracker at 71 of 40. On the host: pytest 2,317, 16 `lane_b`. Image and binaries
 rebuilt at 0.2.67-beta, this repo re-ingested. One unit today, $15.98 on the
 subscription; click 73.6% → 81.2%.
+
+## 2026-09-22 (thirteenth session) — the top-level docs read; group()'s chain measured and built (ADR-149, 0.2.68-beta)
+
+**The review (Max: "review top level documentation and report back with current
+status").** README, CLAUDE.md/AGENTS.md, CHANGELOG, the handoff, workstreams and the
+architecture's §8 header read against each other and the tree: consistent at
+0.2.67-beta, but for the handoff's claim that the eleventh and twelfth sessions' work was
+unpushed — `main` equalled `origin/main` at `57e4be2`. Fixed (`b2c815f`, Max: "fix the
+line").
+
+**Step 0, the next item (Max: "proceed with listed next item").** click's misses on
+`click-py-r3` at 0.2.67-beta bucketed by decorator line: 44 `@click.group(…)` →
+`command.<locals>.decorator`, and 5 through `option` (`version_option`, `help_option`).
+`PREREG.md` written before the probe: fold the outer factory over the site's arguments
+keeping each reachable return's environment; every reachable return a call the index
+names from the factory at that line to one `G`; `G` settled (ADR-147) or folded over the
+forwarded arguments, a `**x` leaving unbound parameters unknown, never defaulted; one
+level. `probe_chain.py` (over `ast`, reusing ADR-148's probe) graded by the real grader:
+66 drawn, 51 confirmed, 15 on unrun lines (read, right), 0 contradicted, 0 new suspects,
+poison PASS, 81.2% → 82.3%; P2 exceeded by one (`custom_version_option`). attrs, flask,
+this repo at `2c915a8`: 0. Three routes put to Max; route a.
+
+**ADR-149 (Max: "good to go with route a"), 0.2.68-beta.** ADR accepted first
+(`5a51d6a`), ingested at HEAD, dry run checked (`--settings`, the model), launched
+detached, `--max-turns 140`. The brief carried click's real `group`, `command`,
+`version_option` and `option` verbatim as a test fixture (`tests/fixtures/click-excerpt/`)
+— ADR-148's review lesson. Unit `67cc`: 107 turns, $13.04, ten files, gate clear, verify
+pass, **right-clear**, no defect at the review. On the host: pytest 2,351, `lane_b` 16 of
+16 run. The real click cell on the unit's tree: **67 chained, 52 confirmed, 3,755 of 4,561
+(82.3%), 21 suspect, poison PASS, 0 rows lost** (§10.34) — the probe's 66 and one more,
+read: `@click.help_option(*name_specs, **option_attrs)`, a site splat the probe refused and
+the ADR's wording binds as unknown; `help_option` reaches `option` on every path;
+confirmed. attrs 18 and flask 1 unchanged; this repo's 4 chained are minideco's. C-58
+narrowed, HISTORY, the architecture's paragraph, §3.8 row and §8 header, CHANGELOG,
+README, CLAUDE.md/AGENTS.md, workstreams, the tracker at 72 of 40. One unit, $13.04 on
+the subscription; click 81.2% → 82.3%. No decorator-line shape above 10 rows is left in
+click's misses.

@@ -363,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.67-beta** (2026-09-21). The Hobbes layer is versioned from here
+**Hobbes 0.2.68-beta** (2026-09-22). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -457,8 +457,8 @@ container the doer cannot reach (ADR-112), C++ from its lane A to the
 recall rules its first graded cells asked for (ADR-128 to ADR-136: fmt's
 recall 14.5% → 30.4%, args 58.6% → 72.9%, at no contradiction), pytest
 fixture reach (ADR-137, ADR-139; then a call on the value a fixture
-constructs, ADR-145, and a decorator's calls, ADR-146 to ADR-148: click's
-recall 38.2% → 81.2%, at no contradiction),
+constructs, ADR-145, and a decorator's calls, ADR-146 to ADR-149: click's
+recall 38.2% → 82.3%, at no contradiction),
 and JavaScript's graded rules (ADR-141
 to ADR-144: Express's recall 22.4% → 65.7%, xmpp.js 66.4% → 84.6%, cue
 54.3% → 61.8%, at no contradiction).
