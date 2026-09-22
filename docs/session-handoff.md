@@ -1,17 +1,18 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-22 (thirteenth session); Hobbes 0.2.68-beta on `main`.**
+**Reviewed 2026-09-22 (fourteenth session); Hobbes 0.2.69-beta on `main`.**
 Max pushed through the twelfth session's last commit (`57e4be2`,
-0.2.67-beta); what the thirteenth adds (ADR-149, 0.2.68-beta) is on `main`,
-unpushed. The image and the proxy are at 0.2.68-beta and this repo is
-ingested at that release. A new
+0.2.67-beta); what the thirteenth and fourteenth add (ADR-149, 0.2.68-beta;
+ADR-145 amended and the flask key, 0.2.69-beta) is on `main`, unpushed. The
+image and the proxy are at 0.2.69-beta and this repo is ingested at that
+release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.68-beta are untagged. Tags stay Max's call each time.
+  0.2.69-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -28,7 +29,7 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-22, thirteenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-22, fourteenth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
@@ -102,9 +103,40 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   decorator-line shape with more than 10 rows is left**; none of the rest has a syntactic rule
   ready. This repo's 450: 195 functions (values in tables and records), 154 lambdas, 76
   closures, 22 methods.
-- **Other extraction candidates, each measured first:** C-4's fixture value through
-  a local (flask's 702 refused sites, `app = Flask(); return app` — ADR-145's
-  drivers; fix `simulate_real.py`'s `own_nodes` first); the TS symbol floor's
+- **Done (ADR-145 amended, 0.2.69-beta, unit `54cf`, 86 turns of 140, $7.62; Max: "good
+  to proceed with recommended route"):** a fixture's value bound once to a local by a
+  construction is read as the construction, and a method a single, index-named base
+  defines is drawn (the base read from the index's edge on the class's own `class` line,
+  any type — `Flask → App` has no `implements` edge). **flask keyed for it** — a new
+  py-trace cell, `d73fa1c`, contained, 494 passed both runs
+  (`docs/oracle/cells/flask-py-2026-09-22.md`): **1,121 → 1,521 (41.5% → 56.4%)**, 400
+  added, 329 inherited, 0 contradicted, poison PASS, the as-worded probe's 400 row for
+  row (§10.35); click and attrs unchanged. Two review fixes toward drawing less
+  (`64eadf0`). Drivers `~/.hobbes/bench/c4-local-value/` (`PREREG.md`,
+  `simulate_local.py` — `own_nodes` fixed there, not in `c4-returned-value/`;
+  `PREREG-worded.md`, `probe_worded.py` over a cell's own graph, reusable; `real/` the
+  built cells, `units/`, `wt/` a worktree, removable). The key and the clone:
+  `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its `.venv`
+  from `uv sync --group tests --python 3.12`).
+- **First, and precision (found at flask's key, not fixed):** three `semantic` edges in
+  flask are **wrong** — `tests/test_helpers.py` 251, 281, 310: `TestStreaming`'s methods
+  each nest `index` → `generate` (or `gen`), each a distinct symbol, and the three sites
+  name a *sibling* method's def (the first of the same-suffix defs). Read the cause
+  before any rule: the raw SCIP in the image for a ten-line fixture (two methods, each
+  nesting `index` → `generate`), then the join's claim for a local/nested symbol. Then
+  measure how many such rows other cells carry (any Python cell whose tests nest
+  same-named defs in sibling methods). Honesty outranks the recall queue below.
+- **Also found:** `src/flask/sansio/` has no `__init__.py` (a PEP 420 namespace dir):
+  lane A names its modules `app`, `scaffold`, and the `implements` join places `App →
+  Scaffold` but not `Flask → App` (`graph["implements"]["outside"]` 79 on flask). Why is
+  not read; whether lane A's module ids for a namespace package are a constraint to
+  register is Max's.
+- **A harness finding (session `54cf`'s review):** verify's `classify` returns `error`
+  for a row that errors on *both* trees, and `FAILING` holds `error`, so a fixture repo's
+  own test the testmap names as a guard (`minifixval/tests/test_runner.py`, uncollectable
+  from `pipeline/` under `norecursedirs`) failed the verdict with 0 regressions — where
+  the fail/fail twin, F2F, is a fault. A route for Max, not changed.
+- **Other extraction candidates, each measured first:** the TS symbol floor's
   class-property functions (zod 1,029 collapsed pairs — off the table since
   2026-09-10 "with the constructor grain settled before `new`", which ADR-142 since
   settled: **re-ask Max**, do not start); the CJS literal member (cue 49, Express 46).
@@ -230,6 +262,12 @@ macro class's (C-131, parked); TS's floor shapes stay off the table
 paragraph cells as per-language pages (Max: "dont split for now").
 
 **Lessons the last sessions paid for:**
+- **Read every suspect of a new key, row by row.** A trace key never contradicts, so a
+  wrong edge sits in the suspect queue beside C-60's asymmetry: three of flask's 18 were
+  Hobbes-wrong, and "suspect rate 1.6%" said nothing about them.
+- **A fixture repo's new file can move another fixture's module id.** `flask-excerpt/
+  conftest.py` made ADR-006 root-prefix `minifixval`'s conftest too; check the whole
+  repo's `discover_modules` ids when a brief adds a package-less fixture file.
 - **Read the factory from its real source, not a trimmed one.** ADR-148's unit tested
   every shape on untyped, trimmed signatures and simulated the fold on hand-built
   digests; click annotates every factory (`**attrs: t.Any`), which the grammar wraps in a
@@ -438,7 +476,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 72 of 40, 4
+   - **The validating 40 are done:** the tracker reads 73 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -509,9 +547,10 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Seventy-two log files under `docs/calvin/sessions/`; the tracker reads 72 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Seventy-three log files under `docs/calvin/sessions/`; the tracker reads 73 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
-  from 95 cells (22 same-key rows, C++'s two among them); `render.py
+  from 96 cells (22 same-key rows, C++'s two among them; flask's new
+  cell at 0.2.68-beta's figures); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
@@ -523,9 +562,9 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.68-beta (2026-09-22; pytest and every `lane_b` test re-run and
+- **Suites** at 0.2.69-beta (2026-09-22; pytest and every `lane_b` test re-run and
   green on the host, Go `./...` as at 0.2.66-beta, the scip node suite as at
-  0.2.62-beta, the rest as counted at 0.2.50-beta): 2,351
+  0.2.62-beta, the rest as counted at 0.2.50-beta): 2,400
   pytest (`lane_b` 16 of them), Go `./...` 399 with
   subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 128 with subtests, 116 pass / 12 skip on

@@ -4,7 +4,7 @@
 worded, `syntactic`, through ADR-137's own lookup before a dispatch), to be
 built as one dispatched unit; measured and simulated before anything was drawn;
 **amended 2026-09-22** (Max: route a — the value through a local, and an inherited
-method; *Amendment*, below) ·
+method; *Amendment*, below) and the amendment **built** (0.2.69-beta, unit `54cf`) ·
 **Owner:** Max ·
 **Source:** C-4's remainder ("a method on the value a fixture returns … the
 larger loss on click, not counted"); his standing direction — honesty and
@@ -252,3 +252,25 @@ factory's return), a class with two bases or an unnamed one, and ADR-137's abste
 A method the class *could* dispatch through `__getattr__` or a metaclass is not asked:
 the rule reads the `def` Python finds first on a single-base chain, and a class that
 overrides attribute lookup is not detected.
+
+### Built (2026-09-22, 0.2.69-beta)
+
+Unit `54cf` (86 turns of 140, $7.62; gate right-clear, 13 files at file grain) built the
+pipeline's half as briefed: `Symbol.value_local`, `Symbol.patched`, `Symbol.binds` in the
+Python walk; the local form in `_returned_value`; the walk up the bases in
+`fixtures._class_method`; `patched`, `class-binds`, `multiple-bases`, `base-unnamed` in
+`VALUE_REASONS`; `inherited` and `local` in the counts and on the ingest's `fixtures:`
+line; a `flask-excerpt` fixture of flask's own files read by a lane A case, and
+`minifixval` extended (`held`, `test_held.py`). Verify read `fail` on a harness row, not
+the diff's (session log): a fixture repo's own test that errors on both trees.
+
+- **Two defects fixed at the review, each toward drawing less** (`64eadf0`): a nested `def
+  x` / `class x` in the fixture is a second binding of the local; `class-binds` is asked at
+  every class on the walk, the one writing the `def` included (`close =
+  deprecated(close)`).
+- **On the host before the merge:** 2,400 pytest, all 16 `lane_b` — the end-to-end case the
+  doer wrote from the rule alone green on its first contained run.
+- **The real cells:** flask **1,121 → 1,521 confirmed (41.5% → 56.4%)**, 400 rows added,
+  all `syntactic`, all confirmed, 0 lost or re-tiered, poison PASS, 18 suspect unchanged —
+  the as-worded probe's 400 row for row. click unchanged on `click-py-r3` (3,755); attrs 0
+  drawn (`oracle-grading.md` §10.35).

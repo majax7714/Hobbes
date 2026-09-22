@@ -11,9 +11,35 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.68-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.69-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.69-beta — 2026-09-22 (the fixture value through a local, and an inherited method; ADR-145 amended, C-4 narrowed)
+
+**Patch: what the layer draws** — Python, after the projection. Built as unit
+`S-20260922T155044Z-54cf`; two defects fixed at its review.
+
+- **The shape.** flask's `app` fixture binds `app = Flask(…)`, configures it and
+  `return app`. ADR-145 read only `return C(…)`, and refused a method the constructed class
+  inherits: most of what flask's tests call on `app` — `route`, `get`, `errorhandler` — is
+  `Scaffold`'s, and `add_url_rule`, `register_blueprint` are `App`'s.
+- **The rule.** A returned bare name counts as the construction when it is bound exactly
+  once, by a top-level `x = C(…)` before the return, with no `nonlocal`/`global` of it and no
+  nested def of its name. Where `C` has no `def m`, the walk goes up single bases the index
+  names on each class's own `class` line and takes the first `def`. Refused and counted:
+  `patched` (the test or fixture stored onto the instance, or passed it to a `setattr`),
+  `class-binds`, `multiple-bases`, `base-unnamed`. The ingest's `fixtures:` line says how
+  many drawn calls were inherited and how many came through a local.
+- **Measured.** flask, keyed for this (a new py-trace cell, 494 tests passed both runs):
+  **1,121 → 1,521 confirmed of 2,698 (41.5% → 56.4%)**, 400 added, 329 inherited, 0
+  contradicted, poison PASS, 0 rows lost — the pre-registered probe's rows exactly
+  (`oracle-grading.md` §10.35). click and attrs unchanged.
+- **The verification base** names flask: Python reads nine repos.
+- **Fixed at the review:** a nested `def x` in the fixture was not counted as a second
+  binding of the local; a class-body binding of `m` beside its `def` was not asked.
+- **Found, not fixed:** three of flask's 18 suspects are wrong `semantic` edges — a nested
+  def resolved to a sibling test method's same-named nested def. The cause is not yet read.
 
 ## 0.2.68-beta — 2026-09-22 (a decorator factory that returns another factory's call; ADR-149, C-58 narrowed)
 

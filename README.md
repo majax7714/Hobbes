@@ -363,7 +363,7 @@ and the field, the cells and the graphics are in
 
 ## Status
 
-**Hobbes 0.2.68-beta** (2026-09-22). The Hobbes layer is versioned from here
+**Hobbes 0.2.69-beta** (2026-09-22). The Hobbes layer is versioned from here
 (ADR-103, [`CHANGELOG.md`](CHANGELOG.md)); the experiments under
 `bench/` are internal testing and carry no version. Every artifact and
 every knowledge answer states the version and commit that built it.
@@ -444,7 +444,7 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and seventy-two session logs stand. The
+dispatched on 2026-09-12, and seventy-three session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
@@ -458,7 +458,8 @@ recall rules its first graded cells asked for (ADR-128 to ADR-136: fmt's
 recall 14.5% → 30.4%, args 58.6% → 72.9%, at no contradiction), pytest
 fixture reach (ADR-137, ADR-139; then a call on the value a fixture
 constructs, ADR-145, and a decorator's calls, ADR-146 to ADR-149: click's
-recall 38.2% → 82.3%, at no contradiction),
+recall 38.2% → 82.3%, at no contradiction; then ADR-145 amended, a fixture's
+value bound to a local and a base's method: flask 41.5% → 56.4%),
 and JavaScript's graded rules (ADR-141
 to ADR-144: Express's recall 22.4% → 65.7%, xmpp.js 66.4% → 84.6%, cue
 54.3% → 61.8%, at no contradiction).

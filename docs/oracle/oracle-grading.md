@@ -2388,6 +2388,44 @@ regraded: Python only, after the projection. Left on click's decorator lines: `@
 and decorators held in variables; 460 closure misses in all, most of them callbacks reached
 through attributes and parameters (C-58).
 
+### 10.35 The fixture value through a local, and an inherited method — `PREREG.md` written 2026-09-22 before `simulate_local.py`'s first run, `PREREG-worded.md` before `probe_worded.py`'s; this section written after the regrade (ADR-145 amended; unit `54cf`)
+
+**A new key.** pallets/flask at `d73fa1c` — ADR-137's held-out clone, re-cloned for the cell
+— keyed by py-trace, contained, 2 runs, 494 passed both (`docs/oracle/cells/flask-py-2026-09-22.md`).
+It was picked for the shape, not drawn: flask's `app` fixture is `app = Flask(…); … return
+app`. At 0.2.68-beta: 1,330 edges, **1,121 of 2,698 (41.5%)**, 18 suspect, poison PASS. **Three
+of the 18 suspects are Hobbes-wrong** (`tests/test_helpers.py` 251, 281, 310: a nested def
+resolved to a sibling test method's same-named nested def; cause not yet read); the other 15
+are C-60's override asymmetry.
+
+**Probed twice, in memory.** `simulate_local.py` (ast, the cached facts; `own_nodes` fixed
+first, and two defects in its own first run fixed before any row was read) drew 390 through
+the local, all confirmed within ±3 lines. `probe_worded.py` asked the conditions as the
+amendment words them, over each cell's own 0.2.68-beta graph and lane A's parse: flask **400
+drawn — 71 direct, 329 inherited — 400 confirmed at the exact target line, 0
+contradicted**, every one a missed pair today; the 37 beyond the simulation are bare
+decorators (`@app.teardown_appcontext`) lane A reads as calls (ADR-146). click 0 new (ADR-145
+draws all 382 sites), attrs 0, this repo 1 (`minifixval`'s `Base.close`, right).
+
+**Regraded with the unit's code** (merged; flask ingested from the unit's tree, its new key,
+`--poison`):
+
+| flask | rows | confirmed / 2,698 | suspect | `observed→method` |
+|---|---|---|---|---|
+| 0.2.68-beta | 1,330 | 1,121 (41.5%) | 18 | 511 / 1,174 |
+| **0.2.69-beta** | **1,730** | **1,521 (56.4%)** | **18** | **911 / 1,174** |
+
+400 rows added, all `syntactic`, `via: fixture-value`, all confirmed; 0 lost, 0 re-tiered;
+poison PASS (1,730 seeded, 0 falsely confirmed). Signed direction of fix: confirmed **+400**,
+suspect **0**, rows lost **0**. **The built rows are the as-worded probe's 400, row for row.**
+The ingest's block: 411 drawn (329 inherited, 400 through a local; the 11 others ADR-145's
+`auth` rows in `examples/`, outside `testpaths`). click regraded on `click-py-r3`: 4,365 rows,
+3,755 confirmed, 21 suspect, unchanged. attrs 0 drawn, 5 refused. The rule mints no symbol.
+Other languages not regraded: Python only, after the projection. Left on flask's method
+misses (263): `with app.app_context():` → `AppContext.__exit__` 54, `FlaskClient.__exit__`
+26, `return app.test_client()`'s value (a method's return; most of its targets are
+werkzeug's).
+
 ## 11. Evidence, claims, and register updates
 
 - **A graph Hobbes did not build is graded by the same rules**

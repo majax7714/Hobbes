@@ -194,8 +194,8 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-22, 0.2.68-beta, the
-oracle lane with it): 2,351 pytest (16 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-22, 0.2.69-beta, the
+oracle lane with it): 2,400 pytest (16 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 128 oracle-lane Go with subtests (116 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
 vitest / 47 tsextract + 94 scip node / 84 atlas0. Keep them green. CI
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-22) — Hobbes 0.2.68-beta
+## Status (2026-09-22) — Hobbes 0.2.69-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -287,29 +287,31 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   (99.6%, all 15 the oracle's grain). fmt reads **100%** (7,012/7,012
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
-  contradicted (ADR-124). **Register:** 169 entries; 123 active (95
-  surfaced, 24 partial, 3 unsurfaced, 1 n/a), 29 lifted; the tally is
+  contradicted (ADR-124). Trace-graded Python cells are recall, never
+  precision (C-60); flask's new key found **3 Hobbes-wrong `semantic`
+  edges** (a nested def resolved to a sibling test method's same-named
+  one, `oracle-grading.md` §10.35) — cause not read, not fixed.
+  **Register:** 169 entries; 123 active (95 surfaced, 24 partial, 3
+  unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
 - **Active — the Calvin harness** (ADR-107): `hobbes dispatch` runs the
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **72 of 40**
+  drift test; re-render after filling a review block) reads **73 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.68-beta, extraction first** (Max, 2026-09-20: "the
+- **Latest — 0.2.69-beta, extraction first** (Max, 2026-09-20: "the
   most annoying work to do but the most important"; "we never sacrifice
-  honesty for higher recall"). **ADR-149** (unit `67cc`): a decorator
-  factory whose reachable returns are all one second factory's call —
-  click's `group()` → `return command(…)`, the `*_option` family →
-  `option` — is drawn through to that factory's nested def, one level,
-  `syntactic`, the second factory settled or folded over the forwarded
-  arguments. click 3,703 → 3,755 confirmed on `click-py-r3` (81.2% →
-  82.3%), 0 contradicted, 0 new suspects, poison PASS, the probe's rows
-  and one more read (§10.34). Before it, ADR-145 to ADR-148 and H-36
-  (0.2.63–0.2.67-beta) took click from 38.2%. **Next:** the candidates in
-  the handoff, each measured first.
+  honesty for higher recall"). **ADR-145 amended** (unit `54cf`): a
+  fixture's value bound once to a local by a construction is read as the
+  construction, and a method a single, index-named base defines is
+  drawn. flask, keyed for it (a new py-trace cell): 1,121 → 1,521
+  confirmed (41.5% → 56.4%), 400 added, 329 inherited, 0 contradicted,
+  poison PASS, the probe's rows exactly (§10.35); click unchanged at
+  82.3%. **Next:** flask's 3 wrong edges (read the cause first), then the
+  candidates in the handoff, each measured first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

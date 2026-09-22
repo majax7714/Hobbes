@@ -30,11 +30,12 @@ VERIFICATION_BASE: dict[str, dict] = {
     "python": {
         # private-repo-A and qwen-pathology retired from the base
         # 2026-08-25 (Max): too little weight to carry a row. click joined
-        # 2026-08-27 (trace-graded); the counts follow the §3.8 rows.
-        "repos": 8,
+        # 2026-08-27 (trace-graded), flask 2026-09-22 (trace-graded, keyed
+        # for ADR-145's amendment); the counts follow the §3.8 rows.
+        "repos": 9,
         # This repo's zone is trace-graded since the oracle lane's phase 2
         # (ADR-089, O6, 2026-08-25): recall-against-executed, never precision.
-        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click (trace-graded); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
+        "on": 'this repo (dogfood, continuous — trace-graded, twice); pallets/click, pallets/flask (trace-graded); + six SWE-bench repos at span/declaration grain (astropy, django, scikit-learn, sphinx, sympy, xarray)',
         "depth": "multi-repo",
     },
     "typescript": {

@@ -14092,3 +14092,47 @@ narrowed, HISTORY, the architecture's paragraph, §3.8 row and §8 header, CHANG
 README, CLAUDE.md/AGENTS.md, workstreams, the tracker at 72 of 40. One unit, $13.04 on
 the subscription; click 81.2% → 82.3%. No decorator-line shape above 10 rows is left in
 click's misses.
+
+## 2026-09-22 (fourteenth session) — the top-level docs read; flask keyed; C-4's value through a local and a base's method (ADR-145 amended, 0.2.69-beta)
+
+**The review (Max: "review top level documentation and report back with current
+status").** README, CLAUDE.md/AGENTS.md, CHANGELOG, the handoff, workstreams and the
+architecture's §8 header consistent at 0.2.68-beta, but for README's "seventy-one session
+logs" (72; `5d23358`, Max: "fix the readme and commit").
+
+**Step 0 (Max: "measure flask fixture candidate").** `~/.hobbes/bench/c4-local-value/`:
+`PREREG.md` first; `simulate_local.py` from ADR-145's `simulate_real.py` with the handoff's
+`own_nodes` fix. Two defects in my own first run, fixed before any row was read: the fix
+also skipped a nested def's decorators (flask's `@app.route` sites, 797 → 497), and the
+rebound count walked subtrees twice. flask had no call key; keyed it as pre-registered —
+a clone of the held-out tree at `d73fa1c`, `uv sync --group tests`, `run-cell.sh --lang py
+--runs 2`, contained, 494 passed both runs: **1,121 of 2,698 (41.5%)**, 18 suspect, poison
+PASS (`docs/oracle/cells/flask-py-2026-09-22.md`). 390 simulated through the local, all
+confirmed. Three routes; route a.
+
+**Found on the way, not fixed.** (1) **Three of flask's suspects are Hobbes-wrong**
+`semantic` edges: `TestStreaming`'s methods each nest `index` → `generate`/`gen`, and sites
+251, 281, 310 name a sibling method's def (the symbols are distinct; the join picked the
+first). Cause not read. (2) `src/flask/sansio/` has no `__init__.py`: lane A names its files
+`app`, `scaffold`, and `Flask → App` has a `uses` edge at the header but no `implements`
+edge (`App → Scaffold` has both). Why the join misses it is not read either.
+
+**ADR-145 amended (Max: "good to proceed with recommended route"), 0.2.69-beta.** The
+header edge read instead of `implements` for (2)'s reason. `PREREG-worded.md`, then
+`probe_worded.py` over each cell's own graph and lane A's parse (ADR-138's lesson): flask
+400 drawn (71 direct, 329 inherited), **400 confirmed at the exact line, 0 contradicted**;
+37 beyond the simulation are bare `@app.*` decorators (ADR-146). click 0 new, attrs 0, this
+repo 1 (`minifixval`'s `Base.close`, which ADR-145's lane_b case asserted refused — named
+in the brief). The ADR amendment and the cell committed first (`f166091`; the comparative
+data at 96 cells, the meta entry saying the cell was picked). Unit `54cf`: 86 turns, $7.62,
+13 files, a `flask-excerpt` fixture of flask's own files. Gate clear; **verify `fail` on a
+harness row**: a fixture repo's own test the testmap now lists as a guard errors on both
+trees, and `classify` counts an error/error as failing where F2F is a fault — recorded in
+the review, not changed. **Two defects fixed at the review** (`64eadf0`, one test each): a
+nested `def x` in the fixture was not a second binding of the local; `class-binds` was not
+asked of the class holding the `def`. Host: pytest 2,400, `lane_b` 16 of 16 run. The real
+flask cell: **1,121 → 1,521 (41.5% → 56.4%)**, 400 added, all `syntactic` and confirmed, 0
+lost, poison PASS — the probe's 400 row for row (§10.35); click unchanged on `click-py-r3`;
+attrs 0. C-4 narrowed and HISTORY, the architecture's paragraph, §3.8's Python row and the
+verification base (nine repos), §8 header, CHANGELOG, README, CLAUDE.md/AGENTS.md,
+workstreams; the tracker at 73 of 40; the image rebuilt at 0.2.69-beta.
