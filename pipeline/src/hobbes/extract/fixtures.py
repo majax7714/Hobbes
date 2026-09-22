@@ -43,20 +43,26 @@ mark before its classes', those before the module's, the module's before
 autouse.
 
 One thing the injected value's *type* does say is followed (ADR-145):
-where a fixture's body is a single ``return C(…)``, the construction
-fixes the runtime class exactly, so ``p.m(…)`` written on that parameter
-is a call on ``C.m``. :func:`value_calls` draws it — a ``calls`` edge at
-the ``syntactic`` tier, over the two hops the graph already carries (the
-``uses`` injection above, and the ``semantic`` edge the index drew from
-the fixture to the class it constructs). It refuses, and counts, wherever
-the construction is not the whole story: a rebound parameter, a value
-that is not a construction, no class edge at that line, and a method the
-class's own body does not define exactly once.
+where a fixture's body is a single ``return C(…)`` — or a ``return x``
+for a local a single top-level ``x = C(…)`` bound before it, which is
+the same construction reached through a name (ADR-145's amendment) —
+the construction fixes the runtime class exactly, so ``p.m(…)`` written
+on that parameter is a call on ``C.m``. :func:`value_calls` draws it — a
+``calls`` edge at the ``syntactic`` tier, over the two hops the graph
+already carries (the ``uses`` injection above, and the ``semantic`` edge
+the index drew from the fixture to the class it constructs). Where ``C``
+itself has no ``def m``, the walk asks the same of its base, and so on
+up a chain of single, named bases: the ``def`` Python would find first.
+It refuses, and counts, wherever the construction is not the whole
+story: a rebound parameter, a value that is not a construction bound
+once, no class edge at that line, a class attribute or a second ``def``
+under the name, a class with no base, two bases or a base the index does
+not name, and an instance the test or the fixture patched.
 
 What is still C-4's remainder: a fixture value that is not a
-construction (``return app``, ``return app.test_client()`` — a value's
-type, which the rule above does not read) and an **inherited** method
-(the rule walks no base classes), a ``pytestmark`` that is not a plain
+construction bound once (``return app.test_client()``, a factory's
+return — a value's type, which the rule above does not read), a class
+with two bases or an unnamed one, a ``pytestmark`` that is not a plain
 module-level assignment — one written in a class body, or annotated, or
 added to — and a module mark with no string argument at all (counted), an
 ``autouse=`` whose value is not the literal ``True`` or ``False``
@@ -119,6 +125,22 @@ NO_CONSTRUCTION = "no-construction"
 NO_CLASS_EDGE = "no-class-edge"
 NO_METHOD = "no-method"
 PROPERTY = "property"
+#: The instance no longer answers with the class's ``def`` (ADR-145's
+#: amendment): the test, or the fixture on the local it handed back,
+#: stored onto ``p.m``, deleted it, moved ``p.__class__`` or passed ``p``
+#: to a ``setattr``. A trace would see the patch; the graph would name
+#: the ``def``.
+PATCHED = "patched"
+#: A class attribute under the method's name — an assignment, an import,
+#: a nested ``class`` — which shadows whatever a base's ``def`` was.
+CLASS_BINDS = "class-binds"
+#: Two bases, at some class on the walk up: the rule does not compute an
+#: MRO, and two orders of lookup are two answers.
+MULTIPLE_BASES = "multiple-bases"
+#: One base written, and the index names no class symbol on that class's
+#: own header line — an out-of-repo base, or a header the join stayed
+#: silent on. The walk must stop there: the method may be the base's.
+BASE_UNNAMED = "base-unnamed"
 ALREADY_DRAWN = "already-drawn"
 VALUE_REASONS = (
     REBOUND,
@@ -126,6 +148,10 @@ VALUE_REASONS = (
     NO_CLASS_EDGE,
     NO_METHOD,
     PROPERTY,
+    PATCHED,
+    CLASS_BINDS,
+    MULTIPLE_BASES,
+    BASE_UNNAMED,
     ALREADY_DRAWN,
 )
 
@@ -278,13 +304,19 @@ def value_calls(
     the requester's file and the call's line, :data:`FIXTURE_VALUE`, and
     the fixture whose value the chain went through — sorted by ``(from,
     to, path, line)``, one row per call site. *counts* is ``{"drawn",
-    "refused"}`` with every one of :data:`VALUE_REASONS`, or ``{}`` where
-    no such call site exists at all: nothing was asked there, and a block
-    of zeroes would say otherwise.
+    "inherited", "local", "refused"}`` — how many of the drawn found their
+    method on a base rather than on the constructed class, how many came
+    through a fixture's local, and every one of :data:`VALUE_REASONS` —
+    or ``{}`` where no such call site exists at all: nothing was asked
+    there, and a block of zeroes would say otherwise.
 
-    The four conditions are asked in the ADR's order and the first that
-    fails is the one counted, so a refusal reads as the earliest reason
-    the rule had. A pair the graph already carries a ``calls`` edge for is
+    The conditions are asked in the ADR's order and the first that fails
+    is the one counted, so a refusal reads as the earliest reason the
+    rule had: the parameter still holds what was injected, the fixture's
+    value is one construction (through a local or not), the index names
+    the class at that line, neither side patched the instance, and the
+    method is one ``def`` on the class or on the single named base chain
+    above it. A pair the graph already carries a ``calls`` edge for is
     refused last: the join's answer stands, and this rule never restates
     it.
     """
@@ -294,12 +326,22 @@ def value_calls(
         (edge["from"], edge["to"]) for edge in symbol_edges if edge["type"] == "calls"
     }
     constructed: dict[str, list[dict]] = defaultdict(list)
+    # Every `semantic` edge by its source, for the walk up the bases: a
+    # base is named by whichever edge type the join drew at the header
+    # line, `implements` where ADR-120 reached it and `uses` where it did
+    # not (ADR-145's amendment reads the header edge for that reason).
+    semantic_from: dict[str, list[dict]] = defaultdict(list)
     for edge in symbol_edges:
-        if edge["type"] == "calls" and edge["tier"] == SEMANTIC:
+        if edge["tier"] != SEMANTIC:
+            continue
+        semantic_from[edge["from"]].append(edge)
+        if edge["type"] == "calls":
             constructed[edge["from"]].append(edge)
 
     drawn: list[dict] = []
     refused: Counter = Counter()
+    inherited = 0
+    through_local = 0
     looked = 0
     for injection in injected:
         if injection["via"] != PARAMETER:
@@ -324,7 +366,7 @@ def value_calls(
             continue
         looked += len(sites)
 
-        reason, fixture_value = _fixture_value(injection, parsed, by_id)
+        reason, fixture_value, value_local = _fixture_value(injection, parsed, by_id)
         if reason is not None:
             refused[reason] += len(sites)
             continue
@@ -339,9 +381,21 @@ def value_calls(
             refused[NO_CLASS_EDGE] += len(sites)
             continue
         class_id = found[0]["to"]
+        # Both sides of the chain may have patched the object: the test on
+        # the parameter it holds, and the fixture on the local it handed
+        # back. Read once per fixture, asked once per method below.
+        patched = _patched_names(_definitions(requester, parsed), injection["name"])
+        if value_local is not None:
+            patched |= _patched_names(
+                _definitions(by_id[injection["to"]], parsed), value_local
+            )
         for call in sites:
+            method = call.callee.partition(".")[2]
+            if method in patched or "*" in patched:
+                refused[PATCHED] += 1
+                continue
             method_reason, method_id = _class_method(
-                class_id, call.callee.partition(".")[2], parsed, by_id
+                class_id, method, parsed, by_id, semantic_from
             )
             if method_reason is not None:
                 refused[method_reason] += 1
@@ -349,6 +403,12 @@ def value_calls(
             if (injection["from"], method_id) in already:
                 refused[ALREADY_DRAWN] += 1
                 continue
+            # A method's id is its class's id and the method's name, so
+            # the target names the class the walk stopped at.
+            if method_id.rpartition(".")[0] != class_id:
+                inherited += 1
+            if value_local is not None:
+                through_local += 1
             drawn.append(
                 {
                     "from": injection["from"],
@@ -365,18 +425,23 @@ def value_calls(
         return drawn, {}
     return drawn, {
         "drawn": len(drawn),
+        "inherited": inherited,
+        "local": through_local,
         "refused": {reason: refused[reason] for reason in VALUE_REASONS},
     }
 
 
 def _fixture_value(
     injection: dict, parsed: dict[str, ParsedFile], by_id: dict
-) -> tuple[str | None, tuple[str, int] | None]:
+) -> tuple[str | None, tuple[str, int] | None, str | None]:
     """Conditions 1 and 2 of ADR-145: the parameter still holds what was
-    injected, and the fixture's body is one construction.
+    injected, and the fixture's body is one construction — written at the
+    return, or bound once to a local and returned under its name
+    (ADR-145's amendment).
 
-    Returns ``(reason, value)`` — a reason and no value, or no reason and
-    the written class name with its line. A fixture whose qualname is
+    Returns ``(reason, value, local)`` — a reason and nothing else, or no
+    reason with the written class name, its line, and the local the value
+    came through where it came through one. A fixture whose qualname is
     written twice in its file reads as no construction: the graph keeps
     the first record of the two
     (:func:`hobbes.extract.graph._symbol_records`), so there is no single
@@ -384,53 +449,117 @@ def _fixture_value(
     """
     requester = _definitions(by_id[injection["from"]], parsed)
     if any(injection["name"] in definition.rebound for definition in requester):
-        return REBOUND, None
+        return REBOUND, None, None
     fixture = by_id.get(injection["to"])
     if fixture is None:
-        return NO_CONSTRUCTION, None
+        return NO_CONSTRUCTION, None, None
     definitions = _definitions(fixture, parsed)
     if len(definitions) != 1 or definitions[0].value is None:
-        return NO_CONSTRUCTION, None
-    return None, definitions[0].value
+        return NO_CONSTRUCTION, None, None
+    return None, definitions[0].value, definitions[0].value_local
+
+
+def _patched_names(definitions: list[Symbol], name: str) -> set[str]:
+    """What the given definitions store onto, or delete from, *name* —
+    the attribute names, and ``"*"`` where what was moved is not one
+    named attribute (ADR-145's amendment).
+
+    A definition written twice contributes all of its records' patches:
+    either body may be the one that runs, and a rule failing toward
+    drawing less takes both.
+    """
+    return {
+        attribute
+        for definition in definitions
+        for patched, attribute in definition.patched
+        if patched == name
+    }
 
 
 def _class_method(
-    class_id: str, method: str, parsed: dict[str, ParsedFile], by_id: dict
+    class_id: str,
+    method: str,
+    parsed: dict[str, ParsedFile],
+    by_id: dict,
+    semantic_from: dict[str, list[dict]],
 ) -> tuple[str | None, str | None]:
-    """Conditions 4 and 5 of ADR-145: ``m`` is one ``def`` in the class's
-    **own** body and not a property.
+    """Condition 4 of ADR-145 as amended: ``m`` is one ``def``, not a
+    property, on the constructed class or on the chain of single named
+    bases above it.
 
-    No base is walked: an inherited method is refused (the simulation met
-    none, and a rule ships as far as it was probed). The definitions are
-    counted in the class's own module record rather than in the graph's
-    symbols, because duplicate qualnames collapse to one record there and
-    a method defined twice would read as one clean answer.
+    The ``def`` Python would find first, and no further: at each class
+    the walk stops rather than guess — where the body binds the name by
+    any other form (a class attribute shadows a base's ``def``), where
+    there is no base (``object``'s methods are not in the repo), where
+    there are two (an MRO is not computed), and where the index names no
+    class on that class's own header line (an out-of-repo base is where
+    the method may live). A class met twice stops it too.
+
+    The definitions are counted in each class's own module record rather
+    than in the graph's symbols, because duplicate qualnames collapse to
+    one record there and a method defined twice would read as one clean
+    answer.
     """
-    klass = by_id.get(class_id)
-    facts = parsed.get(klass["module"]) if klass is not None else None
-    if klass is None or facts is None:
-        return NO_METHOD, None
-    qualname = f"{klass['qualname']}.{method}"
-    found = [
-        symbol
-        for symbol in facts.symbols
-        if symbol.qualname == qualname and symbol.kind in ("method", "function")
-    ]
-    method_id = f"{klass['module']}.{qualname}"
-    if len(found) != 1 or method_id not in by_id:
-        return NO_METHOD, None
-    if any(_last(d.dotted) in PROPERTY_DECORATORS for d in found[0].decorators):
-        # An attribute read written as a call is not this rule's business,
-        # and `C.name()` would be a call on whatever the property returned.
-        return PROPERTY, None
-    return None, method_id
+    seen: set[str] = set()
+    current = class_id
+    while True:
+        if current in seen:
+            return NO_METHOD, None
+        seen.add(current)
+        klass = by_id.get(current)
+        facts = parsed.get(klass["module"]) if klass is not None else None
+        if klass is None or facts is None:
+            return NO_METHOD, None
+        records = _definitions(klass, parsed)
+        if len(records) != 1:
+            return NO_METHOD, None
+        qualname = f"{klass['qualname']}.{method}"
+        found = [
+            symbol
+            for symbol in facts.symbols
+            if symbol.qualname == qualname and symbol.kind in ("method", "function")
+        ]
+        method_id = f"{klass['module']}.{qualname}"
+        # Asked before the `def` is taken: `close = deprecated(close)` in
+        # the body that also writes `def close` leaves the instance
+        # answering with whatever the assignment bound, not the `def`.
+        if method in records[0].binds:
+            return CLASS_BINDS, None
+        if found:
+            if len(found) != 1 or method_id not in by_id:
+                return NO_METHOD, None
+            if any(_last(d.dotted) in PROPERTY_DECORATORS for d in found[0].decorators):
+                # An attribute read written as a call is not this rule's
+                # business, and `C.name()` would be a call on whatever the
+                # property returned.
+                return PROPERTY, None
+            return None, method_id
+        if records[0].bases == 0:
+            return NO_METHOD, None
+        if records[0].bases > 1:
+            return MULTIPLE_BASES, None
+        bases = {
+            edge["to"]
+            for edge in semantic_from.get(current, ())
+            if _is_class(by_id.get(edge["to"]))
+            and any(row.get("line") == klass["line"] for row in edge["evidence"])
+        }
+        if len(bases) != 1:
+            return BASE_UNNAMED, None
+        current = next(iter(bases))
+
+
+def _is_class(record: dict | None) -> bool:
+    """Whether a graph symbol is a class at all — the base a header edge
+    names, where it names one in the repo."""
+    return record is not None and record["kind"] == "class"
 
 
 def _is_class_named(record: dict | None, name: str) -> bool:
     """Whether a graph symbol is a class written under *name* — the name
     as the fixture spelled it, so an alias (``import Runner as R``) is
     not this class and is refused."""
-    return record is not None and record["kind"] == "class" and record["name"] == name
+    return _is_class(record) and record["name"] == name
 
 
 def _definitions(record: dict, parsed: dict[str, ParsedFile]) -> list[Symbol]:

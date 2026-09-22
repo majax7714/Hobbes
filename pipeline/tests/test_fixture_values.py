@@ -1,5 +1,5 @@
 """A call on the value a fixture constructs is a call on that class
-(ADR-145).
+(ADR-145, and its 2026-09-22 amendment).
 
 ``def runner(): return Runner()`` fixes the runtime class of what the
 parameter holds — a construction is never a subclass — so ``runner.m(…)``
@@ -9,9 +9,17 @@ parameter), so there is no occurrence for the join to match: the rule
 reads the two hops the graph already carries, the ``uses`` injection and
 the ``semantic`` edge from the fixture to the class it constructs.
 
+The amendment reads two more things off the same two hops: a fixture
+that binds the construction to a local and returns the local is the same
+construction reached through a name, and a method the constructed class
+does not define is looked for up a chain of single, named bases — the
+``def`` Python would find first. An instance either side patched is
+refused, because the trace would see the patch and the graph would name
+the ``def``.
+
 The cases below hand :func:`hobbes.extract.fixtures.value_calls` a graph
-whose class edge is written out, because that edge is exactly what the
-rule is allowed to believe. Each refusal has a case of its own: the four
+whose class edges are written out, because those edges are exactly what
+the rule is allowed to believe. Each refusal has a case of its own: the
 conditions fail toward drawing less, and what each one declined is the
 size of what a construction did not settle.
 """
@@ -23,10 +31,14 @@ import pytest
 from hobbes.extract.discover import discover_modules
 from hobbes.extract.fixtures import (
     ALREADY_DRAWN,
+    BASE_UNNAMED,
+    CLASS_BINDS,
     FIXTURE_VALUE,
+    MULTIPLE_BASES,
     NO_CLASS_EDGE,
     NO_CONSTRUCTION,
     NO_METHOD,
+    PATCHED,
     PROPERTY,
     REBOUND,
     VALUE_REASONS,
@@ -38,6 +50,7 @@ from hobbes.extract.pysource import parse_source
 from hobbes.extract.schema import LANE_SCIP, SEMANTIC, SYNTACTIC, tiered_edge
 
 MINIFIXVAL = Path(__file__).parent / "fixtures" / "minifixval"
+FLASK_EXCERPT = Path(__file__).parent / "fixtures" / "flask-excerpt"
 
 #: `Runner.invoke` is one `def` in the class's own body; the class is on
 #: line 1 and the method on line 2.
@@ -54,6 +67,20 @@ CONFTEST = (
     "@pytest.fixture\n"
     "def runner():\n"
     "    return Runner()\n"
+)
+
+#: The same fixture writing the amendment's form: one construction bound
+#: to a local at the top of the body, on line 8 again, and returned.
+LOCAL_CONFTEST = (
+    "import pytest\n"
+    "\n"
+    "from pkg.testing import Runner\n"
+    "\n"
+    "\n"
+    "@pytest.fixture\n"
+    "def runner():\n"
+    "    r = Runner()\n"
+    "    return r\n"
 )
 
 TEST = "def test_one(runner):\n    runner.invoke(1)\n"
@@ -93,6 +120,23 @@ def class_edge(
         "calls",
         [{"path": "conftest.py", "line": line}],
         tier=tier,
+        lane=LANE_SCIP,
+    )
+
+
+def base_edge(source: str, target: str, line: int, edge_type: str = "uses") -> dict:
+    """The edge the index draws at a class's own header, naming its base.
+
+    Whichever type the join gave it: in flask, ``Flask``'s header carries
+    a ``uses`` edge and no ``implements`` one, which is why the amended
+    rule reads the header edge rather than ADR-120's.
+    """
+    return tiered_edge(
+        source,
+        target,
+        edge_type,
+        [{"path": "pkg/testing.py", "line": line}],
+        tier=SEMANTIC,
         lane=LANE_SCIP,
     )
 
@@ -174,6 +218,98 @@ class TestTheValueMustBeOneConstruction:
         assert counts["refused"][NO_CONSTRUCTION] == 1
 
 
+#: Every local form ``pysource`` refuses, as the fixture's whole
+#: definition. Each leaves a second writer of the name possible, so
+#: condition 2 does not hold and the site is counted `no-construction`.
+LOCAL_REFUSALS = {
+    "bound twice": "def runner():\n    r = Runner()\n    r = Runner()\n    return r\n",
+    "bound in a branch": (
+        "def runner(flag):\n    if flag:\n        r = Runner()\n    return r\n"
+    ),
+    "a loop target": (
+        "def runner():\n    for r in [Runner()]:\n        pass\n    return r\n"
+    ),
+    "a parameter": "def runner(r):\n    return r\n",
+    "bound after the return": "def runner():\n    return r\n    r = Runner()\n",
+    "declared nonlocal in a nested def": (
+        "def runner():\n"
+        "    r = Runner()\n"
+        "    def inner():\n"
+        "        nonlocal r\n"
+        "    return r\n"
+    ),
+    "a factory's return": "def runner():\n    r = make.factory()\n    return r\n",
+    "one of two targets": "def runner():\n    r, b = Runner(), 1\n    return r\n",
+    "a nested def of the same name": (
+        "def runner():\n    r = Runner()\n    def r():\n        pass\n    return r\n"
+    ),
+}
+
+
+class TestTheValueMayComeThroughALocal:
+    """ADR-145's amendment: a local bound once, by a construction, at the
+    top of the body, before the return, holds nothing else — so the
+    class the assignment names is the class the parameter holds."""
+
+    def test_the_local_the_fixture_returned_is_the_construction(self, tmp_path):
+        drawn, counts = run(
+            tmp_path, files(**{"conftest.py": LOCAL_CONFTEST}), (class_edge(),)
+        )
+        assert drawn == [DRAWN]
+        assert (counts["drawn"], counts["local"], counts["inherited"]) == (1, 1, 0)
+
+    @pytest.mark.parametrize(
+        "fixture", LOCAL_REFUSALS.values(), ids=list(LOCAL_REFUSALS)
+    )
+    def test_a_local_the_body_does_not_settle_is_no_construction(
+        self, tmp_path, fixture
+    ):
+        conftest = CONFTEST.replace("def runner():\n    return Runner()\n", fixture)
+        drawn, counts = run(
+            tmp_path, files(**{"conftest.py": conftest}), (class_edge(),)
+        )
+        assert drawn == []
+        assert counts["refused"][NO_CONSTRUCTION] == 1
+
+
+class TestAPatchedInstanceIsRefused:
+    """The trace would see the patch; the graph would name the class's
+    ``def``. Asked of both sides of the chain, and before the method is
+    looked up at all — ``invoke`` below is one ``def`` on ``Runner``."""
+
+    def test_the_test_patched_the_parameter(self, tmp_path):
+        test = "def test_one(runner):\n    runner.invoke = f\n    runner.invoke(1)\n"
+        drawn, counts = run(tmp_path, files(**{"test_x.py": test}), (class_edge(),))
+        assert drawn == []
+        assert counts["refused"][PATCHED] == 1
+
+    def test_the_fixture_patched_the_local_it_handed_back(self, tmp_path):
+        conftest = LOCAL_CONFTEST.replace(
+            "    return r\n", "    r.invoke = f\n    return r\n"
+        )
+        drawn, counts = run(
+            tmp_path, files(**{"conftest.py": conftest}), (class_edge(),)
+        )
+        assert drawn == []
+        assert counts["refused"][PATCHED] == 1
+
+    def test_a_setattr_moves_a_name_the_rule_cannot_read(self, tmp_path):
+        test = (
+            "def test_one(runner, monkeypatch):\n"
+            '    monkeypatch.setattr(runner, "invoke", f)\n'
+            "    runner.invoke(1)\n"
+        )
+        drawn, counts = run(tmp_path, files(**{"test_x.py": test}), (class_edge(),))
+        assert drawn == []
+        assert counts["refused"][PATCHED] == 1
+
+    def test_a_patch_on_another_name_is_not_this_one(self, tmp_path):
+        test = "def test_one(runner):\n    runner.other = f\n    runner.invoke(1)\n"
+        drawn, counts = run(tmp_path, files(**{"test_x.py": test}), (class_edge(),))
+        assert drawn == [DRAWN | {"line": 3}]
+        assert counts["refused"][PATCHED] == 0
+
+
 class TestTheClassEdgeMustBeTheIndexs:
     def test_an_edge_onto_a_function_is_not_a_class(self, tmp_path):
         testing = TESTING + "\n\ndef make():\n    return Runner()\n"
@@ -214,27 +350,205 @@ class TestTheClassEdgeMustBeTheIndexs:
         assert counts["refused"][NO_CLASS_EDGE] == 1
 
 
-class TestTheMethodMustBeTheClasssOwn:
-    def test_a_method_only_a_base_defines_is_refused(self, tmp_path):
+#: `Runner(Base)` with `close` on the base: `Runner` opens on line 6, the
+#: line the index's header edge has to sit on for the walk to take it.
+INHERITED = (
+    "class Base:\n"
+    "    def close(self):\n"
+    "        return 1\n"
+    "\n"
+    "\n"
+    "class Runner(Base):\n"
+    "    def invoke(self, x):\n"
+    "        return x\n"
+)
+
+CLOSE = "def test_one(runner):\n    runner.close()\n"
+
+
+class TestTheMethodMayBeABasesOwn:
+    """ADR-145's amendment reverses the original's refusal: the walk goes
+    up a chain of single, named bases and takes the first ``def`` it
+    meets — which is the one Python would find."""
+
+    def test_a_method_the_base_defines_is_drawn(self, tmp_path):
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": INHERITED, "test_x.py": CLOSE}),
+            (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 6)),
+        )
+        assert [(c["from"], c["to"], c["line"]) for c in drawn] == [
+            ("test_x.test_one", "pkg.testing.Base.close", 2)
+        ]
+        assert (counts["drawn"], counts["inherited"], counts["local"]) == (1, 1, 0)
+
+    def test_two_levels_up_is_still_the_first_def(self, tmp_path):
         testing = (
             "class Base:\n"
             "    def close(self):\n"
             "        return 1\n"
             "\n"
             "\n"
-            "class Runner(Base):\n"
+            "class Mid(Base):\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "class Runner(Mid):\n"
             "    def invoke(self, x):\n"
             "        return x\n"
         )
-        test = "def test_one(runner):\n    runner.close()\n"
         drawn, counts = run(
             tmp_path,
-            files(**{"pkg/testing.py": testing, "test_x.py": test}),
-            (class_edge(),),
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (
+                class_edge(),
+                base_edge("pkg.testing.Runner", "pkg.testing.Mid", 10),
+                base_edge("pkg.testing.Mid", "pkg.testing.Base", 6),
+            ),
+        )
+        assert [c["to"] for c in drawn] == ["pkg.testing.Base.close"]
+        assert counts["inherited"] == 1
+
+    def test_an_override_on_the_way_up_wins(self, tmp_path):
+        testing = (
+            "class Base:\n"
+            "    def close(self):\n"
+            "        return 1\n"
+            "\n"
+            "\n"
+            "class Mid(Base):\n"
+            "    def close(self):\n"
+            "        return 2\n"
+            "\n"
+            "\n"
+            "class Runner(Mid):\n"
+            "    def invoke(self, x):\n"
+            "        return x\n"
+        )
+        drawn, _ = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (
+                class_edge(),
+                base_edge("pkg.testing.Runner", "pkg.testing.Mid", 11),
+                base_edge("pkg.testing.Mid", "pkg.testing.Base", 6),
+            ),
+        )
+        assert [c["to"] for c in drawn] == ["pkg.testing.Mid.close"]
+
+    def test_a_class_met_twice_stops_the_walk(self, tmp_path):
+        testing = (
+            "class Mid(Runner):\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "class Runner(Mid):\n"
+            "    def invoke(self, x):\n"
+            "        return x\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (
+                class_edge(),
+                base_edge("pkg.testing.Runner", "pkg.testing.Mid", 5),
+                base_edge("pkg.testing.Mid", "pkg.testing.Runner", 1),
+            ),
         )
         assert drawn == []
         assert counts["refused"][NO_METHOD] == 1
 
+    def test_a_class_attribute_shadows_the_bases_def(self, tmp_path):
+        testing = INHERITED.replace(
+            "class Runner(Base):\n", "class Runner(Base):\n    close = None\n\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 6)),
+        )
+        assert drawn == []
+        assert counts["refused"][CLASS_BINDS] == 1
+
+    def test_a_class_attribute_beside_the_def_wins_over_it(self, tmp_path):
+        # The review's case: `close = deprecated(close)` in the body that
+        # writes `def close` — the instance answers with what the
+        # assignment bound, so the `def` is not what runs.
+        testing = INHERITED.replace(
+            "class Base:\n    def close(self):\n        return 1\n",
+            "class Base:\n    def close(self):\n        return 1\n\n    close = deprecated(close)\n",
+        )
+        assert testing != INHERITED
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 8)),
+        )
+        assert drawn == []
+        assert counts["refused"][CLASS_BINDS] == 1
+
+    def test_two_bases_are_an_mro_the_rule_does_not_compute(self, tmp_path):
+        testing = (
+            "class Base:\n"
+            "    def close(self):\n"
+            "        return 1\n"
+            "\n"
+            "\n"
+            "class Mixin:\n"
+            "    pass\n"
+            "\n"
+            "\n"
+            "class Runner(Base, Mixin):\n"
+            "    def invoke(self, x):\n"
+            "        return x\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 10)),
+        )
+        assert drawn == []
+        assert counts["refused"][MULTIPLE_BASES] == 1
+
+    def test_a_base_the_index_does_not_name_stops_the_walk(self, tmp_path):
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": INHERITED, "test_x.py": CLOSE}),
+            (class_edge(),),
+        )
+        assert drawn == []
+        assert counts["refused"][BASE_UNNAMED] == 1
+
+    def test_two_classes_named_on_one_header_line_are_no_answer(self, tmp_path):
+        testing = (
+            "class Base:\n"
+            "    def close(self):\n"
+            "        return 1\n"
+            "\n"
+            "\n"
+            "class Mixin:\n"
+            "    def close(self):\n"
+            "        return 2\n"
+            "\n"
+            "\n"
+            "class Runner(Base):\n"
+            "    def invoke(self, x):\n"
+            "        return x\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (
+                class_edge(),
+                base_edge("pkg.testing.Runner", "pkg.testing.Base", 11),
+                base_edge("pkg.testing.Runner", "pkg.testing.Mixin", 11),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][BASE_UNNAMED] == 1
+
+
+class TestTheMethodMustBeTheClasssOwn:
     def test_a_method_defined_twice_is_refused(self, tmp_path):
         testing = (
             "class Runner:\n"
@@ -311,6 +625,67 @@ class TestTheJoinsEdgeStands:
         assert counts["refused"][ALREADY_DRAWN] == 1
 
 
+#: What flask's own tests write on the `app` fixture, one call per line:
+#: a method `Scaffold` defines, one `App` overrides, one only `Flask` has,
+#: and one written three times behind `@t.overload`.
+FLASK_TEST = (
+    "def test_app(app):\n"
+    '    app.route("/")\n'
+    '    app.add_url_rule("/x", "x", f)\n'
+    "    app.test_client()\n"
+    '    app.template_filter("f")\n'
+)
+
+
+def flask_edge(source: str, target: str, path: str, line: int, edge_type: str) -> dict:
+    return tiered_edge(
+        source,
+        target,
+        edge_type,
+        [{"path": path, "line": line}],
+        tier=SEMANTIC,
+        lane=LANE_SCIP,
+    )
+
+
+def test_the_flask_excerpts_own_shape(tmp_path):
+    """ADR-148's lesson, on ADR-145's amendment: the rule is read against
+    the source it was measured on, not only against a shape written for
+    it. ``pipeline/tests/fixtures/flask-excerpt/`` holds flask's ``app``
+    fixture and the three classes above it verbatim (its ``NOTICE`` says
+    which commit); the graph below is the one the index gives, a class
+    edge at the assignment and a header edge at each class.
+
+    Two of the three targets are a base's, one is the subclass's own
+    override rather than the base's, and ``template_filter`` — written
+    twice as an ``@t.overload`` stub and once for real — is refused: the
+    rule reads one ``def`` or none.
+    """
+    tree = {
+        name: (FLASK_EXCERPT / name).read_text()
+        for name in ("scaffold.py", "app.py", "flask_app.py", "conftest.py")
+    }
+    tree["test_x.py"] = FLASK_TEST
+    drawn, counts = run(
+        tmp_path,
+        tree,
+        (
+            flask_edge("conftest.app", "flask_app.Flask", "conftest.py", 12, "calls"),
+            flask_edge("flask_app.Flask", "app.App", "flask_app.py", 10, "uses"),
+            flask_edge("app.App", "scaffold.Scaffold", "app.py", 10, "uses"),
+        ),
+    )
+    assert [(c["line"], c["to"]) for c in sorted(drawn, key=lambda c: c["line"])] == [
+        (2, "scaffold.Scaffold.route"),
+        (3, "app.App.add_url_rule"),
+        (4, "flask_app.Flask.test_client"),
+    ]
+    assert (counts["drawn"], counts["inherited"], counts["local"]) == (3, 2, 3)
+    assert counts["refused"] == {
+        reason: 1 if reason == NO_METHOD else 0 for reason in VALUE_REASONS
+    }
+
+
 def calls(graph):
     """Every ``calls`` edge, keyed by its (from, to) pair."""
     return {
@@ -320,11 +695,13 @@ def calls(graph):
 
 @pytest.mark.lane_b
 def test_the_minifixval_test_reaches_the_method_its_fixture_constructed():
-    """End to end with the index running. ``runner.invoke(1)`` is drawn —
-    one ``calls`` edge, ``syntactic``, evidenced ``fixture-value`` — and
-    the test's reach follows it into ``minifixval.runner``. Nothing else
-    the test writes is: ``runner.close()`` is inherited from ``Base`` and
-    ``made.invoke(2)`` goes through a function's return value, not a
+    """End to end with the index running. Four calls are drawn — one
+    ``calls`` edge each, ``syntactic``, evidenced ``fixture-value`` — and
+    the tests' reach follows them into ``minifixval.runner``:
+    ``runner.invoke(1)`` on the class the fixture constructs,
+    ``runner.close()`` on the ``Base`` above it, and both of ``held``'s,
+    whose fixture hands back the local it constructed. ``made.invoke(2)``
+    is not: it goes through a function's return value, not a
     construction."""
     from hobbes.extract import containment, extract_repo
 
@@ -333,33 +710,51 @@ def test_the_minifixval_test_reaches_the_method_its_fixture_constructed():
         pytest.skip(f"containment unavailable here: {why}")
     extraction = extract_repo(MINIFIXVAL)
     graph = extraction.graph
-    pair = ("test_runner.test_runner", "minifixval.runner.Runner.invoke")
     drawn = calls(graph)
     err = [
         e for e in graph.get("extraction_errors", []) if e["stage"].startswith("scip")
     ]
-    edge = drawn.get(pair)
-    assert edge is not None, err
-    assert edge["tier"] == SYNTACTIC, edge
-    assert [(s["line"], s.get("via")) for s in edge["evidence"]] == [(2, FIXTURE_VALUE)]
-    assert [to for frm, to in drawn if frm == pair[0]] == [pair[1]]
+    expected = {
+        ("test_runner.test_runner", "minifixval.runner.Runner.invoke"): 2,
+        ("test_runner.test_runner", "minifixval.runner.Base.close"): 3,
+        ("test_held.test_held", "minifixval.runner.Runner.invoke"): 2,
+        ("test_held.test_held", "minifixval.runner.Base.close"): 3,
+    }
+    for pair, line in expected.items():
+        edge = drawn.get(pair)
+        assert edge is not None, err
+        assert edge["tier"] == SYNTACTIC, edge
+        assert [(s["line"], s.get("via")) for s in edge["evidence"]] == [
+            (line, FIXTURE_VALUE)
+        ]
+    assert sorted(pair for pair in drawn if pair[0].startswith("test_")) == sorted(
+        expected
+    )
     counts = graph["fixtures"]["value_calls"]
-    assert counts["drawn"] == 1
-    assert counts["refused"][NO_METHOD] == 1  # runner.close(), on Base
-    assert counts["refused"][NO_CLASS_EDGE] == 1  # made.invoke(2), not a construction
-    (record,) = extraction.tests["tests"]
-    assert "minifixval.runner.Runner.invoke" in record["reaches"]
-    assert "minifixval.runner" in record["reaches_modules"]
+    assert (counts["drawn"], counts["inherited"], counts["local"]) == (4, 2, 2)
+    # made.invoke(2): a function's return value, not a construction.
+    assert counts["refused"] == {
+        reason: 1 if reason == NO_CLASS_EDGE else 0 for reason in VALUE_REASONS
+    }
+    records = {record["id"]: record for record in extraction.tests["tests"]}
+    for node_id in ("tests/test_runner.py::test_runner", "tests/test_held.py::test_held"):
+        record = records[node_id]
+        assert "minifixval.runner.Runner.invoke" in record["reaches"]
+        assert "minifixval.runner.Base.close" in record["reaches"]
+        assert "minifixval.runner" in record["reaches_modules"]
 
 
 def test_minifixval_draws_nothing_without_the_index():
     """Condition 3 is the index's edge, so lane A alone draws none of the
-    three sites and the block says which condition stopped it."""
+    five sites — the two fixtures' values are read, the class edge under
+    them is not — and the block says which condition stopped it."""
     from hobbes.extract import extract_repo
 
     graph = extract_repo(MINIFIXVAL).graph
-    assert [pair for pair in calls(graph) if pair[0] == "test_runner.test_runner"] == []
+    assert [pair for pair in calls(graph) if pair[0].startswith("test_")] == []
     assert graph["fixtures"]["value_calls"] == {
         "drawn": 0,
-        "refused": {reason: 3 if reason == NO_CLASS_EDGE else 0 for reason in VALUE_REASONS},
+        "inherited": 0,
+        "local": 0,
+        "refused": {reason: 5 if reason == NO_CLASS_EDGE else 0 for reason in VALUE_REASONS},
     }

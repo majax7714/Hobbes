@@ -11,3 +11,9 @@ def runner():
 @pytest.fixture
 def made():
     return make_runner()
+
+
+@pytest.fixture
+def held():
+    r = Runner()
+    return r
