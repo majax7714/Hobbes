@@ -240,6 +240,9 @@ LOCAL_REFUSALS = {
     ),
     "a factory's return": "def runner():\n    r = make.factory()\n    return r\n",
     "one of two targets": "def runner():\n    r, b = Runner(), 1\n    return r\n",
+    "a nested def of the same name": (
+        "def runner():\n    r = Runner()\n    def r():\n        pass\n    return r\n"
+    ),
 }
 
 
@@ -463,6 +466,23 @@ class TestTheMethodMayBeABasesOwn:
             tmp_path,
             files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
             (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 6)),
+        )
+        assert drawn == []
+        assert counts["refused"][CLASS_BINDS] == 1
+
+    def test_a_class_attribute_beside_the_def_wins_over_it(self, tmp_path):
+        # The review's case: `close = deprecated(close)` in the body that
+        # writes `def close` — the instance answers with what the
+        # assignment bound, so the `def` is not what runs.
+        testing = INHERITED.replace(
+            "class Base:\n    def close(self):\n        return 1\n",
+            "class Base:\n    def close(self):\n        return 1\n\n    close = deprecated(close)\n",
+        )
+        assert testing != INHERITED
+        drawn, counts = run(
+            tmp_path,
+            files(**{"pkg/testing.py": testing, "test_x.py": CLOSE}),
+            (class_edge(), base_edge("pkg.testing.Runner", "pkg.testing.Base", 8)),
         )
         assert drawn == []
         assert counts["refused"][CLASS_BINDS] == 1

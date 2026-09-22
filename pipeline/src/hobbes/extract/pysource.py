@@ -994,7 +994,8 @@ def _value_through_local(
     bare name as its value, and a line before the return's. And no
     ``global`` or ``nonlocal`` anywhere in the definition may name it: a
     nested ``def`` declaring it could rebind it between the assignment
-    and the return.
+    and the return. A nested ``def x`` or ``class x`` is a second binding
+    like any other.
     """
     name = _text(returned)
     if name in _parameter_names(node):
@@ -1025,6 +1026,13 @@ def _value_through_local(
     if _line(binder) >= _line(returned):
         return None, None
     if _declared_outer(node, name):
+        return None, None
+    # A nested `def x` or `class x` binds the name too, and `_own_body`
+    # never yields one: the walk it does not do is `_own_definitions`'.
+    if any(
+        _text(definition.child_by_field_name("name") or definition) == name
+        for definition, _decorated in _own_definitions(node)
+    ):
         return None, None
     return (_text(function), _line(function)), name
 

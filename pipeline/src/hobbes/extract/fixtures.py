@@ -520,6 +520,11 @@ def _class_method(
             if symbol.qualname == qualname and symbol.kind in ("method", "function")
         ]
         method_id = f"{klass['module']}.{qualname}"
+        # Asked before the `def` is taken: `close = deprecated(close)` in
+        # the body that also writes `def close` leaves the instance
+        # answering with whatever the assignment bound, not the `def`.
+        if method in records[0].binds:
+            return CLASS_BINDS, None
         if found:
             if len(found) != 1 or method_id not in by_id:
                 return NO_METHOD, None
@@ -529,8 +534,6 @@ def _class_method(
                 # property returned.
                 return PROPERTY, None
             return None, method_id
-        if method in records[0].binds:
-            return CLASS_BINDS, None
         if records[0].bases == 0:
             return NO_METHOD, None
         if records[0].bases > 1:

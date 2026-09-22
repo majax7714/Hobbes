@@ -813,6 +813,23 @@ class TestValueThroughALocal:
             "def f():\n    app = make.factory()\n    return app\n"
         ) == (None, None)
 
+    def test_a_nested_def_of_the_same_name_is_a_second_binding(self):
+        # The review's case: `_own_body` never yields the nested `def`, so
+        # counting its binders alone would read `app` as bound once — and
+        # the fixture would hand back the function.
+        assert self._value(
+            "def f():\n"
+            "    app = Flask()\n"
+            "    def app():\n"
+            "        pass\n"
+            "    return app\n"
+        ) == (None, None)
+
+    def test_a_nested_class_of_the_same_name_is_a_second_binding(self):
+        assert self._value(
+            "def f():\n    app = Flask()\n    class app:\n        pass\n    return app\n"
+        ) == (None, None)
+
     def test_more_than_one_target_settles_nothing(self):
         assert self._value(
             "def f():\n    app, b = Flask(), 1\n    return app\n"
