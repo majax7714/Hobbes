@@ -667,9 +667,9 @@ def _build_symbol_layer(
         # Additive, and absent on a repo that defines no fixture and looks
         # no parameter up, as `operators` and `constructions` are.
         graph["fixtures"] = fixture_counts
-    # ADR-147 and ADR-148, appended after the projection for the same
-    # reason as the two above: `@f(…)` is two calls, and the index names
-    # only the first.
+    # ADR-147, ADR-148 and ADR-149, appended after the projection for the
+    # same reason as the two above: `@f(…)` is two calls, and the index
+    # names only the first.
     # Applying what `f(…)` returned is written nowhere — there is no token
     # for the index to name — so no occurrence exists for the join to match
     # and no joined edge to wait for. What the rule reads is the settled
@@ -919,11 +919,13 @@ def _add_value_call_edges(graph: dict, drawn: list[dict]) -> None:
 
 def _add_factory_call_edges(graph: dict, drawn: list[dict]) -> None:
     """Draw each decorator-factory application as one ``calls`` edge
-    (ADR-147, ADR-148), evidence at every decorator that made it.
+    (ADR-147, ADR-148, ADR-149), evidence at every decorator that made
+    it.
 
     Each evidence row carries the ``via`` of the row that drew it, so a
-    pair reached by both readings — one site ADR-147 settles, another
-    ADR-148 folds — says at which line it was which.
+    pair reached by more than one reading — one site ADR-147 settles,
+    another ADR-148 folds, a third ADR-149 reaches through a second
+    factory's call — says at which line it was which.
 
     The same shape as :func:`_add_value_call_edges`, but for the caller: a
     target the symbol layer does not carry is dropped rather than drawn to

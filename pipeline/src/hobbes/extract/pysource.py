@@ -221,11 +221,49 @@ class Assign:
 
 
 @dataclass(frozen=True)
+class Chain:
+    """The call one ``return`` of a factory hands back (ADR-149).
+
+    ``return command(name, cls, **attrs)``: *dotted* is the callee's name
+    chain as :func:`_dotted` reads it, *line* the line of its terminal
+    identifier — where the index puts the occurrence, so a rule asking
+    what it resolved there has that line to match on — and the rest is
+    what the return forwards, read exactly as ADR-148 reads a site's own
+    arguments. *args* holds the positionals written **before** any ``*x``
+    as operands (a :class:`Literal`, a :class:`NameRef` to be read in the
+    factory's own environment, or :data:`UNKNOWN`), *kwargs* the keywords
+    in written order, *star* the index of the first ``*x`` among the
+    positionals, and *double_star* whether a ``**x`` is written at all.
+
+    Recorded only where :func:`_dotted` can name the callee: click's
+    ``command(cls=cls, **attrs)(name)`` — a call on a call — and
+    ``handlers[0](x)`` name nothing for any index to have resolved, so
+    they carry no chain and the rule that reads this refuses rather than
+    guessing which function ran.
+    """
+
+    dotted: str
+    line: int
+    args: tuple = ()
+    kwargs: tuple[tuple[str, object], ...] = ()
+    star: int | None = None
+    double_star: bool = False
+
+
+@dataclass(frozen=True)
 class Return:
     """A ``return`` in the factory's own body. *inner* says it is
-    ``return g`` — the only return ADR-148 may draw a call from."""
+    ``return g`` — the only return ADR-148 may draw a call from.
+
+    *chain* is the call the return hands back (ADR-149), and ``None``
+    for every return that is not one **and** in every program built to
+    name an inner def: ADR-148's digest is left exactly as it measured
+    it, a factory carrying one program or the other and never both
+    (:func:`_statements`).
+    """
 
     inner: bool
+    chain: Chain | None = None
 
 
 @dataclass(frozen=True)
@@ -311,6 +349,35 @@ class InnerFold:
 
 
 @dataclass(frozen=True)
+class ChainFold:
+    """A decorator factory that hands back **another factory's call**, in
+    the shape ADR-149 folds over a site's own arguments (step 1).
+
+    Set on a function or method where :attr:`Symbol.returns_inner` and
+    :attr:`Symbol.inner_fold` are both ``None`` and the body is a factory
+    all the same: not ``async``, no ``yield`` of its own, a signature
+    :func:`_signature` can name, and at least one own-body ``return`` of
+    a call this walk can name. The nested defs do not matter here, of any
+    number: what such a factory returns is written in the call, not in a
+    def beside it — click's ``group`` writes none at all.
+
+    The fields are :class:`InnerFold`'s but for the inner name it has
+    none of: the signature a site's arguments bind into,
+    *shadows_callable* as that record carries it, and the own body as the
+    same small program — recorded with no inner name to match, so every
+    :attr:`Return.inner` in it is ``False`` and every return that is a
+    call carries its :class:`Chain`.
+    """
+
+    params: tuple[Param, ...] = ()
+    star: str | None = None
+    kwonly: tuple[Param, ...] = ()
+    double_star: str | None = None
+    shadows_callable: bool = False
+    body: tuple = ()
+
+
+@dataclass(frozen=True)
 class Symbol:
     """A function, method, or class definition."""
 
@@ -373,6 +440,13 @@ class Symbol:
     #: ADR-147 draws it and never re-folded. ``None`` everywhere else,
     #: and on every class.
     inner_fold: InnerFold | None = None
+    #: The factory that returns *another factory's call*, digested for
+    #: ADR-149's fold, where :attr:`returns_inner` and :attr:`inner_fold`
+    #: are both ``None`` and step 1's shape holds all the same. The three
+    #: readings are asked in that order and a body carries at most one of
+    #: them: a factory an earlier rule settles is drawn as that rule draws
+    #: it and never re-read. ``None`` everywhere else, and on every class.
+    chain_fold: ChainFold | None = None
 
 
 #: The receiver recorded for a call whose object is an expression — a
@@ -1322,7 +1396,7 @@ def _test(node: Node | None) -> object:
     return UNKNOWN if value is UNKNOWN else Literal(value)
 
 
-def _branch(test: Node | None, block: Node | None, inner: str) -> Branch:
+def _branch(test: Node | None, block: Node | None, inner: str | None) -> Branch:
     """One arm of an ``if``. A walrus anywhere in the test makes the test
     unreadable **and** the name it binds unknown: the assignment ran, and
     what it assigned is what the fold could not read."""
@@ -1342,7 +1416,7 @@ def _branch(test: Node | None, block: Node | None, inner: str) -> Branch:
     )
 
 
-def _if_statement(node: Node, inner: str) -> If:
+def _if_statement(node: Node, inner: str | None) -> If:
     """An ``if`` with its arms in written order. ``elif`` is an
     ``elif_clause`` of its own in this grammar, not a nested ``if``, and
     ``else`` is an ``else_clause`` whose statements are under ``body``."""
@@ -1369,7 +1443,7 @@ def _if_statement(node: Node, inner: str) -> If:
     return If(tuple(branches))
 
 
-def _returns_in(node: Node, inner: str) -> tuple[bool, ...]:
+def _returns_in(node: Node, inner: str | None) -> tuple[bool, ...]:
     """Every ``return`` written inside one statement, in the scope it is
     written in: ``True`` for each ``return g``, ``False`` for each other.
     """
@@ -1382,7 +1456,46 @@ def _returns_in(node: Node, inner: str) -> tuple[bool, ...]:
     )
 
 
-def _statement(node: Node, inner: str) -> object | None:
+def _chain(node: Node | None) -> Chain | None:
+    """The call a ``return`` hands back, as ADR-149 step 1 records it, or
+    ``None`` where the value is not a call this walk can name.
+
+    The callee must be a name chain — the claim the rule above makes is
+    that *the index resolved this line*, and a callee with no terminal
+    identifier gave it nothing to resolve. A positional written after a
+    ``*x`` is left out: which parameter it fills is decided by the
+    splat's own length, which is exactly what is not read.
+    """
+    if node is None or node.type != "call":
+        return None
+    function = node.child_by_field_name("function")
+    dotted = _dotted(function) if function is not None else None
+    terminal = _terminal(function) if function is not None else None
+    if dotted is None or terminal is None:
+        return None
+    args: list[object] = []
+    kwargs: list[tuple[str, object]] = []
+    star: int | None = None
+    double_star = False
+    arguments = node.child_by_field_name("arguments")
+    for arg in arguments.named_children if arguments else []:
+        if arg.type == "list_splat":
+            if star is None:
+                star = len(args)
+        elif arg.type == "dictionary_splat":
+            double_star = True
+        elif arg.type == "keyword_argument":
+            name = arg.child_by_field_name("name")
+            if name is None:
+                double_star = True  # `f(**{...})` in the grammar's other spelling
+            else:
+                kwargs.append((_text(name), _operand(arg.child_by_field_name("value"))))
+        elif arg.type != "comment" and star is None:
+            args.append(_operand(arg))
+    return Chain(dotted, _line(terminal), tuple(args), tuple(kwargs), star, double_star)
+
+
+def _statement(node: Node, inner: str | None) -> object | None:
     """One top-level statement of a factory's own body, as ADR-148 step 1
     records it, or ``None`` for one that neither binds, branches nor
     returns (a ``pass``, a docstring, a comment).
@@ -1401,7 +1514,10 @@ def _statement(node: Node, inner: str) -> object | None:
         return None
     if kind == "return_statement":
         value = node.named_children[0] if node.named_children else None
-        return Return(value is not None and value.type == "identifier" and _text(value) == inner)
+        return Return(
+            value is not None and value.type == "identifier" and _text(value) == inner,
+            _chain(value) if inner is None else None,
+        )
     if kind == "raise_statement":
         return Raise()
     if kind == "if_statement":
@@ -1422,8 +1538,16 @@ def _statement(node: Node, inner: str) -> object | None:
     return Binds(binds) if binds else None
 
 
-def _statements(block: Node | None, inner: str) -> tuple:
-    """A block's statements, in written order."""
+def _statements(block: Node | None, inner: str | None) -> tuple:
+    """A block's statements, in written order.
+
+    *inner* is the nested def the returns are read against, and ``None``
+    where there is none to read them against — which is ADR-149's
+    program and the one place a return records the :class:`Chain` it
+    hands back. ADR-148's digest is then exactly what it was when that
+    rule was measured: a factory carries one program or the other, so
+    neither reading pays for the other's fact.
+    """
     out = []
     for child in block.children if block is not None else ():
         statement = _statement(child, inner)
@@ -1483,6 +1607,58 @@ def _inner_fold(node: Node, shadows_callable: bool) -> InnerFold | None:
         double_star=double_star,
         shadows_callable=shadows_callable,
         body=_statements(node.child_by_field_name("body"), inner),
+    )
+
+
+def _holds_a_chain(body: tuple) -> bool:
+    """Whether a recorded program holds a ``return`` of a named call
+    (ADR-149 step 1's last condition).
+
+    The ``if`` arms are descended into, because a factory whose only such
+    return sits in one is the shape itself (click's ``group``); an
+    :class:`Opaque`'s returns are bools and hold no chain by
+    construction, so a body whose every ``return G(…)`` is written in a
+    ``for``, ``while``, ``with``, ``try`` or ``match`` carries no fold.
+    """
+    for statement in body:
+        if isinstance(statement, Return) and statement.chain is not None:
+            return True
+        if isinstance(statement, If) and any(
+            _holds_a_chain(branch.body) for branch in statement.branches
+        ):
+            return True
+    return False
+
+
+def _chain_fold(node: Node, shadows_callable: bool) -> ChainFold | None:
+    """A factory that hands back another factory's call, digested for
+    ADR-149's fold (step 1).
+
+    Asked only where neither ADR-147 nor ADR-148 read the body, and the
+    shape is theirs less the nested def — which this rule does not look
+    for at all, of any number: not ``async``, no ``yield`` of its own, a
+    nameable signature, and at least one own-body ``return`` of a call
+    this walk can name.
+    """
+    if any(child.type == "async" for child in node.children):
+        return None
+    for current in _own_body(node):
+        if current.type == "yield":
+            return None  # a generator hands back values, never a call's
+    signature = _signature(node)
+    if signature is None:
+        return None
+    body = _statements(node.child_by_field_name("body"), None)
+    if not _holds_a_chain(body):
+        return None
+    params, star, kwonly, double_star = signature
+    return ChainFold(
+        params=params,
+        star=star,
+        kwonly=kwonly,
+        double_star=double_star,
+        shadows_callable=shadows_callable,
+        body=body,
     )
 
 
@@ -1641,14 +1817,21 @@ def _walk(
             symbol_kind = "function"
         params = _parameters(node)
         is_function = kind == "function_definition"
-        # A class is no decorator factory under either rule: ADR-147 and
-        # ADR-148 both read a `def` that returns a `def`. The fold is the
-        # second question, asked only where the first settled nothing —
-        # a factory ADR-147 draws is never re-folded (ADR-148 step 5).
+        # A class is no decorator factory under any of the three rules:
+        # ADR-147 and ADR-148 both read a `def` that returns a `def`, and
+        # ADR-149 a `def` that returns another factory's call. Each is
+        # asked only where the one before it settled nothing — a factory
+        # ADR-147 draws is never re-folded (ADR-148 step 5), and one
+        # either of them reads is never asked the chain question.
         returns_inner = _returns_inner(node) if is_function else None
         inner_fold = (
             _inner_fold(node, parsed.shadows_callable)
             if is_function and returns_inner is None
+            else None
+        )
+        chain_fold = (
+            _chain_fold(node, parsed.shadows_callable)
+            if is_function and returns_inner is None and inner_fold is None
             else None
         )
         parsed.symbols.append(
@@ -1668,6 +1851,7 @@ def _walk(
                 rebound=_rebound(node, params) if is_function else (),
                 returns_inner=returns_inner,
                 inner_fold=inner_fold,
+                chain_fold=chain_fold,
             )
         )
         body = node.child_by_field_name("body")

@@ -84,15 +84,41 @@ cannot tell ``@obj.f(x)`` from ``@Cls.f(x)``, where ``x`` would be
 ``return g``, or none at all. A factory ADR-147 already settles is drawn
 as ADR-147 draws it and never re-folded.
 
+**ADR-149 — a factory that returns another factory's call.** click's
+``group`` holds no nested def at all: it ends ``return command(name,
+cls, **attrs)``, so neither rule above reads it. But at ``@group()`` the
+fold of ``group``'s own guards leaves that one return reachable with
+``name`` still ``None``, and folding ``command``'s guards over *those*
+arguments leaves only ``return decorator``. Where the factory carries
+:attr:`~hobbes.extract.pysource.Symbol.chain_fold`, this module folds it
+(:func:`_site_exits`, keeping the environment at each reachable return),
+asks the **settled graph** which function the return's callee resolved
+to — a ``semantic`` edge from the factory itself, at the callee's line,
+onto a target named as written — and then reads that second factory
+``G`` exactly as ADR-147 or ADR-148 reads a first one, over the
+arguments the return forwards. Same edge, same tier (``syntactic``),
+``via: decorator-factory-chained``.
+
+Its three refusals join the list: :data:`CHAIN_GUARD_UNKNOWN` (no
+reachable return, or one that is not a call the walk could name),
+:data:`CHAIN_UNRESOLVED` (the index named no single ``G`` at the return's
+line, or two returns name two different ones) and :data:`CHAIN_INNER`
+(``G``'s application does not reach ``G``'s one nested def — including a
+``G`` that is itself only a chain, which is never followed: **one level
+only**). A method factory at a *site* passing a positional stays
+:data:`METHOD_POSITIONAL`, ADR-148's reason for ADR-148's reading of the
+site.
+
 **Not claimed:** what ``g`` returns, or what a later call of the
-decorated name reaches; and, under the fold, nothing about the path any
-*other* call of the same factory takes. C-58 keeps every other function
-value.
+decorated name reaches; and, under either fold, nothing about the path
+any *other* call of the same factory takes, nor — under the chain — any
+chain of two or more hops. C-58 keeps every other function value.
 """
 
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from dataclasses import dataclass
 
 from hobbes.extract.discover import ModuleInfo
 from hobbes.extract.pysource import (
@@ -102,6 +128,8 @@ from hobbes.extract.pysource import (
     Binds,
     BoolOp,
     Bound,
+    Chain,
+    ChainFold,
     If,
     InnerFold,
     IsCallable,
@@ -125,6 +153,13 @@ DECORATOR_FACTORY = "decorator-factory"
 #: arguments is evidenced as (ADR-148). The same edge and the same tier as
 #: :data:`DECORATOR_FACTORY`; a different reading, so a different word.
 DECORATOR_FACTORY_FOLDED = "decorator-factory-folded"
+
+#: What an edge drawn through a **second** factory's call is evidenced as
+#: (ADR-149): the outer factory's guards folded over the site's own
+#: arguments, then the second factory's over the arguments the outer one
+#: forwards. The same edge and the same tier as the other two; a third
+#: reading, so a third word.
+DECORATOR_FACTORY_CHAINED = "decorator-factory-chained"
 
 #: The decorator that makes a definition a typing stub rather than a body:
 #: read by its dotted name's last component, so ``@overload`` and
@@ -150,6 +185,20 @@ METHOD_POSITIONAL = "method-positional"
 #: The fold left a reachable return other than ``return g``, or left none
 #: reachable at all (ADR-148 step 5).
 GUARD_UNKNOWN = "guard-unknown"
+#: The outer factory's fold left no reachable return at all, or left one
+#: that is not a call this walk could name (ADR-149 step 2) — click's
+#: ``return command(cls=cls, **attrs)(name)``, a call on a call.
+CHAIN_GUARD_UNKNOWN = "chain-guard-unknown"
+#: The index named no single second factory at a reachable return's
+#: callee line, or two reachable returns named two different ones
+#: (ADR-149 step 3).
+CHAIN_UNRESOLVED = "chain-unresolved"
+#: The second factory's application does not reach one nested def
+#: (ADR-149 step 4): its body is no single undecorated one, its own guards
+#: leave another return reachable over the arguments forwarded, it is a
+#: method handed a positional, or it is itself only a chain — which is
+#: never followed, the rule reading one level and no more.
+CHAIN_INNER = "chain-inner"
 FACTORY_REASONS = (
     TWO_TARGETS,
     NO_SINGLE_BODY,
@@ -159,6 +208,9 @@ FACTORY_REASONS = (
     ALREADY_DRAWN,
     METHOD_POSITIONAL,
     GUARD_UNKNOWN,
+    CHAIN_GUARD_UNKNOWN,
+    CHAIN_UNRESOLVED,
+    CHAIN_INNER,
 )
 
 
@@ -177,16 +229,21 @@ def factory_calls(
     Returns ``(calls, counts)``. A call is ``{"from", "to", "path",
     "line", "via", "factory"}`` — the decorator's caller, the nested def,
     the decorating file and the callee's line, which reading drew it
-    (:data:`DECORATOR_FACTORY` or :data:`DECORATOR_FACTORY_FOLDED`), and
-    the factory whose return the chain went through — sorted by
-    ``(from, to, path, line)``, one row per decorator site. *counts* is
-    ``{"drawn", "folded", "refused"}`` with every one of
-    :data:`FACTORY_REASONS`, ``folded`` being how many of the drawn came
-    from ADR-148's fold; or ``{}`` where no site was asked at all: a repo
-    whose decorators the index resolved to nothing in-repo was never
-    asked this question, and a block of zeroes would say otherwise.
+    (:data:`DECORATOR_FACTORY`, :data:`DECORATOR_FACTORY_FOLDED` or
+    :data:`DECORATOR_FACTORY_CHAINED`), and the factory whose return the
+    chain went through, which is the **outer** one at a chained row — the
+    second factory is not carried, because nothing downstream reads it
+    and a field the evidence never shows is a claim no reader can check
+    — sorted by ``(from, to, path, line)``, one row per decorator site.
+    *counts* is ``{"drawn", "folded", "chained", "refused"}`` with every
+    one of :data:`FACTORY_REASONS`, ``folded`` and ``chained`` being how
+    many of the drawn came from ADR-148's fold and from ADR-149's chain;
+    or ``{}`` where no site was asked at all: a repo whose decorators the
+    index resolved to nothing in-repo was never asked this question, and
+    a block of zeroes would say otherwise.
     """
     by_id = {symbol["id"]: symbol for symbol in symbols}
+    paths = {module.id: module.path for module in modules}
     already = {
         (edge["from"], edge["to"]) for edge in symbol_edges if edge["type"] == "calls"
     }
@@ -231,7 +288,12 @@ def factory_calls(
                 target = by_id[next(iter(targets))]
                 caller = next(iter(callers))
                 reason, inner_id, via = _returned_def(
-                    target, parsed, by_id, decorator.bound
+                    target,
+                    parsed,
+                    by_id,
+                    decorator.bound,
+                    resolved=resolved,
+                    path=paths.get(target["module"]),
                 )
                 if reason is not None:
                     refused[reason] += 1
@@ -256,17 +318,33 @@ def factory_calls(
     return drawn, {
         "drawn": len(drawn),
         "folded": sum(1 for call in drawn if call["via"] == DECORATOR_FACTORY_FOLDED),
+        "chained": sum(1 for call in drawn if call["via"] == DECORATOR_FACTORY_CHAINED),
         "refused": {reason: refused[reason] for reason in FACTORY_REASONS},
     }
 
 
 def _returned_def(
-    target: dict, parsed: dict[str, ParsedFile], by_id: dict, bound: Bound | None
+    target: dict,
+    parsed: dict[str, ParsedFile],
+    by_id: dict,
+    bound: Bound | None,
+    *,
+    resolved: dict | None = None,
+    path: str | None = None,
 ) -> tuple[str | None, str | None, str | None]:
-    """Conditions 2 to 5 of ADR-147, and ADR-148's fold where 3–4 leave
-    the body unsettled: the factory has one undecorated body, that body
-    returns one nested ``def`` — outright, or on every path the site's own
-    arguments can reach — and the graph carries it.
+    """Conditions 2 to 5 of ADR-147, ADR-148's fold where 3–4 leave the
+    body unsettled, and ADR-149's chain where neither reads it at all:
+    the factory has one undecorated body, and that body returns one
+    nested ``def`` — outright, on every path the site's own arguments can
+    reach, or through one second factory's call — and the graph carries
+    it.
+
+    *resolved* is :func:`factory_calls`' index of the settled graph's
+    ``semantic`` ``calls`` edges by ``(path, line)`` and *path* the
+    factory's **own** file, which is where ADR-149 step 3 asks what the
+    return's callee resolved to. Without them a chained factory refuses
+    :data:`CHAIN_UNRESOLVED`, which is what an index naming nothing at
+    that line means anyway.
 
     Returns ``(reason, symbol id, via)`` — a reason and nothing else, or
     no reason with the id to draw to and the reading that drew it. The
@@ -275,34 +353,72 @@ def _returned_def(
     record there (:func:`hobbes.extract.graph._symbol_records`) and a
     factory written twice would read as one clean answer.
     """
-    facts = parsed.get(target["module"])
-    if facts is None:
-        return NO_SINGLE_BODY, None, None
-    bodies = [
-        definition
-        for definition in _definitions(facts, target["qualname"])
-        if not _is_overload(definition)
-    ]
-    if len(bodies) != 1:
-        return NO_SINGLE_BODY, None, None
-    body = bodies[0]
-    if body.decorators:
-        # A decorated factory hands back what its own decorator returned,
-        # which is not the def written inside it.
-        return DECORATED, None, None
+    reason, body = _one_body(target, parsed)
+    if reason is not None:
+        return reason, None, None
     if body.returns_inner is not None:
-        inner, via = body.returns_inner, DECORATOR_FACTORY
-    elif body.inner_fold is None:
-        # Not a factory this rule can read at all: no single nested def to
-        # return, or async, or a generator (ADR-147's one reason).
-        return NO_RETURNED_DEF, None, None
-    else:
+        holder, inner, via = target, body.returns_inner, DECORATOR_FACTORY
+    elif body.inner_fold is not None:
         reason = fold_guards(body.inner_fold, bound, target["kind"] == "method")
         if reason is not None:
             return reason, None, None
-        inner, via = body.inner_fold.inner, DECORATOR_FACTORY_FOLDED
-    qualname = f"{target['qualname']}.{inner}"
-    inner_id = f"{target['module']}.{qualname}"
+        holder, inner, via = target, body.inner_fold.inner, DECORATOR_FACTORY_FOLDED
+    elif body.chain_fold is not None:
+        reason, holder, inner = _chained(
+            target, body.chain_fold, bound, parsed, by_id, resolved or {}, path
+        )
+        if reason is not None:
+            return reason, None, None
+        via = DECORATOR_FACTORY_CHAINED
+    else:
+        # Not a factory any of the three rules can read: no nested def to
+        # return and no named call either, or async, or a generator
+        # (ADR-147's one reason).
+        return NO_RETURNED_DEF, None, None
+    return _inner_symbol(holder, parsed, by_id, inner, via)
+
+
+def _one_body(
+    symbol: dict, parsed: dict[str, ParsedFile]
+) -> tuple[str | None, Symbol | None]:
+    """ADR-147's condition 2, asked of a factory: of the definitions of
+    its qualname, exactly one is not an ``@overload`` stub, and that one
+    carries no decorator at all.
+
+    Shared with ADR-149 step 4, which asks it of the **second** factory —
+    where its two reasons are not the counted ones, a refusal there being
+    the chain's (:data:`CHAIN_INNER`) rather than this site's factory.
+    """
+    facts = parsed.get(symbol["module"])
+    if facts is None:
+        return NO_SINGLE_BODY, None
+    bodies = [
+        definition
+        for definition in _definitions(facts, symbol["qualname"])
+        if not _is_overload(definition)
+    ]
+    if len(bodies) != 1:
+        return NO_SINGLE_BODY, None
+    if bodies[0].decorators:
+        # A decorated factory hands back what its own decorator returned,
+        # which is not the def written inside it.
+        return DECORATED, None
+    return None, bodies[0]
+
+
+def _inner_symbol(
+    holder: dict, parsed: dict[str, ParsedFile], by_id: dict, inner: str, via: str
+) -> tuple[str | None, str | None, str | None]:
+    """ADR-147's condition 5: ``<holder's id>.<inner>`` is exactly one
+    symbol of kind ``function``, and the graph carries it.
+
+    *holder* is the factory the def is written in — the one the site
+    named under ADR-147 and ADR-148, the **second** one under ADR-149,
+    whose ``<locals>`` the drawn edge points into.
+    """
+    facts = parsed[holder["module"]]  # a body was read there, so it is parsed
+    qualname = f"{holder['qualname']}.{inner}"
+    inner_id = f"{holder['module']}.{qualname}"
     found = [
         definition
         for definition in _definitions(facts, qualname)
@@ -311,6 +427,139 @@ def _returned_def(
     if len(found) != 1 or inner_id not in by_id:
         return NO_SYMBOL, None, None
     return None, inner_id, via
+
+
+def _chained(
+    factory: dict,
+    fold: ChainFold,
+    bound: Bound | None,
+    parsed: dict[str, ParsedFile],
+    by_id: dict,
+    resolved: dict,
+    path: str | None,
+) -> tuple[str | None, dict | None, str | None]:
+    """ADR-149 steps 2 to 4: the outer factory's guards folded over the
+    site's own arguments, the second factory the index names at each
+    reachable return, and that factory's own application to the arguments
+    the return forwards.
+
+    Returns ``(reason, G's symbol record, g's name)`` — a reason and
+    nothing else, or no reason with the second factory and the def it
+    hands back, which the caller then asks condition 5 of.
+    """
+    reason, exits = _site_exits(fold, bound, factory["kind"] == "method")
+    if reason is not None:
+        return reason, None, None
+    if not exits or any(returned.chain is None for returned in exits):
+        # No path reaches a return at all, or one that reaches it hands
+        # back something other than a call this walk could name.
+        return CHAIN_GUARD_UNKNOWN, None, None
+    targets: set[str] = set()
+    for returned in exits:
+        written = returned.chain.dotted.rpartition(".")[2]
+        answers = {
+            edge["to"]
+            for edge in resolved.get((path, returned.chain.line), ())
+            # From the factory itself: an edge the index put at that line
+            # out of some other scope is not this return's call.
+            if edge["from"] == factory["id"]
+            and _named_as_written(by_id.get(edge["to"]), written)
+        }
+        if len(answers) != 1:
+            return CHAIN_UNRESOLVED, None, None
+        targets |= answers
+    if len(targets) != 1:
+        # Two reachable returns, two second factories: which one the site
+        # reached is the whole question.
+        return CHAIN_UNRESOLVED, None, None
+    second = by_id[next(iter(targets))]
+    reason, body = _one_body(second, parsed)
+    if reason is not None:
+        return CHAIN_INNER, None, None
+    if body.returns_inner is not None:
+        # ADR-147's reading of `G`: every path returns the nested def,
+        # whatever the outer factory forwarded, so there is nothing to
+        # fold and no argument that could change the answer.
+        return None, second, body.returns_inner
+    if body.inner_fold is None:
+        # A `G` that is itself only a chain, or no factory at all: the
+        # rule reads one level and no more.
+        return CHAIN_INNER, None, None
+    for returned in exits:
+        env = _forward(
+            returned.chain, returned.env, body.inner_fold, second["kind"] == "method"
+        )
+        if env is None:
+            return CHAIN_INNER, None, None
+        reached, _ = _run(body.inner_fold.body, env, body.inner_fold)
+        if {step.inner for step in reached} != {True}:
+            return CHAIN_INNER, None, None
+    return None, second, body.inner_fold.inner
+
+
+def _forward(
+    chain: Chain, env: dict, fold: InnerFold, method: bool
+) -> dict | None:
+    """ADR-149 step 4's binding: the second factory's parameters, as one
+    of the outer factory's returns leaves them.
+
+    ADR-148 step 3's rules over the arguments a *return* writes rather
+    than the ones a site does, so each value is read in the outer
+    factory's environment at that return, and two forms a site cannot
+    write are read rather than made unknown wholesale: a ``*x``, which
+    makes the positional parameters from its index on unknown and
+    ``*args`` with them, and a ``**x``, which makes every parameter no
+    explicit argument binds unknown — **never its default**, the mapping
+    may hold it — while an explicitly bound one keeps its value beside
+    it, Python refusing a call that binds a parameter twice.
+
+    ``None`` where the call is not one this factory can serve: a method
+    handed any positional (``@obj.f`` and ``@Cls.f`` are one text to lane
+    A, and so are ``obj.f(x)`` and ``Cls.f(x)``), or more positionals
+    than it takes with no ``*args`` — folding over a call that raises
+    would claim a path that never runs.
+    """
+    params = fold.params[1:] if method else fold.params
+    if method and (chain.args or chain.star is not None):
+        return None
+    if len(chain.args) > len(params) and fold.star is None:
+        return None
+    names = [param.name for param in (*fold.params, *fold.kwonly)]
+    if fold.star:
+        names.append(fold.star)
+    if fold.double_star:
+        names.append(fold.double_star)
+    forwarded: dict = {name: UNKNOWN for name in names}
+    keywords: dict = {}
+    for name, operand in chain.kwargs:
+        # A keyword the signature does not name lands in `**kwargs`,
+        # which is unknown either way; one written twice is no call.
+        keywords[name] = UNKNOWN if name in keywords else _value(operand, env)
+    for index, param in enumerate(params):
+        if index < len(chain.args):
+            forwarded[param.name] = (
+                UNKNOWN if param.name in keywords else _value(chain.args[index], env)
+            )
+        elif chain.star is not None and index >= chain.star:
+            forwarded[param.name] = UNKNOWN
+        elif param.name in keywords:
+            forwarded[param.name] = keywords[param.name]
+        elif chain.double_star:
+            forwarded[param.name] = UNKNOWN
+        else:
+            forwarded[param.name] = _default(param)
+    for param in fold.kwonly:
+        if param.name in keywords:
+            forwarded[param.name] = keywords[param.name]
+        else:
+            forwarded[param.name] = UNKNOWN if chain.double_star else _default(param)
+    if fold.star:
+        # A `**x` fills no `*args`, so an unsplatted call still leaves it
+        # empty; the positionals a `*x` carries are what it cannot say.
+        forwarded[fold.star] = (
+            () if chain.star is None and len(chain.args) <= len(params) else UNKNOWN
+        )
+    return forwarded
 
 
 def fold_guards(fold: InnerFold, bound: Bound | None, method: bool) -> str | None:
@@ -329,21 +578,60 @@ def fold_guards(fold: InnerFold, bound: Bound | None, method: bool) -> str | Non
     and ``@Cls.f(x)`` are one text to lane A, and in the second ``x`` is
     ``self`` and every later binding shifts by one.
     """
+    reason, exits = _site_exits(fold, bound, method)
+    if reason is not None:
+        return reason
+    # At least one return reachable, and every reachable one `return g`.
+    return None if {step.inner for step in exits} == {True} else GUARD_UNKNOWN
+
+
+@dataclass(frozen=True)
+class Exit:
+    """One reachable ``return`` of a factory, under one site's arguments.
+
+    *inner* is :attr:`~hobbes.extract.pysource.Return.inner` — whether it
+    is ``return g``, which is all ADR-148 asks — and *chain* and *env*
+    are what ADR-149 step 2 keeps beside it: the call the return hands
+    back, and the environment the fold holds at that point, in which the
+    arguments it forwards are read.
+    """
+
+    inner: bool
+    chain: Chain | None
+    env: dict
+
+
+def _site_exits(
+    fold: InnerFold | ChainFold, bound: Bound | None, method: bool
+) -> tuple[str | None, list[Exit]]:
+    """ADR-148 steps 3 and 4: one factory's guards folded over one site's
+    own arguments, as the returns the site can reach.
+
+    The walk both rules share — ADR-148 asks only whether every reachable
+    return is ``return g`` (:func:`fold_guards`), ADR-149 asks what each
+    one hands back and in which environment (step 2) — so the exits carry
+    both facts and neither rule re-walks the body for the other's.
+
+    Returns ``(reason, exits)``: :data:`METHOD_POSITIONAL` and no exits
+    where lane A cannot bind the site at all, else no reason and the
+    reachable returns — **none** where the site wrote no arguments to
+    fold or a call this factory cannot serve, which each caller then
+    refuses in its own words.
+    """
     if bound is None:
         # A bare `@f` applies `f` itself (ADR-146) and writes no
         # arguments to fold; the caller asks only at call-form sites.
-        return GUARD_UNKNOWN
+        return None, []
     if method and bound.args:
-        return METHOD_POSITIONAL
+        return METHOD_POSITIONAL, []
     params = fold.params[1:] if method else fold.params
     if len(bound.args) > len(params) and fold.star is None:
         # More positionals than parameters to take them: the call the
         # site wrote is not one this factory can serve, and folding over
         # a call that raises is claiming a path that never runs.
-        return GUARD_UNKNOWN
+        return None, []
     exits, _ = _run(fold.body, _bind(fold, bound, method), fold)
-    # At least one return reachable, and every reachable one `return g`.
-    return None if exits == {True} else GUARD_UNKNOWN
+    return None, exits
 
 
 def _default(param) -> object:
@@ -352,7 +640,7 @@ def _default(param) -> object:
     return UNKNOWN if param.default is NO_DEFAULT else param.default
 
 
-def _bind(fold: InnerFold, bound: Bound, method: bool) -> dict:
+def _bind(fold: InnerFold | ChainFold, bound: Bound, method: bool) -> dict:
     """ADR-148 step 3: the factory's parameters, as this site leaves them.
 
     Positionals in order (after the receiver, for a method), keywords by
@@ -417,15 +705,15 @@ def _merge(envs: list[dict]) -> dict | None:
     return merged
 
 
-def _run(body: tuple, env: dict, fold: InnerFold) -> tuple[set, dict | None]:
+def _run(body: tuple, env: dict, fold) -> tuple[list[Exit], dict | None]:
     """Walk one block of the factory's program under *env*.
 
-    Returns ``(exits, env)``: *exits* holds ``True`` for each reachable
-    ``return g`` and ``False`` for each other reachable return, and *env*
-    is the environment of the paths that fall out of the block — ``None``
-    where none do, every one of them having returned or raised.
+    Returns ``(exits, env)``: *exits* holds one :class:`Exit` per
+    reachable return, in the order the walk meets them, and *env* is the
+    environment of the paths that fall out of the block — ``None`` where
+    none do, every one of them having returned or raised.
     """
-    exits: set = set()
+    exits: list[Exit] = []
     current: dict | None = dict(env)
     for statement in body:
         if current is None:
@@ -433,7 +721,7 @@ def _run(body: tuple, env: dict, fold: InnerFold) -> tuple[set, dict | None]:
         if isinstance(statement, Assign):
             current = {**current, statement.name: _value(statement.value, current)}
         elif isinstance(statement, Return):
-            exits.add(statement.inner)
+            exits.append(Exit(statement.inner, statement.chain, current))
             current = None
         elif isinstance(statement, Raise):
             current = None
@@ -442,20 +730,21 @@ def _run(body: tuple, env: dict, fold: InnerFold) -> tuple[set, dict | None]:
         elif isinstance(statement, Opaque):
             # The block may run or not, once or many times: every return
             # written in it is reachable, every name it binds is unknown,
-            # and the path falls through all the same.
-            exits.update(statement.returns)
+            # and the path falls through all the same. None of them is a
+            # chain: what such a block returns is what was not read.
             current = _forget(current, statement.names)
+            exits.extend(Exit(inner, None, current) for inner in statement.returns)
         elif isinstance(statement, If):
             branch_exits, current = _run_if(statement, current, fold)
-            exits |= branch_exits
+            exits += branch_exits
     return exits, current
 
 
-def _run_if(statement: If, env: dict, fold: InnerFold) -> tuple[set, dict | None]:
+def _run_if(statement: If, env: dict, fold) -> tuple[list[Exit], dict | None]:
     """One ``if`` / ``elif`` / ``else``: a known test takes its one arm,
     an unknown one takes both — that arm *and* everything after it — and
     the arms that fall through merge."""
-    exits: set = set()
+    exits: list[Exit] = []
     fell_through: list[dict] = []
     reached = env
     for branch in statement.branches:
@@ -465,7 +754,7 @@ def _run_if(statement: If, env: dict, fold: InnerFold) -> tuple[set, dict | None
         if truth is False:
             continue
         branch_exits, branch_env = _run(branch.body, reached, fold)
-        exits |= branch_exits
+        exits += branch_exits
         if branch_env is not None:
             fell_through.append(branch_env)
         if truth is True:
@@ -488,7 +777,7 @@ def _value(expr: object, env: dict) -> object:
     return UNKNOWN
 
 
-def _truth(expr: object, env: dict, fold: InnerFold) -> bool | None:
+def _truth(expr: object, env: dict, fold) -> bool | None:
     """One guard's **truth**: ``True``, ``False``, or ``None`` for a test
     the fold cannot read (ADR-148 step 4).
 

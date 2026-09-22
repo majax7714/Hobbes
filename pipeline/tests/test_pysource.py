@@ -1,5 +1,7 @@
 """Tests for hobbes.extract.pysource — the per-file tree-sitter walk."""
 
+from pathlib import Path
+
 from hobbes.extract.pysource import (
     UNKNOWN,
     Assign,
@@ -7,6 +9,7 @@ from hobbes.extract.pysource import (
     BoolOp,
     Bound,
     Branch,
+    Chain,
     FromImport,
     If,
     IsCallable,
@@ -20,6 +23,15 @@ from hobbes.extract.pysource import (
     Return,
     parse_source,
 )
+
+#: click's own ``decorators.py``, four functions of it, verbatim (the
+#: header says which commit). ADR-148's review found the unit's trimmed,
+#: untyped factories hid what click really writes — every signature
+#: annotated, every splat under a ``typed_parameter`` — so ADR-149's
+#: shapes are read from the real source instead of from a paraphrase of
+#: it. ``tests/fixtures`` is ``norecursedirs``, so it is never collected;
+#: it is read here as text, like any other fixture file.
+CLICK_EXCERPT = Path(__file__).parent / "fixtures" / "click-excerpt" / "decorators.py"
 
 
 def parse(text: str):
@@ -472,6 +484,166 @@ class TestInnerFold:
         assert parse(self.COMMAND).shadows_callable is False
 
     def test_a_class_has_no_fold(self):
+        assert self.fold("class f:\n    pass\n") is None
+
+
+class TestChainFold:
+    """The factory that hands back **another factory's call** (ADR-149
+    step 1): the same signature and the same program as ADR-148's digest,
+    with each return's call recorded beside it — and no nested def looked
+    for at all, click's ``group`` writing none.
+
+    Read from click's real source, which is the fixture beside this file:
+    a trimmed paraphrase is where ADR-148's first build lost every typed
+    factory, and the shapes this rule was measured on are click's.
+    """
+
+    def symbols(self, text: str) -> dict:
+        return {symbol.qualname: symbol for symbol in parse(text).symbols}
+
+    def fold(self, text: str, qualname: str = "f"):
+        return next(s for s in parse(text).symbols if s.qualname == qualname).chain_fold
+
+    def test_which_of_the_three_readings_reads_each_of_clicks_factories(self):
+        symbols = self.symbols(CLICK_EXCERPT.read_text())
+        # `group` and `version_option` end in another factory's call and
+        # hold no nested def of their own to return.
+        for name in ("group", "version_option"):
+            assert symbols[name].inner_fold is None, name
+            assert symbols[name].chain_fold is not None, name
+        # `command` is ADR-148's own shape, and is never asked the chain
+        # question; `option` is ADR-147's, settled outright.
+        assert symbols["command"].inner_fold is not None
+        assert symbols["command"].chain_fold is None
+        assert symbols["option"].returns_inner == "decorator"
+        assert (symbols["option"].inner_fold, symbols["option"].chain_fold) == (
+            None,
+            None,
+        )
+
+    def test_clicks_group_records_the_call_it_returns(self):
+        fold = self.symbols(CLICK_EXCERPT.read_text())["group"].chain_fold
+        assert fold.params == (Param("name", None), Param("cls", None))
+        assert (fold.star, fold.kwonly, fold.double_star) == (None, (), "attrs")
+        assert fold.body == (
+            If((Branch(IsNone(NameRef("cls")), (), (Binds(("cls",)),)),)),
+            # `return command(cls=cls, **attrs)(name)`: the callee is a
+            # call, which names nothing for the index to have resolved,
+            # so the return carries no chain and the rule refuses the
+            # site that reaches it.
+            If(
+                (
+                    Branch(
+                        IsCallable(NameRef("name")),
+                        (),
+                        (Return(False, None),),
+                    ),
+                )
+            ),
+            Return(
+                False,
+                Chain(
+                    "command",
+                    72,
+                    (NameRef("name"), NameRef("cls")),
+                    (),
+                    None,
+                    double_star=True,
+                ),
+            ),
+        )
+
+    def test_clicks_version_option_records_a_splatted_call(self):
+        fold = self.symbols(CLICK_EXCERPT.read_text())["version_option"].chain_fold
+        assert fold.body[-1] == Return(
+            False, Chain("option", 173, (), (), 0, double_star=True)
+        )
+
+    def test_a_dotted_callee_and_a_literal_keyword(self):
+        text = "def f(x=None):\n    return a.b.f(x, k=1)\n"
+        assert self.fold(text).body == (
+            Return(False, Chain("a.b.f", 2, (NameRef("x"),), (("k", Literal(1)),))),
+        )
+
+    def test_a_positional_after_a_splat_is_not_recorded(self):
+        # Which parameter it fills is decided by the splat's own length.
+        text = "def f(*rest):\n    return g(1, *rest, 2, k=3)\n"
+        assert self.fold(text).body == (
+            Return(False, Chain("g", 2, (Literal(1),), (("k", Literal(3)),), 1)),
+        )
+
+    def test_a_chain_written_in_a_try_is_an_opaque_return(self):
+        # Whether the block runs, and how often, is what the walk does not
+        # read — so the return stays reachable and carries no call.
+        text = (
+            "def f(x=None):\n"
+            "    try:\n"
+            "        return g(x)\n"
+            "    except KeyError:\n"
+            "        pass\n"
+            "    return g(1)\n"
+        )
+        fold = self.fold(text)
+        assert fold.body[0] == Opaque((), (False,))
+        assert fold.body[1] == Return(False, Chain("g", 6, (Literal(1),)))
+
+    def test_a_body_whose_only_chain_is_in_a_try_carries_no_fold(self):
+        text = (
+            "def f(x=None):\n"
+            "    try:\n"
+            "        return g(x)\n"
+            "    except KeyError:\n"
+            "        pass\n"
+            "    return None\n"
+        )
+        assert self.fold(text) is None
+
+    def test_an_async_factory(self):
+        assert self.fold("async def f(x=None):\n    return g(x)\n") is None
+
+    def test_a_generator(self):
+        text = "def f(x=None):\n    if x:\n        yield x\n    return g(x)\n"
+        assert self.fold(text) is None
+
+    def test_a_signature_the_walk_cannot_name(self):
+        # A parameter with no name to bind an argument into leaves the
+        # fold nowhere to put one (ADR-148 step 3's refusal).
+        assert self.fold("def f((a, b)):\n    return g(a)\n") is None
+
+    def test_a_return_that_is_no_call_carries_no_chain(self):
+        text = "def f(x=None):\n    return x\n"
+        assert self.fold(text) is None
+
+    def test_a_callee_the_walk_cannot_name(self):
+        text = "def f(x=None):\n    return handlers[0](x)\n"
+        assert self.fold(text) is None
+
+    def test_a_factory_adr_147_settles_is_never_asked(self):
+        text = (
+            "def f(label):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    return g\n"
+        )
+        symbol = self.symbols(text)["f"]
+        assert (symbol.returns_inner, symbol.chain_fold) == ("g", None)
+
+    def test_a_factory_adr_148_folds_is_never_asked(self):
+        text = (
+            "def f(name=None):\n"
+            "    def g(fn):\n"
+            "        return fn\n"
+            "\n"
+            "    if callable(name):\n"
+            "        return g(name)\n"
+            "    return g\n"
+        )
+        symbol = self.symbols(text)["f"]
+        assert symbol.inner_fold is not None
+        assert symbol.chain_fold is None
+
+    def test_a_class_has_no_chain_fold(self):
         assert self.fold("class f:\n    pass\n") is None
 
 

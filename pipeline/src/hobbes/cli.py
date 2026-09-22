@@ -346,12 +346,13 @@ def _print_decorators(counts: dict | None) -> None:
     says how many second halves the rule could claim exactly and how many
     it declined; the largest reasons are named, because a refusal this rule
     counts is the size of what a factory's shape did not settle. How many
-    of the drawn are ADR-148's is said where there are any: those rest on
-    the site's own arguments as well as on the factory's shape, and a
-    reader weighing the claim should not have to open the graph to see
-    which reading drew it. Nothing is printed where the block is absent —
-    a repo whose decorators resolved to nothing in-repo was never asked
-    (P6).
+    of the drawn are ADR-148's, and how many ADR-149's, is said where
+    there are any: those rest on the site's own arguments — and, for the
+    chain, on a second factory's shape — as well as on the factory's own,
+    and a reader weighing the claim should not have to open the graph to
+    see which reading drew it. Nothing is printed where the block is
+    absent — a repo whose decorators resolved to nothing in-repo was
+    never asked (P6).
     """
     factory = (counts or {}).get("factory_calls")
     if not factory:
@@ -363,6 +364,7 @@ def _print_decorators(counts: dict | None) -> None:
         if n
     ][:2]
     folded = factory.get("folded", 0)
+    chained = factory.get("chained", 0)
     print(
         f"    decorators: {factory.get('drawn', 0)} decorator-factory "
         "application(s) drawn as calls of the def the factory returns "
@@ -371,6 +373,11 @@ def _print_decorators(counts: dict | None) -> None:
             f"; {folded} by folding the factory's guards over the site's "
             "own arguments, ADR-148"
             if folded
+            else ""
+        )
+        + (
+            f"; {chained} through a second factory's call, ADR-149"
+            if chained
             else ""
         )
         + f"); {sum(refused.values())} refused"
