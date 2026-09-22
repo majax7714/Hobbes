@@ -16,6 +16,14 @@ site itself writes: ``@either("")``, ``@optional()`` and
 ``@registry.command()`` can reach no return but ``return decorator``,
 while ``@either("d")`` reaches the other one and ``@optional(TAG)``
 passes a name the fold cannot read — both refused ``guard-unknown``.
+
+``grouped``, ``flagged`` and ``relay`` hold no nested ``def`` at all, so
+none of the rules above reads them: what each hands back is written in a
+call of a **second** factory, which ADR-149 follows one level. ``grouped``
+reaches ``optional``, whose guards are then folded over the arguments
+``grouped`` forwards; ``flagged`` reaches ``factory``, which ADR-147
+settles outright; and ``relay`` reaches ``plain``, which holds no
+``decorator`` to reach — refused ``chain-inner``.
 """
 
 
@@ -82,3 +90,21 @@ def optional(name=None, **attrs):
     if func is not None:
         return decorator(func)
     return decorator
+
+
+def grouped(name=None, cls=None, **attrs):
+    if cls is None:
+        cls = "g"
+    if callable(name):
+        return optional(**attrs)(name)
+    return optional(name, **attrs)
+
+
+def flagged(*decls, **kwargs):
+    if not decls:
+        decls = ("--x",)
+    return factory(*decls, **kwargs)
+
+
+def relay():
+    return plain(relay)

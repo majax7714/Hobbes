@@ -20,6 +20,13 @@ ADR-148's fold is tested twice over: as the pure function it is, on
 digests with no tree behind them (:class:`TestTheFold`, one case per rule
 of step 4), and through the whole rule, where what a site wrote decides
 which of two readings drew the edge.
+
+ADR-149's chain has no pure entry point to test on its own — step 3 is a
+question about the **settled graph**, so what the rule believes about a
+second factory is an edge a case has to write out like any other — and it
+is read from click's real source rather than a paraphrase of it
+(:data:`CLICK_EXCERPT`), because a trimmed factory is where ADR-148's
+first build lost every one of click's.
 """
 
 from pathlib import Path
@@ -28,8 +35,12 @@ import pytest
 
 from hobbes.extract.decorators import (
     ALREADY_DRAWN,
+    CHAIN_GUARD_UNKNOWN,
+    CHAIN_INNER,
+    CHAIN_UNRESOLVED,
     DECORATED,
     DECORATOR_FACTORY,
+    DECORATOR_FACTORY_CHAINED,
     DECORATOR_FACTORY_FOLDED,
     FACTORY_REASONS,
     GUARD_UNKNOWN,
@@ -184,6 +195,80 @@ FOLDING_APP = (
 )
 
 
+#: click's ``group`` → ``command`` and ``version_option`` → ``option``,
+#: verbatim (the fixture's header says which commit). The sites below
+#: apply them exactly as click's own users do.
+CLICK_EXCERPT = (
+    Path(__file__).parent / "fixtures" / "click-excerpt" / "decorators.py"
+).read_text()
+
+#: The four call-form sites click's ``group`` is written at, and a fifth
+#: inside ``outer`` — the two callers a chained draw has.
+GROUP_APP = (
+    "from pkg.deco import group\n"
+    "\n"
+    "\n"
+    "@group()\n"
+    "def one():\n"
+    "    return 1\n"
+    "\n"
+    "\n"
+    '@group("x")\n'
+    "def two():\n"
+    "    return 2\n"
+    "\n"
+    "\n"
+    "@group(chain=True)\n"
+    "def three():\n"
+    "    return 3\n"
+    "\n"
+    "\n"
+    "@group(cls=Custom)\n"
+    "def four():\n"
+    "    return 4\n"
+    "\n"
+    "\n"
+    "def outer():\n"
+    "    @group()\n"
+    "    def nested():\n"
+    "        return 5\n"
+    "\n"
+    "    return nested\n"
+)
+
+#: One decorator written ``@factory()`` on line 4 — the refusal cases'
+#: line, for a factory whose signature takes no positional at all.
+CALL_APP = (
+    "from pkg.deco import factory\n"
+    "\n"
+    "\n"
+    "@factory()\n"
+    "def one():\n"
+    "    return 1\n"
+)
+
+#: The second factory the chain cases reach: the optional-parentheses
+#: idiom again, whose one guard is decided by what its first parameter
+#: carries — so what the *outer* factory forwards decides whether the
+#: chain holds.
+CHAINED_G = (
+    "def inner(a=False, **kw):\n"
+    "    def decorator(fn):\n"
+    "        return fn\n"
+    "\n"
+    "    if a:\n"
+    "        return decorator(a)\n"
+    "    return decorator\n"
+)
+
+
+def at(text: str, needle: str) -> int:
+    """The 1-based line a fixture writes *needle* on — which, for the
+    one-line returns below, is the line of the callee's own identifier
+    and so the line the index answers at."""
+    return next(i for i, line in enumerate(text.splitlines(), 1) if needle in line)
+
+
 def files(deco: str = DECO, app: str = APP, **overrides) -> dict:
     tree = {"pkg/__init__.py": "", "pkg/deco.py": deco, "app.py": app}
     tree.update(overrides)
@@ -205,6 +290,22 @@ def edge(
         "calls",
         [{"path": "app.py", "line": line}],
         tier=tier,
+        lane=LANE_SCIP,
+    )
+
+
+def inner_edge(
+    frm: str = "pkg.deco.factory", to: str = "pkg.deco.inner", line: int = 2
+) -> dict:
+    """The edge the index draws at the **factory's own** return — what
+    ADR-149 step 3 reads to name the second factory. Its ``from`` is the
+    outer factory, because that is the scope the return is written in."""
+    return tiered_edge(
+        frm,
+        to,
+        "calls",
+        [{"path": "pkg/deco.py", "line": line}],
+        tier=SEMANTIC,
         lane=LANE_SCIP,
     )
 
@@ -842,6 +943,329 @@ class TestTheFoldDraws:
         assert fold_guards(factory.inner_fold, site.bound, False) is None
 
 
+class TestTheChainDraws:
+    """ADR-149 on click's own ``group`` and ``version_option``: the
+    factory holds no nested def at all, and what it hands back is the
+    call on the line the index already answered."""
+
+    #: `return command(name, cls, **attrs)` and `return
+    #: option(*param_decls, **kwargs)` in the excerpt, pinned as
+    #: `test_pysource.py` pins them.
+    COMMAND_RETURN = 72
+    OPTION_RETURN = 173
+
+    def test_every_site_clicks_group_is_written_at(self, tmp_path):
+        drawn, counts = run(
+            tmp_path,
+            files(deco=CLICK_EXCERPT, app=GROUP_APP),
+            (
+                edge(target="pkg.deco.group", line=4),
+                edge(target="pkg.deco.group", line=9),
+                edge(target="pkg.deco.group", line=14),
+                edge(target="pkg.deco.group", line=19),
+                edge(target="pkg.deco.group", line=25, source="app.outer"),
+                inner_edge("pkg.deco.group", "pkg.deco.command", self.COMMAND_RETURN),
+            ),
+        )
+        # `@group()`, `@group("x")`, `@group(chain=True)` and
+        # `@group(cls=Custom)` each leave `name` None, so `group` reaches
+        # only `return command(name, cls, **attrs)`; `command` folded over
+        # *those* arguments reaches only `return decorator`. The caller is
+        # the module for the four written there and `outer` for the fifth.
+        assert [(c["from"], c["to"], c["line"], c["via"]) for c in drawn] == [
+            ("app", "pkg.deco.command.decorator", 4, DECORATOR_FACTORY_CHAINED),
+            ("app", "pkg.deco.command.decorator", 9, DECORATOR_FACTORY_CHAINED),
+            ("app", "pkg.deco.command.decorator", 14, DECORATOR_FACTORY_CHAINED),
+            ("app", "pkg.deco.command.decorator", 19, DECORATOR_FACTORY_CHAINED),
+            ("app.outer", "pkg.deco.command.decorator", 25, DECORATOR_FACTORY_CHAINED),
+        ]
+        assert {call["factory"] for call in drawn} == {"pkg.deco.group"}
+        assert (counts["drawn"], counts["folded"], counts["chained"]) == (5, 0, 5)
+        assert sum(counts["refused"].values()) == 0
+
+    def test_a_name_at_the_site_leaves_the_first_guard_unread(self, tmp_path):
+        # `@group(fn_name)`: `callable(name)` is unread, so the return
+        # whose callee is itself a call — `command(cls=cls, **attrs)(name)`
+        # — is reachable, and it names nothing the index resolved.
+        app = (
+            "from pkg.deco import group\n"
+            "\n"
+            "\n"
+            "@group(fn_name)\n"
+            "def one():\n"
+            "    return 1\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(deco=CLICK_EXCERPT, app=app),
+            (
+                edge(target="pkg.deco.group"),
+                inner_edge("pkg.deco.group", "pkg.deco.command", self.COMMAND_RETURN),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_GUARD_UNKNOWN] == 1
+
+    def test_clicks_version_option_reaches_a_settled_second_factory(self, tmp_path):
+        # `option` is ADR-147's shape: every return in it is `return
+        # decorator`, so no argument `version_option` forwards can change
+        # what the chain reaches and none is folded.
+        app = (
+            "from pkg.deco import version_option\n"
+            "\n"
+            "\n"
+            "@version_option()\n"
+            "def one():\n"
+            "    return 1\n"
+            "\n"
+            "\n"
+            '@version_option("1.0")\n'
+            "def two():\n"
+            "    return 2\n"
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(deco=CLICK_EXCERPT, app=app),
+            (
+                edge(target="pkg.deco.version_option", line=4),
+                edge(target="pkg.deco.version_option", line=9),
+                inner_edge(
+                    "pkg.deco.version_option", "pkg.deco.option", self.OPTION_RETURN
+                ),
+            ),
+        )
+        assert [(c["to"], c["line"], c["via"]) for c in drawn] == [
+            ("pkg.deco.option.decorator", 4, DECORATOR_FACTORY_CHAINED),
+            ("pkg.deco.option.decorator", 9, DECORATOR_FACTORY_CHAINED),
+        ]
+        assert (counts["drawn"], counts["chained"]) == (2, 2)
+
+    def test_a_factory_the_earlier_rules_read_is_never_asked_the_chain(self, tmp_path):
+        readings = (
+            (SIMPLE_DECO, DECORATOR_FACTORY),
+            (FOLDING_DECO, DECORATOR_FACTORY_FOLDED),
+        )
+        for deco, via in readings:
+            drawn, counts = run(tmp_path, files(deco=deco, app=SIMPLE_APP), (edge(),))
+            assert [call["via"] for call in drawn] == [via]
+            assert counts["chained"] == 0
+            assert counts["refused"][CHAIN_GUARD_UNKNOWN] == 0
+            assert counts["refused"][CHAIN_UNRESOLVED] == 0
+            assert counts["refused"][CHAIN_INNER] == 0
+
+
+class TestWhatTheChainForwards:
+    """ADR-149 step 4, rule by rule: the arguments one return hands the
+    second factory, read in the outer factory's environment at that
+    return. Each case writes the two factories out as source, the chain
+    being a question about the graph and not one a digest can answer
+    alone."""
+
+    def chained(
+        self,
+        tmp_path,
+        outer: str,
+        inner: str = CHAINED_G,
+        to: str = "pkg.deco.inner",
+        linked: bool = True,
+    ):
+        """``@factory()`` on a tree whose ``factory`` hands back *to*'s
+        call, with the edge the index draws at that return written out —
+        unless *linked*, which is the case where it named nothing."""
+        deco = outer + "\n\n" + inner
+        edges = [edge()]
+        if linked:
+            written = to.rpartition(".")[2]
+            edges.append(
+                inner_edge("pkg.deco.factory", to, at(deco, f"    return {written}"))
+            )
+        return run(tmp_path, files(deco=deco, app=CALL_APP), tuple(edges))
+
+    def test_a_double_splat_leaves_an_unbound_parameter_unknown(self, tmp_path):
+        # `inner`'s own default would settle `if a:`, and the mapping may
+        # hold `a` all the same: unknown, never the default.
+        drawn, counts = self.chained(
+            tmp_path, "def factory(**attrs):\n    return inner(**attrs)\n"
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_an_explicit_argument_keeps_its_value_beside_a_double_splat(self, tmp_path):
+        # Python refuses a call that binds a parameter twice, so a path
+        # that raises applies nothing and `a` is the literal written.
+        drawn, counts = self.chained(
+            tmp_path, "def factory(**attrs):\n    return inner(False, **attrs)\n"
+        )
+        assert [(c["to"], c["via"]) for c in drawn] == [
+            ("pkg.deco.inner.decorator", DECORATOR_FACTORY_CHAINED)
+        ]
+        assert (counts["drawn"], counts["chained"]) == (1, 1)
+
+    def test_a_keyword_binds_by_name(self, tmp_path):
+        drawn, _ = self.chained(
+            tmp_path, "def factory(**attrs):\n    return inner(a=False, **attrs)\n"
+        )
+        assert [call["to"] for call in drawn] == ["pkg.deco.inner.decorator"]
+
+    def test_more_positionals_than_the_second_factory_takes(self, tmp_path):
+        # `inner` takes one and has no `*args`: the call the factory
+        # wrote raises, and a path that raises applies nothing.
+        drawn, counts = self.chained(
+            tmp_path, "def factory(**attrs):\n    return inner(False, 1, **attrs)\n"
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_a_star_at_index_zero_makes_the_first_positional_unknown(self, tmp_path):
+        drawn, counts = self.chained(
+            tmp_path, "def factory(*args):\n    return inner(*args)\n"
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_a_name_passes_the_value_the_outer_fold_holds(self, tmp_path):
+        # `@factory()` leaves `flag` at its literal default, and that is
+        # the value the return forwards.
+        drawn, _ = self.chained(
+            tmp_path, "def factory(flag=False, **attrs):\n    return inner(flag, **attrs)\n"
+        )
+        assert [call["to"] for call in drawn] == ["pkg.deco.inner.decorator"]
+
+    def test_a_name_the_outer_fold_could_not_read_is_unknown(self, tmp_path):
+        drawn, counts = self.chained(
+            tmp_path, "def factory(flag, **attrs):\n    return inner(flag, **attrs)\n"
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_a_method_second_factory_handed_a_positional(self, tmp_path):
+        # `obj.f(x)` and `Cls.f(x)` are one text to lane A, exactly as
+        # `@obj.f(x)` and `@Cls.f(x)` are at a site.
+        inner = (
+            "class Registry:\n"
+            "    def command(self, a=False, **kw):\n"
+            "        def decorator(fn):\n"
+            "            return fn\n"
+            "\n"
+            "        if a:\n"
+            "            return decorator(a)\n"
+            "        return decorator\n"
+            "\n"
+            "\n"
+            "registry = Registry()\n"
+        )
+        deco = "def factory(**attrs):\n    return registry.command(False, **attrs)\n\n\n" + inner
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=CALL_APP),
+            (
+                edge(),
+                inner_edge(
+                    "pkg.deco.factory",
+                    "pkg.deco.Registry.command",
+                    at(deco, "return registry.command"),
+                ),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_a_second_factory_that_is_itself_only_a_chain(self, tmp_path):
+        # One level only: `middle` returns another call, and the rule does
+        # not follow it.
+        deco = (
+            "def factory(**attrs):\n"
+            "    return middle(False, **attrs)\n"
+            "\n"
+            "\n"
+            "def middle(a=False, **kw):\n"
+            "    return inner(a, **kw)\n"
+            "\n"
+            "\n" + CHAINED_G
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=CALL_APP),
+            (
+                edge(),
+                inner_edge("pkg.deco.factory", "pkg.deco.middle", at(deco, "return middle")),
+                inner_edge("pkg.deco.middle", "pkg.deco.inner", at(deco, "return inner(a")),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_a_second_factory_that_returns_no_def_at_all(self, tmp_path):
+        deco = "def factory(**attrs):\n    return inner(**attrs)\n\n\ndef inner(**kw):\n    return kw\n"
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=CALL_APP),
+            (edge(), inner_edge(line=at(deco, "return inner"))),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_INNER] == 1
+
+    def test_two_reachable_returns_naming_two_second_factories(self, tmp_path):
+        # `@factory()` leaves `flag` unknown — it has no default — so both
+        # returns are reachable and which factory ran is the question.
+        deco = (
+            "def factory(flag):\n"
+            "    if flag:\n"
+            "        return inner(False)\n"
+            "    return other(False)\n"
+            "\n"
+            "\n" + CHAINED_G + "\n\n" + CHAINED_G.replace("inner", "other")
+        )
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=CALL_APP),
+            (
+                edge(),
+                inner_edge(line=at(deco, "return inner(False)")),
+                inner_edge(to="pkg.deco.other", line=at(deco, "return other(False)")),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_UNRESOLVED] == 1
+
+    def test_no_edge_at_the_returns_line(self, tmp_path):
+        # The index named nothing there — a dependency's factory, or a
+        # name it could not resolve — so the rule cannot say what ran.
+        drawn, counts = self.chained(
+            tmp_path,
+            "def factory(**attrs):\n    return inner(False, **attrs)\n",
+            linked=False,
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_UNRESOLVED] == 1
+
+    def test_an_edge_out_of_another_scope_is_not_this_returns_call(self, tmp_path):
+        # Step 3 asks for an edge **from the outer factory**: one the
+        # index put at that line out of some other scope is another call.
+        outer = "def factory(**attrs):\n    return inner(False, **attrs)\n"
+        deco = outer + "\n\n" + CHAINED_G
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=CALL_APP),
+            (
+                edge(),
+                inner_edge("pkg.deco", "pkg.deco.inner", at(deco, "return inner")),
+            ),
+        )
+        assert drawn == []
+        assert counts["refused"][CHAIN_UNRESOLVED] == 1
+
+    def test_a_bare_decorator_never_asks_the_chain_either(self, tmp_path):
+        app = "from pkg.deco import factory\n\n\n@factory\ndef one():\n    return 1\n"
+        deco = "def factory(**attrs):\n    return inner(False, **attrs)\n\n\n" + CHAINED_G
+        drawn, counts = run(
+            tmp_path,
+            files(deco=deco, app=app),
+            (edge(), inner_edge(line=at(deco, "return inner"))),
+        )
+        assert (drawn, counts) == ([], {})
+
+
 class TestTheInnerDefMustBeOneSymbol:
     def test_an_inner_qualname_written_twice_draws_nothing(self, tmp_path):
         # The stub carries a `decorator` of its own, so `factory.decorator`
@@ -934,19 +1358,26 @@ def calls(graph):
 
 @pytest.mark.lane_b
 def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
-    """End to end with the index running. Eight applications are drawn,
+    """End to end with the index running. Twelve applications are drawn,
     each one ``calls`` / ``syntactic``: three ADR-147 settles from the
     factory's shape alone — ``@factory("a")`` at the module,
     ``@factory("c")`` inside ``outer``, ``@registry.register("b")`` —
-    and five ADR-148 folds over the site's own arguments, evidenced
-    ``decorator-factory-folded``.
+    five ADR-148 folds over the site's own arguments, evidenced
+    ``decorator-factory-folded``, and four ADR-149 reaches through a
+    second factory's call, evidenced ``decorator-factory-chained``: three
+    of ``@grouped(…)`` onto ``optional``'s ``decorator`` (one of them
+    from inside ``chaining``) and ``@flagged()`` onto ``factory``'s,
+    which lands on the pair ``@factory("a")`` already drew — the same
+    edge, with each line saying which reading found it.
 
     What is refused is counted at the site: ``@optional(TAG)`` passes a
     name the fold cannot read, ``@either("d")`` reaches the return that
     calls ``decorator`` itself — a ``guard-unknown`` where ADR-147
     counted it ``no-returned-def``, the whole factory having been refused
-    before a site was looked at — and ``wrapped`` is decorated, which no
-    fold changes."""
+    before a site was looked at — ``wrapped`` is decorated, which no fold
+    changes, ``@grouped(TAG)`` reaches a return whose callee is itself a
+    call (``chain-guard-unknown``) and ``@relay()`` reaches ``plain``,
+    which holds no def to reach (``chain-inner``)."""
     from hobbes.extract import containment, extract_repo
 
     why = containment.unavailable_reason()
@@ -959,7 +1390,8 @@ def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
     ]
     expected = {
         ("minideco.app", "minideco.deco.factory.decorator"): [
-            (19, DECORATOR_FACTORY)
+            (19, DECORATOR_FACTORY),
+            (134, DECORATOR_FACTORY_CHAINED),
         ],
         ("minideco.app", "minideco.deco.Registry.register.decorator"): [
             (24, DECORATOR_FACTORY)
@@ -970,6 +1402,8 @@ def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
         ("minideco.app", "minideco.deco.optional.decorator"): [
             (63, DECORATOR_FACTORY_FOLDED),
             (68, DECORATOR_FACTORY_FOLDED),
+            (114, DECORATOR_FACTORY_CHAINED),
+            (119, DECORATOR_FACTORY_CHAINED),
         ],
         ("minideco.app", "minideco.deco.Registry.command.decorator"): [
             (83, DECORATOR_FACTORY_FOLDED)
@@ -979,6 +1413,9 @@ def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
         ],
         ("minideco.app.folding", "minideco.deco.optional.decorator"): [
             (94, DECORATOR_FACTORY_FOLDED)
+        ],
+        ("minideco.app.chaining", "minideco.deco.optional.decorator"): [
+            (145, DECORATOR_FACTORY_CHAINED)
         ],
     }
     for pair, evidence in expected.items():
@@ -1000,12 +1437,18 @@ def test_the_minideco_factories_are_called_and_the_refusals_are_counted():
         if pair[0].startswith("minideco.app")
         and pair[1].startswith("minideco.deco.wrapped.")
     ] == []
+    # `@relay()` reaches `plain`, which holds nothing to draw into: no
+    # edge runs into a `plain.<locals>` at all, from any caller.
+    assert [pair for pair in drawn if pair[1].startswith("minideco.deco.plain.")] == []
     counts = graph["decorators"]["factory_calls"]
-    assert (counts["drawn"], counts["folded"]) == (8, 5)
+    assert (counts["drawn"], counts["folded"], counts["chained"]) == (12, 5, 4)
     assert counts["refused"][GUARD_UNKNOWN] == 2  # `@either("d")`, `@optional(TAG)`
     assert counts["refused"][DECORATED] == 1  # wrapped
     assert counts["refused"][NO_RETURNED_DEF] == 0
-    assert sum(counts["refused"].values()) == 3
+    assert counts["refused"][CHAIN_GUARD_UNKNOWN] == 1  # `@grouped(TAG)`
+    assert counts["refused"][CHAIN_INNER] == 1  # `@relay()`
+    assert counts["refused"][CHAIN_UNRESOLVED] == 0
+    assert sum(counts["refused"].values()) == 5
 
 
 def test_minideco_draws_nothing_without_the_index():
@@ -1046,3 +1489,49 @@ def test_a_module_level_application_is_drawn_from_the_module_node():
         "pkg.deco.factory.decorator",
         SYNTACTIC,
     )
+
+
+def test_a_chained_application_keeps_both_of_its_callers_and_its_via():
+    """ADR-149 draws from the same caller set as the two rules before it —
+    a module node for a site written at the top level, a symbol for one
+    written in a body — and the evidence says which reading found each
+    line. Pinned here as well as through ``lane_b``, because ADR-147's
+    module-caller defect was only ever seen on the host."""
+    from hobbes.extract import _add_factory_call_edges
+
+    graph = {
+        "nodes": [{"id": "pkg.app", "kind": "module"}],
+        "symbols": [
+            {"id": "pkg.app.outer", "kind": "function"},
+            {"id": "pkg.deco.second.decorator", "kind": "function"},
+        ],
+        "symbol_edges": [],
+    }
+    row = {
+        "from": "pkg.app",
+        "to": "pkg.deco.second.decorator",
+        "path": "src/pkg/app.py",
+        "line": 3,
+        "via": DECORATOR_FACTORY_CHAINED,
+        "factory": "pkg.deco.first",
+    }
+    _add_factory_call_edges(
+        graph, [row, {**row, "from": "pkg.app.outer", "line": 9}]
+    )
+    assert [
+        (e["from"], e["to"], e["tier"], [(r["line"], r["via"]) for r in e["evidence"]])
+        for e in graph["symbol_edges"]
+    ] == [
+        (
+            "pkg.app",
+            "pkg.deco.second.decorator",
+            SYNTACTIC,
+            [(3, DECORATOR_FACTORY_CHAINED)],
+        ),
+        (
+            "pkg.app.outer",
+            "pkg.deco.second.decorator",
+            SYNTACTIC,
+            [(9, DECORATOR_FACTORY_CHAINED)],
+        ),
+    ]

@@ -96,3 +96,54 @@ def folding():
         return 13
 
     return deeper
+
+
+# ADR-149: a factory that holds no nested def at all, and hands back a
+# second factory's call. `grouped` ends `return optional(name, **attrs)`,
+# so `@grouped()` and `@grouped("n")` leave `name` where `optional`'s own
+# fold can read it and the chain reaches `optional`'s `decorator`;
+# `@grouped(TAG)` leaves the `callable(name)` guard unread, and the return
+# it then reaches — `optional(**attrs)(name)`, a call on a call — names
+# nothing the index resolved, so the site is refused `chain-guard-unknown`.
+# A bare `@grouped` asks nothing at all (ADR-146). `@flagged()` chains to
+# `factory`, which ADR-147 settles outright, and `@relay()` chains to
+# `plain`, which holds no def to reach: `chain-inner`.
+from minideco.deco import flagged, grouped, relay
+
+
+@grouped()
+def twelve():
+    return 14
+
+
+@grouped("n")
+def thirteen():
+    return 15
+
+
+@grouped(TAG)
+def fourteen():
+    return 16
+
+
+@grouped
+def fifteen():
+    return 17
+
+
+@flagged()
+def sixteen():
+    return 18
+
+
+@relay()
+def seventeen():
+    return 19
+
+
+def chaining():
+    @grouped()
+    def deepest():
+        return 20
+
+    return deepest

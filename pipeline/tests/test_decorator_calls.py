@@ -16,9 +16,11 @@ result is now drawn as a call of ``factory.<locals>.decorator`` — one
 tier down, ``syntactic`` and evidenced ``decorator-factory``, because the
 index answers nothing at an application the source does not spell.
 ADR-148 moved it again for the factories whose returns only the site's
-own arguments settle, evidenced ``decorator-factory-folded``. The
-assertion below says which of the three rules drew each edge, rather than
-that the second hop is absent; ADR-147's and ADR-148's own cases are in
+own arguments settle, evidenced ``decorator-factory-folded``, and ADR-149
+once more for the factories that hand back a *second* factory's call,
+evidenced ``decorator-factory-chained``. The assertion below says which
+of the four rules drew each edge, rather than that the second hop is
+absent; ADR-147's, ADR-148's and ADR-149's own cases are in
 ``test_decorator_factories.py``.
 
 The edges are the index's, so the end-to-end case needs lane B; the twin
@@ -29,7 +31,11 @@ from pathlib import Path
 
 import pytest
 
-from hobbes.extract.decorators import DECORATOR_FACTORY, DECORATOR_FACTORY_FOLDED
+from hobbes.extract.decorators import (
+    DECORATOR_FACTORY,
+    DECORATOR_FACTORY_CHAINED,
+    DECORATOR_FACTORY_FOLDED,
+)
 from hobbes.extract.pysource import parse_source
 from hobbes.extract.schema import SEMANTIC, SYNTACTIC
 
@@ -38,6 +44,7 @@ MINIDECO = Path(__file__).parent / "fixtures" / "minideco"
 APP = "minideco.app"
 OUTER = "minideco.app.outer"
 FOLDING = "minideco.app.folding"
+CHAINING = "minideco.app.chaining"
 
 
 def calls(graph):
@@ -71,6 +78,16 @@ def test_every_decorator_application_is_drawn_at_the_index_s_tier():
         (APP, "minideco.deco.factory"),
         (APP, "minideco.deco.Registry.register"),
         (OUTER, "minideco.deco.factory"),
+        # The chained sites are first calls like any other: what ADR-149
+        # reads at the *factory's* own return is the edge beside them,
+        # `minideco.deco.grouped` → `minideco.deco.optional`.
+        (APP, "minideco.deco.grouped"),
+        (APP, "minideco.deco.flagged"),
+        (APP, "minideco.deco.relay"),
+        (CHAINING, "minideco.deco.grouped"),
+        ("minideco.deco.grouped", "minideco.deco.optional"),
+        ("minideco.deco.flagged", "minideco.deco.factory"),
+        ("minideco.deco.relay", "minideco.deco.plain"),
     ]
     for pair in expected:
         edge = drawn.get(pair)
@@ -85,17 +102,28 @@ def test_every_decorator_application_is_drawn_at_the_index_s_tier():
     # ADR-146 resolved no *decorator site* to an inner `decorator`; every
     # edge that reaches one from `app` is the application drawn a tier
     # down, by the reading named here — ADR-147's three, from the
-    # factory's shape alone, and ADR-148's four, folded over what the
-    # site wrote. (`either`'s own body calls its `decorator` by name — a
+    # factory's shape alone, ADR-148's four, folded over what the site
+    # wrote, and ADR-149's four, reached through a second factory's call.
+    # Two pairs carry two readings: `@flagged()` chains to the `factory`
+    # whose own site ADR-147 settles, and `@grouped(…)` chains to the
+    # `optional` ADR-148 folds — one edge each, and the lines say which
+    # was which. (`either`'s own body calls its `decorator` by name — a
     # direct call in `deco`, which the index answers `semantic`.)
     via = {
-        (APP, "minideco.deco.factory.decorator"): {DECORATOR_FACTORY},
+        (APP, "minideco.deco.factory.decorator"): {
+            DECORATOR_FACTORY,
+            DECORATOR_FACTORY_CHAINED,
+        },
         (APP, "minideco.deco.Registry.register.decorator"): {DECORATOR_FACTORY},
         (OUTER, "minideco.deco.factory.decorator"): {DECORATOR_FACTORY},
-        (APP, "minideco.deco.optional.decorator"): {DECORATOR_FACTORY_FOLDED},
+        (APP, "minideco.deco.optional.decorator"): {
+            DECORATOR_FACTORY_FOLDED,
+            DECORATOR_FACTORY_CHAINED,
+        },
         (APP, "minideco.deco.Registry.command.decorator"): {DECORATOR_FACTORY_FOLDED},
         (APP, "minideco.deco.either.decorator"): {DECORATOR_FACTORY_FOLDED},
         (FOLDING, "minideco.deco.optional.decorator"): {DECORATOR_FACTORY_FOLDED},
+        (CHAINING, "minideco.deco.optional.decorator"): {DECORATOR_FACTORY_CHAINED},
     }
     for pair, e in drawn.items():
         if pair[1].endswith(".decorator") and pair[0].startswith(APP):
@@ -129,4 +157,16 @@ def test_lane_a_has_the_four_sites():  # and the refusals written after them
         (None, "registry.command", 83),
         (None, "either", 88),
         ("folding", "optional", 94),
+        # ADR-149's sites, written after those. A chained application is
+        # the same first call at the same line — what the rule reads
+        # beyond it is written in `deco.py`, at the factory's own return
+        # — and the bare `@grouped` on line 129 is no application of a
+        # factory's result at all.
+        (None, "grouped", 114),
+        (None, "grouped", 119),
+        (None, "grouped", 124),
+        (None, "grouped", 129),
+        (None, "flagged", 134),
+        (None, "relay", 139),
+        ("chaining", "grouped", 145),
     ]
