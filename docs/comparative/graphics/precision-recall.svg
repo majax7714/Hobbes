@@ -1030,6 +1030,15 @@ repowise graded by the same key as the Hobbes click cell (ADR-101); host-run (C-
 </g>
 <text x="519.9" y="1081.5" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >click ·rw</text>
 <g>
+<title>flask — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-09-22
+confirmation rate 1,121/1,330 = 84.3%
+recall 1,121/2,698 = 41.5% recall-against-executed (coverage-limited)
+misses by class: none recorded
+trace-graded under its own suite; picked for ADR-145's amended shape (the app fixture); 15 of 18 suspects are C-60's override asymmetry, 3 Hobbes-wrong (a sibling method's nested def)</title>
+<circle cx="524.5" cy="971.75" r="5" fill="#fcfcfb" stroke="#2a78d6" stroke-width="2"/>
+</g>
+<text x="532.5" y="975.75" font-size="8.5" fill="#1a1a19" text-anchor="start" font-weight="normal" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" >flask</text>
+<g>
 <title>click — Python, py-trace 3.12.13 sys.monitoring (trace), contained, 2026-08-27
 confirmation rate 3,356/3,901 = 86.0%
 recall 3,356/4,561 = 73.6% recall-against-executed (coverage-limited)

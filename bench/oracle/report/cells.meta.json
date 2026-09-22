@@ -583,5 +583,12 @@
   "draw": "random",
   "label": "cue",
   "note": "graded with its dependency tree (276 packages); at 0.2.60-beta its 881 rows were the same without it (C-165)"
+ },
+ "flask-py": {
+  "lang": "Python",
+  "run": "contained",
+  "draw": "picked",
+  "label": "flask",
+  "note": "trace-graded under its own suite; picked for ADR-145's amended shape (the app fixture); 15 of 18 suspects are C-60's override asymmetry, 3 Hobbes-wrong (a sibling method's nested def)"
  }
 }

@@ -2247,6 +2247,51 @@
    }
   },
   {
+   "stem": "flask-py",
+   "record": "flask-py-2026-09-22.md",
+   "date": "2026-09-22",
+   "kind": "trace",
+   "oracle": "py-trace 3.12.13 sys.monitoring",
+   "lang": "Python",
+   "run": "contained",
+   "draw": "picked",
+   "label": "flask",
+   "note": "trace-graded under its own suite; picked for ADR-145's amended shape (the app fixture); 15 of 18 suspects are C-60's override asymmetry, 3 Hobbes-wrong (a sibling method's nested def)",
+   "edges": 1330,
+   "confirmed": 1121,
+   "contradicted": 0,
+   "abstract": 0,
+   "silent": 0,
+   "suspect": 18,
+   "unobserved": 191,
+   "silent_by": {
+    "line-mixed": 14,
+    "line-not-called": 27,
+    "not-loaded": 150
+   },
+   "confirmation_rate": {
+    "pct": 84.3,
+    "num": 1121,
+    "den": 1330
+   },
+   "recall": {
+    "pct": 41.5,
+    "hits": 1121,
+    "pairs": 2698,
+    "roots": null,
+    "runs": 2,
+    "basis": "recall-against-executed (coverage-limited)"
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1330,
+    "refused": 1061,
+    "unjudged": 269,
+    "falsely": 0
+   },
+   "misses": {}
+  },
+  {
    "stem": "fmt-cpp",
    "record": "fmt-cpp-2026-09-15.md",
    "date": "2026-09-15",

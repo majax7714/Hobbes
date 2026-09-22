@@ -2,7 +2,9 @@
 
 **Date:** 2026-09-20 · **Status:** accepted and **built** (0.2.63-beta, unit `1527`; Max, 2026-09-20: route (a) — as
 worded, `syntactic`, through ADR-137's own lookup before a dispatch), to be
-built as one dispatched unit; measured and simulated before anything was drawn ·
+built as one dispatched unit; measured and simulated before anything was drawn;
+**amended 2026-09-22** (Max: route a — the value through a local, and an inherited
+method; *Amendment*, below) ·
 **Owner:** Max ·
 **Source:** C-4's remainder ("a method on the value a fixture returns … the
 larger loss on click, not counted"); his standing direction — honesty and
@@ -148,3 +150,105 @@ records are the developer's commit.
   the one counted; a `yield from` reads as a valued exit the rule cannot read; a
   method counted in the class's own module record, because duplicate qualnames
   collapse in the graph's symbols; this repo 24 sites, 0 drawn, as measured.
+
+## Amendment (2026-09-22, accepted — Max: "good to proceed with recommended route") — the value through a local, and an inherited method
+
+Measured first on a new keyed cell (`~/.hobbes/bench/c4-local-value/`; `PREREG.md` and
+`PREREG-worded.md` written before each probe's first run). Narrows C-4 again; registers
+nothing new.
+
+**The shape.** flask's `app` fixture is the form C-4 kept:
+
+```python
+@pytest.fixture                          # tests/test_basic.py
+def app():                               def test_url_generation(app):
+    app = Flask("flask_test", …)             @app.route("/hello/<name>", methods=["POST"])
+    app.config.update(TESTING=True, …)       def hello(): …
+    return app
+```
+
+The index names `Flask` at the assignment (a `semantic` `calls` edge
+`tests:conftest.app → flask.app.Flask`, evidence at line 29), exactly as it names
+`CliRunner` at click's `return CliRunner()`. The value that comes back is the one that
+assignment constructed: a local bound once, by a construction, holds nothing else.
+And most of what a test calls on it is not `Flask`'s own: `route`, `get`, `post`,
+`errorhandler` are `Scaffold`'s, `add_url_rule` and `register_blueprint` are `App`'s
+(`class Flask(App)`, `class App(Scaffold)`). ADR-145 refused those as inherited
+because no probed cell had one. flask is that cell.
+
+**Condition 2, amended.** The fixture's one valued `return` / `yield` is `C(…)` (as
+before) **or a bare name `x`** where all hold:
+- `x` is no parameter of the fixture;
+- the fixture's own body binds `x` **exactly once**, by a plain assignment statement
+  `x = C(…)` written at the **top level** of that body (one bare-identifier target, a
+  call on a bare name), on a line before the return;
+- no `nonlocal x` or `global x` is written anywhere in the fixture, nested definitions
+  included (a nested def could rebind it).
+
+Condition 3 then asks for the class edge at the assignment's line, under the written
+name. Nothing else changes: an alias, a factory function (`create_app()`), a
+`return app.test_client()` stay refused.
+
+**Condition 4, amended: an inherited method.** Where `m` is not a `def` in `C`'s own
+body, the rule asks the same question of `C`'s base, and so on up, while all hold at
+each class `K` on the path:
+- `K`'s own body binds `m` by no other form (an assignment, an import, a nested
+  `class m`) — else refused, **`class-binds`**: a class attribute named `m` shadows any
+  base's `def m`;
+- `K` names **exactly one** base (lane A's count; `metaclass=` and other keywords are not
+  bases) — none is `no-method` (what `object` has is not in the repo), more than one is
+  refused, **`multiple-bases`**: the rule does not compute an MRO;
+- the index names **exactly one** class symbol from `K`, on `K`'s own `class` line (a
+  `semantic` edge of any type — a base written on a later line of a split header is not
+  read) — else refused, **`base-unnamed`**: an out-of-repo base (`FlaskClient(Client)`) is
+  where the walk must stop, because the method may be the base's.
+
+The first class on the path whose own body has `m` as one `def` is the target, under
+condition 4's own tests (defined twice → `no-method`; a property → `property`). A walk
+that meets a class twice stops (`no-method`).
+
+**Refused, new: an instance patch** (`patched`). A site is refused where the requester
+stores or deletes `p.m` or `p.__class__`, or passes `p` first to a call named `setattr`
+(`monkeypatch.setattr(p, …)`, `setattr(p, …)`) — and, for the local form, the same of `x`
+in the fixture. The trace would see the patch; the graph would name the class's `def`.
+It applies to the construction form too: ADR-145 never asked it (0 sites on click).
+
+Tier, evidence and the rest are ADR-145's: `calls`, **`syntactic`**, `via:
+fixture-value`, a pair the graph already carries left alone.
+
+### Measured (the probe as worded, over each cell's own 0.2.68-beta graph)
+
+The flask key is new (`docs/oracle/cells/flask-py-2026-09-22.md`): pallets/flask at
+`d73fa1c`, py-trace, contained, 494 passed both runs; at 0.2.68-beta 1,330 edges,
+**1,121 of 2,698 (41.5%)**, 18 suspect, poison PASS.
+
+| cell | sites | drawn | direct / inherited | judged |
+|---|---|---|---|---|
+| flask (new key) | 778 | **400**, all the local form | 71 / 329 | **400 confirmed at the exact target line, 0 contradicted**; all 400 missed pairs today |
+| click (`click-py-r3`) | 382 | 0 new — ADR-145 draws all 382 | — | unchanged |
+| attrs | 5 | 0 | — | — |
+| this repo | 27 | 1 | 0 / 1 | `minifixval`'s `runner.close()` → `Base.close`, right by reading |
+
+flask's recall would read **1,121 → 1,521 of 2,698 (41.5% → 56.4%)**. The targets were
+read by hand along `Flask(App(Scaffold))`: `add_url_rule` is `App`'s override (605), not
+`Scaffold`'s (376). The `setupmethod` wrappers are keyed as the wrapped `def` (py-trace
+`via: wrapped`). Thirty-seven of the 400 are bare decorators (`@app.teardown_appcontext`)
+lane A already reads as calls (ADR-146).
+
+**The nodes.** The rule mints nothing; every target is a symbol today.
+
+**What the evidence is, plainly.** One more keyed repo, one fixture carrying 400 rows,
+and a three-class chain. The inherited half rests on the index naming each base at its
+header line — in flask, `Flask → App` is only a `uses` edge there: the `implements`
+edge ADR-120 would draw is absent (lane A names `src/flask/sansio/`'s files `app` and
+`scaffold`, a namespace package with no `__init__.py`; why the join places `App →
+Scaffold` and not `Flask → App` is not yet read). The rule reads the header edge, not
+`implements`, for that reason.
+
+### What this leaves (C-4)
+
+A fixture value that is not a construction bound once (`return app.test_client()`, a
+factory's return), a class with two bases or an unnamed one, and ADR-137's abstentions.
+A method the class *could* dispatch through `__getattr__` or a metaclass is not asked:
+the rule reads the `def` Python finds first on a single-base chain, and a class that
+overrides attribute lookup is not detected.
