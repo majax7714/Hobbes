@@ -92,8 +92,7 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   real `group`/`command`/`version_option`/`option` as a test fixture
   (`pipeline/tests/fixtures/click-excerpt/`), and the build folded click first time. Drivers
   `~/.hobbes/bench/py-factory-chain/` (`PREREG.md`, `probe_chain.py`, `RESULTS.md`,
-  `click_real.py`, `sim-click*`, `real149/` the built cells, `units/`; `wt/` a worktree,
-  removable).
+  `click_real.py`, `sim-click*`, `real149/` the built cells, `units/`; its worktree was removed).
 - **What click still misses** (806 on r3): 460 closures — callbacks reached through
   attributes and parameters (`self.callback(…)`, `callback(*args)`, monkeypatched doubles:
   values, C-58), `@cli.command("sdist")` (10, a method factory with a positional —
