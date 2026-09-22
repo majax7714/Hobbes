@@ -685,8 +685,10 @@ class TestParameters:
 
 class TestReturnedValue:
     """What a definition constructs and hands back (ADR-145): one valued
-    exit, and that value a call on a bare name. Everything else is None,
-    because everything else leaves the runtime class open."""
+    exit, and that value a call on a bare name — or a bare name a single
+    top-level construction bound before it (the 2026-09-22 amendment).
+    Everything else is None, because everything else leaves the runtime
+    class open."""
 
     def test_one_return_of_a_construction(self):
         p = parse("def f():\n    return C()\n")
@@ -708,10 +710,10 @@ class TestReturnedValue:
         (symbol,) = p.symbols
         assert symbol.value is None
 
-    def test_returning_a_name_says_nothing(self):
-        p = parse("def f():\n    app = C()\n    return app\n")
+    def test_a_construction_carries_no_local(self):
+        p = parse("def f():\n    return C()\n")
         (symbol,) = p.symbols
-        assert symbol.value is None
+        assert symbol.value_local is None
 
     def test_returning_a_call_on_a_value_says_nothing(self):
         p = parse("def f():\n    return a.b()\n")
@@ -739,6 +741,151 @@ class TestReturnedValue:
         p = parse("class C:\n    pass\n")
         (symbol,) = p.symbols
         assert symbol.value is None
+        assert symbol.value_local is None
+
+
+class TestValueThroughALocal:
+    """ADR-145's amendment: ``app = Flask("x")`` … ``return app`` is the
+    same construction reached through a name — but only where the body
+    settles that the name still holds it. Every other shape is None,
+    because every other shape leaves a second writer possible."""
+
+    def test_a_local_bound_once_by_a_construction(self):
+        p = parse(
+            "def f():\n"
+            '    app = Flask("x")\n'
+            "    app.config.update(A=1)\n"
+            "    return app\n"
+        )
+        (symbol,) = p.symbols
+        assert symbol.value == ("Flask", 2)
+        assert symbol.value_local == "app"
+
+    def test_the_same_through_a_yield(self):
+        p = parse('def f():\n    app = Flask("x")\n    yield app\n')
+        (symbol,) = p.symbols
+        assert symbol.value == ("Flask", 2)
+        assert symbol.value_local == "app"
+
+    def _value(self, source: str):
+        symbol = next(s for s in parse(source).symbols if s.qualname == "f")
+        return symbol.value, symbol.value_local
+
+    def test_a_local_bound_twice_settles_nothing(self):
+        assert self._value(
+            "def f():\n    app = Flask()\n    app = Flask()\n    return app\n"
+        ) == (None, None)
+
+    def test_a_local_bound_in_a_branch_is_not_the_bodys_own_statement(self):
+        assert self._value(
+            "def f(flag):\n"
+            "    if flag:\n"
+            "        app = Flask()\n"
+            "    return app\n"
+        ) == (None, None)
+
+    def test_a_loop_target_is_not_a_construction(self):
+        assert self._value(
+            "def f():\n    for app in xs:\n        pass\n    return app\n"
+        ) == (None, None)
+
+    def test_a_parameter_is_not_a_local(self):
+        assert self._value("def f(app):\n    return app\n") == (None, None)
+
+    def test_a_binding_after_the_return_never_ran(self):
+        assert self._value("def f():\n    return app\n    app = Flask()\n") == (
+            None,
+            None,
+        )
+
+    def test_a_nested_def_declaring_it_nonlocal_could_rebind_it(self):
+        assert self._value(
+            "def f():\n"
+            "    app = Flask()\n"
+            "    def inner():\n"
+            "        nonlocal app\n"
+            "        app = Flask()\n"
+            "    return app\n"
+        ) == (None, None)
+
+    def test_a_factorys_return_is_not_a_construction(self):
+        assert self._value(
+            "def f():\n    app = make.factory()\n    return app\n"
+        ) == (None, None)
+
+    def test_more_than_one_target_settles_nothing(self):
+        assert self._value(
+            "def f():\n    app, b = Flask(), 1\n    return app\n"
+        ) == (None, None)
+
+
+class TestPatched:
+    """What a body stores onto, or deletes from, a name it holds
+    (ADR-145's amendment): the instance stops answering with the class's
+    ``def``, and a rule reading that ``def`` has to know."""
+
+    def _patched(self, body: str) -> tuple[tuple[str, str], ...]:
+        p = parse(f"def f():\n{body}")
+        return next(s for s in p.symbols if s.qualname == "f").patched
+
+    def test_an_attribute_assignment(self):
+        assert self._patched("    app.route = x\n") == (("app", "route"),)
+
+    def test_an_attribute_del(self):
+        assert self._patched("    del app.route\n") == (("app", "route"),)
+
+    def test_an_augmented_attribute_assignment(self):
+        assert self._patched("    app.route += 1\n") == (("app", "route"),)
+
+    def test_moving_the_class_is_not_one_named_attribute(self):
+        assert self._patched("    app.__class__ = K\n") == (("app", "*"),)
+
+    def test_a_monkeypatch_setattr(self):
+        assert self._patched('    monkeypatch.setattr(app, "route", f)\n') == (
+            ("app", "*"),
+        )
+
+    def test_a_builtin_setattr_whose_name_is_not_written(self):
+        assert self._patched("    setattr(app, name, f)\n") == (("app", "*"),)
+
+    def test_a_nested_defs_patch_is_that_defs(self):
+        p = parse("def f():\n    def inner():\n        app.route = x\n")
+        assert next(s for s in p.symbols if s.qualname == "f").patched == ()
+
+    def test_a_class_patches_nothing_of_its_own(self):
+        p = parse("class C:\n    x = 1\n")
+        (symbol,) = p.symbols
+        assert symbol.patched == ()
+
+
+class TestClassBinds:
+    """What a class body binds by any form other than a ``def``
+    (ADR-145's amendment): a class attribute under a method's name
+    shadows whatever a base defined."""
+
+    def _binds(self, body: str) -> tuple[str, ...]:
+        p = parse(f"class C:\n{body}")
+        return next(s for s in p.symbols if s.qualname == "C").binds
+
+    def test_an_assignment(self):
+        assert self._binds("    route = other\n") == ("route",)
+
+    def test_an_import(self):
+        assert self._binds("    from m import route\n") == ("route",)
+
+    def test_a_nested_class(self):
+        assert self._binds("    class route:\n        pass\n") == ("route",)
+
+    def test_a_def_is_a_method_not_one_of_these(self):
+        assert self._binds("    def route(self):\n        pass\n") == ()
+
+    def test_a_methods_own_locals_are_not_the_classs(self):
+        assert self._binds("    def m(self):\n        route = 1\n") == ()
+
+    def test_a_function_binds_nothing_as_a_class(self):
+        p = parse("def f():\n    x = 1\n")
+        (symbol,) = p.symbols
+        assert symbol.binds == ()
 
 
 class TestRebound:

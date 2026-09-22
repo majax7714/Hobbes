@@ -407,12 +407,21 @@ class Symbol:
     #: What a function or method constructs and hands back, as the written
     #: name and the line it is written on, or ``None`` (ADR-145). Set only
     #: where the definition's own body holds exactly one ``return`` /
-    #: ``yield`` carrying a value and that value is ``C(…)`` — a call on a
-    #: bare name. A construction fixes the runtime class exactly, which is
-    #: the whole of the claim a reader may make from it; ``return x``,
-    #: ``return a.b()``, ``yield from …`` and a second valued return are
-    #: each ``None``, and so is a bare ``return``, which carries no value.
+    #: ``yield`` carrying a value and that value is either ``C(…)`` — a
+    #: call on a bare name — or a bare name ``x`` a single top-level
+    #: ``x = C(…)`` bound before it (ADR-145's amendment). A construction
+    #: fixes the runtime class exactly, which is the whole of the claim a
+    #: reader may make from it, and a local bound once by a construction
+    #: holds nothing else; ``return a.b()``, ``yield from …`` and a second
+    #: valued return are each ``None``, and so is a bare ``return``, which
+    #: carries no value.
     value: tuple[str, int] | None = None
+    #: The local :attr:`value` came through, or ``None`` when the returned
+    #: value *was* the construction (ADR-145's amendment). The two forms
+    #: are one fact to a reader that wants the class, and two to a reader
+    #: that wants to know what else was done to the object before it was
+    #: handed back — a patch on ``x`` is a patch on what the caller holds.
+    value_local: str | None = None
     #: The parameter names the definition's own body binds again, sorted
     #: (ADR-145): by assignment (plain, augmented, annotated with a value,
     #: walrus), a ``for`` / ``with`` / ``except`` / ``import`` target,
@@ -421,6 +430,24 @@ class Symbol:
     #: know when it does not. Own body only: a nested ``def``'s assignment
     #: binds in that def, not here.
     rebound: tuple[str, ...] = ()
+    #: What a function or method stores onto, or deletes from, a bare name
+    #: it holds — as sorted ``(name, attribute)`` pairs, read from the own
+    #: body (ADR-145's amendment). ``p.m = f`` and ``del p.m`` are
+    #: ``(p, m)``; ``p.__class__ = K`` and ``setattr(p, …)`` —
+    #: ``monkeypatch.setattr`` included — are ``(p, "*")``, because what
+    #: they move is not one named attribute. A rule that reads a class's
+    #: ``def`` for what ``p.m(…)`` runs has to know when the instance no
+    #: longer answers with it. Empty on a class, which patches nothing of
+    #: its own.
+    patched: tuple[tuple[str, str], ...] = ()
+    #: The names a **class**'s own body binds by any form other than a
+    #: ``def``, sorted (ADR-145's amendment): an assignment of every kind,
+    #: an import, a ``for`` / ``with`` target, a walrus, a ``del``, and a
+    #: nested ``class``. A class attribute named ``m`` shadows whatever a
+    #: base's ``def m`` would have been, so a walk up the bases stops at
+    #: it. A nested ``def`` is a method, not one of these. Empty on a
+    #: function.
+    binds: tuple[str, ...] = ()
     #: The name a **decorator factory** hands back, or ``None`` (ADR-147).
     #: Set on a function or method only, and only where every path returns
     #: one and the same nested ``def``: the definition is not ``async``, its
@@ -896,15 +923,14 @@ def _own_nodes(node: Node):
         stack.extend(current.children)
 
 
-def _returned_value(node: Node) -> tuple[str, int] | None:
-    """The class a definition constructs and hands back (ADR-145).
+def _valued_exit(node: Node) -> Node | None:
+    """The one value a definition's own body hands back, or ``None``.
 
-    Exactly one ``return`` or ``yield`` in the own body may carry a value,
-    and that value must be a call on a bare name: ``return CliRunner()``
-    names ``CliRunner``. Anything else is None, because anything else
-    leaves the runtime class of what comes back open — ``return x`` says
-    nothing, ``return a.b()`` is a call on a value, ``yield from g()``
-    delegates, and two valued exits mean the fixture chooses.
+    Exactly one ``return`` or ``yield`` in the own body may carry a value:
+    two valued exits mean the definition chooses, a bare ``return``
+    carries nothing and is not one of them, and ``yield from g()``
+    delegates — a valued exit this walk cannot read, so it counts and
+    then refuses.
     """
     values: list[Node | None] = []
     for current in _own_body(node):
@@ -918,15 +944,215 @@ def _returned_value(node: Node) -> tuple[str, int] | None:
                 values.append(None)
             elif current.named_children:
                 values.append(current.named_children[0])
-    if len(values) != 1 or values[0] is None:
+    if len(values) != 1:
         return None
-    value = values[0]
-    if value.type != "call":
-        return None
-    function = value.child_by_field_name("function")
+    return values[0]
+
+
+def _returned_value(node: Node) -> tuple[tuple[str, int] | None, str | None]:
+    """The class a definition constructs and hands back, and the local it
+    came through (ADR-145 and its amendment).
+
+    Returns ``(value, local)``: the written class name with its line, and
+    the local the value passed through or ``None`` where the returned
+    value *was* the construction. ``return CliRunner()`` names
+    ``CliRunner`` directly; ``app = Flask("x")`` … ``return app`` names
+    ``Flask`` through ``app``, because a local bound once, by a
+    construction, at the top level of the body, before the return, holds
+    nothing else.
+
+    Everything else is ``(None, None)``, because everything else leaves
+    the runtime class of what comes back open: ``return a.b()`` is a call
+    on a value, and a returned name the body binds twice, binds in a
+    branch, binds from a factory, or a nested ``def`` could rebind
+    through ``nonlocal`` is a name this walk cannot settle.
+    """
+    value = _valued_exit(node)
+    if value is None:
+        return None, None
+    if value.type == "call":
+        function = value.child_by_field_name("function")
+        if function is None or function.type != "identifier":
+            return None, None
+        return (_text(function), _line(function)), None
+    if value.type == "identifier":
+        return _value_through_local(node, value)
+    return None, None
+
+
+def _value_through_local(
+    node: Node, returned: Node
+) -> tuple[tuple[str, int] | None, str | None]:
+    """Condition 2's local form (ADR-145's amendment), asked of the bare
+    name a definition returns.
+
+    The name must be no parameter of the definition; the own body must
+    bind it **exactly once** — nodes counted, not names unioned, so a
+    second binding of any form refuses — and that one binding must be a
+    plain assignment written as a statement of the body itself (not in a
+    branch, not in a loop), with one bare-identifier target, a call on a
+    bare name as its value, and a line before the return's. And no
+    ``global`` or ``nonlocal`` anywhere in the definition may name it: a
+    nested ``def`` declaring it could rebind it between the assignment
+    and the return.
+    """
+    name = _text(returned)
+    if name in _parameter_names(node):
+        return None, None
+    binders = [current for current in _own_body(node) if name in _bound_here(current)]
+    if len(binders) != 1 or binders[0].type != "assignment":
+        return None, None
+    binder = binders[0]
+    body = node.child_by_field_name("body")
+    statement = binder.parent
+    if (
+        body is None
+        or statement is None
+        or statement.type != "expression_statement"
+        or statement.parent is None
+        or statement.parent.id != body.id
+    ):
+        return None, None
+    left = binder.child_by_field_name("left")
+    right = binder.child_by_field_name("right")
+    if left is None or left.type != "identifier":
+        return None, None
+    if right is None or right.type != "call":
+        return None, None
+    function = right.child_by_field_name("function")
     if function is None or function.type != "identifier":
+        return None, None
+    if _line(binder) >= _line(returned):
+        return None, None
+    if _declared_outer(node, name):
+        return None, None
+    return (_text(function), _line(function)), name
+
+
+def _declared_outer(node: Node, name: str) -> bool:
+    """Whether a ``global`` or ``nonlocal`` anywhere in the definition's
+    subtree — nested definitions included — names *name* (ADR-145's
+    amendment). The one walk here that deliberately does not stop at a
+    nested ``def``: what such a declaration reaches is this scope's
+    binding, from inside another."""
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        if current.type in ("global_statement", "nonlocal_statement") and any(
+            _text(child) == name for child in current.named_children
+        ):
+            return True
+        stack.extend(current.children)
+    return False
+
+
+def _attribute_targets(node: Node | None):
+    """The ``a.b`` nodes in an assignment or ``del`` target expression,
+    through the list forms a statement may write several in."""
+    if node is None:
+        return
+    if node.type == "attribute":
+        yield node
+    elif node.type in (
+        "expression_list",
+        "pattern_list",
+        "tuple_pattern",
+        "list_pattern",
+        "tuple",
+        "list",
+        "parenthesized_expression",
+    ):
+        for child in node.named_children:
+            yield from _attribute_targets(child)
+
+
+def _setattr_target(call: Node) -> str | None:
+    """The bare name a ``setattr``-named call patches, or ``None``.
+
+    Read by the callee's last component, as a decorator's spelling is:
+    ``setattr(p, …)`` and ``monkeypatch.setattr(p, …)`` are the same act
+    reached two ways. Only a bare identifier written as the first
+    positional argument counts — anything else is a receiver this walk
+    cannot name.
+    """
+    function = call.child_by_field_name("function")
+    if function is None:
         return None
-    return _text(function), _line(function)
+    if function.type == "identifier":
+        named = function
+    elif function.type == "attribute":
+        named = function.child_by_field_name("attribute")
+    else:
+        return None
+    if named is None or _text(named) != "setattr":
+        return None
+    arguments = call.child_by_field_name("arguments")
+    if arguments is None:
+        return None
+    for argument in arguments.named_children:
+        if argument.type in ("keyword_argument", "comment"):
+            continue
+        return _text(argument) if argument.type == "identifier" else None
+    return None
+
+
+def _patched(node: Node) -> tuple[tuple[str, str], ...]:
+    """What a definition's own body stores onto, or deletes from, the bare
+    names it holds (ADR-145's amendment).
+
+    ``p.m = f``, ``p.m += 1``, ``p.m: T = f`` and ``del p.m`` are each
+    ``(p, m)``; ``p.__class__ = K`` and any ``setattr`` on ``p`` are
+    ``(p, "*")``, because neither leaves one named attribute the class's
+    ``def`` still answers for. An annotation with no value stores
+    nothing. Own body only: what a nested ``def`` patches, it patches
+    when something calls it, and this walk does not say when that is.
+    """
+    out: set[tuple[str, str]] = set()
+    for current in _own_body(node):
+        kind = current.type
+        if kind == "call":
+            patched = _setattr_target(current)
+            if patched is not None:
+                out.add((patched, "*"))
+            continue
+        if kind not in ("assignment", "augmented_assignment", "delete_statement"):
+            continue
+        if kind == "assignment" and current.child_by_field_name("right") is None:
+            continue  # `p.m: int` declares a type and stores nothing
+        targets = (
+            list(current.named_children)
+            if kind == "delete_statement"
+            else [current.child_by_field_name("left")]
+        )
+        for target in targets:
+            for attribute in _attribute_targets(target):
+                obj = attribute.child_by_field_name("object")
+                name = attribute.child_by_field_name("attribute")
+                if obj is None or obj.type != "identifier" or name is None:
+                    continue
+                written = _text(name)
+                out.add((_text(obj), "*" if written == "__class__" else written))
+    return tuple(sorted(out))
+
+
+def _class_binds(node: Node) -> tuple[str, ...]:
+    """The names a class's own body binds by any form other than a ``def``
+    (ADR-145's amendment).
+
+    :func:`_own_body` stops at every nested definition, so what it yields
+    is exactly the non-definition forms; the nested ``class`` statements
+    are added back from :func:`_own_definitions`, because a class written
+    in a class body binds its name there as an attribute. A nested ``def``
+    is not added: that is a method, which the rule reading this fact looks
+    for first and by itself.
+    """
+    bound = _bound_in(_own_body(node))
+    for definition, _decorated in _own_definitions(node):
+        if definition.type == "class_definition":
+            name = definition.child_by_field_name("name")
+            if name is not None:
+                bound.add(_text(name))
+    return tuple(sorted(bound))
 
 
 def _import_binding(node: Node) -> str | None:
@@ -1834,6 +2060,11 @@ def _walk(
             if is_function and returns_inner is None and inner_fold is None
             else None
         )
+        # A class body returns nothing and rebinds no parameter, having
+        # none, and patches nothing of its own: those three are a
+        # function's (ADR-145). What a class body binds, and a function
+        # never has, is the other way round.
+        value, value_local = _returned_value(node) if is_function else (None, None)
         parsed.symbols.append(
             Symbol(
                 qualname=qualname,
@@ -1845,10 +2076,11 @@ def _walk(
                 params=params,
                 parametrized=pending_parametrized,
                 bases=_base_count(node) if kind == "class_definition" else 0,
-                # A class body returns nothing and rebinds no parameter,
-                # having none: both facts are a function's (ADR-145).
-                value=_returned_value(node) if is_function else None,
+                value=value,
+                value_local=value_local,
                 rebound=_rebound(node, params) if is_function else (),
+                patched=_patched(node) if is_function else (),
+                binds=_class_binds(node) if not is_function else (),
                 returns_inner=returns_inner,
                 inner_fold=inner_fold,
                 chain_fold=chain_fold,

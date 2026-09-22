@@ -322,7 +322,9 @@ def _print_fixtures(counts: dict | None) -> None:
         refused = sum(value_calls.get("refused", {}).values())
         rest.append(
             f"{value_calls.get('drawn', 0)} call(s) drawn on the value a fixture "
-            f"constructs and {refused} refused (ADR-145)"
+            f"constructs ({value_calls.get('inherited', 0)} on a method a base "
+            f"defines, {value_calls.get('local', 0)} through a local the fixture "
+            f"returned) and {refused} refused (ADR-145)"
         )
     unread = counts.get("unread", {})
     if unread.get("pytestmark"):

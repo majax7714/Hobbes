@@ -1,0 +1,8 @@
+Excerpted from pallets/flask at d73fa1c (BSD-3-Clause), trimmed to what
+ADR-145's amendment reads: the `app` fixture that constructs a `Flask`
+into a local and returns it, and the three classes above the methods a
+test calls on that local — `class Flask(App)`, `class App(Scaffold)`,
+`class Scaffold`. Signatures, decorators and the class headers are
+flask's; the bodies are shortened, and everything the rule does not read
+is dropped. Nothing here is imported or run: the files are read as text
+by pipeline/tests/test_fixture_values.py.
