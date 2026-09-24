@@ -694,6 +694,86 @@ test('a C++ namespace defined at two lines of one file is kept, at the smallest 
   assert.deepEqual(small, decode(build('large-first'), opts))
 })
 
+// Python takes the same abstention for a reason of its own (ADR-150):
+// scip-python names a def nested in a *method* by the class and its own
+// name, dropping every function scope between them, so the `generate` two
+// sibling methods each nest is one moniker over two definitions — flask's
+// `TestStreaming` shape, where the smallest line answered a call in the
+// other method's body.
+const PY_MINI = 'scip-python python mini 0 '
+const PY_NESTED = `${PY_MINI}t/T#generate().`
+const PY_PLAIN = `${PY_MINI}t/T#run().`
+
+/** `generate` defined at t.py:4 and :11 and referenced at :6, beside a
+ * `run` one line defines and one line calls. *order* is which definition
+ * of `generate` the document lists first. */
+function pyMultiLineIndex(order) {
+  const defs = [
+    { symbol: PY_NESTED, symbol_roles: DEF, range: [3, 16, 3, 24] },
+    { symbol: PY_NESTED, symbol_roles: DEF, range: [10, 16, 10, 24] },
+  ]
+  return fakeIndex([
+    { relative_path: 't.py', occurrences: [
+      ...(order === 'small-first' ? defs : [...defs].reverse()),
+      { symbol: PY_NESTED, symbol_roles: 0, range: [5, 19, 5, 27] },
+      { symbol: PY_PLAIN, symbol_roles: DEF, range: [14, 8, 14, 11] },
+      { symbol: PY_PLAIN, symbol_roles: 0, range: [17, 20, 17, 23] },
+    ] },
+  ])
+}
+
+test('Python abstains on a moniker one file defines at two lines, in either order (ADR-150)', () => {
+  const opts = decodeOptions({ language: 'python', stage: '/nowhere' })
+  assert.deepEqual(opts, { abstainMultiDefined: true }, "Python takes none of C's rules")
+  const small = decode(pyMultiLineIndex('small-first'), opts)
+  const large = decode(pyMultiLineIndex('large-first'), opts)
+  assert.deepEqual(small, large, "the decode does not depend on scip-python's listing order")
+  assert.deepEqual(small.multi_defined, [PY_NESTED], 'the shared moniker is the abstained one')
+  assert.equal(small.multi_defined_refs, 1, 'and the reference to it is counted')
+  assert.deepEqual(small.definitions.map((d) => [d.moniker, d.line]), [[PY_PLAIN, 15]],
+    'no definition is kept for the shared moniker; the single one is untouched')
+  assert.deepEqual(small.references.map((r) => [r.line, r.def_line]), [[18, 15]],
+    'only the single definition answers a site')
+  const [ref] = small.external.filter((e) => e.moniker === PY_NESTED)
+  assert.equal(ref.line, 6)
+  assert.equal(ref.in_repo, true, 'in-repo, so it vetoes no lane A fallback (ADR-111)')
+})
+
+test("the Python degradation record names scip-python's shape, not scip-clang's (ADR-150)", () => {
+  const idx = pyMultiLineIndex('small-first')
+  const decoded = decode(idx, decodeOptions({ language: 'python', stage: '/nowhere' }))
+  const [record] = degradations(idx, decoded, { language: 'python' })
+    .filter((r) => /more than one line of one file/.test(r.message))
+  assert.equal(record.stage, 'scip-decode')
+  assert.match(record.message, /^1 symbol\(s\) are defined at more than one line of one file \(e\.g\. t\/T#generate\(\)\./)
+  assert.match(record.message, /scip-python names a def nested in a method/)
+  assert.match(record.message, /1 reference\(s\) to them are left without a lane B answer/)
+  assert.match(record.message, /\(ADR-150, C-170\)$/)
+  assert.doesNotMatch(record.message, /scip-clang/, "C++'s reason is not Python's")
+})
+
+test('a Python namespace defined at two lines of one file is kept, at the smallest (ADR-150)', () => {
+  // The abstention is for the graph kinds a call site can land on; a
+  // namespace keeps its line, as it does under C++.
+  const ns = `${PY_MINI}t/`
+  const build = (order) => {
+    const defs = [
+      { symbol: ns, symbol_roles: DEF, range: [1, 0, 1, 1] },
+      { symbol: ns, symbol_roles: DEF, range: [8, 0, 8, 1] },
+    ]
+    return fakeIndex([
+      { relative_path: 't.py', occurrences: order === 'small-first' ? defs : [...defs].reverse() },
+      { relative_path: 'u.py', occurrences: [{ symbol: ns, symbol_roles: 0, range: [0, 7, 0, 8] }] },
+    ])
+  }
+  const opts = decodeOptions({ language: 'python', stage: '/nowhere' })
+  const small = decode(build('small-first'), opts)
+  assert.deepEqual(small.definitions.map((d) => [d.kind, d.line]), [['namespace', 2]])
+  assert.deepEqual(small.references.map((r) => r.def_line), [2])
+  assert.deepEqual(small.multi_defined, [], 'a namespace is no abstention')
+  assert.deepEqual(small, decode(build('large-first'), opts))
+})
+
 test("the own-file map takes that file's smallest line for a colliding static (ADR-109)", () => {
   // `helper` is a file-static of two files — so the reference resolves
   // through `byFile` — and its own file defines it at two lines.
