@@ -314,9 +314,9 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   right-by-order removed (§10.36). **Next:** the candidates in the
   handoff (route c, a lane A rule for those sites, among them), each
   measured first.
-- **Open for Max:** the Calvin experiments programme's D-1 to D-4
-  (`docs/calvin/calvin-experiments.md` §9, proposed 2026-09-24: a model
-  that writes C, starting from sqlite-vector; E0 spends nothing);
+- **Open for Max:** the go to build E0 of the Calvin experiments
+  programme (`docs/calvin/calvin-experiments.md`: a model that writes C,
+  from sqlite-vector; D-1 to D-4 taken, the literature pass §12 done);
   ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

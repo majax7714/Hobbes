@@ -14206,3 +14206,21 @@ train a competing model), so the recommended route is Claude at inference only. 
 README's docs table, CLAUDE.md/AGENTS.md (the read-next row, "Open for Max"), and the
 handoff's standing items and held list. No version bump (ADR-103: experiments are not
 versioned). pytest's doc-reading cases (tracker, tally, version, staging) 45 of 45.
+
+**Later: the routes taken and the literature pass (Max: "good to go with recommended routes,
+we could look to use an open model for inference … the general model more parses the
+message into a task format … worth looking to other literature").** D-1, D-3 and D-4 were
+taken as recommended. D-2 was amended: an open model at inference too, and the general
+model a parser into a task format, with the graph filling every field it can. The four
+searches ran in parallel (Sonnet subagents), and the abstracts the design leans on were
+re-read here: Commit0, RPG/ZeroRepo, FunCoder, MapCoder-Lite, SimdBench, IntrinTrans,
+AutoVecCoder, the SSW RISC-V port, monitor-guided decoding, Li et al. 2508.06414, Le et
+al. 2510.03178, and Karpathy's 2025-06-27 post. One search figure did not match its
+abstract (IntrinTrans: the search said 23.5%–100%, the abstract says 47%–100%). Only
+re-read figures are quoted, and §12 marks which rows were re-read. The pieces are each
+precedented, and the combination is not (§12.6). What changed (§12.7): E1 gets an iterate
+arm and per-ISA/per-type reports, and its central reading is written against Li et al.
+(similar solutions transfer little in-context); E2 gets two shadows, descriptive and
+opaque, because renaming costs ability as well as recall; G-hsr gets a failure class; E3
+trains only on validated, fact-complete examples; M-e (AutoVecCoder-8B) is added if its
+weights are open. Paused before E0 for Max.
