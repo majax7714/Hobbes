@@ -2,7 +2,7 @@
 
 **Status:** routes accepted (Max, 2026-09-24: "good to go with recommended routes"), with
 D-2 amended toward open models (§9); the literature pass is done (§12) and changed the design
-(§12.7); paused for Max before E0 is built · **Type:** programme page — the design space, the experiments in it, the order, the
+(§12.7); **E0 under construction** (Max: "good to go") · **Type:** programme page — the design space, the experiments in it, the order, the
 decisions · **Compute:** none spent;
 E0 spends nothing, and every run after it is held until Max names it and its ceiling
 **Charter:** [`calvin-charter.md`](calvin-charter.md), with the one reading this page asks of
@@ -10,8 +10,8 @@ it in §3 (decision D-1) · **Priors:** ADR-099 ([`olmo3-ttt-results.md`](../ttt
 the keyed rounds ([`calvin-potential.md`](calvin-potential.md) and after), Atlas-0
 ([`atlas-0.md`](../atlas0/atlas-0.md)) · **The target's cell:**
 [`sqlite-vector-c-2026-09-12.md`](../oracle/cells/sqlite-vector-c-2026-09-12.md)
-**ADR:** none yet. The page takes the next number (151) once the literature pass has had its
-say on the design, as ADR-099 and M0 did. Each experiment Max clears gets its own record
+**ADR:** [ADR-151](../adr/151-calvin-experiments-skill-in-weights-facts-in-the-ledger.md) (Max:
+"good to go", 2026-09-24); this page is its body. Each experiment Max clears gets its own record
 beside it.
 
 > **Not versioned** (ADR-103): nothing here moves `VERSION`. What E0 builds lives under

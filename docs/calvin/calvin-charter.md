@@ -152,3 +152,21 @@ Not a benchmark. Role-level signals, each measurable per task:
 - Calvin's scope has gotten smaller since the last release because something moved into Hobbes.
 
 That last one is the health check for the whole idea. Calvin is doing its job when it is being replaced, one deterministic rule at a time, by the thing it depends on.
+
+---
+
+## Amendment — 2026-09-24 (ADR-151): a writer's skill may live in weights; the repo's facts never do
+
+Max asked for a model that writes one language, starting with one target (sqlite-vector), with a
+teacher naming the functions and parts. That model *writes*, where this charter's Calvin grounds. The
+two meet on one line, taken as route a of `calvin-experiments.md` §9:
+
+> **A Calvin model may learn the language and its patterns in its weights. It never learns the
+> target's facts. Those come from the ledger at the SHA, every time.**
+
+§7's "not the place facts live" stands unchanged, and so does I5: a fact that survives a SHA change
+in the weights is still a defect. What this adds is permission for *skill* (idioms, the shapes code
+repeats along an axis) to be trained, which ADR-099 measured as the part weights hold well at low
+step counts. I7 applies to it too: every fact the model reaches for is one the graph should serve.
+The general model in this programme is an open model used as a parser into a task format, not an
+author (ADR-151). The experiments are in `calvin-experiments.md`.

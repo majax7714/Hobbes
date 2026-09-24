@@ -65,6 +65,9 @@ jobs:
       - name: atlas0 (the Atlas-0 instruments, bench tooling; numpy only)
         working-directory: bench/atlas0
         run: uv sync && uv run pytest -q
+      - name: lattice (the Calvin experiments' E0 instruments, bench tooling; stdlib only)
+        working-directory: bench/calvin/lattice
+        run: uv sync && uv run pytest -q
 
   web:
     runs-on: ubuntu-24.04
