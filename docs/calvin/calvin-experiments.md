@@ -282,6 +282,22 @@ its estimate before the rest is run.
 - **The feedback loop** for E1's iterate arm: a failing body goes back with the compiler's
   errors or the differential's first failing input, up to three rounds.
 - **Gate:** the self-test passes on every grader, and both shadows pass G-test.
+- **Contamination facts, read 2026-09-24** (drivers `~/.hobbes/bench/calvin-lattice/`,
+  `ages.py` over a full clone, `sqlite-vector-history/`):
+  - The repo's first commit is 2025-04-07. The SSE2 and AVX2 kernel files first appear on
+    2025-06-21, and AVX-512's on 2025-12-17. The repo has 250 commits to `0c2223a`.
+  - **Both E1 bases predate the whole target.** Olmo-3-7B-Instruct's card gives a knowledge
+    cutoff of "Dec. 2024". Qwen2.5-Coder was released in late 2024. Pretraining cannot have
+    read any sqlite-vector code, so for these two bases E2's shadows measure name-reading,
+    not memory. G-mem still runs as a check (post-training data is not dated by the
+    cards), and the shadows keep their memory role for any later base.
+  - Each cell's body has an age. Of the 93 native bodies at `0c2223a`, the number identical
+    at the end of each quarter was: 2025-06-30 18, 2025-09-30 42, 2025-12-31 54,
+    2026-03-31 59, 2026-06-30 59. So 34 bodies are newer than 2026-06-30. A later base's
+    rows are read by cell age.
+  - Olmo 3's data cannot be searched through the public infini-gram API: its documented
+    indexes stop at Olmo 2 and Dolma 1.7. OLMoTrace over Dolma 3 exists in Ai2's
+    playground only. The dates make the search unnecessary for these bases.
 
 ### E1 — the lattice: is it pattern, facts, or skill? (M-a, L0, C-0 to C-4)
 
