@@ -912,7 +912,8 @@ export function decode(index, opts = {}) {
   // reads a name the moniker does not spell, and `ownFile` resolves a
   // file-static that several files define. C++ adds three of its own,
   // `constructorOverClass`, `abstainMultiDefined` and
-  // `abstainOverloadSites` (ADR-113 §2). Every other language passes
+  // `abstainOverloadSites` (ADR-113 §2), and Python passes
+  // `abstainMultiDefined` alone (ADR-150). Every other language passes
   // nothing and decodes as before.
   const nameOf = opts.nameOf ?? terminalName
   // A reference carries no moniker — the join keys on file, line and name
@@ -948,9 +949,9 @@ export function decode(index, opts = {}) {
   // kind we do not keep" when an external reference is recorded.
   const inRepoMonikers = new Set()
   // Monikers one file defines at more than one line, where the language
-  // abstains rather than pick one (`opts.abstainMultiDefined`, C++ only —
-  // ADR-113 §2). They are treated as an ambiguous moniker is: no
-  // definition, no edge, and their references stay in-repo so they veto
+  // abstains rather than pick one (`opts.abstainMultiDefined`: C++, ADR-113
+  // §2, and Python, ADR-150). They are treated as an ambiguous moniker is:
+  // no definition, no edge, and their references stay in-repo so they veto
   // no lane A fallback (ADR-111). Counted, never silent.
   const multiDefined = new Set()
   let multiDefinedRefs = 0
@@ -1035,8 +1036,10 @@ export function decode(index, opts = {}) {
     // One file, several lines. A namespace keeps its smallest line in
     // every language (lane A draws none of them anyway); anything else
     // either abstains — C++, where the shapes that share a moniker are
-    // genuinely different definitions — or takes the smallest line, which
-    // is ADR-109's "kept once, at the first line" made order-independent.
+    // genuinely different definitions, and Python, where scip-python drops
+    // the function scopes between a class and a def nested in its method
+    // (ADR-150) — or takes the smallest line, which is ADR-109's "kept
+    // once, at the first line" made order-independent.
     if (lines.size > 1 && def.kind !== 'namespace' && opts.abstainMultiDefined) {
       multiDefined.add(symbol)
       continue
@@ -1570,14 +1573,24 @@ export function degradations(index, decoded, config) {
       .slice(0, 3)
       .map((s) => s.split(' ').slice(4).join(' '))
       .join(', ')
+    // What shares a moniker is the indexer's doing, so the clause after the
+    // dash is the language's own: scip-clang's templates and signature
+    // hashes (ADR-113), scip-python's dropped function scopes (ADR-150).
+    const shape = config.language === 'python'
+      ? 'scip-python names a def nested in a method by its class and its own ' +
+        'name, so same-named nested defs in sibling methods share one moniker, ' +
+        'as can any other name it places twice in one scope; ' +
+        `${decoded.multi_defined_refs} reference(s) to them are left without a ` +
+        'lane B answer rather than guessed (ADR-150, C-170)'
+      : 'a class template and its specialisations, or overloads ' +
+        "scip-clang's signature hash does not tell apart, share one moniker; " +
+        `${decoded.multi_defined_refs} reference(s) to them are left without a ` +
+        'lane B answer rather than guessed (ADR-113)'
     out.push({
       stage: 'scip-decode',
       message:
         `${decoded.multi_defined.length} symbol(s) are defined at more than one ` +
-        `line of one file (e.g. ${sample}) — a class template and its ` +
-        "specialisations, or overloads scip-clang's signature hash does not tell " +
-        `apart, share one moniker; ${decoded.multi_defined_refs} reference(s) to ` +
-        'them are left without a lane B answer rather than guessed (ADR-113)',
+        `line of one file (e.g. ${sample}) — ${shape}`,
     })
   }
   if (config.language === 'rust') {
@@ -1683,7 +1696,8 @@ function runStep(step) {
 }
 
 /** C's decode rules (ADR-109) — C++ takes all three and adds three
- * (ADR-113 §2); every other language gets none.
+ * (ADR-113 §2); Python takes one rule of its own and none of C's
+ * (ADR-150); every other language gets none.
  *
  * scip-clang names a macro by where it is defined, not by what it is
  * called (`` cxx . . $ `cJSON.h:281:9`! ``), so no call site could ever
@@ -1691,6 +1705,12 @@ function runStep(step) {
  * location outside the repo (a libc macro) keeps the moniker's own form,
  * which matches nothing, and stays external. */
 export function decodeOptions(config) {
+  // Python abstains on a moniker one file defines at several lines, and
+  // takes nothing else: scip-python names a def nested in a method by the
+  // class and its own name, so sibling methods' same-named nested defs are
+  // one moniker over two definitions, and the smallest line is a guess
+  // (ADR-150, C-170). C's own rules read C's linkage and are not Python's.
+  if (config.language === 'python') return { abstainMultiDefined: true }
   if (config.language !== 'c' && config.language !== 'cpp') return {}
   const lines = new Map()
   const nameOf = (symbol) => {
@@ -1712,9 +1732,11 @@ export function decodeOptions(config) {
     nameOf,
     ownFile: true,
     oneTargetPerSite: true,
-    // C++ alone abstains on a moniker one file defines at several lines,
-    // and on a site whose references name more than one overload; C takes
-    // the smallest line in both (ADR-113 §2, ADR-109 amended).
+    // Of the two languages here C++ alone abstains on a moniker one file
+    // defines at several lines — Python abstains on it too, above, for a
+    // reason of its own — and C++ alone abstains on a site whose references
+    // name more than one overload; C takes the smallest line in both
+    // (ADR-113 §2, ADR-109 amended).
     ...(config.language === 'cpp'
       ? {
           constructorOverClass: true,
