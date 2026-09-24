@@ -13,6 +13,15 @@ deterministically. The fields the graph and the teacher own are present and `nul
 
 A record never carries the target's path: `file` is relative to the target's root, and the checkout a
 record was built from is not part of the task. Two checkouts of the same SHA must give the same bytes.
+
+**Two preludes, and why.** `prelude` is the file's text above the signature, which is what a model
+reading the punched file would see — and on a real kernel file that text *contains the sibling cells'
+bodies*. For C-0, the arm that is supposed to carry no pattern, handing that over would be handing over
+the pattern: the five siblings one axis step away are the shots C-2 is meant to add (session `2fd4`'s
+review found this in the brief). `prelude_bare` is the same text with every other lattice cell's body
+replaced by `;`, so each reads as a prototype. Non-cell helpers keep their bodies — a static `hsum256_ps`
+is a fact about the file the model must be able to call, not a pattern shot — and macros and includes
+are untouched.
 """
 
 from __future__ import annotations
@@ -21,10 +30,10 @@ import json
 
 from .cells import Cell, Lattice
 
-__all__ = ["SCHEMA", "build", "dumps"]
+__all__ = ["SCHEMA", "build", "dumps", "prelude_bare"]
 
 #: the record's version. A field added or a meaning changed bumps it.
-SCHEMA = "lattice-task/1"
+SCHEMA = "lattice-task/2"
 
 
 def build(lattice: Lattice, cell: Cell) -> dict:
@@ -50,6 +59,7 @@ def build(lattice: Lattice, cell: Cell) -> dict:
         "graded_via": [list(slot) for slot in cell.graded_via],
         "neighbours": [neighbour.id for neighbour in lattice.neighbours(cell)],
         "prelude": source.text[: cell.signature_span.start],
+        "prelude_bare": prelude_bare(lattice, cell),
         "helpers": helpers,
         "macros": list(source.scanned.defines),
         "callees": None,
@@ -57,6 +67,26 @@ def build(lattice: Lattice, cell: Cell) -> dict:
         "edge_cases": None,
         "like": None,
     }
+
+
+def prelude_bare(lattice: Lattice, cell: Cell) -> str:
+    """The C-0 context above *cell*, with every other lattice cell reduced to its prototype.
+
+    Each other cell's `{` … `}` — and the whitespace between its signature and that `{` — becomes a
+    single `;`, so `float float32_distance_dot_avx2 (…)\\n{ … }` reads `float … (…);`. Everything else
+    is the file's own bytes: the includes, the externs, the macros, the static helpers with their
+    bodies, and the comments the author wrote.
+    """
+    source = lattice.sources[cell.isa]
+    text = source.text[: cell.signature_span.start]
+    above = [
+        other
+        for other in lattice.cells.values()
+        if other.isa == cell.isa and other.id != cell.id and other.body_span.end <= cell.signature_span.start
+    ]
+    for other in sorted(above, key=lambda c: c.body_span.start, reverse=True):
+        text = text[: other.signature_span.end] + ";" + text[other.body_span.end :]
+    return text
 
 
 def dumps(record: dict) -> str:
