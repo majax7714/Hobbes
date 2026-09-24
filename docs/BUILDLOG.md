@@ -14175,3 +14175,34 @@ export byte for byte). C-170 was registered (surfaced), with HISTORY; oracle-gra
 §10.36, flask's cell record, the architecture (the provider-limits paragraph, §3.8's
 Python row, the §8 header), CHANGELOG, README, CLAUDE.md/AGENTS.md, workstreams and the
 handoff were updated. The tracker reads 74 of 40, and the image was rebuilt at 0.2.70-beta.
+
+## 2026-09-24 (sixteenth session) — the top-level docs read again; the Calvin experiments programme proposed (a model that writes C, from sqlite-vector)
+
+**The review (Max: "review top level documentation").** README, CLAUDE.md/AGENTS.md (still
+byte-identical), the handoff, the Calvin charter, harness and keyed-round records, the TTT
+results and Atlas-0 were read at 0.2.70-beta. They agree with the tree, except for one line
+that drifted again: README's "ADR-001 to ADR-149" (the tree has 150; the fifteenth session
+fixed it to 149, and ADR-150 landed after). Fixed. Noted and not changed: the harness
+page's status line still counts "twenty-nine dispatched sessions through 0.2.21-beta" (the
+tracker is the count); Atlas-0's header reads "proposed" where CLAUDE.md reads it held; and
+Atlas-0 and the charter name `calvin-m0-socket(-v2).md`, which never existed in this tree
+(the charter's header comment explains the v1 title).
+
+**The programme (Max: "setup an overall calvin experiments file … where to progress is up
+to you").** `docs/calvin/calvin-experiments.md`, proposed, no spend. Its rule is the one
+ADR-099 half-measured: skill (the language, its patterns) may live in the weights, and the
+target's facts come from the ledger every time. That reading keeps the charter's §7. The
+target is sqlite-vector, because its cell is 100/100, so the graph can grade code a model
+writes. Read from the bench clone at `0c2223a`: each of the six kernel files hand-writes the
+same 31 names (5 types × {`_impl`, `l2`, `l2_squared`, `l1`, `dot`, `cosine`} + `bit1`
+`hamming`; 21 real bodies, 10 two-line wrappers), filling one `dispatch_distance_table`.
+`distance-cpu.c` is a scalar reference, so every cell has a numeric differential. The host
+has AVX2 and AVX-512, so 93 cells run natively in the image. The page lays out the axes
+(model, teacher, context, ladder L0–L4, graders), experiments E0–E7, the proposed order
+(E0 instruments with no spend → E1 the lattice, pattern vs facts vs volume, ≈ $3–6 of a
+$10 ceiling → the branch E1 selects), and four decisions for Max (D-1 to D-4). Flagged in
+it: Claude as a teacher of training data is a terms question (as understood, outputs may not
+train a competing model), so the recommended route is Claude at inference only. Linked from
+README's docs table, CLAUDE.md/AGENTS.md (the read-next row, "Open for Max"), and the
+handoff's standing items and held list. No version bump (ADR-103: experiments are not
+versioned). pytest's doc-reading cases (tracker, tally, version, staging) 45 of 45.

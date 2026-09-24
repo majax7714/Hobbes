@@ -445,6 +445,14 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **The Calvin experiments programme** (proposed 2026-09-24, sixteenth
+     session; [`calvin/calvin-experiments.md`](calvin/calvin-experiments.md)):
+     a model that writes C, starting from sqlite-vector's SIMD kernel
+     lattice (31 names × 6 ISAs, the scalar file as the numeric oracle).
+     Its §9 holds D-1 to D-4. The recommended routes: Calvin under
+     "skill in the weights, facts in the ledger"; Claude as a teacher
+     at inference only; E0 (the instruments) with no spend, then E1 at
+     a $10 ceiling. Nothing is built until Max answers.
    - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
      ADR-144) is built; each ADR carries his word. Standing from them:
      constructions inside a template stay `uses`; §3.8's paragraphs stay
@@ -605,7 +613,8 @@ min each.
 
 **Held, with all spend:** the Atlas-0 T items; the TTT adapter points;
 the removal A/B re-run on the 7B; a second unseen repo through the cell;
-DeepSWE's decomposed protocol; `hobbes narrate` on this repo. The keyed Calvin runs are closed, not
+DeepSWE's decomposed protocol; `hobbes narrate` on this repo; the Calvin
+experiments' E1–E5 (`calvin-experiments.md`, proposed). The keyed Calvin runs are closed, not
 held.
 
 ## STANDING POLICY (Max) — read before doing anything

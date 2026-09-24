@@ -72,7 +72,7 @@ box, against a repo on disk (architecture §10); the application mode in
 | You are…                                  | Read                                                                 |
 |-------------------------------------------|----------------------------------------------------------------------|
 | resuming the active programme             | `docs/session-handoff.md` → `docs/calvin/calvin-harness.md` (ADR-107) |
-| working on or through the Calvin harness  | `docs/calvin/calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `docs/calvin/sessions/`; the role is `docs/calvin/calvin-charter.md`. The closed keyed rounds are history: `calvin-potential.md` (M0), `calvin-m0-go.md` + `calvin-m0-go-r2.md` (M0-Go), `calvin-m0-gate.md` (M0-Gate), their cells in `docs/calvin/cells/` |
+| working on or through the Calvin harness  | `docs/calvin/calvin-harness.md` (§2 the stack, §4 the validation rule) + the per-session logs in `docs/calvin/sessions/`; the role is `docs/calvin/calvin-charter.md`. The closed keyed rounds are history: `calvin-potential.md` (M0), `calvin-m0-go.md` + `calvin-m0-go-r2.md` (M0-Go), `calvin-m0-gate.md` (M0-Gate), their cells in `docs/calvin/cells/`. The model programme (proposed, nothing run) is `calvin-experiments.md` |
 | picking up an item from the backlog       | `docs/workstreams.md` (W0–W5), then the entry it cites               |
 | touching extraction or the graph          | architecture §3 + `docs/extraction-evidence.md` + `docs/constraints/README.md` |
 | touching sessions, policy or the sandbox  | architecture §6.3 and §7 + ADR-018, ADR-092, ADR-100, ADR-107        |
@@ -314,8 +314,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   right-by-order removed (§10.36). **Next:** the candidates in the
   handoff (route c, a lane A rule for those sites, among them), each
   measured first.
-- **Open for Max:** ADR-126 §3 — whether to build a "may reach through
-  dispatch (not traced)" section on §10.12's numbers (it needs a syntax
+- **Open for Max:** the Calvin experiments programme's D-1 to D-4
+  (`docs/calvin/calvin-experiments.md` §9, proposed 2026-09-24: a model
+  that writes C, starting from sqlite-vector; E0 spends nothing);
+  ADR-126 §3 — whether to build a "may reach through dispatch (not
+  traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:
   "fine for now").
 - **Spend:** API and Modal spend only when Max names a run and its
