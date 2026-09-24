@@ -1579,7 +1579,7 @@ export function degradations(index, decoded, config) {
     const shape = config.language === 'python'
       ? 'scip-python names a def nested in a method by its class and its own ' +
         'name, so same-named nested defs in sibling methods share one moniker, ' +
-        "as do an @overload's stubs, a property's setter and a conditional def; " +
+        'as can any other name it places twice in one scope; ' +
         `${decoded.multi_defined_refs} reference(s) to them are left without a ` +
         'lane B answer rather than guessed (ADR-150, C-170)'
       : 'a class template and its specialisations, or overloads ' +

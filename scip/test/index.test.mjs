@@ -750,6 +750,10 @@ test("the Python degradation record names scip-python's shape, not scip-clang's 
   assert.match(record.message, /1 reference\(s\) to them are left without a lane B answer/)
   assert.match(record.message, /\(ADR-150, C-170\)$/)
   assert.doesNotMatch(record.message, /scip-clang/, "C++'s reason is not Python's")
+  // scip-python 0.6.6 emits one definition for a property's getter and
+  // setter, an @overload's stubs and an if/else def (read in the image), so
+  // none of them is a multi-defined moniker and the record names none.
+  assert.doesNotMatch(record.message, /overload|setter/, 'only the shapes scip-python actually merges')
 })
 
 test('a Python namespace defined at two lines of one file is kept, at the smallest (ADR-150)', () => {
