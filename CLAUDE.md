@@ -116,7 +116,7 @@ box, against a repo on disk (architecture §10); the application mode in
   Fixture repos
   under `tests/fixtures/` (miniapp / minits / minigo / minirust /
   minijava / canary-rust / canary-java / goshapes / twomod / minic /
-  minicpp / minifixval / minideco), excluded from collection.
+  minicpp / minifixval / minideco / mininest), excluded from collection.
 - `tsextract/` — Node helper (ts-morph) emitting facts JSON for the join.
 - `scip/` — lane B's helper, `index.mjs` (it owns the SCIP decode:
   scip-java's typed ranges, C's rules from ADR-109), and spike evidence;
@@ -194,11 +194,11 @@ uv run hobbes dispatch --task-file t.md --secrets "$HOBBES_SECRETS"  # the Calvi
 uv run hobbes bench select|run|report # runs spend GPU/quota — see the standing policy
 ```
 
-Suite sizes at the last check (2026-09-22, 0.2.69-beta, the
-oracle lane with it): 2,400 pytest (16 `lane_b`) / 399 Go with subtests
+Suite sizes at the last check (2026-09-24, 0.2.70-beta, the
+oracle lane with it): 2,402 pytest (17 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 128 oracle-lane Go with subtests (116 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
-vitest / 47 tsextract + 94 scip node / 84 atlas0. Keep them green. CI
+vitest / 47 tsextract + 97 scip node / 84 atlas0. Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -214,7 +214,7 @@ is the developer's.
   Conventional commits, scoped: `feat(policy): …`, `fix(cli): …`,
   `test/docs/chore`.
 - One short ADR (`docs/adr/NNN-title.md`) for every design decision the
-  architecture doesn't already make. Number sequentially (last: 149;
+  architecture doesn't already make. Number sequentially (last: 150;
   106 is closed as *not taken*, its page says why).
 - **The Hobbes layer is versioned; the experiments are not** (ADR-103).
   Root `VERSION` is the one number (semver, 0.x, `-beta` while early;
@@ -268,7 +268,7 @@ is the developer's.
   validation instrument (by speed, not capability) and the 27B is not
   touched until the mapping fixes are validated on it.
 
-## Status (2026-09-22) — Hobbes 0.2.69-beta
+## Status (2026-09-24) — Hobbes 0.2.70-beta
 
 The headline only. The history is `CHANGELOG.md` and `docs/BUILDLOG.md`;
 the resume point, with everything held, is `docs/session-handoff.md`.
@@ -288,10 +288,10 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   at 0.2.50-beta), **strict 99.62%** — every quoted precision carries
   its strict companion, the rows the key declined to judge counted as
   contradicted (ADR-124). Trace-graded Python cells are recall, never
-  precision (C-60); flask's new key found **3 Hobbes-wrong `semantic`
-  edges** (a nested def resolved to a sibling test method's same-named
-  one, `oracle-grading.md` §10.35) — cause not read, not fixed.
-  **Register:** 169 entries; 123 active (95 surfaced, 24 partial, 3
+  precision (C-60); flask's key found 3 Hobbes-wrong `semantic` edges
+  and click's 1 more, all scip-python's one moniker for a method's
+  same-named nested defs, refused since 0.2.70-beta (ADR-150, C-170).
+  **Register:** 170 entries; 124 active (96 surfaced, 24 partial, 3
   unsurfaced, 1 n/a), 29 lifted; the tally is
   held by `test_register_tally.py`, its dated notes are
   `docs/constraints/HISTORY.md`.
@@ -299,19 +299,21 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   host's Claude Code in `hobbes-session` → gate → verify → one log in
   `docs/calvin/sessions/`. The tracker at the end of that directory's
   `README.md` (`pipeline/scripts/calvin_tracker.py render`, held by a
-  drift test; re-render after filling a review block) reads **73 of 40**
+  drift test; re-render after filling a review block) reads **74 of 40**
   sessions that validate the harness: 4 areas, 1 false block (`f3c1`,
   closed at 0.2.28-beta), 0 missed. It stays the way work is done.
-- **Latest — 0.2.69-beta, extraction first** (Max, 2026-09-20: "the
+- **Latest — 0.2.70-beta, extraction first** (Max, 2026-09-20: "the
   most annoying work to do but the most important"; "we never sacrifice
-  honesty for higher recall"). **ADR-145 amended** (unit `54cf`): a
-  fixture's value bound once to a local by a construction is read as the
-  construction, and a method a single, index-named base defines is
-  drawn. flask, keyed for it (a new py-trace cell): 1,121 → 1,521
-  confirmed (41.5% → 56.4%), 400 added, 329 inherited, 0 contradicted,
-  poison PASS, the probe's rows exactly (§10.35); click unchanged at
-  82.3%. **Next:** flask's 3 wrong edges (read the cause first), then the
-  candidates in the handoff, each measured first.
+  honesty for higher recall"). **ADR-150** (unit `4732`): scip-python
+  names a def nested in a method by its class and its own name, so
+  sibling methods' same-named nested defs share one moniker, and the
+  helper filed every reference under the first. A Python moniker one
+  file defines at several lines is now no lane B answer, as in C++.
+  flask 1,521 → 1,519 confirmed, 18 → 15 suspect; click 3,755 → 3,754,
+  21 → 20; 0 contradicted, poison PASS; exactly the 4 wrong edges and 3
+  right-by-order removed (§10.36). **Next:** the candidates in the
+  handoff (route c, a lane A rule for those sites, among them), each
+  measured first.
 - **Open for Max:** ADR-126 §3 — whether to build a "may reach through
   dispatch (not traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

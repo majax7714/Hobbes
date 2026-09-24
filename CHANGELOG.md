@@ -11,9 +11,32 @@ bumps patch; a capability bumps minor. The layer stayed on 0.1.x, patch
 by patch, through 0.1.23-beta (the third amendment, 2026-09-10; the
 earlier 0.11.0-beta statement withdrawn), and the Calvin harness moved
 it to 0.2.0-beta (the fourth amendment, 2026-09-12). Tags are his call
-each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.69-beta
+each time (0.1.9-beta to 0.2.9-beta and 0.2.11-beta to 0.2.70-beta
 untagged; 0.2.10-beta is tagged `v0.2.10-beta`, on Max's word at the
 close of 2026-09-13).
+
+## 0.2.70-beta — 2026-09-24 (a Python moniker one file defines at several lines is no lane B answer; ADR-150, C-170)
+
+**Patch: what the layer draws and says** — Python lane B, in the helper's decode. Built as
+unit `S-20260924T212441Z-4732`; one wording defect fixed at its review.
+
+- **The cause.** flask's key found three `semantic` edges Hobbes drew wrong (0.2.69-beta,
+  cause unread). scip-python names a def nested in a method by its class and its own name,
+  and drops the function scopes between. So every `generate` that `TestStreaming`'s
+  methods nest is one moniker, `TestStreaming#generate().`, over several definitions. The
+  helper kept such a moniker at its smallest line in every language but C++, so each
+  reference went to the first def. click had a fourth edge of the same shape
+  (`core.py:1888` → `Group.command`'s `decorator`).
+- **The rule.** Python takes C++'s abstention (ADR-113 §2). A moniker one file defines at
+  more than one line has no definition in the decode. Its references are in-repo external
+  references, so ADR-111's veto does not fire. The `scip-decode` record counts them in
+  Python's own wording. A property's getter and setter, an `@overload`'s stubs and an
+  `if`/`else` def are one definition in scip-python's index, and do not change.
+- **Measured.** flask 1,521 → 1,519 confirmed (56.4% → 56.3%), 18 → 15 suspect. click
+  3,755 → 3,754, 21 → 20 suspect. 0 contradicted, poison PASS. Exactly seven edges
+  removed: the four wrong ones, and three right only by order (`oracle-grading.md`
+  §10.36). Lane A does not draw them back.
+- **Registered:** C-170 (P9, scip-python 0.6.6), surfaced.
 
 ## 0.2.69-beta — 2026-09-22 (the fixture value through a local, and an inherited method; ADR-145 amended, C-4 narrowed)
 

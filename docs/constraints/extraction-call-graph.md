@@ -538,6 +538,33 @@
   syntax providers would narrow it further.
 - **Source:** ADR-045; surfacing ADR-053.
 
+### C-170 — A Python name scip-python gives one moniker at several lines of a file has no lane B answer
+- **Cannot tell you:** which definition a reference means where scip-python gives one
+  moniker to several definitions in one file. The site draws no `semantic` edge. Lane A
+  has no floor for a bare-name call to a nested def, so the site is not drawn at all.
+  Nothing is guessed.
+- **Because:** scip-python names a def nested in a method by its class and its own name,
+  and drops every function scope between them (read on a ten-line fixture in the image,
+  2026-09-24). So same-named nested defs in sibling methods share one moniker. flask's
+  `TestStreaming` tests are an example: each nests `index` → `generate`. A class
+  attribute placed twice in one scope, or a method defined twice in one class body, does
+  the same. (A property's getter and setter, an `@overload`'s stubs and an `if`/`else`
+  def are **one** definition in its index, so they are not affected.) Until 0.2.70-beta
+  the helper kept such a moniker at its smallest line, as C does (ADR-109). Every
+  reference was filed under the first definition: 4 wrong `semantic` edges on the graded
+  cells (flask `tests/test_helpers.py` 251, 281 and 310; click `src/click/core.py` 1888),
+  and 3 right only by the order they came in.
+- **Bites at:** a method's same-named nested defs: flask 9 monikers (its `App`,
+  `Blueprint` and `Scaffold` each nest several `decorator`s), click 2, attrs 20, this repo
+  10. The three right edges went with the four wrong ones. flask read 1,521 → 1,519
+  confirmed and click 3,755 → 3,754, each at 0 contradicted (ADR-150).
+- **You find out:** **surfaced** — one `scip-decode` degradation record per ingest, in
+  Python's own wording, counts the monikers and the references left without an answer,
+  with examples.
+- **Provider (P9):** scip-python **0.6.6**, its descriptor for a def nested in a method.
+- **Source:** flask's key (`oracle-grading.md` §10.35, §10.36); ADR-150;
+  `~/.hobbes/bench/py-multidef/`.
+
 ---
 
 ## Lifted constraints in this segment

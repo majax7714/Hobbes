@@ -2395,7 +2395,8 @@ through attributes and parameters (C-58).
 It was picked for the shape, not drawn: flask's `app` fixture is `app = Flask(…); … return
 app`. At 0.2.68-beta: 1,330 edges, **1,121 of 2,698 (41.5%)**, 18 suspect, poison PASS. **Three
 of the 18 suspects are Hobbes-wrong** (`tests/test_helpers.py` 251, 281, 310: a nested def
-resolved to a sibling test method's same-named nested def; cause not yet read); the other 15
+resolved to a sibling test method's same-named nested def; cause not yet read — read in
+§10.36); the other 15
 are C-60's override asymmetry.
 
 **Probed twice, in memory.** `simulate_local.py` (ast, the cached facts; `own_nodes` fixed
@@ -2425,6 +2426,38 @@ Other languages not regraded: Python only, after the projection. Left on flask's
 misses (263): `with app.app_context():` → `AppContext.__exit__` 54, `FlaskClient.__exit__`
 26, `return app.test_client()`'s value (a method's return; most of its targets are
 werkzeug's).
+
+### 10.36 A moniker scip-python gives several definitions in one file — the cause read on a fixture, the rule probed as worded before the ADR; this section written after the regrade (ADR-150; unit `4732`)
+
+**The cause.** flask's three Hobbes-wrong suspects (§10.35) are scip-python's descriptor. It
+names a def nested in a method by its class and its own name: `TestStreaming#generate().` is
+every `generate` any `TestStreaming` method nests. A ten-line fixture indexed in the image
+showed two definition occurrences of one moniker. The helper kept a moniker one file
+defines at several lines at its smallest line in every language but C++, so each reference
+was filed under the first def. Reading click's rows for the same shape found a fourth:
+`src/click/core.py:1888`, in `Group.group`'s `decorator`, → `Group.command`'s at 1830
+(observed 1882), one of its 21 suspects.
+
+**Measured over the raw index** (`~/.hobbes/bench/py-multidef/`, `classify.py`, graph kinds
+only): flask 9 monikers, click 2, attrs 20, this repo @ `2c915a8` 10, nearly all a method's
+same-named nested defs. A property's getter and setter, an `@overload`'s stubs and an
+`if`/`else` def are **one** definition in scip-python 0.6.6's index, so they are not affected.
+Graded rows riding on a smallest line: flask 2 confirmed + 3 suspect, click 1 + 1, this repo 0.
+
+**Probed as worded, then built** (Python takes C++'s `abstainMultiDefined`; stored keys, `--poison`):
+
+| cell | confirmed | suspect | contradicted | poison |
+|---|---|---|---|---|
+| flask, 0.2.69-beta → **0.2.70-beta** | 1,521 → **1,519** (56.4% → 56.3%) | 18 → **15** | 0 → 0 | PASS |
+| click (`click-py-r3`), 0.2.69-beta → **0.2.70-beta** | 3,755 → **3,754** (82.3%) | 21 → **20** | 0 → 0 | PASS |
+
+Signed direction of fix: confirmed **−3** (flask −2, click −1; each right only by being the
+first def), suspect **−4** (the four Hobbes-wrong rows), rows added **0**, syntactic confirmed
+**±0**. The exports differ by exactly the seven `semantic` edges, and flask's built export is
+the probe's byte for byte. Lane A draws none of the sites back: it has no floor for a bare
+call to a nested def (ADR-150's route c, a recall rule to measure on its own). The ingest's
+`scip-decode` record counts 9 (flask) and 2 (click), matching the raw count. Python only.
+Other languages' decode options are unchanged, so no other cell was regraded.
 
 ## 11. Evidence, claims, and register updates
 

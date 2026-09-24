@@ -1,18 +1,18 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-22 (fourteenth session); Hobbes 0.2.69-beta on `main`.**
+**Reviewed 2026-09-24 (fifteenth session); Hobbes 0.2.70-beta on `main`.**
 Max pushed through the twelfth session's last commit (`57e4be2`,
-0.2.67-beta); what the thirteenth and fourteenth add (ADR-149, 0.2.68-beta;
-ADR-145 amended and the flask key, 0.2.69-beta) is on `main`, unpushed. The
-image and the proxy are at 0.2.69-beta and this repo is ingested at that
-release. A new
+0.2.67-beta); what the thirteenth to fifteenth add (ADR-149, 0.2.68-beta;
+ADR-145 amended and the flask key, 0.2.69-beta; ADR-150, 0.2.70-beta) is on
+`main`, unpushed. The image and the proxy are at 0.2.70-beta and this repo
+is ingested at that release. A new
 session's knowledge server is a new container from the current image
 (`sandbox/knowledge-serve` runs `podman run --rm`), so it is fresh;
 the restart after a rebuild is the closing session's last step, never a
 line carried here.
 - **Tags:** `v0.2.10-beta` is the latest tag (Max, 2026-09-13). The one
   before it is `v0.1.8-beta`. 0.1.9-beta to 0.2.9-beta and 0.2.11-beta to
-  0.2.69-beta are untagged. Tags stay Max's call each time.
+  0.2.70-beta are untagged. Tags stay Max's call each time.
 - **Numbering** (Max; ADR-103's fourth amendment and its notes): patch
   by patch on 0.2.x, and the patch number counts on past nine
   (0.2.10-beta, not 0.3.0). A language addition is a patch, even when it
@@ -29,7 +29,7 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-22, fourteenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-24, fifteenth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
@@ -118,14 +118,29 @@ the most important for hobbes"; "we never sacrifice honesty for higher recall".*
   built cells, `units/`; its worktree was removed). The key and the clone:
   `~/.hobbes/bench/oracle/flask-py/`, `~/.hobbes/bench/oracle/repos/flask` (its `.venv`
   from `uv sync --group tests --python 3.12`).
-- **First, and precision (found at flask's key, not fixed):** three `semantic` edges in
-  flask are **wrong** — `tests/test_helpers.py` 251, 281, 310: `TestStreaming`'s methods
-  each nest `index` → `generate` (or `gen`), each a distinct symbol, and the three sites
-  name a *sibling* method's def (the first of the same-suffix defs). Read the cause
-  before any rule: the raw SCIP in the image for a ten-line fixture (two methods, each
-  nesting `index` → `generate`), then the join's claim for a local/nested symbol. Then
-  measure how many such rows other cells carry (any Python cell whose tests nest
-  same-named defs in sibling methods). Honesty outranks the recall queue below.
+- **Done (ADR-150, 0.2.70-beta, unit `4732`, 54 turns of 100, $3.13; Max: "proceed with
+  recommended"):** flask's three wrong `semantic` edges were scip-python's descriptor. It
+  names a def nested in a method by its class and its own name, so sibling methods'
+  same-named nested defs share one moniker, and the helper kept a moniker one file
+  defines at several lines at its smallest line. Python now abstains as C++ does. flask
+  1,521 → 1,519 confirmed and 18 → 15 suspect; click 3,755 → 3,754 and 21 → 20 (its
+  `core.py:1888` was a fourth wrong edge); 0 contradicted, poison PASS. Exactly seven
+  edges removed: the 4 wrong, and 3 right only by order (§10.36). C-170 registered. **The
+  review fixed the brief's own error** (`e47b35b`): the record named `@overload` stubs,
+  property setters and conditional defs, but scip-python 0.6.6 emits **one** definition
+  for each (a fixture in the image). My first classifier had counted parameter monikers;
+  ADR-150's table is corrected in place. Drivers `~/.hobbes/bench/py-multidef/`
+  (`index.sh` raw scip-python in the image, `dump.mjs`, `classify.py` shapes by `ast` —
+  **filter out parameter monikers** (`(x)` descriptors) before reading it, `rows.py`
+  report join, `cells.tsv`, `probe/` the one-line rule, `built/` the built cells,
+  `RESULTS.md`, `units/`; `wt/` is the probe worktree, removable). **The flask and click
+  clones' `.hobbes/derived/` hold the built branch's graph** (the same as `main`'s code).
+- **Next candidate — route c (ADR-150), measured first:** lane A drawing a bare-name call
+  to the one def of that name in the enclosing function's own body, `syntactic`. Its
+  ceiling on the keys is the seven sites (flask 237, 251, 281, 296, 310; click 1836,
+  1888), each at its own right def. Measure how many sites the rule would draw in every
+  Python cell, and whether any is wrong (a name rebound between def and call), before an
+  ADR.
 - **Also found:** `src/flask/sansio/` has no `__init__.py` (a PEP 420 namespace dir):
   lane A names its modules `app`, `scaffold`, and the `implements` join places `App →
   Scaffold` but not `Flask → App` (`graph["implements"]["outside"]` 79 on flask). Why is
@@ -476,7 +491,7 @@ named below was removed unless it says otherwise.
      while one is gating.
    - Clean up a killed session with `podman rm -f -t 0
      hobbes-side-<id>` and `podman network rm -f hobbes-int-<id>`.
-   - **The validating 40 are done:** the tracker reads 73 of 40, 4
+   - **The validating 40 are done:** the tracker reads 74 of 40, 4
      areas, 1 false block (`f3c1`, closed at 0.2.28-beta), 0 missed.
 3. **A regrade against stored keys:**
    - For one cell: re-ingest, `oracle export`, then `oracle grade
@@ -537,7 +552,7 @@ min each.
 2. **The cell's defect register** (D-1–D-5): which to fix first.
 3. **ADR-092's four embedded decisions.** Nothing blocks on them.
 
-## WHERE THINGS STAND (2026-09-22)
+## WHERE THINGS STAND (2026-09-24)
 
 - **Languages:** Python, TypeScript, Go, Rust, Java, C and C++ supported,
   each as far as its §3.8 row (P11); Terraform/HCL structure. JavaScript
@@ -547,14 +562,14 @@ min each.
 - **The Calvin harness** (ADR-107, ADR-112): each session's state is
   under `~/.hobbes/sessions/<id>/`, written by its sidecar
   `hobbes-side-<id>`; the doer mounts only `in/`, read-only, and its HOME
-  is a tmpfs. Seventy-three log files under `docs/calvin/sessions/`; the tracker reads 73 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
+  is a tmpfs. Seventy-four log files under `docs/calvin/sessions/`; the tracker reads 74 of 40 (4 areas, 1 false block, 0 missed; 1 deny).
 - **The comparative graphics** (`docs/comparative/graphics/`): four,
   from 96 cells (22 same-key rows, C++'s two among them; flask's new
   cell at 0.2.68-beta's figures); `render.py
   check` green.
 - **Atlas-0** (`bench/atlas0/`, 84 tests) and **TTT** (Modal apps
   deployed and idle): held.
-- **Register:** 169 entries: 123 active (95 surfaced, 24 partial, 3
+- **Register:** 170 entries: 124 active (96 surfaced, 24 partial, 3
   unsurfaced — C-19, C-20, C-112 — 1 n/a), 29 lifted, 11 superseded, 6
   folded. Its dated notes are `docs/constraints/HISTORY.md`.
 - **Oracle defect log: nothing open** (H-36, a `<genexpr>` frame keyed as a call,
@@ -562,11 +577,11 @@ min each.
   H-28–H-32 on 2026-09-16; `docs/oracle/oracle-defects.md`). RC-4 still
   carries its price: silencing is indiscriminate, and it hides 6 of
   C-153's rows.
-- **Suites** at 0.2.69-beta (2026-09-22; pytest and every `lane_b` test re-run and
-  green on the host, Go `./...` as at 0.2.66-beta, the scip node suite as at
-  0.2.62-beta, the rest as counted at 0.2.50-beta): 2,400
-  pytest (`lane_b` 16 of them), Go `./...` 399 with
-  subtests (398 pass / 1 skip), 94 scip node, 47 tsextract, 52 vitest,
+- **Suites** at 0.2.70-beta (2026-09-24; pytest, every `lane_b` test and the scip
+  node suite re-run and green on the host, Go `./...` as at 0.2.66-beta, the rest as
+  counted at 0.2.50-beta): 2,402
+  pytest (`lane_b` 17 of them), Go `./...` 399 with
+  subtests (398 pass / 1 skip), 97 scip node, 47 tsextract, 52 vitest,
   84 atlas0; oracle-lane Go 128 with subtests, 116 pass / 12 skip on
   this host, which has no clang++ or cmake (the five C++ fixture tests
   run and pass in the image; counted 2026-09-20).

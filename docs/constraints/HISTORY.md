@@ -6,6 +6,11 @@ tally, and this file keeps how it got there. A count inside a note is as
 of the note's date. Append a new note at the top; never edit an old one.
 The per-version record is [`CHANGELOG.md`](../../CHANGELOG.md).
 
+C-170 registered, 2026-09-24 (0.2.70-beta; ADR-150, Max: route a):
+- **C-170 added (surfaced).** scip-python gives same-named defs nested in sibling methods
+  one moniker; a Python moniker one file defines at several lines is now no lane B
+  answer, counted in a `scip-decode` record. 170 entries, 124 active (96 surfaced).
+
 C-4 narrowed, 2026-09-22 (0.2.69-beta; ADR-145 amended, Max: route a; no entry added):
 - **C-4 narrowed (still surfaced).** A fixture's value bound once to a local by a
   construction is read as the construction, and a method a single named base

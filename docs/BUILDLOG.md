@@ -14136,3 +14136,42 @@ lost, poison PASS — the probe's 400 row for row (§10.35); click unchanged on 
 attrs 0. C-4 narrowed and HISTORY, the architecture's paragraph, §3.8's Python row and the
 verification base (nine repos), §8 header, CHANGELOG, README, CLAUDE.md/AGENTS.md,
 workstreams; the tracker at 73 of 40; the image rebuilt at 0.2.69-beta.
+
+## 2026-09-24 (fifteenth session) — the top-level docs read; flask's three wrong edges read to their cause; a Python moniker one file defines at several lines is no answer (ADR-150, 0.2.70-beta)
+
+**The review (Max: "review top level documentation and report back with current
+status").** The top-level docs were consistent at 0.2.69-beta, except for two lines:
+README's "ADR-001 to ADR-145" (the tree has 149), and §8's harness row, which still read
+"validation by use under way… thirty-one session logs". Both fixed (`c4b4a44`; Max:
+"proceed with the doc fix and next item").
+
+**The cause read (the handoff's first item).** The flask clone's cached facts stream showed
+one moniker, `test_helpers/TestStreaming#generate().`, at one definition line (232), and
+each site's reference filed there. A ten-line fixture, indexed in the image with the host's
+pinned scip-python, showed why. A def nested in a method is named `T#generate().` with
+every function scope dropped, and two definition occurrences share one moniker. A def
+nested in a module-level function keeps its path. `decode` keeps a moniker one file
+defines at several lines at its smallest line in every language but C++
+(`abstainMultiDefined`, ADR-113 §2). `~/.hobbes/bench/py-multidef/`: raw indexes of flask,
+click, attrs and this repo at `2c915a8`; `classify.py` sorts the shapes by `ast`, and
+`rows.py` joins them to the reports. Only the nested shape carries graded rows: flask 2
+confirmed and 3 suspect, and click 1 and 1. The click suspect is **a fourth wrong edge**,
+`core.py:1888`. The rule as worded (one line in a scratch worktree, both keys regraded):
+flask 1,521 → 1,519 and 18 → 15, click 3,755 → 3,754 and 21 → 20, 0 contradicted, poison
+PASS. Exactly seven edges went, and lane A drew none back. Three routes; route a.
+
+**ADR-150 (Max: "proceed with recommended"), 0.2.70-beta.** ADR first (`26a14b9`). Unit
+`4732`: 54 turns, $3.13, 6 files (the helper, 3 scip cases, a `mininest` fixture and its
+`lane_b` case). Gate clear, verify pass. **The review found my own error in the brief and
+the ADR.** The first classifier counted parameter monikers, which the helper never keeps.
+So the ADR's table showed `@overload`, property and same-scope columns, and the brief's
+record wording named them. A second fixture in the image showed scip-python 0.6.6 emits one
+definition for a property's getter and setter, an `@overload`'s stubs, an `if`/`else` def
+and a module-level redefinition. The wording was fixed on the branch with an assertion
+that holds it (`e47b35b`), and ADR-150's table and route-b argument were corrected in
+place. The corrected counts match the ingest's own record: flask 9, click 2. Host:
+`lane_b` 17 of 17, pytest 2,402, scip node 97. The built cells equal the probe's (flask's
+export byte for byte). C-170 was registered (surfaced), with HISTORY; oracle-grading
+§10.36, flask's cell record, the architecture (the provider-limits paragraph, §3.8's
+Python row, the §8 header), CHANGELOG, README, CLAUDE.md/AGENTS.md, workstreams and the
+handoff were updated. The tracker reads 74 of 40, and the image was rebuilt at 0.2.70-beta.
