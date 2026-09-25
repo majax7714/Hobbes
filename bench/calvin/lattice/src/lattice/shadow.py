@@ -22,6 +22,12 @@ program *is* rather than what it is called:
   on clang's intrinsic. The graph names it as an in-repo macro, and it is; renaming it would send its
   calls to a definition that does not exist. :func:`self_referential` finds those off the `#define`
   itself, and they are `kept` as `external` because that is what they are.
+- **a name another file of the tree also declares**, outside the renamed files. `src/sqlite-vector.c`
+  writes `#define sqlite3_mutex_alloc(_type) NULL` under one `#if` arm; under `-DSQLITE_CORE` (the
+  target's `make unittest`) the same name is SQLite's own API, declared in `libs/sqlite3.h`. The ingest
+  built the other arm, so no external veto names it. :func:`declared_outside` reads every C file the
+  rename does not touch, and a name one of them writes in code or `#define`s is `kept` as
+  `declared-outside` (added at session `c141`'s review, where the first shadows failed to link on it).
 - **the extension's entry point**, `sqlite3_vector_init`, which SQLite looks up by name.
 - **`main`.**
 - **strings.** The SQL-visible names are string literals and the tests call through SQL, so a literal
@@ -217,8 +223,9 @@ def plan(target: Path | str, graph: dict, style: str) -> Plan:
     missing: list[str] = []
 
     external = sorted(set(_external(graph, missing)) | _self_referential_in(root))
-    held = set(external) | set(ENTRY_POINTS)
     symbols = _symbols(graph)
+    outside = sorted({symbol["name"] for symbol in symbols} & declared_outside(root))
+    held = set(external) | set(ENTRY_POINTS) | set(outside)
     renameable = [symbol for symbol in symbols if symbol["name"] not in held]
 
     if style == "descriptive":
@@ -230,7 +237,7 @@ def plan(target: Path | str, graph: dict, style: str) -> Plan:
     tokens = identifiers(root)
     _check(renames, tokens)
 
-    kept = _kept(root, symbols, held, external, tokens)
+    kept = _kept(root, symbols, held, external, tokens, outside)
     prefixed = tuple(old for old, new in renames.items() if new == f"sv_{old}")
     return Plan(
         style=style,
@@ -399,6 +406,29 @@ def _self_referential_in(root: Path) -> set[str]:
     return found
 
 
+def declared_outside(root: Path | str) -> set[str]:
+    """Every identifier the tree's C files *outside* the renamed set write in code or `#define`.
+
+    Comments and literals do not count (a word in `sqlite3.h`'s prose is not a declaration). Preprocessor
+    lines are read only for the names they `#define`, since :func:`scan.mask` blanks them. A graph symbol
+    in this set is one the rename must not touch: some other part of the build owns the name too.
+    """
+    from .scan import mask
+
+    root = Path(root)
+    renamed = set(_files(root))
+    found: set[str] = set()
+    for pattern in ("**/*.c", "**/*.h"):
+        for path in sorted(root.glob(pattern)):
+            rel = path.relative_to(root)
+            if not path.is_file() or str(rel) in renamed or _NOT_COPIED & set(rel.parts):
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            found |= {m.group(0) for m in _IDENT.finditer(mask(text))}
+            found |= {d.group(1) for line in _logical_lines(text) if (d := _DEFINE.match(line.lstrip()))}
+    return found
+
+
 def _files(root: Path) -> list[str]:
     """The repo-relative files a rename is applied to, in a fixed order."""
     found: list[str] = []
@@ -420,7 +450,9 @@ def _check(renames: dict[str, str], tokens: set[str]) -> None:
             raise Collision(f"{old!r} would become {new!r}, which the tree already writes")
 
 
-def _kept(root: Path, symbols: list[dict], held: set[str], external: list[str], tokens: set[str]) -> tuple[dict, ...]:
+def _kept(
+    root: Path, symbols: list[dict], held: set[str], external: list[str], tokens: set[str], outside: list[str] = ()
+) -> tuple[dict, ...]:
     """Every in-repo identifier the plan leaves unchanged, with the reason it did.
 
     The graph's own held-back names come first, then the declarations and enum constants the scanner
@@ -438,6 +470,8 @@ def _kept(root: Path, symbols: list[dict], held: set[str], external: list[str], 
         add(name, "external")
     for name in ENTRY_POINTS:
         add(name, "entry-point")
+    for name in outside:
+        add(name, "declared-outside")
     for declared in _declared_in_tree(root):
         if declared in held or declared in named:
             continue

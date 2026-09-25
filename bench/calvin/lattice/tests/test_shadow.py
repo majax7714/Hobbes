@@ -328,3 +328,25 @@ def test_the_grading_seam_puts_the_two_names_back(plans):
         assert (grade.build_lattice, diff.driver_source) != before
         assert "init_distance_functions_avx2" not in diff.driver_source()
     assert (grade.build_lattice, diff.driver_source) == before
+
+
+def test_a_name_another_file_declares_is_kept_not_renamed(tmp_path):
+    """Session c141's review: `sqlite3_mutex_alloc` is an in-repo macro on one `#if` arm and SQLite's API on
+    the other, declared in `libs/sqlite3.h`. The first real shadows renamed it and failed to link."""
+    (tmp_path / "src").mkdir()
+    (tmp_path / "libs").mkdir()
+    (tmp_path / "src" / "a.c").write_text(
+        "#if defined(NO_THREADS)\n#define api_alloc(_t) 0\n#endif\n"
+        "int own_helper(int x) { return x; }\n"
+        "int use(void) { return api_alloc(1) + own_helper(2); }\n"
+    )
+    (tmp_path / "libs" / "api.h").write_text("/* own_helper is only named in this comment */\nint api_alloc(int);\n")
+    graph = {"symbols": [
+        {"id": "src/a.api_alloc", "name": "api_alloc", "kind": "macro", "line": 2, "module": "src/a"},
+        {"id": "src/a.own_helper", "name": "own_helper", "kind": "function", "line": 4, "module": "src/a"},
+        {"id": "src/a.use", "name": "use", "kind": "function", "line": 5, "module": "src/a"},
+    ]}
+    p = shadow.plan(tmp_path, graph, "opaque")
+    assert "api_alloc" not in p.renames
+    assert {"name": "api_alloc", "reason": "declared-outside"} in p.kept
+    assert "own_helper" in p.renames  # a word in another file's comment is not a declaration
