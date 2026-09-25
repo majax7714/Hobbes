@@ -302,6 +302,39 @@ def test_a_second_run_sends_nothing(tmp_path, lattice):
     assert again == first
 
 
+def test_a_paid_round_whose_grading_fails_is_answered_from_disk_on_resume(tmp_path, lattice):
+    """Session `66c5`'s review: the completions are written before grading, so a failed grade costs one call."""
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)), cost=0.25)
+
+    def broken(entries):
+        raise e1.GradeFailed("the image exited 125")
+
+    with pytest.raises(e1.GradeFailed):
+        e1.run(run_dir, FIXTURE, generate, broken, ceiling_usd=10.0)
+    assert len(generate.calls) == 1
+    assert e1.spent(run_dir) == 0.25
+    assert len((run_dir / e1.COMPLETIONS).read_text(encoding="utf-8").splitlines()) == 3  # greedy, a sample, the probe
+    assert not (run_dir / e1.ROWS).exists()
+
+    e1.run(run_dir, FIXTURE, generate, fake_grade(golds(lattice)), ceiling_usd=10.0)
+    assert len(generate.calls) == 1
+    assert e1.spent(run_dir) == 0.25
+    assert [row["class"] for row in rows(run_dir)] == ["pass", "pass"]
+
+
+def test_a_body_the_grader_does_not_answer_is_refused_and_no_row_is_written(tmp_path, lattice):
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    generate = FakeGenerator(lambda request: fenced(prompts.definition(lattice, cell)))
+    graded = fake_grade(golds(lattice))
+
+    with pytest.raises(e1.GradeFailed):
+        e1.run(run_dir, FIXTURE, generate, lambda entries: graded(entries)[1:], ceiling_usd=10.0)
+    assert not (run_dir / e1.ROWS).exists()
+
+
 def test_a_target_that_moved_since_the_plan_is_refused_before_anything_is_sent(tmp_path, lattice, monkeypatch):
     cell = lattice.get("avx2/int8/dot")
     run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))

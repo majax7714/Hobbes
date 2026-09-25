@@ -57,6 +57,7 @@ from .facts import Facts
 __all__ = [
     "CALLS",
     "CHARS_PER_TOKEN",
+    "COMPLETIONS",
     "GMEM",
     "GMEM_MAX_TOKENS",
     "ITERATE",
@@ -87,6 +88,12 @@ __all__ = [
 
 #: The run directory's five files.
 META, REQUESTS, ROWS, GMEM, CALLS = "meta.json", "requests.jsonl", "rows.jsonl", "gmem.jsonl", "calls.jsonl"
+
+#: The sixth: every completion a generator returned, written **before** anything is graded. A completion
+#: is what a run pays for, and grading runs in a container that can fail; a resume answers from this file
+#: first and sends only what it does not hold, so a failed grade never buys the same round twice
+#: (session `66c5`'s review).
+COMPLETIONS = "completions.jsonl"
 
 #: E1-d's sampling: greedy plus k samples at these settings, and 1,024 tokens to answer in.
 K = 5
@@ -420,20 +427,32 @@ def _call(
     round_: int,
     rows: dict[str, dict],
 ) -> None:
-    """One round: check the ceiling, generate once, extract, grade once, and write what came back."""
-    guess = estimate(model, pending)
-    already = spent(run_dir)
-    if already + guess["usd"] > ceiling_usd:
-        raise CeilingReached(
-            f"round {round_}: ${already:.4f} already spent plus an estimated ${guess['usd']:.4f} for "
-            f"{len(pending)} request(s) passes the ${ceiling_usd:.4f} ceiling; nothing was sent"
-        )
+    """One round: check the ceiling, generate once, extract, grade once, and write what came back.
 
-    started = time.time()
-    answer = generate(pending)
-    wall = round(time.time() - started, 3)
-    completions = _completions(answer)
-    reported = answer if isinstance(answer, dict) else {}
+    A request already answered in :data:`COMPLETIONS` (a paid call whose grading failed) is answered from
+    there and is neither sent nor priced again.
+    """
+    held = {row["id"]: row for row in _read(run_dir / COMPLETIONS)}
+    to_send = [request for request in pending if request["id"] not in held]
+    completions = {request["id"]: held[request["id"]] for request in pending if request["id"] in held}
+    if to_send:
+        guess = estimate(model, to_send)
+        already = spent(run_dir)
+        if already + guess["usd"] > ceiling_usd:
+            raise CeilingReached(
+                f"round {round_}: ${already:.4f} already spent plus an estimated ${guess['usd']:.4f} for "
+                f"{len(to_send)} request(s) passes the ${ceiling_usd:.4f} ceiling; nothing was sent"
+            )
+
+        started = time.time()
+        answer = generate(to_send)
+        wall = round(time.time() - started, 3)
+        answered = _completions(answer)
+        reported = answer if isinstance(answer, dict) else {}
+        # the paid part is on disk before anything else can fail: the completions, then the call's cost
+        _append(run_dir / COMPLETIONS, [answered[request["id"]] for request in to_send if request["id"] in answered])
+        _append(run_dir / CALLS, [_call_row(round_, to_send, answered, reported, guess, wall)])
+        completions.update(answered)
 
     new_rows: list[dict] = []
     probes: list[dict] = []
@@ -452,9 +471,13 @@ def _call(
 
     results = {result.get("id"): result for result in (grade(entries) if entries else [])}
     for row in new_rows:
+        if row["extract"]["body"] is None:
+            continue
         result = results.get(row["id"])
         if result is None:
-            continue
+            # a body the grader did not answer has no class, and a chain with no class would be retried
+            # as a failure; nothing of this round is written, and a resume grades it again for nothing
+            raise GradeFailed(f"the grader returned no result for {row['id']!r}")
         _merge(row, result)
 
     for row in new_rows:
@@ -463,7 +486,6 @@ def _call(
         _append(run_dir / ROWS, new_rows)
     if probes:
         _append(run_dir / GMEM, probes)
-    _append(run_dir / CALLS, [_call_row(round_, pending, completions, reported, guess, wall)])
 
 
 def _row(request: dict, got: dict) -> dict:

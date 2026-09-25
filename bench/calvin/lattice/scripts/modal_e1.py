@@ -142,8 +142,10 @@ def main(argv: list[str]) -> int:
         return 2
 
     requests = [json.loads(line) for line in open(args.requests, encoding="utf-8") if line.strip()]
+    started = time.time()
     with app.run():
         answer = generate.remote(args.model, requests)
+    wall = round(time.time() - started, 3)
 
     with open(args.out, "w", encoding="utf-8") as handle:
         for completion in answer["completions"]:
@@ -153,8 +155,14 @@ def main(argv: list[str]) -> int:
         "model": answer["model"],
         "requests": answer["requests"],
         "completions": len(answer["completions"]),
+        # `seconds` is the function's own time (the weight load and the batch). The call is priced on the
+        # host's wall around the remote call, which also holds the queue, the container's boot and the app's
+        # setup: an upper bound on the GPU time Modal bills, and a ceiling wants the high side (session
+        # `66c5`'s review). Modal's own bill is what the first unit is compared against.
         "seconds": answer["seconds"],
-        "cost": round(answer["seconds"] * USD_PER_SECOND, 6),
+        "wall_seconds": wall,
+        "cost": round(wall * USD_PER_SECOND, 6),
+        "cost_basis": "host wall around the remote call (an upper bound)",
         "usd_per_second": USD_PER_SECOND,
         "vllm": VLLM,
     }

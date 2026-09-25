@@ -339,7 +339,12 @@ the cells, `k`, the rounds, the target's SHA — never its path — the ledger's
 arm=model+prompt`), `requests.jsonl`, `rows.jsonl`, `gmem.jsonl` and `calls.jsonl`. **Resume is
 `rows.jsonl`**: a request whose id already has a row is never sent again, so a second `run` over a finished
 directory sends nothing, and a row is written only after its body is graded — a row is the record of a
-finished request, not of a started one. A resume against a **target that has moved** since the plan is
+finished request, not of a started one. **What was paid for is on disk first:** every completion a generator
+returns goes to `completions.jsonl`, and the call's cost to `calls.jsonl`, before anything is graded. A resume
+answers from that file before it sends anything, so a grade that fails in the image never buys the same
+round twice. A body the grader returns no result for is `GradeFailed`, and no row of that round is written
+(session `66c5`'s review). The Modal script prices a call on the host's wall around the remote call, an
+upper bound on the GPU time billed. A resume against a **target that has moved** since the plan is
 `TargetMoved` and not a resume: the prompts are one tree's bytes, and answering them against another would
 put two targets under one run's readings without either of them saying so. A completion goes through `extract`; a `None` body is a row of
 class **`no-body`** with extract's reason and is never graded. **Rounds 1 to 3 run for the iterate arms
