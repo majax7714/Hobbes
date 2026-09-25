@@ -443,6 +443,54 @@ card's guess. The first unit checks this price.
 - New verbs: `lattice prompts`, and `lattice e1 plan|run|report`.
 - Tests on the fixture and on the real target's record shapes.
 
+#### E1-g's record — the first unit (2026-09-25; Qwen2.5-Coder-7B, the `avx2` file, all five arms)
+
+The runner was built through two dispatched units, `8e50` (the arms, `extract`) and `66c5` (the loop, the report, the
+Modal script), with $17.42 of subscription usage between them. Each was checked on the real target before it was
+merged. `66c5`'s review fixed two defects: a paid round is now kept before it is graded, and a body the grader does not
+answer is refused. The run: 961 requests (930 chat, 31 G-mem), k = 5 plus greedy, and three iterate rounds on C-0 and
+C-3, at `0c2223a`. Everything is in `~/.hobbes/bench/calvin-lattice/e1/e1g-qwen-avx2/`, and the report is beside it.
+
+**The price.** **$0.74 in all**, against the $10 ceiling. That includes **$0.16 lost on the first call**: the call record's
+`completions` count overwrote the completion list in `modal_generator`, and the list sat in a temporary directory.
+That was fixed in `9df44a5` (each call's files are kept under the run's `modal-calls/`), and the loss is recorded in
+`calls.jsonl`. Round 0 cost $0.17 against an estimate of $0.73. vLLM ran at about 8.0k tokens/s in and 950 tokens/s
+out, and the mean completion was about 380 tokens. Each iterate round cost $0.10 to $0.17, most of it the cold start
+and the model load that every call pays. **Projected:** the rest of E1 (Qwen's `sse2` and `avx512`, then Olmo's three
+ISAs) is about $2 to $3 as run, and less if the ISAs share one call. That is well inside the ceiling.
+
+**The readings, on 21 real cells** (16 `body`, 5 `impl`). n is small, so these are one unit's figures and not
+findings:
+
+| arm | pass@1 (greedy) | pass@1 (sampled) | pass@5 | `invented`, round-0 rows of 126 |
+|---|---|---|---|---|
+| C-0 skill | 0.10 | 0.01 | 0.05 | 21 |
+| C-1 facts | 0.00 | 0.01 | 0.05 | 15 |
+| C-2 pattern | 0.19 | 0.13 | 0.33 | 22 |
+| C-3 both | 0.24 | 0.22 | 0.38 | 16 |
+| C-4 volume | 0.05 | 0.05 | 0.14 | 33 |
+
+- **C-2 − C-4 is positive:** +0.14 at pass@1 and +0.19 at pass@5. On this unit, pattern does work beyond volume.
+- **C-1 − C-0 is not:** the facts alone moved nothing, and greedy lost its two passes. That is the direction §12.3
+  warned of.
+- **Iteration adds little:** C-0 goes from 3 to 5 chains passing of 126 over three rounds, and C-3 from 28 to 34.
+- **The low-bit row** (9 cells) reads 0.33 at pass@1 on C-3 and 0 on C-0 and C-4.
+- **G-mem reads `unseen` on all 21 real bodies**, as the contamination facts predicted.
+- **The wrappers are reported apart.** Their pass@1 is 1.00 on C-1 and C-3 (the facts name the `_impl` they call),
+  0.80 on C-2, 0.20 on C-0 and 0.00 on C-4.
+
+**What the instruments showed on real rows, before anything was read** (each measured, none fixed in the run):
+1. **Parameter names.** 60 rows are `invented` because the model's own definition renamed the target's parameters,
+   and the body is grafted under the target's signature. The target is not uniform either: 27 of its 31 `avx2`
+   signatures use `v1, v2`, three use `a, b` and one uses `va, vb`. Mapped back and re-graded in the image, **none of the
+   53 remappable rows passes** (45 `compile`, 7 `wrong`, 1 `invented`). So the pass rates stand. The `invented` class,
+   and G-hsr's `other` bucket, are overstated by these rows.
+2. **Truncation.** 112 of 1,734 completions stopped at `max_tokens` = 1,024, and 62 of those are `no-body`. None is a
+   repetition loop. Only 17 are at round 0; 95 are in the iterate rounds, where the model adds prose. The round-0
+   figures are barely touched, but the iterate figures are, and they are a floor.
+3. **G-mem on a wrapper is not evidence.** With K = 2, a three-line wrapper's expected continuation is `}`, so all 10
+   read `memorised`. The probe needs a floor on the expected tokens.
+
 ### E2 — the rename shadow: memory or skill? (M-a, L0/L2, on the shadow)
 
 - **Question:** does E1's score survive when the in-repo names are ones the base has never

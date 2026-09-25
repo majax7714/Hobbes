@@ -14266,3 +14266,41 @@ are newer than 2026-06-30.
 It was reproduced in 14 lines and is recorded as a false block in `9326` and `c141`; the tracker reads 79 of 40
 with 3 false blocks. Not fixed; it is for Max to name. The target was re-ingested at 0.2.70-beta. README, CLAUDE.md
 and AGENTS.md, the handoff and the design's record are updated; there is no version bump (ADR-103).
+
+## 2026-09-25 (seventeenth session) — the top-level docs caught up; E1's runner designed, built in two units, and its first unit run (ADR-151)
+
+**The docs (Max: "review top level documentation").** Four lines had drifted since E0:
+- the session count (74 of 40 with 1 false block, where the tracker read 79 with 3) in CLAUDE.md, AGENTS.md and README;
+- README's experiments row ("nothing run");
+- the handoff's header, and its START HERE, which named only route c;
+- the harness page's status line.
+
+Fixed (`2efa903`).
+
+**E1's runner, designed on the real target (Max: "good to go with recommended routes").** Routes E1-a to E1-g are
+written under the E1 card. They were measured first, and the premise the card had wrong was the prompt size: C-0's
+median is about 1.2k tokens, a quarter of the guess. So E1 priced at about $1–3 against the $10 ceiling. The build
+went as two serial units, because E0's last unit had hit its turn cap:
+- **`8e50`**: the five arms, `extract`, and feedback naming its reference. 70 turns, $8.49, gate clear. The real
+  check made 465 prompts at the priced sizes, with no gold leak, C-4 matched on all 93 cells, and 186 of 186 golds
+  round-tripping.
+- **`66c5`**: the loop, the report and the Modal script. 71 turns, $8.94. The gate blocked it on the known decorator
+  false block, the third time. The review fixed two defects: a paid round is kept before it is graded, and an
+  unanswered body is refused. A scripted replay was then graded in the image over E1-g's real plan, and every class
+  came out as scripted.
+
+**E1-g, the first unit (Qwen2.5-Coder-7B, the 31 `avx2` cells, all arms; $0.74 of the $10 ceiling).**
+- **The first call's completions were lost.** `modal_generator` merged the call record's `completions` count over
+  the completion list, and the list was in a temporary directory. That was about $0.16, recorded in the run's
+  `calls.jsonl`, and fixed in `9df44a5`, with a test.
+- **The re-run.** Round 0 cost $0.17 against an estimate of $0.73.
+- **The readings, on 21 real cells:**
+  - pass@1 (greedy) is C-0 0.10, C-1 0.00, C-2 0.19, C-3 0.24 and C-4 0.05, and pass@5 is 0.05, 0.05, 0.33, 0.38 and
+    0.14. Pattern beats volume, and facts alone did not help.
+  - G-mem reads `unseen` on all 21.
+- **Three instrument limits found on the real rows**, each measured, and routed to Max rather than fixed:
+  - 60 rows are `invented` only by renamed parameters. None passes with the names mapped back.
+  - 112 completions were truncated at 1,024 tokens, mostly in the iterate rounds.
+  - G-mem on a wrapper is not evidence.
+
+The record is `calvin-experiments.md` §6, "E1-g's record". There is no version bump (ADR-103).

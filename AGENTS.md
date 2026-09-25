@@ -319,8 +319,11 @@ the resume point, with everything held, is `docs/session-handoff.md`.
 - **Calvin experiments** (ADR-151, `docs/calvin/calvin-experiments.md`):
   a model that writes C, starting from sqlite-vector's kernel lattice.
   E0, the instruments (`bench/calvin/lattice/`), was built and accepted
-  on the real target on 2026-09-25. E1's runner is next, with no spend
-  until its first unit is priced against the $10 ceiling.
+  on the real target on 2026-09-25. E1's runner was built the same day
+  (units `8e50` and `66c5`), and its first unit, E1-g (Qwen, `avx2`),
+  ran for $0.74 of the $10 ceiling. Pattern beat the volume control
+  (pass@1 0.19 against 0.05), and facts alone did not help. Widening
+  waits on Max, and on three instrument calls in the handoff.
 - **Open for Max:** the gate's false block on a new decorator naming a
   module-level value (sessions 9326 and c141; the handoff has it);
   ADR-126 §3 — whether to build a "may reach through dispatch (not

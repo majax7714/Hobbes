@@ -29,15 +29,18 @@ The history of 2026-09-17 to 2026-09-19 (ADR-131 to ADR-140,
 CHANGELOG; this file keeps only what the next session needs, and the
 drivers' paths below.
 
-## ⇢ START HERE NEXT SESSION (written 2026-09-24, fifteenth session)
+## ⇢ START HERE NEXT SESSION (written 2026-09-25, seventeenth session)
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
 
-**Two tracks are open.** The Calvin experiments' **E1 runner** (built with no spend, its
-first unit priced against the $10 ceiling before anything widens) is under standing
-item 1 below, and E0's record is `calvin-experiments.md` §6. On extraction, the next
-candidate is **route c** (below), measured first.
+**Two tracks are open.**
+- **The Calvin experiments' E1:** the runner is built (units `8e50` and `66c5`), and the first unit (E1-g) has run.
+  It spent $0.74 of the $10 ceiling, $0.16 of that lost to a defect that is now fixed. The record and the readings
+  are `calvin-experiments.md` §6, "E1-g's record". **Waiting on Max:**
+  - the word to widen: Qwen's `sse2` and `avx512`, then Olmo's three ISAs, at about $2 to $3;
+  - three instrument calls the real rows raised (routes in standing item 1).
+- **Extraction:** the next candidate is **route c** (below), measured first.
 
 - **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
   decorator is a call of what it names. The step-0 probe for Python's closure misses
@@ -450,6 +453,21 @@ named below was removed unless it says otherwise.
 ## Standing items (carried)
 
 1. **Open for Max (no spend):**
+   - **E1 after its first unit (2026-09-25, seventeenth session).** E1-g has run: Qwen2.5-Coder-7B, the 31 `avx2`
+     cells, all five arms, $0.74 in all. The record is §6, "E1-g's record", and the run is
+     `~/.hobbes/bench/calvin-lattice/e1/e1g-qwen-avx2/` (`lattice e1 report <dir>`). Before widening, three
+     instrument calls, each measured on the real rows (recommended first):
+     - **(1) Parameter names:** 60 rows are `invented` because the model renamed the target's parameters.
+       Re-graded with the names mapped back, none passes. **a:** keep grafting the body under the target's
+       signature, and count a name that is the model's own parameter as its own G-hsr bucket (`param`), not
+       as invented. b: grade the model's whole definition when its name and types match. c: leave as is.
+     - **(2) `max_tokens`:** 112 completions stopped at 1,024, 95 of them in the iterate rounds. **a:** 2,048 in
+       every round (the cost is small). b: raise it in the iterate rounds only.
+     - **(3) G-mem evidence:** a wrapper's expected continuation is `}`, and all 10 read `memorised`. **a:** set
+       `evidence: False` below 8 expected tokens.
+
+     Then widen: Qwen `sse2` and `avx512` in one call, then Olmo's three ISAs, at about $2 to $3 against the
+     remaining ceiling.
    - **The Calvin experiments programme** (proposed 2026-09-24, sixteenth
      session; [`calvin/calvin-experiments.md`](calvin/calvin-experiments.md)):
      a model that writes C, starting from sqlite-vector's SIMD kernel
