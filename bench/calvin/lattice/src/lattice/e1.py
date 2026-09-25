@@ -674,17 +674,22 @@ def replay_generator(path: Path | str) -> Callable[[list[dict]], dict]:
     return generate
 
 
-def modal_generator(model: str, script: Path | str) -> Callable[[list[dict]], dict]:
+def modal_generator(model: str, script: Path | str, keep: Path | str | None = None) -> Callable[[list[dict]], dict]:
     """The host side of E1-f: shell out to `scripts/modal_e1.py` and read the batch back.
 
     This package never imports `modal` — the script is a `uv run` script with its own dependencies, and a
     dispatched session has neither `modal` nor a route to it. The seam is a subprocess and a pair of JSONL
     files, which is also what makes a call replayable afterwards with :func:`replay_generator`.
+
+    **With *keep*, each call's files stay** in their own numbered directory under it (`call-0001/`, …), and
+    are never deleted: the completions a call paid for are on disk before this function parses them. The
+    first paid E1 call was lost to a parse error in exactly that gap (the review of E1-g's first run).
+    The call record's own counts never overwrite the completions: those are set last.
     """
     script = Path(script)
 
     def generate(requests: list[dict]) -> dict:
-        workdir = Path(tempfile.mkdtemp(prefix="lattice-modal-"))
+        workdir = _call_dir(keep)
         try:
             requests_file, out_file = workdir / "requests.jsonl", workdir / "completions.jsonl"
             call_file = workdir / "call.json"
@@ -703,11 +708,24 @@ def modal_generator(model: str, script: Path | str) -> Callable[[list[dict]], di
             if done.returncode != 0:
                 raise GenerateFailed(f"{script.name} exited {done.returncode}: {done.stderr[-2000:]}")
             call = json.loads(call_file.read_text(encoding="utf-8")) if call_file.exists() else {}
-            return {"completions": _read(out_file), **call}
+            return {**call, "completions": _read(out_file)}
         finally:
-            shutil.rmtree(workdir, ignore_errors=True)
+            if keep is None:
+                shutil.rmtree(workdir, ignore_errors=True)
 
     return generate
+
+
+def _call_dir(keep: Path | str | None) -> Path:
+    """A fresh directory for one generator call: a kept, numbered one under *keep*, or a temporary one."""
+    if keep is None:
+        return Path(tempfile.mkdtemp(prefix="lattice-modal-"))
+    keep = Path(keep)
+    keep.mkdir(parents=True, exist_ok=True)
+    number = 1 + max((int(p.name.split("-")[1]) for p in keep.glob("call-[0-9]*")), default=0)
+    workdir = keep / f"call-{number:04d}"
+    workdir.mkdir()
+    return workdir
 
 
 # MARK: - JSONL -

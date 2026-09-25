@@ -344,7 +344,7 @@ returns goes to `completions.jsonl`, and the call's cost to `calls.jsonl`, befor
 answers from that file before it sends anything, so a grade that fails in the image never buys the same
 round twice. A body the grader returns no result for is `GradeFailed`, and no row of that round is written
 (session `66c5`'s review). The Modal script prices a call on the host's wall around the remote call, an
-upper bound on the GPU time billed. A resume against a **target that has moved** since the plan is
+upper bound on the GPU time billed. `lattice e1 run --generator modal` keeps every call's files under the run's `modal-calls/call-NNNN/`, and never deletes them. The first paid call was lost to a parse error: the call record's count overwrote the completion list, and the list sat in a temporary directory. A resume against a **target that has moved** since the plan is
 `TargetMoved` and not a resume: the prompts are one tree's bytes, and answering them against another would
 put two targets under one run's readings without either of them saying so. A completion goes through `extract`; a `None` body is a row of
 class **`no-body`** with extract's reason and is never graded. **Rounds 1 to 3 run for the iterate arms

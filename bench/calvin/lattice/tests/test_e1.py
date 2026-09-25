@@ -7,6 +7,7 @@ real grader with `allow_host=True` — this package's fixture, which is not a ta
 
 import ast
 import json
+import subprocess
 import shutil
 from pathlib import Path
 
@@ -333,6 +334,27 @@ def test_a_body_the_grader_does_not_answer_is_refused_and_no_row_is_written(tmp_
     with pytest.raises(e1.GradeFailed):
         e1.run(run_dir, FIXTURE, generate, lambda entries: graded(entries)[1:], ceiling_usd=10.0)
     assert not (run_dir / e1.ROWS).exists()
+
+
+def test_the_modal_generator_keeps_its_files_and_the_call_record_never_overwrites_the_completions(tmp_path, monkeypatch):
+    """E1-g's first paid call was lost: the record's `completions` count overwrote the list, and the files were
+    in a temporary directory. The script is stood in for by a fake `subprocess.run` that writes what it would."""
+
+    def fake_run(argv, capture_output, text):
+        out = Path(argv[argv.index("--out") + 1])
+        out.write_text(json.dumps({"id": "a|C-0|0|0", "text": "x", "tokens_in": 1, "tokens_out": 1}) + "\n")
+        Path(argv[argv.index("--call") + 1]).write_text(json.dumps({"completions": 1, "cost": 0.5, "seconds": 3.0}))
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(e1.subprocess, "run", fake_run)
+    generate = e1.modal_generator("Qwen/Qwen2.5-Coder-7B-Instruct", tmp_path / "modal_e1.py", keep=tmp_path / "calls")
+    answer = generate([{"id": "a|C-0|0|0"}])
+    assert [row["id"] for row in answer["completions"]] == ["a|C-0|0|0"]
+    assert answer["cost"] == 0.5
+    generate([{"id": "a|C-0|0|0"}])
+    kept = sorted(p.name for p in (tmp_path / "calls").iterdir())
+    assert kept == ["call-0001", "call-0002"]
+    assert (tmp_path / "calls" / "call-0001" / "completions.jsonl").exists()
 
 
 def test_a_target_that_moved_since_the_plan_is_refused_before_anything_is_sent(tmp_path, lattice, monkeypatch):

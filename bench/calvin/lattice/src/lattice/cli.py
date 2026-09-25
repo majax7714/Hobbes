@@ -453,7 +453,7 @@ def _generator(args):
     if args.generator != "modal":
         raise ValueError(f"no generator {args.generator!r}; it is modal or replay:<completions.jsonl>")
     record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
-    return e1_of.modal_generator(record["model"], MODAL_SCRIPT)
+    return e1_of.modal_generator(record["model"], MODAL_SCRIPT, keep=args.run_dir / "modal-calls")
 
 
 def _e1_report(args) -> int:

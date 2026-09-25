@@ -154,7 +154,7 @@ def main(argv: list[str]) -> int:
     record = {
         "model": answer["model"],
         "requests": answer["requests"],
-        "completions": len(answer["completions"]),
+        "answered": len(answer["completions"]),
         # `seconds` is the function's own time (the weight load and the batch). The call is priced on the
         # host's wall around the remote call, which also holds the queue, the container's boot and the app's
         # setup: an upper bound on the GPU time Modal bills, and a ceiling wants the high side (session
