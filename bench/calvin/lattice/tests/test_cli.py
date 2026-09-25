@@ -112,6 +112,61 @@ def test_an_unknown_cell_is_an_error(capsys):
     assert "no cell" in capsys.readouterr().err
 
 
+# MARK: - the prompts verb -
+
+
+def test_prompts_writes_one_row_per_cell_and_arm(capsys):
+    assert cli.main(["prompts", str(FIXTURE), "--cells", "avx2/float32/dot", "--arms", "C-0,C-2,C-4"]) == 0
+    rows = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert [row["arm"] for row in rows] == ["C-0", "C-2", "C-4"]
+    assert {row["cell"] for row in rows} == {"avx2/float32/dot"}
+    assert [len(row["messages"]) for row in rows] == [2, 2, 2]
+    assert rows[0]["shots"] == [] and rows[0]["control"] == []
+    assert [shot["cell"] for shot in rows[1]["shots"]] == [
+        "sse2/float32/dot", "avx2/int8/dot", "avx2/float32/cosine",
+    ]
+    assert [shot["rule"] for shot in rows[1]["shots"]] == ["pairing", "fallback", "pairing"]
+    assert rows[2]["shots"] == [] and rows[2]["control"]
+    assert rows[0]["chars"] < rows[1]["chars"]  # the shots are what C-2 adds
+    assert str(FIXTURE) not in json.dumps(rows)
+
+
+def test_a_facts_arm_with_no_ledger_is_skipped_and_the_skip_is_named(capsys):
+    assert cli.main(["prompts", str(FIXTURE), "--cells", "avx2/float32/dot", "--arms", "C-1"]) == 0
+    printed = capsys.readouterr()
+    assert printed.out == ""  # never filled empty
+    assert "C-1 skipped" in printed.err and "no ledger was given" in printed.err
+
+
+def test_prompts_with_the_ledger_fills_the_facts_arms(tmp_path):
+    out = tmp_path / "prompts.jsonl"
+    assert cli.main([
+        "prompts", str(FIXTURE), "--cells", "avx2/float32/dot", "--arms", "C-1,C-3",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+        "--out", str(out),
+    ]) == 0
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert [row["arm"] for row in rows] == ["C-1", "C-3"]
+    assert "hsum256_ps" in rows[0]["messages"][1]["content"]
+    assert rows[0]["shots"] == [] and rows[1]["shots"]
+
+
+def test_prompts_defaults_to_every_native_cell_and_every_arm_it_can_build(capsys):
+    assert cli.main(["prompts", str(FIXTURE)]) == 0
+    printed = capsys.readouterr()
+    rows = [json.loads(line) for line in printed.out.splitlines()]
+    assert sorted({row["arm"] for row in rows}) == ["C-0", "C-2", "C-4"]
+    assert len(rows) == 39 * 3  # the fixture's three native ISAs, C-1 and C-3 skipped without a ledger
+    assert "C-1 skipped" in printed.err and "C-3 skipped" in printed.err
+
+
+def test_an_unknown_arm_or_cell_is_a_refusal(capsys):
+    assert cli.main(["prompts", str(FIXTURE), "--arms", "C-9"]) == 2
+    assert "no arm 'C-9'" in capsys.readouterr().err
+    assert cli.main(["prompts", str(FIXTURE), "--cells", "avx2/float32/nope"]) == 2
+    assert "no cell" in capsys.readouterr().err
+
+
 # MARK: - the intrinsic index, the ages and the probes -
 
 
@@ -204,6 +259,18 @@ def test_the_reading_verbs_take_the_shadows_map(capsys, tmp_path):
     record = json.loads(capsys.readouterr().out)
     assert record["name"].startswith("fn_")
     assert "float32_distance_dot_avx2" not in json.dumps(record)
+
+
+def test_prompts_reads_a_shadow_through_its_map(capsys, tmp_path):
+    _, dest, _ = _shadow(tmp_path, "opaque", capsys)
+    assert cli.main([
+        "prompts", str(dest), "--cells", "avx2/float32/dot", "--arms", "C-2",
+        "--rename", str(dest / "shadow-map.json"),
+    ]) == 0
+    rows = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert len(rows) == 1 and rows[0]["cell"] == "avx2/float32/dot"
+    assert rows[0]["shots"]
+    assert "float32_distance_dot_avx2" not in json.dumps(rows)  # the grid is the target's, the names are not
 
 
 def test_without_the_map_a_shadows_cells_are_not_there(capsys, tmp_path):

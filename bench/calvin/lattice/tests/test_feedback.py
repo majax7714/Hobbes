@@ -62,6 +62,28 @@ def test_the_first_failing_case_is_the_whole_story_when_it_compiled():
     assert "2 of 32 bulk cases and 0 of 27 edge cases fail" in text
 
 
+def test_a_scalar_referenced_case_says_it_was_the_scalar():
+    text = feedback.build(failing_result(first_failure={
+        "slot": "DOT:F32", "case": "bulk/n256/s3", "kind": "bulk", "n": 256, "seed": 3,
+        "expected": -12.5, "got": 3.25, "reference": "scalar",
+    }))
+    assert "disagrees with the scalar reference" in text
+
+
+def test_a_gold_referenced_case_names_the_kernel_it_replaces_and_not_the_scalar():
+    text = feedback.build(failing_result(first_failure={
+        "slot": "COSINE:BF16", "case": "edge/n17/inf_a", "kind": "edge", "n": 17, "seed": 0,
+        "expected": "nan", "got": 1.0, "reference": "gold",
+    }))
+    assert "disagrees with the kernel it replaces (the target's own gold; a non-finite case)" in text
+    assert "scalar" not in text
+
+
+def test_a_failure_with_no_reference_field_keeps_the_old_wording():
+    text = feedback.build(failing_result())  # no `reference`: a result from before the field existed
+    assert "disagrees with the scalar reference" in text
+
+
 def test_a_slot_that_was_never_installed_says_so():
     text = feedback.build({
         "class": "not-installed", "reason": "the init left DOT:F32 pointing at the scalar table",

@@ -10,11 +10,25 @@ iteration and start measuring context length.
 The order is the order a C programmer would read: it did not compile → these errors; it compiled and got
 the wrong answer → this case; the slot was never installed → say so. Invented names ride along in every
 case, because they are the thing §12.2's taxonomy is watching.
+
+**A failing case names the reference it was graded against** (`diff.reference_for`). Most cases are graded
+against `distance-cpu.c`, and the non-finite ones against the cell's own gold, because there the target's
+own kernels disagree with its scalar one and with each other. Telling a model that its body "disagrees
+with the scalar reference" on a case the scalar never answered would be telling it something untrue about
+this target, so the sentence follows the field. A result from before the field existed keeps the old
+wording rather than being guessed at.
 """
 
 from __future__ import annotations
 
-__all__ = ["LIMIT", "build"]
+__all__ = ["LIMIT", "REFERENCES", "build"]
+
+#: How a failing case's reference is said, by the `reference` on `first_failure`. A reference this table
+#: does not name — and an absent field — falls back to the scalar's wording, which is what it said before.
+REFERENCES = {
+    "scalar": "disagrees with the scalar reference",
+    "gold": "disagrees with the kernel it replaces (the target's own gold; a non-finite case)",
+}
 
 #: The ceiling, in characters.
 LIMIT = 1500
@@ -41,8 +55,9 @@ def build(result: dict) -> str:
             parts.append(f"({remaining} more error{'s' if remaining > 1 else ''}.)")
     elif result.get("first_failure"):
         failure = result["first_failure"]
+        against = REFERENCES.get(failure.get("reference"), REFERENCES["scalar"])
         parts.append(
-            f"It compiled, and case {failure['case']} disagrees with the scalar reference: "
+            f"It compiled, and case {failure['case']} {against}: "
             f"at n = {failure['n']} (seed {failure['seed']}) the reference gives {failure['expected']} "
             f"and this body gives {failure['got']}."
         )
