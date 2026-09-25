@@ -128,7 +128,11 @@ because unlike everything else here it is not a fact about a body.
 **`feedback`** — the ≤1,500 characters a model is shown on a retry, built from the graded result's
 **structured fields only**: the first compile errors with target-relative paths, or the first failing case
 with its `n`, expected and got, plus the invented names. Never raw compiler output, which carries this
-box's absolute paths.
+box's absolute paths. **A failing case names the reference it was graded against**, from
+`first_failure["reference"]`: the scalar's wording for a `scalar` case, and "disagrees with the kernel it
+replaces (the target's own gold; a non-finite case)" for a `gold` one — telling a model it disagrees with
+the scalar on a case the scalar never answered would be telling it something untrue about this target. A
+result with no such field keeps the old wording rather than being guessed at.
 
 **`selftest`** — the gate on the instruments (§5.5). For each native cell the gold must read `pass`, and
 four mutants of the gold body must read exactly what they are damage of: `syntax` (its last `;` removed)
@@ -270,6 +274,58 @@ callee row carries `provenance` (`hobbes:<tier>` or `clang-key:<mode>`); a fille
 an instrument that was not there to ask is listed in `missing` rather than worked around. Nothing in
 this package infers a callee, a date or a signature it did not read.
 
+**`prompts`** — **the five context arms of §5.3 (C-0 to C-4), by rule.** One arm is one claim about what
+the model was given, so the arms differ in exactly one thing each: C-0 the file's own context, C-1 the
+ledger's `callees` and the callers the lattice knows, C-2 the pattern shots, C-3 both, C-4 the same number
+of lines of non-neighbour bodies. `context(lattice, cell, arm, facts=None)` is an arm as data and
+`messages(…)` is it as one fixed system line plus one user turn — the file's context, the related
+functions, the facts, the signature, then E1-c's instruction word for word, with a section the arm does
+not carry taking its heading with it. **The prelude is always `prelude_bare`**, in every arm: on a real
+kernel file the full prelude carries the five sibling bodies one axis step away, which are exactly the
+shots C-2 is meant to add, so handing them to C-0 would make every arm a pattern arm and the experiment
+unreadable (session `2fd4`'s review). Non-cell helpers keep their bodies in both, because a static
+`hsum256_ps` is a fact about the file the body has to be able to call.
+
+**The shot rule is E1-a's** — a rule, not a model. A task record lists up to 14 axis neighbours, among
+them `cpu`, `neon`, `rvv` and the one-line wrappers, so "one step on each axis" has to say which one.
+`shots` returns at most one per axis in the order ISA, type, metric, each a real body (`body` or `impl`)
+unless the hole is a wrapper, in which case its shots are wrappers. `isa′` is `avx2` for `sse2` and
+`avx512` and `sse2` for `avx2`; `type′` is `float32↔float16`, `bfloat16→float16`, `uint8↔int8`; `metric′`
+is `l2_impl↔l1` and `dot↔cosine`, and `l2↔l2_squared` for a wrapper. **No shot ever comes from `cpu`,
+`neon` or `rvv`** — `cpu` is G-diff's own reference and handing a model the reference is a different
+reading, and the other two do not run on this box. The ISA axis has the pairing and **no fallback**,
+because E1-a fixes one crossing per ISA so that every row crosses the same distance. The
+type and metric axes fall back to the first qualifying neighbour in the record's order, which is what
+answers on the trimmed fixture (no `float16` to pair with) and each shot records whether it was chosen by
+`pairing` or by `fallback`. Where an axis has nothing qualifying the arm carries fewer shots and says so:
+`bit1` keeps its ISA sibling alone.
+
+**C-4 controls for "more code in context", not for a second kind of pattern** (E1-b). C-2 − C-4 is the
+reading E1 exists for — is a sibling body worth more than the same volume of code? — so `control` takes
+whole real bodies from the hole's **own file** that differ from it on **both** type and metric, which is
+what makes them non-neighbours, and adds them until their line count reaches that cell's C-2 shots'
+count, cutting the last at a line boundary. They are taken in the file's order from a start derived from
+the cell id with **SHA-256, never Python's `hash()`**, which is salted per process and would make a run
+unrepeatable. `lines` holds both figures beside each other, so a control that fell short — the file ran
+out of candidates, as two of the fixture's cells do — is read off the record rather than assumed away.
+**A facts arm without a ledger is refused** (`NoLedger`, its own type) and never filled empty: C-1 with no
+callees is C-0 under another name, and a row recorded under the wrong arm is worse than a row missing.
+What the ledger did not answer is simply not in the prompt — nothing here infers a callee. The same
+inputs give the same bytes, and no output names the target's path.
+
+**`extract`** — **E1-c's parse:** `extract(completion, name)` gives `{"body", "reason", "block"}`. The
+body comes from the **first** fenced block, whatever its tag (```` ```c ````, ```` ```C ````,
+```` ```cpp ````, bare), and a block with no closing fence — a completion cut off at `max_tokens` — runs
+to the end of the text. The rule is the first block even when a later one would parse, because "take
+whichever block works" quietly rewards a model for a second attempt inside one completion and makes the
+arms incomparable. The definition is found by `scan`, the same scanner the lattice reads the target with,
+so a helper written above the target is skipped by name and the body returned is the model's own bytes
+from `{` to its matching `}`. Four failures, one reason each and `body` `None` for all four: no fenced
+block, no definition of that name in the first block, a text the scanner refuses, a body `holes` would not
+write. The caller files these as class **`no-body`**, reported beside `compile` and never folded into it —
+a model that wrote nothing usable and a model that wrote something that will not build are two different
+results. This module only says why; it classifies nothing and keeps nothing.
+
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
 `lattice selftest <target> [--cells id,id,…] [--out report.json]`, plus the reading verbs of this unit:
@@ -280,7 +336,12 @@ this package infers a callee, a date or a signature it did not read.
 The two grading verbs take `--here` (this process is contained already) or `--image NAME` (the default
 `hobbes-session:local`: build a plan and run this same CLI inside it). `--here` outside a container exits
 2 with the refusal. No ledger flag is required, and one left out is named in the answer's `missing`.
-`mem-probes` writes the probes; **this CLI never calls a model.** This unit adds two verbs and one flag:
+`mem-probes` writes the probes; **this CLI never calls a model.** **This unit adds one verb:** `lattice
+prompts <target> [--arms C-0,C-2,…] [--cells id,id,…] [--graph G --key K --intrinsics I] [--rename M]
+[--out prompts.jsonl]`, which writes one JSON row per (cell, arm) — `{"cell", "arm", "messages", "shots",
+"control", "chars"}` — over every native cell and every arm by default. It reads files only and runs on
+the host, like `task`; a facts arm (C-1, C-3) asked for with no ledger is **skipped and the skip is named
+on stderr**, never filled empty. Before it, two verbs and one flag:
 `lattice shadow <target> <dest> --graph G --style descriptive|opaque`, which prints what it kept and
 what still leaks; `lattice graph-grade <target> <results.jsonl> --gold-graph G [--hobbes <checkout>]`,
 which writes one row per body it carried and one per body it did not, with the reason; and `--rename
@@ -298,6 +359,11 @@ lattice selftest /path/to/sqlite-vector --image hobbes-session:local
 lattice grade    /path/to/sqlite-vector manifest.json --out results.jsonl
 lattice intrinsics "$(clang -print-file-name=include)" --out index.json
 lattice facts /path/to/sqlite-vector avx2/float32/dot \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+
+# the five arms' prompts, on the host: one row per (cell, arm), no model anywhere near it
+lattice prompts /path/to/sqlite-vector --arms C-0,C-2,C-4 --out prompts.jsonl
+lattice prompts /path/to/sqlite-vector --cells avx2/float32/dot --arms C-1,C-3 \
   --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 
 # on the host, over a full clone: the cell ages the contamination facts are read from

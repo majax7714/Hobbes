@@ -4,6 +4,7 @@
     lattice task       <target> <cell-id>       the task record for one cell, as JSON
     lattice punch      <target> <cell-id>       that cell's file with its body replaced by the hole
     lattice facts      <target> <cell-id>       the cell's callees from the ledger (C-1, §5.3)
+    lattice prompts    <target> [--arms …]      the five context arms' prompts, one JSON row per (cell, arm)
     lattice intrinsics <include-dir>            index clang's headers for every `_mm…`/`_cvt…` signature
     lattice ages       <git-dir> <ref>          since when each cell's name and body have been what they are
     lattice mem-probes <target>                 the G-mem probes, written and not run
@@ -24,10 +25,12 @@ A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with
 `body` is a body's text, `{` to its matching `}`, or the word `"gold"`. `graph-grade` reads the same
 rows with a grading run's `class` beside them, and says which it did not carry and why.
 
-`facts` and `task` take the ledger as `--graph derived/graph.json`, `--key derived/oracle.json` and
-`--intrinsics index.json`. None of the three is required, and one left out is **named in the answer's
-`missing`** rather than filled in from somewhere else: `lattice facts` with no ledger prints no callees
-and says so. `mem-probes` writes the probes only — this CLI never calls a model.
+`facts`, `task` and `prompts` take the ledger as `--graph derived/graph.json`, `--key
+derived/oracle.json` and `--intrinsics index.json`. None of the three is required, and one left out is
+**named in the answer's `missing`** rather than filled in from somewhere else: `lattice facts` with no
+ledger prints no callees and says so. `prompts` is stricter, because an arm is a claim about what was
+carried: a facts arm (C-1, C-3) asked for with no ledger is **skipped, named on stderr, and never filled
+empty**. `mem-probes` and `prompts` write text only — this CLI never calls a model.
 
 `map`, `task` and `grade` take `--rename <shadow-map.json>`: the lattice is then read through that
 shadow's reverse map, so the grid is the target's and the names are the shadow's.
@@ -46,8 +49,9 @@ from . import ages as ages_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
 from . import shadow as shadow_of
+from . import prompts as prompts_of
 from . import gmem, holes, intrinsics as intrinsics_of, run, task
-from .cells import ISAS, Lattice, UnknownCell, build
+from .cells import ISAS, Cell, Lattice, UnknownCell, build
 
 __all__ = ["main"]
 
@@ -76,6 +80,14 @@ def main(argv: list[str] | None = None) -> int:
     facter.add_argument("target", type=Path)
     facter.add_argument("cell", help="a cell id, <isa>/<type>/<metric>")
     _ledger(facter)
+
+    prompter = verbs.add_parser("prompts", help="the five context arms' prompts, one row per (cell, arm)")
+    prompter.add_argument("target", type=Path)
+    prompter.add_argument("--arms", help=f"a comma-separated list of arms (default: {','.join(prompts_of.ARMS)})")
+    prompter.add_argument("--cells", help="a comma-separated list of cell ids (default: every native cell)")
+    prompter.add_argument("--out", type=Path, help="write the rows as JSONL here (default: stdout)")
+    _ledger(prompter)
+    _renamed(prompter)
 
     indexer = verbs.add_parser("intrinsics", help="index clang's headers for the intrinsic signatures")
     indexer.add_argument("include_dir", type=Path, help="clang's include dir (`clang -print-file-name=include`)")
@@ -157,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
         probes = [gmem.probe(lattice, cell) for cell in _native(lattice)]
         _write_lines([json.dumps(probe, sort_keys=True) for probe in probes], args.out)
         return 0
+    if args.verb == "prompts":
+        return _prompts(args, lattice)
 
     try:
         cell = lattice.get(args.cell)
@@ -238,6 +252,74 @@ def _ages(args) -> int:
     if args.out:
         args.out.write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
     return 0
+
+
+# MARK: - the prompts verb -
+
+
+def _prompts(args, lattice: Lattice) -> int:
+    """One JSONL row per (cell, arm). A facts arm with no ledger is skipped and named, never filled empty."""
+    try:
+        arms = _arms(args.arms)
+    except prompts_of.UnknownArm as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    try:
+        cells = _chosen(lattice, args.cells)
+    except UnknownCell as unknown:
+        print(f"lattice: no cell {unknown}; try `lattice map {args.target}`", file=sys.stderr)
+        return 2
+    try:
+        ledger = facts_of.load(args.graph, args.key, args.intrinsics)
+    except OSError as missing:
+        print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
+        return 2
+
+    given = ledger if (args.graph or args.key or args.intrinsics) else None
+    asked = [arm for arm in arms if given is not None or arm not in prompts_of.FACTS_ARMS]
+    for arm in [arm for arm in arms if arm not in asked]:
+        print(
+            f"lattice: {arm} skipped — it is a facts arm and no ledger was given "
+            "(--graph, --key, --intrinsics); it is never filled empty",
+            file=sys.stderr,
+        )
+    rows = [_prompt_row(lattice, cell, arm, given) for cell in cells for arm in asked]
+    _write_lines([json.dumps(row, sort_keys=True) for row in rows], args.out)
+    return 0
+
+
+def _arms(given: str | None) -> list[str]:
+    """The arms asked for, in the order asked, each one of `prompts.ARMS`."""
+    if not given:
+        return list(prompts_of.ARMS)
+    asked: list[str] = []
+    for arm in [part.strip() for part in given.split(",") if part.strip()]:
+        if arm not in prompts_of.ARMS:
+            raise prompts_of.UnknownArm(f"no arm {arm!r}; the arms are {', '.join(prompts_of.ARMS)}")
+        if arm not in asked:
+            asked.append(arm)
+    return asked
+
+
+def _chosen(lattice: Lattice, given: str | None) -> list[Cell]:
+    """The cells asked for, or every native one."""
+    if not given:
+        return _native(lattice)
+    return [lattice.get(part.strip()) for part in given.split(",") if part.strip()]
+
+
+def _prompt_row(lattice: Lattice, cell: Cell, arm: str, ledger) -> dict:
+    """One row: the turns, which cells the arm carried and how, and the size of the whole prompt."""
+    data = prompts_of.context(lattice, cell, arm, ledger)
+    turns = prompts_of.turns(cell, data)
+    return {
+        "cell": cell.id,
+        "arm": arm,
+        "messages": turns,
+        "shots": [{"cell": row["cell"], "rule": row["rule"]} for row in data["shots"]],
+        "control": [{"cell": row["cell"], "cut": row["cut"]} for row in data["control"]],
+        "chars": sum(len(turn["content"]) for turn in turns),
+    }
 
 
 def _shadow(args) -> int:
