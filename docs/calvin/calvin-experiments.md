@@ -362,6 +362,87 @@ table's wiring, which G-reg reads as text; enum constants and globals, which the
   ceiling $10** (D-3).
 - **P12:** `arm=model+prompt`. One agent per cell, not a Hobbes test. Recorded as such.
 
+#### E1's runner — the design (2026-09-25; routes E1-a to E1-g taken as recommended, Max: "good to go with recommended routes")
+
+These facts were read from the real target at `0c2223a` with E0's instruments. The 93 native cells are 48
+`body`, 15 `impl` and 30 `wrapper`. A real body runs 8 to 75 lines, with a median of 33. `prelude_bare` runs
+2.4k to 9.7k characters, with a median of 4.0k, about 1.2k tokens. The full `prelude` runs to 38k. A task
+record lists every axis neighbour, up to 14, among them `cpu`, `neon`, `rvv` and the one-line wrappers. So
+§5.3's "one step on each axis" needs a rule, and E1-a is that rule. `bit1` has no neighbour on the type
+axis and none on the metric axis.
+
+- **E1-a — the C-2 shots.** **Recommended:** one shot per axis. Each is the first neighbour on that axis in
+  a fixed order that is a real body (`body` or `impl`, never a `wrapper`):
+  - `isa′`: `avx2` for `sse2` and `avx512`, and `sse2` for `avx2`. The shots never come from `cpu`, `neon`
+    or `rvv`. `cpu` is G-diff's reference, and handing the model that reference is a different reading,
+    left for a later arm.
+  - `type′`: `float32↔float16`, `bfloat16→float16` and `uint8↔int8`.
+  - `metric′`: `l2_impl↔l1` and `dot↔cosine`. `l2` and `l2_squared` are wrappers in every type, and a
+    wrapper hole takes its sibling wrapper (`l2↔l2_squared`) on this axis, and wrappers on the others too.
+
+  Where an axis has no real-body neighbour, the arm carries fewer shots, and the record's `shots` field says
+  how many. C-4 is then matched to what C-2 actually carried.
+- **E1-b — C-4, the volume control.** **Recommended:** whole real bodies from the same file that differ from
+  the hole on two or more axes. They are taken in the file's order from a seeded start and added until
+  their line count reaches the C-2 shots' count. The last body is cut at that count, so the two arms differ
+  by less than one body's lines.
+- **E1-c — the prompt and its extraction.** **Recommended:**
+  - The prompt goes through the model's own chat template, with one fixed system line.
+  - The user turn is the arm's context, then the signature, then: "Write this function. Reply with one C
+    code block holding the whole definition."
+  - The body is taken from the first fenced block. It is the block's definition of the cell's own name, found
+    by `scan`.
+  - A completion with no such definition gets a class of its own, `no-body`. It is a failure, reported
+    beside `compile` and never folded into it. The model's text is kept whole.
+- **E1-d — sampling.** **Recommended:**
+  - Greedy, plus k = 5 samples at T = 0.8 and top-p 0.95.
+  - `max_tokens` is 1,024. The seed is per (cell, arm, sample).
+  - pass@1 is read from greedy, and pass@5 is the unbiased estimate over the five.
+- **E1-e — the iterate arm.** **Recommended:**
+  - It applies to C-0 and C-3, as the card says. Every failing chain (the greedy one and the five sampled)
+    gets up to three rounds, and a chain stops at its first `pass`.
+  - Each round's prompt is the conversation so far plus `feedback.build` of the last result, capped at
+    1,500 characters from its structured fields.
+  - The report reads each round's pass rate, so the one-shot figure stays visible.
+- **E1-f — where the model runs.** **Recommended:**
+  - vLLM 0.27.1 offline batch on Modal: one function call per model per round. It uses the pinned
+    `hobbes-hf-cache` volume and an A10G at a 16k window. Both 7Bs ran there for ADR-099 (`modal_ttt.py`).
+  - The runner is written against an injected `generate(requests) -> completions`, so its tests use a fake
+    generator. A dispatched unit never calls Modal, and it has no route to Modal.
+  - Grading between rounds runs on this box, in the image, through `lattice grade`.
+  - Rejected: a served endpoint (`modal_vllm.py`), which costs idle time and gives weaker per-request seeds.
+- **E1-g — the first unit.** **Recommended:** Qwen2.5-Coder-7B, the `avx2` file's 31 cells, all five arms,
+  greedy and k = 5, round 0 plus the iterate rounds. The G-mem probes for those 31 cells go in the same call.
+  Its measured Modal cost is compared with the estimate, and Max's word comes before the other two ISAs and
+  Olmo.
+
+**Readings the runner writes** (and nothing else, before the run): pass@1 and pass@5 per arm. Each is broken
+down by ISA, by type (with `int8`, `uint8` and `bit1` a row of their own) and by the hole's crossing axis.
+Beside each figure go:
+- the class counts (`no-body`, `compile`, `invented`, `wrong`, `edge`, `pass`);
+- G-hsr's invented names by bucket;
+- G-reg;
+- the cell's G-mem label.
+
+Wrappers are reported apart. G-graph runs afterwards over the bodies that compiled, one ingest per wave. It
+is not in the loop.
+
+**Priced from these sizes, per model:** 465 prompts of about 1.3k to 3k tokens each, sharing a prefix across
+the six samples; about 2,800 completions of about 300 tokens each; and the iterate rounds on the failures.
+On an A10G at about $1.10/h, that is roughly 20 to 40 minutes a model. The whole of E1 is **≈ $1–3, well
+under the $10 ceiling.** It is lower than the card's $4–8 because the real prompts are a quarter of the
+card's guess. The first unit checks this price.
+
+**The unit that builds it** (one dispatch, no spend):
+- `prompts.py`: the arms, the shot rule and C-4.
+- `extract.py`.
+- `e1.py`: plan, generate (injected), grade, feedback and rounds. It writes resumable JSONL under a run
+  directory, one row per (cell, arm, sample, round), and records `arm=model+prompt`.
+- `report.py`.
+- `scripts/modal_e1.py`: the batch function. It is written but not run.
+- New verbs: `lattice prompts`, and `lattice e1 plan|run|report`.
+- Tests on the fixture and on the real target's record shapes.
+
 ### E2 — the rename shadow: memory or skill? (M-a, L0/L2, on the shadow)
 
 - **Question:** does E1's score survive when the in-repo names are ones the base has never
