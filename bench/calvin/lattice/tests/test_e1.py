@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import e1, facts, holes, prompts
+from lattice import e1, extract, facts, feedback, gmem, holes, prompts
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -139,6 +139,25 @@ def test_the_probe_is_a_raw_continuation_and_carries_what_it_expects(lattice):
     assert probe["params"]["temperature"] == 0.0
     assert "messages" not in probe
     assert probe["expected"] and probe["expected"] in lattice.text(cell)
+
+
+def test_every_chat_request_answers_in_two_thousand_and_forty_eight_tokens(lattice):
+    """E1-g cut 112 of 1,734 completions off at 1,024, 95 of them in the iterate rounds."""
+    made = e1.plan(lattice, ["avx2/float32/dot"], ("C-0",), "M", k=2)
+    chat = [request for request in made if request["mode"] == "chat"]
+    probes = [request for request in made if request["mode"] == "complete"]
+    assert e1.MAX_TOKENS == 2048 and e1.GMEM_MAX_TOKENS == 512
+    assert {request["params"]["max_tokens"] for request in chat} == {2048}
+    assert {request["params"]["max_tokens"] for request in probes} == {512}
+    assert e1.meta("M", arms=("C-0",), cells=["avx2/float32/dot"])["params"]["max_tokens"] == 2048
+
+
+def test_a_probe_below_the_evidence_floor_says_so_in_the_request(lattice):
+    made = e1.plan(lattice, ["avx2/float32/l2", "avx2/float32/dot"], ("C-0",), "M", k=1)
+    evidence = {r["cell"]: r["evidence"] for r in made if r["mode"] == "complete"}
+    # the wrapper's expected tail is `}` alone; the real body's is the rest of a 25-line kernel
+    assert evidence == {"avx2/float32/l2": False, "avx2/float32/dot": True}
+    assert gmem.probe(lattice, lattice.get("avx2/float32/l2"))["expected_tokens"] < gmem.MIN_EXPECTED_TOKENS
 
 
 def test_sample_zero_is_greedy_and_the_rest_are_drawn(lattice):
@@ -284,7 +303,8 @@ def test_a_row_keeps_the_text_the_extract_and_the_result_with_the_diagnostics_cu
 
     row = rows(run_dir)[0]
     assert row["text"] == fenced(_wrong(lattice, cell))  # the model's whole text, prose and fences included
-    assert row["extract"] == {"body": WRONG_BODY, "reason": None, "block": 1}
+    assert row["extract"] == {"body": WRONG_BODY, "reason": None, "block": 1, "params": ["v1", "v2", "n"]}
+    assert row["signature"] == cell.signature  # the target's, which the body will be graded under
     assert len(row["grade"]["diagnostics"]) == 20  # the grader offered thirty
     assert row["invented"] == [{"name": "_mm256_nope_ps", "bucket": "intrinsic"}]
     assert row["reg"] is True
@@ -379,6 +399,144 @@ def test_a_plan_with_no_sha_has_nothing_to_check(tmp_path, lattice):
     assert [row["class"] for row in rows(run_dir)] == ["pass", "pass"]
 
 
+# MARK: - a renamed parameter is not an invented API (E1-g's record, limit 1) -
+
+
+#: The cell whose target signature does *not* use `v1, v2`: the fixture's own `(const void *a, const
+#: void *b, int n)`. The rule is on the row, and this is where the two signatures really differ.
+RENAMED = "avx2/float32/cosine"
+
+
+def renaming_grade(invented):
+    """A grader that fails every body as `invented` with the names handed in — G-hsr's own shape."""
+
+    def grade(entries):
+        return [
+            {
+                "id": entry["id"],
+                "cell": entry["cell"],
+                "class": "invented",
+                "reg": False,
+                "diagnostics": [],
+                "invented": [dict(name) for name in invented],
+                "feedback": "It did not compile.\nsrc/distance-avx2.c:182:31: error: use of undeclared identifier 'v1'",
+            }
+            for entry in entries
+        ]
+
+    return grade
+
+
+def _renamed(lattice, cell):
+    """The cell's own definition under the model's own parameter names — what a model actually writes."""
+    return f"float {cell.name} (const void *v1, const void *v2, int n)\n{WRONG_BODY}"
+
+
+def test_invented_names_that_are_the_models_own_parameters_are_the_param_bucket(tmp_path, lattice):
+    cell = lattice.get(RENAMED)
+    assert extract.params(cell.signature) == ["a", "b", "n"]  # the target renames nothing; the model does
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: fenced(_renamed(lattice, cell)))
+    invented = [{"name": "v1", "bucket": "other"}, {"name": "v2", "bucket": "other"}]
+    e1.run(run_dir, FIXTURE, generate, renaming_grade(invented), ceiling_usd=10.0)
+
+    for row in rows(run_dir):
+        assert row["invented"] == [{"name": "v1", "bucket": "param"}, {"name": "v2", "bucket": "param"}]
+        assert row["class"] == "compile"
+        assert row["reason"] == (
+            "the body uses the model's own parameter names (v1, v2, n) and the signature is the target's (a, b, n)"
+        )
+        # what the graders answered is still readable beside the runner's reading of it
+        assert row["grade"]["class"] == "invented"
+        assert [name["bucket"] for name in row["grade"]["invented"]] == ["other", "other"]
+
+
+def test_a_row_that_also_invented_an_intrinsic_stays_invented(tmp_path, lattice):
+    cell = lattice.get(RENAMED)
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: fenced(_renamed(lattice, cell)))
+    invented = [{"name": "v1", "bucket": "other"}, {"name": "_mm256_nope_ps", "bucket": "intrinsic"}]
+    e1.run(run_dir, FIXTURE, generate, renaming_grade(invented), ceiling_usd=10.0)
+
+    for row in rows(run_dir):
+        assert row["class"] == "invented"  # it really did invent something
+        assert row["invented"] == [
+            {"name": "v1", "bucket": "param"},
+            {"name": "_mm256_nope_ps", "bucket": "intrinsic"},
+        ]
+
+
+def test_a_name_the_target_itself_uses_is_not_a_renamed_parameter(tmp_path, lattice):
+    """`avx2/float32/dot` is written `v1, v2`: a `v1` that resolves nowhere there is not the model's."""
+    cell = lattice.get("avx2/float32/dot")
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: fenced(_renamed(lattice, cell)))
+    e1.run(run_dir, FIXTURE, generate, renaming_grade([{"name": "v1", "bucket": "other"}]), ceiling_usd=10.0)
+
+    for row in rows(run_dir):
+        assert row["invented"] == [{"name": "v1", "bucket": "other"}]
+        assert row["class"] == "invented"
+
+
+def test_a_no_body_row_has_no_parameters_to_read_and_is_left_alone(tmp_path, lattice):
+    cell = lattice.get(RENAMED)
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-2",))
+    generate = FakeGenerator(lambda request: "prose, and no block at all")
+    e1.run(run_dir, FIXTURE, generate, renaming_grade([]), ceiling_usd=10.0)
+
+    for row in rows(run_dir):
+        assert row["class"] == "no-body" and row["extract"]["params"] is None
+        assert row["invented"] == []
+
+
+def test_the_retry_names_the_targets_signature(tmp_path, lattice):
+    cell = lattice.get(RENAMED)
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    generate = FakeGenerator(lambda request: fenced(_renamed(lattice, cell)))
+    invented = [{"name": "v1", "bucket": "other"}, {"name": "v2", "bucket": "other"}]
+    e1.run(run_dir, FIXTURE, generate, renaming_grade(invented), ceiling_usd=10.0, rounds=1)
+
+    later = [request for request in requests_of(run_dir) if request["round"] == 1]
+    assert later
+    for request in later:
+        turn = request["messages"][-1]
+        assert turn["role"] == "user"
+        assert turn["content"].startswith("It did not compile.")  # the graders' own words stay
+        assert turn["content"].endswith(
+            f"\nThe signature is `{cell.signature}`: use its parameter names."
+        )
+
+
+def test_a_row_with_no_param_entry_is_told_nothing_about_the_signature(tmp_path, lattice):
+    cell = lattice.get(RENAMED)
+    run_dir = make_run(tmp_path, lattice, [cell], ("C-0",))
+    generate = FakeGenerator(lambda request: fenced(_renamed(lattice, cell)))
+    e1.run(
+        run_dir,
+        FIXTURE,
+        generate,
+        renaming_grade([{"name": "_mm256_nope_ps", "bucket": "intrinsic"}]),
+        ceiling_usd=10.0,
+        rounds=1,
+    )
+    later = [request for request in requests_of(run_dir) if request["round"] == 1]
+    assert later and all("use its parameter names" not in request["messages"][-1]["content"] for request in later)
+
+
+def test_the_sentence_is_kept_whole_when_the_feedback_runs_to_the_limit(lattice):
+    cell = lattice.get(RENAMED)
+    row = {
+        "class": "invented",
+        "signature": cell.signature,
+        "extract": {"params": ["v1", "v2", "n"]},
+        "invented": [{"name": "v1", "bucket": "other"}],
+        "feedback": "x" * feedback.LIMIT,
+    }
+    e1._renamed_parameters(row)
+    assert len(row["feedback"]) <= feedback.LIMIT
+    assert row["feedback"].endswith(f"The signature is `{cell.signature}`: use its parameter names.")
+
+
 # MARK: - the ceiling -
 
 
@@ -424,6 +582,27 @@ def test_the_estimate_runs_high_on_every_requests_whole_max_tokens(lattice):
     assert guess["usd"] > 0
     # a model the table does not name still gets an estimate rather than a free pass
     assert e1.estimate("nobody/nothing", made)["usd"] > 0
+
+
+def test_the_estimate_pays_the_cold_start_every_call_pays(lattice):
+    """E1-g's measured rates, and the two to three minutes of container and model load before them."""
+    model = "Qwen/Qwen2.5-Coder-7B-Instruct"
+    price = e1.PRICING[model]
+    assert (price["prompt_tps"], price["completion_tps"]) == (8000.0, 950.0)
+    assert e1.COLD_START_SECONDS == 180.0
+
+    made = [
+        {"mode": "chat", "messages": [{"role": "user", "content": "x" * 3500}], "params": {"max_tokens": 2048}},
+        {"mode": "complete", "prompt": "y" * 3500, "params": {"max_tokens": 512}},
+    ]
+    guess = e1.estimate(model, made)
+    assert guess["tokens_in"] == 2000  # 7,000 characters at 3.5 to the token
+    assert guess["tokens_out"] == 2560
+    seconds = 180.0 + 2000 / 8000.0 + 2560 / 950.0
+    assert guess["seconds"] == round(seconds, 3)
+    assert guess["usd"] == round(seconds * 1.10 / 3600, 6)
+    # and the cold start is most of a small call's bill, as E1-g's iterate rounds were
+    assert e1.estimate(model, made[:1])["usd"] > 180.0 * 1.10 / 3600
 
 
 # MARK: - the generators a caller can inject -
