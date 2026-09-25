@@ -326,6 +326,51 @@ write. The caller files these as class **`no-body`**, reported beside `compile` 
 a model that wrote nothing usable and a model that wrote something that will not build are two different
 results. This module only says why; it classifies nothing and keeps nothing.
 
+**`e1`** — **the run loop** (§6, "E1's runner — the design"). `plan(lattice, cells, arms, model, facts)`
+makes one chat request per (cell, arm, sample) — sample 0 greedy, 1 to *k* drawn at T = 0.8 / top-p 0.95 —
+plus one G-mem probe per cell as a raw continuation, each request carrying its own seed from a SHA-256 of
+(model, cell, arm, sample, round), **never Python's `hash()`**, so the same run planned twice asks for the
+same samples. `run(run_dir, target, generate, grade, ceiling_usd=…)` is the loop, and **no model appears in
+it**: the generator and the grader are injected callables, so the tests drive every round with fakes and
+the one real generator is reached through :func:`modal_generator`, a subprocess and two JSONL files.
+
+**A run is a directory, and the directory is the state**: `meta.json` (the model, the params, the arms,
+the cells, `k`, the rounds, the target's SHA — never its path — the ledger's provenance, and `p12:
+arm=model+prompt`), `requests.jsonl`, `rows.jsonl`, `gmem.jsonl` and `calls.jsonl`. **Resume is
+`rows.jsonl`**: a request whose id already has a row is never sent again, so a second `run` over a finished
+directory sends nothing, and a row is written only after its body is graded — a row is the record of a
+finished request, not of a started one. **What was paid for is on disk first:** every completion a generator
+returns goes to `completions.jsonl`, and the call's cost to `calls.jsonl`, before anything is graded. A resume
+answers from that file before it sends anything, so a grade that fails in the image never buys the same
+round twice. A body the grader returns no result for is `GradeFailed`, and no row of that round is written
+(session `66c5`'s review). The Modal script prices a call on the host's wall around the remote call, an
+upper bound on the GPU time billed. A resume against a **target that has moved** since the plan is
+`TargetMoved` and not a resume: the prompts are one tree's bytes, and answering them against another would
+put two targets under one run's readings without either of them saying so. A completion goes through `extract`; a `None` body is a row of
+class **`no-body`** with extract's reason and is never graded. **Rounds 1 to 3 run for the iterate arms
+only** (`C-0`, `C-3`): every chain whose last row is not `pass` gets its conversation so far, the model's
+whole text as an assistant turn, and one user turn — `feedback.build`'s ≤1,500 characters, or the one fixed
+sentence for a `no-body` — and a chain stops at its first `pass`.
+
+**The ceiling is checked before every call, never after** (§8). The estimate is deliberately crude and
+deliberately high: prompt characters over 3.5, plus `max_tokens` for *every* request, at a per-model
+throughput and price that are **guesses written down as guesses** and replaced by what E1-g is billed. If
+the spend already in `calls.jsonl` plus that estimate passes the ceiling, `CeilingReached` — its own type —
+is raised and nothing is sent. **A generator that reports no cost has its estimate recorded as the cost**,
+with `cost_source` saying which it is: a run whose generator is silent must not read as free.
+
+**`report`** — the readings, and only what a row holds. Per arm: **pass@1** from greedy, **pass@1(sampled)**
+over the *k* draws, **pass@k** as the unbiased `1 − C(n−c, k)/C(n, k)` per cell then averaged (at `n = k` it
+is any-pass, and under *k* samples it is `None` rather than any-pass wearing the wrong name), and for the
+iterate arms the **cumulative pass rate after each round**, so the one-shot figure stays visible. Each is
+broken down **by ISA and by type**, with `int8`, `uint8` and `bit1` keeping their own rows *and* summed into
+a `low-bit` row. Beside each figure: the class counts, G-hsr's invented names by bucket, **G-reg over the
+bodies that compiled** — a body that never built has no init for the question to be about — and the same
+rates split by the cell's G-mem label, since §8 binds every number to carry its G-mem reading. **Wrappers
+are a section of their own and are never pooled with real bodies.** Tokens, seconds and cost are
+`calls.jsonl`'s own. **A missing file is named in `missing`, never read as zero**: a run whose grading never
+happened and a run in which nothing passed are two different results.
+
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
 `lattice selftest <target> [--cells id,id,…] [--out report.json]`, plus the reading verbs of this unit:
@@ -336,7 +381,14 @@ results. This module only says why; it classifies nothing and keeps nothing.
 The two grading verbs take `--here` (this process is contained already) or `--image NAME` (the default
 `hobbes-session:local`: build a plan and run this same CLI inside it). `--here` outside a container exits
 2 with the refusal. No ledger flag is required, and one left out is named in the answer's `missing`.
-`mem-probes` writes the probes; **this CLI never calls a model.** **This unit adds one verb:** `lattice
+`mem-probes` writes the probes. **This unit adds three:** `lattice e1 plan <target> <run-dir> --model M
+[--cells …] [--arms …] [--graph G --key K --intrinsics I] [--k 5]`, `lattice e1 run <run-dir> <target>
+--ceiling-usd X [--generator modal|replay:<completions.jsonl>] [--image NAME] [--rounds 3]` and `lattice e1
+report <run-dir> [--json]`. **`e1 run` is the one verb that would call a model**, and only through the
+generator named on the line: `replay:` answers from a recorded file and spends nothing, `modal` shells out
+to `scripts/modal_e1.py`. `--ceiling-usd` is **required and has no default** (§8), and `e1 plan` skips a
+facts arm with no ledger exactly as `prompts` does. Everything else here still writes text only. Before
+them, one verb: `lattice
 prompts <target> [--arms C-0,C-2,…] [--cells id,id,…] [--graph G --key K --intrinsics I] [--rename M]
 [--out prompts.jsonl]`, which writes one JSON row per (cell, arm) — `{"cell", "arm", "messages", "shots",
 "control", "chars"}` — over every native cell and every arm by default. It reads files only and runs on
@@ -351,7 +403,7 @@ for `grade`, rides into the image in the work dir, since `--rename` may point an
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
 intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
 runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
-rename of their own instead of `shadow.grading`, and the model calls.
+rename of their own instead of `shadow.grading`, and the first run that actually calls a model.
 
 ```sh
 # on this box, in the image
@@ -379,4 +431,42 @@ lattice grade /tmp/shadow-opaque manifest.json --rename /tmp/shadow-opaque/shado
 # G-graph, over the bodies a grading run kept
 lattice graph-grade /path/to/sqlite-vector results.jsonl \
   --gold-graph .hobbes/derived/graph.json --hobbes ~/hobbes_public --out graph.jsonl
+
+# E1: plan the requests, answer and grade them under a ceiling, read the result
+# (no --cells is every native cell; the first unit names the avx2 ones)
+lattice e1 plan /path/to/sqlite-vector runs/qwen-avx2 \
+  --model Qwen/Qwen2.5-Coder-7B-Instruct --arms C-0,C-1,C-2,C-3,C-4 --k 5 \
+  --cells avx2/float32/dot,avx2/float32/l2_impl,… \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector --ceiling-usd 10 --generator modal
+lattice e1 report runs/qwen-avx2                    # or --json
+
+# the same run again with no model at all, from a recorded batch
+lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector \
+  --ceiling-usd 0.01 --generator replay:completions.jsonl
 ```
+
+## E1's runner — the order of work
+
+**Nothing here has been run.** `scripts/modal_e1.py` is written and first run by the developer, on Max's
+word (E1-g), and the ceiling is checked before every call. The order is fixed:
+
+1. **`lattice e1 plan`** — the requests only. It reads files, calls nothing, and costs nothing. Read the
+   prompt sizes off `requests.jsonl` before anything is sent.
+2. **The first unit (E1-g): Qwen2.5-Coder-7B, `avx2`, all five arms**, greedy and k = 5, round 0 plus the
+   iterate rounds, with the 31 cells' G-mem probes in the same call. `--ceiling-usd` is named by Max.
+3. **Price it.** Compare `calls.jsonl`'s measured cost with `e1.PRICING`'s estimate, and replace those
+   constants with what Modal billed. E1 was priced at **≈ $1–3 against the $10 ceiling** from the real
+   target's prompt sizes; the first unit is what checks that.
+4. **Max's word**, before the other two ISAs and before Olmo.
+5. **The rest**, then G-graph over the bodies that compiled — one ingest per wave, and not in the loop.
+
+`scripts/modal_e1.py` is a `uv run` script (`modal>=1.1`) and **this package never imports `modal`**: the
+seam is a subprocess and two JSONL files, which is also what makes a batch replayable afterwards. Its pins
+are the ones both 7Bs already ran under for ADR-099 — vLLM 0.27.1, `transformers>=5.8`,
+`VLLM_USE_FLASHINFER_SAMPLER=0`, an A10G at a 16k window, the weights in the `hobbes-hf-cache` volume — and
+`MODELS` is the whole of what may run: a model it does not name is refused rather than downloaded, because
+a run at an unpinned model is not the run the record describes. One offline batch per call, prefix caching
+on, one `SamplingParams` per request so the seed is per request; `llm.chat` for the arms and `llm.generate`
+for the G-mem probes, which are continuations a chat template would turn into questions. The GPU rate in
+it is a constant to check against Modal's pricing page, not a quote.

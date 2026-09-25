@@ -8,7 +8,8 @@ import pytest
 import test_ages
 import test_intrinsics
 
-from lattice import cli, run, shadow
+from lattice import cli, e1, prompts, run, shadow
+from lattice.cells import build as build_lattice
 from lattice.holes import HOLE
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -369,3 +370,136 @@ def test_selftest_here_prints_the_table_and_exits_zero_when_it_holds(monkeypatch
     out = capsys.readouterr().out
     assert "self-test over 1 cell(s) — ok" in out
     assert json.loads(report.read_text())["ok"] is True
+
+
+# MARK: - E1's runner -
+
+
+def plan_a_run(tmp_path, capsys, *, cells="avx2/int8/dot", arms="C-2", k=1, ledger=False):
+    """`lattice e1 plan` over one cell, and the run directory it wrote."""
+    run_dir = tmp_path / "run"
+    argv = ["e1", "plan", str(FIXTURE), str(run_dir), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+            "--cells", cells, "--arms", arms, "--k", str(k)]
+    if ledger:
+        argv += ["--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json")]
+    assert cli.main(argv) == 0
+    capsys.readouterr()
+    return run_dir
+
+
+def completions_for(run_dir, text):
+    """A replay file answering every request of a run with the same text."""
+    rows = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines() if line.strip()]
+    recorded = run_dir.parent / "completions.jsonl"
+    recorded.write_text("".join(json.dumps({"id": row["id"], "text": text}) + "\n" for row in rows))
+    return recorded
+
+
+def test_e1_plan_writes_the_meta_and_the_requests(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    assert cli.main([
+        "e1", "plan", str(FIXTURE), str(run_dir), "--model", "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "--cells", "avx2/int8/dot,avx2/float32/dot", "--arms", "C-0,C-2", "--k", "3",
+    ]) == 0
+    assert "e1 plan: 18 request(s) — 16 chat over 2 cell(s) × 2 arm(s) × 4 sample(s), 2 G-mem" in capsys.readouterr().out
+
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["model"] == "Qwen/Qwen2.5-Coder-7B-Instruct"
+    assert record["arms"] == ["C-0", "C-2"] and record["k"] == 3
+    assert record["p12"] == "arm=model+prompt"
+    requests = [json.loads(line) for line in (run_dir / e1.REQUESTS).read_text().splitlines()]
+    assert sum(1 for request in requests if request["mode"] == "chat") == 2 * 2 * 4
+    assert sum(1 for request in requests if request["mode"] == "complete") == 2
+
+
+def test_e1_plan_skips_a_facts_arm_with_no_ledger_and_names_it(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    assert cli.main([
+        "e1", "plan", str(FIXTURE), str(run_dir), "--model", "M",
+        "--cells", "avx2/int8/dot", "--arms", "C-1,C-2",
+    ]) == 0
+    assert "C-1 skipped" in capsys.readouterr().err
+    assert json.loads((run_dir / e1.META).read_text())["arms"] == ["C-2"]
+
+
+def test_e1_plan_with_the_ledger_carries_the_facts_arms(tmp_path, capsys):
+    run_dir = plan_a_run(tmp_path, capsys, arms="C-1", ledger=True)
+    record = json.loads((run_dir / e1.META).read_text())
+    assert record["arms"] == ["C-1"]
+    assert record["ledger"]["graph"]["version"] == "0.2.70-beta"
+
+
+def test_e1_run_replays_a_file_and_grades_what_it_extracted(tmp_path, capsys, monkeypatch):
+    lattice = build_lattice(FIXTURE)
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = plan_a_run(tmp_path, capsys)
+    recorded = completions_for(run_dir, f"```c\n{prompts.definition(lattice, cell)}\n```")
+
+    graded = []
+
+    def fake_default_grade(target, image=run.IMAGE):
+        def grade(entries):
+            graded.extend(entry["id"] for entry in entries)
+            return [{"id": entry["id"], "cell": entry["cell"], "class": "pass", "reg": True} for entry in entries]
+
+        return grade
+
+    monkeypatch.setattr(e1, "default_grade", fake_default_grade)
+    assert cli.main([
+        "e1", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+    ]) == 0
+    assert json.loads(capsys.readouterr().out) == {"rows": 2, "gmem": 1, "calls": 1, "spent_usd": 0.0}
+    assert len(graded) == 2
+    rows = [json.loads(line) for line in (run_dir / e1.ROWS).read_text().splitlines()]
+    assert [row["class"] for row in rows] == ["pass", "pass"]
+
+
+def test_e1_run_without_a_ceiling_exits_two(tmp_path, capsys):
+    run_dir = plan_a_run(tmp_path, capsys)
+    with pytest.raises(SystemExit) as refused:
+        cli.main(["e1", "run", str(run_dir), str(FIXTURE), "--generator", "replay:nowhere.jsonl"])
+    assert refused.value.code == 2
+    assert "--ceiling-usd" in capsys.readouterr().err
+
+
+def test_e1_run_refuses_a_generator_it_does_not_know(tmp_path, capsys):
+    run_dir = plan_a_run(tmp_path, capsys)
+    assert cli.main(["e1", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "1", "--generator", "openai"]) == 2
+    assert "modal or replay:" in capsys.readouterr().err
+
+
+def test_e1_run_prints_the_ceiling_refusal_and_exits_two(tmp_path, capsys):
+    run_dir = plan_a_run(tmp_path, capsys)
+    recorded = completions_for(run_dir, "```c\nnothing\n```")
+    assert cli.main([
+        "e1", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "0", "--generator", f"replay:{recorded}",
+    ]) == 2
+    assert "nothing was sent" in capsys.readouterr().err
+    assert not (run_dir / e1.ROWS).exists()
+
+
+def test_e1_report_prints_the_table_and_the_json(tmp_path, capsys, monkeypatch):
+    lattice = build_lattice(FIXTURE)
+    cell = lattice.get("avx2/int8/dot")
+    run_dir = plan_a_run(tmp_path, capsys)
+    recorded = completions_for(run_dir, f"```c\n{prompts.definition(lattice, cell)}\n```")
+    monkeypatch.setattr(
+        e1,
+        "default_grade",
+        lambda target, image=run.IMAGE: (
+            lambda entries: [{"id": e["id"], "cell": e["cell"], "class": "pass", "reg": True} for e in entries]
+        ),
+    )
+    assert cli.main([
+        "e1", "run", str(run_dir), str(FIXTURE), "--ceiling-usd", "10", "--generator", f"replay:{recorded}",
+    ]) == 0
+    capsys.readouterr()
+
+    assert cli.main(["e1", "report", str(run_dir)]) == 0
+    table = capsys.readouterr().out
+    assert "bodies:" in table and "pass@1" in table
+
+    assert cli.main(["e1", "report", str(run_dir), "--json"]) == 0
+    found = json.loads(capsys.readouterr().out)
+    assert found["sections"]["bodies"]["arms"]["C-2"]["overall"]["pass_at_1"] == 1.0
+    assert found["missing"] == []
