@@ -1,18 +1,28 @@
 """`lattice` — read a target's kernel lattice, and grade bodies against it, from the command line.
 
-    lattice map      <target> [--json]        the cells per ISA: counts by kind, slots, and what did not fit
-    lattice task     <target> <cell-id>       the task record for one cell, as JSON
-    lattice punch    <target> <cell-id>       that cell's file with its body replaced by the hole
-    lattice grade    <target> <manifest.json> grade every entry in the manifest; one JSON line each
-    lattice selftest <target> [--cells …]     the gate on the instruments (§5.5)
+    lattice map        <target> [--json]        the cells per ISA: counts by kind, slots, and what did not fit
+    lattice task       <target> <cell-id>       the task record for one cell, as JSON
+    lattice punch      <target> <cell-id>       that cell's file with its body replaced by the hole
+    lattice facts      <target> <cell-id>       the cell's callees from the ledger (C-1, §5.3)
+    lattice intrinsics <include-dir>            index clang's headers for every `_mm…`/`_cvt…` signature
+    lattice ages       <git-dir> <ref>          since when each cell's name and body have been what they are
+    lattice mem-probes <target>                 the G-mem probes, written and not run
+    lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
+    lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
-The first three read text and run nowhere in particular. **The last two compile and run the target's
-code**, so they take `--here` (this process is already contained) or `--image NAME` (the default: build
-a `podman run` plan and run this same CLI inside it, ADR-092/C-64). `--here` outside a container exits 2
-with the refusal. `<target>` is a checkout's root — the directory holding `src/distance-*.c`.
+Everything but the last two reads text — files, a git history, the derived artifacts — and runs nowhere
+in particular. **`grade` and `selftest` compile and run the target's code**, so they take `--here` (this
+process is already contained) or `--image NAME` (the default: build a `podman run` plan and run this same
+CLI inside it, ADR-092/C-64). `--here` outside a container exits 2 with the refusal. `<target>` is a
+checkout's root — the directory holding `src/distance-*.c`.
 
 A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with them under `entries`;
 `body` is a body's text, `{` to its matching `}`, or the word `"gold"`.
+
+`facts` and `task` take the ledger as `--graph derived/graph.json`, `--key derived/oracle.json` and
+`--intrinsics index.json`. None of the three is required, and one left out is **named in the answer's
+`missing`** rather than filled in from somewhere else: `lattice facts` with no ledger prints no callees
+and says so. `mem-probes` writes the probes only — this CLI never calls a model.
 """
 
 from __future__ import annotations
@@ -24,7 +34,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from . import holes, run, task
+from . import ages as ages_of
+from . import facts as facts_of
+from . import gmem, holes, intrinsics as intrinsics_of, run, task
 from .cells import ISAS, Lattice, UnknownCell, build
 
 __all__ = ["main"]
@@ -42,10 +54,29 @@ def main(argv: list[str] | None = None) -> int:
     tasker = verbs.add_parser("task", help="one cell's task record, as JSON")
     tasker.add_argument("target", type=Path)
     tasker.add_argument("cell", help="a cell id, <isa>/<type>/<metric>")
+    _ledger(tasker)
 
     puncher = verbs.add_parser("punch", help="one cell's file with its body punched out")
     puncher.add_argument("target", type=Path)
     puncher.add_argument("cell", help="a cell id, <isa>/<type>/<metric>")
+
+    facter = verbs.add_parser("facts", help="one cell's callees from the graph and the clang key")
+    facter.add_argument("target", type=Path)
+    facter.add_argument("cell", help="a cell id, <isa>/<type>/<metric>")
+    _ledger(facter)
+
+    indexer = verbs.add_parser("intrinsics", help="index clang's headers for the intrinsic signatures")
+    indexer.add_argument("include_dir", type=Path, help="clang's include dir (`clang -print-file-name=include`)")
+    indexer.add_argument("--out", type=Path, help="write the index as JSON here")
+
+    ager = verbs.add_parser("ages", help="since when each cell's name and body have been what they are")
+    ager.add_argument("git_dir", type=Path, help="a clone of the target, with its history")
+    ager.add_argument("ref", help="the commit to read the cells at")
+    ager.add_argument("--out", type=Path, help="write the rows as JSON here; the table always prints")
+
+    prober = verbs.add_parser("mem-probes", help="the G-mem probes for every native cell, as JSONL")
+    prober.add_argument("target", type=Path)
+    prober.add_argument("--out", type=Path, help="write the probes here (default: stdout)")
 
     grader = verbs.add_parser("grade", help="grade a manifest of bodies")
     grader.add_argument("target", type=Path)
@@ -71,9 +102,18 @@ def main(argv: list[str] | None = None) -> int:
             print(f"lattice: the plan could not be run ({missing}); is podman installed?", file=sys.stderr)
             return 2
 
+    if args.verb == "intrinsics":
+        return _intrinsics(args)
+    if args.verb == "ages":
+        return _ages(args)
+
     lattice = build(args.target)
     if args.verb == "map":
         print(json.dumps(_map(lattice), indent=2) if args.json else _table(lattice))
+        return 0
+    if args.verb == "mem-probes":
+        probes = [gmem.probe(lattice, cell) for cell in _native(lattice)]
+        _write_lines([json.dumps(probe, sort_keys=True) for probe in probes], args.out)
         return 0
 
     try:
@@ -82,10 +122,24 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lattice: no cell {args.cell!r}; try `lattice map {args.target}`", file=sys.stderr)
         return 2
 
-    if args.verb == "task":
-        print(task.dumps(task.build(lattice, cell)))
-    else:
-        print(holes.punch(lattice.text(cell), cell), end="")
+    if args.verb in ("task", "facts"):
+        try:
+            ledger = facts_of.load(args.graph, args.key, args.intrinsics)
+        except OSError as missing:
+            print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
+            return 2
+        if args.verb == "facts":
+            rows = ledger.callees(lattice, cell)
+            print(json.dumps(
+                {"cell": cell.id, "source": ledger.source(), "missing": rows.missing, "callees": list(rows)},
+                indent=2,
+            ))
+        else:
+            given = ledger if (args.graph or args.key or args.intrinsics) else None
+            print(task.dumps(task.build(lattice, cell, facts=given)))
+        return 0
+
+    print(holes.punch(lattice.text(cell), cell), end="")
     return 0
 
 
@@ -94,6 +148,74 @@ def _where(verb: argparse.ArgumentParser) -> None:
     verb.add_argument("--here", action="store_true", help="run in this process; refused outside a container")
     verb.add_argument("--image", default=run.IMAGE, help=f"the image to run in (default: {run.IMAGE})")
     verb.add_argument("--work", type=Path, help="the work dir (default: a fresh temporary one)")
+
+
+def _ledger(verb: argparse.ArgumentParser) -> None:
+    """The ledger the facts come from; each part left out is named in `missing`, never filled in."""
+    verb.add_argument("--graph", type=Path, help="the target's ingest, derived/graph.json")
+    verb.add_argument("--key", type=Path, help="the target's clang oracle key, derived/oracle.json")
+    verb.add_argument("--intrinsics", type=Path, help="an intrinsic index, from `lattice intrinsics`")
+
+
+def _native(lattice: Lattice) -> list:
+    """Every native cell, in the order the files define them — the cells a body can be graded on."""
+    return [cell for isa in ISAS for cell in lattice.by_isa(isa) if cell.native]
+
+
+# MARK: - the reading verbs -
+
+
+def _intrinsics(args) -> int:
+    index = intrinsics_of.load(args.include_dir)
+    macros = sum(1 for entry in index.values() if entry["macro"])
+    headers = len({entry["header"] for entry in index.values()})
+    print(f"intrinsics: {len(index)} names ({macros} macro, {len(index) - macros} function) over {headers} header(s)")
+    if args.out:
+        args.out.write_text(json.dumps(index, indent=2, sort_keys=True), encoding="utf-8")
+    return 0
+
+
+def _ages(args) -> int:
+    rows = ages_of.ages(args.git_dir, args.ref, build(args.git_dir))
+    print(_age_table(rows))
+    if args.out:
+        args.out.write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
+    return 0
+
+
+def _age_table(rows: dict) -> str:
+    header = f"{'cell':<26}{'name since':<14}{'body since':<14}  name"
+    lines = [f"ages of {len(rows)} native cell(s)", header, "-" * len(header)]
+    for cell_id in sorted(rows):
+        row = rows[cell_id]
+        lines.append(
+            f"{cell_id:<26}{row['name_since'] or '-':<14}{row['body_since'] or '-':<14}  {row['name']}"
+            + (f"  ({row['reason']})" if row["reason"] else "")
+        )
+    dates = [row["body_since"] for row in rows.values() if row["body_since"]]
+    if dates:
+        lines.append("")
+        lines.append("bodies already identical at the end of each quarter:")
+        for end in _quarter_ends(min(dates), max(dates)):
+            lines.append(f"  {end}  {ages_of.identical_at(rows, end)} of {len(rows)}")
+    return "\n".join(lines)
+
+
+def _quarter_ends(first: str, last: str) -> list[str]:
+    """Every quarter end from the oldest body to the newest, so a cutoff can be read off the tally.
+
+    From the first quarter end the rows reach — the first row with a non-zero count — through the one
+    that holds the newest body, which is where the count is all of them.
+    """
+    ends = []
+    for year in range(int(first[:4]), int(last[:4]) + 2):
+        for end in (f"{year}-03-31", f"{year}-06-30", f"{year}-09-30", f"{year}-12-31"):
+            if end < first:
+                continue
+            ends.append(end)
+            if end >= last:
+                return ends
+    return ends
 
 
 # MARK: - the grading verbs -

@@ -4,12 +4,19 @@ The rule the programme runs on is that the graph fills every field it can and th
 what the graph cannot hold (ADR-151). This module is the first half of that: everything derivable from
 the files — the name, the signature, where it sits in the grid, the slots it is reached through, its
 axis neighbours, the C-0 context above it, the helpers and macros it may call — is filled here,
-deterministically. The fields the graph and the teacher own are present and `null`:
+deterministically. What the ledger owns is filled when a ledger is given, and what nothing here owns is
+present and `null`:
 
 | field | filled by | unit |
 |---|---|---|
-| `callees` | the graph, from the target's ingest | the unit after this one |
+| `callees` | `facts.Facts` — the graph and the clang key, at the SHA | given as `facts=` |
 | `contract`, `edge_cases`, `like` | the general model, parsing a request (K-1) | later |
+
+**A fact names where it came from.** `callees` is only ever filled from a ledger handed in, never from
+the record's own file, and `callees_source` beside it holds that ledger's provenance: the graph's `sha`
+and the Hobbes version that built it, the key's `oracle` string, and the `missing` list naming any
+instrument that was not there to ask. Without a ledger both fields are `null`, which is the difference
+between "this cell calls nothing" and "nobody was asked".
 
 A record never carries the target's path: `file` is relative to the target's root, and the checkout a
 record was built from is not part of the task. Two checkouts of the same SHA must give the same bytes.
@@ -29,21 +36,23 @@ from __future__ import annotations
 import json
 
 from .cells import Cell, Lattice
+from .facts import Facts
 
 __all__ = ["SCHEMA", "build", "dumps", "prelude_bare"]
 
 #: the record's version. A field added or a meaning changed bumps it.
-SCHEMA = "lattice-task/2"
+SCHEMA = "lattice-task/3"
 
 
-def build(lattice: Lattice, cell: Cell) -> dict:
-    """The task record for one cell."""
+def build(lattice: Lattice, cell: Cell, facts: Facts | None = None) -> dict:
+    """The task record for one cell, with `callees` filled from *facts* when a ledger is given."""
     source = lattice.sources[cell.isa]
     helpers = [
         {"name": fn.name, "signature": fn.signature}
         for fn in source.scanned.functions
         if fn.static and fn.signature_span.start < cell.signature_span.start
     ]
+    rows = None if facts is None else facts.callees(lattice, cell)
     return {
         "schema": SCHEMA,
         "cell": cell.id,
@@ -62,7 +71,8 @@ def build(lattice: Lattice, cell: Cell) -> dict:
         "prelude_bare": prelude_bare(lattice, cell),
         "helpers": helpers,
         "macros": list(source.scanned.defines),
-        "callees": None,
+        "callees": None if rows is None else list(rows),
+        "callees_source": None if rows is None else {**facts.source(), "missing": list(rows.missing)},
         "contract": None,
         "edge_cases": None,
         "like": None,

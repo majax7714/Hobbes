@@ -5,11 +5,14 @@ import shutil
 from pathlib import Path
 
 import pytest
+import test_ages
+import test_intrinsics
 
 from lattice import cli, run
 from lattice.holes import HOLE
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
+DERIVED = FIXTURE / "derived"
 
 
 def test_map_exits_zero_and_names_every_isa(capsys):
@@ -34,8 +37,49 @@ def test_task_prints_the_record(capsys):
     assert cli.main(["task", str(FIXTURE), "avx2/int8/dot"]) == 0
     record = json.loads(capsys.readouterr().out)
     assert record["name"] == "int8_distance_dot_avx2"
-    assert record["schema"] == "lattice-task/2"
+    assert record["schema"] == "lattice-task/3"
     assert record["prelude_bare"]
+    assert record["callees"] is None  # no ledger was given
+
+
+def test_task_with_the_ledger_carries_the_callees_and_their_source(capsys):
+    assert cli.main([
+        "task", str(FIXTURE), "avx2/float32/dot",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    record = json.loads(capsys.readouterr().out)
+    assert [row["name"] for row in record["callees"]][:2] == ["MM256_FMA_PS", "hsum256_ps"]
+    assert record["callees_source"]["graph"]["version"] == "0.2.70-beta"
+
+
+# MARK: - the facts verb -
+
+
+def test_facts_prints_the_callees_with_their_provenance(capsys):
+    assert cli.main([
+        "facts", str(FIXTURE), "avx2/float32/dot",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["cell"] == "avx2/float32/dot"
+    assert [row["provenance"] for row in payload["callees"]] == [
+        "hobbes:semantic", "hobbes:semantic",
+        "clang-key:static", "clang-key:static", "clang-key:static", "clang-key:macro",
+    ]
+    assert payload["source"]["key"]["oracle"].startswith("Ubuntu clang")
+    assert payload["missing"] == ["intrinsics"]
+
+
+def test_facts_with_no_ledger_prints_nothing_and_says_what_was_missing(capsys):
+    assert cli.main(["facts", str(FIXTURE), "avx2/float32/dot"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["callees"] == []
+    assert payload["missing"] == ["graph", "clang-key"]
+
+
+def test_a_ledger_file_that_is_not_there_is_a_refusal(capsys, tmp_path):
+    assert cli.main(["facts", str(FIXTURE), "avx2/float32/dot", "--graph", str(tmp_path / "nope.json")]) == 2
+    assert "the ledger could not be read" in capsys.readouterr().err
 
 
 def test_punch_prints_the_file_with_the_hole(capsys):
@@ -53,6 +97,40 @@ def test_punch_prints_the_file_with_the_hole(capsys):
 def test_an_unknown_cell_is_an_error(capsys):
     assert cli.main(["task", str(FIXTURE), "avx2/float32/nope"]) == 2
     assert "no cell" in capsys.readouterr().err
+
+
+# MARK: - the intrinsic index, the ages and the probes -
+
+
+def test_intrinsics_indexes_a_header_directory_and_writes_it(capsys, tmp_path):
+    (tmp_path / "avx2intrin.h").write_text(test_intrinsics.AVX2)
+    out = tmp_path / "index.json"
+    assert cli.main(["intrinsics", str(tmp_path), "--out", str(out)]) == 0
+    assert "intrinsics: 3 names (1 macro, 2 function) over 1 header(s)" in capsys.readouterr().out
+    index = json.loads(out.read_text())
+    assert index["_mm256_fmadd_ps"]["signature"] == "__m256 _mm256_fmadd_ps(__m256 __A, __m256 __B, __m256 __C)"
+    assert str(tmp_path) not in out.read_text()
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="the age walk reads a real git history")
+def test_ages_prints_the_table_and_writes_the_rows(capsys, tmp_path):
+    repo = test_ages.a_repo(tmp_path / "target")
+    out = tmp_path / "ages.json"
+    assert cli.main(["ages", str(repo), "HEAD", "--out", str(out)]) == 0
+    printed = capsys.readouterr().out
+    assert "ages of 1 native cell(s)" in printed
+    assert "avx2/float32/dot" in printed
+    assert "2025-06-30  1 of 1" in printed  # the quarter tally the contamination facts are read from
+    assert json.loads(out.read_text())["avx2/float32/dot"]["body_since"] == "2025-06-03"
+
+
+def test_mem_probes_writes_one_probe_per_native_cell_and_calls_nothing(capsys):
+    assert cli.main(["mem-probes", str(FIXTURE)]) == 0
+    probes = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    assert len(probes) == 39  # the fixture's three native ISAs
+    assert all(row["cell"].split("/")[0] in ("sse2", "avx2", "avx512") for row in probes)
+    dot = next(row for row in probes if row["cell"] == "avx2/float32/dot")
+    assert dot["k"] == 6 and dot["expected"] and "score" not in dot
 
 
 # MARK: - the grading verbs -
