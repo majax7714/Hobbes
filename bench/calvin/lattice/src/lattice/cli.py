@@ -10,8 +10,17 @@
     lattice mem-probes <target>                 the G-mem probes, written and not run
     lattice shadow     <target> <dest>          write one rename shadow of the target (E2)
     lattice graph-grade <target> <results.jsonl> G-graph over the bodies a grading run kept
+    lattice e1 plan    <target> <run-dir>       E1's requests: (cell, arm, sample) and the G-mem probes
+    lattice e1 run     <run-dir> <target>       answer and grade them, round by round, under a ceiling
+    lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
+
+**`e1 run` is the one verb that would call a model**, and only through the generator it is given:
+`--generator replay:<completions.jsonl>` replays a file and spends nothing, and `--generator modal` shells
+out to `scripts/modal_e1.py`. `--ceiling-usd` is **required and has no default** (§8: spend is held until
+Max names the run and its ceiling); the estimate of every call is checked against it before anything is
+sent. Grading between rounds goes into the image, as `grade` does.
 
 Everything but the last three reads text — files, a git history, the derived artifacts — and runs
 nowhere in particular. **`grade` and `selftest` compile and run the target's code**, so they take
@@ -46,12 +55,17 @@ import tempfile
 from pathlib import Path
 
 from . import ages as ages_of
+from . import e1 as e1_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
+from . import report as report_of
 from . import shadow as shadow_of
 from . import prompts as prompts_of
 from . import gmem, holes, intrinsics as intrinsics_of, run, task
 from .cells import ISAS, Cell, Lattice, UnknownCell, build
+
+#: E1's batch generator, beside this package rather than inside it: the package never imports `modal`.
+MODAL_SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "modal_e1.py"
 
 __all__ = ["main"]
 
@@ -116,6 +130,9 @@ def main(argv: list[str] | None = None) -> int:
     graphgrader.add_argument("--out", type=Path, help="write the rows as JSONL here (default: stdout)")
     _renamed(graphgrader)
 
+    runner = verbs.add_parser("e1", help="E1's runner: plan the requests, answer and grade them, report")
+    _e1_verbs(runner)
+
     grader = verbs.add_parser("grade", help="grade a manifest of bodies")
     grader.add_argument("target", type=Path)
     grader.add_argument("manifest", type=Path, help="a JSON list of {id, cell, body} entries")
@@ -152,6 +169,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"lattice: the plan could not be run ({missing}); is podman installed?", file=sys.stderr)
             return 2
 
+    if args.verb == "e1":
+        return _e1(args)
     if args.verb == "intrinsics":
         return _intrinsics(args)
     if args.verb == "ages":
@@ -320,6 +339,127 @@ def _prompt_row(lattice: Lattice, cell: Cell, arm: str, ledger) -> dict:
         "control": [{"cell": row["cell"], "cut": row["cut"]} for row in data["control"]],
         "chars": sum(len(turn["content"]) for turn in turns),
     }
+
+
+# MARK: - E1's runner -
+
+
+def _e1_verbs(verb: argparse.ArgumentParser) -> None:
+    """`plan`, `run` and `report` — the three steps of one E1 run, over one run directory."""
+    steps = verb.add_subparsers(dest="step", required=True)
+
+    planner = steps.add_parser("plan", help="write meta.json and requests.jsonl for a run")
+    planner.add_argument("target", type=Path)
+    planner.add_argument("run_dir", type=Path, help="the run directory to create")
+    planner.add_argument("--model", required=True, help="the model the seeds and the prices are for")
+    planner.add_argument("--cells", help="a comma-separated list of cell ids (default: every native cell)")
+    planner.add_argument("--arms", help=f"a comma-separated list of arms (default: {','.join(prompts_of.ARMS)})")
+    planner.add_argument("--k", type=int, default=e1_of.K, help=f"samples beside greedy (default: {e1_of.K})")
+    _ledger(planner)
+
+    doer = steps.add_parser("run", help="answer and grade the run's requests, round by round")
+    doer.add_argument("run_dir", type=Path)
+    doer.add_argument("target", type=Path)
+    doer.add_argument(
+        "--ceiling-usd",
+        type=float,
+        required=True,
+        help="refuse before any call whose estimate would carry the run past this; there is no default",
+    )
+    doer.add_argument(
+        "--generator",
+        default="modal",
+        help="modal (scripts/modal_e1.py) or replay:<completions.jsonl>, which spends nothing",
+    )
+    doer.add_argument("--image", default=run.IMAGE, help=f"the image grading runs in (default: {run.IMAGE})")
+    doer.add_argument("--rounds", type=int, default=e1_of.ROUNDS, help=f"feedback rounds (default: {e1_of.ROUNDS})")
+
+    reporter = steps.add_parser("report", help="the readings a finished run's rows support")
+    reporter.add_argument("run_dir", type=Path)
+    reporter.add_argument("--json", action="store_true", help="the report as JSON rather than a table")
+
+
+def _e1(args) -> int:
+    if args.step == "plan":
+        return _e1_plan(args)
+    if args.step == "run":
+        return _e1_run(args)
+    return _e1_report(args)
+
+
+def _e1_plan(args) -> int:
+    """One request per (cell, arm, sample), plus the G-mem probes. A facts arm with no ledger is skipped."""
+    lattice = build(args.target)
+    try:
+        arms = _arms(args.arms)
+        cells = _chosen(lattice, args.cells)
+    except prompts_of.UnknownArm as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except UnknownCell as unknown:
+        print(f"lattice: no cell {unknown}; try `lattice map {args.target}`", file=sys.stderr)
+        return 2
+    try:
+        ledger = facts_of.load(args.graph, args.key, args.intrinsics)
+    except OSError as missing:
+        print(f"lattice: the ledger could not be read ({missing})", file=sys.stderr)
+        return 2
+
+    given = ledger if (args.graph or args.key or args.intrinsics) else None
+    asked = [arm for arm in arms if given is not None or arm not in prompts_of.FACTS_ARMS]
+    for arm in [arm for arm in arms if arm not in asked]:
+        print(
+            f"lattice: {arm} skipped — it is a facts arm and no ledger was given "
+            "(--graph, --key, --intrinsics); it is never filled empty",
+            file=sys.stderr,
+        )
+    requests = e1_of.plan(lattice, cells, asked, args.model, given, k=args.k)
+    record = e1_of.meta(args.model, arms=asked, cells=cells, k=args.k, target=args.target, facts=given)
+    e1_of.write_plan(args.run_dir, requests, record)
+    chats = sum(1 for request in requests if request["mode"] == "chat")
+    print(
+        f"e1 plan: {len(requests)} request(s) — {chats} chat over {len(cells)} cell(s) × {len(asked)} arm(s) "
+        f"× {args.k + 1} sample(s), {len(requests) - chats} G-mem → {args.run_dir}"
+    )
+    return 0
+
+
+def _e1_run(args) -> int:
+    """The loop. The generator is named on the command line, and the grader is the image's."""
+    try:
+        generate = _generator(args)
+    except (OSError, ValueError) as refusal:
+        print(f"lattice: the generator could not be built ({refusal})", file=sys.stderr)
+        return 2
+    grade = e1_of.default_grade(args.target, args.image)
+    try:
+        summary = e1_of.run(
+            args.run_dir, args.target, generate, grade, ceiling_usd=args.ceiling_usd, rounds=args.rounds
+        )
+    except (e1_of.CeilingReached, e1_of.TargetMoved) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    except (e1_of.MissingCompletion, e1_of.GenerateFailed, e1_of.GradeFailed) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
+def _generator(args):
+    """`replay:<file>`, which answers from a recorded run, or `modal`, which is the only one that spends."""
+    if args.generator.startswith("replay:"):
+        return e1_of.replay_generator(Path(args.generator.split(":", 1)[1]))
+    if args.generator != "modal":
+        raise ValueError(f"no generator {args.generator!r}; it is modal or replay:<completions.jsonl>")
+    record = json.loads((args.run_dir / e1_of.META).read_text(encoding="utf-8"))
+    return e1_of.modal_generator(record["model"], MODAL_SCRIPT)
+
+
+def _e1_report(args) -> int:
+    found = report_of.report(args.run_dir)
+    print(json.dumps(found, indent=2, sort_keys=True) if args.json else report_of.render(found))
+    return 0
 
 
 def _shadow(args) -> int:
