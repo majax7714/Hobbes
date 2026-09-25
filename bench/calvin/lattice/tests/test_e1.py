@@ -685,7 +685,10 @@ def test_the_modal_script_pins_both_models_and_the_vllm_version():
     }
     models = ast.literal_eval(values["MODELS"])
     assert sorted(models) == ["Qwen/Qwen2.5-Coder-7B-Instruct", "allenai/Olmo-3-7B-Instruct"]
-    assert all(row["gpu"] == "A10G" and row["max_model_len"] == 16384 for row in models.values())
+    assert all(row["max_model_len"] == 16384 for row in models.values())
+    # Olmo 3's KV cache does not fit a 16k window on the A10G; it runs on the L40S
+    assert models["Qwen/Qwen2.5-Coder-7B-Instruct"]["gpu"] == "A10G"
+    assert models["allenai/Olmo-3-7B-Instruct"]["gpu"] == "L40S"
     assert ast.literal_eval(values["VLLM"]) == "0.27.1"
     assert ast.literal_eval(values["APP"]) == "hobbes-e1"
 

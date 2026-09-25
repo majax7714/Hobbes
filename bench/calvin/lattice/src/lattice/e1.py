@@ -158,7 +158,9 @@ CHARS_PER_TOKEN = 3.5
 #: are Qwen's until Olmo has run; a model the table does not name falls back to :data:`DEFAULT_PRICE`.
 PRICING = {
     "Qwen/Qwen2.5-Coder-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600},
-    "allenai/Olmo-3-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600},
+    # Olmo runs on the L40S (scripts/modal_e1.py says why), at $0.000542/s; its throughputs are Qwen's
+    # on the A10G until its own first call measures them, which keeps this estimate on the high side
+    "allenai/Olmo-3-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 0.000542},
 }
 DEFAULT_PRICE = {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600}
 

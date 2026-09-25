@@ -47,10 +47,17 @@ VLLM = "0.27.1"
 #: **The whole of what may run.** A model outside this table is refused by :func:`generate`.
 MODELS = {
     "Qwen/Qwen2.5-Coder-7B-Instruct": {"gpu": "A10G", "max_model_len": 16384},
-    "allenai/Olmo-3-7B-Instruct": {"gpu": "A10G", "max_model_len": 16384},
+    # Olmo 3 7B needs 8.01 GiB of KV cache for one 16k sequence, and the A10G has 5.65 GiB free beside
+    # the weights (vLLM 0.27.1's own figures, the first Olmo call, 2026-09-25). The window is kept, and
+    # the card moves: the L40S (48 GB). Qwen2.5-Coder's grouped-query attention fits the A10G.
+    "allenai/Olmo-3-7B-Instruct": {"gpu": "L40S", "max_model_len": 16384},
 }
 
-#: The GPU's price per second, for the call record only. A10G at about $1.10/h.
+#: Each GPU's price per second, for the call record only (Modal's pricing page, read 2026-09-25: the
+#: A10 at $0.000306/s, the L40S at $0.000542/s).
+GPU_USD_PER_SECOND = {"A10G": 0.000306, "L40S": 0.000542}
+
+#: The A10G's price, kept under its old name for the record's field.
 #: **Check this against Modal's pricing page before the first run** — it is a constant here, not a quote.
 USD_PER_SECOND = 1.10 / 3600
 
@@ -144,7 +151,8 @@ def main(argv: list[str]) -> int:
     requests = [json.loads(line) for line in open(args.requests, encoding="utf-8") if line.strip()]
     started = time.time()
     with app.run():
-        answer = generate.remote(args.model, requests)
+        # the decorator's GPU is only the default: each model runs on the card MODELS pins for it
+        answer = generate.with_options(gpu=MODELS[args.model]["gpu"]).remote(args.model, requests)
     wall = round(time.time() - started, 3)
 
     with open(args.out, "w", encoding="utf-8") as handle:
@@ -161,9 +169,10 @@ def main(argv: list[str]) -> int:
         # `66c5`'s review). Modal's own bill is what the first unit is compared against.
         "seconds": answer["seconds"],
         "wall_seconds": wall,
-        "cost": round(wall * USD_PER_SECOND, 6),
+        "cost": round(wall * GPU_USD_PER_SECOND[MODELS[args.model]["gpu"]], 6),
         "cost_basis": "host wall around the remote call (an upper bound)",
-        "usd_per_second": USD_PER_SECOND,
+        "usd_per_second": GPU_USD_PER_SECOND[MODELS[args.model]["gpu"]],
+        "gpu": MODELS[args.model]["gpu"],
         "vllm": VLLM,
     }
     with open(args.call or f"{args.out}.call.json", "w", encoding="utf-8") as handle:
