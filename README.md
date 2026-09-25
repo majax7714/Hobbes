@@ -478,7 +478,7 @@ point); the session-by-session record is
 |---|---|
 | [`docs/hobbes-architecture.md`](docs/hobbes-architecture.md) | **Source of truth — the running architecture.** Describes Hobbes as it is now; amended in place, in the same commit as the code that moves it |
 | [`docs/BUILDLOG.md`](docs/BUILDLOG.md) | The ledger — append-only, one dated entry per session: what v1 (M0–M8), v2 extraction (V2.M0–M7), Java and every programme since actually did, plan beside outcome |
-| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-150 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
+| [`docs/adr/`](docs/adr/) | ADR-001 to ADR-151 (106 closed as *not taken*) — one per decision the running architecture doesn't make |
 | [`docs/constraints/`](docs/constraints/README.md) | **What Hobbes cannot tell you**, one file per subsystem segment, and where you find that out |
 | [`docs/oracle/oracle-grading.md`](docs/oracle/oracle-grading.md) | The oracle lane — the graph graded per language against compilers and the interpreter; misses in `oracle-misses.md`, the grader's own defects in `oracle-defects.md` |
 | [`docs/how-hobbes-differs.md`](docs/how-hobbes-differs.md) | Hobbes beside CodeGraphContext and repowise — the structural differences, with diagrams; the numbers live in the cells |
@@ -510,7 +510,7 @@ interactive graph.
 | `tsextract/` | TS/JS syntax provider (ts-morph), invoked as a subprocess | Node |
 | `scip/` | Lane B — the pinned SCIP indexers and the facts helper | Node |
 | `sandbox/` | Session container image and the exit-check harness | Containerfile + Python |
-| `bench/` | Experiment tooling, never product and never versioned (ADR-103): the oracle lane, Atlas-0, Calvin's round templates | Go + Python + Node |
+| `bench/` | Experiment tooling, never product and never versioned (ADR-103): the oracle lane, Atlas-0, Calvin's round templates, the Calvin experiments' lattice (`bench/calvin/lattice/`, ADR-151) | Go + Python + Node |
 | `scripts/` | `ci-graph.sh`, the CI graph job, which runs the same way on a box | shell |
 | `docs/` | Source docs, ADRs, the constraint register, and the append-only BUILDLOG | — |
 | `.hobbes/` | Hobbes dogfooding itself: `policies/` and `invariants/` versioned, `derived/` gitignored | — |
@@ -609,6 +609,7 @@ script runs on a developer box.
 (cd tsextract    && npm test)        # node --test
 (cd scip         && npm test)        # node --test
 (cd bench/atlas0 && uv run pytest)   # the Atlas-0 instruments (bench tooling)
+(cd bench/calvin/lattice && uv run pytest)   # the Calvin experiments' E0 instruments (bench tooling)
 ```
 
 Suite sizes are kept in one place, [`CLAUDE.md`](CLAUDE.md), rather

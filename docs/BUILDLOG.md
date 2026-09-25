@@ -14224,3 +14224,45 @@ arm and per-ISA/per-type reports, and its central reading is written against Li 
 opaque, because renaming costs ability as well as recall; G-hsr gets a failure class; E3
 trains only on validated, fact-complete examples; M-e (AutoVecCoder-8B) is added if its
 weights are open. Paused before E0 for Max.
+
+**Later still, into 2026-09-25: E0 built and accepted (Max: "good to go").** ADR-151 was written (the programme,
+with `calvin-experiments.md` as its body), and the charter amended (skill in the weights, facts in the ledger).
+`bench/calvin/lattice/` was started with a real-source fixture: sqlite-vector's kernel files at `0c2223a`,
+trimmed by a script to the float32/int8/bit1 rows, verbatim otherwise. The fixture's own ingest and clang key are
+beside it (126/126, recall 136/136, poison PASS). A CI step was added. Five units were dispatched serially, $52.37
+of subscription usage (the envelopes'):
+- `2fd4`: the map, holes and task record;
+- `9326`: the graders, the containment runner, the self-test;
+- `f50c`: two references;
+- `189e`: facts, ages, G-mem probes;
+- `c141`: the rename shadows, G-graph. It hit its 140-turn cap and was merged after review.
+
+**Every unit's real-target check, run on the host in the image before the merge, found something the fixture
+had not:**
+- `prelude` carried sibling bodies into C-0 (the brief's; a bare prelude added);
+- the target's own f16/bf16 SIMD kernels disagree with its scalar, and with each other, on inf and NaN (77
+  cases). A case with a non-finite input or scalar result is graded against the cell's own gold; that rule is
+  mine, and Max has not been asked;
+- uint8's scalar drift at n = 4096 (tolerance 1e-5);
+- a header macro's expansion leaking into the facts (the brief's; dropped, and the written name kept);
+- `sqlite3_mutex_alloc`, an in-repo macro on one `#if` arm and SQLite's API on the other, renamed by the first
+  shadows, which then failed to link. Fixed at the review (`20c53c9`, `declared-outside`).
+
+One correction of my own record: `9326`'s review first said 372 of 372 mutants, and it was 363 (`aeb3cbf`).
+
+The acceptance on the real target:
+- 93 golds `pass` and 465 of 465 self-test rows are as expected;
+- both shadows pass `make unittest` (1,447 of 1,447) and `make unittest-simd` on AVX-512, with 93 golds `pass`
+  through each;
+- G-graph reads Jaccard 1.0 on all 93 golds, and 0.667 on a numerically passing body with an extra callee;
+- the facts cover all 93 cells, the ages equal the hand count, and there are 93 G-mem probes.
+
+The contamination facts: the target's first commit is 2025-04-07 and AVX-512's file 2025-12-17. Olmo-3-7B's card
+gives a cutoff of Dec. 2024, and Qwen2.5-Coder is of 2024. Both E1 bases predate the target, and 34 of 93 bodies
+are newer than 2026-06-30.
+
+**A harness defect, found twice:** the gate reads a newly added decorator naming a module-level value as
+`invented`. Since ADR-146, lane A reads a decorator as a call, and the grounder knows no module-level assignment.
+It was reproduced in 14 lines and is recorded as a false block in `9326` and `c141`; the tracker reads 79 of 40
+with 3 false blocks. Not fixed; it is for Max to name. The target was re-ingested at 0.2.70-beta. README, CLAUDE.md
+and AGENTS.md, the handoff and the design's record are updated; there is no version bump (ADR-103).

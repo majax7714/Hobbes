@@ -452,10 +452,27 @@ named below was removed unless it says otherwise.
      **D-1 to D-4 taken** (Max, 2026-09-24): Calvin under "skill in the
      weights, facts in the ledger"; an open model at inference, the
      general model a parser into a task format; E0 with no spend, then
-     E1 at a $10 ceiling; NEON/RVV left. The literature pass (§12) is
-     done and changed E1, E2, G-hsr and E3 (§12.7). **Waiting on Max's
-     word to build E0** (`bench/calvin/lattice/`, in the image);
-     ADR-151 is written with it.
+     E1 at a $10 ceiling; NEON/RVV left. ADR-151 accepted; the charter
+     amended. **E0 built and accepted** (2026-09-25; units `2fd4`,
+     `9326`, `f50c`, `189e`, `c141`; `bench/calvin/lattice/`; the record
+     is §6's "E0's record"). **Next: E1's runner** (the prompts per arm
+     from `lattice task`, the iterate loop from `lattice grade`'s
+     feedback, vLLM on Modal for Qwen2.5-Coder-7B and Olmo-3-7B),
+     built with no spend. Then its first unit is priced against the
+     $10 ceiling (D-3), and Max's word comes before it widens. Drivers:
+     `~/.hobbes/bench/calvin-lattice/` (`units/`, `selftest/`,
+     `shadows/`, `facts/intrinsics-clang18.json`, `ages.py`, the full
+     history clone `sqlite-vector-full/`). The target was re-ingested at
+     0.2.70-beta.
+   - **A gate false block, twice (`9326`, `c141`): a newly added
+     decorator that names a module-level value (`@needs_x` where
+     `needs_x = pytest.mark.skipif(...)`) reads `invented`.** Since
+     ADR-146, lane A reads a decorator as a call, and the grounder
+     (`derive/ground.py`'s `_parse_python`) resolves calls against
+     symbols and local bindings only, never module-level assignments.
+     A 14-line reproduction is in `c141`'s parent session notes
+     (`9326`). The fix belongs to the grounder (a patch). It is not built;
+     it is for Max to name.
    - Every route Max settled from 2026-09-17 to 2026-09-20 (ADR-123 to
      ADR-144) is built; each ADR carries his word. Standing from them:
      constructions inside a template stay `uses`; §3.8's paragraphs stay

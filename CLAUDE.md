@@ -198,7 +198,8 @@ Suite sizes at the last check (2026-09-24, 0.2.70-beta, the
 oracle lane with it): 2,402 pytest (17 `lane_b`) / 399 Go with subtests
 (398 pass, 1 skip) + 128 oracle-lane Go with subtests (116 pass, 12 skip
 on a host without clang++ or cmake; the C++ ones pass in the image) / 52
-vitest / 47 tsextract + 97 scip node / 84 atlas0. Keep them green. CI
+vitest / 47 tsextract + 97 scip node / 84 atlas0 / 272
+lattice (252 pass, 20 skip on a host without clang; they run in the image). Keep them green. CI
 (`.github/workflows/ci.yml`, ADR-095) runs them all on every push;
 `scripts/ci-graph.sh <base>` is the graph job (image build → ingest →
 stamp check → lanes → compiled invariants → review → `lane_b` pytest),
@@ -314,9 +315,13 @@ the resume point, with everything held, is `docs/session-handoff.md`.
   right-by-order removed (§10.36). **Next:** the candidates in the
   handoff (route c, a lane A rule for those sites, among them), each
   measured first.
-- **Open for Max:** the go to build E0 of the Calvin experiments
-  programme (`docs/calvin/calvin-experiments.md`: a model that writes C,
-  from sqlite-vector; D-1 to D-4 taken, the literature pass §12 done);
+- **Calvin experiments** (ADR-151, `docs/calvin/calvin-experiments.md`):
+  a model that writes C, starting from sqlite-vector's kernel lattice.
+  E0, the instruments (`bench/calvin/lattice/`), was built and accepted
+  on the real target on 2026-09-25. E1's runner is next, with no spend
+  until its first unit is priced against the $10 ceiling.
+- **Open for Max:** the gate's false block on a new decorator naming a
+  module-level value (sessions 9326 and c141; the handoff has it);
   ADR-126 §3 — whether to build a "may reach through dispatch (not
   traced)" section on §10.12's numbers (it needs a syntax
   exclusion for non-dispatched calls); C-150's remainder (parked, Max:

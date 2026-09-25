@@ -2,7 +2,7 @@
 
 **Status:** routes accepted (Max, 2026-09-24: "good to go with recommended routes"), with
 D-2 amended toward open models (§9); the literature pass is done (§12) and changed the design
-(§12.7); **E0 under construction** (Max: "good to go") · **Type:** programme page — the design space, the experiments in it, the order, the
+(§12.7); **E0 built and accepted on the real target (2026-09-25)**; E1 next · **Type:** programme page — the design space, the experiments in it, the order, the
 decisions · **Compute:** none spent;
 E0 spends nothing, and every run after it is held until Max names it and its ceiling
 **Charter:** [`calvin-charter.md`](calvin-charter.md), with the one reading this page asks of
@@ -281,7 +281,8 @@ its estimate before the rest is run.
   E0 strictly free.
 - **The feedback loop** for E1's iterate arm: a failing body goes back with the compiler's
   errors or the differential's first failing input, up to three rounds.
-- **Gate:** the self-test passes on every grader, and both shadows pass G-test.
+- **Gate:** the self-test passes on every grader, and both shadows pass G-test. **Met 2026-09-25**
+  (the E0 record below).
 - **Contamination facts, read 2026-09-24** (drivers `~/.hobbes/bench/calvin-lattice/`,
   `ages.py` over a full clone, `sqlite-vector-history/`):
   - The repo's first commit is 2025-04-07. The SSE2 and AVX2 kernel files first appear on
@@ -298,6 +299,37 @@ its estimate before the rest is run.
   - Olmo 3's data cannot be searched through the public infini-gram API: its documented
     indexes stop at Olmo 2 and Dolma 1.7. OLMoTrace over Dolma 3 exists in Ai2's
     playground only. The dates make the search unnecessary for these bases.
+
+#### E0's record (2026-09-24 to 2026-09-25; five dispatched units, no API or Modal spend)
+
+Built as `bench/calvin/lattice/` (stdlib, 252 tests), through `hobbes dispatch`: units `2fd4` (the map, holes and
+task record), `9326` (the graders), `f50c` (two references), `189e` (facts, ages, G-mem probes) and `c141` (shadows,
+G-graph). $52.37 of subscription usage in all (the envelopes' figures). Each unit's real-target check was run on the host, in the image,
+before its merge, and **each one found a defect the fixture had not**. The acceptance, on sqlite-vector at `0c2223a`:
+- **The lattice:** 31 cells per ISA file; per native ISA 5 `impl`, 10 `wrapper`, 16 `body` and 26 slots; nothing
+  unmatched. All 186 cells round-trip byte for byte.
+- **The self-test:** all 93 native golds `pass`. Each of the four seeded mutants (`syntax` → `compile`,
+  `invented`, `wrong`, `edge`) gets its class on all 93 cells: 465 of 465 rows as expected. The gold's worst
+  relative error is 4.7e-6 against a 1e-4 tolerance.
+- **The two references.** The target's f16 and bf16 SIMD kernels disagree with its scalar kernel on inf and NaN
+  inputs, and with each other. bf16 `dot` on overflow is +inf on SSE2 and NaN on AVX2 and AVX-512, and AVX-512's
+  f16 `l1`/`l2` agree with the scalar where SSE2's and AVX2's do not. That is 77 cases, reported by every
+  self-test. **A case with a non-finite input or a non-finite scalar result is graded against the cell's own
+  gold, and every other case against the scalar** (the developer's rule, session `9326`'s review). The uint8 and
+  int8 `l2`/`dot` rows allow 1e-5, because the scalar reference accumulates in `float` and drifts ~1e-6 at
+  n = 4096.
+- **The facts arm:** callees for all 93 cells, 210 rows from Hobbes' graph (`hobbes:semantic`) and the rest from
+  the clang key. A header macro's expansion is dropped and the name the source wrote is kept from the intrinsic
+  index (6,435 names from clang 18's headers). libm and compiler builtins carry no signature.
+- **The shadows:** 493 names renamed and 106 kept, each with its reason (97 not graph symbols, 4 declared by
+  another file of the tree, 3 external, 2 entry points). **Both pass the target's own `make unittest` (1,447 of
+  1,447) and `make unittest-simd` on AVX-512**, and all 93 golds grade `pass` through each.
+- **G-graph:** Jaccard 1.0 on all 93 golds in one wave. A body that passes the numbers but calls an extra helper
+  reads 0.667 with the extra named: structure the differential cannot see.
+- **Ages and G-mem:** the per-cell ages equal the hand count, and 93 probes are written. No model has run.
+
+What the instruments cannot yet see: NEON and RVV (D-4); the 360 dynamic sites through `sqlite3ext.h`; the kernel
+table's wiring, which G-reg reads as text; enum constants and globals, which the shadows keep.
 
 ### E1 — the lattice: is it pattern, facts, or skill? (M-a, L0, C-0 to C-4)
 
@@ -508,6 +540,10 @@ new random draw) is what widens it.
   against pattern shots on similar problems, which makes E1's central reading a real
   question rather than an expectation; and renaming costs ability as well as recall, so E2
   has two shadows. Paused here for Max before E0 is built.
+- **2026-09-24/25** — Max: "good to go". ADR-151 written, and the charter amended. E0 was built in five
+  dispatched units and accepted on the real target (§6, E0's record). The target post-dates both E1 bases'
+  data. Next: E1's runner (the prompts per arm, the iterate loop, Modal serving), built with no spend, then its
+  first unit priced against the $10 ceiling.
 
 ---
 
