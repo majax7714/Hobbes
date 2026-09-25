@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import build, grade, run
+from lattice import build, diff, grade, run
 from lattice.cells import NATIVE
 from lattice.cells import build as build_lattice
 
@@ -218,3 +218,69 @@ def test_nothing_a_result_carries_is_a_path_on_this_box(tmp_path):
     result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
     assert str(tmp_path) not in result["feedback"]
     assert all(str(tmp_path) not in d["file"] for d in result["diagnostics"])
+
+
+# MARK: - the gold reference -
+
+
+def test_the_gold_runs_over_every_slot_an_isa_installs():
+    lattice = build_lattice(FIXTURE)
+    for isa in sorted(NATIVE):
+        slots = grade.installed_slots(lattice, isa)
+        assert len(slots) == 11, isa  # the fixture's three type rows: 5 + 5 + 1
+        assert len(set(slots)) == len(slots), isa
+        assert all(len(slot) == 2 for slot in slots), isa
+    assert grade.installed_slots(lattice, "cpu") == ()  # the reference fills its table by memcpy
+
+
+def test_an_entry_no_cell_answers_asks_for_no_gold_and_so_compiles_nothing(tmp_path):
+    results, references = grade.grade_with_references(
+        FIXTURE, [{"id": "x", "cell": "avx2/float32/nope", "body": "gold"}], tmp_path, allow_host=True
+    )
+    assert results[0]["class"] == "compile" and "no cell" in results[0]["reason"]
+    assert references == {}
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_gold_reference_covers_every_case_of_every_slot_that_isa_installs(tmp_path):
+    entries = [{"id": "g", "cell": "avx2/float32/dot", "body": "gold"}]
+    _, references = grade.grade_with_references(FIXTURE, entries, tmp_path, allow_host=True)
+    assert sorted(references) == ["avx2"]  # only the ISA the run touched
+    reference = references["avx2"]
+    assert reference.available is True
+    expected = sum(len(diff.cases_for(diff.pair_of_slot(diff.slot_name(s))[0])) for s in reference.slots)
+    assert len(reference.got) == expected
+    assert ("DOT:F32", "edge/inf_a/n17") in reference.got
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_fixture_is_a_target_that_agrees_with_itself(tmp_path):
+    # float32, int8 and bit1: every SIMD kernel agrees with the scalar on every case, specials included.
+    # The rule still applies there — it just has nothing to hide, which is why it is testable here.
+    entries = [{"id": cell, "cell": cell, "body": "gold"} for cell in native_cells()]
+    _, references = grade.grade_with_references(FIXTURE, entries, tmp_path, allow_host=True)
+    assert [row for reference in references.values() for row in reference.disagreements] == []
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_slots_counts_say_which_reference_graded_each_case(tmp_path):
+    entries = [
+        {"id": "f32", "cell": "avx2/float32/dot", "body": "gold"},
+        {"id": "i8", "cell": "avx2/int8/dot", "body": "gold"},
+    ]
+    results = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)
+    float32 = results[0]["slots"][0]
+    # the four non-finite specials at both sizes, plus `large` at both, whose float32 dot overflows.
+    assert float32["graded"] == {"scalar": 49, "gold": 10}
+    assert float32["graded"]["scalar"] + float32["graded"]["gold"] == len(diff.cases_for("float32"))
+    # int8 writes no inf and its dot does not overflow, so the scalar grades all of it.
+    assert results[1]["slots"][0]["graded"] == {"scalar": len(diff.cases_for("int8")), "gold": 0}
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_a_failing_case_names_the_reference_it_was_graded_against(tmp_path):
+    body = "{\n    (void)v1; (void)v2; (void)n;\n    return 0.25f;\n}"
+    entries = [{"id": "flat", "cell": "avx2/float32/dot", "body": body}]
+    result = grade.grade(FIXTURE, entries, tmp_path, allow_host=True)[0]
+    assert result["class"] == "wrong"
+    assert result["first_failure"]["reference"] in diff.REFERENCES

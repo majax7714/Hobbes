@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import holes, selftest
+from lattice import grade, holes, selftest
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -119,3 +119,62 @@ def test_the_report_carries_the_margin_the_tolerance_table_is_running_on(tmp_pat
         rtol = report["tolerance"][key][0]
         assert error < rtol, (key, error, rtol)
     assert selftest.render(report).startswith("self-test over 2 cell(s) — ok")
+
+
+# MARK: - what the target disagrees with itself on -
+
+
+@pytest.mark.skipif(shutil.which("clang") is None, reason="G-compile needs clang; the image has it")
+def test_the_fixture_has_no_disagreement_and_the_report_says_so(tmp_path):
+    # float32, int8 and bit1: the fixture's SIMD kernels agree with its scalar kernel on every case. The
+    # target's f16 and bf16 rows are where they do not, and those rows are trimmed out of the fixture.
+    cells = [c for c in GATE_CELLS if has_avx512() or not c.startswith("avx512/")]
+    report = selftest.selftest(FIXTURE, tmp_path, cells=cells, allow_host=True)
+    assert report["disagreements"] == []
+    assert report["ok"] is True
+    assert "0 disagreement(s)" in selftest.render(report)
+
+
+def test_a_disagreement_is_reported_with_both_values_and_is_not_a_mismatch():
+    report = selftest._report([], [], {"sse2": _reference("sse2"), "avx2": _reference("avx2")})
+    assert report["ok"] is True  # the target's fact, never the self-test's failure
+    assert report["mismatches"] == []
+    assert [(row["isa"], row["slot"], row["case"]) for row in report["disagreements"]] == [
+        ("avx2", "DOT:BF16", "edge/large/n17"),
+        ("sse2", "DOT:BF16", "edge/large/n17"),
+    ]
+    assert report["disagreements"][0]["scalar"] == "-inf"
+    assert report["disagreements"][0]["gold"] == "nan"
+
+
+def test_the_table_names_the_count_and_the_first_case_per_slot():
+    report = selftest._report([], [], {"avx2": _reference("avx2")})
+    printed = selftest.render(report)
+    assert "disagree on 1 case(s) — the target's, not the graders'" in printed
+    assert "avx2    DOT:BF16" in printed
+    assert "edge/large/n17: scalar -inf, gold nan" in printed
+    assert "graded against the scalar" not in printed  # this one is the rule's, not the tolerance's
+
+
+def _reference(isa: str):
+    """One ISA's gold reference carrying the bf16 `dot` overflow the real target shows on `large`."""
+    gold = "nan" if isa in ("avx2", "avx512") else "inf"  # +inf on sse2, NaN on the other two
+    return grade.GoldReference(
+        isa=isa,
+        available=True,
+        slots=(("DOT", "BF16"),),
+        got={("DOT:BF16", "edge/large/n17"): gold},
+        disagreements=(
+            {
+                "isa": isa,
+                "slot": "DOT:BF16",
+                "case": "edge/large/n17",
+                "kind": "edge",
+                "n": 17,
+                "seed": 200,
+                "scalar": "-inf",
+                "gold": gold,
+                "reference": "gold",
+            },
+        ),
+    )

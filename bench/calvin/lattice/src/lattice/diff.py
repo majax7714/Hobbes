@@ -17,6 +17,15 @@ no literal for them, and every finite value with `%.9g`.
 audit: both NaN is equal, both infinite with the same sign is equal, and otherwise
 `|ref - got| <= atol + rtol*|ref|`. :data:`TOLERANCE` is per `(type, metric)` — an entry is widened only
 with the gold's worst observed error named beside it, which the self-test measures and reports.
+
+**Two references, and :func:`reference_for` says which.** `distance-cpu.c` is the reference for every case
+whose answer it has: that is what it is for. It is *not* the reference where the target has no one
+semantics — on a non-finite input, and where the scalar's own answer overflows — because there
+sqlite-vector's SIMD kernels disagree with it and with each other, per ISA. Those cases are graded against
+the **cell's own gold**, which is the only question with an answer: does this body do what the kernel it
+replaces does. The reason and the evidence are in :func:`reference_for`'s docstring, the flag is on
+:class:`Special`, and the disagreements themselves are reported by the self-test rather than smoothed
+away.
 """
 
 from __future__ import annotations
@@ -33,7 +42,10 @@ __all__ = [
     "BULK_NS",
     "BULK_SEEDS",
     "EDGE_NS",
+    "NON_FINITE_SPECIALS",
+    "REFERENCES",
     "SPECIAL_NS",
+    "SPECIAL_OF_CASE",
     "SPECIALS",
     "CASES",
     "TOLERANCE",
@@ -43,8 +55,11 @@ __all__ = [
     "DiffRun",
     "cases_for",
     "compare",
+    "compare_records",
     "driver_source",
     "number",
+    "pair_of_slot",
+    "reference_for",
     "run",
     "slot_name",
     "tolerance",
@@ -79,19 +94,27 @@ METRIC_OF_ENUM = {v: k for k, v in METRIC_ENUM.items()}
 
 @dataclass(frozen=True)
 class Special:
-    """One special-value pattern: its name, its C constant, and the types it means anything for."""
+    """One special-value pattern: its name, its C constant, and the types it means anything for.
+
+    `non_finite` says whether the inputs it writes hold an inf or a NaN, which is what sends its cases to
+    the gold reference (:func:`reference_for`). The flag lives here, on the case table's data, and not in
+    the comparison.
+    """
 
     name: str
     constant: str
     types: tuple[str, ...]
+    non_finite: bool = False
 
 
-#: The special-value patterns, applied after the random fill at each of :data:`SPECIAL_NS`.
+#: The special-value patterns, applied after the random fill at each of :data:`SPECIAL_NS`. `non_finite`
+#: marks the four that write an inf or a NaN into the inputs; `large` writes finite values that the
+#: arithmetic then overflows, which :func:`reference_for` catches on the scalar's answer instead.
 SPECIALS = (
-    Special("inf_a", "SP_INF_A", _FLOATS),
-    Special("inf_both_same", "SP_INF_BOTH_SAME", _FLOATS),
-    Special("inf_both_opposite", "SP_INF_BOTH_OPPOSITE", _FLOATS),
-    Special("nan", "SP_NAN", _FLOATS),
+    Special("inf_a", "SP_INF_A", _FLOATS, non_finite=True),
+    Special("inf_both_same", "SP_INF_BOTH_SAME", _FLOATS, non_finite=True),
+    Special("inf_both_opposite", "SP_INF_BOTH_OPPOSITE", _FLOATS, non_finite=True),
+    Special("nan", "SP_NAN", _FLOATS, non_finite=True),
     Special("zeros_a", "SP_ZEROS_A", _NUMERIC),
     Special("large", "SP_LARGE", _FLOATS),
     Special("extremes_lo_hi", "SP_EXTREMES_LO_HI", _INTS),
@@ -128,6 +151,17 @@ def _cases() -> tuple[Case, ...]:
 #: Every case, bulk then edge. A type's cases are the ones whose `types` name it.
 CASES = _cases()
 
+#: Each case's special pattern, by case name (`""` for a plain random fill). A case name is unique across
+#: :data:`CASES`, so this is what turns a driver record — which carries the name and not the pattern —
+#: back into the flag :func:`reference_for` reads.
+SPECIAL_OF_CASE: dict[str, str] = {case.name: case.special for case in CASES}
+
+#: The specials whose inputs hold an inf or a NaN.
+NON_FINITE_SPECIALS = frozenset(special.name for special in SPECIALS if special.non_finite)
+
+#: The two references a case can be graded against.
+REFERENCES = ("scalar", "gold")
+
 #: `(rtol, atol)` per `(type, metric)`. **Data, and only data** — an entry moves when the gold's worst
 #: observed error says it must, and the comment beside it then names that error. The float rows start at
 #: rtol 1e-4 / atol 1e-5 because a SIMD kernel sums in a different order from the scalar one and the
@@ -149,13 +183,18 @@ TOLERANCE: dict[tuple[str, str], tuple[float, float]] = {
     ("bfloat16", "l1"): (1e-4, 1e-5),
     ("bfloat16", "dot"): (1e-4, 1e-5),
     ("bfloat16", "cosine"): (1e-4, 1e-5),
-    # uint8's rows are **unmeasured here**: the fixture is trimmed to float32, int8 and bit1, so no
-    # uint8 gold has ever run against this table. They start where every integer row starts, and the
-    # first run on the real target is what moves them. `l2`/`l2_squared` there have int8's cause below.
-    ("uint8", "l2"): (1e-6, 0.0),
-    ("uint8", "l2_squared"): (1e-6, 0.0),
+    # Widened on the real target's first run (the 93-cell self-test at `0c2223a`, in the image; session
+    # `9326`'s review), and it is int8's cause below on the rows the fixture could not measure: the scalar
+    # `uint8` kernels accumulate into a `float` while the SIMD ones accumulate into int32 and convert once,
+    # so past float32's exact integer range the **reference** is the imprecise side. Worst observed, on sse2,
+    # avx2 and avx512 alike: **`l2_squared` 1.05e-6** (bulk/n4096/s4, 45930488 against 45930440) and
+    # **`dot` 1.45e-6** (bulk/n4096/s7, −66351128 against −66351032); `l2` is `l2_squared`'s error under
+    # the square root. `l1` sums absolute differences, which stay inside float32's exact range at every
+    # size here, and it has not drifted. 1e-5 leaves each a margin an off-by-one tail cannot hide in.
+    ("uint8", "l2"): (1e-5, 0.0),
+    ("uint8", "l2_squared"): (1e-5, 0.0),
     ("uint8", "l1"): (1e-6, 0.0),
-    ("uint8", "dot"): (1e-6, 0.0),
+    ("uint8", "dot"): (1e-5, 0.0),
     ("uint8", "cosine"): (1e-4, 0.0),
     # Widened from 1e-6 on the gold's own disagreement, and the reference is the imprecise side:
     # `int8_distance_l2_impl_cpu` accumulates the squared differences into a `float`, while every SIMD
@@ -187,6 +226,12 @@ def slot_name(slot: tuple[str, str] | list[str]) -> str:
     return f"{slot[0]}:{slot[1]}"
 
 
+def pair_of_slot(name: str) -> tuple[str, str]:
+    """A slot the driver's way — `SQUARED_L2:I8` — back as this package's `(type, metric)`."""
+    metric_enum, _, type_enum = name.partition(":")
+    return TYPE_OF_ENUM.get(type_enum, type_enum), METRIC_OF_ENUM.get(metric_enum, metric_enum)
+
+
 def cases_for(type_: str) -> tuple[Case, ...]:
     """The cases that mean something for one element type."""
     return tuple(case for case in CASES if type_ in case.types)
@@ -212,6 +257,36 @@ def compare(ref, got, rtol: float, atol: float) -> bool:
     return abs(a - b) <= atol + rtol * abs(a)
 
 
+def reference_for(case: str, scalar) -> str:
+    """Which reference one case is graded against: `"gold"` — the cell's own gold — or `"scalar"`.
+
+    A case goes to the gold when **its inputs hold a non-finite value** (the specials in
+    :data:`NON_FINITE_SPECIALS`: `inf_a`, `inf_both_same`, `inf_both_opposite`, `nan`) **or when the
+    scalar reference's own result for it is not finite** — `large`, whose finite inputs overflow, and any
+    case where the scalar answers inf or NaN. Every other case is graded against the scalar, which is what
+    `distance-cpu.c` is for.
+
+    **The reason is the target, not the tolerance.** On inf and NaN inputs sqlite-vector's f16 and bf16
+    SIMD kernels disagree with its scalar kernel *and with each other*. Read at `0c2223a`, in the image,
+    gold against scalar: `COSINE:BF16` answers 1 on `inf_a`, `inf_both_same` and `inf_both_opposite`
+    where the scalar answers NaN, on every ISA; `DOT:BF16` on `large` answers NaN on avx2 and avx512 and
+    **+inf on sse2** where the scalar answers −inf; `L1:F16`, `L2:F16` and `SQUARED_L2:F16` on
+    `inf_both_same` answer finite where the scalar answers NaN, on sse2 and avx2 but **not** avx512,
+    which agrees with the scalar there.
+
+    There is no one semantics for these cases to be graded against, because the target's kernels do not
+    have one, and inventing one would make the graders assert something the project does not know.
+    Grading them against the cell's own gold asks the only question that has an answer — *does this body
+    do what the kernel it replaces does* — and it is the same question the scalar-graded cases ask,
+    against the reference that is right for them. What the target disagrees with itself on is reported
+    (the self-test's `disagreements`), never hidden: the rule narrows what is claimed, it does not narrow
+    what is seen.
+    """
+    if SPECIAL_OF_CASE.get(case, "") in NON_FINITE_SPECIALS:
+        return "gold"
+    return "scalar" if math.isfinite(number(scalar)) else "gold"
+
+
 def relative_error(ref, got) -> float:
     """`|ref - got| / |ref|`, or the absolute error when the reference is zero. NaN when either is not finite."""
     a, b = number(ref), number(got)
@@ -222,7 +297,11 @@ def relative_error(ref, got) -> float:
 
 @dataclass(frozen=True)
 class Comparison:
-    """One slot's verdict: the counts, the first case that failed, and the worst error seen."""
+    """One slot's verdict: the counts, the first case that failed, and the worst error seen.
+
+    `scalar_cases` and `gold_cases` are how many of the slot's cases each reference graded, so a reader of
+    a result never has to guess which question a count answers (:func:`reference_for`).
+    """
 
     slot: str
     type: str
@@ -232,6 +311,8 @@ class Comparison:
     bulk_failed: int = 0
     edge_passed: int = 0
     edge_failed: int = 0
+    scalar_cases: int = 0
+    gold_cases: int = 0
     first_failure: dict | None = None
     worst: float = 0.0
 
@@ -254,8 +335,20 @@ class DiffRun:
         return self.timed_out or self.signal is not None or self.returncode != 0
 
 
-def run(exe: Path | str, isa: str, slots: list[tuple[str, str]] | tuple, *, timeout: int = TIMEOUT) -> DiffRun:
-    """Run the driver for one cell: its ISA, the slots it is graded through, every case of its type."""
+def run(
+    exe: Path | str,
+    isa: str,
+    slots: list[tuple[str, str]] | tuple,
+    *,
+    timeout: int = TIMEOUT,
+    gold: dict | None = None,
+) -> DiffRun:
+    """Run the driver for one cell: its ISA, the slots it is graded through, every case of its type.
+
+    *gold* is the gold build's answers, `{(slot, case): got}`, for the cases :func:`reference_for` sends
+    to the gold. Without it every case is graded against the scalar — which is how the gold reference is
+    itself produced, and the only way its disagreements with the scalar are visible.
+    """
     command = [str(exe), isa, *[slot_name(slot) for slot in slots]]
     started = time.monotonic()
     try:
@@ -268,7 +361,7 @@ def run(exe: Path | str, isa: str, slots: list[tuple[str, str]] | tuple, *, time
     available = any(record.get("available") is True for record in records)
     return DiffRun(
         available=available,
-        comparisons=tuple(_compare_records(records, slots)),
+        comparisons=tuple(compare_records(records, slots, gold)),
         records=records,
         returncode=done.returncode,
         signal=crash,
@@ -287,7 +380,11 @@ def _signal_name(returncode: int) -> str | None:
         return f"signal {-returncode}"
 
 
-def _compare_records(records: tuple[dict, ...], slots) -> list[Comparison]:
+def compare_records(records: tuple[dict, ...] | list[dict], slots, gold: dict | None = None) -> list[Comparison]:
+    """One :class:`Comparison` per slot, from the driver's records. Pure: the whole comparison is here.
+
+    *gold* is `{(slot, case): the gold's answer}`, or `None` to grade every case against the scalar.
+    """
     installed = {r["slot"]: r["installed"] for r in records if "installed" in r}
     out: list[Comparison] = []
     for slot in slots:
@@ -299,14 +396,17 @@ def _compare_records(records: tuple[dict, ...], slots) -> list[Comparison]:
             continue
         rtol, atol = tolerance(type_, metric)
         counts = {"bulk": [0, 0], "edge": [0, 0]}
+        graded = {"scalar": 0, "gold": 0}
         first: dict | None = None
         worst = 0.0
         for record in records:
             if record.get("slot") != name or "case" not in record:
                 continue
-            ok = compare(record["ref"], record["got"], rtol, atol)
+            against, expected, ok = _expected(record, name, gold, rtol, atol)
+            graded[against] += 1
             counts[record["kind"]][0 if ok else 1] += 1
-            worst = max(worst, min(relative_error(record["ref"], record["got"]), 1e300))
+            if expected is not None:
+                worst = max(worst, min(relative_error(expected, record["got"]), 1e300))
             if not ok and first is None:
                 first = {
                     "slot": name,
@@ -314,9 +414,12 @@ def _compare_records(records: tuple[dict, ...], slots) -> list[Comparison]:
                     "kind": record["kind"],
                     "n": record["n"],
                     "seed": record["seed"],
-                    "expected": record["ref"],
+                    "reference": against,
+                    "expected": expected,
                     "got": record["got"],
                 }
+                if against == "gold":
+                    first["scalar"] = record["ref"]
         out.append(
             Comparison(
                 slot=name,
@@ -327,11 +430,29 @@ def _compare_records(records: tuple[dict, ...], slots) -> list[Comparison]:
                 bulk_failed=counts["bulk"][1],
                 edge_passed=counts["edge"][0],
                 edge_failed=counts["edge"][1],
+                scalar_cases=graded["scalar"],
+                gold_cases=graded["gold"],
                 first_failure=first,
                 worst=worst,
             )
         )
     return out
+
+
+def _expected(record: dict, slot: str, gold: dict | None, rtol: float, atol: float):
+    """One record's `(reference, expected, ok)` under :func:`reference_for`.
+
+    A gold-referenced case the gold build has no answer for is **failed, never passed**: the graders could
+    not ask the question, and a silent pass is the one answer that would be wrong. It is `expected: None`
+    and the caller's `first_failure` shows it.
+    """
+    against = "scalar" if gold is None else reference_for(record["case"], record["ref"])
+    if against == "scalar":
+        return "scalar", record["ref"], compare(record["ref"], record["got"], rtol, atol)
+    expected = (gold or {}).get((slot, record["case"]))
+    if expected is None:
+        return "gold", None, False
+    return "gold", expected, compare(expected, record["got"], rtol, atol)
 
 
 # MARK: - the generated driver -

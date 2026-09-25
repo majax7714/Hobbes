@@ -10,6 +10,12 @@ graded, and the file is put back. That is not only cheaper — it is what makes 
 since the `-I` flags (and so the cache key) would differ under a per-entry directory, and five of the six
 translation units are the same bytes for every entry in a run.
 
+**The gold references come first.** Some cases are graded against the cell's own gold and not against the
+scalar (`diff.reference_for`), so before any body is filled in — while the staged copy is still the
+target's own bytes — :func:`grade` builds the gold once and runs its driver over every slot each ISA the
+run touches installs. The records are cached for the run (:class:`GoldReference`), together with the cases
+where that gold and the scalar disagree, which are a fact about the target and are reported as one.
+
 **Containment.** :func:`grade` asks :mod:`lattice.run` before it compiles anything. `allow_host` is this
 package's tests on its own fixture and nothing else.
 
@@ -26,21 +32,33 @@ Each result carries what the experiments read and what a retry is built from:
 | `reg` | **G-reg** — the init function's slot assignments in the filled file equal the gold's |
 | `seconds` | compile, link, run and total |
 | `feedback` | the ≤1,500 characters a retry is shown (`feedback.py`) |
+
+Each entry in `slots` also carries `graded`, the case counts per reference, and `first_failure` names the
+`reference` the case that failed was graded against.
 """
 
 from __future__ import annotations
 
 import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import build, diff, feedback, holes, hsr, run
-from .cells import Lattice, UnknownCell
+from .cells import Lattice, Slot, UnknownCell
 from .cells import build as build_lattice
 from .scan import ScanError, scan
 
-__all__ = ["DIAGNOSTIC_LIMIT", "Bench", "grade", "stage"]
+__all__ = [
+    "DIAGNOSTIC_LIMIT",
+    "Bench",
+    "GoldReference",
+    "GoldUnavailable",
+    "grade",
+    "grade_with_references",
+    "installed_slots",
+    "stage",
+]
 
 #: How many clang messages a result keeps. The rest are counted, never carried.
 DIAGNOSTIC_LIMIT = 20
@@ -57,6 +75,42 @@ _SLOT = re.compile(
     r"dispatch_distance_table\s*\[\s*VECTOR_DISTANCE_(\w+)\s*\]\s*"
     r"\[\s*VECTOR_TYPE_(\w+)\s*\]\s*=\s*([A-Za-z_]\w*)\s*;"
 )
+
+
+class GoldUnavailable(Exception):
+    """The gold build did not produce a reference for an ISA.
+
+    Its own type, not an `OSError` or a `RuntimeError` (P10, ADR-036): every other failure this module
+    reports is a fact about a *body*, and this one is not. The staged copy is the target's own bytes, so a
+    gold that does not compile, does not link or dies in the differential is the harness's fault or the
+    target's, and grading a body against it would be measuring neither.
+    """
+
+
+@dataclass(frozen=True)
+class GoldReference:
+    """One ISA's gold answers, and where they disagree with the scalar reference.
+
+    `got` is `{(slot, case): the gold's answer}` over every slot that ISA installs — the mapping
+    `diff.run` grades a candidate's gold-referenced cases against. `disagreements` is every case where the
+    gold and the scalar disagree at the slot's tolerance: that is the target disagreeing with itself, it is
+    reported and not smoothed away, and it is why the rule in `diff.reference_for` exists.
+    """
+
+    isa: str
+    available: bool
+    slots: tuple[Slot, ...]
+    got: dict[tuple[str, str], object]
+    disagreements: tuple[dict, ...]
+
+
+def installed_slots(lattice: Lattice, isa: str) -> tuple[Slot, ...]:
+    """Every `dispatch_distance_table` slot that ISA's init function assigns, in the file's order.
+
+    The gold reference is run over all of them rather than over one cell's `graded_via`, so one gold run
+    serves every entry of that ISA in a grading run.
+    """
+    return tuple(dict.fromkeys(slot for cell in lattice.by_isa(isa) for slot in cell.slots))
 
 
 def stage(target: Path | str, dest: Path | str) -> Path:
@@ -85,6 +139,8 @@ class Bench:
     cache: build.ObjectCache
     compiler: str | None = None
     timeout: int = diff.TIMEOUT
+    references: dict[str, GoldReference] = field(default_factory=dict)
+    gold_exe: Path | None = None
 
     @classmethod
     def open(cls, target: Path | str, workdir: Path | str, *, compiler: str | None = None, timeout: int = diff.TIMEOUT) -> "Bench":
@@ -131,6 +187,66 @@ class Bench:
         """Strip the staged root from a message, so nothing carries an absolute path."""
         return text.replace(f"{self.root}/", "").replace(str(self.root), "")
 
+    # MARK: - the gold reference -
+
+    def reference(self, isa: str) -> GoldReference:
+        """One ISA's :class:`GoldReference`, built on the first ask and cached for the run.
+
+        **Only callable while the staged copy is the gold.** :func:`grade` asks for every ISA it will
+        touch before it fills the first body; after that the tree has been written to and put back, and
+        asking again would compile whatever was last restored rather than what the target ships.
+        """
+        found = self.references.get(isa)
+        if found is None:
+            found = self._reference(isa)
+            self.references[isa] = found
+        return found
+
+    def _reference(self, isa: str) -> GoldReference:
+        slots = installed_slots(self.lattice, isa)
+        ran = diff.run(self._gold_exe(), isa, list(slots), timeout=self.timeout)
+        if ran.crashed:
+            raise GoldUnavailable(
+                f"the gold's differential for {isa} did not finish: "
+                + (f"timed out after {self.timeout}s" if ran.timed_out else f"signal {ran.signal}" if ran.signal else f"exit {ran.returncode}")
+            )
+        if not ran.available:
+            return GoldReference(isa, False, slots, {}, ())
+        got: dict[tuple[str, str], object] = {}
+        disagreements: list[dict] = []
+        for record in ran.records:
+            if "case" not in record:
+                continue
+            got[(record["slot"], record["case"])] = record["got"]
+            type_, metric = diff.pair_of_slot(record["slot"])
+            rtol, atol = diff.tolerance(type_, metric)
+            if not diff.compare(record["ref"], record["got"], rtol, atol):
+                disagreements.append(
+                    {
+                        "isa": isa,
+                        "slot": record["slot"],
+                        "case": record["case"],
+                        "kind": record["kind"],
+                        "n": record["n"],
+                        "seed": record["seed"],
+                        "scalar": record["ref"],
+                        "gold": record["got"],
+                        "reference": diff.reference_for(record["case"], record["ref"]),
+                    }
+                )
+        return GoldReference(isa, True, slots, got, tuple(disagreements))
+
+    def _gold_exe(self) -> Path:
+        """The gold build's driver, linked once: the objects do not depend on which ISA is being read."""
+        if self.gold_exe is not None:
+            return self.gold_exe
+        ok, compilations, linked = self.build_all("gold")
+        if not ok or linked is None:
+            output = "\n".join(self.scrub(c.output) for c in (*compilations, linked) if c is not None)
+            raise GoldUnavailable(f"the target's own tree did not build:\n{output[:2000]}")
+        self.gold_exe = linked.product
+        return self.gold_exe
+
 
 def grade(
     target: Path | str,
@@ -142,13 +258,53 @@ def grade(
     timeout: int = diff.TIMEOUT,
 ) -> list[dict]:
     """Grade every entry against *target*, in a staged copy under *workdir*. One result per entry."""
+    results, _ = grade_with_references(
+        target, entries, workdir, allow_host=allow_host, compiler=compiler, timeout=timeout
+    )
+    return results
+
+
+def grade_with_references(
+    target: Path | str,
+    entries: list[dict] | tuple[dict, ...],
+    workdir: Path | str,
+    *,
+    allow_host: bool = False,
+    compiler: str | None = None,
+    timeout: int = diff.TIMEOUT,
+) -> tuple[list[dict], dict[str, GoldReference]]:
+    """:func:`grade`, and the gold references it built as well, by ISA.
+
+    The self-test reads them for its `disagreements`: what the target disagrees with itself on is a fact
+    about the target, and it belongs in the report rather than inside the grader that had to work around it.
+    """
     run.require_container(allow_host=allow_host)
     bench = Bench.open(target, workdir, compiler=compiler, timeout=timeout)
     known = hsr.inventory(bench.root)
+    # Before the first body is written into the staged tree, while it is still the target's own bytes.
+    for isa in _isas_of(bench.lattice, entries):
+        bench.reference(isa)
     results: list[dict] = []
     for entry in entries:
         results.append(_one(bench, entry, known))
-    return results
+    return results, dict(bench.references)
+
+
+def _isas_of(lattice: Lattice, entries: list[dict] | tuple[dict, ...]) -> list[str]:
+    """The ISAs a run's entries are graded on: native, reached through a slot, each once, in a fixed order.
+
+    An entry naming a cell this lattice does not have needs no gold — it is a result with a reason, and
+    :func:`_one` writes it without compiling anything.
+    """
+    found: dict[str, None] = {}
+    for entry in entries:
+        try:
+            cell = lattice.get(entry.get("cell", ""))
+        except UnknownCell:
+            continue
+        if cell.native and cell.graded_via:
+            found[cell.isa] = None
+    return sorted(found)
 
 
 # MARK: - one entry -
@@ -229,7 +385,19 @@ def _grade_filled(bench: Bench, cell, filled: str, gold: str, known: frozenset[s
         result["reason"] = f"{cell.id} is reached through no table slot, so the differential cannot see it"
         return
 
-    ran = diff.run(linked.product, cell.isa, list(cell.graded_via), timeout=bench.timeout)
+    # Unreachable through :func:`grade_with_references`, which asks for exactly the ISAs that get here.
+    # It is checked anyway because the wrong answer is a *silent* one: without the reference every case
+    # would fall back to the scalar, and the gold-referenced cases would quietly fail again.
+    reference = bench.references.get(cell.isa)
+    if reference is None:
+        raise GoldUnavailable(f"no gold reference for {cell.isa}; it is built before the first body is filled in")
+    ran = diff.run(
+        linked.product,
+        cell.isa,
+        list(cell.graded_via),
+        timeout=bench.timeout,
+        gold=reference.got if reference.available else None,
+    )
     result["seconds"]["run"] = round(ran.seconds, 3)
     result["seconds"]["total"] = round(
         result["seconds"]["compile"] + result["seconds"]["link"] + result["seconds"]["run"], 3
@@ -240,6 +408,7 @@ def _grade_filled(bench: Bench, cell, filled: str, gold: str, known: frozenset[s
             "installed": c.installed,
             "bulk": {"passed": c.bulk_passed, "failed": c.bulk_failed},
             "edge": {"passed": c.edge_passed, "failed": c.edge_failed},
+            "graded": {"scalar": c.scalar_cases, "gold": c.gold_cases},
             "worst": c.worst,
         }
         for c in ran.comparisons

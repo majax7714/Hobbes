@@ -84,17 +84,39 @@ every `static inline` `_impl`. The driver is generated C with the case list comp
 extremes for uint8 and int8; all-`0x00` against all-`0xFF` for bit1). Inputs come from splitmix64 seeded
 per case, values print with `%.9g`, and `inf`/`nan` print as strings so the JSON stays valid. **The
 comparison is in Python** and the tolerance table is data per `(type, metric)`: both NaN equal, both the
-same infinity equal, otherwise `|ref - got| <= atol + rtol·|ref|`. One row is widened off the floor, and
-the comment beside it says why: `int8_distance_l2_impl_cpu` accumulates in `float` while every SIMD
-kernel accumulates in int32, so the **reference** is the imprecise side — worst observed on the fixture's
-golds 1.06e-6 (`l2_squared`) and 5.09e-7 (`l2`), both now at rtol 1e-5.
+same infinity equal, otherwise `|ref - got| <= atol + rtol·|ref|`. Five rows are widened off the floor,
+and the comment beside each says why: the scalar `int8` and `uint8` kernels accumulate in `float` while
+every SIMD kernel accumulates in int32, so the **reference** is the imprecise side — worst observed
+1.06e-6 (`int8/l2_squared`) and 5.09e-7 (`int8/l2`) on the fixture's golds, 1.05e-6 (`uint8/l2_squared`,
+45930488 against 45930440) and 1.45e-6 (`uint8/dot`, −66351128 against −66351032) on the real target's,
+all five now at rtol 1e-5.
+
+**Two references, and `reference_for` says which** (the rule). `distance-cpu.c` is the reference for every
+case whose answer it has. It is *not* the reference for a case whose **inputs hold a non-finite value**
+(the specials `inf_a`, `inf_both_same`, `inf_both_opposite`, `nan` — the flag is `Special.non_finite`, on
+the case table's data) or whose **scalar result is itself inf or NaN** (`large` overflowing, a zero
+vector's cosine): those are graded against **the cell's own gold**. The reason is the target, not the
+tolerance — on a non-finite input sqlite-vector's f16 and bf16 SIMD kernels disagree with its scalar
+kernel *and with each other*, per ISA (`COSINE:BF16` answers 1 where the scalar answers NaN; `DOT:BF16`
+on `large` answers NaN on AVX2 and AVX-512 and **+inf on SSE2**; AVX-512's `L1:F16` agrees with the
+scalar on `inf_both_same` where SSE2's and AVX2's do not). No one semantics exists for those cases
+because the target does not have one, so the graders ask the only question that has an answer — *does
+this body do what the kernel it replaces does* — and the disagreements are **reported, never hidden**
+(`selftest`'s `disagreements`). Each slot's counts say how many cases each reference graded, and
+`first_failure` names the reference the failing case was graded against.
 
 **`grade`** — the whole pass for one entry (`{"id", "cell", "body"}`, `body` a body's text or `"gold"`):
 punch, fill, compile, link, run, classify. An unbalanced body is a `compile` **result** with the reason,
 never an exception. The staged copy (only `src/` and `libs/fp16/`) is made once and reused, which is what
 makes the object cache work. Each result carries the class, the first 20 diagnostics, the invented names
 with their buckets, the bulk and edge counts, the first failing case, **G-reg** (the init function's slot
-assignments in the filled file equal the gold's), the timings and the `feedback`.
+assignments in the filled file equal the gold's), the timings and the `feedback`. **The gold references
+come first:** before the first body is filled in, while the staged copy is still the target's own bytes,
+the gold is built once and its driver run over every slot each ISA the run touches installs. Those records
+are what the gold-referenced cases are compared against, and they carry the cases where that gold and the
+scalar disagree (`GoldReference`; `grade_with_references` hands them back for the self-test's report). A
+gold that does not build, does not link or dies in the differential is `GoldUnavailable` — its own type,
+because unlike everything else here it is not a fact about a body.
 
 **`feedback`** — the ≤1,500 characters a model is shown on a retry, built from the graded result's
 **structured fields only**: the first compile errors with target-relative paths, or the first failing case
@@ -108,7 +130,12 @@ four mutants of the gold body must read exactly what they are damage of: `syntax
 (`if (n % 64 != 0) return -12345.0f;` first) → `edge`, which works because every bulk size is a multiple
 of 64 and most edge sizes are not. An `_impl`'s mutants are graded through its wrappers. The report lists
 every cell and mutant with expected against got, and the gold's worst relative error per
-`(type, metric)` — the margin the tolerance table is running on. Non-zero exit on any mismatch.
+`(type, metric)` — the margin the tolerance table is running on, over the scalar-graded cases, which are
+the ones a tolerance is a question for. It also lists **`disagreements`**: per ISA and slot, every case
+where the gold and the scalar disagree, with both values and the reference that case is graded against,
+and the table prints the count. A `gold` row is a fact about the target, not a failure of the instruments —
+`ok` does not depend on them, and they go into the design's record; a `scalar` row is counted separately,
+because there the tolerance table is what has to answer. Non-zero exit on any mismatch.
 
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
