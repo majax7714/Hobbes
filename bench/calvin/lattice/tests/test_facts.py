@@ -6,11 +6,27 @@ from pathlib import Path
 
 import pytest
 
-from lattice import facts
+from lattice import facts, intrinsics
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
 DERIVED = FIXTURE / "derived"
+
+#: Two of clang's own header macros, as clang writes them — the two `bit1_distance_hamming_avx2` uses.
+CLANG_HEADER = r"""
+#define _mm256_extracti128_si256(V, M) \
+  ((__m128i)__builtin_ia32_extract128i256((__v4di)(__m256i)(V), (int)(M)))
+#define _mm_extract_epi64(X, N) \
+  ((long long)__builtin_ia32_vec_ext_v2di((__v2di)(__m128i)(X), (int)(N)))
+static __inline__ __m256 __DEFAULT_FN_ATTRS256
+_mm256_undefined_ps(void)
+{
+"""
+
+
+@pytest.fixture(scope="module")
+def index():
+    return intrinsics.index({"avx2intrin.h": CLANG_HEADER})
 
 
 @pytest.fixture(scope="module")
@@ -130,6 +146,105 @@ def test_a_site_inside_the_body_of_this_file_is_this_cells(lattice, graph, key):
         "targets": [{"external": True, "kind": "function", "name": "_mm_inside_ps", "pos": {"line": 0, "path": ""}}],
     })
     assert "_mm_inside_ps" in [row["name"] for row in facts.callees(lattice, cell, graph, seeded)]
+
+
+# MARK: - a header macro is named as the source wrote it (part 3's review, session 189e) -
+
+
+def test_a_header_macros_expansion_is_dropped_and_the_macro_the_body_writes_is_added(lattice, graph, key, index):
+    """`_mm256_extracti128_si256` is what the body writes; `__builtin_ia32_extract128i256` is clang's."""
+    rows = facts.callees(lattice, lattice.get("avx2/bit1/hamming"), graph, key, index)
+    by_name = {row["name"]: row for row in rows}
+
+    assert by_name["_mm256_extracti128_si256"]["provenance"] == "clang-headers:macro"
+    assert by_name["_mm256_extracti128_si256"]["signature"] == "#define _mm256_extracti128_si256(V, M)"
+    assert by_name["_mm_extract_epi64"]["provenance"] == "clang-headers:macro"
+    assert by_name["_mm_extract_epi64"]["kind"] == "macro"
+
+    # no `__builtin_ia32_*` row: an expansion is not a name the source wrote
+    assert [name for name in by_name if name.startswith("__builtin_ia32_")] == []
+    assert {(row["name"], row["wrote"]) for row in rows.dropped} == {
+        ("__builtin_ia32_extract128i256", "_mm256_extracti128_si256"),
+        ("__builtin_ia32_vec_ext_v2di", "_mm_extract_epi64"),
+    }
+    assert all(row["reason"] == facts.DROPPED for row in rows.dropped)
+
+    # `__builtin_popcount` is written out in the body in `static` mode, so the rule leaves it alone
+    assert by_name["__builtin_popcount"]["provenance"] == "clang-key:static"
+    assert rows.missing == []
+
+
+def test_the_added_macros_stand_in_the_bodys_own_order(lattice, graph, key, index):
+    names = [row["name"] for row in facts.callees(lattice, lattice.get("avx2/bit1/hamming"), graph, key, index)]
+    assert names == [
+        "popcount_avx2",
+        "_mm256_setzero_si256",
+        "_mm256_loadu_si256",
+        "_mm256_xor_si256",
+        "_mm256_add_epi64",
+        "_mm256_sad_epu8",
+        "_mm_add_epi64",
+        "_mm256_extracti128_si256",  # line 450, after `_mm_add_epi64` on the same line
+        "_mm_extract_epi64",  # line 451
+        "__builtin_popcount",  # line 455
+    ]
+
+
+def test_an_in_repo_macros_expansion_is_the_answer_and_stays(lattice, graph, key, index):
+    """`MM256_FMA_PS` is the repo's own, so `_mm256_fmadd_ps` is what the body does. Unchanged."""
+    rows = facts.callees(lattice, lattice.get("avx2/float32/dot"), graph, key, index)
+    assert [(row["name"], row["provenance"]) for row in rows] == [
+        ("MM256_FMA_PS", "hobbes:semantic"),
+        ("hsum256_ps", "hobbes:semantic"),
+        ("_mm256_setzero_ps", "clang-key:static"),
+        ("_mm256_loadu_ps", "clang-key:static"),
+        ("_mm256_add_ps", "clang-key:static"),
+        ("_mm256_fmadd_ps", "clang-key:macro"),
+    ]
+    assert rows.dropped == []
+
+
+def test_an_in_repo_macro_the_graph_does_not_name_is_still_the_files_own(lattice, key, index):
+    """With no graph, the cell's own file's `#define`s stand in — a read, not an inference."""
+    rows = facts.callees(lattice, lattice.get("avx2/float32/dot"), None, key, index)
+    assert "_mm256_fmadd_ps" in [row["name"] for row in rows]
+    assert rows.dropped == []
+
+
+def test_a_macro_reaching_a_real_intrinsic_function_is_kept(lattice, graph, key, index):
+    cell = lattice.get("avx2/bit1/hamming")
+    seeded = copy.deepcopy(key)
+    seeded["sites"].append({
+        "caller": cell.name,
+        "col": 22,  # `_mm_add_epi64` on line 450 — not an in-repo macro
+        "mode": "macro",
+        "pos": {"line": 450, "path": cell.file},
+        "targets": [{"external": True, "kind": "function", "name": "_mm256_undefined_ps", "pos": {"line": 0, "path": ""}}],
+    })
+    rows = facts.callees(lattice, cell, graph, seeded, index)
+    assert "_mm256_undefined_ps" in [row["name"] for row in rows]  # the index knows it as a function
+    assert "_mm256_undefined_ps" not in {row["name"] for row in rows.dropped}
+
+
+def test_without_an_index_nothing_is_added_and_the_index_is_named_missing(lattice, graph, key):
+    rows = facts.callees(lattice, lattice.get("avx2/bit1/hamming"), graph, key)
+    assert "clang-headers:macro" not in [row["provenance"] for row in rows]
+    assert "_mm256_extracti128_si256" not in [row["name"] for row in rows]
+    assert rows.missing == ["intrinsics"]
+    assert len(rows.dropped) == 2  # the expansions go, because the written token is clang's macro
+
+
+def test_a_macro_named_only_in_a_comment_is_not_a_callee(lattice, graph, key):
+    """The added rows come off the *masked* body, so prose about an intrinsic is not a call to one.
+
+    `int8_distance_l1_sse2` writes `// Absolute value via max/min since _mm_abs_epi16 is SSE3+` — the
+    one place the fixture names an intrinsic it does not use.
+    """
+    cell = lattice.get("sse2/int8/l1")
+    body = lattice.sources["sse2"].text[cell.body_span.start : cell.body_span.end]
+    assert "_mm_abs_epi16" in body
+    named = {"_mm_abs_epi16": {"name": "_mm_abs_epi16", "signature": "#define _mm_abs_epi16(a)", "macro": True}}
+    assert "_mm_abs_epi16" not in [row["name"] for row in facts.callees(lattice, cell, graph, key, named)]
 
 
 # MARK: - what is missing is said -

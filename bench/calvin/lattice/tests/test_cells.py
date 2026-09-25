@@ -110,6 +110,39 @@ def test_an_impl_and_its_wrappers_are_metric_neighbours(lattice):
     assert "sse2/float32/l2" in ids and "sse2/float32/l2_squared" in ids
 
 
+# MARK: - the same grid under other names -
+
+
+def test_without_a_rename_a_cells_name_is_its_own_original(lattice):
+    for cell in lattice.cells.values():
+        assert cell.original == cell.name
+
+
+def test_a_rename_reads_the_grid_off_the_originals_and_keeps_what_the_file_writes(tmp_path):
+    """The narrow change item 2 asks for: `build(target, rename=…)`, the reverse of a shadow's map."""
+    renamed = tmp_path / "renamed"
+    (renamed / "src").mkdir(parents=True)
+    source = (FIXTURE / "src" / "distance-avx2.c").read_text()
+    swap = {
+        "float32_distance_dot_avx2": "kernel_one",
+        "init_distance_functions_avx2": "kernel_setup",
+    }
+    for old, new in swap.items():
+        source = source.replace(old, new)
+    (renamed / "src" / "distance-avx2.c").write_text(source)
+
+    back = {new: old for old, new in swap.items()}
+    built = build(renamed, rename=back)
+    cell = built.get("avx2/float32/dot")
+    assert cell.name == "kernel_one" and cell.original == "float32_distance_dot_avx2"
+    assert cell.slots == (("DOT", "F32"),)  # the init function was found under its written name
+    assert built.sources["avx2"].init == "kernel_setup"
+    assert len(built.by_isa("avx2")) == 13 and built.unmatched == ()
+
+    # and without the map the grid is simply not there, rather than there and wrong
+    assert "avx2/float32/dot" not in build(renamed).cells
+
+
 def test_a_name_outside_the_grid_does_not_parse():
     assert parse_name("init_distance_functions_avx2") is None
     assert parse_name("turbo_lut_dot_cpu") is None

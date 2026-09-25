@@ -19,7 +19,7 @@ flags, plus the file's `#define` names. Its docstring names what it reads wrongl
 K&R definitions, a definition produced by a macro, a declarator returning a function pointer. Offsets
 are character indices into the text given, not byte offsets — the target's comments are not all ASCII.
 
-**`cells`** — the lattice itself. `build(target)` reads `src/distance-*.c` into a grid of
+**`cells`** — the lattice itself. `build(target, rename=None)` reads `src/distance-*.c` into a grid of
 `(type, metric, isa)` cells, each with its name, file, spans, `kind`, `static`, the
 `dispatch_distance_table` slots its init function assigns it, and `graded_via` — its own slots, or for
 an `_impl` the slots of the wrappers that reach it, because an `_impl` has no slot of its own. A wrapper
@@ -30,7 +30,11 @@ mapped and marked not native. The real source's quirks are carried, not smoothed
 which maps to `(int8, l2_impl, neon)` with the real name kept. `neighbours(cell)` walks one step along
 each axis in a documented order (ISA, then type, then metric). A kernel-shaped name the grid cannot
 place goes to `Lattice.unmatched` with its reason — silence would be the one failure mode a map must
-not have.
+not have. **`rename`** is a shadow's reverse map (new name → the target's own): the *grid* questions —
+does this parse into `(type, metric, isa)`, which function is this file's init — are asked of the
+original, and everything about the *file* stays what the file writes, so `Cell.name` is the shadow's
+and `Cell.original` is the target's. Without it the two are the same string and nothing changes, which
+also means a shadow read without its map has no cells at all rather than the wrong ones.
 
 **`holes`** — `punch(text, cell)` replaces a cell's body with `{ /* HOLE */ }` and leaves every other
 byte alone; `fill(punched, body)` puts a body back. The property the tests hold is the round trip —
@@ -153,6 +157,21 @@ when its `pos.path` *and* its line inside the body span say so: the key's `calle
 tier, and records the agreement as `"also": "clang-key"`. `Facts` is the ledger (graph, key, intrinsic
 index; any of the three may be absent), and `Facts.source()` is its provenance.
 
+**A header macro is named as the source wrote it** (session `189e`'s review of part 3). A key site in
+mode `macro` names what the macro *expands to*, and that is two facts wearing one shape. Where the macro
+is the repo's own, the expansion is the answer — `MM256_FMA_PS` really does fuse-multiply-add, and
+`_mm256_fmadd_ps` stays. Where it is one of clang's, the expansion is compiler internals no one writes:
+`_mm256_extracti128_si256` reports as `__builtin_ia32_extract128i256`, and `INFINITY` as
+`__builtin_inff`. So the **written token at the site's own line and column** decides. A macro-mode
+target survives only when that token is an in-repo macro — one the graph names, or one the cell's own
+file `#define`s — or when the target is itself a *function* in the intrinsic index; every other one goes
+to `Callees.dropped` with the reason, one row per expansion rather than per site. The header macros the
+body does write are then added back from its own identifier tokens that the index marks `macro: true`,
+with `provenance` `clang-headers:macro`, the index's `#define` line as the signature, and a place in the
+body's own order beside the direct sites — unlike an expansion, they *are* written there. Without an
+index none of that happens and `missing` says so. A `static`-mode target is untouched: a libm call and a
+`__builtin_popcount` spelled out in the source are names the body really writes.
+
 **`intrinsics`** — the inventory the sand is measured against (Atlas-0, §2): every `_mm…`/`_cvt…`
 signature from **clang's own headers**, at the version that will compile the body. The two forms clang
 writes are read — `static __inline__ <ret> <attrs>` with the declarator on the next line or on the same
@@ -168,7 +187,12 @@ walked **contiguously back from the ref** through `git log --format=%H %cI -- <f
 `errors="replace"` (the target has a non-UTF-8 byte). No rename following, and a version the scanner
 cannot read stops the walk — the age reported is the shortest the evidence supports. Dates are the
 committer date to the day, which is the grain the quarter counts are read at; `identical_at` is that
-count.
+count. **The cells come from git, not from a working tree**: with no lattice handed in, `cells_at` reads
+`src/distance-*.c` at the ref with `git show` into a scratch directory and builds the lattice there, so
+a **bare clone** — the shape a contamination run actually has — answers instead of reporting "ages of 0
+native cell(s)". That was the choice of the two on offer, and the refusal is kept for what is left: a
+ref whose tree holds no kernel file at all raises `NoKernelsAtRef`, and `lattice ages` exits 2 with the
+reason. A lattice handed in is used as given, which is how a caller asks about a working tree on purpose.
 
 **`gmem`** — **G-mem**, the memorisation probe (§5.5). The prompt is `prelude_bare` plus the signature
 plus the gold body's first K lines, `K = max(2, ⌊lines/4⌋)`; the expectation is the rest of the body,
@@ -179,6 +203,66 @@ rather than for code, so they are a convention here and the middle band is named
 a `complete(prompt) -> str` callable — the only place a model would appear — so the scoring is tested
 with a fake one and nothing is spent. A body of at most K lines leaves nothing to continue: the row is
 kept and marked `evidence: False`.
+
+**`shadow`** — **the two rename shadows** (§6's E0 and E2 cards): the target's own code under names the
+base model has never read. `plan(target, graph, style)` and `write(plan, dest)`. What is renamed is
+every symbol the graph names under `src/` or `test/` — at 100/100 that set is a fact, not a guess — and
+`apply` rewrites those tokens whole-word **in code and in comments** (a comment that still names the
+original leaks exactly what the shadow removes) and **never inside a string or character literal** (the
+SQL-visible names live there and the tests call through SQL). **`descriptive`** sends each `_`-separated
+word through a fixed synonym table written for this target's stems, keeping the word's own case, so
+`float32_distance_dot_avx2` reads `f32_dist_inner_x86v2` and `MM256_FMA_PS` reads
+`VECOP256_FUSEDMUL_F32LANE`; a word the table does not hold whole is tried again as a stem with a digit
+tail (`hsum256` → `hadd256`). **`opaque`** is `fn_0001` / `MC_0001` / `ty_0001` by kind, in the order of
+(path, line). A plan is refused with `Collision` — nothing renamed, nothing written — if two originals
+would land on one name, or if a new name is already a token the tree writes and does not rename.
+
+**What a shadow does not rename is on the record**, which is what E2 reads its result against. Every
+in-repo identifier left alone is a `Plan.kept` row with a reason:
+
+- **`external`** — a name the build resolves outside the repo, of which there are two kinds and both
+  are read. `lane_agreement.external_vetoes` names the first (ADR-111: `strcasestr`, defined under a
+  dead `#if` and called in libc). The second is a **self-referential macro**: `distance-avx512.c`
+  writes `#define _mm512_abs_ps(x) _mm512_abs_ps(x)`, and C11 6.10.3.4p2 makes that a pass-through to
+  clang's own intrinsic, so renaming it sends the call to a definition that does not exist. This one
+  was found by the shadow failing to build, and it is now `self_referential`, read off the `#define`.
+- **`entry-point`** — `sqlite3_vector_init`, which SQLite looks up by name, and `main`.
+- **`not-a-graph-symbol`** — the enum constants (`VECTOR_TYPE_F32`), the file-scope declarations
+  (`dispatch_distance_table`, `turbo_lut_dot_function`) and the `#define`s (`VECTOR_TYPE_MAX`) that are
+  not graph symbols and so are not in the set to rename. `declarations` finds them with this package's
+  own scanner, which reads wrongly rather than refuses and says where in its docstring.
+
+Two more honesty fields. `Plan.prefixed` names the descriptive fall-backs: a name no word of which the
+table holds gets `sv_`, which still carries the original whole — the fix is a table entry, and on this
+fixture the list is empty. `leaks` scans everything `write` copied but did not rename and lists the
+files that still write an original name, because a rename touches C and `README.md` and `API.md` name
+the functions they document (L3 reads `API.md`). Both go into `shadow-map.json` beside the style, the
+map, `kept` and the counts. **`.git`, `.hobbes/`, `build/` and `derived/` are not copied** — a history,
+a build tree and an ingest each belong to the tree they came from, and an ingest of the *original* names
+inside a shadow would hand every one of them back.
+
+`grading(rename)` is the **one named seam** that lets the existing graders read a shadow: it rebinds
+`grade.build_lattice` (so the grid is read through the reverse map) and `diff.driver_source` (so the
+generated driver calls `setup_dist_fns_x86v2` and declares the table as `dist_fn_t`) for the length of a
+block, and puts them back. It is a seam and not a design — `grade.py` and `diff.py` should take a rename
+of their own, and when they do this is the one function to delete. Everything else the graders do is
+already name-blind, because `dispatch_distance_table` and the `VECTOR_*` constants are not renamed.
+
+**`graphgrade`** — **G-graph** (§5.5): the generated body's callees against the gold's, from an ingest
+of the patched tree. `gold_callees`/`got_callees` are the in-repo names the cell's symbol calls at the
+`semantic` tier — in-repo because the graph has no edge to an intrinsic, `semantic` because a syntactic
+edge is a guess and a guess is not a gold — and `compare` gives both sides, `missing`, `extra` and the
+Jaccard (two empty sets score 1.0). **One ingest per wave, not per body**: `waves` splits a run's
+entries so that no wave holds two bodies for one cell, deterministically and purely, the *n*-th body
+offered for a cell going into wave *n*. **Only bodies that compiled go in** — lane B is a compiler, so a
+TU that does not compile has no semantic answer at all, and grading it would read as "this body calls
+nothing"; `keep` drops the `compile` and `invented` classes with that reason written on the row.
+`grade_wave` fills a wave into one work copy, `git init`s and commits it (Hobbes stamps its artifact with
+the repo's SHA), runs the injected `ingest(workdir) -> graph` and compares each cell. The default,
+`hobbes_ingest(checkout)`, is `uv run --project <checkout>/pipeline hobbes ingest` in the copy —
+always that checkout's `hobbes` and never one on `PATH` (ADR-094) — and it runs on the host, because
+Hobbes contains its own lane B (ADR-092). Nothing here compiles or runs a body: `grade` did that before
+the wave was built.
 
 **The provenance rule, across all four.** A fact names where it came from and a gap names itself. Every
 callee row carries `provenance` (`hobbes:<tier>` or `clang-key:<mode>`); a filled task record carries
@@ -196,11 +280,17 @@ this package infers a callee, a date or a signature it did not read.
 The two grading verbs take `--here` (this process is contained already) or `--image NAME` (the default
 `hobbes-session:local`: build a plan and run this same CLI inside it). `--here` outside a container exits
 2 with the refusal. No ledger flag is required, and one left out is named in the answer's `missing`.
-`mem-probes` writes the probes; **this CLI never calls a model.**
+`mem-probes` writes the probes; **this CLI never calls a model.** This unit adds two verbs and one flag:
+`lattice shadow <target> <dest> --graph G --style descriptive|opaque`, which prints what it kept and
+what still leaks; `lattice graph-grade <target> <results.jsonl> --gold-graph G [--hobbes <checkout>]`,
+which writes one row per body it carried and one per body it did not, with the reason; and `--rename
+<shadow-map.json>` on `map`, `task` and `grade`, which reads the lattice through a shadow's map (and,
+for `grade`, rides into the image in the work dir, since `--rename` may point anywhere on this box).
 
 Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
-intrinsic index, whose headers are the image's clang's. Still to come, in the unit after this one: the
-rename shadows, G-graph, G-test, and the model calls.
+intrinsic index, whose headers are the image's clang's. `graph-grade` is the exception and says why: it
+runs a Hobbes ingest, which contains its own lane B. Still to come: G-test, `grade` and `diff` taking a
+rename of their own instead of `shadow.grading`, and the model calls.
 
 ```sh
 # on this box, in the image
@@ -212,4 +302,15 @@ lattice facts /path/to/sqlite-vector avx2/float32/dot \
 
 # on the host, over a full clone: the cell ages the contamination facts are read from
 lattice ages /path/to/sqlite-vector-history 0c2223a --out ages.json
+
+# E2's two shadows, and the same graders over one of them
+lattice shadow /path/to/sqlite-vector /tmp/shadow-descriptive \
+  --graph .hobbes/derived/graph.json --style descriptive
+lattice shadow /path/to/sqlite-vector /tmp/shadow-opaque \
+  --graph .hobbes/derived/graph.json --style opaque
+lattice grade /tmp/shadow-opaque manifest.json --rename /tmp/shadow-opaque/shadow-map.json
+
+# G-graph, over the bodies a grading run kept
+lattice graph-grade /path/to/sqlite-vector results.jsonl \
+  --gold-graph .hobbes/derived/graph.json --hobbes ~/hobbes_public --out graph.jsonl
 ```

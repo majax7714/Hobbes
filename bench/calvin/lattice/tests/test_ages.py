@@ -134,3 +134,41 @@ def test_the_rows_are_json_able_and_carry_no_absolute_path(repo):
 def test_a_git_failure_is_its_own_error(tmp_path):
     with pytest.raises(ages_module.GitError):
         ages_module.ages(tmp_path, "HEAD", build(Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"))
+
+
+# MARK: - a tree the walk cannot check out (part 4, item 7) -
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="the age walk reads a real git history")
+def test_a_bare_clone_answers_because_the_cells_come_from_git(repo, tmp_path):
+    """The chosen behaviour: read `src/distance-*.c` at the ref with `git show`, so no checkout is needed."""
+    bare = tmp_path / "history.git"
+    subprocess.run(["git", "clone", "-q", "--bare", str(repo), str(bare)], check=True, capture_output=True)
+    assert not (bare / "src").exists()  # there is no working tree at all
+
+    rows = ages_module.ages(bare, "HEAD")
+    assert sorted(rows) == ["avx2/float32/dot"]
+    assert rows["avx2/float32/dot"]["body_since"] == "2025-06-03"
+    assert rows["avx2/float32/dot"]["name_since"] == "2025-01-02"
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="the age walk reads a real git history")
+def test_the_lattice_at_a_ref_is_the_trees_and_not_the_working_copys(repo):
+    (repo / "src" / "distance-avx2.c").write_text("float float32_distance_l1_avx2 (void) { return 0.0f; }\n")
+    lattice = ages_module.cells_at(repo, "HEAD")
+    assert sorted(lattice.cells) == ["avx2/float32/dot"]  # the ref's tree, not the edited working copy
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="the age walk reads a real git history")
+def test_a_ref_whose_tree_holds_no_kernel_file_is_refused(tmp_path):
+    empty = tmp_path / "empty"
+    (empty / "docs").mkdir(parents=True)
+    (empty / "docs" / "README.md").write_text("no kernels here\n")
+    _git(empty, "init", "-q")
+    _git(empty, "config", "user.email", "lattice@example.invalid")
+    _git(empty, "config", "user.name", "lattice tests")
+    _git(empty, "add", "-A")
+    _git(empty, "commit", "-q", "-m", "docs only")
+    with pytest.raises(ages_module.NoKernelsAtRef) as refusal:
+        ages_module.ages(empty, "HEAD")
+    assert "no src/distance-*.c at HEAD" in str(refusal.value)

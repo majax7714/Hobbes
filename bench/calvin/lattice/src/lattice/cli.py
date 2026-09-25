@@ -7,22 +7,30 @@
     lattice intrinsics <include-dir>            index clang's headers for every `_mm…`/`_cvt…` signature
     lattice ages       <git-dir> <ref>          since when each cell's name and body have been what they are
     lattice mem-probes <target>                 the G-mem probes, written and not run
+    lattice shadow     <target> <dest>          write one rename shadow of the target (E2)
+    lattice graph-grade <target> <results.jsonl> G-graph over the bodies a grading run kept
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
 
-Everything but the last two reads text — files, a git history, the derived artifacts — and runs nowhere
-in particular. **`grade` and `selftest` compile and run the target's code**, so they take `--here` (this
-process is already contained) or `--image NAME` (the default: build a `podman run` plan and run this same
-CLI inside it, ADR-092/C-64). `--here` outside a container exits 2 with the refusal. `<target>` is a
-checkout's root — the directory holding `src/distance-*.c`.
+Everything but the last three reads text — files, a git history, the derived artifacts — and runs
+nowhere in particular. **`grade` and `selftest` compile and run the target's code**, so they take
+`--here` (this process is already contained) or `--image NAME` (the default: build a `podman run` plan
+and run this same CLI inside it, ADR-092/C-64). `--here` outside a container exits 2 with the refusal.
+**`graph-grade` runs a Hobbes ingest**, which contains its own lane B (ADR-092) and so runs on the host
+like `uv run hobbes ingest` does. `<target>` is a checkout's root — the directory holding
+`src/distance-*.c`.
 
 A manifest is a JSON list of `{"id", "cell", "body"}` entries, or an object with them under `entries`;
-`body` is a body's text, `{` to its matching `}`, or the word `"gold"`.
+`body` is a body's text, `{` to its matching `}`, or the word `"gold"`. `graph-grade` reads the same
+rows with a grading run's `class` beside them, and says which it did not carry and why.
 
 `facts` and `task` take the ledger as `--graph derived/graph.json`, `--key derived/oracle.json` and
 `--intrinsics index.json`. None of the three is required, and one left out is **named in the answer's
 `missing`** rather than filled in from somewhere else: `lattice facts` with no ledger prints no callees
 and says so. `mem-probes` writes the probes only — this CLI never calls a model.
+
+`map`, `task` and `grade` take `--rename <shadow-map.json>`: the lattice is then read through that
+shadow's reverse map, so the grid is the target's and the names are the shadow's.
 """
 
 from __future__ import annotations
@@ -36,6 +44,8 @@ from pathlib import Path
 
 from . import ages as ages_of
 from . import facts as facts_of
+from . import graphgrade as graph_of
+from . import shadow as shadow_of
 from . import gmem, holes, intrinsics as intrinsics_of, run, task
 from .cells import ISAS, Lattice, UnknownCell, build
 
@@ -50,11 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     mapper = verbs.add_parser("map", help="the cells per ISA")
     mapper.add_argument("target", type=Path)
     mapper.add_argument("--json", action="store_true", help="the map as JSON rather than a table")
+    _renamed(mapper)
 
     tasker = verbs.add_parser("task", help="one cell's task record, as JSON")
     tasker.add_argument("target", type=Path)
     tasker.add_argument("cell", help="a cell id, <isa>/<type>/<metric>")
     _ledger(tasker)
+    _renamed(tasker)
 
     puncher = verbs.add_parser("punch", help="one cell's file with its body punched out")
     puncher.add_argument("target", type=Path)
@@ -78,11 +90,26 @@ def main(argv: list[str] | None = None) -> int:
     prober.add_argument("target", type=Path)
     prober.add_argument("--out", type=Path, help="write the probes here (default: stdout)")
 
+    shadower = verbs.add_parser("shadow", help="write one rename shadow of the target (E2)")
+    shadower.add_argument("target", type=Path)
+    shadower.add_argument("dest", type=Path, help="where to write the shadow; shadow-map.json goes at its root")
+    shadower.add_argument("--graph", type=Path, required=True, help="the target's ingest, derived/graph.json")
+    shadower.add_argument("--style", choices=shadow_of.STYLES, required=True, help="descriptive or opaque")
+
+    graphgrader = verbs.add_parser("graph-grade", help="G-graph over the bodies a grading run kept")
+    graphgrader.add_argument("target", type=Path)
+    graphgrader.add_argument("results", type=Path, help="JSONL rows of {id, cell, body, class}")
+    graphgrader.add_argument("--gold-graph", type=Path, help="the target's own ingest; without it, one is made")
+    graphgrader.add_argument("--hobbes", type=Path, help="a Hobbes checkout, whose pipeline runs the ingest")
+    graphgrader.add_argument("--out", type=Path, help="write the rows as JSONL here (default: stdout)")
+    _renamed(graphgrader)
+
     grader = verbs.add_parser("grade", help="grade a manifest of bodies")
     grader.add_argument("target", type=Path)
     grader.add_argument("manifest", type=Path, help="a JSON list of {id, cell, body} entries")
     grader.add_argument("--out", type=Path, help="write the results as JSONL here (default: stdout)")
     _where(grader)
+    _renamed(grader)
 
     tester = verbs.add_parser("selftest", help="the gate on the instruments: the gold and its four mutants")
     tester.add_argument("target", type=Path)
@@ -92,9 +119,20 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
+    try:
+        rename = shadow_of.load(args.rename) if getattr(args, "rename", None) else None
+    except OSError as missing:
+        print(f"lattice: the shadow map could not be read ({missing})", file=sys.stderr)
+        return 2
+
     if args.verb in ("grade", "selftest"):
         try:
-            return _grade(args) if args.verb == "grade" else _selftest(args)
+            if args.verb == "selftest":
+                return _selftest(args)
+            if rename is None:
+                return _grade(args)
+            with shadow_of.grading(rename):
+                return _grade(args)
         except run.NotContained as refusal:
             print(f"lattice: {refusal}", file=sys.stderr)
             return 2
@@ -106,8 +144,12 @@ def main(argv: list[str] | None = None) -> int:
         return _intrinsics(args)
     if args.verb == "ages":
         return _ages(args)
+    if args.verb == "shadow":
+        return _shadow(args)
+    if args.verb == "graph-grade":
+        return _graph_grade(args, rename)
 
-    lattice = build(args.target)
+    lattice = build(args.target, rename=rename)
     if args.verb == "map":
         print(json.dumps(_map(lattice), indent=2) if args.json else _table(lattice))
         return 0
@@ -131,7 +173,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.verb == "facts":
             rows = ledger.callees(lattice, cell)
             print(json.dumps(
-                {"cell": cell.id, "source": ledger.source(), "missing": rows.missing, "callees": list(rows)},
+                {
+                    "cell": cell.id,
+                    "source": ledger.source(),
+                    "missing": rows.missing,
+                    "dropped": rows.dropped,
+                    "callees": list(rows),
+                },
                 indent=2,
             ))
         else:
@@ -148,6 +196,11 @@ def _where(verb: argparse.ArgumentParser) -> None:
     verb.add_argument("--here", action="store_true", help="run in this process; refused outside a container")
     verb.add_argument("--image", default=run.IMAGE, help=f"the image to run in (default: {run.IMAGE})")
     verb.add_argument("--work", type=Path, help="the work dir (default: a fresh temporary one)")
+
+
+def _renamed(verb: argparse.ArgumentParser) -> None:
+    """`--rename`: read the lattice through a shadow's map, so the grid is the target's own."""
+    verb.add_argument("--rename", type=Path, help="a shadow-map.json, from `lattice shadow`")
 
 
 def _ledger(verb: argparse.ArgumentParser) -> None:
@@ -176,10 +229,58 @@ def _intrinsics(args) -> int:
 
 
 def _ages(args) -> int:
-    rows = ages_of.ages(args.git_dir, args.ref, build(args.git_dir))
+    try:
+        rows = ages_of.ages(args.git_dir, args.ref)
+    except (ages_of.NoKernelsAtRef, ages_of.GitError) as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
     print(_age_table(rows))
     if args.out:
         args.out.write_text(json.dumps(rows, indent=2, sort_keys=True), encoding="utf-8")
+    return 0
+
+
+def _shadow(args) -> int:
+    try:
+        graph = json.loads(args.graph.read_text(encoding="utf-8"))
+    except OSError as missing:
+        print(f"lattice: the graph could not be read ({missing})", file=sys.stderr)
+        return 2
+    try:
+        plan = shadow_of.plan(args.target, graph, args.style)
+    except shadow_of.Collision as refusal:
+        print(f"lattice: the {args.style} shadow was not written — {refusal}", file=sys.stderr)
+        return 2
+    shadow_of.write(plan, args.dest)
+    counts = plan.counts
+    leaked = shadow_of.leaks(plan, args.dest)
+    print(
+        f"shadow ({plan.style}): {counts['renamed']} renamed, {counts['kept']} kept, "
+        f"{counts['prefixed']} sv_-prefixed, over {counts['files']} file(s) → {args.dest}"
+    )
+    for reason in ("external", "entry-point", "not-a-graph-symbol"):
+        names = [row["name"] for row in plan.kept if row["reason"] == reason]
+        if names:
+            print(f"  kept, {reason}: {', '.join(names)}")
+    for row in leaked:
+        names = "too large to read" if row.get("unread") else f"{len(row['names'])} original name(s)"
+        print(f"  leaks, not renamed: {row['file']} — {names}")
+    for gap in plan.missing:
+        print(f"  missing: {gap}")
+    return 0
+
+
+def _graph_grade(args, rename) -> int:
+    rows = [json.loads(line) for line in args.results.read_text(encoding="utf-8").splitlines() if line.strip()]
+    entries, skipped = graph_of.keep(rows)
+    gold = json.loads(args.gold_graph.read_text(encoding="utf-8")) if args.gold_graph else None
+    ingest = graph_of.hobbes_ingest(args.hobbes or Path.cwd())
+    try:
+        graded = graph_of.grade(args.target, entries, ingest, gold_graph=gold, rename=rename)
+    except graph_of.IngestFailed as refusal:
+        print(f"lattice: {refusal}", file=sys.stderr)
+        return 2
+    _write_lines([json.dumps(row, sort_keys=True) for row in graded + skipped], args.out)
     return 0
 
 
@@ -233,10 +334,12 @@ def _grade(args) -> int:
 
     with _workdir(args.work) as workdir:
         (workdir / "manifest.json").write_text(json.dumps(entries), encoding="utf-8")
-        plan = run.image_plan(
-            args.image, args.target, workdir,
-            ["grade", "/target", "/work/manifest.json", "--out", "/work/results.jsonl", "--work", "/work/run"],
-        )
+        inner = ["grade", "/target", "/work/manifest.json", "--out", "/work/results.jsonl", "--work", "/work/run"]
+        if args.rename:
+            # the map rides in the work dir, not the target: `--rename` may point anywhere on this box
+            (workdir / "shadow-map.json").write_text(args.rename.read_text(encoding="utf-8"), encoding="utf-8")
+            inner += ["--rename", "/work/shadow-map.json"]
+        plan = run.image_plan(args.image, args.target, workdir, inner)
         done = run.run_plan(plan)
         sys.stderr.write(done.stderr)
         if done.returncode != 0:
