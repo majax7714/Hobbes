@@ -208,6 +208,15 @@ a `complete(prompt) -> str` callable — the only place a model would appear —
 with a fake one and nothing is spent. A body of at most K lines leaves nothing to continue: the row is
 kept and marked `evidence: False`.
 
+**And nearly nothing to continue is not evidence either.** A wrapper's body is three lines, so K = 2 and
+the expectation is `}` alone — one token, which anything continues, and all ten of E1-g's wrappers read
+`memorised` on it. `MIN_EXPECTED_TOKENS` is 8, the shortest tail that says anything about this code, and
+`has_evidence(expected_tokens)` is the one place it is applied — by `gmem.run` and by `e1.plan`'s probe
+request, so a row cannot be marked one way in one and the other way in the other. Like the two score
+lines above it, the floor is a convention of this instrument and not a calibrated threshold. A probe
+below it **keeps its row and its score** — it is a real cell and the number is what it is — and the
+report reads it as `no-evidence` rather than as a reading.
+
 **`shadow`** — **the two rename shadows** (§6's E0 and E2 cards): the target's own code under names the
 base model has never read. `plan(target, graph, style)` and `write(plan, dest)`. What is renamed is
 every symbol the graph names under `src/` or `test/` — at 100/100 that set is a fact, not a guess — and
@@ -313,7 +322,7 @@ callees is C-0 under another name, and a row recorded under the wrong arm is wor
 What the ledger did not answer is simply not in the prompt — nothing here infers a callee. The same
 inputs give the same bytes, and no output names the target's path.
 
-**`extract`** — **E1-c's parse:** `extract(completion, name)` gives `{"body", "reason", "block"}`. The
+**`extract`** — **E1-c's parse:** `extract(completion, name)` gives `{"body", "reason", "block", "params"}`. The
 body comes from the **first** fenced block, whatever its tag (```` ```c ````, ```` ```C ````,
 ```` ```cpp ````, bare), and a block with no closing fence — a completion cut off at `max_tokens` — runs
 to the end of the text. The rule is the first block even when a later one would parse, because "take
@@ -326,11 +335,23 @@ write. The caller files these as class **`no-body`**, reported beside `compile` 
 a model that wrote nothing usable and a model that wrote something that will not build are two different
 results. This module only says why; it classifies nothing and keeps nothing.
 
+**`params`** rides with the body: the parameter names of the definition the model wrote, in order, and
+`None` where there is no body. `params(signature)` reads them off any signature — the target's included,
+which is how the runner compares the two — as the **last identifier of each comma-separated parameter**,
+so `const float *a`, `const float* b` and `int c[]` all give their name and `(void)` gives none. Commas
+inside a nested list do not split, though such a parameter's own name is then read wrongly; no signature
+in the lattice has one, and the docstring says so rather than pretending otherwise.
+
 **`e1`** — **the run loop** (§6, "E1's runner — the design"). `plan(lattice, cells, arms, model, facts)`
-makes one chat request per (cell, arm, sample) — sample 0 greedy, 1 to *k* drawn at T = 0.8 / top-p 0.95 —
-plus one G-mem probe per cell as a raw continuation, each request carrying its own seed from a SHA-256 of
+makes one chat request per (cell, arm, sample) — sample 0 greedy, 1 to *k* drawn at T = 0.8 / top-p 0.95,
+**`max_tokens` 2,048** — plus one G-mem probe per cell as a raw continuation at 512, each request carrying
+its own seed from a SHA-256 of
 (model, cell, arm, sample, round), **never Python's `hash()`**, so the same run planned twice asks for the
-same samples. `run(run_dir, target, generate, grade, ceiling_usd=…)` is the loop, and **no model appears in
+same samples. The answer limit was 1,024 through E1-g, where 112 of 1,734 completions stopped at it — 95
+of them in the iterate rounds, where the model writes prose around the block, and none a repetition loop.
+A completion cut off at the limit is a `no-body` about the limit and not about the model, so the limit
+doubled. Each request also carries the **target's own signature**, which is what the body will be graded
+under and what the `param` rule below is read against. `run(run_dir, target, generate, grade, ceiling_usd=…)` is the loop, and **no model appears in
 it**: the generator and the grader are injected callables, so the tests drive every round with fakes and
 the one real generator is reached through :func:`modal_generator`, a subprocess and two JSONL files.
 
@@ -352,9 +373,26 @@ only** (`C-0`, `C-3`): every chain whose last row is not `pass` gets its convers
 whole text as an assistant turn, and one user turn — `feedback.build`'s ≤1,500 characters, or the one fixed
 sentence for a `no-body` — and a chain stops at its first `pass`.
 
+**A renamed parameter is not an invented API** (E1-g's record, limit 1). `grade` grafts the body under the
+**target's** signature, so a body that wrote `v1` where the target writes `va` fails with `use of
+undeclared identifier 'v1'`, and G-hsr — which reads exactly those messages and knows nothing of who wrote
+the signature — files `v1` as invented. Sixty of E1-g's 1,734 rows were `invented` that way. So a name
+that is one of the **model's own** parameter names and none of the target's is re-bucketed **`param`**
+here, where both signatures are in hand; when every invented name on a row is one of those, the row
+invented nothing and its class becomes **`compile`**, with the reason naming both lists. It never becomes
+a pass and could not: mapped back and re-graded in the image, **none of E1-g's 53 remappable rows passed**
+(45 `compile`, 7 `wrong`, 1 `invented`). What the graders answered stays readable under the row's `grade`,
+so the re-bucketing is the runner's reading beside theirs and not a rewrite of theirs. And the retry says
+it — the row's feedback gets one sentence, "The signature is `…`: use its parameter names.", kept whole
+inside the 1,500 characters — because telling a model only that `v1` resolves nowhere is not a fair turn.
+
 **The ceiling is checked before every call, never after** (§8). The estimate is deliberately crude and
-deliberately high: prompt characters over 3.5, plus `max_tokens` for *every* request, at a per-model
-throughput and price that are **guesses written down as guesses** and replaced by what E1-g is billed. If
+deliberately high: prompt characters over 3.5, plus `max_tokens` for *every* request, plus
+`COLD_START_SECONDS` — 180, the container start and model load **every** call pays whatever it asks for,
+and most of a small round's bill. The rates are no longer guesses: `PRICING` is **8,000 prompt tokens a
+second and 950 completion tokens**, measured on E1-g's run (Qwen2.5-Coder-7B, batched vLLM on one A10G at
+$1.10/h), in place of the 5,000 and 500 this opened with. Olmo carries Qwen's numbers until Olmo has run.
+If
 the spend already in `calls.jsonl` plus that estimate passes the ceiling, `CeilingReached` — its own type —
 is raised and nothing is sent. **A generator that reports no cost has its estimate recorded as the cost**,
 with `cost_source` saying which it is: a run whose generator is silent must not read as free.
@@ -364,11 +402,15 @@ over the *k* draws, **pass@k** as the unbiased `1 − C(n−c, k)/C(n, k)` per c
 is any-pass, and under *k* samples it is `None` rather than any-pass wearing the wrong name), and for the
 iterate arms the **cumulative pass rate after each round**, so the one-shot figure stays visible. Each is
 broken down **by ISA and by type**, with `int8`, `uint8` and `bit1` keeping their own rows *and* summed into
-a `low-bit` row. Beside each figure: the class counts, G-hsr's invented names by bucket, **G-reg over the
+a `low-bit` row. Beside each figure: the class counts, G-hsr's invented names by bucket — its own three
+and **`param`**, the runner's fourth, which is a renamed parameter and is therefore counted on its own
+line and never toward `intrinsic` — **G-reg over the
 bodies that compiled** — a body that never built has no init for the question to be about — and the same
-rates split by the cell's G-mem label, since §8 binds every number to carry its G-mem reading. **Wrappers
+rates split by the cell's G-mem label, since §8 binds every number to carry its G-mem reading; a probe
+under the evidence floor reads `no-evidence` there and never `memorised`. **Wrappers
 are a section of their own and are never pooled with real bodies.** Tokens, seconds and cost are
-`calls.jsonl`'s own. **A missing file is named in `missing`, never read as zero**: a run whose grading never
+`calls.jsonl`'s own, and **`max_tokens` is `meta.json`'s**, stated beside the figures it produced, since a
+completion that stopped at the limit is a fact about the limit. **A missing file is named in `missing`, never read as zero**: a run whose grading never
 happened and a run in which nothing passed are two different results.
 
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
@@ -448,18 +490,24 @@ lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector \
 
 ## E1's runner — the order of work
 
-**Nothing here has been run.** `scripts/modal_e1.py` is written and first run by the developer, on Max's
-word (E1-g), and the ceiling is checked before every call. The order is fixed:
+**The first unit has run; nothing after it has.** `scripts/modal_e1.py` is run by the developer, on Max's
+word, and the ceiling is checked before every call. The order is fixed:
 
 1. **`lattice e1 plan`** — the requests only. It reads files, calls nothing, and costs nothing. Read the
    prompt sizes off `requests.jsonl` before anything is sent.
 2. **The first unit (E1-g): Qwen2.5-Coder-7B, `avx2`, all five arms**, greedy and k = 5, round 0 plus the
    iterate rounds, with the 31 cells' G-mem probes in the same call. `--ceiling-usd` is named by Max.
-3. **Price it.** Compare `calls.jsonl`'s measured cost with `e1.PRICING`'s estimate, and replace those
-   constants with what Modal billed. E1 was priced at **≈ $1–3 against the $10 ceiling** from the real
-   target's prompt sizes; the first unit is what checks that.
+   **Run on 2026-09-25**: 961 requests over four calls at `0c2223a`, **$0.74 of the $10 ceiling**, $0.16
+   of it lost with the first call's completions (fixed).
+3. **Price it.** Done: `e1.PRICING` and `COLD_START_SECONDS` are now E1-g's measured throughput and its
+   per-call load, in place of the guesses. Round 0 cost $0.17 against an estimate of $0.73, and the rest
+   of E1 projects to **$2–3 against the $10 ceiling**. Compare the next unit's `calls.jsonl` with the
+   estimate again rather than assuming these carry.
 4. **Max's word**, before the other two ISAs and before Olmo.
 5. **The rest**, then G-graph over the bodies that compiled — one ingest per wave, and not in the loop.
+
+E1-g's rows also moved three things here, each measured on them first and none of them a re-grade of that
+run: the `param` bucket, `max_tokens` 2,048 and the G-mem evidence floor.
 
 `scripts/modal_e1.py` is a `uv run` script (`modal>=1.1`) and **this package never imports `modal`**: the
 seam is a subprocess and two JSONL files, which is also what makes a batch replayable afterwards. Its pins

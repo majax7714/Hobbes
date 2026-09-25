@@ -80,7 +80,7 @@ def lattice():
 
 def test_the_definition_comes_out_of_the_block_past_the_prose_and_the_helper():
     found = extract.extract(WITH_A_HELPER, NAME)
-    assert found == {"body": BODY, "reason": None, "block": 1}
+    assert found == {"body": BODY, "reason": None, "block": 1, "params": ["v1", "v2", "n"]}
 
 
 def test_the_tag_is_not_read():
@@ -90,7 +90,12 @@ def test_the_tag_is_not_read():
 
 def test_no_fence_at_all_is_its_own_reason():
     prose = f"float {NAME} (const void *v1, const void *v2, int n)\n{BODY}\n"
-    assert extract.extract(prose, NAME) == {"body": None, "reason": extract.NO_BLOCK, "block": None}
+    assert extract.extract(prose, NAME) == {
+        "body": None,
+        "reason": extract.NO_BLOCK,
+        "block": None,
+        "params": None,
+    }
 
 
 def test_a_fence_cut_off_mid_body_is_read_to_the_end_and_refused():
@@ -110,7 +115,12 @@ def test_the_rule_is_the_first_block_even_when_a_later_one_has_it():
 
 def test_a_definition_of_a_different_name_is_not_the_one_asked_for():
     found = extract.extract(ANOTHER_NAME, NAME)
-    assert found == {"body": None, "reason": f"the first fenced block defines no {NAME}", "block": 1}
+    assert found == {
+        "body": None,
+        "reason": f"the first fenced block defines no {NAME}",
+        "block": 1,
+        "params": None,
+    }
 
 
 def test_a_stray_closing_brace_is_the_scanners_refusal_and_not_a_body():
@@ -137,6 +147,56 @@ def test_the_first_block_runs_to_the_next_fence_whatever_follows():
     assert extract.first_block("prose\n```\nx\ny\n```\nmore\n```\nz\n```\n") == "x\ny"
     assert extract.first_block("```c\nx\n") == "x"
     assert extract.first_block("no fence here\n") is None
+
+
+# MARK: - the parameter names, the model's and the target's -
+
+
+def test_the_names_are_the_last_identifier_of_each_parameter():
+    assert extract.params("float f (const void *va, const void *vb, int n)") == ["va", "vb", "n"]
+    assert extract.params("static inline float g (const void *v1, const void *v2, int n, bool use_sqrt)") == [
+        "v1",
+        "v2",
+        "n",
+        "use_sqrt",
+    ]
+    # the star belongs to the declarator, not to the name, however it is written
+    assert extract.params("float f (const float *a, const float* b)") == ["a", "b"]
+    assert extract.params("void f (int a[], int n)") == ["a", "n"]
+
+
+def test_void_alone_and_an_empty_list_are_no_parameters():
+    assert extract.params("bool init_distance_functions_avx2 (void)") == []
+    assert extract.params("bool init (  void  )") == []
+    assert extract.params("bool init ()") == []
+
+
+def test_a_nested_parameter_list_does_not_split_on_its_own_commas():
+    """Two parameters, not four — and the second's name is read wrongly, as the docstring says it is."""
+    found = extract.params("void f (int n, int (*cmp)(const void *, const void *))")
+    assert len(found) == 2
+    assert found[0] == "n"
+    assert found[1] == "void"  # the last identifier is inside the pointer's own list, not the name
+
+
+def test_a_signature_with_no_parameter_list_reads_as_nothing_rather_than_a_guess():
+    assert extract.params("") == []
+    assert extract.params("float float32_distance_dot_avx2") == []
+    assert extract.params("float f (int n") == []
+
+
+def test_the_parse_reports_the_definitions_own_names_and_none_where_there_is_no_body():
+    assert extract.extract(BARE_FENCE, NAME)["params"] == ["v1", "v2", "n"]
+    renamed = f"```c\nfloat {NAME} (const void *a_vec, const void *b_vec, int count)\n{BODY}\n```\n"
+    assert extract.extract(renamed, NAME)["params"] == ["a_vec", "b_vec", "count"]
+    assert extract.extract(TRUNCATED, NAME)["params"] is None
+    assert extract.extract("prose only\n", NAME)["params"] is None
+
+
+def test_the_target_is_read_with_the_same_function(lattice):
+    assert extract.params(lattice.get("avx2/float32/cosine").signature) == ["a", "b", "n"]
+    assert extract.params(lattice.get("avx2/float32/dot").signature) == ["v1", "v2", "n"]
+    assert extract.params(lattice.get("avx2/float32/l2_impl").signature) == ["v1", "v2", "n", "use_sqrt"]
 
 
 def test_every_fixture_golds_round_trips_through_a_fence(lattice):

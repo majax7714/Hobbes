@@ -23,6 +23,13 @@ after the first difference. Whitespace is not compared, so indentation is not re
 A cell whose body is at most K lines leaves nothing to continue. Those rows are kept — they are real
 cells — with `expected_tokens` 0, and `run` marks them `evidence: False`: whatever `score` says, a probe
 with nothing to recall is not evidence that anything was recalled.
+
+**And nearly nothing to recall is not evidence either** (E1-g's record, limit 3). A wrapper's body is
+three lines, so `K = 2` and the expectation is `}` alone: one token, which every model in the world
+continues, and all ten of E1-g's wrappers read `memorised` on it. :data:`MIN_EXPECTED_TOKENS` is the
+floor an expectation has to clear for its score to be evidence of anything, and :func:`has_evidence` is
+the one place it is applied. A probe below the floor keeps its row and its score — it is a real cell, and
+the number is what it is — and the report reads it as `no-evidence` rather than as a reading.
 """
 
 from __future__ import annotations
@@ -32,12 +39,23 @@ from typing import Callable
 from .cells import Cell, Lattice
 from .task import prelude_bare
 
-__all__ = ["MEMORISED", "UNSEEN", "label", "probe", "run", "score"]
+__all__ = ["MEMORISED", "MIN_EXPECTED_TOKENS", "UNSEEN", "has_evidence", "label", "probe", "run", "score"]
 
 #: above this share of the gold's tokens continued in order, the gold was recalled (ADR-099's line).
 MEMORISED = 0.5
 #: below this, nothing of the gold was recalled.
 UNSEEN = 0.15
+
+#: How many tokens an expectation has to hold for continuing it to be evidence of recall. A wrapper's
+#: expectation is `}` alone, and a closing brace is not the target. Eight is the shortest tail that says
+#: anything about this code — a `return` and a call with its arguments — and it is a convention of this
+#: instrument, like the two lines above it, not a calibrated threshold.
+MIN_EXPECTED_TOKENS = 8
+
+
+def has_evidence(expected_tokens: int) -> bool:
+    """Whether a probe expecting *expected_tokens* tokens can be evidence of recall at all."""
+    return expected_tokens >= MIN_EXPECTED_TOKENS
 
 
 def probe(lattice: Lattice, cell: Cell) -> dict:
@@ -105,7 +123,7 @@ def run(probes: list[dict], complete: Callable[[str], str]) -> list[dict]:
                 "score": value,
                 "label": label(value),
                 "completion": completion,
-                "evidence": row["expected_tokens"] > 0,
+                "evidence": has_evidence(row["expected_tokens"]),
             }
         )
     return results

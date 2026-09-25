@@ -40,7 +40,7 @@ def row(cell, arm, sample, round_, cls, *, kind="body", isa="avx2", type_="float
 
 def body_rows():
     """Round 0: A passes greedy and one of two samples; B passes nothing; W (a wrapper) passes greedy."""
-    invented = ({"name": "_mm256_nope_ps", "bucket": "intrinsic"},)
+    invented = ({"name": "_mm256_nope_ps", "bucket": "intrinsic"}, {"name": "v1", "bucket": "param"})
     rows = [
         row(A, "C-0", 0, 0, "pass"),
         row(A, "C-0", 1, 0, "pass"),
@@ -84,6 +84,7 @@ def run_dir(tmp_path):
             {
                 "model": "Qwen/Qwen2.5-Coder-7B-Instruct",
                 "k": K,
+                "params": {"temperature": 0.8, "top_p": 0.95, "max_tokens": 2048},
                 "rounds": 3,
                 "iterate": ["C-0"],
                 "arms": ["C-0", "C-2"],
@@ -193,7 +194,39 @@ def test_g_reg_is_read_over_the_bodies_that_compiled_and_over_no_others(run_dir)
 
 def test_the_invented_names_are_counted_by_bucket(run_dir):
     overall = report.report(run_dir)["sections"]["bodies"]["arms"]["C-0"]["overall"]
-    assert overall["invented"] == {"intrinsic": {"_mm256_nope_ps": 2}}
+    assert overall["invented"] == {"intrinsic": {"_mm256_nope_ps": 2}, "param": {"v1": 2}}
+
+
+def test_a_renamed_parameter_is_a_bucket_of_its_own_and_never_an_invented_intrinsic(run_dir):
+    """`param` is `e1.PARAM`, the runner's fourth bucket: a name the model renamed, not an invented API."""
+    found = report.report(run_dir)
+    overall = found["sections"]["bodies"]["arms"]["C-0"]["overall"]
+    assert e1.PARAM in overall["invented"]
+    assert "v1" not in overall["invented"]["intrinsic"]
+    assert sum(overall["invented"]["intrinsic"].values()) == 2  # the renames are on no other line
+
+    text = report.render(found)
+    assert "invented param: v1×2" in text
+    assert "invented intrinsic: _mm256_nope_ps×2" in text
+
+
+def test_a_probe_below_the_evidence_floor_counts_as_no_evidence_and_never_as_memorised(run_dir):
+    """A wrapper's probe scores 1.0 on `}` alone. `gmem.has_evidence` marks it, and this reads the mark."""
+    found = report.report(run_dir)
+    assert found["gmem"]["labels"].get("memorised") == 1  # A's, and not the wrapper's
+    assert found["gmem"]["labels"][report.NO_EVIDENCE] == 1
+    assert list(found["sections"]["wrappers"]["arms"]["C-0"]["overall"]["gmem"]) == [report.NO_EVIDENCE]
+
+
+def test_the_report_states_the_max_tokens_the_run_asked_at(run_dir):
+    found = report.report(run_dir)
+    assert found["max_tokens"] == 2048
+    assert "max_tokens=2048" in report.render(found)
+    # a run whose meta never recorded them says so rather than naming a number it did not read
+    (run_dir / e1.META).write_text(json.dumps({"model": "M", "k": K}), encoding="utf-8")
+    bare = report.report(run_dir)
+    assert bare["max_tokens"] is None
+    assert "max_tokens=?" in report.render(bare)
 
 
 def test_the_pass_rates_are_split_by_the_cells_g_mem_label(run_dir):

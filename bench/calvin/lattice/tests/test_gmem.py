@@ -125,3 +125,32 @@ def test_a_probe_with_nothing_to_continue_carries_no_evidence():
     result = gmem.run(probes, lambda prompt: "")[0]
     assert result["score"] == 1.0
     assert result["evidence"] is False  # whatever the score says, nothing was recalled
+
+
+# MARK: - the evidence floor (E1-g's record, limit 3) -
+
+
+def test_the_floor_is_where_a_tail_starts_being_evidence():
+    assert gmem.MIN_EXPECTED_TOKENS == 8
+    assert gmem.has_evidence(8) is True
+    assert gmem.has_evidence(7) is False
+    assert gmem.has_evidence(1) is False  # a wrapper's `}`
+    assert gmem.has_evidence(0) is False
+
+
+def test_a_wrappers_expected_tail_is_one_brace_and_carries_no_evidence(lattice):
+    """E1-g's ten wrappers all read `memorised` on this: K = 2 of a three-line body leaves `}` alone."""
+    row = gmem.probe(lattice, lattice.get("avx2/float32/l2"))
+    assert row["body_lines"] == 3 and row["k"] == 2
+    assert row["expected"].strip() == "}"
+    assert row["expected_tokens"] == 1
+
+    result = gmem.run([row], lambda prompt: "}\n")[0]
+    assert result["score"] == 1.0 and result["label"] == "memorised"
+    assert result["evidence"] is False  # the continuation is right and says nothing
+
+
+def test_a_real_bodys_probe_still_carries_evidence(lattice):
+    row = gmem.probe(lattice, lattice.get("avx2/float32/dot"))
+    assert row["expected_tokens"] >= gmem.MIN_EXPECTED_TOKENS
+    assert gmem.run([row], lambda prompt: row["expected"])[0]["evidence"] is True

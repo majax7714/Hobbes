@@ -22,9 +22,9 @@ only after its body has been graded: a row is the record of a finished request, 
 
 **The ceiling is checked before every call, never after** (§8: spend is held until Max names the run and
 its ceiling). The estimate is deliberately crude and deliberately high — prompt characters over
-:data:`CHARS_PER_TOKEN`, plus `max_tokens` for every request, at a per-model throughput and price that are
-guesses written down as guesses (:data:`PRICING`). If the spend already in `calls.jsonl` plus that estimate
-passes the ceiling, :class:`CeilingReached` is raised **before** the generator is called and nothing is
+:data:`CHARS_PER_TOKEN`, plus `max_tokens` for every request, at the throughput E1-g measured
+(:data:`PRICING`) and the cold start every call pays (:data:`COLD_START_SECONDS`). If the spend already
+in `calls.jsonl` plus that estimate passes the ceiling, :class:`CeilingReached` is raised **before** the generator is called and nothing is
 sent. A generator that reports no cost has its estimate recorded as the cost, with `cost_source` saying
 so: a run whose generator is silent must not read as free.
 
@@ -33,6 +33,17 @@ row is not `pass` gets its conversation so far, plus the model's whole text as a
 user turn: the last result's `feedback` (≤1,500 characters, from the graded result's structured fields), or,
 for a `no-body`, the one fixed sentence in :data:`NO_BODY`. A chain stops at its first `pass`, and at
 `rounds`.
+
+**A renamed parameter is not an invented API** (E1-g's record, limit 1). `grade` grafts the model's body
+under the **target's** signature, so a body that wrote `v1` where the target writes `va` fails with `use
+of undeclared identifier 'v1'`, and G-hsr — which reads exactly those messages and knows nothing of who
+wrote the signature — files `v1` as an invented name. Sixty of E1-g's 1,734 rows were `invented` that
+way. So a name that is one of the **model's own** parameter names and none of the target's is re-bucketed
+:data:`PARAM` here, where both signatures are known; when every invented name on a row is one of those,
+the row invented nothing and its class becomes `compile`. It does not become a pass and never could:
+mapped back and re-graded in the image, none of the 53 remappable rows passed. And the retry says so —
+:data:`SIGNATURE` names the target's signature, because telling a model only that `v1` resolves nowhere
+is not a fair turn.
 
 **P12.** This is `arm=model+prompt` (ADR-082): one single-use agent per cell, not a decomposed Hobbes test.
 `meta.json` records it, so no report of this run can be read as a Hobbes-test result.
@@ -57,16 +68,20 @@ from .facts import Facts
 __all__ = [
     "CALLS",
     "CHARS_PER_TOKEN",
+    "COLD_START_SECONDS",
     "COMPLETIONS",
     "GMEM",
     "GMEM_MAX_TOKENS",
     "ITERATE",
     "META",
     "NO_BODY",
+    "PARAM",
+    "PARAM_REASON",
     "PRICING",
     "REQUESTS",
     "ROUNDS",
     "ROWS",
+    "SIGNATURE",
     "CeilingReached",
     "GenerateFailed",
     "GradeFailed",
@@ -95,11 +110,14 @@ META, REQUESTS, ROWS, GMEM, CALLS = "meta.json", "requests.jsonl", "rows.jsonl",
 #: (session `66c5`'s review).
 COMPLETIONS = "completions.jsonl"
 
-#: E1-d's sampling: greedy plus k samples at these settings, and 1,024 tokens to answer in.
+#: E1-d's sampling: greedy plus k samples at these settings, and 2,048 tokens to answer in. E1-g ran at
+#: 1,024 and 112 of its 1,734 completions stopped there, 95 of them in the iterate rounds where the model
+#: adds prose around the block; none was a repetition loop. A completion cut off at the limit is a
+#: `no-body` that says nothing about the model, so the limit is doubled rather than read as a result.
 K = 5
 TEMPERATURE = 0.8
 TOP_P = 0.95
-MAX_TOKENS = 1024
+MAX_TOKENS = 2048
 
 #: E1-e: the arms that get feedback rounds, and how many.
 ITERATE = ("C-0", "C-3")
@@ -116,6 +134,17 @@ NO_BODY = "Your reply had no C code block defining `{name}`."
 #: own version of this; the fall-back is here for a grader injected by a caller that does not.
 FAILED = "It failed, and the graders said nothing about why."
 
+#: The bucket an invented name falls in when it is one of the model's own parameter names and none of the
+#: target's. It sits beside G-hsr's own three (`intrinsic`, `in-repo`, `other`) and is the runner's, not
+#: the grader's: `hsr` sees compiler messages, and only here are the two signatures both in hand.
+PARAM = "param"
+
+#: Why a row that invented nothing but its own parameter names is a `compile` and not an `invented`.
+PARAM_REASON = "the body uses the model's own parameter names ({model}) and the signature is the target's ({target})"
+
+#: The sentence such a row's retry carries, after whatever the graders said.
+SIGNATURE = "The signature is `{signature}`: use its parameter names."
+
 #: The P12 record (ADR-082): one agent per cell, so this run is a model+prompt arm and not a Hobbes test.
 P12 = "arm=model+prompt"
 
@@ -123,15 +152,20 @@ P12 = "arm=model+prompt"
 #: middle, and the estimate is a guard rather than a measurement.
 CHARS_PER_TOKEN = 3.5
 
-#: **Estimates, not measurements** (E1-f). Both 7Bs run under batched vLLM on one A10G, whose price is
-#: about $1.10/h; the throughputs are the order of magnitude a 7B reaches there, prefill being the faster
-#: side. The first unit (E1-g) is priced against what Modal actually bills and these are replaced by it.
-#: A model this table does not name falls back to :data:`DEFAULT_PRICE`, which is the same numbers.
+#: **Measured on E1-g's run** (Qwen2.5-Coder-7B, the `avx2` file, 961 requests over four calls): batched
+#: vLLM on one A10G read about 8,000 prompt tokens a second and wrote about 950, at the A10G's $1.10/h.
+#: They replace the guesses this table opened with (5,000 and 500). Olmo carries the same numbers, which
+#: are Qwen's until Olmo has run; a model the table does not name falls back to :data:`DEFAULT_PRICE`.
 PRICING = {
-    "Qwen/Qwen2.5-Coder-7B-Instruct": {"prompt_tps": 5000.0, "completion_tps": 500.0, "usd_per_second": 1.10 / 3600},
-    "allenai/Olmo-3-7B-Instruct": {"prompt_tps": 5000.0, "completion_tps": 500.0, "usd_per_second": 1.10 / 3600},
+    "Qwen/Qwen2.5-Coder-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600},
+    "allenai/Olmo-3-7B-Instruct": {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600},
 }
-DEFAULT_PRICE = {"prompt_tps": 5000.0, "completion_tps": 500.0, "usd_per_second": 1.10 / 3600}
+DEFAULT_PRICE = {"prompt_tps": 8000.0, "completion_tps": 950.0, "usd_per_second": 1.10 / 3600}
+
+#: What every call pays before it answers anything: the container's cold start and the model load, two
+#: to three minutes on E1-g's four calls. It is per call, not per token, and on a small round it is most
+#: of the bill — each of E1-g's iterate rounds cost $0.10 to $0.17, mostly this.
+COLD_START_SECONDS = 180.0
 
 
 class CeilingReached(Exception):
@@ -239,7 +273,7 @@ def plan(
                 "prompt": probe["prompt"],
                 "expected": probe["expected"],
                 "k": probe["k"],
-                "evidence": probe["expected_tokens"] > 0,
+                "evidence": gmem.has_evidence(probe["expected_tokens"]),
                 "params": {
                     "temperature": 0.0,
                     "top_p": 1.0,
@@ -252,7 +286,12 @@ def plan(
 
 
 def _position(cell: Cell) -> dict:
-    """The grid facts a row needs so that the report never reopens the target."""
+    """The grid facts a row needs so that the report never reopens the target.
+
+    The **target's own signature** rides with them, because the body will be graded under it and not
+    under the one the model wrote: without it here, a row cannot tell a renamed parameter from an
+    invented name, and nothing downstream may reopen the target to find out.
+    """
     return {
         "cell": cell.id,
         "name": cell.name,
@@ -260,6 +299,7 @@ def _position(cell: Cell) -> dict:
         "isa": cell.isa,
         "type": cell.type,
         "metric": cell.metric,
+        "signature": cell.signature,
     }
 
 
@@ -329,15 +369,16 @@ def prompt_chars(request: dict) -> int:
 
 
 def estimate(model: str, requests: Sequence[dict]) -> dict:
-    """What one call would cost, at :data:`PRICING`'s guesses: tokens, seconds and dollars.
+    """What one call would cost, at :data:`PRICING`'s rates: tokens, seconds and dollars.
 
     Every request is assumed to answer to its full `max_tokens`, which it will not, so the figure runs
-    high. A ceiling wants the high side.
+    high. A ceiling wants the high side. The one thing that is not a token is
+    :data:`COLD_START_SECONDS`, which every call pays whatever it asks for.
     """
     price = PRICING.get(model, DEFAULT_PRICE)
     tokens_in = sum(prompt_chars(request) for request in requests) / CHARS_PER_TOKEN
     tokens_out = sum(request["params"]["max_tokens"] for request in requests)
-    seconds = tokens_in / price["prompt_tps"] + tokens_out / price["completion_tps"]
+    seconds = COLD_START_SECONDS + tokens_in / price["prompt_tps"] + tokens_out / price["completion_tps"]
     return {
         "tokens_in": int(tokens_in),
         "tokens_out": int(tokens_out),
@@ -500,6 +541,9 @@ def _row(request: dict, got: dict) -> dict:
         "isa": request["isa"],
         "type": request["type"],
         "metric": request["metric"],
+        # a plan written before the signature rode along has none, and the `param` rule simply does not
+        # fire on those rows rather than guessing at one
+        "signature": request.get("signature"),
         "arm": request["arm"],
         "sample": request["sample"],
         "round": request["round"],
@@ -526,8 +570,49 @@ def _merge(row: dict, result: dict) -> None:
     row["class"] = kept.get("class")
     row["reason"] = kept.get("reason")
     row["reg"] = kept.get("reg")
-    row["invented"] = list(kept.get("invented") or [])
+    # a copy of each entry, not the grader's own: what the graders answered stays readable under
+    # `grade`, and the re-bucketing below is the runner's own reading beside it
+    row["invented"] = [dict(entry) for entry in (kept.get("invented") or [])]
     row["feedback"] = kept.get("feedback") or feedback.build(kept)
+    _renamed_parameters(row)
+
+
+def _renamed_parameters(row: dict) -> None:
+    """Re-bucket the invented names that are the model's own parameter names (the module docstring).
+
+    Nothing happens without both signatures: a row whose completion had no body has no parameter names,
+    and a row from a plan written before the target's signature rode along has nothing to compare with.
+    Only the `invented` class moves, because it is the only one that is a claim about names.
+    """
+    invented = row.get("invented") or []
+    if not invented:
+        return
+    mine = list((row.get("extract") or {}).get("params") or [])
+    theirs = extract.params(row.get("signature") or "")
+    if not mine or not theirs:
+        return
+
+    renamed = [entry for entry in invented if entry.get("name") in mine and entry.get("name") not in theirs]
+    if not renamed:
+        return
+    for entry in renamed:
+        entry["bucket"] = PARAM
+    if len(renamed) == len(invented) and row.get("class") == "invented":
+        row["class"] = "compile"
+        row["reason"] = PARAM_REASON.format(model=", ".join(mine), target=", ".join(theirs))
+    row["feedback"] = _with_sentence(row.get("feedback") or "", SIGNATURE.format(signature=row["signature"]))
+
+
+def _with_sentence(text: str, sentence: str) -> str:
+    """*text* with *sentence* after it, inside `feedback.LIMIT` characters — the sentence is never cut.
+
+    A retry that is told only that `v1` resolves nowhere cannot fix the thing it got wrong, so when the
+    two together run long it is the graders' list of errors that gives way, not the signature.
+    """
+    room = feedback.LIMIT - len(sentence) - 1
+    if len(text) > room:
+        text = text[: max(room - 1, 0)].rstrip() + "…"
+    return f"{text}\n{sentence}" if text else sentence
 
 
 #: What a graded result keeps (`grade.DIAGNOSTIC_LIMIT`). Repeated rather than imported, because `grade`

@@ -22,11 +22,16 @@ not the task the experiment is about, and a pass rate that mixes the two is a nu
 shape rather than about the model.
 
 Beside each figure go the class counts (`no-body`, `compile`, `invented`, `not-installed`, `wrong`, `edge`,
-`pass`), G-hsr's invented names by bucket, the G-reg rate **over the bodies that compiled** — a body that
-never compiled has no init function to have got right — and the same pass rates split by the cell's G-mem
-label, because §8 binds every number here to carry its G-mem reading beside it.
+`pass`), G-hsr's invented names by bucket — G-hsr's own three and **`param`** (`e1.PARAM`), the runner's
+fourth, which is a name the model renamed a parameter to and never an invented API, and is therefore
+counted on a line of its own and never toward `intrinsic` — the G-reg rate **over the bodies that
+compiled** — a body that never compiled has no init function to have got right — and the same pass rates
+split by the cell's G-mem label, because §8 binds every number here to carry its G-mem reading beside it.
+A probe under `gmem`'s evidence floor reads `no-evidence` in that split, never `memorised`.
 
-Tokens, seconds and cost are the run's own `calls.jsonl` and are not re-derived from the rows.
+Tokens, seconds and cost are the run's own `calls.jsonl` and are not re-derived from the rows, and
+`max_tokens` is `meta.json`'s: a completion that stopped at the limit is a `no-body` about the limit and
+not about the model, so the number the run asked at stands beside the figures it produced.
 """
 
 from __future__ import annotations
@@ -86,6 +91,7 @@ def report(run_dir: Path | str) -> dict:
         "run": run_dir.name,
         "model": record.get("model"),
         "k": k,
+        "max_tokens": (record.get("params") or {}).get("max_tokens"),
         "rounds": record.get("rounds"),
         "iterate": list(iterate),
         "p12": record.get("p12"),
@@ -290,7 +296,8 @@ def render(found: dict) -> str:
     """The report as a table: one block per section, one row per arm, then its ISA and type breakdowns."""
     lines = [
         f"E1 {found['run']} — {found.get('model') or 'no model recorded'} "
-        f"(k={found.get('k')}, rounds={found.get('rounds')}, P12 {found.get('p12')})"
+        f"(k={found.get('k')}, max_tokens={found.get('max_tokens') or '?'}, "
+        f"rounds={found.get('rounds')}, P12 {found.get('p12')})"
     ]
     if found.get("target_sha"):
         lines.append(f"target {found['target_sha'][:12]}")
