@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from lattice import task
+from lattice import facts, task
 from lattice.cells import build
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -22,7 +22,7 @@ def record(lattice):
 
 
 def test_the_grid_fields_are_the_cell(record):
-    assert record["schema"] == "lattice-task/2"
+    assert record["schema"] == "lattice-task/3"
     assert record["cell"] == "sse2/float32/dot"
     assert record["name"] == "float32_distance_dot_sse2"
     assert record["file"] == "src/distance-sse2.c"
@@ -105,9 +105,43 @@ def test_a_cell_with_nothing_above_it_has_the_same_two_preludes(lattice):
 
 def test_the_fields_the_graph_and_the_parser_own_are_null(record):
     assert record["callees"] is None
+    assert record["callees_source"] is None  # nobody was asked, which is not "it calls nothing"
     assert record["contract"] is None
     assert record["edge_cases"] is None
     assert record["like"] is None
+
+
+# MARK: - the ledger's fields -
+
+
+def test_a_ledger_fills_the_callees_and_says_where_they_came_from(lattice):
+    ledger = facts.load(graph=FIXTURE / "derived" / "graph.json", key=FIXTURE / "derived" / "oracle.json")
+    record = task.build(lattice, lattice.get("avx2/float32/dot"), facts=ledger)
+    assert record["schema"] == "lattice-task/3"
+    assert [row["name"] for row in record["callees"]] == [
+        "MM256_FMA_PS",
+        "hsum256_ps",
+        "_mm256_setzero_ps",
+        "_mm256_loadu_ps",
+        "_mm256_add_ps",
+        "_mm256_fmadd_ps",
+    ]
+    assert record["callees_source"]["graph"] == {
+        "sha": "d256eb725c7db519695b0ff4d06e4dbef3f54d58",
+        "version": "0.2.70-beta",
+    }
+    assert record["callees_source"]["key"]["oracle"].startswith("Ubuntu clang version 18.1.3")
+    assert record["callees_source"]["missing"] == ["intrinsics"]
+
+
+def test_a_filled_record_is_still_stable_json_with_no_absolute_path(lattice):
+    ledger = facts.load(graph=FIXTURE / "derived" / "graph.json", key=FIXTURE / "derived" / "oracle.json")
+    record = task.build(lattice, lattice.get("avx512/int8/l2_impl"), facts=ledger)
+    dumped = task.dumps(record)
+    assert json.loads(dumped) == record
+    assert str(FIXTURE) not in dumped
+    assert str(FIXTURE.resolve()) not in dumped
+    assert record["callees"]  # the impl calls the file's own helpers
 
 
 def test_the_json_is_stable_and_carries_no_absolute_path(record, lattice):

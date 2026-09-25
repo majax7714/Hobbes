@@ -38,10 +38,13 @@ byte alone; `fill(punched, body)` puts a body back. The property the tests hold 
 restore the gold is measuring its own edit. A body that is not balanced braces is refused with
 `UnbalancedBody`, not written.
 
-**`task`** — the task format of §5.2, one JSON-able record per cell (`lattice-task/2`). Everything the
+**`task`** — the task format of §5.2, one JSON-able record per cell (`lattice-task/3`). Everything the
 files can say is filled here: the grid position, the signature, the slots, the neighbours' ids, the
-static `helpers` defined above it and the file's `macros`. The fields the graph and the parser own —
-`callees`, `contract`, `edge_cases`, `like` — are present and `null`. A record never carries the target's
+static `helpers` defined above it and the file's `macros`. `callees` is filled from a `facts.Facts`
+handed in, with `callees_source` beside it naming that ledger; the fields the parser owns —
+`contract`, `edge_cases`, `like` — are present and `null`. Without a ledger `callees` and
+`callees_source` are both `null`, which is the difference between "this cell calls nothing" and "nobody
+was asked". A record never carries the target's
 path, so two checkouts of one SHA give the same bytes. **Two preludes**: `prelude` is the file's text
 above the signature, which on a real kernel file contains the sibling cells' bodies; `prelude_bare` is
 that text with every *other lattice cell's* body replaced by `;`, so each reads as a prototype. C-0, the
@@ -137,18 +140,76 @@ and the table prints the count. A `gold` row is a fact about the target, not a f
 `ok` does not depend on them, and they go into the design's record; a `scalar` row is counted separately,
 because there the tolerance table is what has to answer. Non-zero exit on any mismatch.
 
+**`facts`** — **C-1, the facts arm** (§5.3): a cell's callees, read from the ledger and never from a
+model's memory. Two instruments, because neither answers alone — **Hobbes' graph** has every in-repo
+callee with a tier and `file:line` evidence and **no edge to an intrinsic** (`_mm256_fmadd_ps` is not
+defined in the repo), and **the clang key** has every callee the compiler saw, intrinsics included, with
+the `mode` a macro was reached through. The graph is asked first and the key fills what the graph cannot
+see. Rows are in **first-use order**: the graph's by their first evidence line, then the key's by their
+first site, with the macro-mode sites after the direct ones because the name is not written in the body
+at all — `MM256_FMA_PS`, which is, already stands in the body's own order. A site is this cell's only
+when its `pos.path` *and* its line inside the body span say so: the key's `caller` is a bare name and a
+`static` name repeats across files. A callee both instruments name keeps the graph's row, the one with a
+tier, and records the agreement as `"also": "clang-key"`. `Facts` is the ledger (graph, key, intrinsic
+index; any of the three may be absent), and `Facts.source()` is its provenance.
+
+**`intrinsics`** — the inventory the sand is measured against (Atlas-0, §2): every `_mm…`/`_cvt…`
+signature from **clang's own headers**, at the version that will compile the body. The two forms clang
+writes are read — `static __inline__ <ret> <attrs>` with the declarator on the next line or on the same
+one, and `#define name(args)` — and a function's signature is normalised to one line with the storage
+keywords and the attribute macros (`__DEFAULT_FN_ATTRS256`, a written-out `__attribute__((…))`) dropped:
+`__m256 _mm256_fmadd_ps(__m256 __A, __m256 __B, __m256 __C)`. A macro keeps its `#define` line, because
+it has no type. A line scanner, not a preprocessor: it reads both arms of an `#if`, and it says so.
+
+**`ages`** — cell age, a contamination instrument (§6's E0 card, C-39). `name_since` is since when the
+file has defined the name and `body_since` since when the body at the ref has been byte-identical, both
+walked **contiguously back from the ref** through `git log --format=%H %cI -- <file>` and `git show
+<sha>:<path>`, every version found with this package's own scanner and not a regex, decoded with
+`errors="replace"` (the target has a non-UTF-8 byte). No rename following, and a version the scanner
+cannot read stops the walk — the age reported is the shortest the evidence supports. Dates are the
+committer date to the day, which is the grain the quarter counts are read at; `identical_at` is that
+count.
+
+**`gmem`** — **G-mem**, the memorisation probe (§5.5). The prompt is `prelude_bare` plus the signature
+plus the gold body's first K lines, `K = max(2, ⌊lines/4⌋)`; the expectation is the rest of the body,
+and `score` is the share of its whitespace-split tokens the completion continues **in order from the
+start** — a prefix measure, not a similarity. `label` reads above 0.5 as `memorised` and below 0.15 as
+`unseen`; **those two lines are borrowed from ADR-099's navigation probe**, which asked where things are
+rather than for code, so they are a convention here and the middle band is named `neither`. `run` takes
+a `complete(prompt) -> str` callable — the only place a model would appear — so the scoring is tested
+with a fake one and nothing is spent. A body of at most K lines leaves nothing to continue: the row is
+kept and marked `evidence: False`.
+
+**The provenance rule, across all four.** A fact names where it came from and a gap names itself. Every
+callee row carries `provenance` (`hobbes:<tier>` or `clang-key:<mode>`); a filled task record carries
+`callees_source` with the graph's SHA, the Hobbes version that built it and the key's oracle string; and
+an instrument that was not there to ask is listed in `missing` rather than worked around. Nothing in
+this package infers a callee, a date or a signature it did not read.
+
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
-`lattice selftest <target> [--cells id,id,…] [--out report.json]`. A cell id is `<isa>/<type>/<metric>`;
-a manifest is a JSON list of entries (or an object with them under `entries`). The two grading verbs take
-`--here` (this process is contained already) or `--image NAME` (the default `hobbes-session:local`: build
-a plan and run this same CLI inside it). `--here` outside a container exits 2 with the refusal.
+`lattice selftest <target> [--cells id,id,…] [--out report.json]`, plus the reading verbs of this unit:
+`lattice facts <target> <cell-id> --graph G --key K [--intrinsics I]`, `lattice intrinsics <include-dir>
+[--out index.json]`, `lattice ages <git-dir> <ref> [--out ages.json]` and `lattice mem-probes <target>
+[--out probes.jsonl]`. `lattice task` takes the same three ledger flags. A cell id is
+`<isa>/<type>/<metric>`; a manifest is a JSON list of entries (or an object with them under `entries`).
+The two grading verbs take `--here` (this process is contained already) or `--image NAME` (the default
+`hobbes-session:local`: build a plan and run this same CLI inside it). `--here` outside a container exits
+2 with the refusal. No ledger flag is required, and one left out is named in the answer's `missing`.
+`mem-probes` writes the probes; **this CLI never calls a model.**
 
-Everything that compiles or runs the target's code runs in the image (ADR-092, C-64). Still to come, in
-the unit after this one: the rename shadows, G-graph, G-test, G-mem, and the model calls.
+Everything that compiles or runs the target's code runs in the image (ADR-092, C-64) — and so does the
+intrinsic index, whose headers are the image's clang's. Still to come, in the unit after this one: the
+rename shadows, G-graph, G-test, and the model calls.
 
 ```sh
 # on this box, in the image
 lattice selftest /path/to/sqlite-vector --image hobbes-session:local
 lattice grade    /path/to/sqlite-vector manifest.json --out results.jsonl
+lattice intrinsics "$(clang -print-file-name=include)" --out index.json
+lattice facts /path/to/sqlite-vector avx2/float32/dot \
+  --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
+
+# on the host, over a full clone: the cell ages the contamination facts are read from
+lattice ages /path/to/sqlite-vector-history 0c2223a --out ages.json
 ```
