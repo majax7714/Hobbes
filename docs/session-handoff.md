@@ -1,6 +1,6 @@
 # Session handoff — the single resume point
 
-**Reviewed 2026-09-24 (fifteenth session); Hobbes 0.2.70-beta on `main`.**
+**Reviewed 2026-09-25 (seventeenth session); Hobbes 0.2.70-beta on `main`.**
 Max pushed through the twelfth session's last commit (`57e4be2`,
 0.2.67-beta); what the thirteenth to fifteenth add (ADR-149, 0.2.68-beta;
 ADR-145 amended and the flask key, 0.2.69-beta; ADR-150, 0.2.70-beta) is on
@@ -33,6 +33,11 @@ drivers' paths below.
 
 **Max's direction (2026-09-20): extraction first — "the most annoying work to do but
 the most important for hobbes"; "we never sacrifice honesty for higher recall".**
+
+**Two tracks are open.** The Calvin experiments' **E1 runner** (built with no spend, its
+first unit priced against the $10 ceiling before anything widens) is under standing
+item 1 below, and E0's record is `calvin-experiments.md` §6. On extraction, the next
+candidate is **route c** (below), measured first.
 
 - **Done (ADR-146, 0.2.65-beta, unit `f751`, 45 turns, $2.49; Max: route a):** a
   decorator is a call of what it names. The step-0 probe for Python's closure misses

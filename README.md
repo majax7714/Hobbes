@@ -444,12 +444,26 @@ ADR-107):
 It is validated by use on Hobbes' own development, not by a benchmark.
 The doer's reasoning is never stored, and the session records are
 evaluation rows, never model training data. The first sessions were
-dispatched on 2026-09-12, and seventy-four session logs stand. The
+dispatched on 2026-09-12, and seventy-nine session logs stand. The
 tracker at the end of
 [`docs/calvin/sessions/README.md`](docs/calvin/sessions/README.md)
 counts them. The harness counts as validated after 40 sessions (Max,
 2026-09-13); it passed that mark on 2026-09-17 with one false block
-(closed) and none missed, and it stays the way work is done.
+(closed) and none missed, and it stays the way work is done. Two more
+false blocks have been recorded since, both the same open case: the
+gate reads a newly added decorator that names a module-level value as
+invented (sessions `9326` and `c141`).
+
+**The Calvin experiments** (ADR-151,
+[`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md))
+ask whether a model can write one language, C, when the skill lives in
+its weights and the target's facts come from the ledger every time. The
+target is sqlite-vector's SIMD kernel lattice: 31 names across six
+instruction sets, with the scalar file as the numeric oracle. E0, the
+instruments (`bench/calvin/lattice/`), was built and accepted on the
+real target on 2026-09-25: all 93 golds pass, and the two rename shadows
+pass the target's own suite. E1, the first model run, is next, under a
+$10 ceiling.
 
 The work built through it includes C's lane A and its oracle, the
 external veto (ADR-111), a session's records written by a sidecar
@@ -490,7 +504,7 @@ point); the session-by-session record is
 | [`docs/ttt/olmo3-ttt-results.md`](docs/ttt/olmo3-ttt-results.md) | The test-time-training experiment (ADR-099): can the derived layer be loaded into a 7B's weights — results and the review's follow-ups |
 | [`docs/calvin/calvin-harness.md`](docs/calvin/calvin-harness.md) | **Calvin as a harness (ADR-107):** `hobbes dispatch`, the egress allowlist, the doer in the session, the gate on its diff, and how the harness is validated. The per-session logs are in `docs/calvin/sessions/`; the charter is `docs/calvin/calvin-charter.md` |
 | [`docs/calvin/`](docs/calvin/) — the keyed rounds, closed | M0 ([`calvin-potential.md`](docs/calvin/calvin-potential.md)), M0-Go ([`calvin-m0-go.md`](docs/calvin/calvin-m0-go.md), [round 2](docs/calvin/calvin-m0-go-r2.md)) and M0-Gate ([`calvin-m0-gate.md`](docs/calvin/calvin-m0-gate.md)). Each record keeps its design, §10 results and gate record, and each cell page is under `docs/calvin/cells/`. History since 2026-09-12 |
-| [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md) | The Calvin experiments programme, proposed 2026-09-24: a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions open. Nothing run |
+| [`docs/calvin/calvin-experiments.md`](docs/calvin/calvin-experiments.md) | The Calvin experiments programme (ADR-151): a model that writes one language (C), starting from sqlite-vector's SIMD kernel lattice. The design space, experiments E0–E7, and the decisions taken. E0, the instruments, built and accepted 2026-09-25; E1 next |
 | [`docs/atlas0/atlas-0.md`](docs/atlas0/atlas-0.md) | Atlas-0 — sparse is not absent: does a small block's act separate a referent seen once from one that does not exist; a synthetic world, three blocks, four arms; the instruments are `bench/atlas0/` |
 | [`docs/reviews/`](docs/reviews/) | Dated agent reviews of the tree against its records (the 2026-09-10 baseline) |
 | [`docs/session-handoff.md`](docs/session-handoff.md) | The single forward-looking resume point for a fresh session |
