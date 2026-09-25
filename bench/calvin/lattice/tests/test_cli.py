@@ -8,7 +8,7 @@ import pytest
 import test_ages
 import test_intrinsics
 
-from lattice import cli, run
+from lattice import cli, run, shadow
 from lattice.holes import HOLE
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sqlite-vector-kernels"
@@ -70,6 +70,19 @@ def test_facts_prints_the_callees_with_their_provenance(capsys):
     assert payload["missing"] == ["intrinsics"]
 
 
+def test_facts_prints_the_header_macro_expansions_it_dropped(capsys):
+    assert cli.main([
+        "facts", str(FIXTURE), "avx2/bit1/hamming",
+        "--graph", str(DERIVED / "graph.json"), "--key", str(DERIVED / "oracle.json"),
+    ]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert [(row["name"], row["wrote"]) for row in payload["dropped"]] == [
+        ("__builtin_ia32_extract128i256", "_mm256_extracti128_si256"),
+        ("__builtin_ia32_vec_ext_v2di", "_mm_extract_epi64"),
+    ]
+    assert [row["name"] for row in payload["callees"] if row["name"].startswith("__builtin_ia32_")] == []
+
+
 def test_facts_with_no_ledger_prints_nothing_and_says_what_was_missing(capsys):
     assert cli.main(["facts", str(FIXTURE), "avx2/float32/dot"]) == 0
     payload = json.loads(capsys.readouterr().out)
@@ -124,6 +137,18 @@ def test_ages_prints_the_table_and_writes_the_rows(capsys, tmp_path):
     assert json.loads(out.read_text())["avx2/float32/dot"]["body_since"] == "2025-06-03"
 
 
+@pytest.mark.skipif(shutil.which("git") is None, reason="the age walk reads a real git history")
+def test_ages_on_a_ref_with_no_kernels_exits_two_with_the_reason(capsys, tmp_path):
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    (empty / "README.md").write_text("no kernels here\n")
+    for args in (("init", "-q"), ("config", "user.email", "a@b.invalid"), ("config", "user.name", "t"),
+                 ("add", "-A"), ("commit", "-q", "-m", "docs")):
+        test_ages._git(empty, *args)
+    assert cli.main(["ages", str(empty), "HEAD"]) == 2
+    assert "no src/distance-*.c at HEAD" in capsys.readouterr().err
+
+
 def test_mem_probes_writes_one_probe_per_native_cell_and_calls_nothing(capsys):
     assert cli.main(["mem-probes", str(FIXTURE)]) == 0
     probes = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
@@ -131,6 +156,90 @@ def test_mem_probes_writes_one_probe_per_native_cell_and_calls_nothing(capsys):
     assert all(row["cell"].split("/")[0] in ("sse2", "avx2", "avx512") for row in probes)
     dot = next(row for row in probes if row["cell"] == "avx2/float32/dot")
     assert dot["k"] == 6 and dot["expected"] and "score" not in dot
+
+
+# MARK: - the shadow and G-graph verbs -
+
+
+def _shadow(tmp_path, style, capsys):
+    dest = tmp_path / style
+    code = cli.main([
+        "shadow", str(FIXTURE), str(dest), "--graph", str(DERIVED / "graph.json"), "--style", style
+    ])
+    return code, dest, capsys.readouterr()
+
+
+def test_shadow_writes_the_tree_and_says_what_it_kept_and_what_still_leaks(capsys, tmp_path):
+    code, dest, printed = _shadow(tmp_path, "descriptive", capsys)
+    out = printed.out
+    assert code == 0
+    assert "shadow (descriptive): 175 renamed" in out
+    assert "kept, external: _mm512_abs_ps" in out
+    assert "kept, entry-point: sqlite3_vector_init" in out
+    assert "VECTOR_TYPE_F32" in out
+    assert "leaks, not renamed: PROVENANCE.md" in out
+    payload = json.loads((dest / "shadow-map.json").read_text())
+    assert payload["renames"]["float32_distance_dot_avx2"] == "f32_dist_inner_x86v2"
+    assert (dest / "src" / "distance-avx2.c").exists() and (dest / "Makefile").exists()
+
+
+def test_a_shadow_that_would_collide_is_not_written(monkeypatch, capsys, tmp_path):
+    monkeypatch.setitem(shadow.SYNONYMS, "sse2", "x86")
+    monkeypatch.setitem(shadow.SYNONYMS, "avx2", "x86")
+    code, dest, printed = _shadow(tmp_path, "descriptive", capsys)
+    assert code == 2
+    assert "the descriptive shadow was not written" in printed.err
+    assert not dest.exists()
+
+
+def test_the_reading_verbs_take_the_shadows_map(capsys, tmp_path):
+    _, dest, _ = _shadow(tmp_path, "opaque", capsys)
+    rename = str(dest / "shadow-map.json")
+
+    assert cli.main(["map", str(dest), "--json", "--rename", rename]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert next(row for row in payload["isas"] if row["isa"] == "avx2")["cells"] == 13
+
+    assert cli.main(["task", str(dest), "avx2/float32/dot", "--rename", rename]) == 0
+    record = json.loads(capsys.readouterr().out)
+    assert record["name"].startswith("fn_")
+    assert "float32_distance_dot_avx2" not in json.dumps(record)
+
+
+def test_without_the_map_a_shadows_cells_are_not_there(capsys, tmp_path):
+    _, dest, _ = _shadow(tmp_path, "opaque", capsys)
+    assert cli.main(["task", str(dest), "avx2/float32/dot"]) == 2
+    assert "no cell" in capsys.readouterr().err
+
+
+def test_a_shadow_map_that_is_not_there_is_a_refusal(capsys, tmp_path):
+    assert cli.main(["map", str(FIXTURE), "--rename", str(tmp_path / "nope.json")]) == 2
+    assert "the shadow map could not be read" in capsys.readouterr().err
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="G-graph's work copy is a git repo")
+def test_graph_grade_reads_a_grading_runs_rows_and_says_what_it_left_out(monkeypatch, capsys, tmp_path):
+    graph = json.loads((DERIVED / "graph.json").read_text())
+    monkeypatch.setattr(cli.graph_of, "hobbes_ingest", lambda checkout, **kw: (lambda workdir: graph))
+    results = tmp_path / "results.jsonl"
+    results.write_text(
+        "\n".join(
+            json.dumps(row)
+            for row in (
+                {"id": "a", "cell": "avx2/float32/dot", "body": "gold", "class": "pass"},
+                {"id": "b", "cell": "avx2/float32/l1", "body": "{ nope", "class": "compile"},
+            )
+        )
+        + "\n"
+    )
+    out = tmp_path / "graph.jsonl"
+    assert cli.main([
+        "graph-grade", str(FIXTURE), str(results), "--gold-graph", str(DERIVED / "graph.json"), "--out", str(out)
+    ]) == 0
+    rows = [json.loads(line) for line in out.read_text().splitlines()]
+    assert rows[0]["id"] == "a" and rows[0]["jaccard"] == 1.0
+    assert rows[0]["gold"] == ["MM256_FMA_PS", "hsum256_ps"]
+    assert rows[1]["id"] == "b" and "no lane B answer" in rows[1]["reason"]
 
 
 # MARK: - the grading verbs -

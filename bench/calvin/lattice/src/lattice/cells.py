@@ -21,6 +21,13 @@ carry no slots. `neon` and `rvv` are mapped and marked not native: this box does
 
 A name that starts `<type>_distance_` and does not parse into the grid is listed in `Lattice.unmatched`
 with the reason, never dropped: the whole point of the map is that a cell it does not name is visible.
+
+**A shadow's lattice is the same grid under new names** (`shadow.py`, E2). `build(target, rename=…)`
+takes a map from the name as the shadow writes it back to the target's own name, and every question
+about the *grid* — does this parse into `(type, metric, isa)`, is this the file's init function — is
+asked of the original, while everything about the *file* — the cell's name, the wrapper's one call, the
+init function's slot assignments — stays what the shadow wrote. `Cell.original` carries the other side,
+so a row can name both. Without a *rename* the two are the same string and nothing changes.
 """
 
 from __future__ import annotations
@@ -92,6 +99,7 @@ class Cell:
     metric: str
     isa: str
     name: str
+    original: str  # the target's own name for it; equal to `name` outside a shadow
     file: str
     signature: str
     signature_span: Span
@@ -197,9 +205,15 @@ def parse_name(name: str) -> tuple[str, str, str] | None:
     return None
 
 
-def build(target: Path | str) -> Lattice:
-    """Read `<target>/src/distance-*.c` into a lattice."""
+def build(target: Path | str, rename: dict[str, str] | None = None) -> Lattice:
+    """Read `<target>/src/distance-*.c` into a lattice.
+
+    *rename* maps a name as the tree writes it back to the target's own name — the reverse of a
+    `shadow.Plan`. The grid is read off the originals and the cells keep what the file says, so the
+    lattice of a shadow is the same 13 cells per ISA under new names. `None` is the identity.
+    """
     root = Path(target)
+    back = dict(rename or {})
     sources: dict[str, Source] = {}
     unmatched: list[Unmatched] = []
 
@@ -212,8 +226,8 @@ def build(target: Path | str) -> Lattice:
         text = path.read_text(encoding="utf-8")
         scanned = scan(text)
         init = f"init_distance_functions_{isa}"
-        has_init = any(fn.name == init for fn in scanned.functions)
-        sources[isa] = Source(isa, path, rel, text, scanned, init if has_init else None)
+        written = next((fn.name for fn in scanned.functions if back.get(fn.name, fn.name) == init), None)
+        sources[isa] = Source(isa, path, rel, text, scanned, written)
 
     cells: dict[str, Cell] = {}
     for isa in ISAS:
@@ -221,9 +235,10 @@ def build(target: Path | str) -> Lattice:
         if source is None:
             continue
         for fn in source.scanned.functions:
-            axes = parse_name(fn.name)
+            original = back.get(fn.name, fn.name)
+            axes = parse_name(original)
             if axes is None:
-                if _is_kernel_shaped(fn.name):
+                if _is_kernel_shaped(original):
                     unmatched.append(
                         Unmatched(fn.name, source.file, fn.signature_span.line, "name does not parse into (type, metric, isa)")
                     )
@@ -234,7 +249,7 @@ def build(target: Path | str) -> Lattice:
                     Unmatched(fn.name, source.file, fn.signature_span.line, f"names ISA {named_isa} in {source.file}")
                 )
                 continue
-            cell = _cell(fn, kind, metric, isa, source)
+            cell = _cell(fn, kind, metric, isa, source, original)
             if cell.id in cells:
                 unmatched.append(
                     Unmatched(fn.name, source.file, fn.signature_span.line, f"{cell.id} is already filled by {cells[cell.id].name}")
@@ -255,12 +270,13 @@ def _is_kernel_shaped(name: str) -> bool:
     return any(name.startswith(f"{kind}_distance_") for kind in TYPES)
 
 
-def _cell(fn: FunctionDef, kind: str, metric: str, isa: str, source: Source) -> Cell:
+def _cell(fn: FunctionDef, kind: str, metric: str, isa: str, source: Source, original: str) -> Cell:
     return Cell(
         type=kind,
         metric=metric,
         isa=isa,
         name=fn.name,
+        original=original,
         file=source.file,
         signature=fn.signature,
         signature_span=fn.signature_span,

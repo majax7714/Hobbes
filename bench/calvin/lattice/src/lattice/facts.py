@@ -24,6 +24,26 @@ the expansion's, not a use's.
 files, so a site is this cell's only when its `pos.path` is the cell's file *and* its line falls inside
 the cell's body span. Nothing is matched by name alone.
 
+**A header macro is named as the source wrote it** (session `189e`'s review). A key site in mode `macro`
+names what the macro *expands to*, and that is two different facts wearing one shape. Where the macro is
+the repo's own, the expansion is the real intrinsic and it is the answer: `MM256_FMA_PS` expands to
+`_mm256_fmadd_ps`, which is what the body does. Where the macro is one of clang's, the expansion is
+compiler internals no one writes — `_mm256_extracti128_si256` reports as `__builtin_ia32_extract128i256`,
+and `INFINITY` as `__builtin_inff`. Handing those to a model as "what this cell calls" is handing it
+names it must not use. So, per macro-mode site:
+
+- the **written token** at the site's own line and column decides. Its target is kept when that token is
+  an in-repo macro — one the graph names, or one the cell's own file `#define`s — or when the target is
+  itself a function in the intrinsic index (`_mm256_undefined_ps` is a real intrinsic a macro reaches);
+- every other macro-mode target is dropped into `Callees.dropped` with the reason, never silently;
+- the header macros the body *does* write are then added from its own identifier tokens that the index
+  marks `macro: true`, with `provenance` `clang-headers:macro` and the index's `#define` line, in the
+  body's own order beside the direct sites — because unlike an expansion, they *are* written there;
+- with no index, none of that is added and `missing` says the index was not there to ask.
+
+`static`-mode targets are untouched: a libm call and a `__builtin_popcount` written out in the source
+are names the body really writes.
+
 **What is missing is said.** With no graph, or no key, or no intrinsic index, `callees` returns the rows
 it can and lists what was not there to ask (`Callees.missing`). It never fills a gap by inference: a
 callee this module did not read is a callee it does not name.
@@ -35,22 +55,31 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+import re
+
 from .cells import Cell, Lattice
 from .scan import scan
 
-__all__ = ["Callees", "Facts", "callees", "load"]
+__all__ = ["Callees", "Facts", "callees", "module_paths", "symbol_for", "load"]
+
+_IDENT = re.compile(r"[A-Za-z_]\w*")
+
+#: What a dropped macro-mode target is dropped for. One reason, because there is one rule.
+DROPPED = "a header macro's expansion, not a name the source wrote"
 
 
 class Callees(list):
-    """The callee rows, and `missing`: the instruments that were not there to ask.
+    """The callee rows, and the two honesty fields beside them.
 
-    A plain `list` of rows, so it dumps as a JSON array; `missing` is the honesty beside it, and an
-    empty `missing` is the claim that every instrument answered.
+    A plain `list` of rows, so it dumps as a JSON array. `missing` names the instruments that were not
+    there to ask, and an empty `missing` is the claim that every instrument answered. `dropped` names
+    the key's macro-mode targets this module refused to call callees, with the reason.
     """
 
-    def __init__(self, rows=(), missing=()):
+    def __init__(self, rows=(), missing=(), dropped=()):
         super().__init__(rows)
         self.missing: list[str] = list(missing)
+        self.dropped: list[dict] = list(dropped)
 
 
 @dataclass(frozen=True)
@@ -88,16 +117,17 @@ def callees(
     lattice: Lattice, cell: Cell, graph: dict | None, key: dict | None, intrinsics: dict | None = None
 ) -> Callees:
     """One row per distinct callee of *cell*, in first-use order, each naming where it came from."""
-    paths = _module_paths(graph) if graph is not None else {}
+    paths = module_paths(graph) if graph is not None else {}
     files = _Files(lattice, paths)
     rows: list[dict] = []
     at: dict[str, int] = {}
     missing: list[str] = []
+    dropped: list[dict] = []
 
     if graph is None:
         missing.append("graph")
     else:
-        symbol = _symbol_for(graph, cell, paths)
+        symbol = symbol_for(graph, cell, paths)
         if symbol is None:
             missing.append(f"graph: no symbol for {cell.name} in {cell.file}")
         else:
@@ -110,7 +140,10 @@ def callees(
     else:
         if cell.file not in set(key.get("files") or ()):
             missing.append(f"clang-key: {cell.file} is not one of the key's files")
-        for row in _key_rows(key, cell, intrinsics):
+        written = _written_macros(lattice, cell, intrinsics)
+        for order, row in sorted(
+            list(_key_rows(key, cell, intrinsics, graph, lattice, dropped)) + written, key=lambda pair: pair[0]
+        ):
             seen = at.get(row["name"])
             if seen is not None:
                 # a callee both instruments name keeps the graph's row, with the agreement beside it;
@@ -120,17 +153,26 @@ def callees(
                 continue
             at[row["name"]] = len(rows)
             rows.append(row)
-        if intrinsics is None and any(row["provenance"].startswith("clang-key:") for row in rows):
+        if intrinsics is None:
             missing.append("intrinsics")
 
-    return Callees(rows, missing)
+    # one row per distinct expansion, not per site: four uses of `_mm256_extracti128_si256` are one fact
+    seen_drops: dict[tuple, dict] = {}
+    for row in dropped:
+        seen_drops.setdefault((row["name"], row["wrote"]), row)
+    return Callees(rows, missing, list(seen_drops.values()))
 
 
 # MARK: - the graph -
 
 
-def _symbol_for(graph: dict, cell: Cell, paths: dict[str, str]) -> dict | None:
-    """The graph symbol that is this cell: its name, defined in its file."""
+def symbol_for(graph: dict, cell: Cell, paths: dict[str, str] | None = None) -> dict | None:
+    """The graph symbol that is this cell: its name, defined in its file.
+
+    Public because G-graph asks the same question of two graphs (`graphgrade`), and asking it twice in
+    two modules is how the two would drift.
+    """
+    paths = module_paths(graph) if paths is None else paths
     found = [
         symbol
         for symbol in graph.get("symbols") or ()
@@ -142,7 +184,7 @@ def _symbol_for(graph: dict, cell: Cell, paths: dict[str, str]) -> dict | None:
     return (on_the_line or found)[0]
 
 
-def _module_paths(graph: dict) -> dict[str, str]:
+def module_paths(graph: dict) -> dict[str, str]:
     """Each module node's repo-relative path: `src/distance-avx2` is `src/distance-avx2.c`."""
     paths = {}
     for node in graph.get("nodes") or ():
@@ -255,23 +297,103 @@ class _Files:
 # MARK: - the clang key -
 
 
-def _key_rows(key: dict, cell: Cell, intrinsics: dict | None):
-    """The targets of the key's sites inside this cell's body, in first-use order."""
-    sites = [site for site in key.get("sites") or () if _is_the_cells(site, cell)]
-    for site in sorted(sites, key=_site_order):
+def _key_rows(
+    key: dict, cell: Cell, intrinsics: dict | None, graph: dict | None, lattice: Lattice, dropped: list[dict]
+):
+    """`(order, row)` for each target of the key's sites inside this cell's body.
+
+    A macro-mode target survives only under the rule in the module docstring; the rest go to *dropped*.
+    """
+    in_repo = _in_repo_macros(graph, lattice, cell)
+    text = lattice.sources[cell.isa].text
+    for site in [site for site in key.get("sites") or () if _is_the_cells(site, cell)]:
         mode = site.get("mode")
+        wrote = _token_at(text, (site.get("pos") or {}).get("line"), site.get("col"))
         for target in site.get("targets") or ():
             name = target.get("name")
             if not name:
                 continue
             entry = (intrinsics or {}).get(name) or {}
-            yield {
+            if mode == "macro" and wrote not in in_repo and not (entry and not entry.get("macro")):
+                dropped.append({"name": name, "wrote": wrote, "mode": mode, "reason": DROPPED})
+                continue
+            yield _site_order(site), {
                 "name": name,
                 "kind": target.get("kind"),
                 "mode": mode,
                 "signature": entry.get("signature"),
                 "provenance": f"clang-key:{mode}",
             }
+
+
+def _written_macros(lattice: Lattice, cell: Cell, intrinsics: dict | None) -> list[tuple]:
+    """`(order, row)` for each of clang's own macros the body writes, at the token that writes it.
+
+    Read off the body's identifier tokens — masked, so a name in a comment or a string is not one — and
+    kept only where the index says that name is a `#define`. Without an index there is nothing to say
+    a token is a header macro, and nothing is added.
+    """
+    if not intrinsics:
+        return []
+    source = lattice.sources[cell.isa]
+    masked = source.scanned.masked[cell.body_span.start : cell.body_span.end]
+    base = cell.body_span.start
+    found: list[tuple] = []
+    seen: set[str] = set()
+    for token in _IDENT.finditer(masked):
+        name = token.group(0)
+        entry = intrinsics.get(name)
+        if name in seen or not entry or not entry.get("macro"):
+            continue
+        seen.add(name)
+        at = base + token.start()
+        line = source.text.count("\n", 0, at) + 1
+        col = at - (source.text.rfind("\n", 0, at) + 1) + 1
+        found.append(
+            (
+                (0, line, col),
+                {
+                    "name": name,
+                    "kind": "macro",
+                    "mode": "macro",
+                    "signature": entry.get("signature"),
+                    "provenance": "clang-headers:macro",
+                },
+            )
+        )
+    return found
+
+
+def _in_repo_macros(graph: dict | None, lattice: Lattice, cell: Cell) -> frozenset[str]:
+    """The macro names the repo defines: the graph's, and the cell's own file's `#define`s.
+
+    Two readings of one fact, and both are reads rather than inferences — the graph knows the whole
+    tree, and the scanner knows this file even when no graph was given.
+    """
+    named = {
+        symbol.get("name")
+        for symbol in (graph or {}).get("symbols") or ()
+        if symbol.get("kind") == "macro" and symbol.get("name")
+    }
+    return frozenset(named | set(lattice.sources[cell.isa].scanned.defines))
+
+
+def _token_at(text: str, line: int | None, col: int | None) -> str | None:
+    """The identifier token covering the 1-based (*line*, *col*) of *text*, or `None` if none does."""
+    if not isinstance(line, int) or not isinstance(col, int):
+        return None
+    lines = text.splitlines()
+    if not 1 <= line <= len(lines):
+        return None
+    row = lines[line - 1]
+    at = col - 1
+    if not 0 <= at < len(row) or not (row[at].isalnum() or row[at] == "_"):
+        return None
+    start = at
+    while start > 0 and (row[start - 1].isalnum() or row[start - 1] == "_"):
+        start -= 1
+    found = _IDENT.match(row[start:])
+    return found.group(0) if found is not None else None
 
 
 def _is_the_cells(site: dict, cell: Cell) -> bool:

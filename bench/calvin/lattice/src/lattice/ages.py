@@ -27,30 +27,75 @@ text the graders would fill. The scan happens once per commit per file, not once
 
 A date is the committer date truncated to the day (`2025-06-21`), which is the grain the quarter counts
 in the design's record are read at.
+
+**The cells come from git, not from a working tree** (part 4; session `189e`'s review found this). Given
+no *lattice*, :func:`ages` reads `src/distance-*.c` **at the ref** with `git show`, so a bare clone — the
+shape a contamination run actually has, a history fetched to be read and never checked out — answers
+instead of reporting "ages of 0 native cell(s)". That was the choice between the two on offer: refuse a
+tree it cannot read, or read the one git holds. Reading it is strictly more useful and no less honest,
+and the refusal is kept for the case that is left — a ref whose tree holds no kernel file at all raises
+:class:`NoKernelsAtRef`, its own type (P10, ADR-036), and the CLI exits 2 with the reason. A *lattice*
+handed in is still used as given, which is how a caller asks about a working tree on purpose.
 """
 
 from __future__ import annotations
 
 import subprocess
+import tempfile
 from pathlib import Path
 
 from .cells import Cell, Lattice
+from .cells import build as build_lattice
 from .scan import ScanError, scan
 
-__all__ = ["GitError", "ages", "identical_at"]
+__all__ = ["GitError", "NoKernelsAtRef", "ages", "cells_at", "identical_at"]
 
 
 class GitError(RuntimeError):
     """A git command failed in a way that is not an answer: not "no such path", but a broken repo."""
 
 
-def ages(git_dir: Path | str, ref: str, lattice: Lattice) -> dict[str, dict]:
-    """One row per native cell: `{"cell", "name", "file", "name_since", "body_since", …}`, by cell id.
+class NoKernelsAtRef(Exception):
+    """The ref's tree holds no `src/distance-*.c`, so there are no cells to date.
 
-    *git_dir* is a clone of the target and *ref* the commit to read; *lattice* names the cells, and
-    every body compared comes from git at *ref* or earlier, never from the working tree.
+    Its own type, and raised rather than answered with an empty table: "ages of 0 native cell(s)" reads
+    like a fact about the target when it is a fact about what was pointed at.
+    """
+
+
+def cells_at(git_dir: Path | str, ref: str, rename: dict[str, str] | None = None) -> Lattice:
+    """The lattice of the tree *ref* points at, read out of git — a bare clone included.
+
+    The ref's `src/distance-*.c` are written to a temporary directory and handed to `cells.build`, so
+    the grid comes from this package's one reader and not from a second one written for git. Raises
+    :class:`NoKernelsAtRef` when the ref's tree holds none.
     """
     root = Path(git_dir)
+    files = [
+        line
+        for line in _git(root, "ls-tree", "-r", "--name-only", ref, "--", "src").splitlines()
+        if line.startswith("src/distance-") and line.endswith(".c")
+    ]
+    if not files:
+        raise NoKernelsAtRef(f"{root} holds no src/distance-*.c at {ref}: nothing to date")
+    staged = Path(tempfile.mkdtemp(prefix="lattice-ages-"))
+    (staged / "src").mkdir(parents=True, exist_ok=True)
+    for file in sorted(files):
+        text = _show(root, ref, file)
+        if text is not None:
+            (staged / file).write_text(text, encoding="utf-8")
+    return build_lattice(staged, rename=rename)
+
+
+def ages(git_dir: Path | str, ref: str, lattice: Lattice | None = None) -> dict[str, dict]:
+    """One row per native cell: `{"cell", "name", "file", "name_since", "body_since", …}`, by cell id.
+
+    *git_dir* is a clone of the target and *ref* the commit to read. *lattice* names the cells; without
+    one it is :func:`cells_at`, the tree at the ref. Every body compared comes from git at *ref* or
+    earlier, never from a working tree.
+    """
+    root = Path(git_dir)
+    lattice = cells_at(root, ref) if lattice is None else lattice
     rows: dict[str, dict] = {}
     for file, cells in _by_file(lattice).items():
         history = _history(root, ref, file)
