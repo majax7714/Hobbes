@@ -14,3 +14,11 @@
 - **Real-source quirks it keeps:** AVX-512's `bit1_distance_hamming_avx512` is `static`, every `_impl`
   is `static inline`, NEON's int8 helper is spelled `int8_distance_l2_neon_imp`, and signatures are
   written both `name (` and `name(`.
+- **`Makefile` is this repo's, not the target's.** It builds the six objects so that `bear`
+  can record a compile database. Nothing links.
+- **`derived/`** holds the fixture's own Hobbes ingest and clang oracle key, built 2026-09-24 by
+  `bench/oracle/run-cell.sh <a git copy of this dir> . <out> --lang c` in the image (Hobbes
+  0.2.70-beta, clang 18.1.3). The copy's checkout path was removed from `graph.json`'s
+  `built_by`. `report.txt` is the grade: 126/126 confirmed, recall 136/136 in-repo pairs,
+  788 external pairs (the intrinsics), poison PASS. It is real derived data for the facts
+  tests, and its line numbers are this fixture's, not the full target's.

@@ -246,7 +246,7 @@ by rule, not by a model.
 | **G-graph** | the generated body's callees vs the gold's (set match; helpers and intrinsics), from an ingest of the patched tree. A use of a file-local macro is a macro edge, which the cell excludes from grading (3,188 of them), so macro uses are compared as text | yes |
 | **G-reg** | the `dispatch_distance_table` assignments in the init function vs the gold's | yes (text) |
 | **G-hsr** | invented names: identifiers that resolve nowhere at compile or link, split into intrinsics, in-repo symbols and libc. Beside it, a failure class per body (§12.2's taxonomy): **invented** (the name does not exist), **real, wrong** (it exists, and the differential fails on it), **edge** (the body fails only on the edge cases: tail, inf, NaN, saturation) | yes |
-| **G-mem** | the memorisation probe: exact-match continuation of the gold from its first lines (ADR-099's method, its 0.15 line) | yes, greedy |
+| **G-mem** | the memorisation probe: exact continuation of the gold from its first lines at temperature 0. The 0.5 (memorised) and 0.15 (unseen) lines are borrowed from ADR-099's probe, which asked navigation questions, not code | yes, greedy |
 
 **Self-test, as the keyed rounds taught.** Before any model run: the gold must pass every
 grader, and a seeded wrong body must fail each, with the right class. Four seeded bodies:
