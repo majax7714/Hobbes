@@ -3,7 +3,8 @@
 E2 asks whether E1's score survives names the base model has never read. The answer is a *difference*
 between two runs that differ in one thing, so this module computes nothing about a model and everything
 about two directories: per arm, what each run scored and what the shadow cost; per cell, which greedy
-answers flipped, each way.
+answers flipped, each way; and per arm, **the paired tests** (:mod:`lattice.paired`) that say whether a
+delta is more than the cells it rests on.
 
 **It reads runs, never targets.** The figures come from :func:`report.report`, which computes nothing a
 row does not hold, and the flips come from `rows.jsonl`. Neither the target nor the shadow is opened —
@@ -16,8 +17,9 @@ renaming is the one thing that moved. The arms need not match — the reading is
 ran, which is how a two-arm shadow run (E2-a: C-2 and C-3) is compared with E1's five-arm original.
 
 A shadow run is named by its `meta.json`'s `shadow.style` — `descriptive`, then `opaque`, which is the
-order the two gaps are read in: descriptive − original is the memorised share, and opaque − descriptive
-is what meaning in the names was worth. A run with no shadow block keeps its directory's name and the
+order the two gaps are read in: descriptive − original is what renaming to equally meaningful names cost,
+and opaque − descriptive is, on sqlite-vector's lattice, the loss of the task statement as much as of the
+names (E2's record, `calvin-experiments.md` §6: the hole's name was the only place it was said). A run with no shadow block keeps its directory's name and the
 reader can see that it never said which shadow it is.
 """
 
@@ -27,6 +29,7 @@ import json
 from pathlib import Path
 from typing import Sequence
 
+from . import paired as paired_of
 from . import report as report_of
 from .e1 import META, ROWS
 
@@ -52,6 +55,8 @@ def compare(original: Path | str, shadows: Sequence[Path | str]) -> dict:
     base_meta = _meta(original)
     base = report_of.report(original)
     base_greedy = _greedy(original)
+    base_cells = paired_of.cells(original)
+    k = int(base_meta.get("k") or 0)
 
     found = {
         "original": {
@@ -84,6 +89,7 @@ def compare(original: Path | str, shadows: Sequence[Path | str]) -> dict:
                     for name in base["sections"]
                 },
                 "flips": flips(base_greedy, _greedy(where)),
+                "paired": _paired(base_cells, paired_of.cells(where), k),
             }
         )
     return found
@@ -122,6 +128,19 @@ def _section(base: dict, other: dict) -> dict:
             },
         }
         for arm in arms
+    }
+
+
+def _paired(base: dict, other: dict, k: int) -> dict:
+    """Per section, per arm both runs ran: the shadow against the original, paired by cell."""
+    return {
+        name: {
+            arm: paired_of.paired(base[name][arm], other[name][arm], k)
+            for arm in base[name]
+            if arm in other[name]
+        }
+        for name in base
+        if base[name] and other[name]
     }
 
 
@@ -223,6 +242,10 @@ def render(found: dict) -> str:
                         for figure, width in zip(FIGURES, (9, 11, 9))
                     )
                 )
+        for name, arms in shadow["paired"].items():
+            lines.append(f"  paired, {name} (shadow − original, exact, two-sided, uncorrected):")
+            for arm, tests in arms.items():
+                lines.extend(paired_of.render_pair(arm, tests))
         for arm, flipped in shadow["flips"].items():
             lines.append(
                 f"  flips {arm}: {len(flipped['lost'])} lost, {len(flipped['gained'])} gained "

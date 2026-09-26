@@ -472,8 +472,20 @@ own sections, as the report keeps them. **Two runs that differ in more than the 
 gap is read as *what renaming cost*, and it only reads that way when renaming is the one thing that
 moved. The arms deliberately need not match, so E2-a's two-arm shadow run is compared with E1's
 five-arm original on the two they share. A shadow is named by its `meta.json`'s `shadow.style`, which
-is also the order the two gaps are read in: descriptive − original is the memorised share, and
-opaque − descriptive is what meaning in the names was worth.
+is also the order the two gaps are read in: descriptive − original is what renaming to equally
+meaningful names cost, and opaque − descriptive is, on this lattice, the loss of the task statement as
+much as of the names (E2's record: the hole's name was the only place the metric and type were said).
+Beside each arm's delta go the **paired tests** below.
+
+**`paired`** — **the noise floor** (2026-09-26): whether a gap between two arms, or two runs, is more
+than the cells it rests on. Both sides grade the same cells, so each test is paired by cell and exact:
+**McNemar** on the greedy pass (pass@1) and on any-pass at `n = k` (pass@k), and a **sign-flip** test
+over the per-cell sampled pass rates (pass@1(sampled)), counted over integer numerators, so there is
+no seed. Round 0 only, as the report's figures are; bodies and wrappers apart; a cell only one side
+answered is counted in `unpaired`, never read as a fail. A p is two-sided, per comparison and
+**uncorrected** — the reader names which comparison the card registered before the run.
+`lattice e1 paired <run> <arm> <arm>` pairs two arms of one run (E1's C-2 against C-4), and `e2
+compare` carries the same three tests per arm against the original.
 
 **`cli`** — `lattice map <target> [--json]`, `lattice task <target> <cell-id>`,
 `lattice punch <target> <cell-id>`, `lattice grade <target> <manifest.json> [--out results.jsonl]`,
@@ -556,6 +568,7 @@ lattice e1 plan /path/to/sqlite-vector runs/qwen-avx2 \
   --graph .hobbes/derived/graph.json --key oracle.json --intrinsics index.json
 lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector --ceiling-usd 10 --generator modal
 lattice e1 report runs/qwen-avx2                    # or --json
+lattice e1 paired runs/qwen-avx2 C-4 C-2             # C-2 against C-4, paired by cell; or --json
 
 # the same run again with no model at all, from a recorded batch
 lattice e1 run runs/qwen-avx2 /path/to/sqlite-vector \

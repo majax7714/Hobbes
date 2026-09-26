@@ -13,6 +13,7 @@
     lattice e1 plan    <target> <run-dir>       E1's requests: (cell, arm, sample) and the G-mem probes
     lattice e1 run     <run-dir> <target>       answer and grade them, round by round, under a ceiling
     lattice e1 report  <run-dir>                the readings: pass@1, pass@1(sampled), pass@k, per round
+    lattice e1 paired  <run-dir> <arm> <arm>    the second arm against the first, paired by cell, exact p
     lattice e2 compare <run-dir> <shadow-run>…  E2: each shadow's deltas and flips against the original
     lattice grade      <target> <manifest.json> grade every entry in the manifest; one JSON line each
     lattice selftest   <target> [--cells …]     the gate on the instruments (§5.5)
@@ -67,6 +68,7 @@ from pathlib import Path
 
 from . import ages as ages_of
 from . import compare as compare_of
+from . import paired as paired_of
 from . import e1 as e1_of
 from . import facts as facts_of
 from . import graphgrade as graph_of
@@ -402,6 +404,12 @@ def _e1_verbs(verb: argparse.ArgumentParser) -> None:
     reporter.add_argument("run_dir", type=Path)
     reporter.add_argument("--json", action="store_true", help="the report as JSON rather than a table")
 
+    pairer = steps.add_parser("paired", help="one arm against another in the same run, paired by cell")
+    pairer.add_argument("run_dir", type=Path)
+    pairer.add_argument("first", help="the arm the delta is read from, e.g. C-4")
+    pairer.add_argument("second", help="the arm read against it, e.g. C-2")
+    pairer.add_argument("--json", action="store_true", help="the tests as JSON rather than a table")
+
 
 def _e2_verbs(verb: argparse.ArgumentParser) -> None:
     """`compare` — the only step: one original run against one or more shadow runs of it."""
@@ -429,6 +437,8 @@ def _e1(args, rename) -> int:
         return _e1_plan(args, rename)
     if args.step == "run":
         return _e1_run(args)
+    if args.step == "paired":
+        return _e1_paired(args)
     return _e1_report(args)
 
 
@@ -563,6 +573,28 @@ def _generator(args, record: dict):
 def _e1_report(args) -> int:
     found = report_of.report(args.run_dir)
     print(json.dumps(found, indent=2, sort_keys=True) if args.json else report_of.render(found))
+    return 0
+
+
+def _e1_paired(args) -> int:
+    """Two arms of one run, paired by cell. A run with no meta.json has no `k` to read pass@k at."""
+    meta = args.run_dir / e1_of.META
+    if not meta.exists():
+        print(f"lattice: {args.run_dir.name} has no {e1_of.META}", file=sys.stderr)
+        return 2
+    k = int(json.loads(meta.read_text(encoding="utf-8")).get("k") or 0)
+    found = paired_of.arms(args.run_dir, args.first, args.second, k)
+    if not found:
+        print(f"lattice: {args.run_dir.name} has no section in which both {args.first} and {args.second} ran",
+              file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(found, indent=2, sort_keys=True))
+        return 0
+    print(f"{args.run_dir.name}: {args.second} − {args.first} (exact, two-sided, uncorrected)")
+    for name, tests in found.items():
+        print(f"  {name}:")
+        print("\n".join(paired_of.render_pair(f"{args.second} − {args.first}", tests)))
     return 0
 
 
