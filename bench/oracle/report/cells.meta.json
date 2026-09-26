@@ -590,5 +590,45 @@
   "draw": "picked",
   "label": "flask",
   "note": "trace-graded under its own suite; picked for ADR-145's amended shape (the app fixture); 15 of 18 suspects are C-60's override asymmetry, 3 Hobbes-wrong (a sibling method's nested def)"
+ },
+ "codegraphcontext-express": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "express (CommonJS)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-preact": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (picked)",
+  "label": "preact (ESM, JSDoc, JSX)",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-xmpp": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "xmpp.js",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes xmpp.js cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-github-action": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "cypress github-action",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
+ },
+ "codegraphcontext-cue": {
+  "lang": "JavaScript",
+  "run": "host-run",
+  "draw": "the Hobbes cell's draw (random)",
+  "label": "cue",
+  "tool": "codegraphcontext",
+  "note": "codegraphcontext graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)"
  }
 }

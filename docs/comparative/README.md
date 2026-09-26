@@ -181,6 +181,29 @@ offline pass), fixed the same session and regraded 16,050/16,050.
    another class's member, the other overload, `std::end` drawn to a
    repo member `end()`.
 
+   **JavaScript, 2026-09-26:** CodeGraphContext on the five JavaScript
+   cells (Express, Preact, xmpp.js, cypress-io/github-action, cue), each
+   at its Hobbes cell's commit and graded by that cell's standing key
+   (`--lang ts`, the export's; cue and github-action by their
+   provisioned arms' keys). Each index ran on a copy of Hobbes' clone
+   (the clones are regraded later and stay clean) in a network namespace
+   with no interface up (`unshare -rn`). Precision runs from 97.5% on
+   Express (strict 97.2%) to 40.3% on Preact (strict 34.5%). 32
+   contradicted rows were read by hand and all 32 are tool-wrong: a call
+   drawn by its short name to another declaration of that name. On
+   Preact, 1,023 of its 2,202 contradictions are rows where the key names
+   one of the repo's own `.d.ts` declarations and the tool's callee
+   declares a function of the same name. That is a count, not a verdict,
+   and the record says so. **repowise is not graded on these cells.**
+   Its converter drops every call whose caller is repowise's per-file
+   `__module__` node, although repowise stores those calls with a file
+   and a line. On JavaScript that drop takes most of the graph (Express
+   356 of 358 call lines, Preact 4,194 of 4,664). The drop is the
+   converter's defect (C-94), and it already applies to the TypeScript
+   repowise cells above (cheerio 1,288 of 1,496 call lines, hono 4,051
+   of 4,995, zod 6,402 of 9,186). Its fix, and the regrade that follows
+   from it, wait on the lead.
+
 ## The 1-1 on repowise's draws
 
 repowise-bench's G4 experiment pins five repos (cobra, gitleaks, syft,

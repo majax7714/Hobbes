@@ -83,15 +83,16 @@ export, `oracle export` reads `graph.json` to (site, callee) pairs.
 Facts about running the two graded tools on this box on 2026-09-09,
 as their READMEs document, on the loop repos at the commits the oracle
 keys were built at, and again on the C cells (2026-09-14) and the C++
-cells (2026-09-15) at the same pins. These are not claims about the
+cells (2026-09-15) at the same pins, and CodeGraphContext on the five
+JavaScript cells (2026-09-26). These are not claims about the
 tools beyond those runs.
 
 | | CodeGraphContext 0.6.13 (`--db kuzudb`) | repowise 0.49.0 (`init --no-prose -y --no-editor-setup`) |
 |---|---|---|
 | Install | `uv venv && uv pip install codegraphcontext`; Python 3.14 on this box | `uv venv && uv pip install repowise` |
-| Network during index | none observed; no key asked for | none observed; no key asked for (`--no-prose`) |
+| Network during index | none observed; no key asked for. On the JavaScript cells the index ran in a network namespace with no interface up (`unshare -rn`), so no network was possible; exit 0 on all five | none observed; no key asked for (`--no-prose`); the same `unshare -rn` run on the JavaScript cells exited 0 on all five (not graded; see the claim page, item 4) |
 | Repo code executed | none observed (tree-sitter parse; no build invoked) | none observed |
-| Writes into the repo | none on the 2026-09-09 clones (the database is at `--db-path`); on the C and C++ runs (2026-09-14, 2026-09-15) a `.cgcignore` at the clone's root, its default ignore patterns (`build/`, `node_modules/`, images, archives), left untracked | `.repowise/` (kept out of the tree with `--no-editor-setup`; the default also writes `.mcp.json`, `.claude/CLAUDE.md`, `.vscode/*`); on the C++ runs the store was moved out of the clone after its dump |
+| Writes into the repo | none on the 2026-09-09 clones (the database is at `--db-path`); on the C and C++ runs (2026-09-14, 2026-09-15) a `.cgcignore` at the clone's root, its default ignore patterns (`build/`, `node_modules/`, images, archives), left untracked; on the JavaScript runs the index ran on a `cp -a` copy of Hobbes' clone, which left Hobbes' clone untouched, and wrote that `.cgcignore` into the copy. The default ignore also skips a tracked `dist/` (cypress-io/github-action's bundle) | `.repowise/` (kept out of the tree with `--no-editor-setup`; the default also writes `.mcp.json`, `.claude/CLAUDE.md`, `.vscode/*`); on the C++ runs the store was moved out of the clone after its dump |
 | C and C++ files it reads | its parser table (`tools/graph_builder.py`) maps `.c` to C and `.cpp`, `.h`, `.hpp`, `.hh` to C++; `.cc`, `.cxx` and `.hxx` are not read. On args (a `.hxx` header, `.cxx` tests) it stored no C++ call edge; on fmt, none from its 47 `.cc` files | its source not read for this; on fmt it drew edges from `.cc` files, and on args from `args.hxx` and the `.cxx` tests |
 | Determinism, the same clone indexed again | **not always the same**: four fresh indexes of mux stored 767, 1,193, 767 and 767 CALLS rows (the 1,193 a strict superset; the tool's own summary printed 2,165 each time) — both grades are in the mux cell record | **same**: the converted edge file was byte-identical across two indexes of mux |
 | Wall time on mux (7.5k lines Go) | 4 s | 4 s |

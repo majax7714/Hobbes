@@ -587,6 +587,120 @@
    }
   },
   {
+   "stem": "codegraphcontext-cue",
+   "record": "codegraphcontext-cue-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "cue",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes cue cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 1065,
+   "confirmed": 1010,
+   "contradicted": 40,
+   "abstract": 0,
+   "silent": 15,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 4,
+    "no-targets": 11
+   },
+   "precision": {
+    "pct": 96.2,
+    "num": 1010,
+    "den": 1050
+   },
+   "recall": {
+    "pct": 62.5,
+    "hits": 1028,
+    "pairs": 1644,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 30,
+    "func-value→parameter": 23,
+    "static→anonymous-function": 2,
+    "static→class": 38,
+    "static→closure": 124,
+    "static→function": 245,
+    "static→method": 154
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 1065,
+    "refused": 940,
+    "unjudged": 125,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 95.8,
+    "num": 1010,
+    "den": 1054,
+    "line_unresolved": 4
+   }
+  },
+  {
+   "stem": "codegraphcontext-express",
+   "record": "codegraphcontext-express-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "express (CommonJS)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes express (CommonJS) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 385,
+   "confirmed": 318,
+   "contradicted": 8,
+   "abstract": 0,
+   "silent": 59,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 1,
+    "no-targets": 58
+   },
+   "precision": {
+    "pct": 97.5,
+    "num": 318,
+    "den": 326
+   },
+   "recall": {
+    "pct": 20.9,
+    "hits": 318,
+    "pairs": 1520,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 25,
+    "func-value→parameter": 352,
+    "func-value→variable": 85,
+    "static→anonymous-function": 31,
+    "static→function": 709
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 385,
+    "refused": 233,
+    "unjudged": 152,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 97.2,
+    "num": 318,
+    "den": 327,
+    "line_unresolved": 1
+   }
+  },
+  {
    "stem": "codegraphcontext-fmt",
    "record": "codegraphcontext-fmt-2026-09-15.md",
    "date": "2026-09-15",
@@ -700,6 +814,62 @@
     "num": 2720,
     "den": 3143,
     "line_unresolved": 61
+   }
+  },
+  {
+   "stem": "codegraphcontext-github-action",
+   "record": "codegraphcontext-github-action-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "cypress github-action",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes cypress github-action cell (its provisioned arm's key, the standing one; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 69,
+   "confirmed": 63,
+   "contradicted": 5,
+   "abstract": 0,
+   "silent": 1,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 1
+   },
+   "precision": {
+    "pct": 92.6,
+    "num": 63,
+    "den": 68
+   },
+   "recall": {
+    "pct": 36.4,
+    "hits": 63,
+    "pairs": 173,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 4,
+    "func-value→parameter": 3,
+    "func-value→variable": 86,
+    "static→closure": 2,
+    "static→function": 7,
+    "static→variable": 8
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 69,
+    "refused": 67,
+    "unjudged": 2,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 91.3,
+    "num": 63,
+    "den": 69,
+    "line_unresolved": 1
    }
   },
   {
@@ -1012,6 +1182,69 @@
     "refused": 1170,
     "unjudged": 23,
     "falsely": 0
+   }
+  },
+  {
+   "stem": "codegraphcontext-preact",
+   "record": "codegraphcontext-preact-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (picked)",
+   "label": "preact (ESM, JSDoc, JSX)",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes preact (ESM, JSDoc, JSX) cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 5505,
+   "confirmed": 1484,
+   "contradicted": 2202,
+   "abstract": 0,
+   "silent": 1819,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 611,
+    "no-targets": 1065,
+    "not-loaded": 143
+   },
+   "precision": {
+    "pct": 40.3,
+    "num": 1484,
+    "den": 3686
+   },
+   "recall": {
+    "pct": 18.4,
+    "hits": 1693,
+    "pairs": 9211,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 1588,
+    "func-value→parameter": 112,
+    "func-value→variable": 223,
+    "interface→type-member": 1796,
+    "static→anonymous-function": 1,
+    "static→class": 576,
+    "static→closure": 1526,
+    "static→function": 1458,
+    "static→method": 203,
+    "static→type-member": 33,
+    "static→variable": 2
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 5505,
+    "refused": 3405,
+    "unjudged": 2100,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 34.5,
+    "num": 1484,
+    "den": 4297,
+    "line_unresolved": 611
    }
   },
   {
@@ -1362,6 +1595,64 @@
     "num": 812,
     "den": 872,
     "line_unresolved": 2
+   }
+  },
+  {
+   "stem": "codegraphcontext-xmpp",
+   "record": "codegraphcontext-xmpp-2026-09-26.md",
+   "date": "2026-09-26",
+   "kind": "resolution",
+   "oracle": "tsc 5.9.3 (harness; no tsconfig — the ingest's generated options)",
+   "lang": "JavaScript",
+   "run": "host-run",
+   "draw": "the Hobbes cell's draw (random)",
+   "label": "xmpp.js",
+   "tool": "codegraphcontext",
+   "note": "codegraphcontext graded by the same key as the Hobbes xmpp.js cell (its stored key after H-34/H-35's fix; ADR-101, `--lang ts` as the export); run on a copy of Hobbes' clone with no network (unshare -rn); host-run (C-96); tolerances tuned on Hobbes' output (C-95)",
+   "edges": 797,
+   "confirmed": 337,
+   "contradicted": 71,
+   "abstract": 0,
+   "silent": 389,
+   "suspect": 0,
+   "unobserved": 0,
+   "silent_by": {
+    "line-unresolved": 34,
+    "no-targets": 355
+   },
+   "precision": {
+    "pct": 82.6,
+    "num": 337,
+    "den": 408
+   },
+   "recall": {
+    "pct": 40.7,
+    "hits": 342,
+    "pairs": 840,
+    "roots": null,
+    "basis": "over every resolved site (resolution oracle: no roots)"
+   },
+   "misses": {
+    "func-value→local-binding": 18,
+    "func-value→parameter": 64,
+    "func-value→variable": 46,
+    "static→class": 104,
+    "static→closure": 6,
+    "static→function": 127,
+    "static→method": 133
+   },
+   "poison": {
+    "passed": true,
+    "seeded": 797,
+    "refused": 287,
+    "unjudged": 510,
+    "falsely": 0
+   },
+   "precision_strict": {
+    "pct": 76.2,
+    "num": 337,
+    "den": 442,
+    "line_unresolved": 34
    }
   },
   {
